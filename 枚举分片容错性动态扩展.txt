@@ -1,0 +1,49 @@
+枚举分片之前的《mycat字符串枚举分片示例.txt》中已经介绍过。
+
+使用这种分片策略之后碰到了一个问题：
+场景：
+使用连锁店的店铺编号枚举分片（第1至第100分布店分在第一个分片，第101至第250分店），全国的连锁店会不断增加。在还没有来得及往配置文件中配置新的店铺编号时，新店铺的数据无法插入到mycat中（mycat会抛出异常can't find datanode for sharding column:SHOP_NO val:SHOP1002 ），而且店铺可能今天加一个新店，明天再加一个新店，难道维护人员每天来给你修改这个枚举店铺编号的配置文件？
+
+
+解决办法：
+不识别的枚举值，路由到一个默认的节点，这样，mycat将新店铺的数据全部插入到默认节点。当不识别的店铺编号达到一定的数量后，比如新增了1000个店铺后，新增一个数据节点，将默认节点上的那1000个店铺的数据整体迁移到新节点上。枚举分片的迁移非常容易，两个命令搞定：
+1、默认节点的mysql服务器上执行导出：mysqldump -uroot -p123456 databasename shop --where=" shop_no in ('shop1001','shop1002'.....,'shop2000') " > /data/shop.sql
+2、新节点的mysql服务器上执行导入：mysql -uroot -p123456 databasename <  /data/shop.sql
+
+
+修改的代码：
+为了支持该方案，对org.opencloudb.route.function.PartitionByFileMap类做修改，增加一个属性defaultNode，如下：
+/**
+	 * 默认节点:小于0表示不设置默认节点，大于等于0表示设置默认节点
+	 * 
+	 * 默认节点的作用：枚举分片时，如果碰到不识别的枚举值，就让它路由到默认节点
+	 *                如果不配置默认节点（defaultNode值小于0表示不配置默认节点），碰到
+	 *                不识别的枚举值就会报错，
+	 *                like this：can't find datanode for sharding column:column_name val:ffffffff    
+	 */
+	private int defaultNode = -1;
+
+defaultNode的默认值为-1表示不配置默认节点，如果要配置默认节点，需要从配置文件配置defaultNode的值，一般是从rule.xml中配置：
+<function name="sharding-by-string-enumFunc" class="org.opencloudb.route.function.PartitionByFileMap">
+    <property name="mapFile">partition-by-shop_no-enum.txt</property>
+    <property name="type">1</property>
+    <property name="defaultNode">0</property> <!-- 表示默认节点为第一个节点 -->
+</function>
+
+private void initialize() 方法根据defaultNode的值往map中增加defaultNode：
+//设置默认节点
+			if(defaultNode >= 0) {
+				app2Partition.put(DEFAULT_NODE, defaultNode);
+			}
+
+public Integer calculate(String columnValue) 方法：
+Integer pid = app2Partition.get(value);
+		if (pid != null) {
+			rst = pid;
+		} else {
+			rst =app2Partition.get(DEFAULT_NODE);
+		}
+		return rst;
+
+
+	

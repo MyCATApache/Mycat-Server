@@ -1,0 +1,140 @@
+org.opencloudb.route.function.PartitionByFileMap可以支持字符串枚举、整型枚举（之前只支持整型枚举）
+
+分片规则：字符串枚举分片
+枚举分片的适用场景：记录数可枚举（记录数基本固定或变化很小），比如省份、地区、商业区域（华东区、华中区、华北区、东南区、西南区等）。
+枚举的好处：枚举分片的库扩展时数据跟范围分片一样，比较容易迁移，比如某个表之前湖南、湖北两个省的数据分布在一个分片，现在要将湖北的数据独立扩展到一个新库，
+            可以使用两个语句搞定且迁移数据非常快（mysqldump的导出然后在再导入比写程序或者使用其他迁移工具快很多倍，测试过使用kettle和mysqldump的导出迁移，
+	    同样的环境下，kettle迁移1000万数据大概耗时4小时，但是使用mysqldump导出90秒，然后使用mysql -uroot -ppassword databasename </data/dumpsql.sql导入3分钟，
+	    迁移速度相差大概50倍）。
+枚举可能的问题及解决方案：枚举出现新的枚举值，不属于目前配置的某个分片，解决办法：可以对新枚举值（不识别的枚举值）插入数据时使之落到某个默认分片上，
+                          等新枚举值达到一定的量后，迁移到一个新的分片上去。
+本文示范的场景：业务上按照省份分片，数据库上表现为按照省份编码字段province_no分片，province_no为varchar(16),
+      这些省份的值是固定的，中国有34个省级行政区（其中，有23个省、5个自治区、4个直辖市、2个特别行政区）。
+      本例以shop（商店）表示范。编码值以省份名称的全拼组成，如湖北的编码HUBEI,广东的编码GUANGDONG.....
+使用的分片算法类：org.opencloudb.route.function.PartitionByFileMap，该算法支持字符串枚举和整型枚举。
+PartitionByFileMap之前不支持字符串枚举，在其中加了一个type属性使之能支持。type表示PartitionByFileMap类中
+Map<Object, Integer>的key的真实类型。如果type为0，表示Integer类型，如果是非0，表示String类型。
+
+
+建表sql：
+create table shop (
+  id int NOT NULL PRIMARY KEY,
+  shop_name char(18) NOT NULL,
+  address VARCHAR(128),
+  phone_number varchar(21),
+  province_no varchar(16)
+);
+
+INSERT into shop (id,shop_name,address,phone_number,province_no) values (1,'深圳第一连锁店','深圳市南山区科技南五路1号','075584569789','GUANGDONG');
+INSERT into shop (id,shop_name,address,phone_number,province_no) values (2,'武汉第一连锁店','武汉市洪山区太平路1号','02784569789','HUBEI');
+INSERT into shop (id,shop_name,address,phone_number,province_no) values (3,'武汉第二连锁店','武汉市南山区科技南五路1号','02784569789','HUBEI');
+INSERT into shop (id,shop_name,address,phone_number,province_no) values (4,'南昌第一连锁店','南昌市红军路1号','053284569789','JIANGXI');
+INSERT into shop (id,shop_name,address,phone_number,province_no) values (5,'岳阳市第一连锁店','岳阳市南和平路1号','073084569789','HUNAN');
+INSERT into shop (id,shop_name,address,phone_number,province_no) values (6,'哈尔滨第一连锁店','哈尔滨市沿江路1号','045184569789','HEILONGJIANG');
+INSERT into shop (id,shop_name,address,phone_number,province_no) values (7,'成都市第一连锁店','成都市和平路1号','02884569789','SICHUAN');
+INSERT into shop (id,shop_name,address,phone_number,province_no) values (8,'深圳第2连锁店','深圳市罗湖区红岗路1号','075584569789','GUANGDONG');
+INSERT into shop (id,shop_name,address,phone_number,province_no) values (9,'桂林市第2连锁店','桂林市梅雨路1号','077384569789','GUANGXI');
+
+
+
+rule.xml内容：
+<!DOCTYPE mycat:rule SYSTEM "rule.dtd">
+<mycat:rule xmlns:mycat="http://org.opencloudb/">
+   <tableRule name="sharding-by-string-enum">
+      <rule>
+        <columns>province_no</columns>
+        <algorithm>stringenum</algorithm>
+      </rule>
+   </tableRule>
+   <function name="stringenum" class="org.opencloudb.route.function.PartitionByFileMap">
+      <property name="mapFile">partition-by-string-enum.txt</property>
+      <property name="type">1</property><!-- 默认值为0，0表示整型，非0表示字符串类型，不加type属性会使用默认值0-->
+   </function>
+</mycat:rule>
+
+partition-by-string-enum.txt内容（限于篇幅，不列出所有的省份）：
+HUBEI=0
+HUNAN=0
+GUANGXI=1
+GUANGDONG=1
+HEILONGJIANG=1
+YUNNAN=2
+SICHUAN=2
+JIANGXI=2
+//HUBEI HUNAN GUANGXI等表示省份编码，如HUBEI表示湖北、HUNAN表示湖南、GUANGXI表示广西、GUANGDONG表示广东.......
+//HUBEI=0表示湖北省的数据分布在第一分片，GUANGXI=1表示广西省的数据分布在第二分片，YUNNAN=2表示云南省的数据分布在第3分片......
+
+
+schema.xml:
+<?xml version="1.0"?>
+<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
+<mycat:schema xmlns:mycat="http://org.opencloudb/">
+
+  <schema name="TESTDB" checkSQLschema="false" sqlMaxLimit="100">
+	<table name="shop" primaryKey="id" dataNode="dn1,dn2,dn3"  rule="sharding-by-string-enum" />
+	<table name="employee" primaryKey="id" dataNode="dn1,dn2,dn3"  rule="sharding-by-intfile" />
+  </schema>
+
+  <dataNode name="dn1" dataHost="host01" database="db1" />
+  <dataNode name="dn2" dataHost="host02" database="db2" />
+  <dataNode name="dn3" dataHost="host03" database="db3" />
+
+  <dataHost name="host01" maxCon="1000" minCon="10" balance="1"
+    writeType="0" dbType="mysql" dbDriver="native">
+    <heartbeat>select user()</heartbeat>
+    <!-- can have multi write hosts -->
+    <writeHost host="dn1-m1" url="172.17.210.39:3306" user="mycat" password="mycat@123">
+      <!-- can have multi read hosts -->
+      <readHost host="dn1-s1" url="172.17.210.44:3306" user="mycat" password="mycat@123" />
+    </writeHost>
+    <writeHost host="dn1-m2" url="172.17.210.43:3306" user="mycat" password="mycat@123">
+      <!-- can have multi read hosts -->
+      <readHost host="dn1-s2" url="172.17.210.40:3306" user="mycat" password="mycat@123" />
+    </writeHost>
+  </dataHost>
+  <dataHost name="host02" maxCon="1000" minCon="10" balance="1"
+    writeType="0" dbType="mysql" dbDriver="native">
+    <heartbeat>select user()</heartbeat>
+    <!-- can have multi write hosts -->
+    <writeHost host="dn2-m1" url="172.17.210.86:3306" user="mycat" password="mycat@123">
+      <!-- can have multi read hosts -->
+      <readHost host="dn2-s1" url="172.17.210.42:3306" user="mycat" password="mycat@123" />
+    </writeHost>
+    <writeHost host="dn2-m2" url="172.17.210.41:3306" user="mycat" password="mycat@123">
+      <!-- can have multi read hosts -->
+      <readHost host="dn2-s2" url="172.17.210.87:3306" user="mycat" password="mycat@123" />
+    </writeHost>
+  </dataHost>
+  <dataHost name="host03" maxCon="1000" minCon="10" balance="1"
+    writeType="0" dbType="mysql" dbDriver="native">
+    <heartbeat>select user()</heartbeat>
+    <!-- can have multi write hosts -->
+    <writeHost host="dn3-m1" url="172.17.210.88:3306" user="mycat" password="mycat@123">
+      <!-- can have multi read hosts -->
+      <readHost host="dn3-s1" url="172.17.210.191:3306" user="mycat" password="mycat@123" />
+    </writeHost>
+    <writeHost host="dn3-m2" url="172.17.210.85:3306" user="mycat" password="mycat@123">
+      <!-- can have multi read hosts -->
+      <readHost host="dn3-s2" url="172.17.210.89:3306" user="mycat" password="mycat@123" />
+    </writeHost>
+  </dataHost>
+</mycat:schema>
+
+
+
+整型枚举：
+上述示例中，如果省份编码字段用int表示，就是整型枚举分片，将rule.xml配置中的type属性去掉，或者type设置为0即可。
+<function name="stringenum" class="org.opencloudb.route.function.PartitionByFileMap">
+      <property name="mapFile">partition-by-string-enum.txt</property>
+      <property name="type">1</property><!-- 默认值为0，0表示整型，非0表示字符串类型，不加type属性会使用默认值0-->
+</function>
+
+
+枚举分片的数据迁移：
+将湖北省的数据迁移到新的分片上去：
+以下命令直连后端的mysql库操作
+#将databasename数据库上shop表中province_no ='HUBEI'的记录导出到/data/shop.sql
+mysqldump -uroot -p123456 databasename shop --where=" province_no ='HUBEI' " > /data/shop.sql
+
+#将/data/shop.sql文件拷贝到新分片所在的mysql服务器上，执行导入
+mysql -uroot -p123456 databasename <  /data/shop.sql
