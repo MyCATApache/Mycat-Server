@@ -1,6 +1,7 @@
 package org.opencloudb.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
 
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
@@ -30,6 +31,11 @@ public class DruidInsertParser extends DefaultDruidParser {
 			String partitionColumn = tc.getPartitionColumn();
 			
 			if(partitionColumn != null) {//分片表
+				//拆分表必须给出column list,否则无法寻找分片字段的值
+				if(insert.getColumns() == null || insert.getColumns().size() == 0) {
+					throw new SQLSyntaxErrorException("partition table, insert must provide ColumnList");
+				}
+				
 				boolean isFound = false;
 				if(insert.getValuesList().size() > 1 || insert.getQuery() != null) {
 					//insert into .... select ....不能支持  

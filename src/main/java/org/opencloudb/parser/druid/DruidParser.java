@@ -24,6 +24,7 @@ public interface DruidParser {
 	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException;
 	
 	/**
+	 * statement方式解析
 	 * 子类可覆盖（如果visitorParse解析得不到表名、字段等信息的，就通过覆盖该方法来解析）
 	 * 子类覆盖该方法一般是将SQLStatement转型后再解析（如转型为MySqlInsertStatement）
 	 */
@@ -36,6 +37,14 @@ public interface DruidParser {
 	 */
 	public void visitorParse(RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException;
 	
+	/**
+	 * 改写sql：加limit，加group by、加order by如有些没有加limit的可以通过该方法增加
+	 * @param schema
+	 * @param rrs
+	 * @param stmt
+	 * @throws SQLNonTransientException
+	 */
+	public void changeSql(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException;
 	/**
 	 * 获取解析到的信息
 	 * @return

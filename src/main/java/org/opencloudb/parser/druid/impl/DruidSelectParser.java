@@ -1,5 +1,6 @@
 package org.opencloudb.parser.druid.impl;
 
+import java.sql.SQLNonTransientException;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -78,19 +79,30 @@ public class DruidSelectParser extends DefaultDruidParser {
 			}
 			
 			//setMergeCols TODO 目前设置这个值会报错，可能有特殊场景需要，后续如果出现bug在考虑设置
-			
+
+		} else if (sqlSelectQuery instanceof MySqlUnionQuery) { //TODO union语句可能需要额外考虑，目前不处理也没问题
+//			MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;
+//			MySqlSelectQueryBlock left = (MySqlSelectQueryBlock)unionQuery.getLeft();
+//			MySqlSelectQueryBlock right = (MySqlSelectQueryBlock)unionQuery.getLeft();
+//			System.out.println();
+		}
+	}
+	
+	/**
+	 * 改写sql：需要加limit的加上
+	 */
+	@Override
+	public void changeSql(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
+		SQLSelectStatement selectStmt = (SQLSelectStatement)stmt;
+		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
+		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
+			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
 			if(isNeedAddLimit(schema, rrs, mysqlSelectQuery)  ) {
 				Limit limit = new Limit();
 				limit.setRowCount(new SQLIntegerExpr(schema.getDefaultMaxLimit()));
 				mysqlSelectQuery.setLimit(limit);
 			}
-		} else if (sqlSelectQuery instanceof MySqlUnionQuery) { //TODO union语句可能需要额外考虑
-			MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;
-			MySqlSelectQueryBlock left = (MySqlSelectQueryBlock)unionQuery.getLeft();
-			MySqlSelectQueryBlock right = (MySqlSelectQueryBlock)unionQuery.getLeft();
-			System.out.println();
 		}
-		
 	}
 	
 	private boolean isNeedAddLimit(SchemaConfig schema, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery) {

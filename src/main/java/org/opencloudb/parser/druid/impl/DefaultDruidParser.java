@@ -56,6 +56,9 @@ public class DefaultDruidParser implements DruidParser {
 		//通过Statement解析
 		statementParse(schema, rrs, stmt);
 		
+		//改写sql：如insert语句主键自增长的可以
+		changeSql(schema, rrs, stmt);
+		
 		ctx.setSql(stmt.toString());
 	}
 	
@@ -65,6 +68,15 @@ public class DefaultDruidParser implements DruidParser {
 	 */
 	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
+		
+	}
+	
+	/**
+	 * 改写sql：如insert是
+	 */
+	@Override
+	public void changeSql(SchemaConfig schema, RouteResultset rrs,
+			SQLStatement stmt) throws SQLNonTransientException {
 		
 	}
 

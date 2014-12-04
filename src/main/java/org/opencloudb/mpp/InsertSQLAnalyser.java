@@ -62,6 +62,9 @@ public class InsertSQLAnalyser {
 		parsInf.columnPairMap = colMap;
 		ResultColumnList columList = insrtNode.getTargetColumnList();
 		String[] columnNames = null;
+		if(columList == null) {
+			throw new SQLSyntaxErrorException("insert must provide ColumnList");
+		}
 		if (columList != null) {
 			columnNames = columList.getColumnNames();
 		}
