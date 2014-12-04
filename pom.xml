@@ -16,9 +16,9 @@
 			<buildNumber>${maven.build.timestamp}</buildNumber -->
 	</properties>
 	<scm>
-		<connection>scm:git:ssh://apachemycat@github.com/MyCATApache/MyCAT-Server.git</connection>
-		<developerConnection>scm:git:ssh://apachemycat@github.com/MyCATApache/MyCAT-Server.git</developerConnection>
-		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/MyCAT-Server.git</url>
+		<connection>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</connection>
+		<developerConnection>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</developerConnection>
+		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</url>
 	</scm>
 	<dependencies>
 		<dependency>
