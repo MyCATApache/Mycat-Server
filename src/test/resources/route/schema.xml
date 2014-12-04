@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- - - Licensed under the Apache License, Version 2.0 (the "License"); 
+	- you may not use this file except in compliance with the License. - You 
+	may obtain a copy of the License at - - http://www.apache.org/licenses/LICENSE-2.0 
+	- - Unless required by applicable law or agreed to in writing, software - 
+	distributed under the License is distributed on an "AS IS" BASIS, - WITHOUT 
+	WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. - See the 
+	License for the specific language governing permissions and - limitations 
+	under the License. -->
+<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
+<mycat:schema xmlns:mycat="http://org.opencloudb/">
+
+	<schema name="cndb" checkSQLschema="true" >
+		<table name="offer" dataNode="offer_dn$0-127" rule="offerRule" />
+		<table name="offer_detail" dataNode="detail_dn[0],detail_dn$1-127"
+			rule="offerDetailRule" ruleRequired="false" />
+		<table name="offer_date" dataNode="detail_dn[0],detail_dn$1-127"
+			rule="dateRule" ruleRequired="false" />
+
+		<table name="independent" dataNode="independent_dn$0-126,independent_dn[127]" />
+	</schema>
+	<schema name="dubbo" dataNode="dubbo_dn" />
+	<schema name="ignoreSchemaTest" dataNode="cndb_dn" checkSQLschema="true"/>
+	<schema name="config">
+		<table name="offer" dataNode="offer_dn$0-127" rule="offerRule"
+			ruleRequired="true" />
+	</schema>
+	<schema name="none_node_test">
+		<table name="offer" dataNode="offer_dn$0-127" rule="offerRule"
+			ruleRequired="true" />
+	</schema>
+	<schema name="solo1" dataNode="solo1" />
+
+	<schema name="TESTDB"  sqlMaxLimit="100">
+		<!-- global table is auto cloned to all defined data nodes ,so can join 
+			with any table whose sharding node is in the same data node -->
+		<table name="company" type="global" dataNode="dn1,dn2,dn3" />
+		<table name="goods" type="global" dataNode="dn1,dn2,dn3" />
+		<table name="notpartionTable"  dataNode="dn1" />
+		<table name="area" primaryKey="ID" type="global" dataNode="dn1,dn2,dn3" />
+		<table name="employee" primaryKey="id" dataNode="dn1,dn2"
+			rule="sharding-by-intfile" />
+		<table name="customer" dataNode="dn1,dn2" rule="auto-sharding-long">
+			<childTable name="orders" joinKey="customer_id" parentKey="id">
+				<childTable name="order_items" joinKey="order_id"
+					parentKey="id" />
+			</childTable>
+			<childTable name="customer_addr" joinKey="customer_id"
+				parentKey="id" />
+		</table>
+		<table name="globalsn" primaryKey="ID" type="global" dataNode="dn1" />
+	</schema>
+
+
+	<dataNode name="dn1" dataHost="localhost1" database="db1" />
+	<dataNode name="dn2" dataHost="localhost1" database="db2" />
+	<dataNode name="dn3" dataHost="localhost1" database="db3" />
+	<dataNode name="cndb_dn" dataHost="localhost1" database="db4" />
+	<dataNode name="offer_dn" dataHost="localhost1" database="db1_$0-127" />
+	<dataNode name="detail_dn" dataHost="localhost1" database="db2_$0-127" />
+	<dataNode name="independent_dn" dataHost="localhost1"
+		database="db7_$0-127" />
+	<dataNode name="dubbo_dn" dataHost="localhost1" database="db8" />
+	<dataNode name="solo1" dataHost="localhost1" database="db9" />
+	<dataHost name="localhost1" maxCon="500" minCon="10" balance="0"
+		dbType="mysql" dbDriver="native">
+		<heartbeat>select user()</heartbeat>
+		<!-- can have multi write hosts -->
+		<writeHost host="hostM1" url="localhost:3306" user="root"
+			password="123456">
+			<!-- can have multi read hosts -->
+			<!-- <readHost host="hostS1" url="localhost:3307" user="root" password="123456" 
+				/> -->
+		</writeHost>
+	</dataHost>
+</mycat:schema>

@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
+<mycat:schema xmlns:mycat="http://org.opencloudb/">
+
+	<schema name="TESTDB" checkSQLschema="false" sqlMaxLimit="100">
+		<!-- auto sharding by id (long) -->
+		<table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
+
+		<!-- global table is auto cloned to all defined data nodes ,so can join 
+			with any table whose sharding node is in the same data node -->
+		<table name="company" primaryKey="ID" type="global" dataNode="dn1,dn2,dn3" />
+		<table name="goods" primaryKey="ID" type="global" dataNode="dn1,dn2" />
+
+		<!-- random sharding using mod sharind rule -->
+		<table name="hotnews" primaryKey="ID" dataNode="dn1,dn2,dn3"
+			rule="mod-long" />
+			<!-- 
+		<table name="worker" primaryKey="ID" dataNode="jdbc_dn1,jdbc_dn2,jdbc_dn3" rule="mod-long" />
+ -->
+		<table name="employee" primaryKey="ID" dataNode="dn1,dn2"
+			rule="sharding-by-intfile" />
+		<table name="customer" primaryKey="ID" autoIncrement="true"  dataNode="dn1,dn2"
+			rule="sharding-by-intfile">
+			<childTable name="orders" primaryKey="ID" autoIncrement="true"  joinKey="customer_id"
+				parentKey="id">
+				<childTable name="order_items" joinKey="order_id"
+					parentKey="id" />
+			</childTable>
+			<childTable name="customer_addr" primaryKey="ID" joinKey="customer_id"
+				parentKey="id" />
+		</table>
+	</schema>
+
+	<dataNode name="dn1" dataHost="localhost1" database="db1" />
+	<dataNode name="dn2" dataHost="localhost1" database="db2" />
+	<dataNode name="dn3" dataHost="localhost1" database="db3" />
+	<!-- 
+	<dataNode name="jdbc_dn1" dataHost="jdbchost" database="db1" />
+	<dataNode name="jdbc_dn2" dataHost="jdbchost" database="db2" />
+	<dataNode name="jdbc_dn3" dataHost="jdbchost" database="db3" />
+ -->
+	<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
+		writeType="0" dbType="mysql" dbDriver="native">
+		<heartbeat>select user()</heartbeat>
+		<!-- can have multi write hosts -->
+		<writeHost host="hostM1" url="localhost:3306" user="root"
+			password="123456">
+			<!-- can have multi read hosts -->
+			<!-- <readHost host="hostS1" url="localhost:3306" user="root" password="123456" 
+				/> -->
+		</writeHost>
+		<!-- <writeHost host="hostM2" url="localhost:3316" user="root" password="123456"/> -->
+	</dataHost>
+     <!-- 
+	<dataHost name="jdbchost" maxCon="1000" minCon="10" balance="0"
+		dbType="mysql" dbDriver="jdbc">
+		<heartbeat>select user()</heartbeat>
+		<writeHost host="hostM1" url="jdbc:mysql://localhost:3306"
+			user="root" password="123456">
+		</writeHost>
+	</dataHost>
+	 -->
+</mycat:schema>
