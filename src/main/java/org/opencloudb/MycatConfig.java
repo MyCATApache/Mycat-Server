@@ -261,5 +261,4 @@ public class MycatConfig {
 			lock.unlock();
 		}
 	}
-
 }
