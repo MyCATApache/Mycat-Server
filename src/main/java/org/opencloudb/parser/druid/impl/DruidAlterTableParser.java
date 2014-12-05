@@ -8,6 +8,11 @@ import org.opencloudb.route.RouteResultset;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableStatement;
 
+/**
+ * alter table 语句解析
+ * @author wang.dw
+ *
+ */
 public class DruidAlterTableParser extends DefaultDruidParser {
 	@Override
 	public void visitorParse(RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
