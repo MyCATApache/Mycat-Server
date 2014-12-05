@@ -43,10 +43,11 @@ public class TestInsertSQLAnalyser {
 		sql = "insert into table1  select * FROM table2 WHERE id not in ( select id from  table1) ";
 		//sql = "insert into table1  select * FROM table2 WHERE id not in ( select id aT\'b  table1) ";
 		ast = SQLParserDelegate.parse(sql, SQLParserDelegate.DEFAULT_CHARSET);
-		parsInf = InsertSQLAnalyser.analyse(ast);
-		Assert.assertEquals("table1".toUpperCase(), parsInf.tableName);
-		Assert.assertEquals(0, parsInf.columnPairMap.size());
-		Assert.assertNotNull(parsInf.fromQryNode);
+		try {
+			parsInf = InsertSQLAnalyser.analyse(ast);
+		} catch (SQLSyntaxErrorException e) {
+			Assert.assertEquals("insert must provide ColumnList", e.getMessage());
+		}
 
 		sql = "insert into table1(column1,column2,column3,colum4,column5,column6,column7)values('aaa',5,'1999-2-2',true,\"test\",111,55.66) ";
 		ast = SQLParserDelegate.parse(sql, SQLParserDelegate.DEFAULT_CHARSET);
