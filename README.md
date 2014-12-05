@@ -1,40 +1,32 @@
+### An Introduction to Mycat
 
-Ê²Ã´ÊÇMyCAT£¿¼òµ¥µÄËµ£¬MyCAT¾ÍÊÇ£º
-?	Ò»¸ö³¹µ×¿ªÔ´µÄ£¬ÃæÏòÆóÒµÓ¦ÓÃ¿ª·¢µÄ¡°´óÊı¾İ¿â¼¯Èº¡±
-?	Ö§³ÖÊÂÎñ¡¢ACID¡¢¿ÉÒÔÌæ´úMysqlµÄ¼ÓÇ¿°æÊı¾İ¿â
-?	Ò»¸ö¿ÉÒÔÊÓÎª¡°Mysql¡±¼¯ÈºµÄÆóÒµ¼¶Êı¾İ¿â£¬ÓÃÀ´Ìæ´ú°º¹óµÄOracle¼¯Èº
-?	Ò»¸öÈÚºÏÄÚ´æ»º´æ¼¼Êõ¡¢Nosql¼¼Êõ¡¢HDFS´óÊı¾İµÄĞÂĞÍSQL Server
-?	½áºÏ´«Í³Êı¾İ¿âºÍĞÂĞÍ·Ö²¼Ê½Êı¾İ²Ö¿âµÄĞÂÒ»´úÆóÒµ¼¶Êı¾İ¿â²úÆ·
-?	Ò»¸öĞÂÓ±µÄÊı¾İ¿âÖĞ¼ä¼ş²úÆ·
+Mycat is an Open-Source software, â€œa big database clusterâ€ oriented to the enterprises. Mycat is an enforced database which is a replacement for MySQL and support transaction and ACID. Regarded as MySQL cluster of enterprise database, Mycat can take the place of expensive Oracle cluster. Mycat is also a new type of SQL Server integrated with the memory cache technology, Nosql technology and HDFS big data. And as a new modern enterprise database product, Mycat is combined with the traditional database and new distributed data warehouse. In a word, Mycat is a fresh new middleware of database..
 
+Mycatâ€™s target is to smoothly migrate the current stand-alone database and applications to cloud side with low cost and to solve the bottleneck problem caused by the rapid growth of data storage and business scale.
 
+##### Mycat Key Features:
 
-MyCATµÄÄ¿±êÊÇ£º
-µÍ³É±¾µÄ½«ÏÖÓĞµÄµ¥»úÊı¾İ¿âºÍÓ¦ÓÃÆ½»¬Ç¨ÒÆµ½¡°ÔÆ¡±¶Ë£¬½â¾öÊı¾İ´æ´¢ºÍÒµÎñ¹æÄ£Ñ¸ËÙÔö³¤Çé¿öÏÂµÄÊı¾İÆ¿¾±ÎÊÌâ¡£
+* Supports SQL 92 standard
+* Supports MySQL cluster, used as a Proxy
+* Supports JDBC connection with ORACLE, DB2, SQL Server, simulated as normal MySQL Server connection
+* Supports MySQL cluster, percona cluster or mariadb cluster, providing high availability of data fragmentation clusters
+* Supports automatic failover and high availability
+* Supports separation of read and write, dual-master with multi-slave, single-master with multi-master of MySQL model
+* Supports global table, automatically fragment data into multiple nodes for efficient relational query
+* Supports the unique fragmentation strategy based on ER-relation for efficient relational query
+* Supports multi-platform, easy deployment and implementation
 
+##### Mycat adventage:
 
-MyCATµÄ¹Ø¼üÌØĞÔ£º
-?	Ö§³Ö SQL 92±ê×¼
-?	Ö§³ÖMysql¼¯Èº£¬¿ÉÒÔ×÷ÎªProxyÊ¹ÓÃ
-?	Ö§³ÖJDBCÁ¬½ÓORACLE¡¢DB2¡¢SQL Server£¬½«ÆäÄ£ÄâÎªMySQL  ServerÊ¹ÓÃ
-?	Ö§³Ögalera for mysql¼¯Èº£¬percona-cluster»òÕßmariadb cluster£¬Ìá¹©¸ß¿ÉÓÃĞÔÊı¾İ·ÖÆ¬¼¯Èº
-?	×Ô¶¯¹ÊÕÏÇĞ»»£¬¸ß¿ÉÓÃĞÔ
-?	Ö§³Ö¶ÁĞ´·ÖÀë£¬Ö§³ÖMysqlË«Ö÷¶à´Ó£¬ÒÔ¼°Ò»Ö÷¶à´ÓµÄÄ£Ê½
-?	Ö§³ÖÈ«¾Ö±í£¬Êı¾İ×Ô¶¯·ÖÆ¬µ½¶à¸ö½Úµã£¬ÓÃÓÚ¸ßĞ§±í¹ØÁª²éÑ¯
-?	Ö§³Ö¶ÀÓĞµÄ»ùÓÚE-R ¹ØÏµµÄ·ÖÆ¬²ßÂÔ£¬ÊµÏÖÁË¸ßĞ§µÄ±í¹ØÁª²éÑ¯
-?	¶àÆ½Ì¨Ö§³Ö£¬²¿ÊğºÍÊµÊ©¼òµ¥
+* Based on Ali open-source product Cobar, whose stability, reliability, excellent architecture and performance, as well as many mature use-case make Mycat have a good starting. Standing on the shoulders of giants, Mycat can be able to go farther.
+* Extensively drawing on the best open-source projects and innovative ideas, which are integrated into the Mycatâ€™s gene, make Mycat be ahead of the other current similar open-source projects, even beyond some commercial products.
+* Mycat behind a strong technical team whose participants are experienced more than five years including some senior software engineer, architect, DBA, etc. Excellent technical team to ensure the product quality of Mycat.
+* Mycat does not rely on any commercial company. Itâ€™s unlike some open-source projects whose important features is enclosed in its commercial products and making open-source projects like a decoration.
 
+##### Mycat long-term plan:
 
-MyCATµÄÓÅÊÆ£º
-?	»ùÓÚ°¢Àï¿ªÔ´µÄCobar²úÆ·¶øÑĞ·¢£¬CobarµÄÎÈ¶¨ĞÔ¡¢¿É¿¿ĞÔ¡¢ÓÅĞãµÄ¼Ü¹¹ºÍĞÔÄÜ£¬ÒÔ¼°ÖÚ¶à³ÉÊìµÄÊ¹ÓÃ°¸ÀıÊ¹µÃMyCATÒ»¿ªÊ¼¾ÍÓµÓĞÒ»¸öºÜºÃµÄÆğµã£¬Õ¾ÔÚ¾ŞÈËµÄ¼ç°òÉÏ£¬ÎÒÃÇÄÜ¿´µ½¸üÔ¶¡£
-?	¹ã·ºÎüÈ¡Òµ½çÓÅĞãµÄ¿ªÔ´ÏîÄ¿ºÍ´´ĞÂË¼Â·£¬½«ÆäÈÚÈëµ½MyCATµÄ»ùÒòÖĞ£¬Ê¹µÃMyCATÔÚºÜ¶à·½Ãæ¶¼ÁìÏÈÓÚÄ¿Ç°ÆäËûÒ»Ğ©Í¬ÀàµÄ¿ªÔ´ÏîÄ¿£¬ÉõÖÁ³¬Ô½Ä³Ğ©ÉÌÒµ²úÆ·¡£
-?	MyCAT±³ºóÓĞÒ»Ö»Ç¿´óµÄ¼¼ÊõÍÅ¶Ó£¬Æä²ÎÓëÕß¶¼ÊÇ5ÄêÒÔÉÏ×ÊÉîÈí¼ş¹¤³ÌÊ¦¡¢¼Ü¹¹Ê¦¡¢DBAµÈ£¬ÓÅĞãµÄ¼¼ÊõÍÅ¶Ó±£Ö¤ÁËMyCATµÄ²úÆ·ÖÊÁ¿¡£
-?	MyCAT²¢²»ÒÀÍĞÓÚÈÎºÎÒ»¸öÉÌÒµ¹«Ë¾£¬Òò´Ë²»ÏñÄ³Ğ©¿ªÔ´ÏîÄ¿£¬½«Ò»Ğ©ÖØÒªµÄÌØĞÔ·â±ÕÔÚÆäÉÌÒµ²úÆ·ÖĞ£¬Ê¹µÃ¿ªÔ´ÏîÄ¿³ÉÁËÒ»¸ö°ÚÉè¡£
-
-
-MyCATµÄ³¤ÆÚÂ·Ïß¹æ»®£º
-?	ÔÚÖ§³ÖMysqlµÄ»ù´¡ÉÏ£¬ºó¶ËÔö¼Ó¸ü¶àµÄ¿ªÔ´Êı¾İ¿âºÍÉÌÒµÊı¾İ¿âµÄÖ§³Ö£¬°üÀ¨Ô­ÉúÖ§³ÖPosteSQL¡¢FireBirdµÈ¿ªÔ´Êı¾İ¿â£¬ÒÔ¼°Í¨¹ıJDBCµÈ·½Ê½¼ä½ÓÖ§³ÖÆäËû·Ç¿ªÔ´µÄÊı¾İ¿âÈçOracle¡¢DB2¡¢SQL ServerµÈ
-?	ÊµÏÖ¸üÎªÖÇÄÜµÄ×ÔÎÒµ÷½ÚÌØĞÔ£¬Èç×Ô¶¯Í³¼Æ·ÖÎöSQL£¬×Ô¶¯´´½¨ºÍµ÷ÕûË÷Òı£¬¸ù¾İÊı¾İ±íµÄ¶ÁĞ´ÆµÂÊ£¬×Ô¶¯ÓÅ»¯»º´æºÍ±¸·İ²ßÂÔµÈ
-?	ÊµÏÖ¸üÈ«ÃæµÄ¼à¿Ø¹ÜÀí¹¦ÄÜ
-?	ÓëHDFS¼¯³É£¬Ìá¹©SQLÃüÁî£¬½«Êı¾İ¿â×°ÈëHDFSÖĞ²¢ÄÜ¹»¿ìËÙ·ÖÎö
-?	¼¯³ÉÓÅĞãµÄ¿ªÔ´±¨±í¹¤¾ß£¬Ê¹Ö®¾ß±¸Ò»¶¨µÄÊı¾İ·ÖÎöµÄÄÜÁ¦
+* On the basis of MySQLâ€™s support, Mycat add more support of commercial open-source database, including native support of PosteSQL, FireBird and other open-source databases, as well as indirect support via JDBC of other non-open-source databases such as Oracle, DB2, SQL Server etc.
+* More intelligent self-regulating properties, such as automatic statistical analysis of SQL, automatic creating and adjusting indexes. Based on the frequency of reading and writing, Mycat automatically optimize caching and backup strategies
+* Achieve a more comprehensive monitoring and management
+* Integrated with HDFS, provide SQL commands, load databases into HDFS for rapid analysis
+* Integrated excellent open-source reporting tools to make Mycat have data analysis capability 
