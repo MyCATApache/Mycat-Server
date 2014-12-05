@@ -2,12 +2,15 @@ package org.opencloudb.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
+import java.util.List;
 
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.route.RouteResultset;
 
+import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 
 public class DruidInsertParser extends DefaultDruidParser {
@@ -60,9 +63,22 @@ public class DruidInsertParser extends DefaultDruidParser {
 					LOGGER.warn(msg);
 					throw new SQLNonTransientException(msg);
 				}
+				// insert into .... on duplicateKey 
+				//such as :INSERT INTO TABLEName (a,b,c) VALUES (1,2,3) ON DUPLICATE KEY UPDATE b=VALUES(b); 
+				//INSERT INTO TABLEName (a,b,c) VALUES (1,2,3) ON DUPLICATE KEY UPDATE c=c+1;
+				if(insert.getDuplicateKeyUpdate() != null) {
+					List<SQLExpr> updateList = insert.getDuplicateKeyUpdate();
+					for(SQLExpr expr : updateList) {
+						SQLBinaryOpExpr opExpr = (SQLBinaryOpExpr)expr;
+						String column = removeBackquote(opExpr.getLeft().toString().toUpperCase());
+						if(column.equals(partitionColumn)) {
+							String msg = "partion key can't be updated: " + tableName + " -> " + partitionColumn;
+							LOGGER.warn(msg);
+							throw new SQLNonTransientException(msg);
+						}
+					}
+				}
 			}
-			
 		}
-		
 	}
 }
