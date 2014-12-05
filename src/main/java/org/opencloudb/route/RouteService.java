@@ -34,6 +34,7 @@ import org.opencloudb.cache.CacheService;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
+import org.opencloudb.exception.ShardingCommentException;
 import org.opencloudb.route.factory.RouteStrategyFactory;
 import org.opencloudb.route.handler.HintHandler;
 import org.opencloudb.route.handler.HintHandlerFactory;
@@ -82,23 +83,26 @@ public class RouteService {
 			int endPos = stmt.indexOf("*/");
 			if (endPos > 0) {
 				// 用!mycat:内部的语句来做路由分析
-				String hint = stmt.substring(mycatHint.length(), endPos)
-						.trim();
-
+				String hint = stmt.substring(mycatHint.length(), endPos).trim();
+				
                 int firstSplitPos = hint.indexOf(hintSplit);
                 
                 if(firstSplitPos > 0 ){
                     String hintType = hint.substring(0,firstSplitPos).trim().toLowerCase(Locale.US);
                     String hintValue = hint.substring(firstSplitPos + hintSplit.length()).trim();
+                    if(hintValue.length()==0){//fixed by runfriends@126.com
+                    	throw new ShardingCommentException("comment int sql must meet :/*!macat:type=value*/: "+stmt);
+                    }
                     String realSQL = stmt.substring(endPos + "*/".length()).trim();
 
                     HintHandler hintHandler = HintHandlerFactory.getHintHandler(hintType);
                     if(hintHandler != null){
-                        rrs = hintHandler.route(sysconf,schema,sqlType,realSQL,charset,sc,tableId2DataNodeCache,
-                                hintValue);
+                        rrs = hintHandler.route(sysconf,schema,sqlType,realSQL,charset,sc,tableId2DataNodeCache,hintValue);
                     }else{
                         LOGGER.warn("TODO , support hint sql type : " + hintType);
                     }
+                }else{//fixed by runfriends@126.com
+                	throw new ShardingCommentException("comment int sql must meet :/*!macat:type=value*/: "+stmt);
                 }
 			}
 		} else {
