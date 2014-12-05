@@ -44,7 +44,7 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy implements Dr
 			String stmt, RouteResultset rrs, String charset,
 			LayerCachePool cachePool) throws SQLNonTransientException {
 		MySqlStatementParser parser = new MySqlStatementParser(stmt);
-
+		
 		SQLStatement statement = parser.parseStatement();
 		
 		if(statement instanceof SQLSelectStatement) {
