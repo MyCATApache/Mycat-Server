@@ -24,6 +24,7 @@
 package org.opencloudb.route;
 
 import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -34,7 +35,6 @@ import org.opencloudb.cache.CacheService;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.exception.ShardingCommentException;
 import org.opencloudb.route.factory.RouteStrategyFactory;
 import org.opencloudb.route.handler.HintHandler;
 import org.opencloudb.route.handler.HintHandlerFactory;
@@ -91,7 +91,8 @@ public class RouteService {
                     String hintType = hint.substring(0,firstSplitPos).trim().toLowerCase(Locale.US);
                     String hintValue = hint.substring(firstSplitPos + hintSplit.length()).trim();
                     if(hintValue.length()==0){//fixed by runfriends@126.com
-                    	throw new ShardingCommentException("comment int sql must meet :/*!macat:type=value*/: "+stmt);
+                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/: "+stmt);
+                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/: "+stmt);
                     }
                     String realSQL = stmt.substring(endPos + "*/".length()).trim();
 
@@ -102,7 +103,8 @@ public class RouteService {
                         LOGGER.warn("TODO , support hint sql type : " + hintType);
                     }
                 }else{//fixed by runfriends@126.com
-                	throw new ShardingCommentException("comment int sql must meet :/*!macat:type=value*/: "+stmt);
+                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/: "+stmt);
+                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/: "+stmt);
                 }
 			}
 		} else {
