@@ -1,4 +1,9 @@
 ### Mycat介绍
+
+官网:[http://www.mycat.org.cn](http://www.mycat.org.cn)
+
+github:[https://github.com/MyCATApache](https://github.com/MyCATApache)
+
 什么是Mycat？简单的说，Mycat就是：
 
 *	一个彻底开源的，面向企业应用开发的“大数据库集群”
@@ -43,3 +48,11 @@
 *	实现更全面的监控管理功能
 *	与HDFS集成，提供SQL命令，将数据库装入HDFS中并能够快速分析
 *	集成优秀的开源报表工具，使之具备一定的数据分析的能力
+
+##### 下载：
+
+github上面的Mycat-download项目是编译好的二进制安装包 [https://github.com/MyCATApache/Mycat-download](https://github.com/MyCATApache/Mycat-download)
+
+##### 文档：
+
+github上面的Mycat-doc项目是相关文档 [https://github.com/MyCATApache/Mycat-doc](https://github.com/MyCATApache/Mycat-doc)
