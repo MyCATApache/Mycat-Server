@@ -16,7 +16,8 @@ import org.opencloudb.net.mysql.RowDataPacket;
 
 public class TestMergeSorter {
 
-	public static void main(String[] args) {
+//	@Test
+	public void testOldSorter() {
 		ColMeta colMeta = new ColMeta(0, ColMeta.COL_TYPE_INT);
 		OrderCol col = new OrderCol(colMeta, OrderCol.COL_ORDER_TYPE_DESC);
 		OrderCol[] orderCols = { col };
@@ -24,7 +25,7 @@ public class TestMergeSorter {
 		byte idLen = 4;
 		byte packId = 0;
 		int maxCount = 100;
-		int bound = maxCount * 1;// *2
+		int bound = maxCount * 2;
 		Random rd = new Random();
 		Set<Integer> set = new HashSet<Integer>();
 		while (set.size() < maxCount) {
@@ -46,21 +47,20 @@ public class TestMergeSorter {
 		}
 		set.clear();
 		System.gc();
-		System.out.println("add finished" + "");
-		Collection<RowDataPacket> res = null;
+		System.out.println("add finished");
 		for (int i = 0; i < 100; i++) {
 			long st = System.currentTimeMillis();
-			res = sorter.getSortedResult();
+			Collection<RowDataPacket> res = sorter.getSortedResult();
 			long end = System.currentTimeMillis();// 37.246//15.196
 			System.out.println((end - st) / 1000.0);
 		}
-		for (RowDataPacket row : res) {
-			byte[] x = row.fieldValues.get(0);
-			byte[] name = row.fieldValues.get(1);
-			ByteBuffer wrap = ByteBuffer.wrap(x);
-			wrap.order(ByteOrder.LITTLE_ENDIAN);
-			System.out.println(wrap.getInt() + "," + new String(name));
-
-		}
+		// for (RowDataPacket row : res) {
+		// byte[] x = row.fieldValues.get(0);
+		// byte[] name = row.fieldValues.get(1);
+		// ByteBuffer wrap = ByteBuffer.wrap(x);
+		// wrap.order(ByteOrder.LITTLE_ENDIAN);
+		// System.out.println(wrap.getInt()+","+new String(name));
+		//
+		// }
 	}
 }
