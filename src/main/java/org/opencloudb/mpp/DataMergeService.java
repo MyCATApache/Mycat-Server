@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.mpp.tmp.FastRowDataPacketSorter;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
 
@@ -133,7 +134,9 @@ public class DataMergeService {
 				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
 						.toUpperCase()), entry.getValue());
 			}
-			sorter = new RowDataPacketSorter(orderCols);
+			// sorter = new RowDataPacketSorter(orderCols);
+			//coderczp 2014-12-7
+			sorter = new FastRowDataPacketSorter(orderCols);
 		} else {
 			result = new LinkedList<RowDataPacket>();
 		}
