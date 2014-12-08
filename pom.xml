@@ -21,6 +21,18 @@
 		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</url>
 	</scm>
 	<dependencies>
+		<!--
+		<dependency>
+		    <groupId>com.google.guava</groupId>
+		    <artifactId>guava-parent</artifactId>
+		    <version>18.0</version>
+		</dependency>
+		-->
+		<dependency>
+		    <groupId>com.google.guava</groupId>
+		    <artifactId>guava</artifactId>
+		    <version>18.0</version>
+		</dependency>
 		<dependency>
 		    <groupId>com.foundationdb</groupId>
 		    <artifactId>fdb-sql-parser</artifactId>
