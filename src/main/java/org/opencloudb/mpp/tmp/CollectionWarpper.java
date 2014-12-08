@@ -51,6 +51,11 @@ public class CollectionWarpper extends AbstractList<RowDataPacket> {
 			public boolean hasNext() {
 				return it.hasNext();
 			}
+
+			// @Override
+			public void remove() {
+				// throw new UnsupportedOperationException();
+			}
 		};
 	}
 

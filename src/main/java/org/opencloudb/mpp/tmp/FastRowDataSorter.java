@@ -24,8 +24,8 @@ public class FastRowDataSorter extends RowDataPacketSorter {
 	public FastRowDataSorter(OrderCol[] orderCols) {
 		super(orderCols);
 		this.orderCols = orderCols;
-		this.rows = new MemMapBytesArray(SWAP_PATH);
 		this.cmp = new RowDataCmp(orderCols);
+		this.rows = new MemMapBytesArray(SWAP_PATH);
 	}
 
 	public void addRow(RowDataPacket row) {
