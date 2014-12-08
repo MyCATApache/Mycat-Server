@@ -23,10 +23,10 @@
  */
 package org.opencloudb.mpp;
 
-import org.opencloudb.mpp.tmp.FastRowDataPacketSorter;
+import org.opencloudb.mpp.tmp.FastRowDataSorter;
 import org.opencloudb.net.mysql.RowDataPacket;
 
-public class RangRowDataPacketSorter extends FastRowDataPacketSorter {
+public class RangRowDataPacketSorter extends FastRowDataSorter {
 
 	public RangRowDataPacketSorter(OrderCol[] orderCols) {
 		super(orderCols);

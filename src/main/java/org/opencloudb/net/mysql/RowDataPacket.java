@@ -56,6 +56,7 @@ import org.opencloudb.net.FrontendConnection;
 public class RowDataPacket extends MySQLPacket {
 	private static final byte NULL_MARK = (byte) 251;
 
+	public byte[] value;
 	public final int fieldCount;
 	public final List<byte[]> fieldValues;
 
@@ -65,10 +66,12 @@ public class RowDataPacket extends MySQLPacket {
 	}
 
 	public void add(byte[] value) {
+		//这里应该修改value
 		fieldValues.add(value);
 	}
 
 	public void read(byte[] data) {
+		value = data;
 		MySQLMessage mm = new MySQLMessage(data);
 		packetLength = mm.readUB3();
 		packetId = mm.read();
@@ -78,17 +81,19 @@ public class RowDataPacket extends MySQLPacket {
 	}
 
 	@Override
-	public ByteBuffer write(ByteBuffer bb, FrontendConnection c,boolean writeSocketIfFull) {
-		bb = c.checkWriteBuffer(bb, c.getPacketHeaderSize(),writeSocketIfFull);
+	public ByteBuffer write(ByteBuffer bb, FrontendConnection c,
+			boolean writeSocketIfFull) {
+		bb = c.checkWriteBuffer(bb, c.getPacketHeaderSize(), writeSocketIfFull);
 		BufferUtil.writeUB3(bb, calcPacketSize());
 		bb.put(packetId);
 		for (int i = 0; i < fieldCount; i++) {
 			byte[] fv = fieldValues.get(i);
 			if (fv == null || fv.length == 0) {
-				bb = c.checkWriteBuffer(bb, 1,writeSocketIfFull);
+				bb = c.checkWriteBuffer(bb, 1, writeSocketIfFull);
 				bb.put(RowDataPacket.NULL_MARK);
 			} else {
-				bb = c.checkWriteBuffer(bb, BufferUtil.getLength(fv.length),writeSocketIfFull);
+				bb = c.checkWriteBuffer(bb, BufferUtil.getLength(fv.length),
+						writeSocketIfFull);
 				BufferUtil.writeLength(bb, fv.length);
 				bb = c.writeToBuffer(fv, bb);
 			}

@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.opencloudb.mpp.tmp.FastRowDataPacketSorter;
+import org.opencloudb.mpp.tmp.FastRowDataSorter;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
 
@@ -77,7 +77,7 @@ public class DataMergeService {
 
 			}
 			tmpResult = sorter.getSortedResult();
-			sorter = null;
+			// sorter = null;
 		}
 		return tmpResult;
 	}
@@ -135,8 +135,8 @@ public class DataMergeService {
 						.toUpperCase()), entry.getValue());
 			}
 			// sorter = new RowDataPacketSorter(orderCols);
-			//coderczp 2014-12-7
-			sorter = new FastRowDataPacketSorter(orderCols);
+			// coderczp 2014-12-7
+			sorter = new FastRowDataSorter(orderCols);
 		} else {
 			result = new LinkedList<RowDataPacket>();
 		}
@@ -183,6 +183,7 @@ public class DataMergeService {
 	 * release resources
 	 */
 	public void clear() {
+		sorter.close();
 		grouper = null;
 		sorter = null;
 		result = null;
