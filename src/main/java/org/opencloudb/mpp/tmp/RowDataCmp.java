@@ -27,9 +27,9 @@ final class RowDataCmp implements Comparator<RowDataPacket> {
             byte[] left = o1.fieldValues.get(colIndex);
             byte[] right = o2.fieldValues.get(colIndex);
             if (tmp[i].orderType == type) {
-                cmp = compareObject(left, right, tmp[colIndex]);
+                cmp = compareObject(left, right, tmp[i]);
             } else {
-                cmp = compareObject(right, left, tmp[colIndex]);
+                cmp = compareObject(right, left, tmp[i]);
             }
             if (cmp != 0)
                 return cmp;

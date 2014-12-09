@@ -48,7 +48,7 @@ public class FastRowDataSorter extends RowDataPacketSorter {
 				return cmp.compare(r1, r2);
 			}
 		});
-		return new CollectionWarpper(rows, fieldCount);
+		return new CollectionWrapper(rows, fieldCount);
 	}
 
 	//必须在finally里调用此方法

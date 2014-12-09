@@ -11,12 +11,12 @@ import org.opencloudb.net.mysql.RowDataPacket;
  * @author czp:2014年12月8日
  *
  */
-public class CollectionWarpper extends AbstractList<RowDataPacket> {
+public class CollectionWrapper extends AbstractList<RowDataPacket> {
 
 	private int fieldCount;
 	private MemMapBytesArray arr;
 
-	public CollectionWarpper(MemMapBytesArray arr, int fieldCount) {
+	public CollectionWrapper(MemMapBytesArray arr, int fieldCount) {
 		this.arr = arr;
 		this.fieldCount = fieldCount;
 	}
