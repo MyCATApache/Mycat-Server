@@ -29,7 +29,7 @@ package org.opencloudb.util;
  * @author mycat
  */
 public class TimeUtil {
-    private static long CURRENT_TIME = System.currentTimeMillis();
+    private static volatile long CURRENT_TIME = System.currentTimeMillis();
 
     public static final long currentTimeMillis() {
         return CURRENT_TIME;
