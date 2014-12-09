@@ -1,7 +1,6 @@
 package org.opencloudb.performance;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Random;
@@ -10,21 +9,21 @@ import java.util.Set;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.OrderCol;
 import org.opencloudb.mpp.RowDataPacketSorter;
-import org.opencloudb.mpp.tmp.FastRowDataPacketSorter;
+import org.opencloudb.mpp.tmp.FastRowDataSorter;
 import org.opencloudb.mysql.BufferUtil;
 import org.opencloudb.net.mysql.RowDataPacket;
 
 public class TestMergeSorter {
 
-//	@Test
-	public void testOldSorter() {
+	// @Test
+	public static void main(String[] args) {
 		ColMeta colMeta = new ColMeta(0, ColMeta.COL_TYPE_INT);
 		OrderCol col = new OrderCol(colMeta, OrderCol.COL_ORDER_TYPE_DESC);
 		OrderCol[] orderCols = { col };
-		RowDataPacketSorter sorter = new FastRowDataPacketSorter(orderCols);
+		RowDataPacketSorter sorter = new FastRowDataSorter(orderCols);
 		byte idLen = 4;
 		byte packId = 0;
-		int maxCount = 100;
+		int maxCount = 10000;
 		int bound = maxCount * 2;
 		Random rd = new Random();
 		Set<Integer> set = new HashSet<Integer>();
@@ -62,5 +61,6 @@ public class TestMergeSorter {
 		// System.out.println(wrap.getInt()+","+new String(name));
 		//
 		// }
+		sorter.close();
 	}
 }
