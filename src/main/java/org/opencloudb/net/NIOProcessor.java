@@ -35,6 +35,7 @@ import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.buffer.BufferPool;
 import org.opencloudb.statistic.CommandCount;
 import org.opencloudb.util.NameableExecutor;
+import org.opencloudb.util.TimeUtil;
 
 /**
  * @author mycat
@@ -184,7 +185,7 @@ public final class NIOProcessor {
 			}
 			// SQL执行超时的连接关闭
 			if (c.isBorrowed()
-					&& c.getLastTime() < System.currentTimeMillis()
+					&& c.getLastTime() < TimeUtil.currentTimeMillis()
 							- sqlTimeout) {
 				LOGGER.warn("found backend connection SQL timeout ,close it "
 						+ c);
