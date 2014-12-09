@@ -11,6 +11,7 @@ public class HintHandlerFactory {
     private static void init() {
         hintHandlerMap.put("sql",new HintSQLHandler());
         hintHandlerMap.put("schema",new HintSchemaHandler());
+        hintHandlerMap.put("catlet",new HintCatletHandler());
     }
     
     public static HintHandler getHintHandler(String hintType) {

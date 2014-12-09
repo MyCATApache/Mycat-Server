@@ -91,7 +91,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		boolean allFinished = false;
 		if (tryErrorFinish) {
 			allFinished = this.decrementCountBy(1);
-			this.tryErrorFinished(conn, allFinished);
+			this.tryErrorFinished(allFinished);
 		}
 
 		return allFinished;
@@ -112,9 +112,9 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		}
 	}
 
-	public void connectionError(Throwable e, BackendConnection conn) {
+	public void connectionError(Throwable e,BackendConnection conn) {
 		boolean canClose = decrementCountBy(1);
-		this.tryErrorFinished(conn, canClose);
+		this.tryErrorFinished(canClose);
 	}
 
 	public void errorResponse(byte[] data, BackendConnection conn) {
@@ -126,7 +126,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		LOGGER.warn("error response from " + conn + " err " + errmsg + " code:"
 				+ err.errno);
 
-		this.tryErrorFinished(conn, this.decrementCountBy(1));
+		this.tryErrorFinished(this.decrementCountBy(1));
 	}
 
 	public boolean clearIfSessionClosed(NonBlockingSession session) {
@@ -183,7 +183,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		return err;
 	}
 
-	protected void tryErrorFinished(BackendConnection conn, boolean allEnd) {
+	protected void tryErrorFinished(boolean allEnd) {
 		if (!errorRepsponsed && allEnd && !session.closed()) {
 			errorRepsponsed = true;
 			
@@ -221,7 +221,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		if (error == null) {
 			error = "back connection closed ";
 		}
-		tryErrorFinished(conn, finished);
+		tryErrorFinished(finished);
 	}
 
 	public void clearResources() {

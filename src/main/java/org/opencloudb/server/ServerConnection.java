@@ -103,6 +103,10 @@ public class ServerConnection extends FrontendConnection {
 		}
 	}
 
+	public boolean isTxInterrupted()
+	{
+		return txInterrupted;
+	}
 	public NonBlockingSession getSession2() {
 		return session;
 	}
@@ -162,7 +166,7 @@ public class ServerConnection extends FrontendConnection {
 					.route(MycatServer.getInstance().getConfig().getSystem(),
 							schema, type, sql, this.charset, this);
 
-		} catch (SQLNonTransientException e) {
+		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
 			LOGGER.warn(s.append(this).append(sql).toString() + " err:"
 					+ e.toString());

@@ -96,7 +96,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			// clear all resources
 			session.clearResources(false);
 			if (this.isFail() || session.closed()) {
-				tryErrorFinished(conn, true);
+				tryErrorFinished(true);
 			} else {
 				session.getSource().write(ok);
 			}

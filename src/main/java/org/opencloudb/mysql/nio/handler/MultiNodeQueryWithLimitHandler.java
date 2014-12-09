@@ -187,7 +187,7 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 					session.releaseConnections(false);
 				}
 				if (this.isFail() || session.closed()) {
-					tryErrorFinished(conn, true);
+					tryErrorFinished(true);
 					return;
 				}
 				lock.lock();
@@ -217,7 +217,7 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 		boolean allFinished = false;
 		if (tryErrorFinish) {
 			allFinished = this.decrementCountBy(1);
-			this.tryErrorFinished(conn, allFinished);
+			this.tryErrorFinished(allFinished);
 		}
 
 		return allFinished;
@@ -242,7 +242,7 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 		}
 
 		if (this.isFail() || session.closed()) {
-			tryErrorFinished(conn, true);
+			tryErrorFinished(true);
 			return;
 		}
 
@@ -365,7 +365,7 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 		if (!errorRepsponsed) {
 			LOGGER.warn("caught exception ", e);
 			setFail(e.toString());
-			this.tryErrorFinished(conn, true);
+			this.tryErrorFinished(true);
 		}
 	}
 

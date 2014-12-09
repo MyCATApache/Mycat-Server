@@ -9,7 +9,6 @@ import java.util.List;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 
-
 /**
  * 
  * @author struct
@@ -47,23 +46,21 @@ public class ResultSetUtil {
 				FieldPacket fieldPacket = new FieldPacket();
 				fieldPacket.orgName = StringUtil.encode(
 						metaData.getColumnLabel(j), charset);
-				fieldPacket.name = StringUtil.encode(
-						metaData.getColumnName(j), charset);
+				fieldPacket.name = StringUtil.encode(metaData.getColumnName(j),
+						charset);
 				fieldPacket.orgTable = StringUtil.encode(
 						metaData.getTableName(j), charset);
-				fieldPacket.table = StringUtil.encode(
-						metaData.getTableName(j), charset);
-				fieldPacket.db = StringUtil.encode(
-						metaData.getSchemaName(j), charset);
+				fieldPacket.table = StringUtil.encode(metaData.getTableName(j),
+						charset);
+				fieldPacket.db = StringUtil.encode(metaData.getSchemaName(j),
+						charset);
 				fieldPacket.length = metaData.getColumnDisplaySize(j);
 				fieldPacket.flags = toFlag(metaData, j);
 				fieldPacket.decimals = (byte) metaData.getScale(j);
 				int javaType = MysqlDefs.javaTypeDetect(
 						metaData.getColumnType(j), fieldPacket.decimals);
-				fieldPacket.type = (byte) (MysqlDefs
-						.javaTypeMysql(javaType) & 0xff);
+				fieldPacket.type = (byte) (MysqlDefs.javaTypeMysql(javaType) & 0xff);
 				fieldPks.add(fieldPacket);
-
 
 			}
 
@@ -71,23 +68,44 @@ public class ResultSetUtil {
 
 		while (rs.next()) {
 			RowDataPacket row = new RowDataPacket(fieldPks.size());
-				for (int i = 0; i < colunmCount; i++) {
-					int j = i + 1;
-//					BindValue bindValue = new BindValue();
-//					bindValue.bufferType = fieldPackets[i].type;
-//					bindValue.bindLength = fieldPackets[i].length;
-//					bindValue.scale = fieldPackets[i].decimals;
-//					bindValue.charset = fieldPackets[i].charsetName;
-//					PacketUtil.resultToBindValue(bindValue, j, rs,
-//							fieldPackets[i]);
-					row.add(StringUtil.encode(rs.getString(j), charset));
-			
-			} 
-				rowsPkg.add(row);
+			for (int i = 0; i < colunmCount; i++) {
+				int j = i + 1;
+				// BindValue bindValue = new BindValue();
+				// bindValue.bufferType = fieldPackets[i].type;
+				// bindValue.bindLength = fieldPackets[i].length;
+				// bindValue.scale = fieldPackets[i].decimals;
+				// bindValue.charset = fieldPackets[i].charsetName;
+				// PacketUtil.resultToBindValue(bindValue, j, rs,
+				// fieldPackets[i]);
+				row.add(StringUtil.encode(rs.getString(j), charset));
+
 			}
+			rowsPkg.add(row);
+		}
 	}
 
-	
+	public static RowDataPacket parseRowData(byte[] row,
+			List<byte[]> fieldValues) {
+		RowDataPacket rowDataPkg = new RowDataPacket(fieldValues.size());
+		rowDataPkg.read(row);
+		return rowDataPkg;
+	}
+
+	public static String getColumnValAsString(byte[] row,
+			List<byte[]> fieldValues, int columnIndex) {
+		RowDataPacket rowDataPkg = new RowDataPacket(fieldValues.size());
+		rowDataPkg.read(row);
+		byte[] columnData = rowDataPkg.fieldValues.get(columnIndex);
+		return new String(columnData);
+	}
+
+	public static byte[] getColumnVal(byte[] row, List<byte[]> fieldValues,
+			int columnIndex) {
+		RowDataPacket rowDataPkg = new RowDataPacket(fieldValues.size());
+		rowDataPkg.read(row);
+		byte[] columnData = rowDataPkg.fieldValues.get(columnIndex);
+		return columnData;
+	}
 
 	public static byte[] fromHex(String hexString) {
 		String[] hex = hexString.split(" ");
@@ -100,18 +118,19 @@ public class ResultSetUtil {
 	}
 
 	public static void main(String[] args) throws Exception {
-//		byte[] byt = fromHex("20 00 00 02 03 64 65 66 00 00 00 0A 40 40 73 71 6C 5F 6D 6F 64 65 00 0C 21 00 BA 00 00 00 FD 01 00 1F 00 00");
-//		MysqlPacketBuffer buffer = new MysqlPacketBuffer(byt);
-//		/*
-//		 * ResultSetHeaderPacket packet = new ResultSetHeaderPacket();
-//		 * packet.init(buffer);
-//		 */
-//		FieldPacket[] fields = new FieldPacket[(int) 1];
-//		for (int i = 0; i < 1; i++) {
-//			fields[i] = new FieldPacket();
-//			fields[i].init(buffer);
-//		}
-//		System.out.println(1 | 0200);
+		// byte[] byt =
+		// fromHex("20 00 00 02 03 64 65 66 00 00 00 0A 40 40 73 71 6C 5F 6D 6F 64 65 00 0C 21 00 BA 00 00 00 FD 01 00 1F 00 00");
+		// MysqlPacketBuffer buffer = new MysqlPacketBuffer(byt);
+		// /*
+		// * ResultSetHeaderPacket packet = new ResultSetHeaderPacket();
+		// * packet.init(buffer);
+		// */
+		// FieldPacket[] fields = new FieldPacket[(int) 1];
+		// for (int i = 0; i < 1; i++) {
+		// fields[i] = new FieldPacket();
+		// fields[i].init(buffer);
+		// }
+		// System.out.println(1 | 0200);
 
 	}
 }
