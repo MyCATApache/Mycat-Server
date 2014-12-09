@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.mpp.tmp.FastRowDataSorter;
@@ -46,7 +47,7 @@ public class DataMergeService {
     private static final Logger LOGGER = Logger.getLogger(DataMergeService.class);
     private RowDataPacketGrouper grouper = null;
     private RowDataPacketSorter sorter = null;
-    private Collection<RowDataPacket> result = new LinkedList<RowDataPacket>();
+    private Collection<RowDataPacket> result = new  ConcurrentLinkedQueue<RowDataPacket>();
 
     // private final Map<String, DataNodeResultInf> dataNodeResultSumMap;
 
@@ -131,7 +132,7 @@ public class DataMergeService {
             // coderczp 2014-12-7
             sorter = new FastRowDataSorter(orderCols);
         } else {
-            result = new LinkedList<RowDataPacket>();
+            result = new ConcurrentLinkedQueue<RowDataPacket>();
         }
     }
 
