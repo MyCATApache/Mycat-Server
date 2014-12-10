@@ -34,21 +34,21 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TravelRecordUpdateJob implements Runnable {
-	private final int endId;
-	private int finsihed;
+	private final long endId;
+	private long finsihed;
 	private final int batchSize;
-	private final AtomicInteger finshiedCount;
-	private final AtomicInteger failedCount;
+	private final AtomicLong finshiedCount;
+	private final AtomicLong failedCount;
 	Calendar date = Calendar.getInstance();
 	final SimpleConPool conPool;
 	DateFormat datafomat = new SimpleDateFormat("yyyy-MM-dd");
 
-	public TravelRecordUpdateJob(SimpleConPool conPool, int totalRecords,
-			int batchSize, int startId, AtomicInteger finshiedCount,
-			AtomicInteger failedCount) {
+	public TravelRecordUpdateJob(SimpleConPool conPool, long totalRecords,
+			int batchSize, long startId, AtomicLong finshiedCount,
+			AtomicLong failedCount) {
 		super();
 		this.conPool = conPool;
 		this.endId = startId + totalRecords - 1;
@@ -82,15 +82,15 @@ public class TravelRecordUpdateJob implements Runnable {
 		if (finsihed >= endId) {
 			return Collections.emptyList();
 		}
-		int end = (finsihed + batchSize) < this.endId ? (finsihed + batchSize)
+		long end = (finsihed + batchSize) < this.endId ? (finsihed + batchSize)
 				: endId;
 		// the last batch
 		if (end + batchSize > this.endId) {
 			end = this.endId;
 		}
 		List<Map<String, String>> list = new ArrayList<Map<String, String>>(
-				(end - finsihed));
-		for (int i = finsihed; i <= end; i++) {
+				);
+		for (long i = finsihed; i <= end; i++) {
 			Map<String, String> m = new HashMap<String, String>();
 			m.put("id", i + "");
 			m.put("user_id", "user " + i);
@@ -103,9 +103,9 @@ public class TravelRecordUpdateJob implements Runnable {
 		return list;
 	}
 
-	private String getRandomDay(int i) {
-		int month = i % 11 + 1;
-		int day = i % 27 + 1;
+	private String getRandomDay(long i) {
+		int month = Long.valueOf(i % 11 + 1).intValue();
+		int day = Long.valueOf(i % 27 + 1).intValue();
 
 		date.set(Calendar.MONTH, month);
 		date.set(Calendar.DAY_OF_MONTH, day);
