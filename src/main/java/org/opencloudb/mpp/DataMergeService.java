@@ -25,14 +25,15 @@ package org.opencloudb.mpp;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.mpp.tmp.CollectionWarpper;
 import org.opencloudb.mpp.tmp.FastRowDataSorter;
+import org.opencloudb.mpp.tmp.MemMapBytesArray;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
 
@@ -43,45 +44,22 @@ import org.opencloudb.route.RouteResultset;
  * 
  */
 public class DataMergeService {
-	private static final Logger LOGGER = Logger
-			.getLogger(DataMergeService.class);
+	
+	private int fieldCount;
+	private final RouteResultset rrs;
+	private FastRowDataSorter sorter = null;
 	private RowDataPacketGrouper grouper = null;
-	private RowDataPacketSorter sorter = null;
-	private Collection<RowDataPacket> result = new LinkedList<RowDataPacket>();
-
-	// private final Map<String, DataNodeResultInf> dataNodeResultSumMap;
+	private static final Logger LOGGER = Logger.getLogger(DataMergeService.class);
+	
+	//coderczp 2014-12-11 改用moni处理
+	private MemMapBytesArray rows;
+	public static final String SWAP_PATH = "./";
+	//coderczp 2014-12-11 end
 
 	public DataMergeService(RouteResultset rrs) {
 		this.rrs = rrs;
-		// dataNodeResultSumMap = new HashMap<String, DataNodeResultInf>(
-		// rrs.getNodes().length);
 
 	}
-
-	/**
-	 * return merged data
-	 * 
-	 * @return
-	 */
-	public Collection<RowDataPacket> getResults() {
-		Collection<RowDataPacket> tmpResult = result;
-		if (this.grouper != null) {
-			tmpResult = grouper.getResult();
-			grouper = null;
-		}
-		if (sorter != null) {
-			Iterator<RowDataPacket> itor = tmpResult.iterator();
-			while (itor.hasNext()) {
-				sorter.addRow(itor.next());
-				itor.remove();
-
-			}
-			tmpResult = sorter.getSortedResult();
-			// sorter = null;
-		}
-		return tmpResult;
-	}
-
 	public void setFieldCount(int fieldCount) {
 		this.fieldCount = fieldCount;
 	}
@@ -90,8 +68,34 @@ public class DataMergeService {
 		return rrs;
 	}
 
-	private int fieldCount;
-	private final RouteResultset rrs;
+	/**
+	 * return merged data
+	 * 
+	 * @return
+	 */
+	public Collection<RowDataPacket> getResults() {
+		if (this.grouper != null) {
+			Collection<RowDataPacket> tmpResult = grouper.getResult();
+			grouper = null;
+			return tmpResult;
+		}
+		if (sorter != null) {
+			// coderczp 2014-12-11 改用流式处理,无需中转
+			// Iterator<RowDataPacket> itor = tmpResult.iterator();
+			// while (itor.hasNext()) {
+			// sorter.addRow(itor.next());
+			// itor.remove();
+			//
+			// }
+			// coderczp 改用流式处理,无需中转 end
+			Collection<RowDataPacket> tmpResult = sorter.getSortedResult();
+			sorter = null;
+			return tmpResult;
+		}else{
+			return new CollectionWarpper(rows, fieldCount);
+		}
+	}
+
 
 	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
 		if (LOGGER.isDebugEnabled()) {
@@ -137,8 +141,14 @@ public class DataMergeService {
 			// sorter = new RowDataPacketSorter(orderCols);
 			// coderczp 2014-12-7
 			sorter = new FastRowDataSorter(orderCols);
+//			sorter.setMeta(rrs.getNodes().length, rrs.getLimitStart(),
+//					rrs.getLimitSize());
+
 		} else {
-			result = new LinkedList<RowDataPacket>();
+			//coderczp 2014-12-11 改用moni处理
+//			result = new ConcurrentLinkedQueue<RowDataPacket>();
+			rows = new MemMapBytesArray(SWAP_PATH);
+			//coderczp end
 		}
 	}
 
@@ -156,10 +166,14 @@ public class DataMergeService {
 		rowDataPkg.read(rowData);
 		if (grouper != null) {
 			grouper.addRow(rowDataPkg);
+		} else if (sorter != null) {
+			sorter.addRow(rowDataPkg);
 		} else {
-			result.add(rowDataPkg);
+			//coderczp 2014-12-11 改用moni处理
+			rows.add(rowData);
+//			result.add(rowDataPkg);
+			//coderczp 2014-12-11 end
 		}
-		// todo ,if too large result set ,should store to disk
 		return false;
 
 	}
@@ -183,17 +197,12 @@ public class DataMergeService {
 	 * release resources
 	 */
 	public void clear() {
-		sorter.close();
+		if (sorter != null)
+			sorter.close();
+		if(rows!=null)
+			rows.release();
 		grouper = null;
 		sorter = null;
-		result = null;
 	}
-
-}
-
-class DataNodeResultInf {
-	public RowDataPacket firstRecord;
-	public RowDataPacket lastRecord;
-	public int rowCount;
 
 }

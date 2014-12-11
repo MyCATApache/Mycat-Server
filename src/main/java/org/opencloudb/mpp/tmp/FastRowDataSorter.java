@@ -17,8 +17,8 @@ public class FastRowDataSorter extends RowDataPacketSorter {
 
 	private RowDataCmp cmp;
 	private int fieldCount;
-	private MemMapBytesArray rows;
 	protected OrderCol[] orderCols;
+	private MemMapBytesArray rows;
 	public static final String SWAP_PATH = "./";
 
 	public FastRowDataSorter(OrderCol[] orderCols) {

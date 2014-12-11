@@ -53,19 +53,16 @@ import org.opencloudb.server.NonBlockingSession;
  * 
  */
 public class MutiDataMergeService extends DataMergeService implements ResponseHandler {
-	private static final Logger LOGGER = Logger
-			.getLogger(MutiDataMergeService.class);
+	private static final Logger LOGGER = Logger.getLogger(MutiDataMergeService.class);
 	private RowDataPacketGrouper grouper = null;
 	private RangRowDataPacketSorter sorter = null;
-	
 	private NodeExcutionController dataController;
-	
 	private MultiNodeQueryWithLimitHandler limitExcution = null;
-	
 	private Map<String, NodeRowDataPacket> result = new HashMap<String, NodeRowDataPacket>();
-	
 	private int pagePatchSize = 100;
-
+	private int fieldCount;
+	private final RouteResultset rrs;
+	
 	public MutiDataMergeService(RouteResultset rrs) {
 		super(rrs);
 		this.rrs = rrs;
@@ -143,17 +140,16 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
 		
 		if (this.grouper != null) {
 			tmpResult = grouper.getResult();
-			grouper = null;
 		}
 		if (sorter != null) {
-			Iterator<RowDataPacket> itor = tmpResult.iterator();
-			while (itor.hasNext()) {
-				sorter.addRow(itor.next());
-				itor.remove();
-
-			}
+			
+//			Iterator<RowDataPacket> itor = tmpResult.iterator();
+//			while (itor.hasNext()) {
+//				sorter.addRow(itor.next());
+//				itor.remove();
+//
+//			}
 			tmpResult = sorter.getSortedResult();
-			sorter = null;
 		}
 		return tmpResult;
 	}
@@ -166,8 +162,6 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
 		return rrs;
 	}
 
-	private int fieldCount;
-	private final RouteResultset rrs;
 
 	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
 		if (LOGGER.isDebugEnabled()) {
@@ -264,6 +258,8 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
 	 * release resources
 	 */
 	public void clear() {
+		if(sorter!=null)
+			sorter.close();
 		grouper = null;
 		sorter = null;
 		result = null;

@@ -25,8 +25,9 @@ package org.opencloudb.mpp;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
 
+import org.opencloudb.mpp.tmp.CollectionWarpper;
+import org.opencloudb.mpp.tmp.MemMapBytesArray;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.LongUtil;
@@ -39,29 +40,39 @@ import org.opencloudb.util.LongUtil;
  */
 public class RowDataPacketGrouper {
 
+	private int fieldCount;
 	private final MergeCol[] mergCols;
 	private final int[] groupColumnIndexs;
-	private Collection<RowDataPacket> result = new LinkedList<RowDataPacket>();
+
+	// private Collection<RowDataPacket> result = new LinkedList<RowDataPacket>();
+	// coderczp 2014-12-11 改用moni处理
+	private MemMapBytesArray rows;
+	public static final String SWAP_PATH = "./";
+	// coderczp 2014-12-11 end
 
 	public RowDataPacketGrouper(int[] groupColumnIndexs, MergeCol[] mergCols) {
 		super();
-		this.groupColumnIndexs = groupColumnIndexs;
 		this.mergCols = mergCols;
+		this.groupColumnIndexs = groupColumnIndexs;
+		this.rows = new MemMapBytesArray(SWAP_PATH);
 	}
 
 	public Collection<RowDataPacket> getResult() {
-		return result;
+		return new CollectionWarpper(rows, fieldCount);
 	}
 
 	public void addRow(RowDataPacket rowDataPkg) {
-		for (RowDataPacket row : result) {
+		fieldCount = rowDataPkg.fieldCount;
+		for (byte[] bs : rows) {
+			RowDataPacket row = new RowDataPacket(fieldCount);
+			row.read(bs);
 			if (sameGropuColums(rowDataPkg, row)) {
 				aggregateRow(row, rowDataPkg);
 				return;
 			}
 		}
 		// not aggreated ,insert new
-		result.add(rowDataPkg);
+		rows.add(rowDataPkg.value);
 
 	}
 
@@ -85,11 +96,9 @@ public class RowDataPacketGrouper {
 	private byte[] mertFields(byte[] bs, byte[] bs2, int colType, int mergeType) {
 		// System.out.println("mergeType:"+ mergeType+" colType "+colType+
 		// " field:"+Arrays.toString(bs)+ " ->  "+Arrays.toString(bs2));
-		if(bs2.length==0)
-		{
+		if (bs2.length == 0) {
 			return bs;
-		}else if(bs.length==0)
-		{
+		} else if (bs.length == 0) {
 			return bs2;
 		}
 		switch (mergeType) {
@@ -125,7 +134,7 @@ public class RowDataPacketGrouper {
 			// int compare = CompareUtil.compareDouble(ByteUtil.getNumber(bs)
 			// .doubleValue(), ByteUtil.getNumber(bs2).doubleValue());
 			// int compare = ByteUtil.compareNumberArray(bs, bs2);
-			//return (compare > 0) ? bs2 : bs;
+			// return (compare > 0) ? bs2 : bs;
 			int compare = ByteUtil.compareNumberByte(bs, bs2);
 			return (compare > 0) ? bs2 : bs;
 			// return ByteUtil.compareNumberArray2(bs, bs2, 2);
