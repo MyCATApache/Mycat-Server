@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Comparator;
 
 import org.opencloudb.mpp.OrderCol;
-import org.opencloudb.mpp.RowDataPacketSorter;
 import org.opencloudb.net.mysql.RowDataPacket;
 
 /**
@@ -13,16 +12,15 @@ import org.opencloudb.net.mysql.RowDataPacket;
  * @author czp:2014年12月8日
  *
  */
-public class FastRowDataSorter extends RowDataPacketSorter {
+public class FastRowDataSorter implements MutilNodeMergeItf {
 
-	private RowDataCmp cmp;
 	private int fieldCount;
+	protected RowDataCmp cmp;
 	protected OrderCol[] orderCols;
 	private MemMapBytesArray rows;
 	public static final String SWAP_PATH = "./";
 
 	public FastRowDataSorter(OrderCol[] orderCols) {
-		super(orderCols);
 		this.orderCols = orderCols;
 		this.cmp = new RowDataCmp(orderCols);
 		this.rows = new MemMapBytesArray(SWAP_PATH);
@@ -36,7 +34,7 @@ public class FastRowDataSorter extends RowDataPacketSorter {
 
 	}
 
-	public Collection<RowDataPacket> getSortedResult() {
+	public Collection<RowDataPacket> getResult() {
 		MemMapSorter.MERGE_SORTER.sort(rows, new Comparator<byte[]>() {
 
 			@Override

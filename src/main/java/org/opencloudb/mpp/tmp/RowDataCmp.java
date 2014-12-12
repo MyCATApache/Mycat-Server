@@ -8,7 +8,7 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.CompareUtil;
 
-final class RowDataCmp implements Comparator<RowDataPacket> {
+public  class RowDataCmp implements Comparator<RowDataPacket> {
 
 	private OrderCol[] orderCols;
 
@@ -37,7 +37,7 @@ final class RowDataCmp implements Comparator<RowDataPacket> {
 		return cmp;
 	}
 
-	private int compareObject(byte[] left, byte[] right, OrderCol orderCol) {
+	public int compareObject(byte[] left, byte[] right, OrderCol orderCol) {
 		/*
 		 * mysql的日期也是数字字符串方式表达，因此可以跟整数等一起对待 BLOB相关类型和GEOMETRY类型不支持排序，略掉
 		 * ENUM和SET类型都是字符串，按字符串处理

@@ -25,9 +25,9 @@ package org.opencloudb.mpp;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 
-import org.opencloudb.mpp.tmp.CollectionWarpper;
-import org.opencloudb.mpp.tmp.MemMapBytesArray;
+import org.opencloudb.mpp.tmp.MutilNodeMergeItf;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.LongUtil;
@@ -38,41 +38,30 @@ import org.opencloudb.util.LongUtil;
  * @author wuzhih
  * 
  */
-public class RowDataPacketGrouper {
+public class RowDataPacketGrouper implements MutilNodeMergeItf {
 
-	private int fieldCount;
 	private final MergeCol[] mergCols;
 	private final int[] groupColumnIndexs;
-
-	// private Collection<RowDataPacket> result = new LinkedList<RowDataPacket>();
-	// coderczp 2014-12-11 改用moni处理
-	private MemMapBytesArray rows;
-	public static final String SWAP_PATH = "./";
-	// coderczp 2014-12-11 end
+	private Collection<RowDataPacket> result = new LinkedList<RowDataPacket>();
 
 	public RowDataPacketGrouper(int[] groupColumnIndexs, MergeCol[] mergCols) {
-		super();
 		this.mergCols = mergCols;
 		this.groupColumnIndexs = groupColumnIndexs;
-		this.rows = new MemMapBytesArray(SWAP_PATH);
 	}
 
 	public Collection<RowDataPacket> getResult() {
-		return new CollectionWarpper(rows, fieldCount);
+		return result;
 	}
 
 	public void addRow(RowDataPacket rowDataPkg) {
-		fieldCount = rowDataPkg.fieldCount;
-		for (byte[] bs : rows) {
-			RowDataPacket row = new RowDataPacket(fieldCount);
-			row.read(bs);
+		for (RowDataPacket row : result) {
 			if (sameGropuColums(rowDataPkg, row)) {
 				aggregateRow(row, rowDataPkg);
 				return;
 			}
 		}
 		// not aggreated ,insert new
-		rows.add(rowDataPkg.value);
+		result.add(rowDataPkg);
 
 	}
 
@@ -162,4 +151,9 @@ public class RowDataPacketGrouper {
 		return true;
 
 	}
+
+    @Override
+    public void close() {
+        
+    }
 }
