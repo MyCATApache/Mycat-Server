@@ -42,12 +42,13 @@ public final class ShowHandler {
 		// 排除 “ ` ” 符号
 		stmt = StringUtil.replaceChars(stmt, "`", null);
 
-		switch (ServerParseShow.parse(stmt, offset)) {
+		int type = ServerParseShow.parse(stmt, offset);
+		switch (type) {
 		case ServerParseShow.DATABASES:
 			ShowDatabases.response(c);
 			break;
 		case ServerParseShow.TABLES:
-			ShowTables.response(c, stmt);
+			ShowTables.response(c, stmt,type);
 			break;
 		case ServerParseShow.MYCAT_STATUS:
 			ShowMyCatStatus.response(c);

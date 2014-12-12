@@ -38,7 +38,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		RouteResultset rrs = new RouteResultset(stmt, sqlType);
 		
 		// check if there is sharding in schema
-		if (schema.isNoSharding()) {
+		if (schema.isNoSharding() && ServerParse.SHOW != sqlType) {
 			return RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
 		}
 		RouteResultset returnedSet=routeSystemInfo(schema, sqlType, stmt, rrs);

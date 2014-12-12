@@ -283,7 +283,13 @@ public class RouterUtil {
 	
 	public static void routeForTableMeta(RouteResultset rrs,
 			SchemaConfig schema, String tableName, String sql) {
-		String dataNode = getMetaReadDataNode(schema, tableName);
+		String dataNode = null;
+		if (schema.isNoSharding()) {//不分库的直接从schema中获取dataNode
+			dataNode = schema.getDataNode();
+		} else {
+			dataNode = getMetaReadDataNode(schema, tableName);
+		}
+
 		RouteResultsetNode[] nodes = new RouteResultsetNode[1];
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), sql);
 		rrs.setNodes(nodes);

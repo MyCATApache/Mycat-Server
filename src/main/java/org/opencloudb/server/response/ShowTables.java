@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
+import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.Fields;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.UserConfig;
@@ -18,6 +19,7 @@ import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.server.ServerConnection;
+import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.StringUtil;
 
 /**
@@ -39,8 +41,19 @@ public class ShowTables {
 	 * response method.
 	 * @param c
 	 */
-	public static void response(ServerConnection c,String stmt) { 
-	
+	public static void response(ServerConnection c,String stmt,int type) {
+		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(c.getSchema());
+        if(schema != null) {
+        	//不分库的schema，show tables从后端 mysql中查
+            if(schema.isNoSharding()) {
+            	c.execute(stmt, ServerParse.SHOW);
+                return;
+            }
+        } else {
+             c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,"No database selected");
+        }
+
+        //分库的schema，直接从SchemaConfig中获取所有表名
         Map<String,String> parm = buildFields(c,stmt);
 	  
         ByteBuffer buffer = c.allocate();
@@ -107,8 +120,7 @@ public class ShowTables {
 		
 		
     }
-
-
+	
 	/**
 	 * build fields
 	 * @param c
