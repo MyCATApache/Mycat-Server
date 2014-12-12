@@ -33,6 +33,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableStatemen
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 
@@ -59,6 +60,9 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy implements Dr
 			return analyseUpdateSQL(schema, rrs, statement);
 		} else if(statement instanceof MySqlAlterTableStatement) {
 			return analyseAlterTable(schema, rrs, statement);
+		} else if(statement instanceof MySqlReplaceStatement) {
+			throw new SQLSyntaxErrorException(" ReplaceStatement can't be supported,use insert into ...on duplicate key update... instead ");
+//			return analyseReplaceSQL(schema, rrs, statement);
 		} else {
 			return analyseDefault(schema, rrs, statement);
 		}
@@ -162,7 +166,6 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy implements Dr
 		}
 		return tryRouteForTables(schema, parser.getCtx(), parser.getCtx().getTables(), rrs, true);
 	}
-	
 	
 	/**
 	 * 为insert语句找路由
