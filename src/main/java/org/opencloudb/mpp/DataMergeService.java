@@ -50,7 +50,7 @@ public class DataMergeService {
     private int fieldCount;
     private final RouteResultset rrs;
     private MemMapBytesArray rows;
-    private MutilNodeMergeItf sorter;
+    private FastRowDataSorter sorter;
     private MutilNodeMergeItf grouper;
     public static final String SWAP_PATH = "./";
     private static final Logger LOGGER = Logger.getLogger(DataMergeService.class);
@@ -123,6 +123,7 @@ public class DataMergeService {
                 orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey().toUpperCase()), entry.getValue());
             }
             sorter = new FastRowDataSorter(orderCols);
+            sorter.setLimit(rrs.getLimitStart(), rrs.getLimitSize());
 
         } else {
             rows = new MemMapBytesArray(SWAP_PATH);
