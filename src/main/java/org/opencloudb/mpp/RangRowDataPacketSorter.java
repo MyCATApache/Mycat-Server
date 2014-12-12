@@ -43,6 +43,6 @@ public class RangRowDataPacketSorter extends FastRowDataSorter {
 		byte[] left = l.fieldValues.get(this.orderCols[byColumnIndex].colMeta.colIndex);
 		byte[] right = r.fieldValues.get(this.orderCols[byColumnIndex].colMeta.colIndex);
 		
-		return compareObject(left, right, this.orderCols[byColumnIndex]);
+		return cmp.compareObject(left, right, this.orderCols[byColumnIndex]);
 	}
 }

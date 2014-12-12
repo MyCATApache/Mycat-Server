@@ -8,8 +8,8 @@ import java.util.Set;
 
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.OrderCol;
-import org.opencloudb.mpp.RowDataPacketSorter;
 import org.opencloudb.mpp.tmp.FastRowDataSorter;
+import org.opencloudb.mpp.tmp.MutilNodeMergeItf;
 import org.opencloudb.mysql.BufferUtil;
 import org.opencloudb.net.mysql.RowDataPacket;
 
@@ -20,7 +20,7 @@ public class TestMergeSorter {
 		ColMeta colMeta = new ColMeta(0, ColMeta.COL_TYPE_INT);
 		OrderCol col = new OrderCol(colMeta, OrderCol.COL_ORDER_TYPE_DESC);
 		OrderCol[] orderCols = { col };
-		RowDataPacketSorter sorter = new FastRowDataSorter(orderCols);
+		MutilNodeMergeItf sorter = new FastRowDataSorter(orderCols);
 		byte idLen = 4;
 		byte packId = 0;
 		int maxCount = 10000;
@@ -49,7 +49,7 @@ public class TestMergeSorter {
 		System.out.println("add finished");
 		for (int i = 0; i < 100; i++) {
 			long st = System.currentTimeMillis();
-			Collection<RowDataPacket> res = sorter.getSortedResult();
+			Collection<RowDataPacket> res = sorter.getResult();
 			long end = System.currentTimeMillis();// 37.246//15.196
 			System.out.println((end - st) / 1000.0);
 		}

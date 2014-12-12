@@ -45,7 +45,7 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
-
+import org.opencloudb.mpp.tmp.RowDataPacketGrouper;
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
  * 
@@ -142,14 +142,7 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
 			tmpResult = grouper.getResult();
 		}
 		if (sorter != null) {
-			
-//			Iterator<RowDataPacket> itor = tmpResult.iterator();
-//			while (itor.hasNext()) {
-//				sorter.addRow(itor.next());
-//				itor.remove();
-//
-//			}
-			tmpResult = sorter.getSortedResult();
+			tmpResult = sorter.getResult();
 		}
 		return tmpResult;
 	}
@@ -260,6 +253,8 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
 	public void clear() {
 		if(sorter!=null)
 			sorter.close();
+		if(grouper!=null)
+		    grouper.close();
 		grouper = null;
 		sorter = null;
 		result = null;

@@ -28,11 +28,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.opencloudb.mpp.tmp.MutilNodeMergeItf;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.CompareUtil;
 
-public class RowDataPacketSorter {
+public class RowDataPacketSorter implements MutilNodeMergeItf {
 
 	protected final OrderCol[] orderCols;
 
@@ -45,12 +46,20 @@ public class RowDataPacketSorter {
 		this.orderCols = orderCols;
 	}
 
-	public void addRow(RowDataPacket row) {
+	/* (non-Javadoc)
+     * @see org.opencloudb.mpp.MutilNodeMergeItf#addRow(org.opencloudb.net.mysql.RowDataPacket)
+     */
+	@Override
+    public void addRow(RowDataPacket row) {
 		this.sorted.add(row);
 
 	}
 
-	public Collection<RowDataPacket> getSortedResult() {
+	/* (non-Javadoc)
+     * @see org.opencloudb.mpp.MutilNodeMergeItf#getSortedResult()
+     */
+	@Override
+    public Collection<RowDataPacket> getResult() {
 		try {
 			this.mergeSort(sorted.toArray(new RowDataPacket[sorted.size()]));
 		} catch (Exception e) {
@@ -196,7 +205,11 @@ public class RowDataPacketSorter {
 		return 0;
 	}
 
-	public void close() {
+	/* (non-Javadoc)
+     * @see org.opencloudb.mpp.MutilNodeMergeItf#close()
+     */
+	@Override
+    public void close() {
 
 	}
 }
