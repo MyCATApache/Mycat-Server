@@ -1,65 +1,69 @@
 package org.opencloudb.mpp.tmp;
 
-import org.opencloudb.net.mysql.RowDataPacket;
+import java.util.List;
+
+import org.opencloudb.mpp.OrderCol;
 
 public class MinHeap {
 
-	private RowDataCmp cmp;
-	private RowDataPacket[] data;
+    private List<byte[]> data;
+    private RowDataCmp cmp;
+    private OrderCol orderCol;
 
-	public MinHeap(RowDataPacket[] data, RowDataCmp cmp) {
-		this.cmp = cmp;
-		this.data = data;
-		this.buildMinHeap();
-	}
+    public MinHeap(List<byte[]> data, RowDataCmp cmp, OrderCol orderCol) {
+        this.cmp = cmp;
+        this.data = data;
+        this.orderCol = orderCol;
+        this.buildMinHeap();
+    }
 
-	private void buildMinHeap() {
-		int len = data.length;
-		for (int i = len / 2 - 1; i >= 0; i--) {
-			heapify(i);
-		}
-	}
+    private void buildMinHeap() {
+        int len = data.size();
+        for (int i = len / 2 - 1; i >= 0; i--) {
+            heapify(i);
+        }
+    }
 
-	private void heapify(int i) {
-		int l = left(i);
-		int r = right(i);
-		int smallest = i;
-		if (l < data.length && cmp.compare(data[l], data[i]) < 0)
-			smallest = l;
-		if (r < data.length && cmp.compare(data[r], data[smallest]) < 0)
-			smallest = r;
-		if (i == smallest)
-			return;
-		swap(i, smallest);
-		heapify(smallest);
-	}
+    private void heapify(int i) {
+        int l = left(i);
+        int r = right(i);
+        int smallest = i;
+        int len = data.size();
+        if (l < len && cmp.compareObject(data.get(l), data.get(i), orderCol) < 0)
+            smallest = l;
+        if (r < len && cmp.compareObject(data.get(r), data.get(smallest), orderCol) < 0)
+            smallest = r;
+        if (i == smallest)
+            return;
+        swap(i, smallest);
+        heapify(smallest);
+    }
 
-	private int right(int i) {
-		return (i + 1) << 1;
-	}
+    private int right(int i) {
+        return (i + 1) << 1;
+    }
 
-	private int left(int i) {
-		return ((i + 1) << 1) - 1;
-	}
+    private int left(int i) {
+        return ((i + 1) << 1) - 1;
+    }
 
-	private void swap(int i, int j) {
-		RowDataPacket tmp = data[i];
-		data[i] = data[j];
-		data[j] = tmp;
-	}
+    private void swap(int i, int j) {
+        byte[] tmp = data.get(i);
+        data.set(i, data.get(j));
+        data.set(i, tmp);
+    }
 
-	
-	public RowDataPacket[] getData() {
-		return data;
-	}
+    public List<byte[]> getData() {
+        return data;
+    }
 
-	public RowDataPacket getRoot() {
-		return data[0];
-	}
+    public byte[] getRoot() {
+        return data.get(0);
+    }
 
-	public void setRoot(RowDataPacket root) {
-		data[0] = root;
-		heapify(0);
-	}
+    public void setRoot(byte[] root) {
+        data.set(0, root);
+        heapify(0);
+    }
 
 }
