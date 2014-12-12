@@ -155,6 +155,20 @@ public class XMLSchemaLoader implements SchemaLoader {
 			if (schemas.containsKey(name)) {
 				throw new ConfigException("schema " + name + " duplicated!");
 			}
+			
+			// 设置了table的不需要设置dataNode属性，没有设置table的必须设置dataNode属性
+			if (dataNode == null && tables.size() == 0) {
+				throw new ConfigException(
+						"schema "
+								+ name
+								+ " didn't config tables,so you must set dataNode property!");
+			} else if (tables.size() > 0 && dataNode != null) {
+				throw new ConfigException(
+						"schema "
+								+ name
+								+ " has configed tables,so you mustn't set dataNode property!");
+			}
+			
 			schemas.put(name, new SchemaConfig(name, dataNode, tables,
 					sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr)));
 		}
