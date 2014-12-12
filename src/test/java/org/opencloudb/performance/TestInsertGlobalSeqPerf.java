@@ -23,7 +23,7 @@
  */
 package org.opencloudb.performance;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author wuzh
@@ -38,9 +38,9 @@ public class TestInsertGlobalSeqPerf extends AbstractMultiTreadBatchTester {
 	}
 
 	@Override
-	public Runnable createJob(SimpleConPool conPool2, int myCount, int batch,
-			int startId, AtomicInteger finshiedCount2,
-			AtomicInteger failedCount2) {
+	public Runnable createJob(SimpleConPool conPool2, long myCount, int batch,
+			long startId, AtomicLong finshiedCount2,
+			AtomicLong failedCount2) {
 		  return new TravelRecordGlobalSeqInsertJob(conPool2,
 					myCount, batch, startId, finshiedCount, failedCount);
 	}

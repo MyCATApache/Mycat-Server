@@ -25,6 +25,7 @@ package org.opencloudb.mysql.nio.handler;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -60,7 +61,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	private final NonBlockingSession session;
 	// private final CommitNodeHandler icHandler;
 	private final DataMergeService dataMergeSvr;
-	private volatile boolean mergeOutputed;
 	private final boolean autocommit;
 	private String priamaryKeyTable = null;
 	private int primaryKeyIndex = -1;
@@ -207,7 +207,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 					session.releaseConnections(false);
 				}
 				if (this.isFail() || session.closed()) {
-					tryErrorFinished(conn, true);
+					tryErrorFinished(true);
 					return;
 				}
 
@@ -222,7 +222,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 					}
 					ok.write(source);
 				} catch (Exception e) {
-					handleDataProcessException(e, conn);
+					handleDataProcessException(e);
 				} finally {
 					lock.unlock();
 				}
@@ -231,7 +231,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	}
 
 	@Override
-	public void rowEofResponse(byte[] eof, BackendConnection conn) {
+	public void rowEofResponse(final byte[] eof, BackendConnection conn) {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("on row end reseponse " + conn);
 		}
@@ -239,7 +239,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			return;
 		}
 
-		ServerConnection source = session.getSource();
+		final ServerConnection source = session.getSource();
 		if (!isCallProcedure) {
 			if (clearIfSessionClosed(session)) {
 				return;
@@ -255,55 +255,76 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				}
 
 				if (this.isFail() || session.closed()) {
-					tryErrorFinished(conn, true);
+					tryErrorFinished(true);
 					return;
 				}
 			}
-			try {
-				lock.lock();
-				ByteBuffer buffer = session.getSource().allocate();
+			if (dataMergeSvr != null) {
 
-				if (dataMergeSvr != null && !mergeOutputed) {
-					int i = 0;
-					int start = dataMergeSvr.getRrs().getLimitStart();
-					int end = start + dataMergeSvr.getRrs().getLimitSize();
-					Iterator<RowDataPacket> itor = dataMergeSvr.getResults()
-							.iterator();
+				// aysn execute to void long time
+				MycatServer.getInstance().getBusinessExecutor()
+						.execute(new Runnable() {
+							public void run() {
+								outputMergeResult(source, eof);
+							}
+						});
+
+			} else {
+				try {
+					lock.lock();
+					eof[3] = ++packetId;
 					if (LOGGER.isDebugEnabled()) {
-						LOGGER.debug("output merge result ,total data "
-								+ dataMergeSvr.getResults().size() + " start :"
-								+ start + " end :" + end + " package id start:"
-								+ packetId);
+						LOGGER.debug("last packet id:" + packetId);
 					}
-					while (itor.hasNext()) {
-						RowDataPacket row = itor.next();
-						itor.remove();
-						if (i < start) {
-							i++;
-							continue;
-						} else if (i == end) {
-							break;
-						}
-						i++;
-						row.packetId = ++packetId;
-						buffer = row.write(buffer, source, true);
-					}
+					source.write(eof);
+				} finally {
+					lock.unlock();
 
-				}
-				eof[3] = ++packetId;
-				if (LOGGER.isDebugEnabled()) {
-					LOGGER.debug("last packet id:" + packetId);
-				}
-				source.write(source.writeToBuffer(eof, buffer));
-
-			} catch (Exception e) {
-				handleDataProcessException(e, conn);
-			} finally {
-				lock.unlock();
-				if (dataMergeSvr != null) {
-					dataMergeSvr.clear();
 				}
 			}
+		}
+	}
+
+	private void outputMergeResult(final ServerConnection source,
+			final byte[] eof) {
+		try {
+			lock.lock();
+			ByteBuffer buffer = session.getSource().allocate();
+			int i = 0;
+			int start = dataMergeSvr.getRrs().getLimitStart();
+			int end = start + dataMergeSvr.getRrs().getLimitSize();
+			Collection<RowDataPacket> results = dataMergeSvr.getResults();
+			Iterator<RowDataPacket> itor = results.iterator();
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("output merge result ,total data "
+						+ results.size() + " start :" + start + " end :" + end
+						+ " package id start:" + packetId);
+			}
+			while (itor.hasNext()) {
+				RowDataPacket row = itor.next();
+				itor.remove();
+				if (i < start) {
+					i++;
+					continue;
+				} else if (i == end) {
+					break;
+				}
+				i++;
+				row.packetId = ++packetId;
+				buffer = row.write(buffer, source, true);
+			}
+
+			eof[3] = ++packetId;
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("last packet id:" + packetId);
+			}
+			source.write(source.writeToBuffer(eof, buffer));
+
+		} catch (Exception e) {
+			handleDataProcessException(e);
+		} finally {
+			lock.unlock();
+			dataMergeSvr.clear();
 		}
 	}
 
@@ -370,31 +391,38 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			source.write(eof);
 			source.write(buffer);
 		} catch (Exception e) {
-			handleDataProcessException(e, conn);
+			handleDataProcessException(e);
 		} finally {
 			lock.unlock();
 		}
 	}
 
-	private void handleDataProcessException(Exception e, BackendConnection conn) {
+	private void handleDataProcessException(Exception e) {
 		if (!errorRepsponsed) {
 			LOGGER.warn("caught exception ", e);
 			setFail(e.toString());
-			this.tryErrorFinished(conn, true);
+			this.tryErrorFinished(true);
 		}
 	}
 
 	@Override
-	public void rowResponse(byte[] row, BackendConnection conn) {
+	public void rowResponse(final byte[] row, final BackendConnection conn) {
 		if (errorRepsponsed) {
 			return;
 		}
 		lock.lock();
 		try {
 			if (dataMergeSvr != null) {
-				dataMergeSvr.onNewRecord(
-						((RouteResultsetNode) conn.getAttachment()).getName(),
-						row);
+				final String dnName = ((RouteResultsetNode) conn
+						.getAttachment()).getName();
+				// aysn execute to void long time
+				MycatServer.getInstance().getBusinessExecutor()
+						.execute(new Runnable() {
+							public void run() {
+								dataMergeSvr.onNewRecord(dnName, row);
+							}
+						});
+
 			} else {
 				if (primaryKeyIndex != -1) {// cache
 											// primaryKey->
@@ -415,7 +443,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 		} catch (Exception e) {
 
-			handleDataProcessException(e, conn);
+			handleDataProcessException(e);
 		} finally {
 			lock.unlock();
 		}

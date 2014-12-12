@@ -27,71 +27,25 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.net.mysql.OkPacket;
-import org.opencloudb.route.RouteResultsetNode;
+import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 
 /**
  * @author mycat
  */
-public class CommitNodeHandler extends MultiNodeHandler {
+public class CommitNodeHandler implements ResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(CommitNodeHandler.class);
-	private OkPacket okPacket;
+	private final NonBlockingSession session;
 
 	public CommitNodeHandler(NonBlockingSession session) {
-		super(session);
+		this.session = session;
 	}
 
-	public void commit() {
-		commit(null);
-	}
-
-	private void commit(OkPacket packet) {
-		final int initCount = session.getTargetCount();
-		if(LOGGER.isDebugEnabled())
-		{
-			LOGGER.debug("commit session sql ,total connections "+initCount);
-		}
-		lock.lock();
-		try {
-			reset(initCount);
-			okPacket = packet;
-		} finally {
-			lock.unlock();
-		}
-
-		if (clearIfSessionClosed(session)) {
-			return;
-		}
-
-		// 执行
-		int started = 0;
-		for (RouteResultsetNode rrn : session.getTargetKeys()) {
-			if (rrn == null) {
-					LOGGER.error("null is contained in RoutResultsetNodes, source = "
-							+ session.getSource());
-				continue;
-			}
-			final BackendConnection conn = session.getTarget(rrn);
-			if (conn != null) {
-				if (clearIfSessionClosed(session)) {
-					return;
-				}
-				conn.setResponseHandler(CommitNodeHandler.this);
-				conn.commit();
-				++started;
-			}
-		}
-
-		if (started < initCount && decrementCountBy(initCount - started)) {
-			/**
-			 * assumption: only caused by front-end connection close. <br/>
-			 * Otherwise, packet must be returned to front-end
-			 */
-			session.clearResources(true);
-		}
+	public void commit(BackendConnection conn) {
+		conn.setResponseHandler(CommitNodeHandler.this);
+		conn.commit();
 	}
 
 	@Override
@@ -102,24 +56,19 @@ public class CommitNodeHandler extends MultiNodeHandler {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		if (clearIfSessionClosed(session)) {
-			return;
-		} else if (canClose(conn, false)) {
-			return;
-		}
-		if (decrementCountBy(1)) {
-			session.clearResources(false);
-			if (this.isFail() || session.closed()) {
-				tryErrorFinished(conn, true);
-			} else {
-				if (okPacket == null) {
-					ServerConnection source = session.getSource();
-					source.write(ok);
-				} else {
-					okPacket.write(session.getSource());
-				}
-			}
-		}
+		session.clearResources(false);
+		ServerConnection source = session.getSource();
+		source.write(ok);
+	}
+
+	@Override
+	public void errorResponse(byte[] err, BackendConnection conn) {
+		ErrorPacket errPkg = new ErrorPacket();
+		errPkg.read(err);
+		String errInfo = new String(errPkg.message);
+		session.getSource().setTxInterrupt(errInfo);
+		errPkg.write(session.getSource());
+
 	}
 
 	@Override
@@ -146,6 +95,18 @@ public class CommitNodeHandler extends MultiNodeHandler {
 
 	@Override
 	public void writeQueueAvailable() {
+
+	}
+
+	@Override
+	public void connectionError(Throwable e, BackendConnection conn) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void connectionClose(BackendConnection conn, String reason) {
+		// TODO Auto-generated method stub
 
 	}
 

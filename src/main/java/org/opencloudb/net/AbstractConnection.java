@@ -247,14 +247,13 @@ public abstract class AbstractConnection implements NIOConnection {
 		}
 		ByteBuffer buffer = this.readBuffer;
 		lastReadTime = TimeUtil.currentTimeMillis();
-		if (got < 0) {
-			if (!this.isClosed()) {
-				this.close("socket closed");
-				return;
-			}
-		} else if (got == 0) {
+		if (got <=0) {
 			return;
-		}
+			// if (!this.isClosed()) {
+			// this.close("socket closed");
+			// return;
+			// }
+		} 
 		netInBytes += got;
 		processor.addNetInBytes(got);
 
@@ -367,7 +366,7 @@ public abstract class AbstractConnection implements NIOConnection {
 			closeSocket();
 			isClosed.set(true);
 			this.cleanup();
-			LOGGER.info("close connection,reason:" + reason + " " + this);
+			LOGGER.info("close connection,reason:" + reason + " ," + this);
 		}
 	}
 

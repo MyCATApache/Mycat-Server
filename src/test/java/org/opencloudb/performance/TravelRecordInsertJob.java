@@ -34,21 +34,21 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TravelRecordInsertJob implements Runnable {
-	private final int endId;
-	private int finsihed;
-	private final int batchSize;
-	private final AtomicInteger finshiedCount;
-	private final AtomicInteger failedCount;
+	private final long endId;
+	private long finsihed;
+	private final long batchSize;
+	private final AtomicLong finshiedCount;
+	private final AtomicLong failedCount;
 	Calendar date = Calendar.getInstance();
 	DateFormat datafomat = new SimpleDateFormat("yyyy-MM-dd");
 	private final SimpleConPool conPool;
 
-	public TravelRecordInsertJob(SimpleConPool conPool, int totalRecords,
-			int batchSize, int startId, AtomicInteger finshiedCount,
-			AtomicInteger failedCount) {
+	public TravelRecordInsertJob(SimpleConPool conPool, long totalRecords,
+			long batchSize, long startId, AtomicLong finshiedCount,
+			AtomicLong failedCount) {
 		super();
 		this.conPool = conPool;
 		this.endId = startId + totalRecords - 1;
@@ -58,7 +58,7 @@ public class TravelRecordInsertJob implements Runnable {
 		this.failedCount = failedCount;
 	}
 
-	private int insert(Connection con, List<Map<String, String>> list)
+	private long insert(Connection con, List<Map<String, String>> list)
 			throws SQLException {
 		PreparedStatement ps;
 
@@ -70,12 +70,14 @@ public class TravelRecordInsertJob implements Runnable {
 			ps.setString(3, (String) map.get("traveldate"));
 			ps.setString(4, (String) map.get("fee"));
 			ps.setString(5, (String) map.get("days"));
-			ps.addBatch();
+			//ps.addBatch();
+			
+			ps.execute();
 
 		}
-		ps.executeBatch();
+		//ps.executeBatch();
 		con.commit();
-		ps.clearBatch();
+		//ps.clearBatch();
 		ps.close();
 		return list.size();
 	}
@@ -84,15 +86,15 @@ public class TravelRecordInsertJob implements Runnable {
 		if (finsihed >= endId) {
 			return Collections.emptyList();
 		}
-		int end = (finsihed + batchSize) < this.endId ? (finsihed + batchSize)
+		long end = (finsihed + batchSize) < this.endId ? (finsihed + batchSize)
 				: endId;
 		// the last batch
 		if (end + batchSize > this.endId) {
 			end = this.endId;
 		}
 		List<Map<String, String>> list = new ArrayList<Map<String, String>>(
-				(end - finsihed));
-		for (int i = finsihed; i <= end; i++) {
+				Integer.valueOf((end - finsihed)+""));
+		for (long i = finsihed; i <= end; i++) {
 			Map<String, String> m = new HashMap<String, String>();
 			m.put("id", i + "");
 			m.put("user_id", "user " + i);
@@ -106,9 +108,9 @@ public class TravelRecordInsertJob implements Runnable {
 		return list;
 	}
 
-	private String getRandomDay(int i) {
-		int month = i % 11 + 1;
-		int day = i % 27 + 1;
+	private String getRandomDay(long i) {
+		int month = Long.valueOf(i % 11 + 1).intValue();
+		int day = Long.valueOf(i % 27 + 1).intValue();
 
 		date.set(Calendar.MONTH, month);
 		date.set(Calendar.DAY_OF_MONTH, day);

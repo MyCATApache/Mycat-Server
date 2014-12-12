@@ -17,8 +17,8 @@ public class FastRowDataSorter extends RowDataPacketSorter {
 
 	private RowDataCmp cmp;
 	private int fieldCount;
-	protected OrderCol[] orderCols;
 	private MemMapBytesArray rows;
+	protected OrderCol[] orderCols;
 	public static final String SWAP_PATH = "./";
 
 	public FastRowDataSorter(OrderCol[] orderCols) {
@@ -48,7 +48,7 @@ public class FastRowDataSorter extends RowDataPacketSorter {
 				return cmp.compare(r1, r2);
 			}
 		});
-		return new CollectionWarpper(rows, fieldCount);
+		return new CollectionWrapper(rows, fieldCount);
 	}
 
 	//必须在finally里调用此方法

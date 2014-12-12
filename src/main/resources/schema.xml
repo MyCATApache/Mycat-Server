@@ -19,9 +19,9 @@
  -->
 		<table name="employee" primaryKey="ID" dataNode="dn1,dn2"
 			rule="sharding-by-intfile" />
-		<table name="customer" primaryKey="ID" autoIncrement="true"  dataNode="dn1,dn2"
+		<table name="customer" primaryKey="ID" dataNode="dn1,dn2"
 			rule="sharding-by-intfile">
-			<childTable name="orders" primaryKey="ID" autoIncrement="true"  joinKey="customer_id"
+			<childTable name="orders" primaryKey="ID" joinKey="customer_id"
 				parentKey="id">
 				<childTable name="order_items" joinKey="order_id"
 					parentKey="id" />

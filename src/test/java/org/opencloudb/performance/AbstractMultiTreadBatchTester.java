@@ -31,11 +31,12 @@ import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractMultiTreadBatchTester {
 	SimpleConPool conPool;
-	protected AtomicInteger finshiedCount = new AtomicInteger();
-	protected AtomicInteger failedCount = new AtomicInteger();
+	protected AtomicLong finshiedCount = new AtomicLong();
+	protected AtomicLong failedCount = new AtomicLong();
 	protected int threadCount = 0;// 线程数
 	protected String url;
 	protected String user;
@@ -72,21 +73,21 @@ public abstract class AbstractMultiTreadBatchTester {
 		finshiedCount.addAndGet(count);
 	}
 
-	public ArrayList<Runnable> createJobs(SimpleConPool conPool, int minId,
-			int maxId) throws Exception {
-		int recordCount = maxId - minId + 1;
+	public ArrayList<Runnable> createJobs(SimpleConPool conPool, long minId,
+			long maxId) throws Exception {
+		long recordCount = maxId - minId + 1;
 		int batchSize = 1000;
-		int totalBatch = recordCount / batchSize;
-		ArrayList<Runnable> jobs = new ArrayList<Runnable>(totalBatch);
+		long totalBatch = recordCount / batchSize;
+		ArrayList<Runnable> jobs = new ArrayList<Runnable>();
 		for (int i = 0; i < totalBatch; i++) {
-			int startId = minId + i * batchSize;
-			int endId = (startId + batchSize - 1);
+			long startId = minId + i * batchSize;
+			long endId = (startId + batchSize - 1);
 			if (endId >= maxId) {
 				endId = maxId;
 			} else if (i == totalBatch - 1) {
 				endId = maxId;
 			}
-			int myCount = endId - startId + 1;
+			long myCount = endId - startId + 1;
 			Runnable job = createJob(getConPool(), myCount, 100, startId,
 					finshiedCount, failedCount);
 			//System.out.println("job record id is " + startId + "-" + endId);
@@ -96,17 +97,17 @@ public abstract class AbstractMultiTreadBatchTester {
 		return jobs;
 	}
 
-	public abstract Runnable createJob(SimpleConPool conPool2, int myCount,
-			int batchSize, int startId, AtomicInteger finshiedCount2,
-			AtomicInteger failedCount2);
+	public abstract Runnable createJob(SimpleConPool conPool2, long myCount,
+			int batchSize, long startId, AtomicLong finshiedCount2,
+			AtomicLong failedCount2);
 
 	@SuppressWarnings("unchecked")
 	public ArrayList<Runnable>[] createAllJobs() throws Exception {
 		ArrayList<Runnable>[] allJobs = new ArrayList[rangeItems.length];
 		for (int i = 0; i < rangeItems.length; i++) {
 			String[] items = rangeItems[i].split("-");
-			int min = (int) parseLong(items[0]);
-			int max = (int) parseLong(items[1]);
+			long min = parseLong(items[0]);
+			long max = parseLong(items[1]);
 			allJobs[i] = createJobs(conPool, min, max);
 
 		}

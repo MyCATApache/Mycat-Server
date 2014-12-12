@@ -26,12 +26,10 @@ package org.opencloudb.server;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
@@ -46,17 +44,18 @@ import org.opencloudb.mpp.DataMergeService;
 import org.opencloudb.mpp.MutiDataMergeService;
 import org.opencloudb.mysql.nio.handler.CommitNodeHandler;
 import org.opencloudb.mysql.nio.handler.KillConnectionHandler;
+import org.opencloudb.mysql.nio.handler.MultiNodeCoordinator;
 import org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler;
 import org.opencloudb.mysql.nio.handler.MultiNodeQueryWithLimitHandler;
 import org.opencloudb.mysql.nio.handler.RollbackNodeHandler;
 import org.opencloudb.mysql.nio.handler.RollbackReleaseHandler;
 import org.opencloudb.mysql.nio.handler.SingleNodeHandler;
-import org.opencloudb.mysql.nio.handler.Terminatable;
 import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.sqlcmd.SQLCmdConstant;
 import org.opencloudb.util.ObjectUtil;
 
 /**
@@ -72,13 +71,16 @@ public class NonBlockingSession implements Session {
 	// life-cycle: each sql execution
 	private volatile SingleNodeHandler singleNodeHandler;
 	private volatile MultiNodeQueryHandler multiNodeHandler;
-	private volatile CommitNodeHandler commitHandler;
 	private volatile RollbackNodeHandler rollbackHandler;
+	private final MultiNodeCoordinator multiNodeCoordinator;
+	private final CommitNodeHandler commitHandler;
 
 	public NonBlockingSession(ServerConnection source) {
 		this.source = source;
 		this.target = new ConcurrentHashMap<RouteResultsetNode, BackendConnection>(
-				2, 1);
+				2, 0.75f);
+		multiNodeCoordinator = new MultiNodeCoordinator(this);
+		commitHandler = new CommitNodeHandler(this);
 	}
 
 	@Override
@@ -99,6 +101,7 @@ public class NonBlockingSession implements Session {
 		return target.get(key);
 	}
 
+	
 	public Map<RouteResultsetNode, BackendConnection> getTargetMap() {
 		return this.target;
 	}
@@ -172,9 +175,18 @@ public class NonBlockingSession implements Session {
 			buffer = source.writeToBuffer(OkPacket.OK, buffer);
 			source.write(buffer);
 			return;
+		} else if (initCount == 1) {
+			BackendConnection con = target.elements().nextElement();
+			commitHandler.commit(con);
+
+		} else {
+
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("multi node commit to send ,total " + initCount);
+			}
+			multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
 		}
-		commitHandler = new CommitNodeHandler(this);
-		commitHandler.commit();
+
 	}
 
 	public void rollback() {
@@ -251,6 +263,23 @@ public class NonBlockingSession implements Session {
 		}
 	}
 
+	public void releaseConnection(BackendConnection con) {
+		Iterator<Entry<RouteResultsetNode, BackendConnection>> itor = target
+				.entrySet().iterator();
+		while (itor.hasNext()) {
+			BackendConnection theCon = itor.next().getValue();
+			if (theCon == con) {
+				itor.remove();
+				con.release();
+				if (LOGGER.isDebugEnabled()) {
+					LOGGER.debug("realse connection " + con);
+				}
+				break;
+			}
+		}
+
+	}
+
 	/**
 	 * @return previous bound connection
 	 */
@@ -286,7 +315,7 @@ public class NonBlockingSession implements Session {
 		return false;
 	}
 
-	private void kill() {
+	protected void kill() {
 		boolean hooked = false;
 		AtomicInteger count = null;
 		Map<RouteResultsetNode, BackendConnection> killees = null;

@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
 import org.opencloudb.config.Alarms;
 import org.opencloudb.config.model.DBHostConfig;
 import org.opencloudb.config.model.DataHostConfig;
@@ -321,17 +322,27 @@ public abstract class PhysicalDatasource {
 
 	private void createNewConnection(final ResponseHandler handler,
 			final Object attachment, final String schema) throws IOException {
-		this.createNewConnection(new DelegateResponseHandler(handler) {
-			@Override
-			public void connectionError(Throwable e, BackendConnection conn) {
-				handler.connectionError(e, conn);
-			}
+		//aysn create connection
+		MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
+			public void run() {
+				try {
+					createNewConnection(new DelegateResponseHandler(handler) {
+						@Override
+						public void connectionError(Throwable e,
+								BackendConnection conn) {
+							handler.connectionError(e, conn);
+						}
 
-			@Override
-			public void connectionAcquired(BackendConnection conn) {
-				takeCon(conn, handler, attachment, schema);
+						@Override
+						public void connectionAcquired(BackendConnection conn) {
+							takeCon(conn, handler, attachment, schema);
+						}
+					}, schema);
+				} catch (IOException e) {
+					handler.connectionError(e, null);
+				}
 			}
-		}, schema);
+		});
 	}
 
 	public void getConnection(final ConnectionMeta conMeta,
