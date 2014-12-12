@@ -50,6 +50,17 @@ public final class RouteResultset implements Serializable {
 
 	// 是否为全局表，只有在insert、update、delete、ddl里会判断并修改。默认不是全局表，用于修正全局表修改数据的反馈。
 	private boolean globalTableFlag = false;
+	
+	//是否完成了路由
+	private boolean isFinishedRoute = false;
+	
+	public boolean isFinishedRoute() {
+		return isFinishedRoute;
+	}
+
+	public void setFinishedRoute(boolean isFinishedRoute) {
+		this.isFinishedRoute = isFinishedRoute;
+	}
 
 	public boolean isGlobalTable() {
 		return globalTableFlag;
