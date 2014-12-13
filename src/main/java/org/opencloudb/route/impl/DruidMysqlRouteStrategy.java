@@ -14,30 +14,18 @@ import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.mpp.ColumnRoutePair;
 import org.opencloudb.parser.druid.DruidParser;
+import org.opencloudb.parser.druid.DruidParserFactory;
 import org.opencloudb.parser.druid.DruidShardingParseInfo;
-import org.opencloudb.parser.druid.DruidStrategy;
-import org.opencloudb.parser.druid.impl.DefaultDruidParser;
-import org.opencloudb.parser.druid.impl.DruidAlterTableParser;
-import org.opencloudb.parser.druid.impl.DruidCreateTableParser;
-import org.opencloudb.parser.druid.impl.DruidDeleteParser;
-import org.opencloudb.parser.druid.impl.DruidInsertParser;
-import org.opencloudb.parser.druid.impl.DruidSelectParser;
-import org.opencloudb.parser.druid.impl.DruidUpdateParser;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.parser.ServerParse;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 
-public class DruidMysqlRouteStrategy extends AbstractRouteStrategy implements DruidStrategy {
+public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 	private static final Logger LOGGER = Logger.getLogger(DruidMysqlRouteStrategy.class);
 	
 	@Override
@@ -48,50 +36,42 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy implements Dr
 		
 		SQLStatement statement = parser.parseStatement();
 		
-		if(statement instanceof SQLSelectStatement) {
-			return analyseSelectSQL(schema, rrs, statement);
-		} else if(statement instanceof MySqlInsertStatement) {
-			return analyseInsertSQL(schema, rrs, statement);
-		} else if(statement instanceof MySqlDeleteStatement) {
-			return analyseDeleteSQL(schema, rrs, statement);
-		} else if(statement instanceof MySqlCreateTableStatement) {
-			return analyseCreateTable(schema, rrs, statement);
-		} else if(statement instanceof MySqlUpdateStatement) {
-			return analyseUpdateSQL(schema, rrs, statement);
-		} else if(statement instanceof MySqlAlterTableStatement) {
-			return analyseAlterTable(schema, rrs, statement);
-		} else if(statement instanceof MySqlReplaceStatement) {
-			throw new SQLSyntaxErrorException(" ReplaceStatement can't be supported,use insert into ...on duplicate key update... instead ");
-//			return analyseReplaceSQL(schema, rrs, statement);
-		} else {
-			return analyseDefault(schema, rrs, statement);
+		//检验unsupported statement
+		checkUnSupportedStatement(statement);
+			
+		DruidParser druidParser = DruidParserFactory.create(statement);
+		druidParser.parser(schema, rrs, statement);
+		
+		//DruidParser解析过程中已完成了路由的直接返回
+		if(rrs.isFinishedRoute()) {
+			return rrs;
 		}
 		
-//		String statementType = "";
-//		if(statement instanceof SQLSelectStatement) {
-//			statementType = StatementType.SELECT;
-//		} 
-//		else if(statement instanceof MySqlInsertStatement) {
-//			statementType = StatementType.INSERT;
-//		}
-//		else if(statement instanceof MySqlDeleteStatement) {
-//			statementType = StatementType.DELETE;
-//		} else if (statement instanceof MySqlCreateTableStatement) {
-//			statementType = StatementType.CREATE_TABLE;
-//		}else if(statement instanceof MySqlUpdateStatement) {
-//			return analyseDefault(schema, rrs, statement);
-//		}
-//		
-//		
-//		DruidParser schemaParser = DruidParserFactory.getDruidParser(statementType);
-//		schemaParser.parser(schema, statement);
-//		rrs.setStatement(stmt.toString());
-//		rrs.setStatement( schemaParser.getSql());
-//		//没有from的的select语句
-//		if(schemaParser.getTables().size() == 0) {
-//			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),schemaParser.getSql());
-//		}
-//		return tryRouteForTables(schema, schemaParser.getCtx(), schemaParser.getTables(), rrs, true);
+		rrs.setStatement(druidParser.getCtx().getSql());
+		//没有from的的select语句或其他
+		if(druidParser.getCtx().getTables().size() == 0) {
+			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),druidParser.getCtx().getSql());
+		}
+
+		return tryRouteForTables(schema, druidParser.getCtx(), druidParser.getCtx().getTables(), rrs, isSelect(statement));
+	}
+	
+	private boolean isSelect(SQLStatement statement) {
+		if(statement instanceof SQLSelectStatement) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * 检验不支持的SQLStatement类型 ：不支持的类型直接抛SQLSyntaxErrorException异常
+	 * @param statement
+	 * @throws SQLSyntaxErrorException
+	 */
+	private void checkUnSupportedStatement(SQLStatement statement) throws SQLSyntaxErrorException {
+		if(statement instanceof MySqlReplaceStatement) {
+			throw new SQLSyntaxErrorException(" ReplaceStatement can't be supported,use insert into ...on duplicate key update... instead ");
+		}
 	}
 	
 	/**
@@ -148,103 +128,6 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy implements Dr
 		}
 
 		return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), stmt);
-	}
-
-	/**
-	 *  
-	 * 为select语句找路由
-	 */
-	@Override
-	public RouteResultset analyseSelectSQL(SchemaConfig schema,
-			RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
-		DruidParser parser = new DruidSelectParser();
-		parser.parser(schema, rrs, stmt);
-		rrs.setStatement(parser.getCtx().getSql());
-		//没有from的的select语句
-		if(parser.getCtx().getTables().size() == 0) {
-			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),parser.getCtx().getSql());
-		}
-		return tryRouteForTables(schema, parser.getCtx(), parser.getCtx().getTables(), rrs, true);
-	}
-	
-	/**
-	 * 为insert语句找路由
-	 */
-	@Override
-	public RouteResultset analyseInsertSQL(SchemaConfig schema,
-			RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
-		DruidParser parser = new DruidInsertParser();
-		parser.parser(schema, rrs, stmt);
-		
-		return tryRouteForTables(schema, parser.getCtx(), parser.getCtx().getTables(), rrs, false);
-	}
-	
-	/**
-	 * 为alter table语句找路由
-	 */
-	@Override
-	public RouteResultset analyseAlterTable(SchemaConfig schema,
-			RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
-		DruidAlterTableParser parser = new DruidAlterTableParser();
-		parser.parser(schema, rrs, stmt);
-		
-		return tryRouteForTables(schema, parser.getCtx(), parser.getCtx().getTables(), rrs, false);
-	}
-	
-	/**
-	 * 为update语句找路由
-	 */
-	@Override
-	public RouteResultset analyseUpdateSQL(SchemaConfig schema,
-			RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
-		DruidParser parser = new DruidUpdateParser();
-		parser.parser(schema, rrs, stmt);
-		
-		return tryRouteForTables(schema, parser.getCtx(), parser.getCtx().getTables(), rrs, false);
-	}
-	
-	/**
-	 * 为delete语句找路由
-	 */
-	@Override
-	public RouteResultset analyseDeleteSQL(SchemaConfig schema,
-			RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
-		DruidParser parser = new DruidDeleteParser();
-		parser.parser(schema, rrs, stmt);
-		return tryRouteForTables(schema, parser.getCtx(), parser.getCtx().getTables(), rrs, false);
-	}
-	
-	/**
-	 * 为create table语句找路由
-	 */
-	@Override
-	public RouteResultset analyseCreateTable(SchemaConfig schema,
-			RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
-		DruidParser parser = new DruidCreateTableParser();
-		parser.parser(schema, rrs, stmt);
-		
-		if(parser.getCtx().getTables().size() == 0) {
-			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), parser.getCtx().getSql());
-		}
-		return tryRouteForTables(schema, parser.getCtx(), parser.getCtx().getTables(), rrs, false);
-	}
-	
-	/**
-	 * 不属于上面类型的语句，默认都走该分支找路由
-	 */
-	@Override
-	public RouteResultset analyseDefault(SchemaConfig schema,
-			RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
-		DruidParser parser = new DefaultDruidParser();
-		parser.parser(schema, rrs, stmt);
-		
-		rrs.setStatement(parser.getCtx().getSql());
-		//没有from的的select语句
-		if(parser.getCtx().getTables().size() == 0) {
-			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),parser.getCtx().getSql());
-		}
-		return tryRouteForTables(schema, parser.getCtx(), parser.getCtx().getTables(), rrs, false);
-		
 	}
 	
 	/**
