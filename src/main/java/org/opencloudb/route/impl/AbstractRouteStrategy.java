@@ -24,7 +24,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		if (RouterUtil.processWithMycatSeq(sysConfig,schema, sqlType, origSQL, charset,sc, cachePool) || 
 				(sqlType == ServerParse.INSERT && RouterUtil.processInsert(sysConfig,schema,sqlType,origSQL,charset,sc,cachePool))) {
 				return null;
-			}
+		}
 
 		// user handler
 		String stmt = MycatServer.getInstance().getSqlInterceptor().interceptSQL(origSQL, sqlType);
