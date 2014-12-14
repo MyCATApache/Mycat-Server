@@ -18,7 +18,7 @@ public class StandBatchInsertTest {
 		}
 		stmt.executeBatch();
 		theCon.commit();
-
+      System.out.println("succees");
 	}
 
 	public static void main(String[] args) throws Exception {
