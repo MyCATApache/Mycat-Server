@@ -152,7 +152,8 @@ public final class NIOReactor {
 					((NIOSocketWR) c.getSocketWR()).register(selector);
 					c.register();
 				} catch (Throwable e) {
-					c.error(ErrorCode.ERR_REGISTER, e);
+					LOGGER.warn("register error ",e);
+					c.close("register err");
 				}
 			}
 		}

@@ -51,7 +51,6 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	protected int packetHeaderSize;
 	protected int maxPacketSize;
-	protected volatile int readBufferOffset;
 	protected volatile ByteBuffer readBuffer;
 	protected volatile ByteBuffer writeBuffer;
 	// private volatile boolean writing = false;
@@ -247,51 +246,60 @@ public abstract class AbstractConnection implements NIOConnection {
 		}
 		ByteBuffer buffer = this.readBuffer;
 		lastReadTime = TimeUtil.currentTimeMillis();
-		if (got <=0) {
+		if (got <= 0) {
 			return;
 			// if (!this.isClosed()) {
 			// this.close("socket closed");
 			// return;
 			// }
-		} 
+		}
 		netInBytes += got;
 		processor.addNetInBytes(got);
+		// for read byte
+		int length = 0;
+		int maxReadableLen = 0;
 
-		// 澶勭悊鏁版嵁
-		int offset = readBufferOffset, length = 0, position = buffer.position();
+		buffer.flip();
 		for (;;) {
-			length = getPacketLength(buffer, offset);
-			if (length == -1) {
-				if (!buffer.hasRemaining()) {
-					buffer = checkReadBuffer(buffer, offset, position);
-				}
+			maxReadableLen = buffer.remaining();
+			if (maxReadableLen < this.packetHeaderSize) {
 				break;
 			}
-			if (position >= offset + length) {
-				buffer.position(offset);
+			length = getPacketLength(buffer, buffer.position());
+			if (length > maxPacketSize) {
+				throw new IllegalArgumentException(
+						"Packet size over the limit " + maxPacketSize);
+			} else if (length <= maxReadableLen) {
 				byte[] data = new byte[length];
-				buffer.get(data, 0, length);
+				buffer.get(data);
+				// buffer.position(buffer.position()+length);
 				handle(data);
-
-				offset += length;
-				if (position == offset) {
-					if (readBufferOffset != 0) {
-						readBufferOffset = 0;
-					}
-					buffer.clear();
-					break;
-				} else {
-					readBufferOffset = offset;
-					buffer.position(position);
-					continue;
-				}
 			} else {
-				if (!buffer.hasRemaining()) {
-					buffer = checkReadBuffer(buffer, offset, position);
+				// lenth maybe exceed my capacity ,create new
+				// next read event
+				buffer.compact();
+				int writableLen = buffer.capacity() - buffer.position();
+				if (writableLen >= length) {
+					// wait next read event
+					// System.out.println("writebale is ok " + writableLen
+					// + " need " + length);
+				} else {
+					// System.out.println("writebale " + writableLen + " need "
+					// + length);
+					int size = buffer.capacity() << 1;
+					size = (size > maxPacketSize) ? maxPacketSize : size;
+					ByteBuffer newBuffer = processor.getBufferPool().allocate(
+							size);
+					newBuffer.put(buffer);
+					recycle(buffer);
+					readBuffer = newBuffer;
+					buffer = newBuffer;
 				}
-				break;
+				return;
 			}
 		}
+		// compcat this buffer for next read
+		buffer.compact();
 	}
 
 	public void write(byte[] data) {
@@ -390,7 +398,6 @@ public abstract class AbstractConnection implements NIOConnection {
 		if (readBuffer != null) {
 			recycle(readBuffer);
 			this.readBuffer = null;
-			this.readBufferOffset = 0;
 		}
 		if (writeBuffer != null) {
 			recycle(writeBuffer);
@@ -403,39 +410,15 @@ public abstract class AbstractConnection implements NIOConnection {
 		}
 	}
 
-	protected int getPacketLength(ByteBuffer buffer, int offset) {
-		if (buffer.position() < offset + packetHeaderSize) {
-			return -1;
-		} else {
-			int length = buffer.get(offset) & 0xff;
-			length |= (buffer.get(++offset) & 0xff) << 8;
-			length |= (buffer.get(++offset) & 0xff) << 16;
-			return length + packetHeaderSize;
-		}
+	protected final int getPacketLength(ByteBuffer buffer, int offset) {
+
+		int length = buffer.get(offset) & 0xff;
+		length |= (buffer.get(++offset) & 0xff) << 8;
+		length |= (buffer.get(++offset) & 0xff) << 16;
+		return length + packetHeaderSize;
+
 	}
 
-	private ByteBuffer checkReadBuffer(ByteBuffer buffer, int offset,
-			int position) {
-		if (offset == 0) {
-			if (buffer.capacity() >= maxPacketSize) {
-				throw new IllegalArgumentException(
-						"Packet size over the limit.");
-			}
-			int size = buffer.capacity() << 1;
-			size = (size > maxPacketSize) ? maxPacketSize : size;
-			ByteBuffer newBuffer = processor.getBufferPool().allocate(size);
-			buffer.position(offset);
-			newBuffer.put(buffer);
-			readBuffer = newBuffer;
-			recycle(buffer);
-			return newBuffer;
-		} else {
-			buffer.position(offset);
-			buffer.compact();
-			readBufferOffset = 0;
-			return buffer;
-		}
-	}
 
 	public ConcurrentLinkedQueue<ByteBuffer> getWriteQueue() {
 		return writeQueue;
