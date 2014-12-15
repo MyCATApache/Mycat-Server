@@ -30,8 +30,14 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.mpp.tmp.CollectionWarpper;
+import org.opencloudb.mpp.tmp.RowDataPacketGrouper;
+import org.opencloudb.mpp.tmp.FastRowDataSorter;
+import org.opencloudb.mpp.tmp.MemMapBytesArray;
+import org.opencloudb.mpp.tmp.MutilNodeMergeItf;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
 
@@ -42,21 +48,38 @@ import org.opencloudb.route.RouteResultset;
  * 
  */
 public class DataMergeService {
+
+
+
+
 	private static final Logger LOGGER = Logger
 			.getLogger(DataMergeService.class);
 	private RowDataPacketGrouper grouper = null;
 	private RowDataPacketSorter sorter = null;
-	private Collection<RowDataPacket> result = new LinkedList<RowDataPacket>();
+	private Collection<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
 
+    private int fieldCount;
+    private final RouteResultset rrs;
+    private MemMapBytesArray rows;
+    private FastRowDataSorter sorter;
+    private MutilNodeMergeItf grouper;
+    public static final String SWAP_PATH = "./";
+    private static final Logger LOGGER = Logger.getLogger(DataMergeService.class);
 	// private final Map<String, DataNodeResultInf> dataNodeResultSumMap;
 
+    public DataMergeService(RouteResultset rrs) {
+        this.rrs = rrs;
 	public DataMergeService(RouteResultset rrs) {
 		this.rrs = rrs;
 		// dataNodeResultSumMap = new HashMap<String, DataNodeResultInf>(
 		// rrs.getNodes().length);
 
+    }
 	}
 
+    public void setFieldCount(int fieldCount) {
+        this.fieldCount = fieldCount;
+    }
 	/**
 	 * return merged data
 	 * 
@@ -74,6 +97,9 @@ public class DataMergeService {
 				sorter.addRow(itor.next());
 				itor.remove();
 
+    public RouteResultset getRrs() {
+        return rrs;
+    }
 			}
 			tmpResult = sorter.getSortedResult();
 			sorter = null;
@@ -81,16 +107,117 @@ public class DataMergeService {
 		return tmpResult;
 	}
 
+    /**
+     * return merged data
+     * 
+     * @return
+     */
+    public Collection<RowDataPacket> getResults() {
+        if (this.grouper != null) {
+            Collection<RowDataPacket> tmpResult = grouper.getResult();
+            return tmpResult;
+        }
+        if (sorter != null) {
+            Collection<RowDataPacket> tmpResult = sorter.getResult();
+            sorter = null;
+            return tmpResult;
+        } else {
+            return new CollectionWarpper(rows, fieldCount);
+        }
+    }
 	public void setFieldCount(int fieldCount) {
 		this.fieldCount = fieldCount;
 	}
 
+    public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("field metadata inf:" + Arrays.toString(columToIndx.entrySet().toArray()));
+        }
+        int[] groupColumnIndexs = null;
+        this.fieldCount = fieldCount;
+        if (rrs.getGroupByCols() != null) {
+            groupColumnIndexs = (toColumnIndex(rrs.getGroupByCols(), columToIndx));
+        }
+        if (rrs.isHasAggrColumn()) {
+            List<MergeCol> mergCols = new LinkedList<MergeCol>();
+            if (rrs.getMergeCols() != null) {
+                for (Map.Entry<String, Integer> mergEntry : rrs.getMergeCols().entrySet()) {
+                    String colName = mergEntry.getKey().toUpperCase();
+                    ColMeta colMeta = columToIndx.get(colName);
+                    mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
+                }
+            }
+            // add no alias merg column
+            for (Map.Entry<String, ColMeta> fieldEntry : columToIndx.entrySet()) {
+                String colName = fieldEntry.getKey();
+                int result = MergeCol.tryParseAggCol(colName);
+                if (result != MergeCol.MERGE_UNSUPPORT && result != MergeCol.MERGE_NOMERGE) {
+                    mergCols.add(new MergeCol(fieldEntry.getValue(), result));
+                }
+            }
+            grouper = new RowDataPacketGrouper(groupColumnIndexs, mergCols.toArray(new MergeCol[mergCols.size()]));
+        }
+        if (rrs.getOrderByCols() != null) {
+            LinkedHashMap<String, Integer> orders = rrs.getOrderByCols();
+            OrderCol[] orderCols = new OrderCol[orders.size()];
+            int i = 0;
+            for (Map.Entry<String, Integer> entry : orders.entrySet()) {
+                orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey().toUpperCase()), entry.getValue());
+            }
+            sorter = new FastRowDataSorter(orderCols);
+            sorter.setLimit(rrs.getLimitStart(), rrs.getLimitSize());
 	public RouteResultset getRrs() {
 		return rrs;
 	}
 
+        } else {
+            rows = new MemMapBytesArray(SWAP_PATH);
+        }
+    }
 	private int fieldCount;
 	private final RouteResultset rrs;
+
+    /**
+     * process new record (mysql binary data),if data can output to client
+     * ,return true
+     * 
+     * @param dataNode
+     *            DN's name (data from this dataNode)
+     * @param rowData
+     *            raw data
+     */
+    public boolean onNewRecord(String dataNode, byte[] rowData) {
+        RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
+        rowDataPkg.read(rowData);
+        if (grouper != null) {
+            grouper.addRow(rowDataPkg);
+        } else if (sorter != null) {
+            sorter.addRow(rowDataPkg);
+        } else {
+            rows.add(rowData);
+        }
+        return false;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
 		if (LOGGER.isDebugEnabled()) {
@@ -134,12 +261,13 @@ public class DataMergeService {
 						.toUpperCase()), entry.getValue());
 			}
 			 sorter = new RowDataPacketSorter(orderCols);
-//			sorter = new BitMapRowDataPacketSorter(orderCols);
 		} else {
-			result = new LinkedList<RowDataPacket>();
+		    new ConcurrentLinkedQueue<RowDataPacket>();
 		}
 	}
 
+
+    }
 	/**
 	 * process new record (mysql binary data),if data can output to client
 	 * ,return true
@@ -160,8 +288,33 @@ public class DataMergeService {
 		// todo ,if too large result set ,should store to disk
 		return false;
 
+    private static int[] toColumnIndex(String[] columns, Map<String, ColMeta> toIndexMap) {
+        int[] result = new int[columns.length];
+        ColMeta curColMeta = null;
+        for (int i = 0; i < columns.length; i++) {
+            curColMeta = toIndexMap.get(columns[i].toUpperCase());
+            if (curColMeta == null) {
+                throw new java.lang.IllegalArgumentException("can't find column in select fields " + columns[i]);
+            }
+            result[i] = curColMeta.colIndex;
+        }
+        return result;
+    }
 	}
 
+    /**
+     * release resources
+     */
+    public void clear() {
+        if (sorter != null)
+            sorter.close();
+        if (rows != null)
+            rows.release();
+        if (grouper != null)
+            grouper.close();
+        grouper = null;
+        sorter = null;
+    }
 	private static int[] toColumnIndex(String[] columns,
 			Map<String, ColMeta> toIndexMap) {
 		int[] result = new int[columns.length];

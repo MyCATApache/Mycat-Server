@@ -54,6 +54,74 @@ import org.opencloudb.mpp.tmp.RowDataPacketGrouper;
  * 
  */
 public class MutiDataMergeService extends DataMergeService implements ResponseHandler {
+	private static final Logger LOGGER = Logger.getLogger(MutiDataMergeService.class);
+	private RowDataPacketGrouper grouper = null;
+	private RangRowDataPacketSorter sorter = null;
+	private NodeExcutionController dataController;
+	private MultiNodeQueryWithLimitHandler limitExcution = null;
+	private Map<String, NodeRowDataPacket> result = new HashMap<String, NodeRowDataPacket>();
+	private int pagePatchSize = 100;
+	private int fieldCount;
+	private final RouteResultset rrs;
+	
+	public MutiDataMergeService(RouteResultset rrs) {
+		super(rrs);
+		this.rrs = rrs;
+		this.dataController = new NodeExcutionController(this.rrs, this.result, this);
+		RouteResultsetNode[] nodeArr = this.rrs.getNodes();
+		
+		this.pagePatchSize = this.rrs.getLimitSize();
+		SystemConfig sysConfig = MycatServer.getInstance().getConfig().getSystem();
+		int mutiNodePatchSize = sysConfig.getMutiNodePatchSize();
+		int size = ((mutiNodePatchSize - (mutiNodePatchSize % this.pagePatchSize))/this.pagePatchSize + 1)*this.pagePatchSize;
+		if (pagePatchSize < size) {
+			pagePatchSize = size;
+		}
+		
+		for (RouteResultsetNode node : nodeArr) {
+			NodeRowDataPacket packet = new NodeRowDataPacket(node, pagePatchSize);
+			result.put(node.getName(), packet);
+		}
+	}
+	
+	public void setLimitExcution(MultiNodeQueryWithLimitHandler limitExcution) {
+		this.limitExcution = limitExcution;
+	}
+	
+	public void initHandler(NonBlockingSession session) {
+		this.dataController.initHandler(session);
+	}
+	
+	private void appendNodeRang(String dataNode) {
+		NodeRowDataPacket packet = result.get(dataNode);
+		packet.newRang();
+	}
+	
+	public void execute(BackendConnection conn, RouteResultsetNode node) {
+		this.appendNodeRang(node.getName());
+		this.dataController._execute(conn, node);
+	}
+	
+	public void releaseAllBackend() {
+		this.dataController.releaseAllBackend();
+	}
+	
+	
+	public long loadTrimTotal() {
+		long trimTotal = 0;
+		Set<String> dataNodeNameSet = result.keySet();
+		for (Iterator<String> iter = dataNodeNameSet.iterator(); iter.hasNext();) {
+			String dataNodeName = iter.next();
+			NodeRowDataPacket nodePacket  = result.get(dataNodeName);
+			
+			trimTotal += nodePacket.loadTrimTotal();
+		}
+		return trimTotal;
+	}
+	
+	public void dataOk(String dataNode, byte[] eof, BackendConnection conn) {
+		this.dataController.dataOk(dataNode, eof, conn);
+	}
     private static final Logger LOGGER = Logger.getLogger(MutiDataMergeService.class);
     private RowDataPacketGrouper grouper = null;
     private RangRowDataPacketSorter sorter = null;
@@ -64,12 +132,39 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
     private int fieldCount;
     private final RouteResultset rrs;
 
+	/**
+	 * return merged data
+	 * 
+	 * @return
+	 */
+	public Collection<RowDataPacket> getResults() {
+		Collection<RowDataPacket> tmpResult = new LinkedList<RowDataPacket>();
+		Set<String> dataNodeNameSet = result.keySet();
+		for (Iterator<String> iter = dataNodeNameSet.iterator(); iter.hasNext();) {
+			String dataNodeName = iter.next();
+			NodeRowDataPacket nodePacket = result.get(dataNodeName);
+			List<RowDataPacket> list = nodePacket.loadData();
+			
+			tmpResult.addAll(list);
+		}
+		
+		if (this.grouper != null) {
+			tmpResult = grouper.getResult();
+		}
+		if (sorter != null) {
+			tmpResult = sorter.getResult();
+		}
+		return tmpResult;
+	}
     public MutiDataMergeService(RouteResultset rrs) {
         super(rrs);
         this.rrs = rrs;
         this.dataController = new NodeExcutionController(this.rrs, this.result, this);
         RouteResultsetNode[] nodeArr = this.rrs.getNodes();
 
+	public void setFieldCount(int fieldCount) {
+		this.fieldCount = fieldCount;
+	}
         this.pagePatchSize = this.rrs.getLimitSize();
         SystemConfig sysConfig = MycatServer.getInstance().getConfig().getSystem();
         int mutiNodePatchSize = sysConfig.getMutiNodePatchSize();
@@ -79,6 +174,9 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
             pagePatchSize = size;
         }
 
+	public RouteResultset getRrs() {
+		return rrs;
+	}
         for (RouteResultsetNode node : nodeArr) {
             NodeRowDataPacket packet = new NodeRowDataPacket(node, pagePatchSize);
             result.put(node.getName(), packet);
@@ -89,24 +187,123 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
         this.limitExcution = limitExcution;
     }
 
+	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("field metadata inf:"
+					+ Arrays.toString(columToIndx.entrySet().toArray()));
+		}
+		int[] groupColumnIndexs = null;
+		this.fieldCount = fieldCount;
+		if (rrs.getGroupByCols() != null) {
+			groupColumnIndexs = (toColumnIndex(rrs.getGroupByCols(),
+					columToIndx));
+		}
+		if (rrs.isHasAggrColumn()) {
+			List<MergeCol> mergCols = new LinkedList<MergeCol>();
+			if (rrs.getMergeCols() != null) {
+				for (Map.Entry<String, Integer> mergEntry : rrs.getMergeCols()
+						.entrySet()) {
+					String colName = mergEntry.getKey().toUpperCase();
+					ColMeta colMeta = columToIndx.get(colName);
+					mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
+				}
+			}
+			// add no alias merg column
+			for (Map.Entry<String, ColMeta> fieldEntry : columToIndx.entrySet()) {
+				String colName = fieldEntry.getKey();
+				int result = MergeCol.tryParseAggCol(colName);
+				if (result != MergeCol.MERGE_UNSUPPORT
+						&& result != MergeCol.MERGE_NOMERGE) {
+					mergCols.add(new MergeCol(fieldEntry.getValue(), result));
+				}
+			}
+			grouper = new RowDataPacketGrouper(groupColumnIndexs,
+					mergCols.toArray(new MergeCol[mergCols.size()]));
+		}
+		if (rrs.getOrderByCols() != null) {
+			LinkedHashMap<String, Integer> orders = rrs.getOrderByCols();
+			OrderCol[] orderCols = new OrderCol[orders.size()];
+			int i = 0;
+			for (Map.Entry<String, Integer> entry : orders.entrySet()) {
+				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
+						.toUpperCase()), entry.getValue());
+			}
+			sorter = new RangRowDataPacketSorter(orderCols);
+			this.dataController.setSorter(sorter);
+		}
+	}
     public void initHandler(NonBlockingSession session) {
         this.dataController.initHandler(session);
     }
 
+	public void onNewRangRecord(String dataNode) {
+		NodeRowDataPacket nodePacket = this.result.get(dataNode);
+		nodePacket.newRang();
+	}
+	
+	
+	
+	/**
+	 * process new record (mysql binary data),if data can output to client
+	 * ,return true
+	 * 
+	 * @param dataNode
+	 *            DN's name (data from this dataNode)
+	 * @param rowData
+	 *            raw data
+	 */
+	public boolean onNewRecord(String dataNode, byte[] rowData) {
+		NodeRowDataPacket nodePacket = this.result.get(dataNode);
+		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
+		rowDataPkg.read(rowData);
+		if (grouper != null) {
+			grouper.addRow(rowDataPkg);
+		} else {
+			nodePacket.addPacket(rowDataPkg);
+			this.dataController.newRecord(dataNode);
+		}
+		return false;
     private void appendNodeRang(String dataNode) {
         NodeRowDataPacket packet = result.get(dataNode);
         packet.newRang();
     }
 
+	}
     public void execute(BackendConnection conn, RouteResultsetNode node) {
         this.appendNodeRang(node.getName());
         this.dataController._execute(conn, node);
     }
 
+	private static int[] toColumnIndex(String[] columns,
+			Map<String, ColMeta> toIndexMap) {
+		int[] result = new int[columns.length];
+		ColMeta curColMeta = null;
+		for (int i = 0; i < columns.length; i++) {
+			curColMeta = toIndexMap.get(columns[i].toUpperCase());
+			if (curColMeta == null) {
+				throw new java.lang.IllegalArgumentException(
+						"can't find column in select fields " + columns[i]);
+			}
+			result[i] = curColMeta.colIndex;
+		}
+		return result;
+	}
     public void releaseAllBackend() {
         this.dataController.releaseAllBackend();
     }
 
+	/**
+	 * release resources
+	 */
+	public void clear() {
+		if(sorter!=null)
+			sorter.close();
+		if(grouper!=null)
+		    grouper.close();
+		grouper = null;
+		sorter = null;
+		result = null;
+	}
     public long loadTrimTotal() {
         long trimTotal = 0;
         Set<String> dataNodeNameSet = result.keySet();
@@ -114,15 +311,27 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
             String dataNodeName = iter.next();
             NodeRowDataPacket nodePacket = result.get(dataNodeName);
 
+	@Override
+	public void connectionAcquired(BackendConnection conn) {
+		this.limitExcution.connectionAcquired(conn);
+	}
             trimTotal += nodePacket.loadTrimTotal();
         }
         return trimTotal;
     }
 
+	@Override
+	public void connectionClose(BackendConnection conn, String reason) {
+		this.limitExcution.connectionClose(conn, reason);
+	}
     public void dataOk(String dataNode, byte[] eof, BackendConnection conn) {
         this.dataController.dataOk(dataNode, eof, conn);
     }
 
+	@Override
+	public void connectionError(Throwable e, BackendConnection conn) {
+		this.limitExcution.connectionError(e, conn);
+	}
     /**
      * return merged data
      * 
@@ -136,9 +345,18 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
             NodeRowDataPacket nodePacket = result.get(dataNodeName);
             List<RowDataPacket> list = nodePacket.loadData();
 
+	@Override
+	public void errorResponse(byte[] err, BackendConnection conn) {
+		this.limitExcution.errorResponse(err, conn);
+	}
             tmpResult.addAll(list);
         }
 
+	@Override
+	public void fieldEofResponse(byte[] header, List<byte[]> fields,
+			byte[] eof, BackendConnection conn) {
+		this.limitExcution.fieldEofResponse(header, fields, eof, conn);
+	}
         if (this.grouper != null) {
             tmpResult = grouper.getResult();
         }
@@ -148,14 +366,26 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
         return tmpResult;
     }
 
+	@Override
+	public void okResponse(byte[] ok, BackendConnection conn) {
+		this.limitExcution.okResponse(ok, conn);
+	}
     public void setFieldCount(int fieldCount) {
         this.fieldCount = fieldCount;
     }
 
+	@Override
+	public void rowEofResponse(byte[] eof, BackendConnection conn) {
+		this.limitExcution.rowEofResponse(eof, conn);
+	}
     public RouteResultset getRrs() {
         return rrs;
     }
 
+	@Override
+	public void rowResponse(byte[] row, BackendConnection conn) {
+		this.limitExcution.rowResponse(row, conn);
+	}
     public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("field metadata inf:" + Arrays.toString(columToIndx.entrySet().toArray()));
@@ -196,11 +426,18 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
         }
     }
 
+	@Override
+	public void writeQueueAvailable() {
+		this.limitExcution.writeQueueAvailable();
+	}
     public void onNewRangRecord(String dataNode) {
         NodeRowDataPacket nodePacket = this.result.get(dataNode);
         nodePacket.newRang();
     }
 
+	public int getPagePatchSize() {
+		return pagePatchSize;
+	}
     /**
      * process new record (mysql binary data),if data can output to client
      * ,return true
@@ -222,6 +459,25 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
         }
         return false;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     private static int[] toColumnIndex(String[] columns, Map<String, ColMeta> toIndexMap) {
@@ -241,8 +497,6 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
      * release resources
      */
     public void clear() {
-        if (grouper != null)
-            grouper.close();
         grouper = null;
         sorter = null;
         result = null;
@@ -296,5 +550,7 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
     public int getPagePatchSize() {
         return pagePatchSize;
     }
+
+
 
 }

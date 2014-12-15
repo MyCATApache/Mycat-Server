@@ -42,7 +42,7 @@ public class TravelRecordInsertJob implements Runnable {
 	private final long batchSize;
 	private final AtomicLong finshiedCount;
 	private final AtomicLong failedCount;
-	Calendar date = Calendar.getInstance();
+	
 	DateFormat datafomat = new SimpleDateFormat("yyyy-MM-dd");
 	private final SimpleConPool conPool;
 
@@ -109,6 +109,7 @@ public class TravelRecordInsertJob implements Runnable {
 	}
 
 	private String getRandomDay(long i) {
+		Calendar date = Calendar.getInstance();
 		int month = Long.valueOf(i % 11 + 1).intValue();
 		int day = Long.valueOf(i % 27 + 1).intValue();
 
