@@ -25,7 +25,6 @@ package org.opencloudb.mpp;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,12 +48,11 @@ public class DataMergeService {
     private RowDataPacketSorter sorter = null;
     private Collection<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
 
-    // private final Map<String, DataNodeResultInf> dataNodeResultSumMap;
+    private int fieldCount;
+    private final RouteResultset rrs;
 
     public DataMergeService(RouteResultset rrs) {
         this.rrs = rrs;
-        // dataNodeResultSumMap = new HashMap<String, DataNodeResultInf>(
-        // rrs.getNodes().length);
 
     }
 
@@ -70,12 +68,12 @@ public class DataMergeService {
             grouper = null;
         }
         if (sorter != null) {
-//            Iterator<RowDataPacket> itor = tmpResult.iterator();
-//            while (itor.hasNext()) {
-//                sorter.addRow(itor.next());
-//                itor.remove();
-//
-//            }
+            // Iterator<RowDataPacket> itor = tmpResult.iterator();
+            // while (itor.hasNext()) {
+            // sorter.addRow(itor.next());
+            // itor.remove();
+            //
+            // }
             tmpResult = sorter.getSortedResult();
             sorter = null;
         }
@@ -90,10 +88,7 @@ public class DataMergeService {
         return rrs;
     }
 
-    private int fieldCount;
-    private final RouteResultset rrs;
-
-    public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
+    public  void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("field metadata inf:" + Arrays.toString(columToIndx.entrySet().toArray()));
         }
@@ -131,7 +126,7 @@ public class DataMergeService {
             RowDataSorter sorterT = new RowDataSorter(orderCols);
             sorterT.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
             this.sorter = sorterT;
-//            this.sorter = new RowDataPacketSorter(orderCols);
+            // this.sorter = new RowDataPacketSorter(orderCols);
         } else {
             result = new ConcurrentLinkedQueue<RowDataPacket>();
         }
@@ -148,13 +143,18 @@ public class DataMergeService {
      */
     public boolean onNewRecord(String dataNode, byte[] rowData) {
         RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
-        rowDataPkg.read(rowData);
-        if (grouper != null) {
-            grouper.addRow(rowDataPkg);
-        } else if (sorter != null) {
-            sorter.addRow(rowDataPkg);
-        } else {
-            result.add(rowDataPkg);
+        try {
+            rowDataPkg.read(rowData);
+            if (grouper != null) {
+                grouper.addRow(rowDataPkg);
+            } else if (sorter != null) {
+                sorter.addRow(rowDataPkg);
+            } else {
+                result.add(rowDataPkg);
+            }
+        } catch (Exception e) {
+            System.out.println(sorter + "-" + result);
+            e.printStackTrace();
         }
         // todo ,if too large result set ,should store to disk
         return false;
@@ -178,9 +178,9 @@ public class DataMergeService {
      * release resources
      */
     public void clear() {
-        grouper = null;
-        sorter = null;
-        result = null;
+        // grouper = null;
+        // sorter = null;
+        // result = null;
     }
 
 }

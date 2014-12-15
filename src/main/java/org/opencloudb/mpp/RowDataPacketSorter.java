@@ -31,7 +31,7 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.CompareUtil;
 
-public class RowDataPacketSorter {
+public class RowDataPacketSorter implements DataMergeItf {
 
 	protected final OrderCol[] orderCols;
 
@@ -44,12 +44,20 @@ public class RowDataPacketSorter {
 		this.orderCols = orderCols;
 	}
 
-	public void addRow(RowDataPacket row) {
+	/* (non-Javadoc)
+     * @see org.opencloudb.mpp.DataMergeItf#addRow(org.opencloudb.net.mysql.RowDataPacket)
+     */
+	@Override
+    public void addRow(RowDataPacket row) {
 		this.sorted.add(row);
 
 	}
 
-	public Collection<RowDataPacket> getSortedResult() {
+	/* (non-Javadoc)
+     * @see org.opencloudb.mpp.DataMergeItf#getSortedResult()
+     */
+	@Override
+    public Collection<RowDataPacket> getSortedResult() {
 		try {
 			this.mergeSort(sorted.toArray(new RowDataPacket[sorted.size()]));
 		} catch (Exception e) {

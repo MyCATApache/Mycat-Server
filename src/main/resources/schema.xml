@@ -44,7 +44,7 @@
 		<heartbeat>select user()</heartbeat>
 		<!-- can have multi write hosts -->
 		<writeHost host="hostM1" url="localhost:3306" user="root"
-			password="123456">
+			password="master">
 			<!-- can have multi read hosts -->
 			<!-- <readHost host="hostS1" url="localhost:3306" user="root" password="123456" 
 				/> -->

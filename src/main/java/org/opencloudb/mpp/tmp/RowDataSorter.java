@@ -16,9 +16,9 @@ public class RowDataSorter extends RowDataPacketSorter {
     private AtomicInteger add;
     private int total;
     private int returnSize;
-    private volatile int addCount;
     private RowDataPacket[] topN;
-    private RowDataCmp cmp;
+    private volatile int addCount;
+    private volatile RowDataCmp cmp;
 
     public RowDataSorter(OrderCol[] orderCols) {
         super(orderCols);
