@@ -23,10 +23,9 @@
  */
 package org.opencloudb.mpp;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
@@ -36,7 +35,7 @@ public class RowDataPacketSorter {
 
 	protected final OrderCol[] orderCols;
 
-	private List<RowDataPacket> sorted = new ArrayList<RowDataPacket>();
+	private Collection<RowDataPacket> sorted = new ConcurrentLinkedQueue<RowDataPacket>();
 	private RowDataPacket[] array, resultTemp;
 	private int p1, pr, p2;
 

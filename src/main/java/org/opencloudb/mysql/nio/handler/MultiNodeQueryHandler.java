@@ -300,18 +300,27 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 						+ results.size() + " start :" + start + " end :" + end
 						+ " package id start:" + packetId);
 			}
-			while (itor.hasNext()) {
-				RowDataPacket row = itor.next();
-				itor.remove();
-				if (i < start) {
-					i++;
-					continue;
-				} else if (i == end) {
-					break;
-				}
-				i++;
-				row.packetId = ++packetId;
-				buffer = row.write(buffer, source, true);
+			if(results.size()==dataMergeSvr.getRrs().getLimitSize())
+			{//返回的结果只有getLimitSize
+			    while (itor.hasNext()) {
+                    RowDataPacket row = itor.next();
+                    row.packetId = ++packetId;
+                    buffer = row.write(buffer, source, true);
+			    }
+			}else{
+			    while (itor.hasNext()) {
+			        RowDataPacket row = itor.next();
+			        itor.remove();
+			        if (i < start) {
+			            i++;
+			            continue;
+			        } else if (i == end) {
+			            break;
+			        }
+			        i++;
+			        row.packetId = ++packetId;
+			        buffer = row.write(buffer, source, true);
+			    }
 			}
 
 			eof[3] = ++packetId;
