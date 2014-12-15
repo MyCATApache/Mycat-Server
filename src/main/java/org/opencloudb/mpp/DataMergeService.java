@@ -48,7 +48,7 @@ public class DataMergeService {
 	private RowDataPacketGrouper grouper = null;
 	private RowDataPacketSorter sorter = null;
 	private Collection<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
-
+    private volatile boolean temniated=false;
 	// private final Map<String, DataNodeResultInf> dataNodeResultSumMap;
 
 	public DataMergeService(RouteResultset rrs) {
@@ -150,6 +150,10 @@ public class DataMergeService {
 	 *            raw data
 	 */
 	public boolean onNewRecord(String dataNode, byte[] rowData) {
+		if(temniated)
+		{
+			return true;
+		}
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 		rowDataPkg.read(rowData);
 		if (grouper != null) {
@@ -181,6 +185,7 @@ public class DataMergeService {
 	 * release resources
 	 */
 	public void clear() {
+		temniated=true;
 		grouper = null;
 		sorter = null;
 		result = null;

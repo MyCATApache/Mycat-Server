@@ -29,9 +29,7 @@ import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.NetworkChannel;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.log4j.Logger;
-import org.opencloudb.config.ErrorCode;
 import org.opencloudb.util.TimeUtil;
 
 /**
@@ -55,7 +53,7 @@ public abstract class AbstractConnection implements NIOConnection {
 	protected volatile ByteBuffer writeBuffer;
 	// private volatile boolean writing = false;
 	protected final ConcurrentLinkedQueue<ByteBuffer> writeQueue = new ConcurrentLinkedQueue<ByteBuffer>();
-
+	protected volatile int readBufferOffset;
 	protected final AtomicBoolean isClosed;
 	protected boolean isSocketClosed;
 	protected long startupTime;
@@ -237,76 +235,75 @@ public abstract class AbstractConnection implements NIOConnection {
 		}
 		ByteBuffer buffer = this.readBuffer;
 		lastReadTime = TimeUtil.currentTimeMillis();
-		if (got <= 0) {
-
-			if (!this.isClosed()) {
+		if (got < 0) {
+			this.close("socket closed");
+		} else if (got == 0) {
+			if (!this.channel.isOpen()) {
 				this.close("socket closed");
 				return;
 			}
 		}
 		netInBytes += got;
 		processor.addNetInBytes(got);
-		// for read byte
-		int length = 0;
-		int maxReadableLen = 0;
 
-		buffer.flip();
+		// 循环处理字节信息
+		int offset = readBufferOffset, length = 0, position = buffer.position();
 		for (;;) {
-			maxReadableLen = buffer.remaining();
-			// if(maxReadableLen>100)
-			// {
-			// System.out.println("readable "+maxReadableLen+
-			// " buf "+buffer+" thread "+Thread.currentThread().getId());
-			// }
-			if (maxReadableLen < this.packetHeaderSize) {
+			length = getPacketLength(buffer, offset);
+			if (length == -1) {
+				if (!buffer.hasRemaining()) {
+					buffer = checkReadBuffer(buffer, offset, position);
+				}
 				break;
 			}
-			length = getPacketLength(buffer, buffer.position());
-			if (length > maxPacketSize) {
-				throw new IllegalArgumentException(
-						"Packet size over the limit " + maxPacketSize);
-			} else if (length <= maxReadableLen) {
+			if (position >= offset + length) {
+				buffer.position(offset);
 				byte[] data = new byte[length];
-				buffer.get(data);
-				// buffer.position(buffer.position()+length);
+				buffer.get(data, 0, length);
 				handle(data);
-			} else {
-				// lenth maybe exceed my capacity ,create new
-				// next read event
-				// System.out.println(" buffer info " +
-				// buffer+" thread "+Thread.currentThread().getId());
-				buffer = buffer.compact();
-				// System.out.println(" buffer info after compact " +
-				// buffer+" thread "+Thread.currentThread().getId());
-				int curReaded = buffer.position();
-				int writableLen = buffer.capacity() - curReaded;
-				if (writableLen < length) {
-					int chunkSize = processor.getBufferPool().getChunkSize();
-					int size = chunkSize + curReaded;
-					if (!this.isClosed.get()) {
-						// try allocat a new standard buffer size
-						size = curReaded
-								+ ((chunkSize >= length) ? chunkSize : length);
 
+				offset += length;
+				if (position == offset) {
+					if (readBufferOffset != 0) {
+						readBufferOffset = 0;
 					}
-					ByteBuffer newBuffer = processor.getBufferPool().allocate(
-							size);
-					buffer.flip();
-					newBuffer.put(buffer);
-					recycle(buffer);
-					readBuffer = newBuffer;
-					// System.out.println(" writeable " + writableLen
-					// + " readed " + curReaded + " length:" + length
-					// + " new Size:" + size+
-					// " max readable len "+maxReadableLen+
-					// " buf "+buffer+" thread "+Thread.currentThread().getId());
-
+					buffer.clear();
+					break;
+				} else {
+					readBufferOffset = offset;
+					buffer.position(position);
+					continue;
 				}
-				return;
+			} else {
+				if (!buffer.hasRemaining()) {
+					buffer = checkReadBuffer(buffer, offset, position);
+				}
+				break;
 			}
 		}
-		// compcat this buffer for next read
-		this.readBuffer = buffer.compact();
+	}
+
+	private ByteBuffer checkReadBuffer(ByteBuffer buffer, int offset,
+			int position) {
+		if (offset == 0) {
+			if (buffer.capacity() >= maxPacketSize) {
+				throw new IllegalArgumentException(
+						"Packet size over the limit.");
+			}
+			int size = buffer.capacity() << 1;
+			size = (size > maxPacketSize) ? maxPacketSize : size;
+			ByteBuffer newBuffer = processor.getBufferPool().allocate(size);
+			buffer.position(offset);
+			newBuffer.put(buffer);
+			readBuffer = newBuffer;
+			recycle(buffer);
+			return newBuffer;
+		} else {
+			buffer.position(offset);
+			buffer.compact();
+			readBufferOffset = 0;
+			return buffer;
+		}
 	}
 
 	public void write(byte[] data) {
@@ -397,14 +394,16 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	/**
-	 * 娓呯悊閬楃暀璧勬簮
+	 * 清理资源
 	 */
+
 	protected void cleanup() {
 
 		// 鍥炴敹鎺ユ敹缂撳瓨
 		if (readBuffer != null) {
 			recycle(readBuffer);
 			this.readBuffer = null;
+			this.readBufferOffset = 0;
 		}
 		if (writeBuffer != null) {
 			recycle(writeBuffer);
@@ -436,7 +435,6 @@ public abstract class AbstractConnection implements NIOConnection {
 			boolean isSocketClosed = true;
 			try {
 				channel.close();
-				this.socketWR.close();
 			} catch (Throwable e) {
 			}
 			boolean closed = isSocketClosed && (!channel.isOpen());

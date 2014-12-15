@@ -191,13 +191,13 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 				LOGGER.debug("error all end ,clear session resource ");
 			}
 			if (session.getSource().isAutocommit()) {
-				session.clearResources(false);
+				session.closeAndClearResources(error);
 			} else {
 				session.getSource().setTxInterrupt(this.error);
 				// clear resouces
 				clearResources();
 			}
-
+			
 		}
 
 	}

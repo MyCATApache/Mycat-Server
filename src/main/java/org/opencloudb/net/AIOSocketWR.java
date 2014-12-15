@@ -106,12 +106,6 @@ public class AIOSocketWR extends SocketWR {
 		}
 
 	}
-
-	@Override
-	public void close() {
-		 
-		
-	}
 }
 
 class AIOWriteHandler implements CompletionHandler<Integer, AIOSocketWR> {
