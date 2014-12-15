@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import org.opencloudb.mpp.tmp.MutilNodeMergeItf;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.LongUtil;
@@ -38,15 +37,16 @@ import org.opencloudb.util.LongUtil;
  * @author wuzhih
  * 
  */
-public class RowDataPacketGrouper implements MutilNodeMergeItf {
+public class RowDataPacketGrouper {
 
 	private final MergeCol[] mergCols;
 	private final int[] groupColumnIndexs;
 	private Collection<RowDataPacket> result = new LinkedList<RowDataPacket>();
 
 	public RowDataPacketGrouper(int[] groupColumnIndexs, MergeCol[] mergCols) {
-		this.mergCols = mergCols;
+		super();
 		this.groupColumnIndexs = groupColumnIndexs;
+		this.mergCols = mergCols;
 	}
 
 	public Collection<RowDataPacket> getResult() {
@@ -85,9 +85,11 @@ public class RowDataPacketGrouper implements MutilNodeMergeItf {
 	private byte[] mertFields(byte[] bs, byte[] bs2, int colType, int mergeType) {
 		// System.out.println("mergeType:"+ mergeType+" colType "+colType+
 		// " field:"+Arrays.toString(bs)+ " ->  "+Arrays.toString(bs2));
-		if (bs2.length == 0) {
+		if(bs2.length==0)
+		{
 			return bs;
-		} else if (bs.length == 0) {
+		}else if(bs.length==0)
+		{
 			return bs2;
 		}
 		switch (mergeType) {
@@ -123,7 +125,7 @@ public class RowDataPacketGrouper implements MutilNodeMergeItf {
 			// int compare = CompareUtil.compareDouble(ByteUtil.getNumber(bs)
 			// .doubleValue(), ByteUtil.getNumber(bs2).doubleValue());
 			// int compare = ByteUtil.compareNumberArray(bs, bs2);
-			// return (compare > 0) ? bs2 : bs;
+			//return (compare > 0) ? bs2 : bs;
 			int compare = ByteUtil.compareNumberByte(bs, bs2);
 			return (compare > 0) ? bs2 : bs;
 			// return ByteUtil.compareNumberArray2(bs, bs2, 2);
@@ -151,9 +153,4 @@ public class RowDataPacketGrouper implements MutilNodeMergeItf {
 		return true;
 
 	}
-
-    @Override
-    public void close() {
-        
-    }
 }
