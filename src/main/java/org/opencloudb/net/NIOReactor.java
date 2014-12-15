@@ -98,7 +98,6 @@ public final class NIOReactor {
 										con.asynRead();
 									} catch (Throwable e) {
 										con.close("exception:" + e.toString());
-										con.error(ErrorCode.ERR_READ, e);
 
 									}
 								}
@@ -152,7 +151,7 @@ public final class NIOReactor {
 					((NIOSocketWR) c.getSocketWR()).register(selector);
 					c.register();
 				} catch (Throwable e) {
-					LOGGER.warn("register error ",e);
+					LOGGER.warn("register error ", e);
 					c.close("register err");
 				}
 			}

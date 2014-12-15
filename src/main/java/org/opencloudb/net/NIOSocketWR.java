@@ -16,12 +16,10 @@ public class NIOSocketWR extends SocketWR {
 	private final AbstractConnection con;
 	private final SocketChannel channel;
 	private final AtomicBoolean writing = new AtomicBoolean(false);
-	private final WriteEventCheckRunner writeChecker;
 
 	public NIOSocketWR(AbstractConnection con) {
 		this.con = con;
 		this.channel = (SocketChannel) con.channel;
-		writeChecker = new WriteEventCheckRunner(this);
 	}
 
 	public void register(Selector selector) throws IOException {
@@ -187,6 +185,14 @@ public class NIOSocketWR extends SocketWR {
 		}
 		int got = channel.read(theBuffer);
 		con.onReadData(got);
+
+	}
+
+	@Override
+	public void close() {
+		if (processKey != null) {
+			processKey.cancel();
+		}
 
 	}
 

@@ -409,29 +409,6 @@ public abstract class FrontendConnection extends AbstractConnection {
 				.append(",schema=").append(schema).append(']').toString();
 	}
 
-	@Override
-	public void error(int errCode, Throwable t) {
-		if (isClosed()) {
-			return;
-		}
-		// 根据异常类型和信息，选择日志输出级别。
-		if (t instanceof EOFException) {
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug(toString(), t);
-			}
-		} else if (isConnectionReset(t)) {
-			if (LOGGER.isInfoEnabled()) {
-				LOGGER.info(toString(), t);
-			}
-		} else {
-			LOGGER.warn(toString(), t);
-		}
-		String msg = t.getMessage();
-		writeErrMessage(ErrorCode.ER_YES, msg == null ? t.getClass()
-				.getSimpleName() : msg);
-
-	}
-
 	private final static byte[] encodeString(String src, String charset) {
 		if (src == null) {
 			return null;

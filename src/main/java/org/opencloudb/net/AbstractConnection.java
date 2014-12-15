@@ -214,16 +214,7 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	@Override
 	public void handle(byte[] data) {
-		try {
-			handler.handle(data);
-		} catch (Throwable e) {
-			close("exeption:" + e.toString());
-			if (e instanceof ConnectionException) {
-				error(ErrorCode.ERR_CONNECT_SOCKET, e);
-			} else {
-				error(ErrorCode.ERR_HANDLE_DATA, e);
-			}
-		}
+		handler.handle(data);
 	}
 
 	@Override
@@ -247,11 +238,11 @@ public abstract class AbstractConnection implements NIOConnection {
 		ByteBuffer buffer = this.readBuffer;
 		lastReadTime = TimeUtil.currentTimeMillis();
 		if (got <= 0) {
-			return;
-			// if (!this.isClosed()) {
-			// this.close("socket closed");
-			// return;
-			// }
+
+			if (!this.isClosed()) {
+				this.close("socket closed");
+				return;
+			}
 		}
 		netInBytes += got;
 		processor.addNetInBytes(got);
@@ -262,6 +253,11 @@ public abstract class AbstractConnection implements NIOConnection {
 		buffer.flip();
 		for (;;) {
 			maxReadableLen = buffer.remaining();
+			// if(maxReadableLen>100)
+			// {
+			// System.out.println("readable "+maxReadableLen+
+			// " buf "+buffer+" thread "+Thread.currentThread().getId());
+			// }
 			if (maxReadableLen < this.packetHeaderSize) {
 				break;
 			}
@@ -277,29 +273,40 @@ public abstract class AbstractConnection implements NIOConnection {
 			} else {
 				// lenth maybe exceed my capacity ,create new
 				// next read event
-				buffer.compact();
-				int writableLen = buffer.capacity() - buffer.position();
-				if (writableLen >= length) {
-					// wait next read event
-					// System.out.println("writebale is ok " + writableLen
-					// + " need " + length);
-				} else {
-					// System.out.println("writebale " + writableLen + " need "
-					// + length);
-					int size = buffer.capacity() << 1;
-					size = (size > maxPacketSize) ? maxPacketSize : size;
+				// System.out.println(" buffer info " +
+				// buffer+" thread "+Thread.currentThread().getId());
+				buffer = buffer.compact();
+				// System.out.println(" buffer info after compact " +
+				// buffer+" thread "+Thread.currentThread().getId());
+				int curReaded = buffer.position();
+				int writableLen = buffer.capacity() - curReaded;
+				if (writableLen < length) {
+					int chunkSize = processor.getBufferPool().getChunkSize();
+					int size = chunkSize + curReaded;
+					if (!this.isClosed.get()) {
+						// try allocat a new standard buffer size
+						size = curReaded
+								+ ((chunkSize >= length) ? chunkSize : length);
+
+					}
 					ByteBuffer newBuffer = processor.getBufferPool().allocate(
 							size);
+					buffer.flip();
 					newBuffer.put(buffer);
 					recycle(buffer);
 					readBuffer = newBuffer;
-					buffer = newBuffer;
+					// System.out.println(" writeable " + writableLen
+					// + " readed " + curReaded + " length:" + length
+					// + " new Size:" + size+
+					// " max readable len "+maxReadableLen+
+					// " buf "+buffer+" thread "+Thread.currentThread().getId());
+
 				}
 				return;
 			}
 		}
 		// compcat this buffer for next read
-		buffer.compact();
+		this.readBuffer = buffer.compact();
 	}
 
 	public void write(byte[] data) {
@@ -419,7 +426,6 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	}
 
-
 	public ConcurrentLinkedQueue<ByteBuffer> getWriteQueue() {
 		return writeQueue;
 	}
@@ -430,6 +436,7 @@ public abstract class AbstractConnection implements NIOConnection {
 			boolean isSocketClosed = true;
 			try {
 				channel.close();
+				this.socketWR.close();
 			} catch (Throwable e) {
 			}
 			boolean closed = isSocketClosed && (!channel.isOpen());
