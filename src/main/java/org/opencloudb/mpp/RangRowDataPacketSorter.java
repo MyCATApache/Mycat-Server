@@ -23,10 +23,9 @@
  */
 package org.opencloudb.mpp;
 
-import org.opencloudb.mpp.tmp.FastRowDataSorter;
 import org.opencloudb.net.mysql.RowDataPacket;
 
-public class RangRowDataPacketSorter extends FastRowDataSorter {
+public class RangRowDataPacketSorter extends RowDataPacketSorter {
 
 	public RangRowDataPacketSorter(OrderCol[] orderCols) {
 		super(orderCols);
@@ -43,6 +42,6 @@ public class RangRowDataPacketSorter extends FastRowDataSorter {
 		byte[] left = l.fieldValues.get(this.orderCols[byColumnIndex].colMeta.colIndex);
 		byte[] right = r.fieldValues.get(this.orderCols[byColumnIndex].colMeta.colIndex);
 		
-		return cmp.compareObject(left, right, this.orderCols[byColumnIndex]);
+		return compareObject(left, right, this.orderCols[byColumnIndex]);
 	}
 }
