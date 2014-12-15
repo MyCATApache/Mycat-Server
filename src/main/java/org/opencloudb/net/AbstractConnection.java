@@ -417,12 +417,15 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	protected final int getPacketLength(ByteBuffer buffer, int offset) {
+		if (buffer.position() < offset + packetHeaderSize) {
+			return -1;
+		} else {
 
-		int length = buffer.get(offset) & 0xff;
-		length |= (buffer.get(++offset) & 0xff) << 8;
-		length |= (buffer.get(++offset) & 0xff) << 16;
-		return length + packetHeaderSize;
-
+			int length = buffer.get(offset) & 0xff;
+			length |= (buffer.get(++offset) & 0xff) << 8;
+			length |= (buffer.get(++offset) & 0xff) << 16;
+			return length + packetHeaderSize;
+		}
 	}
 
 	public ConcurrentLinkedQueue<ByteBuffer> getWriteQueue() {
