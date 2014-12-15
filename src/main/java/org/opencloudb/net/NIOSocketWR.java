@@ -188,12 +188,4 @@ public class NIOSocketWR extends SocketWR {
 
 	}
 
-	@Override
-	public void close() {
-		if (processKey != null) {
-			processKey.cancel();
-		}
-
-	}
-
 }
