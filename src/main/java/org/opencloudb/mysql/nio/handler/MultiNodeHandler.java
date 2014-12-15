@@ -44,7 +44,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 	private AtomicBoolean isFailed = new AtomicBoolean(false);
 	protected volatile String error;
 	protected byte packetId;
-	protected final  AtomicBoolean errorRepsponsed = new AtomicBoolean(false);
+	protected final AtomicBoolean errorRepsponsed = new AtomicBoolean(false);
 
 	public MultiNodeHandler(NonBlockingSession session) {
 		if (session == null) {
@@ -173,7 +173,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		ErrorPacket err = new ErrorPacket();
 		lock.lock();
 		try {
-			err.packetId = 1;
+			err.packetId = ++packetId;
 		} finally {
 			lock.unlock();
 		}
@@ -185,7 +185,9 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 
 	protected void tryErrorFinished(boolean allEnd) {
 		if (allEnd && !session.closed()) {
-			createErrPkg(this.error).write(session.getSource());
+			if (errorRepsponsed.compareAndSet(false, true)) {
+				createErrPkg(this.error).write(session.getSource());
+			}
 			// clear session resources,release all
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("error all end ,clear session resource ");
@@ -197,7 +199,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 				// clear resouces
 				clearResources();
 			}
-			
+
 		}
 
 	}
