@@ -59,7 +59,7 @@ public class PartitionByMurmurHash extends AbstractPartionAlgorithm implements R
 	private int seed;
 	private int count;
 	private int virtualBucketTimes=DEFAULT_VIRTUAL_BUCKET_TIMES;
-	private Map<Integer,Integer> weightMap;
+	private Map<Integer,Integer> weightMap=new HashMap<>();
 	private String bucketMapPath;
 	
 	private HashFunction hash;
@@ -160,7 +160,6 @@ public class PartitionByMurmurHash extends AbstractPartionAlgorithm implements R
 		Properties props=new Properties();
 		try(BufferedReader reader=new BufferedReader(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream(weightMapPath), DEFAULT_CHARSET))){
 			props.load(reader);
-			weightMap=new HashMap<>();
 			for(Map.Entry entry:props.entrySet()){
 				int weight=Integer.parseInt(entry.getValue().toString());
 				weightMap.put(Integer.parseInt(entry.getKey().toString()), weight>0?weight:1);
