@@ -53,6 +53,7 @@ public class BaseSQLExeTest {
 		System.out.println("testMultiNodeNormalSQL begin");
 		String[] sqls = {
 				"select * from travelrecord where id=1",
+				"select * from travelrecord  order by fee limit 200,100",
 				"select * from travelrecord limit 100",
 				"select sum(fee) total_fee, days,count(id),max(fee),min(fee) from  travelrecord  group by days  order by days desc limit 99 ",
 				"update travelrecord set user_id=user_id where id =1",

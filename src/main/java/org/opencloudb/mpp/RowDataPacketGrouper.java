@@ -26,6 +26,7 @@ package org.opencloudb.mpp;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
@@ -41,7 +42,7 @@ public class RowDataPacketGrouper {
 
 	private final MergeCol[] mergCols;
 	private final int[] groupColumnIndexs;
-	private Collection<RowDataPacket> result = new LinkedList<RowDataPacket>();
+	private ConcurrentLinkedQueue<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
 
 	public RowDataPacketGrouper(int[] groupColumnIndexs, MergeCol[] mergCols) {
 		super();
