@@ -144,21 +144,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		_execute(conn, node);
 	}
 
-	@Override
-	public void errorResponse(byte[] data, BackendConnection conn) {
-		ErrorPacket err = new ErrorPacket();
-		err.read(data);
-		String errmsg = new String(err.message);
-		LOGGER.warn("error response from backend, code:" + err.errno
-				+ " errmsg: " + errmsg + ",from " + conn);
-		if (this.errorRepsponsed) {
-			return;
-		}
-		this.setFail(errmsg);
-		// try connection and finish conditon check
-		canClose(conn, true);
-	}
-
 	private boolean decrementOkCountBy(int finished) {
 		lock.lock();
 		try {
@@ -235,7 +220,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("on row end reseponse " + conn);
 		}
-		if (errorRepsponsed) {
+		if (errorRepsponsed.get()) {
+			conn.close(this.error);
 			return;
 		}
 
@@ -398,7 +384,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	}
 
 	private void handleDataProcessException(Exception e) {
-		if (!errorRepsponsed) {
+		if (errorRepsponsed.compareAndSet(false, true)) {
+			this.error = e.toString();
 			LOGGER.warn("caught exception ", e);
 			setFail(e.toString());
 			this.tryErrorFinished(true);
@@ -407,7 +394,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
-		if (errorRepsponsed) {
+		if (errorRepsponsed.get()) {
+			conn.close(error);
 			return;
 		}
 		lock.lock();

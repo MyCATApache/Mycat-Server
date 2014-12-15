@@ -77,7 +77,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 
 	@Override
 	public void handle(byte[] data) {
-		offerData(data,source.getProcessor().getExecutor());
+		offerData(data, source.getProcessor().getExecutor());
 	}
 
 	@Override
@@ -144,20 +144,6 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 		// throw new RuntimeException("reset agani!");
 		// }
 		this.responseHandler = responseHandler;
-	}
-
-	@Override
-	protected void handleDataError(Throwable t) {
-		logger.warn("handleDataError err,maybe BUG,please reprot ,con:"
-				+ source, t);
-		dataQueue.clear();
-		String errMsg = "execption:(handleDataError) " + t.toString();
-		this.source.close(errMsg);
-		ResponseHandler respHand = responseHandler;
-		if (respHand != null) {
-			respHand.connectionClose(source, errMsg);
-		}
-
 	}
 
 	/**

@@ -37,20 +37,15 @@ import org.opencloudb.server.ServerConnection;
  */
 public class PostgresConnection extends BackendAIOConnection {
 
-    public PostgresConnection(AsynchronousSocketChannel channel) {
-        super(channel);
+	public PostgresConnection(AsynchronousSocketChannel channel) {
+		super(channel);
 
-    }
-
-    @Override
-    public void error(int errCode, Throwable t) {
-
-    }
+	}
 
 	@Override
 	public void onConnectFailed(Throwable e) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -74,7 +69,7 @@ public class PostgresConnection extends BackendAIOConnection {
 	@Override
 	public void setSchema(String newSchema) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -92,28 +87,26 @@ public class PostgresConnection extends BackendAIOConnection {
 	@Override
 	public void setAttachment(Object attachment) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void quit() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void setLastTime(long currentTimeMillis) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void release() {
 		// TODO Auto-generated method stub
-		
-	}
 
-	
+	}
 
 	@Override
 	public boolean setResponseHandler(ResponseHandler commandHandler) {
@@ -124,13 +117,13 @@ public class PostgresConnection extends BackendAIOConnection {
 	@Override
 	public void commit() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void query(String sql) throws UnsupportedEncodingException {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -149,13 +142,13 @@ public class PostgresConnection extends BackendAIOConnection {
 	public void execute(RouteResultsetNode node, ServerConnection source,
 			boolean autocommit) throws IOException {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void recordSql(String host, String schema, String statement) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -167,10 +160,8 @@ public class PostgresConnection extends BackendAIOConnection {
 	@Override
 	public void rollback() {
 		// TODO Auto-generated method stub
-		
-	}
 
-	
+	}
 
 	@Override
 	public boolean isBorrowed() {
@@ -181,7 +172,7 @@ public class PostgresConnection extends BackendAIOConnection {
 	@Override
 	public void setBorrowed(boolean borrowed) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override

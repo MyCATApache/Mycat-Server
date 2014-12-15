@@ -216,6 +216,16 @@ public class NonBlockingSession implements Session {
 		for (BackendConnection node : target.values()) {
 			node.close("client closed ");
 		}
+		target.clear();
+		clearHandlesResources();
+	}
+	
+	public void closeAndClearResources(String reason)
+	{
+		for (BackendConnection node : target.values()) {
+			node.close(reason);
+		}
+		target.clear();
 		clearHandlesResources();
 	}
 

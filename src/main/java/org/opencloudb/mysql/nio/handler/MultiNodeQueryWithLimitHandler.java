@@ -148,7 +148,8 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 		String errmsg = new String(err.message);
 		LOGGER.warn("error response from backend, code:" + err.errno
 				+ " errmsg: " + errmsg + ",from " + conn);
-		if (this.errorRepsponsed) {
+		if (this.errorRepsponsed.get()) {
+			conn.close(error);
 			return;
 		}
 		this.setFail(errmsg);
@@ -228,7 +229,8 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("on row end reseponse " + conn);
 		}
-		if (errorRepsponsed) {
+		if (errorRepsponsed.get()) {
+			conn.close(error);
 			return;
 		}
 		if (clearIfSessionClosed(session)) {
@@ -362,7 +364,8 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 	}
 
 	private void handleDataProcessException(Exception e, BackendConnection conn) {
-		if (!errorRepsponsed) {
+		if (!errorRepsponsed.get()) {
+			conn.close(error);
 			LOGGER.warn("caught exception ", e);
 			setFail(e.toString());
 			this.tryErrorFinished(true);
@@ -371,7 +374,8 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
-		if (errorRepsponsed) {
+		if (errorRepsponsed.get()) {
+			conn.close(error);
 			return;
 		}
 		lock.lock();

@@ -102,7 +102,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				channel.register(selector, SelectionKey.OP_CONNECT, c);
 				channel.connect(new InetSocketAddress(c.host, c.port));
 			} catch (Throwable e) {
-				c.error(ErrorCode.ERR_CONNECT_SOCKET, e);
+				c.close(e.toString());
 			}
 		}
 	}
@@ -122,7 +122,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 			}
 		} catch (Throwable e) {
 			clearSelectionKey(key);
-			c.error(ErrorCode.ERR_CONNECT_SOCKET, e);
+			c.close(e.toString());
 		}
 	}
 
