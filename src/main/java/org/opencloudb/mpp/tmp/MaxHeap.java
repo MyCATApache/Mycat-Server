@@ -8,16 +8,17 @@ import org.opencloudb.net.mysql.RowDataPacket;
  * 
  * @author coderczp-2014-12-8
  */
-public class MinHeap implements HeapItf{
+public class MaxHeap implements HeapItf {
 
     private RowDataCmp cmp;
     private Vector<RowDataPacket> data;
 
-    public MinHeap(RowDataCmp cmp, int size) {
+    public MaxHeap(RowDataCmp cmp, int size) {
         this.cmp = cmp;
         this.data = new Vector<RowDataPacket>();
     }
 
+    @Override
     public void buildMinHeap() {
         int len = data.size();
         for (int i = len / 2 - 1; i >= 0; i--) {
@@ -28,16 +29,16 @@ public class MinHeap implements HeapItf{
     private void heapify(int i) {
         int l = left(i);
         int r = right(i);
-        int smallest = i;
+        int max = i;
         int len = data.size();
-        if (l < len && cmp.compare(data.elementAt(l), data.elementAt(i)) < 0)
-            smallest = l;
-        if (r < len && cmp.compare(data.elementAt(r), data.elementAt(smallest)) < 0)
-            smallest = r;
-        if (i == smallest)
+        if (l < len && cmp.compare(data.elementAt(l), data.elementAt(i)) > 0)
+            max = l;
+        if (r < len && cmp.compare(data.elementAt(r), data.elementAt(max)) > 0)
+            max = r;
+        if (i == max)
             return;
-        swap(i, smallest);
-        heapify(smallest);
+        swap(i, max);
+        heapify(max);
     }
 
     private int right(int i) {
@@ -55,20 +56,44 @@ public class MinHeap implements HeapItf{
         data.set(j, tmp);
     }
 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.opencloudb.mpp.tmp.HeapItf#getRoot()
+     */
+    @Override
     public RowDataPacket getRoot() {
         return data.elementAt(0);
     }
 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.opencloudb.mpp.tmp.HeapItf#setRoot(org.opencloudb.net.mysql.RowDataPacket)
+     */
+    @Override
     public void setRoot(RowDataPacket root) {
         data.set(0, root);
         heapify(0);
     }
 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.opencloudb.mpp.tmp.HeapItf#getData()
+     */
+    @Override
     public Vector<RowDataPacket> getData() {
         return data;
     }
 
-    public void add(RowDataPacket row) {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.opencloudb.mpp.tmp.HeapItf#add(org.opencloudb.net.mysql.RowDataPacket)
+     */
+    @Override
+    public synchronized void add(RowDataPacket row) {
         data.add(row);
     }
 

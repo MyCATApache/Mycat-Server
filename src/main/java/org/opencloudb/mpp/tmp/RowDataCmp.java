@@ -22,23 +22,26 @@ public class RowDataCmp implements Comparator<RowDataPacket> {
 
     @Override
     public int compare(RowDataPacket o1, RowDataPacket o2) {
-        OrderCol[] tmp = this.orderCols;
-        int cmp = 0;
-        int len = tmp.length;
-        int type = OrderCol.COL_ORDER_TYPE_ASC;
-        for (int i = 0; i < len; i++) {
-            int colIndex = tmp[i].colMeta.colIndex;
-            byte[] left = o1.fieldValues.get(colIndex);
-            byte[] right = o2.fieldValues.get(colIndex);
-            if (tmp[i].orderType == type) {
-                cmp = compareObject(left, right, tmp[i]);
-            } else {
-                cmp = compareObject(right, left, tmp[i]);
-            }
-            if (cmp != 0)
-                return cmp;
-        }
-        return cmp;
+//        OrderCol[] tmp = this.orderCols;
+//        int cmp = 0;
+//        int len = tmp.length;
+//        int type = OrderCol.COL_ORDER_TYPE_ASC;
+//        for (int i = 0; i < len; i++) {
+//            int colIndex = tmp[i].colMeta.colIndex;
+//            byte[] left = o1.fieldValues.get(colIndex);
+//            byte[] right = o2.fieldValues.get(colIndex);
+//            if (tmp[i].orderType == type) {
+//                cmp = compareObject(left, right, tmp[i]);
+//            } else {
+//                cmp = compareObject(right, left, tmp[i]);
+//            }
+//            if (cmp != 0)
+//                return cmp;
+//        }
+       
+        int rootId = Integer.parseInt(new String(o1.fieldValues.get(0)));
+        int rootId2 = Integer.parseInt(new String(o2.fieldValues.get(0)));
+        return rootId-rootId2;
     }
 
     public int compareObject(byte[] left, byte[] right, OrderCol orderCol) {
