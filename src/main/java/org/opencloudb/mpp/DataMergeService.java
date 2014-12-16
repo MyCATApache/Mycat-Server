@@ -254,17 +254,18 @@ public class DataMergeService {
 						if (handleRowData(dnName, row)) {
 							break;
 						}
-						// for next job
-						Runnable newJob = jobQueue.poll();
-						if (newJob != null) {
-							MycatServer.getInstance().getBusinessExecutor()
-									.execute(newJob);
-						}
+					}
+					// for next job
+					Runnable newJob = jobQueue.poll();
+					if (newJob != null) {
+						MycatServer.getInstance().getBusinessExecutor()
+								.execute(newJob);
+					} else {
+						jobRuninng = false;
 					}
 				} catch (Exception e) {
-					LOGGER.warn("data Merge error:", e);
-				} finally {
 					jobRuninng = false;
+					LOGGER.warn("data Merge error:", e);
 				}
 			}
 		};
@@ -301,6 +302,9 @@ public class DataMergeService {
 	 * release resources
 	 */
 	public void clear() {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("clear data ");
+		}
 		temniated = true;
 		grouper = null;
 		sorter = null;
