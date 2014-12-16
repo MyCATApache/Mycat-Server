@@ -23,23 +23,34 @@
  */
 package org.opencloudb.mpp;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
-import org.opencloudb.mpp.tmp.CollectionWarpper;
-import org.opencloudb.mpp.tmp.RowDataPacketGrouper;
-import org.opencloudb.mpp.tmp.FastRowDataSorter;
-import org.opencloudb.mpp.tmp.MemMapBytesArray;
-import org.opencloudb.mpp.tmp.MutilNodeMergeItf;
+
+
+
+import org.opencloudb.MycatServer;
+import org.opencloudb.mpp.tmp.RowDataSorter;
+import org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler;
+
+
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.RouteResultsetNode;
+import org.opencloudb.server.NonBlockingSession;
 
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
@@ -48,44 +59,78 @@ import org.opencloudb.route.RouteResultset;
  * 
  */
 public class DataMergeService {
-
-
-
-
 	private static final Logger LOGGER = Logger
 			.getLogger(DataMergeService.class);
 	private RowDataPacketGrouper grouper = null;
 	private RowDataPacketSorter sorter = null;
 	private Collection<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
 
-    private int fieldCount;
-    private final RouteResultset rrs;
-    private MemMapBytesArray rows;
-    private FastRowDataSorter sorter;
-    private MutilNodeMergeItf grouper;
-    public static final String SWAP_PATH = "./";
-    private static final Logger LOGGER = Logger.getLogger(DataMergeService.class);
+	private volatile boolean temniated = false;
 	// private final Map<String, DataNodeResultInf> dataNodeResultSumMap;
+	private final Map<String, AtomicReferenceArray<byte[]>> batchedNodeRows;
+	private final ReentrantLock lock = new ReentrantLock();
+	private final LinkedTransferQueue<Runnable> jobQueue = new LinkedTransferQueue<Runnable>();
+	private volatile boolean jobRuninng = false;
+	private final MultiNodeQueryHandler multiQueryHandler;
+	private int fieldCount;
+	private final RouteResultset rrs;
 
-    public DataMergeService(RouteResultset rrs) {
-        this.rrs = rrs;
 	public DataMergeService(RouteResultset rrs) {
+
+	public DataMergeService(MultiNodeQueryHandler queryHandler,
+			RouteResultset rrs) {
+
 		this.rrs = rrs;
 		// dataNodeResultSumMap = new HashMap<String, DataNodeResultInf>(
 		// rrs.getNodes().length);
-
-    }
+		this.multiQueryHandler = queryHandler;
+		batchedNodeRows = new HashMap<String, AtomicReferenceArray<byte[]>>();
+		for (RouteResultsetNode node : rrs.getNodes()) {
+			batchedNodeRows.put(node.getName(),
+					new AtomicReferenceArray<byte[]>(100));
+		}
 	}
 
-    public void setFieldCount(int fieldCount) {
-        this.fieldCount = fieldCount;
-    }
+
+	public RouteResultset getRrs() {
+		return this.rrs;
+	}
+
+
+
+
+	public void outputMergeResult(final NonBlockingSession session,
+			final byte[] eof) {
+		// handle remains batch data
+		for (Entry<String, AtomicReferenceArray<byte[]>> entry : batchedNodeRows
+				.entrySet()) {
+			Runnable job = this.createJob(entry.getKey(), entry.getValue());
+			if (job != null) {
+				this.jobQueue.offer(job);
+			}
+		}
+		// add output job
+		Runnable outPutJob = new Runnable() {
+			@Override
+			public void run() {
+				multiQueryHandler.outputMergeResult(session.getSource(), eof);
+			}
+		};
+		jobQueue.offer(outPutJob);
+		if (jobRuninng == false && !jobQueue.isEmpty()) {
+			MycatServer.getInstance().getBusinessExecutor()
+					.execute(jobQueue.poll());
+		}
+	}
+
 	/**
 	 * return merged data
 	 * 
 	 * @return
 	 */
 	public Collection<RowDataPacket> getResults() {
+	public Collection<RowDataPacket> getResults(final byte[] eof) {
+
 		Collection<RowDataPacket> tmpResult = result;
 		if (this.grouper != null) {
 			tmpResult = grouper.getResult();
@@ -97,106 +142,81 @@ public class DataMergeService {
 				sorter.addRow(itor.next());
 				itor.remove();
 
-    public RouteResultset getRrs() {
-        return rrs;
-    }
 			}
+			// Iterator<RowDataPacket> itor = tmpResult.iterator();
+			// while (itor.hasNext()) {
+			// sorter.addRow(itor.next());
+			// itor.remove();
+			//
+			// }
+
+
+
 			tmpResult = sorter.getSortedResult();
 			sorter = null;
 		}
 		return tmpResult;
 	}
 
-    /**
-     * return merged data
-     * 
-     * @return
-     */
-    public Collection<RowDataPacket> getResults() {
-        if (this.grouper != null) {
-            Collection<RowDataPacket> tmpResult = grouper.getResult();
-            return tmpResult;
-        }
-        if (sorter != null) {
-            Collection<RowDataPacket> tmpResult = sorter.getResult();
-            sorter = null;
-            return tmpResult;
-        } else {
-            return new CollectionWarpper(rows, fieldCount);
-        }
-    }
 	public void setFieldCount(int fieldCount) {
 		this.fieldCount = fieldCount;
 	}
 
-    public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("field metadata inf:" + Arrays.toString(columToIndx.entrySet().toArray()));
-        }
-        int[] groupColumnIndexs = null;
-        this.fieldCount = fieldCount;
-        if (rrs.getGroupByCols() != null) {
-            groupColumnIndexs = (toColumnIndex(rrs.getGroupByCols(), columToIndx));
-        }
-        if (rrs.isHasAggrColumn()) {
-            List<MergeCol> mergCols = new LinkedList<MergeCol>();
-            if (rrs.getMergeCols() != null) {
-                for (Map.Entry<String, Integer> mergEntry : rrs.getMergeCols().entrySet()) {
-                    String colName = mergEntry.getKey().toUpperCase();
-                    ColMeta colMeta = columToIndx.get(colName);
-                    mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
-                }
-            }
-            // add no alias merg column
-            for (Map.Entry<String, ColMeta> fieldEntry : columToIndx.entrySet()) {
-                String colName = fieldEntry.getKey();
-                int result = MergeCol.tryParseAggCol(colName);
-                if (result != MergeCol.MERGE_UNSUPPORT && result != MergeCol.MERGE_NOMERGE) {
-                    mergCols.add(new MergeCol(fieldEntry.getValue(), result));
-                }
-            }
-            grouper = new RowDataPacketGrouper(groupColumnIndexs, mergCols.toArray(new MergeCol[mergCols.size()]));
-        }
-        if (rrs.getOrderByCols() != null) {
-            LinkedHashMap<String, Integer> orders = rrs.getOrderByCols();
-            OrderCol[] orderCols = new OrderCol[orders.size()];
-            int i = 0;
-            for (Map.Entry<String, Integer> entry : orders.entrySet()) {
-                orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey().toUpperCase()), entry.getValue());
-            }
-            sorter = new FastRowDataSorter(orderCols);
-            sorter.setLimit(rrs.getLimitStart(), rrs.getLimitSize());
 	public RouteResultset getRrs() {
 		return rrs;
 	}
 
-        } else {
-            rows = new MemMapBytesArray(SWAP_PATH);
-        }
-    }
 	private int fieldCount;
 	private final RouteResultset rrs;
 
-    /**
-     * process new record (mysql binary data),if data can output to client
-     * ,return true
-     * 
-     * @param dataNode
-     *            DN's name (data from this dataNode)
-     * @param rowData
-     *            raw data
-     */
-    public boolean onNewRecord(String dataNode, byte[] rowData) {
-        RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
-        rowDataPkg.read(rowData);
-        if (grouper != null) {
-            grouper.addRow(rowDataPkg);
-        } else if (sorter != null) {
-            sorter.addRow(rowDataPkg);
-        } else {
-            rows.add(rowData);
-        }
-        return false;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -261,13 +281,16 @@ public class DataMergeService {
 						.toUpperCase()), entry.getValue());
 			}
 			 sorter = new RowDataPacketSorter(orderCols);
+		 sorter = new RowDataPacketSorter(orderCols);
+			// RowDataSorter tmp = new RowDataSorter(orderCols);
+			// tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
+			// sorter = tmp;
 		} else {
 		    new ConcurrentLinkedQueue<RowDataPacket>();
+			new ConcurrentLinkedQueue<RowDataPacket>();
 		}
 	}
 
-
-    }
 	/**
 	 * process new record (mysql binary data),if data can output to client
 	 * ,return true
@@ -278,43 +301,122 @@ public class DataMergeService {
 	 *            raw data
 	 */
 	public boolean onNewRecord(String dataNode, byte[] rowData) {
+		if (temniated) {
+			return true;
+		}
+		Runnable batchJob = null;
+		AtomicReferenceArray<byte[]> batchedArray = batchedNodeRows
+				.get(dataNode);
+		if (putBatchFailed(rowData, batchedArray)) {
+			try {
+				lock.lock();
+				if (batchedArray.get(batchedArray.length() - 1) != null) {// full
+					batchJob = createJob(dataNode, batchedArray);
+				}
+				putBatchFailed(rowData, batchedArray);
+
+			} finally {
+				lock.unlock();
+			}
+		}
+		if (batchJob != null && jobRuninng == false) {
+			MycatServer.getInstance().getBusinessExecutor().execute(batchJob);
+		} else if (batchJob != null) {
+			jobQueue.offer(batchJob);
+		}
+
+		return false;
+	}
+
+	private boolean handleRowData(String dataNode, byte[] rowData) {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 		rowDataPkg.read(rowData);
 		if (grouper != null) {
 			grouper.addRow(rowDataPkg);
+		} else if (sorter != null) {
+			sorter.addRow(rowDataPkg);
 		} else {
 			result.add(rowDataPkg);
 		}
 		// todo ,if too large result set ,should store to disk
 		return false;
-
-    private static int[] toColumnIndex(String[] columns, Map<String, ColMeta> toIndexMap) {
-        int[] result = new int[columns.length];
-        ColMeta curColMeta = null;
-        for (int i = 0; i < columns.length; i++) {
-            curColMeta = toIndexMap.get(columns[i].toUpperCase());
-            if (curColMeta == null) {
-                throw new java.lang.IllegalArgumentException("can't find column in select fields " + columns[i]);
-            }
-            result[i] = curColMeta.colIndex;
-        }
-        return result;
-    }
 	}
 
-    /**
-     * release resources
-     */
-    public void clear() {
-        if (sorter != null)
-            sorter.close();
-        if (rows != null)
-            rows.release();
-        if (grouper != null)
-            grouper.close();
-        grouper = null;
-        sorter = null;
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+	private Runnable createJob(final String dnName,
+			AtomicReferenceArray<byte[]> batchedArray) {
+		final ArrayList<byte[]> rows = new ArrayList<byte[]>(
+				batchedArray.length());
+		for (int i = 0; i < batchedArray.length(); i++) {
+			byte[] val = batchedArray.getAndSet(i, null);
+			if (val != null) {
+				rows.add(val);
+			}
+		}
+		if (rows.isEmpty()) {
+			return null;
+		}
+		Runnable job = new Runnable() {
+			public void run() {
+				try {
+					jobRuninng = true;
+					for (byte[] row : rows) {
+						if (handleRowData(dnName, row)) {
+							break;
+						}
+					}
+					// for next job
+					Runnable newJob = jobQueue.poll();
+					if (newJob != null) {
+						MycatServer.getInstance().getBusinessExecutor()
+								.execute(newJob);
+					} else {
+						jobRuninng = false;
+					}
+				} catch (Exception e) {
+					jobRuninng = false;
+					LOGGER.warn("data Merge error:", e);
+				}
+			}
+		};
+		return job;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+	private boolean putBatchFailed(byte[] rowData,
+			AtomicReferenceArray<byte[]> array) {
+		int len = array.length();
+		int i = 0;
+		for (i = 0; i < len; i++) {
+			if (array.compareAndSet(i, null, rowData))
+				break;
+		}
+		return i == len;
+	}
+
+
+
 	private static int[] toColumnIndex(String[] columns,
 			Map<String, ColMeta> toIndexMap) {
 		int[] result = new int[columns.length];
@@ -334,9 +436,14 @@ public class DataMergeService {
 	 * release resources
 	 */
 	public void clear() {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("clear data ");
+		}
+		temniated = true;
 		grouper = null;
 		sorter = null;
 		result = null;
+		jobQueue.clear();
 	}
 
 }

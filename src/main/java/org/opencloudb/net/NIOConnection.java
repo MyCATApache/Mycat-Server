@@ -47,13 +47,5 @@ public interface NIOConnection extends ClosableConnection{
     void write(ByteBuffer buffer);
     
      
-
-    /**
-     * 发生错误
-     */
-    void error(int errCode, Throwable t);
-
-   
-   
-    
+     
 }

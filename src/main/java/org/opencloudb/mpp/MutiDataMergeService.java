@@ -157,7 +157,7 @@ public class MutiDataMergeService extends DataMergeService implements ResponseHa
 		return tmpResult;
 	}
     public MutiDataMergeService(RouteResultset rrs) {
-        super(rrs);
+        super(null,rrs);
         this.rrs = rrs;
         this.dataController = new NodeExcutionController(this.rrs, this.result, this);
         RouteResultsetNode[] nodeArr = this.rrs.getNodes();

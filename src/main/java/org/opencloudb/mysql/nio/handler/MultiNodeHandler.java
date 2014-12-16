@@ -42,9 +42,9 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 	protected final ReentrantLock lock = new ReentrantLock();
 	protected final NonBlockingSession session;
 	private AtomicBoolean isFailed = new AtomicBoolean(false);
-	private volatile String error;
+	protected volatile String error;
 	protected byte packetId;
-	protected volatile boolean errorRepsponsed = false;
+	protected final AtomicBoolean errorRepsponsed = new AtomicBoolean(false);
 
 	public MultiNodeHandler(NonBlockingSession session) {
 		if (session == null) {
@@ -112,7 +112,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		}
 	}
 
-	public void connectionError(Throwable e,BackendConnection conn) {
+	public void connectionError(Throwable e, BackendConnection conn) {
 		boolean canClose = decrementCountBy(1);
 		this.tryErrorFinished(canClose);
 	}
@@ -173,27 +173,27 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		ErrorPacket err = new ErrorPacket();
 		lock.lock();
 		try {
-			err.packetId = 1;
+			err.packetId = ++packetId;
 		} finally {
 			lock.unlock();
 		}
-		err.errno = ErrorCode.ER_YES;
+		err.errno = ErrorCode.ER_UNKNOWN_ERROR;
 		err.message = StringUtil.encode(errmgs, session.getSource()
 				.getCharset());
 		return err;
 	}
 
 	protected void tryErrorFinished(boolean allEnd) {
-		if (!errorRepsponsed && allEnd && !session.closed()) {
-			errorRepsponsed = true;
-			
-			createErrPkg(this.error).write(session.getSource());
+		if (allEnd && !session.closed()) {
+			if (errorRepsponsed.compareAndSet(false, true)) {
+				createErrPkg(this.error).write(session.getSource());
+			}
 			// clear session resources,release all
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("error all end ,clear session resource ");
 			}
 			if (session.getSource().isAutocommit()) {
-				session.clearResources(false);
+				session.closeAndClearResources(error);
 			} else {
 				session.getSource().setTxInterrupt(this.error);
 				// clear resouces
@@ -206,7 +206,6 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 
 	public void connectionClose(BackendConnection conn, String reason) {
 		this.setFail("closed connection:" + reason + " con:" + conn);
-		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
 		boolean finished = false;
 		lock.lock();
 		try {

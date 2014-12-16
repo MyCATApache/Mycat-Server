@@ -206,4 +206,13 @@ public final class NIOProcessor {
 		}
 	}
 
+	public void removeConnection(AbstractConnection con) {
+		if (con instanceof BackendConnection) {
+			this.backends.remove(con.getId());
+		} else {
+			this.frontends.remove(con.getId());
+		}
+
+	}
+
 }

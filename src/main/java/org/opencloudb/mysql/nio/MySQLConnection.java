@@ -151,8 +151,13 @@ public class MySQLConnection extends BackendAIOConnection {
 		this.fromSlaveDB = fromSlaveDB;
 	}
 
-	public void onConnectFailed(Throwable e) {
-		this.error(ErrorCode.ERR_CONNECT_SOCKET, e);
+	public void onConnectFailed(Throwable t) {
+		if (handler instanceof MySQLConnectionHandler) {
+			MySQLConnectionHandler theHandler = (MySQLConnectionHandler) handler;
+			theHandler.connectionError(t);
+		} else {
+			((MySQLConnectionAuthenticator) handler).connectionError(this, t);
+		}
 	}
 
 	public String getSchema() {
@@ -569,36 +574,6 @@ public class MySQLConnection extends BackendAIOConnection {
 		setResponseHandler(null);
 		pool.releaseChannel(this);
 		txSetCmdExecuted = false;
-	}
-
-	@Override
-	public void error(int errCode, Throwable t) {
-
-		switch (errCode) {
-		case ErrorCode.ERR_HANDLE_DATA:
-			LOGGER.warn(" error code: " + errCode + " exception: " + t
-					+ " con: " + this, t);
-			break;
-		case ErrorCode.ERR_PUT_WRITE_QUEUE:
-			LOGGER.warn(" error code: " + errCode + " exception: " + t
-					+ " con: " + this, t);
-			break;
-		case ErrorCode.ERR_CONNECT_SOCKET:
-			if (handler == null) {
-				LOGGER.warn(" error code: " + errCode + " exception: " + t
-						+ " con: " + this);
-				return;
-			}
-			if (handler instanceof MySQLConnectionHandler) {
-				MySQLConnectionHandler theHandler = (MySQLConnectionHandler) handler;
-				theHandler.connectionError(t);
-			} else {
-				((MySQLConnectionAuthenticator) handler).connectionError(this,
-						t);
-			}
-			break;
-
-		}
 	}
 
 	public boolean setResponseHandler(ResponseHandler queryHandler) {
