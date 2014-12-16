@@ -47,7 +47,7 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 			return rrs;
 		}
 		
-		rrs.setStatement(druidParser.getCtx().getSql());
+//		rrs.setStatement(druidParser.getCtx().getSql());
 		//没有from的的select语句或其他
 		if(druidParser.getCtx().getTables().size() == 0) {
 			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),druidParser.getCtx().getSql());
@@ -185,7 +185,7 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 			boolean isSelect) throws SQLNonTransientException {
 		//只有一个表的
 		if(tables.size() == 1) {
-			tryRouteForOneTable(schema, ctx, tables.get(0), rrs, isSelect);
+			return tryRouteForOneTable(schema, ctx, tables.get(0), rrs, isSelect);
 		}
 		
 		Set<String> retNodesSet = new HashSet<String>();
@@ -215,16 +215,6 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 			} else if(tablesRouteMap.get(tableName) == null) { //余下的表都是单库表
 				tablesRouteMap.put(tableName, new HashSet<String>());
 				tablesRouteMap.get(tableName).addAll(tableConfig.getDataNodes());
-			}
-		}
-		
-		//所有表路由汇总分析,求交集
-		if(tables.size() == 1) {
-			TableConfig tableConfig = schema.getTables().get(tables.get(0).toUpperCase());
-			if(tableConfig.isGlobalTable()) {
-				if(isSelect) {
-					return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),ctx.getSql());
-				}
 			}
 		}
 		
