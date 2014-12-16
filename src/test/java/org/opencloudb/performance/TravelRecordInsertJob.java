@@ -26,10 +26,7 @@ package org.opencloudb.performance;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -42,8 +39,7 @@ public class TravelRecordInsertJob implements Runnable {
 	private final long batchSize;
 	private final AtomicLong finshiedCount;
 	private final AtomicLong failedCount;
-	
-	DateFormat datafomat = new SimpleDateFormat("yyyy-MM-dd");
+
 	private final SimpleConPool conPool;
 
 	public TravelRecordInsertJob(SimpleConPool conPool, long totalRecords,
@@ -70,14 +66,14 @@ public class TravelRecordInsertJob implements Runnable {
 			ps.setString(3, (String) map.get("traveldate"));
 			ps.setString(4, (String) map.get("fee"));
 			ps.setString(5, (String) map.get("days"));
-			//ps.addBatch();
-			
+			// ps.addBatch();
+
 			ps.execute();
 
 		}
-		//ps.executeBatch();
+		// ps.executeBatch();
 		con.commit();
-		//ps.clearBatch();
+		// ps.clearBatch();
 		ps.close();
 		return list.size();
 	}
@@ -93,7 +89,7 @@ public class TravelRecordInsertJob implements Runnable {
 			end = this.endId;
 		}
 		List<Map<String, String>> list = new ArrayList<Map<String, String>>(
-				Integer.valueOf((end - finsihed)+""));
+				Integer.valueOf((end - finsihed) + ""));
 		for (long i = finsihed; i <= end; i++) {
 			Map<String, String> m = new HashMap<String, String>();
 			m.put("id", i + "");
@@ -109,13 +105,10 @@ public class TravelRecordInsertJob implements Runnable {
 	}
 
 	private String getRandomDay(long i) {
-		Calendar date = Calendar.getInstance();
+		int year = Long.valueOf(i % 10 + 2000).intValue();
 		int month = Long.valueOf(i % 11 + 1).intValue();
 		int day = Long.valueOf(i % 27 + 1).intValue();
-
-		date.set(Calendar.MONTH, month);
-		date.set(Calendar.DAY_OF_MONTH, day);
-		return datafomat.format(date.getTime());
+		return year + "-" + month + "-" + day;
 
 	}
 
