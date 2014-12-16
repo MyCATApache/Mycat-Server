@@ -23,18 +23,28 @@
  */
 package org.opencloudb.mpp;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
+import org.opencloudb.mpp.tmp.RowDataSorter;
+import org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.RouteResultsetNode;
+import org.opencloudb.server.NonBlockingSession;
 
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
@@ -48,14 +58,53 @@ public class DataMergeService {
 	private RowDataPacketGrouper grouper = null;
 	private RowDataPacketSorter sorter = null;
 	private Collection<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
-    private volatile boolean temniated=false;
+	private volatile boolean temniated = false;
 	// private final Map<String, DataNodeResultInf> dataNodeResultSumMap;
+	private final Map<String, AtomicReferenceArray<byte[]>> batchedNodeRows;
+	private final ReentrantLock lock = new ReentrantLock();
+	private final LinkedTransferQueue<Runnable> jobQueue = new LinkedTransferQueue<Runnable>();
+	private volatile boolean jobRuninng = false;
+	private final MultiNodeQueryHandler multiQueryHandler;
+	private int fieldCount;
+	private final RouteResultset rrs;
 
-	public DataMergeService(RouteResultset rrs) {
+	public DataMergeService(MultiNodeQueryHandler queryHandler,
+			RouteResultset rrs) {
 		this.rrs = rrs;
-		// dataNodeResultSumMap = new HashMap<String, DataNodeResultInf>(
-		// rrs.getNodes().length);
+		this.multiQueryHandler = queryHandler;
+		batchedNodeRows = new HashMap<String, AtomicReferenceArray<byte[]>>();
+		for (RouteResultsetNode node : rrs.getNodes()) {
+			batchedNodeRows.put(node.getName(),
+					new AtomicReferenceArray<byte[]>(100));
+		}
+	}
 
+	public RouteResultset getRrs() {
+		return this.rrs;
+	}
+
+	public void outputMergeResult(final NonBlockingSession session,
+			final byte[] eof) {
+		// handle remains batch data
+		for (Entry<String, AtomicReferenceArray<byte[]>> entry : batchedNodeRows
+				.entrySet()) {
+			Runnable job = this.createJob(entry.getKey(), entry.getValue());
+			if (job != null) {
+				this.jobQueue.offer(job);
+			}
+		}
+		// add output job
+		Runnable outPutJob = new Runnable() {
+			@Override
+			public void run() {
+				multiQueryHandler.outputMergeResult(session.getSource(), eof);
+			}
+		};
+		jobQueue.offer(outPutJob);
+		if (jobRuninng == false && !jobQueue.isEmpty()) {
+			MycatServer.getInstance().getBusinessExecutor()
+					.execute(jobQueue.poll());
+		}
 	}
 
 	/**
@@ -63,35 +112,25 @@ public class DataMergeService {
 	 * 
 	 * @return
 	 */
-	public Collection<RowDataPacket> getResults() {
+	public Collection<RowDataPacket> getResults(final byte[] eof) {
+
 		Collection<RowDataPacket> tmpResult = result;
 		if (this.grouper != null) {
 			tmpResult = grouper.getResult();
 			grouper = null;
 		}
 		if (sorter != null) {
-			Iterator<RowDataPacket> itor = tmpResult.iterator();
-			while (itor.hasNext()) {
-				sorter.addRow(itor.next());
-				itor.remove();
-
-			}
+			// Iterator<RowDataPacket> itor = tmpResult.iterator();
+			// while (itor.hasNext()) {
+			// sorter.addRow(itor.next());
+			// itor.remove();
+			//
+			// }
 			tmpResult = sorter.getSortedResult();
 			sorter = null;
 		}
 		return tmpResult;
 	}
-
-	public void setFieldCount(int fieldCount) {
-		this.fieldCount = fieldCount;
-	}
-
-	public RouteResultset getRrs() {
-		return rrs;
-	}
-
-	private int fieldCount;
-	private final RouteResultset rrs;
 
 	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
 		if (LOGGER.isDebugEnabled()) {
@@ -134,9 +173,12 @@ public class DataMergeService {
 				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
 						.toUpperCase()), entry.getValue());
 			}
-			 sorter = new RowDataPacketSorter(orderCols);
+			// sorter = new RowDataPacketSorter(orderCols);
+			RowDataSorter tmp = new RowDataSorter(orderCols);
+			tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
+			sorter = tmp;
 		} else {
-		    new ConcurrentLinkedQueue<RowDataPacket>();
+			new ConcurrentLinkedQueue<RowDataPacket>();
 		}
 	}
 
@@ -150,20 +192,94 @@ public class DataMergeService {
 	 *            raw data
 	 */
 	public boolean onNewRecord(String dataNode, byte[] rowData) {
-		if(temniated)
-		{
+		if (temniated) {
 			return true;
 		}
+		Runnable batchJob = null;
+		AtomicReferenceArray<byte[]> batchedArray = batchedNodeRows
+				.get(dataNode);
+		if (putBatchFailed(rowData, batchedArray)) {
+			try {
+				lock.lock();
+				if (batchedArray.get(batchedArray.length() - 1) != null) {// full
+					batchJob = createJob(dataNode, batchedArray);
+				}
+				putBatchFailed(rowData, batchedArray);
+
+			} finally {
+				lock.unlock();
+			}
+		}
+		if (batchJob != null && jobRuninng == false) {
+			MycatServer.getInstance().getBusinessExecutor().execute(batchJob);
+		} else if (batchJob != null) {
+			jobQueue.offer(batchJob);
+		}
+
+		return false;
+	}
+
+	private boolean handleRowData(String dataNode, byte[] rowData) {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 		rowDataPkg.read(rowData);
 		if (grouper != null) {
 			grouper.addRow(rowDataPkg);
+		} else if (sorter != null) {
+			sorter.addRow(rowDataPkg);
 		} else {
 			result.add(rowDataPkg);
 		}
 		// todo ,if too large result set ,should store to disk
 		return false;
+	}
 
+	private Runnable createJob(final String dnName,
+			AtomicReferenceArray<byte[]> batchedArray) {
+		final ArrayList<byte[]> rows = new ArrayList<byte[]>(
+				batchedArray.length());
+		for (int i = 0; i < batchedArray.length(); i++) {
+			byte[] val = batchedArray.getAndSet(i, null);
+			if (val != null) {
+				rows.add(val);
+			}
+		}
+		if (rows.isEmpty()) {
+			return null;
+		}
+		Runnable job = new Runnable() {
+			public void run() {
+				try {
+					jobRuninng = true;
+					for (byte[] row : rows) {
+						if (handleRowData(dnName, row)) {
+							break;
+						}
+						// for next job
+						Runnable newJob = jobQueue.poll();
+						if (newJob != null) {
+							MycatServer.getInstance().getBusinessExecutor()
+									.execute(newJob);
+						}
+					}
+				} catch (Exception e) {
+					LOGGER.warn("data Merge error:", e);
+				} finally {
+					jobRuninng = false;
+				}
+			}
+		};
+		return job;
+	}
+
+	private boolean putBatchFailed(byte[] rowData,
+			AtomicReferenceArray<byte[]> array) {
+		int len = array.length();
+		int i = 0;
+		for (i = 0; i < len; i++) {
+			if (array.compareAndSet(i, null, rowData))
+				break;
+		}
+		return i == len;
 	}
 
 	private static int[] toColumnIndex(String[] columns,
@@ -185,10 +301,11 @@ public class DataMergeService {
 	 * release resources
 	 */
 	public void clear() {
-		temniated=true;
+		temniated = true;
 		grouper = null;
 		sorter = null;
 		result = null;
+		jobQueue.clear();
 	}
 
 }

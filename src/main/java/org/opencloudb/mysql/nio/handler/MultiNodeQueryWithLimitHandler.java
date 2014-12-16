@@ -72,7 +72,7 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 	public MultiNodeQueryWithLimitHandler(RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session,
 			MutiDataMergeService dataMergeSvr) {
-		super(rrs, autocommit, session, dataMergeSvr);
+		super(0,rrs, autocommit, session);
 		if (rrs.getNodes() == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
