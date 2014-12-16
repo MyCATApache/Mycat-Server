@@ -97,10 +97,33 @@ public class DruidSelectParser extends DefaultDruidParser {
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
+			int limitStart = 0;
+			int limitSize = schema.getDefaultMaxLimit();
 			if(isNeedAddLimit(schema, rrs, mysqlSelectQuery)  ) {
 				Limit limit = new Limit();
-				limit.setRowCount(new SQLIntegerExpr(schema.getDefaultMaxLimit()));
+				limit.setRowCount(new SQLIntegerExpr(limitSize));
 				mysqlSelectQuery.setLimit(limit);
+			}
+			Limit limit = mysqlSelectQuery.getLimit();
+			if(limit != null) {
+				SQLIntegerExpr offset = (SQLIntegerExpr)limit.getOffset();
+				SQLIntegerExpr count = (SQLIntegerExpr)limit.getRowCount();
+				if(offset != null) {
+					limitStart = offset.getNumber().intValue();
+				} 
+				if(count != null) {
+					limitSize = count.getNumber().intValue();
+				}
+				
+				Limit changedLimit = new Limit();
+				changedLimit.setRowCount(new SQLIntegerExpr(limitStart + limitSize));
+				changedLimit.setOffset(new SQLIntegerExpr(0));
+				mysqlSelectQuery.setLimit(changedLimit);
+				//设置改写后的sql
+				ctx.setSql(stmt.toString());
+				
+				rrs.setLimitStart(limitStart);
+				rrs.setLimitSize(limitSize);
 			}
 		}
 	}
@@ -127,6 +150,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 		for(int i= 0; i < orderByItems.size(); i++) {
 			SQLOrderingSpecification type = orderByItems.get(i).getType();
 			String col =  orderByItems.get(i).getExpr().toString();
+			if(type == null) {
+				type = SQLOrderingSpecification.ASC;
+			}
 			map.put(col, type == SQLOrderingSpecification.ASC ? OrderCol.COL_ORDER_TYPE_ASC : OrderCol.COL_ORDER_TYPE_DESC);
 		}
 		return map;

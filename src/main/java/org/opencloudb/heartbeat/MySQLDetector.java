@@ -191,20 +191,6 @@ public class MySQLDetector extends BackendAIOConnection {
 	}
 
 	@Override
-	public void error(int errCode, Throwable t) {
-		LOGGER.warn(" error code: " + errCode + " exception: " + t + " con: "
-				+ this);
-		switch (errCode) {
-		case ErrorCode.ERR_HANDLE_DATA:
-			heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this, false,
-					"heartbeat transfererr");
-			break;
-		default:
-			heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this, true, null);
-		}
-	}
-
-	@Override
 	public void idleCheck() {
 		if (isIdleTimeout()) {
 			LOGGER.warn(toString() + " heatbeat idle timeout");

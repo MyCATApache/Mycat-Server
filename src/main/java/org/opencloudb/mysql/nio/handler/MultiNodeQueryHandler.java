@@ -41,7 +41,6 @@ import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
-import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
@@ -49,6 +48,7 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
+import org.opencloudb.server.parser.ServerParse;
 
 /**
  * @author mycat
@@ -72,21 +72,28 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	private int okCount;
 	private final boolean isCallProcedure;
 
-	public MultiNodeQueryHandler(RouteResultset rrs, boolean autocommit,
-			NonBlockingSession session, DataMergeService dataMergeSvr) {
+	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
+			boolean autocommit, NonBlockingSession session) {
 		super(session);
 		if (rrs.getNodes() == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
+
 		this.rrs = rrs;
+		if (ServerParse.SELECT == sqlType && rrs.needMerge()) {
+			dataMergeSvr = new DataMergeService(this, rrs);
+		} else {
+			dataMergeSvr = null;
+		}
 		isCallProcedure = rrs.isCallStatement();
 		this.autocommit = session.getSource().isAutocommit();
 		this.session = session;
 		this.lock = new ReentrantLock();
 		// this.icHandler = new CommitNodeHandler(session);
-		this.dataMergeSvr = dataMergeSvr;
-		if (dataMergeSvr != null && LOGGER.isDebugEnabled()) {
-			LOGGER.debug("has data merge logic ");
+		if (dataMergeSvr != null) {
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("has data merge logic ");
+			}
 		}
 	}
 
@@ -142,21 +149,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				.getAttachment();
 		session.bindConnection(node, conn);
 		_execute(conn, node);
-	}
-
-	@Override
-	public void errorResponse(byte[] data, BackendConnection conn) {
-		ErrorPacket err = new ErrorPacket();
-		err.read(data);
-		String errmsg = new String(err.message);
-		LOGGER.warn("error response from backend, code:" + err.errno
-				+ " errmsg: " + errmsg + ",from " + conn);
-		if (this.errorRepsponsed) {
-			return;
-		}
-		this.setFail(errmsg);
-		// try connection and finish conditon check
-		canClose(conn, true);
 	}
 
 	private boolean decrementOkCountBy(int finished) {
@@ -235,7 +227,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("on row end reseponse " + conn);
 		}
-		if (errorRepsponsed) {
+		if (errorRepsponsed.get()) {
+			conn.close(this.error);
 			return;
 		}
 
@@ -260,14 +253,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				}
 			}
 			if (dataMergeSvr != null) {
-
-				// aysn execute to void long time
-				MycatServer.getInstance().getBusinessExecutor()
-						.execute(new Runnable() {
-							public void run() {
-								outputMergeResult(source, eof);
-							}
-						});
+				dataMergeSvr.outputMergeResult(session, eof);
 
 			} else {
 				try {
@@ -285,7 +271,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		}
 	}
 
-	private void outputMergeResult(final ServerConnection source,
+	public void outputMergeResult(final ServerConnection source,
 			final byte[] eof) {
 		try {
 			lock.lock();
@@ -293,25 +279,33 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			int i = 0;
 			int start = dataMergeSvr.getRrs().getLimitStart();
 			int end = start + dataMergeSvr.getRrs().getLimitSize();
-			Collection<RowDataPacket> results = dataMergeSvr.getResults();
+			Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
 			Iterator<RowDataPacket> itor = results.iterator();
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("output merge result ,total data "
 						+ results.size() + " start :" + start + " end :" + end
 						+ " package id start:" + packetId);
 			}
-			while (itor.hasNext()) {
-				RowDataPacket row = itor.next();
-				itor.remove();
-				if (i < start) {
-					i++;
-					continue;
-				} else if (i == end) {
-					break;
+			if (results.size() == dataMergeSvr.getRrs().getLimitSize()) {// 返回的结果只有getLimitSize
+				while (itor.hasNext()) {
+					RowDataPacket row = itor.next();
+					row.packetId = ++packetId;
+					buffer = row.write(buffer, source, true);
 				}
-				i++;
-				row.packetId = ++packetId;
-				buffer = row.write(buffer, source, true);
+			} else {
+				while (itor.hasNext()) {
+					RowDataPacket row = itor.next();
+					itor.remove();
+					if (i < start) {
+						i++;
+						continue;
+					} else if (i == end) {
+						break;
+					}
+					i++;
+					row.packetId = ++packetId;
+					buffer = row.write(buffer, source, true);
+				}
 			}
 
 			eof[3] = ++packetId;
@@ -383,13 +377,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				field[3] = ++packetId;
 				source.write(field);
 			}
+			eof[3] = ++packetId;
+			source.write(eof);
+			source.write(buffer);
 			if (dataMergeSvr != null) {
 				dataMergeSvr.onRowMetaData(columToIndx, fieldCount);
 
 			}
-			eof[3] = ++packetId;
-			source.write(eof);
-			source.write(buffer);
 		} catch (Exception e) {
 			handleDataProcessException(e);
 		} finally {
@@ -398,7 +392,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	}
 
 	private void handleDataProcessException(Exception e) {
-		if (!errorRepsponsed) {
+		if (!errorRepsponsed.get()) {
+			this.error = e.toString();
 			LOGGER.warn("caught exception ", e);
 			setFail(e.toString());
 			this.tryErrorFinished(true);
@@ -407,7 +402,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
-		if (errorRepsponsed) {
+		if (errorRepsponsed.get()) {
+			conn.close(error);
 			return;
 		}
 		lock.lock();
@@ -415,13 +411,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			if (dataMergeSvr != null) {
 				final String dnName = ((RouteResultsetNode) conn
 						.getAttachment()).getName();
-				// aysn execute to void long time
-				MycatServer.getInstance().getBusinessExecutor()
-						.execute(new Runnable() {
-							public void run() {
-								dataMergeSvr.onNewRecord(dnName, row);
-							}
-						});
+				dataMergeSvr.onNewRecord(dnName, row);
 
 			} else {
 				if (primaryKeyIndex != -1) {// cache

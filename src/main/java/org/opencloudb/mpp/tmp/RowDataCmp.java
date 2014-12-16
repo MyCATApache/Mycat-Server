@@ -1,0 +1,45 @@
+package org.opencloudb.mpp.tmp;
+
+import java.util.Comparator;
+
+import org.opencloudb.mpp.OrderCol;
+import org.opencloudb.mpp.RowDataPacketSorter;
+import org.opencloudb.net.mysql.RowDataPacket;
+
+/**
+ * 
+ * @author coderczp-2014-12-8
+ */
+public class RowDataCmp implements Comparator<RowDataPacket> {
+
+	private OrderCol[] orderCols;
+
+	public RowDataCmp(OrderCol[] orderCols) {
+		this.orderCols = orderCols;
+	}
+
+	@Override
+	public int compare(RowDataPacket o1, RowDataPacket o2) {
+		OrderCol[] tmp = this.orderCols;
+		int cmp = 0;
+		int len = tmp.length;
+		int type = OrderCol.COL_ORDER_TYPE_ASC;
+		for (int i = 0; i < len; i++) {
+			int colIndex = tmp[i].colMeta.colIndex;
+			byte[] left = o1.fieldValues.get(colIndex);
+			byte[] right = o2.fieldValues.get(colIndex);
+			if (tmp[i].orderType == type) {
+				cmp = RowDataPacketSorter.compareObject(left, right, tmp[i]);
+			} else {
+				cmp = RowDataPacketSorter.compareObject(right, left, tmp[i]);
+			}
+			if (cmp != 0)
+				return cmp;
+		}
+
+		int rootId = Integer.parseInt(new String(o1.fieldValues.get(0)));
+		int rootId2 = Integer.parseInt(new String(o2.fieldValues.get(0)));
+		return rootId - rootId2;
+	}
+
+}

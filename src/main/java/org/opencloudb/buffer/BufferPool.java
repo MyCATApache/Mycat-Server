@@ -65,6 +65,10 @@ public final class BufferPool {
 
 	}
 
+	public int getChunkSize() {
+		return chunkSize;
+	}
+
 	public long getSharedOptsCount() {
 		return sharedOptsCount;
 	}
