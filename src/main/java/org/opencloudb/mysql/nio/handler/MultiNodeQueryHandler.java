@@ -369,13 +369,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				field[3] = ++packetId;
 				source.write(field);
 			}
+			eof[3] = ++packetId;
+			source.write(eof);
+			source.write(buffer);
 			if (dataMergeSvr != null) {
 				dataMergeSvr.onRowMetaData(columToIndx, fieldCount);
 
 			}
-			eof[3] = ++packetId;
-			source.write(eof);
-			source.write(buffer);
 		} catch (Exception e) {
 			handleDataProcessException(e);
 		} finally {
