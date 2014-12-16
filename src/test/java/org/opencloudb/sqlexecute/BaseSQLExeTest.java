@@ -120,16 +120,19 @@ public class BaseSQLExeTest {
 		System.out.println("testBadSQL begin");
 		theCon.setAutoCommit(true);
 		String[] sqls = {
+				"select sum(fee) total_fee, days,count(id),max(fee),min(fee) from  travelrecord  group by id  order by id desc limit 99",
 				"select a ,id,name from company limit 1",
 				"update company set name=name where id =-1",
 				"insert into company(id,name) values(1,'hp')",
 				"insert into company(id,name,badname) values(1,'hp')",
 				"insert into travelrecord (id,user_id,traveldate,fee,days) values(1,’wang’,’2014-01-05’,510.5,3)",
 				"insert into travelrecord (id,user_id,traveldate,fee,days,badcolumn) values(1,’wang’,’2014-01-05’,510.5,3)",
-				"select sum(fee) total_fee, days,count(id),max(fee),min(fee) from  travelrecord  group by count(id)  order by count(id) desc limit 99 " };
+				"select sum(fee) total_fee, days,count(id),max(fee),min(fee) from  travelrecord  group by count(id)  order by count(id) desc limit 99 "};
 		for (String sql : sqls) {
 			try {
+				System.out.println("execute "+sql);
 				theCon.createStatement().executeQuery(sql);
+				
 			} catch (Exception e) {
 				// e.printStackTrace();
 				Assert.assertEquals(true, e != null);
