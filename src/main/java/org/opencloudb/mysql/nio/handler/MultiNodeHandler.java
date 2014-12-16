@@ -177,7 +177,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		} finally {
 			lock.unlock();
 		}
-		err.errno = ErrorCode.ER_YES;
+		err.errno = ErrorCode.ER_UNKNOWN_ERROR;
 		err.message = StringUtil.encode(errmgs, session.getSource()
 				.getCharset());
 		return err;
