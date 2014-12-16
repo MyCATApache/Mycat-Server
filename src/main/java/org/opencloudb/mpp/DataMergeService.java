@@ -47,12 +47,14 @@ public class DataMergeService {
     private RowDataPacketGrouper grouper = null;
     private RowDataPacketSorter sorter = null;
     private Collection<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
+    private volatile boolean temniated = false;
 
-    private int fieldCount;
-    private final RouteResultset rrs;
+    // private final Map<String, DataNodeResultInf> dataNodeResultSumMap;
 
     public DataMergeService(RouteResultset rrs) {
         this.rrs = rrs;
+        // dataNodeResultSumMap = new HashMap<String, DataNodeResultInf>(
+        // rrs.getNodes().length);
 
     }
 
@@ -88,7 +90,10 @@ public class DataMergeService {
         return rrs;
     }
 
-    public  void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
+    private int fieldCount;
+    private final RouteResultset rrs;
+
+    public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("field metadata inf:" + Arrays.toString(columToIndx.entrySet().toArray()));
         }
@@ -123,12 +128,12 @@ public class DataMergeService {
             for (Map.Entry<String, Integer> entry : orders.entrySet()) {
                 orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey().toUpperCase()), entry.getValue());
             }
-            RowDataSorter sorterT = new RowDataSorter(orderCols);
-            sorterT.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
-            this.sorter = sorterT;
-            // this.sorter = new RowDataPacketSorter(orderCols);
+            // sorter = new RowDataPacketSorter(orderCols);
+            RowDataSorter tmp = new RowDataSorter(orderCols);
+            tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
+            sorter = tmp;
         } else {
-            result = new ConcurrentLinkedQueue<RowDataPacket>();
+            new ConcurrentLinkedQueue<RowDataPacket>();
         }
     }
 
@@ -142,19 +147,17 @@ public class DataMergeService {
      *            raw data
      */
     public boolean onNewRecord(String dataNode, byte[] rowData) {
+        if (temniated) {
+            return true;
+        }
         RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
-        try {
-            rowDataPkg.read(rowData);
-            if (grouper != null) {
-                grouper.addRow(rowDataPkg);
-            } else if (sorter != null) {
-                sorter.addRow(rowDataPkg);
-            } else {
-                result.add(rowDataPkg);
-            }
-        } catch (Exception e) {
-            System.out.println(sorter + "-" + result);
-            e.printStackTrace();
+        rowDataPkg.read(rowData);
+        if (grouper != null) {
+            grouper.addRow(rowDataPkg);
+        } else if (sorter != null) {
+            sorter.addRow(rowDataPkg);
+        } else {
+            result.add(rowDataPkg);
         }
         // todo ,if too large result set ,should store to disk
         return false;
@@ -178,9 +181,10 @@ public class DataMergeService {
      * release resources
      */
     public void clear() {
-        // grouper = null;
-        // sorter = null;
-        // result = null;
+        temniated = true;
+        grouper = null;
+        sorter = null;
+        result = null;
     }
 
 }
