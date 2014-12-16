@@ -101,7 +101,6 @@ public class NonBlockingSession implements Session {
 		return target.get(key);
 	}
 
-	
 	public Map<RouteResultsetNode, BackendConnection> getTargetMap() {
 		return this.target;
 	}
@@ -152,12 +151,9 @@ public class NonBlockingSession implements Session {
 				multiNodeHandler = new MultiNodeQueryWithLimitHandler(rrsCopy,
 						autocommit, this, dataMergeSvr);
 			} else {
-				DataMergeService dataMergeSvr = null;
-				if (ServerParse.SELECT == type && rrs.needMerge()) {
-					dataMergeSvr = new DataMergeService(rrs);
-				}
-				multiNodeHandler = new MultiNodeQueryHandler(rrs, autocommit,
-						this, dataMergeSvr);
+
+				multiNodeHandler = new MultiNodeQueryHandler(type,rrs, autocommit,
+						this);
 			}
 			try {
 				multiNodeHandler.execute();
@@ -219,9 +215,8 @@ public class NonBlockingSession implements Session {
 		target.clear();
 		clearHandlesResources();
 	}
-	
-	public void closeAndClearResources(String reason)
-	{
+
+	public void closeAndClearResources(String reason) {
 		for (BackendConnection node : target.values()) {
 			node.close(reason);
 		}
