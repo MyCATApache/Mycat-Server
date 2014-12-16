@@ -173,10 +173,10 @@ public class DataMergeService {
 				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
 						.toUpperCase()), entry.getValue());
 			}
-			// sorter = new RowDataPacketSorter(orderCols);
-			RowDataSorter tmp = new RowDataSorter(orderCols);
-			tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
-			sorter = tmp;
+		 sorter = new RowDataPacketSorter(orderCols);
+			// RowDataSorter tmp = new RowDataSorter(orderCols);
+			// tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
+			// sorter = tmp;
 		} else {
 			new ConcurrentLinkedQueue<RowDataPacket>();
 		}

@@ -154,7 +154,7 @@ public class RowDataPacketSorter {
         }
     }
 
-    protected int compareObject(Object l, Object r, OrderCol orderCol) {
+    public static final int compareObject(Object l, Object r, OrderCol orderCol) {
 
         int colType = orderCol.getColMeta().getColType();
         byte[] left = (byte[]) l;

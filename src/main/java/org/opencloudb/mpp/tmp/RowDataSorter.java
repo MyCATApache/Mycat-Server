@@ -21,7 +21,7 @@ public class RowDataSorter extends RowDataPacketSorter {
     private int total;
     private int returnSize;
     private volatile int addCount;
-    private volatile RowDataCmp cmp;
+    private final RowDataCmp cmp;
 
     public RowDataSorter(OrderCol[] orderCols) {
         super(orderCols);
