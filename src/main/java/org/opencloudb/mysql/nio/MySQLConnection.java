@@ -358,7 +358,6 @@ public class MySQLConnection extends BackendAIOConnection {
 		public boolean sync() {
 			CommandPacket cmd;
 			if (schemaCmd != null) {
-				conn.schema = "snyn...";
 				updater = new Runnable() {
 					@Override
 					public void run() {

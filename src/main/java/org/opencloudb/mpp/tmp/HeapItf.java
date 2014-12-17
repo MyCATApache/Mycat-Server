@@ -22,4 +22,5 @@ public interface HeapItf {
 
     public abstract void addIfRequired(RowDataPacket row);
 
+
 }
