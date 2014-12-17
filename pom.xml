@@ -21,27 +21,22 @@
 		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</url>
 	</scm>
 	<dependencies>
-		<!--
+		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
+			<version>18.0</version> </dependency> -->
 		<dependency>
-		    <groupId>com.google.guava</groupId>
-		    <artifactId>guava-parent</artifactId>
-		    <version>18.0</version>
-		</dependency>
-		-->
-		<dependency>
-		    <groupId>com.google.guava</groupId>
-		    <artifactId>guava</artifactId>
-		    <version>18.0</version>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>18.0</version>
 		</dependency>
 		<dependency>
-		    <groupId>com.foundationdb</groupId>
-		    <artifactId>fdb-sql-parser</artifactId>
-		    <version>1.5.0</version>
+			<groupId>com.foundationdb</groupId>
+			<artifactId>fdb-sql-parser</artifactId>
+			<version>1.5.0</version>
 		</dependency>
 		<dependency>
-		     <groupId>com.alibaba</groupId>
-		     <artifactId>druid</artifactId>
-		     <version>1.0.10</version>
+			<groupId>com.alibaba</groupId>
+			<artifactId>druid</artifactId>
+			<version>1.0.10</version>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>
@@ -90,6 +85,12 @@
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.7.3</version>
 		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>18.0</version>
+		</dependency>
+
 	</dependencies>
 
 
@@ -299,22 +300,22 @@
 			</plugin>
 
 			<plugin>
-	         <groupId>org.apache.maven.plugins</groupId>
-	         <artifactId>maven-scm-plugin</artifactId>
-	            <version>1.9.2</version>
-	         <configuration>
-	          <providerImplementations>
-	              <git>jgit</git>
-	          </providerImplementations>
-	         </configuration>
-	         <dependencies>
-	          <dependency>
-	              <groupId>org.apache.maven.scm</groupId>
-	              <artifactId>maven-scm-provider-jgit</artifactId>
-	                    <version>1.9.2</version>
-	          </dependency>
-	         </dependencies>
-       </plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-scm-plugin</artifactId>
+				<version>1.9.2</version>
+				<configuration>
+					<providerImplementations>
+						<git>jgit</git>
+					</providerImplementations>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.maven.scm</groupId>
+						<artifactId>maven-scm-provider-jgit</artifactId>
+						<version>1.9.2</version>
+					</dependency>
+				</dependencies>
+			</plugin>
 
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -345,11 +346,11 @@
 
 				<dependencies>
 					<dependency>
-				      <groupId>org.apache.maven.scm</groupId>
-				      <artifactId>maven-scm-provider-gitexe</artifactId>
-				      <version>RELEASE</version>
-				    </dependency>  
-      				<dependency>
+						<groupId>org.apache.maven.scm</groupId>
+						<artifactId>maven-scm-provider-gitexe</artifactId>
+						<version>RELEASE</version>
+					</dependency>
+					<dependency>
 						<groupId>org.tmatesoft.svnkit</groupId>
 						<artifactId>svnkit</artifactId>
 						<version>RELEASE</version>

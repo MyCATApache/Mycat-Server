@@ -31,9 +31,9 @@ public class IntMinHeap {
         int r = right(i);
         int max = i;
         int len = data.length;
-        if (l < len && data[l] > data[i])
+        if (l < len && data[l] < data[i])
             max = l;
-        if (r < len && data[r] > data[max])
+        if (r < len && data[r] < data[max])
             max = r;
         if (i == max)
             return;
@@ -75,7 +75,7 @@ public class IntMinHeap {
     // 淘汰堆里最大的数据
     public void addIfRequired(int row) {
         int root = getRoot();
-        if (row < root) {
+        if (row > root) {
             setRoot(row);
         }
     }

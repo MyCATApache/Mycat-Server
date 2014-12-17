@@ -3,8 +3,11 @@ package org.opencloudb.mpp.tmp;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
+
+import com.google.common.collect.Ordering;
 
 /**
  * 
@@ -99,9 +102,15 @@ public class QuickSelect {
         while (set.size() < dataCount) {
             set.add(rd.nextInt(bound));
         }
-        int topN = 1000;
+        int topN = 50;
         Integer[] input = set.toArray(new Integer[dataCount]);
         long st = System.currentTimeMillis();
+        List<Integer> q = Ordering.natural().greatestOf(set.iterator(), topN);
+//        for (int i = 0; i < topN; i++) {
+//            System.out.print(q.get(i)+",");
+//        }
+//        System.out.println();
+        System.out.println("Google1->count:"+dataCount +" top:"+topN+" time:" + (System.currentTimeMillis() - st) / 1000.0);
         int[] datax = new int[topN];
         for (int i = 0; i < datax.length; i++) {
             datax[i] = select(input, i);
