@@ -45,6 +45,12 @@ public class RowDataPacketSorter {
     }
 
     public void addRow(RowDataPacket row) {
+    	try {
+			//Thread.sleep(500);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         this.sorted.add(row);
 
     }
@@ -154,7 +160,7 @@ public class RowDataPacketSorter {
         }
     }
 
-    protected int compareObject(Object l, Object r, OrderCol orderCol) {
+    public static final int compareObject(Object l, Object r, OrderCol orderCol) {
 
         int colType = orderCol.getColMeta().getColType();
         byte[] left = (byte[]) l;

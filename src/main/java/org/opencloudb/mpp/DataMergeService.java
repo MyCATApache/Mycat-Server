@@ -129,6 +129,7 @@ public class DataMergeService {
 			tmpResult = sorter.getSortedResult();
 			sorter = null;
 		}
+		LOGGER.info("prepare mpp merge result for "+rrs.getStatement());
 		return tmpResult;
 	}
 
@@ -173,10 +174,10 @@ public class DataMergeService {
 				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
 						.toUpperCase()), entry.getValue());
 			}
-			// sorter = new RowDataPacketSorter(orderCols);
-			RowDataSorter tmp = new RowDataSorter(orderCols);
-			tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
-			sorter = tmp;
+		 //sorter = new RowDataPacketSorter(orderCols);
+			 RowDataSorter tmp = new RowDataSorter(orderCols);
+			 tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
+			 sorter = tmp;
 		} else {
 			new ConcurrentLinkedQueue<RowDataPacket>();
 		}
@@ -254,17 +255,18 @@ public class DataMergeService {
 						if (handleRowData(dnName, row)) {
 							break;
 						}
-						// for next job
-						Runnable newJob = jobQueue.poll();
-						if (newJob != null) {
-							MycatServer.getInstance().getBusinessExecutor()
-									.execute(newJob);
-						}
+					}
+					// for next job
+					Runnable newJob = jobQueue.poll();
+					if (newJob != null) {
+						MycatServer.getInstance().getBusinessExecutor()
+								.execute(newJob);
+					} else {
+						jobRuninng = false;
 					}
 				} catch (Exception e) {
-					LOGGER.warn("data Merge error:", e);
-				} finally {
 					jobRuninng = false;
+					LOGGER.warn("data Merge error:", e);
 				}
 			}
 		};
@@ -301,6 +303,9 @@ public class DataMergeService {
 	 * release resources
 	 */
 	public void clear() {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("clear data ");
+		}
 		temniated = true;
 		grouper = null;
 		sorter = null;
