@@ -1,11 +1,9 @@
 package org.opencloudb.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.route.RouteResultset;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -43,10 +41,5 @@ public class DruidUpdateParser extends DefaultDruidParser {
 		if(schema.getTables().get(tableName).isGlobalTable() && ctx.getTablesAndConditions().size() > 1) {
 			throw new SQLNonTransientException("global table not supported multi table related update "+ tableName);
 		}
-
-		DruidShardingParseInfo ctx = new DruidShardingParseInfo();
-		List<String> tables = new ArrayList<String>(1);
-		tables.add(tableName);
-		ctx.setSql(stmt.toString());
 	}
 }

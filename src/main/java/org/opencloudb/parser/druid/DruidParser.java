@@ -21,7 +21,7 @@ public interface DruidParser {
 	 * @param schema
 	 * @param stmt
 	 */
-	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException;
+	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql) throws SQLNonTransientException;
 	
 	/**
 	 * statement方式解析

@@ -3,6 +3,7 @@ package org.opencloudb.route.handler;
 import java.sql.SQLNonTransientException;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
@@ -10,8 +11,8 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteStrategy;
 import org.opencloudb.route.factory.RouteStrategyFactory;
 import org.opencloudb.server.ServerConnection;
+import org.opencloudb.sqlengine.Catlet;
 import org.opencloudb.sqlengine.EngineCtx;
-import org.opencloudb.sqlengine.demo.MyHellowJoin;
 
 /**
  * 处理注释中类型为catlet 的情况,每个catlet为一个用户自定义Java代码类，用于进行复杂查询SQL（只能是查询SQL）的自定义执行过程，
@@ -49,18 +50,21 @@ public class HintCatletHandler implements HintHandler {
 			LayerCachePool cachePool, String hintSQLValue)
 			throws SQLNonTransientException {
 		// sc.setEngineCtx ctx
-		new MyHellowJoin().processSQL(realSQL, new EngineCtx(sc.getSession2()));
+		String cateletClass = hintSQLValue;
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("load catelet class:" + hintSQLValue + " to run sql "
+					+ realSQL);
+		}
+		try {
+			Catlet catlet = (Catlet) MycatServer.getInstance()
+					.getCatletClassLoader().getInstanceofClass(cateletClass);
+			catlet.processSQL(realSQL, new EngineCtx(sc.getSession2()));
+		} catch (Exception e) {
+			LOGGER.warn("catlet error "+e);
+			throw new SQLNonTransientException(e);
+		}
+
 		return null;
-		// schema = MycatServer.getInstance().getConfig().getSchemas()
-		// .get(hintSQLValue);
-		// if (schema != null) {
-		// RouteResultset rrs = routeStrategy.route(sysConfig, schema,
-		// sqlType, realSQL, charset, sc, cachePool);
-		// return rrs;
-		// } else {
-		// String msg = "can't find schema:" + schema.getName();
-		// LOGGER.warn(msg);
-		// throw new SQLNonTransientException(msg);
-		// }
+
 	}
 }
