@@ -8,7 +8,7 @@ import org.opencloudb.net.mysql.RowDataPacket;
  * 
  * @author coderczp-2014-12-8
  */
-public class MinHeap implements HeapItf{
+public class MinHeap implements HeapItf {
 
     private RowDataCmp cmp;
     private Vector<RowDataPacket> data;
@@ -72,4 +72,12 @@ public class MinHeap implements HeapItf{
         data.add(row);
     }
 
+    @Override
+    public void addIfRequired(RowDataPacket row) {
+        // 淘汰堆里最小的数据
+        RowDataPacket root = getRoot();
+        if (cmp.compare(row, root) > 0) {
+            setRoot(row);
+        }
+    }
 }

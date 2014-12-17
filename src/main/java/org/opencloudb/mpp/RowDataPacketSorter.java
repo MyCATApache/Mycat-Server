@@ -45,6 +45,12 @@ public class RowDataPacketSorter {
     }
 
     public void addRow(RowDataPacket row) {
+    	try {
+			//Thread.sleep(500);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         this.sorted.add(row);
 
     }

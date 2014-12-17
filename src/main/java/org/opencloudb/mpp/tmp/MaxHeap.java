@@ -56,45 +56,34 @@ public class MaxHeap implements HeapItf {
         data.set(j, tmp);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.opencloudb.mpp.tmp.HeapItf#getRoot()
-     */
     @Override
     public RowDataPacket getRoot() {
         return data.elementAt(0);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.opencloudb.mpp.tmp.HeapItf#setRoot(org.opencloudb.net.mysql.RowDataPacket)
-     */
     @Override
     public void setRoot(RowDataPacket root) {
         data.set(0, root);
         heapify(0);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.opencloudb.mpp.tmp.HeapItf#getData()
-     */
     @Override
     public Vector<RowDataPacket> getData() {
         return data;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.opencloudb.mpp.tmp.HeapItf#add(org.opencloudb.net.mysql.RowDataPacket)
-     */
     @Override
-    public synchronized void add(RowDataPacket row) {
+    public void add(RowDataPacket row) {
         data.add(row);
+    }
+
+    @Override
+    public void addIfRequired(RowDataPacket row) {
+        // 淘汰堆里最小的数据
+        RowDataPacket root = getRoot();
+        if (cmp.compare(row, root) < 0) {
+            setRoot(row);
+        }
     }
 
 }
