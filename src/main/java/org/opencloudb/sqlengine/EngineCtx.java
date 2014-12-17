@@ -1,12 +1,16 @@
 package org.opencloudb.sqlengine;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.handler.ConfFileHandler;
 import org.opencloudb.net.mysql.EOFPacket;
+import org.opencloudb.net.mysql.ResultSetHeaderPacket;
+import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 
@@ -16,7 +20,11 @@ public class EngineCtx {
 	private AtomicInteger jobId = new AtomicInteger(0);
 	AtomicInteger packetId = new AtomicInteger(0);
 	private final NonBlockingSession session;
-    private AtomicBoolean finished=new AtomicBoolean(false);
+	private AtomicBoolean finished = new AtomicBoolean(false);
+	private AllJobFinishedListener allJobFinishedListener;
+	private AtomicBoolean headerWrited = new AtomicBoolean();
+	private final ReentrantLock writeLock = new ReentrantLock();
+
 	public EngineCtx(NonBlockingSession session) {
 		this.bachJob = new BatchSQLJob();
 		this.session = session;
@@ -36,6 +44,15 @@ public class EngineCtx {
 		}
 	}
 
+	public ReentrantLock getWriteLock() {
+		return writeLock;
+	}
+
+	public void setAllJobFinishedListener(
+			AllJobFinishedListener allJobFinishedListener) {
+		this.allJobFinishedListener = allJobFinishedListener;
+	}
+
 	public void executeNativeSQLParallJob(String[] dataNodes, String sql,
 			SQLJobHandler jobHandler) {
 		for (String dataNode : dataNodes) {
@@ -49,16 +66,65 @@ public class EngineCtx {
 	/**
 	 * set no more jobs created
 	 */
-	public void endJobInput()
-	{
+	public void endJobInput() {
 		bachJob.setNoMoreJobInput(true);
 	}
+
+	public void writeHeader(List<byte[]> afields, List<byte[]> bfields) {
+		if (headerWrited.compareAndSet(false, true)) {
+			try {
+				writeLock.lock();
+				// write new header
+				ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+				headerPkg.fieldCount = afields.size() + 1;
+				headerPkg.packetId = incPackageId();
+				LOGGER.debug("packge id " + headerPkg.packetId);
+				ServerConnection sc = session.getSource();
+				ByteBuffer buf = headerPkg.write(sc.allocate(), sc, true);
+				// wirte a fields
+				for (byte[] field : afields) {
+					field[3] = incPackageId();
+					buf = sc.writeToBuffer(field, buf);
+				}
+				// write b field
+				byte[] bfield = bfields.get(1);
+				bfield[3] = incPackageId();
+				buf = sc.writeToBuffer(bfield, buf);
+
+				// write field eof
+				EOFPacket eofPckg = new EOFPacket();
+				eofPckg.packetId = incPackageId();
+				buf = eofPckg.write(buf, sc, true);
+				sc.write(buf);
+				LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
+			} finally {
+				writeLock.unlock();
+			}
+		}
+
+	}
+
+	public void writeRow(RowDataPacket rowDataPkg) {
+		ServerConnection sc = session.getSource();
+		try {
+			writeLock.lock();
+			rowDataPkg.packetId = incPackageId();
+			// 输出完整的 记录到客户端
+			ByteBuffer buf = rowDataPkg.write(sc.allocate(), sc, true);
+			sc.write(buf);
+			LOGGER.info("write  row ,packgId:" + rowDataPkg.packetId);
+		} finally {
+			writeLock.unlock();
+		}
+	}
+
 	public void writeEof() {
 		ServerConnection sc = session.getSource();
 		EOFPacket eofPckg = new EOFPacket();
 		eofPckg.packetId = incPackageId();
 		ByteBuffer buf = eofPckg.write(sc.allocate(), sc, false);
 		sc.write(buf);
+		LOGGER.info("write  eof ,packgId:" + eofPckg.packetId);
 	}
 
 	public NonBlockingSession getSession() {
@@ -71,7 +137,7 @@ public class EngineCtx {
 		if (allFinished && finished.compareAndSet(false, true)) {
 			LOGGER.info("all job finished  for front connection: "
 					+ session.getSource());
-			writeEof();
+			allJobFinishedListener.onAllJobFinished(this);
 		}
 
 	}

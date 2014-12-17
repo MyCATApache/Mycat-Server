@@ -36,10 +36,7 @@ public class RowDataCmp implements Comparator<RowDataPacket> {
 			if (cmp != 0)
 				return cmp;
 		}
-
-		int rootId = Integer.parseInt(new String(o1.fieldValues.get(0)));
-		int rootId2 = Integer.parseInt(new String(o2.fieldValues.get(0)));
-		return rootId - rootId2;
+		return cmp;
 	}
 
 }

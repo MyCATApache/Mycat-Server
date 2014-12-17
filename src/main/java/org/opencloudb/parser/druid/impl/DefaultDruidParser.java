@@ -49,8 +49,10 @@ public class DefaultDruidParser implements DruidParser {
 	 * @param schema
 	 * @param stmt
 	 */
-	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
+	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql) throws SQLNonTransientException {
 		ctx = new DruidShardingParseInfo();
+		//设置为原始sql，如果有需要改写sql的，可以通过修改SQLStatement中的属性，然后调用SQLStatement.toString()得到改写的sql
+		ctx.setSql(originSql);
 		//通过visitor解析
 		visitorParse(rrs,stmt);
 		//通过Statement解析
@@ -58,8 +60,6 @@ public class DefaultDruidParser implements DruidParser {
 		
 		//改写sql：如insert语句主键自增长的可以
 		changeSql(schema, rrs, stmt);
-		
-		ctx.setSql(stmt.toString());
 	}
 	
 	/**

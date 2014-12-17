@@ -97,7 +97,9 @@ public final class NIOReactor {
 									try {
 										con.asynRead();
 									} catch (Throwable e) {
-										con.close("exception:" + e.toString());
+										LOGGER.warn("caught err:", e);
+										// e.printStackTrace();
+										con.close("program err:" + e.toString());
 
 									}
 								}
