@@ -75,7 +75,7 @@ public class FdbRouteStrategy extends AbstractRouteStrategy implements FdbStrate
 				throw new SQLNonTransientException(inf);
 			}
 			// try to route by ER parent partion key
-			RouteResultset theRrs = routeByERParentKey(stmt, rrs, tc,joinKeyVal);
+			RouteResultset theRrs = RouterUtil.routeByERParentKey(stmt, rrs, tc,joinKeyVal);
 			if (theRrs != null) {
 				return theRrs;
 			}
@@ -252,55 +252,6 @@ public class FdbRouteStrategy extends AbstractRouteStrategy implements FdbStrate
 			LOGGER.info("TODO ,support sql type "+ ast.getClass().getCanonicalName() + " ," + stmt);
 			return rrs;
 		}
-	}
-	
-
-	/**
-	 * 根据 ER分片规则获取路由集合
-	 * 
-	 * @param stmt
-	 *            执行的语句
-	 * @param rrs
-	 *            数据路由集合
-	 * @param tc
-	 *            表实体
-	 * @param joinKeyVal
-	 *            连接属性
-	 * @return RouteResultset(数据路由集合)
-	 * @throws SQLNonTransientException
-	 * @author mycat
-	 */
-
-	private static RouteResultset routeByERParentKey(String stmt,
-			RouteResultset rrs, TableConfig tc, String joinKeyVal)
-			throws SQLNonTransientException {
-		// only has one parent level and ER parent key is parent
-		// table's partition key
-		if (tc.isSecondLevel()
-				&& tc.getParentTC().getPartitionColumn()
-						.equals(tc.getParentKey())) { // using
-														// parent
-														// rule to
-														// find
-														// datanode
-			Set<ColumnRoutePair> parentColVal = new HashSet<ColumnRoutePair>(1);
-			ColumnRoutePair pair = new ColumnRoutePair(joinKeyVal);
-			parentColVal.add(pair);
-			Set<String> dataNodeSet = ruleCalculate(tc.getParentTC(),
-					parentColVal);
-			if (dataNodeSet.isEmpty() || dataNodeSet.size() > 1) {
-				throw new SQLNonTransientException(
-						"parent key can't find  valid datanode ,expect 1 but found: "
-								+ dataNodeSet.size());
-			}
-			String dn = dataNodeSet.iterator().next();
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
-						+ dn + " sql :" + stmt);
-			}
-			return RouterUtil.routeToSingleNode(rrs, dn, stmt);
-		}
-		return null;
 	}
 
 	/**
@@ -549,7 +500,7 @@ public class FdbRouteStrategy extends AbstractRouteStrategy implements FdbStrate
 					Set<ColumnRoutePair> joinKeyPairs = allColConds.get(tc
 							.getJoinKey());
 					if (joinKeyPairs != null) {
-						Set<String> dataNodeSet = ruleCalculate(
+						Set<String> dataNodeSet = RouterUtil.ruleCalculate(
 								tc.getParentTC(), joinKeyPairs);
 						if (dataNodeSet.isEmpty()) {
 							throw new SQLNonTransientException(
@@ -610,7 +561,7 @@ public class FdbRouteStrategy extends AbstractRouteStrategy implements FdbStrate
 					tc.getDataNodes(), sql);
 		}
 		// match table with where condtion of partion colum values
-		Set<String> dataNodeSet = ruleCalculate(tc, ruleCol2Val);
+		Set<String> dataNodeSet = RouterUtil.ruleCalculate(tc, ruleCol2Val);
 		if (dataNodeSet.size() == 1) {
 			rrs.setCacheAble(isSelect);
 			return RouterUtil.routeToSingleNode(rrs, dataNodeSet.iterator().next(), sql);
@@ -730,7 +681,7 @@ public class FdbRouteStrategy extends AbstractRouteStrategy implements FdbStrate
 
 				} else {
 					// match table with where condtion of partion colum values
-					newDataNodes = ruleCalculate(tc, col2Val);
+					newDataNodes = RouterUtil.ruleCalculate(tc, col2Val);
 
 				}
 
@@ -911,52 +862,6 @@ public class FdbRouteStrategy extends AbstractRouteStrategy implements FdbStrate
 	private static String getRandomDataNode(ArrayList<String> dataNodes) {
 		int index = Math.abs(rand.nextInt()) % dataNodes.size();
 		return dataNodes.get(index);
-	}
-
-	/**
-	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
-	 */
-	private static Set<String> ruleCalculate(TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet) {
-		Set<String> routeNodeSet = new LinkedHashSet<String>();
-		String col = tc.getRule().getColumn();
-		RuleConfig rule = tc.getRule();
-		AbstractPartionAlgorithm algorithm = rule.getRuleAlgorithm();
-		for (ColumnRoutePair colPair : colRoutePairSet) {
-			if (colPair.colValue != null) {
-				Integer nodeIndx = algorithm.calculate(colPair.colValue);
-				if (nodeIndx == null) {
-					throw new IllegalArgumentException(
-							"can't find datanode for sharding column:" + col
-									+ " val:" + colPair.colValue);
-				} else {
-					String dataNode = tc.getDataNodes().get(nodeIndx);
-					routeNodeSet.add(dataNode);
-					colPair.setNodeId(nodeIndx);
-				}
-			} else if (colPair.rangeValue != null) {
-				Integer[] nodeRange = algorithm.calculateRange(
-						String.valueOf(colPair.rangeValue.beginValue),
-						String.valueOf(colPair.rangeValue.endValue));
-				if (nodeRange != null) {
-					/**
-					 * 不能确认 colPair的 nodeid是否会有其它影响
-					 */
-					if (nodeRange.length == 0) {
-						routeNodeSet.addAll(tc.getDataNodes());
-					} else {
-						ArrayList<String> dataNodes = tc.getDataNodes();
-						String dataNode = null;
-						for (Integer nodeId : nodeRange) {
-							dataNode = dataNodes.get(nodeId);
-							routeNodeSet.add(dataNode);
-						}
-					}
-				}
-			}
-
-		}
-		return routeNodeSet;
 	}
 
 	public static void main(String[] args) {

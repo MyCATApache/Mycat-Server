@@ -40,7 +40,7 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 		checkUnSupportedStatement(statement);
 			
 		DruidParser druidParser = DruidParserFactory.create(statement);
-		druidParser.parser(schema, rrs, statement);
+		druidParser.parser(schema, rrs, statement, stmt);
 		
 		//DruidParser解析过程中已完成了路由的直接返回
 		if(rrs.isFinishedRoute()) {
@@ -53,7 +53,7 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),druidParser.getCtx().getSql());
 		}
 
-		return tryRouteForTables(schema, druidParser.getCtx(), druidParser.getCtx().getTables(), rrs, isSelect(statement));
+		return tryRouteForTables(schema, druidParser.getCtx(), rrs, isSelect(statement));
 	}
 	
 	private boolean isSelect(SQLStatement statement) {
@@ -131,6 +131,7 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 	}
 	
 	/**
+	 * TODO:childTable通过ER规则找路由，insert update都会涉及到
 	 * 单表路由
 	 * @param schema
 	 * @param ctx
@@ -161,7 +162,10 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 			} else {
 				//每个表对应的路由映射
 				Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
-				findRouteForShardingTables(schema, ctx, tablesRouteMap);
+				if(ctx.getTablesAndConditions() != null && ctx.getTablesAndConditions().size() > 0) {
+					findRouteForShardingTables(schema, ctx.getTablesAndConditions(), tablesRouteMap);
+				}
+				
 				if(tablesRouteMap.get(tableName) == null) {
 					return RouterUtil.routeToMultiNode(false, rrs, tc.getDataNodes(), ctx.getSql());
 				} else {
@@ -181,8 +185,9 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 	 * @return
 	 * @throws SQLNonTransientException
 	 */
-	private static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx, List<String> tables, RouteResultset rrs,
+	private static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx, RouteResultset rrs,
 			boolean isSelect) throws SQLNonTransientException {
+		List<String> tables = ctx.getTables();
 		//只有一个表的
 		if(tables.size() == 1) {
 			return tryRouteForOneTable(schema, ctx, tables.get(0), rrs, isSelect);
@@ -193,9 +198,10 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 		Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
 		
 		//分库解析信息不为空
-		if(ctx != null) {
+		Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions = ctx.getTablesAndConditions();
+		if(tablesAndConditions != null && tablesAndConditions.size() > 0) {
 			//为分库表找路由
-			findRouteForShardingTables(schema, ctx, tablesRouteMap);
+			findRouteForShardingTables(schema, tablesAndConditions, tablesRouteMap);
 		}
 		
 		
@@ -248,14 +254,13 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 	/**
 	 * 处理分库表路由
 	 * @param schema
-	 * @param ctx
+	 * @param tablesAndConditions
 	 * @param tablesRouteMap
 	 * @throws SQLNonTransientException
 	 */
 	private static void findRouteForShardingTables(SchemaConfig schema,
-			DruidShardingParseInfo ctx, Map<String, Set<String>> tablesRouteMap)
+			Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions, Map<String, Set<String>> tablesRouteMap)
 			throws SQLNonTransientException {
-		Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions = ctx.getTablesAndConditions();
 		//为分库表找路由
 		for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
 			String tableName = entry.getKey().toUpperCase();
@@ -331,9 +336,6 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 		}
 	}
 
-	
-
-	
 	public RouteResultset routeSystemInfo(SchemaConfig schema, int sqlType,
 			String stmt, RouteResultset rrs) throws SQLSyntaxErrorException {
 		switch(sqlType){
