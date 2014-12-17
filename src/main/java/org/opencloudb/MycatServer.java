@@ -39,6 +39,7 @@ import org.apache.log4j.Logger;
 import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.buffer.BufferPool;
 import org.opencloudb.cache.CacheService;
+import org.opencloudb.classloader.DynaClassLoader;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.interceptor.SQLInterceptor;
 import org.opencloudb.manager.ManagerConnectionFactory;
@@ -73,6 +74,7 @@ public class MycatServer {
 	private AsynchronousChannelGroup[] asyncChannelGroups;
 	private volatile int channelIndex = 0;
 	private final MyCATSequnceProcessor sequnceProcessor = new MyCATSequnceProcessor();
+	private final DynaClassLoader catletClassLoader;
 	private final SQLInterceptor sqlInterceptor;
 	private volatile int nextProcessor;
 	private BufferPool bufferPool;
@@ -90,6 +92,7 @@ public class MycatServer {
 	private NIOProcessor[] processors;
 	private SocketConnector connector;
 	private NameableExecutor businessExecutor;
+	private NameableExecutor timerExecutor;
 
 	public MycatServer() {
 		this.config = new MycatConfig();
@@ -107,11 +110,22 @@ public class MycatServer {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+		catletClassLoader = new DynaClassLoader(SystemConfig.getHomePath()
+				+ File.separator + "catlet", config.getSystem()
+				.getCatletClassCheckSeconds());
 		this.startupTime = TimeUtil.currentTimeMillis();
 	}
 
 	public BufferPool getBufferPool() {
 		return bufferPool;
+	}
+
+	public NameableExecutor getTimerExecutor() {
+		return timerExecutor;
+	}
+
+	public DynaClassLoader getCatletClassLoader() {
+		return catletClassLoader;
 	}
 
 	public MyCATSequnceProcessor getSequnceProcessor() {
@@ -190,6 +204,7 @@ public class MycatServer {
 				socketBufferLocalPercent / processorCount);
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
+		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
 
 		for (int i = 0; i < processors.length; i++) {
 			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
@@ -266,14 +281,28 @@ public class MycatServer {
 			node.init(Integer.valueOf(index));
 			node.startHeartbeat();
 		}
+		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
 		timer.schedule(updateTime(), 0L, TIME_UPDATE_PERIOD);
 		timer.schedule(processorCheck(), 0L, system.getProcessorCheckPeriod());
-		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
 		timer.schedule(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L,
 				dataNodeIldeCheckPeriod);
 		timer.schedule(dataNodeHeartbeat(), 0L,
 				system.getDataNodeHeartbeatPeriod());
+		timer.schedule(catletClassClear(), 30000);
 
+	}
+
+	private TimerTask catletClassClear() {
+		return new TimerTask() {
+			@Override
+			public void run() {
+				try {
+                   catletClassLoader.clearUnUsedClass();
+				} catch (Exception e) {
+					LOGGER.warn("catletClassClear err " + e);
+				}
+			};
+		};
 	}
 
 	private Properties loadDnIndexProps() {
@@ -407,7 +436,7 @@ public class MycatServer {
 		return new TimerTask() {
 			@Override
 			public void run() {
-				businessExecutor.execute(new Runnable() {
+				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
 						try {
@@ -420,7 +449,7 @@ public class MycatServer {
 
 					}
 				});
-				nextProcessor().getExecutor().execute(new Runnable() {
+				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
 						try {
@@ -441,7 +470,7 @@ public class MycatServer {
 		return new TimerTask() {
 			@Override
 			public void run() {
-				businessExecutor.execute(new Runnable() {
+				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
 						Map<String, PhysicalDBPool> nodes = config
@@ -467,7 +496,7 @@ public class MycatServer {
 		return new TimerTask() {
 			@Override
 			public void run() {
-				businessExecutor.execute(new Runnable() {
+				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
 						Map<String, PhysicalDBPool> nodes = config
