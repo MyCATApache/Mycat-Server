@@ -1,7 +1,13 @@
 package org.opencloudb.route.util;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
@@ -9,9 +15,12 @@ import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.config.model.TableConfig;
+import org.opencloudb.config.model.rule.RuleConfig;
+import org.opencloudb.mpp.ColumnRoutePair;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.SessionSQLPair;
+import org.opencloudb.route.function.AbstractPartionAlgorithm;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.util.StringUtil;
 
@@ -82,6 +91,7 @@ public class RouterUtil {
 		RouteResultsetNode[] nodes = new RouteResultsetNode[1];
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), stmt);
 		rrs.setNodes(nodes);
+		rrs.setFinishedRoute(true);
 		return rrs;
 	}
 	
@@ -198,7 +208,7 @@ public class RouterUtil {
 	
 	public static boolean processInsert(SystemConfig sysConfig,
 			SchemaConfig schema, int sqlType, String origSQL, String charset,
-			ServerConnection sc, LayerCachePool cachePool){
+			ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
 		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
 		TableConfig tableConfig = schema.getTables().get(tableName);
 		boolean processedInsert=false;
@@ -231,9 +241,29 @@ public class RouterUtil {
 		return isPrimaryKeyInFields;
 	}
 	
-	public static boolean processInsert(ServerConnection sc,SchemaConfig schema,int sqlType,String origSQL,String tableName,String primaryKey){
-		int firstLeftBracketIndex = origSQL.indexOf("(") + 1;
+	public static boolean processInsert(ServerConnection sc,SchemaConfig schema,
+			int sqlType,String origSQL,String tableName,String primaryKey) throws SQLNonTransientException {
+		
+		int firstLeftBracketIndex = origSQL.indexOf("(");
 		int firstRightBracketIndex = origSQL.indexOf(")");
+		String upperSql = origSQL.toUpperCase();
+		int valuesIndex = upperSql.indexOf("VALUES");
+		int selectIndex = upperSql.indexOf("SELECT");
+		if(firstLeftBracketIndex < 0) {//insert into table1 select * from table2
+			String msg = "invalid sql:" + origSQL;
+			LOGGER.warn(msg);
+			throw new SQLNonTransientException(msg);
+		}
+		
+		if(selectIndex > 0) {
+			String msg = "multi insert not provided" ;
+			LOGGER.warn(msg);
+			throw new SQLNonTransientException(msg);
+		}
+		
+		if(valuesIndex + "VALUES".length() <= firstLeftBracketIndex) {
+			throw new SQLSyntaxErrorException("insert must provide ColumnList");
+		}
 
 		boolean processedInsert=!isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
 		if(processedInsert){
@@ -316,5 +346,99 @@ public class RouterUtil {
 			dataNode = tc.getRandomDataNode();
 		}
 		return dataNode;
+	}
+	
+	/**
+	 * 根据 ER分片规则获取路由集合
+	 * 
+	 * @param stmt
+	 *            执行的语句
+	 * @param rrs
+	 *            数据路由集合
+	 * @param tc
+	 *            表实体
+	 * @param joinKeyVal
+	 *            连接属性
+	 * @return RouteResultset(数据路由集合)
+	 * @throws SQLNonTransientException
+	 * @author mycat
+	 */
+
+	public static RouteResultset routeByERParentKey(String stmt,
+			RouteResultset rrs, TableConfig tc, String joinKeyVal)
+			throws SQLNonTransientException {
+		// only has one parent level and ER parent key is parent
+		// table's partition key
+		if (tc.isSecondLevel()
+				&& tc.getParentTC().getPartitionColumn()
+						.equals(tc.getParentKey())) { // using
+														// parent
+														// rule to
+														// find
+														// datanode
+			Set<ColumnRoutePair> parentColVal = new HashSet<ColumnRoutePair>(1);
+			ColumnRoutePair pair = new ColumnRoutePair(joinKeyVal);
+			parentColVal.add(pair);
+			Set<String> dataNodeSet = ruleCalculate(tc.getParentTC(),
+					parentColVal);
+			if (dataNodeSet.isEmpty() || dataNodeSet.size() > 1) {
+				throw new SQLNonTransientException(
+						"parent key can't find  valid datanode ,expect 1 but found: "
+								+ dataNodeSet.size());
+			}
+			String dn = dataNodeSet.iterator().next();
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
+						+ dn + " sql :" + stmt);
+			}
+			return RouterUtil.routeToSingleNode(rrs, dn, stmt);
+		}
+		return null;
+	}
+	
+	/**
+	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
+	 */
+	public static Set<String> ruleCalculate(TableConfig tc,
+			Set<ColumnRoutePair> colRoutePairSet) {
+		Set<String> routeNodeSet = new LinkedHashSet<String>();
+		String col = tc.getRule().getColumn();
+		RuleConfig rule = tc.getRule();
+		AbstractPartionAlgorithm algorithm = rule.getRuleAlgorithm();
+		for (ColumnRoutePair colPair : colRoutePairSet) {
+			if (colPair.colValue != null) {
+				Integer nodeIndx = algorithm.calculate(colPair.colValue);
+				if (nodeIndx == null) {
+					throw new IllegalArgumentException(
+							"can't find datanode for sharding column:" + col
+									+ " val:" + colPair.colValue);
+				} else {
+					String dataNode = tc.getDataNodes().get(nodeIndx);
+					routeNodeSet.add(dataNode);
+					colPair.setNodeId(nodeIndx);
+				}
+			} else if (colPair.rangeValue != null) {
+				Integer[] nodeRange = algorithm.calculateRange(
+						String.valueOf(colPair.rangeValue.beginValue),
+						String.valueOf(colPair.rangeValue.endValue));
+				if (nodeRange != null) {
+					/**
+					 * 不能确认 colPair的 nodeid是否会有其它影响
+					 */
+					if (nodeRange.length == 0) {
+						routeNodeSet.addAll(tc.getDataNodes());
+					} else {
+						ArrayList<String> dataNodes = tc.getDataNodes();
+						String dataNode = null;
+						for (Integer nodeId : nodeRange) {
+							dataNode = dataNodes.get(nodeId);
+							routeNodeSet.add(dataNode);
+						}
+					}
+				}
+			}
+
+		}
+		return routeNodeSet;
 	}
 }

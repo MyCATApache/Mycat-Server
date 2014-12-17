@@ -2,21 +2,17 @@ package org.opencloudb.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
+import org.opencloudb.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
 import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.RouteResultsetNode;
-import org.opencloudb.route.function.AbstractPartionAlgorithm;
+import org.opencloudb.route.util.RouterUtil;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 
 public class DruidInsertParser extends DefaultDruidParser {
@@ -25,11 +21,14 @@ public class DruidInsertParser extends DefaultDruidParser {
 		
 	}
 	
+	/**
+	 * 考虑因素：isChildTable、批量、是否分片
+	 */
 	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
 		MySqlInsertStatement insert = (MySqlInsertStatement)stmt;
 		String tableName = removeBackquote(insert.getTableName().getSimpleName()).toUpperCase();
-		
+
 		ctx.addTable(tableName);
 		TableConfig tc = schema.getTables().get(tableName);
 		if(tc == null) {
@@ -38,6 +37,12 @@ public class DruidInsertParser extends DefaultDruidParser {
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		} else {
+			//childTable的insert直接在解析过程中完成路由
+			if (tc.isChildTable()) {
+				parserChildTable(schema, rrs, tableName, insert);
+				return;
+			}
+			
 			String partitionColumn = tc.getPartitionColumn();
 			
 			if(partitionColumn != null) {//分片表
@@ -47,7 +52,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 				}
 				
 				//批量insert
-				if(insert.getValuesList().size() > 1 || insert.getQuery() != null) {
+				if(isMultiInsert(insert)) {
 					String msg = "multi insert not provided" ;
 					LOGGER.warn(msg);
 					throw new SQLNonTransientException(msg);
@@ -58,6 +63,76 @@ public class DruidInsertParser extends DefaultDruidParser {
 				
 			}
 		}
+	}
+	
+	/**
+	 * 寻找joinKey的索引
+	 * @param columns
+	 * @param joinKey
+	 * @return -1表示没找到，>=0表示找到了
+	 */
+	private int getJoinKeyIndex(List<SQLExpr> columns, String joinKey) {
+		for(int i = 0; i < columns.size(); i++) {
+			String col = removeBackquote(columns.get(i).toString()).toUpperCase();
+			if(col.equals(joinKey)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
+	/**
+	 * 是否为批量插入：insert into ...values (),()...或 insert into ...select.....
+	 * @param insertStmt
+	 * @return
+	 */
+	private boolean isMultiInsert(MySqlInsertStatement insertStmt) {
+		return (insertStmt.getValuesList() != null && insertStmt.getValuesList().size() > 1) || insertStmt.getQuery() != null;
+	}
+	
+	private RouteResultset parserChildTable(SchemaConfig schema, RouteResultset rrs,
+			String tableName, MySqlInsertStatement insertStmt) throws SQLNonTransientException {
+		TableConfig tc = schema.getTables().get(tableName);
+		
+		String joinKey = tc.getJoinKey();
+		int joinKeyIndex = getJoinKeyIndex(insertStmt.getColumns(), joinKey);
+		if(joinKeyIndex == -1) {
+			String inf = "joinKey not provided :" + tc.getJoinKey()+ "," + insertStmt;
+			LOGGER.warn(inf);
+			throw new SQLNonTransientException(inf);
+		}
+		if(isMultiInsert(insertStmt)) {
+			String msg = "ChildTable multi insert not provided" ;
+			LOGGER.warn(msg);
+			throw new SQLNonTransientException(msg);
+		}
+		
+		String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
+
+		
+		String sql = insertStmt.toString();
+		
+		// try to route by ER parent partion key
+		RouteResultset theRrs = RouterUtil.routeByERParentKey(sql, rrs, tc,joinKeyVal);
+		if (theRrs != null) {
+			rrs.setFinishedRoute(true);
+			return theRrs;
+		}
+
+		// route by sql query root parent's datanode
+		String findRootTBSql = tc.getLocateRTableKeySql().toLowerCase() + joinKeyVal;
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("find root parent's node sql "+ findRootTBSql);
+		}
+		FetchStoreNodeOfChildTableHandler fetchHandler = new FetchStoreNodeOfChildTableHandler();
+		String dn = fetchHandler.execute(schema.getName(),findRootTBSql, tc.getRootParent().getDataNodes());
+		if (dn == null) {
+			throw new SQLNonTransientException("can't find (root) parent sharding node for sql:"+ sql);
+		}
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("found partion node for child table to insert "+ dn + " sql :" + sql);
+		}
+		return RouterUtil.routeToSingleNode(rrs, dn, sql);
 	}
 	
 	/**
