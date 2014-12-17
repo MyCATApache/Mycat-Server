@@ -129,7 +129,11 @@ public class DataMergeService {
 			tmpResult = sorter.getSortedResult();
 			sorter = null;
 		}
-		LOGGER.info("prepare mpp merge result for "+rrs.getStatement());
+		if(LOGGER.isDebugEnabled())
+		{
+			LOGGER.debug("prepare mpp merge result for "+rrs.getStatement());
+		}
+		
 		return tmpResult;
 	}
 
