@@ -1,34 +1,38 @@
-package org.opencloudb.sqlengine.demo;
+package demo.catlets;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.locks.ReentrantLock;
 
-import org.opencloudb.net.mysql.EOFPacket;
-import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.server.ServerConnection;
+import org.opencloudb.sqlengine.AllJobFinishedListener;
+import org.opencloudb.sqlengine.Catlet;
 import org.opencloudb.sqlengine.EngineCtx;
 import org.opencloudb.sqlengine.SQLJobHandler;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.ResultSetUtil;
 
-public class MyHellowJoin {
+public class MyHellowJoin implements Catlet {
 
 	public void processSQL(String sql, EngineCtx ctx) {
 
 		DirectDBJoinHandler joinHandler = new DirectDBJoinHandler(ctx);
 		String[] dataNodes = { "dn1", "dn2", "dn3" };
 		ctx.executeNativeSQLSequnceJob(dataNodes, sql, joinHandler);
+		ctx.setAllJobFinishedListener(new AllJobFinishedListener() {
+
+			@Override
+			public void onAllJobFinished(EngineCtx ctx) {
+				ctx.writeEof();
+
+			}
+		});
 	}
 }
 
 class DirectDBJoinHandler implements SQLJobHandler {
 	private List<byte[]> fields;
-	private byte[] header;
 	private final EngineCtx ctx;
 
 	public DirectDBJoinHandler(EngineCtx ctx) {
@@ -41,10 +45,7 @@ class DirectDBJoinHandler implements SQLJobHandler {
 
 	@Override
 	public void onHeader(String dataNode, byte[] header, List<byte[]> fields) {
-		if (this.fields == null) {
-			this.fields = fields;
-			this.header = header;
-		}
+		this.fields = fields;
 
 	}
 
@@ -103,7 +104,6 @@ class MyRowOutPutDataHandler implements SQLJobHandler {
 	private List<byte[]> bfields;
 	private final EngineCtx ctx;
 	private final Map<String, byte[]> arows;
-	private final ReentrantLock writeLock = new ReentrantLock();
 
 	public MyRowOutPutDataHandler(List<byte[]> afields, EngineCtx ctx,
 			Map<String, byte[]> arows) {
@@ -114,40 +114,9 @@ class MyRowOutPutDataHandler implements SQLJobHandler {
 	}
 
 	@Override
-	public void onHeader(String dataNode, byte[] header, List<byte[]> fields) {
-		try {
-			writeLock.lock();
-			if (bfields != null) {
-				return;
-			}
-			bfields = fields;
-			// write new header
-			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-			headerPkg.fieldCount = afields.size() + 1;
-			headerPkg.packetId = ctx.incPackageId();
-			ctx.LOGGER.debug("packge id " + headerPkg.packetId);
-			ServerConnection sc = ctx.getSession().getSource();
-			ByteBuffer buf = headerPkg.write(sc.allocate(), sc, true);
-			// wirte a fields
-			for (byte[] field : afields) {
-				field[3] = ctx.incPackageId();
-				buf = sc.writeToBuffer(field, buf);
-			}
-			// write b field
-			byte[] bfield = fields.get(1);
-			bfield[3] = ctx.incPackageId();
-			buf = sc.writeToBuffer(bfield, buf);
-
-			// write field eof
-			EOFPacket eofPckg = new EOFPacket();
-			eofPckg.packetId = ctx.incPackageId();
-			buf = eofPckg.write(buf, sc, true);
-			sc.write(buf);
-			// EngineCtx.LOGGER.info("header outputed");
-		} finally {
-			writeLock.unlock();
-		}
-
+	public void onHeader(String dataNode, byte[] header, List<byte[]> bfields) {
+		this.bfields=bfields;
+		ctx.writeHeader(afields, bfields);
 	}
 
 	@Override
@@ -162,16 +131,7 @@ class MyRowOutPutDataHandler implements SQLJobHandler {
 		// 设置b.name 字段
 		rowDataPkg.add(bname);
 
-		ServerConnection sc = ctx.getSession().getSource();
-		try {
-			writeLock.lock();
-			rowDataPkg.packetId = ctx.incPackageId();
-			// 输出完整的 记录到客户端
-			ByteBuffer buf = rowDataPkg.write(sc.allocate(), sc, true);
-			sc.write(buf);
-		} finally {
-			writeLock.unlock();
-		}
+		ctx.writeRow(rowDataPkg);
 		// EngineCtx.LOGGER.info("out put row ");
 		return false;
 	}

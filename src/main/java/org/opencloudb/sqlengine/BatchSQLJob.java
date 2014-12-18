@@ -31,14 +31,15 @@ public class BatchSQLJob {
 	}
 
 	private void runJob(SQLJob newJob) {
-		EngineCtx.LOGGER.info("run job " + newJob);
+		// EngineCtx.LOGGER.info("run job " + newJob);
 		runningJobs.put(newJob.getId(), newJob);
 		MycatServer.getInstance().getBusinessExecutor().execute(newJob);
 	}
 
 	public boolean jobFinished(SQLJob sqlJob) {
-
-		EngineCtx.LOGGER.info("job finished " + sqlJob);
+		if (EngineCtx.LOGGER.isDebugEnabled()) {
+			EngineCtx.LOGGER.info("job finished " + sqlJob);
+		}
 		runningJobs.remove(sqlJob.getId());
 		SQLJob job = waitingJobs.poll();
 		if (job != null) {

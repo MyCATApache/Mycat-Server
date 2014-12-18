@@ -76,6 +76,7 @@ public final class SystemConfig {
 	private int timerExecutor;
 	private int managerExecutor;
 	private long idleTimeout;
+	private int catletClassCheckSeconds = 60;
 	// sql execute timeout (second)
 	private long sqlExecuteTimeout = 300;
 	private long processorCheckPeriod;
@@ -129,7 +130,7 @@ public final class SystemConfig {
 		this.managerExecutor = 2;
 		processorBufferPool = DEFAULT_BUFFER_CHUNK_SIZE * processors * 1000;
 		this.processorBufferLocalPercent = 100;
-		this.timerExecutor = DEFAULT_PROCESSORS;
+		this.timerExecutor = 2;
 		this.idleTimeout = DEFAULT_IDLE_TIMEOUT;
 		this.processorCheckPeriod = DEFAULT_PROCESSOR_CHECK_PERIOD;
 		this.dataNodeIdleCheckPeriod = DEFAULT_DATANODE_IDLE_CHECK_PERIOD;
@@ -171,6 +172,14 @@ public final class SystemConfig {
 
 	public int getMaxPacketSize() {
 		return maxPacketSize;
+	}
+
+	public int getCatletClassCheckSeconds() {
+		return catletClassCheckSeconds;
+	}
+
+	public void setCatletClassCheckSeconds(int catletClassCheckSeconds) {
+		this.catletClassCheckSeconds = catletClassCheckSeconds;
 	}
 
 	public void setMaxPacketSize(int maxPacketSize) {
