@@ -377,7 +377,9 @@ public abstract class AbstractConnection implements NIOConnection {
 		if (!isClosed.get()) {
 			closeSocket();
 			isClosed.set(true);
-			processor.removeConnection(this);
+			if (processor != null) {
+				processor.removeConnection(this);
+			}
 			this.cleanup();
 			LOGGER.info("close connection,reason:" + reason + " ," + this);
 		}
