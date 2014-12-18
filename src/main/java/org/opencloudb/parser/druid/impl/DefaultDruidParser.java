@@ -129,7 +129,7 @@ public class DefaultDruidParser implements DruidParser {
 			if(checkConditionValues(values)) {
 				String columnName = removeBackquote(condition.getColumn().getName().toUpperCase());
 				String tableName = removeBackquote(condition.getColumn().getTable().toUpperCase());
-				if(visitor.getAliasMap().get(condition.getColumn().getTable()) == null) {//子查询的别名提交忽略掉,否则后面找不到表
+				if(visitor.getAliasMap() != null && visitor.getAliasMap().get(condition.getColumn().getTable()) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
 					continue;
 				}
 				
