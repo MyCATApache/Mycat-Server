@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.opencloudb.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.3-dev</version>
+	<version>1.3-beta1</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
@@ -329,10 +329,9 @@
 					</execution>
 				</executions>
 				<configuration>
-					<format>{0,date,yyyyMMdd}-{1}</format>
+					<format>{0,date,yyyyMMddHHmmss}</format>
 					<items>
 						<item>timestamp</item>
-						<item>scmVersion</item>
 					</items>
 					<doCheck>false</doCheck>
 					<doUpdate>false</doUpdate>
