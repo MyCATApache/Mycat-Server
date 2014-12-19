@@ -14,7 +14,6 @@ public class DruidDeleteParser extends DefaultDruidParser {
 		MySqlDeleteStatement delete = (MySqlDeleteStatement)stmt;
 		String tableName = removeBackquote(delete.getTableName().getSimpleName().toUpperCase());
 		ctx.addTable(tableName);
-		ctx.setSql(stmt.toString());
 	}
 }
 
