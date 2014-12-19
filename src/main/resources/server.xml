@@ -10,6 +10,7 @@
 <!DOCTYPE mycat:server SYSTEM "server.dtd">
 <mycat:server xmlns:mycat="http://org.opencloudb/">
 	<system>
+	<property name="defaultSqlParser">druidparser</property>
 	<!-- <property name="processorBufferChunk">40960</property> -->
 	<!-- 
 	<property name="processors">1</property> 
