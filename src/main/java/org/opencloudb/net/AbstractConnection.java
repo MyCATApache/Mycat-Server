@@ -29,6 +29,7 @@ import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.NetworkChannel;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.util.TimeUtil;
 
@@ -236,7 +237,7 @@ public abstract class AbstractConnection implements NIOConnection {
 		ByteBuffer buffer = this.readBuffer;
 		lastReadTime = TimeUtil.currentTimeMillis();
 		if (got < 0) {
-			this.close("socket closed");
+			this.close("stream closed");
 		} else if (got == 0) {
 			if (!this.channel.isOpen()) {
 				this.close("socket closed");
@@ -377,9 +378,15 @@ public abstract class AbstractConnection implements NIOConnection {
 		if (!isClosed.get()) {
 			closeSocket();
 			isClosed.set(true);
-			processor.removeConnection(this);
+			if (processor != null) {
+				processor.removeConnection(this);
+			}
 			this.cleanup();
 			LOGGER.info("close connection,reason:" + reason + " ," + this);
+			if( reason.contains("connection,reason:java.net.ConnectException"))
+					{
+				throw new RuntimeException(" errr");
+					}
 		}
 	}
 

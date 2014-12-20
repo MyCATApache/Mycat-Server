@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -27,6 +28,7 @@ public class RehashLauncher {
 	private String[] rehashHosts;
 	private AbstractPartitionAlgorithm alg;
 	private ExecutorService executor;
+	private CountDownLatch latch;
 	
 	private RehashLauncher(String[] args) throws IOException{
 		this.args=new RehashCmdArgs(args);
@@ -81,6 +83,7 @@ public class RehashLauncher {
 		}else if(outputDir.canWrite()){
 			throw new IllegalArgumentException("rehashNodeDir must be writable");
 		}
+		latch=new CountDownLatch(tables.length);
 		for(int i=0,l=tables.length;i<l;i++){
 			final int tableIdx=i;
 			final String table=tables[tableIdx];
@@ -121,6 +124,7 @@ public class RehashLauncher {
 						if(ps!=null){
 							ps.close();
 						}
+						latch.countDown();
 					}
 				}
 			});
@@ -130,6 +134,12 @@ public class RehashLauncher {
 	}
 	
 	private void shutdown(){
+		while(true){
+			try {
+				latch.await();
+				break;
+			} catch (InterruptedException e) {}
+		}
 		executor.shutdown();
 		if(executor.isTerminated()){
 			dataSource.close();

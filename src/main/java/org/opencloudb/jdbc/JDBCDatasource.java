@@ -30,6 +30,7 @@ public class JDBCDatasource extends PhysicalDatasource {
 		c.setHost(dsc.getIp());
 		c.setPort(dsc.getPort());
 		c.setPool(this);
+		c.setSchema(schema);
 		try {
 			Connection con = DriverManager.getConnection(dsc.getUrl(),
 					dsc.getUser(), dsc.getPassword());

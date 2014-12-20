@@ -108,7 +108,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 	}
 
 	private void finishConnect(SelectionKey key, Object att) {
-		AbstractConnection c = (AbstractConnection) att;
+		BackendAIOConnection c = (BackendAIOConnection) att;
 		try {
 			if (finishConnect(c, (SocketChannel) c.channel)) {
 				clearSelectionKey(key);
@@ -122,6 +122,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 			}
 		} catch (Throwable e) {
 			clearSelectionKey(key);
+			c.onConnectFailed(e);
 			c.close(e.toString());
 		}
 	}
