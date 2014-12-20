@@ -71,10 +71,11 @@
    <function name="rang-long" class="org.opencloudb.route.function.AutoPartitionByLong">
     <property name="mapFile">autopartition-long.txt</property>
   </function>
-   <function name="mod-long" class="org.opencloudb.route.function.PartionByMod">
+  <function name="mod-long" class="org.opencloudb.route.function.PartitionByMod">
    <!-- how many data nodes  -->
     <property name="count">3</property>
   </function>
+  
   <function name="func1" class="org.opencloudb.route.function.PartitionByLong">
     <property name="partitionCount">8</property>
     <property name="partitionLength">128</property>

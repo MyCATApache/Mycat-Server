@@ -20,7 +20,7 @@ import org.opencloudb.mpp.ColumnRoutePair;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.SessionSQLPair;
-import org.opencloudb.route.function.AbstractPartionAlgorithm;
+import org.opencloudb.route.function.AbstractPartitionAlgorithm;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.util.StringUtil;
 
@@ -404,7 +404,7 @@ public class RouterUtil {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
 		String col = tc.getRule().getColumn();
 		RuleConfig rule = tc.getRule();
-		AbstractPartionAlgorithm algorithm = rule.getRuleAlgorithm();
+		AbstractPartitionAlgorithm algorithm = rule.getRuleAlgorithm();
 		for (ColumnRoutePair colPair : colRoutePairSet) {
 			if (colPair.colValue != null) {
 				Integer nodeIndx = algorithm.calculate(colPair.colValue);

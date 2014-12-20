@@ -36,7 +36,7 @@ import org.opencloudb.parser.SQLParserDelegate;
 import org.opencloudb.parser.fdb.FdbStrategy;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
-import org.opencloudb.route.function.AbstractPartionAlgorithm;
+import org.opencloudb.route.function.AbstractPartitionAlgorithm;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.StringUtil;
