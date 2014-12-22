@@ -32,6 +32,6 @@ public interface Versions {
     byte PROTOCOL_VERSION = 10;
 
     /** 服务器版本 */
-    byte[] SERVER_VERSION = "5.5-mycat-1.3-alpha".getBytes();
+    byte[] SERVER_VERSION = "5.5.8-mycat-1.3".getBytes();
 
 }
