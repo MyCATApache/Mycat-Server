@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.opencloudb.config.model.rule.RuleAlgorithm;
 import org.opencloudb.config.model.rule.RuleConfig;
 import org.opencloudb.config.model.rule.TableRuleConfig;
 import org.opencloudb.config.util.ConfigException;

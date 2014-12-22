@@ -25,7 +25,6 @@ package org.opencloudb.mysql.nio.handler;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;

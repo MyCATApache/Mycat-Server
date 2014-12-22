@@ -25,7 +25,6 @@ package org.opencloudb.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
-import java.sql.SQLNonTransientException;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
@@ -168,11 +167,9 @@ public class ServerConnection extends FrontendConnection {
 
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
-			LOGGER.warn(s.append(this).append(sql).toString() + " err:"
-					+ e.toString());
+			LOGGER.warn(s.append(this).append(sql).toString() + " err:" + e.toString(),e);
 			String msg = e.getMessage();
-			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e
-					.getClass().getSimpleName() : msg);
+			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return;
 		}
 		if (rrs != null) {

@@ -267,34 +267,33 @@ public class RouterUtil {
 
 		boolean processedInsert=!isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
 		if(processedInsert){
-			processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
+			processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey,firstLeftBracketIndex+1,origSQL.indexOf('(',firstRightBracketIndex)+1);
 		}
 		return processedInsert;
 	}
 	
-	private static void processInsert(ServerConnection sc,SchemaConfig schema,int sqlType,String origSQL,String tableName,String primaryKey,int firstLeftBracketIndex,int lastLeftBracketIndex){
+	private static void processInsert(ServerConnection sc,SchemaConfig schema,int sqlType,String origSQL,String tableName,String primaryKey,int afterFirstLeftBracketIndex,int afterLastLeftBracketIndex){
 		int primaryKeyLength=primaryKey.length();
-		int insertSegOffset=firstLeftBracketIndex;
+		int insertSegOffset=afterFirstLeftBracketIndex;
 		String mycatSeqPrefix="next value for MYCATSEQ_";
 		int mycatSeqPrefixLength=mycatSeqPrefix.length();
 		int tableNameLength=tableName.length();
 		
 		char[] newSQLBuf=new char[origSQL.length()+primaryKeyLength+mycatSeqPrefixLength+tableNameLength+2];
-		origSQL.getChars(0, firstLeftBracketIndex, newSQLBuf, 0);
+		origSQL.getChars(0, afterFirstLeftBracketIndex, newSQLBuf, 0);
 		primaryKey.getChars(0,primaryKeyLength,newSQLBuf,insertSegOffset);
 		insertSegOffset+=primaryKeyLength;
 		newSQLBuf[insertSegOffset]=',';
 		insertSegOffset++;
-		origSQL.getChars(firstLeftBracketIndex,lastLeftBracketIndex,newSQLBuf,insertSegOffset);
-		insertSegOffset+=lastLeftBracketIndex-firstLeftBracketIndex;
+		origSQL.getChars(afterFirstLeftBracketIndex,afterLastLeftBracketIndex,newSQLBuf,insertSegOffset);
+		insertSegOffset+=afterLastLeftBracketIndex-afterFirstLeftBracketIndex;
 		mycatSeqPrefix.getChars(0, mycatSeqPrefixLength, newSQLBuf, insertSegOffset);
 		insertSegOffset+=mycatSeqPrefixLength;
 		tableName.getChars(0,tableNameLength,newSQLBuf,insertSegOffset);
 		insertSegOffset+=tableNameLength;
 		newSQLBuf[insertSegOffset]=',';
 		insertSegOffset++;
-		origSQL.getChars(lastLeftBracketIndex, origSQL.length(), newSQLBuf, insertSegOffset);
-		
+		origSQL.getChars(afterLastLeftBracketIndex, origSQL.length(), newSQLBuf, insertSegOffset);
 		processSQL(sc,schema,new String(newSQLBuf),sqlType);
 	}
 	

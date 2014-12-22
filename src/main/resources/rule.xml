@@ -54,7 +54,7 @@
       </rule>
    </tableRule>
    
-   <function name=" murmur " class="org.opencloudb.route.function.PartitionByMurmurHash">
+   <function name="murmur" class="org.opencloudb.route.function.PartitionByMurmurHash">
       <property name="seed">0</property><!-- 默认是0-->
       <property name="count">2</property><!-- 要分片的数据库节点数量，必须指定，否则没法分片-->
       <property name="virtualBucketTimes">160</property><!-- 一个实际的数据库节点被映射为这么多虚拟节点，默认是160倍，也就是虚拟节点数是物理节点数的160倍-->

@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
-import org.opencloudb.config.ErrorCode;
 
 /**
  * 网络事件反应器

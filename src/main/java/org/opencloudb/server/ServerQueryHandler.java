@@ -24,7 +24,6 @@
 package org.opencloudb.server;
 
 import org.apache.log4j.Logger;
-import org.opencloudb.MycatServer;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.net.handler.FrontendQueryHandler;
 import org.opencloudb.net.mysql.OkPacket;

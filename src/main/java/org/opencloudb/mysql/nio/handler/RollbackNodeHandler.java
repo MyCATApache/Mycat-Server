@@ -24,7 +24,6 @@
 package org.opencloudb.mysql.nio.handler;
 
 import java.util.List;
-import java.util.concurrent.Executor;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;
