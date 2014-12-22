@@ -12,9 +12,9 @@ import org.opencloudb.config.model.rule.RuleAlgorithm;
  * @author lxy
  * 
  */
-public class PartionByDate extends AbstractPartionAlgorithm implements RuleAlgorithm {
+public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleAlgorithm {
 	private static final Logger LOGGER = Logger
-			.getLogger(PartionByDate.class);
+			.getLogger(PartitionByDate.class);
 
 	private String sBeginDate;
 	private String sPartionDay;
@@ -52,7 +52,7 @@ public class PartionByDate extends AbstractPartionAlgorithm implements RuleAlgor
 
 	@Override
 	public Integer[] calculateRange(String beginValue, String endValue) {
-		return AbstractPartionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
+		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 
 	public void setsBeginDate(String sBeginDate) {

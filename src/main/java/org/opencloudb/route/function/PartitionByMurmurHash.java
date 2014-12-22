@@ -51,7 +51,7 @@ import com.google.common.hash.Hashing;
  * @author wuzhih
  *
  */
-public class PartitionByMurmurHash extends AbstractPartionAlgorithm implements RuleAlgorithm  {
+public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements RuleAlgorithm  {
 	private static final int DEFAULT_VIRTUAL_BUCKET_TIMES=160;
 	private static final int DEFAULT_WEIGHT=1;
 	private static final Charset DEFAULT_CHARSET=Charset.forName("UTF-8");

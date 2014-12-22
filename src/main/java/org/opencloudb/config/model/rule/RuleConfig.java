@@ -23,7 +23,7 @@
  */
 package org.opencloudb.config.model.rule;
 
-import org.opencloudb.route.function.AbstractPartionAlgorithm;
+import org.opencloudb.route.function.AbstractPartitionAlgorithm;
 
 
 /**
@@ -33,7 +33,7 @@ import org.opencloudb.route.function.AbstractPartionAlgorithm;
 public class RuleConfig {
 	private final String column;
 	private final String functionName;
-	private AbstractPartionAlgorithm ruleAlgorithm;
+	private AbstractPartitionAlgorithm ruleAlgorithm;
 
 	public RuleConfig(String column, String functionName) {
 		if (functionName == null) {
@@ -48,13 +48,13 @@ public class RuleConfig {
 
 	
 
-	public AbstractPartionAlgorithm getRuleAlgorithm() {
+	public AbstractPartitionAlgorithm getRuleAlgorithm() {
 		return ruleAlgorithm;
 	}
 
 
 
-	public void setRuleAlgorithm(AbstractPartionAlgorithm ruleAlgorithm) {
+	public void setRuleAlgorithm(AbstractPartitionAlgorithm ruleAlgorithm) {
 		this.ruleAlgorithm = ruleAlgorithm;
 	}
 
