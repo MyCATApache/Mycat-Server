@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.mpp.RangeValue;
 import org.opencloudb.parser.druid.DruidParser;
@@ -49,7 +50,7 @@ public class DefaultDruidParser implements DruidParser {
 	 * @param schema
 	 * @param stmt
 	 */
-	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql) throws SQLNonTransientException {
+	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool) throws SQLNonTransientException {
 		ctx = new DruidShardingParseInfo();
 		//设置为原始sql，如果有需要改写sql的，可以通过修改SQLStatement中的属性，然后调用SQLStatement.toString()得到改写的sql
 		ctx.setSql(originSql);
@@ -59,7 +60,7 @@ public class DefaultDruidParser implements DruidParser {
 		statementParse(schema, rrs, stmt);
 		
 		//改写sql：如insert语句主键自增长的可以
-		changeSql(schema, rrs, stmt);
+		changeSql(schema, rrs, stmt,cachePool);
 	}
 	
 	/**
@@ -76,7 +77,7 @@ public class DefaultDruidParser implements DruidParser {
 	 */
 	@Override
 	public void changeSql(SchemaConfig schema, RouteResultset rrs,
-			SQLStatement stmt) throws SQLNonTransientException {
+			SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException {
 		
 	}
 
