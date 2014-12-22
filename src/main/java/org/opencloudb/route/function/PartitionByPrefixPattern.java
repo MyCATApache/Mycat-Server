@@ -35,7 +35,7 @@ import org.opencloudb.config.model.rule.RuleAlgorithm;
  * 
  * @author hexiaobin
  */
-public class PartitionByPrefixPattern extends AbstractPartionAlgorithm implements RuleAlgorithm {
+public class PartitionByPrefixPattern extends AbstractPartitionAlgorithm implements RuleAlgorithm {
 	private static final int PARTITION_LENGTH = 1024;
 	private int patternValue = PARTITION_LENGTH;// 分区长度，取模数值(默认为1024)
 	private int prefixLength;// 字符前几位进行ASCII码取和

@@ -11,7 +11,7 @@ import org.opencloudb.config.model.rule.RuleAlgorithm;
  * <property name="defaultPartition">0</property>
  * </function>
  */
-public class PartitionDirectBySubString extends AbstractPartionAlgorithm implements RuleAlgorithm {
+public class PartitionDirectBySubString extends AbstractPartitionAlgorithm implements RuleAlgorithm {
     // 字符子串起始索引（zero-based)
     private int startIndex;
     // 字串长度

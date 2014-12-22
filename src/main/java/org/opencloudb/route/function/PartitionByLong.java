@@ -26,7 +26,7 @@ package org.opencloudb.route.function;
 import org.opencloudb.config.model.rule.RuleAlgorithm;
 import org.opencloudb.route.util.PartitionUtil;
 
-public final class PartitionByLong extends AbstractPartionAlgorithm implements RuleAlgorithm {
+public final class PartitionByLong extends AbstractPartitionAlgorithm implements RuleAlgorithm {
 	protected int[] count;
 	protected int[] length;
 	protected PartitionUtil partitionUtil;
@@ -62,7 +62,7 @@ public final class PartitionByLong extends AbstractPartionAlgorithm implements R
 	
 	@Override
 	public Integer[] calculateRange(String beginValue, String endValue) {
-		return AbstractPartionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
+		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 
 }

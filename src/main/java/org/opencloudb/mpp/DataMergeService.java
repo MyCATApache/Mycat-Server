@@ -129,7 +129,11 @@ public class DataMergeService {
 			tmpResult = sorter.getSortedResult();
 			sorter = null;
 		}
-		LOGGER.info("prepare mpp merge result for "+rrs.getStatement());
+		if(LOGGER.isDebugEnabled())
+		{
+			LOGGER.debug("prepare mpp merge result for "+rrs.getStatement());
+		}
+		
 		return tmpResult;
 	}
 
@@ -174,6 +178,10 @@ public class DataMergeService {
 				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
 						.toUpperCase()), entry.getValue());
 			}
+		 sorter = new RowDataPacketSorter(orderCols);
+			// RowDataSorter tmp = new RowDataSorter(orderCols);
+			// tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
+			// sorter = tmp;
 		 //sorter = new RowDataPacketSorter(orderCols);
 			 RowDataSorter tmp = new RowDataSorter(orderCols);
 			 tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());

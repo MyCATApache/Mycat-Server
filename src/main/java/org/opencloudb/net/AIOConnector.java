@@ -61,6 +61,7 @@ public final class AIOConnector implements SocketConnector,
 				c.register();
 			}
 		} catch (Throwable e) {
+			c.onConnectFailed(e);
 			LOGGER.info("connect err " + e);
 			c.close(e.toString());
 		}

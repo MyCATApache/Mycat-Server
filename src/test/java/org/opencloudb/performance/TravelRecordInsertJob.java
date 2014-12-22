@@ -66,14 +66,14 @@ public class TravelRecordInsertJob implements Runnable {
 			ps.setString(3, (String) map.get("traveldate"));
 			ps.setString(4, (String) map.get("fee"));
 			ps.setString(5, (String) map.get("days"));
-			// ps.addBatch();
+			ps.addBatch();
 
 			ps.execute();
 
 		}
-		// ps.executeBatch();
+		ps.executeBatch();
 		con.commit();
-		// ps.clearBatch();
+		ps.clearBatch();
 		ps.close();
 		return list.size();
 	}

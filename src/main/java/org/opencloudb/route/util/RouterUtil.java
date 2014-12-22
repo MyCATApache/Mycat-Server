@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -25,8 +24,7 @@ import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.SessionSQLPair;
-import org.opencloudb.route.function.AbstractPartionAlgorithm;
-//import org.opencloudb.route.impl.DruidMysqlRouteStrategy;
+import org.opencloudb.route.function.AbstractPartitionAlgorithm;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.util.StringUtil;
 
@@ -410,7 +408,7 @@ public class RouterUtil {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
 		String col = tc.getRule().getColumn();
 		RuleConfig rule = tc.getRule();
-		AbstractPartionAlgorithm algorithm = rule.getRuleAlgorithm();
+		AbstractPartitionAlgorithm algorithm = rule.getRuleAlgorithm();
 		for (ColumnRoutePair colPair : colRoutePairSet) {
 			if (colPair.colValue != null) {
 				Integer nodeIndx = algorithm.calculate(colPair.colValue);
@@ -772,4 +770,12 @@ public class RouterUtil {
 		}
 		return hasRequiredValue;
 	}
+	
+	
+	
 }
+
+
+
+
+
