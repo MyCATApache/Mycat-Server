@@ -220,6 +220,14 @@ public final class RouteResultset implements Serializable {
 	public void setCallStatement(boolean callStatement) {
 		this.callStatement = callStatement;
 	}
+	
+	public void changeNodeSqlAfterAddLimit(String sql) {
+		if (nodes != null) {
+			for (RouteResultsetNode node : nodes) {
+				node.setStatement(sql);
+			}
+		}
+	}
 
 	@Override
 	public String toString() {

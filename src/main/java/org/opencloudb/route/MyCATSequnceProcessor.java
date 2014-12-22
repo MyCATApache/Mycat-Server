@@ -25,7 +25,7 @@ public class MyCATSequnceProcessor {
 	private static final Logger LOGGER = Logger.getLogger(MyCATSequnceProcessor.class);
 	private LinkedBlockingQueue<SessionSQLPair> seqSQLQueue = new LinkedBlockingQueue<SessionSQLPair>();
 	private ExecutorService sqlExecutor=Executors.newSingleThreadExecutor();
-	private volatile boolean running;
+	private volatile boolean running=true;
 	
 	public MyCATSequnceProcessor() {
 		sqlExecutor.submit(new ExecuteThread());
@@ -68,7 +68,6 @@ public class MyCATSequnceProcessor {
 
 	private void executeSeq(SessionSQLPair pair) {
 		try {
-
 			// @micmiu 扩展NodeToString实现自定义全局序列号
 			NodeToString strHandler = new ExtNodeToString4SEQ(MycatServer
 					.getInstance().getConfig().getSystem()

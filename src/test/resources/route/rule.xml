@@ -62,7 +62,7 @@
 		<property name="mapFile">autopartition-long.txt</property>
 	</function>
 	<function name="by-date"
-		class="org.opencloudb.route.function.PartionByDate">
+		class="org.opencloudb.route.function.PartitionByDate">                            
 		<property name="sBeginDate">2014-01-01</property>
 		<property name="sPartionDay">10</property>
 		<property name="dateFormat">yyyy-MM-dd</property>
