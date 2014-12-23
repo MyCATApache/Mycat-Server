@@ -13,7 +13,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.ErrorPacket;

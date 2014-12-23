@@ -1,12 +1,12 @@
 package org.opencloudb.route.handler;
 
+import java.sql.SQLNonTransientException;
+
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.server.ServerConnection;
-
-import java.sql.SQLNonTransientException;
 
 /**
  * 按照注释中包含指定类型的内容做路由解析

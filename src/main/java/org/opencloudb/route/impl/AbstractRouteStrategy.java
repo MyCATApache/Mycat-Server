@@ -2,7 +2,6 @@ package org.opencloudb.route.impl;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
-import java.util.Collection;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;

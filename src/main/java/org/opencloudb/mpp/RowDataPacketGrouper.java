@@ -25,7 +25,6 @@ package org.opencloudb.mpp;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.opencloudb.net.mysql.RowDataPacket;

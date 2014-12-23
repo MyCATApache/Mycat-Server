@@ -464,7 +464,7 @@ public class StringUtil {
 		int tableEndIndex = -1;
 		while (pos < sql.length()) {
 			char ch = sql.charAt(pos);
-			if (ch <= ' ' || ch == '(') {//
+			if (ch <= ' ' || ch == '(' || ch=='`') {//
 				if (tableStartIndx > 0) {
 					tableEndIndex = pos;
 					break;
@@ -474,7 +474,7 @@ public class StringUtil {
 				}
 			} else if (ch == 'i' || ch == 'I') {
 				if (intoFound) {
-					if (tableStartIndx == -1) {
+					if (tableStartIndx == -1 && ch!='`') {
 						tableStartIndx = pos;
 					}
 					pos++;
@@ -500,12 +500,10 @@ public class StringUtil {
 	public static void main(String[] args) {
 		System.out.println(getTableName("insert into ssd  (id) values (s)"));
 		System.out.println(getTableName("insert into    ssd(id) values (s)"));
-		System.out
-				.println(getTableName("  insert  into    ssd(id) values (s)"));
-		System.out
-		.println(getTableName("  insert  into    isd(id) values (s)"));
-		System.out
-		.println(getTableName("INSERT INTO test_activity_input  (id,vip_no"));
+		System.out.println(getTableName("  insert  into    ssd(id) values (s)"));
+		System.out.println(getTableName("  insert  into    isd(id) values (s)"));
+		System.out.println(getTableName("INSERT INTO test_activity_input  (id,vip_no"));
+		System.out.println(getTableName("INSERT INTO `test_activity_input`  (id,vip_no"));
 		
 	}
 

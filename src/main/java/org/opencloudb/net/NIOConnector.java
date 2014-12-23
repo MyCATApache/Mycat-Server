@@ -34,7 +34,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
-import org.opencloudb.config.ErrorCode;
 
 /**
  * @author mycat

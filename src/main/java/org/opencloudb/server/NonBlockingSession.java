@@ -40,7 +40,6 @@ import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.mpp.DataMergeService;
 import org.opencloudb.mpp.MutiDataMergeService;
 import org.opencloudb.mysql.nio.handler.CommitNodeHandler;
 import org.opencloudb.mysql.nio.handler.KillConnectionHandler;

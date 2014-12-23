@@ -128,7 +128,6 @@ public class RehashLauncher {
 					}
 				}
 			});
-			
 		}
 		return this;
 	}

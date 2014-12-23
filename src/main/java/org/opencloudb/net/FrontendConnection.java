@@ -23,7 +23,6 @@
  */
 package org.opencloudb.net;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;

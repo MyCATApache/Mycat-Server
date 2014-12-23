@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.config.Capabilities;
-import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mysql.SecurityUtil;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.BackendAIOConnection;

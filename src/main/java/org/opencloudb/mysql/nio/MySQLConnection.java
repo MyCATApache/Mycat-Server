@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.config.Capabilities;
-import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.Isolations;
 import org.opencloudb.exception.UnknownTxIsolationException;
 import org.opencloudb.mysql.CharsetUtil;
