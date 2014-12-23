@@ -46,8 +46,8 @@ public class ExtNodeToString4SEQ extends NodeToString {
 		case SystemConfig.SEQUENCEHANDLER_LOCALFILE:
 			sequenceHandler = IncrSequencePropHandler.getInstance();
 			break;
-			default:
-				throw new java.lang.IllegalArgumentException("Invalid sequnce handler type "+seqHandlerType);
+		default:
+			throw new java.lang.IllegalArgumentException("Invalid sequnce handler type "+seqHandlerType);
 		}
 	}
 

@@ -36,7 +36,7 @@ import org.opencloudb.config.model.rule.RuleAlgorithm;
  * 
  * @author hexiaobin
  */
-public class PartitionByPattern extends AbstractPartionAlgorithm implements RuleAlgorithm {
+public class PartitionByPattern extends AbstractPartitionAlgorithm implements RuleAlgorithm {
 	private static final int PARTITION_LENGTH = 1024;
 	private int patternValue = PARTITION_LENGTH;// 分区长度，取模数值
 	private String mapFile;

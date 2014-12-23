@@ -35,7 +35,7 @@ import org.opencloudb.config.model.rule.RuleAlgorithm;
  * 
  * @author wuzhi
  */
-public class AutoPartitionByLong extends AbstractPartionAlgorithm implements RuleAlgorithm{
+public class AutoPartitionByLong extends AbstractPartitionAlgorithm implements RuleAlgorithm{
 
 	private String mapFile;
 	private LongRange[] longRongs;
@@ -69,7 +69,7 @@ public class AutoPartitionByLong extends AbstractPartionAlgorithm implements Rul
 	
 	@Override
 	public Integer[] calculateRange(String beginValue, String endValue) {
-		return AbstractPartionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
+		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 
 	private void initialize() {

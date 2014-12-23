@@ -30,7 +30,7 @@ public class PartitionByDateTest {
 
 	@Test
 	public void test() {
-		PartionByDate partition=new PartionByDate();
+		PartitionByDate partition=new PartitionByDate();
 
 		partition.setDateFormat("yyyy-MM-dd");
 		partition.setsBeginDate("2014-01-01");

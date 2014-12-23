@@ -27,7 +27,6 @@ import java.nio.ByteBuffer;
 
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.buffer.BufferQueue;
 import org.opencloudb.config.Fields;
 import org.opencloudb.manager.ManagerConnection;
 import org.opencloudb.mysql.PacketUtil;

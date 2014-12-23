@@ -58,7 +58,7 @@ import org.opencloudb.mpp.UpdateParsInf;
 import org.opencloudb.mpp.UpdateSQLAnalyser;
 import org.opencloudb.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
 import org.opencloudb.parser.SQLParserDelegate;
-import org.opencloudb.route.function.AbstractPartionAlgorithm;
+import org.opencloudb.route.function.AbstractPartitionAlgorithm;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
@@ -1171,7 +1171,7 @@ public final class ServerRouterUtil {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
 		String col = tc.getRule().getColumn();
 		RuleConfig rule = tc.getRule();
-		AbstractPartionAlgorithm algorithm = rule.getRuleAlgorithm();
+		AbstractPartitionAlgorithm algorithm = rule.getRuleAlgorithm();
 		for (ColumnRoutePair colPair : colRoutePairSet) {
 			if (colPair.colValue != null) {
 				Integer nodeIndx = algorithm.calculate(colPair.colValue);

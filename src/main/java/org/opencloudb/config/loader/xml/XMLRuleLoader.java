@@ -31,13 +31,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.opencloudb.config.model.rule.RuleAlgorithm;
 import org.opencloudb.config.model.rule.RuleConfig;
 import org.opencloudb.config.model.rule.TableRuleConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.config.util.ConfigUtil;
 import org.opencloudb.config.util.ParameterMapping;
-import org.opencloudb.route.function.AbstractPartionAlgorithm;
+import org.opencloudb.route.function.AbstractPartitionAlgorithm;
 import org.opencloudb.util.SplitUtil;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -53,12 +52,12 @@ public class XMLRuleLoader {
 
 	private final Map<String, TableRuleConfig> tableRules;
 	// private final Set<RuleConfig> rules;
-	private final Map<String, AbstractPartionAlgorithm> functions;
+	private final Map<String, AbstractPartitionAlgorithm> functions;
 
 	public XMLRuleLoader(String ruleFile) {
 		// this.rules = new HashSet<RuleConfig>();
 		this.tableRules = new HashMap<String, TableRuleConfig>();
-		this.functions = new HashMap<String, AbstractPartionAlgorithm>();
+		this.functions = new HashMap<String, AbstractPartitionAlgorithm>();
 		load(DEFAULT_DTD, ruleFile == null ? DEFAULT_XML : ruleFile);
 	}
 
@@ -123,7 +122,7 @@ public class XMLRuleLoader {
 				}
 				RuleConfig rule = loadRule((Element) ruleNodes.item(0));
 				String funName = rule.getFunctionName();
-				AbstractPartionAlgorithm func = functions.get(funName);
+				AbstractPartitionAlgorithm func = functions.get(funName);
 				if (func == null) {
 					throw new ConfigException("can't find function of name :"
 							+ funName);
@@ -161,7 +160,7 @@ public class XMLRuleLoader {
 							+ " duplicated!");
 				}
 				String clazz = e.getAttribute("class");
-				AbstractPartionAlgorithm function = createFunction(name, clazz);
+				AbstractPartitionAlgorithm function = createFunction(name, clazz);
 				ParameterMapping.mapping(function, ConfigUtil.loadElements(e));
 				function.init();
 				functions.put(name, function);
@@ -169,15 +168,15 @@ public class XMLRuleLoader {
 		}
 	}
 
-	private AbstractPartionAlgorithm createFunction(String name, String clazz)
+	private AbstractPartitionAlgorithm createFunction(String name, String clazz)
 			throws ClassNotFoundException, InstantiationException,
 			IllegalAccessException, InvocationTargetException {
 		Class<?> clz = Class.forName(clazz);
-		if (!AbstractPartionAlgorithm.class.isAssignableFrom(clz)) {
+		if (!AbstractPartitionAlgorithm.class.isAssignableFrom(clz)) {
 			throw new IllegalArgumentException("rule function must implements "
-					+ AbstractPartionAlgorithm.class.getName() + ", name=" + name);
+					+ AbstractPartitionAlgorithm.class.getName() + ", name=" + name);
 		}
-		return (AbstractPartionAlgorithm) clz.newInstance();
+		return (AbstractPartitionAlgorithm) clz.newInstance();
 	}
 
 }

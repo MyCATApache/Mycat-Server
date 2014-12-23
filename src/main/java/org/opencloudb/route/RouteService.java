@@ -90,7 +90,7 @@ public class RouteService {
                 if(firstSplitPos > 0 ){
                     String hintType = hint.substring(0,firstSplitPos).trim().toLowerCase(Locale.US);
                     String hintValue = hint.substring(firstSplitPos + hintSplit.length()).trim();
-                    if(hintValue.length()==0){//fixed by runfriends@126.com
+                    if(hintValue.length()==0){
                     	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/: "+stmt);
                     	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/: "+stmt);
                     }
@@ -113,7 +113,7 @@ public class RouteService {
 					charset, sc, tableId2DataNodeCache);
 		}
 
-		if (sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
+		if (rrs!=null && sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
 			sqlRouteCache.putIfAbsent(cacheKey, rrs);
 		}
 		return rrs;

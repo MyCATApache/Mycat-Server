@@ -9,7 +9,7 @@ import org.opencloudb.config.model.rule.RuleAlgorithm;
  * @author lxy
  *
  */
-public abstract class AbstractPartionAlgorithm implements RuleAlgorithm {
+public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm {
 
 	@Override
 	public void init() {
@@ -32,7 +32,7 @@ public abstract class AbstractPartionAlgorithm implements RuleAlgorithm {
 	 * @param endValue
 	 * @return
 	 */
-	public static Integer[] calculateSequenceRange(AbstractPartionAlgorithm algorithm, String beginValue, String endValue) {
+	public static Integer[] calculateSequenceRange(AbstractPartitionAlgorithm algorithm, String beginValue, String endValue) {
 		Integer begin = 0, end = 0;
 		begin = algorithm.calculate(beginValue);
 		end = algorithm.calculate(endValue);

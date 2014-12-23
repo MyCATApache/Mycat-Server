@@ -23,8 +23,10 @@
  */
 package org.opencloudb.util;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -46,5 +48,11 @@ public class CollectionUtil {
                 set.add(p);
         }
         return set;
+    }
+    public static boolean isEmpty(Collection<?> collection){
+    	return collection==null || collection.isEmpty();
+    }
+    public static boolean isEmpty(Map<?,?> map){
+    	return map==null || map.isEmpty();
     }
 }

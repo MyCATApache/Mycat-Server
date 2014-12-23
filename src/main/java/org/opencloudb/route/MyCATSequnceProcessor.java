@@ -1,7 +1,8 @@
 package org.opencloudb.route;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
@@ -19,16 +20,16 @@ import com.foundationdb.sql.parser.QueryTreeNode;
 import com.foundationdb.sql.unparser.NodeToString;
 
 public class MyCATSequnceProcessor {
-	private static final Logger LOGGER = Logger
-			.getLogger(MyCATSequnceProcessor.class);
-	private ConcurrentLinkedQueue<SessionSQLPair> seqSQLQueue = new ConcurrentLinkedQueue<SessionSQLPair>();
-
+	private static final Logger LOGGER = Logger.getLogger(MyCATSequnceProcessor.class);
+	private LinkedBlockingQueue<SessionSQLPair> seqSQLQueue = new LinkedBlockingQueue<SessionSQLPair>();
+	private volatile boolean running=true;
+	
 	public MyCATSequnceProcessor() {
 		new ExecuteThread().start();
 	}
 
 	public void addNewSql(SessionSQLPair pair) {
-		seqSQLQueue.offer(pair);
+		seqSQLQueue.add(pair);
 	}
 
 	private void outRawData(ServerConnection sc,String value) {
@@ -64,7 +65,6 @@ public class MyCATSequnceProcessor {
 
 	private void executeSeq(SessionSQLPair pair) {
 		try {
-
 			// @micmiu 扩展NodeToString实现自定义全局序列号
 			NodeToString strHandler = new ExtNodeToString4SEQ(MycatServer
 					.getInstance().getConfig().getSystem()
@@ -79,30 +79,29 @@ public class MyCATSequnceProcessor {
 				outRawData(pair.session.getSource(),value);
 				return;
 			}
-			pair.session.getSource().routeEndExecuteSQL(sql, pair.type,
-					pair.schema);
-
+			pair.session.getSource().routeEndExecuteSQL(sql, pair.type,pair.schema);
 		} catch (Exception e) {
-			LOGGER.error(e);
+			LOGGER.error("MyCATSequenceProcessor.executeSeq(SesionSQLPair)",e);
 			pair.session.getSource().writeErrMessage(ErrorCode.ER_YES,
 					"mycat sequnce err." + e);
 			return;
 		}
 	}
-
+	
+	public void shutdown(){
+		running=false;
+	}
+	
 	class ExecuteThread extends Thread {
 		public void run() {
-			while (true) {
-				SessionSQLPair pair = null;
+			while (running) {
 				try {
-					pair = seqSQLQueue.poll();
-					if (pair == null) {
-						Thread.sleep(100);
-					} else {
+					SessionSQLPair pair=seqSQLQueue.poll(100,TimeUnit.MILLISECONDS);
+					if(pair!=null){
 						executeSeq(pair);
 					}
 				} catch (Exception e) {
-					LOGGER.error(e);
+					LOGGER.warn("MyCATSequenceProcessor$ExecutorThread",e);
 				}
 			}
 		}

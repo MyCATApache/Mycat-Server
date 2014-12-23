@@ -2,7 +2,6 @@ package org.opencloudb.route.impl;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
-import java.util.Collection;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
@@ -39,13 +38,17 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		
 		// check if there is sharding in schema
 		if (schema.isNoSharding() && ServerParse.SHOW != sqlType) {
-			return RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
+			rrs = RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
+//			return RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
+		} else {
+			RouteResultset returnedSet=routeSystemInfo(schema, sqlType, stmt, rrs);
+			if(returnedSet==null){
+				rrs = routeNormalSqlWithAST(schema, stmt, rrs, charset, cachePool);
+//				return routeNormalSqlWithAST(schema, stmt, rrs, charset, cachePool);
+			}
 		}
-		RouteResultset returnedSet=routeSystemInfo(schema, sqlType, stmt, rrs);
-		if(returnedSet==null){
-			return routeNormalSqlWithAST(schema, stmt, rrs, charset, cachePool);
-		}
-		return returnedSet;
+
+		return rrs;
 	}
 	
 	/**

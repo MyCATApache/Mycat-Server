@@ -4,6 +4,8 @@
 
 ##### github: [https://github.com/MyCATApache/ ](https://github.com/MyCATApache/ )
 
+##### Getting Started: [zh-CN: https://github.com/MyCATApache/Mycat-doc/blob/master/MyCat_In_Action_%E4%B8%AD%E6%96%87%E7%89%88.doc] [English:https://github.com/MyCATApache/Mycat-doc/tree/master/en]
+
 Mycat is an Open-Source software, “a big database cluster” oriented to the enterprises. Mycat is an enforced database which is a replacement for MySQL and support transaction and ACID. Regarded as MySQL cluster of enterprise database, Mycat can take the place of expensive Oracle cluster. Mycat is also a new type of SQL Server integrated with the memory cache technology, Nosql technology and HDFS big data. And as a new modern enterprise database product, Mycat is combined with the traditional database and new distributed data warehouse. In a word, Mycat is a fresh new middleware of database..
 
 Mycat’s target is to smoothly migrate the current stand-alone database and applications to cloud side with low cost and to solve the bottleneck problem caused by the rapid growth of data storage and business scale.

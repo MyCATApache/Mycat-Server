@@ -33,7 +33,7 @@ import org.opencloudb.config.model.rule.RuleAlgorithm;
  * @author wuzhih
  *
  */
-public class PartionByMod extends AbstractPartionAlgorithm implements RuleAlgorithm  {
+public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAlgorithm  {
 
 	private int count;
 	@Override
