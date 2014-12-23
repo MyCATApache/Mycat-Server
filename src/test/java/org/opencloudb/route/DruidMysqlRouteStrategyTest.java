@@ -23,6 +23,8 @@ import org.opencloudb.server.parser.ServerParse;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.parser.SQLParserUtils;
+import com.alibaba.druid.util.JdbcUtils;
 
 public class DruidMysqlRouteStrategyTest extends TestCase {
 	protected Map<String, SchemaConfig> schemaMap;
@@ -812,5 +814,110 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 				ServerParse.SELECT, sql, null, null, cachePool);
 		Assert.assertEquals(100L, rrs.getLimitSize());
 	}
+	
+	/**
+	 * select 1
+	 * select 1 union all select 2
+	 * @throws Exception
+	 */
+	public void testSelectNoTable() throws Exception {
+		SchemaConfig schema = schemaMap.get("TESTDB");
+		String sql = "select 1";
+		RouteResultset rrs = null;
+		rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(), schema,
+				ServerParse.SELECT, sql, null, null, cachePool);
+		Assert.assertEquals(1, rrs.getNodes().length);
+		
+		
+		sql = "select 1 union select 2";
+		rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(), schema,
+				ServerParse.SELECT, sql, null, null, cachePool);
+		Assert.assertEquals(1, rrs.getNodes().length);
+	}
+	
+	/**
+	 * 支持insert into ... values (),()...
+	 * 不支持insert into ... select...
+	 * 
+	 * @throws Exception
+	 */
+	public void testBatchInsert() throws Exception {
+		
+		SchemaConfig schema = schemaMap.get("TESTDB");
+		RouteResultset rrs =  null;
+		//不支持childtable 批量插入
+		String sql = "insert into orders (id,name,customer_id) values(1,'testonly',1),(2,'testonly',2000001)";
+		try {
+			rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(),schema, 1, sql, null, null,
+					cachePool);
+		} catch (Exception e) {
+			Assert.assertEquals("ChildTable multi insert not provided", e.getMessage());
+		}
+		
+		sql = "insert into employee (id,name,customer_id) select id,name,customer_id from customer";
+		try {
+			rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(),schema, 1, sql, null, null,
+					cachePool);
+		} catch (Exception e) {
+			Assert.assertEquals("TODO:insert into .... select .... not supported!", e.getMessage());
+		}
+
+		//分片表批量插入正常 employee
+		sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000),(2,'testonly',10010)";
+		rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(),schema, 1, sql, null, null,
+				cachePool);
+		Assert.assertEquals(2, rrs.getNodes().length);
+		Assert.assertEquals(false, rrs.isCacheAble());
+		Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+		Assert.assertEquals("dn2", rrs.getNodes()[1].getName());
+		String node1Sql = formatSql("insert into employee (id,name,sharding_id) values(1,'testonly',10000)");
+		String node2Sql = formatSql("insert into employee (id,name,sharding_id) values(2,'testonly',10010)");
+		RouteResultsetNode[] nodes = rrs.getNodes();
+		Assert.assertEquals(node1Sql, nodes[0].getStatement());
+		Assert.assertEquals(node2Sql, nodes[1].getStatement());
+	}
+	
+	/**
+	 * insert ... on duplicate key ... update...
+	 * 
+	 * @throws Exception
+	 */
+	public void testInsertOnDuplicateKey() throws Exception {
+		SchemaConfig schema = schemaMap.get("TESTDB");
+		String sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000) on duplicate key update name='nihao'";
+		RouteResultset rrs = null;
+		rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(), schema,
+				ServerParse.SELECT, sql, null, null, cachePool);
+		Assert.assertEquals(1, rrs.getNodes().length);
+		Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+		
+		//insert ... on duplicate key ... update col1 = VALUES(col1),col2 = VALUES(col2)
+		sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000) " +
+				"on duplicate key update name=VALUES(name),id = VALUES(id)";
+		rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(), schema,
+				ServerParse.SELECT, sql, null, null, cachePool);
+		Assert.assertEquals(1, rrs.getNodes().length);
+		Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+		
+		//insert ... on duplicate key ,partion key can't be updated
+		sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000) " +
+				"on duplicate key update name=VALUES(name),id = VALUES(id),sharding_id = VALUES(sharding_id)";
+		
+		try {
+			rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(), schema,
+					ServerParse.SELECT, sql, null, null, cachePool);
+		} catch (Exception e) {
+			Assert.assertEquals("partion key can't be updated: EMPLOYEE -> SHARDING_ID", e.getMessage());
+		}
+		
+		
+	}
+	
+	private String formatSql(String sql) {
+		MySqlStatementParser parser = new MySqlStatementParser(sql);
+		SQLStatement stmt = parser.parseStatement();
+		return stmt.toString();
+	}
+	
 
 }
