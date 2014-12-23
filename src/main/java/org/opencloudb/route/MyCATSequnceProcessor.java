@@ -1,8 +1,6 @@
 package org.opencloudb.route;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -24,11 +22,10 @@ import com.foundationdb.sql.unparser.NodeToString;
 public class MyCATSequnceProcessor {
 	private static final Logger LOGGER = Logger.getLogger(MyCATSequnceProcessor.class);
 	private LinkedBlockingQueue<SessionSQLPair> seqSQLQueue = new LinkedBlockingQueue<SessionSQLPair>();
-	private ExecutorService sqlExecutor=Executors.newSingleThreadExecutor();
 	private volatile boolean running=true;
 	
 	public MyCATSequnceProcessor() {
-		sqlExecutor.submit(new ExecuteThread());
+		new ExecuteThread().start();
 	}
 
 	public void addNewSql(SessionSQLPair pair) {
@@ -93,10 +90,9 @@ public class MyCATSequnceProcessor {
 	
 	public void shutdown(){
 		running=false;
-		this.sqlExecutor.shutdown();
 	}
 	
-	class ExecuteThread implements Runnable {
+	class ExecuteThread extends Thread {
 		public void run() {
 			while (running) {
 				try {
