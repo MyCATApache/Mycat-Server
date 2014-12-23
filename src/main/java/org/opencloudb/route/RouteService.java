@@ -113,7 +113,7 @@ public class RouteService {
 					charset, sc, tableId2DataNodeCache);
 		}
 
-		if (sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
+		if (rrs!=null && sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
 			sqlRouteCache.putIfAbsent(cacheKey, rrs);
 		}
 		return rrs;
