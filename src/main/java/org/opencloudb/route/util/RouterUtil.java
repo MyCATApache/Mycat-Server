@@ -643,6 +643,7 @@ public class RouterUtil {
 									tablesRouteMap.put(tableName, new HashSet<String>());
 								}
 								tablesRouteMap.get(tableName).add(dataNode);
+								break;
 							}
 						}
 						if (!allFound) {
@@ -650,6 +651,8 @@ public class RouterUtil {
 							if (isSelect && tableConfig.getPrimaryKey() != null) {
 								rrs.setPrimaryKey(tableKey + '.' + tableConfig.getPrimaryKey());
 							}
+						} else {//主键缓存中找到了就退出循环
+							break;
 						}
 					}
 				}
