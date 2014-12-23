@@ -622,7 +622,6 @@ public class RouterUtil {
 				String joinKey = tableConfig.getJoinKey();
 				String partionCol = tableConfig.getPartitionColumn();
 				String primaryKey = tableConfig.getPrimaryKey();
-				boolean isPartitionFound = false;
 				boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
 				if(entry.getValue().get(primaryKey) != null && entry.getValue().size() == 1) {//主键查找
 					// try by primary key if found in cache
@@ -631,8 +630,6 @@ public class RouterUtil {
 						if (LOGGER.isDebugEnabled()) {
 							LOGGER.debug("try to find cache by primary key ");
 						}
-						Set<String> dataNodes = new HashSet<String>(
-								primaryKeyPairs.size());
 						String tableKey = schema.getName() + '_' + tableName;
 						boolean allFound = true;
 						for (ColumnRoutePair pair : primaryKeyPairs) {
@@ -655,7 +652,8 @@ public class RouterUtil {
 							}
 						}
 					}
-				} else if (isFoundPartitionValue) {//分库表
+				}
+				if (isFoundPartitionValue) {//分库表
 					Set<ColumnRoutePair> partitionValue = columnsMap.get(partionCol);
 					if(partitionValue == null || partitionValue.size() == 0) {
 						if(tablesRouteMap.get(tableName) == null) {
