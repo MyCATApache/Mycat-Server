@@ -274,10 +274,10 @@ public class MySQLConnection extends BackendAIOConnection {
 	private static class StatusSync {
 		private final RouteResultsetNode rrn;
 		private final MySQLConnection conn;
-		private CommandPacket schemaCmd;
-		private CommandPacket charCmd;
-		private CommandPacket isoCmd;
-		private CommandPacket acCmd;
+		private volatile CommandPacket schemaCmd;
+		private volatile CommandPacket charCmd;
+		private volatile CommandPacket isoCmd;
+		private volatile CommandPacket acCmd;
 		private final String schema;
 		private final int charIndex;
 		private final int txIsolation;
