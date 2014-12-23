@@ -97,6 +97,12 @@ public class DruidSelectParser extends DefaultDruidParser {
 	 */
 	@Override
 	public void changeSql(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException {
+		//无表的select语句直接路由带任一节点
+		if(ctx.getTables() == null || ctx.getTables().size() == 0) {
+			rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
+			rrs.setFinishedRoute(true);
+			return;
+		}
 		RouterUtil.tryRouteForTables(schema, ctx, rrs, true,cachePool);
 		if(rrs == null) {
 			String msg = " find no Route:" + ctx.getSql();
@@ -178,6 +184,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 	
 	private boolean isNeedCache(SchemaConfig schema, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery) {
+		if(ctx.getTables() == null || ctx.getTables().size() == 0 ) {
+			return false;
+		}
 		TableConfig tc = schema.getTables().get(ctx.getTables().get(0));
 		if((ctx.getTables().size() == 1 && tc.isGlobalTable())
 				) {//|| (ctx.getTables().size() == 1) && tc.getRule() == null && tc.getDataNodes().size() == 1
