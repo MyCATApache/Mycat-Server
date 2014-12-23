@@ -85,7 +85,7 @@ public final class ReloadConfig {
 		Map<String, PhysicalDBPool> cNodes = conf.getDataHosts();
 		boolean reloadStatus = true;
 		for (PhysicalDBPool dn : dataHosts.values()) {
-			
+			dn.setSchemas(MycatServer.getInstance().getConfig().getDataNodeSchemasOfDataHost(dn.getHostName()));
 			// init datahost
 			String index = DnPropertyUtil.loadDnIndexProps().getProperty(dn.getHostName(),
 					"0");
