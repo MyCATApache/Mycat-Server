@@ -274,10 +274,10 @@ public class MySQLConnection extends BackendAIOConnection {
 	private static class StatusSync {
 		private final RouteResultsetNode rrn;
 		private final MySQLConnection conn;
-		private CommandPacket schemaCmd;
-		private CommandPacket charCmd;
-		private CommandPacket isoCmd;
-		private CommandPacket acCmd;
+		private volatile CommandPacket schemaCmd;
+		private volatile CommandPacket charCmd;
+		private volatile CommandPacket isoCmd;
+		private volatile CommandPacket acCmd;
 		private final String schema;
 		private final int charIndex;
 		private final int txIsolation;
@@ -421,9 +421,7 @@ public class MySQLConnection extends BackendAIOConnection {
 
 		public void execute() {
 			executed = true;
-			if (rrn.getStatement() != null) {
-				conn.sendQueryCmd(rrn.getStatement());
-			}
+			MySQLConnection.sendQueryCmd(conn, rrn.getStatement());
 
 		}
 
@@ -478,10 +476,11 @@ public class MySQLConnection extends BackendAIOConnection {
 	 */
 	public boolean syncAndExcute() {
 		StatusSync sync = statusSync;
-		if (sync.isExecuted()) {
+		if (sync == null) {
 			return true;
-		}
-		if (sync.isSync()) {
+		} else if (sync.isExecuted()) {
+			return true;
+		} else if (sync.isSync()) {
 			sync.update();
 			sync.execute();
 		} else {
@@ -496,9 +495,33 @@ public class MySQLConnection extends BackendAIOConnection {
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
-		StatusSync sync = new StatusSync(this, rrn, sc.getCharsetIndex(),
+		StatusSync sync = judgeIfNeedStatusSyn(rrn, sc.getCharsetIndex(),
 				sc.getTxIsolation(), autocommit);
-		doExecute(sync);
+		doExecute(sync, rrn.getStatement());
+	}
+
+	private StatusSync judgeIfNeedStatusSyn(RouteResultsetNode rrn,
+			int clientCharSetIndex, int clientTxIsoLation,
+			boolean clientAutoCommit) {
+		boolean conAutoComit = this.autocommit;
+		if (this.schema.equals(oldSchema)
+				&& (charsetIndex == clientCharSetIndex)
+				&& (clientTxIsoLation == this.txIsolation)) {
+			if (!modifiedSQLExecuted || isFromSlaveDB()) {// never executed
+															// modify sql,so
+															// auto commit
+				if (conAutoComit == true) {
+					return null;
+				}
+			} else {
+				if (conAutoComit == clientAutoCommit) {
+					return null;
+				}
+			}
+		}
+		// need syn connection
+		return new StatusSync(this, rrn, clientCharSetIndex, clientTxIsoLation,
+				clientAutoCommit);
 	}
 
 	/**
@@ -510,15 +533,20 @@ public class MySQLConnection extends BackendAIOConnection {
 	public void query(String query) throws UnsupportedEncodingException {
 		RouteResultsetNode rrn = new RouteResultsetNode("default",
 				ServerParse.SELECT, query);
-		StatusSync sync = new StatusSync(this, rrn, this.charsetIndex,
+
+		StatusSync sync = judgeIfNeedStatusSyn(rrn, this.charsetIndex,
 				this.txIsolation, true);
-		doExecute(sync);
+		doExecute(sync, rrn.getStatement());
 	}
 
-	private void doExecute(StatusSync sync) {
-		statusSync = sync;
-		if (sync.isSync() || !sync.sync()) {
-			sync.execute();
+	private void doExecute(StatusSync sync, String query) {
+		if (sync == null) {
+			sendQueryCmd(this, query);
+		} else {
+			statusSync = sync;
+			if (sync.isSync() || !sync.sync()) {
+				sync.execute();
+			}
 		}
 	}
 
@@ -553,6 +581,10 @@ public class MySQLConnection extends BackendAIOConnection {
 				respHandler = null;
 			}
 		}
+	}
+
+	public static void sendQueryCmd(MySQLConnection conn, String query) {
+		conn.sendQueryCmd(query);
 	}
 
 	public void commit() {
@@ -644,6 +676,7 @@ public class MySQLConnection extends BackendAIOConnection {
 
 	@Override
 	public void setBorrowed(boolean borrowed) {
+		this.lastTime=TimeUtil.currentTimeMillis();
 		this.borrowed = borrowed;
 	}
 
