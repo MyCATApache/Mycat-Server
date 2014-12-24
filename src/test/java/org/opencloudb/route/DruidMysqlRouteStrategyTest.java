@@ -143,19 +143,19 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 		 
 	}
 
-	public void testRouteMultiTables() throws Exception {
-		// company is global table ,route to 3 datanode and ignored in route
-		String sql = "select * from company,customer ,orders where customer.company_id=company.id and orders.customer_id=customer.id and company.name like 'aaa' limit 10";
-		SchemaConfig schema = schemaMap.get("TESTDB");
-		RouteResultset rrs = routeStrategy.route(new SystemConfig(),schema, -1, sql, null,
-				null, cachePool);
-		Assert.assertEquals(2, rrs.getNodes().length);
-		Assert.assertEquals(true, rrs.isCacheAble());
-		Assert.assertEquals(10, rrs.getLimitSize());
-		Assert.assertEquals("dn1", rrs.getNodes()[1].getName());
-		Assert.assertEquals("dn2", rrs.getNodes()[0].getName());
-
-	}
+//	public void testRouteMultiTables() throws Exception {
+//		// company is global table ,route to 3 datanode and ignored in route
+//		String sql = "select * from company,customer ,orders where customer.company_id=company.id and orders.customer_id=customer.id and company.name like 'aaa' limit 10";
+//		SchemaConfig schema = schemaMap.get("TESTDB");
+//		RouteResultset rrs = routeStrategy.route(new SystemConfig(),schema, -1, sql, null,
+//				null, cachePool);
+//		Assert.assertEquals(2, rrs.getNodes().length);
+//		Assert.assertEquals(true, rrs.isCacheAble());
+//		Assert.assertEquals(10, rrs.getLimitSize());
+//		Assert.assertEquals("dn1", rrs.getNodes()[1].getName());
+//		Assert.assertEquals("dn2", rrs.getNodes()[0].getName());
+//
+//	}
 
 	public void testRouteCache() throws Exception {
 		// select cache ID

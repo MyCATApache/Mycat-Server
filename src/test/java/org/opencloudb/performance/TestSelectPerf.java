@@ -26,7 +26,7 @@ package org.opencloudb.performance;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -47,30 +47,27 @@ public class TestSelectPerf {
 		failedCount.addAndGet(count);
 	}
 
-	private static Connection getCon(String url, String user, String passwd)
-			throws SQLException {
+	private static Connection getCon(String url, String user, String passwd) throws SQLException {
 		Connection theCon = DriverManager.getConnection(url, user, passwd);
 		return theCon;
 	}
 
-	private static void doTest(String url, String user, String password,
-			int threadCount, long maxId, int executetimes, boolean outmidle) {
-		ArrayList<Thread> threads = new ArrayList<Thread>(threadCount);
-		ArrayList<TravelRecordSelectJob> jobs = new ArrayList<TravelRecordSelectJob>(
-				threadCount);
+	private static void doTest(String url, String user, String password, int threadCount,
+			long minId, long maxId, int executetimes, boolean outmidle) {
+		final CopyOnWriteArrayList<Thread> threads = new CopyOnWriteArrayList<Thread>();
+		final CopyOnWriteArrayList<TravelRecordSelectJob> jobs = new CopyOnWriteArrayList<TravelRecordSelectJob>();
 		for (int i = 0; i < threadCount; i++) {
 			try {
 
 				Connection con = getCon(url, user, password);
 				System.out.println("create thread " + i);
-				TravelRecordSelectJob job = new TravelRecordSelectJob(con,
-						maxId, executetimes, finshiedCount, failedCount);
+				TravelRecordSelectJob job = new TravelRecordSelectJob(con, minId, maxId,
+						executetimes, finshiedCount, failedCount);
 				Thread thread = new Thread(job);
 				threads.add(thread);
 				jobs.add(job);
 			} catch (Exception e) {
-				System.out.println("failed create thread " + i + " err "
-						+ e.toString());
+				System.out.println("failed create thread " + i + " err " + e.toString());
 			}
 		}
 		System.out.println("success create thread count: " + threads.size());
@@ -92,7 +89,7 @@ public class TestSelectPerf {
 			}
 			if (remainThread < threads.size() / 2) {
 				System.out
-						.println("warning many test threads finished ,tps may NOT Accurate ,alive threads:"
+						.println("warning many test threads finished ,qps may NOT Accurate ,alive threads:"
 								+ remainThread);
 			}
 			if (outmidle) {
@@ -105,15 +102,15 @@ public class TestSelectPerf {
 			}
 		}
 		report(jobs);
-		System.out.println("finished all,total time :"
-				+ (System.currentTimeMillis() - start) / 1000);
+		System.out.println("finished all,total time :" + (System.currentTimeMillis() - start)
+				/ 1000);
 	}
 
 	public static void main(String[] args) throws Exception {
 		Class.forName("com.mysql.jdbc.Driver");
 		if (args.length < 5) {
 			System.out
-					.println("input param,format: [jdbcurl] [user] [password]  [threadpoolsize]  [executetimes] [maxId] [repeat]");
+					.println("input param,format: [jdbcurl] [user] [password]  [threadpoolsize]  [executetimes] [minId-maxId] [repeat]");
 			return;
 		}
 		int threadCount = 0;// 线程数
@@ -122,7 +119,8 @@ public class TestSelectPerf {
 		String password = args[2];
 		threadCount = Integer.parseInt(args[3]);
 		int executetimes = Integer.parseInt(args[4]);
-		long maxId = Integer.parseInt(args[5]);
+		long minId = Integer.parseInt((args[5].split("-"))[0]);
+		long maxId = Integer.parseInt((args[5].split("-"))[1]);
 		System.out.println("concerent threads:" + threadCount);
 		System.out.println("execute sql times:" + executetimes);
 		System.out.println("maxId:" + maxId);
@@ -133,8 +131,7 @@ public class TestSelectPerf {
 		}
 		for (int i = 0; i < repeate; i++) {
 			try {
-				doTest(url, user, password, threadCount, maxId, executetimes,
-						repeate < 2);
+				doTest(url, user, password, threadCount, minId, maxId, executetimes, repeate < 2);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -142,12 +139,12 @@ public class TestSelectPerf {
 
 	}
 
-	public static void report(ArrayList<TravelRecordSelectJob> jobs) {
+	public static void report(CopyOnWriteArrayList<TravelRecordSelectJob> jobs) {
 		int tps = 0;
 		for (TravelRecordSelectJob job : jobs) {
 			tps += job.getTPS();
 		}
-		System.out.println("finishend:" + finshiedCount.get() + " failed:"
-				+ failedCount.get() + " tps:" + tps);
+		System.out.println("finishend:" + finshiedCount.get() + " failed:" + failedCount.get()
+				+ " qps:" + tps);
 	}
 }
