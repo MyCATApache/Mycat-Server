@@ -68,8 +68,6 @@ public class TravelRecordInsertJob implements Runnable {
 			ps.setString(5, (String) map.get("days"));
 			ps.addBatch();
 
-			ps.execute();
-
 		}
 		ps.executeBatch();
 		con.commit();
