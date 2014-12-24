@@ -1,5 +1,8 @@
 package org.opencloudb.route.factory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.opencloudb.MycatServer;
 import org.opencloudb.route.RouteStrategy;
 import org.opencloudb.route.impl.DruidMysqlRouteStrategy;
@@ -13,19 +16,19 @@ import org.opencloudb.route.impl.FdbRouteStrategy;
 public class RouteStrategyFactory {
 	private static RouteStrategy defaultStrategy = null;
 	private static boolean isInit = false;
+	private static Map<String,RouteStrategy> strategyMap = new HashMap<String,RouteStrategy>();
+	
 	private static void init() {
 		String defaultSqlParser = MycatServer.getInstance().getConfig().getSystem().getDefaultSqlParser();
 		defaultSqlParser = defaultSqlParser == null ? "" : defaultSqlParser;
-		switch(defaultSqlParser.toLowerCase()) {
-		case "fdbparser":
-			defaultStrategy = new FdbRouteStrategy();
-			break;
-		case "druidparser":
-			defaultStrategy = new DruidMysqlRouteStrategy();
-			break;
-		default:
-			defaultStrategy = new FdbRouteStrategy();
-			break;
+		
+		strategyMap.put("fdbparser", new FdbRouteStrategy());
+		
+		strategyMap.put("druidparser", new DruidMysqlRouteStrategy());
+		
+		defaultStrategy = strategyMap.get(defaultSqlParser);
+		if(defaultStrategy == null) {
+			defaultStrategy = strategyMap.get("fdbparser");
 		}
 	}
 	public static RouteStrategy getRouteStrategy() {
@@ -34,5 +37,13 @@ public class RouteStrategyFactory {
 			isInit = true;
 		}
 		return defaultStrategy;
+	}
+	
+	public static RouteStrategy getRouteStrategy(String parserType) {
+		if(!isInit) {
+			init();
+			isInit = true;
+		}
+		return strategyMap.get(parserType);
 	}
 }
