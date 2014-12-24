@@ -496,7 +496,7 @@ public class MySQLConnection extends BackendAIOConnection {
 			modifiedSQLExecuted = true;
 		}
 		StatusSync sync = judgeIfNeedStatusSyn(rrn, sc.getCharsetIndex(),
-				sc.getTxIsolation(), sc.isAutocommit());
+				sc.getTxIsolation(), autocommit);
 		doExecute(sync, rrn.getStatement());
 	}
 
