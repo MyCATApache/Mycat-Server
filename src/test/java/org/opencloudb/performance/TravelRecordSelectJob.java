@@ -26,27 +26,25 @@ package org.opencloudb.performance;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TravelRecordSelectJob implements Runnable {
 	private final Connection con;
+	private final long minId;
 	private final long maxId;
 	private final int executeTimes;
-	Calendar date = Calendar.getInstance();
-	DateFormat datafomat = new SimpleDateFormat("yyyy-MM-dd");
 	Random random = new Random();
 	private final AtomicInteger finshiedCount;
 	private final AtomicInteger failedCount;
 	private volatile long usedTime;
 	private volatile long success;
-	public TravelRecordSelectJob(Connection con, long maxId, int executeTimes,
+
+	public TravelRecordSelectJob(Connection con,long minId, long maxId, int executeTimes,
 			AtomicInteger finshiedCount, AtomicInteger failedCount) {
 		super();
 		this.con = con;
+		this.minId = minId;
 		this.maxId = maxId;
 		this.executeTimes = executeTimes;
 		this.finshiedCount = finshiedCount;
@@ -57,8 +55,8 @@ public class TravelRecordSelectJob implements Runnable {
 		ResultSet rs = null;
 		try {
 
-			String sql = "select * from  travelrecord  where id="
-					+ Math.abs(random.nextLong()) % maxId;
+			String sql = "select * from  travelrecord  where id=" + ((Math.abs(random.nextLong())
+					% (maxId-minId))+minId);
 			rs = con.createStatement().executeQuery(sql);
 			finshiedCount.addAndGet(1);
 			success++;
@@ -94,15 +92,21 @@ public class TravelRecordSelectJob implements Runnable {
 	public long getUsedTime() {
 		return this.usedTime;
 	}
-	public int getTPS()
-	{
-		if(usedTime>0)
-		{
-		return (int) (this.success*1000/this.usedTime);
-		}else
-		{
+
+	public int getTPS() {
+		if (usedTime > 0) {
+			return (int) (this.success * 1000 / this.usedTime);
+		} else {
 			return 0;
 		}
 	}
+
 	
+	public static void main(String[] args) {
+		Random r=new Random();
+		for ( int i =0; i < 10; i ++) {
+			int f=r.nextInt(90000-80000)+80000;
+			System.out.println(f);
+		}
+	}
 }
