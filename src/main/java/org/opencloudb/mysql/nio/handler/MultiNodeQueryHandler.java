@@ -71,14 +71,16 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	private volatile boolean fieldsReturned;
 	private int okCount;
 	private final boolean isCallProcedure;
-
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
 		super(session);
 		if (rrs.getNodes() == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
-
+        if(LOGGER.isDebugEnabled())
+        {
+        	LOGGER.debug("execute mutinode query "+rrs.getStatement());
+        }
 		this.rrs = rrs;
 		if (ServerParse.SELECT == sqlType && rrs.needMerge()) {
 			dataMergeSvr = new DataMergeService(this, rrs);
@@ -334,11 +336,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			if (fieldsReturned) {
 				return;
 			}
-			ByteBuffer buffer = session.getSource().allocate();
 			fieldsReturned = true;
+			
 			header[3] = ++packetId;
 			source = session.getSource();
-			source.write(header);
+			ByteBuffer buffer=source.allocate();
+			buffer=source.writeToBuffer(header, buffer);
 			fieldCount = fields.size();
 
 			String primaryKey = null;
@@ -347,6 +350,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				priamaryKeyTable = items[0];
 				primaryKey = items[1];
 			}
+
 			Map<String, ColMeta> columToIndx = new HashMap<String, ColMeta>(
 					fieldCount);
 			boolean needMerg = (dataMergeSvr != null)
@@ -375,10 +379,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				}
 
 				field[3] = ++packetId;
-				source.write(field);
+				buffer=source.writeToBuffer(field, buffer);
 			}
 			eof[3] = ++packetId;
-			source.write(eof);
+			buffer=source.writeToBuffer(eof, buffer);
 			source.write(buffer);
 			if (dataMergeSvr != null) {
 				dataMergeSvr.onRowMetaData(columToIndx, fieldCount);
