@@ -18,6 +18,8 @@ import org.opencloudb.route.util.RouterUtil;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 
@@ -218,7 +220,16 @@ public class DruidInsertParser extends DefaultDruidParser {
 						LOGGER.warn(msg);
 						throw new SQLNonTransientException(msg);
 					}
-					String shardingValue = valueClause.getValues().get(shardingColIndex).toString().toUpperCase();
+					SQLExpr expr = valueClause.getValues().get(shardingColIndex);
+					String shardingValue = null;
+					if(expr instanceof SQLIntegerExpr) {
+						SQLIntegerExpr intExpr = (SQLIntegerExpr)expr;
+						shardingValue = intExpr.getNumber() + "";
+					} else if (expr instanceof SQLCharExpr) {
+						SQLCharExpr charExpr = (SQLCharExpr)expr;
+						shardingValue = charExpr.getText();
+					}
+					
 					Integer nodeIndex = algorithm.calculate(shardingValue);
 					//没找到插入的分片
 					if(nodeIndex == null) {

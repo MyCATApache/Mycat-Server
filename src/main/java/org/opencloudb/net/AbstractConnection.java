@@ -339,12 +339,11 @@ public abstract class AbstractConnection implements NIOConnection {
 		if (capacity > buffer.remaining()) {
 			if (writeSocketIfFull) {
 				writeNotSend(buffer);
-				int newSize=processor.getBufferPool().getChunkSize();
-				newSize=(newSize>capacity)?newSize:capacity;
-				return processor.getBufferPool().allocate(newSize);
+				return processor.getBufferPool().allocate(capacity);
 			} else {// Relocate a larger buffer
 				buffer.flip();
-				ByteBuffer newBuf = processor.getBufferPool().allocate(capacity+buffer.limit()+1);
+				ByteBuffer newBuf = processor.getBufferPool().allocate(
+						capacity + buffer.limit() + 1);
 				newBuf.put(buffer);
 				this.recycle(buffer);
 				return newBuf;
@@ -385,10 +384,9 @@ public abstract class AbstractConnection implements NIOConnection {
 			}
 			this.cleanup();
 			LOGGER.info("close connection,reason:" + reason + " ," + this);
-			if( reason.contains("connection,reason:java.net.ConnectException"))
-					{
+			if (reason.contains("connection,reason:java.net.ConnectException")) {
 				throw new RuntimeException(" errr");
-					}
+			}
 		}
 	}
 
