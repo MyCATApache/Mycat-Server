@@ -38,5 +38,15 @@
     <appender-ref ref="ConsoleAppender" />
      <!--<appender-ref ref="FILE" />-->
   </root>
-
+<!--
+<logger name="org.opencloudb.server.NonBlockingSession" >    
+ <level value="debug" /> 
+</logger>
+  -->
+  <!-- 
+<logger name="org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler" >    
+ <level value="debug" /> 
+</logger>
+ -->
+ 
 </log4j:configuration>
