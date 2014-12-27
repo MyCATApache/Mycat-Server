@@ -51,6 +51,9 @@ public class DruidShardingParseInfo {
 
 		if (value instanceof Object[]) {
 			for (Object item : (Object[]) value) {
+				if(item == null) {
+					continue;
+				}
 				columValues.add(new ColumnRoutePair(item.toString()));
 			}
 		} else if (value instanceof RangeValue) {
