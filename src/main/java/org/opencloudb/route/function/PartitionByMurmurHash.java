@@ -24,6 +24,8 @@
 package org.opencloudb.route.function;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -31,7 +33,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
@@ -96,13 +98,13 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		}
 		weightMap=null;
 	}
-	private void storeBucketMap() throws FileNotFoundException{
-		try(PrintStream store=new PrintStream(new FileOutputStream(bucketMapPath))){
+	private void storeBucketMap() throws IOException{
+		try(OutputStream store=new FileOutputStream(bucketMapPath)){
 			Properties props=new Properties();
 			for(Map.Entry entry:bucketMap.entrySet()){
 				props.setProperty(entry.getKey().toString(), entry.getValue().toString());
 			}
-			props.list(store);
+			props.store(store,null);
 		}
 	}
 	private void loadBucketMapFile() throws FileNotFoundException, IOException{
@@ -186,4 +188,39 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		return tail.get(tail.firstKey());
 	}
 
+	public static void main(String[] args) throws IOException {
+		PartitionByMurmurHash hash=new PartitionByMurmurHash();
+		hash.count=10;//分片数
+		hash.init();
+		
+		int[] bucket=new int[hash.count];
+		
+		int total=1000_0000;//数据量
+		int c=0;
+		for(int i=100_0000;i<total+100_0000;i++){//假设分片键从100万开始
+			c++;
+			bucket[hash.calculate(Integer.toString(i))]++;
+		}
+		System.out.println(c+"   "+total);
+		double d=0;
+		c=0;
+		System.out.println("bucket   ratio");
+		for(int i:bucket){
+			d+=i/(double)total;
+			c+=i;
+			System.out.println(i+"   "+(i/(double)total));
+		}
+		System.out.println(d+"  "+c);
+		
+		Properties props=new Properties();
+		for(Map.Entry entry:hash.bucketMap.entrySet()){
+			props.setProperty(entry.getKey().toString(), entry.getValue().toString());
+		}
+		ByteArrayOutputStream out=new ByteArrayOutputStream();
+		props.store(out, null);
+		
+		props.clear();
+		props.load(new ByteArrayInputStream(out.toByteArray()));
+		System.out.println(props);
+	}
 }
