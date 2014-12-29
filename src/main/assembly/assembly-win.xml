@@ -2,7 +2,7 @@
 	xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
-	<id>${buildNumber}-win</id>
+	<id>${timestamp}-win</id>
 	<includeBaseDirectory>false</includeBaseDirectory>
 	<formats>
 		<format>tar.gz</format>
@@ -43,6 +43,13 @@
 			<directory>src/main/assembly/conf</directory>
 			<outputDirectory>conf</outputDirectory>
 		</fileSet>
+        <fileSet>
+            <directory>${basedir}</directory>
+            <outputDirectory></outputDirectory>
+            <includes>
+                <include>version.txt</include>
+            </includes>
+        </fileSet>
 		<fileSet>
 			<directory>src/main/assembly/bin</directory>
 			<outputDirectory>bin</outputDirectory>
