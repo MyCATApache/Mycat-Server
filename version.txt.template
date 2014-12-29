@@ -1,0 +1,6 @@
+BuildTime  @buildtime@
+GitVersion   @buildnumber@
+MavenVersion @pomversion@
+GitUrl @giturl@
+MyCatSite @mycatsite@
+QQGroup @qqgroup@
