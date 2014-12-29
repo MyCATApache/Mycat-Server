@@ -51,6 +51,12 @@
 		</writeHost>
 		<!-- <writeHost host="hostM2" url="localhost:3316" user="root" password="123456"/> -->
 	</dataHost>
+	<!-- 
+		<dataHost name="jdbchost" maxCon="1000" minCon="1" balance="0" writeType="0" dbType="mongodb" dbDriver="jdbc">
+		<heartbeat>select user()</heartbeat>
+		<writeHost host="hostM" url="mongodb://192.168.0.99/test" user="admin" password="123456" ></writeHost>
+	</dataHost>	
+	-->
      <!-- 
 	<dataHost name="jdbchost" maxCon="1000" minCon="10" balance="0"
 		dbType="mysql" dbDriver="jdbc">

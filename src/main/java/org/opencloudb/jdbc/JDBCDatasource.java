@@ -31,9 +31,18 @@ public class JDBCDatasource extends PhysicalDatasource {
 		c.setPort(dsc.getPort());
 		c.setPool(this);
 		c.setSchema(schema);
+		
+		String dbtype=dsc.getDbType();
 		try {
-			Connection con = DriverManager.getConnection(dsc.getUrl(),
-					dsc.getUser(), dsc.getPassword());
+			if (dbtype.equals("mysql")) {
+				Class.forName( "com.mysql.jdbc.Driver" );					
+			}
+			else if (dbtype.equals("mongodb")) {
+				Class.forName( "org.opencloudb.jdbc.mongodb.MongoDriver" );				
+			}else if (dbtype.equals("oracle")){
+				Class.forName( "oracle.jdbc.OracleDriver" );				
+			}			
+			Connection con = DriverManager.getConnection(dsc.getUrl(),dsc.getUser(),dsc.getPassword());
 			// c.setIdleTimeout(pool.getConfig().getIdleTimeout());
 			c.setCon(con);
 			// notify handler
