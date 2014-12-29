@@ -1,6 +1,6 @@
-1.2.2 --> svn -->532
-1.2.2.1 --> svn -->535
-1.2.2.2 --> svn -->554
-1.2.3-alpha --> svn -->624
-1.2.3-alpha --> svn -->676
-11111
+BuildTime  2014-12-29 22:34:39
+GitVersion   3f7e829ae583d0d850bb49554f6dcfdcd5427224
+MavenVersion 1.3.0.1
+GitUrl https://github.com/MyCATApache/Mycat-Server.git
+MyCatSite http://www.mycat.org.cn
+QQGroup 106088787
