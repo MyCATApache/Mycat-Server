@@ -1,0 +1,17 @@
+
+1.在包含employee的分片上创建存储过程:
+/*!mycat: sql=select sharding_id from employee */ create procedure proc_rtn_list(in v_in int) begin select * from employee where sharding_id=v_in;end;
+
+2.调用存储过程, 通过注解指定在哪个分片上执行:
+/*!mycat: sql=select sharding_id from employee where sharding_id=10000*/  call proc_rtn_list(10000);
+
+3.出现问题：
+	"[Err] 1312 - PROCEDURE db1.proc_rtn_list can't return a result set in the given context"
+	
+4.解决方案：修改代码 org.opencloudb.mysql.nio包内的MySQLConnection类, 取消第85行的注释.
+
+5.遗留问题:
+	调用存储过程后, 客户端没有收到相应的报文, 导致一直处于等待状态, 而不是正常的显示"mysql> "， 求大侠抓包解决， 看下mysql直连情况下，返回的这个报文跟Mycat的有哪些不同， 解决这个问题
+	
+
+
