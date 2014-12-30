@@ -60,13 +60,20 @@
 				<include>*.sh</include>
 			</includes>
 		</fileSet>
-		<fileSet>
-			<directory>src/main/assembly/logs</directory>
-			<outputDirectory>mycat\logs</outputDirectory>
-			<excludes>
-				<exclude>**/*</exclude>
-			</excludes>
-		</fileSet>
+        <fileSet>
+            <directory>${basedir}/logs</directory>
+            <outputDirectory>mycat\logs</outputDirectory>
+            <excludes>
+                <exclude>**/*</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>${basedir}/catlet</directory>
+            <outputDirectory>mycat\catlet</outputDirectory>
+            <excludes>
+                <exclude>**/*</exclude>
+            </excludes>
+        </fileSet>
 	</fileSets>
 
 </assembly>
