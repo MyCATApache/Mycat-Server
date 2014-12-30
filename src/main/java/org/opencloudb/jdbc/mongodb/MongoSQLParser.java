@@ -26,14 +26,14 @@ import com.alibaba.druid.sql.ast.*;
  */
 public class MongoSQLParser {
 	private   final DB _db;
-	private   final String _sql;
+//	private   final String _sql;
 	private   final SQLStatement statement;	
 	private   List _params;
 	private   int _pos;	
 	public MongoSQLParser(DB db, String sql)  throws MongoSQLException
 	   {
 	     this._db = db;
-	     this._sql = sql;
+	 //    this._sql = sql;
 	     this.statement = parser(sql);
 	   }
 	
@@ -126,7 +126,10 @@ public class MongoSQLParser {
         }
         if (statement instanceof SQLDeleteStatement) {
         	return DeleteDate((SQLDeleteStatement)statement);
-        }        
+        }
+        if (statement instanceof SQLCreateTableStatement) {
+        	return 1;
+        }          
 		return 1;
 		
 	}
