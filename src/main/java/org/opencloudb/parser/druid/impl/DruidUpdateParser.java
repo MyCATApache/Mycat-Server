@@ -2,16 +2,12 @@ package org.opencloudb.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
-import org.opencloudb.mpp.ColumnRoutePair;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
@@ -19,6 +15,11 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 public class DruidUpdateParser extends DefaultDruidParser {
 	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
+		if(ctx.getTables() != null && ctx.getTables().size() > 1 && !schema.isNoSharding()) {
+			String msg = "multi table related update not supported,tables:" + ctx.getTables();
+			LOGGER.warn(msg);
+			throw new SQLNonTransientException(msg);
+		}
 		MySqlUpdateStatement update = (MySqlUpdateStatement)stmt;
 		String tableName = removeBackquote(update.getTableName().getSimpleName().toUpperCase());
 		
@@ -33,7 +34,7 @@ public class DruidUpdateParser extends DefaultDruidParser {
 		}
 		
 		if(tc.isGlobalTable() || (partitionColumn == null && joinKey == null)) {
-			RouterUtil.routeToMultiNode(false, rrs, schema.getAllDataNodes(), rrs.getStatement());
+			RouterUtil.routeToMultiNode(false, rrs, tc.getDataNodes(), rrs.getStatement());
 			rrs.setFinishedRoute(true);
 			return;
 		}
