@@ -229,6 +229,10 @@ public class DataMergeService {
 	}
 
 	private boolean handleRowData(String dataNode, byte[] rowData) {
+		if(temniated)
+		{
+			return true;
+		}
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 		rowDataPkg.read(rowData);
 		if (grouper != null) {
@@ -314,11 +318,12 @@ public class DataMergeService {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("clear data ");
 		}
-		temniated = true;
+		
 		grouper = null;
 		sorter = null;
 		result = null;
 		jobQueue.clear();
+		temniated = true;
 	}
 
 }
