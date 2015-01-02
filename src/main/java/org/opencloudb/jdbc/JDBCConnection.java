@@ -214,8 +214,11 @@ public class JDBCConnection implements BackendConnection {
 			}
 			con.setAutoCommit(autocommit);
 			int sqlType = rrn.getSqlType();
-			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
-				ouputResultSet(sc, orgin);
+			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {	
+				//非Mysql数据库不能识别SHOW命令
+				if (sqlType == ServerParse.SELECT) {
+					ouputResultSet(sc, orgin);
+				}
 			} else {
 				executeddl(sc, sql);
 			}
