@@ -3,3 +3,5 @@ mycatÔÚserver.xml ÖÐÅäÖÃÊôÐÔcharset¿ÉÒÔ¾ö¶¨¿Í»§¶ËµÄ×Ö·û¼¯£¬Ä¬ÈÏÎªutf8£¬½¨Òéºó¶ËÊ
 <charset  name="utf8mb4">
   <collation name="utf8mb4_general_ci"	id="99">
 </charset>  
+
+9066¼à¿Ø¶Ë¿ÚÔËÐÐ show @@connection ,ÔÚ×Ö·û¼¯ÕâÒ»ÁÐÖÐ£¬°üÀ¨×Ö·û¼¯ºÍidÖµ£¬Èçutf8:33 ¾ÍÊÇ±ê×¼µÄUTF8£¬¶øuft8:99Ôò±íÃ÷Îªutf8mb4
