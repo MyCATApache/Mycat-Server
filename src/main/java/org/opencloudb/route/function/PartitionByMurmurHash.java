@@ -35,7 +35,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.SortedMap;
@@ -188,27 +190,37 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		return tail.get(tail.firstKey());
 	}
 
-	public static void main(String[] args) throws IOException {
+	private static void hashTest() throws IOException{
 		PartitionByMurmurHash hash=new PartitionByMurmurHash();
 		hash.count=10;//分片数
 		hash.init();
 		
 		int[] bucket=new int[hash.count];
 		
+		Map<Integer,List<Integer>> hashed=new HashMap<>();
+		
 		int total=1000_0000;//数据量
 		int c=0;
 		for(int i=100_0000;i<total+100_0000;i++){//假设分片键从100万开始
 			c++;
-			bucket[hash.calculate(Integer.toString(i))]++;
+			int h=hash.calculate(Integer.toString(i));
+			bucket[h]++;
+			List<Integer> list=hashed.get(h);
+			if(list==null){
+				list=new ArrayList<>();
+				hashed.put(h, list);
+			}
+			list.add(i);
 		}
 		System.out.println(c+"   "+total);
 		double d=0;
 		c=0;
-		System.out.println("bucket   ratio");
+		int idx=0;
+		System.out.println("index    bucket   ratio");
 		for(int i:bucket){
 			d+=i/(double)total;
 			c+=i;
-			System.out.println(i+"   "+(i/(double)total));
+			System.out.println(idx+++"  "+i+"   "+(i/(double)total));
 		}
 		System.out.println(d+"  "+c);
 		
@@ -222,5 +234,33 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		props.clear();
 		props.load(new ByteArrayInputStream(out.toByteArray()));
 		System.out.println(props);
+		System.out.println("****************************************************");
+		rehashTest(hashed.get(0));
+	}
+	private static void rehashTest(List<Integer> partition){
+		PartitionByMurmurHash hash=new PartitionByMurmurHash();
+		hash.count=12;//分片数
+		hash.init();
+		
+		int[] bucket=new int[hash.count];
+		
+		int total=partition.size();//数据量
+		int c=0;
+		for(int i:partition){//假设分片键从100万开始
+			c++;
+			int h=hash.calculate(Integer.toString(i));
+			bucket[h]++;
+		}
+		System.out.println(c+"   "+total);
+		c=0;
+		int idx=0;
+		System.out.println("index    bucket   ratio");
+		for(int i:bucket){
+			c+=i;
+			System.out.println(idx+++"  "+i+"   "+(i/(double)total));
+		}
+	}
+	public static void main(String[] args) throws IOException {
+		hashTest();
 	}
 }
