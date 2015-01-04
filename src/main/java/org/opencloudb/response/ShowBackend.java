@@ -31,6 +31,7 @@ import org.opencloudb.config.Fields;
 import org.opencloudb.manager.ManagerConnection;
 import org.opencloudb.mysql.PacketUtil;
 import org.opencloudb.mysql.nio.MySQLConnection;
+import org.opencloudb.net.AbstractConnection;
 import org.opencloudb.net.BackendAIOConnection;
 import org.opencloudb.net.NIOProcessor;
 import org.opencloudb.net.mysql.EOFPacket;
@@ -49,7 +50,7 @@ import org.opencloudb.util.TimeUtil;
  */
 public class ShowBackend {
 
-	private static final int FIELD_COUNT = 15;
+	private static final int FIELD_COUNT = 16;
 	private static final ResultSetHeaderPacket header = PacketUtil
 			.getHeader(FIELD_COUNT);
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
@@ -79,14 +80,17 @@ public class ShowBackend {
 		fields[i++].packetId = ++packetId;
 		fields[i] = PacketUtil.getField("closed", Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
-//		fields[i] = PacketUtil.getField("run", Fields.FIELD_TYPE_VAR_STRING);
-//		fields[i++].packetId = ++packetId;
+		// fields[i] = PacketUtil.getField("run", Fields.FIELD_TYPE_VAR_STRING);
+		// fields[i++].packetId = ++packetId;
 		fields[i] = PacketUtil.getField("borrowed",
 				Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
 		fields[i] = PacketUtil.getField("SEND_QUEUE", Fields.FIELD_TYPE_LONG);
 		fields[i++].packetId = ++packetId;
 		fields[i] = PacketUtil.getField("schema", Fields.FIELD_TYPE_VAR_STRING);
+		fields[i++].packetId = ++packetId;
+		fields[i] = PacketUtil
+				.getField("charset", Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
 		fields[i] = PacketUtil
 				.getField("txlevel", Fields.FIELD_TYPE_VAR_STRING);
@@ -130,9 +134,9 @@ public class ShowBackend {
 			row.add("N/A".getBytes());
 		}
 		row.add(LongUtil.toBytes(c.getId()));
-		long threadId=0;
+		long threadId = 0;
 		if (c instanceof MySQLConnection) {
-			threadId=((MySQLConnection)c).getThreadId();
+			threadId = ((MySQLConnection) c).getThreadId();
 		}
 		row.add(LongUtil.toBytes(threadId));
 		row.add(StringUtil.encode(c.getHost(), charset));
@@ -143,23 +147,27 @@ public class ShowBackend {
 		row.add(LongUtil.toBytes((TimeUtil.currentTimeMillis() - c
 				.getStartupTime()) / 1000L));
 		row.add(c.isClosed() ? "true".getBytes() : "false".getBytes());
-//		boolean isRunning = c.isRunning();
-//		row.add(isRunning ? "true".getBytes() : "false".getBytes());
-		boolean isBorrowed=c.isBorrowed();
+		// boolean isRunning = c.isRunning();
+		// row.add(isRunning ? "true".getBytes() : "false".getBytes());
+		boolean isBorrowed = c.isBorrowed();
 		row.add(isBorrowed ? "true".getBytes() : "false".getBytes());
-		int writeQueueSize=0;
-		String schema="";
-		String txLevel="";
-		String txAutommit="";
+		int writeQueueSize = 0;
+		String schema = "";
+		String charsetInf = "";
+		String txLevel = "";
+		String txAutommit = "";
+
 		if (c instanceof MySQLConnection) {
-			MySQLConnection mysqlC=(MySQLConnection) c;
-			writeQueueSize=mysqlC.getWriteQueue().size();
-			schema=mysqlC.getSchema();
-			txLevel=mysqlC.getTxIsolation()+"";
-			txAutommit=mysqlC.isAutocommit()+"";
+			MySQLConnection mysqlC = (MySQLConnection) c;
+			writeQueueSize = mysqlC.getWriteQueue().size();
+			schema = mysqlC.getSchema();
+			charsetInf = mysqlC.getCharset() + ":" + mysqlC.getCharsetIndex();
+			txLevel = mysqlC.getTxIsolation() + "";
+			txAutommit = mysqlC.isAutocommit() + "";
 		}
 		row.add(IntegerUtil.toBytes(writeQueueSize));
 		row.add(schema.getBytes());
+		row.add(charsetInf.getBytes());
 		row.add(txLevel.getBytes());
 		row.add(txAutommit.getBytes());
 		return row;

@@ -30,7 +30,7 @@ import java.util.Map;
  * @author mycat
  */
 public class CharsetUtil {
-    private static final String[] INDEX_TO_CHARSET = new String[99];
+    private static final String[] INDEX_TO_CHARSET = new String[100];//add utf8mb4
     private static final Map<String, Integer> CHARSET_TO_INDEX = new HashMap<String, Integer>();
     static {
         // index --> charset
@@ -125,6 +125,7 @@ public class CharsetUtil {
         INDEX_TO_CHARSET[96] = "cp932";
         INDEX_TO_CHARSET[97] = "eucjpms";
         INDEX_TO_CHARSET[98] = "eucjpms";
+        INDEX_TO_CHARSET[99] = "utf8mb4";
 
         // charset --> index
         for (int i = 0; i < INDEX_TO_CHARSET.length; i++) {

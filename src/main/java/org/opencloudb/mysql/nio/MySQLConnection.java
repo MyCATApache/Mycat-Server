@@ -140,6 +140,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	private volatile StatusSync statusSync;
 	private volatile boolean metaDataSyned = true;
 
+
 	public MySQLConnection(NetworkChannel channel, boolean fromSlaveDB) {
 		super(channel);
 		this.clientFlags = CLIENT_FLAGS;
@@ -172,6 +173,7 @@ public class MySQLConnection extends BackendAIOConnection {
 			this.schema = newSchema;
 		}
 	}
+
 
 	public MySQLDataSource getPool() {
 		return pool;
@@ -226,7 +228,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		packet.packetId = 1;
 		packet.clientFlags = clientFlags;
 		packet.maxPacketSize = maxPacketSize;
-		packet.charsetIndex = CharsetUtil.getIndex(charset);
+		packet.charsetIndex = this.charsetIndex;
 		packet.user = user;
 		try {
 			packet.password = passwd(password, handshake);
@@ -266,8 +268,8 @@ public class MySQLConnection extends BackendAIOConnection {
 		packet.write(this);
 	}
 
-	private static void getCharsetCommand(StringBuilder sb, String charset) {
-		sb.append("SET names ").append(charset).append(";");
+	private static void getCharsetCommand(StringBuilder sb, int clientCharIndex) {
+		sb.append("SET names ").append(CharsetUtil.getCharset(clientCharIndex)).append(";");
 	}
 
 	private static void getTxIsolationCommand(StringBuilder sb, int txIsolation) {
@@ -299,16 +301,16 @@ public class MySQLConnection extends BackendAIOConnection {
 
 	private static class StatusSync {
 		private final String schema;
-		private final String charset;
+		private final Integer charsetIndex;
 		private final Integer txtIsolation;
 		private final Boolean autocommit;
 		private final AtomicInteger synCmdCount;
 
-		public StatusSync(String schema, String charset, Integer txtIsolation,
+		public StatusSync(String schema, Integer charsetIndex, Integer txtIsolation,
 				Boolean autocommit, int synCount) {
 			super();
 			this.schema = schema;
-			this.charset = charset;
+			this.charsetIndex = charsetIndex;
 			this.txtIsolation = txtIsolation;
 			this.autocommit = autocommit;
 			this.synCmdCount = new AtomicInteger(synCount);
@@ -333,8 +335,8 @@ public class MySQLConnection extends BackendAIOConnection {
 				conn.schema = schema;
 				conn.oldSchema = conn.schema;
 			}
-			if (charset != null) {
-				conn.setCharset(charset);
+			if (charsetIndex != null) {
+				conn.setCharset(CharsetUtil.getCharset(charsetIndex));
 			}
 			if (txtIsolation != null) {
 				conn.txIsolation = txtIsolation;
@@ -369,10 +371,10 @@ public class MySQLConnection extends BackendAIOConnection {
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
-		synAndDoExecute(rrn, sc.getCharset(), sc.getTxIsolation(), autocommit);
+		synAndDoExecute(rrn, sc.getCharsetIndex(), sc.getTxIsolation(), autocommit);
 	}
 
-	private void synAndDoExecute(RouteResultsetNode rrn, String clientCharSet,
+	private void synAndDoExecute(RouteResultsetNode rrn, int clientCharSetIndex,
 			int clientTxIsoLation, boolean clientAutoCommit) {
 		boolean conAutoComit = this.autocommit;
 		String conSchema = this.schema;
@@ -380,7 +382,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB()
 				|| clientAutoCommit;
 		int schemaSyn = conSchema.equals(oldSchema) ? 0 : 1;
-		int charsetSyn = (this.charset == clientCharSet) ? 0 : 1;
+		int charsetSyn = (this.charsetIndex== clientCharSetIndex) ? 0 : 1;
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
 		int autoCommitSyn = (conAutoComit == expectAutocommit) ? 0 : 1;
 		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn;
@@ -397,7 +399,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		}
 
 		if (charsetSyn == 1) {
-			getCharsetCommand(sb, clientCharSet);
+			getCharsetCommand(sb, clientCharSetIndex);
 		}
 		if (txIsoLationSyn == 1) {
 			getTxIsolationCommand(sb, clientTxIsoLation);
@@ -412,7 +414,7 @@ public class MySQLConnection extends BackendAIOConnection {
 					+ (schemaCmd != null) + " con:" + this);
 		}
 		metaDataSyned = false;
-		statusSync = new StatusSync(conSchema, clientCharSet,
+		statusSync = new StatusSync(conSchema, clientCharSetIndex,
 				clientTxIsoLation, expectAutocommit, synCount);
 		// syn schema
 		if (schemaCmd != null) {
@@ -444,7 +446,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		RouteResultsetNode rrn = new RouteResultsetNode("default",
 				ServerParse.SELECT, query);
 
-		synAndDoExecute(rrn, this.charset, this.txIsolation, true);
+		synAndDoExecute(rrn, this.charsetIndex, this.txIsolation, true);
 
 	}
 

@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.util.TimeUtil;
 
 /**
@@ -42,6 +43,7 @@ public abstract class AbstractConnection implements NIOConnection {
 	protected int port;
 	protected long id;
 	protected volatile String charset;
+	protected volatile int charsetIndex;
 	protected static final Logger LOGGER = Logger
 			.getLogger(AbstractConnection.class);
 	protected final NetworkChannel channel;
@@ -87,8 +89,18 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	public boolean setCharset(String charset) {
-		this.charset = charset;
-		return true;
+		int ci = CharsetUtil.getIndex(charset);
+		if (ci > 0) {
+			this.charset = charset.equalsIgnoreCase("utf8mb4")?"utf8":charset;
+			this.charsetIndex = ci;
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public int getCharsetIndex() {
+		return charsetIndex;
 	}
 
 	public long getIdleTimeout() {
