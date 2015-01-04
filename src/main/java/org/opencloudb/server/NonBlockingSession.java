@@ -73,6 +73,7 @@ public class NonBlockingSession implements Session {
 	private volatile RollbackNodeHandler rollbackHandler;
 	private final MultiNodeCoordinator multiNodeCoordinator;
 	private final CommitNodeHandler commitHandler;
+	private volatile String xaTXID;
 
 	public NonBlockingSession(ServerConnection source) {
 		this.source = source;
@@ -151,8 +152,8 @@ public class NonBlockingSession implements Session {
 						autocommit, this, dataMergeSvr);
 			} else {
 
-				multiNodeHandler = new MultiNodeQueryHandler(type,rrs, autocommit,
-						this);
+				multiNodeHandler = new MultiNodeQueryHandler(type, rrs,
+						autocommit, this);
 			}
 			try {
 				multiNodeHandler.execute();
@@ -380,6 +381,24 @@ public class NonBlockingSession implements Session {
 
 	public boolean closed() {
 		return source.isClosed();
+	}
+
+	private String genXATXID() {
+		return MycatServer.getInstance().genXATXID();
+	}
+
+	public void setXATXEnabled(boolean xaTXEnabled) {
+
+		LOGGER.info("XA Transaction enabled ,con " + this.getSource());
+		if (xaTXEnabled && this.xaTXID == null) {
+			xaTXID = genXATXID();
+
+		}
+
+	}
+
+	public String getXaTXID() {
+		return xaTXID;
 	}
 
 }

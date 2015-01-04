@@ -33,7 +33,8 @@ import static org.opencloudb.server.parser.ServerParseSet.TX_READ_COMMITTED;
 import static org.opencloudb.server.parser.ServerParseSet.TX_READ_UNCOMMITTED;
 import static org.opencloudb.server.parser.ServerParseSet.TX_REPEATED_READ;
 import static org.opencloudb.server.parser.ServerParseSet.TX_SERIALIZABLE;
-
+import static org.opencloudb.server.parser.ServerParseSet.XA_FLAG_ON;
+import static org.opencloudb.server.parser.ServerParseSet.XA_FLAG_OFF;
 import org.apache.log4j.Logger;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.Isolations;
@@ -49,66 +50,84 @@ import org.opencloudb.server.response.CharacterSet;
  */
 public final class SetHandler {
 
-    private static final Logger logger = Logger.getLogger(SetHandler.class);
-    private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 };
+	private static final Logger logger = Logger.getLogger(SetHandler.class);
+	private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0,
+			0, 0, 0 };
 
-    public static void handle(String stmt, ServerConnection c, int offset) {
-    	//System.out.println("SetHandler: "+stmt);
-        int rs = ServerParseSet.parse(stmt, offset);
-        switch (rs & 0xff) {
-        case AUTOCOMMIT_ON:
-            if (c.isAutocommit()) {
-                c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
-            } else {
-                c.commit();
-                c.setAutocommit(true);
-            }
-            break;
-        case AUTOCOMMIT_OFF: {
-            if (c.isAutocommit()) {
-                c.setAutocommit(false);
-            }
-            c.write(c.writeToBuffer(AC_OFF, c.allocate()));
-            break;
-        }
-        case TX_READ_UNCOMMITTED: {
-            c.setTxIsolation(Isolations.READ_UNCOMMITTED);
-            c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
-            break;
-        }
-        case TX_READ_COMMITTED: {
-            c.setTxIsolation(Isolations.READ_COMMITTED);
-            c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
-            break;
-        }
-        case TX_REPEATED_READ: {
-            c.setTxIsolation(Isolations.REPEATED_READ);
-            c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
-            break;
-        }
-        case TX_SERIALIZABLE: {
-            c.setTxIsolation(Isolations.SERIALIZABLE);
-            c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
-            break;
-        }
-        case NAMES:
-            String charset = stmt.substring(rs >>> 8).trim();
-            if (c.setCharset(charset)) {
-                c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
-            } else {
-                c.writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
-            }
-            break;
-        case CHARACTER_SET_CLIENT:
-        case CHARACTER_SET_CONNECTION:
-        case CHARACTER_SET_RESULTS:
-            CharacterSet.response(stmt, c, rs);
-            break;
-        default:
-            StringBuilder s = new StringBuilder();
-            logger.warn(s.append(c).append(stmt).append(" is not recoginized and ignored").toString());
-            c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
-        }
-    }
+	public static void handle(String stmt, ServerConnection c, int offset) {
+		// System.out.println("SetHandler: "+stmt);
+		int rs = ServerParseSet.parse(stmt, offset);
+		switch (rs & 0xff) {
+		case AUTOCOMMIT_ON:
+			if (c.isAutocommit()) {
+				c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+			} else {
+				c.commit();
+				c.setAutocommit(true);
+			}
+			break;
+		case AUTOCOMMIT_OFF: {
+			if (c.isAutocommit()) {
+				c.setAutocommit(false);
+			}
+			c.write(c.writeToBuffer(AC_OFF, c.allocate()));
+			break;
+		}
+		case XA_FLAG_ON: {
+			if (c.isAutocommit()) {
+				c.writeErrMessage(ErrorCode.ERR_WRONG_USED,
+						"set xa cmd on can't used in autocommit connection ");
+				return;
+			}
+			c.getSession2().setXATXEnabled(true);
+			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+			break;
+		}
+		case XA_FLAG_OFF: {
+			c.writeErrMessage(ErrorCode.ERR_WRONG_USED,
+					"set xa cmd off not for external use ");
+			return;
+		}
+		case TX_READ_UNCOMMITTED: {
+			c.setTxIsolation(Isolations.READ_UNCOMMITTED);
+			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+			break;
+		}
+		case TX_READ_COMMITTED: {
+			c.setTxIsolation(Isolations.READ_COMMITTED);
+			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+			break;
+		}
+		case TX_REPEATED_READ: {
+			c.setTxIsolation(Isolations.REPEATED_READ);
+			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+			break;
+		}
+		case TX_SERIALIZABLE: {
+			c.setTxIsolation(Isolations.SERIALIZABLE);
+			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+			break;
+		}
+		case NAMES:
+			String charset = stmt.substring(rs >>> 8).trim();
+			if (c.setCharset(charset)) {
+				c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+			} else {
+				c.writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET,
+						"Unknown charset '" + charset + "'");
+			}
+			break;
+		case CHARACTER_SET_CLIENT:
+		case CHARACTER_SET_CONNECTION:
+		case CHARACTER_SET_RESULTS:
+			CharacterSet.response(stmt, c, rs);
+			break;
+		default:
+			StringBuilder s = new StringBuilder();
+			logger.warn(s.append(c).append(stmt)
+					.append(" is not recoginized and ignored").toString());
+			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+		}
+	}
 
 }
