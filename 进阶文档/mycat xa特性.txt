@@ -1,0 +1,11 @@
+在手动事务模式下，可以执行  set xa=on开启XA事务支持
+目前实现了不跨分片的SQL的XA事务，测试过程如下
+mysql> set autocommit=0;
+Query OK, 0 rows affected (0.00 sec)
+mysql>  set xa=on;
+Query OK, 0 rows affected (0.00 sec)
+mysql> update travelrecord set days=3 where id=1;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 0  Warnings: 0
+mysql> commit;
+Query OK, 0 rows affected (0.00 sec)
