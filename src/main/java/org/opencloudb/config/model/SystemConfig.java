@@ -109,6 +109,7 @@ public final class SystemConfig {
 	private int usingAIO = 0;
 	private int packetHeaderSize = 4;
 	private int maxPacketSize = 16 * 1024 * 1024;
+	private int mycatNodeId=1;
 
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
@@ -501,6 +502,14 @@ public final class SystemConfig {
 		this.usingAIO = usingAIO;
 	}
 
+	public int getMycatNodeId() {
+		return mycatNodeId;
+	}
+
+	public void setMycatNodeId(int mycatNodeId) {
+		this.mycatNodeId = mycatNodeId;
+	}
+
 	@Override
 	public String toString() {
 		return "SystemConfig [processorBufferLocalPercent="
@@ -518,6 +527,7 @@ public final class SystemConfig {
 				+ ", processorExecutor=" + processorExecutor
 				+ ", timerExecutor=" + timerExecutor + ", managerExecutor="
 				+ managerExecutor + ", idleTimeout=" + idleTimeout
+				+ ", catletClassCheckSeconds=" + catletClassCheckSeconds
 				+ ", sqlExecuteTimeout=" + sqlExecuteTimeout
 				+ ", processorCheckPeriod=" + processorCheckPeriod
 				+ ", dataNodeIdleCheckPeriod=" + dataNodeIdleCheckPeriod
@@ -537,7 +547,10 @@ public final class SystemConfig {
 				+ mutiNodeLimitType + ", mutiNodePatchSize="
 				+ mutiNodePatchSize + ", defaultSqlParser=" + defaultSqlParser
 				+ ", usingAIO=" + usingAIO + ", packetHeaderSize="
-				+ packetHeaderSize + ", maxPacketSize=" + maxPacketSize + "]";
+				+ packetHeaderSize + ", maxPacketSize=" + maxPacketSize
+				+ ", mycatNodeId=" + mycatNodeId + "]";
 	}
+
+	
 
 }

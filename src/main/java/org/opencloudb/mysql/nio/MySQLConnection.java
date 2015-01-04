@@ -59,6 +59,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	private volatile String oldSchema;
 	private volatile boolean borrowed = false;
 	private volatile boolean modifiedSQLExecuted = false;
+	private volatile int batchCmdCount = 0;
 
 	private static long initClientFlags() {
 		int flag = 0;
@@ -139,7 +140,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	private final AtomicBoolean isQuit;
 	private volatile StatusSync statusSync;
 	private volatile boolean metaDataSyned = true;
-
+	private volatile int xaStatus = 0;
 
 	public MySQLConnection(NetworkChannel channel, boolean fromSlaveDB) {
 		super(channel);
@@ -148,6 +149,14 @@ public class MySQLConnection extends BackendAIOConnection {
 		this.isQuit = new AtomicBoolean(false);
 		this.autocommit = true;
 		this.fromSlaveDB = fromSlaveDB;
+	}
+
+	public int getXaStatus() {
+		return xaStatus;
+	}
+
+	public void setXaStatus(int xaStatus) {
+		this.xaStatus = xaStatus;
 	}
 
 	public void onConnectFailed(Throwable t) {
@@ -173,7 +182,6 @@ public class MySQLConnection extends BackendAIOConnection {
 			this.schema = newSchema;
 		}
 	}
-
 
 	public MySQLDataSource getPool() {
 		return pool;
@@ -269,7 +277,8 @@ public class MySQLConnection extends BackendAIOConnection {
 	}
 
 	private static void getCharsetCommand(StringBuilder sb, int clientCharIndex) {
-		sb.append("SET names ").append(CharsetUtil.getCharset(clientCharIndex)).append(";");
+		sb.append("SET names ").append(CharsetUtil.getCharset(clientCharIndex))
+				.append(";");
 	}
 
 	private static void getTxIsolationCommand(StringBuilder sb, int txIsolation) {
@@ -305,10 +314,13 @@ public class MySQLConnection extends BackendAIOConnection {
 		private final Integer txtIsolation;
 		private final Boolean autocommit;
 		private final AtomicInteger synCmdCount;
+		private final boolean xaStarted;
 
-		public StatusSync(String schema, Integer charsetIndex, Integer txtIsolation,
-				Boolean autocommit, int synCount) {
+		public StatusSync(boolean xaStarted, String schema,
+				Integer charsetIndex, Integer txtIsolation, Boolean autocommit,
+				int synCount) {
 			super();
+			this.xaStarted = xaStarted;
 			this.schema = schema;
 			this.charsetIndex = charsetIndex;
 			this.txtIsolation = txtIsolation;
@@ -331,6 +343,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		private void updateConnectionInfo(MySQLConnection conn)
 
 		{
+			conn.xaStatus = (xaStarted == true) ? 1 : 0;
 			if (schema != null) {
 				conn.schema = schema;
 				conn.oldSchema = conn.schema;
@@ -371,18 +384,28 @@ public class MySQLConnection extends BackendAIOConnection {
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
-		synAndDoExecute(rrn, sc.getCharsetIndex(), sc.getTxIsolation(), autocommit);
+		String xaTXID = sc.getSession2().getXaTXID();
+		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(),
+				autocommit);
 	}
 
-	private void synAndDoExecute(RouteResultsetNode rrn, int clientCharSetIndex,
-			int clientTxIsoLation, boolean clientAutoCommit) {
+	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn,
+			int clientCharSetIndex, int clientTxIsoLation,
+			boolean clientAutoCommit) {
+		String xaCmd = null;
+
 		boolean conAutoComit = this.autocommit;
 		String conSchema = this.schema;
 		// never executed modify sql,so auto commit
 		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB()
 				|| clientAutoCommit;
+		if (expectAutocommit == false && xaTxID != null && xaStatus == 0) {
+			clientTxIsoLation = Isolations.SERIALIZABLE;
+			xaCmd = "XA START " + xaTxID + ';';
+
+		}
 		int schemaSyn = conSchema.equals(oldSchema) ? 0 : 1;
-		int charsetSyn = (this.charsetIndex== clientCharSetIndex) ? 0 : 1;
+		int charsetSyn = (this.charsetIndex == clientCharSetIndex) ? 0 : 1;
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
 		int autoCommitSyn = (conAutoComit == expectAutocommit) ? 0 : 1;
 		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn;
@@ -407,15 +430,18 @@ public class MySQLConnection extends BackendAIOConnection {
 		if (autoCommitSyn == 1) {
 			getAutocommitCommand(sb, expectAutocommit);
 		}
-
+		if (xaCmd != null) {
+			sb.append(xaCmd);
+		}
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("con need syn ,total syn cmd " + synCount
 					+ " commands " + sb.toString() + "schema change:"
 					+ (schemaCmd != null) + " con:" + this);
 		}
 		metaDataSyned = false;
-		statusSync = new StatusSync(conSchema, clientCharSetIndex,
-				clientTxIsoLation, expectAutocommit, synCount);
+		statusSync = new StatusSync(xaCmd != null, conSchema,
+				clientCharSetIndex, clientTxIsoLation, expectAutocommit,
+				synCount);
 		// syn schema
 		if (schemaCmd != null) {
 			schemaCmd.write(this);
@@ -446,7 +472,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		RouteResultsetNode rrn = new RouteResultsetNode("default",
 				ServerParse.SELECT, query);
 
-		synAndDoExecute(rrn, this.charsetIndex, this.txIsolation, true);
+		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
 
 	}
 
@@ -484,8 +510,28 @@ public class MySQLConnection extends BackendAIOConnection {
 	}
 
 	public void commit() {
+
 		_COMMIT.write(this);
 
+	}
+
+	public boolean batchCmdFinished() {
+		batchCmdCount--;
+		return (batchCmdCount == 0);
+	}
+
+	public void execCmd(String cmd) {
+		this.sendQueryCmd(cmd);
+	}
+
+	public void execBatchCmd(String[] batchCmds) {
+		// "XA END "+xaID+";"+"XA PREPARE "+xaID
+		this.batchCmdCount = batchCmds.length;
+		StringBuilder sb = new StringBuilder();
+		for (String sql : batchCmds) {
+			sb.append(sql).append(';');
+		}
+		this.sendQueryCmd(sb.toString());
 	}
 
 	public void rollback() {

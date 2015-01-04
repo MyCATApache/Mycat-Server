@@ -80,6 +80,9 @@ public class MultiNodeCoordinator implements ResponseHandler {
 		if (this.cmdHandler.releaseConOnErr()) {
 			session.releaseConnection(conn);
 		} else {
+			
+			
+			
 			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
 					false);
 		}
