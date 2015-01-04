@@ -23,6 +23,7 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
 //import java.util.HashMap;
 import java.util.Map;
@@ -40,27 +41,88 @@ public class MongoResultSet implements ResultSet
 	 int _row = 0;
 	 boolean _closed = false;
 	 private String[] select;
-	 
-	public MongoResultSet(DBCursor cursor) {
+	 private int[] fieldtype;
+	 private String _schema;
+	 private boolean isnext=false;
+	public MongoResultSet(DBCursor cursor,String schema) throws SQLException {
 	    this._cursor = cursor;
+	    this._schema = schema;
 	    select = (String[]) cursor.getKeysWanted().keySet().toArray(new String[0]);
-	    if ( this._cursor.hasNext()){
-	      _cur= cursor.next(); 
-	      if (_cur!=null){
-	    	 SetFields(_cur.keySet());	
-	        _row=1;
-	      }
-	    }  
+	    //if (select.length==0) {
+	      if ( this._cursor.hasNext()){
+	        _cur= cursor.next(); 
+	        if (_cur!=null) {
+	           if (select.length==0) {
+	    	      SetFields(_cur.keySet());
+	           }
+	    	   isnext=true;
+	          _row=1;
+	         }
+	      }  
+	   // }
 	   if (select.length==0){
 		   select =new String[]{"_id"};
+		   SetFieldType(true);
 	   }
-		   
+	   else {
+		   SetFieldType(false);
+	   }
+	  	   
 	}
 	
 	public void SetFields(Set<String> keySet) {		
 		this.select = new String[keySet.size()];
 		this.select = keySet.toArray(this.select);
+
 	}
+	public void SetFieldType(boolean isid) throws SQLException {
+		if (isid) {
+		  fieldtype= new int[Types.VARCHAR];
+		}
+		else fieldtype= new int[this.select.length];
+		
+		if (_cur!=null) {
+		  for (int i=0;i<this.select.length;i++){
+			Object ob=this.getObject(i+1);
+			if (ob instanceof Integer) {
+				fieldtype[i]=Types.INTEGER;
+			}
+			else if (ob instanceof Boolean) {
+				fieldtype[i]=Types.BOOLEAN;
+			}
+			else if (ob instanceof Byte) {
+				fieldtype[i]=Types.BIT;
+			}	
+			else if (ob instanceof Short) {
+				fieldtype[i]=Types.INTEGER;
+			}	
+			else if (ob instanceof Float) {
+				fieldtype[i]=Types.FLOAT;
+			}			
+			else if (ob instanceof Long) {
+				fieldtype[i]=Types.BIGINT;
+			}
+			else if (ob instanceof Double) {
+				fieldtype[i]=Types.DOUBLE;
+			}			
+			else if (ob instanceof Date) {
+				fieldtype[i]=Types.DATE;
+			}	
+			else if (ob instanceof Time) {
+				fieldtype[i]=Types.TIME;
+			}	
+			else if (ob instanceof Timestamp) {
+				fieldtype[i]=Types.TIMESTAMP;
+			}
+			else if (ob instanceof String) {
+				fieldtype[i]=Types.VARCHAR;
+			}			
+			else  {
+				fieldtype[i]=Types.VARCHAR;
+			}
+		  }	
+		}
+	}	
 	
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
@@ -77,21 +139,30 @@ public class MongoResultSet implements ResultSet
 	@Override
 	public boolean next() throws SQLException {
 		// TODO Auto-generated method stub
-	    if (! this._cursor.hasNext()) {
-	    	if (_row==1){
-	    		_row++;	
-	    		return true;
-	    	}
-	    	else
-	    		return false;
-	    }
-	    else {
-	      if (_row!=1){
-	    	  this._cur = this._cursor.next(); 
-	      }  
-	      _row++;
-	      return true;
-	    }
+		if (! isnext){
+			if (! this._cursor.hasNext()) return false;
+			else {
+				this._cur = this._cursor.next();
+			    return true;
+			}
+		}
+		else {
+			if (! this._cursor.hasNext()) {
+	    	   if (_row==1) {
+	    		  _row++;	
+	    		  return true;
+	    	   }
+	    	   else
+	    		  return false;
+	        }
+	        else {
+	           if (_row!=1){
+	    	     this._cur = this._cursor.next(); 
+	           }  
+	           _row++;
+	           return true;
+	        }
+		}
 	}
 
 	@Override
@@ -340,12 +411,15 @@ public class MongoResultSet implements ResultSet
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		// TODO Auto-generated method stub
+		return new MongoResultSetMetaData(select,fieldtype,this._schema);
+		/*
 	 	if(_cur !=null){
-	 		return new MongoResultSetMetaData(_cur.keySet());  
+	 		return new MongoResultSetMetaData(_cur.keySet(),this._schema);  
 	     }
 	 	 else{ 		
-	 		return new MongoResultSetMetaData(select); 
+	 		return new MongoResultSetMetaData(select,this._schema); 
 	     } 		
+	     */
 	}
 
 	@Override

@@ -52,7 +52,7 @@ public class MongoStatement implements Statement
 
 	@Override
 	public ResultSet executeQuery(String sql) throws SQLException {
-		// TODO Auto-generated method stub  Executor
+		// TODO Auto-generated method stub  
         DBCursor cursor = new MongoSQLParser(this._conn.getDB(), sql).query();
         if (this._fetchSize > 0)
             cursor.batchSize(this._fetchSize);
@@ -60,14 +60,13 @@ public class MongoStatement implements Statement
         {
             cursor.limit(this._maxRows);
         }
-        this._last = new MongoResultSet(cursor);
+        this._last = new MongoResultSet(cursor,this._conn.getSchema());
 		return this._last;
 	}
     
 	@Override
 	public int executeUpdate(String sql) throws SQLException {
 		// 执行更新语句
-		//return new Executor(this._conn.getDB(), sql).writeop();
 		return new MongoSQLParser(this._conn.getDB(), sql).executeUpdate();
 	}
 
