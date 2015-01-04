@@ -106,9 +106,8 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 	}
 
 	private void processHandShakePacket(byte[] data) {
-		HandshakePacket packet;
 		// 设置握手数据包
-		packet = new HandshakePacket();
+		HandshakePacket packet= new HandshakePacket();
 		packet.read(data);
 		source.setHandshake(packet);
 		source.setThreadId(packet.threadId);

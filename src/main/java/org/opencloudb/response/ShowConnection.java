@@ -154,7 +154,7 @@ public final class ShowConnection {
 		row.add(IntegerUtil.toBytes(c.getPort()));
 		row.add(IntegerUtil.toBytes(c.getLocalPort()));
 		row.add(StringUtil.encode(c.getSchema(), charset));
-		row.add(StringUtil.encode(c.getCharset(), charset));
+		row.add(StringUtil.encode(c.getCharset()+":"+c.getCharsetIndex(), charset));
 		row.add(LongUtil.toBytes(c.getNetInBytes()));
 		row.add(LongUtil.toBytes(c.getNetOutBytes()));
 		row.add(LongUtil.toBytes((TimeUtil.currentTimeMillis() - c
