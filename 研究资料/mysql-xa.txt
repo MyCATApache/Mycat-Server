@@ -1,0 +1,24 @@
+13.4.7.2. XA事务状态
+XA事务在以下状态下进展：
+1.    使用XA START来启动一个XA事务，并把它放入ACTIVE状态。
+2.    对于一个ACTIVE XA事务，发布构成事务的SQL语句，然后发布一个XA END语句。XA END把事务放入IDLE状态。
+3.    对于一个IDLE XA事务，您可以发布一个XA PREPARE语句或一个XA COMMIT…ONE PHASE语句：
+·         XA PREPARE把事务放入PREPARED状态。在此点上的XA RECOVER语句将在其输出中包括事务的xid值，因为XA RECOVER会列出处于PREPARED状态的所有XA事务。
+·         XA COMMIT…ONE PHASE用于预备和提交事务。xid值将不会被XA RECOVER列出，因为事务终止。
+4.    对于一个PREPARED XA事务，您可以发布一个XA COMMIT语句来提交和终止事务，或者发布XA ROLLBACK来回滚并终止事务。
+下面是一个简单的XA事务，该事务把一行作为一个全局事务的一部分插入一个表中。
+mysql> XA START 'xatest';
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql> INSERT INTO mytable (i) VALUES(10);
+Query OK, 1 row affected (0.04 sec)
+ 
+mysql> XA END 'xatest';
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql> XA PREPARE 'xatest';
+Query OK, 0 rows affected (0.00 sec)
+ 
+mysql> XA COMMIT 'xatest';
+Query OK, 0 rows affected (0.00 sec)
+根据一个给定的客户端连接的语境，XA事务和本地（非XA）事务互相排斥。举例说明，如果已经发布了XA START来开始一项XA事务，则本地事务不会被启动，直到XA事务已经被提交或被 回滚为止。相反的，如果已经使用START TRANSACTION启动一个本地事务，则XA语句不能被使用，直到该事务被提交或被 回滚为止。
