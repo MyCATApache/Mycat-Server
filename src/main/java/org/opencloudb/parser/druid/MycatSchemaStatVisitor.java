@@ -141,21 +141,20 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 
         switch (x.getOperator()) {
             case Equality:
-            case NotEqual:
-            case GreaterThan:
-            case GreaterThanOrEqual:
-            case LessThan:
-            case LessThanOrEqual:
             case LessThanOrEqualOrGreaterThan:
             case Is:
             case IsNot:
                 handleCondition(x.getLeft(), x.getOperator().name, x.getRight());
                 handleCondition(x.getRight(), x.getOperator().name, x.getLeft());
-
                 handleRelationship(x.getLeft(), x.getOperator().name, x.getRight());
                 break;
             case Like:
             case NotLike:
+            case NotEqual:
+            case GreaterThan:
+            case GreaterThanOrEqual:
+            case LessThan:
+            case LessThanOrEqual:
             default:
                 break;
         }
