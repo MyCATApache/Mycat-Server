@@ -108,7 +108,7 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 		
 		int total=partition.size();//数据量
 		int c=0;
-		for(int i:partition){//假设分片键从100万开始
+		for(int i:partition){
 			c++;
 			int h=hash.calculate(Integer.toString(i));
 			bucket[h]++;
