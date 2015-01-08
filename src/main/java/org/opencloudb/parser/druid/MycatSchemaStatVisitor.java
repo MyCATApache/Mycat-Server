@@ -108,24 +108,28 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         if(expr instanceof SQLBetweenExpr) {
         	SQLBetweenExpr betweenExpr = (SQLBetweenExpr)expr;
         	
-        	String tableName = ((SQLIdentifierExpr)((SQLPropertyExpr) betweenExpr.getTestExpr()).getOwner()).getName();
-            String column = ((SQLPropertyExpr) betweenExpr.getTestExpr()).getName();
+        	if(betweenExpr.getTestExpr() != null && betweenExpr.getTestExpr() instanceof SQLPropertyExpr) {
+        		String tableName = ((SQLIdentifierExpr)((SQLPropertyExpr) betweenExpr.getTestExpr()).getOwner()).getName();
+                String column = ((SQLPropertyExpr) betweenExpr.getTestExpr()).getName();
 
 
-            String table = tableName;
-            if (aliasMap.containsKey(table)) {
-                table = aliasMap.get(table);
-            }
+                String table = tableName;
+                if (aliasMap.containsKey(table)) {
+                    table = aliasMap.get(table);
+                }
 
-            if (variants.containsKey(table)) {
-                return null;
-            }
+                if (variants.containsKey(table)) {
+                    return null;
+                }
 
-            if (table != null) {
-                return new Column(table, column);
-            }
+                if (table != null) {
+                    return new Column(table, column);
+                }
 
-            return handleSubQueryColumn(tableName, column);
+                return handleSubQueryColumn(tableName, column);
+        	}
+        	
+        	
         }
         return null;
     }
