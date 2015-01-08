@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBetweenExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
@@ -132,5 +133,32 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         	
         }
         return null;
+    }
+	
+	public boolean visit(SQLBinaryOpExpr x) {
+        x.getLeft().setParent(x);
+        x.getRight().setParent(x);
+
+        switch (x.getOperator()) {
+            case Equality:
+            case NotEqual:
+            case GreaterThan:
+            case GreaterThanOrEqual:
+            case LessThan:
+            case LessThanOrEqual:
+            case LessThanOrEqualOrGreaterThan:
+            case Is:
+            case IsNot:
+                handleCondition(x.getLeft(), x.getOperator().name, x.getRight());
+                handleCondition(x.getRight(), x.getOperator().name, x.getLeft());
+
+                handleRelationship(x.getLeft(), x.getOperator().name, x.getRight());
+                break;
+            case Like:
+            case NotLike:
+            default:
+                break;
+        }
+        return true;
     }
 }
