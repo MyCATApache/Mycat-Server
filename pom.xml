@@ -14,9 +14,9 @@
 		<app.encoding>UTF-8</app.encoding>
 		<!-- maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format> 
 			<buildNumber>${maven.build.timestamp}</buildNumber -->
-        <maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
-        <version.template.file>version.txt.template</version.template.file>
-        <version.file>version.txt</version.file>
+		<maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+		<version.template.file>version.txt.template</version.template.file>
+		<version.file>version.txt</version.file>
 	</properties>
 	<scm>
 		<connection>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</connection>
@@ -24,32 +24,27 @@
 		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</url>
 	</scm>
 	<dependencies>
-		<!--
+		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
+			<version>18.0</version> </dependency> -->
 		<dependency>
-		    <groupId>com.google.guava</groupId>
-		    <artifactId>guava-parent</artifactId>
-		    <version>18.0</version>
-		</dependency>
-		-->
-  	    <dependency>
-  		   <groupId>org.mongodb</groupId>
-  		   <artifactId>mongo-java-driver</artifactId>
-  		   <version>2.11.4</version>
-  	   </dependency>		
-		<dependency>
-		    <groupId>com.google.guava</groupId>
-		    <artifactId>guava</artifactId>
-		    <version>18.0</version>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongo-java-driver</artifactId>
+			<version>2.11.4</version>
 		</dependency>
 		<dependency>
-		    <groupId>com.foundationdb</groupId>
-		    <artifactId>fdb-sql-parser</artifactId>
-		    <version>1.5.0</version>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>18.0</version>
 		</dependency>
 		<dependency>
-		     <groupId>com.alibaba</groupId>
-		     <artifactId>druid</artifactId>
-		     <version>1.0.12</version>
+			<groupId>com.foundationdb</groupId>
+			<artifactId>fdb-sql-parser</artifactId>
+			<version>1.5.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>druid</artifactId>
+			<version>1.0.12</version>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>
@@ -116,12 +111,12 @@
 					<exclude>**/.svn/**</exclude>
 				</excludes>
 			</resource>
-            <resource>
-                <directory>${basedir}</directory>
-                <includes>
-                    <include>${version.file}</include>
-                </includes>
-            </resource>
+			<resource>
+				<directory>${basedir}</directory>
+				<includes>
+					<include>${version.file}</include>
+				</includes>
+			</resource>
 		</resources>
 		<testResources>
 			<testResource>
@@ -131,50 +126,78 @@
 				</excludes>
 			</testResource>
 		</testResources>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>com.google.code.maven-replacer-plugin</groupId>
+										<artifactId>maven-replacer-plugin</artifactId>
+										<versionRange>[1.0.0,)</versionRange>
+										<goals>
+											<goal>replace</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 		<plugins>
-            <plugin>
-                <groupId>com.google.code.maven-replacer-plugin</groupId>
-                <artifactId>maven-replacer-plugin</artifactId>
-                <version>1.4.0</version>
-                <executions>
-                    <execution>
-                        <phase>process-sources</phase>
-                        <goals>
-                            <goal>replace</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <file>${version.template.file}</file>
-                    <outputFile>${version.file}</outputFile>
-                    <replacements>
-                        <replacement>
-                            <token>@buildnumber@</token>
-                            <value>${buildNumber}</value>
-                        </replacement>
-                        <replacement>
-                            <token>@buildtime@</token>
-                            <value>${maven.build.timestamp}</value>
-                        </replacement>
-                        <replacement>
-                            <token>@pomversion@</token>
-                            <value>${project.version}</value>
-                        </replacement>
-                        <replacement>
-                            <token>@giturl@</token>
-                            <value>https://github.com/MyCATApache/Mycat-Server.git</value>
-                        </replacement>
-                        <replacement>
-                            <token>@mycatsite@</token>
-                            <value>http://www.mycat.org.cn</value>
-                        </replacement>
-                        <replacement>
-                            <token>@qqgroup@</token>
-                            <value>106088787</value>
-                        </replacement>
-                    </replacements>
-                </configuration>
-            </plugin>
+			<plugin>
+				<groupId>com.google.code.maven-replacer-plugin</groupId>
+				<artifactId>maven-replacer-plugin</artifactId>
+				<version>1.4.0</version>
+				<executions>
+					<execution>
+						<phase>process-sources</phase>
+						<goals>
+							<goal>replace</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<file>${version.template.file}</file>
+					<outputFile>${version.file}</outputFile>
+					<replacements>
+						<replacement>
+							<token>@buildnumber@</token>
+							<value>${buildNumber}</value>
+						</replacement>
+						<replacement>
+							<token>@buildtime@</token>
+							<value>${maven.build.timestamp}</value>
+						</replacement>
+						<replacement>
+							<token>@pomversion@</token>
+							<value>${project.version}</value>
+						</replacement>
+						<replacement>
+							<token>@giturl@</token>
+							<value>https://github.com/MyCATApache/Mycat-Server.git</value>
+						</replacement>
+						<replacement>
+							<token>@mycatsite@</token>
+							<value>http://www.mycat.org.cn</value>
+						</replacement>
+						<replacement>
+							<token>@qqgroup@</token>
+							<value>106088787</value>
+						</replacement>
+					</replacements>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -356,22 +379,22 @@
 			</plugin>
 
 			<plugin>
-	         <groupId>org.apache.maven.plugins</groupId>
-	         <artifactId>maven-scm-plugin</artifactId>
-	            <version>1.9.2</version>
-	         <configuration>
-	          <providerImplementations>
-	              <git>jgit</git>
-	          </providerImplementations>
-	         </configuration>
-	         <dependencies>
-	          <dependency>
-	              <groupId>org.apache.maven.scm</groupId>
-	              <artifactId>maven-scm-provider-jgit</artifactId>
-	                    <version>1.9.2</version>
-	          </dependency>
-	         </dependencies>
-       </plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-scm-plugin</artifactId>
+				<version>1.9.2</version>
+				<configuration>
+					<providerImplementations>
+						<git>jgit</git>
+					</providerImplementations>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.maven.scm</groupId>
+						<artifactId>maven-scm-provider-jgit</artifactId>
+						<version>1.9.2</version>
+					</dependency>
+				</dependencies>
+			</plugin>
 
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -388,12 +411,12 @@
 				<configuration>
 					<format>{1}</format>
 					<items>
-                        <item>timestamp</item>
-                        <item>scmVersion</item>
-                    </items>
+						<item>timestamp</item>
+						<item>scmVersion</item>
+					</items>
 					<doCheck>false</doCheck>
 					<doUpdate>false</doUpdate>
-                    <timestampFormat>{0,date,yyyyMMddHHmmss}</timestampFormat>
+					<timestampFormat>{0,date,yyyyMMddHHmmss}</timestampFormat>
 					<providerImplementations>
 						<git>git</git>
 					</providerImplementations>
@@ -401,11 +424,11 @@
 				</configuration>
 				<dependencies>
 					<dependency>
-				      <groupId>org.apache.maven.scm</groupId>
-				      <artifactId>maven-scm-provider-gitexe</artifactId>
-				      <version>RELEASE</version>
-				    </dependency>  
-      				<dependency>
+						<groupId>org.apache.maven.scm</groupId>
+						<artifactId>maven-scm-provider-gitexe</artifactId>
+						<version>RELEASE</version>
+					</dependency>
+					<dependency>
 						<groupId>org.tmatesoft.svnkit</groupId>
 						<artifactId>svnkit</artifactId>
 						<version>RELEASE</version>
