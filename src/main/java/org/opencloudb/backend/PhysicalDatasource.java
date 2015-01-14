@@ -405,7 +405,7 @@ public abstract class PhysicalDatasource {
 	}
 
 	public void setHeartbeatRecoveryTime(long heartbeatRecoveryTime) {
-		this.heartbeatRecoveryTime = heartbeatRecoveryTime;
+		this.heartbeatRecoveryTime = System.currentTimeMillis() + heartbeatRecoveryTime;
 	}
 
 	public DBHostConfig getConfig() {
