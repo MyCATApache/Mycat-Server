@@ -1,17 +1,5 @@
 package org.opencloudb.parser.druid.impl;
 
-import java.sql.SQLNonTransientException;
-import java.util.LinkedHashMap;
-import java.util.List;
-
-import org.opencloudb.cache.LayerCachePool;
-import org.opencloudb.config.ErrorCode;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.config.model.TableConfig;
-import org.opencloudb.mpp.OrderCol;
-import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.util.RouterUtil;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -25,6 +13,20 @@ import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+import org.opencloudb.cache.LayerCachePool;
+import org.opencloudb.config.ErrorCode;
+import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.config.model.TableConfig;
+import org.opencloudb.mpp.MergeCol;
+import org.opencloudb.mpp.OrderCol;
+import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.util.RouterUtil;
+
+import java.sql.SQLNonTransientException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DruidSelectParser extends DefaultDruidParser {
 	@Override
@@ -33,42 +35,26 @@ public class DruidSelectParser extends DefaultDruidParser {
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
+
 			//setHasAggrColumn ,such as count(*)
-			
-			//以下注释的代码没准以后有用，rrs.setMergeCols(aggrColumns);目前就是个坑，设置了反而报错，得不到正确结果
-//			boolean hasAggrColumn = false;
-//			Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
-//			for(SQLSelectItem item : mysqlSelectQuery.getSelectList()) {
-//				
-//				if(item.getExpr() instanceof SQLAggregateExpr) {
-//					SQLAggregateExpr expr = (SQLAggregateExpr)item.getExpr();
-//					List<SQLExpr> argList = expr.getArguments();
-//					String method = expr.getMethodName();
-//					if (argList.size() > 0) {
-//						for(SQLExpr arg : argList) {
-//							aggrColumns.put(arg.toString(), MergeCol.getMergeType(method));
-//						}
-//					}
-//					hasAggrColumn = true;
-//				}
-//				
-//			}
-//			if(aggrColumns.size() > 0) {
-//				rrs.setMergeCols(aggrColumns);
-//			}
-//			if(hasAggrColumn) {
-//				rrs.setHasAggrColumn(true);
-//			}
-			
-			
-			//setHasAggrColumn ,such as count(*)
+			Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
 			for(SQLSelectItem item : mysqlSelectQuery.getSelectList()) {
+
 				if(item.getExpr() instanceof SQLAggregateExpr) {
+					SQLAggregateExpr expr = (SQLAggregateExpr)item.getExpr();
+					String method = expr.getMethodName();
+					//只处理有别名的情况，无别名丢给DataMergeService.onRowMetaData处理
+					if (item.getAlias() != null && item.getAlias().length() > 0) {
+						aggrColumns.put(item.getAlias(), MergeCol.getMergeType(method));
+					}
 					rrs.setHasAggrColumn(true);
-					break;
 				}
+
 			}
-			
+			if(aggrColumns.size() > 0) {
+				rrs.setMergeCols(aggrColumns);
+			}
+
 			//setGroupByCols
 			if(mysqlSelectQuery.getGroupBy() != null) {
 				List<SQLExpr> groupByItems = mysqlSelectQuery.getGroupBy().getItems();
