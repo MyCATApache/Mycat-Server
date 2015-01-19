@@ -1,8 +1,9 @@
 package org.opencloudb.route.impl;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
@@ -12,10 +13,8 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.parser.ServerParse;
 
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
 
 public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 	public static final Logger LOGGER = Logger.getLogger(DruidMysqlRouteStrategy.class);
@@ -25,9 +24,15 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 			String stmt, RouteResultset rrs, String charset,
 			LayerCachePool cachePool) throws SQLNonTransientException {
 		MySqlStatementParser parser = new MySqlStatementParser(stmt);
-		
-		SQLStatement statement = parser.parseStatement();
-		
+		SQLStatement statement;
+
+		//解析出现问题统一抛SQL语法错误
+		try {
+			statement = parser.parseStatement();
+		} catch (Throwable t) {
+			throw new SQLSyntaxErrorException(t);
+		}
+
 		//检验unsupported statement
 		checkUnSupportedStatement(statement);
 			
@@ -61,6 +66,7 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 	 * @throws SQLSyntaxErrorException
 	 */
 	private void checkUnSupportedStatement(SQLStatement statement) throws SQLSyntaxErrorException {
+		//不支持replace语句
 		if(statement instanceof MySqlReplaceStatement) {
 			throw new SQLSyntaxErrorException(" ReplaceStatement can't be supported,use insert into ...on duplicate key update... instead ");
 		}
