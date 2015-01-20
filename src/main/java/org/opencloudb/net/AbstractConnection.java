@@ -23,15 +23,15 @@
  */
 package org.opencloudb.net;
 
+import org.apache.log4j.Logger;
+import org.opencloudb.util.TimeUtil;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.NetworkChannel;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.log4j.Logger;
-import org.opencloudb.util.TimeUtil;
 
 /**
  * @author mycat

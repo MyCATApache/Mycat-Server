@@ -96,6 +96,9 @@ public class RouterUtil {
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), stmt);//rrs.getStatement()
 		rrs.setNodes(nodes);
 		rrs.setFinishedRoute(true);
+		if (rrs.getCanRunInReadDB() != null) {
+			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
+		}
 		return rrs;
 	}
 	
@@ -304,10 +307,13 @@ public class RouterUtil {
 	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt) {
 		RouteResultsetNode[] nodes = new RouteResultsetNode[dataNodes.size()];
 		int i = 0;
+		RouteResultsetNode node;
 		for (String dataNode : dataNodes) {
-
-			nodes[i++] = new RouteResultsetNode(dataNode, rrs.getSqlType(),
-					stmt);
+			node = new RouteResultsetNode(dataNode, rrs.getSqlType(), stmt);
+			if (rrs.getCanRunInReadDB() != null) {
+				node.setCanRunInReadDB(rrs.getCanRunInReadDB());
+			}
+			nodes[i++] = node;
 		}
 		rrs.setCacheAble(cache);
 		rrs.setNodes(nodes);
@@ -325,6 +331,9 @@ public class RouterUtil {
 
 		RouteResultsetNode[] nodes = new RouteResultsetNode[1];
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), sql);
+		if (rrs.getCanRunInReadDB() != null) {
+			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
+		}
 		rrs.setNodes(nodes);
 	}
 
