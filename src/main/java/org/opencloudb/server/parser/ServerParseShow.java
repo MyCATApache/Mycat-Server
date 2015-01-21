@@ -39,7 +39,6 @@ public final class ServerParseShow {
 	public static final int MYCAT_STATUS = 3;
 	public static final int MYCAT_CLUSTER = 4;
 	public static final int TABLES = 5;
-	public static final int VARIABLES = 19;
 
 	public static int parse(String stmt, int offset) {
 		int i = offset;
@@ -60,38 +59,12 @@ public final class ServerParseShow {
 			case 'T':
 			case 't':
 				return tableCheck(stmt, i);
-            case 'V':
-            case 'v':
-                return showVCheck(stmt, i);
 			default:
 				return OTHER;
 			}
 		}
 		return OTHER;
 	}
-	
-    // SHOW VARIABLES
-    static int showVCheck(String stmt, int offset) {
-        if (stmt.length() > offset + "ARIABLES".length()) {
-            char c1 = stmt.charAt(++offset);
-            char c2 = stmt.charAt(++offset);
-            char c3 = stmt.charAt(++offset);
-            char c4 = stmt.charAt(++offset);
-            char c5 = stmt.charAt(++offset);
-            char c6 = stmt.charAt(++offset);
-            char c7 = stmt.charAt(++offset);
-            char c8 = stmt.charAt(++offset);
-            if ((c1 == 'A' || c1 == 'a') && (c2 == 'R' || c2 == 'r') && (c3 == 'I' || c3 == 'i')
-                    && (c4 == 'A' || c4 == 'a') && (c5 == 'B' || c5 == 'b') && (c6 == 'L' || c6 == 'l')
-                    && (c7 == 'E' || c7 == 'e') && (c8 == 'S' || c8 == 's')) {
-                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
-                    return OTHER;
-                }
-                return VARIABLES;
-            }
-        }
-        return OTHER;
-    }
 
 	// SHOW MYCAT_
 	static int mycatCheck(String stmt, int offset) {
