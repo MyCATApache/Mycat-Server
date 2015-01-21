@@ -1,6 +1,7 @@
 package org.opencloudb.parser.druid.impl;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
@@ -247,7 +248,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 		LinkedHashMap<String, Integer> map = new LinkedHashMap<String, Integer>();
 		for(int i= 0; i < orderByItems.size(); i++) {
 			SQLOrderingSpecification type = orderByItems.get(i).getType();
-			String col =  orderByItems.get(i).getExpr().toString();
+            //orderColumn只记录字段名称,因为返回的结果集是不带表名的。
+			SQLName expr = (SQLName) orderByItems.get(i).getExpr();
+			String col = expr.getSimpleName();
 			if(type == null) {
 				type = SQLOrderingSpecification.ASC;
 			}

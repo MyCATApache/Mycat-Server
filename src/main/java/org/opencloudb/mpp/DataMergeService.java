@@ -113,13 +113,6 @@ public class DataMergeService {
 			grouper = null;
 		}
 		if (sorter != null) {
-			// Iterator<RowDataPacket> itor = tmpResult.iterator();
-			// while (itor.hasNext()) {
-			// sorter.addRow(itor.next());
-			// itor.remove();
-			//
-			// }
-
 			//处理grouper处理后的数据
 			if (tmpResult != null) {
 				Iterator<RowDataPacket> itor = tmpResult.iterator();
@@ -186,14 +179,10 @@ public class DataMergeService {
 				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
 						.toUpperCase()), entry.getValue());
 			}
-		 sorter = new RowDataPacketSorter(orderCols);
-			// RowDataSorter tmp = new RowDataSorter(orderCols);
-			// tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
-			// sorter = tmp;
-		 //sorter = new RowDataPacketSorter(orderCols);
-			 RowDataSorter tmp = new RowDataSorter(orderCols);
-			 tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
-			 sorter = tmp;
+//		 	sorter = new RowDataPacketSorter(orderCols);
+			RowDataSorter tmp = new RowDataSorter(orderCols);
+			tmp.setLimit(rrs.getLimitStart(), rrs.getLimitSize());
+			sorter = tmp;
 		} else {
 			new ConcurrentLinkedQueue<RowDataPacket>();
 		}

@@ -26,7 +26,11 @@ public class RowDataSorter extends RowDataPacketSorter {
             this.isDesc = (orderCols[0].orderType == OrderCol.COL_ORDER_TYPE_DESC);
     }
 
-    public synchronized void setLimt(int start, int size) {
+    public synchronized void setLimit(int start, int size) {
+        //没有设定结果集大小，默认设置一个比较大的数
+        if (size <= 0) {
+            size = Integer.MAX_VALUE;
+        }
         rtnSize = size;
         total = start + size;
         if (isDesc) {
