@@ -23,6 +23,8 @@
  */
 package org.opencloudb.server.handler;
 
+import org.opencloudb.parser.ManagerParseShow;
+import org.opencloudb.response.ShowVariables;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.server.parser.ServerParseShow;
@@ -55,6 +57,9 @@ public final class ShowHandler {
 			break;
 		case ServerParseShow.MYCAT_CLUSTER:
 			ShowMyCATCluster.response(c);
+			break;
+		case ManagerParseShow.VARIABLES:
+			ShowVariables.execute(c);
 			break;
 		default:
 			c.execute(stmt, ServerParse.SHOW);

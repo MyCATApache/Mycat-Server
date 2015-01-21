@@ -28,8 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.opencloudb.config.Fields;
-import org.opencloudb.manager.ManagerConnection;
 import org.opencloudb.mysql.PacketUtil;
+import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
@@ -59,7 +59,7 @@ public final class ShowVariables {
         eof.packetId = ++packetId;
     }
 
-    public static void execute(ManagerConnection c) {
+    public static void execute(FrontendConnection c) {
         ByteBuffer buffer = c.allocate();
 
         // write header
