@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -411,6 +412,56 @@ public class RouterUtil {
 	/**
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
+	public static Set<String> ruleByJoinValueCalculate(RouteResultset rrs, TableConfig tc,
+			Set<ColumnRoutePair> colRoutePairSet) throws SQLNonTransientException {
+		
+		String joinValue = "";
+		
+		if(colRoutePairSet.size() > 1) {
+			LOGGER.warn("joinKey can't have multi Value");
+		} else {
+			Iterator it = colRoutePairSet.iterator();
+			ColumnRoutePair joinCol = (ColumnRoutePair)it.next();
+			joinValue = joinCol.colValue;
+		}
+		
+		Set<String> retNodeSet = new LinkedHashSet<String>(); 
+		
+		Set<String> nodeSet = new LinkedHashSet<String>();
+		if (tc.isSecondLevel()
+				&& tc.getParentTC().getPartitionColumn()
+						.equals(tc.getParentKey())) { // using
+														// parent
+														// rule to
+														// find
+														// datanode
+			
+			for(ColumnRoutePair pair : colRoutePairSet) {
+				nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
+				if (nodeSet.isEmpty() || nodeSet.size() > 1) {
+					throw new SQLNonTransientException(
+							"parent key can't find  valid datanode ,expect 1 but found: "
+									+ nodeSet.size());
+				}
+				String dn = nodeSet.iterator().next();
+				if (LOGGER.isDebugEnabled()) {
+					LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
+							+ dn + " sql :" + rrs.getStatement());
+				}
+				retNodeSet.addAll(nodeSet);
+			}
+			return retNodeSet;
+		} else {
+			retNodeSet.addAll(tc.getParentTC().getDataNodes());
+		}
+		
+		return retNodeSet;
+	}
+		
+	
+	/**
+	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
+	 */
 	public static Set<String> ruleCalculate(TableConfig tc,
 			Set<ColumnRoutePair> colRoutePairSet) {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
@@ -706,11 +757,13 @@ public class RouterUtil {
 							}
 						}
 					}
-				} else if(joinKey != null) {//childTable  (如果是select 语句的父子表join)之前要找到root table,将childTable移除,只留下root table
+				} else if(joinKey != null && columnsMap.get(joinKey) != null && columnsMap.get(joinKey).size() != 0) {//childTable  (如果是select 语句的父子表join)之前要找到root table,将childTable移除,只留下root table
 					Set<ColumnRoutePair> joinKeyValue = columnsMap.get(joinKey);
 	
-					Set<String> dataNodeSet = ruleCalculate(
-							tableConfig.getParentTC(), joinKeyValue);
+					ColumnRoutePair joinCol = null;
+					
+					Set<String> dataNodeSet = ruleByJoinValueCalculate(rrs, tableConfig, joinKeyValue);
+
 					if (dataNodeSet.isEmpty()) {
 						throw new SQLNonTransientException(
 								"parent key can't find any valid datanode ");

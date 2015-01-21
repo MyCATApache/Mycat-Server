@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBetweenExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
@@ -108,25 +109,55 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         if(expr instanceof SQLBetweenExpr) {
         	SQLBetweenExpr betweenExpr = (SQLBetweenExpr)expr;
         	
-        	String tableName = ((SQLIdentifierExpr)((SQLPropertyExpr) betweenExpr.getTestExpr()).getOwner()).getName();
-            String column = ((SQLPropertyExpr) betweenExpr.getTestExpr()).getName();
+        	if(betweenExpr.getTestExpr() != null && betweenExpr.getTestExpr() instanceof SQLPropertyExpr) {
+        		String tableName = ((SQLIdentifierExpr)((SQLPropertyExpr) betweenExpr.getTestExpr()).getOwner()).getName();
+                String column = ((SQLPropertyExpr) betweenExpr.getTestExpr()).getName();
 
 
-            String table = tableName;
-            if (aliasMap.containsKey(table)) {
-                table = aliasMap.get(table);
-            }
+                String table = tableName;
+                if (aliasMap.containsKey(table)) {
+                    table = aliasMap.get(table);
+                }
 
-            if (variants.containsKey(table)) {
-                return null;
-            }
+                if (variants.containsKey(table)) {
+                    return null;
+                }
 
-            if (table != null) {
-                return new Column(table, column);
-            }
+                if (table != null) {
+                    return new Column(table, column);
+                }
 
-            return handleSubQueryColumn(tableName, column);
+                return handleSubQueryColumn(tableName, column);
+        	}
+        	
+        	
         }
         return null;
+    }
+	
+	public boolean visit(SQLBinaryOpExpr x) {
+        x.getLeft().setParent(x);
+        x.getRight().setParent(x);
+
+        switch (x.getOperator()) {
+            case Equality:
+            case LessThanOrEqualOrGreaterThan:
+            case Is:
+            case IsNot:
+                handleCondition(x.getLeft(), x.getOperator().name, x.getRight());
+                handleCondition(x.getRight(), x.getOperator().name, x.getLeft());
+                handleRelationship(x.getLeft(), x.getOperator().name, x.getRight());
+                break;
+            case Like:
+            case NotLike:
+            case NotEqual:
+            case GreaterThan:
+            case GreaterThanOrEqual:
+            case LessThan:
+            case LessThanOrEqual:
+            default:
+                break;
+        }
+        return true;
     }
 }
