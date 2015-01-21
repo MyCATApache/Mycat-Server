@@ -67,8 +67,11 @@ public class DruidSelectParser extends DefaultDruidParser {
 				List<SQLSelectOrderByItem> orderByItems = mysqlSelectQuery.getOrderBy().getItems();
 				rrs.setOrderByCols(buildOrderByCols(orderByItems));
 			}
-			
-			//setMergeCols TODO 目前设置这个值会报错，可能有特殊场景需要，后续如果出现bug在考虑设置
+
+			//更改canRunInReadDB属性
+			if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false) {
+				rrs.setCanRunInReadDB(false);
+			}
 
 		} else if (sqlSelectQuery instanceof MySqlUnionQuery) { //TODO union语句可能需要额外考虑，目前不处理也没问题
 //			MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;

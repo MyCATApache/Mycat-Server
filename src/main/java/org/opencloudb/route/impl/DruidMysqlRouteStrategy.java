@@ -38,7 +38,7 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 			
 		DruidParser druidParser = DruidParserFactory.create(statement);
 		druidParser.parser(schema, rrs, statement, stmt,cachePool);
-		
+
 		//DruidParser解析过程中已完成了路由的直接返回
 		if(rrs.isFinishedRoute()) {
 			return rrs;

@@ -23,13 +23,13 @@
  */
 package org.opencloudb.mpp;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.LongUtil;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * implement group function select a,count(*),sum(*) from A group by a

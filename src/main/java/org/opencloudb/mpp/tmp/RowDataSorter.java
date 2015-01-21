@@ -1,15 +1,10 @@
 package org.opencloudb.mpp.tmp;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Vector;
-
 import org.opencloudb.mpp.OrderCol;
 import org.opencloudb.mpp.RowDataPacketSorter;
 import org.opencloudb.net.mysql.RowDataPacket;
+
+import java.util.*;
 
 /**
  * 
@@ -64,10 +59,15 @@ public class RowDataSorter extends RowDataPacketSorter {
             return sortAll(data);
 
         HeapItf rtnHeap;
-        if (isDesc) { // 降序取最小的几条数据
-            rtnHeap = new MaxHeap(cmp, rtnSize);
-        } else { // 升序取最大的几条数据
+//        if (isDesc) { // 降序取最小的几条数据
+//            rtnHeap = new MaxHeap(cmp, rtnSize);
+//        } else { // 升序取最大的几条数据
+//            rtnHeap = new MinHeap(cmp, rtnSize);
+//        }
+        if (isDesc) { // 降序取最大的几条数据
             rtnHeap = new MinHeap(cmp, rtnSize);
+        } else { // 升序取最小的几条数据
+            rtnHeap = new MaxHeap(cmp, rtnSize);
         }
         int i = 0;
         while (i < rtnSize) {
