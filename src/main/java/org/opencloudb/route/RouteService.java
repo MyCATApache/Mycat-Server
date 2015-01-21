@@ -75,15 +75,21 @@ public class RouteService {
 		}
 
 		// 处理自定义分片注释, 注释格式：/*!mycat: type = value */ sql
-		String mycatHint = "/*!mycat:";
+		String oldMycatHint = "/*!mycat:";
+		
+		//新的注释格式:/* !mycat: type = value */ sql，oldMycatHint的格式不兼容直连mysql
+		String newMycatHint = "/* !mycat:";
         String hintSplit = "=";
+        
+        boolean isMatchOldHint = stmt.startsWith(oldMycatHint);
 		/*!mycat: sql = select name from aa */
         /*!mycat: schema = test */
-		if (stmt.startsWith(mycatHint)) {
+		if (isMatchOldHint || stmt.startsWith(newMycatHint)) {
 			int endPos = stmt.indexOf("*/");
 			if (endPos > 0) {
+				int hintLength = isMatchOldHint ? oldMycatHint.length() : newMycatHint.length();
 				// 用!mycat:内部的语句来做路由分析
-				String hint = stmt.substring(mycatHint.length(), endPos).trim();
+				String hint = stmt.substring(hintLength, endPos).trim();
 				
                 int firstSplitPos = hint.indexOf(hintSplit);
                 
