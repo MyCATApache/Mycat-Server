@@ -35,7 +35,7 @@ public class MongoConnection implements Connection {
 	//private String url = null;
 	private MongoClient mc = null;	
 	private boolean isClosed = false;	
-	private String _schema;
+	private final String _schema;
 	private Properties _clientInfo;
 
 	public MongoConnection(MongoClientURI mcu, String url) throws UnknownHostException {
@@ -45,10 +45,7 @@ public class MongoConnection implements Connection {
 	}
 	
 	public DB getDB()  {
-		if (this._schema!=null) {
-	      return this.mc.getDB(this._schema);
-		}
-		else return null;
+	    return this.mc.getDB(this._schema);
 	}
 	   
 	@Override
@@ -129,13 +126,13 @@ public class MongoConnection implements Connection {
 	@Override
 	public void setCatalog(String catalog) throws SQLException {
 		// TODO Auto-generated method stub
-		this._schema=catalog;
+		
 	}
 
 	@Override
 	public String getCatalog() throws SQLException {
 		// 获取此 Connection 对象的当前目录名称
-		return this._schema;
+		return null;
 	}
 
 	@Override
