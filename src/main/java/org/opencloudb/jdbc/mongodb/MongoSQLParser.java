@@ -60,6 +60,7 @@ public class MongoSQLParser {
 	   
 	public DBCursor query() throws MongoSQLException{
         if (!(statement instanceof SQLSelectStatement)) {
+        	//return null;
         	throw new IllegalArgumentException("not a query sql statement");
         }
         DBCursor c=null;
@@ -221,7 +222,7 @@ public class MongoSQLParser {
 			return ((SQLIntegerExpr)expr).getNumber().intValue();
 		}
 		if (expr instanceof SQLNumberExpr){
-			return ((SQLNumberExpr)expr).getNumber();
+			return ((SQLNumberExpr)expr).getNumber().doubleValue();
 		}		
 		if (expr instanceof SQLCharExpr){
 			String va=((SQLCharExpr)expr).toString();
