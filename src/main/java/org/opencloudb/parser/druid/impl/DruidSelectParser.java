@@ -238,7 +238,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 	private String[] buildGroupByCols(List<SQLExpr> groupByItems) {
 		String[] groupByCols = new String[groupByItems.size()]; 
 		for(int i= 0; i < groupByItems.size(); i++) {
-			String column = removeBackquote(((MySqlSelectGroupByExpr)groupByItems.get(i)).getExpr().toString().toUpperCase());
+			SQLName expr = (SQLName) ((MySqlSelectGroupByExpr)groupByItems.get(i)).getExpr();
+			String column = removeBackquote(expr.getSimpleName().toUpperCase());
 			groupByCols[i] = column;
 		}
 		return groupByCols;
