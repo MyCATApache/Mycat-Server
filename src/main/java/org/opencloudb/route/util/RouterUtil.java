@@ -692,18 +692,18 @@ public class RouterUtil {
 						}
 						String tableKey = schema.getName() + '_' + tableName;
 						boolean allFound = true;
-						for (ColumnRoutePair pair : primaryKeyPairs) {
+						for (ColumnRoutePair pair : primaryKeyPairs) {//可能id in(1,2,3)多主键
 							String cacheKey = pair.colValue;
 							String dataNode = (String) cachePool.get(tableKey, cacheKey);
 							if (dataNode == null) {
 								allFound = false;
-								break;
+								continue;
 							} else {
 								if(tablesRouteMap.get(tableName) == null) {
 									tablesRouteMap.put(tableName, new HashSet<String>());
 								}
 								tablesRouteMap.get(tableName).add(dataNode);
-								break;
+								continue;
 							}
 						}
 						if (!allFound) {
@@ -711,8 +711,8 @@ public class RouterUtil {
 							if (isSelect && tableConfig.getPrimaryKey() != null) {
 								rrs.setPrimaryKey(tableKey + '.' + tableConfig.getPrimaryKey());
 							}
-						} else {//主键缓存中找到了就退出循环
-							break;
+						} else {//主键缓存中找到了就执行循环的下一轮
+							continue;
 						}
 					}
 				}
