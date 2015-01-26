@@ -45,9 +45,11 @@ public class StatisticsSqlInterceptor implements SQLInterceptor{
         	if(title.length==2){
         		fileName = title[0]+dayFile+"."+title[1];
         	}
-        	File file =new File(fileName);
+        	File file = new File(fileName);
         	if(!file.exists()){
-        	   file.createNewFile();
+        	   if (new File(file.getParent()).mkdirs()) {
+            	   file.createNewFile();
+        	   }
         	}
             FileWriter writer = new FileWriter(file, true);
             content =  content.replaceAll("[\\t\\n\\r]", "") + System.getProperty("line.separator");
