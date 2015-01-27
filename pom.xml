@@ -9,7 +9,7 @@
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
 	<url>http://org.opencloudb</url>
- 
+
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
 		<!-- maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format> 
