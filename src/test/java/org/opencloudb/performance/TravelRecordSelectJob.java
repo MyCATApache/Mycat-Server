@@ -39,9 +39,14 @@ public class TravelRecordSelectJob implements Runnable {
 	private final AtomicInteger failedCount;
 	private volatile long usedTime;
 	private volatile long success;
+	private volatile long maxTTL = 0;
+	private volatile long minTTL = Integer.MAX_VALUE;
+	private volatile long validTTLSum = 0;
+	private volatile long validTTLCount = 0;
 
-	public TravelRecordSelectJob(Connection con,long minId, long maxId, int executeTimes,
-			AtomicInteger finshiedCount, AtomicInteger failedCount) {
+	public TravelRecordSelectJob(Connection con, long minId, long maxId,
+			int executeTimes, AtomicInteger finshiedCount,
+			AtomicInteger failedCount) {
 		super();
 		this.con = con;
 		this.minId = minId;
@@ -51,13 +56,20 @@ public class TravelRecordSelectJob implements Runnable {
 		this.failedCount = failedCount;
 	}
 
-	private void select() {
+	private long select() {
 		ResultSet rs = null;
+		long used = -1;
+
 		try {
 
-			String sql = "select * from  travelrecord  where id=" + ((Math.abs(random.nextLong())
-					% (maxId-minId))+minId);
+			String sql = "select * from  travelrecord  where id="
+					+ ((Math.abs(random.nextLong()) % (maxId - minId)) + minId);
+			long startTime = System.currentTimeMillis();
 			rs = con.createStatement().executeQuery(sql);
+			if (rs.next()) {
+				used = System.currentTimeMillis() - startTime;
+
+			}
 			finshiedCount.addAndGet(1);
 			success++;
 		} catch (Exception e) {
@@ -73,15 +85,36 @@ public class TravelRecordSelectJob implements Runnable {
 
 			}
 		}
+		return used;
 	}
 
 	@Override
 	public void run() {
+		long curmaxTTL = this.maxTTL;
+		long curminTTL = this.minTTL;
+		long curvalidTTLSum = this.validTTLSum;
+		long curvalidTTLCount = this.validTTLCount;
+
 		long start = System.currentTimeMillis();
 		for (int i = 0; i < executeTimes; i++) {
-			this.select();
+
+			long ttlTime = this.select();
+			if (ttlTime != -1) {
+				if (ttlTime > curmaxTTL) {
+					curmaxTTL = ttlTime;
+				} else if (ttlTime < curminTTL) {
+					curminTTL = ttlTime;
+				}
+				curvalidTTLSum += ttlTime;
+				curvalidTTLCount += 1;
+			}
 			usedTime = System.currentTimeMillis() - start;
 		}
+		maxTTL = curmaxTTL;
+		minTTL = curminTTL;
+		validTTLSum = curvalidTTLSum;
+		validTTLCount = curvalidTTLCount;
+
 		try {
 			con.close();
 		} catch (SQLException e) {
@@ -102,10 +135,27 @@ public class TravelRecordSelectJob implements Runnable {
 	}
 
 	
+	
+	public long getMaxTTL() {
+		return maxTTL;
+	}
+
+	public long getMinTTL() {
+		return minTTL;
+	}
+
+	public long getValidTTLSum() {
+		return validTTLSum;
+	}
+
+	public long getValidTTLCount() {
+		return validTTLCount;
+	}
+
 	public static void main(String[] args) {
-		Random r=new Random();
-		for ( int i =0; i < 10; i ++) {
-			int f=r.nextInt(90000-80000)+80000;
+		Random r = new Random();
+		for (int i = 0; i < 10; i++) {
+			int f = r.nextInt(90000 - 80000) + 80000;
 			System.out.println(f);
 		}
 	}
