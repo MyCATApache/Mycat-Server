@@ -47,13 +47,15 @@ public class TestSelectPerf {
 		failedCount.addAndGet(count);
 	}
 
-	private static Connection getCon(String url, String user, String passwd) throws SQLException {
+	private static Connection getCon(String url, String user, String passwd)
+			throws SQLException {
 		Connection theCon = DriverManager.getConnection(url, user, passwd);
 		return theCon;
 	}
 
-	private static void doTest(String url, String user, String password, int threadCount,
-			long minId, long maxId, int executetimes, boolean outmidle) {
+	private static void doTest(String url, String user, String password,
+			int threadCount, long minId, long maxId, int executetimes,
+			boolean outmidle) {
 		final CopyOnWriteArrayList<Thread> threads = new CopyOnWriteArrayList<Thread>();
 		final CopyOnWriteArrayList<TravelRecordSelectJob> jobs = new CopyOnWriteArrayList<TravelRecordSelectJob>();
 		for (int i = 0; i < threadCount; i++) {
@@ -61,13 +63,14 @@ public class TestSelectPerf {
 
 				Connection con = getCon(url, user, password);
 				System.out.println("create thread " + i);
-				TravelRecordSelectJob job = new TravelRecordSelectJob(con, minId, maxId,
-						executetimes, finshiedCount, failedCount);
+				TravelRecordSelectJob job = new TravelRecordSelectJob(con,
+						minId, maxId, executetimes, finshiedCount, failedCount);
 				Thread thread = new Thread(job);
 				threads.add(thread);
 				jobs.add(job);
 			} catch (Exception e) {
-				System.out.println("failed create thread " + i + " err " + e.toString());
+				System.out.println("failed create thread " + i + " err "
+						+ e.toString());
 			}
 		}
 		System.out.println("success create thread count: " + threads.size());
@@ -102,8 +105,8 @@ public class TestSelectPerf {
 			}
 		}
 		report(jobs);
-		System.out.println("finished all,total time :" + (System.currentTimeMillis() - start)
-				/ 1000);
+		System.out.println("finished all,total time :"
+				+ (System.currentTimeMillis() - start) / 1000);
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -131,7 +134,8 @@ public class TestSelectPerf {
 		}
 		for (int i = 0; i < repeate; i++) {
 			try {
-				doTest(url, user, password, threadCount, minId, maxId, executetimes, repeate < 2);
+				doTest(url, user, password, threadCount, minId, maxId,
+						executetimes, repeate < 2);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -141,10 +145,26 @@ public class TestSelectPerf {
 
 	public static void report(CopyOnWriteArrayList<TravelRecordSelectJob> jobs) {
 		int tps = 0;
+		long maxTTL = 0;
+		long minTTL = Integer.MAX_VALUE;
+		long ttlCount = 0;
+		long ttlSum = 0;
 		for (TravelRecordSelectJob job : jobs) {
-			tps += job.getTPS();
+			int jobTps = job.getTPS();
+			if (jobTps > 0) {
+				tps += job.getTPS();
+				if (job.getMaxTTL() > maxTTL) {
+					maxTTL = job.getMaxTTL();
+				}
+				if (job.getMinTTL() < minTTL) {
+					minTTL = job.getMinTTL();
+				}
+				ttlCount += job.getValidTTLCount();
+				ttlSum += job.getValidTTLSum();
+			}
 		}
-		System.out.println("finishend:" + finshiedCount.get() + " failed:" + failedCount.get()
-				+ " qps:" + tps);
+		int avgSum=(int) ((ttlCount>0)?ttlSum/ttlCount:0);
+		System.out.println("finishend:" + finshiedCount.get() + " failed:"
+				+ failedCount.get() + " qps:" + tps+",query time min:"+minTTL+"ms,max:"+maxTTL+"ms,avg:"+avgSum+"ms");
 	}
 }
