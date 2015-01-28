@@ -1,11 +1,12 @@
 package org.opencloudb.mpp.tmp;
 
-import java.util.Vector;
-
 import org.opencloudb.net.mysql.RowDataPacket;
 
+import java.util.Vector;
+
 /**
- * 
+ * 最大堆排序，适用于顺序排序
+ *
  * @author coderczp-2014-12-8
  */
 public class MaxHeap implements HeapItf {
@@ -19,26 +20,25 @@ public class MaxHeap implements HeapItf {
     }
 
     @Override
-    public void buildMinHeap() {
+    public void buildHeap() {
         int len = data.size();
         for (int i = len / 2 - 1; i >= 0; i--) {
-            heapify(i);
+            heapify(i, len);
         }
     }
 
-    private void heapify(int i) {
+    private void heapify(int i, int size) {
         int l = left(i);
         int r = right(i);
         int max = i;
-        int len = data.size();
-        if (l < len && cmp.compare(data.elementAt(l), data.elementAt(i)) > 0)
+        if (l < size && cmp.compare(data.elementAt(l), data.elementAt(i)) > 0)
             max = l;
-        if (r < len && cmp.compare(data.elementAt(r), data.elementAt(max)) > 0)
+        if (r < size && cmp.compare(data.elementAt(r), data.elementAt(max)) > 0)
             max = r;
         if (i == max)
             return;
         swap(i, max);
-        heapify(max);
+        heapify(max, size);
     }
 
     private int right(int i) {
@@ -64,7 +64,7 @@ public class MaxHeap implements HeapItf {
     @Override
     public void setRoot(RowDataPacket root) {
         data.set(0, root);
-        heapify(0);
+        heapify(0, data.size());
     }
 
     @Override
@@ -83,6 +83,15 @@ public class MaxHeap implements HeapItf {
         RowDataPacket root = getRoot();
         if (cmp.compare(row, root) < 0) {
             setRoot(row);
+        }
+    }
+
+    @Override
+    public void heapSort() {
+        //末尾与头交换，交换后调整最大堆
+        for (int i = data.size() - 1; i > 0; i--) {
+            swap(0, i);
+            heapify(0, i);
         }
     }
 

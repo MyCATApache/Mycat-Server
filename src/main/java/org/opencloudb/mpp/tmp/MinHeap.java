@@ -1,11 +1,12 @@
 package org.opencloudb.mpp.tmp;
 
-import java.util.Vector;
-
 import org.opencloudb.net.mysql.RowDataPacket;
 
+import java.util.Vector;
+
 /**
- * 
+ * 最小堆排序，适用于倒序排序
+ *
  * @author coderczp-2014-12-8
  */
 public class MinHeap implements HeapItf {
@@ -18,26 +19,26 @@ public class MinHeap implements HeapItf {
         this.data = new Vector<RowDataPacket>();
     }
 
-    public void buildMinHeap() {
+    @Override
+    public void buildHeap() {
         int len = data.size();
         for (int i = len / 2 - 1; i >= 0; i--) {
-            heapify(i);
+            heapify(i, len);
         }
     }
 
-    private void heapify(int i) {
+    private void heapify(int i, int size) {
         int l = left(i);
         int r = right(i);
         int smallest = i;
-        int len = data.size();
-        if (l < len && cmp.compare(data.elementAt(l), data.elementAt(i)) < 0)
+        if (l < size && cmp.compare(data.elementAt(l), data.elementAt(i)) < 0)
             smallest = l;
-        if (r < len && cmp.compare(data.elementAt(r), data.elementAt(smallest)) < 0)
+        if (r < size && cmp.compare(data.elementAt(r), data.elementAt(smallest)) < 0)
             smallest = r;
         if (i == smallest)
             return;
         swap(i, smallest);
-        heapify(smallest);
+        heapify(smallest, size);
     }
 
     private int right(int i) {
@@ -61,7 +62,7 @@ public class MinHeap implements HeapItf {
 
     public void setRoot(RowDataPacket root) {
         data.set(0, root);
-        heapify(0);
+        heapify(0, data.size());
     }
 
     public Vector<RowDataPacket> getData() {
@@ -80,4 +81,14 @@ public class MinHeap implements HeapItf {
             setRoot(row);
         }
     }
+
+    @Override
+    public void heapSort() {
+        //末尾与头交换，交换后调整最小堆
+        for (int i = data.size() - 1; i > 0; i--) {
+            swap(0, i);
+            heapify(0, i);
+        }
+    }
+
 }

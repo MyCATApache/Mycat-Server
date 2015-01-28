@@ -23,15 +23,6 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
@@ -49,6 +40,11 @@ import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author mycat
@@ -278,6 +274,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		try {
 			lock.lock();
 			ByteBuffer buffer = session.getSource().allocate();
+			//处理limit语句
 			int i = 0;
 			int start = dataMergeSvr.getRrs().getLimitStart();
 			int end = start + dataMergeSvr.getRrs().getLimitSize();
