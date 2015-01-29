@@ -353,7 +353,7 @@ public final class MysqlDefs {
 
 		switch (javaType) {
 		case Types.NUMERIC:
-			return MysqlDefs.FIELD_TYPE_LONG;
+			return MysqlDefs.FIELD_TYPE_DECIMAL;
 
 		case Types.DECIMAL:
 			return MysqlDefs.FIELD_TYPE_NEW_DECIMAL;
