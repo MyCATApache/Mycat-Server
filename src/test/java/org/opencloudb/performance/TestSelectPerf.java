@@ -26,6 +26,8 @@ package org.opencloudb.performance;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.util.LinkedList;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,6 +40,10 @@ public class TestSelectPerf {
 
 	private static AtomicInteger finshiedCount = new AtomicInteger();
 	private static AtomicInteger failedCount = new AtomicInteger();
+	private static LinkedList<StringItem> sqlTemplateItems;
+	private static long minId;
+	private static long maxId;
+	private static int executeTimes;
 
 	public static void addFinshed(int count) {
 		finshiedCount.addAndGet(count);
@@ -53,19 +59,29 @@ public class TestSelectPerf {
 		return theCon;
 	}
 
+	private static SelectJob createQueryJob(Connection con) {
+		SelectJob job = null;
+		if (sqlTemplateItems != null) {
+			job = new UserTableSelectJob(con, sqlTemplateItems, executeTimes,
+					finshiedCount, failedCount);
+		} else {
+			job = new TravelRecordSelectJob(con, minId, maxId, executeTimes,
+					finshiedCount, failedCount);
+		}
+		return job;
+	}
+
 	private static void doTest(String url, String user, String password,
 			int threadCount, long minId, long maxId, int executetimes,
 			boolean outmidle) {
 		final CopyOnWriteArrayList<Thread> threads = new CopyOnWriteArrayList<Thread>();
-		final CopyOnWriteArrayList<TravelRecordSelectJob> jobs = new CopyOnWriteArrayList<TravelRecordSelectJob>();
+		final CopyOnWriteArrayList<SelectJob> jobs = new CopyOnWriteArrayList<SelectJob>();
 		for (int i = 0; i < threadCount; i++) {
 			try {
-
 				Connection con = getCon(url, user, password);
 				System.out.println("create thread " + i);
-				TravelRecordSelectJob job = new TravelRecordSelectJob(con,
-						minId, maxId, executetimes, finshiedCount, failedCount);
-				Thread thread = new Thread(job);
+				SelectJob job = createQueryJob(con);
+				Thread thread = new Thread((Runnable) job);
 				threads.add(thread);
 				jobs.add(job);
 			} catch (Exception e) {
@@ -113,7 +129,12 @@ public class TestSelectPerf {
 		Class.forName("com.mysql.jdbc.Driver");
 		if (args.length < 5) {
 			System.out
-					.println("input param,format: [jdbcurl] [user] [password]  [threadpoolsize]  [executetimes] [minId-maxId] [repeat]");
+					.println("input param,format: [jdbcurl] [user] [password]  [threadpoolsize]  [executetimes] [minId-maxId|sqlfile] [repeat]");
+			System.out
+					.println("jdbc:mysql://localhost:8066/TESTDB test test 10  10000 1-1000000  1 ");
+			System.out
+					.println("jdbc:mysql://localhost:8066/TESTDB test test 10  10000 file=mytempate.sql  1");
+
 			return;
 		}
 		int threadCount = 0;// 线程数
@@ -121,13 +142,27 @@ public class TestSelectPerf {
 		String user = args[1];
 		String password = args[2];
 		threadCount = Integer.parseInt(args[3]);
-		int executetimes = Integer.parseInt(args[4]);
-		long minId = Integer.parseInt((args[5].split("-"))[0]);
-		long maxId = Integer.parseInt((args[5].split("-"))[1]);
-		System.out.println("concerent threads:" + threadCount);
-		System.out.println("execute sql times:" + executetimes);
-		System.out.println("maxId:" + maxId);
+
 		int repeate = 1;
+
+		executeTimes = Integer.parseInt(args[4]);
+		System.out.println("execute sql times:" + executeTimes);
+		String param5 = args[5];
+		if (param5.contains("file=")) {
+			String sqlFile = args[5].substring(args[5].indexOf('=') + 1);
+			java.util.Properties pros = RandomDataValueUtil
+					.loadFromPropertyFile(sqlFile);
+			String sqlTemplate = pros.getProperty("sql");
+			sqlTemplateItems = RandomDataValueUtil
+					.parselRandVarTemplateString(sqlTemplate);
+		} else {
+			minId = Integer.parseInt((args[5].split("-"))[0]);
+			maxId = Integer.parseInt((args[5].split("-"))[1]);
+			System.out.println("concerent threads:" + threadCount);
+
+			System.out.println("maxId:" + maxId);
+
+		}
 		if (args.length > 6) {
 			repeate = Integer.parseInt(args[6]);
 			System.out.println("repeat test times:" + repeate);
@@ -135,7 +170,7 @@ public class TestSelectPerf {
 		for (int i = 0; i < repeate; i++) {
 			try {
 				doTest(url, user, password, threadCount, minId, maxId,
-						executetimes, repeate < 2);
+						executeTimes, repeate < 2);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -143,14 +178,15 @@ public class TestSelectPerf {
 
 	}
 
-	public static void report(CopyOnWriteArrayList<TravelRecordSelectJob> jobs) {
-		int tps = 0;
+	public static void report(CopyOnWriteArrayList<SelectJob> jobs) {
+		double tps = 0;
 		long maxTTL = 0;
 		long minTTL = Integer.MAX_VALUE;
 		long ttlCount = 0;
 		long ttlSum = 0;
-		for (TravelRecordSelectJob job : jobs) {
-			int jobTps = job.getTPS();
+		DecimalFormat df = new DecimalFormat("0.00");
+		for (SelectJob job : jobs) {
+			double jobTps = job.getTPS();
 			if (jobTps > 0) {
 				tps += job.getTPS();
 				if (job.getMaxTTL() > maxTTL) {
@@ -163,8 +199,23 @@ public class TestSelectPerf {
 				ttlSum += job.getValidTTLSum();
 			}
 		}
-		int avgSum=(int) ((ttlCount>0)?ttlSum/ttlCount:0);
+		double avgSum =(ttlCount > 0) ? (ttlSum+0.0) / ttlCount : 0;
 		System.out.println("finishend:" + finshiedCount.get() + " failed:"
-				+ failedCount.get() + " qps:" + tps+",query time min:"+minTTL+"ms,max:"+maxTTL+"ms,avg:"+avgSum+"ms");
+				+ failedCount.get() + " qps:" + df.format(tps) + ",query time min:"
+				+ minTTL + "ms,max:" + maxTTL + "ms,avg:" + df.format(avgSum) );
 	}
+}
+
+interface SelectJob {
+
+	double getTPS();
+
+	long getValidTTLSum();
+
+	long getValidTTLCount();
+
+	long getMinTTL();
+
+	long getMaxTTL();
+
 }

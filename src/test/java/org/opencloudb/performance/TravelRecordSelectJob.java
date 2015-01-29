@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TravelRecordSelectJob implements Runnable {
+public class TravelRecordSelectJob implements Runnable ,SelectJob{
 	private final Connection con;
 	private final long minId;
 	private final long maxId;
@@ -67,9 +67,8 @@ public class TravelRecordSelectJob implements Runnable {
 			long startTime = System.currentTimeMillis();
 			rs = con.createStatement().executeQuery(sql);
 			if (rs.next()) {
-				used = System.currentTimeMillis() - startTime;
-
 			}
+			used = System.currentTimeMillis() - startTime;
 			finshiedCount.addAndGet(1);
 			success++;
 		} catch (Exception e) {
@@ -126,9 +125,9 @@ public class TravelRecordSelectJob implements Runnable {
 		return this.usedTime;
 	}
 
-	public int getTPS() {
+	public double getTPS() {
 		if (usedTime > 0) {
-			return (int) (this.success * 1000 / this.usedTime);
+			return  (this.success * 1000+0.0) / this.usedTime;
 		} else {
 			return 0;
 		}
