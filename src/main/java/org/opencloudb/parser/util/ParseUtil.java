@@ -180,12 +180,31 @@ public final class ParseUtil {
         }
     }
 
+    /**
+     * 注解保留，注释
+     * @param stmt
+     * @param offset
+     * @return
+     */
     public static int comment(String stmt, int offset) {
         int len = stmt.length();
         int n = offset;
         switch (stmt.charAt(n)) {
         case '/':
-            if (len > ++n && stmt.charAt(n++) == '*' && len > n + 1 && stmt.charAt(n) != '!') {
+            if (len > ++n && stmt.charAt(n++) == '*' && len > n + 1) {
+            	//对两种注解放过：/*!mycat:  和 /*#mycat:
+            	if(stmt.charAt(n) == '!') {
+            		break;
+            	} else if (stmt.charAt(n) == '#') {
+            		if(len > n + 5 && stmt.charAt(n + 1) == 'm'
+            				&& stmt.charAt(n + 2) == 'y'
+            				&& stmt.charAt(n + 3) == 'c'
+            				&& stmt.charAt(n + 4) == 'a'
+            				&& stmt.charAt(n + 5) == 't') {
+            			break;
+            			
+            		}
+            	}
                 for (int i = n; i < len; ++i) {
                     if (stmt.charAt(i) == '*') {
                         int m = i + 1;

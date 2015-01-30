@@ -42,7 +42,7 @@ public class HintTest {
         Assert.assertTrue(rrs.getNodes().length == 1);
 
         //使用注解（新注解，/*后面有空格），路由到1个节点
-        sql = "/* !mycat: sql = select * from employee where sharding_id = 10000 */select * from employee";
+        sql = "/*#mycat: sql = select * from employee where sharding_id = 10000 */select * from employee";
         rrs = routerService.route(new SystemConfig(), schema, ServerParse.SELECT, sql, "UTF-8", null);
         Assert.assertTrue(rrs.getNodes().length == 1);
         
