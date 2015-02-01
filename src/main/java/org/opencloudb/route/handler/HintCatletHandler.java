@@ -11,6 +11,7 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteStrategy;
 import org.opencloudb.route.factory.RouteStrategyFactory;
 import org.opencloudb.server.ServerConnection;
+import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.sqlengine.Catlet;
 import org.opencloudb.sqlengine.EngineCtx;
 
@@ -58,6 +59,7 @@ public class HintCatletHandler implements HintHandler {
 		try {
 			Catlet catlet = (Catlet) MycatServer.getInstance()
 					.getCatletClassLoader().getInstanceofClass(cateletClass);
+			catlet.route(sysConfig, schema, sqlType, realSQL,charset, sc, cachePool);
 			catlet.processSQL(realSQL, new EngineCtx(sc.getSession2()));
 		} catch (Exception e) {
 			LOGGER.warn("catlet error "+e);
