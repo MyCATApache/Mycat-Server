@@ -27,6 +27,10 @@ public class TableFilter {
 	
 	private TableFilter join;
 	private TableFilter parent;
+	
+	private int offset=0;
+	private int rowCount=0;
+	
 	private boolean outJoin;
 	
 	public TableFilter(String taName,String taAlia,boolean outJoin) {
@@ -104,6 +108,10 @@ public class TableFilter {
 		  }
 		}
 	}	
+	public void addLimit(int offset,int rowCount){
+		this.offset=offset;
+		this.rowCount=rowCount;
+	}
 	public void setJoinKey(String fieldName,String value){
 		if (parent==null){
 			if (join!=null)	{
@@ -242,7 +250,16 @@ public class TableFilter {
 		if (!(order.trim().equals(""))){
 			sql+=" order by "+order.trim(); 	
 		}	
-
+		if (parent==null){
+        	if ((rowCount>0)&& (offset>0)){
+        		sql+=" limit"+offset+","+rowCount;
+        	}
+        	else {
+        		if (rowCount>0){
+        			sql+=" limit "+rowCount;
+        		}
+        	}
+		}	
 		return sql; 
 	}	
 }

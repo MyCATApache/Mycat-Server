@@ -156,7 +156,7 @@ public class ShareJoin implements Catlet {
 		 createQryJob(Integer.MAX_VALUE);
 	     ctx.endJobInput();
 	   }
-	   EngineCtx.LOGGER.info("完成"+mjob+":" + dataNode+" failed:"+failed);
+	  // EngineCtx.LOGGER.info("完成"+mjob+":" + dataNode+" failed:"+failed);
    }
    
 	//private void createQryJob(String dataNode,int batchSize) {	

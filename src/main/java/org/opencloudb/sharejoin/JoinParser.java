@@ -62,7 +62,7 @@ public class JoinParser {
 	   parserWhere(mysqlQuery.getWhere(),"");	   
 	 // getJoinField();
 	   parserOrderBy(mysqlQuery.getOrderBy());
-	   
+	   parserLimit();
 	  // LOGGER.info("field "+fieldAliasMap);	  	   
 	  // LOGGER.info("master "+masterTable);
 	 //  LOGGER.info("join Lkey "+getJoinLkey()); 
@@ -262,6 +262,22 @@ public class JoinParser {
             }
 		}		
     }  
+	private void parserLimit(){
+	  int limitoff=0;
+	  int limitnum=0;
+	  if (this.mysqlQuery.getLimit()!=null) {
+	    limitoff=getSQLExprToInt(this.mysqlQuery.getLimit().getOffset());			
+	    limitnum=getSQLExprToInt(this.mysqlQuery.getLimit().getRowCount());
+	    tableFilter.addLimit(limitoff,limitnum);
+	  }
+	}
+	
+	private int getSQLExprToInt(SQLExpr expr){
+		if (expr instanceof SQLIntegerExpr){
+			return ((SQLIntegerExpr)expr).getNumber().intValue();
+		}
+		return 0;		
+	}
 	
 	private String getSQLExprToAsc(SQLOrderingSpecification ASC){
 		if (ASC==null ) return " ASC ";
