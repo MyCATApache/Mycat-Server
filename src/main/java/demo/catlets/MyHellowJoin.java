@@ -18,12 +18,6 @@ import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.ResultSetUtil;
 
 public class MyHellowJoin implements Catlet {
-	
-	public void route(SystemConfig sysConfig, SchemaConfig schema,
-			int sqlType, String realSQL, String charset, ServerConnection sc,
-			LayerCachePool cachePool)  {
-		
-	}
 
 	public void processSQL(String sql, EngineCtx ctx) {
 
@@ -38,6 +32,14 @@ public class MyHellowJoin implements Catlet {
 
 			}
 		});
+	}
+
+	@Override
+	public void route(SystemConfig sysConfig, SchemaConfig schema, int sqlType,
+			String realSQL, String charset, ServerConnection sc,
+			LayerCachePool cachePool) {
+		// TODO Auto-generated method stub
+		
 	}
 }
 
