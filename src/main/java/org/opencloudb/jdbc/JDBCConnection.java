@@ -198,6 +198,8 @@ public class JDBCConnection implements BackendConnection {
 	public void commit() {
 		try {
 			con.commit();
+			
+			this.respHandler.okResponse(OkPacket.OK, this);	
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -207,6 +209,11 @@ public class JDBCConnection implements BackendConnection {
 			boolean autocommit) throws IOException {
 		String orgin = rrn.getStatement();
 		String sql = rrn.getStatement().toLowerCase();
+		
+		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
+			modifiedSQLExecuted = true;
+		}
+		
 		try {
 			if (!this.schema.equals(this.oldSchema)) {
 				con.setCatalog(schema);
@@ -214,11 +221,8 @@ public class JDBCConnection implements BackendConnection {
 			}
 			con.setAutoCommit(autocommit);
 			int sqlType = rrn.getSqlType();
-			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {	
-				//非Mysql数据库不能识别SHOW命令
-				if (sqlType == ServerParse.SELECT) {
+			if (sqlType == ServerParse.SELECT/* || sqlType == ServerParse.SHOW*/) {	
 					ouputResultSet(sc, orgin);
-				}
 			} else {
 				executeddl(sc, sql);
 			}
@@ -242,7 +246,8 @@ public class JDBCConnection implements BackendConnection {
 			throws SQLException {
 		Statement stmt = null;
 		try {
-			int count = con.createStatement().executeUpdate(sql);
+			stmt = con.createStatement();
+			int count = stmt.executeUpdate(sql);
 			OkPacket okPck = new OkPacket();
 			okPck.affectedRows = count;
 			okPck.insertId = 0;
@@ -382,6 +387,8 @@ public class JDBCConnection implements BackendConnection {
 	public void rollback() {
 		try {
 			con.rollback();
+			
+			this.respHandler.okResponse(OkPacket.OK, this);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}

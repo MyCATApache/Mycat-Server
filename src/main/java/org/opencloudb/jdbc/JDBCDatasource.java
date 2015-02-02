@@ -1,9 +1,12 @@
 package org.opencloudb.jdbc;
 
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
+import java.sql.SQLException;
+import java.util.List;
 import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.model.DBHostConfig;
 import org.opencloudb.config.model.DataHostConfig;
@@ -11,6 +14,19 @@ import org.opencloudb.heartbeat.DBHeartbeat;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 
 public class JDBCDatasource extends PhysicalDatasource {
+	static {
+		// 加载可能的驱动
+		List<String> drivers = Lists.newArrayList("com.mysql.jdbc.Driver", "org.opencloudb.jdbc.mongodb.MongoDriver", "oracle.jdbc.OracleDriver");
+		for (String driver : drivers)
+		{
+			try
+			{
+				Class.forName(driver);
+			} catch (ClassNotFoundException ignored)
+			{
+			}
+		}
+	}
 	public JDBCDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
 		super(config, hostConfig, isReadNode);
@@ -19,30 +35,22 @@ public class JDBCDatasource extends PhysicalDatasource {
 
 	@Override
 	public DBHeartbeat createHeartBeat() {
-		return new JDBCHeatbeat();
+		return new JDBCHeartbeat(this);
 	}
 
 	@Override
 	public void createNewConnection(ResponseHandler handler,String schema) throws IOException {
-		DBHostConfig dsc = getConfig();
+		DBHostConfig cfg = getConfig();
 		JDBCConnection c = new JDBCConnection();
 
-		c.setHost(dsc.getIp());
-		c.setPort(dsc.getPort());
+		c.setHost(cfg.getIp());
+		c.setPort(cfg.getPort());
 		c.setPool(this);
 		c.setSchema(schema);
-		
-		String dbtype=dsc.getDbType();
+
 		try {
-			if (dbtype.equals("mysql")) {
-				Class.forName( "com.mysql.jdbc.Driver" );					
-			}
-			else if (dbtype.equals("mongodb")) {
-				Class.forName( "org.opencloudb.jdbc.mongodb.MongoDriver" );				
-			}else if (dbtype.equals("oracle")){
-				Class.forName( "oracle.jdbc.OracleDriver" );				
-			}			
-			Connection con = DriverManager.getConnection(dsc.getUrl(),dsc.getUser(),dsc.getPassword());
+            // TODO 这里应该有个连接池
+			Connection con = getConnection();
 			// c.setIdleTimeout(pool.getConfig().getIdleTimeout());
 			c.setCon(con);
 			// notify handler
@@ -52,5 +60,11 @@ public class JDBCDatasource extends PhysicalDatasource {
 		}
 
 	}
+
+    Connection getConnection() throws SQLException
+    {
+        DBHostConfig cfg = getConfig();
+        return DriverManager.getConnection(cfg.getUrl(), cfg.getUser(), cfg.getPassword());
+    }
 
 }
