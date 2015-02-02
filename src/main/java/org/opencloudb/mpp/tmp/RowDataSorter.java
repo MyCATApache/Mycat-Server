@@ -13,9 +13,11 @@ import java.util.*;
 public class RowDataSorter extends RowDataPacketSorter {
 
     //记录总数(=offset+limit)
-    private int total;
+    private volatile int total;
+    //查询的记录数(=limit)
+    private volatile int size;
     //堆
-    private HeapItf heap;
+    private volatile HeapItf heap;
     //多列比较器
     private volatile RowDataCmp cmp;
     //是否执行过buildHeap
@@ -32,12 +34,13 @@ public class RowDataSorter extends RowDataPacketSorter {
             start = 0;
         }
         if (size <= 0) {
-            total = Integer.MAX_VALUE;
+            this.total = this.size = Integer.MAX_VALUE;
         } else {
-            total = start + size;
+            this.total = start + size;
+            this.size = size;
         }
         //统一采用顺序，order by 条件交给比较器去处理
-        heap = new MaxHeap(cmp, total);
+        this.heap = new MaxHeap(cmp, total);
     }
 
     @Override
@@ -56,7 +59,7 @@ public class RowDataSorter extends RowDataPacketSorter {
 
     @Override
     public Collection<RowDataPacket> getSortedResult() {
-        final Vector<RowDataPacket> data = heap.getData();
+        final List<RowDataPacket> data = heap.getData();
         int size = data.size();
         if (size < 2) {
             return data;
@@ -65,7 +68,7 @@ public class RowDataSorter extends RowDataPacketSorter {
             if (!hasBuild) {
                 heap.buildHeap();
             }
-            heap.heapSort();
+            heap.heapSort(this.size);
             return heap.getData();
         }
     }

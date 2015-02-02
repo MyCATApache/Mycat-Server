@@ -2,7 +2,8 @@ package org.opencloudb.mpp.tmp;
 
 import org.opencloudb.net.mysql.RowDataPacket;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 最大堆排序，适用于顺序排序
@@ -12,11 +13,11 @@ import java.util.Vector;
 public class MaxHeap implements HeapItf {
 
     private RowDataCmp cmp;
-    private Vector<RowDataPacket> data;
+    private List<RowDataPacket> data;
 
     public MaxHeap(RowDataCmp cmp, int size) {
         this.cmp = cmp;
-        this.data = new Vector<RowDataPacket>();
+        this.data = new ArrayList<>();
     }
 
     @Override
@@ -31,9 +32,9 @@ public class MaxHeap implements HeapItf {
         int l = left(i);
         int r = right(i);
         int max = i;
-        if (l < size && cmp.compare(data.elementAt(l), data.elementAt(i)) > 0)
+        if (l < size && cmp.compare(data.get(l), data.get(i)) > 0)
             max = l;
-        if (r < size && cmp.compare(data.elementAt(r), data.elementAt(max)) > 0)
+        if (r < size && cmp.compare(data.get(r), data.get(max)) > 0)
             max = r;
         if (i == max)
             return;
@@ -50,15 +51,15 @@ public class MaxHeap implements HeapItf {
     }
 
     private void swap(int i, int j) {
-        RowDataPacket tmp = data.elementAt(i);
-        RowDataPacket elementAt = data.elementAt(j);
+        RowDataPacket tmp = data.get(i);
+        RowDataPacket elementAt = data.get(j);
         data.set(i, elementAt);
         data.set(j, tmp);
     }
 
     @Override
     public RowDataPacket getRoot() {
-        return data.elementAt(0);
+        return data.get(0);
     }
 
     @Override
@@ -68,7 +69,7 @@ public class MaxHeap implements HeapItf {
     }
 
     @Override
-    public Vector<RowDataPacket> getData() {
+    public List<RowDataPacket> getData() {
         return data;
     }
 
@@ -87,9 +88,16 @@ public class MaxHeap implements HeapItf {
     }
 
     @Override
-    public void heapSort() {
+    public void heapSort(int size) {
+        final int total = data.size();
+        //容错处理
+        if (size <= 0 || size > total) {
+            size = total;
+        }
+        final int min = size == total ? 0 : (total - size - 1);
+
         //末尾与头交换，交换后调整最大堆
-        for (int i = data.size() - 1; i > 0; i--) {
+        for (int i = total - 1; i > min; i--) {
             swap(0, i);
             heapify(0, i);
         }

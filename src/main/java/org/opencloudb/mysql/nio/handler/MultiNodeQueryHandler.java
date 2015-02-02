@@ -274,10 +274,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		try {
 			lock.lock();
 			ByteBuffer buffer = session.getSource().allocate();
+			final DataMergeService dataMergeService = this.dataMergeSvr;
+			final RouteResultset rrs = dataMergeService.getRrs();
+
 			//处理limit语句
-			int i = 0;
-			int start = dataMergeSvr.getRrs().getLimitStart();
-			int end = start + dataMergeSvr.getRrs().getLimitSize();
+			final int start = rrs.getLimitStart();
+			final int end = start + rrs.getLimitSize();
+
 			Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
 			Iterator<RowDataPacket> itor = results.iterator();
 			if (LOGGER.isDebugEnabled()) {
@@ -285,27 +288,21 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 						+ results.size() + " start :" + start + " end :" + end
 						+ " package id start:" + packetId);
 			}
-			if (results.size() == dataMergeSvr.getRrs().getLimitSize()) {// 返回的结果只有getLimitSize
-				while (itor.hasNext()) {
-					RowDataPacket row = itor.next();
-					row.packetId = ++packetId;
-					buffer = row.write(buffer, source, true);
-				}
-			} else {
-				while (itor.hasNext()) {
-					RowDataPacket row = itor.next();
-					itor.remove();
-					if (i < start) {
-						i++;
-						continue;
-					} else if (i == end) {
-						break;
-					}
-					i++;
-					row.packetId = ++packetId;
-					buffer = row.write(buffer, source, true);
-				}
-			}
+
+			int i = 0;
+            while (itor.hasNext()) {
+                RowDataPacket row = itor.next();
+                itor.remove();
+                if (i < start) {
+                    i++;
+                    continue;
+                } else if (i == end) {
+                    break;
+                }
+                i++;
+                row.packetId = ++packetId;
+                buffer = row.write(buffer, source, true);
+            }
 
 			eof[3] = ++packetId;
 			if (LOGGER.isDebugEnabled()) {
