@@ -5,7 +5,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.opencloudb.cache.LayerCachePool;
+import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.server.ServerConnection;
 import org.opencloudb.sqlengine.AllJobFinishedListener;
 import org.opencloudb.sqlengine.Catlet;
 import org.opencloudb.sqlengine.EngineCtx;
@@ -14,6 +18,12 @@ import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.ResultSetUtil;
 
 public class MyHellowJoin implements Catlet {
+	
+	public void route(SystemConfig sysConfig, SchemaConfig schema,
+			int sqlType, String realSQL, String charset, ServerConnection sc,
+			LayerCachePool cachePool)  {
+		
+	}
 
 	public void processSQL(String sql, EngineCtx ctx) {
 
