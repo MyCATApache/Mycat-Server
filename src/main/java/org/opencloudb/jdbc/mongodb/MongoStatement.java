@@ -19,7 +19,7 @@ public class MongoStatement implements Statement
     private final int _type;
     private final int _concurrency;
     private final int _holdability;
-    //int _fetchSize = 0;
+    private int _fetchSize = 0;
     //int _maxRows = 0;
     private MongoResultSet _last;
 
@@ -53,10 +53,14 @@ public class MongoStatement implements Statement
 	@Override
 	public ResultSet executeQuery(String sql) throws SQLException {
 		// TODO Auto-generated method stub  
-		MongoData mongo= new MongoSQLParser(this._conn.getDB(), sql).query();
-		/*
-        if (this._fetchSize > 0)
-            cursor.batchSize(this._fetchSize);
+		MongoData mongo= new MongoSQLParser(this._conn.getDB(), sql).query();		
+        if (this._fetchSize > 0) {
+        	//设置每次网络请求的最大记录数
+        	if (mongo.getCursor()!=null) {
+        	mongo.getCursor().batchSize(this._fetchSize);
+        	}
+        }	
+        /* 
         if (this._maxRows > 0)
         {
             cursor.limit(this._maxRows);
@@ -183,13 +187,13 @@ public class MongoStatement implements Statement
 	@Override
 	public void setFetchSize(int rows) throws SQLException {
 		// 获取结果集合的行数，该数是根据此 Statement 对象生成的 ResultSet 对象的默认获取大小。
-		
+		this._fetchSize=rows;
 	}
 
 	@Override
 	public int getFetchSize() throws SQLException {
 		// 获取结果集合的行数，该数是根据此 Statement 对象生成的 ResultSet 对象的默认获取大小。
-		return 0;
+		return this._fetchSize;
 	}
 
 	@Override
