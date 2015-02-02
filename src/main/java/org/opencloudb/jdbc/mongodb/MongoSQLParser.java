@@ -2,6 +2,7 @@ package org.opencloudb.jdbc.mongodb;
 
 
 
+import java.sql.Types;
 import java.util.List;
 
 import com.mongodb.BasicDBList;
@@ -13,6 +14,7 @@ import com.mongodb.DBObject;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.ast.statement.*;
@@ -58,14 +60,16 @@ public class MongoSQLParser {
 	     this._params = params;
 	   }
 	   
-	public DBCursor query() throws MongoSQLException{
+	public MongoData query() throws MongoSQLException{
         if (!(statement instanceof SQLSelectStatement)) {
         	//return null;
         	throw new IllegalArgumentException("not a query sql statement");
         }
+        MongoData mongo=new MongoData();
         DBCursor c=null;
         SQLSelectStatement selectStmt = (SQLSelectStatement)statement;
-        SQLSelectQuery sqlSelectQuery =selectStmt.getSelect().getQuery();		
+        SQLSelectQuery sqlSelectQuery =selectStmt.getSelect().getQuery();	
+        int icount=0;
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
 			
@@ -74,33 +78,67 @@ public class MongoSQLParser {
 			for(SQLSelectItem item : mysqlSelectQuery.getSelectList()) {
 				//System.out.println(item.toString());
 				if (!(item.getExpr() instanceof SQLAllColumnExpr)) {
-					fields.put(getFieldName(item), Integer.valueOf(1));
+					if (item.getExpr() instanceof SQLAggregateExpr) {
+						SQLAggregateExpr expr =(SQLAggregateExpr)item.getExpr();
+						if (expr.getMethodName().equals("COUNT")) {
+						   icount=1;
+						   mongo.setField(getExprFieldName(expr), Types.BIGINT);
+						}
+						fields.put(getExprFieldName(expr), Integer.valueOf(1));
+					}
+					else {					
+					   fields.put(getFieldName(item), Integer.valueOf(1));
+					}
 				}
+				
 			}	
 			
 			//表名
 			SQLTableSource table=mysqlSelectQuery.getFrom();
 			DBCollection coll =this._db.getCollection(table.toString());
+			mongo.setTable(table.toString());
 			
 			SQLExpr expr=mysqlSelectQuery.getWhere();	
 			DBObject query = parserWhere(expr);
 			//System.out.println(query);
-			
+			SQLSelectGroupByClause groupby=mysqlSelectQuery.getGroupBy();
+			BasicDBObject gbkey = new BasicDBObject();
+			if (groupby!=null) {
+			  for (SQLExpr gbexpr:groupby.getItems()){
+				if (gbexpr instanceof MySqlSelectGroupByExpr) {
+					SQLExpr gbyexpr=((MySqlSelectGroupByExpr) gbexpr).getExpr();		
+					gbkey.put(getFieldName2(gbyexpr), Integer.valueOf(1));
+				}
+			  }
+			  icount=2;
+			}	
 			int limitoff=0;
 			int limitnum=0;
 			if (mysqlSelectQuery.getLimit()!=null) {
 			  limitoff=getSQLExprToInt(mysqlSelectQuery.getLimit().getOffset());			
 			  limitnum=getSQLExprToInt(mysqlSelectQuery.getLimit().getRowCount());
-			}			
-			if ((limitoff>0) || (limitnum>0)) {
-			  c = coll.find(query, fields).skip(limitoff).limit(limitnum);
+			}	
+			
+			if (icount==1) {
+				mongo.setCount(coll.count(query));						
+			}
+			else if (icount==2){
+				BasicDBObject initial = new BasicDBObject();
+				initial.put("num", 0);
+				String reduce="function (obj, prev) { "
+						+"  prev.num++}";
+				mongo.setGrouyBy(coll.group(gbkey, query, initial, reduce));			
 			}
 			else {
-			  c = coll.find(query, fields);
-			}
+			  if ((limitoff>0) || (limitnum>0)) {
+			    c = coll.find(query, fields).skip(limitoff).limit(limitnum);
+			  }
+			  else {
+			   c = coll.find(query, fields);
+			  }
 			
-			SQLOrderBy orderby=mysqlSelectQuery.getOrderBy();
-			if (orderby != null ){
+			  SQLOrderBy orderby=mysqlSelectQuery.getOrderBy();
+			  if (orderby != null ){
 				BasicDBObject order = new BasicDBObject();
 			    for (int i = 0; i < orderby.getItems().size(); i++)
 			    {
@@ -109,10 +147,11 @@ public class MongoSQLParser {
 			    }
 			    c.sort(order); 
 			   // System.out.println(order);
-			}			
-			return c;
+			  }
+		   }
+		   mongo.setCursor(c);
 		}
-		return c;		
+		return  mongo;		
 	}
 	
 	public int executeUpdate() throws MongoSQLException {
@@ -241,6 +280,14 @@ public class MongoSQLParser {
 	       return this._params.get(this._pos++);
 	    }		
 		return expr;
+		
+	}
+	private String getExprFieldName(SQLAggregateExpr expr){
+		String field="";
+		for (SQLExpr item :expr.getArguments()){
+			field+=item.toString();
+		}		
+		return expr.getMethodName()+"("+field+")";
 		
 	}
 	private String getFieldName2(SQLExpr item){

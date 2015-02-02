@@ -1,5 +1,6 @@
 package org.opencloudb.jdbc.mongodb;
 
+import com.mongodb.BasicDBList;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
@@ -25,6 +26,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
+import java.util.HashMap;
 //import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -36,38 +38,58 @@ import java.util.Set;
  */
 public class MongoResultSet implements ResultSet
 {
-	 final DBCursor _cursor;
-	 DBObject _cur;
-	 int _row = 0;
-	 boolean _closed = false;
+	 private final DBCursor _cursor;
+	 private DBObject _cur;
+	 private int _row = 0;
+	 private boolean _closed = false;
 	 private String[] select;
 	 private int[] fieldtype;
 	 private String _schema;
-	 private boolean isnext=false;
-	public MongoResultSet(DBCursor cursor,String schema) throws SQLException {
-	    this._cursor = cursor;
+	 private String _table;
+	 //支持聚合,包括count,group by 
+	 private boolean isSum=false;
+	 //是group by
+	 private boolean isGroupBy=false;
+	 private long _sum=0;
+	 private BasicDBList dblist;
+	 
+	public MongoResultSet(MongoData mongo,String schema) throws SQLException {
+	    this._cursor = mongo.getCursor();
 	    this._schema = schema;
-	    select = (String[]) cursor.getKeysWanted().keySet().toArray(new String[0]);
-	    //if (select.length==0) {
+	    this._table  = mongo.getTable();
+	    this.isSum   = mongo.getCount()>0;
+	    this._sum    = mongo.getCount();
+	    this.isGroupBy= mongo.getType();
+	    
+	    if (this.isGroupBy) {
+	    	dblist  = mongo.getGrouyBys();
+	    	this.isSum =true;
+	    }
+	    if (this._cursor!=null) {
+	      select = (String[]) _cursor.getKeysWanted().keySet().toArray(new String[0]);
+	    
 	      if ( this._cursor.hasNext()){
-	        _cur= cursor.next(); 
+	        _cur= _cursor.next(); 
 	        if (_cur!=null) {
 	           if (select.length==0) {
 	    	      SetFields(_cur.keySet());
-	           }
-	    	   isnext=true;
+	           }	    	   
 	          _row=1;
 	         }
 	      }  
-	   // }
-	   if (select.length==0){
+	   
+	     if (select.length==0){
 		   select =new String[]{"_id"};
 		   SetFieldType(true);
-	   }
-	   else {
-		   SetFieldType(false);
-	   }
-	  	   
+	    }
+	    else {
+		    SetFieldType(false);
+	    }
+	  }
+	  else{
+		  SetFields(mongo.getFields().keySet());//new String[]{"COUNT(*)"};	
+		  SetFieldType(mongo.getFields());
+	    }
 	}
 	
 	public void SetFields(Set<String> keySet) {		
@@ -84,46 +106,19 @@ public class MongoResultSet implements ResultSet
 		if (_cur!=null) {
 		  for (int i=0;i<this.select.length;i++){
 			Object ob=this.getObject(i+1);
-			if (ob instanceof Integer) {
-				fieldtype[i]=Types.INTEGER;
-			}
-			else if (ob instanceof Boolean) {
-				fieldtype[i]=Types.BOOLEAN;
-			}
-			else if (ob instanceof Byte) {
-				fieldtype[i]=Types.BIT;
-			}	
-			else if (ob instanceof Short) {
-				fieldtype[i]=Types.INTEGER;
-			}	
-			else if (ob instanceof Float) {
-				fieldtype[i]=Types.FLOAT;
-			}			
-			else if (ob instanceof Long) {
-				fieldtype[i]=Types.BIGINT;
-			}
-			else if (ob instanceof Double) {
-				fieldtype[i]=Types.DOUBLE;
-			}			
-			else if (ob instanceof Date) {
-				fieldtype[i]=Types.DATE;
-			}	
-			else if (ob instanceof Time) {
-				fieldtype[i]=Types.TIME;
-			}	
-			else if (ob instanceof Timestamp) {
-				fieldtype[i]=Types.TIMESTAMP;
-			}
-			else if (ob instanceof String) {
-				fieldtype[i]=Types.VARCHAR;
-			}			
-			else  {
-				fieldtype[i]=Types.VARCHAR;
-			}
+			fieldtype[i]=MongoData.getObjectToType(ob);
 		  }	
 		}
 	}	
 	
+	public void SetFieldType(HashMap<String,Integer> map) throws SQLException {
+        fieldtype= new int[this.select.length];
+		  for (int i=0;i<this.select.length;i++){
+			String ob=map.get(select[i]).toString();
+			fieldtype[i]=Integer.parseInt(ob);
+		  }	
+
+	}	
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
 		// TODO Auto-generated method stub
@@ -139,12 +134,25 @@ public class MongoResultSet implements ResultSet
 	@Override
 	public boolean next() throws SQLException {
 		// TODO Auto-generated method stub
-		if (! isnext){
-			if (! this._cursor.hasNext()) return false;
-			else {
-				this._cur = this._cursor.next();
-			    return true;
+		if ( isSum){	
+			if (isGroupBy){
+				_row++;
+				if (_row<=dblist.size()) {
+				   return true;
+				}
+		    	else {
+		    	  return false;				
+		    	}
 			}
+			else {
+			  if (_row==1) {
+				  return false;
+			  }
+			  else {
+				_row++;
+			    return true;
+			  }
+		    }
 		}
 		else {
 			if (! this._cursor.hasNext()) {
@@ -281,7 +289,7 @@ public class MongoResultSet implements ResultSet
 	@Override
 	public String getString(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
-		Object x = this._cur.get(columnLabel);
+		Object x = getObject(columnLabel);
 		if (x == null)
 		   return null;
 		return x.toString();
@@ -291,7 +299,7 @@ public class MongoResultSet implements ResultSet
 	public boolean getBoolean(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
 		//return false;
-		Object x = this._cur.get(columnLabel);
+		Object x = getObject(columnLabel);
 		if (x == null)
 		   return false;
 		return ((Boolean)x).booleanValue();
@@ -351,25 +359,25 @@ public class MongoResultSet implements ResultSet
 	@Override
 	public byte[] getBytes(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
-		return (byte[])this._cur.get(columnLabel);
+		return (byte[])getObject(columnLabel);
 	}
 
 	@Override
 	public Date getDate(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
-		return (Date)this._cur.get(columnLabel);
+		return (Date)getObject(columnLabel);
 	}
 
 	@Override
 	public Time getTime(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
-		return (Time)this._cur.get(columnLabel);
+		return (Time)getObject(columnLabel);
 	}
 
 	@Override
 	public Timestamp getTimestamp(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
-		return (Timestamp)this._cur.get(columnLabel);//throw new UnsupportedOperationException();
+		return (Timestamp)getObject(columnLabel);//throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -411,7 +419,7 @@ public class MongoResultSet implements ResultSet
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		// TODO Auto-generated method stub
-		return new MongoResultSetMetaData(select,fieldtype,this._schema);
+		return new MongoResultSetMetaData(select,fieldtype,this._schema,this._table);
 		/*
 	 	if(_cur !=null){
 	 		return new MongoResultSetMetaData(_cur.keySet(),this._schema);  
@@ -426,7 +434,10 @@ public class MongoResultSet implements ResultSet
 	public Object getObject(int columnIndex) throws SQLException {
 		// TODO Auto-generated method stub
 		 if (columnIndex == 0){
-			 return this._cur;
+			 if (isSum) {
+				 return getObject(getField(1)); 
+			 }
+			 else return this._cur;
 		 }
 		else return getObject(getField(columnIndex));
 	}
@@ -434,8 +445,21 @@ public class MongoResultSet implements ResultSet
 	@Override
 	public Object getObject(String columnLabel) throws SQLException {
 		// TODO Auto-generated method stub
-		 
-		return this._cur.get(columnLabel);
+		if (isSum) {
+		   if (isGroupBy){
+			  Object ob=dblist.get(_row-1);
+			  if (ob instanceof DBObject) {
+				  return ((DBObject)ob).get(columnLabel);
+			  }
+			  else {
+				  return "0";  
+			  }
+		   }
+		   else{
+			   return  this._sum;
+		   }
+		}
+		else return this._cur.get(columnLabel);
 	}
 
 	@Override

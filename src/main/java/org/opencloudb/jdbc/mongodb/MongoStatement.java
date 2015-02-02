@@ -15,13 +15,13 @@ import java.sql.Statement;
  */
 public class MongoStatement implements Statement
 {
-    MongoConnection _conn;
-    final int _type;
-    final int _concurrency;
-    final int _holdability;
-    int _fetchSize = 0;
-    int _maxRows = 0;
-    MongoResultSet _last;
+	private MongoConnection _conn;
+    private final int _type;
+    private final int _concurrency;
+    private final int _holdability;
+    private int _fetchSize = 0;
+    //int _maxRows = 0;
+    private MongoResultSet _last;
 
     public MongoStatement(MongoConnection conn, int type, int concurrency, int holdability)
     {
@@ -53,14 +53,20 @@ public class MongoStatement implements Statement
 	@Override
 	public ResultSet executeQuery(String sql) throws SQLException {
 		// TODO Auto-generated method stub  
-        DBCursor cursor = new MongoSQLParser(this._conn.getDB(), sql).query();
-        if (this._fetchSize > 0)
-            cursor.batchSize(this._fetchSize);
+		MongoData mongo= new MongoSQLParser(this._conn.getDB(), sql).query();		
+        if (this._fetchSize > 0) {
+        	//设置每次网络请求的最大记录数
+        	if (mongo.getCursor()!=null) {
+        	mongo.getCursor().batchSize(this._fetchSize);
+        	}
+        }	
+        /* 
         if (this._maxRows > 0)
         {
             cursor.limit(this._maxRows);
         }
-        this._last = new MongoResultSet(cursor,this._conn.getSchema());
+        */
+        this._last = new MongoResultSet(mongo,this._conn.getSchema());
 		return this._last;
 	}
     
@@ -79,25 +85,25 @@ public class MongoStatement implements Statement
 	@Override
 	public int getMaxFieldSize() throws SQLException {
 		// 获取可以为此 Statement 对象所生成 ResultSet 对象中的字符和二进制列值返回的最大字节数。
-		return this._fetchSize;
+		return 0;//this._fetchSize;
 	}
 
 	@Override
 	public void setMaxFieldSize(int max) throws SQLException {
 		// TODO Auto-generated method stub
-		this._fetchSize=max;
+		//this._fetchSize=max;
 	}
 
 	@Override
 	public int getMaxRows() throws SQLException {
 		// 获取由此 Statement 对象生成的 ResultSet 对象可以包含的最大行数。
-		return this._maxRows;
+		return 0;//this._maxRows;
 	}
 
 	@Override
 	public void setMaxRows(int max) throws SQLException {
 		// TODO Auto-generated method stub
-		this._maxRows = max;
+		//this._maxRows = max;
 	}
 
 	@Override
@@ -181,13 +187,13 @@ public class MongoStatement implements Statement
 	@Override
 	public void setFetchSize(int rows) throws SQLException {
 		// 获取结果集合的行数，该数是根据此 Statement 对象生成的 ResultSet 对象的默认获取大小。
-		
+		this._fetchSize=rows;
 	}
 
 	@Override
 	public int getFetchSize() throws SQLException {
 		// 获取结果集合的行数，该数是根据此 Statement 对象生成的 ResultSet 对象的默认获取大小。
-		return 0;
+		return this._fetchSize;
 	}
 
 	@Override

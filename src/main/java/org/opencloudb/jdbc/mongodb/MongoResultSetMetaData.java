@@ -17,6 +17,8 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 	private String[] keySet ;
 	private int[] keytype ;
 	private String _schema;
+	private String _table;
+	
 	/*
 	public MongoResultSetMetaData(Set<String> keySet,String schema) {
 		super();
@@ -25,11 +27,12 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 		this._schema = schema;
 	}
     */
-	public MongoResultSetMetaData(String[] select,int [] ftype,String schema) {
+	public MongoResultSetMetaData(String[] select,int [] ftype,String schema,String table) {
 		super();
 		this.keySet = select;
 		this.keytype=ftype;
 		this._schema = schema;
+		this._table  =table;
 	}
 
 	@Override
@@ -124,7 +127,7 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 	@Override
 	public String getTableName(int column) throws SQLException {
 		// TODO 自动生成的方法存根
-		return null;
+		return this._table;
 	}
 
 	@Override
