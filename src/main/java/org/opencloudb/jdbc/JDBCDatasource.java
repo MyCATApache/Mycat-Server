@@ -16,7 +16,8 @@ import org.opencloudb.mysql.nio.handler.ResponseHandler;
 public class JDBCDatasource extends PhysicalDatasource {
 	static {
 		// 加载可能的驱动
-		List<String> drivers = Lists.newArrayList("com.mysql.jdbc.Driver", "org.opencloudb.jdbc.mongodb.MongoDriver", "oracle.jdbc.OracleDriver");
+		List<String> drivers = Lists.newArrayList("com.mysql.jdbc.Driver", "org.opencloudb.jdbc.mongodb.MongoDriver", "oracle.jdbc.OracleDriver",
+				"com.microsoft.sqlserver.jdbc.SQLServerDriver");
 		for (String driver : drivers)
 		{
 			try
