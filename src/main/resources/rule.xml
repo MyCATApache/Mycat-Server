@@ -53,6 +53,12 @@
         <algorithm>murmur</algorithm>
       </rule>
    </tableRule>
+    <tableRule name="latest-month-calldate">
+      <rule>
+        <columns>calldate</columns>
+        <algorithm>latestMonth</algorithm>
+      </rule>
+   </tableRule>
    
    <function name="murmur" class="org.opencloudb.route.function.PartitionByMurmurHash">
       <property name="seed">0</property><!-- 默认是0-->
@@ -79,5 +85,8 @@
   <function name="func1" class="org.opencloudb.route.function.PartitionByLong">
     <property name="partitionCount">8</property>
     <property name="partitionLength">128</property>
+  </function>
+   <function name="latestMonth" class="org.opencloudb.route.function.LatestMonthPartion">
+    <property name="splitOneDay">24</property>
   </function>
 </mycat:rule>
