@@ -921,6 +921,46 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertTrue(rrs.getMergeCols().containsKey("c"));
     }
+    
+    /**
+     * 测试between语句的路由
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testBetweenExpr() throws Exception {
+//    	0-200M=0
+//    	200M1-400M=1
+//    	400M1-600M=2
+//    	600M1-800M=3
+//    	800M1-1000M=4
+    	
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        String sql = "select * from customer where id between 1 and 5;";
+        RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+        Assert.assertTrue(rrs.getNodes().length == 1);
+        Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn1"));
+
+        sql = "select * from customer where id between 1 and 2000001;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+        Assert.assertTrue(rrs.getNodes().length == 2);
+        
+        sql = "select * from customer where id between 2000001 and 3000001;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+        Assert.assertTrue(rrs.getNodes().length == 1);
+        Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn2"));
+        
+        sql = "delete from customer where id between 2000001 and 3000001;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+        Assert.assertTrue(rrs.getNodes().length == 1);
+        Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn2"));
+        
+        sql = "update customer set name='newName' where id between 2000001 and 3000001;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+        Assert.assertTrue(rrs.getNodes().length == 1);
+        Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn2"));
+        
+    }
 
     private String formatSql(String sql) {
         MySqlStatementParser parser = new MySqlStatementParser(sql);
