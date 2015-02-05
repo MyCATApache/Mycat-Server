@@ -228,6 +228,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 			}
 			String tableName = ctx.getTables().get(0);
 			String primaryKey = schema.getTables().get(tableName).getPrimaryKey();
+			boolean needAddLimit=schema.getTables().get(tableName).isNeedAddLimit();
+			if (!needAddLimit){
+				return false;
+			}
 //			schema.getTables().get(ctx.getTables().get(0)).getParentKey() != null;
 			if(ctx.getTablesAndConditions().get(tableName) == null) {//无条件
 				return true;

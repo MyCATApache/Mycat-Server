@@ -191,7 +191,11 @@ public class XMLSchemaLoader implements SchemaLoader {
 				autoIncrement = Boolean.parseBoolean(tableElement
 						.getAttribute("autoIncrement"));
 			}
-							
+			boolean needAddLimit=true;
+			if (tableElement.hasAttribute("needAddLimit")) {
+				needAddLimit = Boolean.parseBoolean(tableElement
+							.getAttribute("needAddLimit"));
+			}			
 			String tableTypeStr = tableElement.hasAttribute("type") ? tableElement
 					.getAttribute("type") : null;
 			int tableType = TableConfig.TYPE_GLOBAL_DEFAULT;
@@ -219,7 +223,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 			for (int j = 0; j < tableNames.length; j++) {
 				String tableName = tableNames[j];
-				TableConfig table = new TableConfig(tableName, primaryKey, autoIncrement,
+				TableConfig table = new TableConfig(tableName, primaryKey, autoIncrement,needAddLimit,
 						tableType, dataNode,
 						(tableRule != null) ? tableRule.getRule() : null,
 						ruleRequired, null, false, null, null);
@@ -232,7 +236,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 
 			if (tableNames.length == 1) {
-				TableConfig table = new TableConfig(tableNames[0], primaryKey, autoIncrement,
+				TableConfig table = new TableConfig(tableNames[0], primaryKey, autoIncrement,needAddLimit,
 						tableType, dataNode,
 						(tableRule != null) ? tableRule.getRule() : null,
 						ruleRequired, null, false, null, null);
@@ -263,11 +267,16 @@ public class XMLSchemaLoader implements SchemaLoader {
 				autoIncrement = Boolean.parseBoolean(childTbElement
 						.getAttribute("autoIncrement"));
 			}
+			boolean needAddLimit=true;
+			if (childTbElement.hasAttribute("needAddLimit")) {
+				needAddLimit = Boolean.parseBoolean(childTbElement
+							.getAttribute("needAddLimit"));
+			}				
 			String joinKey = childTbElement.getAttribute("joinKey")
 					.toUpperCase();
 			String parentKey = childTbElement.getAttribute("parentKey")
 					.toUpperCase();
-			TableConfig table = new TableConfig(cdTbName, primaryKey, autoIncrement,
+			TableConfig table = new TableConfig(cdTbName, primaryKey, autoIncrement,needAddLimit,
 					TableConfig.TYPE_GLOBAL_DEFAULT, dataNodes, null, false,
 					parentTable, true, joinKey, parentKey);
 			if (tables.containsKey(table.getName())) {

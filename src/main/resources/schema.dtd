@@ -28,6 +28,7 @@
 <!ATTLIST table ruleRequired NMTOKEN #IMPLIED>
 <!ATTLIST table primaryKey NMTOKEN #IMPLIED>
 <!ATTLIST table autoIncrement NMTOKEN #IMPLIED>
+<!ATTLIST table needAddLimit NMTOKEN #IMPLIED>
 <!ATTLIST table type NMTOKEN #IMPLIED>
 
 <!ELEMENT childTable (property*,(childTable*))>
