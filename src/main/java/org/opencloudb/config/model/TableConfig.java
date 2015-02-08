@@ -38,6 +38,7 @@ public class TableConfig {
 	private final String name;
 	private final String primaryKey;
 	private final boolean autoIncrement;
+	private final boolean needAddLimit;
 	private final int tableType;
 	private final ArrayList<String> dataNodes;
 	private final RuleConfig rule;
@@ -53,7 +54,7 @@ public class TableConfig {
 	private final boolean partionKeyIsPrimaryKey;
 	private final Random rand = new Random();
 
-	public TableConfig(String name, String primaryKey, boolean autoIncrement, int tableType,
+	public TableConfig(String name, String primaryKey, boolean autoIncrement,boolean needAddLimit, int tableType,
 			String dataNode, RuleConfig rule, boolean ruleRequired,
 			TableConfig parentTC, boolean isChildTable, String joinKey,
 			String parentKey) {
@@ -64,6 +65,7 @@ public class TableConfig {
 		}
 		this.primaryKey = primaryKey;
 		this.autoIncrement = autoIncrement;
+		this.needAddLimit=needAddLimit;
 		this.tableType = tableType;
 		if (ruleRequired && rule == null) {
 			throw new IllegalArgumentException("ruleRequired but rule is null");
@@ -104,7 +106,11 @@ public class TableConfig {
 	public boolean isAutoIncrement() {
 		return autoIncrement;
 	}
-
+	
+	public boolean isNeedAddLimit() {
+		return needAddLimit;
+	}
+	
 	public boolean isSecondLevel() {
 		return secondLevel;
 	}
