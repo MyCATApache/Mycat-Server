@@ -292,7 +292,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			int i = 0;
             while (itor.hasNext()) {
                 RowDataPacket row = itor.next();
-                itor.remove();
                 if (i < start) {
                     i++;
                     continue;
