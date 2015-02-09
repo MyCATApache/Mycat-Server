@@ -47,7 +47,7 @@ public class RouteService {
 	private final CachePool sqlRouteCache;
 	private final LayerCachePool tableId2DataNodeCache;
 
-    //sql注释的类型处理handler 集合，现在支持两种类型的处理：sql,schema
+    //sql注解的类型处理handler 集合，现在支持两种类型的处理：sql,schema
     private static Map<String,HintHandler> hintHandlerMap = new HashMap<String,HintHandler>();
 
 	public RouteService(CacheService cachService) {
@@ -74,11 +74,11 @@ public class RouteService {
 			}
 		}
 
-		// 处理自定义分片注释, 注释格式：/*!mycat: type = value */ sql
+		// 处理自定义分片注解, 注解格式：/*!mycat: type = value */ sql
 		String oldMycatHint = "/*!mycat:";
 		
-		//新的注释格式:/* !mycat: type = value */ sql，oldMycatHint的格式不兼容直连mysql
-		String newMycatHint = "/* !mycat:";
+		//新的注解格式:/* !mycat: type = value */ sql，oldMycatHint的格式不兼容直连mysql
+		String newMycatHint = "/*#mycat:";
         String hintSplit = "=";
         
         boolean isMatchOldHint = stmt.startsWith(oldMycatHint);
@@ -97,8 +97,8 @@ public class RouteService {
                     String hintType = hint.substring(0,firstSplitPos).trim().toLowerCase(Locale.US);
                     String hintValue = hint.substring(firstSplitPos + hintSplit.length()).trim();
                     if(hintValue.length()==0){
-                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/: "+stmt);
-                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/: "+stmt);
+                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
+                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
                     }
                     String realSQL = stmt.substring(endPos + "*/".length()).trim();
 
@@ -109,8 +109,8 @@ public class RouteService {
                         LOGGER.warn("TODO , support hint sql type : " + hintType);
                     }
                 }else{//fixed by runfriends@126.com
-                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/: "+stmt);
-                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/: "+stmt);
+                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
+                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/ or /*#mycat:type=value*/: "+stmt);
                 }
 			}
 		} else {

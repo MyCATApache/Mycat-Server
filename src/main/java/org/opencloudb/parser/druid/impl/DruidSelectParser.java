@@ -14,6 +14,8 @@ import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
+
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SchemaConfig;
@@ -87,6 +89,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 	 */
 	@Override
 	public void changeSql(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException {
+		if(isConditionAlwaysTrue(stmt)) {
+			ctx.clear();
+		}
 		//无表的select语句直接路由带任一节点
 		if(ctx.getTables() == null || ctx.getTables().size() == 0) {
 			rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
@@ -258,5 +263,23 @@ public class DruidSelectParser extends DefaultDruidParser {
 			map.put(col, type == SQLOrderingSpecification.ASC ? OrderCol.COL_ORDER_TYPE_ASC : OrderCol.COL_ORDER_TYPE_DESC);
 		}
 		return map;
+	}
+	
+	private boolean isConditionAlwaysTrue(SQLStatement statement) {
+		SQLSelectStatement selectStmt = (SQLSelectStatement)statement;
+		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
+		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
+			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
+			SQLExpr expr = mysqlSelectQuery.getWhere();
+			
+			Object o = WallVisitorUtils.getValue(expr);
+			if(Boolean.TRUE.equals(o)) {
+				return true;
+			}
+			return false;
+		} else {//union
+			return false;
+		}
+		
 	}
 }

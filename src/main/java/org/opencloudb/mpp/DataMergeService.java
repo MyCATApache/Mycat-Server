@@ -103,7 +103,7 @@ public class DataMergeService {
 	/**
 	 * return merged data
 	 * 
-	 * @return
+	 * @return (最多i*(offset+size)行数据)
 	 */
 	public Collection<RowDataPacket> getResults(final byte[] eof) {
 
