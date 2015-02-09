@@ -57,7 +57,7 @@ public class RowDataPacket extends MySQLPacket {
 	private static final byte NULL_MARK = (byte) 251;
 
 	public byte[] value;
-	public final int fieldCount;
+	public int fieldCount;
 	public final List<byte[]> fieldValues;
 
 	public RowDataPacket(int fieldCount) {
@@ -69,7 +69,11 @@ public class RowDataPacket extends MySQLPacket {
 		//这里应该修改value
 		fieldValues.add(value);
 	}
-
+	public void addFieldCount(int add) {
+		//这里应该修改field
+		fieldCount=fieldCount+add;
+	}
+	
 	public void read(byte[] data) {
 		value = data;
 		MySQLMessage mm = new MySQLMessage(data);
