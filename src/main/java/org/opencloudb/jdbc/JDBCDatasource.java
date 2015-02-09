@@ -43,12 +43,13 @@ public class JDBCDatasource extends PhysicalDatasource {
 	public void createNewConnection(ResponseHandler handler,String schema) throws IOException {
 		DBHostConfig cfg = getConfig();
 		JDBCConnection c = new JDBCConnection();
-
+		
 		c.setHost(cfg.getIp());
 		c.setPort(cfg.getPort());
 		c.setPool(this);
 		c.setSchema(schema);
-
+		c.setDbType(cfg.getDbType());
+		
 		try {
             // TODO 这里应该有个连接池
 			Connection con = getConnection();
