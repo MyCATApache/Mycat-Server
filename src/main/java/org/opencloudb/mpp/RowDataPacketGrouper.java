@@ -96,7 +96,8 @@ public class RowDataPacketGrouper {
 		case MergeCol.MERGE_SUM:
 			if (colType == ColMeta.COL_TYPE_NEWDECIMAL
 					|| colType == ColMeta.COL_TYPE_DOUBLE
-					|| colType == ColMeta.COL_TYPE_FLOAT) {
+					|| colType == ColMeta.COL_TYPE_FLOAT
+					|| colType == ColMeta.COL_TYPE_DECIMAL) {
 
 				Double vale = ByteUtil.getDouble(bs) + ByteUtil.getDouble(bs2);
 				return vale.toString().getBytes();
