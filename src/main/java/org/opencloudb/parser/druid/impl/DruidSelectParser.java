@@ -5,7 +5,11 @@ import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
@@ -39,6 +43,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
 
+			Map<String, String> aliaColumns = new HashMap<String, String>();//sohudo 2015-2-5 解决了下面这个坑
+			//以下注释的代码没准以后有用，rrs.setMergeCols(aggrColumns);目前就是个坑，设置了反而报错，得不到正确结果
 			//setHasAggrColumn ,such as count(*)
 			Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
 			for(SQLSelectItem item : mysqlSelectQuery.getSelectList()) {
@@ -52,6 +58,16 @@ public class DruidSelectParser extends DefaultDruidParser {
 					}
 					rrs.setHasAggrColumn(true);
 				}
+				else{
+					if (!(item.getExpr() instanceof SQLAllColumnExpr)) {
+						String alia=item.getAlias();
+						String field=getFieldName(item);
+						if (alia==null){
+						  alia=field;	
+						}
+					    aliaColumns.put(field,alia);				
+					}
+				}
 
 			}
 			if(aggrColumns.size() > 0) {
@@ -61,14 +77,14 @@ public class DruidSelectParser extends DefaultDruidParser {
 			//setGroupByCols
 			if(mysqlSelectQuery.getGroupBy() != null) {
 				List<SQLExpr> groupByItems = mysqlSelectQuery.getGroupBy().getItems();
-				String[] groupByCols = buildGroupByCols(groupByItems);
+				String[] groupByCols = buildGroupByCols(groupByItems,aliaColumns);
 				rrs.setGroupByCols(groupByCols);
 			}
 			
 			//setOrderByCols
 			if(mysqlSelectQuery.getOrderBy() != null) {
 				List<SQLSelectOrderByItem> orderByItems = mysqlSelectQuery.getOrderBy().getItems();
-				rrs.setOrderByCols(buildOrderByCols(orderByItems));
+				rrs.setOrderByCols(buildOrderByCols(orderByItems,aliaColumns));
 			}
 
 			//更改canRunInReadDB属性
@@ -83,7 +99,14 @@ public class DruidSelectParser extends DefaultDruidParser {
 //			System.out.println();
 		}
 	}
-	
+	private String getFieldName(SQLSelectItem item){
+		if ((item.getExpr() instanceof SQLPropertyExpr)||(item.getExpr() instanceof SQLMethodInvokeExpr)
+				|| (item.getExpr() instanceof SQLIdentifierExpr)) {			
+			return item.getExpr().toString();//字段别名
+		}
+		else
+		  return item.toString();
+	}
 	/**
 	 * 改写sql：需要加limit的加上
 	 */
@@ -239,27 +262,49 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 		
 	}
+	private String getAliaColumn(Map<String, String> aliaColumns,String column ){
+		String alia=aliaColumns.get(column);
+		if (alia==null){
+			return column;
+		}
+		else {
+			return alia;
+		}
+	}
 	
-	private String[] buildGroupByCols(List<SQLExpr> groupByItems) {
+	private String[] buildGroupByCols(List<SQLExpr> groupByItems,Map<String, String> aliaColumns) {
 		String[] groupByCols = new String[groupByItems.size()]; 
 		for(int i= 0; i < groupByItems.size(); i++) {
-			SQLName expr = (SQLName) ((MySqlSelectGroupByExpr)groupByItems.get(i)).getExpr();
-			String column = removeBackquote(expr.getSimpleName().toUpperCase());
-			groupByCols[i] = column;
+			SQLExpr expr = ((MySqlSelectGroupByExpr)groupByItems.get(i)).getExpr();			
+			String column; 
+			if (expr instanceof SQLName) {
+				column= removeBackquote(((SQLName)expr).getSimpleName());//不要转大写 2015-2-10 sohudo removeBackquote(expr.getSimpleName().toUpperCase());
+			}
+			else {
+				column= removeBackquote(expr.toString());
+			}
+			groupByCols[i] = getAliaColumn(aliaColumns,column);//column;
 		}
 		return groupByCols;
 	}
 	
-	private LinkedHashMap<String, Integer> buildOrderByCols(List<SQLSelectOrderByItem> orderByItems) {
+	private LinkedHashMap<String, Integer> buildOrderByCols(List<SQLSelectOrderByItem> orderByItems,Map<String, String> aliaColumns) {
 		LinkedHashMap<String, Integer> map = new LinkedHashMap<String, Integer>();
 		for(int i= 0; i < orderByItems.size(); i++) {
 			SQLOrderingSpecification type = orderByItems.get(i).getType();
             //orderColumn只记录字段名称,因为返回的结果集是不带表名的。
-			SQLName expr = (SQLName) orderByItems.get(i).getExpr();
-			String col = expr.getSimpleName();
+			SQLExpr expr =  orderByItems.get(i).getExpr();
+			String col;
+			if (expr instanceof SQLName) {
+			   col = ((SQLName)expr).getSimpleName();
+			}
+			else {
+				col =expr.toString();
+			}
 			if(type == null) {
 				type = SQLOrderingSpecification.ASC;
 			}
+			col=getAliaColumn(aliaColumns,col);
 			map.put(col, type == SQLOrderingSpecification.ASC ? OrderCol.COL_ORDER_TYPE_ASC : OrderCol.COL_ORDER_TYPE_DESC);
 		}
 		return map;
