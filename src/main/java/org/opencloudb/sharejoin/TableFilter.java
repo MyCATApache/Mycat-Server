@@ -32,7 +32,7 @@ public class TableFilter {
 	private int rowCount=0;
 	
 	private boolean outJoin;
-	
+	private boolean allField;
 	public TableFilter(String taName,String taAlia,boolean outJoin) {
 		this.tName=taName;
 		this.tAlia=taAlia;
@@ -63,12 +63,15 @@ public class TableFilter {
 	public void addField(String fieldName,String fieldAlia){
 		String atable=getTablefrom(fieldName);
 		String afield=getFieldfrom(fieldName);
+		boolean allfield=afield.equals("*")?true:false;
 		if (atable.equals(tAlia)) {
 		  fieldAliasMap.put(afield, fieldAlia);
+		  setAllField(allfield);
 		}
 		else {
 		  if (join!=null) {
 			  join.addField(fieldName,fieldAlia);  
+			  join.setAllField(allfield);
 		  }
 		}
 	}
@@ -203,6 +206,14 @@ public class TableFilter {
 		outJoin=value;
 	}
 	
+	
+	public boolean getAllField(){
+		return allField;
+	}	
+	public void setAllField(boolean value){
+		allField=value;
+	}	
+	
 	public TableFilter getTableJoin(){
 		return join;
 	}	
@@ -238,7 +249,12 @@ public class TableFilter {
 			}
         }
         else {
-        	sql="select "+joinKey+","+sql+" from "+tName;	
+        	if (allField) {
+        	   sql="select "+sql+" from "+tName;
+        	}
+        	else {
+        	   sql="select "+joinKey+","+sql+" from "+tName;		
+        	}
     		if (!(where.trim().equals(""))){
     			sql+=" where "+where.trim()+" and ("+joinKey+" in %s )"; 	
     		}
