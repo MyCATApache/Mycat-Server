@@ -1,26 +1,57 @@
 package org.opencloudb.mpp.tmp;
 
-import java.util.Vector;
-
 import org.opencloudb.net.mysql.RowDataPacket;
 
+import java.util.List;
+
 /**
- * 
  * @author coderczp-2014-12-17
  */
 public interface HeapItf {
 
-    public abstract void buildMinHeap();
+    /**
+     * 构建堆
+     */
+    void buildHeap();
 
-    public abstract RowDataPacket getRoot();
+    /**
+     * 获取堆根节点
+     *
+     * @return
+     */
+    RowDataPacket getRoot();
 
-    public abstract void add(RowDataPacket row);
+    /**
+     * 向堆添加元素
+     *
+     * @param row
+     */
+    void add(RowDataPacket row);
 
-    public abstract Vector<RowDataPacket> getData();
+    /**
+     * 获取堆数据
+     *
+     * @return
+     */
+    List<RowDataPacket> getData();
 
-    public abstract void setRoot(RowDataPacket root);
+    /**
+     * 设置根节点元素
+     *
+     * @param root
+     */
+    void setRoot(RowDataPacket root);
 
-    public abstract void addIfRequired(RowDataPacket row);
+    /**
+     * 向已满的堆添加元素
+     *
+     * @param row
+     */
+    void addIfRequired(RowDataPacket row);
 
+    /**
+     * 堆排序
+     */
+    void heapSort(int size);
 
 }

@@ -1,8 +1,5 @@
 package org.opencloudb.route.impl;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
@@ -13,6 +10,9 @@ import org.opencloudb.route.RouteStrategy;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
 
 public abstract class AbstractRouteStrategy implements RouteStrategy {
 	private static final Logger LOGGER = Logger.getLogger(AbstractRouteStrategy.class);
@@ -34,8 +34,14 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		if (schema.isCheckSQLSchema()) {
 			stmt = RouterUtil.removeSchema(stmt, schema.getName());
 		}
+
 		RouteResultset rrs = new RouteResultset(stmt, sqlType);
-		
+
+		//rrs携带ServerConnection的autocommit状态用于在sql解析的时候遇到select ... for update的时候动态设定RouteResultsetNode的canRunInReadDB属性
+		if (sc != null ) {
+			rrs.setAutocommit(sc.isAutocommit());
+		}
+
 		// check if there is sharding in schema
 		if (schema.isNoSharding() && ServerParse.SHOW != sqlType) {
 			rrs = RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
