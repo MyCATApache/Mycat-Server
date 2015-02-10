@@ -276,8 +276,14 @@ public class DruidSelectParser extends DefaultDruidParser {
 	private String[] buildGroupByCols(List<SQLExpr> groupByItems,Map<String, String> aliaColumns) {
 		String[] groupByCols = new String[groupByItems.size()]; 
 		for(int i= 0; i < groupByItems.size(); i++) {
-			SQLName expr = (SQLName) ((MySqlSelectGroupByExpr)groupByItems.get(i)).getExpr();
-			String column = removeBackquote(expr.getSimpleName());//不要转大写 2015-2-10 sohudo removeBackquote(expr.getSimpleName().toUpperCase());
+			SQLExpr expr = ((MySqlSelectGroupByExpr)groupByItems.get(i)).getExpr();			
+			String column; 
+			if (expr instanceof SQLName) {
+				column= removeBackquote(((SQLName)expr).getSimpleName());//不要转大写 2015-2-10 sohudo removeBackquote(expr.getSimpleName().toUpperCase());
+			}
+			else {
+				column= removeBackquote(expr.toString());
+			}
 			groupByCols[i] = getAliaColumn(aliaColumns,column);//column;
 		}
 		return groupByCols;
@@ -288,8 +294,14 @@ public class DruidSelectParser extends DefaultDruidParser {
 		for(int i= 0; i < orderByItems.size(); i++) {
 			SQLOrderingSpecification type = orderByItems.get(i).getType();
             //orderColumn只记录字段名称,因为返回的结果集是不带表名的。
-			SQLName expr = (SQLName) orderByItems.get(i).getExpr();
-			String col = expr.getSimpleName();
+			SQLExpr expr =  orderByItems.get(i).getExpr();
+			String col;
+			if (expr instanceof SQLName) {
+			   col = ((SQLName)expr).getSimpleName();
+			}
+			else {
+				col =expr.toString();
+			}
 			if(type == null) {
 				type = SQLOrderingSpecification.ASC;
 			}
