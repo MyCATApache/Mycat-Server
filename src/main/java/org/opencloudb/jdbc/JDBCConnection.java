@@ -207,8 +207,8 @@ public class JDBCConnection implements BackendConnection {
 
 	private void executeSQL(RouteResultsetNode rrn, ServerConnection sc,
 			boolean autocommit) throws IOException {
-		String orgin = rrn.getStatement();
-		String sql = rrn.getStatement().toLowerCase();
+		String sql = rrn.getStatement();
+//		String sql = rrn.getStatement().toLowerCase();
 		
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
@@ -222,7 +222,7 @@ public class JDBCConnection implements BackendConnection {
 			con.setAutoCommit(autocommit);
 			int sqlType = rrn.getSqlType();
 			if (sqlType == ServerParse.SELECT/* || sqlType == ServerParse.SHOW*/) {	
-					ouputResultSet(sc, orgin);
+					ouputResultSet(sc, sql);
 			} else {
 				executeddl(sc, sql);
 			}
