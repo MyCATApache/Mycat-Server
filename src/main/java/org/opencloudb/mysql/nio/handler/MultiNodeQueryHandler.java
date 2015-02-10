@@ -23,15 +23,6 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
@@ -49,6 +40,11 @@ import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author mycat
@@ -278,9 +274,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 		try {
 			lock.lock();
 			ByteBuffer buffer = session.getSource().allocate();
-			int i = 0;
-			int start = dataMergeSvr.getRrs().getLimitStart();
-			int end = start + dataMergeSvr.getRrs().getLimitSize();
+			final DataMergeService dataMergeService = this.dataMergeSvr;
+			final RouteResultset rrs = dataMergeService.getRrs();
+
+			//处理limit语句
+			final int start = rrs.getLimitStart();
+			final int end = start + rrs.getLimitSize();
+
 			Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
 			Iterator<RowDataPacket> itor = results.iterator();
 			if (LOGGER.isDebugEnabled()) {
@@ -288,27 +288,20 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 						+ results.size() + " start :" + start + " end :" + end
 						+ " package id start:" + packetId);
 			}
-			if (results.size() == dataMergeSvr.getRrs().getLimitSize()) {// 返回的结果只有getLimitSize
-				while (itor.hasNext()) {
-					RowDataPacket row = itor.next();
-					row.packetId = ++packetId;
-					buffer = row.write(buffer, source, true);
-				}
-			} else {
-				while (itor.hasNext()) {
-					RowDataPacket row = itor.next();
-					itor.remove();
-					if (i < start) {
-						i++;
-						continue;
-					} else if (i == end) {
-						break;
-					}
-					i++;
-					row.packetId = ++packetId;
-					buffer = row.write(buffer, source, true);
-				}
-			}
+
+			int i = 0;
+            while (itor.hasNext()) {
+                RowDataPacket row = itor.next();
+                if (i < start) {
+                    i++;
+                    continue;
+                } else if (i == end) {
+                    break;
+                }
+                i++;
+                row.packetId = ++packetId;
+                buffer = row.write(buffer, source, true);
+            }
 
 			eof[3] = ++packetId;
 			if (LOGGER.isDebugEnabled()) {

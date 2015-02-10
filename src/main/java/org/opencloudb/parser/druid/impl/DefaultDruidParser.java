@@ -1,20 +1,22 @@
 package org.opencloudb.parser.druid.impl;
 
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.stat.TableStat.Condition;
-import org.apache.log4j.Logger;
-import org.opencloudb.cache.LayerCachePool;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.parser.druid.DruidParser;
-import org.opencloudb.parser.druid.DruidShardingParseInfo;
-import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
-import org.opencloudb.route.RouteResultset;
-
 import java.sql.SQLNonTransientException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.opencloudb.cache.LayerCachePool;
+import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.mpp.RangeValue;
+import org.opencloudb.parser.druid.DruidParser;
+import org.opencloudb.parser.druid.DruidShardingParseInfo;
+import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
+import org.opencloudb.route.RouteResultset;
+
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.stat.TableStat.Condition;
 
 /**
  * 对SQLStatement解析
@@ -134,17 +136,11 @@ public class DefaultDruidParser implements DruidParser {
 				
 				String operator = condition.getOperator();
 				
-				
-				//between \ in 、>= > = < =< ,in和=是一样的处理逻辑
-//				if(operator.equals("between")) {
-//					RangeValue rv = new RangeValue(values.get(0), values.get(1), RangeValue.EE);
-//					ctx.addShardingExpr(tableName.toUpperCase(), columnName, rv);
-//				} else {
-//					ctx.addShardingExpr(tableName.toUpperCase(), columnName, values.toArray());
-//				}
-
-				//只处理=号和in操作符,其他忽略
-				if (operator.equals("=") || operator.toLowerCase().equals("in")) {
+				//只处理between ,in和=3中操作符
+				if(operator.equals("between")) {
+					RangeValue rv = new RangeValue(values.get(0), values.get(1), RangeValue.EE);
+					ctx.addShardingExpr(tableName.toUpperCase(), columnName, rv);
+				} else if(operator.equals("=") || operator.toLowerCase().equals("in")){ //只处理=号和in操作符,其他忽略
 					ctx.addShardingExpr(tableName.toUpperCase(), columnName, values.toArray());
 				}
 			}
