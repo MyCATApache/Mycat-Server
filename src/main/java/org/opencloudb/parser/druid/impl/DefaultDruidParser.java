@@ -30,11 +30,11 @@ public class DefaultDruidParser implements DruidParser {
 	 * 解析得到的结果
 	 */
 	protected DruidShardingParseInfo ctx;
-	
+
 	private Map<String,String> tableAliasMap = new HashMap<String,String>();
 
 	private List<Condition> conditions = new ArrayList<Condition>();
-	
+
 	public Map<String, String> getTableAliasMap() {
 		return tableAliasMap;
 	}
@@ -42,7 +42,7 @@ public class DefaultDruidParser implements DruidParser {
 	public List<Condition> getConditions() {
 		return conditions;
 	}
-	
+
 	/**
 	 * 使用MycatSchemaStatVisitor解析,得到tables、tableAliasMap、conditions等
 	 * @param schema
@@ -56,27 +56,29 @@ public class DefaultDruidParser implements DruidParser {
 		visitorParse(rrs,stmt);
 		//通过Statement解析
 		statementParse(schema, rrs, stmt);
-		
+
 		//改写sql：如insert语句主键自增长的可以
 		changeSql(schema, rrs, stmt,cachePool);
 	}
-	
+
 	/**
 	 * 子类可覆盖（如果visitorParse解析得不到表名、字段等信息的，就通过覆盖该方法来解析）
 	 * 子类覆盖该方法一般是将SQLStatement转型后再解析（如转型为MySqlInsertStatement）
 	 */
 	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
-		
+
 	}
-	
+
 	/**
 	 * 改写sql：如insert是
 	 */
 	@Override
 	public void changeSql(SchemaConfig schema, RouteResultset rrs,
 			SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException {
-		
+
+		stmt.getAttribute("valuesList");
+
 	}
 
 	/**
@@ -88,7 +90,7 @@ public class DefaultDruidParser implements DruidParser {
 	public void visitorParse(RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException{
 		MycatSchemaStatVisitor visitor = new MycatSchemaStatVisitor();
 		stmt.accept(visitor);
-		
+
 		if(visitor.getAliasMap() != null) {
 			for(Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
 				String key = entry.getKey();
@@ -106,7 +108,7 @@ public class DefaultDruidParser implements DruidParser {
 						key = key.substring(pos + 1);
 					}
 				}
-				
+
 				if(key.equals(value)) {
 					ctx.addTable(key.toUpperCase());
 				} else {
@@ -116,9 +118,9 @@ public class DefaultDruidParser implements DruidParser {
 			ctx.setTableAliasMap(tableAliasMap);
 		}
 
-		
+
 		conditions = visitor.getConditions();
-		
+
 		//遍历condition ，找分片字段
 		for(Condition condition : conditions) {
 			List<Object> values = condition.getValues();
@@ -131,10 +133,10 @@ public class DefaultDruidParser implements DruidParser {
 				if(visitor.getAliasMap() != null && visitor.getAliasMap().get(condition.getColumn().getTable()) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
 					continue;
 				}
-				
+
 				String operator = condition.getOperator();
-				
-				
+
+
 				//between \ in 、>= > = < =< ,in和=是一样的处理逻辑
 //				if(operator.equals("between")) {
 //					RangeValue rv = new RangeValue(values.get(0), values.get(1), RangeValue.EE);
@@ -150,7 +152,7 @@ public class DefaultDruidParser implements DruidParser {
 			}
 		}
 	}
-	
+
 	private boolean checkConditionValues(List<Object> values) {
 		for(Object value : values) {
 			if(value != null && !value.toString().equals("")) {
@@ -159,11 +161,11 @@ public class DefaultDruidParser implements DruidParser {
 		}
 		return false;
 	}
-	
+
 	public DruidShardingParseInfo getCtx() {
 		return ctx;
 	}
-	
+
 	/**
 	 * 移除`符号
 	 * @param str

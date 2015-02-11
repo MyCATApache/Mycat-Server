@@ -20,6 +20,7 @@ public class DruidShardingParseInfo {
 	private Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions = new LinkedHashMap<String, Map<String, Set<ColumnRoutePair>>>();
 	private Set<String> shardingKeySet = new HashSet<String>();
 	private String sql = "";
+	private String staticsSql = "";
 	private List<String> tables = new ArrayList<String>();
 
 	/**
@@ -30,17 +31,17 @@ public class DruidShardingParseInfo {
 	public void addShardingExpr(String tableName, String columnName,
 			Object value) {
 		Map<String, Set<ColumnRoutePair>> tableColumnsMap = tablesAndConditions.get(tableName);
-		
+
 		if (value == null) {
 			// where a=null
 			return;
 		}
-		
+
 		if (tableColumnsMap == null) {
 			tableColumnsMap = new LinkedHashMap<String, Set<ColumnRoutePair>>();
 			tablesAndConditions.put(tableName, tableColumnsMap);
 		}
-		
+
 		String uperColName = columnName.toUpperCase();
 		Set<ColumnRoutePair> columValues = tableColumnsMap.get(uperColName);
 
@@ -65,7 +66,7 @@ public class DruidShardingParseInfo {
 
 	/**
 	 * if find table name ,return table name ,else retur null
-	 * 
+	 *
 	 * @param theName
 	 * @return
 	 */
@@ -116,6 +117,14 @@ public class DruidShardingParseInfo {
 
 	public void addTable(String tableName) {
 		this.tables.add(tableName);
+	}
+
+	public String getStaticsSql() {
+		return staticsSql;
+	}
+
+	public void setStaticsSql(String staticsSql) {
+		this.staticsSql = staticsSql;
 	}
 
 }

@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -35,12 +35,16 @@ import org.opencloudb.config.model.MycatNodeConfig;
  */
 public final class MycatCluster {
 
+	public  final static String ON = "on";
     private final Map<String, MycatNode> nodes;
     private final Map<String, List<String>> groups;
+    private String multicastDiscovery = "off";
 
     public MycatCluster(ClusterConfig clusterConf) {
         this.nodes = new HashMap<String, MycatNode>(clusterConf.getNodes().size());
         this.groups = clusterConf.getGroups();
+        this.multicastDiscovery = clusterConf.getMulticastDiscovery();
+
         for (MycatNodeConfig conf : clusterConf.getNodes().values()) {
             String name = conf.getName();
             MycatNode node = new MycatNode(conf);
@@ -55,5 +59,21 @@ public final class MycatCluster {
     public Map<String, List<String>> getGroups() {
         return groups;
     }
+
+	public String getMulticastDiscovery() {
+		return multicastDiscovery;
+	}
+
+	public void setMulticastDiscovery(String multicastDiscovery) {
+		this.multicastDiscovery = multicastDiscovery;
+	}
+
+	@Override
+	public String toString() {
+		return "MycatCluster [nodes=" + nodes + ", groups=" + groups
+				+ ", multicastDiscovery=" + multicastDiscovery + "]";
+	}
+
+
 
 }

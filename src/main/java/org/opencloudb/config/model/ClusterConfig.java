@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -45,13 +45,16 @@ import org.w3c.dom.NodeList;
 public class ClusterConfig {
     private final Map<String, MycatNodeConfig> nodes;
     private final Map<String, List<String>> groups;
+    private String multicastDiscovery = "off";
 
-    public ClusterConfig(Element root, int port) {
-        nodes = Collections.unmodifiableMap(loadNode(root, port));
+    public ClusterConfig(Element root, int port, int mgrport) {
+    	multicastDiscovery = loadDiscovery(root);
+    	nodes = Collections.unmodifiableMap(loadNode(root, port ,mgrport));
         groups = Collections.unmodifiableMap(loadGroup(root, nodes));
     }
 
-    public Map<String, MycatNodeConfig> getNodes() {
+
+	public Map<String, MycatNodeConfig> getNodes() {
         return nodes;
     }
 
@@ -59,7 +62,33 @@ public class ClusterConfig {
         return groups;
     }
 
-    private static Map<String, MycatNodeConfig> loadNode(Element root, int port) {
+
+
+	public String getMulticastDiscovery() {
+		return multicastDiscovery;
+	}
+
+	public void setMulticastDiscovery(String multicastDiscovery) {
+		this.multicastDiscovery = multicastDiscovery;
+	}
+
+	private static String loadDiscovery(Element root) {
+        String multicastDiscovery = "";
+
+		if(root.getElementsByTagName("cluster")!=null&&root.getElementsByTagName("cluster").getLength()>0){
+			NodeList list = root.getElementsByTagName("cluster");
+	        Node node = list.item(0);
+	        if (node instanceof Element) {
+	            Element e = (Element) node;
+	            if(e.hasAttribute("multicast_discovery")){
+	            	multicastDiscovery  = e.getAttribute("multicast_discovery");
+	        	}
+	        }
+		}
+
+        return multicastDiscovery;
+	}
+	private static Map<String, MycatNodeConfig> loadNode(Element root, int port, int mgrport) {
         Map<String, MycatNodeConfig> nodes = new HashMap<String, MycatNodeConfig>();
         NodeList list = root.getElementsByTagName("node");
         Set<String> hostSet = new HashSet<String>();
@@ -80,6 +109,17 @@ public class ClusterConfig {
                 if (hostSet.contains(host)) {
                     throw new ConfigException("node host duplicated :" + host);
                 }
+                String vport = (String) props.get("port");
+                if (null == vport || "".equals(vport)) {
+                	vport = String.valueOf(port);
+                }
+                int iport = Integer.valueOf(vport);
+
+                String vmgrport = (String) props.get("mgrport");
+                if (null == vmgrport || "".equals(vmgrport)) {
+                	vmgrport = String.valueOf(mgrport);
+                }
+                int imgrport = Integer.valueOf(vmgrport);
 
                 String wei = (String) props.get("weight");
                 if (null == wei || "".equals(wei)) {
@@ -90,7 +130,7 @@ public class ClusterConfig {
                     throw new ConfigException("weight should be > 0 in host:" + host + " weight:" + weight);
                 }
 
-                MycatNodeConfig conf = new MycatNodeConfig(name, host, port, weight);
+                MycatNodeConfig conf = new MycatNodeConfig(name, host, iport, imgrport, weight);
                 nodes.put(name, conf);
                 hostSet.add(host);
             }
@@ -101,40 +141,48 @@ public class ClusterConfig {
     private static Map<String, List<String>> loadGroup(Element root, Map<String, MycatNodeConfig> nodes) {
         Map<String, List<String>> groups = new HashMap<String, List<String>>();
         NodeList list = root.getElementsByTagName("group");
-        for (int i = 0, n = list.getLength(); i < n; i++) {
-            Node node = list.item(i);
-            if (node instanceof Element) {
-                Element e = (Element) node;
-                String groupName = e.getAttribute("name").trim();
-                if (groups.containsKey(groupName)) {
-                    throw new ConfigException("group duplicated : " + groupName);
-                }
-
-                Map<String, Object> props = ConfigUtil.loadElements(e);
-                String value = (String) props.get("nodeList");
-                if (null == value || "".equals(value)) {
-                    throw new ConfigException("group should contain 'nodeList'");
-                }
-
-                String[] sList = SplitUtil.split(value, ',', true);
-
-                if (null == sList || sList.length == 0) {
-                    throw new ConfigException("group should contain 'nodeList'");
-                }
-
-                for (String s : sList) {
-                    if (!nodes.containsKey(s)) {
-                        throw new ConfigException("[ node :" + s + "] in [ group:" + groupName + "] doesn't exist!");
-                    }
-                }
-                List<String> nodeList = Arrays.asList(sList);
-                groups.put(groupName, nodeList);
+        Node node = list.item(0);
+        //for (int i = 0, n = list.getLength(); i < n; i++) {
+        //Node node = list.item(i);
+        if (node instanceof Element) {
+            Element e = (Element) node;
+            String groupName = e.getAttribute("name").trim();
+            if (groups.containsKey(groupName)) {
+                throw new ConfigException("group duplicated : " + groupName);
             }
+
+            Map<String, Object> props = ConfigUtil.loadElements(e);
+            String value = (String) props.get("nodeList");
+            if (null == value || "".equals(value)) {
+                throw new ConfigException("group should contain 'nodeList'");
+            }
+
+            String[] sList = SplitUtil.split(value, ',', true);
+
+            if (null == sList || sList.length == 0) {
+                throw new ConfigException("group should contain 'nodeList'");
+            }
+
+            for (String s : sList) {
+                if (!nodes.containsKey(s)) {
+                    throw new ConfigException("[ node :" + s + "] in [ group:" + groupName + "] doesn't exist!");
+                }
+            }
+            List<String> nodeList = Arrays.asList(sList);
+            groups.put(groupName, nodeList);
+
+            String defaultNode = e.getAttribute("local");
+            List<String> defaultList = new ArrayList<String>();
+            if (defaultNode!=null&&!defaultNode.equals("")) {
+            	defaultList.add(defaultNode);
+            	groups.put("local", defaultList);
+            }else {
+            	defaultList = new ArrayList<String>(nodes.keySet());
+                groups.put("local", defaultList);
+    		}
+          //}
         }
-        if (!groups.containsKey("default")) {
-            List<String> nodeList = new ArrayList<String>(nodes.keySet());
-            groups.put("default", nodeList);
-        }
+
         return groups;
     }
 }

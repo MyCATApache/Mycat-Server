@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -32,12 +32,14 @@ public final class MycatNodeConfig {
     private String name;
     private String host;
     private int port;
+    private int mgrport;
     private int weight;
 
-    public MycatNodeConfig(String name, String host, int port, int weight) {
+    public MycatNodeConfig(String name, String host, int port,int mgrport, int weight ) {
         this.name = name;
         this.host = host;
         this.port = port;
+        this.mgrport = mgrport;
         this.weight = weight;
     }
 
@@ -73,7 +75,15 @@ public final class MycatNodeConfig {
         this.weight = weight;
     }
 
-    @Override
+    public int getMgrport() {
+		return mgrport;
+	}
+
+	public void setMgrport(int mgrport) {
+		this.mgrport = mgrport;
+	}
+
+	@Override
     public String toString() {
         return new StringBuilder().append("[name=").append(name).append(",host=").append(host).append(",port=")
                 .append(port).append(",weight=").append(weight).append(']').toString();

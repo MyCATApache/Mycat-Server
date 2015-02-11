@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -28,6 +28,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Timer;
@@ -41,6 +42,7 @@ import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.buffer.BufferPool;
 import org.opencloudb.cache.CacheService;
 import org.opencloudb.classloader.DynaClassLoader;
+import org.opencloudb.config.model.ClusterConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.interceptor.SQLInterceptor;
 import org.opencloudb.manager.ManagerConnectionFactory;
@@ -155,7 +157,7 @@ public class MycatServer {
 	/**
 	 * get next AsynchronousChannel ,first is exclude if multi
 	 * AsynchronousChannelGroups
-	 * 
+	 *
 	 * @return
 	 */
 	public AsynchronousChannelGroup getNextAsyncChannelGroup() {
@@ -187,6 +189,24 @@ public class MycatServer {
 
 		SystemConfig system = config.getSystem();
 		int processorCount = system.getProcessors();
+
+		//load clusterConfig
+		MycatCluster cluster = config.getCluster();
+		if(cluster!=null&&cluster.getGroups()!=null&&cluster.getGroups().containsKey("local")){
+        	List<String> defaults = cluster.getGroups().get("local");
+        	String vnode = defaults.get(0);
+        	Map<String, MycatNode> nodes = cluster.getNodes();
+        	for (String node : nodes.keySet()) {
+               if(node.equals(vnode)){
+            	   MycatNode nodeconfig = nodes.get(node);
+            	   system.setServerPort(nodeconfig.getConfig().getPort());
+               	   system.setManagerPort(nodeconfig.getConfig().getMgrport());
+
+               	   break;
+               }
+			}
+        }
+		LOGGER.info(cluster);
 
 		// server startup
 		LOGGER.info("===============================================");
@@ -347,7 +367,7 @@ public class MycatServer {
 
 	/**
 	 * save cur datanode index to properties file
-	 * 
+	 *
 	 * @param dataNode
 	 * @param curIndex
 	 */
