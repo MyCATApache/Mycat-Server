@@ -23,10 +23,6 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.config.ErrorCode;
@@ -37,6 +33,10 @@ import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.util.StringUtil;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
 
 /**
  * @author mycat
@@ -245,6 +245,7 @@ public class NodeWithLimitHandler implements ResponseHandler, Terminatable {
 		err.errno = ErrorCode.ER_YES;
 		err.message = StringUtil.encode(reason, session.getSource()
 				.getCharset());
+		session.releaseConnection(conn);
 		this.backConnectionErr(err, conn);
 
 	}
