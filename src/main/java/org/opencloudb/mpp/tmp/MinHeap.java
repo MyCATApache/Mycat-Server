@@ -30,9 +30,10 @@ public class MinHeap implements HeapItf {
         int r = right(i);
         int smallest = i;
         int len = data.size();
-        if (l < len && cmp.compare(data.elementAt(l), data.elementAt(i)) < 0)
+        //根据最小堆算法，应该将小的那个节点上升；下面算法的问题在于cmp在desc时，a<b会返回大于0 TODO CHECK
+        if (l < len && cmp.compare(data.elementAt(l), data.elementAt(smallest)) > 0)
             smallest = l;
-        if (r < len && cmp.compare(data.elementAt(r), data.elementAt(smallest)) < 0)
+        if (r < len && cmp.compare(data.elementAt(r), data.elementAt(smallest)) > 0)
             smallest = r;
         if (i == smallest)
             return;
@@ -76,7 +77,7 @@ public class MinHeap implements HeapItf {
     public void addIfRequired(RowDataPacket row) {
         // 淘汰堆里最小的数据
         RowDataPacket root = getRoot();
-        if (cmp.compare(row, root) > 0) {
+        if (cmp.compare(row, root) < 0) {
             setRoot(row);
         }
     }

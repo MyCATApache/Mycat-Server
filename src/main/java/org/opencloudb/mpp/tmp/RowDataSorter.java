@@ -47,6 +47,12 @@ public class RowDataSorter extends RowDataPacketSorter {
             heap.add(row);
             return;
         }
+        //
+        if(total == -1){
+        	heap.add(row);
+            return;
+        }
+        //
         if (heap.getData().size() == total && hasBuild == false) {
             hasBuild = true;
             heap.buildMinHeap();
