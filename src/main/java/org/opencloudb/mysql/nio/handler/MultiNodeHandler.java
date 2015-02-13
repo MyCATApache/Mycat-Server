@@ -23,15 +23,15 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.util.StringUtil;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author mycat
@@ -220,6 +220,8 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		if (error == null) {
 			error = "back connection closed ";
 		}
+		//从session移除已经关闭的连接
+		session.releaseConnection(conn);
 		tryErrorFinished(finished);
 	}
 

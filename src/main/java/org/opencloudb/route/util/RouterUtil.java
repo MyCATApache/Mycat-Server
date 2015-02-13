@@ -320,6 +320,32 @@ public class RouterUtil {
 		rrs.setNodes(nodes);
 		return rrs;
 	}
+
+    /** 
+     * 路由到所有分片
+     *
+     * @param schema
+     * @param rrs
+     * @param sql
+     * @param cache
+     * @return
+     */
+    public static RouteResultset routeToAllNodes(SchemaConfig schema, RouteResultset rrs, String sql, boolean cache) {
+        Set<String> nodeNames = schema.getAllDataNodes();
+        RouteResultsetNode[] nodes = new RouteResultsetNode[nodeNames.size()];
+        int i = 0;
+        RouteResultsetNode node;
+        for (String nodeName : nodeNames) {
+            node = new RouteResultsetNode(nodeName, rrs.getSqlType(), sql);
+            if (rrs.getCanRunInReadDB() != null) {
+                node.setCanRunInReadDB(rrs.getCanRunInReadDB());
+            }   
+            nodes[i++] = node;
+        }   
+        rrs.setCacheAble(cache);
+        rrs.setNodes(nodes);
+        return rrs;
+    } 
 	
 	public static void routeForTableMeta(RouteResultset rrs,
 			SchemaConfig schema, String tableName, String sql) {
