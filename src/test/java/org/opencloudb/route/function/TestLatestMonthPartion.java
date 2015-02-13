@@ -2,18 +2,12 @@ package org.opencloudb.route.function;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
-
 import org.junit.Test;
-import org.opencloudb.util.SplitUtil;
 
 public class TestLatestMonthPartion {
 
 	@Test
 	public void testSetDataNodes() {
-		String dn = "dn$4-5";
-		String theDataNodes[] = SplitUtil.split(dn, ',', '$', '-', '[', ']');
-		System.out.println(Arrays.toString(theDataNodes));
 		LatestMonthPartion partion = new LatestMonthPartion();
 		partion.setSplitOneDay(24);
 		Integer val = partion.calculate("2015020100");
@@ -22,6 +16,15 @@ public class TestLatestMonthPartion {
 		assertTrue(val == 40);
 		val = partion.calculate("2015022823");
 		assertTrue(val == 27 * 24 + 23);
+
+		Integer[] span = partion.calculateRange("2015020100", "2015022823");
+		assertTrue(span.length == 27 * 24 + 23 + 1);
+		assertTrue(span[0] == 0 && span[span.length - 1] == 27 * 24 + 23);
+		
+		
+		span = partion.calculateRange("2015020100", "2015020123");
+		assertTrue(span.length == 24);
+		assertTrue(span[0] == 0 && span[span.length - 1] == 23);
 	}
 
 }

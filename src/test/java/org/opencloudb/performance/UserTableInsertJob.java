@@ -18,10 +18,11 @@ public class UserTableInsertJob implements Runnable {
 	private final SimpleConPool conPool;
 	private final long totalRecords;
 	private LinkedList<StringItem> sqlTemplateItems;
+	private final boolean autocommit;
 
 	public UserTableInsertJob(SimpleConPool conPool, long totalRecords,
 			long batchSize, AtomicLong finshiedCount, AtomicLong failedCount,
-			LinkedList<StringItem> sqlTemplateItems) {
+			LinkedList<StringItem> sqlTemplateItems, boolean autoCommit) {
 		super();
 		this.conPool = conPool;
 		this.totalRecords = totalRecords;
@@ -29,6 +30,7 @@ public class UserTableInsertJob implements Runnable {
 		this.finshiedCount = finshiedCount;
 		this.failedCount = failedCount;
 		this.sqlTemplateItems = sqlTemplateItems;
+		this.autocommit = autoCommit;
 	}
 
 	private long insert(Connection con, List<String> list) throws SQLException {
@@ -37,8 +39,10 @@ public class UserTableInsertJob implements Runnable {
 			stms.addBatch(sql);
 		}
 		stms.executeBatch();
-		con.commit();
-		stms.clearBatch();
+		if (this.autocommit == false) {
+			con.commit();
+		}
+		// stms.clearBatch();
 		stms.close();
 		return list.size();
 	}
@@ -68,18 +72,22 @@ public class UserTableInsertJob implements Runnable {
 				try {
 					if (con == null || con.isClosed()) {
 						con = conPool.getConnection();
-						con.setAutoCommit(false);
+						if (con.getAutoCommit() != autocommit) {
+							con.setAutoCommit(autocommit);
+						}
 					}
 
 					insert(con, batch);
 					finshiedCount.addAndGet(batch.size());
 				} catch (Exception e) {
-					e.printStackTrace();
+					System.out.println("caught err in  thread :"
+							+ Thread.currentThread().getId() + " " + e);
 					try {
 						con.rollback();
 					} catch (SQLException e1) {
-						e1.printStackTrace();
-						e1.printStackTrace();
+						System.out.println("caught err in thread :"
+								+ Thread.currentThread().getId()
+								+ " rollback err " + e1);
 					}
 					failedCount.addAndGet(batch.size());
 				}

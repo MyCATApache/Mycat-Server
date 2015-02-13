@@ -120,7 +120,12 @@ public abstract class AbstractMultiTreadBatchTester {
 					.loadFromPropertyFile(sqlFile);
 			long total = Long.valueOf(pros.getProperty("total"));
 			String sqlTemplate = pros.getProperty("sql");
-			return createSQLTemplateJobs(total, sqlTemplate);
+			String batchSizeStr=pros.getProperty("batch");
+			String autocommitStr=pros.getProperty("autocommit");
+			boolean autocommit=autocommitStr==null?false:Boolean.valueOf(autocommitStr);
+			int batchSize=batchSizeStr==null?100:Integer.parseInt(batchSizeStr);
+			System.out.println("total record "+total+ " batch size:"+batchSize+" autocomit "+autocommit);
+			return createSQLTemplateJobs(total, sqlTemplate,batchSize,autocommit);
 
 		} else {
 			ArrayList<Runnable>[] allJobs = new ArrayList[rangeItems.length];
@@ -137,7 +142,7 @@ public abstract class AbstractMultiTreadBatchTester {
 	}
 
 	private ArrayList<Runnable>[] createSQLTemplateJobs(long total,
-			String sqlTemplate) throws Exception {
+			String sqlTemplate,int batchSize,boolean autocommit) throws Exception {
 		LinkedList<StringItem> sqlTemplateItems = RandomDataValueUtil
 				.parselRandVarTemplateString(sqlTemplate);
 		@SuppressWarnings("unchecked")
@@ -147,12 +152,12 @@ public abstract class AbstractMultiTreadBatchTester {
 		allJobs[0] = new ArrayList<Runnable>((int) threadCount);
 		for (int i = 0; i < threadCount; i++) {
 			allJobs[0].add(new UserTableInsertJob(getConPool(), totalBatch,
-					100, finshiedCount, failedCount, sqlTemplateItems));
+					batchSize, finshiedCount, failedCount, sqlTemplateItems,autocommit));
 		}
 		if (totalBatch * threadCount < total) {
 			allJobs[0].add(new UserTableInsertJob(getConPool(), total
-					- totalBatch * threadCount, 100, finshiedCount,
-					failedCount, sqlTemplateItems));
+					- totalBatch * threadCount, batchSize, finshiedCount,
+					failedCount, sqlTemplateItems,autocommit));
 		}
 		return allJobs;
 	}

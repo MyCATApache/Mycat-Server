@@ -144,28 +144,28 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 			conn.execute(node, session.getSource(), session.getSource()
 					.isAutocommit());
 		} catch (IOException e1) {
-			executeException(conn);
+			executeException(conn,e1);
 			return;
 		}
 	}
 
-	private void executeException(BackendConnection c) {
+	private void executeException(BackendConnection c, Exception e) {
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.errno = ErrorCode.ER_YES;
-		err.message = StringUtil.encode(
-				"unknown backend charset: " + c.getCharset(), session
-						.getSource().getCharset());
+		err.errno = ErrorCode.ERR_FOUND_EXCEPION;
+		err.message = StringUtil.encode(e.toString(), session.getSource()
+				.getCharset());
 
 		this.backConnectionErr(err, c);
 	}
 
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
+		
 		endRunning();
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.errno = ErrorCode.ER_YES;
+		err.errno = ErrorCode.ER_NEW_ABORTING_CONNECTION;
 		err.message = StringUtil.encode(e.getMessage(), session.getSource()
 				.getCharset());
 		ServerConnection source = session.getSource();
@@ -271,7 +271,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 	public void connectionClose(BackendConnection conn, String reason) {
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.errno = ErrorCode.ER_YES;
+		err.errno = ErrorCode.ER_ERROR_ON_CLOSE;
 		err.message = StringUtil.encode(reason, session.getSource()
 				.getCharset());
 		this.backConnectionErr(err, conn);

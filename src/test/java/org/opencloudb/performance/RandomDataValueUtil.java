@@ -32,9 +32,9 @@ public class RandomDataValueUtil {
 	 * '${date(yyyyMMddHHmmsss-[2014-2015]y)}/psn${date(yyyy)}s/${int(0-9999)}/1
 	 * 6 7 6 7 : 2 0 7 2 5 ' , ' $ { s t r i n g ( 2 , 0 - 9 9 )}
 	 * OPP_${enum(BJ,SH,GZ,SZ)}_${int(0-9)}
-	 * ',${int(10,11)},$int(400,420,500,600,800),$int(0-1000),$int(0-100),$int(0-10),$int(0-99),'201408040028317067b41c0db-4a93-4360-9eb4-e159d1dbef4
-	 * 5 ' , $ p h o n e , 2 , 2 0 1 4 0 7 1 7 1 5 , 2 3 1 5 9 9 8 , 1 3 9 7 , 1
-	 * 5 2 3 1 7 9 9 8 , 1 3 9 5 , ' 0 0 0 0 ' )
+	 * ',${int(10,11)},$int(400,420,500,600,800),$int(0-1000),$int(0-100),$int(0-10),$int(0-99),'201408040028317067b41c0db-4a93-4360-9eb4-e159d1
+	 * d b e f 4 5 ' , $ p h o n e , 2 , 2 0 1 4 0 7 1 7 1 5 , 2 3 1 5 9 9 8 , 1
+	 * 3 9 7 , 1 5 2 3 1 7 9 9 8 , 1 3 9 5 , ' 0 0 0 0 ' )
 	 * 
 	 * @param templateStr
 	 * @return
@@ -98,7 +98,9 @@ public class RandomDataValueUtil {
 		}
 		return stringItems;
 	}
-	public static Properties loadFromPropertyFile(String sqlFile) throws IOException {
+
+	public static Properties loadFromPropertyFile(String sqlFile)
+			throws IOException {
 		java.util.Properties pros = new Properties();
 		FileInputStream fin = null;
 		fin = new FileInputStream(sqlFile);
@@ -106,6 +108,7 @@ public class RandomDataValueUtil {
 		fin.close();
 		return pros;
 	}
+
 	public static String evalRandValueString(LinkedList<StringItem> items) {
 		StringBuilder sb = new StringBuilder();
 		for (StringItem item : items) {
@@ -353,19 +356,48 @@ class DateVarItem extends StringItem {
 			fmtEndPos = content.indexOf(')');
 		}
 		format = content.substring(5, fmtEndPos);
-		int yearP = content.indexOf('y', fmtEndPos);
+		int yearP = content.indexOf("]y", fmtEndPos);
 		if (yearP > 0) {
-			int start = content.indexOf('[', fmtEndPos);
-			int end = content.indexOf(']', fmtEndPos);
-			String range = content.substring(start + 1, end);
-			String[] items = range.split("-");
-			yearRang[0] = Integer.valueOf(items[0]);
-			yearRang[1] = Integer.valueOf(items[1]);
+			yearRang = getRangeofPattern(content, yearP);
 		}
 
+		int monthP = content.indexOf("]M", fmtEndPos);
+		if (monthP > 0) {
+			monRang = getRangeofPattern(content, monthP);
+		}
+
+		int dayP = content.indexOf("]d", fmtEndPos);
+		if (dayP > 0) {
+			dayRang = getRangeofPattern(content, dayP);
+		}
+		int hourP = content.indexOf("]H", fmtEndPos);
+		if (hourP > 0) {
+			hourRang = getRangeofPattern(content, hourP);
+		}
+		int minuteP = content.indexOf("]m", fmtEndPos);
+		if (minuteP > 0) {
+			minuteRang = getRangeofPattern(content, minuteP);
+		}
+		int secondP = content.indexOf("]s", fmtEndPos);
+		if (secondP > 0) {
+			secondRang = getRangeofPattern(content, secondP);
+		}
+		int millisS = content.indexOf("]S", fmtEndPos);
+		if (millisS > 0) {
+			sssRang = getRangeofPattern(content, millisS);
+		}
 	}
 
-
+	private static final int[] getRangeofPattern(String theString, int endPos) {
+		String subString = theString.substring(0, endPos);
+		int start = subString.lastIndexOf('[');
+		String range = subString.substring(start + 1, endPos);
+		String[] items = range.split("-");
+		int[] values = new int[2];
+		values[0] = Integer.valueOf(items[0]);
+		values[1] = Integer.valueOf(items[1]);
+		return values;
+	}
 
 	public String getValue() {
 		int yearSpan = yearRang[1] - yearRang[0] + 1;

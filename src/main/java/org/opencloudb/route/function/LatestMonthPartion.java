@@ -42,4 +42,9 @@ public class LatestMonthPartion extends AbstractPartitionAlgorithm {
 		return dnIndex;
 
 	}
+
+	public Integer[] calculateRange(String beginValue, String endValue) {
+		return calculateSequenceRange(this,beginValue, endValue);
+	}
+
 }

@@ -29,8 +29,10 @@
 			<childTable name="customer_addr" primaryKey="ID" joinKey="customer_id"
 				parentKey="id" />
 		</table>
+		<table name="oc_call" primaryKey="ID" dataNode="dn1$0-743" rule="latest-month-calldate" />
 	</schema>
 
+    <dataNode name="dn1" dataHost="localhost1" database="db$0-743" />
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />
 	<dataNode name="dn2" dataHost="localhost1" database="db2" />
 	<dataNode name="dn3" dataHost="localhost1" database="db3" />
