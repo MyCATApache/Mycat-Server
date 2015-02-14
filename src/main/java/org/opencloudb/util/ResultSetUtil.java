@@ -44,10 +44,8 @@ public class ResultSetUtil {
 			for (int i = 0; i < colunmCount; i++) {
 				int j = i + 1;
 				FieldPacket fieldPacket = new FieldPacket();
-				fieldPacket.orgName = StringUtil.encode(
-						metaData.getColumnLabel(j), charset);
-				fieldPacket.name = StringUtil.encode(metaData.getColumnName(j),
-						charset);
+				fieldPacket.orgName = StringUtil.encode(metaData.getColumnName(j), charset);
+				fieldPacket.name = StringUtil.encode(metaData.getColumnLabel(j),	charset);
 				fieldPacket.orgTable = StringUtil.encode(
 						metaData.getTableName(j), charset);
 				fieldPacket.table = StringUtil.encode(metaData.getTableName(j),
