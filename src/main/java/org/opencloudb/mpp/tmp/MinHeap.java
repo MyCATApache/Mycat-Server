@@ -30,7 +30,7 @@ public class MinHeap implements HeapItf {
         int r = right(i);
         int smallest = i;
         int len = data.size();
-        //根据最小堆算法，应该将小的那个节点上升；下面算法的问题在于cmp在desc时，a<b会返回大于0 TODO CHECK
+        //此cmp的比较算法，在desc时；a<b会返回大于0 
         if (l < len && cmp.compare(data.elementAt(l), data.elementAt(smallest)) > 0)
             smallest = l;
         if (r < len && cmp.compare(data.elementAt(r), data.elementAt(smallest)) > 0)
