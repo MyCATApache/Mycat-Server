@@ -79,6 +79,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				List<SQLExpr> groupByItems = mysqlSelectQuery.getGroupBy().getItems();
 				String[] groupByCols = buildGroupByCols(groupByItems,aliaColumns);
 				rrs.setGroupByCols(groupByCols);
+				rrs.setHasAggrColumn(true);
 			}
 			
 			//setOrderByCols

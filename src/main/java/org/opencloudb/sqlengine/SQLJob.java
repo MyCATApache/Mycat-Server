@@ -8,6 +8,7 @@ import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
+import org.opencloudb.jdbc.JDBCConnection;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.route.RouteResultsetNode;
@@ -55,8 +56,14 @@ public class SQLJob implements ResponseHandler, Runnable {
 		}
 		conn.setResponseHandler(this);
 		try {
-			conn.query(sql);
-		} catch (UnsupportedEncodingException e) {
+			if (conn instanceof JDBCConnection){
+				RouteResultsetNode node = new RouteResultsetNode(dataNode,ServerParse.SELECT, sql);
+			  conn.execute(node, ctx.getSession().getSource(), true);	
+			}
+			else {	
+			  conn.query(sql);
+			}
+		} catch (Exception e) {//(UnsupportedEncodingException e) {
 			doFinished(true);
 		}
 
