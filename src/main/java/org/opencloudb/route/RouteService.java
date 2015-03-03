@@ -47,7 +47,7 @@ public class RouteService {
 	private final CachePool sqlRouteCache;
 	private final LayerCachePool tableId2DataNodeCache;
 
-    //sql注释的类型处理handler 集合，现在支持两种类型的处理：sql,schema
+    //sql注解的类型处理handler 集合，现在支持两种类型的处理：sql,schema
     private static Map<String,HintHandler> hintHandlerMap = new HashMap<String,HintHandler>();
 
 	public RouteService(CacheService cachService) {
@@ -74,16 +74,22 @@ public class RouteService {
 			}
 		}
 
-		// 处理自定义分片注释, 注释格式：/*!mycat: type = value */ sql
-		String mycatHint = "/*!mycat:";
+		// 处理自定义分片注解, 注解格式：/*!mycat: type = value */ sql
+		String oldMycatHint = "/*!mycat:";
+		
+		//新的注解格式:/* !mycat: type = value */ sql，oldMycatHint的格式不兼容直连mysql
+		String newMycatHint = "/*#mycat:";
         String hintSplit = "=";
+        
+        boolean isMatchOldHint = stmt.startsWith(oldMycatHint);
 		/*!mycat: sql = select name from aa */
         /*!mycat: schema = test */
-		if (stmt.startsWith(mycatHint)) {
+		if (isMatchOldHint || stmt.startsWith(newMycatHint)) {
 			int endPos = stmt.indexOf("*/");
 			if (endPos > 0) {
+				int hintLength = isMatchOldHint ? oldMycatHint.length() : newMycatHint.length();
 				// 用!mycat:内部的语句来做路由分析
-				String hint = stmt.substring(mycatHint.length(), endPos).trim();
+				String hint = stmt.substring(hintLength, endPos).trim();
 				
                 int firstSplitPos = hint.indexOf(hintSplit);
                 
@@ -91,8 +97,8 @@ public class RouteService {
                     String hintType = hint.substring(0,firstSplitPos).trim().toLowerCase(Locale.US);
                     String hintValue = hint.substring(firstSplitPos + hintSplit.length()).trim();
                     if(hintValue.length()==0){
-                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/: "+stmt);
-                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/: "+stmt);
+                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
+                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
                     }
                     String realSQL = stmt.substring(endPos + "*/".length()).trim();
 
@@ -103,8 +109,8 @@ public class RouteService {
                         LOGGER.warn("TODO , support hint sql type : " + hintType);
                     }
                 }else{//fixed by runfriends@126.com
-                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/: "+stmt);
-                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/: "+stmt);
+                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
+                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/ or /*#mycat:type=value*/: "+stmt);
                 }
 			}
 		} else {

@@ -1,22 +1,15 @@
 package org.opencloudb.parser.druid.impl;
 
-import java.sql.SQLNonTransientException;
-import java.util.LinkedHashMap;
-import java.util.List;
-
-import org.opencloudb.cache.LayerCachePool;
-import org.opencloudb.config.ErrorCode;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.config.model.TableConfig;
-import org.opencloudb.mpp.OrderCol;
-import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.util.RouterUtil;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
@@ -25,6 +18,22 @@ import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
+
+import org.opencloudb.cache.LayerCachePool;
+import org.opencloudb.config.ErrorCode;
+import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.config.model.TableConfig;
+import org.opencloudb.mpp.MergeCol;
+import org.opencloudb.mpp.OrderCol;
+import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.util.RouterUtil;
+
+import java.sql.SQLNonTransientException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DruidSelectParser extends DefaultDruidParser {
 	@Override
@@ -33,56 +42,56 @@ public class DruidSelectParser extends DefaultDruidParser {
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
-			//setHasAggrColumn ,such as count(*)
-			
+
+			Map<String, String> aliaColumns = new HashMap<String, String>();//sohudo 2015-2-5 解决了下面这个坑
 			//以下注释的代码没准以后有用，rrs.setMergeCols(aggrColumns);目前就是个坑，设置了反而报错，得不到正确结果
-//			boolean hasAggrColumn = false;
-//			Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
-//			for(SQLSelectItem item : mysqlSelectQuery.getSelectList()) {
-//				
-//				if(item.getExpr() instanceof SQLAggregateExpr) {
-//					SQLAggregateExpr expr = (SQLAggregateExpr)item.getExpr();
-//					List<SQLExpr> argList = expr.getArguments();
-//					String method = expr.getMethodName();
-//					if (argList.size() > 0) {
-//						for(SQLExpr arg : argList) {
-//							aggrColumns.put(arg.toString(), MergeCol.getMergeType(method));
-//						}
-//					}
-//					hasAggrColumn = true;
-//				}
-//				
-//			}
-//			if(aggrColumns.size() > 0) {
-//				rrs.setMergeCols(aggrColumns);
-//			}
-//			if(hasAggrColumn) {
-//				rrs.setHasAggrColumn(true);
-//			}
-			
-			
 			//setHasAggrColumn ,such as count(*)
+			Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
 			for(SQLSelectItem item : mysqlSelectQuery.getSelectList()) {
+
 				if(item.getExpr() instanceof SQLAggregateExpr) {
+					SQLAggregateExpr expr = (SQLAggregateExpr)item.getExpr();
+					String method = expr.getMethodName();
+					//只处理有别名的情况，无别名丢给DataMergeService.onRowMetaData处理
+					if (item.getAlias() != null && item.getAlias().length() > 0) {
+						aggrColumns.put(item.getAlias(), MergeCol.getMergeType(method));
+					}
 					rrs.setHasAggrColumn(true);
-					break;
 				}
+				else{
+					if (!(item.getExpr() instanceof SQLAllColumnExpr)) {
+						String alia=item.getAlias();
+						String field=getFieldName(item);
+						if (alia==null){
+						  alia=field;	
+						}
+					    aliaColumns.put(field,alia);				
+					}
+				}
+
 			}
-			
+			if(aggrColumns.size() > 0) {
+				rrs.setMergeCols(aggrColumns);
+			}
+
 			//setGroupByCols
 			if(mysqlSelectQuery.getGroupBy() != null) {
 				List<SQLExpr> groupByItems = mysqlSelectQuery.getGroupBy().getItems();
-				String[] groupByCols = buildGroupByCols(groupByItems);
+				String[] groupByCols = buildGroupByCols(groupByItems,aliaColumns);
 				rrs.setGroupByCols(groupByCols);
+				rrs.setHasAggrColumn(true);
 			}
 			
 			//setOrderByCols
 			if(mysqlSelectQuery.getOrderBy() != null) {
 				List<SQLSelectOrderByItem> orderByItems = mysqlSelectQuery.getOrderBy().getItems();
-				rrs.setOrderByCols(buildOrderByCols(orderByItems));
+				rrs.setOrderByCols(buildOrderByCols(orderByItems,aliaColumns));
 			}
-			
-			//setMergeCols TODO 目前设置这个值会报错，可能有特殊场景需要，后续如果出现bug在考虑设置
+
+			//更改canRunInReadDB属性
+			if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false) {
+				rrs.setCanRunInReadDB(false);
+			}
 
 		} else if (sqlSelectQuery instanceof MySqlUnionQuery) { //TODO union语句可能需要额外考虑，目前不处理也没问题
 //			MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;
@@ -91,12 +100,22 @@ public class DruidSelectParser extends DefaultDruidParser {
 //			System.out.println();
 		}
 	}
-	
+	private String getFieldName(SQLSelectItem item){
+		if ((item.getExpr() instanceof SQLPropertyExpr)||(item.getExpr() instanceof SQLMethodInvokeExpr)
+				|| (item.getExpr() instanceof SQLIdentifierExpr)) {			
+			return item.getExpr().toString();//字段别名
+		}
+		else
+		  return item.toString();
+	}
 	/**
 	 * 改写sql：需要加limit的加上
 	 */
 	@Override
 	public void changeSql(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException {
+		if(isConditionAlwaysTrue(stmt)) {
+			ctx.clear();
+		}
 		//无表的select语句直接路由带任一节点
 		if(ctx.getTables() == null || ctx.getTables().size() == 0) {
 			rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
@@ -228,10 +247,6 @@ public class DruidSelectParser extends DefaultDruidParser {
 			}
 			String tableName = ctx.getTables().get(0);
 			String primaryKey = schema.getTables().get(tableName).getPrimaryKey();
-			boolean needAddLimit=schema.getTables().get(tableName).isNeedAddLimit();
-			if (!needAddLimit){
-				return false;
-			}
 //			schema.getTables().get(ctx.getTables().get(0)).getParentKey() != null;
 			if(ctx.getTablesAndConditions().get(tableName) == null) {//无条件
 				return true;
@@ -248,26 +263,69 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 		
 	}
+	private String getAliaColumn(Map<String, String> aliaColumns,String column ){
+		String alia=aliaColumns.get(column);
+		if (alia==null){
+			return column;
+		}
+		else {
+			return alia;
+		}
+	}
 	
-	private String[] buildGroupByCols(List<SQLExpr> groupByItems) {
+	private String[] buildGroupByCols(List<SQLExpr> groupByItems,Map<String, String> aliaColumns) {
 		String[] groupByCols = new String[groupByItems.size()]; 
 		for(int i= 0; i < groupByItems.size(); i++) {
-			String column = removeBackquote(((MySqlSelectGroupByExpr)groupByItems.get(i)).getExpr().toString().toUpperCase());
-			groupByCols[i] = column;
+			SQLExpr expr = ((MySqlSelectGroupByExpr)groupByItems.get(i)).getExpr();			
+			String column; 
+			if (expr instanceof SQLName) {
+				column= removeBackquote(((SQLName)expr).getSimpleName());//不要转大写 2015-2-10 sohudo removeBackquote(expr.getSimpleName().toUpperCase());
+			}
+			else {
+				column= removeBackquote(expr.toString());
+			}
+			groupByCols[i] = getAliaColumn(aliaColumns,column);//column;
 		}
 		return groupByCols;
 	}
 	
-	private LinkedHashMap<String, Integer> buildOrderByCols(List<SQLSelectOrderByItem> orderByItems) {
+	private LinkedHashMap<String, Integer> buildOrderByCols(List<SQLSelectOrderByItem> orderByItems,Map<String, String> aliaColumns) {
 		LinkedHashMap<String, Integer> map = new LinkedHashMap<String, Integer>();
 		for(int i= 0; i < orderByItems.size(); i++) {
 			SQLOrderingSpecification type = orderByItems.get(i).getType();
-			String col =  orderByItems.get(i).getExpr().toString();
+            //orderColumn只记录字段名称,因为返回的结果集是不带表名的。
+			SQLExpr expr =  orderByItems.get(i).getExpr();
+			String col;
+			if (expr instanceof SQLName) {
+			   col = ((SQLName)expr).getSimpleName();
+			}
+			else {
+				col =expr.toString();
+			}
 			if(type == null) {
 				type = SQLOrderingSpecification.ASC;
 			}
+			col=getAliaColumn(aliaColumns,col);
 			map.put(col, type == SQLOrderingSpecification.ASC ? OrderCol.COL_ORDER_TYPE_ASC : OrderCol.COL_ORDER_TYPE_DESC);
 		}
 		return map;
+	}
+	
+	private boolean isConditionAlwaysTrue(SQLStatement statement) {
+		SQLSelectStatement selectStmt = (SQLSelectStatement)statement;
+		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
+		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
+			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
+			SQLExpr expr = mysqlSelectQuery.getWhere();
+			
+			Object o = WallVisitorUtils.getValue(expr);
+			if(Boolean.TRUE.equals(o)) {
+				return true;
+			}
+			return false;
+		} else {//union
+			return false;
+		}
+		
 	}
 }

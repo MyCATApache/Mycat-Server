@@ -23,9 +23,9 @@
  */
 package org.opencloudb.route;
 
-import java.io.Serializable;
-
 import org.opencloudb.server.parser.ServerParse;
+
+import java.io.Serializable;
 
 /**
  * @author mycat
@@ -39,7 +39,7 @@ public final class RouteResultsetNode implements Serializable {
 	private String statement; // 执行的语句
 	private final String srcStatement;
 	private final int sqlType;
-	private final boolean canRunInReadDB;
+	private volatile boolean canRunInReadDB;
 	private final boolean hasBlanceFlag;
 
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
@@ -56,13 +56,20 @@ public final class RouteResultsetNode implements Serializable {
 		this.statement = statement;
 	}
 
+	public void setCanRunInReadDB(boolean canRunInReadDB) {
+		this.canRunInReadDB = canRunInReadDB;
+	}
+
+	public boolean getCanRunInReadDB() {
+		return this.canRunInReadDB;
+	}
+
 	public void resetStatement() {
 		this.statement = srcStatement;
 	}
 
 	public boolean canRunnINReadDB(boolean autocommit) {
 		return canRunInReadDB && (autocommit || hasBlanceFlag);
-
 	}
 
 	public String getName() {
