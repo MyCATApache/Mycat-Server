@@ -59,7 +59,7 @@
 	<dataNode name="offer_dn$0-127" dataHost="localhost1" database="db1$0-127" />
 	<dataNode name="detail_dn$0-127" dataHost="localhost1" database="db2$0-127" />
     <dataNode name="test_wild1$1-3" dataHost="localhost$1-3" database="db1" />
-    <dataNode name="test_wild$1-3" dataHost="localhost$1-3" database="db1$1-3" />
+    <dataNode name="test_wild$1-6" dataHost="localhost$1-3" database="db1$1-2" />
 	<dataNode name="independent_dn$0-127" dataHost="localhost1"
 		database="db7_$0-127" />
 	<dataNode name="dubbo_dn" dataHost="localhost1" database="db8" />
