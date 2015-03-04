@@ -313,12 +313,12 @@ public class XMLSchemaLoader implements SchemaLoader {
 						+ " define error ,attribute can't be empty");
 			}
 			String[] databases = org.opencloudb.util.SplitUtil.split(
-					databaseStr, ',', '$', '-', 's', '_');
+					databaseStr, ',', '$', '-');
 			if (databases.length > 1) {
 				for (int k = 0; k < databases.length; k++) {
 					String databaseName = databases[k].substring(0,
 							databases[k].length() - 1);
-					createDataNode(dnNamePre + '[' + k + ']', databaseName,
+					createDataNode(dnNamePre  + k , databaseName,
 							host);
 					// System.out.println("dn:"+dnNamePre + '[' + k +
 					// ']'+",databse:"+databaseName+",host:"+host);

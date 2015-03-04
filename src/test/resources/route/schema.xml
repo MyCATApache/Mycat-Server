@@ -12,12 +12,12 @@
 
 	<schema name="cndb" checkSQLschema="true" >
 		<table name="offer" dataNode="offer_dn$0-127" rule="offerRule" />
-		<table name="offer_detail" dataNode="detail_dn[0],detail_dn$1-127"
+		<table name="offer_detail" dataNode="detail_dn0,detail_dn$1-127"
 			rule="offerDetailRule" ruleRequired="false" />
-		<table name="offer_date" dataNode="detail_dn[0],detail_dn$1-127"
+		<table name="offer_date" dataNode="detail_dn0,detail_dn$1-127"
 			rule="dateRule" ruleRequired="false" />
 
-		<table name="independent" dataNode="independent_dn$0-126,independent_dn[127]" />
+		<table name="independent" dataNode="independent_dn$0-126,independent_dn127" />
 	</schema>
 	<schema name="dubbo" dataNode="dubbo_dn" />
 	<schema name="ignoreSchemaTest" dataNode="cndb_dn" checkSQLschema="true"/>
