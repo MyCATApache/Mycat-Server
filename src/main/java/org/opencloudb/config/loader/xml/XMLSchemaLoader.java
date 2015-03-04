@@ -312,18 +312,32 @@ public class XMLSchemaLoader implements SchemaLoader {
 				throw new ConfigException("dataNode " + dnNamePre
 						+ " define error ,attribute can't be empty");
 			}
+            String[] dnNames = org.opencloudb.util.SplitUtil.split(
+                    dnNamePre, ',', '$', '-');
 			String[] databases = org.opencloudb.util.SplitUtil.split(
 					databaseStr, ',', '$', '-');
-			if (databases.length > 1) {
-				for (int k = 0; k < databases.length; k++) {
-					String databaseName = databases[k].substring(0,
-							databases[k].length() - 1);
-					createDataNode(dnNamePre  + k , databaseName,
-							host);
-					// System.out.println("dn:"+dnNamePre + '[' + k +
-					// ']'+",databse:"+databaseName+",host:"+host);
-				}
-			} else {
+            String[] hostStrings = org.opencloudb.util.SplitUtil.split(
+                    host, ',', '$', '-');
+
+            if(dnNames.length>1&&(databases.length>1&&databases.length!=dnNames.length
+                    ||hostStrings.length>1&&hostStrings.length!=dnNames.length
+                    ||hostStrings.length==1&&databases.length==1))
+            {
+                throw new ConfigException("dataNode " + dnNamePre
+                        + " define error ,wildcard characters attribute  must has the same size");
+            }
+            if (dnNames.length > 1)
+            {
+                for (int k = 0; k < dnNames.length; k++) {
+                    String dnName = dnNames[k];
+                    String      databaseName = databases.length > 1 ? databases[k] : databaseStr;
+                    String hostName =hostStrings.length > 1? hostStrings[k]:host;
+                    createDataNode(dnName , databaseName,
+                            hostName);
+
+                }
+            }
+            else {
 				createDataNode(dnNamePre, databaseStr, host);
 			}
 
