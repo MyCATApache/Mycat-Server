@@ -26,13 +26,13 @@ package org.opencloudb.performance;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TravelRecordSelectJob implements Runnable ,SelectJob{
+public class UserTableSelectJob implements Runnable, SelectJob {
 	private final Connection con;
-	private final long minId;
-	private final long maxId;
+
 	private final int executeTimes;
 	Random random = new Random();
 	private final AtomicInteger finshiedCount;
@@ -43,14 +43,14 @@ public class TravelRecordSelectJob implements Runnable ,SelectJob{
 	private volatile long minTTL = Integer.MAX_VALUE;
 	private volatile long validTTLSum = 0;
 	private volatile long validTTLCount = 0;
+	private LinkedList<StringItem> sqlTemplateItems;
 
-	public TravelRecordSelectJob(Connection con, long minId, long maxId,
-			int executeTimes, AtomicInteger finshiedCount,
-			AtomicInteger failedCount) {
+	public UserTableSelectJob(Connection con,
+			LinkedList<StringItem> sqlTemplateItems, int executeTimes,
+			AtomicInteger finshiedCount, AtomicInteger failedCount) {
 		super();
 		this.con = con;
-		this.minId = minId;
-		this.maxId = maxId;
+		this.sqlTemplateItems = sqlTemplateItems;
 		this.executeTimes = executeTimes;
 		this.finshiedCount = finshiedCount;
 		this.failedCount = failedCount;
@@ -61,9 +61,8 @@ public class TravelRecordSelectJob implements Runnable ,SelectJob{
 		long used = -1;
 
 		try {
-
-			String sql = "select * from  travelrecord  where id="
-					+ ((Math.abs(random.nextLong()) % (maxId - minId)) + minId);
+			String sql = RandomDataValueUtil
+					.evalRandValueString(sqlTemplateItems);
 			long startTime = System.currentTimeMillis();
 			rs = con.createStatement().executeQuery(sql);
 			if (rs.next()) {
@@ -108,12 +107,17 @@ public class TravelRecordSelectJob implements Runnable ,SelectJob{
 				curvalidTTLCount += 1;
 			}
 			usedTime = System.currentTimeMillis() - start;
+			if (i % 100 == 0) {
+				maxTTL = curmaxTTL;
+				minTTL = curminTTL;
+				validTTLSum = curvalidTTLSum;
+				validTTLCount = curvalidTTLCount;
+			}
 		}
 		maxTTL = curmaxTTL;
 		minTTL = curminTTL;
 		validTTLSum = curvalidTTLSum;
 		validTTLCount = curvalidTTLCount;
-
 		try {
 			con.close();
 		} catch (SQLException e) {
@@ -133,8 +137,6 @@ public class TravelRecordSelectJob implements Runnable ,SelectJob{
 		}
 	}
 
-	
-	
 	public long getMaxTTL() {
 		return maxTTL;
 	}
