@@ -14,4 +14,4 @@ set "CURR_DIR=%cd%"
 cd ..
 set "MYCAT_HOME=%cd%"
 cd %CURR_DIR%
-%JAVA_CMD% -Xms256M -Xmx1G -XX:MaxPermSize=64M  -DMYCAT_HOME=%MYCAT_HOME% -cp "..\conf;..\lib\*" org.opencloudb.performance.TestUpdatePerf %1 %2 %3 %4 %5 %6 %7 %8 %9
+"%JAVA_CMD%" -Xms256M -Xmx1G -XX:MaxPermSize=64M  -DMYCAT_HOME=%MYCAT_HOME% -cp "..\conf;..\lib\*" org.opencloudb.performance.TestUpdatePerf %1 %2 %3 %4 %5 %6 %7 %8 %9
