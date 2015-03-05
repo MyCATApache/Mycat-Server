@@ -40,8 +40,8 @@
 
 
 <!ELEMENT dataNode (property*)>
-<!ATTLIST dataNode name NMTOKEN #REQUIRED>
-<!ATTLIST dataNode dataHost NMTOKEN #REQUIRED>
+<!ATTLIST dataNode name CDATA #REQUIRED>
+<!ATTLIST dataNode dataHost CDATA #REQUIRED>
 <!ATTLIST dataNode database CDATA #REQUIRED>
 
 <!ELEMENT dataHost (heartbeat,(writeHost+))>
