@@ -17,7 +17,7 @@ public class JDBCDatasource extends PhysicalDatasource {
 	static {
 		// 加载可能的驱动
 		List<String> drivers = Lists.newArrayList("com.mysql.jdbc.Driver", "org.opencloudb.jdbc.mongodb.MongoDriver", "oracle.jdbc.OracleDriver",
-				"com.microsoft.sqlserver.jdbc.SQLServerDriver");
+				"com.microsoft.sqlserver.jdbc.SQLServerDriver","org.apache.hive.jdbc.HiveDriver");
 		for (String driver : drivers)
 		{
 			try
