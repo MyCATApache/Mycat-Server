@@ -312,22 +312,56 @@ public class XMLSchemaLoader implements SchemaLoader {
 				throw new ConfigException("dataNode " + dnNamePre
 						+ " define error ,attribute can't be empty");
 			}
+            String[] dnNames = org.opencloudb.util.SplitUtil.split(
+                    dnNamePre, ',', '$', '-');
 			String[] databases = org.opencloudb.util.SplitUtil.split(
 					databaseStr, ',', '$', '-');
-			if (databases.length > 1) {
-				for (int k = 0; k < databases.length; k++) {
-					String databaseName = databases[k].substring(0,
-							databases[k].length() - 1);
-					createDataNode(dnNamePre  + k , databaseName,
-							host);
-					// System.out.println("dn:"+dnNamePre + '[' + k +
-					// ']'+",databse:"+databaseName+",host:"+host);
-				}
-			} else {
+            String[] hostStrings = org.opencloudb.util.SplitUtil.split(
+                    host, ',', '$', '-');
+
+			if(dnNames.length>1&&dnNames.length!=databases.length*hostStrings.length)
+			{
+				throw new ConfigException("dataNode " + dnNamePre
+						+ " define error ,dnNames.length must be=databases.length*hostStrings.length");
+			}
+            if (dnNames.length > 1)
+            {
+				List<String[]> mhdList= mergerHostDatabase( hostStrings , databases);
+					for (int k = 0; k < dnNames.length; k++)
+					{
+						String[] hd=mhdList.get(k);
+						String dnName = dnNames[k];
+						String databaseName = hd[1];
+						String hostName = hd[0];
+						createDataNode(dnName, databaseName,
+								hostName);
+
+					}
+
+            }
+            else {
 				createDataNode(dnNamePre, databaseStr, host);
 			}
 
 		}
+	}
+
+	private List<String[]> mergerHostDatabase(String[] hostStrings ,String[] databases)
+	{
+		List<String[]> mhdList=new ArrayList<>();
+		for (int i = 0; i < hostStrings.length; i++)
+		{
+			String hostString = hostStrings[i];
+			for (int i1 = 0; i1 < databases.length; i1++)
+			{
+				String database = databases[i1];
+				String[] hd=new String[2];
+				hd[0]=hostString;
+				hd[1]=database;
+				mhdList.add(hd);
+			}
+		}
+		return mhdList;
 	}
 
 	private void createDataNode(String dnName, String database, String host) {
