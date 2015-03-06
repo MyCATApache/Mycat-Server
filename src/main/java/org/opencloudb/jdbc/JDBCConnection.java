@@ -50,7 +50,7 @@ public class JDBCConnection implements BackendConnection {
 	private volatile boolean modifiedSQLExecuted;
 	private final long startTime;
 	private long lastTime;
-
+    private boolean isSpark=false;
 	public JDBCConnection() {
 		startTime = System.currentTimeMillis();
 	}
@@ -148,6 +148,7 @@ public class JDBCConnection implements BackendConnection {
 	
 	public void setDbType(String newDbType) {
 		this.dbType = newDbType.toUpperCase();
+		this.isSpark=dbType.equals("SPARK");
 
 	}
 	@Override
@@ -234,7 +235,9 @@ public class JDBCConnection implements BackendConnection {
 				con.setCatalog(schema);
 				this.oldSchema = schema;
 			}
-			con.setAutoCommit(autocommit);
+			if (!this.isSpark){
+			   con.setAutoCommit(autocommit);
+			}
 			int sqlType = rrn.getSqlType();
 			
 			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW ) {	
@@ -374,8 +377,7 @@ public class JDBCConnection implements BackendConnection {
 			rs = stmt.executeQuery(sql);
 			List<RowDataPacket> rowsPkg = new LinkedList<RowDataPacket>();
 			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-			ResultSetUtil.resultSetToPacket(sc.getCharset(), con, fieldPks, rs,
-					rowsPkg);
+			ResultSetUtil.resultSetToPacket(sc.getCharset(), con, fieldPks, rs,rowsPkg,this.isSpark);
 			ByteBuffer byteBuf = sc.allocate();
 			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
 			headerPkg.fieldCount = fieldPks.size();
