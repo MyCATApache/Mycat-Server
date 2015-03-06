@@ -9,18 +9,23 @@ import org.opencloudb.heartbeat.DBHeartbeat;
 public class JDBCHeartbeat extends DBHeartbeat{
 	private final ReentrantLock lock;
 	private final JDBCDatasource source;
-
+    private final boolean heartbeatnull;
 	public JDBCHeartbeat(JDBCDatasource source)
 	{
 		this.source = source;
 		lock = new ReentrantLock(false);
 		this.status = INIT_STATUS;
-		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL();
+		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL().trim();
+		this.heartbeatnull= heartbeatSQL.length()==0;
 	}
 
 	@Override
 	public void start()
 	{
+		if (this.heartbeatnull){
+			stop();
+			return;
+		}
 		lock.lock();
 		try
 		{
