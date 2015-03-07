@@ -239,7 +239,8 @@ public class JDBCConnection implements BackendConnection {
 			
 			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW ) {	
 				if ((sqlType ==ServerParse.SHOW) && (!dbType.equals("MYSQL")) ){
-					showCMD(sc, orgin);
+					//showCMD(sc, orgin);
+					ShowVariables.execute(sc,orgin);
 				}
 				else {
 					ouputResultSet(sc, orgin);	

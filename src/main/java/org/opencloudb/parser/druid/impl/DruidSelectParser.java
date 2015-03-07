@@ -242,11 +242,19 @@ public class DruidSelectParser extends DefaultDruidParser {
 		} else if (mysqlSelectQuery.getLimit() != null) {//语句中已有limit
 			return false;
 		} else if(ctx.getTables().size() == 1) {
-			if(schema.getTables().get(ctx.getTables().get(0)).isGlobalTable()) {
+			String tableName = ctx.getTables().get(0);
+			boolean isNeedAddLimit=schema.getTables().get(tableName).isNeedAddLimit();
+			if(!isNeedAddLimit)
+			{
+				return false;//优化从配置文件取
+			}
+
+			if(schema.getTables().get(tableName).isGlobalTable()) {
 				return true;//TODO
 			}
-			String tableName = ctx.getTables().get(0);
+
 			String primaryKey = schema.getTables().get(tableName).getPrimaryKey();
+
 //			schema.getTables().get(ctx.getTables().get(0)).getParentKey() != null;
 			if(ctx.getTablesAndConditions().get(tableName) == null) {//无条件
 				return true;
