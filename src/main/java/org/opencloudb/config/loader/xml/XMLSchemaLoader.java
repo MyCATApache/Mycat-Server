@@ -111,7 +111,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 		} catch (ConfigException e) {
 			throw e;
 		} catch (Throwable e) {
-			e.printStackTrace();
+
 			throw new ConfigException(e);
 		} finally {
 			if (dtd != null) {
@@ -439,6 +439,13 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String dbType = element.getAttribute("dbType");
 			String heartbeatSQL = element.getElementsByTagName("heartbeat")
 					.item(0).getTextContent();
+			NodeList connectionInitSqlList = element.getElementsByTagName("connectionInitSql");
+			String initConSQL = null;
+			if(connectionInitSqlList.getLength()>0)
+			{
+				initConSQL = connectionInitSqlList
+						.item(0).getTextContent();
+			}
 			NodeList writeNodes = element.getElementsByTagName("writeHost");
 			DBHostConfig[] writeDbConfs = new DBHostConfig[writeNodes
 					.getLength()];
@@ -468,6 +475,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			hostConf.setBalance(balance);
 			hostConf.setWriteType(writeType);
 			hostConf.setHearbeatSQL(heartbeatSQL);
+			hostConf.setConnectionInitSql(initConSQL);
 			dataHosts.put(hostConf.getName(), hostConf);
 
 		}
