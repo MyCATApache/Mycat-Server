@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.model.DBHostConfig;
@@ -66,7 +67,23 @@ public class JDBCDatasource extends PhysicalDatasource {
     Connection getConnection() throws SQLException
     {
         DBHostConfig cfg = getConfig();
-        return DriverManager.getConnection(cfg.getUrl(), cfg.getUser(), cfg.getPassword());
+		Connection connection = DriverManager.getConnection(cfg.getUrl(), cfg.getUser(), cfg.getPassword());
+		String initSql=getHostConfig().getConnectionInitSql();
+		if(initSql!=null&&!"".equals(initSql))
+		{     Statement statement =null;
+			try
+			{
+				 statement = connection.createStatement();
+				 statement.execute(initSql);
+			}finally
+			{
+				if(statement!=null)
+				{
+					statement.close();
+				}
+			}
+		}
+		return connection;
     }
 
 }
