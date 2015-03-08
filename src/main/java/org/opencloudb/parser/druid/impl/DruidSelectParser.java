@@ -246,7 +246,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			boolean isNeedAddLimit=schema.getTables().get(tableName).isNeedAddLimit();
 			if(!isNeedAddLimit)
 			{
-				return false;//优化从配置文件取
+				return false;//优先从配置文件取
 			}
 
 			if(schema.getTables().get(tableName).isGlobalTable()) {
