@@ -31,7 +31,7 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 			beginDate = new SimpleDateFormat(dateFormat).parse(sBeginDate)
 					.getTime();
 		} catch (ParseException e) {
-			e.printStackTrace();
+			throw new java.lang.IllegalArgumentException(e);
 		}
 		partionTime = Integer.parseInt(sPartionDay) * oneDay;
 	}
@@ -45,9 +45,9 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 			return targetPartition;
 
 		} catch (ParseException e) {
-			LOGGER.error("date partion rule wrong", e);
+			throw new java.lang.IllegalArgumentException(e);
+			
 		}
-		return null;
 	}
 
 	@Override
