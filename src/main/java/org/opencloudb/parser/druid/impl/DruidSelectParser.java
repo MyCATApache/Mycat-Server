@@ -12,6 +12,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.L
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
+import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SchemaConfig;
@@ -39,7 +40,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			   List<String> tables=dsp.getTables();
 			  if(tables.size()>0&&schema.getAllDbTypeSet().contains("oracle")&&schema.isTableInThisDb(tables.get(0),"oracle"))
 			  {
-				  mysqlSelectQuery = parseOraclePageSql(rrs, mysqlSelectQuery);
+				  mysqlSelectQuery = parseOraclePageSql(stmt,rrs, mysqlSelectQuery,schema);
 			  }
 			Map<String, String> aliaColumns = new HashMap<String, String>();//sohudo 2015-2-5 解决了下面这个坑
 			//以下注释的代码没准以后有用，rrs.setMergeCols(aggrColumns);目前就是个坑，设置了反而报错，得不到正确结果
@@ -99,7 +100,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 	}
 
-	private MySqlSelectQueryBlock parseOraclePageSql(RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery)
+	private MySqlSelectQueryBlock parseOraclePageSql(SQLStatement stmt,RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery,SchemaConfig schema)
 	{
 		//第一层子查询
 		SQLExpr where=  mysqlSelectQuery.getWhere();
@@ -110,44 +111,75 @@ public class DruidSelectParser extends DefaultDruidParser {
             SQLBinaryOpExpr one= (SQLBinaryOpExpr) where;
             String left=one.getLeft().toString();
             SQLBinaryOperator operator =one.getOperator();
+
+			if(one.getRight() instanceof SQLIntegerExpr &&"rownum".equalsIgnoreCase(left)
+					&&(operator==SQLBinaryOperator.LessThanOrEqual||operator==SQLBinaryOperator.LessThan))
+			{
+				SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
+				int firstrownum = right.getNumber().intValue();
+				if (operator == SQLBinaryOperator.LessThan) firstrownum = firstrownum - 1;
+				SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
+				if (subSelect instanceof MySqlSelectQueryBlock)
+				{
+					rrs.setLimitStart(0);
+					rrs.setLimitSize(firstrownum);
+					mysqlSelectQuery = (MySqlSelectQueryBlock) subSelect;    //为了继续解出order by 等
+				}
+			}
+			else
             if(one.getRight() instanceof SQLIntegerExpr &&!"rownum".equalsIgnoreCase(left)
                     &&(operator==SQLBinaryOperator.GreaterThan||operator==SQLBinaryOperator.GreaterThanOrEqual))
            {
+			   SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
+			   int firstrownum = right.getNumber().intValue();
+			   if (operator == SQLBinaryOperator.GreaterThanOrEqual) firstrownum = firstrownum - 1;
+				   SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
+				   if (subSelect instanceof MySqlSelectQueryBlock)
+				   {  //第二层子查询
+					   MySqlSelectQueryBlock twoSubSelect = (MySqlSelectQueryBlock) subSelect;
+					   if (twoSubSelect.getWhere() instanceof SQLBinaryOpExpr && twoSubSelect.getFrom() instanceof SQLSubqueryTableSource)
+					   {
+						   SQLBinaryOpExpr twoWhere = (SQLBinaryOpExpr) twoSubSelect.getWhere();
+						   boolean isRowNum = "rownum".equalsIgnoreCase(twoWhere.getLeft().toString());
+						   boolean isLess = twoWhere.getOperator() == SQLBinaryOperator.LessThanOrEqual || twoWhere.getOperator() == SQLBinaryOperator.LessThan;
+						   if (isRowNum && twoWhere.getRight() instanceof SQLIntegerExpr && isLess)
+						   {
+							   int lastrownum = ((SQLIntegerExpr) twoWhere.getRight()).getNumber().intValue();
+							   if (operator == SQLBinaryOperator.LessThan) lastrownum = lastrownum - 1;
+							   SQLSelectQuery finalQuery = ((SQLSubqueryTableSource) twoSubSelect.getFrom()).getSelect().getQuery();
+							   if (finalQuery instanceof MySqlSelectQueryBlock)
+							   {
+								   rrs.setLimitStart(firstrownum);
+								   rrs.setLimitSize(lastrownum - firstrownum);
+								   LayerCachePool tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
+								   try
+								   {
+									   RouterUtil.tryRouteForTables(schema, getCtx(), rrs, true, tableId2DataNodeCache);
+								   } catch (SQLNonTransientException e)
+								   {
+									   throw new RuntimeException(e);
+								   }
+								   if (isNeedChangeLimit(rrs, schema))
+								   {
+									   one.setRight(new SQLIntegerExpr(0));
+									   rrs.changeNodeSqlAfterAddLimit(stmt.toString());
+									   //设置改写后的sql
+									   ctx.setSql(stmt.toString());
+								   }
+								   mysqlSelectQuery = (MySqlSelectQueryBlock) finalQuery;    //为了继续解出order by 等
+							   }
 
-               SQLIntegerExpr right=(SQLIntegerExpr)one.getRight();
-            int	  firstrownum  =right.getNumber().intValue() ;
-                if(operator==SQLBinaryOperator.GreaterThanOrEqual) firstrownum=firstrownum-1;
-                SQLSelectQuery subSelect   = ((SQLSubqueryTableSource)from).getSelect().getQuery();
-                if(subSelect instanceof MySqlSelectQueryBlock)
-                {  //第二层子查询
-                    MySqlSelectQueryBlock twoSubSelect= (MySqlSelectQueryBlock) subSelect;
-                  if(    twoSubSelect.getWhere() instanceof  SQLBinaryOpExpr &&twoSubSelect.getFrom() instanceof SQLSubqueryTableSource)
-                  {
-                      SQLBinaryOpExpr twoWhere= (SQLBinaryOpExpr) twoSubSelect.getWhere();
-					  boolean isRowNum = "rownum".equalsIgnoreCase(twoWhere.getLeft().toString());
-					  boolean isLess = twoWhere.getOperator() == SQLBinaryOperator.LessThanOrEqual || twoWhere.getOperator() == SQLBinaryOperator.LessThan;
-					  if(isRowNum &&twoWhere.getRight() instanceof SQLIntegerExpr && isLess)
-                       {
-                           int lastrownum= ( (SQLIntegerExpr) twoWhere.getRight() ).getNumber().intValue();
-                           if(operator==SQLBinaryOperator.LessThan)lastrownum=lastrownum-1;
-                           SQLSelectQuery finalQuery=	 ((SQLSubqueryTableSource) twoSubSelect.getFrom()).getSelect().getQuery()   ;
-                             if(finalQuery instanceof MySqlSelectQueryBlock)
-                             {
-                                 rrs.setLimitStart(firstrownum);
-                                 rrs.setLimitSize(lastrownum-firstrownum);
-                                 mysqlSelectQuery= (MySqlSelectQueryBlock) finalQuery;    //为了继续解出order by 等
-                             }
+						   }
 
-                       }
+					   }
 
-                  }
+				   }
+			   }
 
-                }
-
-            }
         }
 		return mysqlSelectQuery;
 	}
+
 
 	private String getFieldName(SQLSelectItem item){
 		if ((item.getExpr() instanceof SQLPropertyExpr)||(item.getExpr() instanceof SQLMethodInvokeExpr)
