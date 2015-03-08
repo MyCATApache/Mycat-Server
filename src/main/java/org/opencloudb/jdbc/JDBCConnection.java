@@ -244,6 +244,9 @@ public class JDBCConnection implements BackendConnection {
 				if ((sqlType ==ServerParse.SHOW) && (!dbType.equals("MYSQL")) ){
 					//showCMD(sc, orgin);
 					ShowVariables.execute(sc,orgin);
+				} else if("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin))
+				{
+					ShowVariables.justReturnValue(sc, String.valueOf(sc.getId()));
 				}
 				else {
 					ouputResultSet(sc, orgin);	
@@ -278,73 +281,73 @@ public class JDBCConnection implements BackendConnection {
 	  return fieldPacket;
 	}
 	
-	private void showCMD(ServerConnection sc, String sql) throws SQLException {
-		try {
-			ByteBuffer byteBuf = sc.allocate();
-			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-			headerPkg.fieldCount = 2;
-			headerPkg.packetId = ++packetId;
-
-			byteBuf = headerPkg.write(byteBuf, sc, true);
-			byteBuf.flip();
-			byte[] header = new byte[byteBuf.limit()];
-			byteBuf.get(header);
-			byteBuf.clear();
-			List<byte[]> fields = new ArrayList<byte[]>(2);
-
-			String fieldName="Variable_name";
-			while (fieldName!=null) {
-				FieldPacket curField = getNewFieldPacket(sc.getCharset(),fieldName);//itor.next();
-				curField.packetId = ++packetId;
-				byteBuf = curField.write(byteBuf, sc, false);
-				byteBuf.flip();
-				byte[] field = new byte[byteBuf.limit()];
-				byteBuf.get(field);
-				byteBuf.clear();
-				fields.add(field);
-				if (fieldName.equals("Value")){
-					fieldName=null;
-				}
-				else {
-				  fieldName="Value";
-				}
-			}
-			EOFPacket eofPckg = new EOFPacket();
-			eofPckg.packetId = ++packetId;
-			byteBuf = eofPckg.write(byteBuf, sc, false);
-			byteBuf.flip();
-			byte[] eof = new byte[byteBuf.limit()];
-			byteBuf.get(eof);
-			byteBuf.clear();
-			this.respHandler.fieldEofResponse(header, fields, eof, this);
-
-			// output row
-			//while (rowItor.hasNext()) {
-				RowDataPacket curRow = new RowDataPacket(2);
-				curRow.add(ByteUtil.getBytes("SHOW"));
-				curRow.add(ByteUtil.getBytes("not supported for "+dbType));
-				curRow.packetId = ++packetId;
-				//rowItor.remove();
-				byteBuf = curRow.write(byteBuf, sc, false);
-				byteBuf.flip();
-				byte[] row = new byte[byteBuf.limit()];
-				byteBuf.get(row);
-				byteBuf.clear();
-				this.respHandler.rowResponse(row, this);
-			//}
-			eofPckg = new EOFPacket();
-			eofPckg.packetId = ++packetId;
-			byteBuf = eofPckg.write(byteBuf, sc, false);
-			byteBuf.flip();
-			eof = new byte[byteBuf.limit()];
-			byteBuf.get(eof);
-			sc.recycle(byteBuf);
-			this.respHandler.rowEofResponse(eof, this);
-		} finally {
-
-		}
-
-	}
+//	private void showCMD(ServerConnection sc, String sql) throws SQLException {
+//		try {
+//			ByteBuffer byteBuf = sc.allocate();
+//			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+//			headerPkg.fieldCount = 2;
+//			headerPkg.packetId = ++packetId;
+//
+//			byteBuf = headerPkg.write(byteBuf, sc, true);
+//			byteBuf.flip();
+//			byte[] header = new byte[byteBuf.limit()];
+//			byteBuf.get(header);
+//			byteBuf.clear();
+//			List<byte[]> fields = new ArrayList<byte[]>(2);
+//
+//			String fieldName="Variable_name";
+//			while (fieldName!=null) {
+//				FieldPacket curField = getNewFieldPacket(sc.getCharset(),fieldName);//itor.next();
+//				curField.packetId = ++packetId;
+//				byteBuf = curField.write(byteBuf, sc, false);
+//				byteBuf.flip();
+//				byte[] field = new byte[byteBuf.limit()];
+//				byteBuf.get(field);
+//				byteBuf.clear();
+//				fields.add(field);
+//				if (fieldName.equals("Value")){
+//					fieldName=null;
+//				}
+//				else {
+//				  fieldName="Value";
+//				}
+//			}
+//			EOFPacket eofPckg = new EOFPacket();
+//			eofPckg.packetId = ++packetId;
+//			byteBuf = eofPckg.write(byteBuf, sc, false);
+//			byteBuf.flip();
+//			byte[] eof = new byte[byteBuf.limit()];
+//			byteBuf.get(eof);
+//			byteBuf.clear();
+//			this.respHandler.fieldEofResponse(header, fields, eof, this);
+//
+//			// output row
+//			//while (rowItor.hasNext()) {
+//				RowDataPacket curRow = new RowDataPacket(2);
+//				curRow.add(ByteUtil.getBytes("SHOW"));
+//				curRow.add(ByteUtil.getBytes("not supported for "+dbType));
+//				curRow.packetId = ++packetId;
+//				//rowItor.remove();
+//				byteBuf = curRow.write(byteBuf, sc, false);
+//				byteBuf.flip();
+//				byte[] row = new byte[byteBuf.limit()];
+//				byteBuf.get(row);
+//				byteBuf.clear();
+//				this.respHandler.rowResponse(row, this);
+//			//}
+//			eofPckg = new EOFPacket();
+//			eofPckg.packetId = ++packetId;
+//			byteBuf = eofPckg.write(byteBuf, sc, false);
+//			byteBuf.flip();
+//			eof = new byte[byteBuf.limit()];
+//			byteBuf.get(eof);
+//			sc.recycle(byteBuf);
+//			this.respHandler.rowEofResponse(eof, this);
+//		} finally {
+//
+//		}
+//
+//	}
 	private void executeddl(ServerConnection sc, String sql)
 			throws SQLException {
 		Statement stmt = null;

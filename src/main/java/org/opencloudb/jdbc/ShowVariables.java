@@ -33,8 +33,12 @@ import org.opencloudb.server.ServerConnection;
 import org.opencloudb.util.StringUtil;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author mycat
@@ -59,7 +63,19 @@ public final class ShowVariables
 
         eof.packetId = ++packetId;
     }
+    private static List<String> parseVariable(String sql)
+    {
+        List<String> variableList=new ArrayList<>();
+        String patten="(?:like|=)\\s*'([^']*(?:\\w+)+[^']*)+'";
+        Pattern pattern = Pattern.compile(patten,Pattern.CASE_INSENSITIVE);
 
+        Matcher matcher = pattern.matcher(sql);
+        while (matcher.find())
+        {
+            variableList.add(matcher.group(1));
+        }
+        return variableList;
+    }
     public static void execute(ServerConnection c, String sql) {
         ByteBuffer buffer = c.allocate();
 
@@ -76,11 +92,59 @@ public final class ShowVariables
 
         // write rows
         byte packetId = eof.packetId;
-        for (Map.Entry<String, String> e : variables.entrySet()) {
-            RowDataPacket row = getRow(e.getKey(), e.getValue(), c.getCharset());
-            row.packetId = ++packetId;
-            buffer = row.write(buffer, c,true);
+
+        List<String> variableList= parseVariable(sql);
+        for (String key : variableList)
+        {
+          String value=  variables.get(key)  ;
+            if(value!=null)
+            {
+                RowDataPacket row = getRow(key, value, c.getCharset());
+                row.packetId = ++packetId;
+                buffer = row.write(buffer, c,true);
+            }
         }
+
+
+
+        // write lastEof
+        EOFPacket lastEof = new EOFPacket();
+        lastEof.packetId = ++packetId;
+        buffer = lastEof.write(buffer, c,true);
+
+        // write buffer
+        c.write(buffer);
+    }
+
+    public static void justReturnValue(ServerConnection c, String value) {
+        ByteBuffer buffer = c.allocate();
+
+        // write header
+        buffer = header.write(buffer, c,true);
+
+        // write fields
+        for (FieldPacket field : fields) {
+            buffer = field.write(buffer, c,true);
+        }
+
+        // write eof
+        buffer = eof.write(buffer, c,true);
+
+        // write rows
+        byte packetId = eof.packetId;
+
+
+
+            if(value!=null)
+            {
+
+                RowDataPacket row = new RowDataPacket(1);
+                row.add(StringUtil.encode(value, c.getCharset()));
+                row.packetId = ++packetId;
+                buffer = row.write(buffer, c,true);
+            }
+
+
 
         // write lastEof
         EOFPacket lastEof = new EOFPacket();
