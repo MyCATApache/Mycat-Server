@@ -4,16 +4,8 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
-import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
-import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
@@ -26,6 +18,7 @@ import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.mpp.MergeCol;
 import org.opencloudb.mpp.OrderCol;
+import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
 
@@ -42,7 +35,12 @@ public class DruidSelectParser extends DefaultDruidParser {
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
-
+			 DruidShardingParseInfo dsp=getCtx();
+			   List<String> tables=dsp.getTables();
+			  if(tables.size()>0&&schema.getAllDbTypeSet().contains("oracle")&&schema.isTableInThisDb(tables.get(0),"oracle"))
+			  {
+				  mysqlSelectQuery = parseOraclePageSql(rrs, mysqlSelectQuery);
+			  }
 			Map<String, String> aliaColumns = new HashMap<String, String>();//sohudo 2015-2-5 解决了下面这个坑
 			//以下注释的代码没准以后有用，rrs.setMergeCols(aggrColumns);目前就是个坑，设置了反而报错，得不到正确结果
 			//setHasAggrColumn ,such as count(*)
@@ -100,6 +98,57 @@ public class DruidSelectParser extends DefaultDruidParser {
 //			System.out.println();
 		}
 	}
+
+	private MySqlSelectQueryBlock parseOraclePageSql(RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery)
+	{
+		//第一层子查询
+		SQLExpr where=  mysqlSelectQuery.getWhere();
+		SQLTableSource from= mysqlSelectQuery.getFrom();
+		if(where instanceof SQLBinaryOpExpr &&from instanceof SQLSubqueryTableSource)
+        {
+
+            SQLBinaryOpExpr one= (SQLBinaryOpExpr) where;
+            String left=one.getLeft().toString();
+            SQLBinaryOperator operator =one.getOperator();
+            if(one.getRight() instanceof SQLIntegerExpr &&!"rownum".equalsIgnoreCase(left)
+                    &&(operator==SQLBinaryOperator.GreaterThan||operator==SQLBinaryOperator.GreaterThanOrEqual))
+           {
+
+               SQLIntegerExpr right=(SQLIntegerExpr)one.getRight();
+            int	  firstrownum  =right.getNumber().intValue() ;
+                if(operator==SQLBinaryOperator.GreaterThanOrEqual) firstrownum=firstrownum-1;
+                SQLSelectQuery subSelect   = ((SQLSubqueryTableSource)from).getSelect().getQuery();
+                if(subSelect instanceof MySqlSelectQueryBlock)
+                {  //第二层子查询
+                    MySqlSelectQueryBlock twoSubSelect= (MySqlSelectQueryBlock) subSelect;
+                  if(    twoSubSelect.getWhere() instanceof  SQLBinaryOpExpr &&twoSubSelect.getFrom() instanceof SQLSubqueryTableSource)
+                  {
+                      SQLBinaryOpExpr twoWhere= (SQLBinaryOpExpr) twoSubSelect.getWhere();
+					  boolean isRowNum = "rownum".equalsIgnoreCase(twoWhere.getLeft().toString());
+					  boolean isLess = twoWhere.getOperator() == SQLBinaryOperator.LessThanOrEqual || twoWhere.getOperator() == SQLBinaryOperator.LessThan;
+					  if(isRowNum &&twoWhere.getRight() instanceof SQLIntegerExpr && isLess)
+                       {
+                           int lastrownum= ( (SQLIntegerExpr) twoWhere.getRight() ).getNumber().intValue();
+                           if(operator==SQLBinaryOperator.LessThan)lastrownum=lastrownum-1;
+                           SQLSelectQuery finalQuery=	 ((SQLSubqueryTableSource) twoSubSelect.getFrom()).getSelect().getQuery()   ;
+                             if(finalQuery instanceof MySqlSelectQueryBlock)
+                             {
+                                 rrs.setLimitStart(firstrownum);
+                                 rrs.setLimitSize(lastrownum-firstrownum);
+                                 mysqlSelectQuery= (MySqlSelectQueryBlock) finalQuery;    //为了继续解出order by 等
+                             }
+
+                       }
+
+                  }
+
+                }
+
+            }
+        }
+		return mysqlSelectQuery;
+	}
+
 	private String getFieldName(SQLSelectItem item){
 		if ((item.getExpr() instanceof SQLPropertyExpr)||(item.getExpr() instanceof SQLMethodInvokeExpr)
 				|| (item.getExpr() instanceof SQLIdentifierExpr)) {			
