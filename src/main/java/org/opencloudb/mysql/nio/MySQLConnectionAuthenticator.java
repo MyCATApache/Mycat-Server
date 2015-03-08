@@ -23,6 +23,7 @@
  */
 package org.opencloudb.mysql.nio;
 
+import org.apache.log4j.Logger;
 import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.mysql.SecurityUtil;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
@@ -40,7 +41,8 @@ import org.opencloudb.net.mysql.Reply323Packet;
  * @author mycat
  */
 public class MySQLConnectionAuthenticator implements NIOHandler {
-
+	private static final Logger LOGGER = Logger
+			.getLogger(MySQLConnectionAuthenticator.class);
 	private final MySQLConnection source;
 	private final ResponseHandler listener;
 
@@ -77,7 +79,8 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 				ErrorPacket err = new ErrorPacket();
 				err.read(data);
 				String errMsg = new String(err.message);
-				source.close(errMsg);
+				LOGGER.warn("can't connect to mysql server ,errmsg:"+errMsg+" "+source);
+				//source.close(errMsg);
 				throw new ConnectionException(err.errno, errMsg);
 
 			case EOFPacket.FIELD_COUNT:
