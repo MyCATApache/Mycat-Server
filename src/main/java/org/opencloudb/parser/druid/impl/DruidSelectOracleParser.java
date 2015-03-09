@@ -49,7 +49,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 			if(limit==null)
 			{
 				  //使用oracle的解析，否则会有部分oracle语法识别错误
-				  OracleStatementParser oracleParser = new OracleStatementParser(stmt.toString());
+				  OracleStatementParser oracleParser = new OracleStatementParser(getCtx().getSql());
 				  SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
 				  SQLSelectQuery oracleSqlSelectQuery = oracleStmt.getSelect().getQuery();
 				  if(oracleSqlSelectQuery instanceof OracleSelectQueryBlock)
