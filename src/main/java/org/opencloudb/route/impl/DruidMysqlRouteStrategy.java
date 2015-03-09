@@ -36,7 +36,7 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 		//检验unsupported statement
 		checkUnSupportedStatement(statement);
 			
-		DruidParser druidParser = DruidParserFactory.create(statement);
+		DruidParser druidParser = DruidParserFactory.create(schema,statement);
 		druidParser.parser(schema, rrs, statement, stmt,cachePool);
 
 		//DruidParser解析过程中已完成了路由的直接返回
