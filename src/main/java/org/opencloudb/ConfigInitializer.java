@@ -23,9 +23,7 @@
  */
 package org.opencloudb;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.backend.PhysicalDBPool;
@@ -34,13 +32,7 @@ import org.opencloudb.config.loader.ConfigLoader;
 import org.opencloudb.config.loader.SchemaLoader;
 import org.opencloudb.config.loader.xml.XMLConfigLoader;
 import org.opencloudb.config.loader.xml.XMLSchemaLoader;
-import org.opencloudb.config.model.DBHostConfig;
-import org.opencloudb.config.model.DataHostConfig;
-import org.opencloudb.config.model.DataNodeConfig;
-import org.opencloudb.config.model.QuarantineConfig;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.config.model.UserConfig;
+import org.opencloudb.config.model.*;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.jdbc.JDBCDatasource;
 import org.opencloudb.mysql.nio.MySQLDataSource;
@@ -70,6 +62,36 @@ public class ConfigInitializer {
 		this.cluster = initCobarCluster(configLoader);
 
 		this.checkConfig();
+		initDbType(configLoader);
+	}
+
+	private void initDbType(XMLConfigLoader configLoader)
+	{
+		for (SchemaConfig sc : schemas.values()) {
+			if (sc!=null) {
+				Map<String, TableConfig> tableConfigMap=  sc.getTables() ;
+				if(tableConfigMap==null) continue;
+				for (String tableName : tableConfigMap.keySet())
+				{
+					TableConfig tableConfig=	tableConfigMap.get(tableName);
+					sc.addTableDbType(tableName,getDbTypeFrom(tableConfig.getDataNodes(),configLoader));
+				}
+			}
+		}
+	}
+
+	private Set<String> getDbTypeFrom(List<String> dataNodes,XMLConfigLoader configLoader)
+	{
+		Map<String, DataNodeConfig> dataNodeConfigMap = configLoader.getDataNodes();
+		Map<String, DataHostConfig> dataHostConfigMap = configLoader.getDataHosts();
+		Set<String> dbTypes=new HashSet<>();
+		for (String dataNode : dataNodes)
+		{
+			DataNodeConfig dataNodeConfig=	 dataNodeConfigMap.get(dataNode);
+			DataHostConfig host=	dataHostConfigMap.get(dataNodeConfig.getDataHost());
+			dbTypes.add(host.getDbType());
+		}
+		 return dbTypes;
 	}
 
 	private void checkConfig() throws ConfigException {
