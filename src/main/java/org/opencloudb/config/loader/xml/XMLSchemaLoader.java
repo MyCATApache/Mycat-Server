@@ -244,9 +244,16 @@ public class XMLSchemaLoader implements SchemaLoader {
 				processChildTables(tables, table, dataNode, tableElement);
 			}
 		}
+
+
+
 		return tables;
 	}
-
+	private String getDataType(String dataNode){
+		DataNodeConfig datanode=dataNodes.get(dataNode);
+		DataHostConfig datahost=dataHosts.get(datanode.getDataHost());
+		return datahost.getDbType();
+	}
 	private void processChildTables(Map<String, TableConfig> tables,
 			TableConfig parentTable, String dataNodes, Element tableNode) {
 		// parse child tables

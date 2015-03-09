@@ -53,6 +53,10 @@ public class SchemaConfig {
 	private final Map<String, TableConfig> joinRel2TableMap = new HashMap<String, TableConfig>();
 	private final String[] allDataNodeStrArr;
 
+
+	private final Map<String,Set<String>>  tableDbTypeMap=new HashMap<>();
+	private final Set<String> allDbTypeSet=new HashSet<>();
+
 	public SchemaConfig(String name, String dataNode,
 			Map<String, TableConfig> tables, int defaultMaxLimit,
 			boolean checkSQLschema) {
@@ -77,6 +81,15 @@ public class SchemaConfig {
 		} else {
 			this.allDataNodeStrArr = null;
 		}
+	}
+	public boolean isTableInThisDb(String table,String dbType)
+	{
+		return allDbTypeSet.contains(dbType)&&tableDbTypeMap.containsKey(table)&&tableDbTypeMap.get(table).contains(dbType);
+	}
+	public void addTableDbType(String table,Set<String> dbTypes)
+	{
+		tableDbTypeMap.put(table,dbTypes);
+		allDbTypeSet.addAll(dbTypes);
 	}
 
 	public boolean isCheckSQLSchema() {
@@ -134,6 +147,11 @@ public class SchemaConfig {
 
 	public Set<String> getAllDataNodes() {
 		return allDataNodes;
+	}
+
+	public Set<String> getAllDbTypeSet()
+	{
+		return allDbTypeSet;
 	}
 
 	public String getRandomDataNode() {
