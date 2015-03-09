@@ -224,7 +224,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			for (int j = 0; j < tableNames.length; j++) {
 				String tableName = tableNames[j];
 				TableConfig table = new TableConfig(tableName, primaryKey, autoIncrement,needAddLimit,
-						tableType, dataNode,
+						tableType, dataNode,getDbType(dataNode),
 						(tableRule != null) ? tableRule.getRule() : null,
 						ruleRequired, null, false, null, null);
 				checkDataNodeExists(table.getDataNodes());
@@ -237,7 +237,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 			if (tableNames.length == 1) {
 				TableConfig table = new TableConfig(tableNames[0], primaryKey, autoIncrement,needAddLimit,
-						tableType, dataNode,
+						tableType, dataNode,getDbType(dataNode),
 						(tableRule != null) ? tableRule.getRule() : null,
 						ruleRequired, null, false, null, null);
 				// process child tables
@@ -249,7 +249,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 		return tables;
 	}
-	private String getDataType(String dataNode){
+	private String getDbType(String dataNode){
 		DataNodeConfig datanode=dataNodes.get(dataNode);
 		DataHostConfig datahost=dataHosts.get(datanode.getDataHost());
 		return datahost.getDbType();
@@ -284,7 +284,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String parentKey = childTbElement.getAttribute("parentKey")
 					.toUpperCase();
 			TableConfig table = new TableConfig(cdTbName, primaryKey, autoIncrement,needAddLimit,
-					TableConfig.TYPE_GLOBAL_DEFAULT, dataNodes, null, false,
+					TableConfig.TYPE_GLOBAL_DEFAULT, dataNodes,getDbType(dataNodes), null, false,
 					parentTable, true, joinKey, parentKey);
 			if (tables.containsKey(table.getName())) {
 				throw new ConfigException("table " + table.getName()

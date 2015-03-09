@@ -29,14 +29,14 @@ public class DruidParserFactory {
 			List<String> tables=  parseTables(statement);
 			for (String table : tables)
 			{
-				if(schema.getAllDbTypeSet().contains("oracle")&&schema.isTableInThisDb(table,"oracle"))
+				if (schema.getTables().get(table).getDbType().equals("oracle"))//if(schema.getAllDbTypeSet().contains("oracle")&&schema.isTableInThisDb(table,"oracle"))
 				{
 					parser=new DruidSelectOracleParser();
-				} else if(schema.getAllDbTypeSet().contains("db2")&&schema.isTableInThisDb(table,"db2"))
+				} else if(schema.getTables().get(table).getDbType().equals("db2"))
 				{
 					parser=new DruidSelectDb2Parser();
 				}
-				else if(schema.getAllDbTypeSet().contains("sqlserver")&&schema.isTableInThisDb(table,"sqlserver"))
+				else if(schema.getTables().get(table).getDbType().equals("sqlserver"))
 				{
 					parser=new DruidSelectSqlServerParser();
 				}
