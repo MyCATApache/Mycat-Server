@@ -25,6 +25,7 @@ package org.opencloudb.config.model;
 
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Set;
 
 import org.opencloudb.config.model.rule.RuleConfig;
 import org.opencloudb.util.SplitUtil;
@@ -39,7 +40,7 @@ public class TableConfig {
 	private final String primaryKey;
 	private final boolean autoIncrement;
 	private final boolean needAddLimit;
-	private final String dbType;
+	private final Set<String> dbTypes;
 	private final int tableType;
 	private final ArrayList<String> dataNodes;
 	private final RuleConfig rule;
@@ -56,7 +57,7 @@ public class TableConfig {
 	private final Random rand = new Random();
 
 	public TableConfig(String name, String primaryKey, boolean autoIncrement,boolean needAddLimit, int tableType,
-			String dataNode,String dbType, RuleConfig rule, boolean ruleRequired,
+			String dataNode,Set<String> dbType, RuleConfig rule, boolean ruleRequired,
 			TableConfig parentTC, boolean isChildTable, String joinKey,
 			String parentKey) {
 		if (name == null) {
@@ -68,7 +69,7 @@ public class TableConfig {
 		this.autoIncrement = autoIncrement;
 		this.needAddLimit=needAddLimit;
 		this.tableType = tableType;
-		this.dbType=dbType;
+		this.dbTypes=dbType;
 		if (ruleRequired && rule == null) {
 			throw new IllegalArgumentException("ruleRequired but rule is null");
 		}
@@ -105,11 +106,13 @@ public class TableConfig {
 	public String getPrimaryKey() {
 		return primaryKey;
 	}
-	
-	public String getDbType() {
-		return dbType;
-	}
-	public boolean isAutoIncrement() {
+
+    public Set<String> getDbTypes()
+    {
+        return dbTypes;
+    }
+
+    public boolean isAutoIncrement() {
 		return autoIncrement;
 	}
 
