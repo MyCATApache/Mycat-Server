@@ -189,6 +189,11 @@ public class DruidSelectParser extends DefaultDruidParser {
 					String nativeSql=convertToNativePageSql(selectStmt.toString(),0,limitStart + limitSize);
 					rrs.changeNodeSqlAfterAddLimit(nativeSql);
 //					rrs.setSqlChanged(true);
+				}   else
+				{
+					//单节点也需要转换limit
+					String nativeSql=convertToNativePageSql(selectStmt.toString(),rrs.getLimitStart(),rrs.getLimitSize());
+					rrs.changeNodeSqlAfterAddLimit(nativeSql);
 				}
 				
 				
