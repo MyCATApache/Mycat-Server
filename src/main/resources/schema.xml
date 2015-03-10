@@ -30,10 +30,13 @@
 			<childTable name="customer_addr" primaryKey="ID" joinKey="customer_id"
 				parentKey="id" />
 		</table>
+		<!--
 		<table name="oc_call" primaryKey="ID" dataNode="dn1$0-743" rule="latest-month-calldate" />
+		-->
 	</schema>
-
-    <dataNode name="dn1" dataHost="localhost1" database="db$0-743" />
+    <!--
+    <dataNode name="dn1$0-743" dataHost="localhost1" database="db$0-743" />
+    -->
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />
 	<dataNode name="dn2" dataHost="localhost1" database="db2" />
 	<dataNode name="dn3" dataHost="localhost1" database="db3" />
@@ -66,7 +69,13 @@
 		<heartbeat>select user()</heartbeat>
 		<writeHost host="hostM" url="mongodb://192.168.0.99/test" user="admin" password="123456" ></writeHost>
 	</dataHost>	
+	
+	<dataHost name="sparksql" maxCon="1000" minCon="1" balance="0"	dbType="spark" dbDriver="jdbc">
+		<heartbeat> </heartbeat>
+		<writeHost host="hostM1" url="jdbc:hive2://feng01:10000" user="jifeng" password="jifeng"></writeHost>
+	</dataHost>		
 	-->
+	
      <!-- 
 	<dataHost name="jdbchost" maxCon="1000" minCon="10" balance="0"
 		dbType="mysql" dbDriver="jdbc">
