@@ -26,12 +26,7 @@ package org.opencloudb.config.loader.xml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.config.loader.SchemaLoader;
@@ -43,6 +38,7 @@ import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.config.model.rule.TableRuleConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.config.util.ConfigUtil;
+import org.opencloudb.util.SplitUtil;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -249,10 +245,17 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 		return tables;
 	}
-	private String getDbType(String dataNode){
-		DataNodeConfig datanode=dataNodes.get(dataNode);
-		DataHostConfig datahost=dataHosts.get(datanode.getDataHost());
-		return datahost.getDbType();
+	private Set<String> getDbType(String dataNode){
+        Set<String> dbTypes=new HashSet<>();
+      String[] dataNodeArr= SplitUtil.split(dataNode,',', '$', '-') ;
+        for (String node : dataNodeArr)
+        {
+            DataNodeConfig datanode=dataNodes.get(node);
+            DataHostConfig datahost=dataHosts.get(datanode.getDataHost());
+            dbTypes.add(datahost.getDbType());
+        }
+
+		return dbTypes;
 	}
 	private void processChildTables(Map<String, TableConfig> tables,
 			TableConfig parentTable, String dataNodes, Element tableNode) {
