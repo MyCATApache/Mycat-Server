@@ -4,11 +4,15 @@ import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.parser.SQLParserUtils;
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.parser.druid.DruidParser;
 import org.opencloudb.parser.druid.DruidParserFactory;
+import org.opencloudb.parser.druid.MycatMysqlSchemaStatVisitor;
+import org.opencloudb.parser.druid.MycatOracleSchemaStatVisitor;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.parser.ServerParse;
@@ -16,28 +20,31 @@ import org.opencloudb.server.parser.ServerParse;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 
-public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
-	public static final Logger LOGGER = Logger.getLogger(DruidMysqlRouteStrategy.class);
+public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
+	public static final Logger LOGGER = Logger.getLogger(DruidMycatRouteStrategy.class);
 	
 	@Override
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
 			String stmt, RouteResultset rrs, String charset,
 			LayerCachePool cachePool) throws SQLNonTransientException {
 		MySqlStatementParser parser = new MySqlStatementParser(stmt);
+        SchemaStatVisitor visitor = null;
 		SQLStatement statement;
-
 		//解析出现问题统一抛SQL语法错误
 		try {
 			statement = parser.parseStatement();
+            visitor = new MycatMysqlSchemaStatVisitor();
 		} catch (Throwable t) {
-			throw new SQLSyntaxErrorException(t);
+            //尝试oracle解析
+            statement = tryOracleParser(stmt);
+            visitor = new MycatOracleSchemaStatVisitor();
 		}
 
 		//检验unsupported statement
 		checkUnSupportedStatement(statement);
 			
-		DruidParser druidParser = DruidParserFactory.create(schema,statement);
-		druidParser.parser(schema, rrs, statement, stmt,cachePool);
+		DruidParser druidParser = DruidParserFactory.create(schema,statement,visitor);
+		druidParser.parser(schema, rrs, statement, stmt,cachePool,visitor);
 
 		//DruidParser解析过程中已完成了路由的直接返回
 		if(rrs.isFinishedRoute()) {
@@ -52,8 +59,22 @@ public class DruidMysqlRouteStrategy extends AbstractRouteStrategy {
 
 		return RouterUtil.tryRouteForTables(schema, druidParser.getCtx(), rrs, isSelect(statement),cachePool);
 	}
-	
-	private boolean isSelect(SQLStatement statement) {
+
+    private SQLStatement tryOracleParser(String stmt) throws SQLSyntaxErrorException
+    {
+        SQLStatement statement;
+        try
+        {
+             statement = SQLParserUtils.createSQLStatementParser(stmt, "oracle").parseStatement();
+        }catch (Throwable e)
+        {
+         throw new SQLSyntaxErrorException(e);
+        }
+        return statement;
+    }
+
+
+    private boolean isSelect(SQLStatement statement) {
 		if(statement instanceof SQLSelectStatement) {
 			return true;
 		}

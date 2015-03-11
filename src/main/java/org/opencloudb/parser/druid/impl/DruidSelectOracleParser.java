@@ -1,10 +1,7 @@
 package org.opencloudb.parser.druid.impl;
 
 import com.alibaba.druid.sql.PagerUtils;
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLName;
-import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
-import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.*;
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
@@ -42,7 +39,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) {
 		SQLSelectStatement selectStmt = (SQLSelectStatement)stmt;
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
-
+       //从mysql解析过来
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
 			Limit limit=mysqlSelectQuery.getLimit();
@@ -70,16 +67,13 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 				}
 			}
 
-			//更改canRunInReadDB属性
-			if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false) {
-				rrs.setCanRunInReadDB(false);
-			}
+		}
 
-		} else if (sqlSelectQuery instanceof MySqlUnionQuery) { //TODO union语句可能需要额外考虑，目前不处理也没问题
-//			MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;
-//			MySqlSelectQueryBlock left = (MySqlSelectQueryBlock)unionQuery.getLeft();
-//			MySqlSelectQueryBlock right = (MySqlSelectQueryBlock)unionQuery.getLeft();
-//			System.out.println();
+          //从oracle解析过来   ,mysql解析出错才会到此 ,如rownumber分页
+        else if (sqlSelectQuery instanceof OracleSelectQueryBlock) {
+
+         parseOraclePageSql(stmt,rrs, (OracleSelectQueryBlock) sqlSelectQuery, schema);
+
 		}
 	}
 
@@ -105,10 +99,10 @@ public class DruidSelectOracleParser extends DruidSelectParser {
         {
 
             SQLBinaryOpExpr one= (SQLBinaryOpExpr) where;
-            String left=one.getLeft().toString();
+            SQLExpr left=one.getLeft();
             SQLBinaryOperator operator =one.getOperator();
-
-			if(one.getRight() instanceof SQLIntegerExpr &&"rownum".equalsIgnoreCase(left)
+              //解析只有一层rownum限制大小
+			if(one.getRight() instanceof SQLIntegerExpr &&"rownum".equalsIgnoreCase(left.toString())
 					&&(operator==SQLBinaryOperator.LessThanOrEqual||operator==SQLBinaryOperator.LessThan))
 			{
 				SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
@@ -124,8 +118,8 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 					isNeedParseOrderAgg=false;
 				}
 			}
-			else
-            if(one.getRight() instanceof SQLIntegerExpr &&!"rownum".equalsIgnoreCase(left)
+			else //解析oracle三层嵌套分页
+            if(one.getRight() instanceof SQLIntegerExpr &&!"rownum".equalsIgnoreCase(left.toString())
                     &&(operator==SQLBinaryOperator.GreaterThan||operator==SQLBinaryOperator.GreaterThanOrEqual))
            {
 			   SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
@@ -175,6 +169,43 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
 				   }
 			   }
+            else //解析oracle rownumber over分页
+                if(operator==SQLBinaryOperator.BooleanAnd && left instanceof SQLBinaryOpExpr&&one.getRight() instanceof SQLBinaryOpExpr )
+                {
+
+                    SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
+                    if (subSelect instanceof OracleSelectQueryBlock)
+                    {
+                        boolean hasRowNumber=false;
+                        OracleSelectQueryBlock subSelectOracle = (OracleSelectQueryBlock) subSelect;
+                        List<SQLSelectItem> sqlSelectItems=    subSelectOracle.getSelectList();
+                        for (SQLSelectItem sqlSelectItem : sqlSelectItems)
+                        {
+                            SQLExpr sqlExpr=  sqlSelectItem.getExpr()   ;
+                            if(sqlExpr instanceof  SQLAggregateExpr )
+                            {
+                                SQLAggregateExpr agg= (SQLAggregateExpr) sqlExpr;
+                                if("row_number".equalsIgnoreCase(agg.getMethodName())&&agg.getOver()!=null)
+                                {
+                                    hasRowNumber=true;
+                                    SQLOrderBy orderBy= agg.getOver().getOrderBy();
+                                }
+
+                            }
+                        }
+
+                        if(hasRowNumber)
+                        {
+
+
+                        }
+
+
+                    }
+
+
+
+                }
 
         }
 
