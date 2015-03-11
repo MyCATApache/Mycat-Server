@@ -1,14 +1,203 @@
 package org.opencloudb.parser.druid.impl;
 
 import com.alibaba.druid.sql.PagerUtils;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.dialect.db2.parser.DB2StatementParser;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLOrderBy;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.statement.*;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelect;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.parser.SQLServerStatementParser;
+import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.route.RouteResultset;
+
+import java.util.List;
+import java.util.Map;
 
 public class DruidSelectSqlServerParser extends DruidSelectParser {
 
 
+	protected boolean isNeedParseOrderAgg=true;
 
+	@Override
+	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) {
+		SQLSelectStatement selectStmt = (SQLSelectStatement)stmt;
+		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
+		//从mysql解析过来
+		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
+			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
+			MySqlSelectQueryBlock.Limit limit=mysqlSelectQuery.getLimit();
+			if(limit==null)
+			{
+				//使用sqlserver的解析，否则会有部分语法识别错误
+				SQLServerStatementParser oracleParser = new SQLServerStatementParser(getCtx().getSql());
+				SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
+				SQLSelectQuery oracleSqlSelectQuery = oracleStmt.getSelect().getQuery();
+				if(oracleSqlSelectQuery instanceof SQLServerSelectQueryBlock)
+				{
+					parseSqlServerPageSql(oracleStmt, rrs, (SQLServerSelectQueryBlock) oracleSqlSelectQuery, schema);
+				}
+
+
+
+			}
+			if(isNeedParseOrderAgg)
+			{
+				parseOrderAggGroupMysql(rrs, mysqlSelectQuery);
+				//更改canRunInReadDB属性
+				if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
+				{
+					rrs.setCanRunInReadDB(false);
+				}
+			}
+
+		}
+
+		//从oracle解析过来   ,mysql解析出错才会到此 ,如rownumber分页
+		else if (sqlSelectQuery instanceof OracleSelectQueryBlock) {
+
+			//使用sqlserver的解析，否则会有部分语法识别错误
+			SQLServerStatementParser oracleParser = new SQLServerStatementParser(getCtx().getSql());
+			SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
+			SQLSelectQuery oracleSqlSelectQuery = oracleStmt.getSelect().getQuery();
+			if(oracleSqlSelectQuery instanceof SQLServerSelectQueryBlock)
+			{
+				parseSqlServerPageSql(oracleStmt, rrs, (SQLServerSelectQueryBlock) oracleSqlSelectQuery, schema);
+			}
+
+		}
+	}
+
+
+	private void parseOrderAggGroupSqlServer(RouteResultset rrs, SQLServerSelectQueryBlock mysqlSelectQuery)
+	{
+		Map<String, String> aliaColumns = parseAggGroupCommon(rrs, mysqlSelectQuery);
+
+		SQLServerSelect oracleSelect= (SQLServerSelect) mysqlSelectQuery.getParent();
+		if(oracleSelect.getOrderBy() != null) {
+			List<SQLSelectOrderByItem> orderByItems = oracleSelect.getOrderBy().getItems();
+			rrs.setOrderByCols(buildOrderByCols(orderByItems,aliaColumns));
+		}
+	}
+
+	private void parseSqlServerPageSql(SQLStatement stmt, RouteResultset rrs, SQLServerSelectQueryBlock mysqlSelectQuery, SchemaConfig schema)
+	{
+		//第一层子查询
+		SQLExpr where=  mysqlSelectQuery.getWhere();
+		SQLTableSource from= mysqlSelectQuery.getFrom();
+		if(where instanceof SQLBinaryOpExpr &&from instanceof SQLSubqueryTableSource)
+		{
+
+			SQLBinaryOpExpr one= (SQLBinaryOpExpr) where;
+			SQLExpr left=one.getLeft();
+			SQLBinaryOperator operator =one.getOperator();
+			SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
+			SQLOrderBy orderBy=null;
+			if (subSelect instanceof OracleSelectQueryBlock)
+			{
+				boolean hasRowNumber=false;
+				SQLServerSelectQueryBlock subSelectOracle = (SQLServerSelectQueryBlock) subSelect;
+				List<SQLSelectItem> sqlSelectItems=    subSelectOracle.getSelectList();
+				for (SQLSelectItem sqlSelectItem : sqlSelectItems)
+				{
+					SQLExpr sqlExpr=  sqlSelectItem.getExpr()   ;
+					if(sqlExpr instanceof  SQLAggregateExpr )
+					{
+						SQLAggregateExpr agg= (SQLAggregateExpr) sqlExpr;
+						if("row_number".equalsIgnoreCase(agg.getMethodName())&&agg.getOver()!=null)
+						{
+							hasRowNumber=true;
+							orderBy= agg.getOver().getOrderBy();
+						}
+
+					}
+				}
+
+				if(hasRowNumber)
+				{
+					if((operator==SQLBinaryOperator.LessThan||operator==SQLBinaryOperator.LessThanOrEqual) && one.getRight() instanceof SQLIntegerExpr )
+					{
+						SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
+						int firstrownum = right.getNumber().intValue();
+						if (operator == SQLBinaryOperator.LessThan&&firstrownum!=0) firstrownum = firstrownum - 1;
+						if (subSelect instanceof SQLServerSelectQueryBlock)
+						{
+							rrs.setLimitStart(0);
+							rrs.setLimitSize(firstrownum);
+							mysqlSelectQuery = (SQLServerSelectQueryBlock) subSelect;    //为了继续解出order by 等
+							if(orderBy!=null)
+							{
+								SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
+								oracleSelect.setOrderBy(orderBy);
+							}
+							parseOrderAggGroupSqlServer(rrs, mysqlSelectQuery);
+							isNeedParseOrderAgg=false;
+						}
+					}
+					else
+					if(operator==SQLBinaryOperator.BooleanAnd && left instanceof SQLBinaryOpExpr&&one.getRight() instanceof SQLBinaryOpExpr )
+					{
+						SQLBinaryOpExpr leftE= (SQLBinaryOpExpr) left;
+						SQLBinaryOpExpr rightE= (SQLBinaryOpExpr) one.getRight();
+						SQLBinaryOpExpr small=null ;
+						SQLBinaryOpExpr larger=null ;
+						int firstrownum =0;
+						int lastrownum =0;
+						if(leftE.getRight() instanceof SQLIntegerExpr&&(leftE.getOperator()==SQLBinaryOperator.GreaterThan||leftE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual))
+						{
+							small=leftE;
+							firstrownum=((SQLIntegerExpr) leftE.getRight()).getNumber().intValue();
+							if(leftE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual &&firstrownum!=0) firstrownum = firstrownum - 1;
+						} else
+						if(leftE.getRight() instanceof SQLIntegerExpr&&(leftE.getOperator()==SQLBinaryOperator.LessThan||leftE.getOperator()==SQLBinaryOperator.LessThanOrEqual))
+						{
+							larger=leftE;
+							lastrownum=((SQLIntegerExpr) leftE.getRight()).getNumber().intValue();
+							if(leftE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+						}
+
+						if(rightE.getRight() instanceof SQLIntegerExpr&&(rightE.getOperator()==SQLBinaryOperator.GreaterThan||rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual))
+						{
+							small=rightE;
+							firstrownum=((SQLIntegerExpr) rightE.getRight()).getNumber().intValue();
+							if(rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) firstrownum = firstrownum - 1;
+						} else
+						if(rightE.getRight() instanceof SQLIntegerExpr&&(rightE.getOperator()==SQLBinaryOperator.LessThan||rightE.getOperator()==SQLBinaryOperator.LessThanOrEqual))
+						{
+							larger=rightE;
+							lastrownum=((SQLIntegerExpr) rightE.getRight()).getNumber().intValue();
+							if(rightE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+						}
+						if(small!=null&&larger!=null)
+						{
+							setLimitIFChange(stmt, rrs, schema, small, firstrownum, lastrownum);
+							if(orderBy!=null)
+							{
+								SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
+								oracleSelect.setOrderBy(orderBy);
+							}
+							parseOrderAggGroupSqlServer(rrs, (SQLServerSelectQueryBlock) subSelect);
+							isNeedParseOrderAgg=false;
+						}
+
+					}
+
+
+				}
+
+
+
+			}
+
+		}
+
+	}
 
 	protected String  convertToNativePageSql(String sql,int offset,int count)
 	{
