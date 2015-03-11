@@ -75,6 +75,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 			if(item.getExpr() instanceof SQLAggregateExpr) {
 				SQLAggregateExpr expr = (SQLAggregateExpr)item.getExpr();
 				String method = expr.getMethodName();
+				  if("ROW_NUMBER".equalsIgnoreCase(method))
+				  {
+					continue;     //ROW_NUMBER 不需要聚合处理
+				  }
 				//只处理有别名的情况，无别名丢给DataMergeService.onRowMetaData处理
 				if (item.getAlias() != null && item.getAlias().length() > 0) {
 					aggrColumns.put(item.getAlias(), MergeCol.getMergeType(method));
