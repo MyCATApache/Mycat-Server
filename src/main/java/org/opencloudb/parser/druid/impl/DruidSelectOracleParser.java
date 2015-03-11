@@ -107,7 +107,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 			{
 				SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
 				int firstrownum = right.getNumber().intValue();
-				if (operator == SQLBinaryOperator.LessThan) firstrownum = firstrownum - 1;
+				if (operator == SQLBinaryOperator.LessThan&&firstrownum!=0) firstrownum = firstrownum - 1;
 				SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
 				if (subSelect instanceof OracleSelectQueryBlock)
 				{
@@ -122,58 +122,14 @@ public class DruidSelectOracleParser extends DruidSelectParser {
             if(one.getRight() instanceof SQLIntegerExpr &&!"rownum".equalsIgnoreCase(left.toString())
                     &&(operator==SQLBinaryOperator.GreaterThan||operator==SQLBinaryOperator.GreaterThanOrEqual))
            {
-			   SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
-			   int firstrownum = right.getNumber().intValue();
-			   if (operator == SQLBinaryOperator.GreaterThanOrEqual) firstrownum = firstrownum - 1;
-				   SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
-				   if (subSelect instanceof OracleSelectQueryBlock)
-				   {  //第二层子查询
-					   OracleSelectQueryBlock twoSubSelect = (OracleSelectQueryBlock) subSelect;
-					   if (twoSubSelect.getWhere() instanceof SQLBinaryOpExpr && twoSubSelect.getFrom() instanceof SQLSubqueryTableSource)
-					   {
-						   SQLBinaryOpExpr twoWhere = (SQLBinaryOpExpr) twoSubSelect.getWhere();
-						   boolean isRowNum = "rownum".equalsIgnoreCase(twoWhere.getLeft().toString());
-						   boolean isLess = twoWhere.getOperator() == SQLBinaryOperator.LessThanOrEqual || twoWhere.getOperator() == SQLBinaryOperator.LessThan;
-						   if (isRowNum && twoWhere.getRight() instanceof SQLIntegerExpr && isLess)
-						   {
-							   int lastrownum = ((SQLIntegerExpr) twoWhere.getRight()).getNumber().intValue();
-							   if (operator == SQLBinaryOperator.LessThan) lastrownum = lastrownum - 1;
-							   SQLSelectQuery finalQuery = ((SQLSubqueryTableSource) twoSubSelect.getFrom()).getSelect().getQuery();
-							   if (finalQuery instanceof OracleSelectQueryBlock)
-							   {
-								   rrs.setLimitStart(firstrownum);
-								   rrs.setLimitSize(lastrownum - firstrownum);
-								   LayerCachePool tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
-								   try
-								   {
-									   RouterUtil.tryRouteForTables(schema, getCtx(), rrs, true, tableId2DataNodeCache);
-								   } catch (SQLNonTransientException e)
-								   {
-									   throw new RuntimeException(e);
-								   }
-								   if (isNeedChangeLimit(rrs, schema))
-								   {
-									   one.setRight(new SQLIntegerExpr(0));
-									   rrs.changeNodeSqlAfterAddLimit(stmt.toString());
-									   //设置改写后的sql
-									   ctx.setSql(stmt.toString());
-								   }
-								   mysqlSelectQuery = (OracleSelectQueryBlock) finalQuery;    //为了继续解出order by 等
-								   parseOrderAggGroupOracle(rrs, mysqlSelectQuery);
-								   isNeedParseOrderAgg=false;
-							   }
-
-						   }
-
-					   }
-
-				   }
+			   parseThreeLevelPageSql(stmt, rrs, schema, (SQLSubqueryTableSource) from, one, operator);
 			   }
             else //解析oracle rownumber over分页
                 if(operator==SQLBinaryOperator.BooleanAnd && left instanceof SQLBinaryOpExpr&&one.getRight() instanceof SQLBinaryOpExpr )
                 {
 
                     SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
+					SQLOrderBy orderBy=null;
                     if (subSelect instanceof OracleSelectQueryBlock)
                     {
                         boolean hasRowNumber=false;
@@ -188,7 +144,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
                                 if("row_number".equalsIgnoreCase(agg.getMethodName())&&agg.getOver()!=null)
                                 {
                                     hasRowNumber=true;
-                                    SQLOrderBy orderBy= agg.getOver().getOrderBy();
+                                     orderBy= agg.getOver().getOrderBy();
                                 }
 
                             }
@@ -197,6 +153,48 @@ public class DruidSelectOracleParser extends DruidSelectParser {
                         if(hasRowNumber)
                         {
 
+							SQLBinaryOpExpr leftE= (SQLBinaryOpExpr) left;
+							SQLBinaryOpExpr rightE= (SQLBinaryOpExpr) one.getRight();
+							SQLBinaryOpExpr small=null ;
+							SQLBinaryOpExpr larger=null ;
+							int firstrownum =0;
+							int lastrownum =0;
+							if(leftE.getRight() instanceof SQLIntegerExpr&&(leftE.getOperator()==SQLBinaryOperator.GreaterThan||leftE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual))
+							{
+								small=leftE;
+								firstrownum=((SQLIntegerExpr) leftE.getRight()).getNumber().intValue();
+								if(leftE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual &&firstrownum!=0) firstrownum = firstrownum - 1;
+							} else
+							if(leftE.getRight() instanceof SQLIntegerExpr&&(leftE.getOperator()==SQLBinaryOperator.LessThan||leftE.getOperator()==SQLBinaryOperator.LessThanOrEqual))
+							{
+								larger=leftE;
+								lastrownum=((SQLIntegerExpr) leftE.getRight()).getNumber().intValue();
+								if(leftE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+							}
+
+							if(rightE.getRight() instanceof SQLIntegerExpr&&(rightE.getOperator()==SQLBinaryOperator.GreaterThan||rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual))
+							{
+								small=rightE;
+								firstrownum=((SQLIntegerExpr) rightE.getRight()).getNumber().intValue();
+								if(rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) firstrownum = firstrownum - 1;
+							} else
+							if(rightE.getRight() instanceof SQLIntegerExpr&&(rightE.getOperator()==SQLBinaryOperator.LessThan||rightE.getOperator()==SQLBinaryOperator.LessThanOrEqual))
+							{
+								larger=rightE;
+								lastrownum=((SQLIntegerExpr) rightE.getRight()).getNumber().intValue();
+								if(rightE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+							}
+							if(small!=null&&larger!=null)
+							{
+								setLimitIFChange(stmt, rrs, schema, small, firstrownum, lastrownum);
+								if(orderBy!=null)
+								{
+									OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
+									oracleSelect.setOrderBy(orderBy);
+								}
+								parseOrderAggGroupOracle(rrs, (OracleSelectQueryBlock) subSelect);
+								isNeedParseOrderAgg=false;
+							}
 
                         }
 
@@ -211,6 +209,59 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
 	}
 
+	private void parseThreeLevelPageSql(SQLStatement stmt, RouteResultset rrs, SchemaConfig schema, SQLSubqueryTableSource from, SQLBinaryOpExpr one, SQLBinaryOperator operator)
+	{
+        SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
+		int firstrownum = right.getNumber().intValue();
+		if (operator == SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) firstrownum = firstrownum - 1;
+		SQLSelectQuery subSelect = from.getSelect().getQuery();
+		if (subSelect instanceof OracleSelectQueryBlock)
+        {  //第二层子查询
+            OracleSelectQueryBlock twoSubSelect = (OracleSelectQueryBlock) subSelect;
+            if (twoSubSelect.getWhere() instanceof SQLBinaryOpExpr && twoSubSelect.getFrom() instanceof SQLSubqueryTableSource)
+            {
+                SQLBinaryOpExpr twoWhere = (SQLBinaryOpExpr) twoSubSelect.getWhere();
+                boolean isRowNum = "rownum".equalsIgnoreCase(twoWhere.getLeft().toString());
+                boolean isLess = twoWhere.getOperator() == SQLBinaryOperator.LessThanOrEqual || twoWhere.getOperator() == SQLBinaryOperator.LessThan;
+                if (isRowNum && twoWhere.getRight() instanceof SQLIntegerExpr && isLess)
+                {
+                    int lastrownum = ((SQLIntegerExpr) twoWhere.getRight()).getNumber().intValue();
+                    if (operator == SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+                    SQLSelectQuery finalQuery = ((SQLSubqueryTableSource) twoSubSelect.getFrom()).getSelect().getQuery();
+                    if (finalQuery instanceof OracleSelectQueryBlock)
+                    {
+						setLimitIFChange(stmt, rrs, schema, one, firstrownum, lastrownum);
+                        parseOrderAggGroupOracle(rrs, (OracleSelectQueryBlock) finalQuery);
+                        isNeedParseOrderAgg=false;
+                    }
+
+                }
+
+            }
+
+        }
+	}
+
+	private void setLimitIFChange(SQLStatement stmt, RouteResultset rrs, SchemaConfig schema, SQLBinaryOpExpr one, int firstrownum, int lastrownum)
+	{
+		rrs.setLimitStart(firstrownum);
+		rrs.setLimitSize(lastrownum - firstrownum);
+		LayerCachePool tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
+		try
+        {
+            RouterUtil.tryRouteForTables(schema, getCtx(), rrs, true, tableId2DataNodeCache);
+        } catch (SQLNonTransientException e)
+        {
+            throw new RuntimeException(e);
+        }
+		if (isNeedChangeLimit(rrs, schema))
+        {
+            one.setRight(new SQLIntegerExpr(0));
+            rrs.changeNodeSqlAfterAddLimit(stmt.toString());
+            //设置改写后的sql
+           getCtx().setSql(stmt.toString());
+        }
+	}
 
 
 	protected String  convertToNativePageSql(String sql,int offset,int count)
