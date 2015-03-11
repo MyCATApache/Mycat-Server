@@ -125,8 +125,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 			   parseThreeLevelPageSql(stmt, rrs, schema, (SQLSubqueryTableSource) from, one, operator);
 			   }
             else //解析oracle rownumber over分页
-                if(operator==SQLBinaryOperator.BooleanAnd && left instanceof SQLBinaryOpExpr&&one.getRight() instanceof SQLBinaryOpExpr )
-                {
+			{
 
                     SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
 					SQLOrderBy orderBy=null;
@@ -152,7 +151,28 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
                         if(hasRowNumber)
                         {
-
+							if((operator==SQLBinaryOperator.LessThan||operator==SQLBinaryOperator.LessThanOrEqual) && one.getRight() instanceof SQLIntegerExpr )
+							{
+								SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
+								int firstrownum = right.getNumber().intValue();
+								if (operator == SQLBinaryOperator.LessThan&&firstrownum!=0) firstrownum = firstrownum - 1;
+								if (subSelect instanceof OracleSelectQueryBlock)
+								{
+									rrs.setLimitStart(0);
+									rrs.setLimitSize(firstrownum);
+									mysqlSelectQuery = (OracleSelectQueryBlock) subSelect;    //为了继续解出order by 等
+									if(orderBy!=null)
+									{
+										OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
+										oracleSelect.setOrderBy(orderBy);
+									}
+									parseOrderAggGroupOracle(rrs, mysqlSelectQuery);
+									isNeedParseOrderAgg=false;
+								}
+							}
+							  else
+							if(operator==SQLBinaryOperator.BooleanAnd && left instanceof SQLBinaryOpExpr&&one.getRight() instanceof SQLBinaryOpExpr )
+							{
 							SQLBinaryOpExpr leftE= (SQLBinaryOpExpr) left;
 							SQLBinaryOpExpr rightE= (SQLBinaryOpExpr) one.getRight();
 							SQLBinaryOpExpr small=null ;
@@ -205,7 +225,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
                 }
 
-        }
+        }  }
 
 	}
 
@@ -242,26 +262,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
         }
 	}
 
-	private void setLimitIFChange(SQLStatement stmt, RouteResultset rrs, SchemaConfig schema, SQLBinaryOpExpr one, int firstrownum, int lastrownum)
-	{
-		rrs.setLimitStart(firstrownum);
-		rrs.setLimitSize(lastrownum - firstrownum);
-		LayerCachePool tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
-		try
-        {
-            RouterUtil.tryRouteForTables(schema, getCtx(), rrs, true, tableId2DataNodeCache);
-        } catch (SQLNonTransientException e)
-        {
-            throw new RuntimeException(e);
-        }
-		if (isNeedChangeLimit(rrs, schema))
-        {
-            one.setRight(new SQLIntegerExpr(0));
-            rrs.changeNodeSqlAfterAddLimit(stmt.toString());
-            //设置改写后的sql
-           getCtx().setSql(stmt.toString());
-        }
-	}
+
 
 
 	protected String  convertToNativePageSql(String sql,int offset,int count)

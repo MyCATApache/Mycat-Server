@@ -369,4 +369,25 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 		
 	}
+
+	protected void setLimitIFChange(SQLStatement stmt, RouteResultset rrs, SchemaConfig schema, SQLBinaryOpExpr one, int firstrownum, int lastrownum)
+	{
+		rrs.setLimitStart(firstrownum);
+		rrs.setLimitSize(lastrownum - firstrownum);
+		LayerCachePool tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
+		try
+		{
+			RouterUtil.tryRouteForTables(schema, getCtx(), rrs, true, tableId2DataNodeCache);
+		} catch (SQLNonTransientException e)
+		{
+			throw new RuntimeException(e);
+		}
+		if (isNeedChangeLimit(rrs, schema))
+		{
+			one.setRight(new SQLIntegerExpr(0));
+			rrs.changeNodeSqlAfterAddLimit(stmt.toString());
+			//设置改写后的sql
+			getCtx().setSql(stmt.toString());
+		}
+	}
 }
