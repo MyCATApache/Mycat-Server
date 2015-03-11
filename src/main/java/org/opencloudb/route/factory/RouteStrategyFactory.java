@@ -5,7 +5,7 @@ import java.util.Map;
 
 import org.opencloudb.MycatServer;
 import org.opencloudb.route.RouteStrategy;
-import org.opencloudb.route.impl.DruidMysqlRouteStrategy;
+import org.opencloudb.route.impl.DruidMycatRouteStrategy;
 import org.opencloudb.route.impl.FdbRouteStrategy;
 
 /**
@@ -24,7 +24,7 @@ public class RouteStrategyFactory {
 		
 		strategyMap.put("fdbparser", new FdbRouteStrategy());
 		
-		strategyMap.put("druidparser", new DruidMysqlRouteStrategy());
+		strategyMap.put("druidparser", new DruidMycatRouteStrategy());
 		
 		defaultStrategy = strategyMap.get(defaultSqlParser);
 		if(defaultStrategy == null) {

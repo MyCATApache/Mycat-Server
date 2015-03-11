@@ -1,5 +1,6 @@
 package org.opencloudb.parser.druid;
 
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.parser.druid.impl.*;
 
@@ -22,11 +23,11 @@ import java.util.Map;
  */
 public class DruidParserFactory {
 	
-	public static DruidParser create(SchemaConfig schema,SQLStatement statement) {
+	public static DruidParser create(SchemaConfig schema,SQLStatement statement,SchemaStatVisitor schemaStatVisitor) {
 		DruidParser parser = null;
 		if(statement instanceof SQLSelectStatement) {
 			//先解出表，判断表所在db的类型，再根据不同db类型返回不同的解析
-			List<String> tables=  parseTables(statement);
+			List<String> tables=  parseTables(statement,schemaStatVisitor);
 			for (String table : tables)
 			{
 				if (schema.getTables().get(table).getDbTypes().contains("oracle"))//if(schema.getAllDbTypeSet().contains("oracle")&&schema.isTableInThisDb(table,"oracle"))
@@ -67,14 +68,13 @@ public class DruidParserFactory {
 	}
 
 
-	private static List<String> parseTables(SQLStatement stmt)
+	private static List<String> parseTables(SQLStatement stmt,SchemaStatVisitor schemaStatVisitor)
 	{
 		List<String> tables=new ArrayList<>()  ;
-		MycatSchemaStatVisitor visitor = new MycatSchemaStatVisitor();
-		stmt.accept(visitor);
+		stmt.accept(schemaStatVisitor);
 
-		if(visitor.getAliasMap() != null) {
-			for(Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
+		if(schemaStatVisitor.getAliasMap() != null) {
+			for(Map.Entry<String, String> entry : schemaStatVisitor.getAliasMap().entrySet()) {
 				String key = entry.getKey();
 				String value = entry.getValue();
 				if(key != null && key.indexOf("`") >= 0) {

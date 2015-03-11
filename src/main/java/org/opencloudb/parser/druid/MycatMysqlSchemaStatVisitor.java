@@ -22,7 +22,7 @@ import com.alibaba.druid.stat.TableStat.Condition;
  * @author wang.dw
  *
  */
-public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
+public class MycatMysqlSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	@Override
 	public boolean visit(SQLSelectStatement x) {
         setAliasMap();

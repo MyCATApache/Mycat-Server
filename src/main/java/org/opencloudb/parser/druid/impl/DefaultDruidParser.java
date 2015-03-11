@@ -6,13 +6,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.mpp.RangeValue;
 import org.opencloudb.parser.druid.DruidParser;
 import org.opencloudb.parser.druid.DruidShardingParseInfo;
-import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
+import org.opencloudb.parser.druid.MycatMysqlSchemaStatVisitor;
 import org.opencloudb.route.RouteResultset;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -50,12 +51,12 @@ public class DefaultDruidParser implements DruidParser {
 	 * @param schema
 	 * @param stmt
 	 */
-	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool) throws SQLNonTransientException {
+	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool,SchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException {
 		ctx = new DruidShardingParseInfo();
 		//设置为原始sql，如果有需要改写sql的，可以通过修改SQLStatement中的属性，然后调用SQLStatement.toString()得到改写的sql
 		ctx.setSql(originSql);
 		//通过visitor解析
-		visitorParse(rrs,stmt);
+		visitorParse(rrs,stmt,schemaStatVisitor);
 		//通过Statement解析
 		statementParse(schema, rrs, stmt);
 		
@@ -87,8 +88,8 @@ public class DefaultDruidParser implements DruidParser {
 	 * @param stmt
 	 */
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException{
-		MycatSchemaStatVisitor visitor = new MycatSchemaStatVisitor();
+	public void visitorParse(RouteResultset rrs, SQLStatement stmt,SchemaStatVisitor visitor) throws SQLNonTransientException{
+
 		stmt.accept(visitor);
 		
 		if(visitor.getAliasMap() != null) {
