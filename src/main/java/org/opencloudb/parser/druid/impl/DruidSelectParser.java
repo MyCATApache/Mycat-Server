@@ -68,37 +68,46 @@ public class DruidSelectParser extends DefaultDruidParser {
 	{
 		Map<String, String> aliaColumns = new HashMap<String, String>();//sohudo 2015-2-5 解决了下面这个坑
 		//以下注释的代码没准以后有用，rrs.setMergeCols(aggrColumns);目前就是个坑，设置了反而报错，得不到正确结果
+		//已经通过修改添加别名方式解决
 		//setHasAggrColumn ,such as count(*)
 		Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
-		for(SQLSelectItem item : mysqlSelectQuery.getSelectList()) {
+		List<SQLSelectItem> selectList = mysqlSelectQuery.getSelectList();
+		for (int i = 0; i < selectList.size(); i++)
+		{
+			SQLSelectItem item = selectList.get(i);
 
-			if(item.getExpr() instanceof SQLAggregateExpr) {
-				SQLAggregateExpr expr = (SQLAggregateExpr)item.getExpr();
+			if (item.getExpr() instanceof SQLAggregateExpr)
+			{
+				SQLAggregateExpr expr = (SQLAggregateExpr) item.getExpr();
 				String method = expr.getMethodName();
-				  if("ROW_NUMBER".equalsIgnoreCase(method))
-				  {
+				if ("ROW_NUMBER".equalsIgnoreCase(method))
+				{
 					continue;     //ROW_NUMBER 不需要聚合处理
-				  }
+				}
 				//只处理有别名的情况，无别名丢给DataMergeService.onRowMetaData处理
-				if (item.getAlias() != null && item.getAlias().length() > 0) {
+				if (item.getAlias() != null && item.getAlias().length() > 0)
+				{
 					aggrColumns.put(item.getAlias(), MergeCol.getMergeType(method));
-				}   else
-                {   //sqlserver,db2时如果不加，取不到正确结果
-                    item.setAlias("AGGRC");
-                    String sql = stmt.toString();
-                    rrs.changeNodeSqlAfterAddLimit(sql);
-                    getCtx().setSql(sql);
-                }
+				} else
+				{   //sqlserver,db2等时如果不加，取不到正确结果   ;修改添加别名
+					item.setAlias(method+i);
+					String sql = stmt.toString();
+					rrs.changeNodeSqlAfterAddLimit(sql);
+					getCtx().setSql(sql);
+					aggrColumns.put(method+i, MergeCol.getMergeType(method));
+				}
 				rrs.setHasAggrColumn(true);
-			}
-			else{
-				if (!(item.getExpr() instanceof SQLAllColumnExpr)) {
-					String alia=item.getAlias();
-					String field=getFieldName(item);
-					if (alia==null){
-						alia=field;
+			} else
+			{
+				if (!(item.getExpr() instanceof SQLAllColumnExpr))
+				{
+					String alia = item.getAlias();
+					String field = getFieldName(item);
+					if (alia == null)
+					{
+						alia = field;
 					}
-					aliaColumns.put(field,alia);
+					aliaColumns.put(field, alia);
 				}
 			}
 
