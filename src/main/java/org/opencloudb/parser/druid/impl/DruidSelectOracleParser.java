@@ -48,6 +48,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 				  //使用oracle的解析，否则会有部分oracle语法识别错误
 				  OracleStatementParser oracleParser = new OracleStatementParser(getCtx().getSql());
 				  SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
+                selectStmt= oracleStmt;
 				  SQLSelectQuery oracleSqlSelectQuery = oracleStmt.getSelect().getQuery();
 				  if(oracleSqlSelectQuery instanceof OracleSelectQueryBlock)
 				  {
@@ -59,7 +60,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 			  }
 			if(isNeedParseOrderAgg)
 			{
-				parseOrderAggGroupMysql(rrs, mysqlSelectQuery);
+				parseOrderAggGroupMysql(selectStmt,rrs, mysqlSelectQuery);
 				//更改canRunInReadDB属性
 				if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
 				{
@@ -78,9 +79,9 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 	}
 
 
-	private void parseOrderAggGroupOracle(RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery)
+	private void parseOrderAggGroupOracle(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery)
 	{
-		Map<String, String> aliaColumns = parseAggGroupCommon(rrs, mysqlSelectQuery);
+		Map<String, String> aliaColumns = parseAggGroupCommon(stmt,rrs, mysqlSelectQuery);
 
 		OracleSelect oracleSelect= (OracleSelect) mysqlSelectQuery.getParent();
 		if(oracleSelect.getOrderBy() != null) {
@@ -125,7 +126,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 					rrs.setLimitStart(0);
 					rrs.setLimitSize(firstrownum);
 					mysqlSelectQuery = (OracleSelectQueryBlock) subSelect;    //为了继续解出order by 等
-					parseOrderAggGroupOracle(rrs, mysqlSelectQuery);
+					parseOrderAggGroupOracle(stmt,rrs, mysqlSelectQuery);
 					isNeedParseOrderAgg=false;
 				}
 			}
@@ -177,7 +178,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 										OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
 										oracleSelect.setOrderBy(orderBy);
 									}
-									parseOrderAggGroupOracle(rrs, mysqlSelectQuery);
+									parseOrderAggGroupOracle(stmt,rrs, mysqlSelectQuery);
 									isNeedParseOrderAgg=false;
 								}
 							}
@@ -223,7 +224,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 									OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
 									oracleSelect.setOrderBy(orderBy);
 								}
-								parseOrderAggGroupOracle(rrs, (OracleSelectQueryBlock) subSelect);
+								parseOrderAggGroupOracle(stmt,rrs, (OracleSelectQueryBlock) subSelect);
 								isNeedParseOrderAgg=false;
 							}
 
@@ -244,7 +245,10 @@ public class DruidSelectOracleParser extends DruidSelectParser {
         {
             parseNativeSql(stmt,rrs,mysqlSelectQuery,schema);
         }
-
+        if(isNeedParseOrderAgg)
+        {
+            parseOrderAggGroupOracle(stmt,rrs,  mysqlSelectQuery);
+        }
     }
 
 
@@ -275,7 +279,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
                     if (finalQuery instanceof OracleSelectQueryBlock)
                     {
 						setLimitIFChange(stmt, rrs, schema, one, firstrownum, lastrownum);
-                        parseOrderAggGroupOracle(rrs, (OracleSelectQueryBlock) finalQuery);
+                        parseOrderAggGroupOracle(stmt,rrs, (OracleSelectQueryBlock) finalQuery);
                         isNeedParseOrderAgg=false;
                     }
 
