@@ -6,8 +6,8 @@ import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.*;
-import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.oracle.visitor.OracleSchemaStatVisitor;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.sqlserver.visitor.SQLServerSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat.Column;
 import com.alibaba.druid.stat.TableStat.Condition;
 
@@ -18,13 +18,11 @@ import java.util.Map;
  * @author wang.dw
  *
  */
-public class MycatOracleSchemaStatVisitor extends OracleSchemaStatVisitor
+public class MycatSQLServerSchemaStatVisitor extends SQLServerSchemaStatVisitor
 {
 	@Override
 	public boolean visit(SQLSelectStatement x) {
         setAliasMap();
-        getAliasMap().put("DUAL", null);
-
         return true;
     }
 	
@@ -174,8 +172,8 @@ public class MycatOracleSchemaStatVisitor extends OracleSchemaStatVisitor
 			}
 			
 			//前面没找到表名的，自己从parent中解析
-			if(betweenExpr.getParent() instanceof OracleSelectQueryBlock) {
-                OracleSelectQueryBlock select = (OracleSelectQueryBlock)betweenExpr.getParent();
+			if(betweenExpr.getParent() instanceof SQLServerSelectQueryBlock) {
+                SQLServerSelectQueryBlock select = (SQLServerSelectQueryBlock)betweenExpr.getParent();
 				if(select.getFrom() instanceof SQLJoinTableSource) {//多表连接
 					SQLJoinTableSource joinTableSource = (SQLJoinTableSource)select.getFrom();
 					return joinTableSource.getLeft().toString();//将left作为主表，此处有不严谨处，但也是实在没有办法，如果要准确，字段前带表名或者表的别名即可

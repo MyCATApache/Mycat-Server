@@ -9,10 +9,7 @@ import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.parser.druid.DruidParser;
-import org.opencloudb.parser.druid.DruidParserFactory;
-import org.opencloudb.parser.druid.MycatMysqlSchemaStatVisitor;
-import org.opencloudb.parser.druid.MycatOracleSchemaStatVisitor;
+import org.opencloudb.parser.druid.*;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.parser.ServerParse;
@@ -35,9 +32,18 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			statement = parser.parseStatement();
             visitor = new MycatMysqlSchemaStatVisitor();
 		} catch (Throwable t) {
-            //尝试oracle解析
-            statement = tryOracleParser(stmt);
-            visitor = new MycatOracleSchemaStatVisitor();
+
+            try
+            {
+                //尝试oracle解析
+                statement = tryOracleParser(stmt);
+                visitor = new MycatOracleSchemaStatVisitor();
+            }catch (Throwable e)
+            {
+                //尝试sqlserver解析
+                statement = trySQLServerParser(stmt);
+                visitor = new MycatSQLServerSchemaStatVisitor();
+            }
 		}
 
 		//检验unsupported statement
@@ -62,17 +68,20 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 
     private SQLStatement tryOracleParser(String stmt) throws SQLSyntaxErrorException
     {
+        return  SQLParserUtils.createSQLStatementParser(stmt, "oracle").parseStatement();
+    }
+    private SQLStatement trySQLServerParser(String stmt) throws SQLSyntaxErrorException
+    {
         SQLStatement statement;
         try
         {
-             statement = SQLParserUtils.createSQLStatementParser(stmt, "oracle").parseStatement();
+            statement = SQLParserUtils.createSQLStatementParser(stmt, "sqlserver").parseStatement();
         }catch (Throwable e)
         {
-         throw new SQLSyntaxErrorException(e);
+            throw new SQLSyntaxErrorException(e);
         }
         return statement;
     }
-
 
     private boolean isSelect(SQLStatement statement) {
 		if(statement instanceof SQLSelectStatement) {

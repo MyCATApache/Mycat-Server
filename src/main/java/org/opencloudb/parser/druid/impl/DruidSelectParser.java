@@ -82,7 +82,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 				//只处理有别名的情况，无别名丢给DataMergeService.onRowMetaData处理
 				if (item.getAlias() != null && item.getAlias().length() > 0) {
 					aggrColumns.put(item.getAlias(), MergeCol.getMergeType(method));
-				}
+				}   else
+                {   //sqlserver时如果不加，取不到正确结果
+                    aggrColumns.put("", MergeCol.getMergeType(method));
+                }
 				rrs.setHasAggrColumn(true);
 			}
 			else{
