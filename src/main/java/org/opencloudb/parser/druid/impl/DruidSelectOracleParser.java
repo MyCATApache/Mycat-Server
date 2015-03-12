@@ -101,8 +101,19 @@ public class DruidSelectOracleParser extends DruidSelectParser {
             SQLBinaryOpExpr one= (SQLBinaryOpExpr) where;
             SQLExpr left=one.getLeft();
             SQLBinaryOperator operator =one.getOperator();
+            boolean isOracleDB=true; //由于db2的row_number解析与oracle相同，所以这里区分下
+            List<String> tables= getCtx().getTables();
+            for (String table : tables)
+            {
+               if( !schema.getTables().get(table).getDbTypes().contains("oracle") )
+               {
+                   isOracleDB=false;
+                   break;
+               }
+            }
+
               //解析只有一层rownum限制大小
-			if(one.getRight() instanceof SQLIntegerExpr &&"rownum".equalsIgnoreCase(left.toString())
+			if(isOracleDB&&one.getRight() instanceof SQLIntegerExpr &&"rownum".equalsIgnoreCase(left.toString())
 					&&(operator==SQLBinaryOperator.LessThanOrEqual||operator==SQLBinaryOperator.LessThan))
 			{
 				SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
@@ -119,7 +130,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 				}
 			}
 			else //解析oracle三层嵌套分页
-            if(one.getRight() instanceof SQLIntegerExpr &&!"rownum".equalsIgnoreCase(left.toString())
+            if(isOracleDB&&one.getRight() instanceof SQLIntegerExpr &&!"rownum".equalsIgnoreCase(left.toString())
                     &&(operator==SQLBinaryOperator.GreaterThan||operator==SQLBinaryOperator.GreaterThanOrEqual))
            {
 			   parseThreeLevelPageSql(stmt, rrs, schema, (SQLSubqueryTableSource) from, one, operator);
@@ -219,15 +230,28 @@ public class DruidSelectOracleParser extends DruidSelectParser {
                         }
 
 
-                    }
+                    } else
+                        {
+                            parseNativeSql(stmt,rrs,mysqlSelectQuery,schema);
+                        }
 
 
 
                 }
 
         }  }
+        else
+        {
+            parseNativeSql(stmt,rrs,mysqlSelectQuery,schema);
+        }
 
-	}
+    }
+
+
+    protected void parseNativeSql(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery,SchemaConfig schema)
+    {
+
+    }
 
 	private void parseThreeLevelPageSql(SQLStatement stmt, RouteResultset rrs, SchemaConfig schema, SQLSubqueryTableSource from, SQLBinaryOpExpr one, SQLBinaryOperator operator)
 	{
