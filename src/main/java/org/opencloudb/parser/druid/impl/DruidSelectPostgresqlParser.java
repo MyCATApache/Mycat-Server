@@ -1,6 +1,7 @@
 package org.opencloudb.parser.druid.impl;
 
 import com.alibaba.druid.sql.PagerUtils;
+import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelect;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
@@ -11,7 +12,7 @@ public class DruidSelectPostgresqlParser extends DruidSelectParser
 {
 
 
-    protected String convertToNativePageSql(String sql, int offset, int count)
+    protected String convertToNativePageSql(SQLStatement stmt,String sql, int offset, int count)
     {
         PGSQLStatementParser pgParser = new PGSQLStatementParser(sql);
         SQLSelectStatement pgStmt = (SQLSelectStatement) pgParser.parseStatement();

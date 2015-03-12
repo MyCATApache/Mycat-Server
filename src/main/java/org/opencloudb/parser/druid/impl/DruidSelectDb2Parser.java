@@ -40,7 +40,7 @@ public class DruidSelectDb2Parser extends DruidSelectOracleParser
     }
 
 
-    protected String convertToNativePageSql(String sql, int offset, int count)
+    protected String convertToNativePageSql(SQLStatement stmt,String sql, int offset, int count)
     {
         DB2StatementParser db2Parser = new DB2StatementParser(sql);
         SQLSelectStatement db2Stmt = (SQLSelectStatement) db2Parser.parseStatement();
