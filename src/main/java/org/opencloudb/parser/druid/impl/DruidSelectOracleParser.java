@@ -254,7 +254,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
     protected void parseNativeSql(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery,SchemaConfig schema)
     {
-
+		 //解析分页以外的语法
     }
 
 	private void parseThreeLevelPageSql(SQLStatement stmt, RouteResultset rrs, SchemaConfig schema, SQLSubqueryTableSource from, SQLBinaryOpExpr one, SQLBinaryOperator operator)
@@ -293,7 +293,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
 
 
-	protected String  convertToNativePageSql(String sql,int offset,int count)
+	protected String  convertToNativePageSql(SQLStatement stmt,String sql,int offset,int count)
 	{
 		OracleStatementParser oracleParser = new OracleStatementParser(sql);
 		SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();

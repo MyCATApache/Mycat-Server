@@ -1,6 +1,5 @@
 package org.opencloudb.parser.druid.impl;
 
-import com.alibaba.druid.sql.PagerUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
@@ -20,7 +19,6 @@ import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.mpp.MergeCol;
 import org.opencloudb.mpp.OrderCol;
-import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
 
@@ -66,10 +64,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 	protected Map<String, String> parseAggGroupCommon( SQLStatement stmt,RouteResultset rrs, SQLSelectQueryBlock mysqlSelectQuery)
 	{
-		Map<String, String> aliaColumns = new HashMap<String, String>();//sohudo 2015-2-5 解决了下面这个坑
-		//以下注释的代码没准以后有用，rrs.setMergeCols(aggrColumns);目前就是个坑，设置了反而报错，得不到正确结果
-		//已经通过修改添加别名方式解决
-		//setHasAggrColumn ,such as count(*)
+		Map<String, String> aliaColumns = new HashMap<String, String>();
 		Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
 		List<SQLSelectItem> selectList = mysqlSelectQuery.getSelectList();
 		for (int i = 0; i < selectList.size(); i++)
@@ -80,23 +75,27 @@ public class DruidSelectParser extends DefaultDruidParser {
 			{
 				SQLAggregateExpr expr = (SQLAggregateExpr) item.getExpr();
 				String method = expr.getMethodName();
-				if ("ROW_NUMBER".equalsIgnoreCase(method))
+//				if ("ROW_NUMBER".equalsIgnoreCase(method))
+//				{
+//					continue;     //ROW_NUMBER 不需要聚合处理
+//				}
+				//只处理有别名的情况，无别名丢给t添加别名，否则某些数据库会得不到正确结果处理
+				int mergeType = MergeCol.getMergeType(method);
+				if (MergeCol.MERGE_UNSUPPORT != mergeType)
 				{
-					continue;     //ROW_NUMBER 不需要聚合处理
+					if (item.getAlias() != null && item.getAlias().length() > 0)
+					{
+						aggrColumns.put(item.getAlias(), mergeType);
+					} else
+					{   //sqlserver,db2等时如果不加，取不到正确结果   ;修改添加别名
+							item.setAlias(method + i);
+							String sql = stmt.toString();
+							rrs.changeNodeSqlAfterAddLimit(sql);
+							getCtx().setSql(sql);
+							aggrColumns.put(method + i, mergeType);
+					}
+					rrs.setHasAggrColumn(true);
 				}
-				//只处理有别名的情况，无别名丢给DataMergeService.onRowMetaData处理
-				if (item.getAlias() != null && item.getAlias().length() > 0)
-				{
-					aggrColumns.put(item.getAlias(), MergeCol.getMergeType(method));
-				} else
-				{   //sqlserver,db2等时如果不加，取不到正确结果   ;修改添加别名
-					item.setAlias(method+i);
-					String sql = stmt.toString();
-					rrs.changeNodeSqlAfterAddLimit(sql);
-					getCtx().setSql(sql);
-					aggrColumns.put(method+i, MergeCol.getMergeType(method));
-				}
-				rrs.setHasAggrColumn(true);
 			} else
 			{
 				if (!(item.getExpr() instanceof SQLAllColumnExpr))
@@ -173,8 +172,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				Limit limit = new Limit();
 				limit.setRowCount(new SQLIntegerExpr(limitSize));
 				mysqlSelectQuery.setLimit(limit);
-				rrs.changeNodeSqlAfterAddLimit(stmt.toString());
-				String nativeSql=convertToNativePageSql(getCtx().getSql(),0,limitSize);
+				String nativeSql=convertToNativePageSql(stmt,getCtx().getSql(),0,limitSize);
 				rrs.changeNodeSqlAfterAddLimit(nativeSql);
 			}
 			Limit limit = mysqlSelectQuery.getLimit();
@@ -207,23 +205,25 @@ public class DruidSelectParser extends DefaultDruidParser {
 					
 					mysqlSelectQuery.setLimit(changedLimit);
                     //取原始sql，否则会导致部分非mysql的库的语法错误解析，比如字符串连接符
-                    String nativeSql=convertToNativePageSql(getCtx().getSql(),0,limitStart + limitSize);
+                    String nativeSql=convertToNativePageSql(stmt,getCtx().getSql(),0,limitStart + limitSize);
 					rrs.changeNodeSqlAfterAddLimit(nativeSql);
+
+					//设置改写后的sql
+					ctx.setSql(nativeSql);
 //					rrs.setSqlChanged(true);
 				}   else
 				{
 					//单节点也需要转换limit
                     String sql=getCtx().getSql(); //取原始sql，否则会导致部分非mysql的库的语法错误解析，比如字符串连接符
-                    String nativeSql=convertToNativePageSql(sql,rrs.getLimitStart(),rrs.getLimitSize());
+                    String nativeSql=convertToNativePageSql(stmt,sql,rrs.getLimitStart(),rrs.getLimitSize());
                     if(!nativeSql.equals(sql))
                     {
                         rrs.changeNodeSqlAfterAddLimit(nativeSql);
+						ctx.setSql(nativeSql);
                     }
 				}
 				
-				
-				//设置改写后的sql
-				ctx.setSql(stmt.toString());
+
 			}
 			
 			rrs.setCacheAble(isNeedCache(schema, rrs, mysqlSelectQuery));
@@ -232,9 +232,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 
 
-	protected String  convertToNativePageSql( String sql,int offset,int count)
+	protected String  convertToNativePageSql( SQLStatement stmt,String sql,int offset,int count)
 	{
-	 return sql;
+	 return stmt.toString();     //mysql可以直接输出
 	}
 
 

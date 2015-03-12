@@ -256,7 +256,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 
 	}
 
-	protected String  convertToNativePageSql(String sql,int offset,int count)
+	protected String  convertToNativePageSql(SQLStatement stmt,String sql,int offset,int count)
 	{
 		SQLServerStatementParser oracleParser = new SQLServerStatementParser(sql);
 		SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
