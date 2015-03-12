@@ -32,18 +32,18 @@ public class DruidParserFactory {
 			{
 				if (schema.getTables().get(table).getDbTypes().contains("oracle"))//if(schema.getAllDbTypeSet().contains("oracle")&&schema.isTableInThisDb(table,"oracle"))
 				{
-					parser=new DruidSelectOracleParser();
+					parser=new DruidSelectOracleParser(); break;
 				} else if(schema.getTables().get(table).getDbTypes().contains("db2"))
 				{
-					parser=new DruidSelectDb2Parser();
+					parser=new DruidSelectDb2Parser(); break;
 				}
 				else if(schema.getTables().get(table).getDbTypes().contains("sqlserver"))
 				{
-					parser=new DruidSelectSqlServerParser();
+					parser=new DruidSelectSqlServerParser();  break;
 				}
                 else if(schema.getTables().get(table).getDbTypes().contains("postgresql"))
                 {
-                    parser=new DruidSelectPostgresqlParser();
+                    parser=new DruidSelectPostgresqlParser();break;
                 }
 			}
 			if(parser==null)
