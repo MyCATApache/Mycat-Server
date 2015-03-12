@@ -13,6 +13,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelect;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerTop;
 import com.alibaba.druid.sql.dialect.sqlserver.parser.SQLServerStatementParser;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.route.RouteResultset;
@@ -41,7 +42,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
             }
 			if(isNeedParseOrderAgg)
 			{
-				parseOrderAggGroupMysql(rrs, mysqlSelectQuery);
+				parseOrderAggGroupMysql(stmt,rrs, mysqlSelectQuery);
 				//更改canRunInReadDB属性
 				if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
 				{
@@ -69,13 +70,18 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
         if(oracleSqlSelectQuery instanceof SQLServerSelectQueryBlock)
         {
             parseSqlServerPageSql(oracleStmt, rrs, (SQLServerSelectQueryBlock) oracleSqlSelectQuery, schema);
+            if(isNeedParseOrderAgg)
+            {
+                parseOrderAggGroupSqlServer(oracleStmt,rrs, (SQLServerSelectQueryBlock) oracleSqlSelectQuery);
+            }
         }
+
     }
 
 
-    private void parseOrderAggGroupSqlServer(RouteResultset rrs, SQLServerSelectQueryBlock mysqlSelectQuery)
+    private void parseOrderAggGroupSqlServer(SQLStatement stmt,RouteResultset rrs, SQLServerSelectQueryBlock mysqlSelectQuery)
 	{
-		Map<String, String> aliaColumns = parseAggGroupCommon(rrs, mysqlSelectQuery);
+		Map<String, String> aliaColumns = parseAggGroupCommon(stmt,rrs, mysqlSelectQuery);
 
 		SQLServerSelect oracleSelect= (SQLServerSelect) mysqlSelectQuery.getParent();
 		if(oracleSelect.getOrderBy() != null) {
@@ -84,11 +90,24 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 		}
 	}
 
-	private void parseSqlServerPageSql(SQLStatement stmt, RouteResultset rrs, SQLServerSelectQueryBlock mysqlSelectQuery, SchemaConfig schema)
+	private void parseSqlServerPageSql(SQLStatement stmt, RouteResultset rrs, SQLServerSelectQueryBlock sqlserverSelectQuery, SchemaConfig schema)
 	{
 		//第一层子查询
-		SQLExpr where=  mysqlSelectQuery.getWhere();
-		SQLTableSource from= mysqlSelectQuery.getFrom();
+		SQLExpr where=  sqlserverSelectQuery.getWhere();
+		SQLTableSource from= sqlserverSelectQuery.getFrom();
+        if(sqlserverSelectQuery.getTop()!=null)
+        {
+            SQLServerTop top= sqlserverSelectQuery.getTop() ;
+            SQLExpr sqlExpr=  top.getExpr()  ;
+            if(sqlExpr instanceof SQLIntegerExpr)
+            {
+
+                int    topValue=((SQLIntegerExpr) sqlExpr).getNumber().intValue();
+                rrs.setLimitStart(0);
+                rrs.setLimitSize(topValue);
+            }
+        }
+        else
 		if(where instanceof SQLBinaryOpExpr &&from instanceof SQLSubqueryTableSource)
 		{
 
@@ -153,7 +172,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
                              SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
                              oracleSelect.setOrderBy(orderBy);
                          }
-                         parseOrderAggGroupSqlServer(rrs, (SQLServerSelectQueryBlock) subSelect);
+                         parseOrderAggGroupSqlServer(stmt,rrs, (SQLServerSelectQueryBlock) subSelect);
                          isNeedParseOrderAgg=false;
 
                      }
@@ -168,13 +187,13 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 						{
 							rrs.setLimitStart(0);
 							rrs.setLimitSize(firstrownum);
-							mysqlSelectQuery = (SQLServerSelectQueryBlock) subSelect;    //为了继续解出order by 等
+							sqlserverSelectQuery = (SQLServerSelectQueryBlock) subSelect;    //为了继续解出order by 等
 							if(orderBy!=null)
 							{
 								SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
 								oracleSelect.setOrderBy(orderBy);
 							}
-							parseOrderAggGroupSqlServer(rrs, mysqlSelectQuery);
+							parseOrderAggGroupSqlServer(stmt,rrs, sqlserverSelectQuery);
 							isNeedParseOrderAgg=false;
 						}
 					}
@@ -220,7 +239,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 								SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
 								oracleSelect.setOrderBy(orderBy);
 							}
-							parseOrderAggGroupSqlServer(rrs, (SQLServerSelectQueryBlock) subSelect);
+							parseOrderAggGroupSqlServer(stmt,rrs, (SQLServerSelectQueryBlock) subSelect);
 							isNeedParseOrderAgg=false;
 						}
 

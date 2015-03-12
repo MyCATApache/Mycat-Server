@@ -40,7 +40,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
 
-				 parseOrderAggGroupMysql(rrs, mysqlSelectQuery);
+				 parseOrderAggGroupMysql(stmt,rrs, mysqlSelectQuery);
 				 //更改canRunInReadDB属性
 				 if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
 				 {
@@ -54,9 +54,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 //			System.out.println();
 		}
 	}
-	protected void parseOrderAggGroupMysql(RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery)
+	protected void parseOrderAggGroupMysql( SQLStatement stmt,RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery)
 	{
-		Map<String, String> aliaColumns = parseAggGroupCommon(rrs, mysqlSelectQuery);
+		Map<String, String> aliaColumns = parseAggGroupCommon(stmt,rrs, mysqlSelectQuery);
 
 		//setOrderByCols
 		if(mysqlSelectQuery.getOrderBy() != null) {
@@ -64,7 +64,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			rrs.setOrderByCols(buildOrderByCols(orderByItems,aliaColumns));
 		}
 	}
-	protected Map<String, String> parseAggGroupCommon(RouteResultset rrs, SQLSelectQueryBlock mysqlSelectQuery)
+	protected Map<String, String> parseAggGroupCommon( SQLStatement stmt,RouteResultset rrs, SQLSelectQueryBlock mysqlSelectQuery)
 	{
 		Map<String, String> aliaColumns = new HashMap<String, String>();//sohudo 2015-2-5 解决了下面这个坑
 		//以下注释的代码没准以后有用，rrs.setMergeCols(aggrColumns);目前就是个坑，设置了反而报错，得不到正确结果
@@ -83,8 +83,11 @@ public class DruidSelectParser extends DefaultDruidParser {
 				if (item.getAlias() != null && item.getAlias().length() > 0) {
 					aggrColumns.put(item.getAlias(), MergeCol.getMergeType(method));
 				}   else
-                {   //sqlserver时如果不加，取不到正确结果
-                    aggrColumns.put("", MergeCol.getMergeType(method));
+                {   //sqlserver,db2时如果不加，取不到正确结果
+                    item.setAlias("AGGRC");
+                    String sql = stmt.toString();
+                    rrs.changeNodeSqlAfterAddLimit(sql);
+                    getCtx().setSql(sql);
                 }
 				rrs.setHasAggrColumn(true);
 			}
@@ -115,7 +118,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 
 
-	private String getFieldName(SQLSelectItem item){
+
+    private String getFieldName(SQLSelectItem item){
 		if ((item.getExpr() instanceof SQLPropertyExpr)||(item.getExpr() instanceof SQLMethodInvokeExpr)
 				|| (item.getExpr() instanceof SQLIdentifierExpr)) {			
 			return item.getExpr().toString();//字段别名

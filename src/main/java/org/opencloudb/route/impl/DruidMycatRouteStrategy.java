@@ -1,8 +1,12 @@
 package org.opencloudb.route.impl;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLParserUtils;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
@@ -16,6 +20,9 @@ import org.opencloudb.server.parser.ServerParse;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	public static final Logger LOGGER = Logger.getLogger(DruidMycatRouteStrategy.class);
@@ -48,8 +55,40 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 
 		//检验unsupported statement
 		checkUnSupportedStatement(statement);
-			
-		DruidParser druidParser = DruidParserFactory.create(schema,statement,visitor);
+        List<String> tables=  parseTables(statement,visitor)  ;
+
+
+        //sqlserver top 特殊处理
+        if(tables.size()==0&&statement instanceof SQLSelectStatement)
+        {
+            SQLSelectStatement selectStatement= (SQLSelectStatement) statement;
+            SQLSelectQuery sqlSelectQuery= selectStatement.getSelect().getQuery();
+            if(sqlSelectQuery instanceof MySqlSelectQueryBlock)
+            {
+                MySqlSelectQueryBlock block= (MySqlSelectQueryBlock) sqlSelectQuery;
+                List<SQLSelectItem> selectItemList= block.getSelectList();
+                if(selectItemList.size()>0)
+                {
+                    SQLSelectItem item=selectItemList.get(0);
+                    if(item.getExpr() instanceof SQLIdentifierExpr)
+                    {
+                        String name=    ((SQLIdentifierExpr) item.getExpr()).getName();
+                        if("TOP".equalsIgnoreCase(name))
+                        {
+                            //尝试sqlserver解析
+                            statement = trySQLServerParser(stmt);
+                            visitor = new MycatSQLServerSchemaStatVisitor();
+
+                        }
+
+                    }
+
+                }
+            }
+        }
+
+
+        DruidParser druidParser = DruidParserFactory.create(schema,statement,tables);
 		druidParser.parser(schema, rrs, statement, stmt,cachePool,visitor);
 
 		//DruidParser解析过程中已完成了路由的直接返回
@@ -81,6 +120,38 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
             throw new SQLSyntaxErrorException(e);
         }
         return statement;
+    }
+
+    private static List<String> parseTables(SQLStatement stmt,SchemaStatVisitor schemaStatVisitor)
+    {
+        List<String> tables=new ArrayList<>()  ;
+        stmt.accept(schemaStatVisitor);
+
+        if(schemaStatVisitor.getAliasMap() != null) {
+            for(Map.Entry<String, String> entry : schemaStatVisitor.getAliasMap().entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                if(key != null && key.indexOf("`") >= 0) {
+                    key = key.replaceAll("`", "");
+                }
+                if(value != null && value.indexOf("`") >= 0) {
+                    value = value.replaceAll("`", "");
+                }
+                //表名前面带database的，去掉
+                if(key != null) {
+                    int pos = key.indexOf(".");
+                    if(pos> 0) {
+                        key = key.substring(pos + 1);
+                    }
+                }
+
+                if(key.equals(value)) {
+                    tables.add(key.toUpperCase());
+                }
+            }
+
+        }
+        return tables;
     }
 
     private boolean isSelect(SQLStatement statement) {
