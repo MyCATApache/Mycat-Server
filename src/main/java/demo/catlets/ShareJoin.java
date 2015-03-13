@@ -189,10 +189,14 @@ public class ShareJoin implements Catlet {
 		Map<String, byte[]> batchRows = new ConcurrentHashMap<String, byte[]>();
 		String theId = null;
 		StringBuilder sb = new StringBuilder().append('(');
+		String svalue="";
 		for(Map.Entry<String,String> e: ids.entrySet() ){
 			theId=e.getKey();
 			batchRows.put(theId, rows.remove(theId));
-			sb.append(e.getValue()).append(',');
+			if (!svalue.equals(e.getValue())){
+			  sb.append(e.getValue()).append(',');
+			}
+			svalue=e.getValue();
 			if (count++ > batchSize) {
 				break;
 			}			
