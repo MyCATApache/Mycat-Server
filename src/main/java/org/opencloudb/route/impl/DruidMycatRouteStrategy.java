@@ -31,7 +31,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
 			String stmt, RouteResultset rrs, String charset,
 			LayerCachePool cachePool) throws SQLNonTransientException {
-		MySqlStatementParser parser = new MySqlStatementParser(stmt);
+        MycatStatementParser parser = new MycatStatementParser(stmt);
         SchemaStatVisitor visitor = null;
 		SQLStatement statement;
 		//解析出现问题统一抛SQL语法错误
@@ -39,7 +39,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			statement = parser.parseStatement();
             visitor = new MycatMysqlSchemaStatVisitor();
 		} catch (Throwable t) {
-
+              t.printStackTrace();
             try
             {
                 //尝试oracle解析
