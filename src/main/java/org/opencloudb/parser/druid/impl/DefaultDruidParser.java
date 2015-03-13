@@ -13,7 +13,6 @@ import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.mpp.RangeValue;
 import org.opencloudb.parser.druid.DruidParser;
 import org.opencloudb.parser.druid.DruidShardingParseInfo;
-import org.opencloudb.parser.druid.MycatMysqlSchemaStatVisitor;
 import org.opencloudb.route.RouteResultset;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
