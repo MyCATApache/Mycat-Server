@@ -8,17 +8,18 @@ import com.alibaba.druid.sql.parser.Lexer;
  */
 public class MycatExprParser extends MySqlExprParser
 {
-    public static String[] max_agg_functions = { "AVG", "COUNT", "GROUP_CONCAT", "MAX", "MIN", "STDDEV", "SUM","ROW_NUMBER" };
+    public static String[] max_agg_functions = {"AVG", "COUNT", "GROUP_CONCAT", "MAX", "MIN", "STDDEV", "SUM", "ROW_NUMBER"};
 
     public MycatExprParser(Lexer lexer)
     {
         super(lexer);
-        super.aggregateFunctions= max_agg_functions;
+        super.aggregateFunctions = max_agg_functions;
     }
 
     public MycatExprParser(String sql)
     {
-        super(sql);
-        super.aggregateFunctions= max_agg_functions;
+        super(new MycatLexer(sql));
+        lexer.nextToken();
+        super.aggregateFunctions = max_agg_functions;
     }
 }
