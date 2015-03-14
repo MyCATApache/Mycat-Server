@@ -52,13 +52,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 
 		}
 
-		//从oracle解析过来   ,mysql解析出错才会到此 ,如rownumber分页
-		else if (sqlSelectQuery instanceof OracleSelectQueryBlock||sqlSelectQuery instanceof SQLServerSelectQueryBlock) {
 
-			//使用sqlserver的解析，否则会有部分语法识别错误
-            sqlserverParse(schema, rrs);
-
-		}
 	}
 
     private void sqlserverParse(SchemaConfig schema, RouteResultset rrs)
@@ -256,7 +250,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 
 	}
 
-	protected String  convertToNativePageSql(SQLStatement stmt,String sql,int offset,int count)
+	protected String convertLimitToNativePageSql(SQLStatement stmt, String sql, int offset, int count)
 	{
 		SQLServerStatementParser oracleParser = new SQLServerStatementParser(sql);
 		SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();

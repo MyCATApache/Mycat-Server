@@ -75,10 +75,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			{
 				SQLAggregateExpr expr = (SQLAggregateExpr) item.getExpr();
 				String method = expr.getMethodName();
-//				if ("ROW_NUMBER".equalsIgnoreCase(method))
-//				{
-//					continue;     //ROW_NUMBER 不需要聚合处理
-//				}
+
 				//只处理有别名的情况，无别名丢给t添加别名，否则某些数据库会得不到正确结果处理
 				int mergeType = MergeCol.getMergeType(method);
 				if (MergeCol.MERGE_UNSUPPORT != mergeType)
@@ -87,7 +84,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					{
 						aggrColumns.put(item.getAlias(), mergeType);
 					} else
-					{   //sqlserver,db2等时如果不加，取不到正确结果   ;修改添加别名
+					{   //如果不加，jdbc方式时取不到正确结果   ;修改添加别名
 							item.setAlias(method + i);
 							String sql = stmt.toString();
 							rrs.changeNodeSqlAfterAddLimit(sql);
@@ -172,7 +169,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				Limit limit = new Limit();
 				limit.setRowCount(new SQLIntegerExpr(limitSize));
 				mysqlSelectQuery.setLimit(limit);
-				String nativeSql=convertToNativePageSql(stmt,getCtx().getSql(),0,limitSize);
+				String nativeSql= convertLimitToNativePageSql(stmt, getCtx().getSql(), 0, limitSize);
 				rrs.changeNodeSqlAfterAddLimit(nativeSql);
 			}
 			Limit limit = mysqlSelectQuery.getLimit();
@@ -205,7 +202,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					
 					mysqlSelectQuery.setLimit(changedLimit);
                     //取原始sql，否则会导致部分非mysql的库的语法错误解析，比如字符串连接符
-                    String nativeSql=convertToNativePageSql(stmt,getCtx().getSql(),0,limitStart + limitSize);
+                    String nativeSql= convertLimitToNativePageSql(stmt, getCtx().getSql(), 0, limitStart + limitSize);
 					rrs.changeNodeSqlAfterAddLimit(nativeSql);
 
 					//设置改写后的sql
@@ -215,7 +212,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				{
 					//单节点也需要转换limit
                     String sql=getCtx().getSql(); //取原始sql，否则会导致部分非mysql的库的语法错误解析，比如字符串连接符
-                    String nativeSql=convertToNativePageSql(stmt,sql,rrs.getLimitStart(),rrs.getLimitSize());
+                    String nativeSql= convertLimitToNativePageSql(stmt, sql, rrs.getLimitStart(), rrs.getLimitSize());
                     if(!nativeSql.equals(sql))
                     {
                         rrs.changeNodeSqlAfterAddLimit(nativeSql);
@@ -232,7 +229,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 
 
-	protected String  convertToNativePageSql( SQLStatement stmt,String sql,int offset,int count)
+	protected String convertLimitToNativePageSql(SQLStatement stmt, String sql, int offset, int count)
 	{
 	 return stmt.toString();     //mysql可以直接输出
 	}

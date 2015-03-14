@@ -24,29 +24,11 @@ public class DruidParserFactory
         DruidParser parser = null;
         if (statement instanceof SQLSelectStatement)
         {
-            //先解出表，判断表所在db的类型，再根据不同db类型返回不同的解析
-            List<String> tables = parseTables(statement, visitor);
-            for (String table : tables)
+            if(schema.isNeedSupportMultiDBType())
             {
-                if (schema.getTables().get(table).getDbTypes().contains("oracle"))//if(schema.getAllDbTypeSet().contains("oracle")&&schema.isTableInThisDb(table,"oracle"))
-                {
-                    parser = new DruidSelectOracleParser();
-                    break;
-                } else if (schema.getTables().get(table).getDbTypes().contains("db2"))
-                {
-                    parser = new DruidSelectDb2Parser();
-                    break;
-                } else if (schema.getTables().get(table).getDbTypes().contains("sqlserver"))
-                {
-                    parser = new DruidSelectSqlServerParser();
-                    break;
-                } else if (schema.getTables().get(table).getDbTypes().contains("postgresql"))
-                {
-                    parser = new DruidSelectPostgresqlParser();
-                    break;
-                }
-            }
+                parser = getDruidParserForMultiDB(schema, statement, visitor);
 
+            }
 
             if (parser == null)
             {
@@ -72,6 +54,34 @@ public class DruidParserFactory
             parser = new DefaultDruidParser();
         }
 
+        return parser;
+    }
+
+    private static DruidParser getDruidParserForMultiDB(SchemaConfig schema, SQLStatement statement, SchemaStatVisitor visitor)
+    {
+        DruidParser parser=null;
+        //先解出表，判断表所在db的类型，再根据不同db类型返回不同的解析
+        List<String> tables = parseTables(statement, visitor);
+        for (String table : tables)
+        {
+            if (schema.getTables().get(table).getDbTypes().contains("oracle"))//if(schema.getAllDbTypeSet().contains("oracle")&&schema.isTableInThisDb(table,"oracle"))
+            {
+                parser = new DruidSelectOracleParser();
+                break;
+            } else if (schema.getTables().get(table).getDbTypes().contains("db2"))
+            {
+                parser = new DruidSelectDb2Parser();
+                break;
+            } else if (schema.getTables().get(table).getDbTypes().contains("sqlserver"))
+            {
+                parser = new DruidSelectSqlServerParser();
+                break;
+            } else if (schema.getTables().get(table).getDbTypes().contains("postgresql"))
+            {
+                parser = new DruidSelectPostgresqlParser();
+                break;
+            }
+        }
         return parser;
     }
 

@@ -53,8 +53,6 @@ public class MycatSelectParser extends MySqlSelectParser
             }
             if (lexer.token() == Token.IDENTIFIER)
             {
-
-
                 lexer.nextToken();
 
             }
