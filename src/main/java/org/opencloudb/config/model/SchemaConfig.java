@@ -46,6 +46,7 @@ public class SchemaConfig {
 	 */
 	private final int defaultMaxLimit;
 	private final boolean checkSQLSchema;
+	private  boolean needSupportMultiDBType=false;
 	/**
 	 * key is join relation ,A.ID=B.PARENT_ID value is Root Table ,if a->b*->c*
 	 * ,then A is root table
@@ -106,6 +107,16 @@ public class SchemaConfig {
 
 		}
 
+	}
+
+	public boolean isNeedSupportMultiDBType()
+	{
+		return needSupportMultiDBType;
+	}
+
+	public void setNeedSupportMultiDBType(boolean needSupportMultiDBType)
+	{
+		this.needSupportMultiDBType = needSupportMultiDBType;
 	}
 
 	public Map<String, TableConfig> getJoinRel2TableMap() {
