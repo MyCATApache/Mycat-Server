@@ -169,7 +169,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				Limit limit = new Limit();
 				limit.setRowCount(new SQLIntegerExpr(limitSize));
 				mysqlSelectQuery.setLimit(limit);
-				String nativeSql= convertLimitToNativePageSql(stmt, getCtx().getSql(), 0, limitSize);
+				String nativeSql= convertLimitToNativePageSql(rrs, stmt, getCtx().getSql(), 0, limitSize, isNeedAddLimit);
 				rrs.changeNodeSqlAfterAddLimit(nativeSql);
 			}
 			Limit limit = mysqlSelectQuery.getLimit();
@@ -185,7 +185,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					rrs.setLimitSize(limitSize);
 				}
 
-				if(isNeedChangeLimit(rrs, schema)) {
+				if(isNeedChangeLimit(rrs)) {
 					Limit changedLimit = new Limit();
 					changedLimit.setRowCount(new SQLIntegerExpr(limitStart + limitSize));
 					
@@ -202,18 +202,18 @@ public class DruidSelectParser extends DefaultDruidParser {
 					
 					mysqlSelectQuery.setLimit(changedLimit);
                     //取原始sql，否则会导致部分非mysql的库的语法错误解析，比如字符串连接符
-                    String nativeSql= convertLimitToNativePageSql(stmt, getCtx().getSql(), 0, limitStart + limitSize);
+                    String nativeSql= convertLimitToNativePageSql(rrs, stmt, getCtx().getSql(), 0, limitStart + limitSize, false);
 					rrs.changeNodeSqlAfterAddLimit(nativeSql);
 
 					//设置改写后的sql
 					ctx.setSql(nativeSql);
-//					rrs.setSqlChanged(true);
+
 				}   else
 				{
-					//单节点也需要转换limit
+					//单节点需要转换limit 为本地分页
                     String sql=getCtx().getSql(); //取原始sql，否则会导致部分非mysql的库的语法错误解析，比如字符串连接符
-                    String nativeSql= convertLimitToNativePageSql(stmt, sql, rrs.getLimitStart(), rrs.getLimitSize());
-                    if(!nativeSql.equals(sql))
+                    String nativeSql= convertLimitToNativePageSql(rrs, stmt, sql, rrs.getLimitStart(), rrs.getLimitSize(), false);
+                    if(!nativeSql.equalsIgnoreCase(sql))
                     {
                         rrs.changeNodeSqlAfterAddLimit(nativeSql);
 						ctx.setSql(nativeSql);
@@ -229,14 +229,18 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 
 
-	protected String convertLimitToNativePageSql(SQLStatement stmt, String sql, int offset, int count)
+	protected String convertLimitToNativePageSql(RouteResultset rrs, SQLStatement stmt, String sql, int offset, int count, boolean isNeedAddLimit)
 	{
+		if(!isNeedChangeLimit(rrs)&&!isNeedAddLimit)
+		{
+		  return sql;//mysql 单节点直接返回
+		}
 	 return stmt.toString();     //mysql可以直接输出
 	}
 
 
 	
-	protected boolean isNeedChangeLimit(RouteResultset rrs, SchemaConfig schema) {
+	protected boolean isNeedChangeLimit(RouteResultset rrs) {
 		if(rrs.getNodes() == null) {
 			return false;
 		} else {
@@ -395,7 +399,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		{
 			throw new RuntimeException(e);
 		}
-		if (isNeedChangeLimit(rrs, schema))
+		if (isNeedChangeLimit(rrs))
 		{
 			one.setRight(new SQLIntegerExpr(0));
 			rrs.changeNodeSqlAfterAddLimit(stmt.toString());

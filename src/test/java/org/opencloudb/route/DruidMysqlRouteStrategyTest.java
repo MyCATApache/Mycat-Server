@@ -911,7 +911,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SchemaConfig schema = schemaMap.get("TESTDB");
         String sql = "select id, name, count(name) from employee group by name;";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
-        Assert.assertTrue(rrs.getMergeCols() == null);
+        Assert.assertTrue(rrs.getMergeCols().containsKey("COUNT2"));
 
         sql = "select id, name, count(name) as c from employee group by name;";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);

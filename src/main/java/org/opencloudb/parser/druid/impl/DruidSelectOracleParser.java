@@ -264,7 +264,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
 
 
-	protected String convertLimitToNativePageSql(SQLStatement stmt, String sql, int offset, int count)
+	protected String convertLimitToNativePageSql(RouteResultset rrs, SQLStatement stmt, String sql, int offset, int count, boolean isNeedAddLimit)
 	{
 		OracleStatementParser oracleParser = new OracleStatementParser(sql);
 		SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();

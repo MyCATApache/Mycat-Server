@@ -7,12 +7,13 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.postgresql.ast.stmt.PGSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.postgresql.parser.PGSQLStatementParser;
+import org.opencloudb.route.RouteResultset;
 
 public class DruidSelectPostgresqlParser extends DruidSelectParser
 {
 
 
-    protected String convertLimitToNativePageSql(SQLStatement stmt, String sql, int offset, int count)
+    protected String convertLimitToNativePageSql(RouteResultset rrs, SQLStatement stmt, String sql, int offset, int count, boolean isNeedAddLimit)
     {
         PGSQLStatementParser pgParser = new PGSQLStatementParser(sql);
         SQLSelectStatement pgStmt = (SQLSelectStatement) pgParser.parseStatement();
