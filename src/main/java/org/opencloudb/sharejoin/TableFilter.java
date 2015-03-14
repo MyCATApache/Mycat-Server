@@ -46,7 +46,11 @@ public class TableFilter {
 		}
 		else {
 			int i=key.indexOf('.');
-			return key.substring(0, i);
+			if (i==-1){
+				return key;
+			}
+			else
+			  return key.substring(0, i);
 		}
 		
 	}
@@ -56,7 +60,11 @@ public class TableFilter {
 		}
 		else {
 		  int i=key.indexOf('.');
-		  return key.substring(i+1);
+			if (i==-1){
+				return key;
+			}
+			else		  
+		       return key.substring(i+1);
 		}
 	}
 	
@@ -64,15 +72,25 @@ public class TableFilter {
 		String atable=getTablefrom(fieldName);
 		String afield=getFieldfrom(fieldName);
 		boolean allfield=afield.equals("*")?true:false;
-		if (atable.equals(tAlia)) {
-		  fieldAliasMap.put(afield, fieldAlia);
+		if (atable.equals("*")) {
+		  fieldAliasMap.put(afield, null);
 		  setAllField(allfield);
+		  if (join!=null) {
+			 join.addField(fieldName,null);  
+			 join.setAllField(allfield);
+		   }		  
 		}
 		else {
-		  if (join!=null) {
+		  if (atable.equals(tAlia)) {
+		    fieldAliasMap.put(afield, fieldAlia);
+		    setAllField(allfield);
+		 }
+		  else {
+		    if (join!=null) {
 			  join.addField(fieldName,fieldAlia);  
 			  join.setAllField(allfield);
-		  }
+		     }
+		   }
 		}
 	}
 	
@@ -229,6 +247,16 @@ public class TableFilter {
         this.parent = parent;
     }	
     
+    private String unionField(String field,String key,String Operator){
+    	if (key.trim().equals("")){
+    		key=field;
+    	}
+    	else {
+    		key=field+Operator+" "+key;
+    	}
+    	return key;
+    }
+    
 	public String getSQL(){
 		String sql="";
 		Iterator<Entry<String, String>> iter = fieldAliasMap.entrySet().iterator();
@@ -253,7 +281,9 @@ public class TableFilter {
         	   sql="select "+sql+" from "+tName;
         	}
         	else {
-        	   sql="select "+joinKey+","+sql+" from "+tName;		
+        	   sql=unionField("select "+joinKey,sql,",");
+        	   sql=sql+" from "+tName;		
+        	   //sql="select "+joinKey+","+sql+" from "+tName;
         	}
     		if (!(where.trim().equals(""))){
     			sql+=" where "+where.trim()+" and ("+joinKey+" in %s )"; 	
