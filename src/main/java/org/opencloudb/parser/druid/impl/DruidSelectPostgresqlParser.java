@@ -12,7 +12,7 @@ public class DruidSelectPostgresqlParser extends DruidSelectParser
 {
 
 
-    protected String convertToNativePageSql(SQLStatement stmt,String sql, int offset, int count)
+    protected String convertLimitToNativePageSql(SQLStatement stmt, String sql, int offset, int count)
     {
         PGSQLStatementParser pgParser = new PGSQLStatementParser(sql);
         SQLSelectStatement pgStmt = (SQLSelectStatement) pgParser.parseStatement();

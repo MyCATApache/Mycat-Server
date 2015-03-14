@@ -151,6 +151,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			if (schemas.containsKey(name)) {
 				throw new ConfigException("schema " + name + " duplicated!");
 			}
+
 			
 			// 设置了table的不需要设置dataNode属性，没有设置table的必须设置dataNode属性
 			if (dataNode == null && tables.size() == 0) {
@@ -164,9 +165,23 @@ public class XMLSchemaLoader implements SchemaLoader {
 								+ name
 								+ " has configed tables,so you mustn't set dataNode property!");
 			}
-			
-			schemas.put(name, new SchemaConfig(name, dataNode, tables,
-					sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr)));
+
+			SchemaConfig schemaConfig = new SchemaConfig(name, dataNode, tables,
+					sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr));
+
+
+			//判断是否有不是mysql的数据库类型，方便解析判断是否启用多数据库分页语法解析
+			for (String tableName : tables.keySet())
+			{
+				TableConfig tableConfig=	tables.get(tableName);
+				if(isHasMultiDbType(tableConfig))
+				{
+					schemaConfig.setNeedSupportMultiDBType(true);
+					break;
+				}
+			}
+
+				schemas.put(name, schemaConfig);
 		}
 	}
 
@@ -257,6 +272,20 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 		return dbTypes;
 	}
+
+	private boolean isHasMultiDbType(TableConfig table)
+	{
+		Set<String> dbTypes= table.getDbTypes()  ;
+		for (String dbType : dbTypes)
+		{
+			if(!"mysql".equalsIgnoreCase(dbType))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private void processChildTables(Map<String, TableConfig> tables,
 			TableConfig parentTable, String dataNodes, Element tableNode) {
 		// parse child tables

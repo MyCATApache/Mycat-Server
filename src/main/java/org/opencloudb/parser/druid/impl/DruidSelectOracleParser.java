@@ -4,30 +4,14 @@ import com.alibaba.druid.sql.PagerUtils;
 import com.alibaba.druid.sql.ast.*;
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.*;
-import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelect;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.oracle.parser.OracleStatementParser;
-import com.alibaba.druid.wall.spi.WallVisitorUtils;
-import org.opencloudb.MycatServer;
-import org.opencloudb.cache.LayerCachePool;
-import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.config.model.TableConfig;
-import org.opencloudb.mpp.MergeCol;
-import org.opencloudb.mpp.OrderCol;
-import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.util.RouterUtil;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,7 +36,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 				  SQLSelectQuery oracleSqlSelectQuery = oracleStmt.getSelect().getQuery();
 				  if(oracleSqlSelectQuery instanceof OracleSelectQueryBlock)
 				  {
-					  parseOraclePageSql(oracleStmt,rrs, (OracleSelectQueryBlock) oracleSqlSelectQuery,schema);
+					  parseNativePageSql(oracleStmt, rrs, (OracleSelectQueryBlock) oracleSqlSelectQuery, schema);
 				  }
 
 
@@ -70,16 +54,11 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
 		}
 
-          //从oracle解析过来   ,mysql解析出错才会到此 ,如rownumber分页
-        else if (sqlSelectQuery instanceof OracleSelectQueryBlock) {
 
-         parseOraclePageSql(stmt,rrs, (OracleSelectQueryBlock) sqlSelectQuery, schema);
-
-		}
 	}
 
 
-	private void parseOrderAggGroupOracle(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery)
+	protected void parseOrderAggGroupOracle(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery)
 	{
 		Map<String, String> aliaColumns = parseAggGroupCommon(stmt,rrs, mysqlSelectQuery);
 
@@ -91,7 +70,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 	}
 
 
-	private void parseOraclePageSql(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery,SchemaConfig schema)
+	protected void parseNativePageSql(SQLStatement stmt, RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery, SchemaConfig schema)
 	{
 		//第一层子查询
 		SQLExpr where=  mysqlSelectQuery.getWhere();
@@ -102,19 +81,9 @@ public class DruidSelectOracleParser extends DruidSelectParser {
             SQLBinaryOpExpr one= (SQLBinaryOpExpr) where;
             SQLExpr left=one.getLeft();
             SQLBinaryOperator operator =one.getOperator();
-            boolean isOracleDB=true; //由于db2的row_number解析与oracle相同，所以这里区分下
-            List<String> tables= getCtx().getTables();
-            for (String table : tables)
-            {
-               if( !schema.getTables().get(table).getDbTypes().contains("oracle") )
-               {
-                   isOracleDB=false;
-                   break;
-               }
-            }
 
               //解析只有一层rownum限制大小
-			if(isOracleDB&&one.getRight() instanceof SQLIntegerExpr &&"rownum".equalsIgnoreCase(left.toString())
+			if(one.getRight() instanceof SQLIntegerExpr &&"rownum".equalsIgnoreCase(left.toString())
 					&&(operator==SQLBinaryOperator.LessThanOrEqual||operator==SQLBinaryOperator.LessThan))
 			{
 				SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
@@ -131,7 +100,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 				}
 			}
 			else //解析oracle三层嵌套分页
-            if(isOracleDB&&one.getRight() instanceof SQLIntegerExpr &&!"rownum".equalsIgnoreCase(left.toString())
+            if(one.getRight() instanceof SQLIntegerExpr &&!"rownum".equalsIgnoreCase(left.toString())
                     &&(operator==SQLBinaryOperator.GreaterThan||operator==SQLBinaryOperator.GreaterThanOrEqual))
            {
 			   parseThreeLevelPageSql(stmt, rrs, schema, (SQLSubqueryTableSource) from, one, operator);
@@ -172,7 +141,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 								{
 									rrs.setLimitStart(0);
 									rrs.setLimitSize(firstrownum);
-									mysqlSelectQuery = (OracleSelectQueryBlock) subSelect;    //为了继续解出order by 等
+									mysqlSelectQuery = (OracleSelectQueryBlock) subSelect;
 									if(orderBy!=null)
 									{
 										OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
@@ -240,7 +209,9 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
                 }
 
-        }  }
+        }
+
+		}
         else
         {
             parseNativeSql(stmt,rrs,mysqlSelectQuery,schema);
@@ -293,7 +264,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
 
 
-	protected String  convertToNativePageSql(SQLStatement stmt,String sql,int offset,int count)
+	protected String convertLimitToNativePageSql(SQLStatement stmt, String sql, int offset, int count)
 	{
 		OracleStatementParser oracleParser = new OracleStatementParser(sql);
 		SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();

@@ -3,6 +3,8 @@ package org.opencloudb.route.impl;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.LayerCachePool;
@@ -23,7 +25,15 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
 			String stmt, RouteResultset rrs, String charset,
 			LayerCachePool cachePool) throws SQLNonTransientException {
-        MycatStatementParser parser = new MycatStatementParser(stmt);
+		SQLStatementParser parser =null;
+		if(schema.isNeedSupportMultiDBType())
+		{
+			parser = new MycatStatementParser(stmt);
+		} else
+		{
+			parser = new MySqlStatementParser(stmt);   //只有mysql时只支持mysql语法
+		}
+
         SchemaStatVisitor visitor = null;
 		SQLStatement statement;
 		//解析出现问题统一抛SQL语法错误
