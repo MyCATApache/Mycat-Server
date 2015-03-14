@@ -10,7 +10,6 @@ import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelect;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerTop;
@@ -250,7 +249,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 
 	}
 
-	protected String convertLimitToNativePageSql(SQLStatement stmt, String sql, int offset, int count)
+	protected String convertLimitToNativePageSql(RouteResultset rrs, SQLStatement stmt, String sql, int offset, int count, boolean isNeedAddLimit)
 	{
 		SQLServerStatementParser oracleParser = new SQLServerStatementParser(sql);
 		SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();

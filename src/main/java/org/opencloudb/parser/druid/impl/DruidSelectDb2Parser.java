@@ -170,7 +170,7 @@ public class DruidSelectDb2Parser extends DruidSelectOracleParser
     }
 
 
-    protected String convertLimitToNativePageSql(SQLStatement stmt, String sql, int offset, int count)
+    protected String convertLimitToNativePageSql(RouteResultset rrs, SQLStatement stmt, String sql, int offset, int count, boolean isNeedAddLimit)
     {
         DB2StatementParser db2Parser = new DB2StatementParser(sql);
         SQLSelectStatement db2Stmt = (SQLSelectStatement) db2Parser.parseStatement();
