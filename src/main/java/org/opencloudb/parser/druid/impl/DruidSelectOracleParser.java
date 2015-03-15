@@ -1,6 +1,5 @@
 package org.opencloudb.parser.druid.impl;
 
-import com.alibaba.druid.sql.PagerUtils;
 import com.alibaba.druid.sql.ast.*;
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.*;
@@ -9,7 +8,9 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.L
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelect;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.oracle.parser.OracleStatementParser;
+import com.alibaba.druid.util.JdbcConstants;
 import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.parser.util.PageSQLUtil;
 import org.opencloudb.route.RouteResultset;
 
 import java.util.List;
@@ -44,7 +45,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 			  }
 			if(isNeedParseOrderAgg)
 			{
-				parseOrderAggGroupMysql(selectStmt,rrs, mysqlSelectQuery);
+				parseOrderAggGroupMysql(schema, selectStmt,rrs, mysqlSelectQuery);
 				//更改canRunInReadDB属性
 				if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
 				{
@@ -58,9 +59,9 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 	}
 
 
-	protected void parseOrderAggGroupOracle(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery)
+	protected void parseOrderAggGroupOracle(SQLStatement stmt, RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery, SchemaConfig schema)
 	{
-		Map<String, String> aliaColumns = parseAggGroupCommon(stmt,rrs, mysqlSelectQuery);
+		Map<String, String> aliaColumns = parseAggGroupCommon(schema, stmt,rrs, mysqlSelectQuery);
 
 		OracleSelect oracleSelect= (OracleSelect) mysqlSelectQuery.getParent();
 		if(oracleSelect.getOrderBy() != null) {
@@ -95,7 +96,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 					rrs.setLimitStart(0);
 					rrs.setLimitSize(firstrownum);
 					mysqlSelectQuery = (OracleSelectQueryBlock) subSelect;    //为了继续解出order by 等
-					parseOrderAggGroupOracle(stmt,rrs, mysqlSelectQuery);
+					parseOrderAggGroupOracle(stmt,rrs, mysqlSelectQuery, schema);
 					isNeedParseOrderAgg=false;
 				}
 			}
@@ -147,7 +148,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 										OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
 										oracleSelect.setOrderBy(orderBy);
 									}
-									parseOrderAggGroupOracle(stmt,rrs, mysqlSelectQuery);
+									parseOrderAggGroupOracle(stmt,rrs, mysqlSelectQuery, schema);
 									isNeedParseOrderAgg=false;
 								}
 							}
@@ -193,7 +194,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 									OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
 									oracleSelect.setOrderBy(orderBy);
 								}
-								parseOrderAggGroupOracle(stmt,rrs, (OracleSelectQueryBlock) subSelect);
+								parseOrderAggGroupOracle(stmt,rrs, (OracleSelectQueryBlock) subSelect, schema);
 								isNeedParseOrderAgg=false;
 							}
 
@@ -218,11 +219,14 @@ public class DruidSelectOracleParser extends DruidSelectParser {
         }
         if(isNeedParseOrderAgg)
         {
-            parseOrderAggGroupOracle(stmt,rrs,  mysqlSelectQuery);
+            parseOrderAggGroupOracle(stmt,rrs,  mysqlSelectQuery, schema);
         }
     }
 
-
+	protected String getCurentDbType()
+	{
+		return JdbcConstants.ORACLE;
+	}
     protected void parseNativeSql(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery,SchemaConfig schema)
     {
 		 //解析分页以外的语法
@@ -250,7 +254,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
                     if (finalQuery instanceof OracleSelectQueryBlock)
                     {
 						setLimitIFChange(stmt, rrs, schema, one, firstrownum, lastrownum);
-                        parseOrderAggGroupOracle(stmt,rrs, (OracleSelectQueryBlock) finalQuery);
+                        parseOrderAggGroupOracle(stmt,rrs, (OracleSelectQueryBlock) finalQuery, schema);
                         isNeedParseOrderAgg=false;
                     }
 
@@ -264,14 +268,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
 
 
-	protected String convertLimitToNativePageSql(RouteResultset rrs, SQLStatement stmt, String sql, int offset, int count, boolean isNeedAddLimit)
-	{
-		OracleStatementParser oracleParser = new OracleStatementParser(sql);
-		SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
 
-		return 	PagerUtils.limit(oracleStmt.getSelect(), "oracle", offset, count)  ;
-
-	}
 	
 
 }

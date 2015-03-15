@@ -171,6 +171,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 
 			//判断是否有不是mysql的数据库类型，方便解析判断是否启用多数据库分页语法解析
+
 			for (String tableName : tables.keySet())
 			{
 				TableConfig tableConfig=	tables.get(tableName);
@@ -180,7 +181,19 @@ public class XMLSchemaLoader implements SchemaLoader {
 					break;
 				}
 			}
-
+			Map<String,String> dataNodeDbTypeMap=new HashMap<>();
+			for (String dataNodeName : dataNodes.keySet())
+			{
+				DataNodeConfig  dataNodeConfig=	  dataNodes.get(dataNodeName);
+			    String dataHost=	dataNodeConfig.getDataHost();
+				DataHostConfig dataHostConfig = dataHosts.get(dataHost);
+				if(dataHostConfig !=null )
+				{
+				  String dbType=	  dataHostConfig.getDbType();
+					dataNodeDbTypeMap.put(dataNodeName,dbType);
+				}
+			}
+			  schemaConfig.setDataNodeDbTypeMap(dataNodeDbTypeMap);
 				schemas.put(name, schemaConfig);
 		}
 	}
@@ -269,6 +282,19 @@ public class XMLSchemaLoader implements SchemaLoader {
             DataHostConfig datahost=dataHosts.get(datanode.getDataHost());
             dbTypes.add(datahost.getDbType());
         }
+
+		return dbTypes;
+	}
+
+	private Set<String> getDataNodeDbTypeMap(String dataNode){
+		Set<String> dbTypes=new HashSet<>();
+		String[] dataNodeArr= SplitUtil.split(dataNode,',', '$', '-') ;
+		for (String node : dataNodeArr)
+		{
+			DataNodeConfig datanode=dataNodes.get(node);
+			DataHostConfig datahost=dataHosts.get(datanode.getDataHost());
+			dbTypes.add(datahost.getDbType());
+		}
 
 		return dbTypes;
 	}
