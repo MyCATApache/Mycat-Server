@@ -10,6 +10,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
 import org.opencloudb.MycatServer;
@@ -38,7 +39,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
 
-				 parseOrderAggGroupMysql(stmt,rrs, mysqlSelectQuery);
+				 parseOrderAggGroupMysql(schema, stmt,rrs, mysqlSelectQuery);
 				 //更改canRunInReadDB属性
 				 if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
 				 {
@@ -52,9 +53,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 //			System.out.println();
 		}
 	}
-	protected void parseOrderAggGroupMysql( SQLStatement stmt,RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery)
+	protected void parseOrderAggGroupMysql(SchemaConfig schema, SQLStatement stmt, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery)
 	{
-		Map<String, String> aliaColumns = parseAggGroupCommon(stmt,rrs, mysqlSelectQuery);
+		Map<String, String> aliaColumns = parseAggGroupCommon(schema, stmt,rrs, mysqlSelectQuery);
 
 		//setOrderByCols
 		if(mysqlSelectQuery.getOrderBy() != null) {
@@ -62,7 +63,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			rrs.setOrderByCols(buildOrderByCols(orderByItems,aliaColumns));
 		}
 	}
-	protected Map<String, String> parseAggGroupCommon( SQLStatement stmt,RouteResultset rrs, SQLSelectQueryBlock mysqlSelectQuery)
+	protected Map<String, String> parseAggGroupCommon(SchemaConfig schema, SQLStatement stmt, RouteResultset rrs, SQLSelectQueryBlock mysqlSelectQuery)
 	{
 		Map<String, String> aliaColumns = new HashMap<String, String>();
 		Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
@@ -87,7 +88,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					{   //如果不加，jdbc方式时取不到正确结果   ;修改添加别名
 							item.setAlias(method + i);
 							String sql = stmt.toString();
-							rrs.changeNodeSqlAfterAddLimit(sql);
+							rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0,1);
 							getCtx().setSql(sql);
 							aggrColumns.put(method + i, mergeType);
 					}
@@ -169,11 +170,13 @@ public class DruidSelectParser extends DefaultDruidParser {
 				Limit limit = new Limit();
 				limit.setRowCount(new SQLIntegerExpr(limitSize));
 				mysqlSelectQuery.setLimit(limit);
-				String nativeSql= convertLimitToNativePageSql(rrs, stmt, getCtx().getSql(), 0, limitSize, isNeedAddLimit);
-				rrs.changeNodeSqlAfterAddLimit(nativeSql);
+				rrs.setLimitSize(limitSize);
+			    String sql= getSql(rrs, stmt, isNeedAddLimit);
+				rrs.changeNodeSqlAfterAddLimit(schema, getCurentDbType(), sql, 0, limitSize);
+
 			}
 			Limit limit = mysqlSelectQuery.getLimit();
-			if(limit != null) {
+			if(limit != null&&!isNeedAddLimit) {
 				SQLIntegerExpr offset = (SQLIntegerExpr)limit.getOffset();
 				SQLIntegerExpr count = (SQLIntegerExpr)limit.getRowCount();
 				if(offset != null) {
@@ -201,23 +204,19 @@ public class DruidSelectParser extends DefaultDruidParser {
 					}
 					
 					mysqlSelectQuery.setLimit(changedLimit);
-                    //取原始sql，否则会导致部分非mysql的库的语法错误解析，比如字符串连接符
-                    String nativeSql= convertLimitToNativePageSql(rrs, stmt, getCtx().getSql(), 0, limitStart + limitSize, false);
-					rrs.changeNodeSqlAfterAddLimit(nativeSql);
+
+                    String sql= getSql(rrs, stmt, isNeedAddLimit);
+					rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0, limitStart + limitSize);
 
 					//设置改写后的sql
-					ctx.setSql(nativeSql);
+					ctx.setSql(sql);
 
 				}   else
 				{
-					//单节点需要转换limit 为本地分页
-                    String sql=getCtx().getSql(); //取原始sql，否则会导致部分非mysql的库的语法错误解析，比如字符串连接符
-                    String nativeSql= convertLimitToNativePageSql(rrs, stmt, sql, rrs.getLimitStart(), rrs.getLimitSize(), false);
-                    if(!nativeSql.equalsIgnoreCase(sql))
-                    {
-                        rrs.changeNodeSqlAfterAddLimit(nativeSql);
-						ctx.setSql(nativeSql);
-                    }
+
+                        rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),getCtx().getSql(),rrs.getLimitStart(), rrs.getLimitSize());
+					//	ctx.setSql(nativeSql);
+
 				}
 				
 
@@ -229,13 +228,24 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 
 
-	protected String convertLimitToNativePageSql(RouteResultset rrs, SQLStatement stmt, String sql, int offset, int count, boolean isNeedAddLimit)
+	protected String getCurentDbType()
 	{
-		if(!isNeedChangeLimit(rrs)&&!isNeedAddLimit)
+		return JdbcConstants.MYSQL;
+	}
+
+
+
+
+	protected String getSql( RouteResultset rrs,SQLStatement stmt, boolean isNeedAddLimit)
+	{
+		if(getCurentDbType().equalsIgnoreCase("mysql")&&(isNeedChangeLimit(rrs)||isNeedAddLimit))
 		{
-		  return sql;//mysql 单节点直接返回
+
+				return stmt.toString();
+
 		}
-	 return stmt.toString();     //mysql可以直接输出
+
+	 return getCtx().getSql();
 	}
 
 
@@ -286,7 +296,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 	 */
 	private boolean isNeedAddLimit(SchemaConfig schema, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery) {
 //		ctx.getTablesAndConditions().get(key))
-		
+		  if(rrs.getLimitSize()>-1)
+		  {
+			  return false;
+		  }else
 		if(schema.getDefaultMaxLimit() == -1) {
 			return false;
 		} else if (mysqlSelectQuery.getLimit() != null) {//语句中已有limit
@@ -402,9 +415,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if (isNeedChangeLimit(rrs))
 		{
 			one.setRight(new SQLIntegerExpr(0));
-			rrs.changeNodeSqlAfterAddLimit(stmt.toString());
+			String sql = stmt.toString();
+			rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(), sql,0,lastrownum - firstrownum);
 			//设置改写后的sql
-			getCtx().setSql(stmt.toString());
+			getCtx().setSql(sql);
 		}
 	}
 }

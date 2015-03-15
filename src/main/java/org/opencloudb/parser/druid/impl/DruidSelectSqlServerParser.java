@@ -1,6 +1,5 @@
 package org.opencloudb.parser.druid.impl;
 
-import com.alibaba.druid.sql.PagerUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -14,7 +13,9 @@ import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelect;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerTop;
 import com.alibaba.druid.sql.dialect.sqlserver.parser.SQLServerStatementParser;
+import com.alibaba.druid.util.JdbcConstants;
 import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.parser.util.PageSQLUtil;
 import org.opencloudb.route.RouteResultset;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
             }
 			if(isNeedParseOrderAgg)
 			{
-				parseOrderAggGroupMysql(stmt,rrs, mysqlSelectQuery);
+				parseOrderAggGroupMysql(schema, stmt,rrs, mysqlSelectQuery);
 				//更改canRunInReadDB属性
 				if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
 				{
@@ -53,7 +54,10 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 
 
 	}
-
+	protected String getCurentDbType()
+	{
+		return JdbcConstants.SQL_SERVER;
+	}
     private void sqlserverParse(SchemaConfig schema, RouteResultset rrs)
     {
         //使用sqlserver的解析，否则会有部分语法识别错误
@@ -65,16 +69,16 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
             parseSqlServerPageSql(oracleStmt, rrs, (SQLServerSelectQueryBlock) oracleSqlSelectQuery, schema);
             if(isNeedParseOrderAgg)
             {
-                parseOrderAggGroupSqlServer(oracleStmt,rrs, (SQLServerSelectQueryBlock) oracleSqlSelectQuery);
+                parseOrderAggGroupSqlServer(schema, oracleStmt,rrs, (SQLServerSelectQueryBlock) oracleSqlSelectQuery);
             }
         }
 
     }
 
 
-    private void parseOrderAggGroupSqlServer(SQLStatement stmt,RouteResultset rrs, SQLServerSelectQueryBlock mysqlSelectQuery)
+    private void parseOrderAggGroupSqlServer(SchemaConfig schema, SQLStatement stmt, RouteResultset rrs, SQLServerSelectQueryBlock mysqlSelectQuery)
 	{
-		Map<String, String> aliaColumns = parseAggGroupCommon(stmt,rrs, mysqlSelectQuery);
+		Map<String, String> aliaColumns = parseAggGroupCommon(schema, stmt,rrs, mysqlSelectQuery);
 
 		SQLServerSelect oracleSelect= (SQLServerSelect) mysqlSelectQuery.getParent();
 		if(oracleSelect.getOrderBy() != null) {
@@ -165,7 +169,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
                              SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
                              oracleSelect.setOrderBy(orderBy);
                          }
-                         parseOrderAggGroupSqlServer(stmt,rrs, (SQLServerSelectQueryBlock) subSelect);
+                         parseOrderAggGroupSqlServer(schema, stmt,rrs, (SQLServerSelectQueryBlock) subSelect);
                          isNeedParseOrderAgg=false;
 
                      }
@@ -186,7 +190,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 								SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
 								oracleSelect.setOrderBy(orderBy);
 							}
-							parseOrderAggGroupSqlServer(stmt,rrs, sqlserverSelectQuery);
+							parseOrderAggGroupSqlServer(schema, stmt,rrs, sqlserverSelectQuery);
 							isNeedParseOrderAgg=false;
 						}
 					}
@@ -232,7 +236,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 								SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
 								oracleSelect.setOrderBy(orderBy);
 							}
-							parseOrderAggGroupSqlServer(stmt,rrs, (SQLServerSelectQueryBlock) subSelect);
+							parseOrderAggGroupSqlServer(schema, stmt,rrs, (SQLServerSelectQueryBlock) subSelect);
 							isNeedParseOrderAgg=false;
 						}
 
@@ -249,14 +253,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 
 	}
 
-	protected String convertLimitToNativePageSql(RouteResultset rrs, SQLStatement stmt, String sql, int offset, int count, boolean isNeedAddLimit)
-	{
-		SQLServerStatementParser oracleParser = new SQLServerStatementParser(sql);
-		SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
 
-		return 	PagerUtils.limit(oracleStmt.getSelect(), "sqlserver", offset, count)  ;
-
-	}
 	
 
 }

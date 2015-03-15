@@ -42,8 +42,14 @@ public final class RouteResultsetNode implements Serializable {
 	private volatile boolean canRunInReadDB;
 	private final boolean hasBlanceFlag;
 
+	private int limitStart;
+	private int limitSize;
+	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
+
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
 		this.name = name;
+		limitStart=0;
+		this.limitSize = -1;
 		this.sqlType = sqlType;
 		this.srcStatement = srcStatement;
 		this.statement = srcStatement;
@@ -82,6 +88,36 @@ public final class RouteResultsetNode implements Serializable {
 
 	public String getStatement() {
 		return statement;
+	}
+
+	public int getLimitStart()
+	{
+		return limitStart;
+	}
+
+	public void setLimitStart(int limitStart)
+	{
+		this.limitStart = limitStart;
+	}
+
+	public int getLimitSize()
+	{
+		return limitSize;
+	}
+
+	public void setLimitSize(int limitSize)
+	{
+		this.limitSize = limitSize;
+	}
+
+	public int getTotalNodeSize()
+	{
+		return totalNodeSize;
+	}
+
+	public void setTotalNodeSize(int totalNodeSize)
+	{
+		this.totalNodeSize = totalNodeSize;
 	}
 
 	@Override

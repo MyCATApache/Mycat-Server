@@ -64,7 +64,7 @@ public class DruidParserFactory
         List<String> tables = parseTables(statement, visitor);
         for (String table : tables)
         {
-            if (schema.getTables().get(table).getDbTypes().contains("oracle"))//if(schema.getAllDbTypeSet().contains("oracle")&&schema.isTableInThisDb(table,"oracle"))
+            if (schema.getTables().get(table).getDbTypes().contains("oracle"))
             {
                 parser = new DruidSelectOracleParser();
                 break;
