@@ -9,24 +9,17 @@ import org.opencloudb.config.loader.xml.XMLSchemaLoader;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.route.factory.RouteStrategyFactory;
-import org.opencloudb.route.util.RouterUtil;
 
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
-/**
- * 修改内容
- * 
- * @author lxy
- *
- */
-public class DruidOracleSqlParser
+public class DruidDb2SqlParserTest
 {
 	protected Map<String, SchemaConfig> schemaMap;
 	protected LayerCachePool cachePool = new SimpleCachePool();
     protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 
-	public DruidOracleSqlParser() {
+	public DruidDb2SqlParserTest() {
 		String schemaFile = "/route/schema.xml";
 		String ruleFile = "/route/rule.xml";
 		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
@@ -34,9 +27,9 @@ public class DruidOracleSqlParser
 	}
 
 	@Test
-	public void testLimitToOraclePage() throws SQLNonTransientException {
+	public void testLimitToDb2Page() throws SQLNonTransientException {
 		String sql = "select * from offer order by id desc limit 5,10";
-		SchemaConfig schema = schemaMap.get("oracledb");
+		SchemaConfig schema = schemaMap.get("db2db");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);
         Assert.assertEquals(2, rrs.getNodes().length);
@@ -44,6 +37,14 @@ public class DruidOracleSqlParser
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
+
+        sql= rrs.getNodes()[0].getStatement() ;
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+                null, cachePool);
+        Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
+        Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals(0, rrs.getLimitStart());
+        Assert.assertEquals(15, rrs.getLimitSize());
 		
         sql="select * from offer1 order by id desc limit 5,10" ;
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
@@ -58,16 +59,15 @@ public class DruidOracleSqlParser
 
 
     @Test
-    public void testOraclePageSQL() throws SQLNonTransientException {
+    public void testDb2PageSQL() throws SQLNonTransientException {
         String sql = "SELECT *\n" +
-                "FROM (SELECT XX.*, ROWNUM AS RN \n" +
-                " FROM (\n" +
-                "SELECT *   FROM offer\n" +
-                "                ) XX\n" +
-                "        WHERE ROWNUM <= 15\n" +
-                "        ) XXX\n" +
-                "WHERE RN > 5 \n";
-        SchemaConfig schema = schemaMap.get("oracledb");
+                "FROM (SELECT sid, ROW_NUMBER() OVER (ORDER BY sid DESC) AS ROWNUM\n" +
+                "\tFROM offer \n" +
+                "\tWHERE sts <> 'N'\n" +
+                "\t\t\t) XX\n" +
+                "WHERE ROWNUM > 5\n" +
+                "\tAND ROWNUM <= 15\n";
+        SchemaConfig schema = schemaMap.get("db2db");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);
         Assert.assertEquals(2, rrs.getNodes().length);
@@ -77,13 +77,12 @@ public class DruidOracleSqlParser
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
 
         sql = "SELECT *\n" +
-                "FROM (SELECT XX.*, ROWNUM AS RN \n" +
-                " FROM (\n" +
-                "SELECT *   FROM offer1" +
-                "                ) XX\n" +
-                "        WHERE ROWNUM <= 15\n" +
-                "        ) XXX\n" +
-                "WHERE RN > 5 \n";
+                "FROM (SELECT sid, ROW_NUMBER() OVER (ORDER BY sid DESC) AS ROWNUM\n" +
+                "\tFROM offer1 \n" +
+                "\tWHERE sts <> 'N'\n" +
+                "\t\t\t) XX\n" +
+                "WHERE ROWNUM > 5\n" +
+                "\tAND ROWNUM <= 15\n";
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);
         Assert.assertEquals(1, rrs.getNodes().length);
@@ -91,5 +90,25 @@ public class DruidOracleSqlParser
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+
+
+
+
+
+
+        sql="SELECT sid\n" +
+                "FROM offer  \n" +
+                "ORDER BY sid desc\n" +
+                "FETCH FIRST 10  ROWS ONLY"  ;
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+                null, cachePool);
+        Assert.assertEquals(2, rrs.getNodes().length);
+        Assert.assertEquals(0, rrs.getLimitStart());
+        Assert.assertEquals(10, rrs.getLimitSize());
+        Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
+        Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+
     }
 }
