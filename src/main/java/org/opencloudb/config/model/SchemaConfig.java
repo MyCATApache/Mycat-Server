@@ -54,6 +54,8 @@ public class SchemaConfig {
 	private final Map<String, TableConfig> joinRel2TableMap = new HashMap<String, TableConfig>();
 	private final String[] allDataNodeStrArr;
 
+	private  Map<String,String> dataNodeDbTypeMap=new HashMap<>();
+
 	public SchemaConfig(String name, String dataNode,
 			Map<String, TableConfig> tables, int defaultMaxLimit,
 			boolean checkSQLschema) {
@@ -145,6 +147,16 @@ public class SchemaConfig {
 
 	public Set<String> getAllDataNodes() {
 		return allDataNodes;
+	}
+
+	public Map<String, String> getDataNodeDbTypeMap()
+	{
+		return dataNodeDbTypeMap;
+	}
+
+	public void setDataNodeDbTypeMap(Map<String, String> dataNodeDbTypeMap)
+	{
+		this.dataNodeDbTypeMap = dataNodeDbTypeMap;
 	}
 
 	public String getRandomDataNode() {

@@ -23,9 +23,14 @@
  */
 package org.opencloudb.route;
 
+import org.opencloudb.MycatConfig;
+import org.opencloudb.MycatServer;
+import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.parser.util.PageSQLUtil;
 import org.opencloudb.util.FormatUtil;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -201,6 +206,15 @@ public final class RouteResultset implements Serializable {
     }
 
     public void setNodes(RouteResultsetNode[] nodes) {
+        if(nodes!=null)
+        {
+           int nodeSize=nodes.length;
+            for (RouteResultsetNode node : nodes)
+            {
+                node.setTotalNodeSize(nodeSize);
+            }
+
+        }
         this.nodes = nodes;
     }
 
@@ -227,11 +241,33 @@ public final class RouteResultset implements Serializable {
         this.callStatement = callStatement;
     }
 
-    public void changeNodeSqlAfterAddLimit(String sql) {
-        if (nodes != null) {
-            for (RouteResultsetNode node : nodes) {
-                node.setStatement(sql);
+    public void changeNodeSqlAfterAddLimit(SchemaConfig schemaConfig,String sourceDbType,String sql, int offset, int count) {
+        if (nodes != null)
+        {
+
+            Map<String, String> dataNodeDbTypeMap = schemaConfig.getDataNodeDbTypeMap();
+            Map<String, String> sqlMapCache = new HashMap<>();
+            for (RouteResultsetNode node : nodes)
+            {
+                String dbType = dataNodeDbTypeMap.get(node.getName());
+                if (sourceDbType.equalsIgnoreCase("mysql"))
+                {
+                    node.setStatement(sql);   //mysql之前已经加好limit
+                } else if (sqlMapCache.containsKey(dbType))
+                {
+                    node.setStatement(sqlMapCache.get(dbType));
+                } else
+                {
+                    String nativeSql = PageSQLUtil.convertLimitToNativePageSql(dbType, sql, offset, count);
+                    sqlMapCache.put(dbType, nativeSql);
+                    node.setStatement(nativeSql);
+                }
+
+                node.setLimitStart(offset);
+                node.setLimitSize(count);
             }
+
+
         }
     }
 
