@@ -88,7 +88,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					{   //如果不加，jdbc方式时取不到正确结果   ;修改添加别名
 							item.setAlias(method + i);
 							String sql = stmt.toString();
-							rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0,1);
+							rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0,1, true);
 							getCtx().setSql(sql);
 							aggrColumns.put(method + i, mergeType);
 					}
@@ -141,19 +141,12 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if(isConditionAlwaysTrue(stmt)) {
 			ctx.clear();
 		}
-		//无表的select语句直接路由带任一节点
-		if(ctx.getTables() == null || ctx.getTables().size() == 0) {
-			rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
-			rrs.setFinishedRoute(true);
-			return;
-		}
-		RouterUtil.tryRouteForTables(schema, ctx, rrs, true,cachePool);
-		if(rrs == null) {
-			String msg = " find no Route:" + ctx.getSql();
-			LOGGER.warn(msg);
-			throw new SQLNonTransientException(msg);
-		}
-		rrs.setFinishedRoute(true);
+
+		tryRoute(schema, rrs, cachePool);
+
+		rrs.copyLimitToNodes();
+
+
 		
 //		if(!isNeedChangeLimit(rrs,schema)){
 //			return;
@@ -172,7 +165,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				mysqlSelectQuery.setLimit(limit);
 				rrs.setLimitSize(limitSize);
 			    String sql= getSql(rrs, stmt, isNeedAddLimit);
-				rrs.changeNodeSqlAfterAddLimit(schema, getCurentDbType(), sql, 0, limitSize);
+				rrs.changeNodeSqlAfterAddLimit(schema, getCurentDbType(), sql, 0, limitSize, true);
 
 			}
 			Limit limit = mysqlSelectQuery.getLimit();
@@ -206,7 +199,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					mysqlSelectQuery.setLimit(changedLimit);
 
                     String sql= getSql(rrs, stmt, isNeedAddLimit);
-					rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0, limitStart + limitSize);
+					rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0, limitStart + limitSize, true);
 
 					//设置改写后的sql
 					ctx.setSql(sql);
@@ -214,7 +207,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				}   else
 				{
 
-                        rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),getCtx().getSql(),rrs.getLimitStart(), rrs.getLimitSize());
+                        rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),getCtx().getSql(),rrs.getLimitStart(), rrs.getLimitSize(), true);
 					//	ctx.setSql(nativeSql);
 
 				}
@@ -225,6 +218,28 @@ public class DruidSelectParser extends DefaultDruidParser {
 			rrs.setCacheAble(isNeedCache(schema, rrs, mysqlSelectQuery));
 		}
 		
+	}
+
+	private void tryRoute(SchemaConfig schema, RouteResultset rrs, LayerCachePool cachePool) throws SQLNonTransientException
+	{
+		if(rrs.isFinishedRoute())
+		{
+			return;//避免重复路由
+		}
+
+		//无表的select语句直接路由带任一节点
+		if(ctx.getTables() == null || ctx.getTables().size() == 0) {
+			rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
+			rrs.setFinishedRoute(true);
+			return;
+		}
+		RouterUtil.tryRouteForTables(schema, ctx, rrs, true, cachePool);
+		if(rrs == null) {
+			String msg = " find no Route:" + ctx.getSql();
+			LOGGER.warn(msg);
+			throw new SQLNonTransientException(msg);
+		}
+		rrs.setFinishedRoute(true);
 	}
 
 
@@ -407,7 +422,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		LayerCachePool tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
 		try
 		{
-			RouterUtil.tryRouteForTables(schema, getCtx(), rrs, true, tableId2DataNodeCache);
+			tryRoute(schema, rrs, tableId2DataNodeCache);
 		} catch (SQLNonTransientException e)
 		{
 			throw new RuntimeException(e);
@@ -416,7 +431,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		{
 			one.setRight(new SQLIntegerExpr(0));
 			String sql = stmt.toString();
-			rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(), sql,0,lastrownum - firstrownum);
+			rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(), sql,0,lastrownum, false);
 			//设置改写后的sql
 			getCtx().setSql(sql);
 		}
