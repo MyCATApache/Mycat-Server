@@ -14,6 +14,7 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.dialect.oracle.parser.OracleStatementParser;
 import com.alibaba.druid.sql.dialect.postgresql.ast.stmt.PGSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.postgresql.parser.PGSQLStatementParser;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.parser.SQLServerStatementParser;
 import com.alibaba.druid.util.JdbcConstants;
 
@@ -35,9 +36,27 @@ public class PageSQLUtil
         } else if (JdbcConstants.SQL_SERVER.equalsIgnoreCase(dbType))
         {
             SQLServerStatementParser oracleParser = new SQLServerStatementParser(sql);
-            SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
+            SQLSelectStatement sqlserverStmt = (SQLSelectStatement) oracleParser.parseStatement();
+            SQLSelect select = sqlserverStmt.getSelect();
+            SQLOrderBy orderBy=  select.getOrderBy() ;
+            if(orderBy==null)
+            {
+                SQLSelectQuery sqlSelectQuery=      select.getQuery();
+                if(sqlSelectQuery instanceof SQLServerSelectQueryBlock)
+                {
+                    SQLServerSelectQueryBlock sqlServerSelectQueryBlock= (SQLServerSelectQueryBlock) sqlSelectQuery;
+                    SQLTableSource from=       sqlServerSelectQueryBlock.getFrom();
+                    if("limit".equalsIgnoreCase(from.getAlias()))
+                    {
+                        from.setAlias(null);
+                    }
+                }
+                SQLOrderBy newOrderBy=new SQLOrderBy(new SQLIdentifierExpr("(select 0)"));
+                select.setOrderBy(newOrderBy);
 
-            return 	PagerUtils.limit(oracleStmt.getSelect(), JdbcConstants.SQL_SERVER, offset, count)  ;
+            }
+
+            return 	PagerUtils.limit(select, JdbcConstants.SQL_SERVER, offset, count)  ;
         }
         else if (JdbcConstants.DB2.equalsIgnoreCase(dbType))
         {
