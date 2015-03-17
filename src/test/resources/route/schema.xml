@@ -51,6 +51,10 @@
 		<table name="globalsn" primaryKey="ID" type="global" dataNode="dn1" />
 	</schema>
 
+    <schema name="oracledb"  sqlMaxLimit="100">
+        <table name="offer" dataNode="d_oracle1,d_oracle2" rule="offerRule" />
+        <table name="offer1" dataNode="d_oracle1" rule="offerRule" />
+    </schema>
 
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />
 	<dataNode name="dn2" dataHost="localhost1" database="db2" />
@@ -64,6 +68,10 @@
 		database="db7_$0-127" />
 	<dataNode name="dubbo_dn" dataHost="localhost1" database="db8" />
 	<dataNode name="solo1" dataHost="localhost1" database="db9" />
+
+    <dataNode name="d_oracle1" dataHost="oracle1" database="base" />
+    <dataNode name="d_oracle2" dataHost="oracle2" database="bwg" />
+
 	<dataHost name="localhost1" maxCon="500" minCon="10" balance="0"
 		dbType="mysql" dbDriver="native">
 		<heartbeat>select user()</heartbeat>
@@ -97,4 +105,20 @@
                 /> -->
         </writeHost>
     </dataHost>
+
+
+    <dataHost name="oracle1" maxCon="1000" minCon="1" balance="0" writeType="0" dbType="oracle" dbDriver="jdbc">
+        <heartbeat>select 1 from dual</heartbeat>
+        <connectionInitSql>alter session set nls_date_format='yyyy-mm-dd hh24:mi:ss'</connectionInitSql>
+        <writeHost host="ohostM1" url="jdbc:oracle:thin:@127.0.0.1:1521:nange" user="base" password="123456" >
+        </writeHost>
+    </dataHost>
+
+    <dataHost name="oracle2" maxCon="1000" minCon="1" balance="0" writeType="0" dbType="oracle" dbDriver="jdbc">
+        <heartbeat>select 1 from dual</heartbeat>
+        <connectionInitSql>alter session set nls_date_format='yyyy-mm-dd hh24:mi:ss'</connectionInitSql>
+        <writeHost host="ohostM2" url="jdbc:oracle:thin:@127.0.0.1:1521:nange" user="bwg" password="123456" >
+        </writeHost>
+    </dataHost>
+
 </mycat:schema>
