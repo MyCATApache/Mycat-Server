@@ -95,6 +95,23 @@ public final class RouteResultset implements Serializable {
         }
     }
 
+    public void copyLimitToNodes() {
+
+        if(nodes!=null)
+        {
+            for (RouteResultsetNode node : nodes)
+            {
+                if(node.getLimitSize()==-1&&node.getLimitStart()==0)
+                {
+                    node.setLimitStart(limitStart);
+                    node.setLimitSize(limitSize);
+                }
+            }
+
+        }
+    }
+
+
     public SQLMerge getSqlMerge() {
         return sqlMerge;
     }
@@ -241,7 +258,7 @@ public final class RouteResultset implements Serializable {
         this.callStatement = callStatement;
     }
 
-    public void changeNodeSqlAfterAddLimit(SchemaConfig schemaConfig,String sourceDbType,String sql, int offset, int count) {
+    public void changeNodeSqlAfterAddLimit(SchemaConfig schemaConfig, String sourceDbType, String sql, int offset, int count, boolean isNeedConvert) {
         if (nodes != null)
         {
 
@@ -256,11 +273,13 @@ public final class RouteResultset implements Serializable {
                 } else if (sqlMapCache.containsKey(dbType))
                 {
                     node.setStatement(sqlMapCache.get(dbType));
-                } else
+                } else if(isNeedConvert)
                 {
                     String nativeSql = PageSQLUtil.convertLimitToNativePageSql(dbType, sql, offset, count);
                     sqlMapCache.put(dbType, nativeSql);
                     node.setStatement(nativeSql);
+                }  else {
+                    node.setStatement(sql);
                 }
 
                 node.setLimitStart(offset);
