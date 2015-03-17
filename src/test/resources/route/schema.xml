@@ -56,6 +56,23 @@
         <table name="offer1" dataNode="d_oracle1" rule="offerRule" />
     </schema>
 
+	<schema name="db2db"  sqlMaxLimit="100">
+		<table name="offer" dataNode="db2_1,db2_2" rule="offerRule" />
+		<table name="offer1" dataNode="db2_1" rule="offerRule" />
+	</schema>
+
+
+	<schema name="sqlserverdb"  sqlMaxLimit="100">
+		<table name="offer" dataNode="sqlserver_1,sqlserver_2" rule="offerRule" />
+		<table name="offer1" dataNode="sqlserver_1" rule="offerRule" />
+	</schema>
+
+
+	<schema name="pgdb"  sqlMaxLimit="100">
+		<table name="offer" dataNode="pg_1,pg_2" rule="offerRule" />
+		<table name="offer1" dataNode="pg_1" rule="offerRule" />
+	</schema>
+
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />
 	<dataNode name="dn2" dataHost="localhost1" database="db2" />
 	<dataNode name="dn3" dataHost="localhost1" database="db3" />
@@ -71,6 +88,15 @@
 
     <dataNode name="d_oracle1" dataHost="oracle1" database="base" />
     <dataNode name="d_oracle2" dataHost="oracle2" database="bwg" />
+
+	<dataNode name="db2_1" dataHost="db21" database="base" />
+	<dataNode name="db2_2" dataHost="db22" database="test" />
+
+	<dataNode name="sqlserver_1" dataHost="ms1" database="base" />
+	<dataNode name="sqlserver_2" dataHost="ms2" database="test" />
+
+	<dataNode name="pg_1" dataHost="pg1" database="base" />
+	<dataNode name="pg_2" dataHost="pg2" database="test" />
 
 	<dataHost name="localhost1" maxCon="500" minCon="10" balance="0"
 		dbType="mysql" dbDriver="native">
@@ -120,5 +146,44 @@
         <writeHost host="ohostM2" url="jdbc:oracle:thin:@127.0.0.1:1521:nange" user="bwg" password="123456" >
         </writeHost>
     </dataHost>
+
+
+	<dataHost name="db21" maxCon="1000" minCon="1" balance="0" writeType="0" dbType="db2" dbDriver="jdbc">
+		<heartbeat>select 1 from SYSIBM.SYSDUMMY1</heartbeat>
+		<writeHost host="dhostM1" url="jdbc:db2://127.0.0.1:50000/base" user="db2inst1" password="123" >
+		</writeHost>
+	</dataHost>
+
+
+	<dataHost name="db22" maxCon="1000" minCon="1" balance="0" writeType="0" dbType="db2" dbDriver="jdbc">
+		<heartbeat>select 1 from SYSIBM.SYSDUMMY1</heartbeat>
+		<writeHost host="dhostM2" url="jdbc:db2://127.0.0.1:50000/test" user="db2inst1" password="123" >
+		</writeHost>
+	</dataHost>
+
+
+
+	<dataHost name="ms1" maxCon="1000" minCon="1" balance="0" writeType="0" dbType="sqlserver" dbDriver="jdbc">
+		<heartbeat>select 1 </heartbeat>
+		<writeHost host="mhostM1" url="jdbc:sqlserver://127.0.0.1:1433;DatabaseName=base" user="base" password="123" >
+		</writeHost>
+	</dataHost>
+
+	<dataHost name="ms2" maxCon="1000" minCon="1" balance="0" writeType="0" dbType="sqlserver" dbDriver="jdbc">
+		<heartbeat>select 1 </heartbeat>
+		<writeHost host="mhostM2" url="jdbc:sqlserver://127.0.0.1:1433;DatabaseName=test" user="base" password="123" >
+		</writeHost>
+	</dataHost>
+	<dataHost name="pg1" maxCon="1000" minCon="1" balance="0" writeType="0" dbType="postgresql" dbDriver="jdbc">
+		<heartbeat>select 1</heartbeat>
+		<writeHost host="phostM1" url="jdbc:postgresql://127.0.0.1:5432/base" user="test" password="123" >
+		</writeHost>
+	</dataHost>
+
+	<dataHost name="pg2" maxCon="1000" minCon="1" balance="0" writeType="0" dbType="postgresql" dbDriver="jdbc">
+		<heartbeat>select 1 </heartbeat>
+		<writeHost host="phostM2" url="jdbc:postgresql://127.0.0.1:5432/test" user="test" password="123" >
+		</writeHost>
+	</dataHost>
 
 </mycat:schema>
