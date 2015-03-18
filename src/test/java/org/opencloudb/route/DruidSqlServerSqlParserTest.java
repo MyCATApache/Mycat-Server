@@ -37,6 +37,9 @@ public class DruidSqlServerSqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("sqlserver_2", rrs.getNodes()[1].getName());
+
 
         sql= rrs.getNodes()[0].getStatement() ;
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
@@ -54,6 +57,8 @@ public class DruidSqlServerSqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
+
 	}
 
 
@@ -75,6 +80,8 @@ public class DruidSqlServerSqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("sqlserver_2", rrs.getNodes()[1].getName());
 
         sql = "SELECT *\n" +
                 "FROM (SELECT sid, ROW_NUMBER() OVER (ORDER BY sid DESC) AS ROWNUM\n" +
@@ -91,6 +98,7 @@ public class DruidSqlServerSqlParserTest
         Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
 
 
          sql="select * from ( select row_number()over(order by tempColumn)tempRowNumber,* from ( select top \n" +
@@ -103,7 +111,8 @@ public class DruidSqlServerSqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
-
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("sqlserver_2", rrs.getNodes()[1].getName());
 
 
 
@@ -118,6 +127,7 @@ public class DruidSqlServerSqlParserTest
         Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
 
 
         sql="SELECT TOP 10 sid  \n" +
@@ -131,6 +141,8 @@ public class DruidSqlServerSqlParserTest
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("sqlserver_2", rrs.getNodes()[1].getName());
 
 
 
@@ -157,5 +169,22 @@ public class DruidSqlServerSqlParserTest
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
+
+
+        sql="SELECT TOP 10  offer1.name,offer1.id  \n" +
+                " FROM offer1  where sts<>'N' and asf like '%'+'akka'+'%' \n" +
+                " ORDER BY sid desc"  ;
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+                null, cachePool);
+
+        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(0, rrs.getLimitStart());
+        Assert.assertEquals(10, rrs.getLimitSize());
+        Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
+        Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
+
     }
 }

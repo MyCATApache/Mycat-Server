@@ -51,6 +51,10 @@
 		<table name="globalsn" primaryKey="ID" type="global" dataNode="dn1" />
 	</schema>
 
+    <schema name="mysqldb"  sqlMaxLimit="100">
+        <table name="offer" dataNode="dn1,dn2" rule="offerRule" />
+        <table name="offer1" dataNode="dn1" rule="offerRule" />
+    </schema>
     <schema name="oracledb"  sqlMaxLimit="100">
         <table name="offer" dataNode="d_oracle1,d_oracle2" rule="offerRule" />
         <table name="offer1" dataNode="d_oracle1" rule="offerRule" />

@@ -37,6 +37,8 @@ public class DruidDb2SqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("db2_1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("db2_2", rrs.getNodes()[1].getName());
 
         sql= rrs.getNodes()[0].getStatement() ;
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
@@ -54,6 +56,8 @@ public class DruidDb2SqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("db2_1", rrs.getNodes()[0].getName());
+
 	}
 
 
@@ -75,6 +79,8 @@ public class DruidDb2SqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("db2_1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("db2_2", rrs.getNodes()[1].getName());
 
         sql = "SELECT *\n" +
                 "FROM (SELECT sid, ROW_NUMBER() OVER (ORDER BY sid DESC) AS ROWNUM\n" +
@@ -91,6 +97,7 @@ public class DruidDb2SqlParserTest
         Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+        Assert.assertEquals("db2_1", rrs.getNodes()[0].getName());
 
 
 
@@ -109,6 +116,8 @@ public class DruidDb2SqlParserTest
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+        Assert.assertEquals("db2_1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("db2_2", rrs.getNodes()[1].getName());
 
     }
 }

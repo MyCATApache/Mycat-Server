@@ -28,7 +28,35 @@ public class DruidOracleSqlParserTest
 		schemaMap = schemaLoader.getSchemas();
 	}
 
-	@Test
+    @Test
+    public void testInsertUpdate() throws Exception {
+        SchemaConfig schema = schemaMap.get("oracledb");
+
+   String     sql = "insert into offer1(group_id,offer_id,member_id)values(234,123,'abc')";
+        RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
+        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(false, rrs.isCacheAble());
+        Assert.assertEquals(-1, rrs.getLimitSize());
+        Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
+        Assert.assertEquals(-1, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("d_oracle1", rrs.getNodes()[0].getName());
+        Assert.assertEquals(
+                "insert into offer1(group_id,offer_id,member_id)values(234,123,'abc')",
+                rrs.getNodes()[0].getStatement());
+
+        sql = "update offer set name='x'";
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
+        Assert.assertEquals(2, rrs.getNodes().length);
+        Assert.assertEquals(-1, rrs.getLimitSize());
+        Assert.assertEquals(false, rrs.isCacheAble());
+        Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
+        Assert.assertEquals(-1, rrs.getNodes()[0].getLimitSize());
+
+    }
+
+
+
+    @Test
 	public void testLimitToOraclePage() throws SQLNonTransientException {
 		String sql = "select * from offer order by id desc limit 5,10";
 		SchemaConfig schema = schemaMap.get("oracledb");
@@ -39,6 +67,8 @@ public class DruidOracleSqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("d_oracle1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("d_oracle2", rrs.getNodes()[1].getName());
 
         sql= rrs.getNodes()[0].getStatement() ;
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
@@ -56,6 +86,7 @@ public class DruidOracleSqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("d_oracle1", rrs.getNodes()[0].getName());
 	}
 
 
@@ -78,6 +109,8 @@ public class DruidOracleSqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("d_oracle1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("d_oracle2", rrs.getNodes()[1].getName());
 
         sql = "SELECT *\n" +
                 "FROM (SELECT XX.*, ROWNUM AS RN \n" +
@@ -95,6 +128,7 @@ public class DruidOracleSqlParserTest
         Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+        Assert.assertEquals("d_oracle1", rrs.getNodes()[0].getName());
 
         sql="SELECT *\n" +
                 "FROM (SELECT t.*, ROW_NUMBER() OVER (ORDER BY sid DESC) AS ROWNUM1\n" +
@@ -112,7 +146,8 @@ public class DruidOracleSqlParserTest
         Assert.assertEquals(10, rrs.getLimitSize());
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
-
+        Assert.assertEquals("d_oracle1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("d_oracle2", rrs.getNodes()[1].getName());
 
 
         sql="SELECT *\n" +
@@ -133,7 +168,7 @@ public class DruidOracleSqlParserTest
         Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
-
+        Assert.assertEquals("d_oracle1", rrs.getNodes()[0].getName());
 
 
         sql="select sid from (select sid from offer ) where rownum<=10"  ;
@@ -145,6 +180,7 @@ public class DruidOracleSqlParserTest
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
-
+        Assert.assertEquals("d_oracle1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("d_oracle2", rrs.getNodes()[1].getName());
     }
 }
