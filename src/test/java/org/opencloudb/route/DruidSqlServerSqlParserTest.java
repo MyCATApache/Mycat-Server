@@ -146,6 +146,7 @@ public class DruidSqlServerSqlParserTest
 
 
 
+
     }
 
 
@@ -157,6 +158,21 @@ public class DruidSqlServerSqlParserTest
         RouteResultset rrs = null;
 
     String    sql="SELECT TOP 10  *  \n" +
+                " FROM offer1  where sts<>'N' and asf like '%'+'akka'+'%' \n" +
+                " ORDER BY sid desc"  ;
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+                null, cachePool);
+
+        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(0, rrs.getLimitStart());
+        Assert.assertEquals(10, rrs.getLimitSize());
+        Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
+        Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals(sql,rrs.getNodes()[0].getStatement()) ;
+        Assert.assertEquals("sqlserver_1", rrs.getNodes()[0].getName());
+
+
+        sql="SELECT TOP 10  offer1.name,offer1.id  \n" +
                 " FROM offer1  where sts<>'N' and asf like '%'+'akka'+'%' \n" +
                 " ORDER BY sid desc"  ;
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,

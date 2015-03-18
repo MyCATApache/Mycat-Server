@@ -56,7 +56,7 @@ public class MycatSelectParser extends MySqlSelectParser
                 lexer.nextToken();
 
             }
-            if (lexer.token() == Token.EQ)
+            if (lexer.token() == Token.EQ||lexer.token() == Token.DOT)
             {
                 lexer.nextToken();
             } else  if(lexer.token() != Token.STAR)
