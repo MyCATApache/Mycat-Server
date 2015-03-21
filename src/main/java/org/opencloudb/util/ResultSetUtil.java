@@ -35,9 +35,9 @@ public class ResultSetUtil {
 		return flags;
 	}
 
-	public static void resultSetToPacket(String charset, Connection source,
-			List<FieldPacket> fieldPks, ResultSet rs,
-			List<RowDataPacket> rowsPkg,boolean isSpark) throws SQLException {
+	public static void resultSetToFieldPacket(String charset,
+											  List<FieldPacket> fieldPks, ResultSet rs,
+											  boolean isSpark) throws SQLException {
 		ResultSetMetaData metaData = rs.getMetaData();
 		int colunmCount = metaData.getColumnCount();
 		if (colunmCount > 0) {
@@ -65,22 +65,7 @@ public class ResultSetUtil {
 			// System.out.println(values);
 		}
 
-		while (rs.next()) {
-			RowDataPacket row = new RowDataPacket(fieldPks.size());
-			for (int i = 0; i < colunmCount; i++) {
-				int j = i + 1;
-				// BindValue bindValue = new BindValue();
-				// bindValue.bufferType = fieldPackets[i].type;
-				// bindValue.bindLength = fieldPackets[i].length;
-				// bindValue.scale = fieldPackets[i].decimals;
-				// bindValue.charset = fieldPackets[i].charsetName;
-				// PacketUtil.resultToBindValue(bindValue, j, rs,
-				// fieldPackets[i]);
-				row.add(StringUtil.encode(rs.getString(j), charset));
 
-			}
-			rowsPkg.add(row);
-		}
 	}
 
 	public static RowDataPacket parseRowData(byte[] row,
