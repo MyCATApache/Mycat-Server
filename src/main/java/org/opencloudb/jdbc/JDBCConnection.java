@@ -7,12 +7,10 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.EOFPacket;
@@ -249,14 +247,14 @@ public class JDBCConnection implements BackendConnection {
 					ShowVariables.justReturnValue(sc, String.valueOf(sc.getId()));
 				}
 				else {
-					ouputResultSet(sc, orgin);	
+					ouputResultSet(sc, orgin);
 				}
 			} else {
 				executeddl(sc, orgin);
 			}
 
 		} catch (SQLException e) {
-			e.printStackTrace();
+
 
 			String msg = e.getMessage();
 			ErrorPacket error = new ErrorPacket();
@@ -281,73 +279,7 @@ public class JDBCConnection implements BackendConnection {
 	  return fieldPacket;
 	}
 	
-//	private void showCMD(ServerConnection sc, String sql) throws SQLException {
-//		try {
-//			ByteBuffer byteBuf = sc.allocate();
-//			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-//			headerPkg.fieldCount = 2;
-//			headerPkg.packetId = ++packetId;
-//
-//			byteBuf = headerPkg.write(byteBuf, sc, true);
-//			byteBuf.flip();
-//			byte[] header = new byte[byteBuf.limit()];
-//			byteBuf.get(header);
-//			byteBuf.clear();
-//			List<byte[]> fields = new ArrayList<byte[]>(2);
-//
-//			String fieldName="Variable_name";
-//			while (fieldName!=null) {
-//				FieldPacket curField = getNewFieldPacket(sc.getCharset(),fieldName);//itor.next();
-//				curField.packetId = ++packetId;
-//				byteBuf = curField.write(byteBuf, sc, false);
-//				byteBuf.flip();
-//				byte[] field = new byte[byteBuf.limit()];
-//				byteBuf.get(field);
-//				byteBuf.clear();
-//				fields.add(field);
-//				if (fieldName.equals("Value")){
-//					fieldName=null;
-//				}
-//				else {
-//				  fieldName="Value";
-//				}
-//			}
-//			EOFPacket eofPckg = new EOFPacket();
-//			eofPckg.packetId = ++packetId;
-//			byteBuf = eofPckg.write(byteBuf, sc, false);
-//			byteBuf.flip();
-//			byte[] eof = new byte[byteBuf.limit()];
-//			byteBuf.get(eof);
-//			byteBuf.clear();
-//			this.respHandler.fieldEofResponse(header, fields, eof, this);
-//
-//			// output row
-//			//while (rowItor.hasNext()) {
-//				RowDataPacket curRow = new RowDataPacket(2);
-//				curRow.add(ByteUtil.getBytes("SHOW"));
-//				curRow.add(ByteUtil.getBytes("not supported for "+dbType));
-//				curRow.packetId = ++packetId;
-//				//rowItor.remove();
-//				byteBuf = curRow.write(byteBuf, sc, false);
-//				byteBuf.flip();
-//				byte[] row = new byte[byteBuf.limit()];
-//				byteBuf.get(row);
-//				byteBuf.clear();
-//				this.respHandler.rowResponse(row, this);
-//			//}
-//			eofPckg = new EOFPacket();
-//			eofPckg.packetId = ++packetId;
-//			byteBuf = eofPckg.write(byteBuf, sc, false);
-//			byteBuf.flip();
-//			eof = new byte[byteBuf.limit()];
-//			byteBuf.get(eof);
-//			sc.recycle(byteBuf);
-//			this.respHandler.rowEofResponse(eof, this);
-//		} finally {
-//
-//		}
-//
-//	}
+
 	private void executeddl(ServerConnection sc, String sql)
 			throws SQLException {
 		Statement stmt = null;
@@ -472,10 +404,24 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	@Override
-	public void execute(RouteResultsetNode node, ServerConnection source,
-			boolean autocommit) throws IOException {
-		executeSQL(node, source, autocommit);
+	public void execute(final RouteResultsetNode node, final ServerConnection source,
+			final boolean autocommit) throws IOException {
+		Runnable runnable=new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				try
+				{
+					executeSQL(node, source, autocommit);
+				} catch (IOException e)
+				{
+					throw new RuntimeException(e);
+				}
+			}
+		} ;
 
+		MycatServer.getInstance().getBusinessExecutor().execute(runnable);
 	}
 
 	@Override
