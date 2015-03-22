@@ -22,7 +22,6 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
-import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.MysqlDefs;
 import org.opencloudb.util.ResultSetUtil;
 import org.opencloudb.util.StringUtil;
@@ -311,9 +310,10 @@ public class JDBCConnection implements BackendConnection {
 		try {
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(sql);
-			List<RowDataPacket> rowsPkg = new LinkedList<RowDataPacket>();
+
 			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-			ResultSetUtil.resultSetToPacket(sc.getCharset(), con, fieldPks, rs,rowsPkg,this.isSpark);
+			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs, this.isSpark);
+			int colunmCount =fieldPks.size();
 			ByteBuffer byteBuf = sc.allocate();
 			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
 			headerPkg.fieldCount = fieldPks.size();
@@ -347,18 +347,20 @@ public class JDBCConnection implements BackendConnection {
 			this.respHandler.fieldEofResponse(header, fields, eof, this);
 
 			// output row
-			Iterator<RowDataPacket> rowItor = rowsPkg.iterator();
-			while (rowItor.hasNext()) {
-				RowDataPacket curRow = rowItor.next();
+			while (rs.next()) {
+				RowDataPacket curRow = new RowDataPacket(colunmCount);
+				for (int i = 0; i < colunmCount; i++) {
+					int j = i + 1;
+					curRow.add(StringUtil.encode(rs.getString(j), sc.getCharset()));
+
+				}
 				curRow.packetId = ++packetId;
-				rowItor.remove();
 				byteBuf = curRow.write(byteBuf, sc, false);
 				byteBuf.flip();
 				byte[] row = new byte[byteBuf.limit()];
 				byteBuf.get(row);
 				byteBuf.clear();
 				this.respHandler.rowResponse(row, this);
-
 			}
 
 			// end row
