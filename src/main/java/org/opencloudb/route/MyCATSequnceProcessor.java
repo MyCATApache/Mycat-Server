@@ -11,13 +11,9 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.parser.ExtNodeToString4SEQ;
-import org.opencloudb.parser.SQLParserDelegate;
+import org.opencloudb.parser.druid.DruidSequenceHandler;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.util.StringUtil;
-
-import com.foundationdb.sql.parser.QueryTreeNode;
-import com.foundationdb.sql.unparser.NodeToString;
 
 public class MyCATSequnceProcessor {
 	private static final Logger LOGGER = Logger.getLogger(MyCATSequnceProcessor.class);
@@ -65,7 +61,7 @@ public class MyCATSequnceProcessor {
 
 	private void executeSeq(SessionSQLPair pair) {
 		try {
-			// @micmiu 扩展NodeToString实现自定义全局序列号
+			/*// @micmiu 扩展NodeToString实现自定义全局序列号
 			NodeToString strHandler = new ExtNodeToString4SEQ(MycatServer
 					.getInstance().getConfig().getSystem()
 					.getSequnceHandlerType());
@@ -78,8 +74,16 @@ public class MyCATSequnceProcessor {
 				String value=sql.substring("SELECT".length()).trim();
 				outRawData(pair.session.getSource(),value);
 				return;
-			}
-			pair.session.getSource().routeEndExecuteSQL(sql, pair.type,pair.schema);
+			}*/
+			
+			//使用Druid解析器实现sequence处理  @兵临城下
+			DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
+					.getInstance().getConfig().getSystem().getSequnceHandlerType());
+			
+			String charset = pair.session.getSource().getCharset();
+			String executeSql = sequenceHandler.getExecuteSql(pair.sql,charset == null ? "utf-8":charset);
+			
+			pair.session.getSource().routeEndExecuteSQL(executeSql, pair.type,pair.schema);
 		} catch (Exception e) {
 			LOGGER.error("MyCATSequenceProcessor.executeSeq(SesionSQLPair)",e);
 			pair.session.getSource().writeErrMessage(ErrorCode.ER_YES,
