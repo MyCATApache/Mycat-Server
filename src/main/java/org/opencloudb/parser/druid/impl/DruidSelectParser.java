@@ -282,7 +282,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			return false;
 		}
 		TableConfig tc = schema.getTables().get(ctx.getTables().get(0));
-		if((ctx.getTables().size() == 1 && tc.isGlobalTable())
+		if(tc==null ||(ctx.getTables().size() == 1 && tc.isGlobalTable())
 				) {//|| (ctx.getTables().size() == 1) && tc.getRule() == null && tc.getDataNodes().size() == 1
 			return false;
 		} else {
@@ -321,7 +321,13 @@ public class DruidSelectParser extends DefaultDruidParser {
 			return false;
 		} else if(ctx.getTables().size() == 1) {
 			String tableName = ctx.getTables().get(0);
-			boolean isNeedAddLimit=schema.getTables().get(tableName).isNeedAddLimit();
+			TableConfig tableConfig = schema.getTables().get(tableName);
+			if(tableConfig==null)
+			{
+			 return    schema.getDefaultMaxLimit() > -1;   //   找不到则取schema的配置
+			}
+
+			boolean isNeedAddLimit= tableConfig.isNeedAddLimit();
 			if(!isNeedAddLimit)
 			{
 				return false;//优先从配置文件取

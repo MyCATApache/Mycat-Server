@@ -5,11 +5,10 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.*;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.parser.druid.impl.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * DruidParser的工厂类
@@ -64,19 +63,29 @@ public class DruidParserFactory
         List<String> tables = parseTables(statement, visitor);
         for (String table : tables)
         {
-            if (schema.getTables().get(table).getDbTypes().contains("oracle"))
+            Set<String> dbTypes =null;
+            TableConfig tableConfig = schema.getTables().get(table);
+            if(tableConfig==null)
+            {
+                dbTypes=new HashSet<>();
+                dbTypes.add(schema.getDefaultDataNodeDbType())  ;
+            }else
+            {
+                dbTypes = tableConfig.getDbTypes();
+            }
+            if (dbTypes.contains("oracle"))
             {
                 parser = new DruidSelectOracleParser();
                 break;
-            } else if (schema.getTables().get(table).getDbTypes().contains("db2"))
+            } else if (dbTypes.contains("db2"))
             {
                 parser = new DruidSelectDb2Parser();
                 break;
-            } else if (schema.getTables().get(table).getDbTypes().contains("sqlserver"))
+            } else if (dbTypes.contains("sqlserver"))
             {
                 parser = new DruidSelectSqlServerParser();
                 break;
-            } else if (schema.getTables().get(table).getDbTypes().contains("postgresql"))
+            } else if (dbTypes.contains("postgresql"))
             {
                 parser = new DruidSelectPostgresqlParser();
                 break;
