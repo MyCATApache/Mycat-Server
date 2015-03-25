@@ -324,7 +324,7 @@ public class RouterUtil {
 	public static void routeForTableMeta(RouteResultset rrs,
 			SchemaConfig schema, String tableName, String sql) {
 		String dataNode = null;
-		if (schema.isNoSharding()) {//不分库的直接从schema中获取dataNode
+		if (isNoSharding(schema,tableName)) {//不分库的直接从schema中获取dataNode
 			dataNode = schema.getDataNode();
 		} else {
 			dataNode = getMetaReadDataNode(schema, tableName);
@@ -517,10 +517,11 @@ public class RouterUtil {
 	 */
 	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx, RouteResultset rrs,
 			boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
-		if(schema.isNoSharding()) {
+		List<String> tables = ctx.getTables();
+		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
 			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
 		}
-		List<String> tables = ctx.getTables();
+
 		//只有一个表的
 		if(tables.size() == 1) {
 			return RouterUtil.tryRouteForOneTable(schema, ctx, tables.get(0), rrs, isSelect, cachePool);
@@ -606,6 +607,11 @@ public class RouterUtil {
 		 */
 		public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx, String tableName, RouteResultset rrs,
 				boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
+			if(isNoSharding(schema,tableName))
+			{
+				return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
+			}
+
 			TableConfig tc = schema.getTables().get(tableName);
 			if(tc == null) {
 				String msg = "can't find table define in schema "
@@ -832,8 +838,28 @@ public class RouterUtil {
 		}
 		return hasRequiredValue;
 	}
-	
-	
+
+
+	/**
+	 *     增加判断支持未配置分片的表走默认的dataNode
+	 * @param schemaConfig
+	 * @param tableName
+	 * @return
+	 */
+	public static boolean isNoSharding(SchemaConfig schemaConfig,String tableName)
+	{
+		if(schemaConfig.isNoSharding())
+		{
+			return true;
+		}
+		if(schemaConfig.getDataNode()!=null&&!schemaConfig.getTables().containsKey(tableName))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
 	
 }
 
