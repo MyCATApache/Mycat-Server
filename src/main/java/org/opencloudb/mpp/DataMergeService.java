@@ -146,12 +146,26 @@ public class DataMergeService {
 		}
 		if (rrs.isHasAggrColumn()) {
 			List<MergeCol> mergCols = new LinkedList<MergeCol>();
-			if (rrs.getMergeCols() != null) {
-				for (Map.Entry<String, Integer> mergEntry : rrs.getMergeCols()
+            Map<String, Integer> mergeColsMap = rrs.getMergeCols();
+            if (mergeColsMap != null) {
+				for (Map.Entry<String, Integer> mergEntry : mergeColsMap
 						.entrySet()) {
 					String colName = mergEntry.getKey().toUpperCase();
-					ColMeta colMeta = columToIndx.get(colName);
-					mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
+                    int type= mergEntry.getValue();
+                    if(MergeCol.MERGE_AVG== type)
+                    {
+                        ColMeta sumColMeta = columToIndx.get(colName + "SUM");
+                        ColMeta countColMeta = columToIndx.get(colName + "COUNT");
+                        if(sumColMeta!=null&&countColMeta!=null)
+                        {
+                            ColMeta colMeta =new ColMeta(sumColMeta.colIndex,countColMeta.colIndex,sumColMeta.getColType()) ;
+                            mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
+                        }
+                    } else
+                    {
+                        ColMeta colMeta = columToIndx.get(colName);
+                        mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
+                    }
 				}
 			}
 			// add no alias merg column
