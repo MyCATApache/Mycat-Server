@@ -70,17 +70,39 @@ public class RowDataPacketGrouper {
 			return;
 		}
 		for (MergeCol merg : mergCols) {
-
-			byte[] result = mertFields(
-					toRow.fieldValues.get(merg.colMeta.colIndex),
-					newRow.fieldValues.get(merg.colMeta.colIndex),
-					merg.colMeta.colType, merg.mergeType);
-			if (result != null) {
-				toRow.fieldValues.set(merg.colMeta.colIndex, result);
-			}
+             if(merg.mergeType!=MergeCol.MERGE_AVG)
+             {
+                 byte[] result = mertFields(
+                         toRow.fieldValues.get(merg.colMeta.colIndex),
+                         newRow.fieldValues.get(merg.colMeta.colIndex),
+                         merg.colMeta.colType, merg.mergeType);
+                 if (result != null)
+                 {
+                     toRow.fieldValues.set(merg.colMeta.colIndex, result);
+                 }
+             }
 		}
 
-	}
+
+        for (MergeCol merg : mergCols) {
+            if(merg.mergeType==MergeCol.MERGE_AVG)
+            {
+                byte[] result = mertFields(
+                        toRow.fieldValues.get(merg.colMeta.avgSumIndex),
+                        newRow.fieldValues.get(merg.colMeta.avgCountIndex),
+                        merg.colMeta.colType, merg.mergeType);
+                if (result != null)
+                {
+                    toRow.fieldValues.set(merg.colMeta.avgSumIndex, result);
+                    toRow.fieldValues.remove(merg.colMeta.avgCountIndex) ;
+                    toRow.fieldCount=toRow.fieldCount-1;
+                }
+            }
+        }
+
+
+
+    }
 
 	private byte[] mertFields(byte[] bs, byte[] bs2, int colType, int mergeType) {
 		// System.out.println("mergeType:"+ mergeType+" colType "+colType+
@@ -131,6 +153,12 @@ public class RowDataPacketGrouper {
 			return (compare > 0) ? bs2 : bs;
 			// return ByteUtil.compareNumberArray2(bs, bs2, 2);
 		}
+            case MergeCol.MERGE_AVG: {
+                double aDouble = ByteUtil.getDouble(bs);
+                long s2 = Long.parseLong(new String(bs2));
+                Double vale = aDouble / s2;
+                return vale.toString().getBytes();
+            }
 		default:
 			return null;
 		}

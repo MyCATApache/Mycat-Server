@@ -22,6 +22,7 @@ import org.opencloudb.mpp.MergeCol;
 import org.opencloudb.mpp.OrderCol;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
+import org.opencloudb.util.ObjectUtil;
 
 import java.sql.SQLNonTransientException;
 import java.util.HashMap;
@@ -32,7 +33,9 @@ import java.util.Map;
 public class DruidSelectParser extends DefaultDruidParser {
 
 
-	@Override
+    protected boolean isNeedParseOrderAgg=true;
+
+    @Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) {
 		SQLSelectStatement selectStmt = (SQLSelectStatement)stmt;
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
@@ -55,6 +58,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 	protected void parseOrderAggGroupMysql(SchemaConfig schema, SQLStatement stmt, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery)
 	{
+        if(!isNeedParseOrderAgg)
+        {
+            return;
+        }
 		Map<String, String> aliaColumns = parseAggGroupCommon(schema, stmt,rrs, mysqlSelectQuery);
 
 		//setOrderByCols
@@ -62,13 +69,16 @@ public class DruidSelectParser extends DefaultDruidParser {
 			List<SQLSelectOrderByItem> orderByItems = mysqlSelectQuery.getOrderBy().getItems();
 			rrs.setOrderByCols(buildOrderByCols(orderByItems,aliaColumns));
 		}
+        isNeedParseOrderAgg=false;
 	}
 	protected Map<String, String> parseAggGroupCommon(SchemaConfig schema, SQLStatement stmt, RouteResultset rrs, SQLSelectQueryBlock mysqlSelectQuery)
 	{
 		Map<String, String> aliaColumns = new HashMap<String, String>();
 		Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
 		List<SQLSelectItem> selectList = mysqlSelectQuery.getSelectList();
-		for (int i = 0; i < selectList.size(); i++)
+        boolean isNeedChangeSql=false;
+        int size = selectList.size();
+        for (int i = 0; i < size; i++)
 		{
 			SQLSelectItem item = selectList.get(i);
 
@@ -77,8 +87,37 @@ public class DruidSelectParser extends DefaultDruidParser {
 				SQLAggregateExpr expr = (SQLAggregateExpr) item.getExpr();
 				String method = expr.getMethodName();
 
-				//只处理有别名的情况，无别名丢给t添加别名，否则某些数据库会得不到正确结果处理
+				//只处理有别名的情况，无别名添加别名，否则某些数据库会得不到正确结果处理
 				int mergeType = MergeCol.getMergeType(method);
+                if (MergeCol.MERGE_AVG == mergeType)
+                {    //跨分片avg需要特殊处理，直接avg结果是不对的
+                    String colName = item.getAlias() != null ? item.getAlias() : method + i;
+                    SQLSelectItem sum =new SQLSelectItem();
+                    String sumColName = colName + "SUM";
+                    sum.setAlias(sumColName);
+                    SQLAggregateExpr sumExp =new SQLAggregateExpr("SUM");
+                    ObjectUtil.copyProperties(expr,sumExp);
+                    sumExp.getArguments().addAll(expr.getArguments());
+                    sumExp.setMethodName("SUM");
+                    sum.setExpr(sumExp);
+                    selectList.set(i, sum);
+                    aggrColumns.put(sumColName, MergeCol.MERGE_SUM);
+
+                    SQLSelectItem count =new SQLSelectItem();
+                    String countColName = colName + "COUNT";
+                    count.setAlias(countColName);
+                    SQLAggregateExpr countExp = new SQLAggregateExpr("COUNT");
+                    ObjectUtil.copyProperties(expr,countExp);
+                    countExp.getArguments().addAll(expr.getArguments());
+                    countExp.setMethodName("COUNT");
+                    count.setExpr(countExp);
+                    selectList.add(count);
+                    aggrColumns.put(countColName, MergeCol.MERGE_COUNT);
+
+                    isNeedChangeSql=true;
+                    aggrColumns.put(colName, mergeType);
+                    rrs.setHasAggrColumn(true);
+                } else
 				if (MergeCol.MERGE_UNSUPPORT != mergeType)
 				{
 					if (item.getAlias() != null && item.getAlias().length() > 0)
@@ -87,10 +126,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 					} else
 					{   //如果不加，jdbc方式时取不到正确结果   ;修改添加别名
 							item.setAlias(method + i);
-							String sql = stmt.toString();
-							rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0,1, true);
-							getCtx().setSql(sql);
 							aggrColumns.put(method + i, mergeType);
+                            isNeedChangeSql=true;
 					}
 					rrs.setHasAggrColumn(true);
 				}
@@ -120,6 +157,13 @@ public class DruidSelectParser extends DefaultDruidParser {
 			rrs.setGroupByCols(groupByCols);
 			rrs.setHasAggrColumn(true);
 		}
+
+        if (isNeedChangeSql)
+        {
+            String sql = stmt.toString();
+            rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0,1, true);
+            getCtx().setSql(sql);
+        }
 		return aliaColumns;
 	}
 
@@ -368,14 +412,23 @@ public class DruidSelectParser extends DefaultDruidParser {
 	private String[] buildGroupByCols(List<SQLExpr> groupByItems,Map<String, String> aliaColumns) {
 		String[] groupByCols = new String[groupByItems.size()]; 
 		for(int i= 0; i < groupByItems.size(); i++) {
-			SQLExpr expr = ((MySqlSelectGroupByExpr)groupByItems.get(i)).getExpr();			
-			String column; 
-			if (expr instanceof SQLName) {
-				column= removeBackquote(((SQLName)expr).getSimpleName());//不要转大写 2015-2-10 sohudo removeBackquote(expr.getSimpleName().toUpperCase());
-			}
-			else {
-				column= removeBackquote(expr.toString());
-			}
+            SQLExpr sqlExpr = groupByItems.get(i);
+            String column;
+            if(sqlExpr instanceof SQLIdentifierExpr )
+            {
+                column=((SQLIdentifierExpr) sqlExpr).getName();
+            } else
+            {
+                SQLExpr expr = ((MySqlSelectGroupByExpr) sqlExpr).getExpr();
+
+                if (expr instanceof SQLName)
+                {
+                    column = removeBackquote(((SQLName) expr).getSimpleName());//不要转大写 2015-2-10 sohudo removeBackquote(expr.getSimpleName().toUpperCase());
+                } else
+                {
+                    column = removeBackquote(expr.toString());
+                }
+            }
 			groupByCols[i] = getAliaColumn(aliaColumns,column);//column;
 		}
 		return groupByCols;
