@@ -25,14 +25,15 @@ public class DruidUpdateParser extends DefaultDruidParser {
 		
 		List<SQLUpdateSetItem> updateSetItem = update.getItems();
 		TableConfig tc = schema.getTables().get(tableName);
-		String partitionColumn = tc.getPartitionColumn();
-		String joinKey = tc.getJoinKey();
-		if(schema.isNoSharding()) {//整个schema都不分库或者该表不拆分
+
+		if(RouterUtil.isNoSharding(schema,tableName)) {//整个schema都不分库或者该表不拆分
 			RouterUtil.routeForTableMeta(rrs, schema, tableName, rrs.getStatement());
 			rrs.setFinishedRoute(true);
 			return;
 		}
-		
+
+		String partitionColumn = tc.getPartitionColumn();
+		String joinKey = tc.getJoinKey();
 		if(tc.isGlobalTable() || (partitionColumn == null && joinKey == null)) {
 			RouterUtil.routeToMultiNode(false, rrs, tc.getDataNodes(), rrs.getStatement());
 			rrs.setFinishedRoute(true);

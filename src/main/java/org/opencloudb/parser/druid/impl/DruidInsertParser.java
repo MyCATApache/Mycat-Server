@@ -39,6 +39,12 @@ public class DruidInsertParser extends DefaultDruidParser {
 		String tableName = removeBackquote(insert.getTableName().getSimpleName()).toUpperCase();
 
 		ctx.addTable(tableName);
+		if(RouterUtil.isNoSharding(schema,tableName)) {//整个schema都不分库或者该表不拆分
+			RouterUtil.routeForTableMeta(rrs, schema, tableName, rrs.getStatement());
+			rrs.setFinishedRoute(true);
+			return;
+		}
+
 		TableConfig tc = schema.getTables().get(tableName);
 		if(tc == null) {
 			String msg = "can't find table define in schema "
