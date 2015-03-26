@@ -140,10 +140,13 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 			}
 			// check dataNode already exists or not
+			String defaultDbType=null;
 			if (dataNode != null && !dataNode.isEmpty()) {
 				List<String> dataNodeLst = new ArrayList<String>(1);
 				dataNodeLst.add(dataNode);
 				checkDataNodeExists(dataNodeLst);
+			String dataHost=	dataNodes.get(dataNode).getDataHost();
+		     defaultDbType=  dataHosts.get(dataHost).getDbType();
 			} else {
 				dataNode = null;
 			}
@@ -159,16 +162,18 @@ public class XMLSchemaLoader implements SchemaLoader {
 						"schema "
 								+ name
 								+ " didn't config tables,so you must set dataNode property!");
-			} else if (tables.size() > 0 && dataNode != null) {
-				throw new ConfigException(
-						"schema "
-								+ name
-								+ " has configed tables,so you mustn't set dataNode property!");
 			}
 
 			SchemaConfig schemaConfig = new SchemaConfig(name, dataNode, tables,
 					sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr));
-
+			  if(defaultDbType!=null)
+			  {
+				  schemaConfig.setDefaultDataNodeDbType(defaultDbType);
+				  if(!"mysql".equalsIgnoreCase(defaultDbType))
+				  {
+					  schemaConfig.setNeedSupportMultiDBType(true);
+				  }
+			  }
 
 			//判断是否有不是mysql的数据库类型，方便解析判断是否启用多数据库分页语法解析
 
