@@ -89,7 +89,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 				//只处理有别名的情况，无别名添加别名，否则某些数据库会得不到正确结果处理
 				int mergeType = MergeCol.getMergeType(method);
-                if (MergeCol.MERGE_AVG == mergeType)
+                if (MergeCol.MERGE_AVG == mergeType&&isRoutMultiNode(schema,rrs))
                 {    //跨分片avg需要特殊处理，直接avg结果是不对的
                     String colName = item.getAlias() != null ? item.getAlias() : method + i;
                     SQLSelectItem sum =new SQLSelectItem();
@@ -167,7 +167,26 @@ public class DruidSelectParser extends DefaultDruidParser {
 		return aliaColumns;
 	}
 
-
+  private boolean isRoutMultiNode(SchemaConfig schema,  RouteResultset rrs)
+  {
+	  if(rrs.getNodes()!=null&&rrs.getNodes().length>1)
+	  {
+		  return true;
+	  }
+	  LayerCachePool tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
+	  try
+	  {
+		  tryRoute(schema, rrs, tableId2DataNodeCache);
+		  if(rrs.getNodes()!=null&&rrs.getNodes().length>1)
+		  {
+			  return true;
+		  }
+	  } catch (SQLNonTransientException e)
+	  {
+		  throw new RuntimeException(e);
+	  }
+	  return false;
+  }
 
     private String getFieldName(SQLSelectItem item){
 		if ((item.getExpr() instanceof SQLPropertyExpr)||(item.getExpr() instanceof SQLMethodInvokeExpr)
