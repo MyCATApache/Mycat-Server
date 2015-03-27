@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.config.model.SystemConfig;
 
 /**
  * used for mycat's catlet class loader ,catlet's class file is stored in
@@ -130,22 +131,32 @@ public class DynaClassLoader {
 					return dynaClass.realClass;
 				}
 			} else {
-				dynaClass = searchFile(extClassHome, name);
+				try {
+					dynaClass = searchFile(extClassHome, name);
+				} catch (Throwable e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 
 			if (dynaClass == null) {
 				return super.loadClass(name);
 			} else {
 				LOGGER.info("load class from file "+dynaClass.filePath);
-				byte[] content;
-				try {
-					content = loadFile(dynaClass.filePath);
-				} catch (IOException e) {
-					throw new ClassNotFoundException(e.toString());
+				Class<?> cNew = null;
+				if (dynaClass.isJar) {
+					cNew =dynaClass.realClass;
 				}
-				Class<?> cNew = super.defineClass(name, content, 0,
-						content.length);
-				dynaClass.realClass = cNew;
+				else {
+				   byte[] content;
+				   try {
+					 content = loadFile(dynaClass.filePath);
+				   } catch (IOException e) {
+					 throw new ClassNotFoundException(e.toString());
+				   }
+				   cNew = super.defineClass(name, content, 0,content.length);
+				   dynaClass.realClass = cNew;
+				}
 				dynaClass.classObj = null;
 				loadedDynaClassMap.put(name, dynaClass);
 				return cNew;
@@ -153,7 +164,7 @@ public class DynaClassLoader {
 
 		}
 
-		private DynaClass searchFile(String classpath, String fileName) {
+		private DynaClass searchFile(String classpath, String fileName) throws Throwable {
 			DynaClass dynCls = null;
 			String path = fileName.replace('.', File.separatorChar) + ".class";
 			System.out.println("class " + classpath + " file " + path);
@@ -166,7 +177,27 @@ public class DynaClassLoader {
 				dynCls.lastModified = f.lastModified();
 				return dynCls;
 			}
-			return null;
+			else {
+				path = fileName.replace('.', File.separatorChar) + ".jar";
+				//classpath="D:\\code\\mycat\\Mycat-Server\\catlet\\";
+				System.out.println("jar " + classpath + " file " + path);
+				f = new File(classpath, path);
+				if (f.isFile()) {
+				  try {
+					 dynCls = new DynaClass(f.getPath());
+					 dynCls.lastModified = f.lastModified();					 
+				     dynCls.realClass=JarLoader.loadJar(classpath+"/"+path,fileName);	
+					 dynCls.isJar=true;
+					 return dynCls;
+				  }
+				  catch(Exception err) {
+					  return null;
+				  }
+
+				}
+				return null;
+			}
+			
 		}
 
 	}
@@ -192,7 +223,7 @@ class DynaClass {
 	public volatile long lastModified;
 	public Class<?> realClass;
 	public Object classObj;
-
+    public boolean isJar=false;
 	public boolean needReloadClass(long classCheckMilis) {
 		if (lastModified + classCheckMilis < System.currentTimeMillis()) {
 			return true;
