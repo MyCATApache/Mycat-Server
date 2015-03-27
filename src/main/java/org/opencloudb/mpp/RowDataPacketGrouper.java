@@ -23,13 +23,13 @@
  */
 package org.opencloudb.mpp;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.LongUtil;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * implement group function select a,count(*),sum(*) from A group by a
@@ -96,7 +96,8 @@ public class RowDataPacketGrouper {
 		case MergeCol.MERGE_SUM:
 			if (colType == ColMeta.COL_TYPE_NEWDECIMAL
 					|| colType == ColMeta.COL_TYPE_DOUBLE
-					|| colType == ColMeta.COL_TYPE_FLOAT) {
+					|| colType == ColMeta.COL_TYPE_FLOAT
+					|| colType == ColMeta.COL_TYPE_DECIMAL) {
 
 				Double vale = ByteUtil.getDouble(bs) + ByteUtil.getDouble(bs2);
 				return vale.toString().getBytes();

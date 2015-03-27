@@ -4,22 +4,29 @@
 	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd"
 	>
 	<includeBaseDirectory>false</includeBaseDirectory>
-	<id>${buildNumber}-testtool</id>
+	<id>${timestamp}-testtool</id>
 	<formats>
 		<format>tar.gz</format>
 	</formats>
 	<fileSets>
 		<fileSet>
 		<directory>src/main/assembly/testtool</directory>
-			<outputDirectory>bin</outputDirectory>
+			<outputDirectory>mycat\bin</outputDirectory>
 			<includes>
 				<include>**/*</include>
 			</includes>
 			<fileMode>0755</fileMode>
 		</fileSet>
+        <fileSet>
+            <directory>${basedir}</directory>
+            <outputDirectory>mycat\</outputDirectory>
+            <includes>
+                <include>version.txt</include>
+            </includes>
+        </fileSet>
 		<fileSet>
 			<directory>target</directory>
-			<outputDirectory>lib</outputDirectory>
+			<outputDirectory>mycat\lib</outputDirectory>
 			<includes>
 				<include>**tests.jar</include>
 			</includes>
@@ -28,7 +35,7 @@
 	<dependencySets>
 		<dependencySet>
 			<scope>test</scope>
-			<outputDirectory>lib</outputDirectory>
+			<outputDirectory>mycat\lib</outputDirectory>
 			<includes>
 				<include>mysql-con*</include>
 				<include>junit*</include>				

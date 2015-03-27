@@ -59,7 +59,6 @@ public abstract class FrontendConnection extends AbstractConnection {
 	protected int port;
 	protected int localPort;
 	protected long idleTimeout;
-	protected int charsetIndex;
 	protected byte[] seed;
 	protected String user;
 	protected String schema;
@@ -170,10 +169,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		return seed;
 	}
 
-	public int getCharsetIndex() {
-		return charsetIndex;
-	}
-
+	
 	public boolean setCharsetIndex(int ci) {
 		String charset = CharsetUtil.getCharset(ci);
 		if (charset != null) {
@@ -183,16 +179,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 	}
 
-	public boolean setCharset(String charset) {
-		int ci = CharsetUtil.getIndex(charset);
-		if (ci > 0) {
-			this.charset = charset;
-			this.charsetIndex = ci;
-			return true;
-		} else {
-			return false;
-		}
-	}
+	
 
 	public void writeErrMessage(int errno, String msg) {
 		writeErrMessage((byte) 1, errno, msg);

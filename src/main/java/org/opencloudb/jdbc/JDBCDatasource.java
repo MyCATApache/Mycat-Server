@@ -1,9 +1,13 @@
 package org.opencloudb.jdbc;
 
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
 import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.model.DBHostConfig;
 import org.opencloudb.config.model.DataHostConfig;
@@ -11,6 +15,20 @@ import org.opencloudb.heartbeat.DBHeartbeat;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 
 public class JDBCDatasource extends PhysicalDatasource {
+	static {
+		// 加载可能的驱动
+		List<String> drivers = Lists.newArrayList("com.mysql.jdbc.Driver", "org.opencloudb.jdbc.mongodb.MongoDriver", "oracle.jdbc.OracleDriver",
+				"com.microsoft.sqlserver.jdbc.SQLServerDriver","org.apache.hive.jdbc.HiveDriver","com.ibm.db2.jcc.DB2Driver","org.postgresql.Driver");
+		for (String driver : drivers)
+		{
+			try
+			{
+				Class.forName(driver);
+			} catch (ClassNotFoundException ignored)
+			{
+			}
+		}
+	}
 	public JDBCDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
 		super(config, hostConfig, isReadNode);
@@ -19,21 +37,23 @@ public class JDBCDatasource extends PhysicalDatasource {
 
 	@Override
 	public DBHeartbeat createHeartBeat() {
-		return new JDBCHeatbeat();
+		return new JDBCHeartbeat(this);
 	}
 
 	@Override
 	public void createNewConnection(ResponseHandler handler,String schema) throws IOException {
-		DBHostConfig dsc = getConfig();
+		DBHostConfig cfg = getConfig();
 		JDBCConnection c = new JDBCConnection();
-
-		c.setHost(dsc.getIp());
-		c.setPort(dsc.getPort());
+		
+		c.setHost(cfg.getIp());
+		c.setPort(cfg.getPort());
 		c.setPool(this);
 		c.setSchema(schema);
+		c.setDbType(cfg.getDbType());
+		
 		try {
-			Connection con = DriverManager.getConnection(dsc.getUrl(),
-					dsc.getUser(), dsc.getPassword());
+            // TODO 这里应该有个连接池
+			Connection con = getConnection();
 			// c.setIdleTimeout(pool.getConfig().getIdleTimeout());
 			c.setCon(con);
 			// notify handler
@@ -43,5 +63,27 @@ public class JDBCDatasource extends PhysicalDatasource {
 		}
 
 	}
+
+    Connection getConnection() throws SQLException
+    {
+        DBHostConfig cfg = getConfig();
+		Connection connection = DriverManager.getConnection(cfg.getUrl(), cfg.getUser(), cfg.getPassword());
+		String initSql=getHostConfig().getConnectionInitSql();
+		if(initSql!=null&&!"".equals(initSql))
+		{     Statement statement =null;
+			try
+			{
+				 statement = connection.createStatement();
+				 statement.execute(initSql);
+			}finally
+			{
+				if(statement!=null)
+				{
+					statement.close();
+				}
+			}
+		}
+		return connection;
+    }
 
 }

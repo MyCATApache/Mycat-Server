@@ -23,20 +23,6 @@
  */
 package org.opencloudb.mpp;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.LinkedTransferQueue;
-import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.mpp.tmp.RowDataSorter;
@@ -45,6 +31,13 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
+
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
@@ -110,7 +103,7 @@ public class DataMergeService {
 	/**
 	 * return merged data
 	 * 
-	 * @return
+	 * @return (最多i*(offset+size)行数据)
 	 */
 	public Collection<RowDataPacket> getResults(final byte[] eof) {
 
@@ -120,12 +113,15 @@ public class DataMergeService {
 			grouper = null;
 		}
 		if (sorter != null) {
-			// Iterator<RowDataPacket> itor = tmpResult.iterator();
-			// while (itor.hasNext()) {
-			// sorter.addRow(itor.next());
-			// itor.remove();
-			//
-			// }
+			//处理grouper处理后的数据
+			if (tmpResult != null) {
+				Iterator<RowDataPacket> itor = tmpResult.iterator();
+				while (itor.hasNext()) {
+                    sorter.addRow(itor.next());
+                    itor.remove();
+				}
+			}
+
 			tmpResult = sorter.getSortedResult();
 			sorter = null;
 		}
@@ -145,8 +141,8 @@ public class DataMergeService {
 		int[] groupColumnIndexs = null;
 		this.fieldCount = fieldCount;
 		if (rrs.getGroupByCols() != null) {
-			groupColumnIndexs = (toColumnIndex(rrs.getGroupByCols(),
-					columToIndx));
+			groupColumnIndexs = toColumnIndex(rrs.getGroupByCols(),
+					columToIndx);
 		}
 		if (rrs.isHasAggrColumn()) {
 			List<MergeCol> mergCols = new LinkedList<MergeCol>();
@@ -175,17 +171,18 @@ public class DataMergeService {
 			OrderCol[] orderCols = new OrderCol[orders.size()];
 			int i = 0;
 			for (Map.Entry<String, Integer> entry : orders.entrySet()) {
+				ColMeta colMeta = columToIndx.get(entry.getKey().toUpperCase());
+				if (colMeta == null) {
+					throw new java.lang.IllegalArgumentException(
+							"order by语句包含的字段必须出现在select语句字段列表里面" + entry.getKey().toUpperCase());
+				}
 				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
 						.toUpperCase()), entry.getValue());
 			}
-		 sorter = new RowDataPacketSorter(orderCols);
-			// RowDataSorter tmp = new RowDataSorter(orderCols);
-			// tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
-			// sorter = tmp;
-		 //sorter = new RowDataPacketSorter(orderCols);
-			 RowDataSorter tmp = new RowDataSorter(orderCols);
-			 tmp.setLimt(rrs.getLimitStart(), rrs.getLimitSize());
-			 sorter = tmp;
+//		 	sorter = new RowDataPacketSorter(orderCols);
+			RowDataSorter tmp = new RowDataSorter(orderCols);
+			tmp.setLimit(rrs.getLimitStart(), rrs.getLimitSize());
+			sorter = tmp;
 		} else {
 			new ConcurrentLinkedQueue<RowDataPacket>();
 		}
@@ -295,12 +292,12 @@ public class DataMergeService {
 	private static int[] toColumnIndex(String[] columns,
 			Map<String, ColMeta> toIndexMap) {
 		int[] result = new int[columns.length];
-		ColMeta curColMeta = null;
+		ColMeta curColMeta;
 		for (int i = 0; i < columns.length; i++) {
 			curColMeta = toIndexMap.get(columns[i].toUpperCase());
 			if (curColMeta == null) {
 				throw new java.lang.IllegalArgumentException(
-						"can't find column in select fields " + columns[i]);
+						"group by语句包含的字段必须出现在select语句字段列表里面" + columns[i]);
 			}
 			result[i] = curColMeta.colIndex;
 		}

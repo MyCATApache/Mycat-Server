@@ -46,12 +46,16 @@ public class SchemaConfig {
 	 */
 	private final int defaultMaxLimit;
 	private final boolean checkSQLSchema;
+	private  boolean needSupportMultiDBType=false;
+	private  String defaultDataNodeDbType;
 	/**
 	 * key is join relation ,A.ID=B.PARENT_ID value is Root Table ,if a->b*->c*
 	 * ,then A is root table
 	 */
 	private final Map<String, TableConfig> joinRel2TableMap = new HashMap<String, TableConfig>();
 	private final String[] allDataNodeStrArr;
+
+	private  Map<String,String> dataNodeDbTypeMap=new HashMap<>();
 
 	public SchemaConfig(String name, String dataNode,
 			Map<String, TableConfig> tables, int defaultMaxLimit,
@@ -62,10 +66,10 @@ public class SchemaConfig {
 		this.tables = tables;
 		this.defaultMaxLimit = defaultMaxLimit;
 		buildJoinMap(tables);
-		this.noSharding = (tables == null || tables.isEmpty()) ? true : false;
-		if (!noSharding && dataNode != null) {
+		this.noSharding = (tables == null || tables.isEmpty());
+		if (noSharding && dataNode == null) {
 			throw new RuntimeException(name
-					+ " in sharidng mode schema can't have dataNode ");
+					+ " in noSharding mode schema must have default dataNode ");
 		}
 		this.metaDataNodes = buildMetaDataNodes();
 		this.allDataNodes = buildAllDataNodes();
@@ -77,6 +81,16 @@ public class SchemaConfig {
 		} else {
 			this.allDataNodeStrArr = null;
 		}
+	}
+
+	public String getDefaultDataNodeDbType()
+	{
+		return defaultDataNodeDbType;
+	}
+
+	public void setDefaultDataNodeDbType(String defaultDataNodeDbType)
+	{
+		this.defaultDataNodeDbType = defaultDataNodeDbType;
 	}
 
 	public boolean isCheckSQLSchema() {
@@ -108,6 +122,16 @@ public class SchemaConfig {
 
 	}
 
+	public boolean isNeedSupportMultiDBType()
+	{
+		return needSupportMultiDBType;
+	}
+
+	public void setNeedSupportMultiDBType(boolean needSupportMultiDBType)
+	{
+		this.needSupportMultiDBType = needSupportMultiDBType;
+	}
+
 	public Map<String, TableConfig> getJoinRel2TableMap() {
 		return joinRel2TableMap;
 	}
@@ -134,6 +158,16 @@ public class SchemaConfig {
 
 	public Set<String> getAllDataNodes() {
 		return allDataNodes;
+	}
+
+	public Map<String, String> getDataNodeDbTypeMap()
+	{
+		return dataNodeDbTypeMap;
+	}
+
+	public void setDataNodeDbTypeMap(Map<String, String> dataNodeDbTypeMap)
+	{
+		this.dataNodeDbTypeMap = dataNodeDbTypeMap;
 	}
 
 	public String getRandomDataNode() {

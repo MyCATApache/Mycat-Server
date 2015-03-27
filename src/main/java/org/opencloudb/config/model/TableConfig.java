@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -25,6 +25,7 @@ package org.opencloudb.config.model;
 
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Set;
 
 import org.opencloudb.config.model.rule.RuleConfig;
 import org.opencloudb.util.SplitUtil;
@@ -38,6 +39,8 @@ public class TableConfig {
 	private final String name;
 	private final String primaryKey;
 	private final boolean autoIncrement;
+	private final boolean needAddLimit;
+	private final Set<String> dbTypes;
 	private final int tableType;
 	private final ArrayList<String> dataNodes;
 	private final RuleConfig rule;
@@ -53,8 +56,8 @@ public class TableConfig {
 	private final boolean partionKeyIsPrimaryKey;
 	private final Random rand = new Random();
 
-	public TableConfig(String name, String primaryKey, boolean autoIncrement, int tableType,
-			String dataNode, RuleConfig rule, boolean ruleRequired,
+	public TableConfig(String name, String primaryKey, boolean autoIncrement,boolean needAddLimit, int tableType,
+			String dataNode,Set<String> dbType, RuleConfig rule, boolean ruleRequired,
 			TableConfig parentTC, boolean isChildTable, String joinKey,
 			String parentKey) {
 		if (name == null) {
@@ -64,14 +67,16 @@ public class TableConfig {
 		}
 		this.primaryKey = primaryKey;
 		this.autoIncrement = autoIncrement;
+		this.needAddLimit=needAddLimit;
 		this.tableType = tableType;
+		this.dbTypes=dbType;
 		if (ruleRequired && rule == null) {
 			throw new IllegalArgumentException("ruleRequired but rule is null");
 		}
 
 		this.name = name.toUpperCase();
-		String theDataNodes[] = SplitUtil.split(dataNode, ',', '$', '-', '[',
-				']');
+		String theDataNodes[] = SplitUtil.split(dataNode, ',', '$', '-');
+
 
 		if (theDataNodes == null || theDataNodes.length <= 0) {
 			throw new IllegalArgumentException("invalid table dataNodes: "
@@ -102,8 +107,17 @@ public class TableConfig {
 		return primaryKey;
 	}
 
-	public boolean isAutoIncrement() {
+    public Set<String> getDbTypes()
+    {
+        return dbTypes;
+    }
+
+    public boolean isAutoIncrement() {
 		return autoIncrement;
+	}
+
+	public boolean isNeedAddLimit() {
+		return needAddLimit;
 	}
 
 	public boolean isSecondLevel() {
@@ -113,7 +127,7 @@ public class TableConfig {
 	public String getLocateRTableKeySql() {
 		return locateRTableKeySql;
 	}
-	
+
 	public boolean isGlobalTable() {
 		return this.tableType == TableConfig.TYPE_GLOBAL_TABLE;
 	}
@@ -163,7 +177,7 @@ public class TableConfig {
 
 	/**
 	 * get root parent
-	 * 
+	 *
 	 * @return
 	 */
 	public TableConfig getRootParent() {

@@ -2,6 +2,7 @@ package org.opencloudb.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
 
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.route.RouteResultset;
 
@@ -15,7 +16,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableStatemen
  */
 public class DruidAlterTableParser extends DefaultDruidParser {
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
+	public void visitorParse(RouteResultset rrs, SQLStatement stmt,SchemaStatVisitor visitor) throws SQLNonTransientException {
 		
 	}
 	@Override

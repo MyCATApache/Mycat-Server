@@ -35,8 +35,7 @@ import org.apache.log4j.Logger;
 public final class BufferPool {
 	// this value not changed ,isLocalCacheThread use it
 	public static final String LOCAL_BUF_THREAD_PREX = "$_";
-	private static final ThreadLocalBufferPool localBufferPool = new ThreadLocalBufferPool(
-			4000);
+	private  final ThreadLocalBufferPool localBufferPool;
 	private static final Logger LOGGER = Logger.getLogger(BufferPool.class);
 	private final int chunkSize;
 	private final ConcurrentLinkedQueue<ByteBuffer> items = new ConcurrentLinkedQueue<ByteBuffer>();
@@ -56,6 +55,8 @@ public final class BufferPool {
 		for (int i = 0; i < capactiy; i++) {
 			items.offer(createDirectBuffer(chunkSize));
 		}
+		localBufferPool = new ThreadLocalBufferPool(
+				threadLocalCount);
 	}
 
 	private static final boolean isLocalCacheThread() {

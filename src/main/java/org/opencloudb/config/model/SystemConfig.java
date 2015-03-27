@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -29,7 +29,7 @@ import org.opencloudb.config.Isolations;
 
 /**
  * 系统基础配置项
- * 
+ *
  * @author mycat
  */
 public final class SystemConfig {
@@ -97,7 +97,8 @@ public final class SystemConfig {
 	public static final int SEQUENCEHANDLER_MYSQLDB = 1;
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "org.opencloudb.interceptor.impl.DefaultSqlInterceptor";
-
+	private String sqlInterceptorType = "select";
+	private String sqlInterceptorFile = System.getProperty("user.dir")+"/logs/sql.txt";
 	public static final int MUTINODELIMIT_SMALL_DATA = 0;
 	public static final int MUTINODELIMIT_LAR_DATA = 1;
 	private int mutiNodeLimitType = MUTINODELIMIT_SMALL_DATA;
@@ -109,6 +110,7 @@ public final class SystemConfig {
 	private int usingAIO = 0;
 	private int packetHeaderSize = 4;
 	private int maxPacketSize = 16 * 1024 * 1024;
+	private int mycatNodeId=1;
 
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
@@ -493,12 +495,36 @@ public final class SystemConfig {
 		this.processorBufferLocalPercent = processorBufferLocalPercent;
 	}
 
+	public String getSqlInterceptorType() {
+		return sqlInterceptorType;
+	}
+
+	public void setSqlInterceptorType(String sqlInterceptorType) {
+		this.sqlInterceptorType = sqlInterceptorType;
+	}
+
+	public String getSqlInterceptorFile() {
+		return sqlInterceptorFile;
+	}
+
+	public void setSqlInterceptorFile(String sqlInterceptorFile) {
+		this.sqlInterceptorFile = sqlInterceptorFile;
+	}
+
 	public int getUsingAIO() {
 		return usingAIO;
 	}
 
 	public void setUsingAIO(int usingAIO) {
 		this.usingAIO = usingAIO;
+	}
+
+	public int getMycatNodeId() {
+		return mycatNodeId;
+	}
+
+	public void setMycatNodeId(int mycatNodeId) {
+		this.mycatNodeId = mycatNodeId;
 	}
 
 	@Override
@@ -518,6 +544,7 @@ public final class SystemConfig {
 				+ ", processorExecutor=" + processorExecutor
 				+ ", timerExecutor=" + timerExecutor + ", managerExecutor="
 				+ managerExecutor + ", idleTimeout=" + idleTimeout
+				+ ", catletClassCheckSeconds=" + catletClassCheckSeconds
 				+ ", sqlExecuteTimeout=" + sqlExecuteTimeout
 				+ ", processorCheckPeriod=" + processorCheckPeriod
 				+ ", dataNodeIdleCheckPeriod=" + dataNodeIdleCheckPeriod
@@ -533,11 +560,17 @@ public final class SystemConfig {
 				+ ", processorBufferChunk=" + processorBufferChunk
 				+ ", defaultMaxLimit=" + defaultMaxLimit
 				+ ", sequnceHandlerType=" + sequnceHandlerType
-				+ ", sqlInterceptor=" + sqlInterceptor + ", mutiNodeLimitType="
+				+ ", sqlInterceptor=" + sqlInterceptor
+				+ ", sqlInterceptorType=" + sqlInterceptorType
+				+ ", sqlInterceptorFile=" + sqlInterceptorFile
+				+ ", mutiNodeLimitType="
 				+ mutiNodeLimitType + ", mutiNodePatchSize="
 				+ mutiNodePatchSize + ", defaultSqlParser=" + defaultSqlParser
 				+ ", usingAIO=" + usingAIO + ", packetHeaderSize="
-				+ packetHeaderSize + ", maxPacketSize=" + maxPacketSize + "]";
+				+ packetHeaderSize + ", maxPacketSize=" + maxPacketSize
+				+ ", mycatNodeId=" + mycatNodeId + "]";
 	}
+
+
 
 }

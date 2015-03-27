@@ -44,6 +44,7 @@ public class DataHostConfig {
 	private final DBHostConfig[] writeHosts;
 	private final Map<Integer, DBHostConfig[]> readHosts;
 	private String hearbeatSQL;
+	private String connectionInitSql;
 
 	public DataHostConfig(String name, String dbType, String dbDriver,
 			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts) {
@@ -53,6 +54,16 @@ public class DataHostConfig {
 		this.dbDriver = dbDriver;
 		this.writeHosts = writeHosts;
 		this.readHosts = readHosts;
+	}
+
+	public String getConnectionInitSql()
+	{
+		return connectionInitSql;
+	}
+
+	public void setConnectionInitSql(String connectionInitSql)
+	{
+		this.connectionInitSql = connectionInitSql;
 	}
 
 	public int getWriteType() {

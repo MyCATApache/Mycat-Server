@@ -34,6 +34,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.PhysicalDBPool;
@@ -79,6 +80,7 @@ public class MycatServer {
 	private volatile int nextProcessor;
 	private BufferPool bufferPool;
 	private boolean aio = false;
+	private final AtomicLong xaIDInc = new AtomicLong();
 
 	public static final MycatServer getInstance() {
 		return INSTANCE;
@@ -134,6 +136,20 @@ public class MycatServer {
 
 	public SQLInterceptor getSqlInterceptor() {
 		return sqlInterceptor;
+	}
+
+	public String genXATXID() {
+		long seq = this.xaIDInc.incrementAndGet();
+		if (seq < 0) {
+			synchronized (xaIDInc) {
+				if (xaIDInc.get() < 0) {
+					xaIDInc.set(0);
+				}
+				seq = xaIDInc.incrementAndGet();
+			}
+		}
+		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "."
+				+ seq+"'";
 	}
 
 	/**
@@ -297,7 +313,7 @@ public class MycatServer {
 			@Override
 			public void run() {
 				try {
-                   catletClassLoader.clearUnUsedClass();
+					catletClassLoader.clearUnUsedClass();
 				} catch (Exception e) {
 					LOGGER.warn("catletClassClear err " + e);
 				}

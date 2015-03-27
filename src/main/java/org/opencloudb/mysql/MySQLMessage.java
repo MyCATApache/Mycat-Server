@@ -219,6 +219,7 @@ public class MySQLMessage {
         if (position >= length) {
             return null;
         }
+        
         String s = new String(data, position, length - position, charset);
         position = length;
         return s;
