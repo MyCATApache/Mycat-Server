@@ -78,6 +78,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		List<SQLSelectItem> selectList = mysqlSelectQuery.getSelectList();
         boolean isNeedChangeSql=false;
         int size = selectList.size();
+        boolean isDistinct=mysqlSelectQuery.getDistionOption()==2;
         for (int i = 0; i < size; i++)
 		{
 			SQLSelectItem item = selectList.get(i);
@@ -150,13 +151,28 @@ public class DruidSelectParser extends DefaultDruidParser {
 			rrs.setMergeCols(aggrColumns);
 		}
 
-		//setGroupByCols
+        //通过优化转换成group by来实现
+        if(isDistinct)
+        {
+            mysqlSelectQuery.setDistionOption(0);
+            SQLSelectGroupByClause   groupBy=new SQLSelectGroupByClause();
+            for (String fieldName : aliaColumns.keySet())
+            {
+                groupBy.addItem(new SQLIdentifierExpr(fieldName));
+            }
+            mysqlSelectQuery.setGroupBy(groupBy);
+            isNeedChangeSql=true;
+        }
+
+
+        //setGroupByCols
 		if(mysqlSelectQuery.getGroupBy() != null) {
 			List<SQLExpr> groupByItems = mysqlSelectQuery.getGroupBy().getItems();
 			String[] groupByCols = buildGroupByCols(groupByItems,aliaColumns);
 			rrs.setGroupByCols(groupByCols);
 			rrs.setHasAggrColumn(true);
 		}
+
 
         if (isNeedChangeSql)
         {
