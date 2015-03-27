@@ -52,6 +52,7 @@ public final class ServerParse {
 	public static final int MYSQL_COMMENT = 19;
 	public static final int CALL = 20;
 	public static final int DESCRIBE = 21;
+    public static final int LOAD_DATA_INFILE = 255;
 
 	public static int parse(String stmt) {
 		int lenth = stmt.length();

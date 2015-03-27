@@ -23,11 +23,16 @@
  */
 package org.opencloudb.net.handler;
 
+import com.google.common.io.Files;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.NIOHandler;
 import org.opencloudb.net.mysql.MySQLPacket;
+import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.statistic.CommandCount;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * 前端命令处理器
@@ -84,6 +89,18 @@ public class FrontendCommandHandler implements NIOHandler {
 			source.heartbeat(data);
 			break;
 		default:
+          byte xx=  data[4] ;
+            if(xx==48)
+            {
+                try
+                {
+                    Files.write(data,new File("d:\\88\\mycat.txt"));
+                    new OkPacket().write(source);
+                } catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
 			commands.doOther();
 			source.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
 					"Unknown command");
