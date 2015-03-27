@@ -82,15 +82,13 @@ public class RowDataPacketGrouper {
 		for (MergeCol merg : mergCols) {
              if(merg.mergeType!=MergeCol.MERGE_AVG)
              {
-			int offset=	 newRow.fieldValues.size()-toRow.fieldValues.size();
-
                  byte[] result = mertFields(
-                         toRow.fieldValues.get(merg.colMeta.colIndex-offset),
+                         toRow.fieldValues.get(merg.colMeta.colIndex),
                          newRow.fieldValues.get(merg.colMeta.colIndex),
                          merg.colMeta.colType, merg.mergeType);
                  if (result != null)
                  {
-                     toRow.fieldValues.set(merg.colMeta.colIndex-offset, result);
+                     toRow.fieldValues.set(merg.colMeta.colIndex, result);
                  }
              }
 		}
