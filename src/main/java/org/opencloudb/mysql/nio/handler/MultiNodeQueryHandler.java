@@ -32,8 +32,10 @@ import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
+import org.opencloudb.mpp.MergeCol;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.OkPacket;
+import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
@@ -330,12 +332,48 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				return;
 			}
 			fieldsReturned = true;
-			
-			header[3] = ++packetId;
-			source = session.getSource();
-			ByteBuffer buffer=source.allocate();
-			buffer=source.writeToBuffer(header, buffer);
-			fieldCount = fields.size();
+
+            boolean needMerg = (dataMergeSvr != null)
+                    && dataMergeSvr.getRrs().needMerge();
+            Set<String> shouldRemoveAvgField=new HashSet<>();
+            Set<String> shouldRenameAvgField=new HashSet<>();
+            if(needMerg)
+            {
+                Map<String, Integer> mergeColsMap=   dataMergeSvr.getRrs().getMergeCols();
+                if(mergeColsMap!=null)
+                {
+                    for (Map.Entry<String, Integer> entry : mergeColsMap.entrySet())
+                    {
+                        String key=    entry.getKey();
+                        int mergeType=entry.getValue();
+                        if(MergeCol.MERGE_AVG==mergeType&&mergeColsMap.containsKey(key+"SUM"))
+                        {
+                            shouldRemoveAvgField.add((key+"COUNT").toUpperCase());
+                            shouldRenameAvgField.add((key+"SUM").toUpperCase());
+                        }
+                    }
+                }
+
+            }
+
+
+            source = session.getSource();
+            ByteBuffer buffer=source.allocate();
+            fieldCount = fields.size();
+             if(shouldRemoveAvgField.size()>0)
+             {
+                 ResultSetHeaderPacket packet = new ResultSetHeaderPacket();
+                 packet.packetId =++packetId;
+                 packet.fieldCount = fieldCount-shouldRemoveAvgField.size();
+                 buffer=packet.write(buffer,source,true);
+             } else
+             {
+
+                 header[3] = ++packetId;
+                 buffer=source.writeToBuffer(header, buffer);
+             }
+
+
 
 			String primaryKey = null;
 			if (rrs.hasPrimaryKeyToCache()) {
@@ -346,9 +384,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 			Map<String, ColMeta> columToIndx = new HashMap<String, ColMeta>(
 					fieldCount);
-			boolean needMerg = (dataMergeSvr != null)
-					&& dataMergeSvr.getRrs().needMerge();
+
+
 			for (int i = 0, len = fieldCount; i < len; ++i) {
+                boolean shouldSkip=false;
 				byte[] field = fields.get(i);
 				if (needMerg) {
 					FieldPacket fieldPkg = new FieldPacket();
@@ -356,6 +395,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 					String fieldName = new String(fieldPkg.name).toUpperCase();
 					if (columToIndx != null
 							&& !columToIndx.containsKey(fieldName)) {
+                        if(shouldRemoveAvgField.contains(fieldName))
+                        {
+                            shouldSkip=true;
+                        }
+                        if(shouldRenameAvgField.contains(fieldName))
+                        {
+                            String newFieldName=fieldName.substring(0,fieldName.length()-3);
+                            fieldPkg.name=newFieldName.getBytes();
+                            fieldPkg.packetId = ++packetId;
+                            shouldSkip=true;
+                            buffer=   fieldPkg.write(buffer,source,false);
+
+                        }
 
 						columToIndx.put(fieldName,
 								new ColMeta(i, fieldPkg.type));
@@ -370,9 +422,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 						fieldCount = fields.size();
 					}
 				}
-
-				field[3] = ++packetId;
-				buffer=source.writeToBuffer(field, buffer);
+               if(!shouldSkip)
+               {
+                   field[3] = ++packetId;
+                   buffer = source.writeToBuffer(field, buffer);
+               }
 			}
 			eof[3] = ++packetId;
 			buffer=source.writeToBuffer(eof, buffer);

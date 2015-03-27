@@ -42,6 +42,7 @@ public class RowDataPacketGrouper {
 	private final MergeCol[] mergCols;
 	private final int[] groupColumnIndexs;
 	private ConcurrentLinkedQueue<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
+	private boolean isMergAvg=false;
 
 	public RowDataPacketGrouper(int[] groupColumnIndexs, MergeCol[] mergCols) {
 		super();
@@ -50,6 +51,14 @@ public class RowDataPacketGrouper {
 	}
 
 	public Collection<RowDataPacket> getResult() {
+		if(!isMergAvg)
+		{
+			for (RowDataPacket row : result)
+			{
+				mergAvg(row);
+			}
+			isMergAvg=true;
+		}
 		return result;
 	}
 
@@ -60,6 +69,7 @@ public class RowDataPacketGrouper {
 				return;
 			}
 		}
+
 		// not aggreated ,insert new
 		result.add(rowDataPkg);
 
@@ -70,15 +80,47 @@ public class RowDataPacketGrouper {
 			return;
 		}
 		for (MergeCol merg : mergCols) {
+             if(merg.mergeType!=MergeCol.MERGE_AVG)
+             {
+                 byte[] result = mertFields(
+                         toRow.fieldValues.get(merg.colMeta.colIndex),
+                         newRow.fieldValues.get(merg.colMeta.colIndex),
+                         merg.colMeta.colType, merg.mergeType);
+                 if (result != null)
+                 {
+                     toRow.fieldValues.set(merg.colMeta.colIndex, result);
+                 }
+             }
+		}
 
-			byte[] result = mertFields(
-					toRow.fieldValues.get(merg.colMeta.colIndex),
-					newRow.fieldValues.get(merg.colMeta.colIndex),
-					merg.colMeta.colType, merg.mergeType);
-			if (result != null) {
-				toRow.fieldValues.set(merg.colMeta.colIndex, result);
+
+
+
+    }
+
+	private void mergAvg(RowDataPacket toRow) {
+		if (mergCols == null) {
+			return;
+		}
+
+
+		for (MergeCol merg : mergCols) {
+			if(merg.mergeType==MergeCol.MERGE_AVG)
+			{
+				byte[] result = mertFields(
+						toRow.fieldValues.get(merg.colMeta.avgSumIndex),
+						toRow.fieldValues.get(merg.colMeta.avgCountIndex),
+						merg.colMeta.colType, merg.mergeType);
+				if (result != null)
+				{
+					toRow.fieldValues.set(merg.colMeta.avgSumIndex, result);
+					toRow.fieldValues.remove(merg.colMeta.avgCountIndex) ;
+					toRow.fieldCount=toRow.fieldCount-1;
+				}
 			}
 		}
+
+
 
 	}
 
@@ -131,6 +173,12 @@ public class RowDataPacketGrouper {
 			return (compare > 0) ? bs2 : bs;
 			// return ByteUtil.compareNumberArray2(bs, bs2, 2);
 		}
+            case MergeCol.MERGE_AVG: {
+                double aDouble = ByteUtil.getDouble(bs);
+                long s2 = Long.parseLong(new String(bs2));
+                Double vale = aDouble / s2;
+                return vale.toString().getBytes();
+            }
 		default:
 			return null;
 		}

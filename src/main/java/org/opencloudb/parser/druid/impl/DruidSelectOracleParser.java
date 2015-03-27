@@ -18,9 +18,7 @@ import java.util.Map;
 
 public class DruidSelectOracleParser extends DruidSelectParser {
 
-	protected boolean isNeedParseOrderAgg=true;
-
-	@Override
+    @Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) {
 		SQLSelectStatement selectStmt = (SQLSelectStatement)stmt;
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
@@ -68,6 +66,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 			List<SQLSelectOrderByItem> orderByItems = oracleSelect.getOrderBy().getItems();
 			rrs.setOrderByCols(buildOrderByCols(orderByItems,aliaColumns));
 		}
+        isNeedParseOrderAgg=false;
 	}
 
 
