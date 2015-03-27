@@ -161,7 +161,7 @@ public class DruidSelectParser extends DefaultDruidParser {
         if (isNeedChangeSql)
         {
             String sql = stmt.toString();
-            rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0,1, true);
+            rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),sql,0,-1, false);
             getCtx().setSql(sql);
         }
 		return aliaColumns;
