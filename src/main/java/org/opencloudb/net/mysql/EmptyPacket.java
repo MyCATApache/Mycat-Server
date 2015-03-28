@@ -23,52 +23,20 @@
  */
 package org.opencloudb.net.mysql;
 
-import org.opencloudb.mysql.BufferUtil;
-import org.opencloudb.net.FrontendConnection;
-
-import java.nio.ByteBuffer;
-
 /**
- * load data infile 向客户端请求发送文件用
+ * @author mycat暂时只发现在load data infile时用到
  */
-public class RequestFilePacket extends MySQLPacket
-{
-
-    public byte command = (byte) 251;
-    public byte[] fileName;
-
+public class EmptyPacket extends MySQLPacket {
+    public static final byte[] EMPTY = new byte[] { 0, 0, 0,3 };
 
     @Override
-    public ByteBuffer write(ByteBuffer buffer, FrontendConnection c, boolean writeSocketIfFull)
-    {
-        int size = calcPacketSize();
-        buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size, writeSocketIfFull);
-        BufferUtil.writeUB3(buffer, size);
-        buffer.put(packetId);
-        buffer.put(command);
-        if (fileName != null)
-        {
-            //BufferUtil.writeWithLength(buffer,fileName, (byte) 0);
-            buffer.put(fileName);
-            buffer.put((byte) 0);
-        }
-
-        c.write(buffer);
-
-        return buffer;
+    public int calcPacketSize() {
+        return 0;
     }
 
     @Override
-    public int calcPacketSize()
-    {
-        return fileName == null ? 1 : 1 + fileName.length;
+    protected String getPacketInfo() {
+        return "MySQL Empty Packet";
     }
-
-    @Override
-    protected String getPacketInfo()
-    {
-        return "MySQL Request File Packet";
-    }
-
 
 }

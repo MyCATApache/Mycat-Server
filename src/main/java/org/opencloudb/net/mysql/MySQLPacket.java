@@ -182,6 +182,8 @@ public abstract class MySQLPacket {
      */
     public static final byte COM_HEARTBEAT = 64;
 
+    public static final byte LOAD_DATA_INFILE_DATA = 48;
+
     public int packetLength;
     public byte packetId;
 

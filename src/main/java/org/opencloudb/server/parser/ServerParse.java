@@ -25,6 +25,9 @@ package org.opencloudb.server.parser;
 
 import org.opencloudb.parser.util.ParseUtil;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * @author mycat
  */
@@ -52,7 +55,7 @@ public final class ServerParse {
 	public static final int MYSQL_COMMENT = 19;
 	public static final int CALL = 20;
 	public static final int DESCRIBE = 21;
-    public static final int LOAD_DATA_INFILE = 255;
+    public static final int LOAD_DATA_INFILE_SQL = 99;
 
 	public static int parse(String stmt) {
 		int lenth = stmt.length();
@@ -107,12 +110,34 @@ public final class ServerParse {
 			case 'H':
 			case 'h':
 				return helpCheck(stmt, i);
+				case 'L':
+				case 'l':
+					return loadDataCheck(stmt, i);
 			default:
 				return OTHER;
 			}
 		}
 		return OTHER;
 	}
+
+
+	static int loadDataCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 3) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			if ((c1 == 'O' || c1 == 'o') && (c2 == 'A' || c2 == 'a')
+					&& (c3 == 'D' || c3 == 'd')) {
+				String patten="(load)+\\s+(data)+\\s+\\w*\\s+(infile)+";
+				Pattern pattern = Pattern.compile(patten,Pattern.CASE_INSENSITIVE);
+				Matcher matcher = pattern.matcher(stmt);
+				return matcher.find() ? LOAD_DATA_INFILE_SQL : OTHER;
+			}
+		}
+
+		return OTHER;
+	}
+
 
 	// HELP' '
 	static int helpCheck(String stmt, int offset) {

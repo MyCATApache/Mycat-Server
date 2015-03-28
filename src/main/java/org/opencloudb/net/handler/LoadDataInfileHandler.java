@@ -21,30 +21,20 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.server.handler;
-
-import org.opencloudb.config.ErrorCode;
-import org.opencloudb.net.mysql.CommandPacket;
-import org.opencloudb.net.mysql.MySQLPacket;
-import org.opencloudb.net.mysql.RequestFilePacket;
-import org.opencloudb.server.ServerConnection;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
+package org.opencloudb.net.handler;
 
 /**
- * @author mycat
+ * load data infile
+ * 
+ * @author magicdoom
  */
-public final class LoadDataInFileHandler
+public interface LoadDataInfileHandler
 {
 
-    public static void handle(String stmt, ServerConnection c) {
-        ByteBuffer buffer = c.allocate();
-        RequestFilePacket filePacket=new RequestFilePacket();
-        filePacket.fileName="sql.csv".getBytes();
-       filePacket.write(buffer,c,true);
+    void start(String sql);
 
+    void execute(byte[] data);
 
-    }
+    void end();
 
 }

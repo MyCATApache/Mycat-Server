@@ -108,8 +108,8 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		case ServerParse.MYSQL_COMMENT:
 			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			break;
-            case ServerParse.LOAD_DATA_INFILE:
-                LoadDataInFileHandler.handle(sql,c);
+            case ServerParse.LOAD_DATA_INFILE_SQL:
+                c.loadDataInfileStart(sql);
                 break;
 		default:
 			if(readOnly){

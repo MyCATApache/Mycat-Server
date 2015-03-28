@@ -215,7 +215,7 @@ public class MySQLDetector extends BackendAIOConnection {
 		// flag |= Capabilities.CLIENT_NO_SCHEMA;
 		// flag |= Capabilities.CLIENT_COMPRESS;
 		flag |= Capabilities.CLIENT_ODBC;
-		// flag |= Capabilities.CLIENT_LOCAL_FILES;
+		 flag |= Capabilities.CLIENT_LOCAL_FILES;
 		flag |= Capabilities.CLIENT_IGNORE_SPACE;
 		flag |= Capabilities.CLIENT_PROTOCOL_41;
 		flag |= Capabilities.CLIENT_INTERACTIVE;
