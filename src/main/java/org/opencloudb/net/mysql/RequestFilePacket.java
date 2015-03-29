@@ -29,7 +29,7 @@ import org.opencloudb.net.FrontendConnection;
 import java.nio.ByteBuffer;
 
 /**
- * load data infile 向客户端请求发送文件用
+ * load data local infile 向客户端请求发送文件用
  */
 public class RequestFilePacket extends MySQLPacket
 {
@@ -48,9 +48,9 @@ public class RequestFilePacket extends MySQLPacket
         buffer.put(command);
         if (fileName != null)
         {
-            //BufferUtil.writeWithLength(buffer,fileName, (byte) 0);
+
             buffer.put(fileName);
-            buffer.put((byte) 0);
+
         }
 
         c.write(buffer);

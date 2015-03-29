@@ -33,8 +33,10 @@ public interface LoadDataInfileHandler
 
     void start(String sql);
 
-    void execute(byte[] data);
+    void handle(byte[] data);
 
-    void end();
+    void end(byte packID);
+
+    void clear();
 
 }

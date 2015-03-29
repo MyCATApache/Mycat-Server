@@ -155,6 +155,45 @@ public class ServerConnection extends FrontendConnection {
 
 	}
 
+	public RouteResultset routeSQL(String sql, int type) {
+
+		// 检查当前使用的DB
+		String db = this.schema;
+		if (db == null) {
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
+					"No MyCAT Database selected");
+			return null;
+		}
+		SchemaConfig schema = MycatServer.getInstance().getConfig()
+				.getSchemas().get(db);
+		if (schema == null) {
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
+					"Unknown MyCAT Database '" + db + "'");
+			return null;
+		}
+
+		// 路由计算
+		RouteResultset rrs = null;
+		try {
+			rrs = MycatServer
+					.getInstance()
+					.getRouterservice()
+					.route(MycatServer.getInstance().getConfig().getSystem(),
+							schema, type, sql, this.charset, this);
+
+		} catch (Exception e) {
+			StringBuilder s = new StringBuilder();
+			LOGGER.warn(s.append(this).append(sql).toString() + " err:" + e.toString(),e);
+			String msg = e.getMessage();
+			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
+			return null;
+		}
+		return rrs;
+	}
+
+
+
+
 	public void routeEndExecuteSQL(String sql, int type, SchemaConfig schema) {
 		// 路由计算
 		RouteResultset rrs = null;
@@ -222,7 +261,10 @@ public class ServerConnection extends FrontendConnection {
 	public void close(String reason) {
 		super.close(reason);
 		session.terminate();
-
+		if(getLoadDataInfileHandler()!=null)
+		{
+			getLoadDataInfileHandler().clear();
+		}
 	}
 
 	@Override

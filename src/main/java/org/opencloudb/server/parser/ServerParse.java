@@ -128,7 +128,7 @@ public final class ServerParse {
 			char c3 = stmt.charAt(++offset);
 			if ((c1 == 'O' || c1 == 'o') && (c2 == 'A' || c2 == 'a')
 					&& (c3 == 'D' || c3 == 'd')) {
-				String patten="(load)+\\s+(data)+\\s+\\w*\\s+(infile)+";
+				String patten="(load)+\\s+(data)+\\s+\\w*\\s*(infile)+";
 				Pattern pattern = Pattern.compile(patten,Pattern.CASE_INSENSITIVE);
 				Matcher matcher = pattern.matcher(stmt);
 				return matcher.find() ? LOAD_DATA_INFILE_SQL : OTHER;

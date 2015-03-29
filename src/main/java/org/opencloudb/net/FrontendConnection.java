@@ -244,18 +244,18 @@ public abstract class FrontendConnection extends AbstractConnection {
 	{
 		if(loadDataInfileHandler!=null)
 		{
-			loadDataInfileHandler.execute(data);
+			loadDataInfileHandler.handle(data);
 		}   else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
 					"load data infile  data is not  unsupported!");
 		}
 
 	}
-	public void loadDataInfileEnd()
+	public void loadDataInfileEnd(byte packID)
 	{
 		if(loadDataInfileHandler!=null)
 		{
-			loadDataInfileHandler.end();
+			loadDataInfileHandler.end(packID);
 		}   else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
 					"load data infile end is not  unsupported!");
@@ -394,7 +394,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		if(data.length==4&&data[0]==0&&data[1]==0&&data[2]==0)
 		{
 			//load in data空包
-			loadDataInfileEnd();
+			loadDataInfileEnd(data[3]);
 			return;
 		}
 		if (data.length>4&&data[4] == MySQLPacket.COM_QUIT) {
@@ -415,7 +415,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		// flag |= Capabilities.CLIENT_NO_SCHEMA;
 		// flag |= Capabilities.CLIENT_COMPRESS;
 		flag |= Capabilities.CLIENT_ODBC;
-		// flag |= Capabilities.CLIENT_LOCAL_FILES;
+		 flag |= Capabilities.CLIENT_LOCAL_FILES;
 		flag |= Capabilities.CLIENT_IGNORE_SPACE;
 		flag |= Capabilities.CLIENT_PROTOCOL_41;
 		flag |= Capabilities.CLIENT_INTERACTIVE;
