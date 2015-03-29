@@ -40,11 +40,11 @@
 
 
 <!ELEMENT dataNode (property*)>
-<!ATTLIST dataNode name NMTOKEN #REQUIRED>
-<!ATTLIST dataNode dataHost NMTOKEN #REQUIRED>
+<!ATTLIST dataNode name CDATA #REQUIRED>
+<!ATTLIST dataNode dataHost CDATA #REQUIRED>
 <!ATTLIST dataNode database CDATA #REQUIRED>
 
-<!ELEMENT dataHost (heartbeat,(writeHost+))>
+<!ELEMENT dataHost (heartbeat,(connectionInitSql*),(writeHost+))>
 <!ATTLIST dataHost
   balance CDATA #REQUIRED
   maxCon CDATA #REQUIRED
@@ -63,6 +63,7 @@
   user NMTOKEN #REQUIRED>
 
 <!ELEMENT heartbeat (#PCDATA)>
+        <!ELEMENT connectionInitSql (#PCDATA)>
 <!ELEMENT readHost (property*) >
 <!ATTLIST readHost
   host NMTOKEN #REQUIRED

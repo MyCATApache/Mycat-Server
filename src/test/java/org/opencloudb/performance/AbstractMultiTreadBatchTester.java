@@ -23,14 +23,16 @@
  */
 package org.opencloudb.performance;
 
+import java.io.FileInputStream;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class AbstractMultiTreadBatchTester {
@@ -45,18 +47,28 @@ public abstract class AbstractMultiTreadBatchTester {
 	long start;
 	protected String[] rangeItems;
 	protected boolean outputMiddleInf = true;
+	protected String sqlFile;
 
 	public boolean parseArgs(String[] args) {
 		if (args.length < 5) {
 			System.out
-					.println("input param,format: [jdbcurl] [user] [password]  [threadpoolsize]  [recordrange] ");
+					.println("input param,format: [jdbcurl] [user] [password]  [threadpoolsize]  [recordrange or customer sql file] ");
+			System.out
+					.println("jdbc:mysql://localhost:8066/TESTDB test test 10  \"0-300M,300M1-600M,600M1-900M\" ");
+			System.out
+					.println("jdbc:mysql://localhost:8066/TESTDB test test 10  file=mytempate.sql ");
+
 			return false;
 		}
 		url = args[0];
 		user = args[1];
 		password = args[2];
 		threadCount = Integer.parseInt(args[3]);
-		rangeItems = args[4].split(",");
+		if (args[4].contains("file=")) {
+			sqlFile = args[4].substring(args[4].indexOf('=') + 1);
+		} else {
+			rangeItems = args[4].split(",");
+		}
 		return true;
 
 	}
@@ -90,7 +102,7 @@ public abstract class AbstractMultiTreadBatchTester {
 			long myCount = endId - startId + 1;
 			Runnable job = createJob(getConPool(), myCount, 100, startId,
 					finshiedCount, failedCount);
-			//System.out.println("job record id is " + startId + "-" + endId);
+			// System.out.println("job record id is " + startId + "-" + endId);
 			jobs.add(job);
 
 		}
@@ -103,13 +115,49 @@ public abstract class AbstractMultiTreadBatchTester {
 
 	@SuppressWarnings("unchecked")
 	public ArrayList<Runnable>[] createAllJobs() throws Exception {
-		ArrayList<Runnable>[] allJobs = new ArrayList[rangeItems.length];
-		for (int i = 0; i < rangeItems.length; i++) {
-			String[] items = rangeItems[i].split("-");
-			long min = parseLong(items[0]);
-			long max = parseLong(items[1]);
-			allJobs[i] = createJobs(conPool, min, max);
+		if (sqlFile != null) {// from sql template file
+			java.util.Properties pros = RandomDataValueUtil
+					.loadFromPropertyFile(sqlFile);
+			long total = Long.valueOf(pros.getProperty("total"));
+			String sqlTemplate = pros.getProperty("sql");
+			String batchSizeStr=pros.getProperty("batch");
+			String autocommitStr=pros.getProperty("autocommit");
+			boolean autocommit=autocommitStr==null?false:Boolean.valueOf(autocommitStr);
+			int batchSize=batchSizeStr==null?100:Integer.parseInt(batchSizeStr);
+			System.out.println("total record "+total+ " batch size:"+batchSize+" autocomit "+autocommit);
+			return createSQLTemplateJobs(total, sqlTemplate,batchSize,autocommit);
 
+		} else {
+			ArrayList<Runnable>[] allJobs = new ArrayList[rangeItems.length];
+			for (int i = 0; i < rangeItems.length; i++) {
+				String[] items = rangeItems[i].split("-");
+				long min = parseLong(items[0]);
+				long max = parseLong(items[1]);
+				allJobs[i] = createJobs(conPool, min, max);
+
+			}
+			return allJobs;
+		}
+
+	}
+
+	private ArrayList<Runnable>[] createSQLTemplateJobs(long total,
+			String sqlTemplate,int batchSize,boolean autocommit) throws Exception {
+		LinkedList<StringItem> sqlTemplateItems = RandomDataValueUtil
+				.parselRandVarTemplateString(sqlTemplate);
+		@SuppressWarnings("unchecked")
+		ArrayList<Runnable>[] allJobs = new ArrayList[1];
+
+		long totalBatch = total / threadCount;
+		allJobs[0] = new ArrayList<Runnable>((int) threadCount);
+		for (int i = 0; i < threadCount; i++) {
+			allJobs[0].add(new UserTableInsertJob(getConPool(), totalBatch,
+					batchSize, finshiedCount, failedCount, sqlTemplateItems,autocommit));
+		}
+		if (totalBatch * threadCount < total) {
+			allJobs[0].add(new UserTableInsertJob(getConPool(), total
+					- totalBatch * threadCount, batchSize, finshiedCount,
+					failedCount, sqlTemplateItems,autocommit));
 		}
 		return allJobs;
 	}
@@ -180,7 +228,7 @@ public abstract class AbstractMultiTreadBatchTester {
 				+ failedCount.get());
 		long sucess = finshiedCount.get() - failedCount.get();
 		System.out.println("used time total:" + usedTime + "seconds");
-		System.out.println("tps:" + sucess / (usedTime+0.1));
+		System.out.println("tps:" + sucess / (usedTime + 0.1));
 	}
 
 	/**

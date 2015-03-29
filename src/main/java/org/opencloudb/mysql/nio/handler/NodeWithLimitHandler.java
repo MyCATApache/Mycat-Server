@@ -138,7 +138,7 @@ public class NodeWithLimitHandler implements ResponseHandler, Terminatable {
 	private void executeException(BackendConnection c) {
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.errno = ErrorCode.ER_YES;
+		err.errno = ErrorCode.ERR_FOUND_EXCEPION;
 		err.message = StringUtil.encode(
 				"unknown backend charset: " + c.getCharset(), session
 						.getSource().getCharset());
@@ -151,7 +151,7 @@ public class NodeWithLimitHandler implements ResponseHandler, Terminatable {
 		endRunning();
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.errno = ErrorCode.ER_YES;
+		err.errno = ErrorCode.ER_NEW_ABORTING_CONNECTION;
 		err.message = StringUtil.encode(e.getMessage(), session.getSource()
 				.getCharset());
 		ServerConnection source = session.getSource();
@@ -242,7 +242,7 @@ public class NodeWithLimitHandler implements ResponseHandler, Terminatable {
 	public void connectionClose(BackendConnection conn, String reason) {
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.errno = ErrorCode.ER_YES;
+		err.errno = ErrorCode.ER_ERROR_ON_CLOSE;
 		err.message = StringUtil.encode(reason, session.getSource()
 				.getCharset());
 		this.backConnectionErr(err, conn);

@@ -8,10 +8,7 @@ import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.RouteStrategy;
-import org.opencloudb.route.factory.RouteStrategyFactory;
 import org.opencloudb.server.ServerConnection;
-import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.sqlengine.Catlet;
 import org.opencloudb.sqlengine.EngineCtx;
 
@@ -21,14 +18,7 @@ import org.opencloudb.sqlengine.EngineCtx;
  */
 public class HintCatletHandler implements HintHandler {
 
-	private static final Logger LOGGER = Logger
-			.getLogger(HintCatletHandler.class);
-
-	private RouteStrategy routeStrategy;
-
-	public HintCatletHandler() {
-		this.routeStrategy = RouteStrategyFactory.getRouteStrategy();
-	}
+	private static final Logger LOGGER = Logger.getLogger(HintCatletHandler.class);
 
 	/**
 	 * 从全局的schema列表中查询指定的schema是否存在， 如果存在则替换connection属性中原有的schema，
@@ -65,8 +55,6 @@ public class HintCatletHandler implements HintHandler {
 			LOGGER.warn("catlet error "+e);
 			throw new SQLNonTransientException(e);
 		}
-
 		return null;
-
 	}
 }

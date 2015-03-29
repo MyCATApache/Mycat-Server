@@ -7,11 +7,10 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
+import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.EOFPacket;
@@ -23,11 +22,15 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.util.MysqlDefs;
 import org.opencloudb.util.ResultSetUtil;
+import org.opencloudb.util.StringUtil;
 
 public class JDBCConnection implements BackendConnection {
+	protected static final Logger LOGGER = Logger.getLogger(JDBCConnection.class);
 	private JDBCDatasource pool;
 	private volatile String schema;
+	private volatile String dbType;
 	private volatile String oldSchema;
 	private byte packetId;
 	private int txIsolation;
@@ -44,7 +47,7 @@ public class JDBCConnection implements BackendConnection {
 	private volatile boolean modifiedSQLExecuted;
 	private final long startTime;
 	private long lastTime;
-
+    private boolean isSpark=false;
 	public JDBCConnection() {
 		startTime = System.currentTimeMillis();
 	}
@@ -134,7 +137,17 @@ public class JDBCConnection implements BackendConnection {
 	public boolean isFromSlaveDB() {
 		return false;
 	}
+	
+	public String getDbType() {
+		return this.dbType;
+	}
 
+	
+	public void setDbType(String newDbType) {
+		this.dbType = newDbType.toUpperCase();
+		this.isSpark=dbType.equals("SPARK");
+
+	}
 	@Override
 	public String getSchema() {
 		return this.schema;
@@ -208,8 +221,8 @@ public class JDBCConnection implements BackendConnection {
 	private void executeSQL(RouteResultsetNode rrn, ServerConnection sc,
 			boolean autocommit) throws IOException {
 		String orgin = rrn.getStatement();
-		String sql = rrn.getStatement().toLowerCase();
-		
+		//String sql = rrn.getStatement().toLowerCase();
+		//LOGGER.info("JDBC SQL:"+orgin+"|"+sc.toString());
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
@@ -219,16 +232,28 @@ public class JDBCConnection implements BackendConnection {
 				con.setCatalog(schema);
 				this.oldSchema = schema;
 			}
-			con.setAutoCommit(autocommit);
+			if (!this.isSpark){
+			   con.setAutoCommit(autocommit);
+			}
 			int sqlType = rrn.getSqlType();
-			if (sqlType == ServerParse.SELECT/* || sqlType == ServerParse.SHOW*/) {	
+			
+			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW ) {	
+				if ((sqlType ==ServerParse.SHOW) && (!dbType.equals("MYSQL")) ){
+					//showCMD(sc, orgin);
+					ShowVariables.execute(sc,orgin);
+				} else if("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin))
+				{
+					ShowVariables.justReturnValue(sc, String.valueOf(sc.getId()));
+				}
+				else {
 					ouputResultSet(sc, orgin);
+				}
 			} else {
-				executeddl(sc, sql);
+				executeddl(sc, orgin);
 			}
 
 		} catch (SQLException e) {
-			e.printStackTrace();
+
 
 			String msg = e.getMessage();
 			ErrorPacket error = new ErrorPacket();
@@ -241,6 +266,18 @@ public class JDBCConnection implements BackendConnection {
 		}
 
 	}
+	private FieldPacket getNewFieldPacket(String charset,String fieldName){
+	  FieldPacket fieldPacket = new FieldPacket();
+	  fieldPacket.orgName  = StringUtil.encode(fieldName, charset);
+	  fieldPacket.name     = StringUtil.encode(fieldName,charset);
+	  fieldPacket.length   = 20;
+	  fieldPacket.flags    = 0;
+	  fieldPacket.decimals = 0;
+	  int javaType         = 12;
+	  fieldPacket.type = (byte) (MysqlDefs.javaTypeMysql(javaType) & 0xff);
+	  return fieldPacket;
+	}
+	
 
 	private void executeddl(ServerConnection sc, String sql)
 			throws SQLException {
@@ -273,10 +310,10 @@ public class JDBCConnection implements BackendConnection {
 		try {
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(sql);
-			List<RowDataPacket> rowsPkg = new LinkedList<RowDataPacket>();
+
 			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-			ResultSetUtil.resultSetToPacket(sc.getCharset(), con, fieldPks, rs,
-					rowsPkg);
+			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs, this.isSpark);
+			int colunmCount =fieldPks.size();
 			ByteBuffer byteBuf = sc.allocate();
 			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
 			headerPkg.fieldCount = fieldPks.size();
@@ -310,18 +347,20 @@ public class JDBCConnection implements BackendConnection {
 			this.respHandler.fieldEofResponse(header, fields, eof, this);
 
 			// output row
-			Iterator<RowDataPacket> rowItor = rowsPkg.iterator();
-			while (rowItor.hasNext()) {
-				RowDataPacket curRow = rowItor.next();
+			while (rs.next()) {
+				RowDataPacket curRow = new RowDataPacket(colunmCount);
+				for (int i = 0; i < colunmCount; i++) {
+					int j = i + 1;
+					curRow.add(StringUtil.encode(rs.getString(j), sc.getCharset()));
+
+				}
 				curRow.packetId = ++packetId;
-				rowItor.remove();
 				byteBuf = curRow.write(byteBuf, sc, false);
 				byteBuf.flip();
 				byte[] row = new byte[byteBuf.limit()];
 				byteBuf.get(row);
 				byteBuf.clear();
 				this.respHandler.rowResponse(row, this);
-
 			}
 
 			// end row
@@ -367,10 +406,24 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	@Override
-	public void execute(RouteResultsetNode node, ServerConnection source,
-			boolean autocommit) throws IOException {
-		executeSQL(node, source, autocommit);
+	public void execute(final RouteResultsetNode node, final ServerConnection source,
+			final boolean autocommit) throws IOException {
+		Runnable runnable=new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				try
+				{
+					executeSQL(node, source, autocommit);
+				} catch (IOException e)
+				{
+					throw new RuntimeException(e);
+				}
+			}
+		} ;
 
+		MycatServer.getInstance().getBusinessExecutor().execute(runnable);
 	}
 
 	@Override

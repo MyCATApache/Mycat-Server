@@ -97,6 +97,9 @@ public class RouterUtil {
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), stmt);//rrs.getStatement()
 		rrs.setNodes(nodes);
 		rrs.setFinishedRoute(true);
+		if (rrs.getCanRunInReadDB() != null) {
+			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
+		}
 		return rrs;
 	}
 	
@@ -305,10 +308,13 @@ public class RouterUtil {
 	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt) {
 		RouteResultsetNode[] nodes = new RouteResultsetNode[dataNodes.size()];
 		int i = 0;
+		RouteResultsetNode node;
 		for (String dataNode : dataNodes) {
-
-			nodes[i++] = new RouteResultsetNode(dataNode, rrs.getSqlType(),
-					stmt);
+			node = new RouteResultsetNode(dataNode, rrs.getSqlType(), stmt);
+			if (rrs.getCanRunInReadDB() != null) {
+				node.setCanRunInReadDB(rrs.getCanRunInReadDB());
+			}
+			nodes[i++] = node;
 		}
 		rrs.setCacheAble(cache);
 		rrs.setNodes(nodes);
@@ -318,7 +324,7 @@ public class RouterUtil {
 	public static void routeForTableMeta(RouteResultset rrs,
 			SchemaConfig schema, String tableName, String sql) {
 		String dataNode = null;
-		if (schema.isNoSharding()) {//不分库的直接从schema中获取dataNode
+		if (isNoSharding(schema,tableName)) {//不分库的直接从schema中获取dataNode
 			dataNode = schema.getDataNode();
 		} else {
 			dataNode = getMetaReadDataNode(schema, tableName);
@@ -326,6 +332,9 @@ public class RouterUtil {
 
 		RouteResultsetNode[] nodes = new RouteResultsetNode[1];
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), sql);
+		if (rrs.getCanRunInReadDB() != null) {
+			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
+		}
 		rrs.setNodes(nodes);
 	}
 
@@ -508,10 +517,11 @@ public class RouterUtil {
 	 */
 	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx, RouteResultset rrs,
 			boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
-		if(schema.isNoSharding()) {
+		List<String> tables = ctx.getTables();
+		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
 			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
 		}
-		List<String> tables = ctx.getTables();
+
 		//只有一个表的
 		if(tables.size() == 1) {
 			return RouterUtil.tryRouteForOneTable(schema, ctx, tables.get(0), rrs, isSelect, cachePool);
@@ -597,6 +607,11 @@ public class RouterUtil {
 		 */
 		public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx, String tableName, RouteResultset rrs,
 				boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
+			if(isNoSharding(schema,tableName))
+			{
+				return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
+			}
+
 			TableConfig tc = schema.getTables().get(tableName);
 			if(tc == null) {
 				String msg = "can't find table define in schema "
@@ -683,18 +698,18 @@ public class RouterUtil {
 						}
 						String tableKey = schema.getName() + '_' + tableName;
 						boolean allFound = true;
-						for (ColumnRoutePair pair : primaryKeyPairs) {
+						for (ColumnRoutePair pair : primaryKeyPairs) {//可能id in(1,2,3)多主键
 							String cacheKey = pair.colValue;
 							String dataNode = (String) cachePool.get(tableKey, cacheKey);
 							if (dataNode == null) {
 								allFound = false;
-								break;
+								continue;
 							} else {
 								if(tablesRouteMap.get(tableName) == null) {
 									tablesRouteMap.put(tableName, new HashSet<String>());
 								}
 								tablesRouteMap.get(tableName).add(dataNode);
-								break;
+								continue;
 							}
 						}
 						if (!allFound) {
@@ -702,8 +717,8 @@ public class RouterUtil {
 							if (isSelect && tableConfig.getPrimaryKey() != null) {
 								rrs.setPrimaryKey(tableKey + '.' + tableConfig.getPrimaryKey());
 							}
-						} else {//主键缓存中找到了就退出循环
-							break;
+						} else {//主键缓存中找到了就执行循环的下一轮
+							continue;
 						}
 					}
 				}
@@ -823,8 +838,28 @@ public class RouterUtil {
 		}
 		return hasRequiredValue;
 	}
-	
-	
+
+
+	/**
+	 *     增加判断支持未配置分片的表走默认的dataNode
+	 * @param schemaConfig
+	 * @param tableName
+	 * @return
+	 */
+	public static boolean isNoSharding(SchemaConfig schemaConfig,String tableName)
+	{
+		if(schemaConfig.isNoSharding())
+		{
+			return true;
+		}
+		if(schemaConfig.getDataNode()!=null&&!schemaConfig.getTables().containsKey(tableName))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
 	
 }
 

@@ -26,12 +26,7 @@ package org.opencloudb.config.loader.xml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.config.loader.SchemaLoader;
@@ -43,6 +38,7 @@ import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.config.model.rule.TableRuleConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.config.util.ConfigUtil;
+import org.opencloudb.util.SplitUtil;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -111,7 +107,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 		} catch (ConfigException e) {
 			throw e;
 		} catch (Throwable e) {
-			e.printStackTrace();
+
 			throw new ConfigException(e);
 		} finally {
 			if (dtd != null) {
@@ -144,10 +140,13 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 			}
 			// check dataNode already exists or not
+			String defaultDbType=null;
 			if (dataNode != null && !dataNode.isEmpty()) {
 				List<String> dataNodeLst = new ArrayList<String>(1);
 				dataNodeLst.add(dataNode);
 				checkDataNodeExists(dataNodeLst);
+			String dataHost=	dataNodes.get(dataNode).getDataHost();
+		     defaultDbType=  dataHosts.get(dataHost).getDbType();
 			} else {
 				dataNode = null;
 			}
@@ -155,6 +154,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			if (schemas.containsKey(name)) {
 				throw new ConfigException("schema " + name + " duplicated!");
 			}
+
 			
 			// 设置了table的不需要设置dataNode属性，没有设置table的必须设置dataNode属性
 			if (dataNode == null && tables.size() == 0) {
@@ -162,15 +162,44 @@ public class XMLSchemaLoader implements SchemaLoader {
 						"schema "
 								+ name
 								+ " didn't config tables,so you must set dataNode property!");
-			} else if (tables.size() > 0 && dataNode != null) {
-				throw new ConfigException(
-						"schema "
-								+ name
-								+ " has configed tables,so you mustn't set dataNode property!");
 			}
-			
-			schemas.put(name, new SchemaConfig(name, dataNode, tables,
-					sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr)));
+
+			SchemaConfig schemaConfig = new SchemaConfig(name, dataNode, tables,
+					sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr));
+			  if(defaultDbType!=null)
+			  {
+				  schemaConfig.setDefaultDataNodeDbType(defaultDbType);
+				  if(!"mysql".equalsIgnoreCase(defaultDbType))
+				  {
+					  schemaConfig.setNeedSupportMultiDBType(true);
+				  }
+			  }
+
+			//判断是否有不是mysql的数据库类型，方便解析判断是否启用多数据库分页语法解析
+
+			for (String tableName : tables.keySet())
+			{
+				TableConfig tableConfig=	tables.get(tableName);
+				if(isHasMultiDbType(tableConfig))
+				{
+					schemaConfig.setNeedSupportMultiDBType(true);
+					break;
+				}
+			}
+			Map<String,String> dataNodeDbTypeMap=new HashMap<>();
+			for (String dataNodeName : dataNodes.keySet())
+			{
+				DataNodeConfig  dataNodeConfig=	  dataNodes.get(dataNodeName);
+			    String dataHost=	dataNodeConfig.getDataHost();
+				DataHostConfig dataHostConfig = dataHosts.get(dataHost);
+				if(dataHostConfig !=null )
+				{
+				  String dbType=	  dataHostConfig.getDbType();
+					dataNodeDbTypeMap.put(dataNodeName,dbType);
+				}
+			}
+			  schemaConfig.setDataNodeDbTypeMap(dataNodeDbTypeMap);
+				schemas.put(name, schemaConfig);
 		}
 	}
 
@@ -224,7 +253,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			for (int j = 0; j < tableNames.length; j++) {
 				String tableName = tableNames[j];
 				TableConfig table = new TableConfig(tableName, primaryKey, autoIncrement,needAddLimit,
-						tableType, dataNode,
+						tableType, dataNode,getDbType(dataNode),
 						(tableRule != null) ? tableRule.getRule() : null,
 						ruleRequired, null, false, null, null);
 				checkDataNodeExists(table.getDataNodes());
@@ -237,14 +266,55 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 			if (tableNames.length == 1) {
 				TableConfig table = new TableConfig(tableNames[0], primaryKey, autoIncrement,needAddLimit,
-						tableType, dataNode,
+						tableType, dataNode,getDbType(dataNode),
 						(tableRule != null) ? tableRule.getRule() : null,
 						ruleRequired, null, false, null, null);
 				// process child tables
 				processChildTables(tables, table, dataNode, tableElement);
 			}
 		}
+
+
+
 		return tables;
+	}
+	private Set<String> getDbType(String dataNode){
+        Set<String> dbTypes=new HashSet<>();
+      String[] dataNodeArr= SplitUtil.split(dataNode,',', '$', '-') ;
+        for (String node : dataNodeArr)
+        {
+            DataNodeConfig datanode=dataNodes.get(node);
+            DataHostConfig datahost=dataHosts.get(datanode.getDataHost());
+            dbTypes.add(datahost.getDbType());
+        }
+
+		return dbTypes;
+	}
+
+	private Set<String> getDataNodeDbTypeMap(String dataNode){
+		Set<String> dbTypes=new HashSet<>();
+		String[] dataNodeArr= SplitUtil.split(dataNode,',', '$', '-') ;
+		for (String node : dataNodeArr)
+		{
+			DataNodeConfig datanode=dataNodes.get(node);
+			DataHostConfig datahost=dataHosts.get(datanode.getDataHost());
+			dbTypes.add(datahost.getDbType());
+		}
+
+		return dbTypes;
+	}
+
+	private boolean isHasMultiDbType(TableConfig table)
+	{
+		Set<String> dbTypes= table.getDbTypes()  ;
+		for (String dbType : dbTypes)
+		{
+			if(!"mysql".equalsIgnoreCase(dbType))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void processChildTables(Map<String, TableConfig> tables,
@@ -277,7 +347,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String parentKey = childTbElement.getAttribute("parentKey")
 					.toUpperCase();
 			TableConfig table = new TableConfig(cdTbName, primaryKey, autoIncrement,needAddLimit,
-					TableConfig.TYPE_GLOBAL_DEFAULT, dataNodes, null, false,
+					TableConfig.TYPE_GLOBAL_DEFAULT, dataNodes,getDbType(dataNodes), null, false,
 					parentTable, true, joinKey, parentKey);
 			if (tables.containsKey(table.getName())) {
 				throw new ConfigException("table " + table.getName()
@@ -312,22 +382,56 @@ public class XMLSchemaLoader implements SchemaLoader {
 				throw new ConfigException("dataNode " + dnNamePre
 						+ " define error ,attribute can't be empty");
 			}
+            String[] dnNames = org.opencloudb.util.SplitUtil.split(
+                    dnNamePre, ',', '$', '-');
 			String[] databases = org.opencloudb.util.SplitUtil.split(
-					databaseStr, ',', '$', '-', 's', '_');
-			if (databases.length > 1) {
-				for (int k = 0; k < databases.length; k++) {
-					String databaseName = databases[k].substring(0,
-							databases[k].length() - 1);
-					createDataNode(dnNamePre + '[' + k + ']', databaseName,
-							host);
-					// System.out.println("dn:"+dnNamePre + '[' + k +
-					// ']'+",databse:"+databaseName+",host:"+host);
-				}
-			} else {
+					databaseStr, ',', '$', '-');
+            String[] hostStrings = org.opencloudb.util.SplitUtil.split(
+                    host, ',', '$', '-');
+
+			if(dnNames.length>1&&dnNames.length!=databases.length*hostStrings.length)
+			{
+				throw new ConfigException("dataNode " + dnNamePre
+						+ " define error ,dnNames.length must be=databases.length*hostStrings.length");
+			}
+            if (dnNames.length > 1)
+            {
+				List<String[]> mhdList= mergerHostDatabase( hostStrings , databases);
+					for (int k = 0; k < dnNames.length; k++)
+					{
+						String[] hd=mhdList.get(k);
+						String dnName = dnNames[k];
+						String databaseName = hd[1];
+						String hostName = hd[0];
+						createDataNode(dnName, databaseName,
+								hostName);
+
+					}
+
+            }
+            else {
 				createDataNode(dnNamePre, databaseStr, host);
 			}
 
 		}
+	}
+
+	private List<String[]> mergerHostDatabase(String[] hostStrings ,String[] databases)
+	{
+		List<String[]> mhdList=new ArrayList<>();
+		for (int i = 0; i < hostStrings.length; i++)
+		{
+			String hostString = hostStrings[i];
+			for (int i1 = 0; i1 < databases.length; i1++)
+			{
+				String database = databases[i1];
+				String[] hd=new String[2];
+				hd[0]=hostString;
+				hd[1]=database;
+				mhdList.add(hd);
+			}
+		}
+		return mhdList;
 	}
 
 	private void createDataNode(String dnName, String database, String host) {
@@ -405,6 +509,13 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String dbType = element.getAttribute("dbType");
 			String heartbeatSQL = element.getElementsByTagName("heartbeat")
 					.item(0).getTextContent();
+			NodeList connectionInitSqlList = element.getElementsByTagName("connectionInitSql");
+			String initConSQL = null;
+			if(connectionInitSqlList.getLength()>0)
+			{
+				initConSQL = connectionInitSqlList
+						.item(0).getTextContent();
+			}
 			NodeList writeNodes = element.getElementsByTagName("writeHost");
 			DBHostConfig[] writeDbConfs = new DBHostConfig[writeNodes
 					.getLength()];
@@ -434,6 +545,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			hostConf.setBalance(balance);
 			hostConf.setWriteType(writeType);
 			hostConf.setHearbeatSQL(heartbeatSQL);
+			hostConf.setConnectionInitSql(initConSQL);
 			dataHosts.put(hostConf.getName(), hostConf);
 
 		}

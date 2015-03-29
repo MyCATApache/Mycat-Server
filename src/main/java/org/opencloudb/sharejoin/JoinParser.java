@@ -43,7 +43,7 @@ public class JoinParser {
     private String masterTable;    
     private TableFilter tableFilter;
     
-    private LinkedHashMap<String,String> fieldAliasMap = new LinkedHashMap<String,String>();
+    //private LinkedHashMap<String,String> fieldAliasMap = new LinkedHashMap<String,String>();
     
 	public JoinParser(MySqlSelectQueryBlock selectQuery,String stmt) {
 		this.mysqlQuery=selectQuery;
@@ -140,7 +140,11 @@ public class JoinParser {
 		String key="";
 		String value ="";
 		for(SQLSelectItem item : mysqlSelectList) {
-			if (!(item.getExpr() instanceof SQLAllColumnExpr)) {
+			if (item.getExpr() instanceof SQLAllColumnExpr) {
+				//*解析
+				setField(item.toString(), item.toString());
+			}
+			else {
 				if (item.getExpr() instanceof SQLAggregateExpr) {
 					SQLAggregateExpr expr =(SQLAggregateExpr)item.getExpr();
 					 key = getExprFieldName(expr);
@@ -155,7 +159,7 @@ public class JoinParser {
 		}			
 	}
 	private void setField(String key,String value){
-		fieldAliasMap.put(key, value);
+		//fieldAliasMap.put(key, value);
 		if (tableFilter!=null){
 			tableFilter.addField(key, value);
 		}

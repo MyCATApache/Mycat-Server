@@ -57,20 +57,29 @@ public class ShareJoin implements Catlet {
 	private int maxjob=0;
 	private int joinindex=0;//关联join表字段的位置
 	private int sendField=0;
-	
+	private boolean childRoute=false;
+	//重新路由使用
+	private SystemConfig sysConfig; 
+	private SchemaConfig schema;
+	private int sqltype; 
+	private String charset; 
+	private ServerConnection sc;	
+	private LayerCachePool cachePool;
 	public void setRoute(RouteResultset rrs){
 		this.rrs =rrs;
 	}	
 	
-	public void route(SystemConfig sysConfig, SchemaConfig schema,
-			int sqlType, String realSQL, String charset, ServerConnection sc,
-			LayerCachePool cachePool) {
+	public void route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String realSQL, String charset, ServerConnection sc,	LayerCachePool cachePool) {
 		int rs = ServerParse.parse(realSQL);
-		int sqlType2 = rs & 0xff;		
+		this.sqltype = rs & 0xff;
+		this.sysConfig=sysConfig; 
+		this.schema=schema;
+		this.charset=charset; 
+		this.sc=sc;	
+		this.cachePool=cachePool;		
 		try {
 		 //  RouteStrategy routes=RouteStrategyFactory.getRouteStrategy();	
-		   rrs =RouteStrategyFactory.getRouteStrategy().route(sysConfig, schema, sqlType2, realSQL,charset, sc, cachePool);
-		   
+		  // rrs =RouteStrategyFactory.getRouteStrategy().route(sysConfig, schema, sqlType2, realSQL,charset, sc, cachePool);		   
 			MySqlStatementParser parser = new MySqlStatementParser(realSQL);			
 			SQLStatement statement = parser.parseStatement();
 			if(statement instanceof SQLSelectStatement) {
@@ -97,16 +106,32 @@ public class ShareJoin implements Catlet {
 		
 		}
 	}
-	
-	private String[] getDataNodes(){
+	private void getRoute(String sql){
+		try {
+		  if (joinParser!=null){
+			rrs =RouteStrategyFactory.getRouteStrategy().route(sysConfig, schema, sqltype,sql,charset, sc, cachePool);
+		  }
+		} catch (Exception e) {
+			
+		}
+	}
+	private String[] getDataNodes(){		
 		String[] dataNodes =new String[rrs.getNodes().length] ;
 		for (int i=0;i<rrs.getNodes().length;i++){
 			dataNodes[i]=rrs.getNodes()[i].getName();
 		}
 		return dataNodes;
 	}
-	
+	private String getDataNode(String[] dataNodes){
+		String dataNode="";
+		for (int i=0;i<dataNodes.length;i++){
+			dataNode+=dataNodes[i]+",";
+		}
+		return dataNode;
+	}
 	public void processSQL(String sql, EngineCtx ctx) {
+		String ssql=joinParser.getSql();
+		getRoute(ssql);
 		RouteResultsetNode[] nodes = rrs.getNodes();
 		if (nodes == null || nodes.length == 0 || nodes[0].getName() == null
 				|| nodes[0].getName().equals("")) {
@@ -119,9 +144,8 @@ public class ShareJoin implements Catlet {
 		String[] dataNodes =getDataNodes();
 		maxjob=dataNodes.length;
 		ShareDBJoinHandler joinHandler = new ShareDBJoinHandler(this,joinParser.getJoinLkey());		
-		String ssql=joinParser.getSql();
 		ctx.executeNativeSQLSequnceJob(dataNodes, ssql, joinHandler);
-    	EngineCtx.LOGGER.info("Catlet exec,sql:" +ssql);
+    	EngineCtx.LOGGER.info("Catlet exec:"+getDataNode(getDataNodes())+" sql:" +ssql);
 
 		ctx.setAllJobFinishedListener(new AllJobFinishedListener() {
 			@Override
@@ -165,10 +189,14 @@ public class ShareJoin implements Catlet {
 		Map<String, byte[]> batchRows = new ConcurrentHashMap<String, byte[]>();
 		String theId = null;
 		StringBuilder sb = new StringBuilder().append('(');
+		String svalue="";
 		for(Map.Entry<String,String> e: ids.entrySet() ){
 			theId=e.getKey();
 			batchRows.put(theId, rows.remove(theId));
-			sb.append(e.getValue()).append(',');
+			if (!svalue.equals(e.getValue())){
+			  sb.append(e.getValue()).append(',');
+			}
+			svalue=e.getValue();
 			if (count++ > batchSize) {
 				break;
 			}			
@@ -187,8 +215,12 @@ public class ShareJoin implements Catlet {
 		}
 		sb.deleteCharAt(sb.length() - 1).append(')');
 		String sql = String.format(joinParser.getChildSQL(), sb);
+		//if (!childRoute){
+		  getRoute(sql);
+		 //childRoute=true;
+		//}
 		ctx.executeNativeSQLParallJob(getDataNodes(),sql, new ShareRowOutPutDataHandler(this,fields,joinindex, batchRows));
-		//EngineCtx.LOGGER.info("二次查询"+jobnum+":" + dataNode+" sql:" + sql+"/"+ getFieldNames(fields));		
+		EngineCtx.LOGGER.info("SQLParallJob:"+getDataNode(getDataNodes())+" sql:" + sql);		
 	}  
 	public void writeHeader(String dataNode,List<byte[]> afields, List<byte[]> bfields) {
 		sendField++;

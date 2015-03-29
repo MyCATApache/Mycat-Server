@@ -41,6 +41,7 @@ public interface ErrorCode {
 	int ERR_NOT_SUPPORTED = 3010;
 	int ERR_MULTI_NODE_FAILED = 3011;
 	int ERR_WRONG_USED = 3012;
+	int ERR_FOUND_EXCEPION = 3344;
 	// mysql error code
 	int ER_HASHCHK = 1000;
 	int ER_NISAMCHK = 1001;

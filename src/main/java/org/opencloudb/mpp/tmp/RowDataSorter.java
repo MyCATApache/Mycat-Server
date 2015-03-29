@@ -1,15 +1,10 @@
 package org.opencloudb.mpp.tmp;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Vector;
-
 import org.opencloudb.mpp.OrderCol;
 import org.opencloudb.mpp.RowDataPacketSorter;
 import org.opencloudb.net.mysql.RowDataPacket;
+
+import java.util.*;
 
 /**
  * 
@@ -17,28 +12,35 @@ import org.opencloudb.net.mysql.RowDataPacket;
  */
 public class RowDataSorter extends RowDataPacketSorter {
 
-    private int total;
-    private HeapItf heap;
-    private volatile int rtnSize;
+    //记录总数(=offset+limit)
+    private volatile int total;
+    //查询的记录数(=limit)
+    private volatile int size;
+    //堆
+    private volatile HeapItf heap;
+    //多列比较器
     private volatile RowDataCmp cmp;
-    private volatile boolean isDesc;
+    //是否执行过buildHeap
     private volatile boolean hasBuild;
 
     public RowDataSorter(OrderCol[] orderCols) {
         super(orderCols);
         this.cmp = new RowDataCmp(orderCols);
-        if (orderCols.length > 0)
-            this.isDesc = (orderCols[0].orderType == OrderCol.COL_ORDER_TYPE_DESC);
     }
 
-    public synchronized void setLimt(int start, int size) {
-        rtnSize = size;
-        total = start + size;
-        if (isDesc) {
-            heap = new MinHeap(cmp, total);
-        } else {
-            heap = new MaxHeap(cmp, total);
+    public synchronized void setLimit(int start, int size) {
+        //容错处理
+        if (start < 0) {
+            start = 0;
         }
+        if (size <= 0) {
+            this.total = this.size = Integer.MAX_VALUE;
+        } else {
+            this.total = start + size;
+            this.size = size;
+        }
+        //统一采用顺序，order by 条件交给比较器去处理
+        this.heap = new MaxHeap(cmp, total);
     }
 
     @Override
@@ -47,57 +49,27 @@ public class RowDataSorter extends RowDataPacketSorter {
             heap.add(row);
             return;
         }
+        //堆已满，构建最大堆，并执行淘汰元素逻辑
         if (heap.getData().size() == total && hasBuild == false) {
+            heap.buildHeap();
             hasBuild = true;
-            heap.buildMinHeap();
         }
         heap.addIfRequired(row);
     }
 
     @Override
     public Collection<RowDataPacket> getSortedResult() {
-        Vector<RowDataPacket> data = heap.getData();
+        final List<RowDataPacket> data = heap.getData();
         int size = data.size();
-        if (size < 2)
+        if (size < 2) {
             return data;
-        if (size < 500)
-            return sortAll(data);
-
-        HeapItf rtnHeap;
-        if (isDesc) { // 降序取最小的几条数据
-            rtnHeap = new MaxHeap(cmp, rtnSize);
-        } else { // 升序取最大的几条数据
-            rtnHeap = new MinHeap(cmp, rtnSize);
+        } else {
+            //构建最大堆并排序
+            if (!hasBuild) {
+                heap.buildHeap();
+            }
+            heap.heapSort(this.size);
+            return heap.getData();
         }
-        int i = 0;
-        while (i < rtnSize) {
-            rtnHeap.add(data.get(i++));
-        }
-        rtnHeap.buildMinHeap();
-        while (i < size) {
-            rtnHeap.addIfRequired(data.get(i++));
-        }
-        Vector<RowDataPacket> dataRtn = rtnHeap.getData();
-        Collections.sort(dataRtn, cmp);
-        return dataRtn;
-
-    }
-
-    /**
-     * 
-     * 数据小的时候可以直接排序全部后取后几条数据
-     * 
-     * @param datas
-     * @return
-     */
-    protected List<RowDataPacket> sortAll(Collection<RowDataPacket> datas) {
-        int size = datas.size();
-        RowDataPacket[] tmp = datas.toArray(new RowDataPacket[size]);
-        Arrays.sort(tmp, cmp);
-        LinkedList<RowDataPacket> rnt = new LinkedList<RowDataPacket>();
-        int i = total - rtnSize;
-        while (i < size)
-            rnt.add(tmp[i++]);
-        return rnt;
     }
 }

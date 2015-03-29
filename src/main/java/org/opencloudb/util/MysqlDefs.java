@@ -410,8 +410,20 @@ public final class MysqlDefs {
 		case Types.BLOB:
 			return MysqlDefs.FIELD_TYPE_BLOB;
 
+		//修改by     magicdoom@gmail.com
+		// 当jdbc连接非mysql的数据库时，需要把对应类型映射为mysql的类型，否则应用端会出错
+			case Types.NVARCHAR:
+				return MysqlDefs.FIELD_TYPE_VAR_STRING;
+			case Types.NCHAR:
+				return MysqlDefs.FIELD_TYPE_STRING;
+			case Types.NCLOB:
+				return MysqlDefs.FIELD_TYPE_VAR_STRING;
+			case Types.LONGNVARCHAR:
+				return MysqlDefs.FIELD_TYPE_VAR_STRING;
+
 		default:
-			return Types.VARCHAR;
+			return MysqlDefs.FIELD_TYPE_VAR_STRING;   //其他未知类型返回字符类型
+		//	return Types.VARCHAR;
 		}
 
 	}

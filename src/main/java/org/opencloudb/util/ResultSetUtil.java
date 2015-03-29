@@ -35,53 +35,37 @@ public class ResultSetUtil {
 		return flags;
 	}
 
-	public static void resultSetToPacket(String charset, Connection source,
-			List<FieldPacket> fieldPks, ResultSet rs,
-			List<RowDataPacket> rowsPkg) throws SQLException {
+	public static void resultSetToFieldPacket(String charset,
+											  List<FieldPacket> fieldPks, ResultSet rs,
+											  boolean isSpark) throws SQLException {
 		ResultSetMetaData metaData = rs.getMetaData();
 		int colunmCount = metaData.getColumnCount();
 		if (colunmCount > 0) {
+			//String values="";
 			for (int i = 0; i < colunmCount; i++) {
 				int j = i + 1;
 				FieldPacket fieldPacket = new FieldPacket();
-				fieldPacket.orgName = StringUtil.encode(
-						metaData.getColumnLabel(j), charset);
-				fieldPacket.name = StringUtil.encode(metaData.getColumnName(j),
-						charset);
-				fieldPacket.orgTable = StringUtil.encode(
-						metaData.getTableName(j), charset);
-				fieldPacket.table = StringUtil.encode(metaData.getTableName(j),
-						charset);
-				fieldPacket.db = StringUtil.encode(metaData.getSchemaName(j),
-						charset);
+				fieldPacket.orgName = StringUtil.encode(metaData.getColumnName(j),charset);
+				fieldPacket.name = StringUtil.encode(metaData.getColumnLabel(j), charset);
+				if (! isSpark){
+				  fieldPacket.orgTable = StringUtil.encode(metaData.getTableName(j), charset);
+				  fieldPacket.table = StringUtil.encode(metaData.getTableName(j),	charset);
+				  fieldPacket.db = StringUtil.encode(metaData.getSchemaName(j),charset);
+				  fieldPacket.flags = toFlag(metaData, j);
+				}
 				fieldPacket.length = metaData.getColumnDisplaySize(j);
-				fieldPacket.flags = toFlag(metaData, j);
+				
 				fieldPacket.decimals = (byte) metaData.getScale(j);
 				int javaType = MysqlDefs.javaTypeDetect(
 						metaData.getColumnType(j), fieldPacket.decimals);
 				fieldPacket.type = (byte) (MysqlDefs.javaTypeMysql(javaType) & 0xff);
 				fieldPks.add(fieldPacket);
-
+				//values+=metaData.getColumnLabel(j)+"|"+metaData.getColumnName(j)+"  ";
 			}
-
+			// System.out.println(values);
 		}
 
-		while (rs.next()) {
-			RowDataPacket row = new RowDataPacket(fieldPks.size());
-			for (int i = 0; i < colunmCount; i++) {
-				int j = i + 1;
-				// BindValue bindValue = new BindValue();
-				// bindValue.bufferType = fieldPackets[i].type;
-				// bindValue.bindLength = fieldPackets[i].length;
-				// bindValue.scale = fieldPackets[i].decimals;
-				// bindValue.charset = fieldPackets[i].charsetName;
-				// PacketUtil.resultToBindValue(bindValue, j, rs,
-				// fieldPackets[i]);
-				row.add(StringUtil.encode(rs.getString(j), charset));
 
-			}
-			rowsPkg.add(row);
-		}
 	}
 
 	public static RowDataPacket parseRowData(byte[] row,
