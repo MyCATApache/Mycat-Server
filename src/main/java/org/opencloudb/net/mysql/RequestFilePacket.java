@@ -33,8 +33,8 @@ import java.nio.ByteBuffer;
  */
 public class RequestFilePacket extends MySQLPacket
 {
-
-    public byte command = (byte) 251;
+    public static final byte FIELD_COUNT = (byte) 251;
+    public byte command = FIELD_COUNT;
     public byte[] fileName;
 
 

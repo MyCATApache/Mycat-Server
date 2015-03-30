@@ -65,6 +65,8 @@ public final class RouteResultset implements Serializable {
     //是否可以在从库运行,此属性主要供RouteResultsetNode获取
     private Boolean canRunInReadDB;
 
+
+
     public boolean isFinishedRoute() {
         return isFinishedRoute;
     }

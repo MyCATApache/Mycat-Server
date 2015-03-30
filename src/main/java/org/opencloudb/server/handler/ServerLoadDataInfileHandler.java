@@ -24,6 +24,7 @@
 package org.opencloudb.server.handler;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLLiteralExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLoadDataInFileStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
@@ -198,6 +199,23 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
 
     }
+
+
+
+    private void buildResultSet()
+    {
+        statement.setLocal(true);//强制local
+        SQLLiteralExpr fn=new SQLCharExpr(fileName);    //默认druid会过滤掉路径的分隔符，所以这里重新设置下
+        statement.setFileName(fn);
+        RouteResultset rrs=new RouteResultset(statement.toString(),ServerParse.LOAD_DATA_INFILE_SQL);
+        rrs.setAutocommit(serverConnection.isAutocommit());
+
+
+
+    }
+
+
+
 
     private String makeSimpleInsert(List<SQLExpr> columns, List<String> fields, String table, boolean isAddEncose)
     {
