@@ -33,6 +33,7 @@ import org.opencloudb.net.handler.BackendAsyncHandler;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.OkPacket;
+import org.opencloudb.net.mysql.RequestFilePacket;
 
 /**
  * life cycle: from connection establish to close <br/>
@@ -98,6 +99,9 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 			case ErrorPacket.FIELD_COUNT:
 				handleErrorPacket(data);
 				break;
+				case RequestFilePacket.FIELD_COUNT:
+					handleOkPacket(data);
+					break;
 			default:
 				resultStatus = RESULT_STATUS_HEADER;
 				header = data;
@@ -160,6 +164,18 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	 * ERROR数据包处理
 	 */
 	private void handleErrorPacket(byte[] data) {
+		ResponseHandler respHand = responseHandler;
+		if (respHand != null) {
+			respHand.errorResponse(data, source);
+		} else {
+			closeNoHandler();
+		}
+	}
+
+	/**
+	 * load data file 请求文件数据包处理
+	 */
+	private void handleRequestPacket(byte[] data) {
 		ResponseHandler respHand = responseHandler;
 		if (respHand != null) {
 			respHand.errorResponse(data, source);

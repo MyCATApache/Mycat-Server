@@ -33,10 +33,7 @@ import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
 import org.opencloudb.mpp.MergeCol;
-import org.opencloudb.net.mysql.FieldPacket;
-import org.opencloudb.net.mysql.OkPacket;
-import org.opencloudb.net.mysql.ResultSetHeaderPacket;
-import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.net.mysql.*;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
@@ -162,6 +159,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 	@Override
 	public void okResponse(byte[] data, BackendConnection conn) {
+
+		if( RequestFilePacket.FIELD_COUNT==data[4])
+		{
+
+
+			returntodo;
+		}
+
+
 		boolean executeResponse = conn.syncAndExcute();
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("received ok response ,executeResponse:"

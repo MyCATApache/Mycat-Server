@@ -33,6 +33,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.mpp.LoadData;
 import org.opencloudb.net.handler.LoadDataInfileHandler;
 import org.opencloudb.net.mysql.BinaryPacket;
 import org.opencloudb.net.mysql.OkPacket;
@@ -41,15 +42,13 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.util.ObjectUtil;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * mysql命令行客户端也需要启用local file权限，加参数--local-infile=1
@@ -65,6 +64,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private MySqlLoadDataInFileStatement statement;
 
     private Map<String,List<String>>  routeResultMap=new HashMap<>();
+
+    private LoadData loadData;
 
 
     public ServerLoadDataInfileHandler(ServerConnection serverConnection)
@@ -88,6 +89,27 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     }
 
 
+    private  void parseLoadDataPram()
+    {
+        loadData=new LoadData();
+        SQLLiteralExpr rawLineEnd = statement.getLinesTerminatedBy();
+        String lineTerminatedBy = rawLineEnd == null ? "\n" : rawLineEnd.toString();
+        loadData.setLineTerminatedBy(lineTerminatedBy);
+
+        SQLLiteralExpr rawFieldEnd = statement.getColumnsTerminatedBy();
+        String fieldTerminatedBy = rawFieldEnd == null ? "\t" : rawFieldEnd.toString();
+        loadData.setFieldTerminatedBy(fieldTerminatedBy);
+
+        SQLLiteralExpr rawEnclosed = statement.getColumnsEnclosedBy();
+        String enclose = rawEnclosed == null ? "" : rawEnclosed.toString();
+        loadData.setEnclose(enclose);
+
+        String charset = statement.getCharset() != null ? statement.getCharset() : serverConnection.getCharset();
+        loadData.setCharset(charset);
+        loadData.setFileName(fileName);
+    }
+
+
     @Override
     public void start(String sql)
     {
@@ -97,12 +119,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         SQLStatementParser parser = new MySqlStatementParser(sql);
         statement = (MySqlLoadDataInFileStatement) parser.parseStatement();
         fileName = parseFileName(sql);
+
         if (fileName == null)
         {
             serverConnection.writeErrMessage(ErrorCode.ER_FILE_NOT_FOUND, " file name is null !");
             clear();
             return;
         }
+        parseLoadDataPram();
         if (statement.isLocal())
         {
             //向客户端请求发送文件
@@ -119,7 +143,12 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 clear();
             } else
             {
-                sendOk((byte) 1);
+                RouteResultset rrs =     buildResultSet(routeResultMap);
+                if(rrs!=null)
+                {
+                    serverConnection.getSession2().execute(rrs,ServerParse.LOAD_DATA_INFILE_SQL);
+                }
+             //   sendOk((byte) 1);
                 clear();
             }
         }
@@ -135,25 +164,16 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             ByteInputStream inputStream = new ByteInputStream(data, data.length);
             packet.read(inputStream);
 
-            SQLLiteralExpr rawLineEnd = statement.getLinesTerminatedBy();
-            String lineTerminatedBy = rawLineEnd == null ? "\n" : rawLineEnd.toString();
 
-            SQLLiteralExpr rawFieldEnd = statement.getColumnsTerminatedBy();
-            String fieldTerminatedBy = rawFieldEnd == null ? "\t" : rawFieldEnd.toString();
-
-            SQLLiteralExpr rawEnclosed = statement.getColumnsEnclosedBy();
-            String enclose = rawEnclosed == null ? "" : rawEnclosed.toString();
-
-            String charset = statement.getCharset() != null ? statement.getCharset() : "utf-8";
 
             List<SQLExpr> columns = statement.getColumns();
             String tableName = statement.getTableName().getSimpleName();
 
-            String content = new String(data, 4, data.length - 4, charset);
-            List<String> lines = Splitter.on(lineTerminatedBy).omitEmptyStrings().splitToList(content);
+            String content = new String(data, 4, data.length - 4, loadData.getCharset());
+            List<String> lines = Splitter.on(loadData.getLineTerminatedBy()).omitEmptyStrings().splitToList(content);
             for (final String line : lines)
             {
-                List<String> fields = Splitter.on(fieldTerminatedBy).splitToList(line);
+                List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
                 String insertSql = makeSimpleInsert(columns, fields, tableName, true);
                 RouteResultset rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
 
@@ -202,16 +222,35 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
 
 
-    private void buildResultSet()
+    private RouteResultset buildResultSet(Map<String,List<String>>  routeMap)
     {
         statement.setLocal(true);//强制local
         SQLLiteralExpr fn=new SQLCharExpr(fileName);    //默认druid会过滤掉路径的分隔符，所以这里重新设置下
         statement.setFileName(fn);
-        RouteResultset rrs=new RouteResultset(statement.toString(),ServerParse.LOAD_DATA_INFILE_SQL);
+        String srcStatement = statement.toString();
+        RouteResultset rrs=new RouteResultset(srcStatement,ServerParse.LOAD_DATA_INFILE_SQL);
+        rrs.setStatement(srcStatement);
         rrs.setAutocommit(serverConnection.isAutocommit());
+        rrs.setFinishedRoute(true);
+        int size = routeMap.size();
+        RouteResultsetNode[] routeResultsetNodes=new RouteResultsetNode[size];
+        int index=0;
+        for (String dn : routeMap.keySet())
+        {
+            RouteResultsetNode rrNode = new RouteResultsetNode(dn, ServerParse.LOAD_DATA_INFILE_SQL, srcStatement);
+            rrNode.setTotalNodeSize(size);
+            rrNode.setStatement(srcStatement);
+            LoadData newLoadData=new LoadData();
+            ObjectUtil.copyProperties(loadData,newLoadData);
+            newLoadData.setLocal(true);
+            newLoadData.setData(routeMap.get(dn));
+            rrNode.setLoadData(newLoadData);
 
-
-
+            routeResultsetNodes[index]=rrNode;
+            index++;
+        }
+         rrs.setNodes(routeResultsetNodes);
+       return rrs;
     }
 
 
@@ -262,7 +301,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     {
         affectedRows = 10;
         //load in data空包 结束
-        sendOk(++packID);
+
+        RouteResultset rrs =     buildResultSet(routeResultMap);
+        if(rrs!=null)
+        {
+           serverConnection.getSession2().execute(rrs,ServerParse.LOAD_DATA_INFILE_SQL);
+        }
+
+       // sendOk(++packID);
           clear();
 
     }
@@ -288,6 +334,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
     public void clear()
     {
+        loadData=null;
         sql = null;
         fileName = null;
         statement = null;
