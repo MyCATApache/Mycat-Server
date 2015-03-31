@@ -24,6 +24,7 @@
 package org.opencloudb.net.handler;
 
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.mysql.MySQLMessage;
 import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.NIOHandler;
 import org.opencloudb.net.mysql.MySQLPacket;
@@ -88,13 +89,18 @@ public class FrontendCommandHandler implements NIOHandler
                 commands.doHeartbeat();
                 source.heartbeat(data);
                 break;
-            case MySQLPacket.LOAD_DATA_INFILE_DATA:
-                source.loadDataInfileData(data);
-                break;
             default:
-                commands.doOther();
-                source.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
-                        "Unknown command");
+                MySQLMessage mm = new MySQLMessage(data);
+                int  packetLength = mm.readUB3();
+                 if(packetLength+4==data.length)
+                 {
+                     source.loadDataInfileData(data);
+                 }   else
+                 {
+                     commands.doOther();
+                     source.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
+                             "Unknown command");
+                 }
         }
     }
 

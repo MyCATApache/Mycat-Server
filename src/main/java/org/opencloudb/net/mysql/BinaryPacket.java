@@ -65,6 +65,7 @@ public class BinaryPacket extends MySQLPacket {
     @Override
     public void write(BackendAIOConnection c) {
         ByteBuffer buffer = c.allocate();
+        buffer=  c.checkWriteBuffer(buffer,c.getPacketHeaderSize()+calcPacketSize(),false);
         BufferUtil.writeUB3(buffer, calcPacketSize());
         buffer.put(packetId);
         buffer.put(data);

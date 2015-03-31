@@ -24,6 +24,7 @@
 package org.opencloudb.net.mysql;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
@@ -101,6 +102,8 @@ public class CommandPacket extends MySQLPacket {
         command = mm.read();
         arg = mm.readBytes();
     }
+
+
 
     public void write(OutputStream out) throws IOException {
         StreamUtil.writeUB3(out, calcPacketSize());

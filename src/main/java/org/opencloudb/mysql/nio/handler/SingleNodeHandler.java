@@ -204,6 +204,15 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
+			if(rrs.isLoadData())
+			{
+				byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
+				ok.packetId = ++lastPackId;// OK_PACKET
+			}   else
+			{
+				ok.packetId = ++packetId;// OK_PACKET
+			}
+			ok.serverStatus = source.isAutocommit() ? 2 : 1;
 			ok.packetId = ++packetId;
 			recycleResources();
 			source.setLastInsertId(ok.insertId);

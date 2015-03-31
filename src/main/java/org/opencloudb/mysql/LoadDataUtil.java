@@ -4,6 +4,8 @@ import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.mpp.LoadData;
 import org.opencloudb.net.BackendAIOConnection;
 import org.opencloudb.net.mysql.BinaryPacket;
+import org.opencloudb.net.mysql.CommandPacket;
+import org.opencloudb.net.mysql.MySQLPacket;
 import org.opencloudb.route.RouteResultsetNode;
 
 import java.io.*;
@@ -67,7 +69,7 @@ public class LoadDataUtil
     public static byte writeToBackConnection(byte packID,InputStream inputStream,BackendAIOConnection backendAIOConnection) throws IOException
     {
 
-        int packSize = backendAIOConnection.getMaxPacketSize() / 2;
+        int packSize = backendAIOConnection.getMaxPacketSize() / 32;
         byte[] buffer = new byte[packSize];
         int len = -1;
 

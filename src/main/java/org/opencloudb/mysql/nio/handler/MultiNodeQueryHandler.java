@@ -208,9 +208,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 				lock.lock();
 				try {
-					ok.packetId = ++packetId;// OK_PACKET
-					ok.affectedRows = affectedRows;
+				 if(rrs.isLoadData())
+				 {
+					 byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
+					 ok.packetId = ++lastPackId;// OK_PACKET
+				 }   else
+				 {
+					 ok.packetId = ++packetId;// OK_PACKET
+				 }
 
+					ok.affectedRows = affectedRows;
+					ok.serverStatus = source.isAutocommit() ? 2 : 1;
 					if (insertId > 0) {
 						ok.insertId = insertId;
 						source.setLastInsertId(insertId);

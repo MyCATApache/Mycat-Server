@@ -39,4 +39,6 @@ public interface LoadDataInfileHandler
 
     void clear();
 
+    byte getLastPackId();
+
 }

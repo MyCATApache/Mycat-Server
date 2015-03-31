@@ -62,10 +62,20 @@ public final class RouteResultset implements Serializable {
     //是否自动提交，此属性主要用于记录ServerConnection上的autocommit状态
     private boolean autocommit = true;
 
+    private boolean isLoadData=false;
+
     //是否可以在从库运行,此属性主要供RouteResultsetNode获取
     private Boolean canRunInReadDB;
 
+    public boolean isLoadData()
+    {
+        return isLoadData;
+    }
 
+    public void setLoadData(boolean isLoadData)
+    {
+        this.isLoadData = isLoadData;
+    }
 
     public boolean isFinishedRoute() {
         return isFinishedRoute;
