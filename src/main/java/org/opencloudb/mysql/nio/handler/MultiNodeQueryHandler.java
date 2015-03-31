@@ -36,6 +36,7 @@ import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
 import org.opencloudb.mpp.LoadData;
 import org.opencloudb.mpp.MergeCol;
+import org.opencloudb.mysql.LoadDataUtil;
 import org.opencloudb.net.BackendAIOConnection;
 import org.opencloudb.net.mysql.*;
 import org.opencloudb.route.RouteResultset;
@@ -45,8 +46,7 @@ import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.SplitUtil;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -507,95 +507,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
     @Override
     public void requestDataResponse(byte[] data, BackendConnection conn)
-    {   byte packId= data[3];
-        BackendAIOConnection backendAIOConnection= (BackendAIOConnection) conn;
-        RouteResultsetNode rrn= (RouteResultsetNode) conn.getAttachment();
-        LoadData loadData= rrn.getLoadData();
-        List<String> loadDataData = loadData.getData();
-        if(loadDataData !=null&&loadDataData.size()>0)
-        {
-            int lineLength= 0;
-            try
-            {
-                lineLength = loadDataData.get(0).getBytes(loadData.getCharset()).length;
-            } catch (UnsupportedEncodingException e)
-            {
-                throw new RuntimeException(e);
-            }
-            int maxPackSize=   backendAIOConnection.getMaxPacketSize();
-         int perNum=maxPackSize/lineLength-1;
-            if(perNum<=0)
-            {
-
-                //单条数据超过单个包的大小
-                for (int i = 0, loadDataDataSize = loadDataData.size(); i < loadDataDataSize; i++)
-                {
-                    String line = loadDataData.get(i);
-                    int lineSplitNum=line.getBytes().length/maxPackSize+1;
-                    String[] lineS = SplitUtil.splitByByteSize(line, lineSplitNum);
-                    for (int i1 = 0, lineSLength = lineS.length; i1 < lineSLength; i1++)
-                    {
-                        String s = lineS[i1];
-                        BinaryPacket packet = new BinaryPacket();
-                        packet.packetId = ++packId;
-                        try
-                        {
-                            if(i!=loadDataDataSize-1&&i1==lineSLength-1)
-                            {
-                                packet.data = (s+loadData.getLineTerminatedBy()).getBytes(loadData.getCharset());
-                            }else
-                            {
-                                packet.data = s.getBytes(loadData.getCharset());
-                            }
-                        } catch (UnsupportedEncodingException e)
-                        {
-                            throw new RuntimeException(e);
-                        }
-                        packId=writeIFLarger(packet,backendAIOConnection);
-                    }
-                }
-            }else
-            {
-                int size = perNum / 2;   //以一半的包大小发送，以免某些值特别大超出包大小
-                if(size==0)size=1;
-                List<List<String>> splitList = Lists.partition(loadDataData, size);
-                for (List<String> line : splitList)
-                {
-                    BinaryPacket packet=new BinaryPacket();
-                    packet.packetId=++packId;
-
-                    try
-                    {
-                        packet.data= Joiner.on(loadData.getLineTerminatedBy()).join(line).getBytes(loadData.getCharset());
-                    } catch (UnsupportedEncodingException e)
-                    {
-                       throw new RuntimeException(e);
-                    }
-                    packId=writeIFLarger(packet,backendAIOConnection);
-                }
-            }
-        }   else
-        {
-            //从文件读取
-
-
-        }
-
-        //结束必须发空包
-        byte[] empty = new byte[] { 0, 0, 0,3 };
-         empty[3]=++packId;
-        backendAIOConnection.write(empty);
-
+    {
+        LoadDataUtil.requestFileDataResponse(data,conn);
     }
 
-private byte writeIFLarger(BinaryPacket packet,BackendAIOConnection backendAIOConnection)
-{
-    byte packID=packet.packetId;
 
-    packet.write(backendAIOConnection);
-
-    return  packID;
-}
 
 
 }

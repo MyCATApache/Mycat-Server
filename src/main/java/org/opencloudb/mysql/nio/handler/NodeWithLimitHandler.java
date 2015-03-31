@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mpp.MutiDataMergeService;
+import org.opencloudb.mysql.LoadDataUtil;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.route.RouteResultsetNode;
@@ -41,7 +42,7 @@ import org.opencloudb.util.StringUtil;
 /**
  * @author mycat
  */
-public class NodeWithLimitHandler implements ResponseHandler, Terminatable {
+public class NodeWithLimitHandler implements ResponseHandler, Terminatable, LoadDataResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(NodeWithLimitHandler.class);
 	private final RouteResultsetNode node;
@@ -258,5 +259,10 @@ public class NodeWithLimitHandler implements ResponseHandler, Terminatable {
 		return "NodeWithLimitHandler [node=" + node + ", packetId=" + packetId
 				+ "]";
 	}
+    @Override
+    public void requestDataResponse(byte[] data, BackendConnection conn)
+    {
+        LoadDataUtil.requestFileDataResponse(data, conn);
+    }
 
 }

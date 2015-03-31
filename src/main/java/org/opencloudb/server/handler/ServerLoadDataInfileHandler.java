@@ -31,8 +31,10 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.mpp.LoadData;
 import org.opencloudb.net.handler.LoadDataInfileHandler;
 import org.opencloudb.net.mysql.BinaryPacket;
@@ -44,10 +46,12 @@ import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.ObjectUtil;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
 import java.util.*;
 
 /**
@@ -63,10 +67,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private long affectedRows;
     private MySqlLoadDataInFileStatement statement;
 
-    private Map<String,List<String>>  routeResultMap=new HashMap<>();
+    private Map<String,LoadData>  routeResultMap=new HashMap<>();
 
     private LoadData loadData;
-
+    private ByteBuffer tempByteBuffer;
+    private long tempByteBuffrSize=0;
+    private String tempFile;
+    private boolean isHasStoreToFile=false;
+    private String tempPath;
 
     public ServerLoadDataInfileHandler(ServerConnection serverConnection)
     {
@@ -87,6 +95,10 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
         return null;
     }
+
+
+
+
 
 
     private  void parseLoadDataPram()
@@ -126,6 +138,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             clear();
             return;
         }
+        tempPath=SystemConfig.getHomePath()+File.pathSeparator+"temp"+File.pathSeparator+serverConnection.getId()+File.pathSeparator;
+        tempByteBuffer=serverConnection.allocate();
         parseLoadDataPram();
         if (statement.isLocal())
         {
@@ -164,53 +178,10 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             ByteInputStream inputStream = new ByteInputStream(data, data.length);
             packet.read(inputStream);
 
+             saveByteOrToFile(packet.data,false);
 
 
-            List<SQLExpr> columns = statement.getColumns();
-            String tableName = statement.getTableName().getSimpleName();
 
-            String content = new String(data, 4, data.length - 4, loadData.getCharset());
-            List<String> lines = Splitter.on(loadData.getLineTerminatedBy()).omitEmptyStrings().splitToList(content);
-            for (final String line : lines)
-            {
-                List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
-                String insertSql = makeSimpleInsert(columns, fields, tableName, true);
-                RouteResultset rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
-
-
-                //验证正确性，之后删除
-                String insertSql1 = makeSimpleInsert(columns, fields, tableName, false);
-                RouteResultset rrs1 = serverConnection.routeSQL(insertSql1, ServerParse.INSERT);
-                if (!rrs.getNodes()[0].getName().equals(rrs1.getNodes()[0].getName()))
-                {
-                    throw new RuntimeException("路由错误");
-                }
-
-                if(rrs==null ||rrs.getNodes()==null||rrs.getNodes().length==0)
-                {
-                    //无路由处理
-                }
-                else
-                {
-                    for (RouteResultsetNode routeResultsetNode : rrs.getNodes())
-                    {
-                      String name=  routeResultsetNode.getName();
-                     List<String>   linesData=     routeResultMap.get(name);
-                        if(linesData==null)
-                        {
-                            routeResultMap.put(name, Lists.newArrayList(line)) ;
-                        }  else
-                        {
-                            linesData.add(line);
-                        }
-                    }
-                }
-
-
-            }
-
-
-            //   Files.write(packet.data, new File("d:\\88\\mycat.txt"));
 
         } catch (IOException e)
         {
@@ -219,6 +190,98 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
 
     }
+
+    private synchronized void saveByteOrToFile(byte[] data,boolean isForce)
+    {
+
+        if(data!=null)
+        {
+            tempByteBuffrSize=tempByteBuffrSize+data.length;
+            tempByteBuffer.put(data);
+        }
+
+         if((isForce&&isHasStoreToFile)||tempByteBuffrSize>200*1024*1024)    //超过200M 存文件
+        {
+            FileChannel channel = null;
+            try
+            {
+                channel = new FileOutputStream(new File(tempFile), true).getChannel();
+                tempByteBuffer.flip();
+                channel.write(tempByteBuffer);
+                tempByteBuffrSize=0;
+                isHasStoreToFile=false;
+            } catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            } finally
+            {
+                try
+                {
+                    if(channel!=null)
+                    channel.close();
+                } catch (IOException ignored)
+                {
+
+                }
+            }
+
+
+        }
+    }
+
+    private void parseOneLine(List<SQLExpr> columns, String tableName, String line,boolean toFile)
+    {
+        List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
+        String insertSql = makeSimpleInsert(columns, fields, tableName, true);
+        RouteResultset rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
+
+
+        //验证正确性，之后删除
+        String insertSql1 = makeSimpleInsert(columns, fields, tableName, false);
+        RouteResultset rrs1 = serverConnection.routeSQL(insertSql1, ServerParse.INSERT);
+        if (!rrs.getNodes()[0].getName().equals(rrs1.getNodes()[0].getName()))
+        {
+            throw new RuntimeException("路由错误");
+        }
+
+        if(rrs==null ||rrs.getNodes()==null||rrs.getNodes().length==0)
+        {
+            //无路由处理
+        }
+        else
+        {
+            for (RouteResultsetNode routeResultsetNode : rrs.getNodes())
+            {
+              String name=  routeResultsetNode.getName();
+              LoadData data= routeResultMap.get(name) ;
+             if(data==null)
+               {
+                   routeResultMap.put(name,new LoadData());
+               }
+                if(toFile)
+                {
+                    if(data.getFileName()==null)
+                    {
+
+                    }   else
+                    {
+
+                    }
+
+                }   else
+                {
+                    if (data.getData() == null)
+                    {
+                        data.setData(Lists.newArrayList(line));
+                    } else
+                    {
+                        data.getData().add(line);
+                    }
+                }
+            }
+        }
+    }
+
 
 
 
@@ -299,41 +362,102 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     @Override
     public void end(byte packID)
     {
-        affectedRows = 10;
+
         //load in data空包 结束
+        saveByteOrToFile(null,true);
+        List<SQLExpr> columns = statement.getColumns();
+        String tableName = statement.getTableName().getSimpleName();
+         if(isHasStoreToFile)
+         {
+
+         }   else
+         {
+         String content=byteBufferToString(tempByteBuffer,loadData.getCharset());
+        List<String> lines = Splitter.on(loadData.getLineTerminatedBy()).omitEmptyStrings().splitToList(content);
+        for (final String line : lines)
+        {
+            parseOneLine(columns, tableName, line);
+
+
+        }
 
         RouteResultset rrs =     buildResultSet(routeResultMap);
         if(rrs!=null)
         {
            serverConnection.getSession2().execute(rrs,ServerParse.LOAD_DATA_INFILE_SQL);
         }
+         }
 
        // sendOk(++packID);
           clear();
 
     }
 
-    private void sendOk(byte packID)
-    {
-        OkPacket ok = new OkPacket();
-        ok.packetId = packID;
-        ok.affectedRows = affectedRows;
 
-        ok.serverStatus = serverConnection.isAutocommit() ? 2 : 1;
-        String msg = "Records:" + affectedRows + " Deleted:0 Skipped:0 Warnings:0";
-        try
+    private static void parseFileByLine(String file,String encode,String split)
+    {
+        Scanner scanner =null;
+        try {
+            scanner = new Scanner(new FileInputStream(file), encode);
+            scanner.useDelimiter(split);
+            while (scanner.hasNextLine()){
+
+            }
+        } catch (FileNotFoundException e)
         {
-            ok.message = msg.getBytes("utf-8");
-        } catch (UnsupportedEncodingException e)
-        {
-            throw new RuntimeException(e);
+          throw new RuntimeException(e);
+        } finally{
+            if(scanner!=null)
+            scanner.close();
         }
-        ok.write(serverConnection);
+
     }
+
+
+    private static String byteBufferToString(ByteBuffer buffer,String charsetIn) {
+        CharBuffer charBuffer = null;
+        try {
+            Charset charset = Charset.forName(charsetIn);
+            CharsetDecoder decoder = charset.newDecoder();
+            charBuffer = decoder.decode(buffer);
+            buffer.flip();
+            return charBuffer.toString();
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+//    private void sendOk(byte packID)
+//    {
+//        OkPacket ok = new OkPacket();
+//        ok.packetId = packID;
+//        ok.affectedRows = affectedRows;
+//
+//        ok.serverStatus = serverConnection.isAutocommit() ? 2 : 1;
+//        String msg = "Records:" + affectedRows + " Deleted:0 Skipped:0 Warnings:0";
+//        try
+//        {
+//            ok.message = msg.getBytes("utf-8");
+//        } catch (UnsupportedEncodingException e)
+//        {
+//            throw new RuntimeException(e);
+//        }
+//        ok.write(serverConnection);
+//    }
 
 
     public void clear()
     {
+        File temp=new File(tempFile);
+        if(temp.exists())
+        {
+            temp.delete();
+        }
+        if(new File(tempPath).exists())
+        {
+            Files.
+        }
+        tempByteBuffer=null;
         loadData=null;
         sql = null;
         fileName = null;
