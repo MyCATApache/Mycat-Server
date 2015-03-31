@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.mysql.ByteUtil;
+import org.opencloudb.mysql.nio.handler.LoadDataResponseHandler;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.handler.BackendAsyncHandler;
 import org.opencloudb.net.mysql.EOFPacket;
@@ -100,7 +101,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 				handleErrorPacket(data);
 				break;
 				case RequestFilePacket.FIELD_COUNT:
-					handleOkPacket(data);
+                    handleRequestPacket(data);
 					break;
 			default:
 				resultStatus = RESULT_STATUS_HEADER;
@@ -177,8 +178,8 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	 */
 	private void handleRequestPacket(byte[] data) {
 		ResponseHandler respHand = responseHandler;
-		if (respHand != null) {
-			respHand.errorResponse(data, source);
+		if (respHand != null&&respHand instanceof LoadDataResponseHandler) {
+            ( (LoadDataResponseHandler)respHand).requestDataResponse(data, source);
 		} else {
 			closeNoHandler();
 		}
