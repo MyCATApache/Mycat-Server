@@ -70,7 +70,8 @@ public class LoadDataUtil
     public static byte writeToBackConnection(byte packID,InputStream inputStream,BackendAIOConnection backendAIOConnection) throws IOException
     {
         //int packSize=   MycatServer.getInstance().getConfig().getSystem().getProcessorBufferChunk()-5 ;
-        int packSize = backendAIOConnection.getMaxPacketSize() / 32;
+       // int packSize = backendAIOConnection.getMaxPacketSize() / 32;
+        int packSize=65530;
         byte[] buffer = new byte[packSize];
         int len = -1;
 

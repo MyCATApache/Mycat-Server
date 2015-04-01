@@ -54,7 +54,10 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.sql.SQLNonTransientException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 
 /**
  * mysql命令行客户端也需要启用local file权限，加参数--local-infile=1
@@ -77,6 +80,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private String tempFile;
     private boolean isHasStoreToFile = false;
     private String tempPath;
+    private String tableName;
+    private TableConfig tableConfig;
+    private int partitionColumnIndex = -1;
 
     public int getPackID()
     {
@@ -146,9 +152,35 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             clear();
             return;
         }
+        schema = MycatServer.getInstance().getConfig()
+                .getSchemas().get(serverConnection.getSchema());
+        tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
+        tableName = statement.getTableName().getSimpleName().toUpperCase();
+        tableConfig = schema.getTables().get(tableName);
         tempPath = SystemConfig.getHomePath() + File.separator + "temp" + File.separator + serverConnection.getId() + File.separator;
         tempFile = tempPath + "clientTemp.txt";
         tempByteBuffer = new ByteArrayOutputStream();
+
+        List<SQLExpr> columns = statement.getColumns();
+        String pColumn = tableConfig.getPartitionColumn();
+        if (columns != null && columns.size() > 0)
+        {
+
+            for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
+            {
+                SQLExpr column = columns.get(i);
+                if (pColumn.equalsIgnoreCase(column.toString()))
+                {
+                    partitionColumnIndex = i;
+                    break;
+
+                }
+
+            }
+
+        }
+
+
         parseLoadDataPram();
         if (statement.isLocal())
         {
@@ -245,76 +277,57 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
     }
 
+    LayerCachePool tableId2DataNodeCache;
+    SchemaConfig schema;
 
-    private RouteResultset tryDirectRoute(String sql,String line)
+    private RouteResultset tryDirectRoute(String sql, String line)
     {
-        LayerCachePool tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
-        RouteResultset rrs=new RouteResultset(sql,ServerParse.INSERT);
 
-        String tableName = statement.getTableName().getSimpleName().toUpperCase();
-
-        SchemaConfig schema = MycatServer.getInstance().getConfig()
-                .getSchemas().get(serverConnection.getSchema());
-        TableConfig tableConfig= schema.getTables().get(tableName);
-        if(tableConfig==null&&schema.getDataNode()!=null)
+        RouteResultset rrs = new RouteResultset(sql, ServerParse.INSERT);
+        if (tableConfig == null && schema.getDataNode() != null)
         {
             //走默认节点
-            RouteResultsetNode rrNode=new RouteResultsetNode(schema.getDataNode(),ServerParse.INSERT,sql) ;
+            RouteResultsetNode rrNode = new RouteResultsetNode(schema.getDataNode(), ServerParse.INSERT, sql);
             rrs.setNodes(new RouteResultsetNode[]{rrNode});
             return rrs;
-        } else if(tableConfig!=null)
+        } else if (tableConfig != null)
         {
-            DruidShardingParseInfo ctx=new DruidShardingParseInfo();
+            DruidShardingParseInfo ctx = new DruidShardingParseInfo();
             ctx.addTable(tableName);
 
-       List<String>  lineList=   Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
-            List<SQLExpr> columns=   statement.getColumns();
-          String pColumn=  tableConfig.getPartitionColumn();
-            if (columns != null && columns.size() > 0)
+            List<String> lineList = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
+
+            if (partitionColumnIndex == -1 || partitionColumnIndex >= lineList.size())
             {
-
-                for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
+                return null;
+            } else
+            {
+                String value = lineList.get(partitionColumnIndex);
+                ctx.addShardingExpr(tableName, tableConfig.getPartitionColumn(), value);
+                try
                 {
-                    SQLExpr column = columns.get(i);
-                   if(pColumn.equalsIgnoreCase(column.toString()))
-                   {
-                        if(i>=lineList.size())
-                        {
-                            return null;
-                        }    else
-                        {
-                        String value=   lineList.get(i);
-                            ctx.addShardingExpr(tableName,pColumn,value);
-                            try
-                            {
-                                RouterUtil.tryRouteForTables(schema,ctx,rrs,false,tableId2DataNodeCache);
-                                return rrs;
-                            } catch (SQLNonTransientException e)
-                            {
-                               throw new RuntimeException(e);
-                            }
-                        }
-
-                   }
-
+                    RouterUtil.tryRouteForTables(schema, ctx, rrs, false, tableId2DataNodeCache);
+                    return rrs;
+                } catch (SQLNonTransientException e)
+                {
+                    throw new RuntimeException(e);
                 }
-
             }
 
 
         }
 
-     return null;
+        return null;
     }
 
 
     private void parseOneLine(List<SQLExpr> columns, String tableName, String line, boolean toFile, String lineEnd)
     {
 
-        RouteResultset rrs =tryDirectRoute(sql, line);
+        RouteResultset rrs = tryDirectRoute(sql, line);
         if (rrs == null || rrs.getNodes() == null || rrs.getNodes().length == 0)
         {
- //           List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
+            //           List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
 //            String insertSql = makeSimpleInsert(columns, fields, tableName, true);
 //             rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
         }
@@ -545,6 +558,10 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
     public void clear()
     {
+        tableId2DataNodeCache = null;
+        schema=null;
+        tableConfig=null;
+        partitionColumnIndex=-1;
         File temp = new File(tempFile);
         if (temp.exists())
         {
@@ -601,7 +618,6 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
         fileDirToDel.delete();
     }
-
 
 
 }
