@@ -32,14 +32,20 @@ import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import org.opencloudb.MycatServer;
+import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
+import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.mpp.LoadData;
 import org.opencloudb.net.handler.LoadDataInfileHandler;
 import org.opencloudb.net.mysql.BinaryPacket;
 import org.opencloudb.net.mysql.RequestFilePacket;
+import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
+import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.ObjectUtil;
@@ -47,10 +53,8 @@ import org.opencloudb.util.ObjectUtil;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.sql.SQLNonTransientException;
+import java.util.*;
 
 /**
  * mysql命令行客户端也需要启用local file权限，加参数--local-infile=1
@@ -241,12 +245,79 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
     }
 
+
+    private RouteResultset tryDirectRoute(String sql,String line)
+    {
+        LayerCachePool tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
+        RouteResultset rrs=new RouteResultset(sql,ServerParse.INSERT);
+
+        String tableName = statement.getTableName().getSimpleName().toUpperCase();
+
+        SchemaConfig schema = MycatServer.getInstance().getConfig()
+                .getSchemas().get(serverConnection.getSchema());
+        TableConfig tableConfig= schema.getTables().get(tableName);
+        if(tableConfig==null&&schema.getDataNode()!=null)
+        {
+            //走默认节点
+            RouteResultsetNode rrNode=new RouteResultsetNode(schema.getDataNode(),ServerParse.INSERT,sql) ;
+            rrs.setNodes(new RouteResultsetNode[]{rrNode});
+            return rrs;
+        } else if(tableConfig!=null)
+        {
+            DruidShardingParseInfo ctx=new DruidShardingParseInfo();
+            ctx.addTable(tableName);
+
+       List<String>  lineList=   Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
+            List<SQLExpr> columns=   statement.getColumns();
+          String pColumn=  tableConfig.getPartitionColumn();
+            if (columns != null && columns.size() > 0)
+            {
+
+                for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
+                {
+                    SQLExpr column = columns.get(i);
+                   if(pColumn.equalsIgnoreCase(column.toString()))
+                   {
+                        if(i>=lineList.size())
+                        {
+                            return null;
+                        }    else
+                        {
+                        String value=   lineList.get(i);
+                            ctx.addShardingExpr(tableName,pColumn,value);
+                            try
+                            {
+                                RouterUtil.tryRouteForTables(schema,ctx,rrs,false,tableId2DataNodeCache);
+                                return rrs;
+                            } catch (SQLNonTransientException e)
+                            {
+                               throw new RuntimeException(e);
+                            }
+                        }
+
+                   }
+
+                }
+
+            }
+
+
+        }
+
+     return null;
+    }
+
+
     private void parseOneLine(List<SQLExpr> columns, String tableName, String line, boolean toFile, String lineEnd)
     {
-        List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
-        String insertSql = makeSimpleInsert(columns, fields, tableName, true);
-        RouteResultset rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
 
+        RouteResultset rrs =tryDirectRoute(sql, line);
+        if (rrs == null || rrs.getNodes() == null || rrs.getNodes().length == 0)
+        {
+ //           List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
+//            String insertSql = makeSimpleInsert(columns, fields, tableName, true);
+//             rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
+        }
 
         //验证正确性，之后删除
 //        String insertSql1 = makeSimpleInsert(columns, fields, tableName, false);
@@ -530,5 +601,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
         fileDirToDel.delete();
     }
+
+
 
 }

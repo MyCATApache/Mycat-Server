@@ -1,5 +1,6 @@
 package org.opencloudb.mysql;
 
+import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.mpp.LoadData;
 import org.opencloudb.net.BackendAIOConnection;
@@ -68,7 +69,7 @@ public class LoadDataUtil
 
     public static byte writeToBackConnection(byte packID,InputStream inputStream,BackendAIOConnection backendAIOConnection) throws IOException
     {
-
+        //int packSize=   MycatServer.getInstance().getConfig().getSystem().getProcessorBufferChunk()-5 ;
         int packSize = backendAIOConnection.getMaxPacketSize() / 32;
         byte[] buffer = new byte[packSize];
         int len = -1;
