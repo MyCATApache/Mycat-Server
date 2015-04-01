@@ -7,6 +7,7 @@ import java.util.List;
  */
 public class LoadData
 {
+    public static final String loadDataHint="/*loaddata*/";
     private boolean isLocal;
     private List<String> data;
     private String fileName;

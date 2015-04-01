@@ -23,6 +23,8 @@
  */
 package org.opencloudb.util;
 
+import org.opencloudb.mpp.LoadData;
+
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Random;
@@ -456,7 +458,16 @@ public class StringUtil {
 	 * @param sql
 	 * @return
 	 */
-	public static String getTableName(String sql) {
+	public static String getTableName(String oriSql) {
+        //此处应该优化为去掉sql中的注释，或兼容注释
+        String sql=null;
+        if(oriSql.startsWith(LoadData.loadDataHint))
+        {
+           sql=oriSql.substring(LoadData.loadDataHint.length()) ;
+        } else
+        {
+            sql=oriSql;
+        }
 		int pos = 0;
 		boolean insertFound = false;
 		boolean intoFound = false;

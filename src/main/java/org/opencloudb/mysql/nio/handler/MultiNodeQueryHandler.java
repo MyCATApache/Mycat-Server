@@ -212,6 +212,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				 {
 					 byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
 					 ok.packetId = ++lastPackId;// OK_PACKET
+                     ok.message=("Records: "+affectedRows+"  Deleted: 0  Skipped: 0  Warnings: 0").getBytes();//此处信息只是为了控制台给人看的
 				 }   else
 				 {
 					 ok.packetId = ++packetId;// OK_PACKET
