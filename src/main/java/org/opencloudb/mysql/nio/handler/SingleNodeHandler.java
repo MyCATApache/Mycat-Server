@@ -34,6 +34,7 @@ import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.mysql.LoadDataUtil;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.route.RouteResultset;
@@ -45,7 +46,7 @@ import org.opencloudb.util.StringUtil;
 /**
  * @author mycat
  */
-public class SingleNodeHandler implements ResponseHandler, Terminatable {
+public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDataResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(SingleNodeHandler.class);
 	private final RouteResultsetNode node;
@@ -203,6 +204,15 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
+			if(rrs.isLoadData())
+			{
+				byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
+				ok.packetId = ++lastPackId;// OK_PACKET
+			}   else
+			{
+				ok.packetId = ++packetId;// OK_PACKET
+			}
+			ok.serverStatus = source.isAutocommit() ? 2 : 1;
 			ok.packetId = ++packetId;
 			recycleResources();
 			source.setLastInsertId(ok.insertId);
@@ -281,8 +291,13 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 	public void clearResources() {
 
 	}
+    @Override
+    public void requestDataResponse(byte[] data, BackendConnection conn)
+    {
+        LoadDataUtil.requestFileDataResponse(data, conn);
+    }
 
-	@Override
+    @Override
 	public String toString() {
 		return "SingleNodeHandler [node=" + node + ", packetId=" + packetId
 				+ "]";

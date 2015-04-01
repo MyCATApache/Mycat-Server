@@ -194,7 +194,15 @@ public class MultiNodeQueryWithLimitHandler extends MultiNodeQueryHandler {
 				lock.lock();
 				try {
 
-					ok.packetId = ++packetId;// OK_PACKET
+					if(rrs.isLoadData())
+					{
+						byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
+						ok.packetId = ++lastPackId;// OK_PACKET
+					}   else
+					{
+						ok.packetId = ++packetId;// OK_PACKET
+					}
+					ok.serverStatus = source.isAutocommit() ? 2 : 1;
 					ok.affectedRows = affectedRows;
 					if (insertId > 0) {
 						ok.insertId = insertId;

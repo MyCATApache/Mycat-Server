@@ -21,35 +21,54 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.server;
+package org.opencloudb.net.mysql;
 
-import java.io.IOException;
-import java.nio.channels.NetworkChannel;
-
-import org.opencloudb.MycatPrivileges;
-import org.opencloudb.MycatServer;
-import org.opencloudb.config.model.SystemConfig;
+import org.opencloudb.mysql.BufferUtil;
 import org.opencloudb.net.FrontendConnection;
-import org.opencloudb.net.factory.FrontendConnectionFactory;
-import org.opencloudb.server.handler.ServerLoadDataInfileHandler;
+
+import java.nio.ByteBuffer;
 
 /**
- * @author mycat
+ * load data local infile 向客户端请求发送文件用
  */
-public class ServerConnectionFactory extends FrontendConnectionFactory {
+public class RequestFilePacket extends MySQLPacket
+{
+    public static final byte FIELD_COUNT = (byte) 251;
+    public byte command = FIELD_COUNT;
+    public byte[] fileName;
+
 
     @Override
-    protected FrontendConnection getConnection(NetworkChannel channel) throws IOException {
-        SystemConfig sys = MycatServer.getInstance().getConfig().getSystem();
-        ServerConnection c = new ServerConnection(channel);
-        MycatServer.getInstance().getConfig().setSocketParams(c, true);
-        c.setPrivileges(new MycatPrivileges());
-        c.setQueryHandler(new ServerQueryHandler(c));
-        c.setLoadDataInfileHandler(new ServerLoadDataInfileHandler(c));
-        // c.setPrepareHandler(new ServerPrepareHandler(c)); TODO prepare
-        c.setTxIsolation(sys.getTxIsolation());
-        c.setSession2(new NonBlockingSession(c));
-        return c;
+    public ByteBuffer write(ByteBuffer buffer, FrontendConnection c, boolean writeSocketIfFull)
+    {
+        int size = calcPacketSize();
+        buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size, writeSocketIfFull);
+        BufferUtil.writeUB3(buffer, size);
+        buffer.put(packetId);
+        buffer.put(command);
+        if (fileName != null)
+        {
+
+            buffer.put(fileName);
+
+        }
+
+        c.write(buffer);
+
+        return buffer;
     }
+
+    @Override
+    public int calcPacketSize()
+    {
+        return fileName == null ? 1 : 1 + fileName.length;
+    }
+
+    @Override
+    protected String getPacketInfo()
+    {
+        return "MySQL Request File Packet";
+    }
+
 
 }

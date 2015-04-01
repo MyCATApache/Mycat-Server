@@ -23,6 +23,8 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
@@ -32,18 +34,19 @@ import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
+import org.opencloudb.mpp.LoadData;
 import org.opencloudb.mpp.MergeCol;
-import org.opencloudb.net.mysql.FieldPacket;
-import org.opencloudb.net.mysql.OkPacket;
-import org.opencloudb.net.mysql.ResultSetHeaderPacket;
-import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.mysql.LoadDataUtil;
+import org.opencloudb.net.BackendAIOConnection;
+import org.opencloudb.net.mysql.*;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.util.SplitUtil;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -51,7 +54,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * @author mycat
  */
-public class MultiNodeQueryHandler extends MultiNodeHandler {
+public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(MultiNodeQueryHandler.class);
 
@@ -205,9 +208,18 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 				lock.lock();
 				try {
-					ok.packetId = ++packetId;// OK_PACKET
-					ok.affectedRows = affectedRows;
+				 if(rrs.isLoadData())
+				 {
+					 byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
+					 ok.packetId = ++lastPackId;// OK_PACKET
+                     ok.message=("Records: "+affectedRows+"  Deleted: 0  Skipped: 0  Warnings: 0").getBytes();//此处信息只是为了控制台给人看的
+				 }   else
+				 {
+					 ok.packetId = ++packetId;// OK_PACKET
+				 }
 
+					ok.affectedRows = affectedRows;
+					ok.serverStatus = source.isAutocommit() ? 2 : 1;
 					if (insertId > 0) {
 						ok.insertId = insertId;
 						source.setLastInsertId(insertId);
@@ -501,5 +513,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	public void writeQueueAvailable() {
 
 	}
+
+    @Override
+    public void requestDataResponse(byte[] data, BackendConnection conn)
+    {
+        LoadDataUtil.requestFileDataResponse(data,conn);
+    }
+
+
+
 
 }

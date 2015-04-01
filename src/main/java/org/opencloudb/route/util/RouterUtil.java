@@ -21,6 +21,7 @@ import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.config.model.rule.RuleConfig;
 import org.opencloudb.mpp.ColumnRoutePair;
+import org.opencloudb.mpp.LoadData;
 import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
@@ -689,12 +690,20 @@ public class RouterUtil {
 				String partionCol = tableConfig.getPartitionColumn();
 				String primaryKey = tableConfig.getPrimaryKey();
 				boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
-				if(entry.getValue().get(primaryKey) != null && entry.getValue().size() == 1) {//主键查找
+                boolean isLoadData=false;
+                if (LOGGER.isDebugEnabled()) {
+                    if(sql.startsWith(LoadData.loadDataHint))
+                    { //由于load data一次会计算很多路由数据，如果输出此日志会极大降低load data的性能
+                         isLoadData=true;
+                    }
+                }
+				if(entry.getValue().get(primaryKey) != null && entry.getValue().size() == 1&&!isLoadData)
+                {//主键查找
 					// try by primary key if found in cache
 					Set<ColumnRoutePair> primaryKeyPairs = entry.getValue().get(primaryKey);
 					if (primaryKeyPairs != null) {
 						if (LOGGER.isDebugEnabled()) {
-							LOGGER.debug("try to find cache by primary key ");
+                                 LOGGER.debug("try to find cache by primary key ");
 						}
 						String tableKey = schema.getName() + '_' + tableName;
 						boolean allFound = true;

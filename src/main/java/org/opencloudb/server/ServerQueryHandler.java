@@ -27,15 +27,7 @@ import org.apache.log4j.Logger;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.net.handler.FrontendQueryHandler;
 import org.opencloudb.net.mysql.OkPacket;
-import org.opencloudb.server.handler.BeginHandler;
-import org.opencloudb.server.handler.ExplainHandler;
-import org.opencloudb.server.handler.KillHandler;
-import org.opencloudb.server.handler.SavepointHandler;
-import org.opencloudb.server.handler.SelectHandler;
-import org.opencloudb.server.handler.SetHandler;
-import org.opencloudb.server.handler.ShowHandler;
-import org.opencloudb.server.handler.StartHandler;
-import org.opencloudb.server.handler.UseHandler;
+import org.opencloudb.server.handler.*;
 import org.opencloudb.server.parser.ServerParse;
 
 /**
@@ -116,6 +108,9 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		case ServerParse.MYSQL_COMMENT:
 			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			break;
+            case ServerParse.LOAD_DATA_INFILE_SQL:
+                c.loadDataInfileStart(sql);
+                break;
 		default:
 			if(readOnly){
 				LOGGER.warn(new StringBuilder().append("User readonly:").append(sql).toString());
