@@ -200,9 +200,9 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 			String dataNode = tableElement.getAttribute("dataNode");
 			String distPrex = "distribute(";
-			boolean distTableDns = distPrex.startsWith(dataNode);
+			boolean distTableDns = dataNode.startsWith(distPrex);
 			if (distTableDns) {
-				dataNode = dataNode.substring(distPrex.length());
+				dataNode = dataNode.substring(distPrex.length(),dataNode.length()-1);
 			}
 			TableRuleConfig tableRule = null;
 			if (tableElement.hasAttribute("rule")) {
