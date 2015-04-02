@@ -83,6 +83,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private String tableName;
     private TableConfig tableConfig;
     private int partitionColumnIndex = -1;
+    private LayerCachePool tableId2DataNodeCache;
+    private SchemaConfig schema;
 
     public int getPackID()
     {
@@ -127,7 +129,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         loadData.setFieldTerminatedBy(fieldTerminatedBy);
 
         SQLLiteralExpr rawEnclosed = statement.getColumnsEnclosedBy();
-        String enclose = rawEnclosed == null ? "" : rawEnclosed.toString();
+        String enclose = rawEnclosed == null ? null : rawEnclosed.toString();
         loadData.setEnclose(enclose);
 
         String charset = statement.getCharset() != null ? statement.getCharset() : serverConnection.getCharset();
@@ -277,8 +279,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
     }
 
-    LayerCachePool tableId2DataNodeCache;
-    SchemaConfig schema;
+
 
     private RouteResultset tryDirectRoute(String sql, String line)
     {
@@ -303,7 +304,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             } else
             {
                 String value = lineList.get(partitionColumnIndex);
-                ctx.addShardingExpr(tableName, tableConfig.getPartitionColumn(), value);
+                ctx.addShardingExpr(tableName, tableConfig.getPartitionColumn(), parseFieldString(value,loadData.getEnclose()));
                 try
                 {
                     RouterUtil.tryRouteForTables(schema, ctx, rrs, false, tableId2DataNodeCache);
@@ -327,9 +328,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         RouteResultset rrs = tryDirectRoute(sql, line);
         if (rrs == null || rrs.getNodes() == null || rrs.getNodes().length == 0)
         {
-            //           List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
-//            String insertSql = makeSimpleInsert(columns, fields, tableName, true);
-//             rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
+                       List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
+            String insertSql = makeSimpleInsert(columns, fields, tableName, true);
+             rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
         }
 
         //验证正确性，之后删除
@@ -462,7 +463,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             String column = fields.get(i);
             if (isAddEncose)
             {
-                sb.append("'").append(column).append("'");
+                sb.append("'").append(parseFieldString(column, loadData.getEnclose())).append("'");
             } else
             {
                 sb.append(column);
@@ -474,6 +475,19 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
         sb.append(")");
         return sb.toString();
+    }
+
+    private String parseFieldString(String value,String encose)
+    {
+        if(encose==null||"".equals(encose)||value==null)
+        {
+            return value;
+        }
+        else if(value.startsWith(encose)&&value.endsWith(encose))
+        {
+           return value.substring(encose.length()-1,value.length()-encose.length());
+        }
+        return value;
     }
 
 
@@ -491,7 +505,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         } else
         {
             String content = new String(tempByteBuffer.toByteArray(), Charset.forName(loadData.getCharset()));
-            ;
+
             List<String> lines = Splitter.on(loadData.getLineTerminatedBy()).omitEmptyStrings().splitToList(content);
             for (final String line : lines)
             {
@@ -562,12 +576,15 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         schema=null;
         tableConfig=null;
         partitionColumnIndex=-1;
-        File temp = new File(tempFile);
-        if (temp.exists())
+        if(tempFile!=null)
         {
-            temp.delete();
+            File temp = new File(tempFile);
+            if (temp.exists())
+            {
+                temp.delete();
+            }
         }
-        if (new File(tempPath).exists())
+        if (tempPath!=null &&new File(tempPath).exists())
         {
             deleteFile(tempPath);
         }
