@@ -32,14 +32,20 @@ import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import org.opencloudb.MycatServer;
+import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
+import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.mpp.LoadData;
 import org.opencloudb.net.handler.LoadDataInfileHandler;
 import org.opencloudb.net.mysql.BinaryPacket;
 import org.opencloudb.net.mysql.RequestFilePacket;
+import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
+import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.ObjectUtil;
@@ -47,6 +53,7 @@ import org.opencloudb.util.ObjectUtil;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.sql.SQLNonTransientException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +80,11 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private String tempFile;
     private boolean isHasStoreToFile = false;
     private String tempPath;
+    private String tableName;
+    private TableConfig tableConfig;
+    private int partitionColumnIndex = -1;
+    private LayerCachePool tableId2DataNodeCache;
+    private SchemaConfig schema;
 
     public int getPackID()
     {
@@ -117,7 +129,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         loadData.setFieldTerminatedBy(fieldTerminatedBy);
 
         SQLLiteralExpr rawEnclosed = statement.getColumnsEnclosedBy();
-        String enclose = rawEnclosed == null ? "" : rawEnclosed.toString();
+        String enclose = rawEnclosed == null ? null : rawEnclosed.toString();
         loadData.setEnclose(enclose);
 
         String charset = statement.getCharset() != null ? statement.getCharset() : serverConnection.getCharset();
@@ -142,9 +154,35 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             clear();
             return;
         }
+        schema = MycatServer.getInstance().getConfig()
+                .getSchemas().get(serverConnection.getSchema());
+        tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
+        tableName = statement.getTableName().getSimpleName().toUpperCase();
+        tableConfig = schema.getTables().get(tableName);
         tempPath = SystemConfig.getHomePath() + File.separator + "temp" + File.separator + serverConnection.getId() + File.separator;
         tempFile = tempPath + "clientTemp.txt";
         tempByteBuffer = new ByteArrayOutputStream();
+
+        List<SQLExpr> columns = statement.getColumns();
+        String pColumn = tableConfig.getPartitionColumn();
+        if (columns != null && columns.size() > 0)
+        {
+
+            for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
+            {
+                SQLExpr column = columns.get(i);
+                if (pColumn.equalsIgnoreCase(column.toString()))
+                {
+                    partitionColumnIndex = i;
+                    break;
+
+                }
+
+            }
+
+        }
+
+
         parseLoadDataPram();
         if (statement.isLocal())
         {
@@ -241,12 +279,59 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
     }
 
+
+
+    private RouteResultset tryDirectRoute(String sql, String line)
+    {
+
+        RouteResultset rrs = new RouteResultset(sql, ServerParse.INSERT);
+        if (tableConfig == null && schema.getDataNode() != null)
+        {
+            //走默认节点
+            RouteResultsetNode rrNode = new RouteResultsetNode(schema.getDataNode(), ServerParse.INSERT, sql);
+            rrs.setNodes(new RouteResultsetNode[]{rrNode});
+            return rrs;
+        } else if (tableConfig != null)
+        {
+            DruidShardingParseInfo ctx = new DruidShardingParseInfo();
+            ctx.addTable(tableName);
+
+            List<String> lineList = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
+
+            if (partitionColumnIndex == -1 || partitionColumnIndex >= lineList.size())
+            {
+                return null;
+            } else
+            {
+                String value = lineList.get(partitionColumnIndex);
+                ctx.addShardingExpr(tableName, tableConfig.getPartitionColumn(), parseFieldString(value,loadData.getEnclose()));
+                try
+                {
+                    RouterUtil.tryRouteForTables(schema, ctx, rrs, false, tableId2DataNodeCache);
+                    return rrs;
+                } catch (SQLNonTransientException e)
+                {
+                    throw new RuntimeException(e);
+                }
+            }
+
+
+        }
+
+        return null;
+    }
+
+
     private void parseOneLine(List<SQLExpr> columns, String tableName, String line, boolean toFile, String lineEnd)
     {
-        List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
-        String insertSql = makeSimpleInsert(columns, fields, tableName, true);
-        RouteResultset rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
 
+        RouteResultset rrs = tryDirectRoute(sql, line);
+        if (rrs == null || rrs.getNodes() == null || rrs.getNodes().length == 0)
+        {
+                       List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
+            String insertSql = makeSimpleInsert(columns, fields, tableName, true);
+             rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
+        }
 
         //验证正确性，之后删除
 //        String insertSql1 = makeSimpleInsert(columns, fields, tableName, false);
@@ -378,7 +463,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             String column = fields.get(i);
             if (isAddEncose)
             {
-                sb.append("'").append(column).append("'");
+                sb.append("'").append(parseFieldString(column, loadData.getEnclose())).append("'");
             } else
             {
                 sb.append(column);
@@ -390,6 +475,19 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
         sb.append(")");
         return sb.toString();
+    }
+
+    private String parseFieldString(String value,String encose)
+    {
+        if(encose==null||"".equals(encose)||value==null)
+        {
+            return value;
+        }
+        else if(value.startsWith(encose)&&value.endsWith(encose))
+        {
+           return value.substring(encose.length()-1,value.length()-encose.length());
+        }
+        return value;
     }
 
 
@@ -407,7 +505,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         } else
         {
             String content = new String(tempByteBuffer.toByteArray(), Charset.forName(loadData.getCharset()));
-            ;
+
             List<String> lines = Splitter.on(loadData.getLineTerminatedBy()).omitEmptyStrings().splitToList(content);
             for (final String line : lines)
             {
@@ -474,12 +572,19 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
     public void clear()
     {
-        File temp = new File(tempFile);
-        if (temp.exists())
+        tableId2DataNodeCache = null;
+        schema=null;
+        tableConfig=null;
+        partitionColumnIndex=-1;
+        if(tempFile!=null)
         {
-            temp.delete();
+            File temp = new File(tempFile);
+            if (temp.exists())
+            {
+                temp.delete();
+            }
         }
-        if (new File(tempPath).exists())
+        if (tempPath!=null &&new File(tempPath).exists())
         {
             deleteFile(tempPath);
         }
@@ -530,5 +635,6 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
         fileDirToDel.delete();
     }
+
 
 }
