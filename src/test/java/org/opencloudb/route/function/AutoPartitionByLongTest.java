@@ -39,15 +39,15 @@ public class AutoPartitionByLongTest {
 		Assert.assertEquals(true, 0==autoPartition.calculate(idVal)); 
 		
 		idVal="2000000";
-		Assert.assertEquals(true, 0==autoPartition.calculate(idVal)); 
+		Assert.assertEquals(true, new int[]{0,1,2,3}[200_0000%4]==autoPartition.calculate(idVal)); 
 		
 		idVal="2000001";
-		Assert.assertEquals(true, 1==autoPartition.calculate(idVal)); 
+		Assert.assertEquals(true, new int[]{4,5,6,7}[200_0001%4]==autoPartition.calculate(idVal)); 
 		
 		idVal="4000000";
-		Assert.assertEquals(true, 1==autoPartition.calculate(idVal)); 
+		Assert.assertEquals(true, new int[]{4,5,6,7}[400_0000%4]==autoPartition.calculate(idVal)); 
 		
 		idVal="4000001";
-		Assert.assertEquals(true, 2==autoPartition.calculate(idVal)); 
+		Assert.assertEquals(true, new int[]{8,9,10,11,12}[400_0001%5]==autoPartition.calculate(idVal)); 
 	}
 }

@@ -23,26 +23,39 @@
  */
 package org.opencloudb.route.function;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 public class PartitionByDateTest {
 
 	@Test
-	public void test() {
+	public void test() throws ParseException {
 		PartitionByDate partition=new PartitionByDate();
 
 		partition.setDateFormat("yyyy-MM-dd");
 		partition.setsBeginDate("2014-01-01");
 		partition.setsPartionDay("10");
-		
+		partition.setNodesText("0,1,2,3,4;5,6,7");
+		partition.setGroupMode("true");
 		partition.init();
 		
-		Assert.assertEquals(true, 0 == partition.calculate("2014-01-01"));
-		Assert.assertEquals(true, 0 == partition.calculate("2014-01-10"));
-		Assert.assertEquals(true, 1 == partition.calculate("2014-01-11"));
-		Assert.assertEquals(true, 12 == partition.calculate("2014-05-01"));
-		
+		SimpleDateFormat format=new SimpleDateFormat("yyyy-MM-dd");
+		int[][] nodes=new int[][]{{0,1,2,3,4},{5,6,7}};
 
+		Assert.assertEquals(true, 0 == partition.calculate("2014-01-01"));
+		
+		long millis=format.parse("2014-01-10").getTime();
+		Assert.assertEquals(true,  nodes[0][(int)(millis%5)]== partition.calculate("2014-01-10"));
+		
+		millis=format.parse("2014-01-11").getTime();
+		Assert.assertEquals(true, nodes[1][(int)(millis%3)] == partition.calculate("2014-01-11"));
+		
+		millis=format.parse("2014-05-01").getTime();
+		long minus=((millis-format.parse("2014-01-01").getTime())/10*24*60*60*1000);
+		Assert.assertEquals(true,minus%2==0);
+		Assert.assertEquals(true, nodes[(int)(minus%2)][(int)(millis%5)] == partition.calculate("2014-05-01"));
 	}
 }
