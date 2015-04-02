@@ -155,7 +155,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			if (schemas.containsKey(name)) {
 				throw new ConfigException("schema " + name + " duplicated!");
 			}
-			
+
 			// 设置了table的不需要设置dataNode属性，没有设置table的必须设置dataNode属性
 			if (dataNode == null && tables.size() == 0) {
 				throw new ConfigException(
@@ -168,7 +168,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 								+ name
 								+ " has configed tables,so you mustn't set dataNode property!");
 			}
-			
+
 			schemas.put(name, new SchemaConfig(name, dataNode, tables,
 					sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr)));
 		}
@@ -191,7 +191,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 				autoIncrement = Boolean.parseBoolean(tableElement
 						.getAttribute("autoIncrement"));
 			}
-							
+
 			String tableTypeStr = tableElement.hasAttribute("type") ? tableElement
 					.getAttribute("type") : null;
 			int tableType = TableConfig.TYPE_GLOBAL_DEFAULT;
@@ -199,6 +199,11 @@ public class XMLSchemaLoader implements SchemaLoader {
 				tableType = TableConfig.TYPE_GLOBAL_TABLE;
 			}
 			String dataNode = tableElement.getAttribute("dataNode");
+			String distPrex = "distribute(";
+			boolean distTableDns = distPrex.startsWith(dataNode);
+			if (distTableDns) {
+				dataNode = dataNode.substring(distPrex.length());
+			}
 			TableRuleConfig tableRule = null;
 			if (tableElement.hasAttribute("rule")) {
 				String ruleName = tableElement.getAttribute("rule");
@@ -219,11 +224,14 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 			for (int j = 0; j < tableNames.length; j++) {
 				String tableName = tableNames[j];
-				TableConfig table = new TableConfig(tableName, primaryKey, autoIncrement,
-						tableType, dataNode,
+				TableConfig table = new TableConfig(tableName, primaryKey,
+						autoIncrement, tableType, dataNode,
 						(tableRule != null) ? tableRule.getRule() : null,
 						ruleRequired, null, false, null, null);
 				checkDataNodeExists(table.getDataNodes());
+				if (distTableDns) {
+					distributeDataNodes(table.getDataNodes());
+				}
 				if (tables.containsKey(table.getName())) {
 					throw new ConfigException("table " + tableName
 							+ " duplicated!");
@@ -232,10 +240,14 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 
 			if (tableNames.length == 1) {
-				TableConfig table = new TableConfig(tableNames[0], primaryKey, autoIncrement,
-						tableType, dataNode,
+				TableConfig table = new TableConfig(tableNames[0], primaryKey,
+						autoIncrement, tableType, dataNode,
 						(tableRule != null) ? tableRule.getRule() : null,
 						ruleRequired, null, false, null, null);
+				checkDataNodeExists(table.getDataNodes());
+				if (distTableDns) {
+					distributeDataNodes(table.getDataNodes());
+				}
 				// process child tables
 				processChildTables(tables, table, dataNode, tableElement);
 			}
@@ -267,9 +279,9 @@ public class XMLSchemaLoader implements SchemaLoader {
 					.toUpperCase();
 			String parentKey = childTbElement.getAttribute("parentKey")
 					.toUpperCase();
-			TableConfig table = new TableConfig(cdTbName, primaryKey, autoIncrement,
-					TableConfig.TYPE_GLOBAL_DEFAULT, dataNodes, null, false,
-					parentTable, true, joinKey, parentKey);
+			TableConfig table = new TableConfig(cdTbName, primaryKey,
+					autoIncrement, TableConfig.TYPE_GLOBAL_DEFAULT, dataNodes,
+					null, false, parentTable, true, joinKey, parentKey);
 			if (tables.containsKey(table.getName())) {
 				throw new ConfigException("table " + table.getName()
 						+ " duplicated!");
@@ -319,6 +331,38 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 
 		}
+	}
+
+	/**
+	 * distribute datanodes in multi hosts,means ,dn1 (host1),dn100
+	 * (host2),dn300(host3),dn2(host1),dn101(host2),dn301(host3)...etc
+	 * 
+	 * @param dataNodes
+	 */
+	private void distributeDataNodes(ArrayList<String> theDataNodes) {
+		Map<String, ArrayList<String>> newDataNodeMap = new HashMap<String, ArrayList<String>>(
+				dataHosts.size());
+		for (String dn : theDataNodes) {
+			DataNodeConfig dnConf = dataNodes.get(dn);
+			String host = dnConf.getDataHost();
+			ArrayList<String> hostDns = newDataNodeMap.get(host);
+			hostDns = (hostDns == null) ? new ArrayList<String>() : hostDns;
+			hostDns.add(dn);
+			newDataNodeMap.put(host, hostDns);
+		}
+		ArrayList<String> result = new ArrayList<String>(theDataNodes.size());
+		boolean hasData = true;
+		while (hasData) {
+			hasData = false;
+			for (ArrayList<String> dns : newDataNodeMap.values()) {
+				if (!dns.isEmpty()) {
+					result.add(dns.remove(0));
+					hasData = true;
+				}
+			}
+		}
+		theDataNodes.clear();
+		theDataNodes.addAll(result);
 	}
 
 	private void createDataNode(String dnName, String database, String host) {
