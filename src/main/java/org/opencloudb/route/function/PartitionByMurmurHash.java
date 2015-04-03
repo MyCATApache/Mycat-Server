@@ -64,7 +64,7 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 	private int count;
 	private int virtualBucketTimes=DEFAULT_VIRTUAL_BUCKET_TIMES;
 	private Map<Integer,Integer> weightMap=new HashMap<>();
-	private String bucketMapPath;
+//	private String bucketMapPath;
 	
 	private HashFunction hash;
 	
@@ -73,18 +73,18 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 	public void init()  {
 		try{
 			bucketMap=new TreeMap<>();
-			boolean serializableBucketMap=bucketMapPath!=null && bucketMapPath.length()>0;
-			if(serializableBucketMap){
-				File bucketMapFile=new File(bucketMapPath);
-				if(bucketMapFile.exists() && bucketMapFile.length()>0){
-					loadBucketMapFile();
-					return;
-				}
-			}
+//			boolean serializableBucketMap=bucketMapPath!=null && bucketMapPath.length()>0;
+//			if(serializableBucketMap){
+//				File bucketMapFile=new File(bucketMapPath);
+//				if(bucketMapFile.exists() && bucketMapFile.length()>0){
+//					loadBucketMapFile();
+//					return;
+//				}
+//			}
 			generateBucketMap();
-			if(serializableBucketMap){
-				storeBucketMap();
-			}
+//			if(serializableBucketMap){
+//				storeBucketMap();
+//			}
 		}catch(Exception e){
 			throw new MurmurHashException(e);
 		}
@@ -100,24 +100,24 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		}
 		weightMap=null;
 	}
-	private void storeBucketMap() throws IOException{
-		try(OutputStream store=new FileOutputStream(bucketMapPath)){
-			Properties props=new Properties();
-			for(Map.Entry entry:bucketMap.entrySet()){
-				props.setProperty(entry.getKey().toString(), entry.getValue().toString());
-			}
-			props.store(store,null);
-		}
-	}
-	private void loadBucketMapFile() throws FileNotFoundException, IOException{
-		try(InputStream in=new FileInputStream(bucketMapPath)){
-			Properties props=new Properties();
-			props.load(in);
-			for(Map.Entry entry:props.entrySet()){
-				bucketMap.put(Integer.parseInt(entry.getKey().toString()), Integer.parseInt(entry.getValue().toString()));
-			}
-		}
-	}
+//	private void storeBucketMap() throws IOException{
+//		try(OutputStream store=new FileOutputStream(bucketMapPath)){
+//			Properties props=new Properties();
+//			for(Map.Entry entry:bucketMap.entrySet()){
+//				props.setProperty(entry.getKey().toString(), entry.getValue().toString());
+//			}
+//			props.store(store,null);
+//		}
+//	}
+//	private void loadBucketMapFile() throws FileNotFoundException, IOException{
+//		try(InputStream in=new FileInputStream(bucketMapPath)){
+//			Properties props=new Properties();
+//			props.load(in);
+//			for(Map.Entry entry:props.entrySet()){
+//				bucketMap.put(Integer.parseInt(entry.getKey().toString()), Integer.parseInt(entry.getValue().toString()));
+//			}
+//		}
+//	}
 	/**
 	 * 得到桶的权重，桶就是实际存储数据的DB实例
 	 * 从0开始的桶编号为key，权重为值，权重默认为1。
@@ -170,17 +170,17 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 			}
 		}
 	}
-	/**
-	 * 保存一致性hash的虚拟节点文件路径。
-	 * 如果这个文件不存在或是空文件就按照指定的count, weightMapFile等构造新的MurmurHash数据结构并保存到这个路径的文件里。
-	 * 如果这个文件已存在且不是空文件就加载这个文件里的内容作为MurmurHash数据结构，此时其它参数都忽略。
-	 * 除第一次以外在之后增加节点时可以直接修改这个文件，不过不推荐这么做。如果节点数量变化了，推荐删除这个文件。
-	 * 可以不指定这个路径，不指定路径时不会保存murmur hash
-	 * @param bucketMapPath
-	 */
-	public void setBucketMapPath(String bucketMapPath){
-		this.bucketMapPath=bucketMapPath;
-	}
+//	/**
+//	 * 保存一致性hash的虚拟节点文件路径。
+//	 * 如果这个文件不存在或是空文件就按照指定的count, weightMapFile等构造新的MurmurHash数据结构并保存到这个路径的文件里。
+//	 * 如果这个文件已存在且不是空文件就加载这个文件里的内容作为MurmurHash数据结构，此时其它参数都忽略。
+//	 * 除第一次以外在之后增加节点时可以直接修改这个文件，不过不推荐这么做。如果节点数量变化了，推荐删除这个文件。
+//	 * 可以不指定这个路径，不指定路径时不会保存murmur hash
+//	 * @param bucketMapPath
+//	 */
+//	public void setBucketMapPath(String bucketMapPath){
+//		this.bucketMapPath=bucketMapPath;
+//	}
 	@Override
 	public Integer calculate(String columnValue) {
 		SortedMap<Integer, Integer> tail = bucketMap.tailMap(hash.hashUnencodedChars(columnValue).asInt());
@@ -235,7 +235,7 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		props.load(new ByteArrayInputStream(out.toByteArray()));
 		System.out.println(props);
 		System.out.println("****************************************************");
-		rehashTest(hashed.get(0));
+//		rehashTest(hashed.get(0));
 	}
 	private static void rehashTest(List<Integer> partition){
 		PartitionByMurmurHash hash=new PartitionByMurmurHash();
