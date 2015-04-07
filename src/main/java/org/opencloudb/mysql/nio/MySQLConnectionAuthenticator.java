@@ -24,6 +24,8 @@
 package org.opencloudb.mysql.nio;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
+import org.opencloudb.config.Capabilities;
 import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.mysql.SecurityUtil;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
@@ -114,7 +116,12 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 		packet.read(data);
 		source.setHandshake(packet);
 		source.setThreadId(packet.threadId);
-
+		boolean clientCompress = Capabilities.CLIENT_COMPRESS==(Capabilities.CLIENT_COMPRESS & packet.serverCapabilities);
+		boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUsingCompress()==1 ;
+		if(clientCompress&&usingCompress)
+		{
+			source.setSupportCompress(true);
+		}
 		// 设置字符集编码
 		int charsetIndex = (packet.serverCharsetIndex & 0xff);
 		String charset = CharsetUtil.getCharset(charsetIndex);

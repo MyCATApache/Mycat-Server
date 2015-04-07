@@ -111,6 +111,7 @@ public final class SystemConfig {
 	private int packetHeaderSize = 4;
 	private int maxPacketSize = 16 * 1024 * 1024;
 	private int mycatNodeId=1;
+	private int usingCompress=0;
 
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
@@ -221,6 +222,16 @@ public final class SystemConfig {
 			}
 		}
 		return home;
+	}
+
+	public int getUsingCompress()
+	{
+		return usingCompress;
+	}
+
+	public void setUsingCompress(int usingCompress)
+	{
+		this.usingCompress = usingCompress;
 	}
 
 	public String getCharset() {
