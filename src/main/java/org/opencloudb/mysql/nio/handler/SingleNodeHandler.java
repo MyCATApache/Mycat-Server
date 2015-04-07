@@ -213,7 +213,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 				ok.packetId = ++packetId;// OK_PACKET
 			}
 			ok.serverStatus = source.isAutocommit() ? 2 : 1;
-			ok.packetId = ++packetId;
+
 			recycleResources();
 			source.setLastInsertId(ok.insertId);
 			ok.write(source);
