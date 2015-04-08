@@ -142,7 +142,7 @@ public class AuthPacket extends MySQLPacket {
             buffer = c.checkWriteBuffer(buffer, databaseData.length + 1,true);
             BufferUtil.writeWithNull(buffer, databaseData);
         }
-        c.write(buffer);
+        c.writeNotCompress(buffer);
     }
 
     @Override

@@ -27,11 +27,13 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.NetworkChannel;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.mysql.CharsetUtil;
+import org.opencloudb.util.CompressUtil;
 import org.opencloudb.util.TimeUtil;
 
 /**
@@ -234,7 +236,22 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	@Override
 	public void handle(byte[] data) {
-		handler.handle(data);
+        if(isSupportCompress())
+        {
+            List<byte[]> packs= CompressUtil.decompressMysqlPacket(data);
+            if(packs.size()>1)
+            {
+                System.out.println("split packs....................................................."+packs.size());
+            }
+            for (byte[] pack : packs)
+            {
+
+                handler.handle(pack);
+            }
+        }   else
+        {
+            handler.handle(data);
+        }
 	}
 
 	@Override
@@ -336,12 +353,44 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	private final void writeNotSend(ByteBuffer buffer) {
-		writeQueue.offer(buffer);
+        if(isSupportCompress())
+        {
+            ByteBuffer     newBuffer= CompressUtil.compressMysqlPacket(buffer,this);
+            writeQueue.offer(newBuffer);
+            this.recycle(buffer);
+        }   else
+        {
+            writeQueue.offer(buffer);
+        }
 	}
 
-	@Override
+    public final void writeNotCompress(ByteBuffer buffer)
+    {
+        writeQueue.offer(buffer);
+        // if ansyn write finishe event got lock before me ,then writing
+        // flag is set false but not start a write request
+        // so we check again
+        try {
+            this.socketWR.doNextWriteCheck();
+        } catch (Exception e) {
+            LOGGER.warn("write err:", e);
+            this.close("write err:" + e);
+
+        }
+
+    }
+    @Override
 	public final void write(ByteBuffer buffer) {
-		writeQueue.offer(buffer);
+        if(isSupportCompress())
+        {
+            ByteBuffer     newBuffer= CompressUtil.compressMysqlPacket(buffer,this);
+            writeQueue.offer(newBuffer);
+            this.recycle(buffer);
+        }   else
+        {
+            writeQueue.offer(buffer);
+        }
+
 		// if ansyn write finishe event got lock before me ,then writing
 		// flag is set false but not start a write request
 		// so we check again
@@ -446,14 +495,25 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	protected final int getPacketLength(ByteBuffer buffer, int offset) {
-		if (buffer.position() < offset + packetHeaderSize) {
+     int   headerSize  =getPacketHeaderSize();
+        if(isSupportCompress())
+        {
+          //  headerSize=7;
+        }
+
+
+		if (buffer.position() < offset + headerSize) {
 			return -1;
 		} else {
 
 			int length = buffer.get(offset) & 0xff;
 			length |= (buffer.get(++offset) & 0xff) << 8;
 			length |= (buffer.get(++offset) & 0xff) << 16;
-			return length + packetHeaderSize;
+           if( buffer.position()==length+4 )
+           {
+               // return   length+4;
+           }
+			return length + headerSize;
 		}
 	}
 
