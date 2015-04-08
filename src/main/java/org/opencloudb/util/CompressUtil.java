@@ -86,7 +86,11 @@ public class CompressUtil
         {
             int i=msg.readUB3();
             msg.move(-3);
-           rtn.add(msg.readBytes(i + 4));
+            byte[] e = msg.readBytes(i + 4);
+            if(e.length!=0)
+            {
+                rtn.add(e);
+            }
         }
 
 

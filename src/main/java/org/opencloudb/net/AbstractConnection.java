@@ -239,13 +239,10 @@ public abstract class AbstractConnection implements NIOConnection {
         if(isSupportCompress())
         {
             List<byte[]> packs= CompressUtil.decompressMysqlPacket(data);
-            if(packs.size()>1)
-            {
-                System.out.println("split packs....................................................."+packs.size());
-            }
+
             for (byte[] pack : packs)
             {
-
+				if(pack.length != 0)
                 handler.handle(pack);
             }
         }   else
