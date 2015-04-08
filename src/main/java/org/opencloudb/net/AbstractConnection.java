@@ -65,6 +65,7 @@ public abstract class AbstractConnection implements NIOConnection {
 	protected long netInBytes;
 	protected long netOutBytes;
 	protected int writeAttempts;
+	protected volatile boolean isSupportCompress=false;
 
 	private long idleTimeout;
 
@@ -98,7 +99,15 @@ public abstract class AbstractConnection implements NIOConnection {
 			return false;
 		}
 	}
+	public boolean isSupportCompress()
+	{
+		return isSupportCompress;
+	}
 
+	public void setSupportCompress(boolean isSupportCompress)
+	{
+		this.isSupportCompress = isSupportCompress;
+	}
 	public int getCharsetIndex() {
 		return charsetIndex;
 	}

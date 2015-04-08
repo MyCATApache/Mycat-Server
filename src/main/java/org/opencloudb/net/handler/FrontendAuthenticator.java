@@ -28,6 +28,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
+import org.opencloudb.config.Capabilities;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mysql.SecurityUtil;
 import org.opencloudb.net.FrontendConnection;
@@ -151,6 +153,12 @@ public class FrontendAuthenticator implements NIOHandler {
         source.setSchema(auth.database);
         source.setCharsetIndex(auth.charsetIndex);
         source.setHandler(new FrontendCommandHandler(source));
+        boolean clientCompress = Capabilities.CLIENT_COMPRESS==(Capabilities.CLIENT_COMPRESS & auth.clientFlags);
+        boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUsingCompress()==1 ;
+        if(clientCompress&&usingCompress)
+        {
+            source.setSupportCompress(true);
+        }
         if (LOGGER.isInfoEnabled()) {
             StringBuilder s = new StringBuilder();
             s.append(source).append('\'').append(auth.user).append("' login success");

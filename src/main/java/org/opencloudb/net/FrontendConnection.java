@@ -32,6 +32,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
 import org.opencloudb.config.Capabilities;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.Versions;
@@ -413,7 +414,11 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_LONG_FLAG;
 		flag |= Capabilities.CLIENT_CONNECT_WITH_DB;
 		// flag |= Capabilities.CLIENT_NO_SCHEMA;
-		// flag |= Capabilities.CLIENT_COMPRESS;
+		boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUsingCompress()==1 ;
+		if(usingCompress)
+		{
+			flag |= Capabilities.CLIENT_COMPRESS;
+		}
 		flag |= Capabilities.CLIENT_ODBC;
 		 flag |= Capabilities.CLIENT_LOCAL_FILES;
 		flag |= Capabilities.CLIENT_IGNORE_SPACE;
