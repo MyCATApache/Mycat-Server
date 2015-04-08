@@ -385,7 +385,7 @@ public abstract class AbstractConnection implements NIOConnection {
         {
             ByteBuffer     newBuffer= CompressUtil.compressMysqlPacket(buffer,this);
             writeQueue.offer(newBuffer);
-            this.recycle(buffer);
+
         }   else
         {
             writeQueue.offer(buffer);
@@ -453,6 +453,7 @@ public abstract class AbstractConnection implements NIOConnection {
 				processor.removeConnection(this);
 			}
 			this.cleanup();
+			isSupportCompress=false;
 			LOGGER.info("close connection,reason:" + reason + " ," + this);
 			if (reason.contains("connection,reason:java.net.ConnectException")) {
 				throw new RuntimeException(" errr");
@@ -498,7 +499,7 @@ public abstract class AbstractConnection implements NIOConnection {
      int   headerSize  =getPacketHeaderSize();
         if(isSupportCompress())
         {
-          //  headerSize=7;
+           headerSize=7;
         }
 
 
@@ -511,7 +512,7 @@ public abstract class AbstractConnection implements NIOConnection {
 			length |= (buffer.get(++offset) & 0xff) << 16;
            if( buffer.position()==length+4 )
            {
-               // return   length+4;
+                return   length+4;
            }
 			return length + headerSize;
 		}

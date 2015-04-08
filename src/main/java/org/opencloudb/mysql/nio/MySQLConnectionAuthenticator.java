@@ -73,6 +73,12 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 				// 处理认证结果
 				source.setHandler(new MySQLConnectionHandler(source));
 				source.setAuthenticated(true);
+				boolean clientCompress = Capabilities.CLIENT_COMPRESS==(Capabilities.CLIENT_COMPRESS & packet.serverCapabilities);
+				boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUsingCompress()==1 ;
+				if(clientCompress&&usingCompress)
+				{
+					source.setSupportCompress(true);
+				}
 				if (listener != null) {
 					listener.connectionAcquired(source);
 				}
@@ -116,12 +122,7 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 		packet.read(data);
 		source.setHandshake(packet);
 		source.setThreadId(packet.threadId);
-		boolean clientCompress = Capabilities.CLIENT_COMPRESS==(Capabilities.CLIENT_COMPRESS & packet.serverCapabilities);
-		boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUsingCompress()==1 ;
-		if(clientCompress&&usingCompress)
-		{
-			source.setSupportCompress(true);
-		}
+
 		// 设置字符集编码
 		int charsetIndex = (packet.serverCharsetIndex & 0xff);
 		String charset = CharsetUtil.getCharset(charsetIndex);

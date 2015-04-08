@@ -60,6 +60,12 @@ public class MySQLDetectorAuthenticator implements NIOHandler {
 			}
 			source.setHandler(new MySQLDetectorHandler(source));
 			source.setAuthenticated(true);
+			boolean clientCompress = Capabilities.CLIENT_COMPRESS==(Capabilities.CLIENT_COMPRESS & packet.serverCapabilities);
+			boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUsingCompress()==1 ;
+			if(clientCompress&&usingCompress)
+			{
+				source.setSupportCompress(true);
+			}
 			source.heartbeat();// 成功后发起心跳。
 			break;
 		case ErrorPacket.FIELD_COUNT:
@@ -90,13 +96,6 @@ public class MySQLDetectorAuthenticator implements NIOHandler {
 		hsp = new HandshakePacket();
 		hsp.read(data);
 		source.setHandshake(hsp);
-
-		boolean clientCompress = Capabilities.CLIENT_COMPRESS==(Capabilities.CLIENT_COMPRESS & hsp.serverCapabilities);
-		boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUsingCompress()==1 ;
-		if(clientCompress&&usingCompress)
-		{
-			source.setSupportCompress(true);
-		}
 		// 设置字符集编码
 		int charsetIndex = (hsp.serverCharsetIndex & 0xff);
 		String charset = CharsetUtil.getCharset(charsetIndex);

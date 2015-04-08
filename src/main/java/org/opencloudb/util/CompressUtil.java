@@ -22,10 +22,7 @@ public class CompressUtil
 
     public static ByteBuffer compressMysqlPacket(ByteBuffer input,AbstractConnection con)
     {
-        if(true)
-        {
-            return input;
-        }
+
       return compressMysqlPacket(getByteArrayFromBuffer(input),con);
     }
 
@@ -34,14 +31,20 @@ public class CompressUtil
 
         ByteBuffer byteBuf=con.allocate();
 
-        byteBuf=con.checkWriteBuffer(byteBuf,data.length+7,false);
+        byteBuf=con.checkWriteBuffer(byteBuf,data.length,false);
         byte packID=data[3];
-        if(data.length<=50)
+        if(data.length<=54)
         {
             BufferUtil.writeUB3(byteBuf, data.length);
             byteBuf.put(packID);
             BufferUtil.writeUB3(byteBuf, 0);
             byteBuf.put(data);
+
+
+//            byteBuf.put(data,0,4);
+//            BufferUtil.writeUB3(byteBuf, 0);
+//            byteBuf.put(data,4,data.length-4);
+
         }   else
         {
             byte[] compress = compress(data);
