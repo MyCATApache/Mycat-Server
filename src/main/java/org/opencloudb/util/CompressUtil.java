@@ -94,7 +94,9 @@ public class CompressUtil
             return Lists.newArrayList(data);
         } else if (oldLen == 0)
         {
-            return Lists.newArrayList(mm.readBytes());
+            byte[] readBytes = mm.readBytes();
+         //   return Lists.newArrayList(readBytes);
+            return splitPack(readBytes, decompressUnfinishedDataQueue);
         } else
         {
             byte[] de = decompress(data, 7, data.length - 7);
