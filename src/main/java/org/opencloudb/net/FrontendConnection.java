@@ -397,7 +397,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 
 		if(isSupportCompress())
 		{
-			List<byte[]> packs= CompressUtil.decompressMysqlPacket(data);
+			List<byte[]> packs= CompressUtil.decompressMysqlPacket(data,decompressUnfinishedDataQueue);
 
 			for (byte[] pack : packs)
 			{
@@ -439,7 +439,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_LONG_FLAG;
 		flag |= Capabilities.CLIENT_CONNECT_WITH_DB;
 		// flag |= Capabilities.CLIENT_NO_SCHEMA;
-		boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUsingCompress()==1 ;
+		boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUseCompression()==1 ;
 		if(usingCompress)
 		{
 			flag |= Capabilities.CLIENT_COMPRESS;

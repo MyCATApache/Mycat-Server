@@ -159,16 +159,7 @@ public class MySQLMessage {
         return ab;
     }
 
-    public byte[] readUncompressBytes() {
-        if (position >= length) {
-            return EMPTY_BYTES;
-        }
-        byte[] ab = new byte[length - position+4];
-        System.arraycopy(data, 0, ab, 0, 4);
-        System.arraycopy(data, position, ab, 0, ab.length);
-        position = length;
-        return ab;
-    }
+
 
     public byte[] readBytes(int length) {
         byte[] ab = new byte[length];

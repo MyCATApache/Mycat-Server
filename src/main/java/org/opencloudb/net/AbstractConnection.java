@@ -68,6 +68,8 @@ public abstract class AbstractConnection implements NIOConnection {
 	protected long netOutBytes;
 	protected int writeAttempts;
 	protected volatile boolean isSupportCompress=false;
+    protected final ConcurrentLinkedQueue<byte[]> decompressUnfinishedDataQueue = new ConcurrentLinkedQueue<byte[]>();
+    protected final ConcurrentLinkedQueue<byte[]> compressUnfinishedDataQueue = new ConcurrentLinkedQueue<byte[]>();
 
 	private long idleTimeout;
 
@@ -101,7 +103,11 @@ public abstract class AbstractConnection implements NIOConnection {
 			return false;
 		}
 	}
-	public boolean isSupportCompress()
+
+
+
+
+    public boolean isSupportCompress()
 	{
 		return isSupportCompress;
 	}
@@ -238,7 +244,7 @@ public abstract class AbstractConnection implements NIOConnection {
 	public void handle(byte[] data) {
         if(isSupportCompress())
         {
-            List<byte[]> packs= CompressUtil.decompressMysqlPacket(data);
+            List<byte[]> packs= CompressUtil.decompressMysqlPacket(data,decompressUnfinishedDataQueue);
 
             for (byte[] pack : packs)
             {
@@ -352,35 +358,20 @@ public abstract class AbstractConnection implements NIOConnection {
 	private final void writeNotSend(ByteBuffer buffer) {
         if(isSupportCompress())
         {
-            ByteBuffer     newBuffer= CompressUtil.compressMysqlPacket(buffer,this);
+            ByteBuffer     newBuffer= CompressUtil.compressMysqlPacket(buffer,this,compressUnfinishedDataQueue);
             writeQueue.offer(newBuffer);
-            this.recycle(buffer);
         }   else
         {
             writeQueue.offer(buffer);
         }
 	}
 
-    public final void writeNotCompress(ByteBuffer buffer)
-    {
-        writeQueue.offer(buffer);
-        // if ansyn write finishe event got lock before me ,then writing
-        // flag is set false but not start a write request
-        // so we check again
-        try {
-            this.socketWR.doNextWriteCheck();
-        } catch (Exception e) {
-            LOGGER.warn("write err:", e);
-            this.close("write err:" + e);
 
-        }
-
-    }
     @Override
 	public final void write(ByteBuffer buffer) {
         if(isSupportCompress())
         {
-            ByteBuffer     newBuffer= CompressUtil.compressMysqlPacket(buffer,this);
+            ByteBuffer     newBuffer= CompressUtil.compressMysqlPacket(buffer,this,compressUnfinishedDataQueue);
             writeQueue.offer(newBuffer);
 
         }   else
@@ -475,7 +466,6 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	protected void cleanup() {
 
-		// 鍥炴敹鎺ユ敹缂撳瓨
 		if (readBuffer != null) {
 			recycle(readBuffer);
 			this.readBuffer = null;
@@ -485,7 +475,14 @@ public abstract class AbstractConnection implements NIOConnection {
 			recycle(writeBuffer);
 			this.writeBuffer = null;
 		}
-
+        if(!decompressUnfinishedDataQueue.isEmpty())
+        {
+            decompressUnfinishedDataQueue.clear();
+        }
+        if(!compressUnfinishedDataQueue.isEmpty())
+        {
+            compressUnfinishedDataQueue.clear();
+        }
 		ByteBuffer buffer = null;
 		while ((buffer = writeQueue.poll()) != null) {
 			recycle(buffer);
@@ -507,10 +504,10 @@ public abstract class AbstractConnection implements NIOConnection {
 			int length = buffer.get(offset) & 0xff;
 			length |= (buffer.get(++offset) & 0xff) << 8;
 			length |= (buffer.get(++offset) & 0xff) << 16;
-           if( buffer.position()==length+4 )
-           {
-                return   length+4;
-           }
+//           if( buffer.position()==length+4 )
+//           {
+//                return   length+4;
+//           }
 			return length + headerSize;
 		}
 	}
