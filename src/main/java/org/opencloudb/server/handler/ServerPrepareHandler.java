@@ -77,7 +77,6 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
                 source.writeErrMessage(ErrorCode.ER_ERROR_WHEN_EXECUTING_COMMAND, e.getMessage());
                 return;
             }
-            // TODO ...
         }
     }
 
