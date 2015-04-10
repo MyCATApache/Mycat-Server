@@ -48,7 +48,7 @@ public class TestSelectBetweenSqlParser {
 //		sql = "select b.* from offer_date b join  offer_detail a on a.id=b.id " +
 //				"where b.col_date between '2014-02-02' and '2014-04-12' and col_1 = 3 and offer_id between 1 and 33";
 		
-		//TODO 多表关联有疑问
+		
 		sql = "select b.* from offer_detail a  join  offer_date b on a.id=b.id " +
 				"where b.col_date between '2014-02-02' and '2014-04-12' and col_1 = 3 and offer_id between 1 and 33";
 //		sql = "select a.* from offer_detail a join offer_date b on a.id=b.id " +

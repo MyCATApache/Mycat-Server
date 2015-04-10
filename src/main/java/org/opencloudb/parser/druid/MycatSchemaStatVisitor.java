@@ -209,7 +209,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
                 SQLDeleteStatement delete = (SQLDeleteStatement) parent;
                 return delete.getTableName().getSimpleName();
             } else {
-                //TODO 带where的其他语句，暂时不考虑
+                
             }
         }
         return "";
