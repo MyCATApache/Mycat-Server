@@ -459,7 +459,7 @@ public class MycatServer {
 							for (NIOProcessor p : processors) {
 								p.checkBackendCons();
 							}
-						} catch (Throwable e) {
+						} catch (Exception e) {
 							LOGGER.warn("checkBackendCons caught err:" + e);
 						}
 
@@ -472,7 +472,7 @@ public class MycatServer {
 							for (NIOProcessor p : processors) {
 								p.checkFrontCons();
 							}
-						} catch (Throwable e) {
+						} catch (Exception e) {
 							LOGGER.warn("checkFrontCons caught err:" + e);
 						}
 					}

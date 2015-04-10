@@ -92,40 +92,30 @@ public final class NIOReactor {
 							if (att != null && key.isValid()) {
 								con = (AbstractConnection) att;
 								if (key.isReadable()) {
-									// System.out.println("xxx read " + att);
 									try {
 										con.asynRead();
-									} catch (Throwable e) {
-										if (!(e instanceof java.io.IOException)) {
-											LOGGER.warn("caught err:", e);
-										}
-										// e.printStackTrace();
+									} catch (IOException e) {
+                                        LOGGER.warn("caught err:", e);
+                                        con.close("program err:" + e.toString());
+									} catch (Exception e) {
 										con.close("program err:" + e.toString());
-
 									}
 								}
 								if (key.isWritable()) {
-									// System.out.println("xxx writable " +
-									// att);
 									con.doNextWriteCheck();
 								}
 							} else {
-								// LOGGER.warn("key not valid ,cancel key ");
 								key.cancel();
 							}
-						} catch (Throwable e) {
-							if (e instanceof CancelledKeyException) {
-								if (LOGGER.isDebugEnabled()) {
-									LOGGER.debug(con + " socket key canceled");
-								}
-							} else {
-								LOGGER.warn(con + " " + e);
-							}
-
-						}
-
+                        } catch (CancelledKeyException e) {
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(con + " socket key canceled");
+                            }
+                        } catch (Exception e) {
+                            LOGGER.warn(con + " " + e);
+                        }
 					}
-				} catch (Throwable e) {
+				} catch (Exception e) {
 					LOGGER.warn(name, e);
 				} finally {
 					if (keys != null) {
@@ -133,14 +123,6 @@ public final class NIOReactor {
 					}
 
 				}
-				// for (SelectionKey key : selector.keys()) {
-				// Object att = key.attachment();
-				// if (att != null) {
-				// AbstractConnection con = (AbstractConnection) att;
-				// // LOGGER.info("enable write "+this);
-				// con.checkWriteOpts(false);
-				// }
-				// }
 			}
 		}
 
@@ -153,7 +135,7 @@ public final class NIOReactor {
 				try {
 					((NIOSocketWR) c.getSocketWR()).register(selector);
 					c.register();
-				} catch (Throwable e) {
+				} catch (Exception e) {
 					LOGGER.warn("register error ", e);
 					c.close("register err");
 				}

@@ -133,9 +133,8 @@ public class DynaClassLoader {
 			} else {
 				try {
 					dynaClass = searchFile(extClassHome, name);
-				} catch (Throwable e) {
-					
-					e.printStackTrace();
+				} catch (Exception e) {
+					LOGGER.error("SearchFileError", e);
 				}
 			}
 
@@ -164,7 +163,7 @@ public class DynaClassLoader {
 
 		}
 
-		private DynaClass searchFile(String classpath, String fileName) throws Throwable {
+		private DynaClass searchFile(String classpath, String fileName) throws Exception {
 			DynaClass dynCls = null;
 			String path = fileName.replace('.', File.separatorChar) + ".class";
 			System.out.println("class " + classpath + " file " + path);

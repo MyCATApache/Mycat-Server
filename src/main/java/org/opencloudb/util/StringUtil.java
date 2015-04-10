@@ -24,6 +24,8 @@
 package org.opencloudb.util;
 
 import org.opencloudb.mpp.LoadData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
@@ -33,6 +35,7 @@ import java.util.Random;
  * @author mycat
  */
 public class StringUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger(StringUtil.class);
 	private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 	private static final Random RANDOM = new Random();
 	private static final char[] CHARS = { '1', '2', '3', '4', '5', '6', '7',
@@ -103,7 +106,8 @@ public class StringUtil {
 	public static String safeToString(Object object) {
 		try {
 			return object.toString();
-		} catch (Throwable t) {
+		} catch (Exception t) {
+		    LOGGER.error("safeToStringError", t);
 			return "<toString() failure: " + t + ">";
 		}
 	}

@@ -79,12 +79,12 @@ public final class NIOAcceptor extends Thread  implements SocketAcceptor{
 
 	@Override
 	public void run() {
-		final Selector selector = this.selector;
+		final Selector tSelector = this.selector;
 		for (;;) {
 			++acceptCount;
 			try {
-				selector.select(1000L);
-				Set<SelectionKey> keys = selector.selectedKeys();
+			    tSelector.select(1000L);
+				Set<SelectionKey> keys = tSelector.selectedKeys();
 				try {
 					for (SelectionKey key : keys) {
 						if (key.isValid() && key.isAcceptable()) {
@@ -96,7 +96,7 @@ public final class NIOAcceptor extends Thread  implements SocketAcceptor{
 				} finally {
 					keys.clear();
 				}
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				LOGGER.warn(getName(), e);
 			}
 		}
@@ -117,9 +117,9 @@ public final class NIOAcceptor extends Thread  implements SocketAcceptor{
 			NIOReactor reactor = reactorPool.getNextReactor();
 			reactor.postRegister(c);
 
-		} catch (Throwable e) {
+		} catch (Exception e) {
+	        LOGGER.warn(getName(), e);
 			closeChannel(channel);
-			LOGGER.warn(getName(), e);
 		}
 	}
 
@@ -132,11 +132,13 @@ public final class NIOAcceptor extends Thread  implements SocketAcceptor{
 			try {
 				socket.close();
 			} catch (IOException e) {
+		       LOGGER.error("closeChannelError", e);
 			}
 		}
 		try {
 			channel.close();
 		} catch (IOException e) {
+            LOGGER.error("closeChannelError", e);
 		}
 	}
 
