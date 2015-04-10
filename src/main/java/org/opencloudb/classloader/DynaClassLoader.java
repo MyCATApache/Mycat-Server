@@ -134,7 +134,7 @@ public class DynaClassLoader {
 				try {
 					dynaClass = searchFile(extClassHome, name);
 				} catch (Throwable e) {
-					// TODO Auto-generated catch block
+					
 					e.printStackTrace();
 				}
 			}

@@ -56,7 +56,7 @@ public class MultiThreadSequnceTest {
 						con = getCon(url, user, password);
 						testSequnce(con);
 					} catch (SQLException e) {
-						// TODO Auto-generated catch block
+						
 						e.printStackTrace();
 					}
 
