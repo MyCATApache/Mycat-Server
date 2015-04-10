@@ -29,9 +29,9 @@ package org.opencloudb.config;
 public interface Versions {
 
     /** 协议版本 */
-    byte PROTOCOL_VERSION = 10;
+    public static final byte PROTOCOL_VERSION = 10;
 
     /** 服务器版本 */
-    byte[] SERVER_VERSION = "5.5.8-mycat-1.3".getBytes();
+    public static final byte[] SERVER_VERSION = "5.5.8-mycat-1.3".getBytes();
 
 }
