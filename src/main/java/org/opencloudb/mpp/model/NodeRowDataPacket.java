@@ -50,14 +50,12 @@ public class NodeRowDataPacket {
 	
 	public void moveToTrim() {
 		RangRowDataPacket head = this.loadHeadPacket();
-		if (head != null) {
-			if (this.rangRDPacketList.remove(head)) {
-				this.trimRangRDPacketList.add(head);
-				if (head.allSize() == this.trimSize) {
-					head.leftHeadTail();
-				}
-			}
-		}
+        if (head != null && this.rangRDPacketList.remove(head)) {
+            this.trimRangRDPacketList.add(head);
+            if (head.allSize() == this.trimSize) {
+                head.leftHeadTail();
+            }
+        }
 	}
 	
 	public void moveHeadTail3ToTrim() {
@@ -65,8 +63,6 @@ public class NodeRowDataPacket {
 			int m = 0;
 			while ((m = this.rangRDPacketList.size()) > 3) {
 				RangRowDataPacket packet = this.rangRDPacketList.remove(0);
-				
-				//this.trimRangRDPacketList.add(packet);
 				if (packet.allSize() == this.trimSize) {
 					packet.leftHeadTail();
 				}
@@ -97,8 +93,6 @@ public class NodeRowDataPacket {
 		int m = 0;
 		while ((m = this.rangRDPacketList.size()) > 0) {
 			RangRowDataPacket packet = this.rangRDPacketList.remove(0);
-			
-			//this.trimRangRDPacketList.add(packet);
 			if (packet.getRowDataPacketList().size() == this.trimSize) {
 				packet.leftHeadTail();
 			}
@@ -129,7 +123,7 @@ public class NodeRowDataPacket {
 	}
 	
 	public RangRowDataPacket loadHeadPacket() {
-		if (rangRDPacketList.size() > 0) {
+		if (rangRDPacketList != null && !rangRDPacketList.isEmpty()) {
 			return rangRDPacketList.get(0);
 		}
 		return null;

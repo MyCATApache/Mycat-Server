@@ -75,8 +75,9 @@ public final class TableRuleConfig {
             StringBuilder s = new StringBuilder();
             s.append("{tableRule:").append(tableRuleName).append(", columns:[");
             for (int i = 0; i < columns.length; ++i) {
-                if (i > 0)
+                if (i > 0) {
                     s.append(", ");
+                }
                 s.append(columns[i]);
             }
             s.append("]}");
