@@ -23,6 +23,8 @@
  */
 package org.opencloudb.heartbeat;
 
+import org.opencloudb.MycatServer;
+import org.opencloudb.config.Capabilities;
 import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.mysql.SecurityUtil;
 import org.opencloudb.net.ConnectionException;
@@ -58,6 +60,12 @@ public class MySQLDetectorAuthenticator implements NIOHandler {
 			}
 			source.setHandler(new MySQLDetectorHandler(source));
 			source.setAuthenticated(true);
+			boolean clientCompress = Capabilities.CLIENT_COMPRESS==(Capabilities.CLIENT_COMPRESS & packet.serverCapabilities);
+			boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUseCompression()==1 ;
+			if(clientCompress&&usingCompress)
+			{
+				source.setSupportCompress(true);
+			}
 			source.heartbeat();// 成功后发起心跳。
 			break;
 		case ErrorPacket.FIELD_COUNT:
@@ -88,7 +96,6 @@ public class MySQLDetectorAuthenticator implements NIOHandler {
 		hsp = new HandshakePacket();
 		hsp.read(data);
 		source.setHandshake(hsp);
-
 		// 设置字符集编码
 		int charsetIndex = (hsp.serverCharsetIndex & 0xff);
 		String charset = CharsetUtil.getCharset(charsetIndex);

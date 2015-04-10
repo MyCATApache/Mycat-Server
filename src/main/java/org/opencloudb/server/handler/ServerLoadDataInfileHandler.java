@@ -285,6 +285,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     {
 
         RouteResultset rrs = new RouteResultset(sql, ServerParse.INSERT);
+        rrs.setLoadData(true);
         if (tableConfig == null && schema.getDataNode() != null)
         {
             //走默认节点

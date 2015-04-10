@@ -692,7 +692,7 @@ public class RouterUtil {
 				boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
                 boolean isLoadData=false;
                 if (LOGGER.isDebugEnabled()) {
-                    if(sql.startsWith(LoadData.loadDataHint))
+                    if(sql.startsWith(LoadData.loadDataHint)||rrs.isLoadData())
                     { //由于load data一次会计算很多路由数据，如果输出此日志会极大降低load data的性能
                          isLoadData=true;
                     }

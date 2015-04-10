@@ -15,6 +15,8 @@ public class AIOSocketWR extends SocketWR {
 	protected final AbstractConnection con;
 	private final AtomicBoolean writing = new AtomicBoolean(false);
 
+	protected final AtomicBoolean oneWriteFinished = new AtomicBoolean(true);
+
 	public AIOSocketWR(AbstractConnection conn) {
 		channel = (AsynchronousSocketChannel) conn.getChannel();
 		this.con = conn;
@@ -38,8 +40,17 @@ public class AIOSocketWR extends SocketWR {
 	}
 
 	private void asynWrite(ByteBuffer buffer) {
-		buffer.flip();
-		this.channel.write(buffer, this, aioWriteHandler);
+		for (;;) {
+
+			if (oneWriteFinished.compareAndSet(true, false))
+			{
+				buffer.flip();
+				this.channel.write(buffer, this, aioWriteHandler);
+				break;
+			}
+
+		}
+
 	}
 
 	/**
@@ -113,6 +124,7 @@ class AIOWriteHandler implements CompletionHandler<Integer, AIOSocketWR> {
 	@Override
 	public void completed(final Integer result, final AIOSocketWR wr) {
 		try {
+			wr.oneWriteFinished.set(true);
 			if (result >= 0) {
 				wr.onWriteFinished(result);
 			} else {
@@ -126,6 +138,7 @@ class AIOWriteHandler implements CompletionHandler<Integer, AIOSocketWR> {
 
 	@Override
 	public void failed(Throwable exc, AIOSocketWR wr) {
+		wr.oneWriteFinished.set(true);
 		wr.con.close("write failed " + exc);
 	}
 
