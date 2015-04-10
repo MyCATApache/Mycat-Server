@@ -46,7 +46,7 @@ public class JarLoader {
 	    }
 	  }
 	  
-	  public static Class<?> loadJar(String fileName,String mainJavaclass) throws Throwable {
+	  public static Class<?> loadJar(String fileName,String mainJavaclass) throws Exception {
 
 		    File file = new File(fileName);
 		    String mainClassName = null;
@@ -55,8 +55,7 @@ public class JarLoader {
 		    try {
 		      jarFile = new JarFile(fileName);
 		    } catch(IOException io) {
-		      throw new IOException("Error opening jar: " + fileName)
-		        .initCause(io);
+		      throw new IOException("Error opening jar: " + fileName);
 		    }
 
 		    Manifest manifest = jarFile.getManifest();
