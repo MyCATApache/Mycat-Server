@@ -83,7 +83,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 
     @Override
     public void close() {
-        // TODO Auto-generated method stub
+        
 
     }
 
