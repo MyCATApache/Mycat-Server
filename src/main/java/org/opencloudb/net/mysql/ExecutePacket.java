@@ -137,7 +137,7 @@ public class ExecutePacket extends MySQLPacket {
 
     @Override
     public int calcPacketSize() {
-        // TODO Auto-generated method stub
+        
         return 0;
     }
 

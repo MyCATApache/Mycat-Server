@@ -27,7 +27,7 @@ public class LevelDBPool implements CachePool {
 	}
 	@Override
 	public void putIfAbsent(Object key, Object value) {
-		// TODO Auto-generated method stub
+		
 		cache.put(toByteArray(key),toByteArray(value));
 		cacheStati.incPutTimes();
 		if (LOGGER.isDebugEnabled()) {
@@ -37,7 +37,7 @@ public class LevelDBPool implements CachePool {
 
 	@Override
 	public Object get(Object key) {
-		// TODO Auto-generated method stub
+		
 		Object  ob= toObject(cache.get(toByteArray(key)));
 		if (ob != null) {
 			if (LOGGER.isDebugEnabled()) {
@@ -65,7 +65,7 @@ public class LevelDBPool implements CachePool {
 
 	@Override
 	public CacheStatic getCacheStatic() {
-		// TODO Auto-generated method stub
+		
 		/*
 		int i=0;		
 		try {
@@ -86,7 +86,7 @@ public class LevelDBPool implements CachePool {
 
 	@Override
 	public long getMaxSize() {
-		// TODO Auto-generated method stub
+		
 		return maxSize;
 	}
 	

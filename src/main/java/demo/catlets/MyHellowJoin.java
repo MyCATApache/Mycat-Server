@@ -38,7 +38,7 @@ public class MyHellowJoin implements Catlet {
 	public void route(SystemConfig sysConfig, SchemaConfig schema, int sqlType,
 			String realSQL, String charset, ServerConnection sc,
 			LayerCachePool cachePool) {
-		// TODO Auto-generated method stub
+		
 		
 	}
 }
