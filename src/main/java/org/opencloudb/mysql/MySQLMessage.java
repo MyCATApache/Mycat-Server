@@ -159,6 +159,8 @@ public class MySQLMessage {
         return ab;
     }
 
+
+
     public byte[] readBytes(int length) {
         byte[] ab = new byte[length];
         System.arraycopy(data, position, ab, 0, length);

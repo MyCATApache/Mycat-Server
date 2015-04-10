@@ -31,7 +31,7 @@ import org.opencloudb.config.loader.SchemaLoader;
 import org.opencloudb.config.loader.xml.XMLSchemaLoader;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.route.ServerRouterUtil;
+import org.opencloudb.route.factory.RouteStrategyFactory;
 
 /**
  * @author mycat
@@ -56,7 +56,7 @@ public class ShardingMultiTableSpace {
         SchemaConfig schema = getSchema();
         String sql = "select id,member_id,gmt_create from offer where member_id in ('1','22','333','1124','4525')";
         for (int i = 0; i < total; i++) {
-            ServerRouterUtil.route(new SystemConfig(),schema, -1,sql, null, null,cachePool);
+            RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(),schema, -1,sql, null, null,cachePool);
         }
     }
 

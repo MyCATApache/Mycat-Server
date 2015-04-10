@@ -6,7 +6,6 @@ import java.util.Map;
 import org.opencloudb.MycatServer;
 import org.opencloudb.route.RouteStrategy;
 import org.opencloudb.route.impl.DruidMycatRouteStrategy;
-import org.opencloudb.route.impl.FdbRouteStrategy;
 
 /**
  * 路由策略工厂类
@@ -22,13 +21,11 @@ public class RouteStrategyFactory {
 		String defaultSqlParser = MycatServer.getInstance().getConfig().getSystem().getDefaultSqlParser();
 		defaultSqlParser = defaultSqlParser == null ? "" : defaultSqlParser;
 		
-		strategyMap.put("fdbparser", new FdbRouteStrategy());
-		
 		strategyMap.put("druidparser", new DruidMycatRouteStrategy());
 		
 		defaultStrategy = strategyMap.get(defaultSqlParser);
 		if(defaultStrategy == null) {
-			defaultStrategy = strategyMap.get("fdbparser");
+			defaultStrategy = strategyMap.get("druidparser");
 		}
 	}
 	public static RouteStrategy getRouteStrategy() {
