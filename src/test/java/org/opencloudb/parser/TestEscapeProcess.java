@@ -23,10 +23,6 @@ import java.sql.SQLSyntaxErrorException;
 
 import org.junit.Test;
 import org.opencloudb.interceptor.impl.DefaultSqlInterceptor;
-import org.opencloudb.mpp.InsertParseInf;
-import org.opencloudb.mpp.InsertSQLAnalyser;
-
-import com.foundationdb.sql.parser.QueryTreeNode;
 
 public class TestEscapeProcess {
 

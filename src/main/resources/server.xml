@@ -11,6 +11,7 @@
 <mycat:server xmlns:mycat="http://org.opencloudb/">
 	<system>
 	<property name="defaultSqlParser">druidparser</property>
+      <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
 	<!-- <property name="processorBufferChunk">40960</property> -->
 	<!-- 
 	<property name="processors">1</property> 
