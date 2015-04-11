@@ -41,4 +41,9 @@ public final class SQLRecord implements Comparable<SQLRecord> {
         return (int) (executeTime - o.executeTime);
     }
 
+    @Override
+    public boolean equals(Object arg0) {
+        return super.equals(arg0);
+    }
+
 }
