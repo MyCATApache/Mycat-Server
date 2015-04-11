@@ -23,7 +23,11 @@
  */
 package org.opencloudb.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class CompareUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CompareUtil.class);
 	public static int compareInt(int l,int r){	 
 		  
 		  if(l > r){
@@ -111,22 +115,20 @@ public class CompareUtil {
 	  }
 	  
 	  
-	  private static int compareStringForChinese(String s1, String s2){
-          String m_s1 = null, m_s2 = null;
-          try{
-                 //先将两字符串编码成GBK
-                     m_s1 = new String ( s1.getBytes("GB2312"), "GBK");
-                     m_s2 = new String ( s2.getBytes("GB2312"), "GBK");
-              }
-              catch( Exception ex)
-              {
-            	  ex.printStackTrace();
-                     return s1.compareTo(s2);
-              }
-              int res = chineseCompareTo(m_s1, m_s2);
- 
-//              System.out.println("比较：" + s1 + " | " + s2 + "==== Result: " + res);
-              return res;
+    private static int compareStringForChinese(String s1, String s2) {
+        String m_s1 = null, m_s2 = null;
+        try {
+            //先将两字符串编码成GBK
+            m_s1 = new String(s1.getBytes("GB2312"), "GBK");
+            m_s2 = new String(s2.getBytes("GB2312"), "GBK");
+        } catch (Exception ex) {
+            LOGGER.error("compareStringForChineseError", ex);
+            return s1.compareTo(s2);
+        }
+        int res = chineseCompareTo(m_s1, m_s2);
+        
+        //              System.out.println("比较：" + s1 + " | " + s2 + "==== Result: " + res);
+        return res;
     }
  
 	//获取一个汉字/字母的Char值

@@ -100,8 +100,8 @@ public class LevelDBPool implements CachePool {
             bytes = bos.toByteArray ();        
             oos.close();           
             bos.close();          
-        } catch (IOException ex) {          
-            ex.printStackTrace();     
+        } catch (IOException ex) {
+            LOGGER.error("toByteArrayError", ex);
         }        
         return bytes;      
     }     
@@ -118,10 +118,10 @@ public class LevelDBPool implements CachePool {
             obj = ois.readObject();        
             ois.close();     
             bis.close();     
-        } catch (IOException ex) {          
-            ex.printStackTrace();     
+        } catch (IOException ex) {    
+            LOGGER.error("toObjectError", ex);
         } catch (ClassNotFoundException ex) {          
-            ex.printStackTrace();     
+            LOGGER.error("toObjectError", ex);
         }        
         return obj;      
     } 

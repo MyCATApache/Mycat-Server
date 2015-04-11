@@ -30,9 +30,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.CompareUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RowDataPacketSorter {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RowDataPacketSorter.class);
     protected final OrderCol[] orderCols;
 
     private Collection<RowDataPacket> sorted = new ConcurrentLinkedQueue<RowDataPacket>();
@@ -45,12 +48,6 @@ public class RowDataPacketSorter {
     }
 
     public void addRow(RowDataPacket row) {
-    	try {
-			//Thread.sleep(500);
-		} catch (Exception e) {
-			
-			e.printStackTrace();
-		}
         this.sorted.add(row);
 
     }
@@ -59,7 +56,7 @@ public class RowDataPacketSorter {
         try {
             this.mergeSort(sorted.toArray(new RowDataPacket[sorted.size()]));
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("getSortedResultError",e);
         }
         if (array != null) {
             Collections.addAll(this.sorted, array);
