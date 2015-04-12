@@ -106,7 +106,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			loadSchemas(root);
 		} catch (ConfigException e) {
 			throw e;
-		} catch (Throwable e) {
+		} catch (Exception e) {
 
 			throw new ConfigException(e);
 		} finally {

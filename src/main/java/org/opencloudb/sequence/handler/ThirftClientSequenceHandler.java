@@ -35,7 +35,7 @@ public class ThirftClientSequenceHandler implements SequenceHandler {
 
 	@Override
 	public long nextId(String prefixName) {
-		// TODO Auto-generated method stub
+		
 		return 0;
 	}
 

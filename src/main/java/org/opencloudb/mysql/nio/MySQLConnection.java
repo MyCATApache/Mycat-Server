@@ -55,7 +55,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	private static final Logger LOGGER = Logger
 			.getLogger(MySQLConnection.class);
 	private static final long CLIENT_FLAGS = initClientFlags();
-	private volatile long lastTime; // QS_TODO
+	private volatile long lastTime; 
 	private volatile String schema = null;
 	private volatile String oldSchema;
 	private volatile boolean borrowed = false;
@@ -492,7 +492,6 @@ public class MySQLConnection extends BackendAIOConnection {
 	public void quit() {
 		if (isQuit.compareAndSet(false, true) && !isClosed()) {
 			if (isAuthenticated) {
-				// QS_TODO check
 				write(writeToBuffer(QuitPacket.QUIT, allocate()));
 				write(allocate());
 			} else {

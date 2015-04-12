@@ -35,11 +35,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.opencloudb.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public class ParameterMapping {
+    private static final Logger                              LOGGER      = LoggerFactory
+                                                                             .getLogger(ParameterMapping.class);
     private static final Map<Class<?>, PropertyDescriptor[]> descriptors = new HashMap<Class<?>, PropertyDescriptor[]>();
 
     public static void mapping(Object object, Map<String, ? extends Object> parameter) throws IllegalAccessException,
@@ -117,7 +121,7 @@ public class ParameterMapping {
                 pds2 = new PropertyDescriptor[list.size()];
                 list.toArray(pds2);
             } catch (IntrospectionException ie) {
-                ie.printStackTrace();
+                LOGGER.error("ParameterMappingError", ie);
                 pds2 = new PropertyDescriptor[0];
             }
         }
@@ -150,7 +154,8 @@ public class ParameterMapping {
             try {
                 method = cls.getMethod("valueOf", new Class[] { String.class });
                 value = method.invoke(null, new Object[] { string });
-            } catch (Throwable t) {
+            } catch (Exception t) {
+                LOGGER.error("valueofError", t);
                 value = null;
             }
         } else if (cls.equals(Class.class)) {

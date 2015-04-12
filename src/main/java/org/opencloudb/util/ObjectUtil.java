@@ -36,11 +36,15 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author mycat
  */
 public final class ObjectUtil {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(ObjectUtil.class);
+    
 	public static Object copyObject(Object object) {
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		ObjectOutputStream s = null;
@@ -50,9 +54,9 @@ public final class ObjectUtil {
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(b.toByteArray()));
 			return ois.readObject();
 		} catch (IOException e) {
-			e.printStackTrace();
+		    LOGGER.error("copyObjectIOError", e);
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+		    LOGGER.error("copyObjectError", e);
 		}
 		return null;
 	}

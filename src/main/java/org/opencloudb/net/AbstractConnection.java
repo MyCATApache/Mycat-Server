@@ -522,7 +522,8 @@ public abstract class AbstractConnection implements NIOConnection {
 			boolean isSocketClosed = true;
 			try {
 				channel.close();
-			} catch (Throwable e) {
+			} catch (Exception e) {
+		         LOGGER.error("AbstractConnectionCloseError", e);
 			}
 			boolean closed = isSocketClosed && (!channel.isOpen());
 			if (closed == false) {

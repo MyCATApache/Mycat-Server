@@ -49,7 +49,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					 rrs.setCanRunInReadDB(false);
 				 }
 
-		} else if (sqlSelectQuery instanceof MySqlUnionQuery) { //TODO union语句可能需要额外考虑，目前不处理也没问题
+		} else if (sqlSelectQuery instanceof MySqlUnionQuery) { 
 //			MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;
 //			MySqlSelectQueryBlock left = (MySqlSelectQueryBlock)unionQuery.getLeft();
 //			MySqlSelectQueryBlock right = (MySqlSelectQueryBlock)unionQuery.getLeft();
@@ -271,7 +271,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 							throw new SQLNonTransientException(ErrorCode.ER_PARSE_ERROR + " - " + msg);
 						} else {
 							changedLimit.setOffset(new SQLIntegerExpr(0));
-							//TODO
+							
 						}
 					}
 					
@@ -413,7 +413,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			}
 
 			if(schema.getTables().get(tableName).isGlobalTable()) {
-				return true;//TODO
+				return true;
 			}
 
 			String primaryKey = schema.getTables().get(tableName).getPrimaryKey();

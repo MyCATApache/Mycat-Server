@@ -16,18 +16,12 @@ public class RangRowDataPacket {
 		return trimCount;
 	}
 
-	private boolean dataOk = false;
-	
 	public void appendPacket(List<RowDataPacket> packetList) {
 		this.rowDataPacketList.addAll(packetList);
 	}
 	
 	public void appendPacket(RowDataPacket packet) {
 		this.rowDataPacketList.add(packet);
-	}
-	
-	public void dataOk() {
-		this.dataOk = true;
 	}
 	
 	public boolean isTrim() {

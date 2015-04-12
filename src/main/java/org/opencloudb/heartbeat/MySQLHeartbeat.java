@@ -127,7 +127,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 						|| detector.isClosed()) {
 					try {
 						detector = factory.make(this);
-					} catch (Throwable e) {
+					} catch (Exception e) {
 						LOGGER.warn(source.getConfig().toString(), e);
 						setError(null);
 						return;

@@ -28,12 +28,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author mycat
  */
 public final class BufferQueue {
-	// private static final Logger LOGGER = Logger.getLogger(BufferQueue.class);
 	private final int total;
 	private final LinkedList<ByteBuffer> items = new LinkedList<ByteBuffer>();
 
@@ -52,7 +52,7 @@ public final class BufferQueue {
 
 	public Collection<ByteBuffer> removeItems(int count) {
 
-		ArrayList<ByteBuffer> removed = new ArrayList<ByteBuffer>();
+		List<ByteBuffer> removed = new ArrayList<ByteBuffer>();
 		Iterator<ByteBuffer> itor = items.iterator();
 		while (itor.hasNext()) {
 			removed.add(itor.next());
@@ -80,8 +80,7 @@ public final class BufferQueue {
 	}
 
 	public ByteBuffer poll() {
-		ByteBuffer buf = items.poll();
-		return buf;
+		return items.poll();
 	}
 
 	public boolean isEmpty() {

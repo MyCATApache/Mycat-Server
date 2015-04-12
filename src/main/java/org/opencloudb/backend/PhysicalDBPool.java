@@ -290,7 +290,7 @@ public class PhysicalDBPool {
 				Thread.sleep(200);
 
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+			    LOGGER.error("initError", e);
 			}
 		}
 		LOGGER.info("init result :" + getConHandler.getStatusInfo());
@@ -319,7 +319,6 @@ public class PhysicalDBPool {
 			}
 		}
 		// 璇诲簱鐨勫績璺虫娴�
-		// todo
 	}
 
 	/**

@@ -52,7 +52,7 @@ public final class MycatStartup {
 			while (true) {
 				Thread.sleep(300 * 1000);
 			}
-		} catch (Throwable e) {
+		} catch (Exception e) {
 			SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
 			LogLog.error(sdf.format(new Date()) + " startup error", e);
 			System.exit(-1);

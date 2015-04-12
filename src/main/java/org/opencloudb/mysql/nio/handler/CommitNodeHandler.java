@@ -137,13 +137,13 @@ public class CommitNodeHandler implements ResponseHandler {
 
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-		// TODO Auto-generated method stub
+		
 
 	}
 
