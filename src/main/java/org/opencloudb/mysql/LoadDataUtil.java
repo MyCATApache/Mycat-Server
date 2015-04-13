@@ -52,26 +52,26 @@ public class LoadDataUtil
             }
         }catch (IOException e)
         {
-            //应该需要发空包或者错误包？
+
+            throw new RuntimeException(e);
+        }  finally
+        {
+            //结束必须发空包
             byte[] empty = new byte[] { 0, 0, 0,3 };
             empty[3]=++packId;
             backendAIOConnection.write(empty);
-            throw new RuntimeException(e);
         }
 
 
-        //结束必须发空包
-        byte[] empty = new byte[] { 0, 0, 0,3 };
-        empty[3]=++packId;
-        backendAIOConnection.write(empty);
+
 
     }
 
     public static byte writeToBackConnection(byte packID,InputStream inputStream,BackendAIOConnection backendAIOConnection) throws IOException
     {
-        //int packSize=   MycatServer.getInstance().getConfig().getSystem().getProcessorBufferChunk()-5 ;
+        int packSize=   MycatServer.getInstance().getConfig().getSystem().getProcessorBufferChunk()-5 ;
        // int packSize = backendAIOConnection.getMaxPacketSize() / 32;
-        int packSize=65530;
+      //  int packSize=65530;
         byte[] buffer = new byte[packSize];
         int len = -1;
 
