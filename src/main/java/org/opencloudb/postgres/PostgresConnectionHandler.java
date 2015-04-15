@@ -32,19 +32,19 @@ public class PostgresConnectionHandler extends BackendAsyncHandler {
 
 	@Override
 	public void handle(byte[] data) {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	protected void offerDataError() {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	protected void handleData(byte[] data) {
-		// TODO Auto-generated method stub
+		
 
 	}
 

@@ -77,13 +77,12 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
                 source.writeErrMessage(ErrorCode.ER_ERROR_WHEN_EXECUTING_COMMAND, e.getMessage());
                 return;
             }
-            // TODO ...
         }
     }
 
     @Override
     public void close() {
-        // TODO Auto-generated method stub
+        
 
     }
 

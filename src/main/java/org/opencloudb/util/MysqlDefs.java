@@ -496,9 +496,7 @@ public final class MysqlDefs {
 			return Types.BINARY; // no concrete type on the wire
 		} else if (mysqlType.equalsIgnoreCase("VARBINARY")) {
 			return Types.VARBINARY; // no concrete type on the wire
-		} else if (mysqlType.equalsIgnoreCase("BIT")) {
-			return mysqlToJavaType(FIELD_TYPE_BIT);
-		}
+		} 
 
 		// Punt
 		return java.sql.Types.OTHER;

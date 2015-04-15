@@ -45,6 +45,8 @@ import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.CircularArrayList;
 import org.opencloudb.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ShowServerLog {
 	private static final int FIELD_COUNT = 1;
@@ -53,6 +55,8 @@ public final class ShowServerLog {
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
 	private static final EOFPacket eof = new EOFPacket();
 	private static final String DEFAULT_LOGFILE = "mycat.log";
+    private static final Logger                LOGGER          = LoggerFactory
+                                                                   .getLogger(ShowServerLog.class);
 	static {
 		int i = 0;
 		byte packetId = 0;
@@ -160,7 +164,7 @@ public final class ShowServerLog {
 			return bufINf;
 
 		} catch (Exception e) {
-			e.printStackTrace();
+            LOGGER.error("showLogRangeError", e);
 			RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 			row.add(StringUtil.encode(e.toString(), c.getCharset()));
 			row.packetId = ++packetId;
@@ -171,7 +175,7 @@ public final class ShowServerLog {
 				try {
 					br.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+		            LOGGER.error("showLogRangeError", e);
 				}
 			}
 
@@ -231,7 +235,7 @@ public final class ShowServerLog {
 			return bufINf;
 
 		} catch (Exception e) {
-			e.printStackTrace();
+            LOGGER.error("showLogSumError", e);
 			RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 			row.add(StringUtil.encode(e.toString(), c.getCharset()));
 			row.packetId = ++packetId;
@@ -242,7 +246,7 @@ public final class ShowServerLog {
 				try {
 					br.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+		            LOGGER.error("showLogSumError", e);
 				}
 			}
 

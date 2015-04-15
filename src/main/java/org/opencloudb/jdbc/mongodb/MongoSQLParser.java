@@ -5,6 +5,9 @@ package org.opencloudb.jdbc.mongodb;
 import java.sql.Types;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -27,6 +30,7 @@ import com.alibaba.druid.sql.ast.*;
  * @version 0.0.1
  */
 public class MongoSQLParser {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoSQLParser.class);
 	private   final DB _db;
 //	private   final String _sql;
 	private   final SQLStatement statement;	
@@ -49,7 +53,7 @@ public class MongoSQLParser {
 	     }
 	     catch (Exception e)
 	     {
-	       e.printStackTrace();
+	         LOGGER.error("MongoSQLParser.parserError", e);
 	    }
 	     throw new MongoSQLException.ErrorSQL(s);
 	   }	

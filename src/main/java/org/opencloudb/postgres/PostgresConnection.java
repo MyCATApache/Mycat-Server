@@ -44,146 +44,146 @@ public class PostgresConnection extends BackendAIOConnection {
 
 	@Override
 	public void onConnectFailed(Throwable e) {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public boolean isModifiedSQLExecuted() {
-		// TODO Auto-generated method stub
+		
 		return false;
 	}
 
 	@Override
 	public boolean isFromSlaveDB() {
-		// TODO Auto-generated method stub
+		
 		return false;
 	}
 
 	@Override
 	public String getSchema() {
-		// TODO Auto-generated method stub
+		
 		return null;
 	}
 
 	@Override
 	public void setSchema(String newSchema) {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public long getLastTime() {
-		// TODO Auto-generated method stub
+		
 		return 0;
 	}
 
 	@Override
 	public boolean isClosedOrQuit() {
-		// TODO Auto-generated method stub
+		
 		return false;
 	}
 
 	@Override
 	public void setAttachment(Object attachment) {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public void quit() {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public void setLastTime(long currentTimeMillis) {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public void release() {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public boolean setResponseHandler(ResponseHandler commandHandler) {
-		// TODO Auto-generated method stub
+		
 		return false;
 	}
 
 	@Override
 	public void commit() {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public void query(String sql) throws UnsupportedEncodingException {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public Object getAttachment() {
-		// TODO Auto-generated method stub
+		
 		return null;
 	}
 
 	@Override
 	public String getCharset() {
-		// TODO Auto-generated method stub
+		
 		return null;
 	}
 
 	@Override
 	public void execute(RouteResultsetNode node, ServerConnection source,
 			boolean autocommit) throws IOException {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public void recordSql(String host, String schema, String statement) {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public boolean syncAndExcute() {
-		// TODO Auto-generated method stub
+		
 		return false;
 	}
 
 	@Override
 	public void rollback() {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public boolean isBorrowed() {
-		// TODO Auto-generated method stub
+		
 		return false;
 	}
 
 	@Override
 	public void setBorrowed(boolean borrowed) {
-		// TODO Auto-generated method stub
+		
 
 	}
 
 	@Override
 	public int getTxIsolation() {
-		// TODO Auto-generated method stub
+		
 		return 0;
 	}
 
 	@Override
 	public boolean isAutocommit() {
-		// TODO Auto-generated method stub
+		
 		return false;
 	}
 

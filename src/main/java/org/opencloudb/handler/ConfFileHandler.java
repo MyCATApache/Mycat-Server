@@ -59,7 +59,7 @@ import org.xml.sax.SAXException;
  * @author wuzh
  */
 public final class ConfFileHandler {
-	private static final Logger logger = Logger
+	private static final Logger LOGGER = Logger
 			.getLogger(ConfFileHandler.class);
 	private static final int FIELD_COUNT = 1;
 	private static final ResultSetHeaderPacket header = PacketUtil
@@ -170,12 +170,13 @@ public final class ConfFileHandler {
 				outStream.write(tempbytes, 0, byteread);
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+		    LOGGER.error("readFileByBytesError",e1);
 		} finally {
 			if (in != null) {
 				try {
 					in.close();
 				} catch (IOException e1) {
+				    LOGGER.error("readFileByBytesError",e1);
 				}
 			}
 		}
@@ -184,7 +185,7 @@ public final class ConfFileHandler {
 
 	private static PackageBufINf upLoadConfigFile(ManagerConnection c,
 			ByteBuffer buffer, byte packetId, String fileName, String content) {
-		logger.info("Upload Daas Config file " + fileName + " ,content:"
+		LOGGER.info("Upload Daas Config file " + fileName + " ,content:"
 				+ content);
 		String tempFileName = System.currentTimeMillis() + "_" + fileName;
 		File tempFile = new File(SystemConfig.getHomePath(), "conf"
@@ -201,8 +202,7 @@ public final class ConfFileHandler {
 			buff.flush();
 
 		} catch (Exception e) {
-			logger.warn("write file err " + e);
-			e.printStackTrace();
+			LOGGER.warn("write file err " + e);
 			return showInfo(c, buffer, packetId, "write file err " + e);
 
 		} finally {
@@ -211,7 +211,7 @@ public final class ConfFileHandler {
 					buff.close();
 					suc = true;
 				} catch (IOException e) {
-					logger.warn("save config file err " + e);
+					LOGGER.warn("save config file err " + e);
 				}
 			}
 		}
@@ -225,7 +225,7 @@ public final class ConfFileHandler {
 						+ System.currentTimeMillis() + "_auto");
 				if (!oldFile.renameTo(backUP)) {
 					String msg = "rename old file failed";
-					logger.warn(msg + " for upload file "
+					LOGGER.warn(msg + " for upload file "
 							+ oldFile.getAbsolutePath());
 					return showInfo(c, buffer, packetId, msg);
 				}
@@ -234,7 +234,7 @@ public final class ConfFileHandler {
 					+ File.separator + fileName);
 			if (!tempFile.renameTo(dest)) {
 				String msg = "rename file failed";
-				logger.warn(msg + " for upload file "
+				LOGGER.warn(msg + " for upload file "
 						+ tempFile.getAbsolutePath());
 				return showInfo(c, buffer, packetId, msg);
 			}
@@ -281,7 +281,7 @@ public final class ConfFileHandler {
 			return bufINf;
 
 		} catch (Exception e) {
-			e.printStackTrace();
+            LOGGER.error("showConfigFileError",e);
 			RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 			row.add(StringUtil.encode(e.toString(), c.getCharset()));
 			row.packetId = ++packetId;
@@ -292,7 +292,7 @@ public final class ConfFileHandler {
 				try {
 					br.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+				    LOGGER.error("showConfigFileError",e);
 				}
 			}
 
@@ -326,7 +326,7 @@ public final class ConfFileHandler {
 			return bufINf;
 
 		} catch (Exception e) {
-			e.printStackTrace();
+            LOGGER.error("listConfigFilesError",e);
 			RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 			row.add(StringUtil.encode(e.toString(), c.getCharset()));
 			row.packetId = ++packetId;

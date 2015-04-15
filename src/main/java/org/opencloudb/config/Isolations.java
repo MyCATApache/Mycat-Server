@@ -30,9 +30,9 @@ package org.opencloudb.config;
  */
 public interface Isolations {
 
-    int READ_UNCOMMITTED = 1;
-    int READ_COMMITTED = 2;
-    int REPEATED_READ = 3;
-    int SERIALIZABLE = 4;
+    public static final int READ_UNCOMMITTED = 1;
+    public static final int READ_COMMITTED = 2;
+    public static final int REPEATED_READ = 3;
+    public static final int SERIALIZABLE = 4;
 
 }

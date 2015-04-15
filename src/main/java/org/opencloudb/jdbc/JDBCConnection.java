@@ -93,7 +93,7 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public void idleCheck() {
-		// TODO Auto-generated method stub
+		
 
 	}
 

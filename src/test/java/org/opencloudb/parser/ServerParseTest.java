@@ -153,12 +153,12 @@ public class ServerParseTest {
 	
 	@Test
 	public void testMysqlCmdComment() {
-		//TODO
+		
 	}
 	
 	@Test
 	public void testMysqlComment() {
-		//TODO
+		
 	}
 	
 	@Test

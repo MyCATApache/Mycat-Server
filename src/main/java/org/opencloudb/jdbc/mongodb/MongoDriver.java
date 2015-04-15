@@ -9,6 +9,8 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+import org.slf4j.LoggerFactory;
+
 import com.mongodb.MongoClientURI;
 /**  
  * 功能详细描述
@@ -19,6 +21,7 @@ import com.mongodb.MongoClientURI;
 public class MongoDriver implements Driver
 
 {
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(MongoDriver.class);
     static final String PREFIX = "mongodb://";
     private DriverPropertyInfoHelper propertyInfoHelper = new DriverPropertyInfoHelper();
     
@@ -26,7 +29,7 @@ public class MongoDriver implements Driver
 		try{
 			DriverManager.registerDriver(new MongoDriver());
 		}catch (SQLException e){
-			e.printStackTrace();
+		    LOGGER.error("initError",e);
 		}
 	}
 
@@ -65,7 +68,7 @@ public class MongoDriver implements Driver
 			//FIXME 判断defaults中的参数,写入URL中?
 			return new MongoClientURI(url);
 		} catch (Exception e) {
-			e.printStackTrace();
+	        LOGGER.error("parseURLError",e);
 			return null;
 		}
 		

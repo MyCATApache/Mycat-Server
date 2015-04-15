@@ -25,6 +25,7 @@ package org.opencloudb.buffer;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
@@ -177,13 +178,13 @@ public final class BufferPool {
 	public static void main(String[] args) {
 		BufferPool pool = new BufferPool(1024 * 5, 1024, 2);
 		int i = pool.capacity();
-		ArrayList<ByteBuffer> all = new ArrayList<ByteBuffer>();
+		List<ByteBuffer> all = new ArrayList<ByteBuffer>();
 		for (int j = 0; j <= i; j++) {
 			all.add(pool.allocate());
 		}
 		for (ByteBuffer buf : all) {
 			pool.recycle(buf);
 		}
-		System.out.println(pool.size());
+		LOGGER.info(pool.size());
 	}
 }

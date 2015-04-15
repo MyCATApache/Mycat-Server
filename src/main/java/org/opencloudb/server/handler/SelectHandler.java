@@ -64,7 +64,7 @@ public final class SelectHandler {
 			break;
 		case ServerParseSelect.LAST_INSERT_ID:
 			// offset = ParseUtil.move(stmt, 0, "select".length());
-			loop: for (; offset < stmt.length(); ++offset) {
+			for (; offset < stmt.length(); ++offset) {
 				switch (stmt.charAt(offset)) {
 				case ' ':
 					continue;
@@ -74,7 +74,7 @@ public final class SelectHandler {
 					continue;
 				case 'L':
 				case 'l':
-					break loop;
+					break;
 				}
 			}
 			offset = ServerParseSelect.indexAfterLastInsertIdFunc(stmt, offset);
@@ -83,7 +83,7 @@ public final class SelectHandler {
 			break;
 		case ServerParseSelect.IDENTITY:
 			// offset = ParseUtil.move(stmt, 0, "select".length());
-			loop: for (; offset < stmt.length(); ++offset) {
+			for (; offset < stmt.length(); ++offset) {
 				switch (stmt.charAt(offset)) {
 				case ' ':
 					continue;
@@ -92,7 +92,7 @@ public final class SelectHandler {
 					offset = ParseUtil.comment(stmt, offset);
 					continue;
 				case '@':
-					break loop;
+					break;
 				}
 			}
 			int indexOfAtAt = offset;

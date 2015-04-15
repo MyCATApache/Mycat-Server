@@ -37,13 +37,13 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
-		// TODO 自动生成的方法存根
+		
 		return null;
 	}
 
 	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		// TODO 自动生成的方法存根
+		
 		return false;
 	}
 
@@ -92,7 +92,7 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public int getColumnDisplaySize(int column) throws SQLException {
-		// TODO 自动生成的方法存根
+		
 		return 50;
 	}
 
@@ -108,7 +108,7 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public String getSchemaName(int column) throws SQLException {
-		// TODO 自动生成的方法存根
+		
 		return this._schema;
 	}
 
@@ -126,13 +126,13 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public String getTableName(int column) throws SQLException {
-		// TODO 自动生成的方法存根
+		
 		return this._table;
 	}
 
 	@Override
 	public String getCatalogName(int column) throws SQLException {
-		// TODO 自动生成的方法存根
+		
 		return this._schema;
 	}
 
@@ -167,13 +167,13 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public boolean isWritable(int column) throws SQLException {
-		// TODO 自动生成的方法存根
+		
 		return false;
 	}
 
 	@Override
 	public boolean isDefinitelyWritable(int column) throws SQLException {
-		// TODO 自动生成的方法存根
+		
 		return false;
 	}
 
