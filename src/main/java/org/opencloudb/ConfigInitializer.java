@@ -44,7 +44,6 @@ import org.opencloudb.config.model.UserConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.jdbc.JDBCDatasource;
 import org.opencloudb.mysql.nio.MySQLDataSource;
-import org.opencloudb.sequence.handler.IncrSequenceMySQLHandler;
 
 /**
  * @author mycat
@@ -69,9 +68,7 @@ public class ConfigInitializer {
 		this.dataNodes = initDataNodes(configLoader);
 		this.quarantine = configLoader.getQuarantineConfig();
 		this.cluster = initCobarCluster(configLoader);
-		if(system.getSequnceHandlerType()==SystemConfig.SEQUENCEHANDLER_MYSQLDB){
-        	IncrSequenceMySQLHandler.getInstance().load();
-        }
+
 		this.checkConfig();
 	}
 
