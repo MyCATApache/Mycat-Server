@@ -23,12 +23,16 @@ import org.opencloudb.config.model.rule.RuleConfig;
 import org.opencloudb.mpp.ColumnRoutePair;
 import org.opencloudb.mpp.LoadData;
 import org.opencloudb.parser.druid.DruidShardingParseInfo;
+import org.opencloudb.parser.druid.RouteCalculateUnit;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.SessionSQLPair;
 import org.opencloudb.route.function.AbstractPartitionAlgorithm;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.util.StringUtil;
+
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -437,20 +441,19 @@ public class RouterUtil {
 														// find
 														// datanode
 			
-			for(ColumnRoutePair pair : colRoutePairSet) {
-				nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
-				if (nodeSet.isEmpty() || nodeSet.size() > 1) {
-					throw new SQLNonTransientException(
-							"parent key can't find  valid datanode ,expect 1 but found: "
-									+ nodeSet.size());
-				}
-				String dn = nodeSet.iterator().next();
-				if (LOGGER.isDebugEnabled()) {
-					LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
-							+ dn + " sql :" + rrs.getStatement());
-				}
-				retNodeSet.addAll(nodeSet);
+			nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
+			if (nodeSet.isEmpty()) {
+				throw new SQLNonTransientException(
+						"parent key can't find  valid datanode ,expect 1 but found: "
+								+ nodeSet.size());
 			}
+			String dn = nodeSet.iterator().next();
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
+						+ dn + " sql :" + rrs.getStatement());
+			}
+			retNodeSet.addAll(nodeSet);
+			
 			return retNodeSet;
 		} else {
 			retNodeSet.addAll(tc.getParentTC().getDataNodes());
@@ -516,7 +519,7 @@ public class RouterUtil {
 	 * @return
 	 * @throws SQLNonTransientException
 	 */
-	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx, RouteResultset rrs,
+	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx, RouteCalculateUnit routeUnit, RouteResultset rrs,
 			boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
 		List<String> tables = ctx.getTables();
 		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
@@ -525,7 +528,7 @@ public class RouterUtil {
 
 		//只有一个表的
 		if(tables.size() == 1) {
-			return RouterUtil.tryRouteForOneTable(schema, ctx, tables.get(0), rrs, isSelect, cachePool);
+			return RouterUtil.tryRouteForOneTable(schema, ctx, routeUnit, tables.get(0), rrs, isSelect, cachePool);
 		}
 		
 		Set<String> retNodesSet = new HashSet<String>();
@@ -533,7 +536,7 @@ public class RouterUtil {
 		Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
 		
 		//分库解析信息不为空
-		Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions = ctx.getTablesAndConditions();
+		Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions = routeUnit.getTablesAndConditions();
 		if(tablesAndConditions != null && tablesAndConditions.size() > 0) {
 			//为分库表找路由
 			RouterUtil.findRouteWithcConditionsForTables(schema, rrs, tablesAndConditions, tablesRouteMap, ctx.getSql(), cachePool, isSelect);
@@ -606,7 +609,7 @@ public class RouterUtil {
 		 * @return
 		 * @throws SQLNonTransientException
 		 */
-		public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx, String tableName, RouteResultset rrs,
+		public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx, RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs,
 				boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
 			if(isNoSharding(schema,tableName))
 			{
@@ -629,7 +632,7 @@ public class RouterUtil {
 					return routeToMultiNode(false, rrs, tc.getDataNodes(), ctx.getSql());
 				}
 			} else {//单表或者分库表
-				if (!checkRuleRequired(schema, ctx, tc)) {
+				if (!checkRuleRequired(schema, ctx, routeUnit, tc)) {
 					throw new IllegalArgumentException("route rule for table "
 							+ tc.getName() + " is required: " + ctx.getSql());
 	
@@ -640,8 +643,8 @@ public class RouterUtil {
 				} else {
 					//每个表对应的路由映射
 					Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
-					if(ctx.getTablesAndConditions() != null && ctx.getTablesAndConditions().size() > 0) {
-						RouterUtil.findRouteWithcConditionsForTables(schema, rrs, ctx.getTablesAndConditions(), tablesRouteMap, ctx.getSql(),cachePool,isSelect);
+					if(routeUnit.getTablesAndConditions() != null && routeUnit.getTablesAndConditions().size() > 0) {
+						RouterUtil.findRouteWithcConditionsForTables(schema, rrs, routeUnit.getTablesAndConditions(), tablesRouteMap, ctx.getSql(),cachePool,isSelect);
 						if(rrs.isFinishedRoute()) {
 							return rrs;
 						}
@@ -788,7 +791,8 @@ public class RouterUtil {
 								+ Arrays.toString(dataNodeSet.toArray()) + " sql :" + sql);
 					}
 					if (dataNodeSet.size() > 1) {
-						routeToMultiNode(rrs.isCacheAble(), rrs, schema.getAllDataNodes(), sql);
+						routeToMultiNode(rrs.isCacheAble(), rrs, dataNodeSet, sql);
+						rrs.setFinishedRoute(true);
 						return;
 					} else {
 						rrs.setCacheAble(true);
@@ -826,16 +830,16 @@ public class RouterUtil {
 	 * @param tc
 	 * @return true表示校验通过，false表示检验不通过
 	 */
-	public static boolean checkRuleRequired(SchemaConfig schema, DruidShardingParseInfo ctx, TableConfig tc) {
+	public static boolean checkRuleRequired(SchemaConfig schema, DruidShardingParseInfo ctx, RouteCalculateUnit routeUnit, TableConfig tc) {
 		if(!tc.isRuleRequired()) {
 			return true;
 		}
 		boolean hasRequiredValue = false;
 		String tableName = tc.getName();
-		if(ctx.getTablesAndConditions().get(tableName) == null || ctx.getTablesAndConditions().get(tableName).size() == 0) {
+		if(routeUnit.getTablesAndConditions().get(tableName) == null || routeUnit.getTablesAndConditions().get(tableName).size() == 0) {
 			hasRequiredValue = false;
 		} else {
-			for(Map.Entry<String, Set<ColumnRoutePair>> condition : ctx.getTablesAndConditions().get(tableName).entrySet()) {
+			for(Map.Entry<String, Set<ColumnRoutePair>> condition : routeUnit.getTablesAndConditions().get(tableName).entrySet()) {
 				
 				String colName = condition.getKey();
 				//条件字段是拆分字段
@@ -869,7 +873,31 @@ public class RouterUtil {
 		return false;
 	}
 
+	/**
+	 * 判断条件是否永真
+	 * @param expr
+	 * @return
+	 */
+	public static boolean isConditionAlwaysTrue(SQLExpr expr) {
+		Object o = WallVisitorUtils.getValue(expr);
+		if(Boolean.TRUE.equals(o)) {
+			return true;
+		}
+		return false;
+	}
 	
+	/**
+	 * 判断条件是否永假的
+	 * @param expr
+	 * @return
+	 */
+	public static boolean isConditionAlwaysFalse(SQLExpr expr) {
+		Object o = WallVisitorUtils.getValue(expr);
+		if(Boolean.FALSE.equals(o)) {
+			return true;
+		}
+		return false;
+	}
 }
 
 

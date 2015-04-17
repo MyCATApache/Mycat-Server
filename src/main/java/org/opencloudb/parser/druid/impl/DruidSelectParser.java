@@ -18,17 +18,24 @@ import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
+import org.opencloudb.mpp.ColumnRoutePair;
 import org.opencloudb.mpp.MergeCol;
 import org.opencloudb.mpp.OrderCol;
+import org.opencloudb.parser.druid.RouteCalculateUnit;
 import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.util.ObjectUtil;
 
 import java.sql.SQLNonTransientException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public class DruidSelectParser extends DefaultDruidParser {
 
@@ -206,7 +213,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 
     private String getFieldName(SQLSelectItem item){
 		if ((item.getExpr() instanceof SQLPropertyExpr)||(item.getExpr() instanceof SQLMethodInvokeExpr)
-				|| (item.getExpr() instanceof SQLIdentifierExpr)) {			
+				|| (item.getExpr() instanceof SQLIdentifierExpr) || item.getExpr() instanceof SQLBinaryOpExpr) {			
 			return item.getExpr().toString();//字段别名
 		}
 		else
@@ -217,19 +224,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 	 */
 	@Override
 	public void changeSql(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException {
-		if(isConditionAlwaysTrue(stmt)) {
-			ctx.clear();
-		}
 
 		tryRoute(schema, rrs, cachePool);
 
 		rrs.copyLimitToNodes();
-
-
-		
-//		if(!isNeedChangeLimit(rrs,schema)){
-//			return;
-//		}
 		
 		SQLSelectStatement selectStmt = (SQLSelectStatement)stmt;
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
@@ -237,7 +235,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
 			int limitStart = 0;
 			int limitSize = schema.getDefaultMaxLimit();
-			boolean isNeedAddLimit = isNeedAddLimit(schema, rrs, mysqlSelectQuery);
+			
+			Map<String, Map<String, Set<ColumnRoutePair>>> allConditions = getAllConditions();
+			boolean isNeedAddLimit = isNeedAddLimit(schema, rrs, mysqlSelectQuery, allConditions);
 			if(isNeedAddLimit) {
 				Limit limit = new Limit();
 				limit.setRowCount(new SQLIntegerExpr(limitSize));
@@ -294,9 +294,24 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 			}
 			
-			rrs.setCacheAble(isNeedCache(schema, rrs, mysqlSelectQuery));
+			rrs.setCacheAble(isNeedCache(schema, rrs, mysqlSelectQuery, allConditions));
 		}
 		
+	}
+	
+	/**
+	 * 获取所有的条件：因为可能被or语句拆分成多个RouteCalculateUnit，条件分散了
+	 * @return
+	 */
+	private Map<String, Map<String, Set<ColumnRoutePair>>> getAllConditions() {
+		Map<String, Map<String, Set<ColumnRoutePair>>> map = new HashMap<String, Map<String, Set<ColumnRoutePair>>>();
+		for(RouteCalculateUnit unit : ctx.getRouteCalculateUnits()) {
+			if(unit != null && unit.getTablesAndConditions() != null) {
+				map.putAll(unit.getTablesAndConditions());
+			}
+		}
+		
+		return map;
 	}
 
 	private void tryRoute(SchemaConfig schema, RouteResultset rrs, LayerCachePool cachePool) throws SQLNonTransientException
@@ -312,12 +327,32 @@ public class DruidSelectParser extends DefaultDruidParser {
 			rrs.setFinishedRoute(true);
 			return;
 		}
-		RouterUtil.tryRouteForTables(schema, ctx, rrs, true, cachePool);
-		if(rrs == null) {
+//		RouterUtil.tryRouteForTables(schema, ctx, rrs, true, cachePool);
+		SortedSet<RouteResultsetNode> nodeSet = new TreeSet<RouteResultsetNode>();
+		for(RouteCalculateUnit unit : ctx.getRouteCalculateUnits()) {
+			RouteResultset rrsTmp = RouterUtil.tryRouteForTables(schema, ctx, unit, rrs, true, cachePool);
+			if(rrsTmp != null) {
+				for(RouteResultsetNode node :rrsTmp.getNodes()) {
+					nodeSet.add(node);
+				}
+			}
+		}
+		
+		if(nodeSet.size() == 0) {
 			String msg = " find no Route:" + ctx.getSql();
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
+		
+		RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSet.size()];
+		int i = 0;
+		for (Iterator<RouteResultsetNode> iterator = nodeSet.iterator(); iterator.hasNext();) {
+			nodes[i] = (RouteResultsetNode) iterator.next();
+			i++;
+			
+		}
+		
+		rrs.setNodes(nodes);
 		rrs.setFinishedRoute(true);
 	}
 
@@ -356,7 +391,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 		} 
 	}
 	
-	private boolean isNeedCache(SchemaConfig schema, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery) {
+	private boolean isNeedCache(SchemaConfig schema, RouteResultset rrs, 
+			MySqlSelectQueryBlock mysqlSelectQuery, Map<String, Map<String, Set<ColumnRoutePair>>> allConditions) {
 		if(ctx.getTables() == null || ctx.getTables().size() == 0 ) {
 			return false;
 		}
@@ -370,8 +406,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 				String tableName = ctx.getTables().get(0);
 				String primaryKey = schema.getTables().get(tableName).getPrimaryKey();
 //				schema.getTables().get(ctx.getTables().get(0)).getParentKey() != null;
-				if(ctx.getTablesAndConditions().get(tableName) != null
-						&& ctx.getTablesAndConditions().get(tableName).get(primaryKey) != null 
+				if(ctx.getRouteCalculateUnit().getTablesAndConditions().get(tableName) != null
+						&& ctx.getRouteCalculateUnit().getTablesAndConditions().get(tableName).get(primaryKey) != null 
 						&& tc.getDataNodes().size() > 1) {//有主键条件
 					return false;
 				} 
@@ -388,7 +424,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 	 * @param mysqlSelectQuery
 	 * @return
 	 */
-	private boolean isNeedAddLimit(SchemaConfig schema, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery) {
+	private boolean isNeedAddLimit(SchemaConfig schema, RouteResultset rrs, 
+			MySqlSelectQueryBlock mysqlSelectQuery, Map<String, Map<String, Set<ColumnRoutePair>>> allConditions) {
 //		ctx.getTablesAndConditions().get(key))
 		  if(rrs.getLimitSize()>-1)
 		  {
@@ -419,13 +456,14 @@ public class DruidSelectParser extends DefaultDruidParser {
 			String primaryKey = schema.getTables().get(tableName).getPrimaryKey();
 
 //			schema.getTables().get(ctx.getTables().get(0)).getParentKey() != null;
-			if(ctx.getTablesAndConditions().get(tableName) == null) {//无条件
+			if(allConditions.get(tableName) == null) {//无条件
 				return true;
 			}
 			
-			if (ctx.getTablesAndConditions().get(tableName).get(primaryKey) != null) {//条件中带主键
+			if (allConditions.get(tableName).get(primaryKey) != null) {//条件中带主键
 				return false;
 			}
+			
 			return true;
 		} else if(rrs.hasPrimaryKeyToCache() && ctx.getTables().size() == 1){//只有一个表且条件中有主键,不需要limit了,因为主键只能查到一条记录
 			return false;
@@ -437,6 +475,19 @@ public class DruidSelectParser extends DefaultDruidParser {
 	private String getAliaColumn(Map<String, String> aliaColumns,String column ){
 		String alia=aliaColumns.get(column);
 		if (alia==null){
+			if(column.indexOf(".") < 0) {
+				String col = "." + column;
+				//展开aliaColumns，将<c.name,cname>之类的键值对展开成<c.name,cname>和<name,cname>
+				for(Map.Entry<String, String> entry : aliaColumns.entrySet()) {
+					if(entry.getKey().endsWith(col)) {
+						if(entry.getValue() != null && entry.getValue().indexOf(".") > 0) {
+							return column;
+						}
+						return entry.getValue();
+					}
+				}
+			}
+			
 			return column;
 		}
 		else {
@@ -485,7 +536,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			if(type == null) {
 				type = SQLOrderingSpecification.ASC;
 			}
-			col=getAliaColumn(aliaColumns,col);
+			col=getAliaColumn(aliaColumns,col);//此步骤得到的col必须是不带.的，有别名的用别名，无别名的用字段名
 			map.put(col, type == SQLOrderingSpecification.ASC ? OrderCol.COL_ORDER_TYPE_ASC : OrderCol.COL_ORDER_TYPE_DESC);
 		}
 		return map;

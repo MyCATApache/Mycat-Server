@@ -31,7 +31,7 @@ import java.io.Serializable;
 /**
  * @author mycat
  */
-public final class RouteResultsetNode implements Serializable {
+public final class RouteResultsetNode implements Serializable , Comparable<RouteResultsetNode> {
 	/**
 	 *
 	 */
@@ -171,4 +171,17 @@ public final class RouteResultsetNode implements Serializable {
 		return !canRunInReadDB;
 	}
 
+	@Override
+	public int compareTo(RouteResultsetNode obj) {
+		if(obj == null) {
+			return 1;
+		}
+		if(this.name == null) {
+			return -1;
+		}
+		if(obj.name == null) {
+			return 1;
+		}
+		return this.name.compareTo(obj.name);
+	}
 }

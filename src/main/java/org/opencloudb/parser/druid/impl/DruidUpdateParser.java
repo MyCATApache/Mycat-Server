@@ -73,7 +73,7 @@ public class DruidUpdateParser extends DefaultDruidParser {
 //		}
 //		System.out.println();
 		
-		if(schema.getTables().get(tableName).isGlobalTable() && ctx.getTablesAndConditions().size() > 1) {
+		if(schema.getTables().get(tableName).isGlobalTable() && ctx.getRouteCalculateUnit().getTablesAndConditions().size() > 1) {
 			throw new SQLNonTransientException("global table not supported multi table related update "+ tableName);
 		}
 	}
