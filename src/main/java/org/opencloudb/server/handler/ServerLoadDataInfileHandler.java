@@ -142,6 +142,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     @Override
     public void start(String sql)
     {
+        clear();
         this.sql = sql;
 
 
@@ -266,8 +267,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 channel = new FileOutputStream(file, true);
 
                 tempByteBuffer.writeTo(channel);
-                tempByteBuffrSize = 0;
-                isHasStoreToFile = false;
+                tempByteBuffer.reset();
+               tempByteBuffrSize = 0;
+                isHasStoreToFile = true;
             } catch (IOException e)
             {
                 throw new RuntimeException(e);
@@ -277,6 +279,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 {
                     if (channel != null)
                         channel.close();
+
                 } catch (IOException ignored)
                 {
 
@@ -409,7 +412,13 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         for (int i = 0, srcLength = src.length; i < srcLength; i++)
         {
             String s = src[i];
-            sb.append(loadData.getEnclose()).append(s).append(loadData.getEnclose());
+            if(loadData.getEnclose()==null)
+            {
+                  sb.append(s);
+            }   else
+            {
+                sb.append(loadData.getEnclose()).append(s).append(loadData.getEnclose());
+            }
             if(i!=srcLength-1)
             {
                 sb.append(loadData.getFieldTerminatedBy());
@@ -567,7 +576,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
 
         // sendOk(++packID);
-        clear();
+
 
     }
 
@@ -578,7 +587,10 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         CsvParserSettings settings = new CsvParserSettings();
         settings.getFormat().setLineSeparator(loadData.getLineTerminatedBy());
         settings.getFormat().setDelimiter(loadData.getFieldTerminatedBy().charAt(0));
-        settings.getFormat().setQuote(loadData.getEnclose().charAt(0));
+        if(loadData.getEnclose()!=null)
+        {
+            settings.getFormat().setQuote(loadData.getEnclose().charAt(0));
+        }
         settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
         CsvParser parser = new CsvParser(settings);
         InputStreamReader reader = null;
@@ -591,7 +603,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
             while ((row = parser.parseNext()) != null)
             {
-                parseOneLine(columns, tableName, row, false, null);
+                parseOneLine(columns, tableName, row, true, loadData.getLineTerminatedBy());
             }
 
         } catch (FileNotFoundException | UnsupportedEncodingException e)
