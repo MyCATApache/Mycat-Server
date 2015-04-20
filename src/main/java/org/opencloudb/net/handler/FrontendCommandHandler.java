@@ -92,7 +92,7 @@ public class FrontendCommandHandler implements NIOHandler
             default:
                 MySQLMessage mm = new MySQLMessage(data);
                 int  packetLength = mm.readUB3();
-                 if(packetLength+4==data.length)
+                 if(source.getLoadDataInfileHandler()!=null&&packetLength+4==data.length)
                  {
                      source.loadDataInfileData(data);
                  }   else
