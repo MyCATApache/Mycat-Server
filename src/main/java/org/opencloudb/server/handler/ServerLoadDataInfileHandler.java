@@ -536,7 +536,10 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             CsvParserSettings settings = new CsvParserSettings();
             settings.getFormat().setLineSeparator(loadData.getLineTerminatedBy());
             settings.getFormat().setDelimiter(loadData.getFieldTerminatedBy().charAt(0));
-            settings.getFormat().setQuote(loadData.getEnclose().charAt(0));
+            if(loadData.getEnclose()!=null)
+            {
+                settings.getFormat().setQuote(loadData.getEnclose().charAt(0));
+            }
             settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
             CsvParser parser = new CsvParser(settings);
             try
