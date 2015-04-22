@@ -208,6 +208,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			{
 				byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
 				ok.packetId = ++lastPackId;// OK_PACKET
+				source.getLoadDataInfileHandler().clear();
 			}   else
 			{
 				ok.packetId = ++packetId;// OK_PACKET

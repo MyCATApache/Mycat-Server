@@ -98,6 +98,12 @@
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.7.3</version>
 		</dependency>
+		<dependency>
+			<groupId>com.univocity</groupId>
+			<artifactId>univocity-parsers</artifactId>
+			<version>1.5.1</version>
+			<type>jar</type>
+		</dependency>
 	</dependencies>
 
 
