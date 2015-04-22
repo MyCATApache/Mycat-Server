@@ -35,8 +35,21 @@ import org.opencloudb.net.handler.FrontendPrivileges;
  * @author mycat
  */
 public class MycatPrivileges implements FrontendPrivileges {
+	/**
+	 * 无需每次建立连接都new实例。
+	 */
+	private static MycatPrivileges instance = new MycatPrivileges();
+	
     private static final Logger ALARM = Logger.getLogger("alarm");
 
+    public static MycatPrivileges instance() {
+    	return instance;
+    }
+    
+    private MycatPrivileges() {
+    	super();
+    }
+    
     @Override
     public boolean schemaExists(String schema) {
         MycatConfig conf = MycatServer.getInstance().getConfig();
