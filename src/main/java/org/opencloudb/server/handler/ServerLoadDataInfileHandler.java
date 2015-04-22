@@ -56,6 +56,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +87,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private int partitionColumnIndex = -1;
     private LayerCachePool tableId2DataNodeCache;
     private SchemaConfig schema;
+    private boolean isStartLoadData = false;
 
     public int getPackID()
     {
@@ -167,7 +169,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
         List<SQLExpr> columns = statement.getColumns();
         String pColumn = tableConfig.getPartitionColumn();
-        if (columns != null && columns.size() > 0)
+        if (pColumn!=null&&columns != null && columns.size() > 0)
         {
 
             for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
@@ -188,6 +190,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         parseLoadDataPram();
         if (statement.isLocal())
         {
+            isStartLoadData = true;
             //向客户端请求发送文件
             ByteBuffer buffer = serverConnection.allocate();
             RequestFilePacket filePacket = new RequestFilePacket();
@@ -207,6 +210,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 if (rrs != null)
                 {
                     flushDataToFile();
+                    isStartLoadData = false;
                     serverConnection.getSession2().execute(rrs, ServerParse.LOAD_DATA_INFILE_SQL);
                 }
 
@@ -302,7 +306,22 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             RouteResultsetNode rrNode = new RouteResultsetNode(schema.getDataNode(), ServerParse.INSERT, sql);
             rrs.setNodes(new RouteResultsetNode[]{rrNode});
             return rrs;
-        } else if (tableConfig != null)
+        }
+        else if (tableConfig != null&&tableConfig.isGlobalTable())
+        {
+            ArrayList<String> dataNodes= tableConfig.getDataNodes();
+            RouteResultsetNode[] rrsNodes=    new RouteResultsetNode[dataNodes.size()];
+            for (int i = 0, dataNodesSize = dataNodes.size(); i < dataNodesSize; i++)
+            {
+                String dataNode = dataNodes.get(i);
+                RouteResultsetNode rrNode = new RouteResultsetNode(dataNode, ServerParse.INSERT, sql);
+                rrsNodes[i]=rrNode;
+            }
+
+            rrs.setNodes(rrsNodes);
+            return rrs;
+        }
+        else if (tableConfig != null)
         {
             DruidShardingParseInfo ctx = new DruidShardingParseInfo();
             ctx.addTable(tableName);
@@ -555,6 +574,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     @Override
     public void end(byte packID)
     {
+        isStartLoadData = false;
         this.packID = packID;
         //load in data空包 结束
         saveByteOrToFile(null, true);
@@ -670,9 +690,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
     public void clear()
     {
+        isStartLoadData = false;
         tableId2DataNodeCache = null;
         schema = null;
         tableConfig = null;
+        isHasStoreToFile = false;
+        packID = 0;
+        tempByteBuffrSize = 0;
+        tableName=null;
         partitionColumnIndex = -1;
         if (tempFile != null)
         {
@@ -698,6 +723,12 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     public byte getLastPackId()
     {
         return packID;
+    }
+
+    @Override
+    public boolean isStartLoadData()
+    {
+        return isStartLoadData;
     }
 
     /**

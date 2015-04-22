@@ -41,4 +41,6 @@ public interface LoadDataInfileHandler
 
     byte getLastPackId();
 
+    boolean isStartLoadData();
+
 }
