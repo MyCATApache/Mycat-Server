@@ -231,7 +231,8 @@ public final class SystemConfig {
 				if(conf.exists() && conf.isDirectory()) {
 					home = path;
 				} else {
-					conf = new File(new File(".").getCanonicalPath().replaceAll("\\\\", "/")+"/conf");
+					path = new File(".").getCanonicalPath().replaceAll("\\\\", "/");
+					conf = new File(path+"/conf");
 					if(conf.exists() && conf.isDirectory()) {
 						home = path;
 					} 
