@@ -244,8 +244,8 @@ public class JDBCConnection implements BackendConnection {
 					//ShowVariables.execute(sc, orgin);
 					ShowVariables.execute(sc, orgin,this);
 				} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
-					ShowVariables.justReturnValue(sc,
-							String.valueOf(sc.getId()));
+					//ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
+					ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()),this);
 				} else {
 					ouputResultSet(sc, orgin);
 				}
