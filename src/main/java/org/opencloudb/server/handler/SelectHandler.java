@@ -64,7 +64,7 @@ public final class SelectHandler {
 			break;
 		case ServerParseSelect.LAST_INSERT_ID:
 			// offset = ParseUtil.move(stmt, 0, "select".length());
-			loop: for (int l=stmt.length(); offset < l; ++offset) {
+			loop:for (int l=stmt.length(); offset < l; ++offset) {
 				switch (stmt.charAt(offset)) {
 				case ' ':
 					continue;
@@ -83,7 +83,7 @@ public final class SelectHandler {
 			break;
 		case ServerParseSelect.IDENTITY:
 			// offset = ParseUtil.move(stmt, 0, "select".length());
-			loop: for (int l=stmt.length(); offset < l; ++offset) {
+			loop:for (int l=stmt.length(); offset < l; ++offset) {
 				switch (stmt.charAt(offset)) {
 				case ' ':
 					continue;

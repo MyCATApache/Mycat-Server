@@ -437,20 +437,32 @@ public class RouterUtil {
 														// find
 														// datanode
 			
-			for(ColumnRoutePair pair : colRoutePairSet) {
-				nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
-				if (nodeSet.isEmpty() || nodeSet.size() > 1) {
-					throw new SQLNonTransientException(
-							"parent key can't find  valid datanode ,expect 1 but found: "
-									+ nodeSet.size());
-				}
-				String dn = nodeSet.iterator().next();
-				if (LOGGER.isDebugEnabled()) {
-					LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
-							+ dn + " sql :" + rrs.getStatement());
-				}
-				retNodeSet.addAll(nodeSet);
+			nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
+			if (nodeSet.isEmpty()) {
+				throw new SQLNonTransientException(
+						"parent key can't find  valid datanode ,expect 1 but found: "
+								+ nodeSet.size());
 			}
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
+						+ nodeSet + " sql :" + rrs.getStatement());
+			}
+			retNodeSet.addAll(nodeSet);
+			
+//			for(ColumnRoutePair pair : colRoutePairSet) {
+//				nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
+//				if (nodeSet.isEmpty() || nodeSet.size() > 1) {//an exception would be thrown, if sql was executed on more than on sharding
+//					throw new SQLNonTransientException(
+//							"parent key can't find  valid datanode ,expect 1 but found: "
+//									+ nodeSet.size());
+//				}
+//				String dn = nodeSet.iterator().next();
+//				if (LOGGER.isDebugEnabled()) {
+//					LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
+//							+ dn + " sql :" + rrs.getStatement());
+//				}
+//				retNodeSet.addAll(nodeSet);
+//			}
 			return retNodeSet;
 		} else {
 			retNodeSet.addAll(tc.getParentTC().getDataNodes());
@@ -788,7 +800,7 @@ public class RouterUtil {
 								+ Arrays.toString(dataNodeSet.toArray()) + " sql :" + sql);
 					}
 					if (dataNodeSet.size() > 1) {
-						routeToMultiNode(rrs.isCacheAble(), rrs, schema.getAllDataNodes(), sql);
+						routeToMultiNode(rrs.isCacheAble(), rrs, dataNodeSet, sql);
 						return;
 					} else {
 						rrs.setCacheAble(true);

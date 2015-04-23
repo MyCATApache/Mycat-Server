@@ -26,12 +26,13 @@ package org.opencloudb.server.handler;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLLiteralExpr;
+import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLoadDataInFileStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
 import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
@@ -43,6 +44,7 @@ import org.opencloudb.net.handler.LoadDataInfileHandler;
 import org.opencloudb.net.mysql.BinaryPacket;
 import org.opencloudb.net.mysql.RequestFilePacket;
 import org.opencloudb.parser.druid.DruidShardingParseInfo;
+import org.opencloudb.parser.druid.MycatStatementParser;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.util.RouterUtil;
@@ -54,10 +56,10 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 /**
  * mysql命令行客户端也需要启用local file权限，加参数--local-infile=1
@@ -85,6 +87,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private int partitionColumnIndex = -1;
     private LayerCachePool tableId2DataNodeCache;
     private SchemaConfig schema;
+    private boolean isStartLoadData = false;
 
     public int getPackID()
     {
@@ -120,16 +123,16 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private void parseLoadDataPram()
     {
         loadData = new LoadData();
-        SQLLiteralExpr rawLineEnd = statement.getLinesTerminatedBy();
-        String lineTerminatedBy = rawLineEnd == null ? "\n" : rawLineEnd.toString();
+        SQLTextLiteralExpr rawLineEnd = (SQLTextLiteralExpr) statement.getLinesTerminatedBy();
+        String lineTerminatedBy = rawLineEnd == null ? "\n" : rawLineEnd.getText();
         loadData.setLineTerminatedBy(lineTerminatedBy);
 
-        SQLLiteralExpr rawFieldEnd = statement.getColumnsTerminatedBy();
-        String fieldTerminatedBy = rawFieldEnd == null ? "\t" : rawFieldEnd.toString();
+        SQLTextLiteralExpr rawFieldEnd = (SQLTextLiteralExpr) statement.getColumnsTerminatedBy();
+        String fieldTerminatedBy = rawFieldEnd == null ? "\t" : rawFieldEnd.getText();
         loadData.setFieldTerminatedBy(fieldTerminatedBy);
 
-        SQLLiteralExpr rawEnclosed = statement.getColumnsEnclosedBy();
-        String enclose = rawEnclosed == null ? null : rawEnclosed.toString();
+        SQLTextLiteralExpr rawEnclosed = (SQLTextLiteralExpr) statement.getColumnsEnclosedBy();
+        String enclose = rawEnclosed == null ? null : rawEnclosed.getText();
         loadData.setEnclose(enclose);
 
         String charset = statement.getCharset() != null ? statement.getCharset() : serverConnection.getCharset();
@@ -141,10 +144,11 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     @Override
     public void start(String sql)
     {
+        clear();
         this.sql = sql;
 
 
-        SQLStatementParser parser = new MySqlStatementParser(sql);
+        SQLStatementParser parser = new MycatStatementParser(sql);
         statement = (MySqlLoadDataInFileStatement) parser.parseStatement();
         fileName = parseFileName(sql);
 
@@ -165,7 +169,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
         List<SQLExpr> columns = statement.getColumns();
         String pColumn = tableConfig.getPartitionColumn();
-        if (columns != null && columns.size() > 0)
+        if (pColumn!=null&&columns != null && columns.size() > 0)
         {
 
             for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
@@ -186,6 +190,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         parseLoadDataPram();
         if (statement.isLocal())
         {
+            isStartLoadData = true;
             //向客户端请求发送文件
             ByteBuffer buffer = serverConnection.allocate();
             RequestFilePacket filePacket = new RequestFilePacket();
@@ -204,10 +209,11 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 RouteResultset rrs = buildResultSet(routeResultMap);
                 if (rrs != null)
                 {
+                    flushDataToFile();
+                    isStartLoadData = false;
                     serverConnection.getSession2().execute(rrs, ServerParse.LOAD_DATA_INFILE_SQL);
                 }
-                //   sendOk((byte) 1);
-                clear();
+
             }
         }
     }
@@ -218,6 +224,13 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
         try
         {
+            if (sql == null)
+            {
+                serverConnection.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
+                        "Unknown command");
+                clear();
+                return;
+            }
             BinaryPacket packet = new BinaryPacket();
             ByteArrayInputStream inputStream = new ByteArrayInputStream(data, 0, data.length);
             packet.read(inputStream);
@@ -258,8 +271,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 channel = new FileOutputStream(file, true);
 
                 tempByteBuffer.writeTo(channel);
-                tempByteBuffrSize = 0;
-                isHasStoreToFile = false;
+                tempByteBuffer=new ByteArrayOutputStream();
+               tempByteBuffrSize = 0;
+                isHasStoreToFile = true;
             } catch (IOException e)
             {
                 throw new RuntimeException(e);
@@ -269,6 +283,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 {
                     if (channel != null)
                         channel.close();
+
                 } catch (IOException ignored)
                 {
 
@@ -280,8 +295,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     }
 
 
-
-    private RouteResultset tryDirectRoute(String sql, String line)
+    private RouteResultset tryDirectRoute(String sql, String[] lineList)
     {
 
         RouteResultset rrs = new RouteResultset(sql, ServerParse.INSERT);
@@ -292,20 +306,34 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             RouteResultsetNode rrNode = new RouteResultsetNode(schema.getDataNode(), ServerParse.INSERT, sql);
             rrs.setNodes(new RouteResultsetNode[]{rrNode});
             return rrs;
-        } else if (tableConfig != null)
+        }
+        else if (tableConfig != null&&tableConfig.isGlobalTable())
+        {
+            ArrayList<String> dataNodes= tableConfig.getDataNodes();
+            RouteResultsetNode[] rrsNodes=    new RouteResultsetNode[dataNodes.size()];
+            for (int i = 0, dataNodesSize = dataNodes.size(); i < dataNodesSize; i++)
+            {
+                String dataNode = dataNodes.get(i);
+                RouteResultsetNode rrNode = new RouteResultsetNode(dataNode, ServerParse.INSERT, sql);
+                rrsNodes[i]=rrNode;
+            }
+
+            rrs.setNodes(rrsNodes);
+            return rrs;
+        }
+        else if (tableConfig != null)
         {
             DruidShardingParseInfo ctx = new DruidShardingParseInfo();
             ctx.addTable(tableName);
 
-            List<String> lineList = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
 
-            if (partitionColumnIndex == -1 || partitionColumnIndex >= lineList.size())
+            if (partitionColumnIndex == -1 || partitionColumnIndex >= lineList.length)
             {
                 return null;
             } else
             {
-                String value = lineList.get(partitionColumnIndex);
-                ctx.addShardingExpr(tableName, tableConfig.getPartitionColumn(), parseFieldString(value,loadData.getEnclose()));
+                String value = lineList[partitionColumnIndex];
+                ctx.addShardingExpr(tableName, tableConfig.getPartitionColumn(), parseFieldString(value, loadData.getEnclose()));
                 try
                 {
                     RouterUtil.tryRouteForTables(schema, ctx, rrs, false, tableId2DataNodeCache);
@@ -323,24 +351,17 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     }
 
 
-    private void parseOneLine(List<SQLExpr> columns, String tableName, String line, boolean toFile, String lineEnd)
+    private void parseOneLine(List<SQLExpr> columns, String tableName, String[] line, boolean toFile, String lineEnd)
     {
 
         RouteResultset rrs = tryDirectRoute(sql, line);
         if (rrs == null || rrs.getNodes() == null || rrs.getNodes().length == 0)
         {
-                       List<String> fields = Splitter.on(loadData.getFieldTerminatedBy()).splitToList(line);
-            String insertSql = makeSimpleInsert(columns, fields, tableName, true);
-             rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
+
+            String insertSql = makeSimpleInsert(columns, line, tableName, true);
+            rrs = serverConnection.routeSQL(insertSql, ServerParse.INSERT);
         }
 
-        //验证正确性，之后删除
-//        String insertSql1 = makeSimpleInsert(columns, fields, tableName, false);
-//        RouteResultset rrs1 = serverConnection.routeSQL(insertSql1, ServerParse.INSERT);
-//        if (!rrs.getNodes()[0].getName().equals(rrs1.getNodes()[0].getName()))
-//        {
-//            throw new RuntimeException("路由错误");
-//        }
 
         if (rrs == null || rrs.getNodes() == null || rrs.getNodes().length == 0)
         {
@@ -354,48 +375,107 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 if (data == null)
                 {
                     data = new LoadData();
+                    data.setCharset(loadData.getCharset());
+                    data.setEnclose(loadData.getEnclose());
+                    data.setFieldTerminatedBy(loadData.getFieldTerminatedBy());
+                    data.setLineTerminatedBy(loadData.getLineTerminatedBy());
                     routeResultMap.put(name, data);
                 }
-                if (toFile)
-                {
-                    if (data.getFileName() == null)
-                    {
-                        String dnPath = tempPath + name + ".txt";
-                        data.setFileName(dnPath);
-                        try
-                        {
-                            File dnFile = new File(dnPath);
-                            Files.createParentDirs(dnFile);
-                            Files.write(line, dnFile, Charset.forName(loadData.getCharset()));
-                        } catch (IOException e)
-                        {
-                            throw new RuntimeException(e);
-                        }
-                    } else
-                    {
-                        File dnFile = new File(data.getFileName());
-                        String finalLine = lineEnd == null ? line : lineEnd + line;
-                        try
-                        {
-                            Files.append(finalLine, dnFile, Charset.forName(loadData.getCharset()));
-                        } catch (IOException e)
-                        {
-                            throw new RuntimeException(e);
-                        }
-                    }
 
-                } else
-                {
+                    String jLine = joinField(line, data);
                     if (data.getData() == null)
                     {
-                        data.setData(Lists.newArrayList(line));
+                        data.setData(Lists.newArrayList(jLine));
                     } else
                     {
-                        data.getData().add(line);
+
+                        data.getData().add(jLine);
+
+                    }
+
+                if (toFile)
+                {
+                    if(data.getData().size()>100000)
+                    {
+                        saveDataToFile(data,name);
                     }
                 }
+
             }
         }
+    }
+
+    private void flushDataToFile()
+    {
+        for (Map.Entry<String, LoadData> stringLoadDataEntry : routeResultMap.entrySet())
+        {
+            LoadData value = stringLoadDataEntry.getValue();
+            if(   value.getFileName()!=null&&value.getData()!=null&&value.getData().size()>0)
+            {
+                saveDataToFile(value,stringLoadDataEntry.getKey());
+            }
+        }
+
+    }
+
+    private void saveDataToFile(LoadData data,String dnName)
+    {
+        if (data.getFileName() == null)
+        {
+            String dnPath = tempPath + dnName + ".txt";
+            data.setFileName(dnPath);
+        }
+
+           File dnFile = new File(data.getFileName());
+            try
+            {
+             Files.append(joinLine(data.getData(),data), dnFile, Charset.forName(loadData.getCharset()));
+
+            } catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            }finally
+            {
+                data.setData(null);
+
+            }
+
+
+
+    }
+
+    private String joinLine(List<String> data, LoadData loadData)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (String s : data)
+        {
+            sb.append(s).append(loadData.getLineTerminatedBy())   ;
+        }
+        return sb.toString();
+    }
+
+
+    private String joinField(String[] src, LoadData loadData)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0, srcLength = src.length; i < srcLength; i++)
+        {
+            String s = src[i];
+            if(loadData.getEnclose()==null)
+            {
+                  sb.append(s);
+            }   else
+            {
+                sb.append(loadData.getEnclose()).append(s).append(loadData.getEnclose());
+            }
+            if(i!=srcLength-1)
+            {
+                sb.append(loadData.getFieldTerminatedBy());
+            }
+        }
+
+            return sb.toString();
+
     }
 
 
@@ -439,7 +519,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     }
 
 
-    private String makeSimpleInsert(List<SQLExpr> columns, List<String> fields, String table, boolean isAddEncose)
+    private String makeSimpleInsert(List<SQLExpr> columns, String[] fields, String table, boolean isAddEncose)
     {
         StringBuilder sb = new StringBuilder();
         sb.append(LoadData.loadDataHint).append("insert into ").append(table.toUpperCase());
@@ -459,9 +539,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
 
         sb.append(" values (");
-        for (int i = 0, columnsSize = fields.size(); i < columnsSize; i++)
+        for (int i = 0, columnsSize = fields.length; i < columnsSize; i++)
         {
-            String column = fields.get(i);
+            String column = fields[i];
             if (isAddEncose)
             {
                 sb.append("'").append(parseFieldString(column, loadData.getEnclose())).append("'");
@@ -478,15 +558,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         return sb.toString();
     }
 
-    private String parseFieldString(String value,String encose)
+    private String parseFieldString(String value, String encose)
     {
-        if(encose==null||"".equals(encose)||value==null)
+        if (encose == null || "".equals(encose) || value == null)
         {
             return value;
-        }
-        else if(value.startsWith(encose)&&value.endsWith(encose))
+        } else if (value.startsWith(encose) && value.endsWith(encose))
         {
-           return value.substring(encose.length()-1,value.length()-encose.length());
+            return value.substring(encose.length() - 1, value.length() - encose.length());
         }
         return value;
     }
@@ -495,6 +574,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     @Override
     public void end(byte packID)
     {
+        isStartLoadData = false;
         this.packID = packID;
         //load in data空包 结束
         saveByteOrToFile(null, true);
@@ -507,77 +587,119 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         {
             String content = new String(tempByteBuffer.toByteArray(), Charset.forName(loadData.getCharset()));
 
-            List<String> lines = Splitter.on(loadData.getLineTerminatedBy()).omitEmptyStrings().splitToList(content);
-            for (final String line : lines)
+            // List<String> lines = Splitter.on(loadData.getLineTerminatedBy()).omitEmptyStrings().splitToList(content);
+            CsvParserSettings settings = new CsvParserSettings();
+            settings.getFormat().setLineSeparator(loadData.getLineTerminatedBy());
+            settings.getFormat().setDelimiter(loadData.getFieldTerminatedBy().charAt(0));
+            if(loadData.getEnclose()!=null)
             {
-                parseOneLine(columns, tableName, line, false, null);
-
-
+                settings.getFormat().setQuote(loadData.getEnclose().charAt(0));
             }
+            settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
+            CsvParser parser = new CsvParser(settings);
+            try
+            {
+                parser.beginParsing(new StringReader(content));
+                String[] row = null;
+
+                while ((row = parser.parseNext()) != null)
+                {
+                    parseOneLine(columns, tableName, row, false, null);
+                }
+            } finally
+            {
+                parser.stopParsing();
+            }
+
+
         }
 
         RouteResultset rrs = buildResultSet(routeResultMap);
         if (rrs != null)
         {
+            flushDataToFile();
             serverConnection.getSession2().execute(rrs, ServerParse.LOAD_DATA_INFILE_SQL);
         }
 
 
         // sendOk(++packID);
-        clear();
+
 
     }
 
 
     private void parseFileByLine(String file, String encode, String split)
     {
-        Scanner scanner = null;
+        List<SQLExpr> columns = statement.getColumns();
+        CsvParserSettings settings = new CsvParserSettings();
+        settings.getFormat().setLineSeparator(loadData.getLineTerminatedBy());
+        settings.getFormat().setDelimiter(loadData.getFieldTerminatedBy().charAt(0));
+        if(loadData.getEnclose()!=null)
+        {
+            settings.getFormat().setQuote(loadData.getEnclose().charAt(0));
+        }
+        settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
+        CsvParser parser = new CsvParser(settings);
+        InputStreamReader reader = null;
+        FileInputStream fileInputStream = null;
         try
         {
-            scanner = new Scanner(new FileInputStream(file), encode);
-            scanner.useDelimiter(split);
-            while (scanner.hasNextLine())
+
+            fileInputStream = new FileInputStream(file);
+            reader = new InputStreamReader(fileInputStream, encode);
+            parser.beginParsing(reader);
+            String[] row = null;
+
+            while ((row = parser.parseNext()) != null)
             {
-                parseOneLine(statement.getColumns(), statement.getTableName().getSimpleName(), scanner.nextLine(), true, split);
+                parseOneLine(columns, tableName, row, true, loadData.getLineTerminatedBy());
             }
-        } catch (FileNotFoundException e)
+
+
+        } catch (FileNotFoundException | UnsupportedEncodingException e)
         {
             throw new RuntimeException(e);
         } finally
         {
-            if (scanner != null)
-                scanner.close();
+            parser.stopParsing();
+            if(fileInputStream!=null)
+            {
+                try
+                {
+                    fileInputStream.close();
+                } catch (IOException e)
+                {
+                    throw new RuntimeException(e);
+                }
+            }
+            if (reader != null)
+            {
+                try
+                {
+                    reader.close();
+                } catch (IOException e)
+                {
+                    throw new RuntimeException(e);
+                }
+            }
+
         }
 
     }
 
 
-//    private void sendOk(byte packID)
-//    {
-//        OkPacket ok = new OkPacket();
-//        ok.packetId = packID;
-//        ok.affectedRows = affectedRows;
-//
-//        ok.serverStatus = serverConnection.isAutocommit() ? 2 : 1;
-//        String msg = "Records:" + affectedRows + " Deleted:0 Skipped:0 Warnings:0";
-//        try
-//        {
-//            ok.message = msg.getBytes("utf-8");
-//        } catch (UnsupportedEncodingException e)
-//        {
-//            throw new RuntimeException(e);
-//        }
-//        ok.write(serverConnection);
-//    }
-
-
     public void clear()
     {
+        isStartLoadData = false;
         tableId2DataNodeCache = null;
-        schema=null;
-        tableConfig=null;
-        partitionColumnIndex=-1;
-        if(tempFile!=null)
+        schema = null;
+        tableConfig = null;
+        isHasStoreToFile = false;
+        packID = 0;
+        tempByteBuffrSize = 0;
+        tableName=null;
+        partitionColumnIndex = -1;
+        if (tempFile != null)
         {
             File temp = new File(tempFile);
             if (temp.exists())
@@ -585,7 +707,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 temp.delete();
             }
         }
-        if (tempPath!=null &&new File(tempPath).exists())
+        if (tempPath != null && new File(tempPath).exists())
         {
             deleteFile(tempPath);
         }
@@ -601,6 +723,12 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     public byte getLastPackId()
     {
         return packID;
+    }
+
+    @Override
+    public boolean isStartLoadData()
+    {
+        return isStartLoadData;
     }
 
     /**
@@ -625,13 +753,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
         for (int i = 0; i < fileList.length; i++)
         {
-            if (fileList[i].isFile())
+            File file = fileList[i];
+            if (file.isFile()&&file.exists())
             {
-                fileList[i].delete();
-            } else if (fileList[i].isDirectory())
+                boolean delete = file.delete();
+            } else if (file.isDirectory())
             {
-                deleteFile(fileList[i].getAbsolutePath());
-                fileList[i].delete();
+                deleteFile(file.getAbsolutePath());
+                file.delete();
             }
         }
         fileDirToDel.delete();

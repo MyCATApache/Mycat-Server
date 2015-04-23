@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.backend.PhysicalDatasource;
+import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.mysql.nio.MySQLDataSource;
 
 /**
@@ -38,11 +39,9 @@ import org.opencloudb.mysql.nio.MySQLDataSource;
 public class MySQLHeartbeat extends DBHeartbeat {
 
 	private static final int MAX_RETRY_COUNT = 5;
-	private static final Logger LOGGER = Logger.getLogger(MySQLHeartbeat.class);
+	public static final Logger LOGGER = Logger.getLogger(MySQLHeartbeat.class);
 
 	private final MySQLDataSource source;
-
-	private final MySQLDetectorFactory factory;
 
 	private final ReentrantLock lock;
 	private final int maxRetryCount;
@@ -51,7 +50,6 @@ public class MySQLHeartbeat extends DBHeartbeat {
 
 	public MySQLHeartbeat(MySQLDataSource source) {
 		this.source = source;
-		this.factory = new MySQLDetectorFactory();
 		this.lock = new ReentrantLock(false);
 		this.maxRetryCount = MAX_RETRY_COUNT;
 		this.status = INIT_STATUS;
@@ -79,7 +77,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		if (detector == null) {
 			return null;
 		}
-		long t = Math.max(detector.lastReadTime(), detector.lastWriteTime());
+		long t = detector.getLasstReveivedQryTime();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		return sdf.format(new Date(t));
 	}
@@ -123,13 +121,12 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		try {
 			if (isChecking.compareAndSet(false, true)) {
 				MySQLDetector detector = this.detector;
-				if (detector == null || detector.isQuit()
-						|| detector.isClosed()) {
+				if (detector == null || detector.isQuit()) {
 					try {
-						detector = factory.make(this);
+						detector = new MySQLDetector(this);
 					} catch (Exception e) {
 						LOGGER.warn(source.getConfig().toString(), e);
-						setError(null);
+						setResult(ERROR_STATUS, detector, null);
 						return;
 					}
 					this.detector = detector;
@@ -139,10 +136,10 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			} else {
 				MySQLDetector detector = this.detector;
 				if (detector != null) {
-					if (detector.isQuit() || detector.isClosed()) {
+					if (detector.isQuit()) {
 						isChecking.compareAndSet(true, false);
 					} else if (detector.isHeartbeatTimeout()) {
-						setTimeout(detector);
+						setResult(TIMEOUT_STATUS, detector, null);
 					}
 				}
 			}
@@ -151,54 +148,53 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		}
 	}
 
-	public void setResult(int result, MySQLDetector detector,
-			boolean isTransferError,String msg) {
+	public void setResult(int result, MySQLDetector detector, String msg) {
+		this.isChecking.set(false);
 		switch (result) {
 		case OK_STATUS:
 			setOk(detector);
 			break;
 		case ERROR_STATUS:
-			if (detector.isQuit()) {
-				isChecking.set(false);
-			} else {
-				if (isTransferError) {
-					detector.close(msg);
-				}
-				setError(detector);
-			}
+			setError(detector);
 			break;
+		case TIMEOUT_STATUS:
+			setTimeout(detector);
+			break;
+		}
+		if (this.status != OK_STATUS) {
+			switchSourceIfNeed("heartbeat error");
 		}
 	}
 
 	private void setOk(MySQLDetector detector) {
 
-		recorder.set(detector.lastReadTime() - detector.lastWriteTime());
+		recorder.set(detector.getLasstReveivedQryTime()
+				- detector.getLastSendQryTime());
 		switch (status) {
 		case DBHeartbeat.TIMEOUT_STATUS:
 			this.status = DBHeartbeat.INIT_STATUS;
 			this.errorCount = 0;
-			this.isChecking.set(false);
 			if (isStop.get()) {
 				detector.quit();
 			} else {
 				heartbeat();// timeout, heart beat again
 			}
 			break;
+		case DBHeartbeat.OK_STATUS:
+			break;
 		default:
 			this.status = OK_STATUS;
 			this.errorCount = 0;
-			this.isChecking.set(false);
-			this.switchSourceIfNeed("heart beate ok");
-			if (isStop.get()) {
-				detector.quit();
-			}
+		}
+		if (isStop.get()) {
+			detector.quit();
 		}
 	}
 
 	private void setError(MySQLDetector detector) {
 		// should continues check error status
 		if (++errorCount < maxRetryCount) {
-			isChecking.set(false);
+
 			if (detector != null && isStop.get()) {
 				detector.quit();
 			} else {
@@ -206,42 +202,76 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			}
 			return;
 		}
-
 		this.status = ERROR_STATUS;
 		this.errorCount = 0;
-		this.isChecking.set(false);
 	}
 
 	private void setTimeout(MySQLDetector detector) {
+		this.isChecking.set(false);
 		status = DBHeartbeat.TIMEOUT_STATUS;
-		isChecking.set(false);
-
 	}
 
 	/**
 	 * switch data source
 	 */
 	private void switchSourceIfNeed(String reason) {
-		PhysicalDBPool pool = source.getDbPool();
-
+		int switchType = source.getHostConfig().getSwitchType();
+		if (switchType == DataHostConfig.NOT_SWITCH_DS) {
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("not switch datasource ,for switchType is "
+						+ DataHostConfig.NOT_SWITCH_DS);
+				return;
+			}
+			return;
+		}
+		PhysicalDBPool pool = this.source.getDbPool();
+		int curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
 		// read node can't switch ,only write node can switch
 		if (pool.getWriteType() == PhysicalDBPool.WRITE_ONLYONE_NODE
-				&& !source.isReadNode() && this.status == DBHeartbeat.OK_STATUS) {
+				&& !source.isReadNode()
+				&& curDatasourceHB != DBHeartbeat.OK_STATUS
+				&& pool.getSources().length > 1) {
+			synchronized (pool) {
+				// try to see if need switch datasource
+				curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
+				if (curDatasourceHB != DBHeartbeat.INIT_STATUS
+						&& curDatasourceHB != DBHeartbeat.OK_STATUS) {
+					int curIndex = pool.getActivedIndex();
+					int nextId = pool.next(curIndex);
+					PhysicalDatasource[] allWriteNodes = pool.getSources();
+					while (true) {
+						if (nextId == curIndex) {
+							break;
+						}
+						PhysicalDatasource theSource = allWriteNodes[nextId];
+						DBHeartbeat theSourceHB = theSource.getHeartbeat();
+						int theSourceHBStatus = theSourceHB.getStatus();
+						if (theSourceHBStatus == DBHeartbeat.OK_STATUS) {
+							if (switchType == DataHostConfig.SYN_STATUS_SWITCH_DS) {
+								if (Integer.valueOf(0).equals(
+										theSourceHB.getSlaveBehindMaster())) {
+									LOGGER.info("try to switch datasource ,slave is synchronized to master "
+											+ theSource.getConfig());
+									pool.switchSource(nextId, true, reason);
+									break;
+								} else {
+									LOGGER.warn("ignored  datasource ,slave is not  synchronized to master , slave behind master :"
+											+ theSourceHB
+													.getSlaveBehindMaster()
+											+ " " + theSource.getConfig());
+								}
+							} else {
+								// normal switch
+								LOGGER.info("try to switch datasource ,not checked slave synchronize status "
+										+ theSource.getConfig());
+								pool.switchSource(nextId, true, reason);
+							}
 
-			// try to see if need switch datasource
-			int curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
-			if (pool.getSources().length > 1
-					&& curDatasourceHB != DBHeartbeat.INIT_STATUS
-					&& curDatasourceHB != DBHeartbeat.OK_STATUS) {
-				int myIndex = -1;
-				PhysicalDatasource[] allWriteNodes = pool.getSources();
-				for (int i = 0; i < allWriteNodes.length; i++) {
-					if (this.source == allWriteNodes[i]) {
-						myIndex = i;
-						break;
+						}
+						nextId = pool.next(nextId);
 					}
+
 				}
-				pool.switchSource(myIndex, true, reason);
 			}
 		}
 	}

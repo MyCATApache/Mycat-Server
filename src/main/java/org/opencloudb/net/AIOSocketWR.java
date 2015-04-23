@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.opencloudb.util.TimeUtil;
@@ -40,10 +41,28 @@ public class AIOSocketWR extends SocketWR {
 	private void asynWrite(ByteBuffer buffer) throws IOException
     {
 		buffer.flip();
-      long write=     AIOOutputWriter.flushChannel(channel,buffer);
-        onWriteFinished((int) write);
+      int write=     flushChannel(channel,buffer,30);
+        onWriteFinished( write);
 		//this.channel.write(buffer, this, aioWriteHandler);
 	}
+
+	public static int flushChannel(final AsynchronousSocketChannel channel,
+									final ByteBuffer bb, final long writeTimeout) throws IOException {
+
+		if (!bb.hasRemaining()) {
+			return 0;
+		}
+		int nWrite = bb.limit();
+		try {
+			while (bb.hasRemaining()) {
+				channel.write(bb).get(writeTimeout, TimeUnit.SECONDS);
+			}
+		} catch (Exception ie) {
+			throw new IOException(ie);
+		}
+		return nWrite;
+	}
+
 
 	/**
 	 * return true ,means no more data

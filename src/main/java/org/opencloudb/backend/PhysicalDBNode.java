@@ -60,7 +60,7 @@ public class PhysicalDBNode {
 	 * @param exitsCon
 	 * @throws Exception
 	 */
-	public void getConnectionFromSameSource(ConnectionMeta conMeta,
+	public void getConnectionFromSameSource(String schema,boolean autocommit,
 			BackendConnection exitsCon, ResponseHandler handler,
 			Object attachment) throws Exception {
 
@@ -69,17 +69,17 @@ public class PhysicalDBNode {
 			throw new RuntimeException(
 					"can't find exits connection,maybe fininshed " + exitsCon);
 		} else {
-			ds.getConnection(conMeta, handler, attachment);
+			ds.getConnection(schema,autocommit, handler, attachment);
 		}
 
 	}
 
-	private void checkRequest(ConnectionMeta conMeta) {
-		if (conMeta.getSchema() != null
-				&& !conMeta.getSchema().equals(this.database)) {
+	private void checkRequest(String schema){
+		if (schema != null
+				&& !schema.equals(this.database)) {
 			throw new RuntimeException(
 					"invalid param ,connection request db is :"
-							+ conMeta.getSchema() + " and datanode db is "
+							+ schema + " and datanode db is "
 							+ this.database);
 		}
 		if (!dbPool.isInitSuccess()) {
@@ -87,15 +87,15 @@ public class PhysicalDBNode {
 		}
 	}
 
-	public void getConnection(ConnectionMeta conMeta, RouteResultsetNode rrs,
+	public void getConnection(String schema,boolean autoCommit, RouteResultsetNode rrs,
 			ResponseHandler handler, Object attachment) throws Exception {
-		checkRequest(conMeta);
+		checkRequest(schema);
 		if (dbPool.isInitSuccess()) {
-			if (rrs.canRunnINReadDB(conMeta.isAutocommit())) {
-				dbPool.getRWBanlanceCon(conMeta, handler, attachment,
+			if (rrs.canRunnINReadDB(autoCommit)) {
+				dbPool.getRWBanlanceCon(schema,autoCommit, handler, attachment,
 						this.database);
 			} else {
-				dbPool.getSource().getConnection(conMeta, handler, attachment);
+				dbPool.getSource().getConnection(schema,autoCommit, handler, attachment);
 			}
 
 		} else {

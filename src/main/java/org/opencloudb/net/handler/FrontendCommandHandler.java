@@ -50,7 +50,16 @@ public class FrontendCommandHandler implements NIOHandler
     @Override
     public void handle(byte[] data)
     {
-
+        if(source.getLoadDataInfileHandler()!=null&&source.getLoadDataInfileHandler().isStartLoadData())
+        {
+            MySQLMessage mm = new MySQLMessage(data);
+            int  packetLength = mm.readUB3();
+            if(packetLength+4==data.length)
+            {
+                source.loadDataInfileData(data);
+            }
+            return;
+        }
         switch (data[4])
         {
             case MySQLPacket.COM_INIT_DB:
@@ -90,17 +99,10 @@ public class FrontendCommandHandler implements NIOHandler
                 source.heartbeat(data);
                 break;
             default:
-                MySQLMessage mm = new MySQLMessage(data);
-                int  packetLength = mm.readUB3();
-                 if(packetLength+4==data.length)
-                 {
-                     source.loadDataInfileData(data);
-                 }   else
-                 {
                      commands.doOther();
                      source.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
                              "Unknown command");
-                 }
+
         }
     }
 

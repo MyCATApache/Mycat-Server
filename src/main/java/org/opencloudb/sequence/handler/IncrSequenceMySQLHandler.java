@@ -39,6 +39,8 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 	}
 
 	public IncrSequenceMySQLHandler() {
+
+
 		load();
 	}
 	
@@ -50,16 +52,21 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 		putNewSequenceVals(props);
 	}
 	private Properties loadProps(String propsFile){
+
 		Properties props = new Properties();
 		InputStream inp = Thread.currentThread().getContextClassLoader().getResourceAsStream(propsFile);
+
 		if (inp == null) {
 			throw new java.lang.RuntimeException("db sequnce properties not found " + propsFile);
+
 		}
 		try {
 			props.load(inp);
 		} catch (IOException e) {
 			throw new java.lang.RuntimeException(e);
 		}
+
+
 		return props;
 	}
 	private void removeDesertedSequenceVals(Properties props){
@@ -75,6 +82,8 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 		for (Map.Entry<Object, Object> entry : props.entrySet()) {
 			String seqName = (String) entry.getKey();
 			String dataNode = (String) entry.getValue();
+			SequenceVal seqVal = new SequenceVal(seqName, dataNode);
+			seqValueMap.put(seqName, seqVal);
 			if(!seqValueMap.containsKey(seqName)){
 				seqValueMap.put(seqName, new SequenceVal(seqName, dataNode));
 			}else{
@@ -145,21 +154,18 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 	public void execute(SequenceVal seqVal) {
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		PhysicalDBNode mysqlDN = conf.getDataNodes().get(seqVal.dataNode);
-		ConnectionMeta conMeta = new ConnectionMeta(mysqlDN.getDatabase(),
-				null, -1, true);
 		try {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("execute in datanode " + seqVal.dataNode
 						+ " for fetch sequnce sql " + seqVal.sql);
 			}
 			// 修正获取seq的逻辑，在读写分离的情况下只能走写节点。修改Select模式为Update模式。
-			mysqlDN.getConnection(conMeta, new RouteResultsetNode(
-					seqVal.dataNode, ServerParse.UPDATE, seqVal.sql), this,
-					seqVal);
+			mysqlDN.getConnection(mysqlDN.getDatabase(), true,
+					new RouteResultsetNode(seqVal.dataNode, ServerParse.UPDATE,
+							seqVal.sql), this, seqVal);
 		} catch (Exception e) {
 			LOGGER.warn("get connection err " + e);
 		}
-
 	}
 
 	@Override

@@ -75,14 +75,13 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 				return dataNode;
 			}
 			PhysicalDBNode mysqlDN = conf.getDataNodes().get(dn);
-			ConnectionMeta conMeta = new ConnectionMeta(mysqlDN.getDatabase(),
-					null, -1, true);
 			try {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("execute in datanode " + dn);
 				}
-				mysqlDN.getConnection(conMeta, new RouteResultsetNode(dn,
-						ServerParse.SELECT, sql), this, dn);
+				mysqlDN.getConnection(mysqlDN.getDatabase(), true,
+						new RouteResultsetNode(dn, ServerParse.SELECT, sql),
+						this, dn);
 			} catch (Exception e) {
 				LOGGER.warn("get connection err " + e);
 			}

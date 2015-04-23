@@ -537,9 +537,16 @@ public class XMLSchemaLoader implements SchemaLoader {
 			int maxCon = Integer.valueOf(element.getAttribute("maxCon"));
 			int minCon = Integer.valueOf(element.getAttribute("minCon"));
 			int balance = Integer.valueOf(element.getAttribute("balance"));
+			String switchTypeStr = element.getAttribute("switchType");
+			int switchType = switchTypeStr.equals("") ? -1 : Integer
+					.valueOf(switchTypeStr);
+			String slaveThresholdStr = element.getAttribute("slaveThreshold");
+			int slaveThreshold = slaveThresholdStr.equals("") ? -1 : Integer
+					.valueOf(slaveThresholdStr);
 			String writeTypStr = element.getAttribute("writeType");
 			int writeType = "".equals(writeTypStr) ? PhysicalDBPool.WRITE_ONLYONE_NODE
 					: Integer.valueOf(writeTypStr);
+
 			String dbDriver = element.getAttribute("dbDriver");
 			String dbType = element.getAttribute("dbType");
 			String heartbeatSQL = element.getElementsByTagName("heartbeat")
@@ -573,7 +580,8 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 
 			DataHostConfig hostConf = new DataHostConfig(name, dbType,
-					dbDriver, writeDbConfs, readHostsMap);
+					dbDriver, writeDbConfs, readHostsMap, switchType,
+					slaveThreshold);
 			hostConf.setMaxCon(maxCon);
 			hostConf.setMinCon(minCon);
 			hostConf.setBalance(balance);

@@ -52,46 +52,53 @@ public class LoadDataUtil
             }
         }catch (IOException e)
         {
-            //应该需要发空包或者错误包？
+
+            throw new RuntimeException(e);
+        }  finally
+        {
+            //结束必须发空包
             byte[] empty = new byte[] { 0, 0, 0,3 };
             empty[3]=++packId;
             backendAIOConnection.write(empty);
-            throw new RuntimeException(e);
         }
 
 
-        //结束必须发空包
-        byte[] empty = new byte[] { 0, 0, 0,3 };
-        empty[3]=++packId;
-        backendAIOConnection.write(empty);
+
 
     }
 
     public static byte writeToBackConnection(byte packID,InputStream inputStream,BackendAIOConnection backendAIOConnection) throws IOException
     {
-        //int packSize=   MycatServer.getInstance().getConfig().getSystem().getProcessorBufferChunk()-5 ;
-       // int packSize = backendAIOConnection.getMaxPacketSize() / 32;
-        int packSize=65530;
-        byte[] buffer = new byte[packSize];
-        int len = -1;
+        try
+        {
+            int packSize = MycatServer.getInstance().getConfig().getSystem().getProcessorBufferChunk() - 5;
+            // int packSize = backendAIOConnection.getMaxPacketSize() / 32;
+            //  int packSize=65530;
+            byte[] buffer = new byte[packSize];
+            int len = -1;
 
-        while ((len = inputStream.read(buffer)) != -1) {
-            byte[] temp=null;
-            if(len==packSize)
+            while ((len = inputStream.read(buffer)) != -1)
             {
-                temp=buffer;
-            }  else
-            {
-                temp = new byte[len];
-                System.arraycopy(buffer, 0, temp, 0, len);
+                byte[] temp = null;
+                if (len == packSize)
+                {
+                    temp = buffer;
+                } else
+                {
+                    temp = new byte[len];
+                    System.arraycopy(buffer, 0, temp, 0, len);
+                }
+                BinaryPacket packet = new BinaryPacket();
+                packet.packetId = ++packID;
+                packet.data = temp;
+                packet.write(backendAIOConnection);
             }
-            BinaryPacket packet=new BinaryPacket();
-            packet.packetId=++packID;
-            packet.data=temp;
-            packet.write(backendAIOConnection);
+
         }
-
-
+        finally
+        {
+            inputStream.close();
+        }
 
 
         return  packID;

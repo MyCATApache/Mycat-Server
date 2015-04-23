@@ -24,15 +24,15 @@ public class ConMap {
 		return queue;
 	}
 
-	public BackendConnection tryTakeCon(final ConnectionMeta conMeta) {
-		final ConQueue queue = items.get(conMeta.getSchema());
-		BackendConnection con = tryTakeCon(queue, conMeta);
+	public BackendConnection tryTakeCon(final String schema, boolean autoCommit) {
+		final ConQueue queue = items.get(schema);
+		BackendConnection con = tryTakeCon(queue, autoCommit);
 		if (con != null) {
 			return con;
 		} else {
 			for (ConQueue queue2 : items.values()) {
 				if (queue != queue2) {
-					con = tryTakeCon(queue2, conMeta);
+					con = tryTakeCon(queue2, autoCommit);
 					if (con != null) {
 						return con;
 					}
@@ -43,11 +43,10 @@ public class ConMap {
 
 	}
 
-	private BackendConnection tryTakeCon(ConQueue queue,
-			final ConnectionMeta conMeta) {
+	private BackendConnection tryTakeCon(ConQueue queue, boolean autoCommit) {
 
 		BackendConnection con = null;
-		if (queue != null && ((con = queue.takeIdleCon(conMeta)) != null)) {
+		if (queue != null && ((con = queue.takeIdleCon(autoCommit)) != null)) {
 			return con;
 		} else {
 			return null;
@@ -88,7 +87,7 @@ public class ConMap {
 					MySQLConnection mysqlCon = (MySQLConnection) con;
 
 					if (mysqlCon.getPool() == dataSouce) {
-						if (mysqlCon.isBorrowed() &&!mysqlCon.isClosed()) {
+						if (mysqlCon.isBorrowed() && !mysqlCon.isClosed()) {
 							total++;
 						}
 					}

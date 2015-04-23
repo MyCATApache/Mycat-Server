@@ -236,7 +236,16 @@ public abstract class FrontendConnection extends AbstractConnection {
 	{
 		if(loadDataInfileHandler!=null)
 		{
+			try
+		  {
 			loadDataInfileHandler.start(sql);
+		   }  catch (Exception e)
+			{
+				LOGGER.error("load data error",e);
+				writeErrMessage(ErrorCode.ERR_HANDLE_DATA,
+						e.getMessage());
+			}
+
 		}   else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
 					"load data infile sql is not  unsupported!");
@@ -246,8 +255,15 @@ public abstract class FrontendConnection extends AbstractConnection {
 	public void loadDataInfileData(byte[] data)
 	{
 		if(loadDataInfileHandler!=null)
+		{  	try
 		{
 			loadDataInfileHandler.handle(data);
+		}  catch (Exception e)
+		{
+			LOGGER.error("load data error", e);
+			writeErrMessage(ErrorCode.ERR_HANDLE_DATA,
+					e.getMessage());
+		}
 		}   else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
 					"load data infile  data is not  unsupported!");
@@ -258,7 +274,15 @@ public abstract class FrontendConnection extends AbstractConnection {
 	{
 		if(loadDataInfileHandler!=null)
 		{
+			try
+		{
 			loadDataInfileHandler.end(packID);
+		}  catch (Exception e)
+		{
+			LOGGER.error("load data error",e);
+			writeErrMessage(ErrorCode.ERR_HANDLE_DATA,
+					e.getMessage());
+		}
 		}   else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
 					"load data infile end is not  unsupported!");

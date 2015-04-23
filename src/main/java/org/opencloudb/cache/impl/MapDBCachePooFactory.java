@@ -32,7 +32,7 @@ import org.opencloudb.cache.CachePool;
 import org.opencloudb.cache.CachePoolFactory;
 
 public class MapDBCachePooFactory extends CachePoolFactory {
-	private DB db = DBMaker.newDirectMemoryDB().cacheSize(1000)
+	private DB db = DBMaker.newMemoryDirectDB().cacheSize(1000)
 			.cacheLRUEnable().make();
 
 	@Override

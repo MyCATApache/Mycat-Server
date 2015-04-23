@@ -27,7 +27,8 @@ import org.opencloudb.util.ResultSetUtil;
 import org.opencloudb.util.StringUtil;
 
 public class JDBCConnection implements BackendConnection {
-	protected static final Logger LOGGER = Logger.getLogger(JDBCConnection.class);
+	protected static final Logger LOGGER = Logger
+			.getLogger(JDBCConnection.class);
 	private JDBCDatasource pool;
 	private volatile String schema;
 	private volatile String dbType;
@@ -47,7 +48,8 @@ public class JDBCConnection implements BackendConnection {
 	private volatile boolean modifiedSQLExecuted;
 	private final long startTime;
 	private long lastTime;
-    private boolean isSpark=false;
+	private boolean isSpark = false;
+
 	public JDBCConnection() {
 		startTime = System.currentTimeMillis();
 	}
@@ -93,7 +95,6 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public void idleCheck() {
-		
 
 	}
 
@@ -137,17 +138,17 @@ public class JDBCConnection implements BackendConnection {
 	public boolean isFromSlaveDB() {
 		return false;
 	}
-	
+
 	public String getDbType() {
 		return this.dbType;
 	}
 
-	
 	public void setDbType(String newDbType) {
 		this.dbType = newDbType.toUpperCase();
-		this.isSpark=dbType.equals("SPARK");
+		this.isSpark = dbType.equals("SPARK");
 
 	}
+
 	@Override
 	public String getSchema() {
 		return this.schema;
@@ -211,8 +212,8 @@ public class JDBCConnection implements BackendConnection {
 	public void commit() {
 		try {
 			con.commit();
-			
-			this.respHandler.okResponse(OkPacket.OK, this);	
+
+			this.respHandler.okResponse(OkPacket.OK, this);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -221,31 +222,31 @@ public class JDBCConnection implements BackendConnection {
 	private void executeSQL(RouteResultsetNode rrn, ServerConnection sc,
 			boolean autocommit) throws IOException {
 		String orgin = rrn.getStatement();
-		//String sql = rrn.getStatement().toLowerCase();
-		//LOGGER.info("JDBC SQL:"+orgin+"|"+sc.toString());
+		// String sql = rrn.getStatement().toLowerCase();
+		// LOGGER.info("JDBC SQL:"+orgin+"|"+sc.toString());
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
-		
+
 		try {
 			if (!this.schema.equals(this.oldSchema)) {
 				con.setCatalog(schema);
 				this.oldSchema = schema;
 			}
-			if (!this.isSpark){
-			   con.setAutoCommit(autocommit);
+			if (!this.isSpark) {
+				con.setAutoCommit(autocommit);
 			}
 			int sqlType = rrn.getSqlType();
-			
-			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW ) {	
-				if ((sqlType ==ServerParse.SHOW) && (!dbType.equals("MYSQL")) ){
-					//showCMD(sc, orgin);
-					ShowVariables.execute(sc,orgin);
-				} else if("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin))
-				{
-					ShowVariables.justReturnValue(sc, String.valueOf(sc.getId()));
-				}
-				else {
+
+			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
+				if ((sqlType == ServerParse.SHOW) && (!dbType.equals("MYSQL"))) {
+					// showCMD(sc, orgin);
+					//ShowVariables.execute(sc, orgin);
+					ShowVariables.execute(sc, orgin,this);
+				} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
+					ShowVariables.justReturnValue(sc,
+							String.valueOf(sc.getId()));
+				} else {
 					ouputResultSet(sc, orgin);
 				}
 			} else {
@@ -253,7 +254,6 @@ public class JDBCConnection implements BackendConnection {
 			}
 
 		} catch (SQLException e) {
-
 
 			String msg = e.getMessage();
 			ErrorPacket error = new ErrorPacket();
@@ -266,18 +266,18 @@ public class JDBCConnection implements BackendConnection {
 		}
 
 	}
-	private FieldPacket getNewFieldPacket(String charset,String fieldName){
-	  FieldPacket fieldPacket = new FieldPacket();
-	  fieldPacket.orgName  = StringUtil.encode(fieldName, charset);
-	  fieldPacket.name     = StringUtil.encode(fieldName,charset);
-	  fieldPacket.length   = 20;
-	  fieldPacket.flags    = 0;
-	  fieldPacket.decimals = 0;
-	  int javaType         = 12;
-	  fieldPacket.type = (byte) (MysqlDefs.javaTypeMysql(javaType) & 0xff);
-	  return fieldPacket;
+
+	private FieldPacket getNewFieldPacket(String charset, String fieldName) {
+		FieldPacket fieldPacket = new FieldPacket();
+		fieldPacket.orgName = StringUtil.encode(fieldName, charset);
+		fieldPacket.name = StringUtil.encode(fieldName, charset);
+		fieldPacket.length = 20;
+		fieldPacket.flags = 0;
+		fieldPacket.decimals = 0;
+		int javaType = 12;
+		fieldPacket.type = (byte) (MysqlDefs.javaTypeMysql(javaType) & 0xff);
+		return fieldPacket;
 	}
-	
 
 	private void executeddl(ServerConnection sc, String sql)
 			throws SQLException {
@@ -312,8 +312,9 @@ public class JDBCConnection implements BackendConnection {
 			rs = stmt.executeQuery(sql);
 
 			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs, this.isSpark);
-			int colunmCount =fieldPks.size();
+			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
+					this.isSpark);
+			int colunmCount = fieldPks.size();
 			ByteBuffer byteBuf = sc.allocate();
 			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
 			headerPkg.fieldCount = fieldPks.size();
@@ -351,7 +352,8 @@ public class JDBCConnection implements BackendConnection {
 				RowDataPacket curRow = new RowDataPacket(colunmCount);
 				for (int i = 0; i < colunmCount; i++) {
 					int j = i + 1;
-					curRow.add(StringUtil.encode(rs.getString(j), sc.getCharset()));
+					curRow.add(StringUtil.encode(rs.getString(j),
+							sc.getCharset()));
 
 				}
 				curRow.packetId = ++packetId;
@@ -392,7 +394,7 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public void query(String sql) throws UnsupportedEncodingException {
-
+		throw new UnsupportedEncodingException("unsupported yet ");
 	}
 
 	@Override
@@ -406,22 +408,19 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	@Override
-	public void execute(final RouteResultsetNode node, final ServerConnection source,
-			final boolean autocommit) throws IOException {
-		Runnable runnable=new Runnable()
-		{
+	public void execute(final RouteResultsetNode node,
+			final ServerConnection source, final boolean autocommit)
+			throws IOException {
+		Runnable runnable = new Runnable() {
 			@Override
-			public void run()
-			{
-				try
-				{
+			public void run() {
+				try {
 					executeSQL(node, source, autocommit);
-				} catch (IOException e)
-				{
+				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
 			}
-		} ;
+		};
 
 		MycatServer.getInstance().getBusinessExecutor().execute(runnable);
 	}
@@ -440,7 +439,7 @@ public class JDBCConnection implements BackendConnection {
 	public void rollback() {
 		try {
 			con.rollback();
-			
+
 			this.respHandler.okResponse(OkPacket.OK, this);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
