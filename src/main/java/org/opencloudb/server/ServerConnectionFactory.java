@@ -31,6 +31,7 @@ import org.opencloudb.MycatServer;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.factory.FrontendConnectionFactory;
+import org.opencloudb.server.handler.ServerLoadDataInfileHandler;
 
 /**
  * @author mycat
@@ -42,9 +43,10 @@ public class ServerConnectionFactory extends FrontendConnectionFactory {
         SystemConfig sys = MycatServer.getInstance().getConfig().getSystem();
         ServerConnection c = new ServerConnection(channel);
         MycatServer.getInstance().getConfig().setSocketParams(c, true);
-        c.setPrivileges(new MycatPrivileges());
+        c.setPrivileges(MycatPrivileges.instance());
         c.setQueryHandler(new ServerQueryHandler(c));
-        // c.setPrepareHandler(new ServerPrepareHandler(c)); TODO prepare
+        c.setLoadDataInfileHandler(new ServerLoadDataInfileHandler(c));
+        // c.setPrepareHandler(new ServerPrepareHandler(c));
         c.setTxIsolation(sys.getTxIsolation());
         c.setSession2(new NonBlockingSession(c));
         return c;

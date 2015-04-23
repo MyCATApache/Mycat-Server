@@ -21,20 +21,54 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.route;
+package org.opencloudb.net.mysql;
 
+import org.opencloudb.mysql.BufferUtil;
+import org.opencloudb.net.FrontendConnection;
+
+import java.nio.ByteBuffer;
 
 /**
- * route parse result info
- * 
- * @author wuzhih
- * 
+ * load data local infile 向客户端请求发送文件用
  */
-public class RouteParseInf {
-	
+public class RequestFilePacket extends MySQLPacket
+{
+    public static final byte FIELD_COUNT = (byte) 251;
+    public byte command = FIELD_COUNT;
+    public byte[] fileName;
 
-	public void clear() {
-		
-	}
+
+    @Override
+    public ByteBuffer write(ByteBuffer buffer, FrontendConnection c, boolean writeSocketIfFull)
+    {
+        int size = calcPacketSize();
+        buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size, writeSocketIfFull);
+        BufferUtil.writeUB3(buffer, size);
+        buffer.put(packetId);
+        buffer.put(command);
+        if (fileName != null)
+        {
+
+            buffer.put(fileName);
+
+        }
+
+        c.write(buffer);
+
+        return buffer;
+    }
+
+    @Override
+    public int calcPacketSize()
+    {
+        return fileName == null ? 1 : 1 + fileName.length;
+    }
+
+    @Override
+    protected String getPacketInfo()
+    {
+        return "MySQL Request File Packet";
+    }
+
 
 }

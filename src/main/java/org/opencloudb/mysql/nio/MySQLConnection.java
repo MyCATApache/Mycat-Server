@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
 import org.opencloudb.config.Capabilities;
 import org.opencloudb.config.Isolations;
 import org.opencloudb.exception.UnknownTxIsolationException;
@@ -54,7 +55,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	private static final Logger LOGGER = Logger
 			.getLogger(MySQLConnection.class);
 	private static final long CLIENT_FLAGS = initClientFlags();
-	private volatile long lastTime; // QS_TODO
+	private volatile long lastTime; 
 	private volatile String schema = null;
 	private volatile String oldSchema;
 	private volatile boolean borrowed = false;
@@ -68,9 +69,13 @@ public class MySQLConnection extends BackendAIOConnection {
 		flag |= Capabilities.CLIENT_LONG_FLAG;
 		flag |= Capabilities.CLIENT_CONNECT_WITH_DB;
 		// flag |= Capabilities.CLIENT_NO_SCHEMA;
-		// flag |= Capabilities.CLIENT_COMPRESS;
+		boolean usingCompress=MycatServer.getInstance().getConfig().getSystem().getUseCompression()==1 ;
+		if(usingCompress)
+		{
+			 flag |= Capabilities.CLIENT_COMPRESS;
+		}
 		flag |= Capabilities.CLIENT_ODBC;
-		// flag |= Capabilities.CLIENT_LOCAL_FILES;
+		flag |= Capabilities.CLIENT_LOCAL_FILES;
 		flag |= Capabilities.CLIENT_IGNORE_SPACE;
 		flag |= Capabilities.CLIENT_PROTOCOL_41;
 		flag |= Capabilities.CLIENT_INTERACTIVE;
@@ -487,7 +492,6 @@ public class MySQLConnection extends BackendAIOConnection {
 	public void quit() {
 		if (isQuit.compareAndSet(false, true) && !isClosed()) {
 			if (isAuthenticated) {
-				// QS_TODO check
 				write(writeToBuffer(QuitPacket.QUIT, allocate()));
 				write(allocate());
 			} else {

@@ -21,6 +21,7 @@ import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.config.model.rule.RuleConfig;
 import org.opencloudb.mpp.ColumnRoutePair;
+import org.opencloudb.mpp.LoadData;
 import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
@@ -436,20 +437,32 @@ public class RouterUtil {
 														// find
 														// datanode
 			
-			for(ColumnRoutePair pair : colRoutePairSet) {
-				nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
-				if (nodeSet.isEmpty() || nodeSet.size() > 1) {
-					throw new SQLNonTransientException(
-							"parent key can't find  valid datanode ,expect 1 but found: "
-									+ nodeSet.size());
-				}
-				String dn = nodeSet.iterator().next();
-				if (LOGGER.isDebugEnabled()) {
-					LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
-							+ dn + " sql :" + rrs.getStatement());
-				}
-				retNodeSet.addAll(nodeSet);
+			nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
+			if (nodeSet.isEmpty()) {
+				throw new SQLNonTransientException(
+						"parent key can't find  valid datanode ,expect 1 but found: "
+								+ nodeSet.size());
 			}
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
+						+ nodeSet + " sql :" + rrs.getStatement());
+			}
+			retNodeSet.addAll(nodeSet);
+			
+//			for(ColumnRoutePair pair : colRoutePairSet) {
+//				nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
+//				if (nodeSet.isEmpty() || nodeSet.size() > 1) {//an exception would be thrown, if sql was executed on more than on sharding
+//					throw new SQLNonTransientException(
+//							"parent key can't find  valid datanode ,expect 1 but found: "
+//									+ nodeSet.size());
+//				}
+//				String dn = nodeSet.iterator().next();
+//				if (LOGGER.isDebugEnabled()) {
+//					LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
+//							+ dn + " sql :" + rrs.getStatement());
+//				}
+//				retNodeSet.addAll(nodeSet);
+//			}
 			return retNodeSet;
 		} else {
 			retNodeSet.addAll(tc.getParentTC().getDataNodes());
@@ -689,12 +702,20 @@ public class RouterUtil {
 				String partionCol = tableConfig.getPartitionColumn();
 				String primaryKey = tableConfig.getPrimaryKey();
 				boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
-				if(entry.getValue().get(primaryKey) != null && entry.getValue().size() == 1) {//主键查找
+                boolean isLoadData=false;
+                if (LOGGER.isDebugEnabled()) {
+                    if(sql.startsWith(LoadData.loadDataHint)||rrs.isLoadData())
+                    { //由于load data一次会计算很多路由数据，如果输出此日志会极大降低load data的性能
+                         isLoadData=true;
+                    }
+                }
+				if(entry.getValue().get(primaryKey) != null && entry.getValue().size() == 1&&!isLoadData)
+                {//主键查找
 					// try by primary key if found in cache
 					Set<ColumnRoutePair> primaryKeyPairs = entry.getValue().get(primaryKey);
 					if (primaryKeyPairs != null) {
 						if (LOGGER.isDebugEnabled()) {
-							LOGGER.debug("try to find cache by primary key ");
+                                 LOGGER.debug("try to find cache by primary key ");
 						}
 						String tableKey = schema.getName() + '_' + tableName;
 						boolean allFound = true;
@@ -779,7 +800,7 @@ public class RouterUtil {
 								+ Arrays.toString(dataNodeSet.toArray()) + " sql :" + sql);
 					}
 					if (dataNodeSet.size() > 1) {
-						routeToMultiNode(rrs.isCacheAble(), rrs, schema.getAllDataNodes(), sql);
+						routeToMultiNode(rrs.isCacheAble(), rrs, dataNodeSet, sql);
 						return;
 					} else {
 						rrs.setCacheAble(true);

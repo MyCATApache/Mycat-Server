@@ -5,6 +5,7 @@ import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
+import org.opencloudb.mpp.LoadData;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteStrategy;
 import org.opencloudb.route.util.RouterUtil;
@@ -37,7 +38,12 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 
 		RouteResultset rrs = new RouteResultset(stmt, sqlType);
 
-		//rrs携带ServerConnection的autocommit状态用于在sql解析的时候遇到select ... for update的时候动态设定RouteResultsetNode的canRunInReadDB属性
+        if ( LOGGER.isDebugEnabled()&&origSQL.startsWith(LoadData.loadDataHint))
+        {
+          rrs.setCacheAble(false);//优化debug loaddata输出cache的日志会极大降低性能
+        }
+
+            //rrs携带ServerConnection的autocommit状态用于在sql解析的时候遇到select ... for update的时候动态设定RouteResultsetNode的canRunInReadDB属性
 		if (sc != null ) {
 			rrs.setAutocommit(sc.isAutocommit());
 		}

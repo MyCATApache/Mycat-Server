@@ -21,13 +21,26 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.mpp;
+package org.opencloudb.net.handler;
 
-import org.opencloudb.route.RouteParseInf;
+/**
+ * load data infile
+ * 
+ * @author magicdoom
+ */
+public interface LoadDataInfileHandler
+{
 
-public class DDLParsInf extends RouteParseInf {
-	/**
-	 * table's name
-	 */
-	public String tableName;
+    void start(String sql);
+
+    void handle(byte[] data);
+
+    void end(byte packID);
+
+    void clear();
+
+    byte getLastPackId();
+
+    boolean isStartLoadData();
+
 }

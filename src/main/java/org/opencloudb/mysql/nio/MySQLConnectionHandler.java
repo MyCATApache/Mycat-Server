@@ -28,11 +28,13 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.mysql.ByteUtil;
+import org.opencloudb.mysql.nio.handler.LoadDataResponseHandler;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.handler.BackendAsyncHandler;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.OkPacket;
+import org.opencloudb.net.mysql.RequestFilePacket;
 
 /**
  * life cycle: from connection establish to close <br/>
@@ -62,9 +64,6 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	}
 
 	public void connectionError(Throwable e) {
-		// connError = e;
-		// handleQueue();
-		dataQueue.clear();
 		if (responseHandler != null) {
 			responseHandler.connectionError(e, source);
 		}
@@ -82,7 +81,6 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 
 	@Override
 	protected void offerDataError() {
-		dataQueue.clear();
 		resultStatus = RESULT_STATUS_INIT;
 		throw new RuntimeException("offer data error!");
 	}
@@ -97,6 +95,9 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 				break;
 			case ErrorPacket.FIELD_COUNT:
 				handleErrorPacket(data);
+				break;
+			case RequestFilePacket.FIELD_COUNT:
+				handleRequestPacket(data);
 				break;
 			default:
 				resultStatus = RESULT_STATUS_HEADER;
@@ -163,6 +164,19 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 		ResponseHandler respHand = responseHandler;
 		if (respHand != null) {
 			respHand.errorResponse(data, source);
+		} else {
+			closeNoHandler();
+		}
+	}
+
+	/**
+	 * load data file 请求文件数据包处理
+	 */
+	private void handleRequestPacket(byte[] data) {
+		ResponseHandler respHand = responseHandler;
+		if (respHand != null && respHand instanceof LoadDataResponseHandler) {
+			((LoadDataResponseHandler) respHand).requestDataResponse(data,
+					source);
 		} else {
 			closeNoHandler();
 		}

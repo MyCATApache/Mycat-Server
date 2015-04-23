@@ -48,17 +48,17 @@ public class ConnectionMeta {
 		return schema;
 	}
 
-	public String getCharset() {
-		return charset;
-	}
-
-	public int getTxIsolation() {
-		return txIsolation;
-	}
-
-	public boolean isAutocommit() {
-		return autocommit;
-	}
+//	public String getCharset() {
+//		return charset;
+//	}
+//
+//	public int getTxIsolation() {
+//		return txIsolation;
+//	}
+//
+//	public boolean isAutocommit() {
+//		return autocommit;
+//	}
 	
 	public boolean isSameSchema(BackendConnection theCon)
 	{

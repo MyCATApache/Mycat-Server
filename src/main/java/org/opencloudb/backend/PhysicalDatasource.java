@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
@@ -143,15 +144,15 @@ public abstract class PhysicalDatasource {
 
 	private boolean validSchema(String schema) {
 		String theSchema = schema;
-		return theSchema != null & !theSchema.equals("")
-				&& !theSchema.equals("snyn...");
+		return theSchema != null & !"".equals(theSchema)
+				&& !"snyn...".equals(theSchema);
 	}
 
 	private void checkIfNeedHeartBeat(
 			LinkedList<BackendConnection> heartBeatCons, ConQueue queue,
 			ConcurrentLinkedQueue<BackendConnection> checkLis,
 			long hearBeatTime, long hearBeatTime2) {
-		int MAX_CONS_IN_ONE_CHECK = 10;
+		int maxConsInOneCheck = 10;
 		Iterator<BackendConnection> checkListItor = checkLis.iterator();
 		while (checkListItor.hasNext()) {
 			BackendConnection con = checkListItor.next();
@@ -159,22 +160,18 @@ public abstract class PhysicalDatasource {
 				checkListItor.remove();
 				continue;
 			}
-			if (validSchema(con.getSchema())) {
-				if (con.getLastTime() < hearBeatTime) {
-					if (heartBeatCons.size() < MAX_CONS_IN_ONE_CHECK) {
-						checkListItor.remove();
-						// Heart beat check
-						con.setBorrowed(true);
-						heartBeatCons.add(con);
-					}
-				}
-			} else if (con.getLastTime() < hearBeatTime2) {
-				{// not valid schema conntion should close for idle
+            if (validSchema(con.getSchema())) {
+                if (con.getLastTime() < hearBeatTime && heartBeatCons.size() < maxConsInOneCheck) {
+                    checkListItor.remove();
+                    // Heart beat check
+                    con.setBorrowed(true);
+                    heartBeatCons.add(con);
+                }
+            } else if (con.getLastTime() < hearBeatTime2) {
+				    // not valid schema conntion should close for idle
 					// exceed 2*conHeartBeatPeriod
 					checkListItor.remove();
 					con.close(" heart beate idle ");
-				}
-
 			}
 
 		}
@@ -183,24 +180,21 @@ public abstract class PhysicalDatasource {
 
 	public void heatBeatCheck(long timeout, long conHeartBeatPeriod) {
 		int ildeCloseCount = hostConfig.getMinCon() * 3;
-		int MAX_CONS_IN_ONE_CHECK = 5;
+		int maxConsInOneCheck = 5;
 		LinkedList<BackendConnection> heartBeatCons = new LinkedList<BackendConnection>();
 
 		long hearBeatTime = TimeUtil.currentTimeMillis() - conHeartBeatPeriod;
 		long hearBeatTime2 = TimeUtil.currentTimeMillis() - 2
 				* conHeartBeatPeriod;
 		for (ConQueue queue : conMap.getAllConQueue()) {
-
 			checkIfNeedHeartBeat(heartBeatCons, queue,
 					queue.getAutoCommitCons(), hearBeatTime, hearBeatTime2);
-			if (heartBeatCons.size() < MAX_CONS_IN_ONE_CHECK) {
+			if (heartBeatCons.size() < maxConsInOneCheck) {
 				checkIfNeedHeartBeat(heartBeatCons, queue,
 						queue.getManCommitCons(), hearBeatTime, hearBeatTime2);
-			}
-			if (heartBeatCons.size() >= MAX_CONS_IN_ONE_CHECK) {
+			} else if (heartBeatCons.size() >= maxConsInOneCheck) {
 				break;
 			}
-
 		}
 
 		if (!heartBeatCons.isEmpty()) {
@@ -218,49 +212,9 @@ public abstract class PhysicalDatasource {
 		// create if idle too little
 		if ((createCount > 0) && (idleCons + activeCons < size)
 				&& (idleCons < hostConfig.getMinCon())) {
-			LOGGER.info("create connections ,because idle connection not enough ,cur is "
-					+ idleCons
-					+ ", minCon is "
-					+ hostConfig.getMinCon()
-					+ " for " + name);
-			NewConnectionRespHandler simpleHandler = new NewConnectionRespHandler();
-
-			final String[] schemas = dbPool.getSchemas();
-			for (int i = 0; i < createCount; i++) {
-				if (this.getActiveCount() + this.getIdleCount() >= size) {
-					break;
-				}
-				try {
-					// creat new connection
-					this.createNewConnection(simpleHandler, null, schemas[i
-							% schemas.length]);
-				} catch (IOException e) {
-					LOGGER.warn("create connection err " + e);
-				}
-
-			}
+            createByIdleLitte(idleCons, createCount);
 		} else if (getIdleCount() > hostConfig.getMinCon() + ildeCloseCount) {
-
-			LOGGER.info("too many ilde cons ,close some for datasouce  " + name);
-
-			ArrayList<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(
-					ildeCloseCount);
-			for (ConQueue queue : conMap.getAllConQueue()) {
-				readyCloseCons.addAll(queue.getIdleConsToClose(ildeCloseCount));
-
-				if (readyCloseCons.size() >= ildeCloseCount) {
-					break;
-				}
-
-			}
-
-			for (BackendConnection idleCon : readyCloseCons) {
-				if (idleCon.isBorrowed()) {
-					LOGGER.warn("find idle con is using " + idleCon);
-				}
-				idleCon.close("too many idle con");
-			}
-
+			closeByIdleMany(ildeCloseCount);
 		} else {
 			int activeCount = this.getActiveCount();
 			if (activeCount > size) {
@@ -272,6 +226,46 @@ public abstract class PhysicalDatasource {
 			}
 		}
 	}
+
+    private void closeByIdleMany(int ildeCloseCount) {
+        LOGGER.info("too many ilde cons ,close some for datasouce  " + name);
+        List<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(
+        		ildeCloseCount);
+        for (ConQueue queue : conMap.getAllConQueue()) {
+        	readyCloseCons.addAll(queue.getIdleConsToClose(ildeCloseCount));
+        	if (readyCloseCons.size() >= ildeCloseCount) {
+        		break;
+        	}
+        }
+
+        for (BackendConnection idleCon : readyCloseCons) {
+        	if (idleCon.isBorrowed()) {
+        		LOGGER.warn("find idle con is using " + idleCon);
+        	}
+        	idleCon.close("too many idle con");
+        }
+    }
+
+    private void createByIdleLitte(int idleCons, int createCount) {
+        LOGGER.info("create connections ,because idle connection not enough ,cur is "
+            + idleCons + ", minCon is " + hostConfig.getMinCon() + " for " + name);
+        NewConnectionRespHandler simpleHandler = new NewConnectionRespHandler();
+
+        final String[] schemas = dbPool.getSchemas();
+        for (int i = 0; i < createCount; i++) {
+        	if (this.getActiveCount() + this.getIdleCount() >= size) {
+        		break;
+        	}
+        	try {
+        		// creat new connection
+        		this.createNewConnection(simpleHandler, null, schemas[i
+        				% schemas.length]);
+        	} catch (IOException e) {
+        		LOGGER.warn("create connection err " + e);
+        	}
+
+        }
+    }
 
 	public int getActiveCount() {
 		return this.conMap.getActiveCountForDs(this);
@@ -297,7 +291,7 @@ public abstract class PhysicalDatasource {
 		if (!heartbeat.isStop()) {
 			try {
 				heartbeat.heartbeat();
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				LOGGER.error(name + " heartbeat error.", e);
 			}
 		}
@@ -314,7 +308,6 @@ public abstract class PhysicalDatasource {
 		}
 		ConQueue queue = conMap.getSchemaConQueue(schema);
 		queue.incExecuteCount();
-		// queue.incExecuteCount();
 		conn.setAttachment(attachment);
 		handler.connectionAcquired(conn);
 		return conn;
@@ -345,22 +338,21 @@ public abstract class PhysicalDatasource {
 		});
 	}
 
-	public void getConnection(final ConnectionMeta conMeta,
-			final ResponseHandler handler, final Object attachment)
-			throws Exception {
-		BackendConnection con = this.conMap.tryTakeCon(conMeta);
-		if (con != null) {
-			takeCon(con, handler, attachment, conMeta.getSchema());
-			return;
-		} else {
-			LOGGER.info("not ilde connection in pool,create new connection for "
-					+ this.name + conMeta.toString());
-			// create connection
-			createNewConnection(handler, attachment, conMeta.getSchema());
-
-		}
-
-	}
+    public void getConnection(String schema,boolean autocommit, final ResponseHandler handler,
+        final Object attachment) throws IOException {
+        BackendConnection con = this.conMap.tryTakeCon(schema,autocommit);
+        if (con != null) {
+            takeCon(con, handler, attachment, schema);
+            return;
+        } else {
+            LOGGER.info("not ilde connection in pool,create new connection for " + this.name
+                + " of schema "+schema);
+            // create connection
+            createNewConnection(handler, attachment, schema);
+            
+        }
+        
+    }
 
 	private void returnCon(BackendConnection c) {
 		c.setAttachment(null);

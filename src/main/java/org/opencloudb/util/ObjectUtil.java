@@ -23,17 +23,28 @@
  */
 package org.opencloudb.util;
 
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public final class ObjectUtil {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(ObjectUtil.class);
+    
 	public static Object copyObject(Object object) {
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		ObjectOutputStream s = null;
@@ -43,9 +54,9 @@ public final class ObjectUtil {
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(b.toByteArray()));
 			return ois.readObject();
 		} catch (IOException e) {
-			e.printStackTrace();
+		    LOGGER.error("copyObjectIOError", e);
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+		    LOGGER.error("copyObjectError", e);
 		}
 		return null;
 	}
@@ -220,4 +231,39 @@ public final class ObjectUtil {
         }
     }
 
+
+    public static void copyProperties(Object fromObj, Object toObj) {
+        Class<? extends Object> fromClass = fromObj.getClass();
+        Class<? extends Object> toClass = toObj.getClass();
+
+        try {
+            BeanInfo fromBean = Introspector.getBeanInfo(fromClass);
+            BeanInfo toBean = Introspector.getBeanInfo(toClass);
+
+            PropertyDescriptor[] toPd = toBean.getPropertyDescriptors();
+            List<PropertyDescriptor> fromPd = Arrays.asList(fromBean
+                    .getPropertyDescriptors());
+
+            for (PropertyDescriptor propertyDescriptor : toPd) {
+                propertyDescriptor.getDisplayName();
+                PropertyDescriptor pd = fromPd.get(fromPd
+                        .indexOf(propertyDescriptor));
+                if (pd.getDisplayName().equals(
+                        propertyDescriptor.getDisplayName())
+                        && !pd.getDisplayName().equals("class")) {
+                    if(propertyDescriptor.getWriteMethod() != null)
+                        propertyDescriptor.getWriteMethod().invoke(toObj, pd.getReadMethod().invoke(fromObj, null));
+                }
+
+            }
+        } catch (IntrospectionException e) {
+          throw  new RuntimeException(e);
+        } catch (IllegalArgumentException e) {
+            throw  new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw  new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw  new RuntimeException(e);
+        }
+    }
 }

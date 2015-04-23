@@ -34,6 +34,7 @@ import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.mysql.LoadDataUtil;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.route.RouteResultset;
@@ -45,7 +46,8 @@ import org.opencloudb.util.StringUtil;
 /**
  * @author mycat
  */
-public class SingleNodeHandler implements ResponseHandler, Terminatable {
+public class SingleNodeHandler implements ResponseHandler, Terminatable,
+		LoadDataResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(SingleNodeHandler.class);
 	private final RouteResultsetNode node;
@@ -119,9 +121,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 
 			MycatConfig conf = MycatServer.getInstance().getConfig();
 			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
-			ConnectionMeta conMeta = new ConnectionMeta(dn.getDatabase(),
-					sc.getCharset(), sc.getCharsetIndex(), sc.isAutocommit());
-			dn.getConnection(conMeta, node, this, node);
+			dn.getConnection(dn.getDatabase(), sc.isAutocommit(), node, this,
+					node);
 		}
 
 	}
@@ -144,7 +145,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 			conn.execute(node, session.getSource(), session.getSource()
 					.isAutocommit());
 		} catch (IOException e1) {
-			executeException(conn,e1);
+			executeException(conn, e1);
 			return;
 		}
 	}
@@ -161,7 +162,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
-		
+
 		endRunning();
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
@@ -203,7 +204,16 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
-			ok.packetId = ++packetId;
+			if (rrs.isLoadData()) {
+				byte lastPackId = source.getLoadDataInfileHandler()
+						.getLastPackId();
+				ok.packetId = ++lastPackId;// OK_PACKET
+				source.getLoadDataInfileHandler().clear();
+			} else {
+				ok.packetId = ++packetId;// OK_PACKET
+			}
+			ok.serverStatus = source.isAutocommit() ? 2 : 1;
+
 			recycleResources();
 			source.setLastInsertId(ok.insertId);
 			ok.write(source);
@@ -280,6 +290,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable {
 
 	public void clearResources() {
 
+	}
+
+	@Override
+	public void requestDataResponse(byte[] data, BackendConnection conn) {
+		LoadDataUtil.requestFileDataResponse(data, conn);
 	}
 
 	@Override

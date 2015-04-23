@@ -51,15 +51,23 @@ public class ColMeta {
 	public static final int COL_TYPE_VAR_STRING = 0xfd;
 	public static final int COL_TYPE_STRING = 0xfe;
 	public static final int COL_TYPE_GEOMETRY = 0xff;
-	public final int colIndex;
+	public  int colIndex;
 	public final int colType;
 
-	public ColMeta(int colIndex, int colType) {
+    public  int avgSumIndex;
+    public  int avgCountIndex;
+
+    public ColMeta(int colIndex, int colType) {
 		super();
 		this.colIndex = colIndex;
 		this.colType = colType;
 	}
-
+    public ColMeta(int avgSumIndex,int avgCountIndex,  int colType) {
+        super();
+        this.avgSumIndex = avgSumIndex;
+        this.avgCountIndex=avgCountIndex;
+        this.colType = colType;
+    }
 	public int getColIndex() {
 		return colIndex;
 	}

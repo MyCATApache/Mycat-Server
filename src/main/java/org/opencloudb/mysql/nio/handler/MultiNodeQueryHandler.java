@@ -23,6 +23,7 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
+
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
@@ -32,16 +33,19 @@ import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
-import org.opencloudb.net.mysql.FieldPacket;
-import org.opencloudb.net.mysql.OkPacket;
-import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.mpp.LoadData;
+import org.opencloudb.mpp.MergeCol;
+import org.opencloudb.mysql.LoadDataUtil;
+import org.opencloudb.net.BackendAIOConnection;
+import org.opencloudb.net.mysql.*;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 
-import java.io.IOException;
+
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -49,7 +53,8 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * @author mycat
  */
-public class MultiNodeQueryHandler extends MultiNodeHandler {
+public class MultiNodeQueryHandler extends MultiNodeHandler implements
+		LoadDataResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(MultiNodeQueryHandler.class);
 
@@ -67,16 +72,16 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	private volatile boolean fieldsReturned;
 	private int okCount;
 	private final boolean isCallProcedure;
+
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
 		super(session);
 		if (rrs.getNodes() == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
-        if(LOGGER.isDebugEnabled())
-        {
-        	LOGGER.debug("execute mutinode query "+rrs.getStatement());
-        }
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("execute mutinode query " + rrs.getStatement());
+		}
 		this.rrs = rrs;
 		if (ServerParse.SELECT == sqlType && rrs.needMerge()) {
 			dataMergeSvr = new DataMergeService(this, rrs);
@@ -101,7 +106,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	}
 
 	public void execute() throws Exception {
-		ServerConnection sc = session.getSource();
 		final ReentrantLock lock = this.lock;
 		lock.lock();
 		try {
@@ -121,9 +125,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			} else {
 				// create new connection
 				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
-				ConnectionMeta conMeta = new ConnectionMeta(dn.getDatabase(),
-						sc.getCharset(), sc.getCharsetIndex(), autocommit);
-				dn.getConnection(conMeta, node, this, node);
+				dn.getConnection(dn.getDatabase(), autocommit, node, this, node);
 			}
 
 		}
@@ -203,9 +205,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 				lock.lock();
 				try {
-					ok.packetId = ++packetId;// OK_PACKET
-					ok.affectedRows = affectedRows;
+					if (rrs.isLoadData()) {
+						byte lastPackId = source.getLoadDataInfileHandler()
+								.getLastPackId();
+						ok.packetId = ++lastPackId;// OK_PACKET
+						ok.message = ("Records: " + affectedRows + "  Deleted: 0  Skipped: 0  Warnings: 0")
+								.getBytes();// 此处信息只是为了控制台给人看的
+						source.getLoadDataInfileHandler().clear();
+					} else {
+						ok.packetId = ++packetId;// OK_PACKET
+					}
 
+					ok.affectedRows = affectedRows;
+					ok.serverStatus = source.isAutocommit() ? 2 : 1;
 					if (insertId > 0) {
 						ok.insertId = insertId;
 						source.setLastInsertId(insertId);
@@ -251,7 +263,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				}
 			}
 			if (dataMergeSvr != null) {
-				dataMergeSvr.outputMergeResult(session, eof);
+				try
+				{
+					dataMergeSvr.outputMergeResult(session, eof);
+				} catch (Exception e)
+				{
+					handleDataProcessException(e);
+				}
+
 
 			} else {
 				try {
@@ -277,7 +296,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			final DataMergeService dataMergeService = this.dataMergeSvr;
 			final RouteResultset rrs = dataMergeService.getRrs();
 
-			//处理limit语句
+			// 处理limit语句
 			final int start = rrs.getLimitStart();
 			final int end = start + rrs.getLimitSize();
 
@@ -290,18 +309,18 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 			}
 
 			int i = 0;
-            while (itor.hasNext()) {
-                RowDataPacket row = itor.next();
-                if (i < start) {
-                    i++;
-                    continue;
-                } else if (i == end) {
-                    break;
-                }
-                i++;
-                row.packetId = ++packetId;
-                buffer = row.write(buffer, source, true);
-            }
+			while (itor.hasNext()) {
+				RowDataPacket row = itor.next();
+				if (i < start) {
+					i++;
+					continue;
+				} else if (i == end) {
+					break;
+				}
+				i++;
+				row.packetId = ++packetId;
+				buffer = row.write(buffer, source, true);
+			}
 
 			eof[3] = ++packetId;
 			if (LOGGER.isDebugEnabled()) {
@@ -330,12 +349,44 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 				return;
 			}
 			fieldsReturned = true;
-			
-			header[3] = ++packetId;
+
+			boolean needMerg = (dataMergeSvr != null)
+					&& dataMergeSvr.getRrs().needMerge();
+			Set<String> shouldRemoveAvgField = new HashSet<>();
+			Set<String> shouldRenameAvgField = new HashSet<>();
+			if (needMerg) {
+				Map<String, Integer> mergeColsMap = dataMergeSvr.getRrs()
+						.getMergeCols();
+				if (mergeColsMap != null) {
+					for (Map.Entry<String, Integer> entry : mergeColsMap
+							.entrySet()) {
+						String key = entry.getKey();
+						int mergeType = entry.getValue();
+						if (MergeCol.MERGE_AVG == mergeType
+								&& mergeColsMap.containsKey(key + "SUM")) {
+							shouldRemoveAvgField.add((key + "COUNT")
+									.toUpperCase());
+							shouldRenameAvgField.add((key + "SUM")
+									.toUpperCase());
+						}
+					}
+				}
+
+			}
+
 			source = session.getSource();
-			ByteBuffer buffer=source.allocate();
-			buffer=source.writeToBuffer(header, buffer);
+			ByteBuffer buffer = source.allocate();
 			fieldCount = fields.size();
+			if (shouldRemoveAvgField.size() > 0) {
+				ResultSetHeaderPacket packet = new ResultSetHeaderPacket();
+				packet.packetId = ++packetId;
+				packet.fieldCount = fieldCount - shouldRemoveAvgField.size();
+				buffer = packet.write(buffer, source, true);
+			} else {
+
+				header[3] = ++packetId;
+				buffer = source.writeToBuffer(header, buffer);
+			}
 
 			String primaryKey = null;
 			if (rrs.hasPrimaryKeyToCache()) {
@@ -346,9 +397,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 
 			Map<String, ColMeta> columToIndx = new HashMap<String, ColMeta>(
 					fieldCount);
-			boolean needMerg = (dataMergeSvr != null)
-					&& dataMergeSvr.getRrs().needMerge();
+
 			for (int i = 0, len = fieldCount; i < len; ++i) {
+				boolean shouldSkip = false;
 				byte[] field = fields.get(i);
 				if (needMerg) {
 					FieldPacket fieldPkg = new FieldPacket();
@@ -356,6 +407,18 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 					String fieldName = new String(fieldPkg.name).toUpperCase();
 					if (columToIndx != null
 							&& !columToIndx.containsKey(fieldName)) {
+						if (shouldRemoveAvgField.contains(fieldName)) {
+							shouldSkip = true;
+						}
+						if (shouldRenameAvgField.contains(fieldName)) {
+							String newFieldName = fieldName.substring(0,
+									fieldName.length() - 3);
+							fieldPkg.name = newFieldName.getBytes();
+							fieldPkg.packetId = ++packetId;
+							shouldSkip = true;
+							buffer = fieldPkg.write(buffer, source, false);
+
+						}
 
 						columToIndx.put(fieldName,
 								new ColMeta(i, fieldPkg.type));
@@ -370,12 +433,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 						fieldCount = fields.size();
 					}
 				}
-
-				field[3] = ++packetId;
-				buffer=source.writeToBuffer(field, buffer);
+				if (!shouldSkip) {
+					field[3] = ++packetId;
+					buffer = source.writeToBuffer(field, buffer);
+				}
 			}
 			eof[3] = ++packetId;
-			buffer=source.writeToBuffer(eof, buffer);
+			buffer = source.writeToBuffer(eof, buffer);
 			source.write(buffer);
 			if (dataMergeSvr != null) {
 				dataMergeSvr.onRowMetaData(columToIndx, fieldCount);
@@ -446,6 +510,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler {
 	@Override
 	public void writeQueueAvailable() {
 
+	}
+
+	@Override
+	public void requestDataResponse(byte[] data, BackendConnection conn) {
+		LoadDataUtil.requestFileDataResponse(data, conn);
 	}
 
 }

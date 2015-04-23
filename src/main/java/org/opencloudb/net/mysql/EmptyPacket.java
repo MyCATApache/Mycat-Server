@@ -21,14 +21,22 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.mpp;
+package org.opencloudb.net.mysql;
 
+/**
+ * @author mycat暂时只发现在load data infile时用到
+ */
+public class EmptyPacket extends MySQLPacket {
+    public static final byte[] EMPTY = new byte[] { 0, 0, 0,3 };
 
-public class DeleteParsInf extends SelectParseInf {
-	/**
-	 * delete table's name
-	 */
-	public String tableName;
-	
+    @Override
+    public int calcPacketSize() {
+        return 0;
+    }
+
+    @Override
+    protected String getPacketInfo() {
+        return "MySQL Empty Packet";
+    }
 
 }

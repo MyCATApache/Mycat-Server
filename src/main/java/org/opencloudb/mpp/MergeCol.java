@@ -28,6 +28,7 @@ public class MergeCol {
 	public static final int MERGE_SUM = 2;
 	public static final int MERGE_MIN = 3;
 	public static final int MERGE_MAX = 4;
+    public static final int MERGE_AVG= 5;
 	public static final int MERGE_UNSUPPORT = -1;
 	public static final int MERGE_NOMERGE = -2;
 	public final int mergeType;
@@ -49,14 +50,18 @@ public class MergeCol {
 			return MERGE_MIN;
 		} else if (upper.startsWith("MAX")) {
 			return MERGE_MAX;
-		} else {
+		}
+        else if (upper.startsWith("AVG")) {
+            return MERGE_AVG;
+        }
+        else {
 			return MERGE_UNSUPPORT;
 		}
 	}
 
 	public static int tryParseAggCol(String column) {
 		// MIN(*),MAX(*),COUNT(*),SUM
-		if (column.length() < 5) {
+		if (column.length() < 6) {
 			return -1;
 		}
 		column = column.toUpperCase();
@@ -70,7 +75,7 @@ public class MergeCol {
 		} else if (column.startsWith("MAX(")) {
 			return MERGE_MAX;
 		} else if (column.startsWith("AVG(")) {
-			return MERGE_UNSUPPORT;
+			return MERGE_AVG;
 		} else {
 			return MERGE_NOMERGE;
 		}

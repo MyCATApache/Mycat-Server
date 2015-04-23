@@ -31,7 +31,7 @@ import org.opencloudb.config.loader.SchemaLoader;
 import org.opencloudb.config.loader.xml.XMLSchemaLoader;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.route.ServerRouterUtil;
+import org.opencloudb.route.factory.RouteStrategyFactory;
 
 /**
  * @author mycat
@@ -54,7 +54,7 @@ public class ShardingDefaultSpace {
         SchemaConfig schema = this.getSchema();
         String sql = "insert into offer (member_id, gmt_create) values ('1','2001-09-13 20:20:33')";
         for (int i = 0; i < total; i++) {
-            ServerRouterUtil.route(new SystemConfig(),schema,-1, sql, null, null,cachePool);
+            RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(),schema,-1, sql, null, null,cachePool);
         }
     }
 

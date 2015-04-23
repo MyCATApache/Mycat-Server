@@ -68,13 +68,13 @@ public final class NIOConnector extends Thread implements SocketConnector {
 
 	@Override
 	public void run() {
-		final Selector selector = this.selector;
+		final Selector tSelector = this.selector;
 		for (;;) {
 			++connectCount;
 			try {
-				selector.select(1000L);
-				connect(selector);
-				Set<SelectionKey> keys = selector.selectedKeys();
+			    tSelector.select(1000L);
+				connect(tSelector);
+				Set<SelectionKey> keys = tSelector.selectedKeys();
 				try {
 					for (SelectionKey key : keys) {
 						Object att = key.attachment();
@@ -87,7 +87,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				} finally {
 					keys.clear();
 				}
-			} catch (Throwable e) {
+			} catch (Exception e) {
 				LOGGER.warn(name, e);
 			}
 		}
@@ -100,7 +100,8 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				SocketChannel channel = (SocketChannel) c.getChannel();
 				channel.register(selector, SelectionKey.OP_CONNECT, c);
 				channel.connect(new InetSocketAddress(c.host, c.port));
-			} catch (Throwable e) {
+			} catch (Exception e) {
+	            LOGGER.warn(name, e);
 				c.close(e.toString());
 			}
 		}
@@ -119,7 +120,8 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				reactor.postRegister(c);
 
 			}
-		} catch (Throwable e) {
+		} catch (Exception e) {
+            LOGGER.warn(name, e);
 			clearSelectionKey(key);
 			c.onConnectFailed(e);
 			c.close(e.toString());

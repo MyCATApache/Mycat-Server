@@ -29,22 +29,22 @@ import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.MycatServer;
 import org.opencloudb.config.Capabilities;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.Versions;
 import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.mysql.MySQLMessage;
-import org.opencloudb.net.handler.FrontendAuthenticator;
-import org.opencloudb.net.handler.FrontendPrepareHandler;
-import org.opencloudb.net.handler.FrontendPrivileges;
-import org.opencloudb.net.handler.FrontendQueryHandler;
+import org.opencloudb.net.handler.*;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.HandshakePacket;
 import org.opencloudb.net.mysql.MySQLPacket;
 import org.opencloudb.net.mysql.OkPacket;
+import org.opencloudb.util.CompressUtil;
 import org.opencloudb.util.RandomUtil;
 
 /**
@@ -66,6 +66,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 	protected FrontendPrivileges privileges;
 	protected FrontendQueryHandler queryHandler;
 	protected FrontendPrepareHandler prepareHandler;
+	protected LoadDataInfileHandler loadDataInfileHandler;
 	protected boolean isAccepted;
 	protected boolean isAuthenticated;
 
@@ -127,6 +128,16 @@ public abstract class FrontendConnection extends AbstractConnection {
 		super.setProcessor(processor);
 		processor.addFrontend(this);
 
+	}
+
+	public LoadDataInfileHandler getLoadDataInfileHandler()
+	{
+		return loadDataInfileHandler;
+	}
+
+	public void setLoadDataInfileHandler(LoadDataInfileHandler loadDataInfileHandler)
+	{
+		this.loadDataInfileHandler = loadDataInfileHandler;
 	}
 
 	public void setQueryHandler(FrontendQueryHandler queryHandler) {
@@ -220,6 +231,64 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 	}
 
+
+	public void loadDataInfileStart(String sql)
+	{
+		if(loadDataInfileHandler!=null)
+		{
+			try
+		  {
+			loadDataInfileHandler.start(sql);
+		   }  catch (Exception e)
+			{
+				LOGGER.error("load data error",e);
+				writeErrMessage(ErrorCode.ERR_HANDLE_DATA,
+						e.getMessage());
+			}
+
+		}   else {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
+					"load data infile sql is not  unsupported!");
+		}
+
+	}
+	public void loadDataInfileData(byte[] data)
+	{
+		if(loadDataInfileHandler!=null)
+		{  	try
+		{
+			loadDataInfileHandler.handle(data);
+		}  catch (Exception e)
+		{
+			LOGGER.error("load data error", e);
+			writeErrMessage(ErrorCode.ERR_HANDLE_DATA,
+					e.getMessage());
+		}
+		}   else {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
+					"load data infile  data is not  unsupported!");
+		}
+
+	}
+	public void loadDataInfileEnd(byte packID)
+	{
+		if(loadDataInfileHandler!=null)
+		{
+			try
+		{
+			loadDataInfileHandler.end(packID);
+		}  catch (Exception e)
+		{
+			LOGGER.error("load data error",e);
+			writeErrMessage(ErrorCode.ERR_HANDLE_DATA,
+					e.getMessage());
+		}
+		}   else {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
+					"load data infile end is not  unsupported!");
+		}
+
+	}
 	public void query(byte[] data) {
 		if (queryHandler != null) {
 			// 取得语句
@@ -348,7 +417,37 @@ public abstract class FrontendConnection extends AbstractConnection {
 
 	@Override
 	public void handle(final byte[] data) {
-		if (data[4] == MySQLPacket.COM_QUIT) {
+
+
+		if(isSupportCompress())
+		{
+			List<byte[]> packs= CompressUtil.decompressMysqlPacket(data,decompressUnfinishedDataQueue);
+
+			for (byte[] pack : packs)
+			{
+				if(pack.length != 0)
+
+				rawHandle(pack);
+			}
+		}   else
+		{
+			rawHandle(data);
+		}
+
+
+	}
+
+
+	public void rawHandle(final byte[] data) {
+
+		//load data infile  客户端会发空包 长度为4
+		if(data.length==4&&data[0]==0&&data[1]==0&&data[2]==0)
+		{
+			//load in data空包
+			loadDataInfileEnd(data[3]);
+			return;
+		}
+		if (data.length>4&&data[4] == MySQLPacket.COM_QUIT) {
 			this.getProcessor().getCommands().doQuit();
 			this.close("quit cmd");
 			return;
@@ -364,9 +463,13 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_LONG_FLAG;
 		flag |= Capabilities.CLIENT_CONNECT_WITH_DB;
 		// flag |= Capabilities.CLIENT_NO_SCHEMA;
-		// flag |= Capabilities.CLIENT_COMPRESS;
+		boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUseCompression()==1 ;
+		if(usingCompress)
+		{
+			flag |= Capabilities.CLIENT_COMPRESS;
+		}
 		flag |= Capabilities.CLIENT_ODBC;
-		// flag |= Capabilities.CLIENT_LOCAL_FILES;
+		 flag |= Capabilities.CLIENT_LOCAL_FILES;
 		flag |= Capabilities.CLIENT_IGNORE_SPACE;
 		flag |= Capabilities.CLIENT_PROTOCOL_41;
 		flag |= Capabilities.CLIENT_INTERACTIVE;

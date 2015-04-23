@@ -23,15 +23,6 @@
  */
 package org.opencloudb.jdbc;
 
-import org.opencloudb.config.Fields;
-import org.opencloudb.mysql.PacketUtil;
-import org.opencloudb.net.mysql.EOFPacket;
-import org.opencloudb.net.mysql.FieldPacket;
-import org.opencloudb.net.mysql.ResultSetHeaderPacket;
-import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.server.ServerConnection;
-import org.opencloudb.util.StringUtil;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,12 +31,24 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.Logger;
+import org.opencloudb.backend.BackendConnection;
+import org.opencloudb.config.Fields;
+import org.opencloudb.mysql.PacketUtil;
+import org.opencloudb.net.mysql.EOFPacket;
+import org.opencloudb.net.mysql.FieldPacket;
+import org.opencloudb.net.mysql.ResultSetHeaderPacket;
+import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.server.NonBlockingSession;
+import org.opencloudb.server.ServerConnection;
+import org.opencloudb.util.StringUtil;
+
 /**
  * @author mycat
  */
 public final class ShowVariables
 {
-
+    private static final Logger LOGGER = Logger.getLogger(ShowVariables.class);
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
@@ -183,4 +186,14 @@ public final class ShowVariables
         variables.put("wait_timeout", "172800");
     }
 
+     public static void execute(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
+        execute(sc, orgin);
+        NonBlockingSession session = sc.getSession2();
+        session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+    }
+     public static void justReturnValue(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
+    	 justReturnValue(sc, orgin);
+         NonBlockingSession session = sc.getSession2();
+         session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+     }
 }

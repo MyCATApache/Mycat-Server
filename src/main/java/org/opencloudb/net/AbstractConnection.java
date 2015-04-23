@@ -27,11 +27,13 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.NetworkChannel;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.mysql.CharsetUtil;
+import org.opencloudb.util.CompressUtil;
 import org.opencloudb.util.TimeUtil;
 
 /**
@@ -65,6 +67,9 @@ public abstract class AbstractConnection implements NIOConnection {
 	protected long netInBytes;
 	protected long netOutBytes;
 	protected int writeAttempts;
+	protected volatile boolean isSupportCompress=false;
+    protected final ConcurrentLinkedQueue<byte[]> decompressUnfinishedDataQueue = new ConcurrentLinkedQueue<byte[]>();
+    protected final ConcurrentLinkedQueue<byte[]> compressUnfinishedDataQueue = new ConcurrentLinkedQueue<byte[]>();
 
 	private long idleTimeout;
 
@@ -99,6 +104,18 @@ public abstract class AbstractConnection implements NIOConnection {
 		}
 	}
 
+
+
+
+    public boolean isSupportCompress()
+	{
+		return isSupportCompress;
+	}
+
+	public void setSupportCompress(boolean isSupportCompress)
+	{
+		this.isSupportCompress = isSupportCompress;
+	}
 	public int getCharsetIndex() {
 		return charsetIndex;
 	}
@@ -225,7 +242,19 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	@Override
 	public void handle(byte[] data) {
-		handler.handle(data);
+        if(isSupportCompress())
+        {
+            List<byte[]> packs= CompressUtil.decompressMysqlPacket(data,decompressUnfinishedDataQueue);
+
+            for (byte[] pack : packs)
+            {
+				if(pack.length != 0)
+                handler.handle(pack);
+            }
+        }   else
+        {
+            handler.handle(data);
+        }
 	}
 
 	@Override
@@ -327,12 +356,29 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	private final void writeNotSend(ByteBuffer buffer) {
-		writeQueue.offer(buffer);
+        if(isSupportCompress())
+        {
+            ByteBuffer     newBuffer= CompressUtil.compressMysqlPacket(buffer,this,compressUnfinishedDataQueue);
+            writeQueue.offer(newBuffer);
+        }   else
+        {
+            writeQueue.offer(buffer);
+        }
 	}
 
-	@Override
+
+    @Override
 	public final void write(ByteBuffer buffer) {
-		writeQueue.offer(buffer);
+        if(isSupportCompress())
+        {
+            ByteBuffer     newBuffer= CompressUtil.compressMysqlPacket(buffer,this,compressUnfinishedDataQueue);
+            writeQueue.offer(newBuffer);
+
+        }   else
+        {
+            writeQueue.offer(buffer);
+        }
+
 		// if ansyn write finishe event got lock before me ,then writing
 		// flag is set false but not start a write request
 		// so we check again
@@ -395,6 +441,7 @@ public abstract class AbstractConnection implements NIOConnection {
 				processor.removeConnection(this);
 			}
 			this.cleanup();
+			isSupportCompress=false;
 			LOGGER.info("close connection,reason:" + reason + " ," + this);
 			if (reason.contains("connection,reason:java.net.ConnectException")) {
 				throw new RuntimeException(" errr");
@@ -419,7 +466,6 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	protected void cleanup() {
 
-		// 鍥炴敹鎺ユ敹缂撳瓨
 		if (readBuffer != null) {
 			recycle(readBuffer);
 			this.readBuffer = null;
@@ -429,7 +475,14 @@ public abstract class AbstractConnection implements NIOConnection {
 			recycle(writeBuffer);
 			this.writeBuffer = null;
 		}
-
+        if(!decompressUnfinishedDataQueue.isEmpty())
+        {
+            decompressUnfinishedDataQueue.clear();
+        }
+        if(!compressUnfinishedDataQueue.isEmpty())
+        {
+            compressUnfinishedDataQueue.clear();
+        }
 		ByteBuffer buffer = null;
 		while ((buffer = writeQueue.poll()) != null) {
 			recycle(buffer);
@@ -437,14 +490,25 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	protected final int getPacketLength(ByteBuffer buffer, int offset) {
-		if (buffer.position() < offset + packetHeaderSize) {
+     int   headerSize  =getPacketHeaderSize();
+        if(isSupportCompress())
+        {
+           headerSize=7;
+        }
+
+
+		if (buffer.position() < offset + headerSize) {
 			return -1;
 		} else {
 
 			int length = buffer.get(offset) & 0xff;
 			length |= (buffer.get(++offset) & 0xff) << 8;
 			length |= (buffer.get(++offset) & 0xff) << 16;
-			return length + packetHeaderSize;
+//           if( buffer.position()==length+4 )
+//           {
+//                return   length+4;
+//           }
+			return length + headerSize;
 		}
 	}
 
@@ -458,7 +522,8 @@ public abstract class AbstractConnection implements NIOConnection {
 			boolean isSocketClosed = true;
 			try {
 				channel.close();
-			} catch (Throwable e) {
+			} catch (Exception e) {
+		         LOGGER.error("AbstractConnectionCloseError", e);
 			}
 			boolean closed = isSocketClosed && (!channel.isOpen());
 			if (closed == false) {

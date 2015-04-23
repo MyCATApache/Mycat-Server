@@ -2,11 +2,12 @@ package org.opencloudb.route.factory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.opencloudb.MycatServer;
 import org.opencloudb.route.RouteStrategy;
 import org.opencloudb.route.impl.DruidMycatRouteStrategy;
-import org.opencloudb.route.impl.FdbRouteStrategy;
 
 /**
  * 路由策略工厂类
@@ -16,19 +17,21 @@ import org.opencloudb.route.impl.FdbRouteStrategy;
 public class RouteStrategyFactory {
 	private static RouteStrategy defaultStrategy = null;
 	private static boolean isInit = false;
-	private static Map<String,RouteStrategy> strategyMap = new HashMap<String,RouteStrategy>();
+	private static ConcurrentMap<String,RouteStrategy> strategyMap = new ConcurrentHashMap<String,RouteStrategy>();
+	
+	private RouteStrategyFactory() {
+	    
+	}
 	
 	private static void init() {
 		String defaultSqlParser = MycatServer.getInstance().getConfig().getSystem().getDefaultSqlParser();
 		defaultSqlParser = defaultSqlParser == null ? "" : defaultSqlParser;
-		
-		strategyMap.put("fdbparser", new FdbRouteStrategy());
-		
-		strategyMap.put("druidparser", new DruidMycatRouteStrategy());
-		
+		//修改为ConcurrentHashMap，避免并发问题
+		strategyMap.putIfAbsent("druidparser", new DruidMycatRouteStrategy());
+
 		defaultStrategy = strategyMap.get(defaultSqlParser);
 		if(defaultStrategy == null) {
-			defaultStrategy = strategyMap.get("fdbparser");
+			defaultStrategy = strategyMap.get("druidparser");
 		}
 	}
 	public static RouteStrategy getRouteStrategy() {

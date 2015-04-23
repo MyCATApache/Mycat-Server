@@ -23,6 +23,10 @@
  */
 package org.opencloudb.util;
 
+import org.opencloudb.mpp.LoadData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Random;
@@ -31,6 +35,7 @@ import java.util.Random;
  * @author mycat
  */
 public class StringUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger(StringUtil.class);
 	private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 	private static final Random RANDOM = new Random();
 	private static final char[] CHARS = { '1', '2', '3', '4', '5', '6', '7',
@@ -101,7 +106,8 @@ public class StringUtil {
 	public static String safeToString(Object object) {
 		try {
 			return object.toString();
-		} catch (Throwable t) {
+		} catch (Exception t) {
+		    LOGGER.error("safeToStringError", t);
 			return "<toString() failure: " + t + ">";
 		}
 	}
@@ -456,7 +462,16 @@ public class StringUtil {
 	 * @param sql
 	 * @return
 	 */
-	public static String getTableName(String sql) {
+	public static String getTableName(String oriSql) {
+        //此处应该优化为去掉sql中的注释，或兼容注释
+        String sql=null;
+        if(oriSql.startsWith(LoadData.loadDataHint))
+        {
+           sql=oriSql.substring(LoadData.loadDataHint.length()) ;
+        } else
+        {
+            sql=oriSql;
+        }
 		int pos = 0;
 		boolean insertFound = false;
 		boolean intoFound = false;
@@ -464,7 +479,16 @@ public class StringUtil {
 		int tableEndIndex = -1;
 		while (pos < sql.length()) {
 			char ch = sql.charAt(pos);
-			if (ch <= ' ' || ch == '(' || ch=='`') {//
+			// 忽略处理注释 /* */ BEN
+			if(ch == '/' &&  pos+4 < sql.length() && sql.charAt(pos+1) == '*') {
+				if(sql.substring(pos+2).indexOf("*/") != -1) {
+					pos += sql.substring(pos+2).indexOf("*/")+4;
+					continue;
+				} else {
+					// 不应该发生这类情况。
+					throw new IllegalArgumentException("sql 注释 语法错误");
+				}
+			} else if (ch <= ' ' || ch == '(' || ch=='`') {//
 				if (tableStartIndx > 0) {
 					tableEndIndex = pos;
 					break;
@@ -479,12 +503,22 @@ public class StringUtil {
 					}
 					pos++;
 				} else if (insertFound) {// into start
-					pos = pos + 5;
-					intoFound = true;
+					// 必须全部都为INTO才认为是into
+					if(pos+5 < sql.length() && (sql.charAt(pos+1) == 'n' || sql.charAt(pos+1) == 'N') && (sql.charAt(pos+2) == 't' || sql.charAt(pos+2) == 'T') && (sql.charAt(pos+3) == 'o' || sql.charAt(pos+3) == 'O') && (sql.charAt(pos+4) == ' ')) {
+						pos = pos + 5;
+						intoFound = true;
+					} else {
+						pos++;
+					}
 				} else {
+					// 矫正必须全部都为 INSERT才认为是insert
 					// insert start
-					pos = pos + 7;
-					insertFound = true;
+					if(pos+7 < sql.length() && (sql.charAt(pos+1) == 'n' || sql.charAt(pos+1) == 'N') && (sql.charAt(pos+2) == 's' || sql.charAt(pos+2) == 'S')  && (sql.charAt(pos+3) == 'e' || sql.charAt(pos+3) == 'E') && (sql.charAt(pos+4) == 'r' || sql.charAt(pos+4) == 'R')  && (sql.charAt(pos+5) == 't' || sql.charAt(pos+5) == 'T') && (sql.charAt(pos+6) == ' ')) {
+						pos = pos + 7;
+						insertFound = true;
+					} else {
+						pos++;
+					}
 				}
 			} else {
 				if (tableStartIndx == -1) {
@@ -503,7 +537,7 @@ public class StringUtil {
 		System.out.println(getTableName("  insert  into    ssd(id) values (s)"));
 		System.out.println(getTableName("  insert  into    isd(id) values (s)"));
 		System.out.println(getTableName("INSERT INTO test_activity_input  (id,vip_no"));
-		System.out.println(getTableName("INSERT INTO `test_activity_input`  (id,vip_no"));
+		System.out.println(getTableName("/* ApplicationName=DBeaver 3.3.1 - Main connection */ insert into employee(id,name,sharding_id) values(4,’myhome’,10011)"));
 		
 	}
 

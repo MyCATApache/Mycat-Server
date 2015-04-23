@@ -8,11 +8,11 @@ public class ConQueue {
 	private final ConcurrentLinkedQueue<BackendConnection> manCommitCons = new ConcurrentLinkedQueue<BackendConnection>();
 	private long executeCount;
 
-	public BackendConnection takeIdleCon(ConnectionMeta conMeta) {
+	public BackendConnection takeIdleCon(boolean autoCommit) {
 		ConcurrentLinkedQueue<BackendConnection> f1 = autoCommitCons;
 		ConcurrentLinkedQueue<BackendConnection> f2 = manCommitCons;
 
-		if (!conMeta.isAutocommit()) {
+		if (!autoCommit) {
 			f1 = manCommitCons;
 			f2 = autoCommitCons;
 

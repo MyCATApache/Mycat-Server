@@ -224,7 +224,25 @@ public abstract class PostgresPacket {
      */
     public static final byte TERMINATE = (byte) 'X';
 
-    public byte type;
-    public int length;
+    private byte             type;
+    private int              length;
+    
+    public byte getType() {
+        return type;
+    }
+    
+    public void setType(byte type) {
+        this.type = type;
+    }
+    
+    public int getLength() {
+        return length;
+    }
+    
+    public void setLength(int length) {
+        this.length = length;
+    }
+    
+    
 
 }

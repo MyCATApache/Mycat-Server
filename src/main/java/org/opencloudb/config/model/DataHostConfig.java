@@ -34,6 +34,9 @@ import org.opencloudb.backend.PhysicalDBPool;
  * 
  */
 public class DataHostConfig {
+	public static final int NOT_SWITCH_DS = -1;
+	public static final int DEFAULT_SWITCH_DS = 1;
+	public static final int SYN_STATUS_SWITCH_DS = 2;
 	private String name;
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;
@@ -45,17 +48,32 @@ public class DataHostConfig {
 	private final Map<Integer, DBHostConfig[]> readHosts;
 	private String hearbeatSQL;
 	private String connectionInitSql;
+    private int slaveThreshold = -1;
+	private final int switchType;
 
 	public DataHostConfig(String name, String dbType, String dbDriver,
-			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts) {
+			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold) {
 		super();
 		this.name = name;
 		this.dbType = dbType;
 		this.dbDriver = dbDriver;
 		this.writeHosts = writeHosts;
 		this.readHosts = readHosts;
+		this.switchType=switchType;
+		this.slaveThreshold=slaveThreshold;
 	}
 
+	public int getSlaveThreshold() {
+		return slaveThreshold;
+	}
+
+	public void setSlaveThreshold(int slaveThreshold) {
+		this.slaveThreshold = slaveThreshold;
+	}
+
+	public int getSwitchType() {
+		return switchType;
+	}
 	public String getConnectionInitSql()
 	{
 		return connectionInitSql;

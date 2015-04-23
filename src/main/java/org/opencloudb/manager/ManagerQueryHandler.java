@@ -45,18 +45,18 @@ import org.opencloudb.response.Online;
  * @author mycat
  */
 public class ManagerQueryHandler implements FrontendQueryHandler {
-    private static final Logger LOGGER = Logger.getLogger(ManagerQueryHandler.class);
-
-	private final ManagerConnection source;
-	protected Boolean readOnly;
-
-	public void setReadOnly(Boolean readOnly) {
-		this.readOnly = readOnly;
-	}
+    private static final Logger     LOGGER = Logger.getLogger(ManagerQueryHandler.class);
+    private static final int        SHIFT  = 8;
+    private final ManagerConnection source;
+    protected Boolean               readOnly;
 
 	public ManagerQueryHandler(ManagerConnection source) {
 		this.source = source;
 	}
+	
+	public void setReadOnly(Boolean readOnly) {
+        this.readOnly = readOnly;
+    }
 
     @Override
     public void query(String sql) {
@@ -66,47 +66,47 @@ public class ManagerQueryHandler implements FrontendQueryHandler {
         }
         int rs = ManagerParse.parse(sql);
         switch (rs & 0xff) {
-        case ManagerParse.SELECT:
-            SelectHandler.handle(sql, c, rs >>> 8);
-            break;
-        case ManagerParse.SET:
-            c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
-            break;
-        case ManagerParse.SHOW:
-            ShowHandler.handle(sql, c, rs >>> 8);
-            break;
-        case ManagerParse.SWITCH:
-            SwitchHandler.handler(sql, c, rs >>> 8);
-            break;
-        case ManagerParse.KILL_CONN:
-            KillConnection.response(sql, rs >>> 8, c);
-            break;
-        case ManagerParse.OFFLINE:
-            Offline.execute(sql, c);
-            break;
-        case ManagerParse.ONLINE:
-            Online.execute(sql, c);
-            break;
-        case ManagerParse.STOP:
-            StopHandler.handle(sql, c, rs >>> 8);
-            break;
-        case ManagerParse.RELOAD:
-            ReloadHandler.handle(sql, c, rs >>> 8);
-            break;
-        case ManagerParse.ROLLBACK:
-            RollbackHandler.handle(sql, c, rs >>> 8);
-            break;
-        case ManagerParse.CLEAR:
-            ClearHandler.handle(sql, c, rs >>> 8);
-            break;
-        case ManagerParse.CONFIGFILE:
-           ConfFileHandler.handle(sql, c);
-            break;
-        case ManagerParse.LOGFILE:
-            ShowServerLog.handle(sql, c);
-             break;
-        default:
-            c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+            case ManagerParse.SELECT:
+                SelectHandler.handle(sql, c, rs >>> SHIFT);
+                break;
+            case ManagerParse.SET:
+                c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+                break;
+            case ManagerParse.SHOW:
+                ShowHandler.handle(sql, c, rs >>> SHIFT);
+                break;
+            case ManagerParse.SWITCH:
+                SwitchHandler.handler(sql, c, rs >>> SHIFT);
+                break;
+            case ManagerParse.KILL_CONN:
+                KillConnection.response(sql, rs >>> SHIFT, c);
+                break;
+            case ManagerParse.OFFLINE:
+                Offline.execute(sql, c);
+                break;
+            case ManagerParse.ONLINE:
+                Online.execute(sql, c);
+                break;
+            case ManagerParse.STOP:
+                StopHandler.handle(sql, c, rs >>> SHIFT);
+                break;
+            case ManagerParse.RELOAD:
+                ReloadHandler.handle(sql, c, rs >>> SHIFT);
+                break;
+            case ManagerParse.ROLLBACK:
+                RollbackHandler.handle(sql, c, rs >>> SHIFT);
+                break;
+            case ManagerParse.CLEAR:
+                ClearHandler.handle(sql, c, rs >>> SHIFT);
+                break;
+            case ManagerParse.CONFIGFILE:
+                ConfFileHandler.handle(sql, c);
+                break;
+            case ManagerParse.LOGFILE:
+                ShowServerLog.handle(sql, c);
+                break;
+            default:
+                c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
         }
     }
 

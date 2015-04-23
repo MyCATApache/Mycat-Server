@@ -24,6 +24,7 @@
 package org.opencloudb.config.model;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.opencloudb.config.Isolations;
 
@@ -111,6 +112,7 @@ public final class SystemConfig {
 	private int packetHeaderSize = 4;
 	private int maxPacketSize = 16 * 1024 * 1024;
 	private int mycatNodeId=1;
+	private int useCompression =0;
 
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
@@ -220,7 +222,41 @@ public final class SystemConfig {
 				System.setProperty(SystemConfig.SYS_HOME, home);
 			}
 		}
+		
+		// MYCAT_HOME为空，默认尝试设置为当前目录或上级目录。BEN
+		if(home == null) {
+			try {
+				String path = new File("..").getCanonicalPath().replaceAll("\\\\", "/");
+				File conf = new File(path+"/conf");
+				if(conf.exists() && conf.isDirectory()) {
+					home = path;
+				} else {
+					path = new File(".").getCanonicalPath().replaceAll("\\\\", "/");
+					conf = new File(path+"/conf");
+					if(conf.exists() && conf.isDirectory()) {
+						home = path;
+					} 
+				}
+				
+				if (home != null) {
+					System.setProperty(SystemConfig.SYS_HOME, home);
+				}
+			} catch (IOException e) {
+				// 如出错，则忽略。
+			}
+		}
+		
 		return home;
+	}
+
+	public int getUseCompression()
+	{
+		return useCompression;
+	}
+
+	public void setUseCompression(int useCompression)
+	{
+		this.useCompression = useCompression;
 	}
 
 	public String getCharset() {
