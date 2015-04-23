@@ -214,10 +214,12 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 		byte[] columnData = rowDataPkg.fieldValues.get(0);
 		String columnVal = new String(columnData);
 		SequenceVal seqVal = (SequenceVal) conn.getAttachment();
-		seqVal.dbretVal = seqVal.dbretVal = columnVal;
 		if (IncrSequenceMySQLHandler.errSeqResult.equals(columnVal)) {
+			seqVal.dbretVal=IncrSequenceMySQLHandler.errSeqResult;
 			LOGGER.warn(" sequnce sql returned err value ,sequence:"
 					+ seqVal.seqName + " " + columnVal + " sql:" + seqVal.sql);
+		}else{
+			seqVal.dbretVal = columnVal;
 		}
 
 	}

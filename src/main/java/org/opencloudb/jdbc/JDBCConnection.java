@@ -12,6 +12,7 @@ import java.util.*;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
+import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.ErrorPacket;
@@ -220,7 +221,7 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	private void executeSQL(RouteResultsetNode rrn, ServerConnection sc,
-			boolean autocommit) throws IOException {
+							boolean autocommit) throws IOException {
 		String orgin = rrn.getStatement();
 		// String sql = rrn.getStatement().toLowerCase();
 		// LOGGER.info("JDBC SQL:"+orgin+"|"+sc.toString());
@@ -244,8 +245,8 @@ public class JDBCConnection implements BackendConnection {
 					//ShowVariables.execute(sc, orgin);
 					ShowVariables.execute(sc, orgin,this);
 				} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
-					ShowVariables.justReturnValue(sc,
-							String.valueOf(sc.getId()));
+					//ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
+					ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()),this);
 				} else {
 					ouputResultSet(sc, orgin);
 				}
@@ -261,7 +262,16 @@ public class JDBCConnection implements BackendConnection {
 			error.errno = e.getErrorCode();
 			error.message = msg.getBytes();
 			this.respHandler.errorResponse(error.writeToBytes(sc), this);
-		} finally {
+		}
+		catch (Exception e) {
+			String msg = e.getMessage();
+			ErrorPacket error = new ErrorPacket();
+			error.packetId = ++packetId;
+			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
+			error.message = msg.getBytes();
+			this.respHandler.errorResponse(error.writeToBytes(sc), this);
+		}
+		finally {
 			this.running = false;
 		}
 
@@ -409,7 +419,7 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public void execute(final RouteResultsetNode node,
-			final ServerConnection source, final boolean autocommit)
+						final ServerConnection source, final boolean autocommit)
 			throws IOException {
 		Runnable runnable = new Runnable() {
 			@Override

@@ -23,8 +23,7 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
@@ -44,7 +43,7 @@ import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
-import org.opencloudb.util.SplitUtil;
+
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -264,7 +263,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				}
 			}
 			if (dataMergeSvr != null) {
-				dataMergeSvr.outputMergeResult(session, eof);
+				try
+				{
+					dataMergeSvr.outputMergeResult(session, eof);
+				} catch (Exception e)
+				{
+					handleDataProcessException(e);
+				}
+
 
 			} else {
 				try {
