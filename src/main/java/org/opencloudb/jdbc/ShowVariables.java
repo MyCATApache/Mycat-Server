@@ -79,7 +79,7 @@ public final class ShowVariables
         }
         return variableList;
     }
-    public static void execute(ServerConnection c, String sql) {
+    private static void execute(ServerConnection c, String sql) {
         ByteBuffer buffer = c.allocate();
 
         // write header
@@ -119,7 +119,7 @@ public final class ShowVariables
         c.write(buffer);
     }
 
-    public static void justReturnValue(ServerConnection c, String value) {
+    public static void justReturnValue(ServerConnection c, String value, BackendConnection jdbcConnection) {
         ByteBuffer buffer = c.allocate();
 
         // write header
@@ -156,6 +156,10 @@ public final class ShowVariables
 
         // write buffer
         c.write(buffer);
+
+        NonBlockingSession session = c.getSession2();
+        session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(),
+                false);
     }
 
     private static RowDataPacket getRow(String name, String value, String charset) {
