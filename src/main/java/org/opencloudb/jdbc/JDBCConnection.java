@@ -221,8 +221,10 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	private void executeSQL(RouteResultsetNode rrn, ServerConnection sc,
-			boolean autocommit) throws IOException {
+							boolean autocommit) throws IOException {
 		String orgin = rrn.getStatement();
+		// String sql = rrn.getStatement().toLowerCase();
+		// LOGGER.info("JDBC SQL:"+orgin+"|"+sc.toString());
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
@@ -236,12 +238,15 @@ public class JDBCConnection implements BackendConnection {
 				con.setAutoCommit(autocommit);
 			}
 			int sqlType = rrn.getSqlType();
+
 			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
 				if ((sqlType == ServerParse.SHOW) && (!dbType.equals("MYSQL"))) {
+					// showCMD(sc, orgin);
+					//ShowVariables.execute(sc, orgin);
 					ShowVariables.execute(sc, orgin,this);
 				} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
-					ShowVariables.justReturnValue(sc,
-							String.valueOf(sc.getId()),this);
+					//ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
+					ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()),this);
 				} else {
 					ouputResultSet(sc, orgin);
 				}
@@ -414,7 +419,7 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public void execute(final RouteResultsetNode node,
-			final ServerConnection source, final boolean autocommit)
+						final ServerConnection source, final boolean autocommit)
 			throws IOException {
 		Runnable runnable = new Runnable() {
 			@Override
