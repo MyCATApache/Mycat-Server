@@ -28,6 +28,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.opencloudb.statistic.HeartbeatRecorder;
 
 public abstract class DBHeartbeat {
+	public static final int DB_SYN_ERROR = -1;
+	public static final int DB_SYN_NORMAL = 1;
+
 	public static final int OK_STATUS = 1;
 	public static final int ERROR_STATUS = -1;
 	public static final int TIMEOUT_STATUS = -2;
@@ -43,6 +46,25 @@ public abstract class DBHeartbeat {
 	protected int errorCount;
 	protected volatile int status;
 	protected final HeartbeatRecorder recorder = new HeartbeatRecorder();
+
+	private volatile Integer slaveBehindMaster;
+	private volatile int dbSynStatus = DB_SYN_NORMAL;
+
+	public Integer getSlaveBehindMaster() {
+		return slaveBehindMaster;
+	}
+
+	public int getDbSynStatus() {
+		return dbSynStatus;
+	}
+
+	public void setDbSynStatus(int dbSynStatus) {
+		this.dbSynStatus = dbSynStatus;
+	}
+
+	public void setSlaveBehindMaster(Integer slaveBehindMaster) {
+		this.slaveBehindMaster = slaveBehindMaster;
+	}
 
 	public int getStatus() {
 		return status;

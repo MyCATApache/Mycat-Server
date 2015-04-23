@@ -185,7 +185,7 @@ public class ConfigInitializer {
 					dbType, dbDriver, entry.getValue(), true);
 			readSourcesMap.put(entry.getKey(), readSources);
 		}
-		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(), writeSources,
+		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(),conf, writeSources,
 				readSourcesMap, conf.getBalance(), conf.getWriteType());
 		return pool;
 	}
