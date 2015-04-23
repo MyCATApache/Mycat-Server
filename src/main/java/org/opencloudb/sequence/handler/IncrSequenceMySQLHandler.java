@@ -14,7 +14,6 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.ErrorPacket;
@@ -82,8 +81,6 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 		for (Map.Entry<Object, Object> entry : props.entrySet()) {
 			String seqName = (String) entry.getKey();
 			String dataNode = (String) entry.getValue();
-			SequenceVal seqVal = new SequenceVal(seqName, dataNode);
-			seqValueMap.put(seqName, seqVal);
 			if(!seqValueMap.containsKey(seqName)){
 				seqValueMap.put(seqName, new SequenceVal(seqName, dataNode));
 			}else{
@@ -166,6 +163,7 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 		} catch (Exception e) {
 			LOGGER.warn("get connection err " + e);
 		}
+
 	}
 
 	@Override
