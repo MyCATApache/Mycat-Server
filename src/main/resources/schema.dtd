@@ -52,6 +52,8 @@
   name NMTOKEN #REQUIRED
   balance CDATA #REQUIRED
   writeType CDATA #IMPLIED
+  switchType  CDATA #IMPLIED
+  slaveThreshold  CDATA #IMPLIED
   dbType CDATA #REQUIRED
   dbDriver CDATA #REQUIRED>
 
