@@ -99,7 +99,7 @@ public final class ShowVariables
         List<String> variableList= parseVariable(sql);
         for (String key : variableList)
         {
-            String value=  variables.get(key)  ;
+          String value=  variables.get(key)  ;
             if(value!=null)
             {
                 RowDataPacket row = getRow(key, value, c.getCharset());
@@ -138,14 +138,14 @@ public final class ShowVariables
 
 
 
-        if(value!=null)
-        {
+            if(value!=null)
+            {
 
-            RowDataPacket row = new RowDataPacket(1);
-            row.add(StringUtil.encode(value, c.getCharset()));
-            row.packetId = ++packetId;
-            buffer = row.write(buffer, c,true);
-        }
+                RowDataPacket row = new RowDataPacket(1);
+                row.add(StringUtil.encode(value, c.getCharset()));
+                row.packetId = ++packetId;
+                buffer = row.write(buffer, c,true);
+            }
 
 
 
@@ -185,15 +185,15 @@ public final class ShowVariables
         variables.put("tx_isolation", "REPEATABLE-READ");
         variables.put("wait_timeout", "172800");
     }
-
-    public static void execute(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
+    
+     public static void execute(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
         execute(sc, orgin);
         NonBlockingSession session = sc.getSession2();
         session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
     }
-    public static void justReturnValue(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
-        justReturnValue(sc, orgin);
-        NonBlockingSession session = sc.getSession2();
-        session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
-    }
+     public static void justReturnValue(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
+    	 justReturnValue(sc, orgin);
+         NonBlockingSession session = sc.getSession2();
+         session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+     }
 }
