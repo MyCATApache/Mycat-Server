@@ -24,9 +24,10 @@ import org.opencloudb.server.parser.ServerParse;
 
 public class IncrSequenceMySQLHandler implements SequenceHandler {
 
-	protected static final Logger LOGGER = Logger.getLogger(IncrSequenceMySQLHandler.class);
-	
-	private static final String SEQUENCE_DB_PROPS="sequence_db_conf.properties";
+	protected static final Logger LOGGER = Logger
+			.getLogger(IncrSequenceMySQLHandler.class);
+
+	private static final String SEQUENCE_DB_PROPS = "sequence_db_conf.properties";
 	protected static final String errSeqResult = "-999999999,null";
 	private final FetchMySQLSequnceHandler mysqlSeqFetcher = new FetchMySQLSequnceHandler();
 
@@ -41,19 +42,21 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 	public IncrSequenceMySQLHandler() {
 		load();
 	}
-	
-	
-	public void load(){
+
+	public void load() {
 		// load sequnce properties
-		Properties props=loadProps(SEQUENCE_DB_PROPS);
+		Properties props = loadProps(SEQUENCE_DB_PROPS);
 		removeDesertedSequenceVals(props);
 		putNewSequenceVals(props);
 	}
-	private Properties loadProps(String propsFile){
+
+	private Properties loadProps(String propsFile) {
 		Properties props = new Properties();
-		InputStream inp = Thread.currentThread().getContextClassLoader().getResourceAsStream(propsFile);
+		InputStream inp = Thread.currentThread().getContextClassLoader()
+				.getResourceAsStream(propsFile);
 		if (inp == null) {
-			throw new java.lang.RuntimeException("db sequnce properties not found " + propsFile);
+			throw new java.lang.RuntimeException(
+					"db sequnce properties not found " + propsFile);
 		}
 		try {
 			props.load(inp);
@@ -62,20 +65,23 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 		}
 		return props;
 	}
-	private void removeDesertedSequenceVals(Properties props){
-		Iterator<Map.Entry<String, SequnceVal>> i=seqValueMap.entrySet().iterator();
-		while(i.hasNext()){
-			Map.Entry<String, SequnceVal> entry=i.next();
-			if(!props.containsKey(entry.getKey())){
+
+	private void removeDesertedSequenceVals(Properties props) {
+		Iterator<Map.Entry<String, SequnceVal>> i = seqValueMap.entrySet()
+				.iterator();
+		while (i.hasNext()) {
+			Map.Entry<String, SequnceVal> entry = i.next();
+			if (!props.containsKey(entry.getKey())) {
 				i.remove();
 			}
 		}
 	}
-	private void putNewSequenceVals(Properties props){
+
+	private void putNewSequenceVals(Properties props) {
 		for (Map.Entry<Object, Object> entry : props.entrySet()) {
 			String seqName = (String) entry.getKey();
 			String dataNode = (String) entry.getValue();
-			if(!seqValueMap.containsKey(seqName)){
+			if (!seqValueMap.containsKey(seqName)) {
 				seqValueMap.put(seqName, new SequnceVal(seqName, dataNode));
 			}
 		}
@@ -143,17 +149,15 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 	public void execute(SequnceVal seqVal) {
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		PhysicalDBNode mysqlDN = conf.getDataNodes().get(seqVal.dataNode);
-		ConnectionMeta conMeta = new ConnectionMeta(mysqlDN.getDatabase(),
-				null, -1, true);
 		try {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("execute in datanode " + seqVal.dataNode
 						+ " for fetch sequnce sql " + seqVal.sql);
 			}
 			// 修正获取seq的逻辑，在读写分离的情况下只能走写节点。修改Select模式为Update模式。
-			mysqlDN.getConnection(conMeta, new RouteResultsetNode(
-					seqVal.dataNode, ServerParse.UPDATE, seqVal.sql), this,
-					seqVal);
+			mysqlDN.getConnection(mysqlDN.getDatabase(), true,
+					new RouteResultsetNode(seqVal.dataNode, ServerParse.UPDATE,
+							seqVal.sql), this, seqVal);
 		} catch (Exception e) {
 			LOGGER.warn("get connection err " + e);
 		}
@@ -162,7 +166,7 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 
 	@Override
 	public void connectionAcquired(BackendConnection conn) {
-		
+
 		conn.setResponseHandler(this);
 		try {
 			conn.query(((SequnceVal) conn.getAttachment()).sql);

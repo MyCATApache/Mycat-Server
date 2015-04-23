@@ -64,9 +64,6 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	}
 
 	public void connectionError(Throwable e) {
-		// connError = e;
-		// handleQueue();
-		dataQueue.clear();
 		if (responseHandler != null) {
 			responseHandler.connectionError(e, source);
 		}
@@ -84,7 +81,6 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 
 	@Override
 	protected void offerDataError() {
-		dataQueue.clear();
 		resultStatus = RESULT_STATUS_INIT;
 		throw new RuntimeException("offer data error!");
 	}
@@ -100,9 +96,9 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 			case ErrorPacket.FIELD_COUNT:
 				handleErrorPacket(data);
 				break;
-				case RequestFilePacket.FIELD_COUNT:
-                    handleRequestPacket(data);
-					break;
+			case RequestFilePacket.FIELD_COUNT:
+				handleRequestPacket(data);
+				break;
 			default:
 				resultStatus = RESULT_STATUS_HEADER;
 				header = data;
@@ -178,8 +174,9 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	 */
 	private void handleRequestPacket(byte[] data) {
 		ResponseHandler respHand = responseHandler;
-		if (respHand != null&&respHand instanceof LoadDataResponseHandler) {
-            ( (LoadDataResponseHandler)respHand).requestDataResponse(data, source);
+		if (respHand != null && respHand instanceof LoadDataResponseHandler) {
+			((LoadDataResponseHandler) respHand).requestDataResponse(data,
+					source);
 		} else {
 			closeNoHandler();
 		}

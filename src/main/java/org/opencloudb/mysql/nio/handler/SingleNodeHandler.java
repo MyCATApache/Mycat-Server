@@ -46,7 +46,8 @@ import org.opencloudb.util.StringUtil;
 /**
  * @author mycat
  */
-public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDataResponseHandler {
+public class SingleNodeHandler implements ResponseHandler, Terminatable,
+		LoadDataResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(SingleNodeHandler.class);
 	private final RouteResultsetNode node;
@@ -120,9 +121,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 
 			MycatConfig conf = MycatServer.getInstance().getConfig();
 			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
-			ConnectionMeta conMeta = new ConnectionMeta(dn.getDatabase(),
-					sc.getCharset(), sc.getCharsetIndex(), sc.isAutocommit());
-			dn.getConnection(conMeta, node, this, node);
+			dn.getConnection(dn.getDatabase(), sc.isAutocommit(), node, this,
+					node);
 		}
 
 	}
@@ -145,7 +145,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			conn.execute(node, session.getSource(), session.getSource()
 					.isAutocommit());
 		} catch (IOException e1) {
-			executeException(conn,e1);
+			executeException(conn, e1);
 			return;
 		}
 	}
@@ -162,7 +162,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
-		
+
 		endRunning();
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
@@ -204,13 +204,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
-			if(rrs.isLoadData())
-			{
-				byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
+			if (rrs.isLoadData()) {
+				byte lastPackId = source.getLoadDataInfileHandler()
+						.getLastPackId();
 				ok.packetId = ++lastPackId;// OK_PACKET
 				source.getLoadDataInfileHandler().clear();
-			}   else
-			{
+			} else {
 				ok.packetId = ++packetId;// OK_PACKET
 			}
 			ok.serverStatus = source.isAutocommit() ? 2 : 1;
@@ -292,13 +291,13 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 	public void clearResources() {
 
 	}
-    @Override
-    public void requestDataResponse(byte[] data, BackendConnection conn)
-    {
-        LoadDataUtil.requestFileDataResponse(data, conn);
-    }
 
-    @Override
+	@Override
+	public void requestDataResponse(byte[] data, BackendConnection conn) {
+		LoadDataUtil.requestFileDataResponse(data, conn);
+	}
+
+	@Override
 	public String toString() {
 		return "SingleNodeHandler [node=" + node + ", packetId=" + packetId
 				+ "]";

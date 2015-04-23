@@ -36,16 +36,13 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.mpp.MutiDataMergeService;
 import org.opencloudb.mysql.nio.handler.CommitNodeHandler;
 import org.opencloudb.mysql.nio.handler.KillConnectionHandler;
 import org.opencloudb.mysql.nio.handler.MultiNodeCoordinator;
 import org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler;
-import org.opencloudb.mysql.nio.handler.MultiNodeQueryWithLimitHandler;
 import org.opencloudb.mysql.nio.handler.RollbackNodeHandler;
 import org.opencloudb.mysql.nio.handler.RollbackReleaseHandler;
 import org.opencloudb.mysql.nio.handler.SingleNodeHandler;
@@ -53,9 +50,7 @@ import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
-import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.sqlcmd.SQLCmdConstant;
-import org.opencloudb.util.ObjectUtil;
 
 /**
  * @author mycat
@@ -141,20 +136,9 @@ public class NonBlockingSession implements Session {
 			SystemConfig sysConfig = MycatServer.getInstance().getConfig()
 					.getSystem();
 			int mutiNodeLimitType = sysConfig.getMutiNodeLimitType();
-			if (SystemConfig.MUTINODELIMIT_LAR_DATA == mutiNodeLimitType) {
-				RouteResultset rrsCopy = (RouteResultset) ObjectUtil
-						.copyObject(rrs);
-				MutiDataMergeService dataMergeSvr = null;
-				if (ServerParse.SELECT == type && rrsCopy.needMerge()) {
-					dataMergeSvr = new MutiDataMergeService(rrsCopy);
-				}
-				multiNodeHandler = new MultiNodeQueryWithLimitHandler(rrsCopy,
-						autocommit, this, dataMergeSvr);
-			} else {
+			multiNodeHandler = new MultiNodeQueryHandler(type, rrs, autocommit,
+					this);
 
-				multiNodeHandler = new MultiNodeQueryHandler(type, rrs,
-						autocommit, this);
-			}
 			try {
 				multiNodeHandler.execute();
 			} catch (Exception e) {
@@ -337,7 +321,6 @@ public class NonBlockingSession implements Session {
 			}
 		}
 		if (hooked) {
-			ConnectionMeta conMeta = new ConnectionMeta(null, null, -1, true);
 			for (Entry<RouteResultsetNode, BackendConnection> en : killees
 					.entrySet()) {
 				KillConnectionHandler kill = new KillConnectionHandler(
@@ -346,7 +329,7 @@ public class NonBlockingSession implements Session {
 				PhysicalDBNode dn = conf.getDataNodes().get(
 						en.getKey().getName());
 				try {
-					dn.getConnectionFromSameSource(conMeta, en.getValue(),
+					dn.getConnectionFromSameSource(null,true, en.getValue(),
 							kill, en.getKey());
 				} catch (Exception e) {
 					LOGGER.error(
