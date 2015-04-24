@@ -188,7 +188,7 @@ public class DataMergeService {
 				ColMeta colMeta = columToIndx.get(entry.getKey().toUpperCase());
 				if (colMeta == null) {
 					throw new java.lang.IllegalArgumentException(
-							"all columns in order by clause should be in the selected column list!" + entry.getKey().toUpperCase());
+							"all columns in order by clause should be in the selected column list!" + entry.getKey());
 				}
 				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
 						.toUpperCase()), entry.getValue());
