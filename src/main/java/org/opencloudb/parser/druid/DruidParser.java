@@ -23,7 +23,7 @@ public interface DruidParser {
 	 * @param schema
 	 * @param stmt
 	 */
-	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool,SchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException;
+	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool,MycatSchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException;
 	
 	/**
 	 * statement方式解析
@@ -37,7 +37,7 @@ public interface DruidParser {
 	 * 通过visitor解析：有些类型的Statement通过visitor解析得不到表名、
 	 * @param stmt
 	 */
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt,SchemaStatVisitor visitor) throws SQLNonTransientException;
+	public void visitorParse(RouteResultset rrs, SQLStatement stmt,MycatSchemaStatVisitor visitor) throws SQLNonTransientException;
 	
 	/**
 	 * 改写sql：加limit，加group by、加order by如有些没有加limit的可以通过该方法增加
