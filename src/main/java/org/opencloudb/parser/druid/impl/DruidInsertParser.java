@@ -16,6 +16,7 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.function.AbstractPartitionAlgorithm;
 import org.opencloudb.route.util.RouterUtil;
+import org.opencloudb.util.StringUtil;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -37,7 +38,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
 		MySqlInsertStatement insert = (MySqlInsertStatement)stmt;
-		String tableName = removeBackquote(insert.getTableName().getSimpleName()).toUpperCase();
+		String tableName = StringUtil.removeBackquote(insert.getTableName().getSimpleName()).toUpperCase();
 
 		ctx.addTable(tableName);
 		if(RouterUtil.isNoSharding(schema,tableName)) {//整个schema都不分库或者该表不拆分
@@ -89,7 +90,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 	 */
 	private int getJoinKeyIndex(List<SQLExpr> columns, String joinKey) {
 		for(int i = 0; i < columns.size(); i++) {
-			String col = removeBackquote(columns.get(i).toString()).toUpperCase();
+			String col = StringUtil.removeBackquote(columns.get(i).toString()).toUpperCase();
 			if(col.equals(joinKey)) {
 				return i;
 			}
@@ -164,11 +165,11 @@ public class DruidInsertParser extends DefaultDruidParser {
 			String tableName, MySqlInsertStatement insertStmt) throws SQLNonTransientException {
 		boolean isFound = false;
 		for(int i = 0; i < insertStmt.getColumns().size(); i++) {
-			if(partitionColumn.equalsIgnoreCase(removeBackquote(insertStmt.getColumns().get(i).toString()))) {//找到分片字段
+			if(partitionColumn.equalsIgnoreCase(StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString()))) {//找到分片字段
 				isFound = true;
-				String column = removeBackquote(insertStmt.getColumns().get(i).toString());
+				String column = StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString());
 				
-				String value = removeBackquote(insertStmt.getValues().getValues().get(i).toString());
+				String value = StringUtil.removeBackquote(insertStmt.getValues().getValues().get(i).toString());
 				
 				RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
 				routeCalculateUnit.addShardingExpr(tableName, column, value);
@@ -189,7 +190,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 			List<SQLExpr> updateList = insertStmt.getDuplicateKeyUpdate();
 			for(SQLExpr expr : updateList) {
 				SQLBinaryOpExpr opExpr = (SQLBinaryOpExpr)expr;
-				String column = removeBackquote(opExpr.getLeft().toString().toUpperCase());
+				String column = StringUtil.removeBackquote(opExpr.getLeft().toString().toUpperCase());
 				if(column.equals(partitionColumn)) {
 					String msg = "partion key can't be updated: " + tableName + " -> " + partitionColumn;
 					LOGGER.warn(msg);
@@ -284,7 +285,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 	private int getSharingColIndex(MySqlInsertStatement insertStmt,String partitionColumn) {
 		int shardingColIndex = -1;
 		for(int i = 0; i < insertStmt.getColumns().size(); i++) {
-			if(partitionColumn.equalsIgnoreCase(removeBackquote(insertStmt.getColumns().get(i).toString()))) {//找到分片字段
+			if(partitionColumn.equalsIgnoreCase(StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString()))) {//找到分片字段
 				shardingColIndex = i;
 				return shardingColIndex;
 			}
