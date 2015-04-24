@@ -7,10 +7,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
+import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
+import org.opencloudb.parser.druid.RouteCalculateUnit;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.function.AbstractPartitionAlgorithm;
@@ -26,7 +27,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 
 public class DruidInsertParser extends DefaultDruidParser {
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt,SchemaStatVisitor visitor) throws SQLNonTransientException {
+	public void visitorParse(RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor) throws SQLNonTransientException {
 		
 	}
 	
@@ -168,7 +169,10 @@ public class DruidInsertParser extends DefaultDruidParser {
 				String column = removeBackquote(insertStmt.getColumns().get(i).toString());
 				
 				String value = removeBackquote(insertStmt.getValues().getValues().get(i).toString());
-				ctx.addShardingExpr(tableName, column, value);
+				
+				RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
+				routeCalculateUnit.addShardingExpr(tableName, column, value);
+				ctx.addRouteCalculateUnit(routeCalculateUnit);
 				//mycat是单分片键，找到了就返回
 				break;
 			}
