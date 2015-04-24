@@ -188,7 +188,7 @@ public class DataMergeService {
 				ColMeta colMeta = columToIndx.get(entry.getKey().toUpperCase());
 				if (colMeta == null) {
 					throw new java.lang.IllegalArgumentException(
-							"order by语句包含的字段必须出现在select语句字段列表里面" + entry.getKey().toUpperCase());
+							"all columns in order by clause should be in the selected column list!" + entry.getKey());
 				}
 				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
 						.toUpperCase()), entry.getValue());
@@ -310,7 +310,7 @@ public class DataMergeService {
 			curColMeta = toIndexMap.get(columns[i].toUpperCase());
 			if (curColMeta == null) {
 				throw new java.lang.IllegalArgumentException(
-						"group by语句包含的字段必须出现在select语句字段列表里面" + columns[i]);
+						"all columns in group by clause should be in the selected column list.!" + columns[i]);
 			}
 			result[i] = curColMeta.colIndex;
 		}
