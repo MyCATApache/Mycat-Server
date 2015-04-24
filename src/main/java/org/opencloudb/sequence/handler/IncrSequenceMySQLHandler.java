@@ -81,11 +81,6 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 		for (Map.Entry<Object, Object> entry : props.entrySet()) {
 			String seqName = (String) entry.getKey();
 			String dataNode = (String) entry.getValue();
-			SequenceVal seqVal = new SequenceVal(seqName, dataNode);
-			seqValueMap.put(seqName, seqVal);
-
-
-
 			if(!seqValueMap.containsKey(seqName)){
 				seqValueMap.put(seqName, new SequenceVal(seqName, dataNode));
 			}else{
