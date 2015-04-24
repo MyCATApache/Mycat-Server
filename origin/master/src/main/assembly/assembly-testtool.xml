@@ -1,0 +1,46 @@
+<assembly
+	xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd"
+	>
+	<includeBaseDirectory>false</includeBaseDirectory>
+	<id>${timestamp}-testtool</id>
+	<formats>
+		<format>tar.gz</format>
+	</formats>
+	<fileSets>
+		<fileSet>
+		<directory>src/main/assembly/testtool</directory>
+			<outputDirectory>mycat/bin</outputDirectory>
+			<includes>
+				<include>**/*</include>
+			</includes>
+			<fileMode>0755</fileMode>
+		</fileSet>
+        <fileSet>
+            <directory>${basedir}</directory>
+            <outputDirectory>mycat/</outputDirectory>
+            <includes>
+                <include>version.txt</include>
+            </includes>
+        </fileSet>
+		<fileSet>
+			<directory>target</directory>
+			<outputDirectory>mycat/lib</outputDirectory>
+			<includes>
+				<include>**tests.jar</include>
+			</includes>
+		</fileSet>
+	</fileSets>
+	<dependencySets>
+		<dependencySet>
+			<scope>test</scope>
+			<outputDirectory>mycat/lib</outputDirectory>
+			<includes>
+				<include>mysql-con*</include>
+				<include>junit*</include>				
+			</includes>
+		</dependencySet>
+		
+	</dependencySets>
+</assembly>
