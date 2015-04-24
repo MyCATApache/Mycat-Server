@@ -447,13 +447,26 @@ public class RouterUtil {
 						"parent key can't find  valid datanode ,expect 1 but found: "
 								+ nodeSet.size());
 			}
-			String dn = nodeSet.iterator().next();
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
-						+ dn + " sql :" + rrs.getStatement());
+						+ nodeSet + " sql :" + rrs.getStatement());
 			}
 			retNodeSet.addAll(nodeSet);
 			
+//			for(ColumnRoutePair pair : colRoutePairSet) {
+//				nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
+//				if (nodeSet.isEmpty() || nodeSet.size() > 1) {//an exception would be thrown, if sql was executed on more than on sharding
+//					throw new SQLNonTransientException(
+//							"parent key can't find  valid datanode ,expect 1 but found: "
+//									+ nodeSet.size());
+//				}
+//				String dn = nodeSet.iterator().next();
+//				if (LOGGER.isDebugEnabled()) {
+//					LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
+//							+ dn + " sql :" + rrs.getStatement());
+//				}
+//				retNodeSet.addAll(nodeSet);
+//			}
 			return retNodeSet;
 		} else {
 			retNodeSet.addAll(tc.getParentTC().getDataNodes());
@@ -599,69 +612,69 @@ public class RouterUtil {
 	}
 
 	/**
-		 * 
-		 * 单表路由
-		 * @param schema
-		 * @param ctx
-		 * @param tableName
-		 * @param rrs
-		 * @param isSelect
-		 * @return
-		 * @throws SQLNonTransientException
-		 */
-		public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx, RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs,
-				boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
-			if(isNoSharding(schema,tableName))
-			{
-				return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
-			}
+	 * 
+	 * 单表路由
+	 * @param schema
+	 * @param ctx
+	 * @param tableName
+	 * @param rrs
+	 * @param isSelect
+	 * @return
+	 * @throws SQLNonTransientException
+	 */
+	public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx, RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs,
+			boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
+		if(isNoSharding(schema,tableName))
+		{
+			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
+		}
 
-			TableConfig tc = schema.getTables().get(tableName);
-			if(tc == null) {
-				String msg = "can't find table define in schema "
-						+ tableName + " schema:" + schema.getName();
-				LOGGER.warn(msg);
-				throw new SQLNonTransientException(msg);
+		TableConfig tc = schema.getTables().get(tableName);
+		if(tc == null) {
+			String msg = "can't find table define in schema "
+					+ tableName + " schema:" + schema.getName();
+			LOGGER.warn(msg);
+			throw new SQLNonTransientException(msg);
+		}
+		if(tc.isGlobalTable()) {//全局表
+			if(isSelect) {
+				// global select ,not cache route result
+				rrs.setCacheAble(false);
+				return routeToSingleNode(rrs, tc.getRandomDataNode(),ctx.getSql());
+			} else {
+				return routeToMultiNode(false, rrs, tc.getDataNodes(), ctx.getSql());
 			}
-			if(tc.isGlobalTable()) {//全局表
-				if(isSelect) {
-					// global select ,not cache route result
-					rrs.setCacheAble(false);
-					return routeToSingleNode(rrs, tc.getRandomDataNode(),ctx.getSql());
-				} else {
-					return routeToMultiNode(false, rrs, tc.getDataNodes(), ctx.getSql());
+		} else {//单表或者分库表
+			if (!checkRuleRequired(schema, ctx, routeUnit, tc)) {
+				throw new IllegalArgumentException("route rule for table "
+						+ tc.getName() + " is required: " + ctx.getSql());
+
+			}
+			if(tc.getPartitionColumn() == null && !tc.isSecondLevel()) {//单表且不是childTable
+//				return RouterUtil.routeToSingleNode(rrs, tc.getDataNodes().get(0),ctx.getSql());
+				return routeToMultiNode(rrs.isCacheAble(), rrs, tc.getDataNodes(), ctx.getSql());
+			} else {
+				//每个表对应的路由映射
+				Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
+				if(routeUnit.getTablesAndConditions() != null && routeUnit.getTablesAndConditions().size() > 0) {
+					RouterUtil.findRouteWithcConditionsForTables(schema, rrs, routeUnit.getTablesAndConditions(), tablesRouteMap, ctx.getSql(),cachePool,isSelect);
+					if(rrs.isFinishedRoute()) {
+						return rrs;
+					}
 				}
-			} else {//单表或者分库表
-				if (!checkRuleRequired(schema, ctx, routeUnit, tc)) {
-					throw new IllegalArgumentException("route rule for table "
-							+ tc.getName() + " is required: " + ctx.getSql());
-	
-				}
-				if(tc.getPartitionColumn() == null && !tc.isSecondLevel()) {//单表且不是childTable
-	//				return RouterUtil.routeToSingleNode(rrs, tc.getDataNodes().get(0),ctx.getSql());
+				
+				if(tablesRouteMap.get(tableName) == null) {
 					return routeToMultiNode(rrs.isCacheAble(), rrs, tc.getDataNodes(), ctx.getSql());
 				} else {
-					//每个表对应的路由映射
-					Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
-					if(routeUnit.getTablesAndConditions() != null && routeUnit.getTablesAndConditions().size() > 0) {
-						RouterUtil.findRouteWithcConditionsForTables(schema, rrs, routeUnit.getTablesAndConditions(), tablesRouteMap, ctx.getSql(),cachePool,isSelect);
-						if(rrs.isFinishedRoute()) {
-							return rrs;
-						}
-					}
-					
-					if(tablesRouteMap.get(tableName) == null) {
-						return routeToMultiNode(rrs.isCacheAble(), rrs, tc.getDataNodes(), ctx.getSql());
-					} else {
-	//					boolean isCache = rrs.isCacheAble();
-	//					if(tablesRouteMap.get(tableName).size() > 1) {
-	//						
-	//					}
-						return routeToMultiNode(rrs.isCacheAble(), rrs, tablesRouteMap.get(tableName), ctx.getSql());
-					}
+//					boolean isCache = rrs.isCacheAble();
+//					if(tablesRouteMap.get(tableName).size() > 1) {
+//						
+//					}
+					return routeToMultiNode(rrs.isCacheAble(), rrs, tablesRouteMap.get(tableName), ctx.getSql());
 				}
 			}
 		}
+	}
 
 	/**
 	 * 处理分库表路由
@@ -872,7 +885,7 @@ public class RouterUtil {
 
 		return false;
 	}
-
+	
 	/**
 	 * 判断条件是否永真
 	 * @param expr
@@ -898,6 +911,8 @@ public class RouterUtil {
 		}
 		return false;
 	}
+
+	
 }
 
 

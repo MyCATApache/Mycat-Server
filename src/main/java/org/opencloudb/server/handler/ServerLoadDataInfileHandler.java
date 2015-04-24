@@ -23,26 +23,16 @@
  */
 package org.opencloudb.server.handler;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.sql.SQLNonTransientException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLLiteralExpr;
+import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLoadDataInFileStatement;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
 import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
@@ -63,16 +53,17 @@ import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.ObjectUtil;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
-import com.alibaba.druid.sql.ast.expr.SQLLiteralExpr;
-import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLoadDataInFileStatement;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * mysql命令行客户端也需要启用local file权限，加参数--local-infile=1
@@ -100,6 +91,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private int partitionColumnIndex = -1;
     private LayerCachePool tableId2DataNodeCache;
     private SchemaConfig schema;
+    private boolean isStartLoadData = false;
 
     public int getPackID()
     {
@@ -181,7 +173,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
         List<SQLExpr> columns = statement.getColumns();
         String pColumn = tableConfig.getPartitionColumn();
-        if (columns != null && columns.size() > 0)
+        if (pColumn!=null&&columns != null && columns.size() > 0)
         {
 
             for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
@@ -202,6 +194,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         parseLoadDataPram();
         if (statement.isLocal())
         {
+            isStartLoadData = true;
             //向客户端请求发送文件
             ByteBuffer buffer = serverConnection.allocate();
             RequestFilePacket filePacket = new RequestFilePacket();
@@ -221,6 +214,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 if (rrs != null)
                 {
                     flushDataToFile();
+                    isStartLoadData = false;
                     serverConnection.getSession2().execute(rrs, ServerParse.LOAD_DATA_INFILE_SQL);
                 }
 
@@ -316,7 +310,22 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             RouteResultsetNode rrNode = new RouteResultsetNode(schema.getDataNode(), ServerParse.INSERT, sql);
             rrs.setNodes(new RouteResultsetNode[]{rrNode});
             return rrs;
-        } else if (tableConfig != null)
+        }
+        else if (tableConfig != null&&tableConfig.isGlobalTable())
+        {
+            ArrayList<String> dataNodes= tableConfig.getDataNodes();
+            RouteResultsetNode[] rrsNodes=    new RouteResultsetNode[dataNodes.size()];
+            for (int i = 0, dataNodesSize = dataNodes.size(); i < dataNodesSize; i++)
+            {
+                String dataNode = dataNodes.get(i);
+                RouteResultsetNode rrNode = new RouteResultsetNode(dataNode, ServerParse.INSERT, sql);
+                rrsNodes[i]=rrNode;
+            }
+
+            rrs.setNodes(rrsNodes);
+            return rrs;
+        }
+        else if (tableConfig != null)
         {
             DruidShardingParseInfo ctx = new DruidShardingParseInfo();
             ctx.addTable(tableName);
@@ -588,6 +597,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     @Override
     public void end(byte packID)
     {
+        isStartLoadData = false;
         this.packID = packID;
         //load in data空包 结束
         saveByteOrToFile(null, true);
@@ -703,9 +713,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
     public void clear()
     {
+        isStartLoadData = false;
         tableId2DataNodeCache = null;
         schema = null;
         tableConfig = null;
+        isHasStoreToFile = false;
+        packID = 0;
+        tempByteBuffrSize = 0;
+        tableName=null;
         partitionColumnIndex = -1;
         if (tempFile != null)
         {
@@ -731,6 +746,12 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     public byte getLastPackId()
     {
         return packID;
+    }
+
+    @Override
+    public boolean isStartLoadData()
+    {
+        return isStartLoadData;
     }
 
     /**

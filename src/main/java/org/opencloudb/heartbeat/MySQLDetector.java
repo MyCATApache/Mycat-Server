@@ -23,82 +23,38 @@
  */
 package org.opencloudb.heartbeat;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.channels.NetworkChannel;
-import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.log4j.Logger;
-import org.opencloudb.MycatServer;
-import org.opencloudb.config.Capabilities;
-import org.opencloudb.mysql.SecurityUtil;
-import org.opencloudb.mysql.nio.handler.ResponseHandler;
-import org.opencloudb.net.BackendAIOConnection;
-import org.opencloudb.net.mysql.AuthPacket;
-import org.opencloudb.net.mysql.CommandPacket;
-import org.opencloudb.net.mysql.HandshakePacket;
-import org.opencloudb.net.mysql.MySQLPacket;
-import org.opencloudb.net.mysql.QuitPacket;
-import org.opencloudb.route.RouteResultsetNode;
-import org.opencloudb.server.ServerConnection;
+import org.opencloudb.config.model.DataHostConfig;
+import org.opencloudb.mysql.nio.MySQLDataSource;
+import org.opencloudb.sqlengine.OneRawSQLQueryResultHandler;
+import org.opencloudb.sqlengine.SQLJob;
+import org.opencloudb.sqlengine.SQLQueryResult;
+import org.opencloudb.sqlengine.SQLQueryResultListener;
 import org.opencloudb.util.TimeUtil;
 
 /**
  * @author mycat
  */
-public class MySQLDetector extends BackendAIOConnection {
-	private static final Logger LOGGER = Logger.getLogger(MySQLDetector.class);
-	private static final long CLIENT_FLAGS = initClientFlags();
-
+public class MySQLDetector implements
+		SQLQueryResultListener<SQLQueryResult<Map<String, String>>> {
 	private MySQLHeartbeat heartbeat;
-	private final long clientFlags;
-	private HandshakePacket handshake;
-	private int charsetIndex;
-	private boolean isAuthenticated;
-	private String user;
-	private String password;
-	private String schema;
 	private long heartbeatTimeout;
 	private final AtomicBoolean isQuit;
+	private volatile long lastSendQryTime;
+	private volatile long lasstReveivedQryTime;
+	private volatile SQLJob sqlJob;
+	private static final String[] MYSQL_SLAVE_STAUTS_COLMS = new String[] {
+			"Seconds_Behind_Master", "Slave_IO_Running", "Slave_SQL_Running" };
 
-	public MySQLDetector(NetworkChannel channel) {
-		super(channel);
-		this.clientFlags = CLIENT_FLAGS;
-		this.handler = new MySQLDetectorAuthenticator(this);
+	public MySQLDetector(MySQLHeartbeat heartbeat) {
+		this.heartbeat = heartbeat;
 		this.isQuit = new AtomicBoolean(false);
 	}
 
 	public MySQLHeartbeat getHeartbeat() {
 		return heartbeat;
-	}
-
-	public void setHeartbeat(MySQLHeartbeat heartbeat) {
-		this.heartbeat = heartbeat;
-	}
-
-	public String getUser() {
-		return user;
-	}
-
-	public void setUser(String user) {
-		this.user = user;
-	}
-
-	public String getSchema() {
-		return schema;
-	}
-
-	public void setSchema(String schema) {
-		this.schema = schema;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
 	}
 
 	public long getHeartbeatTimeout() {
@@ -110,80 +66,35 @@ public class MySQLDetector extends BackendAIOConnection {
 	}
 
 	public boolean isHeartbeatTimeout() {
-		return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime,
-				lastReadTime) + heartbeatTimeout;
+		return TimeUtil.currentTimeMillis() > Math.max(lastSendQryTime,
+				lasstReveivedQryTime) + heartbeatTimeout;
 	}
 
-	public long lastReadTime() {
-		return lastReadTime;
+	public long getLastSendQryTime() {
+		return lastSendQryTime;
 	}
 
-	public long lastWriteTime() {
-		return lastWriteTime;
-	}
-
-	public boolean isAuthenticated() {
-		return isAuthenticated;
-	}
-
-	public void setAuthenticated(boolean isAuthenticated) {
-		this.isAuthenticated = isAuthenticated;
-	}
-
-	public HandshakePacket getHandshake() {
-		return handshake;
-	}
-
-	public void setHandshake(HandshakePacket handshake) {
-		this.handshake = handshake;
-	}
-
-	public void setCharsetIndex(int charsetIndex) {
-		this.charsetIndex = charsetIndex;
-	}
-
-	public void authenticate() {
-		AuthPacket packet = new AuthPacket();
-		packet.packetId = 1;
-		packet.clientFlags = clientFlags;
-		packet.maxPacketSize = maxPacketSize;
-		packet.charsetIndex = charsetIndex;
-		packet.user = user;
-		try {
-			packet.password = getPass(password, handshake);
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e.getMessage());
-		}
-		packet.database = schema;
-		packet.write(this);
+	public long getLasstReveivedQryTime() {
+		return lasstReveivedQryTime;
 	}
 
 	public void heartbeat() {
-		if (isAuthenticated) {
-			String sql = heartbeat.getHeartbeatSQL();
-			if (sql != null) {
-				CommandPacket packet = new CommandPacket();
-				packet.packetId = 0;
-				packet.command = MySQLPacket.COM_QUERY;
-				packet.arg = sql.getBytes();
-				packet.write(this);
-			}
-		} else {
-			// System.out.println("auth ");
-			authenticate();
-		}
+		lastSendQryTime = System.currentTimeMillis();
+		MySQLDataSource ds = heartbeat.getSource();
+		String databaseName = ds.getDbPool().getSchemas()[0];
+
+		OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(
+				MYSQL_SLAVE_STAUTS_COLMS, this);
+		sqlJob = new SQLJob(heartbeat.getHeartbeatSQL(), databaseName,
+				resultHandler, ds);
+		sqlJob.run();
 	}
 
 	public void quit() {
 		if (isQuit.compareAndSet(false, true)) {
-			if (isAuthenticated) {
-				write(writeToBuffer(QuitPacket.QUIT, allocate()));
-				write(allocate());
-				close("heart beat quit normal");
-			} else {
-				close("heartbeat quit");
-			}
+			close("heart beat quit");
 		}
+
 	}
 
 	public boolean isQuit() {
@@ -191,165 +102,45 @@ public class MySQLDetector extends BackendAIOConnection {
 	}
 
 	@Override
-	public void idleCheck() {
-		if (isIdleTimeout()) {
-			LOGGER.warn(toString() + " heatbeat idle timeout");
-			quit();
+	public void onRestult(SQLQueryResult<Map<String, String>> result) {
+		if (result.isSuccess()) {
+			if (heartbeat.getSource().getHostConfig().getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS) {
+				String Slave_IO_Running = result.getResult().get(
+						"Slave_IO_Running");
+				String Slave_SQL_Running = result.getResult().get(
+						"Slave_SQL_Running");
+				if (Slave_IO_Running != null
+						&& Slave_IO_Running.equals(Slave_SQL_Running)
+						&& Slave_SQL_Running.equals("Yes")) {
+					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
+					String Seconds_Behind_Master = result.getResult().get(
+							"Seconds_Behind_Master");
+					if (null != Seconds_Behind_Master
+							&& !"".equals(Seconds_Behind_Master)) {
+						heartbeat.setSlaveBehindMaster(Integer
+								.valueOf(Seconds_Behind_Master));
+					}
+				} else {
+					MySQLHeartbeat.LOGGER
+							.warn("found MySQL master/slave Replication err !!! "
+									+ heartbeat.getSource().getConfig());
+					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
+				}
+
+			}
+			heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
+		} else {
+			heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
 		}
+		lasstReveivedQryTime = System.currentTimeMillis();
 	}
 
-	public String toString() {
-		return new StringBuilder().append("[thread=")
-				.append(Thread.currentThread().getName()).append(",class=")
-				.append(getClass().getSimpleName()).append(",host=")
-				.append(host).append(",port=").append(port)
-				.append(",localPort=").append(localPort).append(",schema=")
-				.append(schema).append(']').toString();
-	}
-
-	private static long initClientFlags() {
-		int flag = 0;
-		flag |= Capabilities.CLIENT_LONG_PASSWORD;
-		flag |= Capabilities.CLIENT_FOUND_ROWS;
-		flag |= Capabilities.CLIENT_LONG_FLAG;
-		flag |= Capabilities.CLIENT_CONNECT_WITH_DB;
-		// flag |= Capabilities.CLIENT_NO_SCHEMA;
-		boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUseCompression()==1 ;
-		if(usingCompress)
-		{
-			flag |= Capabilities.CLIENT_COMPRESS;
+	public void close(String msg) {
+		SQLJob curJob = sqlJob;
+		if (curJob != null && !curJob.isFinished()) {
+			curJob.teminate(msg);
+			sqlJob = null;
 		}
-		flag |= Capabilities.CLIENT_ODBC;
-		 flag |= Capabilities.CLIENT_LOCAL_FILES;
-		flag |= Capabilities.CLIENT_IGNORE_SPACE;
-		flag |= Capabilities.CLIENT_PROTOCOL_41;
-		flag |= Capabilities.CLIENT_INTERACTIVE;
-		// flag |= Capabilities.CLIENT_SSL;
-		flag |= Capabilities.CLIENT_IGNORE_SIGPIPE;
-		flag |= Capabilities.CLIENT_TRANSACTIONS;
-		// flag |= Capabilities.CLIENT_RESERVED;
-		flag |= Capabilities.CLIENT_SECURE_CONNECTION;
-		// client extension
-		// flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
-		// flag |= Capabilities.CLIENT_MULTI_RESULTS;
-		return flag;
-	}
-
-	private static byte[] getPass(String src, HandshakePacket hsp)
-			throws NoSuchAlgorithmException {
-		if (src == null || src.length() == 0) {
-			return null;
-		}
-		byte[] passwd = src.getBytes();
-		int sl1 = hsp.seed.length;
-		int sl2 = hsp.restOfScrambleBuff.length;
-		byte[] seed = new byte[sl1 + sl2];
-		System.arraycopy(hsp.seed, 0, seed, 0, sl1);
-		System.arraycopy(hsp.restOfScrambleBuff, 0, seed, sl1, sl2);
-		return SecurityUtil.scramble411(passwd, seed);
-	}
-
-	@Override
-	public void onConnectFailed(Throwable e) {
-		heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this, true,
-				"hearbeat connecterr");
-
-	}
-
-	@Override
-	public boolean isModifiedSQLExecuted() {
-		return false;
-	}
-
-	@Override
-	public boolean isFromSlaveDB() {
-		return false;
-	}
-
-	@Override
-	public long getLastTime() {
-		return 0;
-	}
-
-	@Override
-	public boolean isClosedOrQuit() {
-		return isQuit.get();
-	}
-
-	@Override
-	public void setAttachment(Object attachment) {
-
-	}
-
-	@Override
-	public void setLastTime(long currentTimeMillis) {
-
-	}
-
-	@Override
-	public void release() {
-
-	}
-
-	@Override
-	public boolean setResponseHandler(ResponseHandler commandHandler) {
-		return false;
-	}
-
-	@Override
-	public void commit() {
-
-	}
-
-	@Override
-	public void query(String sql) throws UnsupportedEncodingException {
-
-	}
-
-	@Override
-	public Object getAttachment() {
-		return null;
-	}
-
-	@Override
-	public void execute(RouteResultsetNode node, ServerConnection source,
-			boolean autocommit) throws IOException {
-
-	}
-
-	@Override
-	public void recordSql(String host, String schema, String statement) {
-
-	}
-
-	@Override
-	public boolean syncAndExcute() {
-		return false;
-	}
-
-	@Override
-	public void rollback() {
-
-	}
-
-	@Override
-	public boolean isBorrowed() {
-		return false;
-	}
-
-	@Override
-	public void setBorrowed(boolean borrowed) {
-
-	}
-
-	@Override
-	public int getTxIsolation() {
-		return 0;
-	}
-
-	@Override
-	public boolean isAutocommit() {
-		return false;
 	}
 
 }

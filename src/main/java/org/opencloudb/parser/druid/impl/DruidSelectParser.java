@@ -211,7 +211,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 	  return false;
   }
 
-    private String getFieldName(SQLSelectItem item){
+	private String getFieldName(SQLSelectItem item){
 		if ((item.getExpr() instanceof SQLPropertyExpr)||(item.getExpr() instanceof SQLMethodInvokeExpr)
 				|| (item.getExpr() instanceof SQLIdentifierExpr) || item.getExpr() instanceof SQLBinaryOpExpr) {			
 			return item.getExpr().toString();//字段别名
