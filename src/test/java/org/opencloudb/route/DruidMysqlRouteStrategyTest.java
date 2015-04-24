@@ -1006,25 +1006,6 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn1"));
         Assert.assertTrue(rrs.getNodes()[1].getName().equals("dn2"));
     }
-
-    /**
-     * 测试父子表，查询子表的语句路由到多个节点
-     * 
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testERRouteMutiNode() throws Exception {
-
-    	
-        SchemaConfig schema = schemaMap.get("TESTDB");
-        String sql = "select * from orders where customer_id in(1,2000001);";
-        RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
-        Assert.assertTrue(rrs.getNodes().length == 2);
-        Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn1"));
-        Assert.assertTrue(rrs.getNodes()[1].getName().equals("dn2"));
-
-    }
     
     private String formatSql(String sql) {
         MySqlStatementParser parser = new MySqlStatementParser(sql);
