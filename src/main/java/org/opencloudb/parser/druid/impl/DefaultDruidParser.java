@@ -15,6 +15,7 @@ import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
 import org.opencloudb.parser.druid.RouteCalculateUnit;
 import org.opencloudb.route.RouteResultset;
+import org.opencloudb.util.StringUtil;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
@@ -142,8 +143,8 @@ public class DefaultDruidParser implements DruidParser {
 					break;
 				}
 				if(checkConditionValues(values)) {
-					String columnName = removeBackquote(condition.getColumn().getName().toUpperCase());
-					String tableName = removeBackquote(condition.getColumn().getTable().toUpperCase());
+					String columnName = StringUtil.removeBackquote(condition.getColumn().getName().toUpperCase());
+					String tableName = StringUtil.removeBackquote(condition.getColumn().getTable().toUpperCase());
 					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(condition.getColumn().getTable()) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
 						continue;
 					}
@@ -175,25 +176,5 @@ public class DefaultDruidParser implements DruidParser {
 	
 	public DruidShardingParseInfo getCtx() {
 		return ctx;
-	}
-	
-	/**
-	 * 移除`符号
-	 * @param str
-	 * @return
-	 */
-	public String removeBackquote(String str){
-		//删除名字中的`tablename`和'value'
-		if (str.length() > 0) {
-			StringBuilder sb = new StringBuilder(str);
-			if (sb.charAt(0) == '`'||sb.charAt(0) == '\'') {
-				sb.deleteCharAt(0);
-			}
-			if (sb.charAt(sb.length() - 1) == '`'||sb.charAt(sb.length() - 1) == '\'') {
-				sb.deleteCharAt(sb.length() - 1);
-			}
-			return sb.toString();
-		}
-		return "";
 	}
 }

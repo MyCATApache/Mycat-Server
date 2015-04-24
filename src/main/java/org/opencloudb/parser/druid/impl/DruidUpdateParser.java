@@ -7,6 +7,7 @@ import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
+import org.opencloudb.util.StringUtil;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
@@ -21,7 +22,7 @@ public class DruidUpdateParser extends DefaultDruidParser {
 			throw new SQLNonTransientException(msg);
 		}
 		MySqlUpdateStatement update = (MySqlUpdateStatement)stmt;
-		String tableName = removeBackquote(update.getTableName().getSimpleName().toUpperCase());
+		String tableName = StringUtil.removeBackquote(update.getTableName().getSimpleName().toUpperCase());
 		
 		List<SQLUpdateSetItem> updateSetItem = update.getItems();
 		TableConfig tc = schema.getTables().get(tableName);
@@ -43,7 +44,7 @@ public class DruidUpdateParser extends DefaultDruidParser {
 		if(updateSetItem != null && updateSetItem.size() > 0) {
 			boolean hasParent = (schema.getTables().get(tableName).getParentTC() != null);
 			for(SQLUpdateSetItem item : updateSetItem) {
-				String column = removeBackquote(item.getColumn().toString().toUpperCase());
+				String column = StringUtil.removeBackquote(item.getColumn().toString().toUpperCase());
 				if(partitionColumn != null && partitionColumn.equals(column)) {
 					String msg = "partion key can't be updated " + tableName + "->" + partitionColumn;
 					LOGGER.warn(msg);
