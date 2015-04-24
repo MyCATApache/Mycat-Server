@@ -5,6 +5,7 @@ import java.sql.SQLNonTransientException;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
 import org.opencloudb.route.RouteResultset;
+import org.opencloudb.util.StringUtil;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
@@ -23,7 +24,7 @@ public class DruidCreateTableParser extends DefaultDruidParser {
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
-		String tableName = removeBackquote(createStmt.getTableSource().toString().toUpperCase());
+		String tableName = StringUtil.removeBackquote(createStmt.getTableSource().toString().toUpperCase());
 		ctx.addTable(tableName);
 		
 	}

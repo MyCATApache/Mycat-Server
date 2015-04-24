@@ -530,6 +530,26 @@ public class StringUtil {
 		}
 		return sql.substring(tableStartIndx, tableEndIndex);
 	}
+	
+	/**
+	 * 移除`符号
+	 * @param str
+	 * @return
+	 */
+	public static String removeBackquote(String str){
+		//删除名字中的`tablename`和'value'
+		if (str.length() > 0) {
+			StringBuilder sb = new StringBuilder(str);
+			if (sb.charAt(0) == '`'||sb.charAt(0) == '\'') {
+				sb.deleteCharAt(0);
+			}
+			if (sb.charAt(sb.length() - 1) == '`'||sb.charAt(sb.length() - 1) == '\'') {
+				sb.deleteCharAt(sb.length() - 1);
+			}
+			return sb.toString();
+		}
+		return "";
+	}
 
 	public static void main(String[] args) {
 		System.out.println(getTableName("insert into ssd  (id) values (s)"));
