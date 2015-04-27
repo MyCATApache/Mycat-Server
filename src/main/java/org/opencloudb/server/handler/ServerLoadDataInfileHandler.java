@@ -172,24 +172,26 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         tempByteBuffer = new ByteArrayOutputStream();
 
         List<SQLExpr> columns = statement.getColumns();
-        String pColumn = tableConfig.getPartitionColumn();
-        if (pColumn!=null&&columns != null && columns.size() > 0)
+        if(tableConfig!=null)
         {
-
-            for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
+            String pColumn = tableConfig.getPartitionColumn();
+            if (pColumn != null && columns != null && columns.size() > 0)
             {
-                SQLExpr column = columns.get(i);
-                if (pColumn.equalsIgnoreCase(column.toString()))
+
+                for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
                 {
-                    partitionColumnIndex = i;
-                    break;
+                    SQLExpr column = columns.get(i);
+                    if (pColumn.equalsIgnoreCase(column.toString()))
+                    {
+                        partitionColumnIndex = i;
+                        break;
+
+                    }
 
                 }
 
             }
-
         }
-
 
         parseLoadDataPram();
         if (statement.isLocal())
