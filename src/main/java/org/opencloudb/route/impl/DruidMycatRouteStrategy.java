@@ -1,22 +1,30 @@
 package org.opencloudb.route.impl;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.Iterator;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.apache.log4j.Logger;
+import org.opencloudb.cache.LayerCachePool;
+import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.parser.druid.DruidParser;
+import org.opencloudb.parser.druid.DruidParserFactory;
+import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
+import org.opencloudb.parser.druid.MycatStatementParser;
+import org.opencloudb.parser.druid.RouteCalculateUnit;
+import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.RouteResultsetNode;
+import org.opencloudb.route.util.RouterUtil;
+import org.opencloudb.server.parser.ServerParse;
+
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
-import org.apache.log4j.Logger;
-import org.opencloudb.cache.LayerCachePool;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.parser.druid.*;
-import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
-import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.util.RouterUtil;
-import org.opencloudb.server.parser.ServerParse;
-
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
 
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	public static final Logger LOGGER = Logger.getLogger(DruidMycatRouteStrategy.class);
@@ -34,7 +42,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			parser = new MySqlStatementParser(stmt);   //只有mysql时只支持mysql语法
 		}
 
-        SchemaStatVisitor visitor = null;
+		MycatSchemaStatVisitor visitor = null;
 		SQLStatement statement;
 		//解析出现问题统一抛SQL语法错误
 		try {
@@ -63,7 +71,33 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),druidParser.getCtx().getSql());
 		}
 
-		return RouterUtil.tryRouteForTables(schema, druidParser.getCtx(), rrs, isSelect(statement),cachePool);
+		if(druidParser.getCtx().getRouteCalculateUnits().size() == 0) {
+			RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
+			druidParser.getCtx().addRouteCalculateUnit(routeCalculateUnit);
+		}
+		
+		SortedSet<RouteResultsetNode> nodeSet = new TreeSet<RouteResultsetNode>();
+		for(RouteCalculateUnit unit : druidParser.getCtx().getRouteCalculateUnits()) {
+			RouteResultset rrsTmp = RouterUtil.tryRouteForTables(schema, druidParser.getCtx(), unit, rrs, isSelect(statement), cachePool);
+			if(rrsTmp != null) {
+				for(RouteResultsetNode node :rrsTmp.getNodes()) {
+					nodeSet.add(node);
+				}
+			}
+		}
+		
+		RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSet.size()];
+		int i = 0;
+		for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+			nodes[i] = (RouteResultsetNode) iterator.next();
+			i++;
+			
+		}
+		
+		rrs.setNodes(nodes);
+		
+
+		return rrs;
 	}
 
 

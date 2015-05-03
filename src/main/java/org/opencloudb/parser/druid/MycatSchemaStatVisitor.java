@@ -1,19 +1,29 @@
 package org.opencloudb.parser.druid;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
+import org.opencloudb.route.util.RouterUtil;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Column;
 import com.alibaba.druid.stat.TableStat.Condition;
+import com.alibaba.druid.stat.TableStat.Mode;
 
 /**
  * Druid解析器中用来从ast语法中提取表名、条件、字段等的vistor
@@ -21,6 +31,13 @@ import com.alibaba.druid.stat.TableStat.Condition;
  *
  */
 public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
+	private boolean hasOrCondition = false;
+	private List<WhereUnit> whereUnits = new ArrayList<WhereUnit>();
+	
+	public boolean hasOrCondition() {
+		return hasOrCondition;
+	}
+	
     @Override
     public boolean visit(SQLSelectStatement x) {
         setAliasMap();
@@ -214,9 +231,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         }
         return "";
     }
-
+    
     @Override
-    public boolean visit(SQLBinaryOpExpr x) {
+	public boolean visit(SQLBinaryOpExpr x) {
         x.getLeft().setParent(x);
         x.getRight().setParent(x);
 
@@ -229,6 +246,14 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
                 handleCondition(x.getRight(), x.getOperator().name, x.getLeft());
                 handleRelationship(x.getLeft(), x.getOperator().name, x.getRight());
                 break;
+            case BooleanOr:
+            	//永真条件，where条件抛弃
+            	if(!RouterUtil.isConditionAlwaysTrue(x)) {
+            		hasOrCondition = true;
+            		WhereUnit whereUnit = new WhereUnit(x);
+            		whereUnits.add(whereUnit);
+            	}
+            	return false;
             case Like:
             case NotLike:
             case NotEqual:
@@ -240,5 +265,153 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
                 break;
         }
         return true;
+    }
+	
+	/**
+	 * 分解条件
+	 */
+	public List<List<Condition>> splitConditions() {
+		//按照or拆分
+		for(WhereUnit whereUnit : whereUnits) {
+			splitUntilNoOr(whereUnit);
+		}
+		
+		//拆分后的条件块解析成Condition列表
+		for(WhereUnit whereUnit : whereUnits) {
+			List<List<Condition>> list = this.getConditionsFromWhereUnit(whereUnit);
+			whereUnit.setConditionList(list);
+		}
+		
+		//多个WhereUnit组合:多层集合的组合
+		return getMergedConditionList();
+	}
+	
+	/**
+	 * 条件合并：多个WhereUnit中的条件组合
+	 * @return
+	 */
+	private List<List<Condition>> getMergedConditionList() {
+		List<List<Condition>> mergedConditionList = new ArrayList<List<Condition>>();
+		if(whereUnits.size() == 0) {
+			return mergedConditionList; 
+		}
+		mergedConditionList.addAll(whereUnits.get(0).getConditionList());
+		
+		for(int i = 1; i < whereUnits.size(); i++) {
+			mergedConditionList = merge(mergedConditionList, whereUnits.get(i).getConditionList());
+		}
+		return mergedConditionList;
+	}
+	
+	/**
+	 * 两个list中的条件组合
+	 * @param list1
+	 * @param list2
+	 * @return
+	 */
+	private List<List<Condition>> merge(List<List<Condition>> list1, List<List<Condition>> list2) {
+		if(list1.size() == 0) {
+			return list2;
+		} else if (list2.size() == 0) {
+			return list1;
+		}
+		
+		List<List<Condition>> retList = new ArrayList<List<Condition>>();
+		for(int i = 0; i < list1.size(); i++) {
+			for(int j = 0; j < list2.size(); j++) {
+				List<Condition> listTmp = new ArrayList<Condition>();
+				listTmp.addAll(list1.get(i));
+				listTmp.addAll(list2.get(j));
+				retList.add(listTmp);
+			}
+		}
+		return retList;
+	}
+	
+	private List<List<Condition>> getConditionsFromWhereUnit(WhereUnit whereUnit) {
+		List<List<Condition>> retList = new ArrayList<List<Condition>>();
+		for(SQLExpr sqlExpr : whereUnit.getSplitedExprList()) {
+			sqlExpr.accept(this);
+			List<Condition> conditions = new ArrayList<Condition>();
+			conditions.addAll(getConditions());
+			retList.add(conditions);
+			this.conditions.clear();
+		}
+		return retList;
+	}
+	
+	/**
+	 * 递归拆分OR
+	 * 
+	 * @param whereUnit
+	 * TODO:考虑嵌套or语句，条件中有子查询、 exists等很多种复杂情况是否能兼容
+	 */
+	private void splitUntilNoOr(WhereUnit whereUnit) {
+		SQLBinaryOpExpr expr = whereUnit.getCanSplitExpr();
+		if(expr.getOperator() == SQLBinaryOperator.BooleanOr) {
+//			whereUnit.addSplitedExpr(expr.getRight());
+			addExprIfNotFalse(whereUnit, expr.getRight());
+			if(expr.getLeft() instanceof SQLBinaryOpExpr) {
+				whereUnit.setCanSplitExpr((SQLBinaryOpExpr)expr.getLeft());
+				splitUntilNoOr(whereUnit);
+			} else {
+				addExprIfNotFalse(whereUnit, expr.getLeft());
+			}
+		} else {
+			addExprIfNotFalse(whereUnit, expr);
+		}
+    }
+
+	private void addExprIfNotFalse(WhereUnit whereUnit, SQLExpr expr) {
+		//非永假条件加入路由计算
+		if(!RouterUtil.isConditionAlwaysFalse(expr)) {
+			whereUnit.addSplitedExpr(expr);
+		}
+	}
+	
+	@Override
+    public boolean visit(SQLAlterTableStatement x) {
+        String tableName = x.getName().toString();
+        TableStat stat = getTableStat(tableName,tableName);
+        stat.incrementAlterCount();
+
+        setCurrentTable(x, tableName);
+
+        for (SQLAlterTableItem item : x.getItems()) {
+            item.setParent(x);
+            item.accept(this);
+        }
+
+        return false;
+    }
+	
+	// DUAL
+    public boolean visit(MySqlDeleteStatement x) {
+        setAliasMap();
+
+        setMode(x, Mode.Delete);
+
+        accept(x.getFrom());
+        accept(x.getUsing());
+        x.getTableSource().accept(this);
+
+        if (x.getTableSource() instanceof SQLExprTableSource) {
+            SQLName tableName = (SQLName) ((SQLExprTableSource) x.getTableSource()).getExpr();
+            String ident = tableName.toString();
+            setCurrentTable(x, ident);
+
+            TableStat stat = this.getTableStat(ident,ident);
+            stat.incrementDeleteCount();
+        }
+
+        accept(x.getWhere());
+
+        accept(x.getOrderBy());
+        accept(x.getLimit());
+
+        return false;
+    }
+    
+    public void endVisit(MySqlDeleteStatement x) {
     }
 }

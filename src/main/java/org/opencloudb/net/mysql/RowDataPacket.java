@@ -55,6 +55,7 @@ import org.opencloudb.net.FrontendConnection;
  */
 public class RowDataPacket extends MySQLPacket {
 	private static final byte NULL_MARK = (byte) 251;
+    private static final byte EMPTY_MARK = (byte) 0;
 
 	public byte[] value;
 	public int fieldCount;
@@ -92,10 +93,14 @@ public class RowDataPacket extends MySQLPacket {
 		bb.put(packetId);
 		for (int i = 0; i < fieldCount; i++) {
 			byte[] fv = fieldValues.get(i);
-			if (fv == null || fv.length == 0) {
+			if (fv == null ) {
 				bb = c.checkWriteBuffer(bb, 1, writeSocketIfFull);
 				bb.put(RowDataPacket.NULL_MARK);
-			} else {
+			}else if (fv.length == 0) {
+                bb = c.checkWriteBuffer(bb, 1, writeSocketIfFull);
+                bb.put(RowDataPacket.EMPTY_MARK);
+            }
+            else {
 				bb = c.checkWriteBuffer(bb, BufferUtil.getLength(fv.length),
 						writeSocketIfFull);
 				BufferUtil.writeLength(bb, fv.length);
