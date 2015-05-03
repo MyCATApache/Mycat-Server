@@ -221,7 +221,6 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 		}else{
 			seqVal.dbretVal = columnVal;
 		}
-
 	}
 
 	@Override

@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.mysql.nio.handler.ConnectionHeartBeatHandler;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.ErrorPacket;
@@ -403,10 +404,53 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	@Override
-	public void query(String sql) throws UnsupportedEncodingException {
-		throw new UnsupportedEncodingException("unsupported yet ");
-	}
+	public void query(final String sql) throws UnsupportedEncodingException {
+		if(respHandler instanceof ConnectionHeartBeatHandler)
+		{
+			Runnable runnable = new Runnable() {
+				@Override
+				public void run() {
+						justForHeartbeat(sql);
+				}
+			};
 
+			MycatServer.getInstance().getBusinessExecutor().execute(runnable);
+
+		}    else
+		{
+			throw new UnsupportedEncodingException("unsupported yet ");
+		}
+	}
+	private void justForHeartbeat(String sql)
+			  {
+
+		Statement stmt = null;
+
+		try {
+			stmt = con.createStatement();
+			stmt.execute(sql);
+			this.respHandler.okResponse(OkPacket.OK, this);
+
+		}
+		catch (Exception e)
+		{
+			String msg = e.getMessage();
+			ErrorPacket error = new ErrorPacket();
+			error.packetId = ++packetId;
+			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
+			error.message = msg.getBytes();
+			this.respHandler.errorResponse(error.writeToBytes(), this);
+		}
+		finally {
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
+		}
+	}
 	@Override
 	public Object getAttachment() {
 		return this.attachement;
