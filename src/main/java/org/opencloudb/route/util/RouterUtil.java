@@ -261,14 +261,15 @@ public class RouterUtil {
 		int firstRightBracketIndex = origSQL.indexOf(")");
 		String upperSql = origSQL.toUpperCase();
 		int valuesIndex = upperSql.indexOf("VALUES");
-		int selectIndex = upperSql.indexOf("SELECT");
+		int selectIndex = upperSql.indexOf(" SELECT ");
+		int fromIndex = upperSql.indexOf(" FROM ");
 		if(firstLeftBracketIndex < 0) {//insert into table1 select * from table2
 			String msg = "invalid sql:" + origSQL;
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
 		
-		if(selectIndex > 0) {
+		if(selectIndex > 0 &&fromIndex>0&&selectIndex>firstRightBracketIndex) {
 			String msg = "multi insert not provided" ;
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
