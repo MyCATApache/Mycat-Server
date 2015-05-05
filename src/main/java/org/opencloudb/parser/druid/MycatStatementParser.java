@@ -39,10 +39,13 @@ public class MycatStatementParser extends MySqlStatementParser
         return new SQLSelectStatement(selectParser.select(), JdbcConstants.MYSQL);
     }
 
-    public SQLSelectParser createSQLSelectParser()
-    {
-        return new MycatSelectParser(this.selectExprParser);
-    }
+
+    //此处注释掉，以修正后端jdbc方式时，delete语句解析出错的情况
+    //
+//    public SQLSelectParser createSQLSelectParser()
+//    {
+//        return new MycatSelectParser(this.selectExprParser);
+//    }
 
     @Override
     protected MySqlLoadDataInFileStatement parseLoadDataInFile()
