@@ -32,8 +32,7 @@ import org.opencloudb.cache.CachePool;
 import org.opencloudb.cache.CachePoolFactory;
 
 public class MapDBCachePooFactory extends CachePoolFactory {
-	private DB db = DBMaker.newMemoryDirectDB().cacheSize(1000)
-			.cacheLRUEnable().make();
+	private DB db = DBMaker.newMemoryDirectDB().cacheSize(1000).cacheLRUEnable().make();
 
 	@Override
 	public CachePool createCachePool(String poolName, int cacheSize,
@@ -43,7 +42,7 @@ public class MapDBCachePooFactory extends CachePoolFactory {
 				.expireMaxSize(cacheSize)
 				.expireAfterAccess(expiredSeconds, TimeUnit.SECONDS)
 				.makeOrGet();
-		return new MapDBCachePool(cache,cacheSize);
+		return new MapDBCachePool(cache, cacheSize);
 
 	}
 
