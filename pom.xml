@@ -49,7 +49,7 @@
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>druid</artifactId>
-			<version>1.0.13</version>
+			<version>1.0.14</version>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>
@@ -100,7 +100,7 @@
 		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
-			<version>1.5.2</version>
+			<version>1.5.4</version>
 			<type>jar</type>
 		</dependency>
 	</dependencies>
