@@ -488,13 +488,13 @@ public class PhysicalDBPool {
 						for (PhysicalDatasource slave : allSlaves) {
 							if (isAlive(slave)) {
 								if (filterWithSlaveThreshold) {
-									if (canSelectAsReadNode(theSource)) {
-										okSources.add(theSource);
+									if (canSelectAsReadNode(slave)) {
+										okSources.add(slave);
 									} else {
 										continue;
 									}
 								} else {
-									okSources.add(theSource);
+									okSources.add(slave);
 								}
 							}
 						}
