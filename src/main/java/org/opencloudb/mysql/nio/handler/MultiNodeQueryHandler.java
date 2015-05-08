@@ -452,7 +452,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 	}
 
-	private void handleDataProcessException(Exception e) {
+	public void handleDataProcessException(Exception e) {
 		if (!errorRepsponsed.get()) {
 			this.error = e.toString();
 			LOGGER.warn("caught exception ", e);
