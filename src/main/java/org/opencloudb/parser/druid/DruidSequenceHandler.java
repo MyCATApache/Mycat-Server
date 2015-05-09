@@ -3,6 +3,7 @@ package org.opencloudb.parser.druid;
 import java.io.UnsupportedEncodingException;
 
 import org.opencloudb.config.model.SystemConfig;
+import org.opencloudb.sequence.handler.IncrSequenceTimeHandler;
 import org.opencloudb.sequence.handler.IncrSequenceMySQLHandler;
 import org.opencloudb.sequence.handler.IncrSequencePropHandler;
 import org.opencloudb.sequence.handler.SequenceHandler;
@@ -24,16 +25,19 @@ public class DruidSequenceHandler {
 		case SystemConfig.SEQUENCEHANDLER_LOCALFILE:
 			sequenceHandler = IncrSequencePropHandler.getInstance();
 			break;
+		case SystemConfig.SEQUENCEHANDLER_LOCAL_TIME:
+			sequenceHandler = IncrSequenceTimeHandler.getInstance();
+			break;
 		default:
 			throw new java.lang.IllegalArgumentException("Invalid sequnce handler type "+seqHandlerType);
 		}
 	}
-	
+
 	/**
 	 * 根据原sql获取可执行的sql
 	 * @param sql
 	 * @return
-	 * @throws UnsupportedEncodingException 
+	 * @throws UnsupportedEncodingException
 	 */
 	public String getExecuteSql(String sql,String charset) throws UnsupportedEncodingException{
 		String executeSql = null;
