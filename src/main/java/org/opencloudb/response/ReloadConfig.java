@@ -24,8 +24,13 @@
 package org.opencloudb.response;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import org.apache.log4j.Logger;
 import org.opencloudb.ConfigInitializer;
 import org.opencloudb.MycatCluster;
@@ -46,25 +51,27 @@ import org.opencloudb.net.mysql.OkPacket;
  */
 public final class ReloadConfig {
 	private static final Logger LOGGER = Logger.getLogger(ReloadConfig.class);
+	private static final Callable<Boolean> asyncReload;
+
+	static {
+		/**
+		 * 异步执行类
+		 */
+		asyncReload = new Callable<Boolean>() {
+			@Override
+			public Boolean call() throws Exception {
+				return reload();
+			}
+		};
+	}
 
 	public static void execute(ManagerConnection c) {
 		final ReentrantLock lock = MycatServer.getInstance().getConfig()
 				.getLock();
 		lock.lock();
 		try {
-			if (reload()) {
-				StringBuilder s = new StringBuilder();
-				s.append(c).append("Reload config success by manager");
-				LOGGER.warn(s.toString());
-				OkPacket ok = new OkPacket();
-				ok.packetId = 1;
-				ok.affectedRows = 1;
-				ok.serverStatus = 2;
-				ok.message = "Reload config success".getBytes();
-				ok.write(c);
-			} else {
-				c.writeErrMessage(ErrorCode.ER_YES, "Reload config failure");
-			}
+			ListenableFuture<Boolean> listenableFuture = MycatServer.getInstance().getListeningExecutorService().submit(asyncReload);
+			Futures.addCallback(listenableFuture, new ReloadCallBack(c),  MycatServer.getInstance().getListeningExecutorService());
 		} finally {
 			lock.unlock();
 		}
@@ -94,7 +101,7 @@ public final class ReloadConfig {
 						+ "  to use datasource index:" + index);
 			}
 			dn.init(Integer.valueOf(index));
-			
+
 			//dn.init(0);
 			if (!dn.isInitSuccess()) {
 				reloadStatus = false;
@@ -124,5 +131,35 @@ public final class ReloadConfig {
 		 MycatServer.getInstance().getCacheService().clearCache();
 		return true;
 	}
+	/**
+	 * 异步执行回调类，用于回写数据给用户等。
+	 */
+	private static class ReloadCallBack implements FutureCallback<Boolean> {
 
+		private ManagerConnection mc;
+
+		private ReloadCallBack(ManagerConnection c) {
+			this.mc = c;
+		}
+
+		@Override
+		public void onSuccess(Boolean result) {
+			if (result) {
+				LOGGER.warn("send ok package to client " + String.valueOf(mc));
+				OkPacket ok = new OkPacket();
+				ok.packetId = 1;
+				ok.affectedRows = 1;
+				ok.serverStatus = 2;
+				ok.message = "Reload config success".getBytes();
+				ok.write(mc);
+			} else {
+				mc.writeErrMessage(ErrorCode.ER_YES, "Reload config failure");
+			}
+		}
+
+		@Override
+		public void onFailure(Throwable t) {
+			mc.writeErrMessage(ErrorCode.ER_YES, "Reload config failure");
+		}
+	}
 }
