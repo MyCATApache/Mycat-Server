@@ -45,10 +45,26 @@ public class DruidSequenceHandler {
 			sql = new String(sql.getBytes(), charset);
 			String tableName = StringUtil.getTableName(sql).toUpperCase();
 			long value = sequenceHandler.nextId(tableName.toUpperCase());
-			String replaceStr = "next value for MYCATSEQ_"+tableName;
-			executeSql = sql.replace(replaceStr, value+"");
+			executeSql = this.replaceSql(sql, tableName,value);
 		}
 		return executeSql;
+	}
+
+	private String replaceSql(String orgSql,String tableName,long sequnce){
+		if(orgSql.indexOf("next value for MYCATSEQ_")==-1){
+			throw new java.lang.IllegalArgumentException("Invalid sequnce Sql , must need next value for MYCATSEQ_");
+		}
+		String squenceStr = "next value for MYCATSEQ_";
+		String repanceStr = "next value for MYCATSEQ_" + tableName;
+
+		int startIndex = orgSql.indexOf(squenceStr) + squenceStr.length();
+		int endIndex = startIndex + tableName.length();
+		orgSql = orgSql.substring(0, startIndex)
+			   + orgSql.substring(startIndex, endIndex).toUpperCase()
+			   + orgSql.substring(endIndex, orgSql.length()) ;
+		orgSql = orgSql.replace(repanceStr, sequnce+"");
+
+		return orgSql;
 	}
 
 }
