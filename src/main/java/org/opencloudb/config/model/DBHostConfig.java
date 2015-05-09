@@ -35,6 +35,7 @@ public class DBHostConfig {
 	private int minCon ;
 	private String dbType;
 	private String filters="mergeStat";
+	private long logTime=300000;
 
 	public String getDbType() {
 		return dbType;
@@ -99,7 +100,6 @@ public class DBHostConfig {
 		return user;
 	}
 	public String getFilters() {
-		// TODO Auto-generated method stub
 		return filters;
 	}
 
@@ -108,6 +108,14 @@ public class DBHostConfig {
 	}
 	public String getPassword() {
 		return password;
+	}
+
+	public long getLogTime() {
+		return logTime;
+	}
+
+	public void setLogTime(long logTime) {
+		this.logTime = logTime;
 	}
 
 	@Override

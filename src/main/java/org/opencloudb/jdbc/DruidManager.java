@@ -53,6 +53,8 @@ public class DruidManager {
 			dataSource.setInitialSize(cfg.getMinCon());
 			dataSource.setMinIdle(1);
 			dataSource.setMaxActive(cfg.getMaxCon());
+			dataSource.setTimeBetweenLogStatsMillis(cfg.getLogTime());
+
 			// 启用监控统计功能
 			 try {
 				dataSource.setFilters(cfg.getFilters() );
