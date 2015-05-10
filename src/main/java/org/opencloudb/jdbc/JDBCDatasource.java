@@ -1,18 +1,19 @@
 package org.opencloudb.jdbc;
 
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
-
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+
 import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.model.DBHostConfig;
 import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.heartbeat.DBHeartbeat;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
+
+import com.google.common.collect.Lists;
 
 public class JDBCDatasource extends PhysicalDatasource {
 	static {
@@ -44,16 +45,16 @@ public class JDBCDatasource extends PhysicalDatasource {
 	public void createNewConnection(ResponseHandler handler,String schema) throws IOException {
 		DBHostConfig cfg = getConfig();
 		JDBCConnection c = new JDBCConnection();
-		
+
 		c.setHost(cfg.getIp());
 		c.setPort(cfg.getPort());
 		c.setPool(this);
 		c.setSchema(schema);
 		c.setDbType(cfg.getDbType());
-		
+
 		try {
             // TODO 这里应该有个连接池
-			Connection con = getConnection();
+			Connection con = getConnectByDataSource();
 			// c.setIdleTimeout(pool.getConfig().getIdleTimeout());
 			c.setCon(con);
 			// notify handler
@@ -85,5 +86,29 @@ public class JDBCDatasource extends PhysicalDatasource {
 		}
 		return connection;
     }
+    private Connection getConnectByDataSource() throws SQLException{
+        DBHostConfig cfg = getConfig();
+    	DruidManager druidManager = DruidManager.getInstance(cfg);
+
+		String initSql=getHostConfig().getConnectionInitSql();
+    	if(initSql!=null&&!"".equals(initSql))
+		{     Statement statement =null;
+			try
+			{
+				 statement = druidManager.getConnection().createStatement();
+				 statement.execute(initSql);
+			}finally
+			{
+				if(statement!=null)
+				{
+					statement.close();
+				}
+			}
+		}
+
+		return druidManager.getConnection();
+    }
+
+
 
 }
