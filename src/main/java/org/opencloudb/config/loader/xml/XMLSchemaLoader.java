@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -290,7 +290,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 	/**
 	 * distribute datanodes in multi hosts,means ,dn1 (host1),dn100
 	 * (host2),dn300(host3),dn2(host1),dn101(host2),dn301(host3)...etc
-	 * 
+	 *
 	 * @param dataNodes
 	 */
 	private void distributeDataNodes(ArrayList<String> theDataNodes) {
@@ -487,7 +487,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 	}
 
 	private DBHostConfig createDBHostConf(String dataHost, Element node,
-			String dbType, String dbDriver, int maxCon, int minCon) {
+			String dbType, String dbDriver, int maxCon, int minCon, String filters, long logTime) {
 		String nodeHost = node.getAttribute("host");
 		String nodeUrl = node.getAttribute("url");
 		String user = node.getAttribute("user");
@@ -522,6 +522,8 @@ public class XMLSchemaLoader implements SchemaLoader {
 		conf.setDbType(dbType);
 		conf.setMaxCon(maxCon);
 		conf.setMinCon(minCon);
+		conf.setFilters(filters);
+		conf.setLogTime(logTime);
 		return conf;
 	}
 
@@ -549,6 +551,9 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 			String dbDriver = element.getAttribute("dbDriver");
 			String dbType = element.getAttribute("dbType");
+			String filters = element.getAttribute("filters");
+			String logTimeStr = element.getAttribute("logTime");
+			long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.valueOf(logTimeStr) ;
 			String heartbeatSQL = element.getElementsByTagName("heartbeat")
 					.item(0).getTextContent();
 			NodeList connectionInitSqlList = element
@@ -565,7 +570,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			for (int w = 0; w < writeDbConfs.length; w++) {
 				Element writeNode = (Element) writeNodes.item(w);
 				writeDbConfs[w] = createDBHostConf(name, writeNode, dbType,
-						dbDriver, maxCon, minCon);
+						dbDriver, maxCon, minCon,filters,logTime);
 				NodeList readNodes = writeNode.getElementsByTagName("readHost");
 				if (readNodes.getLength() != 0) {
 					DBHostConfig[] readDbConfs = new DBHostConfig[readNodes
@@ -573,7 +578,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 					for (int r = 0; r < readDbConfs.length; r++) {
 						Element readNode = (Element) readNodes.item(r);
 						readDbConfs[r] = createDBHostConf(name, readNode,
-								dbType, dbDriver, maxCon, minCon);
+								dbType, dbDriver, maxCon, minCon,filters,logTime);
 					}
 					readHostsMap.put(w, readDbConfs);
 				}
@@ -588,6 +593,8 @@ public class XMLSchemaLoader implements SchemaLoader {
 			hostConf.setWriteType(writeType);
 			hostConf.setHearbeatSQL(heartbeatSQL);
 			hostConf.setConnectionInitSql(initConSQL);
+			hostConf.setFilters(filters);
+			hostConf.setLogTime(logTime);
 			dataHosts.put(hostConf.getName(), hostConf);
 
 		}

@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -47,6 +47,7 @@ public class PhysicalDBPool {
 	public static final int WRITE_ONLYONE_NODE = 0;
 	public static final int WRITE_RANDOM_NODE = 1;
 	public static final int WRITE_ALL_NODE = 2;
+	public static final long LONG_TIME = 300000;
 
 	protected static final Logger LOGGER = Logger
 			.getLogger(PhysicalDBPool.class);
@@ -118,7 +119,7 @@ public class PhysicalDBPool {
 
 	/**
 	 * all write datanodes
-	 * 
+	 *
 	 * @return
 	 */
 	public PhysicalDatasource[] getSources() {
@@ -390,7 +391,7 @@ public class PhysicalDBPool {
 
 	/**
 	 * return connection for read balance
-	 * 
+	 *
 	 * @param handler
 	 * @param attachment
 	 * @param database
@@ -459,7 +460,7 @@ public class PhysicalDBPool {
 
 	/**
 	 * return all backup write sources
-	 * 
+	 *
 	 * @return
 	 */
 	private ArrayList<PhysicalDatasource> getAllActiveRWSources(
