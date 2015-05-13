@@ -597,9 +597,15 @@ public class RouterUtil {
 		
 		if(retNodesSet != null && retNodesSet.size() > 0) {
 			if(retNodesSet.size() > 1 && isAllGlobalTable(ctx, schema)) {
-				// mulit routes ,not cache route result
-				rrs.setCacheAble(false);
-				routeToSingleNode(rrs, retNodesSet.iterator().next(), ctx.getSql());
+				// mulit routes ,not cache route result				
+				if (isSelect) {
+					rrs.setCacheAble(false);
+					routeToSingleNode(rrs, retNodesSet.iterator().next(), ctx.getSql());
+				}
+				else {
+					routeToMultiNode(isSelect, rrs, retNodesSet, ctx.getSql());
+				}
+				
 			} else {
 				routeToMultiNode(isSelect, rrs, retNodesSet, ctx.getSql());
 			}
