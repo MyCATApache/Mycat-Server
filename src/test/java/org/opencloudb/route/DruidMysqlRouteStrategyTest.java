@@ -109,6 +109,13 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
         Assert.assertEquals(3, rrs.getNodes().length);
         Assert.assertEquals(false, rrs.isCacheAble());
+        
+     // delete of global table route to every datanode defined
+        sql = "delete from company where id = 1";
+        schema = schemaMap.get("TESTDB");
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
+        Assert.assertEquals(3, rrs.getNodes().length);
+        Assert.assertEquals(false, rrs.isCacheAble());
 
         // company is global table ,will route to differnt tables
         schema = schemaMap.get("TESTDB");
