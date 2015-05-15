@@ -51,7 +51,6 @@
   minCon CDATA #REQUIRED
   name NMTOKEN #REQUIRED
   balance CDATA #REQUIRED
-  switchType CDATA #IMPLIED
   writeType CDATA #IMPLIED
   dbType CDATA #REQUIRED
   dbDriver CDATA #REQUIRED>
