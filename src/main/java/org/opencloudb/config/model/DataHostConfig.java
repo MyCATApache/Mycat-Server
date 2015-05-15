@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -29,11 +29,14 @@ import org.opencloudb.backend.PhysicalDBPool;
 
 /**
  * Datahost is a group of DB servers which is synchronized with each other
- * 
+ *
  * @author wuzhih
- * 
+ *
  */
 public class DataHostConfig {
+	public static final int NOT_SWITCH_DS = -1;
+	public static final int DEFAULT_SWITCH_DS = 1;
+	public static final int SYN_STATUS_SWITCH_DS = 2;
 	private String name;
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;
@@ -45,15 +48,33 @@ public class DataHostConfig {
 	private final Map<Integer, DBHostConfig[]> readHosts;
 	private String hearbeatSQL;
 	private String connectionInitSql;
+    private int slaveThreshold = -1;
+	private final int switchType;
+	private String filters="mergeStat";
+	private long logTime=300000;
 
 	public DataHostConfig(String name, String dbType, String dbDriver,
-			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts) {
+			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold) {
 		super();
 		this.name = name;
 		this.dbType = dbType;
 		this.dbDriver = dbDriver;
 		this.writeHosts = writeHosts;
 		this.readHosts = readHosts;
+		this.switchType=switchType;
+		this.slaveThreshold=slaveThreshold;
+	}
+
+	public int getSlaveThreshold() {
+		return slaveThreshold;
+	}
+
+	public void setSlaveThreshold(int slaveThreshold) {
+		this.slaveThreshold = slaveThreshold;
+	}
+
+	public int getSwitchType() {
+		return switchType;
 	}
 
 	public String getConnectionInitSql()
@@ -130,5 +151,22 @@ public class DataHostConfig {
 		this.hearbeatSQL = heartbeatSQL;
 
 	}
+
+	public String getFilters() {
+		return filters;
+	}
+
+	public void setFilters(String filters) {
+		this.filters = filters;
+	}
+
+	public long getLogTime() {
+		return logTime;
+	}
+
+	public void setLogTime(long logTime) {
+		this.logTime = logTime;
+	}
+
 
 }

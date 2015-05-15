@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -35,6 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.Alarms;
+import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.heartbeat.DBHeartbeat;
 import org.opencloudb.mysql.nio.handler.GetConnectionHandler;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
@@ -46,6 +47,8 @@ public class PhysicalDBPool {
 	public static final int WRITE_ONLYONE_NODE = 0;
 	public static final int WRITE_RANDOM_NODE = 1;
 	public static final int WRITE_ALL_NODE = 2;
+	public static final long LONG_TIME = 300000;
+
 	protected static final Logger LOGGER = Logger
 			.getLogger(PhysicalDBPool.class);
 	private final String hostName;
@@ -60,11 +63,14 @@ public class PhysicalDBPool {
 	private final Random random = new Random();
 	private final Random wnrandom = new Random();
 	private String[] schemas;
+	private final DataHostConfig dataHostConfig;
 
-	public PhysicalDBPool(String name, PhysicalDatasource[] writeSources,
+	public PhysicalDBPool(String name, DataHostConfig conf,
+			PhysicalDatasource[] writeSources,
 			Map<Integer, PhysicalDatasource[]> readSources, int balance,
 			int writeType) {
 		this.hostName = name;
+		this.dataHostConfig = conf;
 		this.writeSources = writeSources;
 		this.banlance = balance;
 		this.writeType = writeType;
@@ -113,7 +119,7 @@ public class PhysicalDBPool {
 
 	/**
 	 * all write datanodes
-	 * 
+	 *
 	 * @return
 	 */
 	public PhysicalDatasource[] getSources() {
@@ -274,9 +280,9 @@ public class PhysicalDBPool {
 
 		for (int i = 0; i < initSize; i++) {
 			try {
-				ConnectionMeta conMeta = new ConnectionMeta(this.schemas[i
-						% schemas.length], "utf8", -1, true);
-				ds.getConnection(conMeta, getConHandler, null);
+
+				ds.getConnection(this.schemas[i % schemas.length], true,
+						getConHandler, null);
 			} catch (Exception e) {
 				LOGGER.warn(getMessage(index, " init connection error."), e);
 			}
@@ -290,7 +296,7 @@ public class PhysicalDBPool {
 				Thread.sleep(200);
 
 			} catch (InterruptedException e) {
-			    LOGGER.error("initError", e);
+				LOGGER.error("initError", e);
 			}
 		}
 		LOGGER.info("init result :" + getConHandler.getStatusInfo());
@@ -385,25 +391,30 @@ public class PhysicalDBPool {
 
 	/**
 	 * return connection for read balance
-	 * 
+	 *
 	 * @param handler
 	 * @param attachment
 	 * @param database
 	 * @throws Exception
 	 */
-	public void getRWBanlanceCon(ConnectionMeta conMeta,
+	public void getRWBanlanceCon(String schema, boolean autocommit,
 			ResponseHandler handler, Object attachment, String database)
 			throws Exception {
 		PhysicalDatasource theNode = null;
 		ArrayList<PhysicalDatasource> okSources = null;
 		switch (banlance) {
 		case BALANCE_ALL_BACK: {// all read nodes and the standard by masters
-			okSources = getAllActiveRWSources(false);
-			theNode = randomSelect(okSources);
+
+			okSources = getAllActiveRWSources(false, checkSlaveSynStatus());
+			if (okSources.isEmpty()) {
+				theNode = this.getSource();
+			} else {
+				theNode = randomSelect(okSources);
+			}
 			break;
 		}
 		case BALANCE_ALL: {
-			okSources = getAllActiveRWSources(true);
+			okSources = getAllActiveRWSources(true, checkSlaveSynStatus());
 			theNode = randomSelect(okSources);
 			break;
 		}
@@ -416,7 +427,12 @@ public class PhysicalDBPool {
 			LOGGER.debug("select read source " + theNode.getName()
 					+ " for dataHost:" + this.getHostName());
 		}
-		theNode.getConnection(conMeta, handler, attachment);
+		theNode.getConnection(schema, autocommit, handler, attachment);
+	}
+
+	private boolean checkSlaveSynStatus() {
+		return (dataHostConfig.getSlaveThreshold() != -1)
+				&& (dataHostConfig.getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS);
 	}
 
 	private PhysicalDatasource randomSelect(
@@ -434,22 +450,37 @@ public class PhysicalDBPool {
 		return (theSource.getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS);
 	}
 
+	private boolean canSelectAsReadNode(PhysicalDatasource theSource) {
+
+		return (theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_NORMAL)
+				&& (theSource.getHeartbeat().getSlaveBehindMaster() < this.dataHostConfig
+						.getSlaveThreshold());
+
+	}
+
 	/**
 	 * return all backup write sources
-	 * 
+	 *
 	 * @return
 	 */
 	private ArrayList<PhysicalDatasource> getAllActiveRWSources(
-			boolean includeCurWriteNode) {
+			boolean includeCurWriteNode, boolean filterWithSlaveThreshold) {
 		int curActive = activedIndex;
 		ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(
 				this.allDs.size());
 		for (int i = 0; i < this.writeSources.length; i++) {
-			if (isAlive(writeSources[i])) {// write node is active
+			PhysicalDatasource theSource = writeSources[i];
+			if (isAlive(theSource)) {// write node is active
 				if (i == curActive && includeCurWriteNode == false) {
 					// not include cur active source
+				} else if (filterWithSlaveThreshold) {
+					if (canSelectAsReadNode(theSource)) {
+						okSources.add(theSource);
+					} else {
+						continue;
+					}
 				} else {
-					okSources.add(writeSources[i]);
+					okSources.add(theSource);
 				}
 				if (!readSources.isEmpty()) {
 					// check all slave nodes
@@ -457,7 +488,15 @@ public class PhysicalDBPool {
 					if (allSlaves != null) {
 						for (PhysicalDatasource slave : allSlaves) {
 							if (isAlive(slave)) {
-								okSources.add(slave);
+								if (filterWithSlaveThreshold) {
+									if (canSelectAsReadNode(theSource)) {
+										okSources.add(theSource);
+									} else {
+										continue;
+									}
+								} else {
+									okSources.add(theSource);
+								}
 							}
 						}
 					}

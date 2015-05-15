@@ -23,6 +23,7 @@
  */
 package org.opencloudb.net.mysql;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
 import org.opencloudb.mysql.BufferUtil;
@@ -92,7 +93,24 @@ public class ErrorPacket extends MySQLPacket {
 		c.recycle(buffer);
 		return data;
 	}
+	public byte[] writeToBytes() {
+		ByteBuffer buffer = ByteBuffer.allocate(calcPacketSize()+4);
+		int size = calcPacketSize();
+		BufferUtil.writeUB3(buffer, size);
+		buffer.put(packetId);
+		buffer.put(fieldCount);
+		BufferUtil.writeUB2(buffer, errno);
+		buffer.put(mark);
+		buffer.put(sqlState);
+		if (message != null) {
+			buffer.put(message);
+		}
+		buffer.flip();
+		byte[] data = new byte[buffer.limit()];
+		buffer.get(data);
 
+		return data;
+	}
 	@Override
 	public ByteBuffer write(ByteBuffer buffer, FrontendConnection c,
 			boolean writeSocketIfFull) {
@@ -110,6 +128,8 @@ public class ErrorPacket extends MySQLPacket {
 		}
 		return buffer;
 	}
+
+
 
 	public void write(FrontendConnection c) {
 		ByteBuffer buffer = c.allocate();

@@ -98,6 +98,7 @@ public final class NIOReactor {
                                         LOGGER.warn("caught err:", e);
                                         con.close("program err:" + e.toString());
 									} catch (Exception e) {
+										LOGGER.debug("caught err:", e);
 										con.close("program err:" + e.toString());
 									}
 								}

@@ -6,16 +6,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.mpp.RangeValue;
 import org.opencloudb.parser.druid.DruidParser;
 import org.opencloudb.parser.druid.DruidShardingParseInfo;
+import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
+import org.opencloudb.parser.druid.RouteCalculateUnit;
 import org.opencloudb.route.RouteResultset;
+import org.opencloudb.util.StringUtil;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat.Condition;
 
 /**
@@ -50,7 +53,7 @@ public class DefaultDruidParser implements DruidParser {
 	 * @param schema
 	 * @param stmt
 	 */
-	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool,SchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException {
+	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool,MycatSchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException {
 		ctx = new DruidShardingParseInfo();
 		//设置为原始sql，如果有需要改写sql的，可以通过修改SQLStatement中的属性，然后调用SQLStatement.toString()得到改写的sql
 		ctx.setSql(originSql);
@@ -87,9 +90,18 @@ public class DefaultDruidParser implements DruidParser {
 	 * @param stmt
 	 */
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt,SchemaStatVisitor visitor) throws SQLNonTransientException{
+	public void visitorParse(RouteResultset rrs, SQLStatement stmt,MycatSchemaStatVisitor visitor) throws SQLNonTransientException{
 
 		stmt.accept(visitor);
+		
+		List<List<Condition>> mergedConditionList = new ArrayList<List<Condition>>();
+		if(visitor.hasOrCondition()) {//包含or语句
+			//TODO
+			//根据or拆分
+			mergedConditionList = visitor.splitConditions();
+		} else {//不包含OR语句
+			mergedConditionList.add(visitor.getConditions());
+		}
 		
 		if(visitor.getAliasMap() != null) {
 			for(Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
@@ -117,34 +129,40 @@ public class DefaultDruidParser implements DruidParser {
 			}
 			ctx.setTableAliasMap(tableAliasMap);
 		}
-
-		
-		conditions = visitor.getConditions();
-		
+		ctx.setRouteCalculateUnits(this.buildRouteCalculateUnits(visitor, mergedConditionList));
+	}
+	
+	private List<RouteCalculateUnit> buildRouteCalculateUnits(SchemaStatVisitor visitor, List<List<Condition>> conditionList) {
+		List<RouteCalculateUnit> retList = new ArrayList<RouteCalculateUnit>();
 		//遍历condition ，找分片字段
-		for(Condition condition : conditions) {
-			List<Object> values = condition.getValues();
-			if(values.size() == 0) {
-				break;
-			}
-			if(checkConditionValues(values)) {
-				String columnName = removeBackquote(condition.getColumn().getName().toUpperCase());
-				String tableName = removeBackquote(condition.getColumn().getTable().toUpperCase());
-				if(visitor.getAliasMap() != null && visitor.getAliasMap().get(condition.getColumn().getTable()) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
-					continue;
+		for(int i = 0; i < conditionList.size(); i++) {
+			RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
+			for(Condition condition : conditionList.get(i)) {
+				List<Object> values = condition.getValues();
+				if(values.size() == 0) {
+					break;
 				}
-				
-				String operator = condition.getOperator();
-				
-				//只处理between ,in和=3中操作符
-				if(operator.equals("between")) {
-					RangeValue rv = new RangeValue(values.get(0), values.get(1), RangeValue.EE);
-					ctx.addShardingExpr(tableName.toUpperCase(), columnName, rv);
-				} else if(operator.equals("=") || operator.toLowerCase().equals("in")){ //只处理=号和in操作符,其他忽略
-					ctx.addShardingExpr(tableName.toUpperCase(), columnName, values.toArray());
+				if(checkConditionValues(values)) {
+					String columnName = StringUtil.removeBackquote(condition.getColumn().getName().toUpperCase());
+					String tableName = StringUtil.removeBackquote(condition.getColumn().getTable().toUpperCase());
+					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(condition.getColumn().getTable()) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
+						continue;
+					}
+					
+					String operator = condition.getOperator();
+					
+					//只处理between ,in和=3中操作符
+					if(operator.equals("between")) {
+						RangeValue rv = new RangeValue(values.get(0), values.get(1), RangeValue.EE);
+								routeCalculateUnit.addShardingExpr(tableName.toUpperCase(), columnName, rv);
+					} else if(operator.equals("=") || operator.toLowerCase().equals("in")){ //只处理=号和in操作符,其他忽略
+								routeCalculateUnit.addShardingExpr(tableName.toUpperCase(), columnName, values.toArray());
+					}
 				}
 			}
+			retList.add(routeCalculateUnit);
 		}
+		return retList;
 	}
 	
 	private boolean checkConditionValues(List<Object> values) {
@@ -158,25 +176,5 @@ public class DefaultDruidParser implements DruidParser {
 	
 	public DruidShardingParseInfo getCtx() {
 		return ctx;
-	}
-	
-	/**
-	 * 移除`符号
-	 * @param str
-	 * @return
-	 */
-	public String removeBackquote(String str){
-		//删除名字中的`tablename`和'value'
-		if (str.length() > 0) {
-			StringBuilder sb = new StringBuilder(str);
-			if (sb.charAt(0) == '`'||sb.charAt(0) == '\'') {
-				sb.deleteCharAt(0);
-			}
-			if (sb.charAt(sb.length() - 1) == '`'||sb.charAt(sb.length() - 1) == '\'') {
-				sb.deleteCharAt(sb.length() - 1);
-			}
-			return sb.toString();
-		}
-		return "";
 	}
 }

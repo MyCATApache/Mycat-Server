@@ -36,6 +36,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.buffer.BufferPool;
@@ -95,6 +97,7 @@ public class MycatServer {
 	private SocketConnector connector;
 	private NameableExecutor businessExecutor;
 	private NameableExecutor timerExecutor;
+	private ListeningExecutorService listeningExecutorService;
 
 	public MycatServer() {
 		this.config = new MycatConfig();
@@ -221,6 +224,7 @@ public class MycatServer {
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
 		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
+		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
 
 		for (int i = 0; i < processors.length; i++) {
 			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
@@ -528,5 +532,9 @@ public class MycatServer {
 
 	public boolean isAIO() {
 		return aio;
+	}
+
+	public ListeningExecutorService getListeningExecutorService() {
+		return listeningExecutorService;
 	}
 }

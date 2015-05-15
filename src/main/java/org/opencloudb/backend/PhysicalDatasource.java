@@ -338,17 +338,17 @@ public abstract class PhysicalDatasource {
 		});
 	}
 
-    public void getConnection(final ConnectionMeta conMeta, final ResponseHandler handler,
+    public void getConnection(String schema,boolean autocommit, final ResponseHandler handler,
         final Object attachment) throws IOException {
-        BackendConnection con = this.conMap.tryTakeCon(conMeta);
+        BackendConnection con = this.conMap.tryTakeCon(schema,autocommit);
         if (con != null) {
-            takeCon(con, handler, attachment, conMeta.getSchema());
+            takeCon(con, handler, attachment, schema);
             return;
         } else {
             LOGGER.info("not ilde connection in pool,create new connection for " + this.name
-                + conMeta.toString());
+                + " of schema "+schema);
             // create connection
-            createNewConnection(handler, attachment, conMeta.getSchema());
+            createNewConnection(handler, attachment, schema);
             
         }
         

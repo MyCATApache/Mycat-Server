@@ -70,19 +70,19 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 		long endTime = startTime + 5 * 60 * 1000L;
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 
+		LOGGER.debug("find child node with sql:" + sql);
 		for (String dn : dataNodes) {
 			if (dataNode != null) {
 				return dataNode;
 			}
 			PhysicalDBNode mysqlDN = conf.getDataNodes().get(dn);
-			ConnectionMeta conMeta = new ConnectionMeta(mysqlDN.getDatabase(),
-					null, -1, true);
 			try {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("execute in datanode " + dn);
 				}
-				mysqlDN.getConnection(conMeta, new RouteResultsetNode(dn,
-						ServerParse.SELECT, sql), this, dn);
+				mysqlDN.getConnection(mysqlDN.getDatabase(), true,
+						new RouteResultsetNode(dn, ServerParse.SELECT, sql),
+						this, dn);
 			} catch (Exception e) {
 				LOGGER.warn("get connection err " + e);
 			}

@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -44,6 +44,8 @@ import org.opencloudb.config.model.UserConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.jdbc.JDBCDatasource;
 import org.opencloudb.mysql.nio.MySQLDataSource;
+import org.opencloudb.sequence.handler.IncrSequenceTimeHandler;
+import org.opencloudb.sequence.handler.IncrSequenceMySQLHandler;
 
 /**
  * @author mycat
@@ -68,6 +70,12 @@ public class ConfigInitializer {
 		this.dataNodes = initDataNodes(configLoader);
 		this.quarantine = configLoader.getQuarantineConfig();
 		this.cluster = initCobarCluster(configLoader);
+		if(system.getSequnceHandlerType()==SystemConfig.SEQUENCEHANDLER_MYSQLDB){
+        	IncrSequenceMySQLHandler.getInstance().load();
+        }
+		if(system.getSequnceHandlerType()==SystemConfig.SEQUENCEHANDLER_LOCAL_TIME){
+			IncrSequenceTimeHandler.getInstance().load();
+        }
 
 		this.checkConfig();
 	}
@@ -182,7 +190,7 @@ public class ConfigInitializer {
 					dbType, dbDriver, entry.getValue(), true);
 			readSourcesMap.put(entry.getKey(), readSources);
 		}
-		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(), writeSources,
+		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(),conf, writeSources,
 				readSourcesMap, conf.getBalance(), conf.getWriteType());
 		return pool;
 	}

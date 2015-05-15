@@ -45,6 +45,7 @@ import org.opencloudb.net.mysql.BinaryPacket;
 import org.opencloudb.net.mysql.RequestFilePacket;
 import org.opencloudb.parser.druid.DruidShardingParseInfo;
 import org.opencloudb.parser.druid.MycatStatementParser;
+import org.opencloudb.parser.druid.RouteCalculateUnit;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.util.RouterUtil;
@@ -56,9 +57,13 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * mysql命令行客户端也需要启用local file权限，加参数--local-infile=1
@@ -86,6 +91,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private int partitionColumnIndex = -1;
     private LayerCachePool tableId2DataNodeCache;
     private SchemaConfig schema;
+    private boolean isStartLoadData = false;
 
     public int getPackID()
     {
@@ -166,28 +172,31 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         tempByteBuffer = new ByteArrayOutputStream();
 
         List<SQLExpr> columns = statement.getColumns();
-        String pColumn = tableConfig.getPartitionColumn();
-        if (columns != null && columns.size() > 0)
+        if(tableConfig!=null)
         {
-
-            for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
+            String pColumn = tableConfig.getPartitionColumn();
+            if (pColumn != null && columns != null && columns.size() > 0)
             {
-                SQLExpr column = columns.get(i);
-                if (pColumn.equalsIgnoreCase(column.toString()))
+
+                for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
                 {
-                    partitionColumnIndex = i;
-                    break;
+                    SQLExpr column = columns.get(i);
+                    if (pColumn.equalsIgnoreCase(column.toString()))
+                    {
+                        partitionColumnIndex = i;
+                        break;
+
+                    }
 
                 }
 
             }
-
         }
-
 
         parseLoadDataPram();
         if (statement.isLocal())
         {
+            isStartLoadData = true;
             //向客户端请求发送文件
             ByteBuffer buffer = serverConnection.allocate();
             RequestFilePacket filePacket = new RequestFilePacket();
@@ -207,6 +216,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 if (rrs != null)
                 {
                     flushDataToFile();
+                    isStartLoadData = false;
                     serverConnection.getSession2().execute(rrs, ServerParse.LOAD_DATA_INFILE_SQL);
                 }
 
@@ -302,7 +312,22 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             RouteResultsetNode rrNode = new RouteResultsetNode(schema.getDataNode(), ServerParse.INSERT, sql);
             rrs.setNodes(new RouteResultsetNode[]{rrNode});
             return rrs;
-        } else if (tableConfig != null)
+        }
+        else if (tableConfig != null&&tableConfig.isGlobalTable())
+        {
+            ArrayList<String> dataNodes= tableConfig.getDataNodes();
+            RouteResultsetNode[] rrsNodes=    new RouteResultsetNode[dataNodes.size()];
+            for (int i = 0, dataNodesSize = dataNodes.size(); i < dataNodesSize; i++)
+            {
+                String dataNode = dataNodes.get(i);
+                RouteResultsetNode rrNode = new RouteResultsetNode(dataNode, ServerParse.INSERT, sql);
+                rrsNodes[i]=rrNode;
+            }
+
+            rrs.setNodes(rrsNodes);
+            return rrs;
+        }
+        else if (tableConfig != null)
         {
             DruidShardingParseInfo ctx = new DruidShardingParseInfo();
             ctx.addTable(tableName);
@@ -314,10 +339,29 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             } else
             {
                 String value = lineList[partitionColumnIndex];
-                ctx.addShardingExpr(tableName, tableConfig.getPartitionColumn(), parseFieldString(value, loadData.getEnclose()));
+                RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
+                routeCalculateUnit.addShardingExpr(tableName, tableConfig.getPartitionColumn(), parseFieldString(value,loadData.getEnclose()));
+                ctx.addRouteCalculateUnit(routeCalculateUnit);
                 try
                 {
-                    RouterUtil.tryRouteForTables(schema, ctx, rrs, false, tableId2DataNodeCache);
+                	SortedSet<RouteResultsetNode> nodeSet = new TreeSet<RouteResultsetNode>();
+            		for(RouteCalculateUnit unit : ctx.getRouteCalculateUnits()) {
+            			RouteResultset rrsTmp = RouterUtil.tryRouteForTables(schema, ctx, unit, rrs, false, tableId2DataNodeCache);
+            			if(rrsTmp != null) {
+            				for(RouteResultsetNode node :rrsTmp.getNodes()) {
+            					nodeSet.add(node);
+            				}
+            			}
+            		}
+            		
+            		RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSet.size()];
+            		int i = 0;
+            		for (Iterator<RouteResultsetNode> iterator = nodeSet.iterator(); iterator.hasNext();) {
+            			nodes[i] = (RouteResultsetNode) iterator.next();
+            			i++;
+            		}
+            		
+            		rrs.setNodes(nodes);
                     return rrs;
                 } catch (SQLNonTransientException e)
                 {
@@ -555,6 +599,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     @Override
     public void end(byte packID)
     {
+        isStartLoadData = false;
         this.packID = packID;
         //load in data空包 结束
         saveByteOrToFile(null, true);
@@ -670,9 +715,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
     public void clear()
     {
+        isStartLoadData = false;
         tableId2DataNodeCache = null;
         schema = null;
         tableConfig = null;
+        isHasStoreToFile = false;
+        packID = 0;
+        tempByteBuffrSize = 0;
+        tableName=null;
         partitionColumnIndex = -1;
         if (tempFile != null)
         {
@@ -698,6 +748,12 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     public byte getLastPackId()
     {
         return packID;
+    }
+
+    @Override
+    public boolean isStartLoadData()
+    {
+        return isStartLoadData;
     }
 
     /**
