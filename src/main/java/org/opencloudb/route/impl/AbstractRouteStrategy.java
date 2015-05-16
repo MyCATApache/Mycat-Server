@@ -21,10 +21,9 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String origSQL, 
 			String charset, ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
-		if (RouterUtil.processWithMycatSeq(sysConfig,schema, sqlType, origSQL, charset,sc, cachePool) || 
-				(sqlType == ServerParse.INSERT && RouterUtil.processInsert(sysConfig,schema,sqlType,origSQL,charset,sc,cachePool))) {
-				return null;
-		}
+
+		//process some before route logic
+		if (beforeRouteProcess(schema, sqlType, origSQL, sc)) return null;
 
 		// user handler
 		String stmt = MycatServer.getInstance().getSqlInterceptor().interceptSQL(origSQL, sqlType);
@@ -62,7 +61,13 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 
 		return rrs;
 	}
-	
+
+	private boolean beforeRouteProcess(SchemaConfig schema, int sqlType, String origSQL, ServerConnection sc) throws SQLNonTransientException {
+		return RouterUtil.processWithMycatSeq(schema, sqlType, origSQL, sc) ||
+                (sqlType == ServerParse.INSERT && RouterUtil.processERChildTable(schema, origSQL, sc)) ||
+				(sqlType == ServerParse.INSERT && RouterUtil.processInsert(schema, sqlType, origSQL,sc));
+	}
+
 	/**
 	 * 通过解析AST语法树类来寻找路由
 	 * @param schema
