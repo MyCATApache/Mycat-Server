@@ -540,10 +540,10 @@ public class XMLSchemaLoader implements SchemaLoader {
 			int minCon = Integer.valueOf(element.getAttribute("minCon"));
 			int balance = Integer.valueOf(element.getAttribute("balance"));
 			String switchTypeStr = element.getAttribute("switchType");		 			String switchTypeStr = element.getAttribute("switchType");
--			int switchType = switchTypeStr.equals("") ? -1 : Integer		+			int switchType = "".equals(switchTypeStr) ? DataHostConfig.DEFAULT_SWITCH_DS : Integer
+-			int switchType = "".equals(switchTypeStr) ? DataHostConfig.DEFAULT_SWITCH_DS : Integer		+			int switchType = "".equals(switchTypeStr) ? DataHostConfig.DEFAULT_SWITCH_DS : Integer
  					.valueOf(switchTypeStr);		 					.valueOf(switchTypeStr);
  			String slaveThresholdStr = element.getAttribute("slaveThreshold");		 			String slaveThresholdStr = element.getAttribute("slaveThreshold");
--			int slaveThreshold = slaveThresholdStr.equals("") ? -1 : Integer		+			int slaveThreshold = "".equals(slaveThresholdStr) ? -1 : Integer
+-			int slaveThreshold = "".equals(slaveThresholdStr) ? -1 : Integer		+			int slaveThreshold = "".equals(slaveThresholdStr) ? -1 : Integer
  					.valueOf(slaveThresholdStr);
 			String writeTypStr = element.getAttribute("writeType");
 			int writeType = "".equals(writeTypStr) ? PhysicalDBPool.WRITE_ONLYONE_NODE
