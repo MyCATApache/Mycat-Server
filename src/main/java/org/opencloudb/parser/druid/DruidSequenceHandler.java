@@ -52,15 +52,14 @@ public class DruidSequenceHandler {
 		return executeSql;
 	}
 
-	private String getTableName(String sql) {
+	public String getTableName(String sql) {
+		sql = sql.toUpperCase();
 		// String tableName = StringUtil.getTableName(sql).toUpperCase();
 		int beginIndex = sql.indexOf(MATCHED_FEATURE);
 		if(beginIndex == -1 || beginIndex == sql.length()) {
 			throw new RuntimeException(sql+" 中应包含语句 "+MATCHED_FEATURE);
 		}
 		
-		String tableName = sql.toUpperCase().substring(beginIndex+MATCHED_FEATURE.length()+1);
-		
-		return tableName;
+		return sql.toUpperCase().substring(beginIndex+MATCHED_FEATURE.length());
 	}
 }
