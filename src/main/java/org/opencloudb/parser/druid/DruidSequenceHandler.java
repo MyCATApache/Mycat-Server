@@ -42,13 +42,9 @@ public class DruidSequenceHandler {
 		String executeSql = null;
 		if (null!=sql && !"".equals(sql)) {
 			sql = new String(sql.getBytes(), charset).toUpperCase();
-			// String tableName = StringUtil.getTableName(sql).toUpperCase();
-			int beginIndex = sql.indexOf(MATCHED_FEATURE);
-			if(beginIndex == -1 || beginIndex == sql.length()) {
-				throw new RuntimeException(sql+" 中应包含语句 "+MATCHED_FEATURE);
-			}
+
+			String tableName = getTableName(sql);
 			
-			String tableName = sql.toUpperCase().substring(beginIndex+MATCHED_FEATURE.length()+1);
 			long value = sequenceHandler.nextId(tableName.toUpperCase());
 			String replaceStr = MATCHED_FEATURE+tableName;
 			executeSql = sql.replace(replaceStr, value+"");
@@ -56,4 +52,15 @@ public class DruidSequenceHandler {
 		return executeSql;
 	}
 
+	private String getTableName(String sql) {
+		// String tableName = StringUtil.getTableName(sql).toUpperCase();
+		int beginIndex = sql.indexOf(MATCHED_FEATURE);
+		if(beginIndex == -1 || beginIndex == sql.length()) {
+			throw new RuntimeException(sql+" 中应包含语句 "+MATCHED_FEATURE);
+		}
+		
+		String tableName = sql.toUpperCase().substring(beginIndex+MATCHED_FEATURE.length()+1);
+		
+		return tableName;
+	}
 }
