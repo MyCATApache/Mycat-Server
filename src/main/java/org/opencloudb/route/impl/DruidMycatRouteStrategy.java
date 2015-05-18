@@ -6,11 +6,11 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.parser.druid.*;
-import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.parser.ServerParse;
@@ -247,22 +247,46 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	/**
 	 * 对Desc语句进行分析 返回数据路由集合
 	 * 
-	 * @param schema
-	 *            数据库名
-	 * @param rrs
-	 *            数据路由集合
-	 * @param stmt
-	 *            执行语句
-	 * @param ind
-	 *            第一个' '的位置
+	 * @param schema 数据库名
+	 * @param rrs 数据路由集合
+	 * @param stmt 执行语句
+	 * @param ind 第一个' '的位置
 	 * @return RouteResultset(数据路由集合)
 	 * @author mycat
 	 */
 	private static RouteResultset analyseDescrSQL(SchemaConfig schema,
 			RouteResultset rrs, String stmt, int ind) {
+		final String MATCHED_FEATURE = "DESCRIBE ";
+		int pos = 0;
+		while (pos < stmt.length()) {
+			char ch = stmt.charAt(pos);
+			// 忽略处理注释 /* */ BEN
+			if(ch == '/' &&  pos+4 < stmt.length() && stmt.charAt(pos+1) == '*') {
+				if(stmt.substring(pos+2).indexOf("*/") != -1) {
+					pos += stmt.substring(pos+2).indexOf("*/")+4;
+					continue;
+				} else {
+					// 不应该发生这类情况。
+					throw new IllegalArgumentException("sql 注释 语法错误");
+				}
+			} else {
+				// 匹配 [describe ] 
+				if(pos+MATCHED_FEATURE.length() < stmt.length() && (stmt.substring(pos).toUpperCase().indexOf(MATCHED_FEATURE) != -1)) {
+					pos = pos + MATCHED_FEATURE.length();
+					break;
+				} else {
+					pos++;
+				}
+			}
+		}
+		
+		// 重置ind坐标。BEN GONG
+		ind = pos;
+		
 		int[] repPos = { ind, 0 };
 		String tableName = RouterUtil.getTableName(stmt, repPos);
-		stmt = stmt.substring(0, ind) + tableName + stmt.substring(repPos[1]);
+		
+		stmt = stmt.substring(0, ind) +" "+ tableName + stmt.substring(repPos[1]);
 		RouterUtil.routeForTableMeta(rrs, schema, tableName, stmt);
 		return rrs;
 	}
