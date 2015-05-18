@@ -6,7 +6,6 @@ import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.sequence.handler.IncrSequenceMySQLHandler;
 import org.opencloudb.sequence.handler.IncrSequencePropHandler;
 import org.opencloudb.sequence.handler.SequenceHandler;
-import org.opencloudb.util.StringUtil;
 
 /**
  * 使用Druid解析器实现对Sequence处理
@@ -14,8 +13,12 @@ import org.opencloudb.util.StringUtil;
  * @date 2015/03/13
  */
 public class DruidSequenceHandler {
+	
 	private final SequenceHandler sequenceHandler;
 
+	/** 获取MYCAT SEQ的匹配语句 */
+	private final static String MATCHED_FEATURE = "NEXT VALUE FOR MYCATSEQ_";
+	
 	public DruidSequenceHandler(int seqHandlerType) {
 		switch(seqHandlerType){
 		case SystemConfig.SEQUENCEHANDLER_MYSQLDB:
@@ -38,10 +41,16 @@ public class DruidSequenceHandler {
 	public String getExecuteSql(String sql,String charset) throws UnsupportedEncodingException{
 		String executeSql = null;
 		if (null!=sql && !"".equals(sql)) {
-			sql = new String(sql.getBytes(), charset);
-			String tableName = StringUtil.getTableName(sql).toUpperCase();
+			sql = new String(sql.getBytes(), charset).toLowerCase();
+			// String tableName = StringUtil.getTableName(sql).toUpperCase();
+			int beginIndex = sql.indexOf(MATCHED_FEATURE);
+			if(beginIndex == -1 || beginIndex < sql.length()) {
+				throw new RuntimeException(sql+" 中应包含语句 []"+MATCHED_FEATURE);
+			}
+			
+			String tableName = sql.toUpperCase().substring(beginIndex+MATCHED_FEATURE.length()+1);
 			long value = sequenceHandler.nextId(tableName.toUpperCase());
-			String replaceStr = "next value for MYCATSEQ_"+tableName;
+			String replaceStr = MATCHED_FEATURE+tableName;
 			executeSql = sql.replace(replaceStr, value+"");
 		}
 		return executeSql;
