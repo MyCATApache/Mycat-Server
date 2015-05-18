@@ -41,10 +41,10 @@ public class DruidSequenceHandler {
 	public String getExecuteSql(String sql,String charset) throws UnsupportedEncodingException{
 		String executeSql = null;
 		if (null!=sql && !"".equals(sql)) {
-			sql = new String(sql.getBytes(), charset).toLowerCase();
+			sql = new String(sql.getBytes(), charset).toUpperCase();
 			// String tableName = StringUtil.getTableName(sql).toUpperCase();
 			int beginIndex = sql.indexOf(MATCHED_FEATURE);
-			if(beginIndex == -1 || beginIndex < sql.length()) {
+			if(beginIndex == -1 || beginIndex == sql.length()) {
 				throw new RuntimeException(sql+" 中应包含语句 []"+MATCHED_FEATURE);
 			}
 			
