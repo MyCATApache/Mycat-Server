@@ -26,7 +26,14 @@ package org.opencloudb.config.loader.xml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.config.loader.SchemaLoader;
@@ -35,6 +42,7 @@ import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.config.model.DataNodeConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
+import org.opencloudb.config.model.TableConfigMap;
 import org.opencloudb.config.model.rule.TableRuleConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.config.util.ConfigUtil;
@@ -198,7 +206,10 @@ public class XMLSchemaLoader implements SchemaLoader {
 	}
 
 	private Map<String, TableConfig> loadTables(Element node) {
-		Map<String, TableConfig> tables = new HashMap<String, TableConfig>();
+		
+		// 支持表名中包含引号[`] BEN GONG
+		Map<String, TableConfig> tables = new TableConfigMap();
+		
 		NodeList nodeList = node.getElementsByTagName("table");
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Element tableElement = (Element) nodeList.item(i);
