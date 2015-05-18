@@ -86,8 +86,7 @@ public class MyCATSequnceProcessor {
 			pair.session.getSource().routeEndExecuteSQL(executeSql, pair.type,pair.schema);
 		} catch (Exception e) {
 			LOGGER.error("MyCATSequenceProcessor.executeSeq(SesionSQLPair)",e);
-			pair.session.getSource().writeErrMessage(ErrorCode.ER_YES,
-					"mycat sequnce err." + e);
+			pair.session.getSource().writeErrMessage(ErrorCode.ER_YES,"mycat sequnce err." + e);
 			return;
 		}
 	}
