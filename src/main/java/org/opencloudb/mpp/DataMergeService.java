@@ -344,9 +344,4 @@ public class DataMergeService {
 
 }
 
-class DataNodeResultInf {
-	public RowDataPacket firstRecord;
-	public RowDataPacket lastRecord;
-	public int rowCount;
 
-}
