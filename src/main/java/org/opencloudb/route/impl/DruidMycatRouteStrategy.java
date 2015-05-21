@@ -294,9 +294,37 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 */
 	private static RouteResultset analyseDescrSQL(SchemaConfig schema,
 			RouteResultset rrs, String stmt, int ind) {
+		final String MATCHED_FEATURE = "DESCRIBE ";
+		int pos = 0;
+		while (pos < stmt.length()) {
+			char ch = stmt.charAt(pos);
+			// 忽略处理注释 /* */ BEN
+			if(ch == '/' &&  pos+4 < stmt.length() && stmt.charAt(pos+1) == '*') {
+				if(stmt.substring(pos+2).indexOf("*/") != -1) {
+					pos += stmt.substring(pos+2).indexOf("*/")+4;
+					continue;
+				} else {
+					// 不应该发生这类情况。
+					throw new IllegalArgumentException("sql 注释 语法错误");
+				}
+			} else {
+				// 匹配 [describe ] 
+				if(pos+MATCHED_FEATURE.length() < stmt.length() && (stmt.substring(pos).toUpperCase().indexOf(MATCHED_FEATURE) != -1)) {
+					pos = pos + MATCHED_FEATURE.length();
+					break;
+				} else {
+					pos++;
+				}
+			}
+		}
+		
+		// 重置ind坐标。BEN GONG
+		ind = pos;
+		
 		int[] repPos = { ind, 0 };
 		String tableName = RouterUtil.getTableName(stmt, repPos);
-		stmt = stmt.substring(0, ind) + tableName + stmt.substring(repPos[1]);
+		
+		stmt = stmt.substring(0, ind) +" "+ tableName + stmt.substring(repPos[1]);
 		RouterUtil.routeForTableMeta(rrs, schema, tableName, stmt);
 		return rrs;
 	}
