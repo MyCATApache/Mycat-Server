@@ -53,8 +53,8 @@ public class JDBCDatasource extends PhysicalDatasource {
 		c.setDbType(cfg.getDbType());
 
 		try {
-            // TODO 这里应该有个连接池
-			Connection con = getConnectByDataSource();
+
+			Connection con = getConnection();
 			// c.setIdleTimeout(pool.getConfig().getIdleTimeout());
 			c.setCon(con);
 			// notify handler
@@ -86,28 +86,7 @@ public class JDBCDatasource extends PhysicalDatasource {
 		}
 		return connection;
     }
-    private Connection getConnectByDataSource() throws SQLException{
-        DBHostConfig cfg = getConfig();
-    	DruidManager druidManager = DruidManager.getInstance(cfg);
 
-		String initSql=getHostConfig().getConnectionInitSql();
-    	if(initSql!=null&&!"".equals(initSql))
-		{     Statement statement =null;
-			try
-			{
-				 statement = druidManager.getConnection().createStatement();
-				 statement.execute(initSql);
-			}finally
-			{
-				if(statement!=null)
-				{
-					statement.close();
-				}
-			}
-		}
-
-		return druidManager.getConnection();
-    }
 
 
 
