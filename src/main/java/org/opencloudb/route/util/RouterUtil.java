@@ -324,6 +324,12 @@ public class RouterUtil {
 		return rrs;
 	}
 	
+	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt,boolean isGlobalTable) {
+		rrs=routeToMultiNode(cache,rrs,dataNodes,stmt);
+		rrs.setGlobalTable(isGlobalTable);
+		return rrs;
+	}
+	
 	public static void routeForTableMeta(RouteResultset rrs,
 			SchemaConfig schema, String tableName, String sql) {
 		String dataNode = null;
@@ -602,8 +608,8 @@ public class RouterUtil {
 					rrs.setCacheAble(false);
 					routeToSingleNode(rrs, retNodesSet.iterator().next(), ctx.getSql());
 				}
-				else {
-					routeToMultiNode(isSelect, rrs, retNodesSet, ctx.getSql());
+				else {//delete 删除全局表的记录
+					routeToMultiNode(isSelect, rrs, retNodesSet, ctx.getSql(),true);
 				}
 				
 			} else {
@@ -645,8 +651,8 @@ public class RouterUtil {
 				// global select ,not cache route result
 				rrs.setCacheAble(false);
 				return routeToSingleNode(rrs, tc.getRandomDataNode(),ctx.getSql());
-			} else {
-				return routeToMultiNode(false, rrs, tc.getDataNodes(), ctx.getSql());
+			} else {//insert into 全局表的记录
+				return routeToMultiNode(false, rrs, tc.getDataNodes(), ctx.getSql(),true);
 			}
 		} else {//单表或者分库表
 			if (!checkRuleRequired(schema, ctx, routeUnit, tc)) {
