@@ -17,6 +17,9 @@ import org.opencloudb.util.StringUtil;
 public class DruidSequenceHandler {
 	private final SequenceHandler sequenceHandler;
 
+	/** 获取MYCAT SEQ的匹配语句 */
+	private final static String MATCHED_FEATURE = "NEXT VALUE FOR MYCATSEQ_";
+	
 	public DruidSequenceHandler(int seqHandlerType) {
 		switch(seqHandlerType){
 		case SystemConfig.SEQUENCEHANDLER_MYSQLDB:
@@ -42,20 +45,43 @@ public class DruidSequenceHandler {
 	public String getExecuteSql(String sql,String charset) throws UnsupportedEncodingException{
 		String executeSql = null;
 		if (null!=sql && !"".equals(sql)) {
-			sql = new String(sql.getBytes(), charset);
-			String tableName = StringUtil.getTableName(sql).toUpperCase();
+			// 转换成大写。
+			sql = new String(sql.getBytes(), charset).toUpperCase();
+			// 获取表名。
+			String tableName = getTableName(sql);
+			
 			long value = sequenceHandler.nextId(tableName.toUpperCase());
-			executeSql = this.replaceSql(sql, tableName,value);
+			// executeSql = this.replaceSql(sql, tableName,value);
+			String replaceStr = MATCHED_FEATURE+tableName;
+			// 将MATCHED_FEATURE+表名替换成序列号。
+			executeSql = sql.replace(replaceStr, value+"");
 		}
 		return executeSql;
 	}
-
-	private String replaceSql(String orgSql,String tableName,long sequnce){
-		if(orgSql.indexOf("next value for MYCATSEQ_")==-1){
-			throw new java.lang.IllegalArgumentException("Invalid sequnce Sql , must need next value for MYCATSEQ_");
+	
+	public String getTableName(String sql) {
+		int beginIndex = sql.indexOf(MATCHED_FEATURE);
+		if(beginIndex == -1 || beginIndex == sql.length()) {
+			throw new RuntimeException(sql+" 中应包含语句 "+MATCHED_FEATURE);
 		}
-		String squenceStr = "next value for MYCATSEQ_";
-		String repanceStr = "next value for MYCATSEQ_" + tableName;
+		
+		return sql.substring(beginIndex+MATCHED_FEATURE.length());
+	}
+
+	/**
+	 * TODO 此部分未明了其含义，如有问题，请联系BEN
+	 * 
+	 * @param orgSql
+	 * @param tableName
+	 * @param sequnce
+	 * @return
+	 */
+	private String replaceSql(String orgSql,String tableName,long sequnce){
+		if(orgSql.indexOf(MATCHED_FEATURE)==-1){
+			throw new java.lang.IllegalArgumentException("Invalid sequnce Sql , must need "+MATCHED_FEATURE);
+		}
+		String squenceStr = MATCHED_FEATURE;
+		String repanceStr = MATCHED_FEATURE+ tableName;
 
 		int startIndex = orgSql.indexOf(squenceStr) + squenceStr.length();
 		int endIndex = startIndex + tableName.length();
