@@ -295,6 +295,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	private static RouteResultset analyseDescrSQL(SchemaConfig schema,
 			RouteResultset rrs, String stmt, int ind) {
 		final String MATCHED_FEATURE = "DESCRIBE ";
+		final String MATCHED2_FEATURE = "DESC ";
 		int pos = 0;
 		while (pos < stmt.length()) {
 			char ch = stmt.charAt(pos);
@@ -312,6 +313,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				if(pos+MATCHED_FEATURE.length() < stmt.length() && (stmt.substring(pos).toUpperCase().indexOf(MATCHED_FEATURE) != -1)) {
 					pos = pos + MATCHED_FEATURE.length();
 					break;
+				} else if(pos+MATCHED2_FEATURE.length() < stmt.length() && (stmt.substring(pos).toUpperCase().indexOf(MATCHED2_FEATURE) != -1)) {
+					pos = pos + MATCHED2_FEATURE.length();
+					break;
 				} else {
 					pos++;
 				}
@@ -324,7 +328,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		int[] repPos = { ind, 0 };
 		String tableName = RouterUtil.getTableName(stmt, repPos);
 		
-		stmt = stmt.substring(0, ind) +" "+ tableName + stmt.substring(repPos[1]);
+		stmt = stmt.substring(0, ind) + tableName + stmt.substring(repPos[1]);
 		RouterUtil.routeForTableMeta(rrs, schema, tableName, stmt);
 		return rrs;
 	}
