@@ -85,7 +85,7 @@ public class JDBCHeartbeat extends DBHeartbeat{
 			}
 			status = OK_STATUS;
 
-		} catch (SQLException ex)
+		} catch (Exception ex)
 		{
 			status = ERROR_STATUS;
 		} finally

@@ -407,15 +407,7 @@ public class JDBCConnection implements BackendConnection {
 	public void query(final String sql) throws UnsupportedEncodingException {
 		if(respHandler instanceof ConnectionHeartBeatHandler)
 		{
-			Runnable runnable = new Runnable() {
-				@Override
-				public void run() {
-						justForHeartbeat(sql);
-				}
-			};
-
-			MycatServer.getInstance().getBusinessExecutor().execute(runnable);
-
+			justForHeartbeat(sql);
 		}    else
 		{
 			throw new UnsupportedEncodingException("unsupported yet ");
