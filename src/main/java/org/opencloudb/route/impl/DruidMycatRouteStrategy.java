@@ -308,7 +308,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 					// 不应该发生这类情况。
 					throw new IllegalArgumentException("sql 注释 语法错误");
 				}
-			} else {
+			} else if(ch == 'D') {
 				// 匹配 [describe ] 
 				if(pos+MATCHED_FEATURE.length() < stmt.length() && (stmt.substring(pos).toUpperCase().indexOf(MATCHED_FEATURE) != -1)) {
 					pos = pos + MATCHED_FEATURE.length();
