@@ -35,6 +35,7 @@ import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.config.model.DataNodeConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
+import org.opencloudb.config.model.TableConfigMap;
 import org.opencloudb.config.model.rule.TableRuleConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.config.util.ConfigUtil;
@@ -198,7 +199,11 @@ public class XMLSchemaLoader implements SchemaLoader {
 	}
 
 	private Map<String, TableConfig> loadTables(Element node) {
-		Map<String, TableConfig> tables = new HashMap<String, TableConfig>();
+		// Map<String, TableConfig> tables = new HashMap<String, TableConfig>();
+		
+		// 支持表名中包含引号[`] BEN GONG
+		Map<String, TableConfig> tables = new TableConfigMap();
+		
 		NodeList nodeList = node.getElementsByTagName("table");
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Element tableElement = (Element) nodeList.item(i);

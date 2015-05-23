@@ -36,7 +36,8 @@ public class DruidUpdateParser extends DefaultDruidParser {
 		String partitionColumn = tc.getPartitionColumn();
 		String joinKey = tc.getJoinKey();
 		if(tc.isGlobalTable() || (partitionColumn == null && joinKey == null)) {
-			RouterUtil.routeToMultiNode(false, rrs, tc.getDataNodes(), rrs.getStatement());
+			//修改全局表 update 受影响的行数
+			RouterUtil.routeToMultiNode(false, rrs, tc.getDataNodes(), rrs.getStatement(),tc.isGlobalTable());
 			rrs.setFinishedRoute(true);
 			return;
 		}
