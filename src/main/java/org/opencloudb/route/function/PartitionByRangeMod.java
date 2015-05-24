@@ -40,7 +40,7 @@ import java.util.LinkedList;
 public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements RuleAlgorithm{
 
 	private String mapFile;
-	private LongRange[] longRongs;
+	private LongRange[] longRanges;
 	
 	private int defaultNode = -1;
 	@Override
@@ -58,7 +58,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 		long value = Long.valueOf(columnValue);
 		Integer rst = null;
         int nodeIndex=0;
-		for (LongRange longRang : this.longRongs) {
+		for (LongRange longRang : this.longRanges) {
 			if (value <= longRang.valueEnd && value >= longRang.valueStart) {
                 BigInteger bigNum = new BigInteger(columnValue).abs();
                 int innerIndex= (bigNum.mod(BigInteger.valueOf(longRang.groupSize))).intValue();
@@ -79,7 +79,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
         long value = Long.valueOf(columnValue);
         Integer rst = null;
         int nodeIndex=0;
-        for (LongRange longRang : this.longRongs) {
+        for (LongRange longRang : this.longRanges) {
             if (value <= longRang.valueEnd && value >= longRang.valueStart) {
 
                 return nodeIndex;
@@ -98,7 +98,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
         long value = Long.valueOf(columnValue);
         Integer rst = null;
         int nodeIndex=0;
-        for (LongRange longRang : this.longRongs) {
+        for (LongRange longRang : this.longRanges) {
             if (value <= longRang.valueEnd && value >= longRang.valueStart) {
 
                 return nodeIndex+longRang.groupSize -1;
@@ -175,8 +175,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 				} catch (Exception e) {
 				}
 			}
-			longRongs = longRangeList.toArray(new LongRange[longRangeList
-					.size()]);
+			longRanges = longRangeList.toArray(new LongRange[longRangeList.size()]);
 		} catch (Exception e) {
 			if (e instanceof RuntimeException) {
 				throw (RuntimeException) e;
