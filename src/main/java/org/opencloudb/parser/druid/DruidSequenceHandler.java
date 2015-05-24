@@ -1,6 +1,8 @@
 package org.opencloudb.parser.druid;
 
 import java.io.UnsupportedEncodingException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.sequence.handler.IncrSequenceTimeHandler;
@@ -47,14 +49,23 @@ public class DruidSequenceHandler {
 		if (null!=sql && !"".equals(sql)) {
 			// 转换成大写。
 			sql = new String(sql.getBytes(), charset).toUpperCase();
+            if(sql.startsWith("SELECT "))
+            {
+            //   return  sql;
+            }
 			// 获取表名。
-			String tableName = getTableName(sql);
-			
-			long value = sequenceHandler.nextId(tableName.toUpperCase());
-			// executeSql = this.replaceSql(sql, tableName,value);
-			String replaceStr = MATCHED_FEATURE+tableName;
-			// 将MATCHED_FEATURE+表名替换成序列号。
-			executeSql = sql.replace(replaceStr, value+"");
+            String p="(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+";
+            Pattern pattern = Pattern.compile(p,Pattern.CASE_INSENSITIVE);
+            Matcher matcher = pattern.matcher(sql);
+              if(matcher.find())
+              {
+                  String tableName = matcher.group(2);
+                  long value = sequenceHandler.nextId(tableName.toUpperCase());
+
+                  // 将MATCHED_FEATURE+表名替换成序列号。
+                  executeSql = sql.replace(matcher.group(1), " "+value);
+              }
+
 		}
 		return executeSql;
 	}
@@ -64,8 +75,19 @@ public class DruidSequenceHandler {
 		if(beginIndex == -1 || beginIndex == sql.length()) {
 			throw new RuntimeException(sql+" 中应包含语句 "+MATCHED_FEATURE);
 		}
-		
-		return sql.substring(beginIndex+MATCHED_FEATURE.length());
+
+        String maybe = sql.substring(beginIndex + MATCHED_FEATURE.length());
+        int dIndex = maybe.indexOf(",");
+        if(dIndex!=-1)
+        {
+            return maybe.substring(0, dIndex).trim()  ;
+        }
+        int kIndex = maybe.indexOf(")");
+        if(kIndex!=-1)
+        {
+            return maybe.substring(0, kIndex).trim()  ;
+        }
+        return maybe;
 	}
 
 	/**
