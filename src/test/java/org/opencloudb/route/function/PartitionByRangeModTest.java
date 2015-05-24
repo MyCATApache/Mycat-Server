@@ -25,8 +25,19 @@ package org.opencloudb.route.function;
 
 import junit.framework.Assert;
 import org.junit.Test;
+import org.opencloudb.SimpleCachePool;
+import org.opencloudb.cache.LayerCachePool;
+import org.opencloudb.config.loader.SchemaLoader;
+import org.opencloudb.config.loader.xml.XMLSchemaLoader;
+import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.config.model.SystemConfig;
+import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.RouteStrategy;
+import org.opencloudb.route.factory.RouteStrategyFactory;
 
 import java.math.BigInteger;
+import java.sql.SQLNonTransientException;
+import java.util.Map;
 
 public class PartitionByRangeModTest
 {
@@ -70,5 +81,36 @@ public class PartitionByRangeModTest
         return (bigNum.mod(BigInteger.valueOf(size))).intValue();
     }
 
+    protected Map<String, SchemaConfig> schemaMap;
+    protected LayerCachePool cachePool = new SimpleCachePool();
+    protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 
+    public PartitionByRangeModTest() {
+        String schemaFile = "/route/schema.xml";
+        String ruleFile = "/route/rule.xml";
+        SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
+        schemaMap = schemaLoader.getSchemas();
+    }
+
+    @Test
+    public void testRange() throws SQLNonTransientException
+    {
+        String sql = "select * from offer  where id between 2000000  and 4000001     order by id desc limit 100";
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+                null, cachePool);
+        Assert.assertEquals(10, rrs.getNodes().length);
+
+        sql = "select * from offer  where id between 9  and 2000     order by id desc limit 100";
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+                null, cachePool);
+        Assert.assertEquals(5, rrs.getNodes().length);
+
+        sql = "select * from offer  where id between 4000001  and 6005001     order by id desc limit 100";
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+                null, cachePool);
+        Assert.assertEquals(8, rrs.getNodes().length);
+
+
+    }
 }

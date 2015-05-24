@@ -61,11 +61,11 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 		for (LongRange longRang : this.longRongs) {
 			if (value <= longRang.valueEnd && value >= longRang.valueStart) {
                 BigInteger bigNum = new BigInteger(columnValue).abs();
-                int innerIndex= (bigNum.mod(BigInteger.valueOf(longRang.groupIndx))).intValue();
+                int innerIndex= (bigNum.mod(BigInteger.valueOf(longRang.groupSize))).intValue();
 				return nodeIndex+innerIndex;
 			}    else
             {
-                nodeIndex+= longRang.groupIndx;
+                nodeIndex+= longRang.groupSize;
             }
 		}
 		//数据超过范围，暂时使用配置的默认节点
@@ -74,11 +74,71 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 		}
 		return rst;
 	}
+
+    public Integer calculateStart(String columnValue) {
+        long value = Long.valueOf(columnValue);
+        Integer rst = null;
+        int nodeIndex=0;
+        for (LongRange longRang : this.longRongs) {
+            if (value <= longRang.valueEnd && value >= longRang.valueStart) {
+
+                return nodeIndex;
+            }    else
+            {
+                nodeIndex+= longRang.groupSize;
+            }
+        }
+        //数据超过范围，暂时使用配置的默认节点
+        if(rst ==null && defaultNode>=0){
+            return defaultNode ;
+        }
+        return rst;
+    }
+    public Integer calculateEnd(String columnValue) {
+        long value = Long.valueOf(columnValue);
+        Integer rst = null;
+        int nodeIndex=0;
+        for (LongRange longRang : this.longRongs) {
+            if (value <= longRang.valueEnd && value >= longRang.valueStart) {
+
+                return nodeIndex+longRang.groupSize -1;
+            }    else
+            {
+                nodeIndex+= longRang.groupSize;
+            }
+        }
+        //数据超过范围，暂时使用配置的默认节点
+        if(rst ==null && defaultNode>=0){
+            return defaultNode ;
+        }
+        return rst;
+    }
 	
 	@Override
 	public Integer[] calculateRange(String beginValue, String endValue) {
-		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
+        Integer begin = 0, end = 0;
+        begin = calculateStart(beginValue);
+        end = calculateEnd(endValue);
+
+        if(begin == null || end == null){
+            return new Integer[0];
+        }
+
+        if (end >= begin) {
+            int len = end-begin+1;
+            Integer [] re = new Integer[len];
+
+            for(int i =0;i<len;i++){
+                re[i]=begin+i;
+            }
+
+            return re;
+        }else{
+            return null;
+        }
 	}
+
+
 
 	private void initialize() {
 		BufferedReader in = null;
@@ -141,13 +201,13 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 	}
 
 	static class LongRange {
-		public final int groupIndx;
+		public final int groupSize;
 		public final long valueStart;
 		public final long valueEnd;
 
-		public LongRange(int groupIndx, long valueStart, long valueEnd) {
+		public LongRange(int groupSize, long valueStart, long valueEnd) {
 			super();
-			this.groupIndx = groupIndx;
+			this.groupSize = groupSize;
 			this.valueStart = valueStart;
 			this.valueEnd = valueEnd;
 		}
