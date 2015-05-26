@@ -47,12 +47,7 @@ public class DruidSequenceHandler {
 	public String getExecuteSql(String sql,String charset) throws UnsupportedEncodingException{
 		String executeSql = null;
 		if (null!=sql && !"".equals(sql)) {
-			// 转换成大写。
-			sql = new String(sql.getBytes(), charset).toUpperCase();
-            if(sql.startsWith("SELECT "))
-            {
-            //   return  sql;
-            }
+             //sql不能转大写，因为sql可能是insert语句会把values也给转换了
 			// 获取表名。
             String p="(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+";
             Pattern pattern = Pattern.compile(p,Pattern.CASE_INSENSITIVE);
@@ -69,50 +64,20 @@ public class DruidSequenceHandler {
 		}
 		return executeSql;
 	}
-	
+
+
+    //just for test
 	public String getTableName(String sql) {
-		int beginIndex = sql.indexOf(MATCHED_FEATURE);
-		if(beginIndex == -1 || beginIndex == sql.length()) {
-			throw new RuntimeException(sql+" 中应包含语句 "+MATCHED_FEATURE);
-		}
-
-        String maybe = sql.substring(beginIndex + MATCHED_FEATURE.length());
-        int dIndex = maybe.indexOf(",");
-        if(dIndex!=-1)
+        String p="(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+";
+        Pattern pattern = Pattern.compile(p, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(sql);
+        if(matcher.find())
         {
-            return maybe.substring(0, dIndex).trim()  ;
+          return  matcher.group(2);
         }
-        int kIndex = maybe.indexOf(")");
-        if(kIndex!=-1)
-        {
-            return maybe.substring(0, kIndex).trim()  ;
-        }
-        return maybe;
+        return null;
 	}
 
-	/**
-	 * TODO 此部分未明了其含义，如有问题，请联系BEN
-	 * 
-	 * @param orgSql
-	 * @param tableName
-	 * @param sequnce
-	 * @return
-	 */
-	private String replaceSql(String orgSql,String tableName,long sequnce){
-		if(orgSql.indexOf(MATCHED_FEATURE)==-1){
-			throw new java.lang.IllegalArgumentException("Invalid sequnce Sql , must need "+MATCHED_FEATURE);
-		}
-		String squenceStr = MATCHED_FEATURE;
-		String repanceStr = MATCHED_FEATURE+ tableName;
 
-		int startIndex = orgSql.indexOf(squenceStr) + squenceStr.length();
-		int endIndex = startIndex + tableName.length();
-		orgSql = orgSql.substring(0, startIndex)
-			   + orgSql.substring(startIndex, endIndex).toUpperCase()
-			   + orgSql.substring(endIndex, orgSql.length()) ;
-		orgSql = orgSql.replace(repanceStr, sequnce+"");
-
-		return orgSql;
-	}
 
 }
