@@ -23,6 +23,21 @@
  */
 package org.opencloudb.mpp;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.mpp.tmp.RowDataSorter;
@@ -31,13 +46,7 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
-
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.LinkedTransferQueue;
-import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.concurrent.locks.ReentrantLock;
+import org.opencloudb.util.StringUtil;
 
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
@@ -185,13 +194,13 @@ public class DataMergeService {
 			OrderCol[] orderCols = new OrderCol[orders.size()];
 			int i = 0;
 			for (Map.Entry<String, Integer> entry : orders.entrySet()) {
-				ColMeta colMeta = columToIndx.get(entry.getKey().toUpperCase());
+				String key = StringUtil.removeBackquote(entry.getKey().toUpperCase());
+				ColMeta colMeta = columToIndx.get(key);
 				if (colMeta == null) {
 					throw new java.lang.IllegalArgumentException(
-							"order by语句包含的字段必须出现在select语句字段列表里面" + entry.getKey().toUpperCase());
+							"all columns in order by clause should be in the selected column list!" + entry.getKey());
 				}
-				orderCols[i++] = new OrderCol(columToIndx.get(entry.getKey()
-						.toUpperCase()), entry.getValue());
+				orderCols[i++] = new OrderCol(colMeta, entry.getValue());
 			}
 //		 	sorter = new RowDataPacketSorter(orderCols);
 			RowDataSorter tmp = new RowDataSorter(orderCols);
@@ -274,6 +283,7 @@ public class DataMergeService {
 							break;
 						}
 					}
+
 					// for next job
 					Runnable newJob = jobQueue.poll();
 					if (newJob != null) {
@@ -285,6 +295,7 @@ public class DataMergeService {
 				} catch (Exception e) {
 					jobRuninng = false;
 					LOGGER.warn("data Merge error:", e);
+                    multiQueryHandler.handleDataProcessException(e);
 				}
 			}
 		};
@@ -310,7 +321,7 @@ public class DataMergeService {
 			curColMeta = toIndexMap.get(columns[i].toUpperCase());
 			if (curColMeta == null) {
 				throw new java.lang.IllegalArgumentException(
-						"group by语句包含的字段必须出现在select语句字段列表里面" + columns[i]);
+						"all columns in group by clause should be in the selected column list.!" + columns[i]);
 			}
 			result[i] = curColMeta.colIndex;
 		}
@@ -333,9 +344,4 @@ public class DataMergeService {
 
 }
 
-class DataNodeResultInf {
-	public RowDataPacket firstRecord;
-	public RowDataPacket lastRecord;
-	public int rowCount;
 
-}

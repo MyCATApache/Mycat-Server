@@ -1,22 +1,30 @@
 package org.opencloudb.route.impl;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.Iterator;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.apache.log4j.Logger;
+import org.opencloudb.cache.LayerCachePool;
+import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.parser.druid.DruidParser;
+import org.opencloudb.parser.druid.DruidParserFactory;
+import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
+import org.opencloudb.parser.druid.MycatStatementParser;
+import org.opencloudb.parser.druid.RouteCalculateUnit;
+import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.RouteResultsetNode;
+import org.opencloudb.route.util.RouterUtil;
+import org.opencloudb.server.parser.ServerParse;
+
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
-import org.apache.log4j.Logger;
-import org.opencloudb.cache.LayerCachePool;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.parser.druid.*;
-import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
-import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.util.RouterUtil;
-import org.opencloudb.server.parser.ServerParse;
-
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
 
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	public static final Logger LOGGER = Logger.getLogger(DruidMycatRouteStrategy.class);
@@ -34,7 +42,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			parser = new MySqlStatementParser(stmt);   //只有mysql时只支持mysql语法
 		}
 
-        SchemaStatVisitor visitor = null;
+		MycatSchemaStatVisitor visitor = null;
 		SQLStatement statement;
 		//解析出现问题统一抛SQL语法错误
 		try {
@@ -63,7 +71,33 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),druidParser.getCtx().getSql());
 		}
 
-		return RouterUtil.tryRouteForTables(schema, druidParser.getCtx(), rrs, isSelect(statement),cachePool);
+		if(druidParser.getCtx().getRouteCalculateUnits().size() == 0) {
+			RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
+			druidParser.getCtx().addRouteCalculateUnit(routeCalculateUnit);
+		}
+		
+		SortedSet<RouteResultsetNode> nodeSet = new TreeSet<RouteResultsetNode>();
+		for(RouteCalculateUnit unit : druidParser.getCtx().getRouteCalculateUnits()) {
+			RouteResultset rrsTmp = RouterUtil.tryRouteForTables(schema, druidParser.getCtx(), unit, rrs, isSelect(statement), cachePool);
+			if(rrsTmp != null) {
+				for(RouteResultsetNode node :rrsTmp.getNodes()) {
+					nodeSet.add(node);
+				}
+			}
+		}
+		
+		RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSet.size()];
+		int i = 0;
+		for (Iterator iterator = nodeSet.iterator(); iterator.hasNext();) {
+			nodes[i] = (RouteResultsetNode) iterator.next();
+			i++;
+			
+		}
+		
+		rrs.setNodes(nodes);
+		
+
+		return rrs;
 	}
 
 
@@ -260,8 +294,40 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 */
 	private static RouteResultset analyseDescrSQL(SchemaConfig schema,
 			RouteResultset rrs, String stmt, int ind) {
+		final String MATCHED_FEATURE = "DESCRIBE ";
+		final String MATCHED2_FEATURE = "DESC ";
+		int pos = 0;
+		while (pos < stmt.length()) {
+			char ch = stmt.charAt(pos);
+			// 忽略处理注释 /* */ BEN
+			if(ch == '/' &&  pos+4 < stmt.length() && stmt.charAt(pos+1) == '*') {
+				if(stmt.substring(pos+2).indexOf("*/") != -1) {
+					pos += stmt.substring(pos+2).indexOf("*/")+4;
+					continue;
+				} else {
+					// 不应该发生这类情况。
+					throw new IllegalArgumentException("sql 注释 语法错误");
+				}
+			} else if(ch == 'D'||ch == 'd') {
+				// 匹配 [describe ] 
+				if(pos+MATCHED_FEATURE.length() < stmt.length() && (stmt.substring(pos).toUpperCase().indexOf(MATCHED_FEATURE) != -1)) {
+					pos = pos + MATCHED_FEATURE.length();
+					break;
+				} else if(pos+MATCHED2_FEATURE.length() < stmt.length() && (stmt.substring(pos).toUpperCase().indexOf(MATCHED2_FEATURE) != -1)) {
+					pos = pos + MATCHED2_FEATURE.length();
+					break;
+				} else {
+					pos++;
+				}
+			}
+		}
+		
+		// 重置ind坐标。BEN GONG
+		ind = pos;
+		
 		int[] repPos = { ind, 0 };
 		String tableName = RouterUtil.getTableName(stmt, repPos);
+		
 		stmt = stmt.substring(0, ind) + tableName + stmt.substring(repPos[1]);
 		RouterUtil.routeForTableMeta(rrs, schema, tableName, stmt);
 		return rrs;

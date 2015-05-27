@@ -82,9 +82,12 @@ public class MySQLDetector implements
 		lastSendQryTime = System.currentTimeMillis();
 		MySQLDataSource ds = heartbeat.getSource();
 		String databaseName = ds.getDbPool().getSchemas()[0];
-
+		String[] fetchColms={};
+		if (heartbeat.getSource().getHostConfig().getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS) {
+			fetchColms=MYSQL_SLAVE_STAUTS_COLMS;
+		}
 		OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(
-				MYSQL_SLAVE_STAUTS_COLMS, this);
+				fetchColms, this);
 		sqlJob = new SQLJob(heartbeat.getHeartbeatSQL(), databaseName,
 				resultHandler, ds);
 		sqlJob.run();

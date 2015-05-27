@@ -199,9 +199,14 @@ public class MySQLMessage {
 
     public byte[] readBytesWithLength() {
         int length = (int) readLength();
+        if(length==NULL_LENGTH)
+        {
+            return null;
+        }
         if (length <= 0) {
             return EMPTY_BYTES;
         }
+
         byte[] ab = new byte[length];
         System.arraycopy(data, position, ab, 0, ab.length);
         position += length;

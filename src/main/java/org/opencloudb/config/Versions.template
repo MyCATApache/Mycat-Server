@@ -21,29 +21,17 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.cache.impl;
+package org.opencloudb.config;
 
-import java.util.concurrent.TimeUnit;
+/**
+ * @author mycat
+ */
+public interface Versions {
 
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
-import org.opencloudb.cache.CachePool;
-import org.opencloudb.cache.CachePoolFactory;
+    /**协议版本**/
+    public static final byte PROTOCOL_VERSION = 10;
 
-public class MapDBCachePooFactory extends CachePoolFactory {
-	private DB db = DBMaker.newMemoryDirectDB().cacheSize(1000).cacheLRUEnable().make();
-
-	@Override
-	public CachePool createCachePool(String poolName, int cacheSize,
-			int expiredSeconds) {
-
-		HTreeMap<Object, Object> cache = this.db.createHashMap(poolName)
-				.expireMaxSize(cacheSize)
-				.expireAfterAccess(expiredSeconds, TimeUnit.SECONDS)
-				.makeOrGet();
-		return new MapDBCachePool(cache, cacheSize);
-
-	}
+    /**服务器版**/
+    public static final byte[] SERVER_VERSION = "@server-version@".getBytes();
 
 }

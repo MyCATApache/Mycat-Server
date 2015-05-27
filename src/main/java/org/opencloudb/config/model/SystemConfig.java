@@ -96,6 +96,7 @@ public final class SystemConfig {
 	private int defaultMaxLimit = DEFAULT_MAX_LIMIT;
 	public static final int SEQUENCEHANDLER_LOCALFILE = 0;
 	public static final int SEQUENCEHANDLER_MYSQLDB = 1;
+	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "org.opencloudb.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";
@@ -222,7 +223,7 @@ public final class SystemConfig {
 				System.setProperty(SystemConfig.SYS_HOME, home);
 			}
 		}
-		
+
 		// MYCAT_HOME为空，默认尝试设置为当前目录或上级目录。BEN
 		if(home == null) {
 			try {
@@ -235,9 +236,9 @@ public final class SystemConfig {
 					conf = new File(path+"/conf");
 					if(conf.exists() && conf.isDirectory()) {
 						home = path;
-					} 
+					}
 				}
-				
+
 				if (home != null) {
 					System.setProperty(SystemConfig.SYS_HOME, home);
 				}
@@ -245,7 +246,7 @@ public final class SystemConfig {
 				// 如出错，则忽略。
 			}
 		}
-		
+
 		return home;
 	}
 

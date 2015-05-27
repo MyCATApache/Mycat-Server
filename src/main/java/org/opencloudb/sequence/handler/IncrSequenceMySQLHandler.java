@@ -14,7 +14,6 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.ErrorPacket;
@@ -24,10 +23,9 @@ import org.opencloudb.server.parser.ServerParse;
 
 public class IncrSequenceMySQLHandler implements SequenceHandler {
 
-	protected static final Logger LOGGER = Logger
-			.getLogger(IncrSequenceMySQLHandler.class);
-
-	private static final String SEQUENCE_DB_PROPS = "sequence_db_conf.properties";
+	protected static final Logger LOGGER = Logger.getLogger(IncrSequenceMySQLHandler.class);
+	
+	private static final String SEQUENCE_DB_PROPS="sequence_db_conf.properties";
 	protected static final String errSeqResult = "-999999999,null";
 	private final FetchMySQLSequnceHandler mysqlSeqFetcher = new FetchMySQLSequnceHandler();
 
@@ -40,49 +38,53 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 	}
 
 	public IncrSequenceMySQLHandler() {
+
+
 		load();
 	}
-
-	public void load() {
+	
+	
+	public void load(){
 		// load sequnce properties
-		Properties props = loadProps(SEQUENCE_DB_PROPS);
+		Properties props=loadProps(SEQUENCE_DB_PROPS);
 		removeDesertedSequenceVals(props);
 		putNewSequenceVals(props);
 	}
+	private Properties loadProps(String propsFile){
 
-	private Properties loadProps(String propsFile) {
 		Properties props = new Properties();
-		InputStream inp = Thread.currentThread().getContextClassLoader()
-				.getResourceAsStream(propsFile);
+		InputStream inp = Thread.currentThread().getContextClassLoader().getResourceAsStream(propsFile);
+
 		if (inp == null) {
-			throw new java.lang.RuntimeException(
-					"db sequnce properties not found " + propsFile);
+			throw new java.lang.RuntimeException("db sequnce properties not found " + propsFile);
+
 		}
 		try {
 			props.load(inp);
 		} catch (IOException e) {
 			throw new java.lang.RuntimeException(e);
 		}
+
+
 		return props;
 	}
-
-	private void removeDesertedSequenceVals(Properties props) {
-		Iterator<Map.Entry<String, SequnceVal>> i = seqValueMap.entrySet()
-				.iterator();
-		while (i.hasNext()) {
-			Map.Entry<String, SequnceVal> entry = i.next();
-			if (!props.containsKey(entry.getKey())) {
+	private void removeDesertedSequenceVals(Properties props){
+		Iterator<Map.Entry<String, SequenceVal>> i=seqValueMap.entrySet().iterator();
+		while(i.hasNext()){
+			Map.Entry<String, SequenceVal> entry=i.next();
+			if(!props.containsKey(entry.getKey())){
 				i.remove();
 			}
 		}
 	}
-
-	private void putNewSequenceVals(Properties props) {
+	private void putNewSequenceVals(Properties props){
 		for (Map.Entry<Object, Object> entry : props.entrySet()) {
 			String seqName = (String) entry.getKey();
 			String dataNode = (String) entry.getValue();
-			if (!seqValueMap.containsKey(seqName)) {
-				seqValueMap.put(seqName, new SequnceVal(seqName, dataNode));
+			if(!seqValueMap.containsKey(seqName)){
+				seqValueMap.put(seqName, new SequenceVal(seqName, dataNode));
+			}else{
+				seqValueMap.get(seqName).dataNode=dataNode;
 			}
 		}
 	}
@@ -90,11 +92,11 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 	/**
 	 * save sequnce -> curval
 	 */
-	private ConcurrentHashMap<String, SequnceVal> seqValueMap = new ConcurrentHashMap<String, SequnceVal>();
+	private ConcurrentHashMap<String, SequenceVal> seqValueMap = new ConcurrentHashMap<String, SequenceVal>();
 
 	@Override
 	public long nextId(String seqName) {
-		SequnceVal seqVal = seqValueMap.get(seqName);
+		SequenceVal seqVal = seqValueMap.get(seqName);
 		if (!seqVal.isSuccessFetched()) {
 			return getSeqValueFromDB(seqVal);
 		} else {
@@ -103,7 +105,7 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 
 	}
 
-	private Long getNextValidSeqVal(SequnceVal seqVal) {
+	private Long getNextValidSeqVal(SequenceVal seqVal) {
 		Long nexVal = seqVal.nextValue();
 		if (seqVal.isNexValValid(nexVal)) {
 			return nexVal;
@@ -113,7 +115,7 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 		}
 	}
 
-	private long getSeqValueFromDB(SequnceVal seqVal) {
+	private long getSeqValueFromDB(SequenceVal seqVal) {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("get next segement of sequence from db for sequnce:"
 					+ seqVal.seqName + " curVal " + seqVal.curVal);
@@ -146,7 +148,7 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(FetchMySQLSequnceHandler.class);
 
-	public void execute(SequnceVal seqVal) {
+	public void execute(SequenceVal seqVal) {
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		PhysicalDBNode mysqlDN = conf.getDataNodes().get(seqVal.dataNode);
 		try {
@@ -166,10 +168,10 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 
 	@Override
 	public void connectionAcquired(BackendConnection conn) {
-
+		
 		conn.setResponseHandler(this);
 		try {
-			conn.query(((SequnceVal) conn.getAttachment()).sql);
+			conn.query(((SequenceVal) conn.getAttachment()).sql);
 		} catch (Exception e) {
 			executeException(conn, e);
 		}
@@ -177,14 +179,14 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
-		((SequnceVal) conn.getAttachment()).dbfinished = true;
+		((SequenceVal) conn.getAttachment()).dbfinished = true;
 		LOGGER.warn("connectionError " + e);
 
 	}
 
 	@Override
 	public void errorResponse(byte[] data, BackendConnection conn) {
-		((SequnceVal) conn.getAttachment()).dbfinished = true;
+		((SequenceVal) conn.getAttachment()).dbfinished = true;
 
 		ErrorPacket err = new ErrorPacket();
 		err.read(data);
@@ -199,7 +201,7 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 	public void okResponse(byte[] ok, BackendConnection conn) {
 		boolean executeResponse = conn.syncAndExcute();
 		if (executeResponse) {
-			((SequnceVal) conn.getAttachment()).dbfinished = true;
+			((SequenceVal) conn.getAttachment()).dbfinished = true;
 			conn.release();
 		}
 
@@ -211,23 +213,24 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 		rowDataPkg.read(row);
 		byte[] columnData = rowDataPkg.fieldValues.get(0);
 		String columnVal = new String(columnData);
-		SequnceVal seqVal = (SequnceVal) conn.getAttachment();
-		seqVal.dbretVal = seqVal.dbretVal = columnVal;
+		SequenceVal seqVal = (SequenceVal) conn.getAttachment();
 		if (IncrSequenceMySQLHandler.errSeqResult.equals(columnVal)) {
+			seqVal.dbretVal=IncrSequenceMySQLHandler.errSeqResult;
 			LOGGER.warn(" sequnce sql returned err value ,sequence:"
 					+ seqVal.seqName + " " + columnVal + " sql:" + seqVal.sql);
+		}else{
+			seqVal.dbretVal = columnVal;
 		}
-
 	}
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
-		((SequnceVal) conn.getAttachment()).dbfinished = true;
+		((SequenceVal) conn.getAttachment()).dbfinished = true;
 		conn.release();
 	}
 
 	private void executeException(BackendConnection c, Throwable e) {
-		((SequnceVal) c.getAttachment()).dbfinished = true;
+		((SequenceVal) c.getAttachment()).dbfinished = true;
 		LOGGER.warn("executeException   " + e);
 		c.close("exception:" + e);
 
@@ -252,7 +255,7 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 
 }
 
-class SequnceVal {
+class SequenceVal{
 	public AtomicBoolean newValueSetted = new AtomicBoolean(false);
 	public AtomicLong curVal = new AtomicLong(0);
 	public volatile String dbretVal = null;
@@ -260,11 +263,11 @@ class SequnceVal {
 	public AtomicBoolean fetching = new AtomicBoolean(false);
 	public volatile long maxSegValue;
 	public volatile boolean successFetched;
-	public final String dataNode;
+	public volatile String dataNode;
 	public final String seqName;
 	public final String sql;
 
-	public SequnceVal(String seqName, String dataNode) {
+	public SequenceVal(String seqName, String dataNode) {
 		this.seqName = seqName;
 		this.dataNode = dataNode;
 		sql = "SELECT mycat_seq_nextval('" + seqName + "')";

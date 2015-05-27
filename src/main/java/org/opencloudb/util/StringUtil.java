@@ -504,7 +504,7 @@ public class StringUtil {
 					pos++;
 				} else if (insertFound) {// into start
 					// 必须全部都为INTO才认为是into
-					if(pos+5 < sql.length() && (sql.charAt(pos+1) == 'n' || sql.charAt(pos+1) == 'N') && (sql.charAt(pos+2) == 't' || sql.charAt(pos+2) == 'T') && (sql.charAt(pos+3) == 'o' || sql.charAt(pos+3) == 'O') && (sql.charAt(pos+4) == ' ')) {
+					if(pos+5 < sql.length() && (sql.charAt(pos+1) == 'n' || sql.charAt(pos+1) == 'N') && (sql.charAt(pos+2) == 't' || sql.charAt(pos+2) == 'T') && (sql.charAt(pos+3) == 'o' || sql.charAt(pos+3) == 'O') && (sql.charAt(pos+4) <= ' ')) {
 						pos = pos + 5;
 						intoFound = true;
 					} else {
@@ -513,7 +513,7 @@ public class StringUtil {
 				} else {
 					// 矫正必须全部都为 INSERT才认为是insert
 					// insert start
-					if(pos+7 < sql.length() && (sql.charAt(pos+1) == 'n' || sql.charAt(pos+1) == 'N') && (sql.charAt(pos+2) == 's' || sql.charAt(pos+2) == 'S')  && (sql.charAt(pos+3) == 'e' || sql.charAt(pos+3) == 'E') && (sql.charAt(pos+4) == 'r' || sql.charAt(pos+4) == 'R')  && (sql.charAt(pos+5) == 't' || sql.charAt(pos+5) == 'T') && (sql.charAt(pos+6) == ' ')) {
+					if(pos+7 < sql.length() && (sql.charAt(pos+1) == 'n' || sql.charAt(pos+1) == 'N') && (sql.charAt(pos+2) == 's' || sql.charAt(pos+2) == 'S')  && (sql.charAt(pos+3) == 'e' || sql.charAt(pos+3) == 'E') && (sql.charAt(pos+4) == 'r' || sql.charAt(pos+4) == 'R')  && (sql.charAt(pos+5) == 't' || sql.charAt(pos+5) == 'T') && (sql.charAt(pos+6) <= ' ')) {
 						pos = pos + 7;
 						insertFound = true;
 					} else {
@@ -529,6 +529,26 @@ public class StringUtil {
 
 		}
 		return sql.substring(tableStartIndx, tableEndIndex);
+	}
+	
+	/**
+	 * 移除`符号
+	 * @param str
+	 * @return
+	 */
+	public static String removeBackquote(String str){
+		//删除名字中的`tablename`和'value'
+		if (str.length() > 0) {
+			StringBuilder sb = new StringBuilder(str);
+			if (sb.charAt(0) == '`'||sb.charAt(0) == '\'') {
+				sb.deleteCharAt(0);
+			}
+			if (sb.charAt(sb.length() - 1) == '`'||sb.charAt(sb.length() - 1) == '\'') {
+				sb.deleteCharAt(sb.length() - 1);
+			}
+			return sb.toString();
+		}
+		return "";
 	}
 
 	public static void main(String[] args) {
