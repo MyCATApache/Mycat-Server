@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.opencloudb.MycatServer;
+import org.opencloudb.jdbc.JDBCConnection;
 import org.opencloudb.mysql.nio.MySQLConnection;
 import org.opencloudb.net.NIOProcessor;
 
@@ -73,11 +74,18 @@ public class ConMap {
 						}
 					}
 
-				}
-			}
-		}
-		return total;
-	}
+                }else if (con instanceof JDBCConnection) {
+                    JDBCConnection jdbcCon = (JDBCConnection) con;
+                    if (jdbcCon.getSchema().equals(schema) && jdbcCon.getPool() == dataSouce) {
+                        if (jdbcCon.isBorrowed()) {
+                            total++;
+                        }
+                    }
+                }
+            }
+        }
+        return total;
+    }
 
 	public int getActiveCountForDs(PhysicalDatasource dataSouce) {
 		int total = 0;
@@ -92,28 +100,38 @@ public class ConMap {
 						}
 					}
 
-				}
-			}
-		}
-		return total;
-	}
+                } else if (con instanceof JDBCConnection) {
+                    JDBCConnection jdbcCon = (JDBCConnection) con;
+                    if (jdbcCon.getPool() == dataSouce) {
+                        if (jdbcCon.isBorrowed() && !jdbcCon.isClosed()) {
+                            total++;
+                        }
+                    }
+                }
+            }
+        }
+        return total;
+    }
 
-	public void clearConnections(String reason, PhysicalDatasource dataSouce) {
-		for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
-			ConcurrentMap<Long, BackendConnection> map = processor
-					.getBackends();
-			Iterator<Entry<Long, BackendConnection>> itor = map.entrySet()
-					.iterator();
-			while (itor.hasNext()) {
-				Entry<Long, BackendConnection> entry = itor.next();
-				BackendConnection con = entry.getValue();
-				if (con instanceof MySQLConnection) {
-					if (((MySQLConnection) con).getPool() == dataSouce) {
-						con.close(reason);
-						itor.remove();
-					}
-				}
-			}
+    public void clearConnections(String reason, PhysicalDatasource dataSouce) {
+        for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
+            ConcurrentMap<Long, BackendConnection> map = processor.getBackends();
+            Iterator<Entry<Long, BackendConnection>> itor = map.entrySet().iterator();
+            while (itor.hasNext()) {
+                Entry<Long, BackendConnection> entry = itor.next();
+                BackendConnection con = entry.getValue();
+                if (con instanceof MySQLConnection) {
+                    if (((MySQLConnection) con).getPool() == dataSouce) {
+                        con.close(reason);
+                        itor.remove();
+                    }
+                }else if(con instanceof JDBCConnection){
+                    if(((JDBCConnection) con).getPool() == dataSouce){
+                        con.close(reason);
+                        itor.remove();
+                    }
+                }
+            }
 
 		}
 		items.clear();
