@@ -4,22 +4,19 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.concurrent.TimeUnit;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.opencloudb.util.ExecutorUtil;
-import org.opencloudb.util.NameableExecutor;
 import org.opencloudb.util.TimeUtil;
 
 public class AIOSocketWR extends SocketWR
 {
     private static final AIOReadHandler aioReadHandler = new AIOReadHandler();
-
+    private static final AIOWriteHandler aioWriteHandler = new AIOWriteHandler();
     private final AsynchronousSocketChannel channel;
     protected final AbstractConnection con;
-    private final AtomicBoolean writing = new AtomicBoolean(false);
+    protected final AtomicBoolean writing = new AtomicBoolean(false);
 
-   private NameableExecutor      writeExecutor= ExecutorUtil.create("aio writeExecutor",1);
 
     public AIOSocketWR(AbstractConnection conn)
     {
@@ -30,7 +27,6 @@ public class AIOSocketWR extends SocketWR
     @Override
     public void asynRead()
     {
-
         ByteBuffer theBuffer = con.readBuffer;
         if (theBuffer == null)
         {
@@ -51,40 +47,34 @@ public class AIOSocketWR extends SocketWR
     private void asynWrite(final ByteBuffer buffer)
     {
 
-        writeExecutor.execute(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                buffer.flip();
-                int write = flushChannel(channel, buffer, 30);
-                onWriteFinished(write);
-            }
-        });
+            buffer.flip();
+            this.channel.write(buffer, this, aioWriteHandler);
+
+
     }
 
-    public  int flushChannel(final AsynchronousSocketChannel channel,
-                                   final ByteBuffer bb, final long writeTimeout)
-    {
-
-        if (!bb.hasRemaining())
-        {
-            return 0;
-        }
-        int nWrite = bb.limit();
-        try
-        {
-            while (bb.hasRemaining())
-            {
-                channel.write(bb).get(writeTimeout, TimeUnit.SECONDS);
-            }
-        } catch (Exception ie)
-        {
-            con.close("write failed " + ie);
-
-        }
-        return nWrite;
-    }
+//    public  int flushChannel(final AsynchronousSocketChannel channel,
+//                             final ByteBuffer bb, final long writeTimeout)
+//    {
+//
+//        if (!bb.hasRemaining())
+//        {
+//            return 0;
+//        }
+//        int nWrite = bb.limit();
+//        try
+//        {
+//            while (bb.hasRemaining())
+//            {
+//                channel.write(bb).get(writeTimeout, TimeUnit.SECONDS);
+//            }
+//        } catch (Exception ie)
+//        {
+//            con.close("write failed " + ie);
+//
+//        }
+//        return nWrite;
+//    }
 
 
     /**
@@ -94,6 +84,10 @@ public class AIOSocketWR extends SocketWR
      */
     private boolean write0()
     {
+        if (!writing.compareAndSet(false, true))
+        {
+            return false;
+        }
         ByteBuffer theBuffer = con.writeBuffer;
         if (theBuffer == null || !theBuffer.hasRemaining())
         {// writeFinished,但要区分bufer是否NULL，不NULL，要回收
@@ -113,6 +107,7 @@ public class AIOSocketWR extends SocketWR
                     con.recycle(buffer);
                     con.writeBuffer = null;
                     con.close("quit cmd");
+                    writing.set(false);
                     return true;
                 } else
                 {
@@ -123,12 +118,12 @@ public class AIOSocketWR extends SocketWR
             } else
             {
                 // no buffer
-                writing.set(false);
+               writing.set(false);
                 return true;
             }
         } else
         {
-            theBuffer.compact();
+              theBuffer.compact();
             asynWrite(theBuffer);
             return false;
         }
@@ -137,6 +132,7 @@ public class AIOSocketWR extends SocketWR
 
     protected void onWriteFinished(int result)
     {
+
         con.netOutBytes += result;
         con.processor.addNetOutBytes(result);
         con.lastWriteTime = TimeUtil.currentTimeMillis();
@@ -150,10 +146,7 @@ public class AIOSocketWR extends SocketWR
 
     public void doNextWriteCheck()
     {
-        if (!writing.compareAndSet(false, true))
-        {
-            return;
-        }
+
         boolean noMoreData = false;
         noMoreData = this.write0();
         if (noMoreData)
@@ -169,38 +162,64 @@ public class AIOSocketWR extends SocketWR
     }
 }
 
+class AIOWriteHandler implements CompletionHandler<Integer, AIOSocketWR> {
 
+    @Override
+    public void completed(final Integer result, final AIOSocketWR wr) {
+        try {
 
-    class AIOReadHandler implements CompletionHandler<Integer, AIOSocketWR>
-    {
-        @Override
-        public void completed(final Integer i, final AIOSocketWR wr)
-        {
-            // con.getProcessor().getExecutor().execute(new Runnable() {
-            // public void run() {
-            if (i > 0)
-            {
-                try
-                {
-                    wr.con.onReadData(i);
-                    wr.con.asynRead();
-                } catch (IOException e)
-                {
-                    wr.con.close("handle err:" + e);
-                }
-            } else if (i == -1)
-            {
-                // System.out.println("read -1 xxxxxxxxx "+con);
-                wr.con.close("client closed");
+            wr.writing.set(false);
+
+            if (result >= 0) {
+                wr.onWriteFinished(result);
+            } else {
+                wr.con.close("write erro " + result);
             }
-            // }
-            // });
+        } catch (Exception e) {
+            AbstractConnection.LOGGER.warn("caught aio process err:", e);
         }
 
-        @Override
-        public void failed(Throwable exc, AIOSocketWR wr)
-        {
-            wr.con.close(exc.toString());
-
-        }
     }
+
+    @Override
+    public void failed(Throwable exc, AIOSocketWR wr) {
+        wr.writing.set(false);
+        wr.con.close("write failed " + exc);
+    }
+
+}
+
+
+class AIOReadHandler implements CompletionHandler<Integer, AIOSocketWR>
+{
+    @Override
+    public void completed(final Integer i, final AIOSocketWR wr)
+    {
+        // con.getProcessor().getExecutor().execute(new Runnable() {
+        // public void run() {
+        if (i > 0)
+        {
+            try
+            {
+                wr.con.onReadData(i);
+                wr.con.asynRead();
+            } catch (IOException e)
+            {
+                wr.con.close("handle err:" + e);
+            }
+        } else if (i == -1)
+        {
+            // System.out.println("read -1 xxxxxxxxx "+con);
+            wr.con.close("client closed");
+        }
+        // }
+        // });
+    }
+
+    @Override
+    public void failed(Throwable exc, AIOSocketWR wr)
+    {
+        wr.con.close(exc.toString());
+
+    }
+}
