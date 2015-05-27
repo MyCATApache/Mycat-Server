@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.config.Fields;
+import org.opencloudb.jdbc.JDBCConnection;
 import org.opencloudb.manager.ManagerConnection;
 import org.opencloudb.mysql.PacketUtil;
 import org.opencloudb.mysql.nio.MySQLConnection;
@@ -130,8 +131,10 @@ public class ShowBackend {
 		if (c instanceof BackendAIOConnection) {
 			row.add(((BackendAIOConnection) c).getProcessor().getName()
 					.getBytes());
-		} else {
-			row.add("N/A".getBytes());
+		} else if(c instanceof JDBCConnection){
+		    row.add(((JDBCConnection)c).getProcessor().getName().getBytes());
+		}else{
+		    row.add("N/A".getBytes());
 		}
 		row.add(LongUtil.toBytes(c.getId()));
 		long threadId = 0;

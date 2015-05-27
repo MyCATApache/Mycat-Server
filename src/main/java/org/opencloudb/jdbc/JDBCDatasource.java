@@ -7,11 +7,14 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import org.opencloudb.MycatServer;
 import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.model.DBHostConfig;
 import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.heartbeat.DBHeartbeat;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
+import org.opencloudb.net.NIOConnector;
+import org.opencloudb.net.NIOProcessor;
 
 import com.google.common.collect.Lists;
 
@@ -51,7 +54,13 @@ public class JDBCDatasource extends PhysicalDatasource {
 		c.setPool(this);
 		c.setSchema(schema);
 		c.setDbType(cfg.getDbType());
+		
+		NIOProcessor processor = (NIOProcessor) MycatServer.getInstance()
+                .nextProcessor();
+		c.setProcessor(processor);
+		c.setId(NIOConnector.ID_GENERATOR.getId());  //复用mysql的Backend的ID，需要在process中存储
 
+		processor.addBackend(c);
 		try {
 
 			Connection con = getConnection();
