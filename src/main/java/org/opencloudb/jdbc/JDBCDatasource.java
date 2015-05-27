@@ -58,7 +58,6 @@ public class JDBCDatasource extends PhysicalDatasource {
 		NIOProcessor processor = (NIOProcessor) MycatServer.getInstance()
                 .nextProcessor();
 		c.setProcessor(processor);
-		System.out.println(processor.getName());
 		c.setId(NIOConnector.ID_GENERATOR.getId());  //复用mysql的Backend的ID，需要在process中存储
 
 		processor.addBackend(c);
