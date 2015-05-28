@@ -3,13 +3,24 @@ package org.opencloudb.jdbc;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.log4j.Logger;
 import org.opencloudb.heartbeat.DBHeartbeat;
+import org.opencloudb.statistic.HeartbeatRecorder;
 
 public class JDBCHeartbeat extends DBHeartbeat{
 	private final ReentrantLock lock;
 	private final JDBCDatasource source;
     private final boolean heartbeatnull;
+    private Long lastSendTime = System.currentTimeMillis();
+    private Long lastReciveTime = System.currentTimeMillis();
+    
+    
+    private Logger logger = Logger.getLogger(this.getClass());
+    
 	public JDBCHeartbeat(JDBCDatasource source)
 	{
 		this.source = source;
@@ -56,7 +67,9 @@ public class JDBCHeartbeat extends DBHeartbeat{
 	@Override
 	public String getLastActiveTime()
 	{
-		return null;
+	    long t = lastReciveTime;
+	    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(new Date(t));
 	}
 
 	@Override
@@ -64,10 +77,16 @@ public class JDBCHeartbeat extends DBHeartbeat{
 	{
 		return 0;
 	}
-
+	@Override
+	public HeartbeatRecorder getRecorder() {
+        recorder.set(lastReciveTime - lastSendTime);
+        return recorder;
+    }
+	
 	@Override
 	public void heartbeat()
 	{
+	    lastSendTime = System.currentTimeMillis();
 		if (isStop.get())
 			return;
 
@@ -84,7 +103,10 @@ public class JDBCHeartbeat extends DBHeartbeat{
 				}
 			}
 			status = OK_STATUS;
-
+			if(logger.isDebugEnabled()){
+			    logger.debug("JDBCHeartBeat con query sql: "+heartbeatSQL);
+			}
+			lastReciveTime = System.currentTimeMillis();
 		} catch (Exception ex)
 		{
 			status = ERROR_STATUS;
