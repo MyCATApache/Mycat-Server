@@ -86,10 +86,10 @@ public class JDBCHeartbeat extends DBHeartbeat{
 	@Override
 	public void heartbeat()
 	{
-	    lastSendTime = System.currentTimeMillis();
+	    
 		if (isStop.get())
 			return;
-
+		lastSendTime = System.currentTimeMillis();
 		lock.lock();
 		try
 		{
@@ -106,14 +106,16 @@ public class JDBCHeartbeat extends DBHeartbeat{
 			if(logger.isDebugEnabled()){
 			    logger.debug("JDBCHeartBeat con query sql: "+heartbeatSQL);
 			}
-			lastReciveTime = System.currentTimeMillis();
+			
 		} catch (Exception ex)
 		{
+		    logger.error("JDBCHeartBeat error",ex);
 			status = ERROR_STATUS;
 		} finally
 		{
 			lock.unlock();
 			this.isChecking.set(false);
+			lastReciveTime = System.currentTimeMillis();
 		}
 	}
 }
