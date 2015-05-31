@@ -489,9 +489,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if (alia==null){
 			if(column.indexOf(".") < 0) {
 				String col = "." + column;
+				String col2 = ".`" + column+"`";
 				//展开aliaColumns，将<c.name,cname>之类的键值对展开成<c.name,cname>和<name,cname>
 				for(Map.Entry<String, String> entry : aliaColumns.entrySet()) {
-					if(entry.getKey().endsWith(col)) {
+					if(entry.getKey().endsWith(col)||entry.getKey().endsWith(col2)) {
 						if(entry.getValue() != null && entry.getValue().indexOf(".") > 0) {
 							return column;
 						}

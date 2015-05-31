@@ -15,6 +15,7 @@ import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mysql.nio.handler.ConnectionHeartBeatHandler;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
+import org.opencloudb.net.NIOProcessor;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.FieldPacket;
@@ -27,6 +28,7 @@ import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.MysqlDefs;
 import org.opencloudb.util.ResultSetUtil;
 import org.opencloudb.util.StringUtil;
+import org.opencloudb.util.TimeUtil;
 
 public class JDBCConnection implements BackendConnection {
 	protected static final Logger LOGGER = Logger
@@ -52,7 +54,19 @@ public class JDBCConnection implements BackendConnection {
 	private long lastTime;
 	private boolean isSpark = false;
 
-	public JDBCConnection() {
+	private NIOProcessor processor;
+	
+	
+	
+	public NIOProcessor getProcessor() {
+        return processor;
+    }
+
+    public void setProcessor(NIOProcessor processor) {
+        this.processor = processor;
+    }
+
+    public JDBCConnection() {
 		startTime = System.currentTimeMillis();
 	}
 
@@ -69,12 +83,24 @@ public class JDBCConnection implements BackendConnection {
 	public void close(String reason) {
 		try {
 			con.close();
+			if(processor!=null){
+			    processor.removeConnection(this);
+			}
+			
 		} catch (SQLException e) {
 		}
 
 	}
 
-	public void setPool(JDBCDatasource pool) {
+	public void setId(long id) {
+        this.id = id;
+    }
+	
+	public JDBCDatasource getPool() {
+        return pool;
+    }
+
+    public void setPool(JDBCDatasource pool) {
 		this.pool = pool;
 	}
 
@@ -97,7 +123,9 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public void idleCheck() {
-
+	    if(TimeUtil.currentTimeMillis() > lastTime + pool.getConfig().getIdleTimeout()){
+	        close(" idle  check");
+	    }
 	}
 
 	@Override
@@ -407,15 +435,7 @@ public class JDBCConnection implements BackendConnection {
 	public void query(final String sql) throws UnsupportedEncodingException {
 		if(respHandler instanceof ConnectionHeartBeatHandler)
 		{
-			Runnable runnable = new Runnable() {
-				@Override
-				public void run() {
-						justForHeartbeat(sql);
-				}
-			};
-
-			MycatServer.getInstance().getBusinessExecutor().execute(runnable);
-
+			justForHeartbeat(sql);
 		}    else
 		{
 			throw new UnsupportedEncodingException("unsupported yet ");
@@ -548,11 +568,15 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	@Override
-	public String toString() {
-		return "JDBCConnection [autocommit=" + this.isAutocommit()
-				+ ", txIsolation=" + txIsolation + ", running=" + running
-				+ ", borrowed=" + borrowed + ", id=" + id + ", host=" + host
-				+ ", port=" + port + "]";
-	}
+    public String toString() {
+        return "JDBCConnection [id=" + id +",autocommit="+this.isAutocommit()+",pool=" + pool + ", schema=" + schema + ", dbType=" + dbType + ", oldSchema="
+                + oldSchema + ", packetId=" + packetId + ", txIsolation=" + txIsolation + ", running=" + running
+                + ", borrowed=" + borrowed + ", host=" + host + ", port=" + port + ", con=" + con
+                + ", respHandler=" + respHandler + ", attachement=" + attachement + ", headerOutputed="
+                + headerOutputed + ", modifiedSQLExecuted=" + modifiedSQLExecuted + ", startTime=" + startTime
+                + ", lastTime=" + lastTime + ", isSpark=" + isSpark + ", processor=" + processor + "]";
+    }
+	
+	
 
 }

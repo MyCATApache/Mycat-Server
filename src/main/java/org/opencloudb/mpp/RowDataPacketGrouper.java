@@ -127,10 +127,10 @@ public class RowDataPacketGrouper {
 	private byte[] mertFields(byte[] bs, byte[] bs2, int colType, int mergeType) {
 		// System.out.println("mergeType:"+ mergeType+" colType "+colType+
 		// " field:"+Arrays.toString(bs)+ " ->  "+Arrays.toString(bs2));
-		if(bs2.length==0)
+		if(bs2==null || bs2.length==0)
 		{
 			return bs;
-		}else if(bs.length==0)
+		}else if(bs==null || bs.length==0)
 		{
 			return bs2;
 		}

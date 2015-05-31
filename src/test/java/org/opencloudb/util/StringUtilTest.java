@@ -23,10 +23,12 @@
  */
 package org.opencloudb.util;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 import junit.framework.Assert;
 
 import org.junit.Test;
-import org.opencloudb.util.SplitUtil;
 
 /**
  * @author mycat
@@ -113,6 +115,28 @@ public class StringUtilTest {
     @Test
     public void test11() {
     	String oriSql = " /* hint1 insert */ /* // */ /* hint3 insert */ insert /*  */ into employee(id,name,sharding_id) values(4, 'myhome', 10011) /**/";
+        String tableName = StringUtil.getTableName(oriSql);
+        Assert.assertEquals("employee", tableName);
+    }
+    @Test
+    public void test12() {
+    	StringWriter sw=new StringWriter();
+    	PrintWriter pw=new PrintWriter(sw);
+    	pw.println("insert into");
+    	pw.println(" employee(id,name,sharding_id) values(4, 'myhome', 10011)");
+    	pw.flush();
+    	String oriSql = sw.toString();
+        String tableName = StringUtil.getTableName(oriSql);
+        Assert.assertEquals("employee", tableName);
+    }
+    @Test
+    public void test13() {
+    	StringWriter sw=new StringWriter();
+    	PrintWriter pw=new PrintWriter(sw);
+    	pw.println("insert into");
+    	pw.println("employee(id,name,sharding_id) values(4, 'myhome', 10011)");
+    	pw.flush();
+    	String oriSql = sw.toString();
         String tableName = StringUtil.getTableName(oriSql);
         Assert.assertEquals("employee", tableName);
     }

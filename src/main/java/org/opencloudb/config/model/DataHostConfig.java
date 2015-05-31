@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -29,9 +29,9 @@ import org.opencloudb.backend.PhysicalDBPool;
 
 /**
  * Datahost is a group of DB servers which is synchronized with each other
- * 
+ *
  * @author wuzhih
- * 
+ *
  */
 public class DataHostConfig {
 	public static final int NOT_SWITCH_DS = -1;
@@ -50,6 +50,8 @@ public class DataHostConfig {
 	private String connectionInitSql;
     private int slaveThreshold = -1;
 	private final int switchType;
+	private String filters="mergeStat";
+	private long logTime=300000;
 
 	public DataHostConfig(String name, String dbType, String dbDriver,
 			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold) {
@@ -149,5 +151,22 @@ public class DataHostConfig {
 		this.hearbeatSQL = heartbeatSQL;
 
 	}
+
+	public String getFilters() {
+		return filters;
+	}
+
+	public void setFilters(String filters) {
+		this.filters = filters;
+	}
+
+	public long getLogTime() {
+		return logTime;
+	}
+
+	public void setLogTime(long logTime) {
+		this.logTime = logTime;
+	}
+
 
 }

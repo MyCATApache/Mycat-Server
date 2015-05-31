@@ -87,6 +87,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		lock.lock();
 		try {
 			isStop.compareAndSet(true, false);
+			super.status = DBHeartbeat.OK_STATUS;
 		} finally {
 			lock.unlock();
 		}

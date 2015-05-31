@@ -40,7 +40,7 @@ import org.opencloudb.MycatServer;
  */
 public final class NIOConnector extends Thread implements SocketConnector {
 	private static final Logger LOGGER = Logger.getLogger(NIOConnector.class);
-	private static final ConnectIdGenerator ID_GENERATOR = new ConnectIdGenerator();
+	public static final ConnectIdGenerator ID_GENERATOR = new ConnectIdGenerator();
 
 	private final String name;
 	private final Selector selector;
@@ -152,14 +152,14 @@ public final class NIOConnector extends Thread implements SocketConnector {
 	 * 
 	 * @author mycat
 	 */
-	private static class ConnectIdGenerator {
+	public static class ConnectIdGenerator {
 
 		private static final long MAX_VALUE = Long.MAX_VALUE;
 
 		private long connectId = 0L;
 		private final Object lock = new Object();
 
-		private long getId() {
+		public long getId() {
 			synchronized (lock) {
 				if (connectId >= MAX_VALUE) {
 					connectId = 0L;

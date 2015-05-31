@@ -283,6 +283,7 @@ public class DataMergeService {
 							break;
 						}
 					}
+
 					// for next job
 					Runnable newJob = jobQueue.poll();
 					if (newJob != null) {
@@ -294,6 +295,7 @@ public class DataMergeService {
 				} catch (Exception e) {
 					jobRuninng = false;
 					LOGGER.warn("data Merge error:", e);
+                    multiQueryHandler.handleDataProcessException(e);
 				}
 			}
 		};
@@ -342,9 +344,4 @@ public class DataMergeService {
 
 }
 
-class DataNodeResultInf {
-	public RowDataPacket firstRecord;
-	public RowDataPacket lastRecord;
-	public int rowCount;
 
-}
