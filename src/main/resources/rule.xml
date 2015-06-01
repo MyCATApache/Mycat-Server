@@ -59,6 +59,20 @@
 			<algorithm>latestMonth</algorithm>
 		</rule>
 	</tableRule>
+	
+	<tableRule name="auto-sharding-rang-mod">
+		<rule>
+			<columns>id</columns>
+			<algorithm>rang-mod</algorithm>
+		</rule>
+	</tableRule>
+	
+	<tableRule name="jch">
+		<rule>
+			<columns>id</columns>
+			<algorithm>jump-consistent-hash</algorithm>
+		</rule>
+	</tableRule>
 
 	<function name="murmur"
 		class="org.opencloudb.route.function.PartitionByMurmurHash">
@@ -94,5 +108,13 @@
 		class="org.opencloudb.route.function.PartitionByMonth">
 		<property name="dateFormat">yyyy-MM-dd</property>
 		<property name="sBeginDate">2015-01-01</property>
+	</function>
+	
+	<function name="rang-mod" class="org.opencloudb.route.function.PartitionByRangeMod">
+        	<property name="mapFile">partition-range-mod.txt</property>
+	</function>
+	
+	<function name="jump-consistent-hash" class="org.opencloudb.route.function.PartitionByJumpConsistentHash">
+		<property name="totalBuckets">3</property>
 	</function>
 </mycat:rule>
