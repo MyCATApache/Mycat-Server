@@ -14,7 +14,7 @@ public final class PartitionByJumpConsistentHash extends AbstractPartitionAlgori
     private static final long UNSIGNED_MASK = 0x7fffffffffffffffL;
     private static final long JUMP = 1L << 31;
     // If JDK > 1.8, Just use Long.parseUnsignedLong instead.
-    private static final long CONSTANT = generate();
+    private static final long CONSTANT = Long.parseLong("286293355577794175", 10) * 10 + 7;
 
     private int totalBuckets;
 
@@ -50,13 +50,6 @@ public final class PartitionByJumpConsistentHash extends AbstractPartitionAlgori
             d += 0x1.0p63;
         }
         return d;
-    }
-
-    public static long generate() {
-        String s = "2862933555777941757";
-        long first = Long.parseLong(s.substring(0, 18), 10);
-        long result = first * 10 + 7;
-        return result;
     }
 
     public void setTotalBuckets(int totalBuckets) {
