@@ -151,7 +151,7 @@ public class MycatStatementParser extends MySqlStatementParser
 
         if (identifierEquals(IGNORE)) {
             lexer.nextToken();
-            stmt.setIgnoreLinesNumber((SQLLiteralExpr) this.exprParser.expr());
+            stmt.setIgnoreLinesNumber( this.exprParser.expr());
             acceptIdentifier("LINES");
         }
 
