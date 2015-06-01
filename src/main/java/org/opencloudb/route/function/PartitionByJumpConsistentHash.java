@@ -3,7 +3,7 @@ package org.opencloudb.route.function;
 import org.opencloudb.config.model.rule.RuleAlgorithm;
 
 /**
- * 跳增一致性哈希分片
+ * 跳增一致性哈希算法
  * 思想源自Google公开论文，比传统一致性哈希更省资源速度更快数据迁移量更少
  *
  * @author XiaoSK
@@ -13,7 +13,8 @@ public final class PartitionByJumpConsistentHash extends AbstractPartitionAlgori
 
     private static final long UNSIGNED_MASK = 0x7fffffffffffffffL;
     private static final long JUMP = 1L << 31;
-    private static final long CONSTANT = Long.parseUnsignedLong("2862933555777941757");
+    // If JDK > 1.8, Just use Long.parseUnsignedLong instead.
+    private static final long CONSTANT = generate();
 
     private int totalBuckets;
 
@@ -49,6 +50,14 @@ public final class PartitionByJumpConsistentHash extends AbstractPartitionAlgori
             d += 0x1.0p63;
         }
         return d;
+    }
+
+    public static long generate() {
+        String s = "2862933555777941757";
+        long first = Long.parseLong(s.substring(0, 18), 10);
+        int second = Character.digit(s.charAt(18), 10);
+        long result = first * 10 + second;
+        return result;
     }
 
     public void setTotalBuckets(int totalBuckets) {
