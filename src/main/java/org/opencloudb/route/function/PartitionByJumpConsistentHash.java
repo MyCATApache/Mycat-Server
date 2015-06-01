@@ -55,8 +55,7 @@ public final class PartitionByJumpConsistentHash extends AbstractPartitionAlgori
     public static long generate() {
         String s = "2862933555777941757";
         long first = Long.parseLong(s.substring(0, 18), 10);
-        int second = Character.digit(s.charAt(18), 10);
-        long result = first * 10 + second;
+        long result = first * 10 + 7;
         return result;
     }
 
