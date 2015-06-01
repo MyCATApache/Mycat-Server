@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -18,7 +18,7 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  * 
  * Any questions about this component can be directed to it's project Web address 
- * https://code.google.com/p/opencloudb/.
+ * https://github.com/MyCATApache/Mycat-Server.
  *
  */
 package org.opencloudb.route.function;
@@ -32,7 +32,7 @@ import java.math.BigInteger;
 import java.util.LinkedList;
 
 /**
- * 先进行范围分片计算出分片组，组内再求魔
+ * 先进行范围分片计算出分片组，组内再取模
  * 优点可以避免扩容时的数据迁移，又可以一定程度上避免范围分片的热点问题
  * 
  * @author wuzhi
@@ -88,7 +88,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
                 nodeIndex+= longRang.groupSize;
             }
         }
-        //数据超过范围，暂时使用配置的默认节点
+        // 数据超过范围，暂时使用配置的默认节点
         if(rst ==null && defaultNode>=0){
             return defaultNode ;
         }
@@ -107,7 +107,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
                 nodeIndex+= longRang.groupSize;
             }
         }
-        //数据超过范围，暂时使用配置的默认节点
+        // 数据超过范围，暂时使用配置的默认节点
         if(rst ==null && defaultNode>=0){
             return defaultNode ;
         }
@@ -143,7 +143,6 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 	private void initialize() {
 		BufferedReader in = null;
 		try {
-			// FileInputStream fin = new FileInputStream(new File(fileMapPath));
 			InputStream fin = this.getClass().getClassLoader()
 					.getResourceAsStream(mapFile);
 			if (fin == null) {
