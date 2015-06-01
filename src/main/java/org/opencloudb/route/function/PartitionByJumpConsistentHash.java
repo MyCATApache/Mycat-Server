@@ -3,7 +3,7 @@ package org.opencloudb.route.function;
 import org.opencloudb.config.model.rule.RuleAlgorithm;
 
 /**
- * 跳增一致性哈希算法
+ * 跳增一致性哈希分片
  * 思想源自Google公开论文，比传统一致性哈希更省资源速度更快数据迁移量更少
  *
  * @author XiaoSK
