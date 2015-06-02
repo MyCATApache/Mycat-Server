@@ -59,16 +59,6 @@ public class WhereUnit {
 	
 	private boolean finishedParse = false;
 	
-	private WhereUnit parent = null;
-	
-	public WhereUnit getParent() {
-		return parent;
-	}
-
-	public void setParent(WhereUnit parent) {
-		this.parent = parent;
-	}
-
 	public List<Condition> getOutConditions() {
 		return outConditions;
 	}

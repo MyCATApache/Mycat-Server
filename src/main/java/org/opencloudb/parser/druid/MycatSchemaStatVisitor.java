@@ -275,7 +275,6 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
             			whereUnit.addOutConditions(getConditions());
             			WhereUnit innerWhereUnit = new WhereUnit(x);
             			whereUnit.addSubWhereUnit(innerWhereUnit);
-            			innerWhereUnit.setParent(whereUnit);
             		} else {
             			whereUnit = new WhereUnit(x);
             			whereUnit.addOutConditions(getConditions());
@@ -334,7 +333,6 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 						WhereUnit subWhereUnit = this.whereUnits.get(0);
 						splitUntilNoOr(subWhereUnit);
 						whereUnit.addSubWhereUnit(subWhereUnit);
-						subWhereUnit.setParent(whereUnit);
 						subWhereUnits.add(subWhereUnit);
 					} else {
 						this.conditions.clear();
