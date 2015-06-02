@@ -274,15 +274,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 
 			if (tableNames.length == 1) {
-				TableConfig table = new TableConfig(tableNames[0], primaryKey,
-						autoIncrement, needAddLimit, tableType, dataNode,
-						getDbType(dataNode),
-						(tableRule != null) ? tableRule.getRule() : null,
-						ruleRequired, null, false, null, null);
-				checkDataNodeExists(table.getDataNodes());
-				if (distTableDns) {
-					distributeDataNodes(table.getDataNodes());
-				}
+				TableConfig table = tables.get(tableNames[0]);
 
 				// process child tables
 				processChildTables(tables, table, dataNode, tableElement);
