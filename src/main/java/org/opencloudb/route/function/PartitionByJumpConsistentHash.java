@@ -13,7 +13,8 @@ public final class PartitionByJumpConsistentHash extends AbstractPartitionAlgori
 
     private static final long UNSIGNED_MASK = 0x7fffffffffffffffL;
     private static final long JUMP = 1L << 31;
-    private static final long CONSTANT = Long.parseUnsignedLong("2862933555777941757");
+    // If JDK >= 1.8, just use Long.parseUnsignedLong("2862933555777941757") instead.
+    private static final long CONSTANT = Long.parseLong("286293355577794175", 10) * 10 + 7;
 
     private int totalBuckets;
 
