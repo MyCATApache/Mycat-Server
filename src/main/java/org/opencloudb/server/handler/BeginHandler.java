@@ -36,8 +36,11 @@ public final class BeginHandler {
         if (c.isAutocommit())
         {
             c.setAutocommit(false);
+            c.write(c.writeToBuffer(AC_OFF, c.allocate()));
+        }else
+        {
+            c.getSession2().commit() ;
         }
-        c.write(c.writeToBuffer(AC_OFF, c.allocate()));
     }
 
 }

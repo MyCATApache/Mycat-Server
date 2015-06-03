@@ -40,8 +40,11 @@ public final class StartHandler {
             if (c.isAutocommit())
             {
                 c.setAutocommit(false);
+                c.write(c.writeToBuffer(AC_OFF, c.allocate()));
+            }else
+            {
+                c.getSession2().commit() ;
             }
-            c.write(c.writeToBuffer(AC_OFF, c.allocate()));
             break;
         default:
             c.execute(stmt, ServerParse.START);
