@@ -67,7 +67,7 @@ public class RouteService {
 		String cacheKey = null;
 
 		if (sqlType == ServerParse.SELECT) {
-			cacheKey = schema.getName() + stmt;
+			cacheKey = schema.getName() + stmt;			
 			rrs = (RouteResultset) sqlRouteCache.get(cacheKey);
 			if (rrs != null) {
 				return rrs;
