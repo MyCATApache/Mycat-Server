@@ -81,7 +81,7 @@ public class DruidSelectParser extends DefaultDruidParser {
         {
             return;
         }
-		Map<String, String> aliaColumns = parseAggGroupCommon(schema, stmt,rrs, mysqlSelectQuery);
+		Map<String, String> aliaColumns = parseAggGroupCommon(schema, stmt, rrs, mysqlSelectQuery);
 
 		//setOrderByCols
 		if(mysqlSelectQuery.getOrderBy() != null) {
@@ -528,6 +528,12 @@ public class DruidSelectParser extends DefaultDruidParser {
                     column = StringUtil.removeBackquote(expr.toString());
                 }
             }
+			int dotIndex=column.indexOf(".") ;
+			if(dotIndex!=-1)
+			{
+				//此步骤得到的column必须是不带.的，有别名的用别名，无别名的用字段名
+				column=column.substring(dotIndex+1) ;
+			}
 			groupByCols[i] = getAliaColumn(aliaColumns,column);//column;
 		}
 		return groupByCols;
