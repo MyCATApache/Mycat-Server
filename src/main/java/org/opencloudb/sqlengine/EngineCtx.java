@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.log4j.Logger;
 import org.opencloudb.handler.ConfFileHandler;
 import org.opencloudb.net.mysql.EOFPacket;
+import org.opencloudb.net.mysql.EmptyPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.server.NonBlockingSession;
@@ -104,7 +105,37 @@ public class EngineCtx {
 		}
 
 	}
+	
+	public void writeHeader(List<byte[]> afields) {
+		if (headerWrited.compareAndSet(false, true)) {
+			try {
+				writeLock.lock();
+				// write new header
+				ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+				headerPkg.fieldCount = afields.size();// -1;
+				headerPkg.packetId = incPackageId();
+				LOGGER.debug("packge id " + headerPkg.packetId);
+				ServerConnection sc = session.getSource();
+				ByteBuffer buf = headerPkg.write(sc.allocate(), sc, true);
+				// wirte a fields
+				for (byte[] field : afields) {
+					field[3] = incPackageId();
+					buf = sc.writeToBuffer(field, buf);
+				}
 
+				// write field eof
+				EOFPacket eofPckg = new EOFPacket();
+				eofPckg.packetId = incPackageId();
+				buf = eofPckg.write(buf, sc, true);
+				sc.write(buf);
+				//LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
+			} finally {
+				writeLock.unlock();
+			}
+		}
+
+	}
+	
 	public void writeRow(RowDataPacket rowDataPkg) {
 		ServerConnection sc = session.getSource();
 		try {
@@ -127,6 +158,7 @@ public class EngineCtx {
 		sc.write(buf);
 		LOGGER.info("write  eof ,packgId:" + eofPckg.packetId);
 	}
+	
 
 	public NonBlockingSession getSession() {
 		return session;
