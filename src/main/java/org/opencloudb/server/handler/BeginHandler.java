@@ -30,9 +30,17 @@ import org.opencloudb.server.ServerConnection;
  * @author mycat
  */
 public final class BeginHandler {
-
+    private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0,
+            0, 0, 0 };
     public static void handle(String stmt, ServerConnection c) {
-        c.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Unsupported statement");
+        if (c.isAutocommit())
+        {
+            c.setAutocommit(false);
+            c.write(c.writeToBuffer(AC_OFF, c.allocate()));
+        }else
+        {
+            c.getSession2().commit() ;
+        }
     }
 
 }
