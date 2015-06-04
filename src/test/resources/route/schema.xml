@@ -32,6 +32,7 @@
 	<schema name="solo1" dataNode="solo1" />
 
 	<schema name="TESTDB"  sqlMaxLimit="100">
+		<table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
 		<!-- global table is auto cloned to all defined data nodes ,so can join 
 			with any table whose sharding node is in the same data node -->
 		<table name="company" type="global" dataNode="dn1,dn2,dn3" />

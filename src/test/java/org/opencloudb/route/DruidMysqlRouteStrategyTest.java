@@ -1014,6 +1014,36 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertTrue(rrs.getNodes()[1].getName().equals("dn2"));
     }
     
+    /**
+     * 测试多层or语句
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testMultiLevelOr() throws Exception {
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        String sql = "select id from travelrecord "
+        			+ " where id = 1 and ( fee=3 or days=5 or (traveldate = '2015-05-04 00:00:07.375' "
+        			+ " and (user_id=2 or fee=days or fee = 0))) and name = 'zhangsan'" ;
+        RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+
+        Assert.assertTrue(rrs.getNodes().length == 1);
+        
+	    sql = "select id from travelrecord "
+	    			+ " where id = 1 and ( fee=3 or days=5 or (traveldate = '2015-05-04 00:00:07.375' "
+	    			+ " and (user_id=2 or fee=days or fee = 0))) and name = 'zhangsan' or id = 2000001" ;
+	    rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+	
+	    Assert.assertTrue(rrs.getNodes().length == 2);
+	    
+	    sql = "select id from travelrecord "
+    			+ " where id = 1 and ( fee=3 or days=5 or (traveldate = '2015-05-04 00:00:07.375' "
+    			+ " and (user_id=2 or fee=days or fee = 0))) and name = 'zhangsan' or id = 2000001 or id = 4000001" ;
+	    rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+	
+	    Assert.assertTrue(rrs.getNodes().length == 3);
+    }
+    
     private String formatSql(String sql) {
         MySqlStatementParser parser = new MySqlStatementParser(sql);
         SQLStatement stmt = parser.parseStatement();

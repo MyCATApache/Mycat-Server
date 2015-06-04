@@ -15,6 +15,7 @@ import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.backend.PhysicalDBNode;
+import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
@@ -102,6 +103,10 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 	@Override
 	public long nextId(String seqName) {
 		SequenceVal seqVal = seqValueMap.get(seqName);
+		if (seqVal == null) {
+			throw new ConfigException("can't find definition for sequence :"
+					+ seqName);
+		}
 		if (!seqVal.isSuccessFetched()) {
 			return getSeqValueFromDB(seqVal);
 		} else {
