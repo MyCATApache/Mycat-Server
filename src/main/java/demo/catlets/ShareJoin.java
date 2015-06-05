@@ -58,6 +58,8 @@ public class ShareJoin implements Catlet {
 	private int joinindex=0;//关联join表字段的位置
 	private int sendField=0;
 	private boolean childRoute=false;
+	private boolean jointTableIsData=false;
+	
 	//重新路由使用
 	private SystemConfig sysConfig; 
 	private SchemaConfig schema;
@@ -149,8 +151,11 @@ public class ShareJoin implements Catlet {
 
 		ctx.setAllJobFinishedListener(new AllJobFinishedListener() {
 			@Override
-			public void onAllJobFinished(EngineCtx ctx) {
-				ctx.writeEof();
+			public void onAllJobFinished(EngineCtx ctx) {				
+				 if (!jointTableIsData) {
+					 ctx.writeHeader(fields);
+				 }
+				 ctx.writeEof();
 				EngineCtx.LOGGER.info("发送数据OK"); 
 			}
 		});
@@ -213,6 +218,7 @@ public class ShareJoin implements Catlet {
 		if (count == 0) {
 			return;
 		}
+		jointTableIsData=true;
 		sb.deleteCharAt(sb.length() - 1).append(')');
 		String sql = String.format(joinParser.getChildSQL(), sb);
 		//if (!childRoute){
