@@ -52,6 +52,9 @@
 		<table name="globalsn" primaryKey="ID" type="global" dataNode="dn1" />
         <table name="offer" primaryKey="id" dataNode="offer_dn$1-20"
                rule="auto-sharding-rang-mod" />
+
+        <table name="offer1" primaryKey="id" dataNode="offer_dn$1-36"
+               rule="rangeDateHash" />
 	</schema>
 
     <schema name="mysqldb"  sqlMaxLimit="100">
