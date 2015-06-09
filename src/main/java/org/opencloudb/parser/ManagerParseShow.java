@@ -76,7 +76,10 @@ public final class ManagerParseShow {
             case 'C':
             case 'c':
                 return showCCheck(stmt, i);
-            case 'V':
+			case 'd':
+			case 'D':
+				return show2DCheck(stmt, i);
+			case 'V':
             case 'v':
                 return showVCheck(stmt, i);
             default:
@@ -547,9 +550,9 @@ public final class ManagerParseShow {
             char c2 = stmt.charAt(++offset);
             char c3 = stmt.charAt(++offset);
             if ((c1 == 'A' || c1 == 'a') && (c2 == 'S' || c2 == 's') && (c3 == 'E' || c3 == 'e')) {
-                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
-                    return OTHER;
-                }
+//                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+//                    return OTHER;
+//                }
                 return DATABASE;
             }
         }
