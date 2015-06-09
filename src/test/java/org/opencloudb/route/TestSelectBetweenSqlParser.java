@@ -56,7 +56,7 @@ public class TestSelectBetweenSqlParser {
 		schema = schemaMap.get("cndb");
 		rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(),schema, -1, sql, null,
 				null, cachePool);
-		Assert.assertEquals(5, rrs.getNodes().length);
+		Assert.assertEquals(2, rrs.getNodes().length);    //这里2个表都有条件路由，取的是交集
 		
 		//确认大于小于操作符
 		sql = "select b.* from  offer_date b " +
@@ -69,6 +69,12 @@ public class TestSelectBetweenSqlParser {
 		Assert.assertEquals(128, rrs.getNodes().length);
 		
 		sql = "select * from offer_date where col_1 = 33 and col_date between '2014-01-02' and '2014-01-12'";
+		schema = schemaMap.get("cndb");
+		rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(),schema, -1, sql, null,
+				null, cachePool);
+		Assert.assertEquals(2, rrs.getNodes().length);
+
+		sql = "select * from offer_date a where col_1 = 33 and a.col_date between '2014-01-02' and '2014-01-12'";
 		schema = schemaMap.get("cndb");
 		rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(),schema, -1, sql, null,
 				null, cachePool);
