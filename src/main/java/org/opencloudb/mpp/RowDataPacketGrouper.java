@@ -27,8 +27,10 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.LongUtil;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -43,11 +45,13 @@ public class RowDataPacketGrouper {
 	private final int[] groupColumnIndexs;
 	private ConcurrentLinkedQueue<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
 	private boolean isMergAvg=false;
+	private HavingCols havingCols;
 
-	public RowDataPacketGrouper(int[] groupColumnIndexs, MergeCol[] mergCols) {
+	public RowDataPacketGrouper(int[] groupColumnIndexs, MergeCol[] mergCols,HavingCols havingCols) {
 		super();
 		this.groupColumnIndexs = groupColumnIndexs;
 		this.mergCols = mergCols;
+		this.havingCols = havingCols;
 	}
 
 	public Collection<RowDataPacket> getResult() {
@@ -59,7 +63,74 @@ public class RowDataPacketGrouper {
 			}
 			isMergAvg=true;
 		}
+
+		if(havingCols != null){
+			filterHaving();
+		}
+
 		return result;
+	}
+
+	private void filterHaving(){
+		if (havingCols.getColMeta() == null) {
+			return;
+		}
+		Iterator<RowDataPacket> it = result.iterator();
+		byte[] right = havingCols.getRight().getBytes(
+				StandardCharsets.UTF_8);
+		int index = havingCols.getColMeta().getColIndex();
+		while (it.hasNext()){
+			RowDataPacket rowDataPacket = it.next();
+			switch (havingCols.getOperator()) {
+			case "=":
+				if (eq(rowDataPacket.fieldValues.get(index),right)) {
+					it.remove();
+				}
+				break;
+			case ">":
+				if (gt(rowDataPacket.fieldValues.get(index),right)) {
+					it.remove();
+				}
+				break;
+			case "<":
+				if (lt(rowDataPacket.fieldValues.get(index),right)) {
+					it.remove();
+				}
+				break;
+			case ">=":
+				if (gt(rowDataPacket.fieldValues.get(index),right) && eq(rowDataPacket.fieldValues.get(index),right)) {
+					it.remove();
+				}
+				break;
+			case "<=":
+				if (lt(rowDataPacket.fieldValues.get(index),right) && eq(rowDataPacket.fieldValues.get(index),right)) {
+					it.remove();
+				}
+				break;
+			case "!=":
+				if (neq(rowDataPacket.fieldValues.get(index),right)) {
+					it.remove();
+				}
+				break;
+			}
+		}
+
+	}
+
+	private boolean lt(byte[] l, byte[] r) {
+		return -1 != ByteUtil.compareNumberByte(l, r);
+	}
+
+	private boolean gt(byte[] l, byte[] r) {
+		return 1 != ByteUtil.compareNumberByte(l, r);
+	}
+
+	private boolean eq(byte[] l, byte[] r) {
+		return 0 != ByteUtil.compareNumberByte(l, r);
+	}
+
+	private boolean neq(byte[] l, byte[] r) {
+		return 0 == ByteUtil.compareNumberByte(l, r);
 	}
 
 	public void addRow(RowDataPacket rowDataPkg) {
