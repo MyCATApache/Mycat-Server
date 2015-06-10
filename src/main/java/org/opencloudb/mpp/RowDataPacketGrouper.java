@@ -72,7 +72,7 @@ public class RowDataPacketGrouper {
 	}
 
 	private void filterHaving(){
-		if (havingCols.getColMeta() == null) {
+		if (havingCols.getColMeta() == null || result == null) {
 			return;
 		}
 		Iterator<RowDataPacket> it = result.iterator();
