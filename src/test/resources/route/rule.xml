@@ -49,6 +49,12 @@
             <algorithm>rang-mod</algorithm>
         </rule>
     </tableRule>
+    <tableRule name="rangeDateHash">
+        <rule>
+            <columns>col_date</columns>
+            <algorithm>range-date-hash</algorithm>
+        </rule>
+    </tableRule>
 	<function name="func1"
 		class="org.opencloudb.route.function.PartitionByFileMap">
 		<property name="defaultNode">0</property>
@@ -78,5 +84,13 @@
     <function name="rang-mod"
               class="org.opencloudb.route.function.PartitionByRangeMod">
         <property name="mapFile">partition-range-mod.txt</property>
+    </function>
+
+    <function name="range-date-hash"
+              class="org.opencloudb.route.function.PartitionByRangeDateHash">
+        <property name="sBeginDate">2014-01-01 00:00:00</property>
+        <property name="sPartionDay">3</property>
+        <property name="dateFormat">yyyy-MM-dd HH:mm:ss</property>
+        <property name="groupPartionSize">6</property>
     </function>
 </mycat:rule>

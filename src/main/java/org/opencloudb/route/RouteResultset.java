@@ -26,6 +26,7 @@ package org.opencloudb.route;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.mpp.HavingCols;
 import org.opencloudb.parser.util.PageSQLUtil;
 import org.opencloudb.util.FormatUtil;
 
@@ -317,6 +318,16 @@ public final class RouteResultset implements Serializable {
     public void setCanRunInReadDB(Boolean canRunInReadDB) {
         this.canRunInReadDB = canRunInReadDB;
     }
+
+	public HavingCols getHavingCols() {
+		return (sqlMerge != null) ? sqlMerge.getHavingCols() : null;
+	}
+
+	public void setHavings(HavingCols havings) {
+		if (havings != null) {
+			createSQLMergeIfNull().setHavingCols(havings);
+		}
+	}
 
     @Override
     public String toString() {

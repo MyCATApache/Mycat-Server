@@ -174,6 +174,13 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
                 if(betweenExpr.getTestExpr() instanceof SQLPropertyExpr) {//字段带别名的
                     tableName = ((SQLIdentifierExpr)((SQLPropertyExpr) betweenExpr.getTestExpr()).getOwner()).getName();
                     column = ((SQLPropertyExpr) betweenExpr.getTestExpr()).getName();
+					SQLObject query = this.subQueryMap.get(tableName);
+					if(query == null) {
+						if (aliasMap.containsKey(tableName)) {
+							tableName = aliasMap.get(tableName);
+						}
+						return new Column(tableName, column);
+					}
                     return handleSubQueryColumn(tableName, column);
                 } else if(betweenExpr.getTestExpr() instanceof SQLIdentifierExpr) {
                     column = ((SQLIdentifierExpr) betweenExpr.getTestExpr()).getName();
