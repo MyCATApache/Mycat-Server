@@ -45,6 +45,7 @@ import org.opencloudb.util.TimeUtil;
 public class MycatConfig {
 	private static final int RELOAD = 1;
 	private static final int ROLLBACK = 2;
+    private static final int RELOAD_ALL = 3;
 
 	private volatile SystemConfig system;
 	private volatile MycatCluster cluster;
@@ -65,7 +66,7 @@ public class MycatConfig {
 	private final ReentrantLock lock;
 
 	public MycatConfig() {
-		ConfigInitializer confInit = new ConfigInitializer();
+		ConfigInitializer confInit = new ConfigInitializer(true);
 		this.system = confInit.getSystem();
 		this.users = confInit.getUsers();
 		this.schemas = confInit.getSchemas();
@@ -190,10 +191,10 @@ public class MycatConfig {
 			Map<String, SchemaConfig> schemas,
 			Map<String, PhysicalDBNode> dataNodes,
 			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			QuarantineConfig quarantine) {
-		apply(users, schemas, dataNodes, dataHosts, cluster, quarantine);
+			QuarantineConfig quarantine,boolean reloadAll) {
+		apply(users, schemas, dataNodes, dataHosts, cluster, quarantine,reloadAll);
 		this.reloadTime = TimeUtil.currentTimeMillis();
-		this.status = RELOAD;
+		this.status = reloadAll?RELOAD_ALL:RELOAD;
 	}
 
 	public boolean canRollback() {
@@ -211,7 +212,7 @@ public class MycatConfig {
 			Map<String, PhysicalDBNode> dataNodes,
 			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
 			QuarantineConfig quarantine) {
-		apply(users, schemas, dataNodes, dataHosts, cluster, quarantine);
+		apply(users, schemas, dataNodes, dataHosts, cluster, quarantine,status==RELOAD_ALL);
 		this.rollbackTime = TimeUtil.currentTimeMillis();
 		this.status = ROLLBACK;
 	}
@@ -220,40 +221,51 @@ public class MycatConfig {
 			Map<String, SchemaConfig> schemas,
 			Map<String, PhysicalDBNode> dataNodes,
 			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			QuarantineConfig quarantine) {
+			QuarantineConfig quarantine,boolean isLoadAll) {
 		final ReentrantLock lock = this.lock;
 		lock.lock();
 		try {
-			// stop datasource heartbeat
-			Map<String, PhysicalDBPool> oldDataHosts = this.dataHosts;
-			if (oldDataHosts != null) {
-				for (PhysicalDBPool n : oldDataHosts.values()) {
-					if (n != null) {
-						n.stopHeartbeat();
-					}
-				}
-			}
-
+            if(isLoadAll)
+            {
+                // stop datasource heartbeat
+                Map<String, PhysicalDBPool> oldDataHosts = this.dataHosts;
+                if (oldDataHosts != null)
+                {
+                    for (PhysicalDBPool n : oldDataHosts.values())
+                    {
+                        if (n != null)
+                        {
+                            n.stopHeartbeat();
+                        }
+                    }
+                }
+                this._dataNodes = this.dataNodes;
+                this._dataHosts = this.dataHosts;
+            }
 			this._users = this.users;
 			this._schemas = this.schemas;
-			this._dataNodes = this.dataNodes;
-			this._dataHosts = this.dataHosts;
+
 			this._cluster = this.cluster;
 			this._quarantine = this.quarantine;
 
-			// start datasoruce heartbeat
-			if (dataNodes != null) {
-				for (PhysicalDBPool n : dataHosts.values()) {
-					if (n != null) {
-						n.startHeartbeat();
-					}
-				}
-			}
-
+            if(isLoadAll)
+            {
+                // start datasoruce heartbeat
+                if (dataNodes != null)
+                {
+                    for (PhysicalDBPool n : dataHosts.values())
+                    {
+                        if (n != null)
+                        {
+                            n.startHeartbeat();
+                        }
+                    }
+                }
+                this.dataNodes = dataNodes;
+                this.dataHosts = dataHosts;
+            }
 			this.users = users;
 			this.schemas = schemas;
-			this.dataNodes = dataNodes;
-			this.dataHosts = dataHosts;
 			this.cluster = cluster;
 			this.quarantine = quarantine;
 		} finally {
