@@ -10,12 +10,14 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.alibaba.druid.sql.ast.expr.*;
 import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.mpp.ColumnRoutePair;
+import org.opencloudb.mpp.HavingCols;
 import org.opencloudb.mpp.MergeCol;
 import org.opencloudb.mpp.OrderCol;
 import org.opencloudb.parser.druid.RouteCalculateUnit;
@@ -29,13 +31,6 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
-import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
@@ -189,6 +184,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			List<SQLExpr> groupByItems = mysqlSelectQuery.getGroupBy().getItems();
 			String[] groupByCols = buildGroupByCols(groupByItems,aliaColumns);
 			rrs.setGroupByCols(groupByCols);
+			rrs.setHavings(buildGroupByHaving(mysqlSelectQuery.getGroupBy().getHaving()));
 			rrs.setHasAggrColumn(true);
 		}
 
@@ -200,6 +196,34 @@ public class DruidSelectParser extends DefaultDruidParser {
             getCtx().setSql(sql);
         }
 		return aliaColumns;
+	}
+
+	private HavingCols buildGroupByHaving(SQLExpr having){
+		if (having == null) {
+			return null;
+		}
+
+		SQLBinaryOpExpr expr  = ((SQLBinaryOpExpr) having);
+		SQLExpr left = expr.getLeft();
+		SQLBinaryOperator operator = expr.getOperator();
+		SQLExpr right = expr.getRight();
+
+		String leftValue = null;;
+		if (left instanceof SQLAggregateExpr) {
+			leftValue = ((SQLAggregateExpr) left).getMethodName() + "("
+					+ ((SQLAggregateExpr) left).getArguments().get(0) + ")";
+		} else if (left instanceof SQLIdentifierExpr) {
+			leftValue = ((SQLIdentifierExpr) left).getName();
+		}
+
+		String rightValue = null;
+		if (right instanceof  SQLNumericLiteralExpr) {
+			rightValue = right.toString();
+		}else if(right instanceof SQLTextLiteralExpr){
+			rightValue = StringUtil.removeBackquote(right.toString());
+		}
+
+		return new HavingCols(leftValue,rightValue,operator.getName());
 	}
 
   private boolean isRoutMultiNode(SchemaConfig schema,  RouteResultset rrs)
@@ -247,7 +271,13 @@ public class DruidSelectParser extends DefaultDruidParser {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
 			int limitStart = 0;
 			int limitSize = schema.getDefaultMaxLimit();
-			
+
+			//clear group having
+			SQLSelectGroupByClause groupByClause = mysqlSelectQuery.getGroupBy();
+			if(groupByClause != null && groupByClause.getHaving() != null){
+				groupByClause.setHaving(null);
+			}
+
 			Map<String, Map<String, Set<ColumnRoutePair>>> allConditions = getAllConditions();
 			boolean isNeedAddLimit = isNeedAddLimit(schema, rrs, mysqlSelectQuery, allConditions);
 			if(isNeedAddLimit) {

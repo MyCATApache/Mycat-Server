@@ -153,6 +153,14 @@ public class DataMergeService {
 			groupColumnIndexs = toColumnIndex(rrs.getGroupByCols(),
 					columToIndx);
 		}
+
+		if (rrs.getHavingCols() != null) {
+			ColMeta colMeta =  columToIndx.get(rrs.getHavingCols().getLeft().toUpperCase());
+			if(colMeta != null){
+				rrs.getHavingCols().setColMeta(colMeta);
+			}
+		}
+
 		if (rrs.isHasAggrColumn()) {
 			List<MergeCol> mergCols = new LinkedList<MergeCol>();
             Map<String, Integer> mergeColsMap = rrs.getMergeCols();
@@ -187,7 +195,7 @@ public class DataMergeService {
 				}
 			}
 			grouper = new RowDataPacketGrouper(groupColumnIndexs,
-					mergCols.toArray(new MergeCol[mergCols.size()]));
+					mergCols.toArray(new MergeCol[mergCols.size()]),rrs.getHavingCols());
 		}
 		if (rrs.getOrderByCols() != null) {
 			LinkedHashMap<String, Integer> orders = rrs.getOrderByCols();
