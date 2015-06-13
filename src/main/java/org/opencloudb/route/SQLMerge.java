@@ -23,12 +23,15 @@
  */
 package org.opencloudb.route;
 
+import org.opencloudb.mpp.HavingCols;
+
 import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SQLMerge implements Serializable {
 	private LinkedHashMap<String, Integer> orderByCols;
+	private HavingCols havingCols;
 	private Map<String, Integer> mergeCols;
 	private String[] groupByCols;
 	private boolean hasAggrColumn;
@@ -65,4 +68,11 @@ public class SQLMerge implements Serializable {
 		this.hasAggrColumn = hasAggrColumn;
 	}
 
+	public HavingCols getHavingCols() {
+		return havingCols;
+	}
+
+	public void setHavingCols(HavingCols havingCols) {
+		this.havingCols = havingCols;
+	}
 }
