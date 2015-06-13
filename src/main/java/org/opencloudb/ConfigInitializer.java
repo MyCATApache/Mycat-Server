@@ -59,15 +59,18 @@ public class ConfigInitializer {
 	private volatile Map<String, PhysicalDBNode> dataNodes;
 	private volatile Map<String, PhysicalDBPool> dataHosts;
 
-	public ConfigInitializer() {
+	public ConfigInitializer(boolean loadDataHost) {
 		SchemaLoader schemaLoader = new XMLSchemaLoader();
 		XMLConfigLoader configLoader = new XMLConfigLoader(schemaLoader);
 		schemaLoader = null;
 		this.system = configLoader.getSystemConfig();
 		this.users = configLoader.getUserConfigs();
 		this.schemas = configLoader.getSchemaConfigs();
-		this.dataHosts = initDataHosts(configLoader);
-		this.dataNodes = initDataNodes(configLoader);
+        if(loadDataHost)
+        {
+            this.dataHosts = initDataHosts(configLoader);
+            this.dataNodes = initDataNodes(configLoader);
+        }
 		this.quarantine = configLoader.getQuarantineConfig();
 		this.cluster = initCobarCluster(configLoader);
 		if(system.getSequnceHandlerType()==SystemConfig.SEQUENCEHANDLER_MYSQLDB){

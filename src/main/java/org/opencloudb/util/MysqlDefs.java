@@ -393,6 +393,9 @@ public final class MysqlDefs {
 
 		case Types.LONGVARBINARY:
 			return MysqlDefs.FIELD_TYPE_BLOB;
+            //对应sqlserver的image类型
+            case 27:
+                return MysqlDefs.FIELD_TYPE_BLOB;
 
 		case Types.VARCHAR:
 			return MysqlDefs.FIELD_TYPE_VAR_STRING;

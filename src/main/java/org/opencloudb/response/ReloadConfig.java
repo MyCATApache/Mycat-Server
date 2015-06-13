@@ -51,35 +51,30 @@ import org.opencloudb.net.mysql.OkPacket;
  */
 public final class ReloadConfig {
 	private static final Logger LOGGER = Logger.getLogger(ReloadConfig.class);
-	private static final Callable<Boolean> asyncReload;
 
-	static {
-		/**
-		 * 异步执行类
-		 */
-		asyncReload = new Callable<Boolean>() {
-			@Override
-			public Boolean call() throws Exception {
-				return reload();
-			}
-		};
-	}
-
-	public static void execute(ManagerConnection c) {
+	public static void execute(ManagerConnection c, final boolean loadAll) {
 		final ReentrantLock lock = MycatServer.getInstance().getConfig()
 				.getLock();
 		lock.lock();
 		try {
-			ListenableFuture<Boolean> listenableFuture = MycatServer.getInstance().getListeningExecutorService().submit(asyncReload);
+			ListenableFuture<Boolean> listenableFuture = MycatServer.getInstance().getListeningExecutorService().submit(new Callable<Boolean>()
+            {
+                @Override
+                public Boolean call() throws Exception
+                {
+
+                    return loadAll?reload_all():reload();
+                }
+            });
 			Futures.addCallback(listenableFuture, new ReloadCallBack(c),  MycatServer.getInstance().getListeningExecutorService());
 		} finally {
 			lock.unlock();
 		}
 	}
 
-	private static boolean reload() {
+	private static boolean reload_all() {
 		// 载入新的配置
-		ConfigInitializer loader = new ConfigInitializer();
+		ConfigInitializer loader = new ConfigInitializer(true);
 		Map<String, UserConfig> users = loader.getUsers();
 		Map<String, SchemaConfig> schemas = loader.getSchemas();
 		Map<String, PhysicalDBNode> dataNodes = loader.getDataNodes();
@@ -119,7 +114,7 @@ public final class ReloadConfig {
 		}
 
 		// 应用重载
-		conf.reload(users, schemas, dataNodes, dataHosts, cluster, quarantine);
+		conf.reload(users, schemas, dataNodes, dataHosts, cluster, quarantine,true);
 
 		// 处理旧的资源
 		for (PhysicalDBPool dn : cNodes.values()) {
@@ -131,6 +126,29 @@ public final class ReloadConfig {
 		 MycatServer.getInstance().getCacheService().clearCache();
 		return true;
 	}
+
+    private static boolean reload() {
+        // 载入新的配置
+        ConfigInitializer loader = new ConfigInitializer(false);
+        Map<String, UserConfig> users = loader.getUsers();
+        Map<String, SchemaConfig> schemas = loader.getSchemas();
+        Map<String, PhysicalDBNode> dataNodes = loader.getDataNodes();
+        Map<String, PhysicalDBPool> dataHosts = loader.getDataHosts();
+        MycatCluster cluster = loader.getCluster();
+        QuarantineConfig quarantine = loader.getQuarantine();
+
+        // 应用新配置
+        MycatServer instance = MycatServer.getInstance();
+        MycatConfig conf = instance.getConfig();
+
+        // 应用重载
+        conf.reload(users, schemas, dataNodes, dataHosts, cluster, quarantine,false);
+
+
+        //清理缓存
+        instance.getCacheService().clearCache();
+        return true;
+    }
 	/**
 	 * 异步执行回调类，用于回写数据给用户等。
 	 */

@@ -32,6 +32,6 @@ import org.opencloudb.ConfigInitializer;
 public class ConfigInitializerTest {
     @Test
     public void testConfigLoader() {
-        new ConfigInitializer();
+        new ConfigInitializer(true);
     }
 }
