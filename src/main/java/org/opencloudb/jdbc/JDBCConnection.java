@@ -393,7 +393,6 @@ public class JDBCConnection implements BackendConnection {
 					int j = i + 1;
 					curRow.add(StringUtil.encode(rs.getString(j),
 							sc.getCharset()));
-
 				}
 				curRow.packetId = ++packetId;
 				byteBuf = curRow.write(byteBuf, sc, false);
