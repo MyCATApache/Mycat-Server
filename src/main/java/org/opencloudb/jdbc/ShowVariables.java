@@ -53,6 +53,7 @@ public final class ShowVariables
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
+    private static final    Pattern pattern = Pattern.compile("(?:like|=)\\s*'([^']*(?:\\w+)+[^']*)+'",Pattern.CASE_INSENSITIVE);
     static {
         int i = 0;
         byte packetId = 0;
@@ -69,9 +70,6 @@ public final class ShowVariables
     private static List<String> parseVariable(String sql)
     {
         List<String> variableList=new ArrayList<>();
-        String patten="(?:like|=)\\s*'([^']*(?:\\w+)+[^']*)+'";
-        Pattern pattern = Pattern.compile(patten,Pattern.CASE_INSENSITIVE);
-
         Matcher matcher = pattern.matcher(sql);
         while (matcher.find())
         {

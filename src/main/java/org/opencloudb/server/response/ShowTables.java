@@ -36,6 +36,7 @@ public class ShowTables {
     
     private static final String SCHEMA_KEY = "schemaName";
     private static final String LIKE_KEY = "like";
+    private static final   Pattern pattern = Pattern.compile("^\\s*(SHOW)\\s+(TABLES)(\\s+(FROM)\\s+([a-zA-Z_0-9]+))?(\\s+(LIKE\\s+'(.*)'))?\\s*",Pattern.CASE_INSENSITIVE);
 	
 	/**
 	 * response method.
@@ -129,10 +130,7 @@ public class ShowTables {
 	private static Map<String,String> buildFields(ServerConnection c,String stmt) {
 	 
 		Map<String,String> map = new HashMap<String, String>();
-		
-		String p1 = "^\\s*(SHOW)\\s+(TABLES)(\\s+(FROM)\\s+([a-zA-Z_0-9]+))?(\\s+(LIKE\\s+'(.*)'))?\\s*";
-		
-		Pattern pattern = Pattern.compile(p1,Pattern.CASE_INSENSITIVE);
+
 		Matcher ma = pattern.matcher(stmt);
 
 		if(ma.find()){
