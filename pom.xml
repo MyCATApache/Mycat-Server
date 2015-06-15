@@ -23,6 +23,25 @@
 		<developerConnection>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</developerConnection>
 		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</url>
 	</scm>
+	<repositories>
+		<repository>
+			<id>nexus</id>
+			<name>local private nexus</name>
+			<url>http://nexus.mycat.io/content/groups/public</url>
+		</repository>
+	</repositories>
+	<distributionManagement>
+		<repository>
+			<id>releases</id>
+			<name>Internal Releases</name>
+			<url>http://nexus.mycat.io/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<name>Internal Snapshots</name>
+			<url>http://nexus.mycat.io/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<dependencies>
 		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
 			<version>18.0</version> </dependency> -->
@@ -102,6 +121,11 @@
 			<artifactId>univocity-parsers</artifactId>
 			<version>1.5.4</version>
 			<type>jar</type>
+		</dependency>
+		<dependency>
+  		<groupId>com.sequoiadb.org</groupId>
+  		<artifactId>sequoiadb-java-driver</artifactId>
+ 			<version>1.0-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 
