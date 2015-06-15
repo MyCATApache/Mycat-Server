@@ -448,6 +448,9 @@ public class JDBCConnection implements BackendConnection {
 		try {
 			stmt = con.createStatement();
 			stmt.execute(sql);
+			if(!isAutocommit()){ //如果在写库上，如果是事务方式的连接，需要进行手动commit
+			    con.commit();
+			}
 			this.respHandler.okResponse(OkPacket.OK, this);
 
 		}
