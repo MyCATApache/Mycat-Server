@@ -40,7 +40,7 @@ public class SequoiaDriver implements Driver
 		}
 		
 		if (!StringUtils.startsWithIgnoreCase(url, PREFIX)) {	
-			throw new IllegalArgumentException("uri needs to start with " + PREFIX);//return null;
+			return null;//throw new IllegalArgumentException("uri needs to start with " + PREFIX);//return null;
 		}
 		String uri=url;
         uri = uri.substring(PREFIX.length());
@@ -87,9 +87,9 @@ public class SequoiaDriver implements Driver
 	@Override
 	public boolean acceptsURL(String url) throws SQLException {
 		if (!StringUtils.startsWithIgnoreCase(url, PREFIX)) {
-			return true;
+			return false;
 		}
-		return false;
+		return true;
 	}
 	
 	@Override
