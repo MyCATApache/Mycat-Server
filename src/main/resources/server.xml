@@ -8,7 +8,7 @@
 	License for the specific language governing permissions and - limitations 
 	under the License. -->
 <!DOCTYPE mycat:server SYSTEM "server.dtd">
-<mycat:server xmlns:mycat="http://org.opencloudb/">
+<mycat:server xmlns:mycat="http://io.mycat/">
 	<system>
 	<property name="defaultSqlParser">druidparser</property>
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->

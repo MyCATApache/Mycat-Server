@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE mycat:schema SYSTEM "schema.dtd">
-<mycat:schema xmlns:mycat="http://org.opencloudb/">
+<mycat:schema xmlns:mycat="http://io.mycat/">
 
 	<schema name="TESTDB" checkSQLschema="false" sqlMaxLimit="100">
 		<!-- auto sharding by id (long) -->
