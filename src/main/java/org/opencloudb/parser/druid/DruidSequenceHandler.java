@@ -21,6 +21,8 @@ public class DruidSequenceHandler {
 
 	/** 获取MYCAT SEQ的匹配语句 */
 	private final static String MATCHED_FEATURE = "NEXT VALUE FOR MYCATSEQ_";
+
+    private final static   Pattern pattern = Pattern.compile("(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+", Pattern.CASE_INSENSITIVE);
 	
 	public DruidSequenceHandler(int seqHandlerType) {
 		switch(seqHandlerType){
@@ -49,8 +51,6 @@ public class DruidSequenceHandler {
 		if (null!=sql && !"".equals(sql)) {
              //sql不能转大写，因为sql可能是insert语句会把values也给转换了
 			// 获取表名。
-            String p="(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+";
-            Pattern pattern = Pattern.compile(p,Pattern.CASE_INSENSITIVE);
             Matcher matcher = pattern.matcher(sql);
               if(matcher.find())
               {
@@ -68,8 +68,6 @@ public class DruidSequenceHandler {
 
     //just for test
 	public String getTableName(String sql) {
-        String p="(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+";
-        Pattern pattern = Pattern.compile(p, Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(sql);
         if(matcher.find())
         {

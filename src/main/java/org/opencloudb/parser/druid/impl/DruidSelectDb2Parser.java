@@ -151,10 +151,9 @@ public class DruidSelectDb2Parser extends DruidSelectOracleParser
     }
 
 
+    private static final  Pattern pattern = Pattern.compile("FETCH(?:\\s)+FIRST(?:\\s)+(\\d+)(?:\\s)+ROWS(?:\\s)+ONLY",Pattern.CASE_INSENSITIVE);
     protected void parseNativeSql(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery,SchemaConfig schema)
     {
-        String patten="FETCH(?:\\s)+FIRST(?:\\s)+(\\d+)(?:\\s)+ROWS(?:\\s)+ONLY";
-        Pattern pattern = Pattern.compile(patten,Pattern.CASE_INSENSITIVE);
 
         Matcher matcher = pattern.matcher(getCtx().getSql());
         while (matcher.find())
