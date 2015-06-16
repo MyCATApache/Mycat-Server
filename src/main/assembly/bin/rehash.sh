@@ -65,7 +65,7 @@ RUN_CMD="\"$JAVA_HOME/bin/java\""
 RUN_CMD="$RUN_CMD -DMYCAT_HOME=\"$MYCAT_HOME\""
 RUN_CMD="$RUN_CMD -classpath \"$MYCAT_CLASSPATH\""
 RUN_CMD="$RUN_CMD $JAVA_OPTS"
-RUN_CMD="$RUN_CMD org.opencloudb.util.rehasher.RehashLauncher "
+RUN_CMD="$RUN_CMD io.mycat.util.rehasher.RehashLauncher "
 #to specify the following main args
 #RUN_CMD="$RUN_CMD -jdbcDriver="
 #RUN_CMD="$RUN_CMD -jdbcUrl="

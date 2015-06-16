@@ -8,7 +8,7 @@
 	License for the specific language governing permissions and - limitations 
 	under the License. -->
 <!DOCTYPE mycat:schema SYSTEM "schema.dtd">
-<mycat:schema xmlns:mycat="http://org.opencloudb/">
+<mycat:schema xmlns:mycat="http://io.mycat/">
 
 	<schema name="cndb" checkSQLschema="true" >
 		<table name="offer" dataNode="offer_dn$0-127" rule="offerRule" />
