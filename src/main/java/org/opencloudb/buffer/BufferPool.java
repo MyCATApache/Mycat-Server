@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
@@ -41,7 +42,8 @@ public final class BufferPool {
 	private final int chunkSize;
 	private final ConcurrentLinkedQueue<ByteBuffer> items = new ConcurrentLinkedQueue<ByteBuffer>();
 	private long sharedOptsCount;
-	private volatile int newCreated;
+	//private volatile int newCreated;
+        private AtomicInteger newCreated = new AtomicInteger(0);
 	private final int threadLocalCount;
 	private final int capactiy;
 	private long totalBytes = 0;
@@ -80,7 +82,7 @@ public final class BufferPool {
 	}
 
 	public int capacity() {
-		return capactiy + newCreated;
+		return capactiy + newCreated.get();
 	}
 
 	public ByteBuffer allocate() {
@@ -94,7 +96,8 @@ public final class BufferPool {
 		}
 		node = items.poll();
 		if (node == null) {
-			newCreated++;
+			//newCreated++;
+			newCreated.incrementAndGet();
 			node = this.createDirectBuffer(chunkSize);
 		}
 		return node;

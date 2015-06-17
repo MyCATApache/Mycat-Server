@@ -309,6 +309,7 @@ public abstract class PhysicalDatasource {
 		ConQueue queue = conMap.getSchemaConQueue(schema);
 		queue.incExecuteCount();
 		conn.setAttachment(attachment);
+		conn.setLastTime(System.currentTimeMillis());  //每次取连接的时候，更新下lasttime，防止在前端连接检查的时候，关闭连接，导致sql执行失败
 		handler.connectionAcquired(conn);
 		return conn;
 	}
