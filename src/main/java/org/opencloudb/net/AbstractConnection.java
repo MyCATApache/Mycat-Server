@@ -279,6 +279,7 @@ public abstract class AbstractConnection implements NIOConnection {
 		lastReadTime = TimeUtil.currentTimeMillis();
 		if (got < 0) {
 			this.close("stream closed");
+            return;
 		} else if (got == 0) {
 			if (!this.channel.isOpen()) {
 				this.close("socket closed");
