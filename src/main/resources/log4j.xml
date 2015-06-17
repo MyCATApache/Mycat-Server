@@ -23,20 +23,27 @@
  </appender>
   <appender name="FILE" class="org.apache.log4j.RollingFileAppender">
     <param name="file" value="${MYCAT_HOME}/logs/mycat.log" />
-    <param name="Append" value="false"/>
-    <param name="MaxFileSize" value="10000KB"/>
-    <param name="MaxBackupIndex" value="10"/> 
+    <param name="Append" value="true"/>
+    <param name="MaxFileSize" value="100000KB"/>
+    <param name="MaxBackupIndex" value="100"/> 
     <param name="encoding" value="UTF-8" />
     <layout class="org.apache.log4j.PatternLayout">
       <param name="ConversionPattern" value="%d{MM/dd HH:mm:ss.SSS}  %5p [%t] (%F:%L) -%m%n" />
     </layout>
   </appender>
- 
+   <appender name="DailyFILE" class="org.apache.log4j.DailyRollingFileAppender">
+    <param name="file" value="${MYCAT_HOME}/logs/mycat.log" />
+    <param name="Append" value="true"/>
+    <param name="encoding" value="UTF-8" />
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="%d{MM/dd HH:mm:ss.SSS}  %5p [%t] (%F:%L) -%m%n" />
+    </layout>
+  </appender>
   
   <root>
     <level value="info" />
     <appender-ref ref="ConsoleAppender" />
-     <!--<appender-ref ref="FILE" />-->
+    <appender-ref ref="DailyFILE" />
   </root>
 <!--
 <logger name="org.opencloudb.server.NonBlockingSession" >    
