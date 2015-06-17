@@ -2,13 +2,13 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.opencloudb.mycat</groupId>
+	<groupId>io.mycat.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
 	<version>1.5-dev</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
-	<url>http://org.opencloudb</url>
+	<url>http://io.mycat</url>
 
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
@@ -133,7 +133,7 @@
 
 	<issueManagement>
 		<system>JIRA</system>
-		<url>http://org.opencloudb</url>
+		<url>http://io.mycat</url>
 	</issueManagement>
 
 	<build>
@@ -331,7 +331,7 @@
 					<daemons>
 						<daemon>
 							<id>mycat</id>
-							<mainClass>org.opencloudb.MycatStartup</mainClass>
+							<mainClass>io.mycat.MycatStartup</mainClass>
 							<commandLineArguments>
 								<commandLineArgument>start</commandLineArgument>
 							</commandLineArguments>
