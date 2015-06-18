@@ -15,7 +15,7 @@
  - limitations under the License.
 -->
 <!DOCTYPE mycat:server SYSTEM "server.dtd">
-<mycat:server xmlns:mycat="http://org.opencloudb/">
+<mycat:server xmlns:mycat="http://io.mycat/">
   
   <!-- 系统参数定义，服务端口、管理端口，处理器个数、线程池等。 -->
   <!--

@@ -15,7 +15,7 @@
  - Add by SkyKong 2012-09-01
 -->
 <!DOCTYPE daas:router SYSTEM "router.dtd">
-<mycat:router xmlns:mycat="http://org.opencloudb/">
+<mycat:router xmlns:mycat="http://io.mycat/">
 
 	<!-- schema is db name which config in schema.xml -->
 	<queryRouter schema="dbtest">
