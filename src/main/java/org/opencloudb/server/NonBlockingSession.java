@@ -235,12 +235,15 @@ public class NonBlockingSession implements Session {
 			if (!c.isClosedOrQuit()) {
 				if (c.isAutocommit()) {
 					c.release();
-				} else if (needRollback) {
+				} else
+              //  if (needRollback)
+              {
 					c.setResponseHandler(new RollbackReleaseHandler());
 					c.rollback();
-				} else {
-					c.release();
-				}
+			}
+  //              else {
+//					c.release();
+//				}
 			}
 		}
 	}
