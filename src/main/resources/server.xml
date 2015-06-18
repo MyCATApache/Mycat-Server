@@ -23,9 +23,7 @@
 		<!--<property name="backSocketNoDelay">1</property>-->
 		<!--<property name="frontSocketNoDelay">1</property>-->
 		<!--<property name="processorExecutor">16</property>-->
-		<!-- 
-			<property name="mutiNodeLimitType">1</property> 0：开启小数量级（默认） ；1：开启亿级数据排序
-	    	<property name="mutiNodePatchSize">100</property> 亿级数量排序批量
+		<!--
 			<property name="processors">32</property> <property name="processorExecutor">32</property> 
 			<property name="serverPort">8066</property> <property name="managerPort">9066</property> 
 			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property> 
