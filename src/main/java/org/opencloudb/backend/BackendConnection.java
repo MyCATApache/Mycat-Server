@@ -58,6 +58,8 @@ public interface BackendConnection extends ClosableConnection {
 
 	public boolean isAutocommit();
 
+    public void setAutocommit(boolean autocommit);
+
 	public long getId();
 
 

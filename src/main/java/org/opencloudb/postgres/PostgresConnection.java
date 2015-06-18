@@ -187,4 +187,10 @@ public class PostgresConnection extends BackendAIOConnection {
 		return false;
 	}
 
+    @Override
+    public void setAutocommit(boolean autocommit)
+    {
+
+    }
+
 }
