@@ -564,7 +564,22 @@ public class JDBCConnection implements BackendConnection {
 		return true;
 	}
 
-	@Override
+    @Override
+    public void setAutocommit(boolean autocommit)
+    {
+         if(con!=null)
+         {
+             try
+             {
+                 con.setAutoCommit(autocommit);
+             } catch (SQLException e)
+             {
+
+             }
+         }
+    }
+
+    @Override
 	public long getId() {
 		return id;
 	}

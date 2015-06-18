@@ -256,7 +256,16 @@ public class MySQLConnection extends BackendAIOConnection {
 		return autocommit;
 	}
 
-	public Object getAttachment() {
+    @Override
+    public void setAutocommit(boolean autocommit)
+    {
+         this.autocommit=autocommit;
+        StringBuilder sql=new StringBuilder();
+        getAutocommitCommand(sql,autocommit);
+        sendQueryCmd(sql.toString());
+    }
+
+    public Object getAttachment() {
 		return attachment;
 	}
 

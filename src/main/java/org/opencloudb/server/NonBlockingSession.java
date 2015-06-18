@@ -239,6 +239,7 @@ public class NonBlockingSession implements Session {
 					c.setResponseHandler(new RollbackReleaseHandler());
 					c.rollback();
 				} else {
+                      c.setAutocommit(true);
 					c.release();
 				}
 			}
