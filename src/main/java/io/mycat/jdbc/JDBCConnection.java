@@ -250,6 +250,55 @@ public class JDBCConnection implements BackendConnection {
 		}
 	}
 
+    private  int convertNativeIsolationToJDBC(int nativeIsolation)
+    {
+        if(nativeIsolation==3)
+        {
+            return 4;
+        }else
+        if(nativeIsolation==4)
+        {
+            return 8;
+        } else
+        {
+            return nativeIsolation;
+        }
+    }
+
+    private  int convertJDBCIsolationToNative(int jdbcIsolation)
+    {
+        if(jdbcIsolation==4)
+        {
+            return 3;
+        }else
+        if(jdbcIsolation==8)
+        {
+            return 4;
+        } else
+        {
+            return jdbcIsolation;
+        }
+    }
+
+    private void syncIsolation(int nativeIsolation)
+    {
+       int jdbcIsolation=convertNativeIsolationToJDBC(nativeIsolation);
+       int srcJdbcIsolation=   getTxIsolation();
+        if(jdbcIsolation==srcJdbcIsolation)return;
+        if("oracle".equalsIgnoreCase(getDbType())&&jdbcIsolation!=2&&jdbcIsolation!=8)
+        {
+          //oracle 只支持2个级别        ,且只能更改一次隔离级别，否则会报 ORA-01453
+          return;
+        }
+        try
+        {
+            con.setTransactionIsolation(jdbcIsolation);
+        } catch (SQLException e)
+        {
+            LOGGER.warn("set txisolation error:",e);
+        }
+    }
+
 	private void executeSQL(RouteResultsetNode rrn, ServerConnection sc,
 							boolean autocommit) throws IOException {
 		String orgin = rrn.getStatement();
@@ -260,13 +309,15 @@ public class JDBCConnection implements BackendConnection {
 		}
 
 		try {
+
+               syncIsolation(sc.getTxIsolation()) ;
 			if (!this.schema.equals(this.oldSchema)) {
 				con.setCatalog(schema);
 				this.oldSchema = schema;
 			}
-			if (!this.isSpark) {
-				con.setAutoCommit(autocommit);
-			}
+            if (!this.isSpark) {
+                con.setAutoCommit(autocommit);
+            }
 			int sqlType = rrn.getSqlType();
 
 			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
