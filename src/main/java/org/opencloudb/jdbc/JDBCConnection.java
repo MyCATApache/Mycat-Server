@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.config.Isolations;
 import org.opencloudb.mysql.nio.handler.ConnectionHeartBeatHandler;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.NIOProcessor;
@@ -248,7 +249,43 @@ public class JDBCConnection implements BackendConnection {
 			throw new RuntimeException(e);
 		}
 	}
+    private  int convertNativeIsolationToJDBC(int nativeIsolation)
+    {
+        if(nativeIsolation== Isolations.REPEATED_READ)
+        {
+            return Connection.TRANSACTION_REPEATABLE_READ;
+        }else
+        if(nativeIsolation== Isolations.SERIALIZABLE)
+        {
+            return Connection.TRANSACTION_SERIALIZABLE;
+        } else
+        {
+            return nativeIsolation;
+        }
+    }
 
+
+
+    private void syncIsolation(int nativeIsolation)
+    {
+        int jdbcIsolation=convertNativeIsolationToJDBC(nativeIsolation);
+        int srcJdbcIsolation=   getTxIsolation();
+        if(jdbcIsolation==srcJdbcIsolation)return;
+        if("oracle".equalsIgnoreCase(getDbType())
+                &&jdbcIsolation!=Connection.TRANSACTION_READ_COMMITTED
+                &&jdbcIsolation!=Connection.TRANSACTION_SERIALIZABLE)
+        {
+            //oracle 只支持2个级别        ,且只能更改一次隔离级别，否则会报 ORA-01453
+            return;
+        }
+        try
+        {
+            con.setTransactionIsolation(jdbcIsolation);
+        } catch (SQLException e)
+        {
+            LOGGER.warn("set txisolation error:",e);
+        }
+    }
 	private void executeSQL(RouteResultsetNode rrn, ServerConnection sc,
 							boolean autocommit) throws IOException {
 		String orgin = rrn.getStatement();
@@ -259,6 +296,7 @@ public class JDBCConnection implements BackendConnection {
 		}
 
 		try {
+            syncIsolation(sc.getTxIsolation()) ;
 			if (!this.schema.equals(this.oldSchema)) {
 				con.setCatalog(schema);
 				this.oldSchema = schema;
