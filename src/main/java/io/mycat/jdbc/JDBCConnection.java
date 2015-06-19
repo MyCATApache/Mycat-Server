@@ -3,6 +3,7 @@ package io.mycat.jdbc;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.config.ErrorCode;
+import io.mycat.config.Isolations;
 import io.mycat.mysql.nio.handler.ConnectionHeartBeatHandler;
 import io.mycat.mysql.nio.handler.ResponseHandler;
 import io.mycat.net.NIOProcessor;
@@ -252,33 +253,20 @@ public class JDBCConnection implements BackendConnection {
 
     private  int convertNativeIsolationToJDBC(int nativeIsolation)
     {
-        if(nativeIsolation==3)
+        if(nativeIsolation== Isolations.REPEATED_READ)
         {
-            return 4;
+            return Connection.TRANSACTION_REPEATABLE_READ;
         }else
-        if(nativeIsolation==4)
+        if(nativeIsolation==Isolations.SERIALIZABLE)
         {
-            return 8;
+            return Connection.TRANSACTION_SERIALIZABLE;
         } else
         {
             return nativeIsolation;
         }
     }
 
-    private  int convertJDBCIsolationToNative(int jdbcIsolation)
-    {
-        if(jdbcIsolation==4)
-        {
-            return 3;
-        }else
-        if(jdbcIsolation==8)
-        {
-            return 4;
-        } else
-        {
-            return jdbcIsolation;
-        }
-    }
+
 
     private void syncIsolation(int nativeIsolation)
     {
