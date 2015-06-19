@@ -239,8 +239,8 @@
 							<goal>replace</goal>
 						</goals>
 						<configuration>
-							<file>${project.basedir}/src/main/java/org/opencloudb/config/Versions.template</file>
-							<outputFile>${project.basedir}/src/main/java/org/opencloudb/config/Versions.java</outputFile>
+							<file>${project.basedir}/src/main/java/io/mycat/config/Versions.template</file>
+							<outputFile>${project.basedir}/src/main/java/io/mycat/config/Versions.java</outputFile>
 							<replacements>
 								<replacement>
 									<token>@server-version@</token>

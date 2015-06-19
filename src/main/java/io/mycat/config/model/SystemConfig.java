@@ -98,7 +98,7 @@ public final class SystemConfig {
 	public static final int SEQUENCEHANDLER_MYSQLDB = 1;
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
-	private String sqlInterceptor = "org.opencloudb.interceptor.impl.DefaultSqlInterceptor";
+	private String sqlInterceptor = "io.mycat.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";
 	private String sqlInterceptorFile = System.getProperty("user.dir")+"/logs/sql.txt";
 	public static final int MUTINODELIMIT_SMALL_DATA = 0;

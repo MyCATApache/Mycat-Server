@@ -14,7 +14,7 @@
  - limitations under the License.
 -->
 <!ELEMENT mycat:schema (schema*,dataNode*,dataHost*)>
-<!ATTLIST mycat:schema xmlns:mycat CDATA #FIXED "http://org.opencloudb/">
+<!ATTLIST mycat:schema xmlns:mycat CDATA #FIXED "http://io.mycat/">
 
 <!ELEMENT schema (table*)>
 <!ATTLIST schema name NMTOKEN #REQUIRED>

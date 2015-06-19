@@ -21,7 +21,7 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.config;
+package io.mycat.config;
 
 /**
  * @author mycat
