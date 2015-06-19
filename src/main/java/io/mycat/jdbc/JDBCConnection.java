@@ -273,7 +273,9 @@ public class JDBCConnection implements BackendConnection {
        int jdbcIsolation=convertNativeIsolationToJDBC(nativeIsolation);
        int srcJdbcIsolation=   getTxIsolation();
         if(jdbcIsolation==srcJdbcIsolation)return;
-        if("oracle".equalsIgnoreCase(getDbType())&&jdbcIsolation!=2&&jdbcIsolation!=8)
+        if("oracle".equalsIgnoreCase(getDbType())
+                &&jdbcIsolation!=Connection.TRANSACTION_READ_COMMITTED
+                &&jdbcIsolation!=Connection.TRANSACTION_SERIALIZABLE)
         {
           //oracle 只支持2个级别        ,且只能更改一次隔离级别，否则会报 ORA-01453
           return;
