@@ -3,6 +3,7 @@ package io.mycat.jdbc;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.config.ErrorCode;
+import io.mycat.config.Isolations;
 import io.mycat.mysql.nio.handler.ConnectionHeartBeatHandler;
 import io.mycat.mysql.nio.handler.ResponseHandler;
 import io.mycat.net.NIOProcessor;
@@ -250,6 +251,44 @@ public class JDBCConnection implements BackendConnection {
 		}
 	}
 
+    private  int convertNativeIsolationToJDBC(int nativeIsolation)
+    {
+        if(nativeIsolation== Isolations.REPEATED_READ)
+        {
+            return Connection.TRANSACTION_REPEATABLE_READ;
+        }else
+        if(nativeIsolation==Isolations.SERIALIZABLE)
+        {
+            return Connection.TRANSACTION_SERIALIZABLE;
+        } else
+        {
+            return nativeIsolation;
+        }
+    }
+
+
+
+    private void syncIsolation(int nativeIsolation)
+    {
+       int jdbcIsolation=convertNativeIsolationToJDBC(nativeIsolation);
+       int srcJdbcIsolation=   getTxIsolation();
+        if(jdbcIsolation==srcJdbcIsolation)return;
+        if("oracle".equalsIgnoreCase(getDbType())
+                &&jdbcIsolation!=Connection.TRANSACTION_READ_COMMITTED
+                &&jdbcIsolation!=Connection.TRANSACTION_SERIALIZABLE)
+        {
+          //oracle 只支持2个级别        ,且只能更改一次隔离级别，否则会报 ORA-01453
+          return;
+        }
+        try
+        {
+            con.setTransactionIsolation(jdbcIsolation);
+        } catch (SQLException e)
+        {
+            LOGGER.warn("set txisolation error:",e);
+        }
+    }
+
 	private void executeSQL(RouteResultsetNode rrn, ServerConnection sc,
 							boolean autocommit) throws IOException {
 		String orgin = rrn.getStatement();
@@ -260,13 +299,15 @@ public class JDBCConnection implements BackendConnection {
 		}
 
 		try {
+
+               syncIsolation(sc.getTxIsolation()) ;
 			if (!this.schema.equals(this.oldSchema)) {
 				con.setCatalog(schema);
 				this.oldSchema = schema;
 			}
-			if (!this.isSpark) {
-				con.setAutoCommit(autocommit);
-			}
+            if (!this.isSpark) {
+                con.setAutoCommit(autocommit);
+            }
 			int sqlType = rrn.getSqlType();
 
 			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
