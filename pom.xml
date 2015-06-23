@@ -2,13 +2,13 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.opencloudb.mycat</groupId>
+	<groupId>io.mycat.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.4-alpha</version>
+	<version>1.5-dev</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
-	<url>http://org.opencloudb</url>
+	<url>http://io.mycat</url>
 
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
@@ -23,6 +23,25 @@
 		<developerConnection>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</developerConnection>
 		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</url>
 	</scm>
+	<repositories>
+		<repository>
+			<id>nexus</id>
+			<name>local private nexus</name>
+			<url>http://nexus.mycat.io/content/groups/public</url>
+		</repository>
+	</repositories>
+	<distributionManagement>
+		<repository>
+			<id>releases</id>
+			<name>Internal Releases</name>
+			<url>http://nexus.mycat.io/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<name>Internal Snapshots</name>
+			<url>http://nexus.mycat.io/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<dependencies>
 		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
 			<version>18.0</version> </dependency> -->
@@ -103,13 +122,18 @@
 			<version>1.5.4</version>
 			<type>jar</type>
 		</dependency>
+		<dependency>
+  		<groupId>com.sequoiadb.org</groupId>
+  		<artifactId>sequoiadb-java-driver</artifactId>
+ 			<version>1.0-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 
 
 
 	<issueManagement>
 		<system>JIRA</system>
-		<url>http://org.opencloudb</url>
+		<url>http://io.mycat</url>
 	</issueManagement>
 
 	<build>
@@ -215,8 +239,8 @@
 							<goal>replace</goal>
 						</goals>
 						<configuration>
-							<file>${project.basedir}/src/main/java/org/opencloudb/config/Versions.template</file>
-							<outputFile>${project.basedir}/src/main/java/org/opencloudb/config/Versions.java</outputFile>
+							<file>${project.basedir}/src/main/java/io/mycat/config/Versions.template</file>
+							<outputFile>${project.basedir}/src/main/java/io/mycat/config/Versions.java</outputFile>
 							<replacements>
 								<replacement>
 									<token>@server-version@</token>
@@ -307,7 +331,7 @@
 					<daemons>
 						<daemon>
 							<id>mycat</id>
-							<mainClass>org.opencloudb.MycatStartup</mainClass>
+							<mainClass>io.mycat.MycatStartup</mainClass>
 							<commandLineArguments>
 								<commandLineArgument>start</commandLineArgument>
 							</commandLineArguments>

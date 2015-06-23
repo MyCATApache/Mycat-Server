@@ -1,29 +1,32 @@
 package demo.catlets;
 
+import io.mycat.cache.LayerCachePool;
+import io.mycat.config.ErrorCode;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.SystemConfig;
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.route.RouteResultset;
+import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.factory.RouteStrategyFactory;
+import io.mycat.server.ServerConnection;
+import io.mycat.server.parser.ServerParse;
+import io.mycat.sharejoin.JoinParser;
+import io.mycat.sqlengine.AllJobFinishedListener;
+import io.mycat.sqlengine.Catlet;
+import io.mycat.sqlengine.EngineCtx;
+import io.mycat.sqlengine.SQLJobHandler;
+import io.mycat.util.ByteUtil;
+import io.mycat.util.ResultSetUtil;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-import org.opencloudb.cache.LayerCachePool;
-import org.opencloudb.config.ErrorCode;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.net.mysql.FieldPacket;
-import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.RouteResultsetNode;
-import org.opencloudb.route.factory.RouteStrategyFactory;
-import org.opencloudb.server.ServerConnection;
-import org.opencloudb.server.parser.ServerParse;
-import org.opencloudb.sharejoin.JoinParser;
-import org.opencloudb.sqlengine.AllJobFinishedListener;
-import org.opencloudb.sqlengine.Catlet;
-import org.opencloudb.sqlengine.EngineCtx;
-import org.opencloudb.sqlengine.SQLJobHandler;
-import org.opencloudb.util.ByteUtil;
-import org.opencloudb.util.ResultSetUtil;
+
+
 
 
 //import org.opencloudb.route.RouteStrategy;
@@ -58,6 +61,8 @@ public class ShareJoin implements Catlet {
 	private int joinindex=0;//关联join表字段的位置
 	private int sendField=0;
 	private boolean childRoute=false;
+	private boolean jointTableIsData=false;
+	
 	//重新路由使用
 	private SystemConfig sysConfig; 
 	private SchemaConfig schema;
@@ -149,8 +154,11 @@ public class ShareJoin implements Catlet {
 
 		ctx.setAllJobFinishedListener(new AllJobFinishedListener() {
 			@Override
-			public void onAllJobFinished(EngineCtx ctx) {
-				ctx.writeEof();
+			public void onAllJobFinished(EngineCtx ctx) {				
+				 if (!jointTableIsData) {
+					 ctx.writeHeader(fields);
+				 }
+				 ctx.writeEof();
 				EngineCtx.LOGGER.info("发送数据OK"); 
 			}
 		});
@@ -213,13 +221,14 @@ public class ShareJoin implements Catlet {
 		if (count == 0) {
 			return;
 		}
+		jointTableIsData=true;
 		sb.deleteCharAt(sb.length() - 1).append(')');
 		String sql = String.format(joinParser.getChildSQL(), sb);
 		//if (!childRoute){
 		  getRoute(sql);
 		 //childRoute=true;
 		//}
-		ctx.executeNativeSQLParallJob(getDataNodes(),sql, new ShareRowOutPutDataHandler(this,fields,joinindex, batchRows));
+		ctx.executeNativeSQLParallJob(getDataNodes(),sql, new ShareRowOutPutDataHandler(this,fields,joinindex,joinParser.getJoinRkey(), batchRows));
 		EngineCtx.LOGGER.info("SQLParallJob:"+getDataNode(getDataNodes())+" sql:" + sql);		
 	}  
 	public void writeHeader(String dataNode,List<byte[]> afields, List<byte[]> bfields) {
@@ -248,6 +257,19 @@ public class ShareJoin implements Catlet {
 	public void writeRow(RowDataPacket rowDataPkg){
 		ctx.writeRow(rowDataPkg);
 	}
+	
+	public static int getFieldIndex(List<byte[]> fields,String fkey){
+		int i=0;
+		for (byte[] field :fields) {	
+			  FieldPacket fieldPacket = new FieldPacket();
+			  fieldPacket.read(field);	
+			  if (ByteUtil.getString(fieldPacket.name).equals(fkey)){
+				  return i;				  
+			  }
+			  i++;
+			}
+		return i;		
+	}	
 }
 
 class ShareDBJoinHandler implements SQLJobHandler {
@@ -271,18 +293,7 @@ class ShareDBJoinHandler implements SQLJobHandler {
 		ctx.putDBFields(fields);
 	}
 	
-	public static int getFieldIndex(List<byte[]> fields,String fkey){
-		int i=0;
-		for (byte[] field :fields) {	
-			  FieldPacket fieldPacket = new FieldPacket();
-			  fieldPacket.read(field);	
-			  if (ByteUtil.getString(fieldPacket.name).equals(fkey)){
-				  return i;				  
-			  }
-			  i++;
-			}
-		return i;		
-	}
+
 	/*
 	public static String getFieldNames(List<byte[]> fields){
 		String str="";
@@ -302,7 +313,7 @@ class ShareDBJoinHandler implements SQLJobHandler {
 	*/
 	@Override
 	public boolean onRowData(String dataNode, byte[] rowData) {
-		int fid=getFieldIndex(fields,joinkey);
+		int fid=this.ctx.getFieldIndex(fields,joinkey);
 		String id = ResultSetUtil.getColumnValAsString(rowData, fields, 0);//主键，默认id
 		String nid = ResultSetUtil.getColumnValAsString(rowData, fields, fid);
 		// 放入结果集
@@ -323,19 +334,23 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 	private List<byte[]> bfields;
 	private final ShareJoin ctx;
 	private final Map<String, byte[]> arows;
-	private int joini;
-	public ShareRowOutPutDataHandler(ShareJoin ctx,List<byte[]> afields,int joini,Map<String, byte[]> arows) {
+	private int joinL;//A表(左边)关联字段的位置
+	private int joinR;//B表(右边)关联字段的位置
+	private String joinRkey;//B表(右边)关联字段
+	public ShareRowOutPutDataHandler(ShareJoin ctx,List<byte[]> afields,int joini,String joinField,Map<String, byte[]> arows) {
 		super();
 		this.afields = afields;
 		this.ctx = ctx;
 		this.arows = arows;		
-		this.joini =joini;
+		this.joinL =joini;
+		this.joinRkey= joinField;
 		//EngineCtx.LOGGER.info("二次查询:" +arows.size()+ " afields："+FenDBJoinHandler.getFieldNames(afields));
     }
 
 	@Override
 	public void onHeader(String dataNode, byte[] header, List<byte[]> bfields) {
 		  this.bfields=bfields;		
+		  joinR=this.ctx.getFieldIndex(bfields,joinRkey);
 		  ctx.writeHeader(dataNode,afields, bfields);
 	}
 	
@@ -355,9 +370,9 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 	public boolean onRowData(String dataNode, byte[] rowData) {
 		RowDataPacket rowDataPkgold = ResultSetUtil.parseRowData(rowData, bfields);
 		// 获取Id字段，
-		String id = ByteUtil.getString(rowDataPkgold.fieldValues.get(0));		
+		String id = ByteUtil.getString(rowDataPkgold.fieldValues.get(joinR));		
 		// 查找ID对应的A表的记录
-		byte[] arow = getRow(id,joini);//arows.remove(id);
+		byte[] arow = getRow(id,joinL);//arows.remove(id);
 		while (arow!=null) {
 		  RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(arow,afields );//ctx.getAllFields());
 		  for (int i=1;i<rowDataPkgold.fieldCount;i++){
@@ -368,7 +383,7 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 		  }
 		//RowData(rowDataPkg);
 		  ctx.writeRow(rowDataPkg);
-		   arow = getRow(id,joini);
+		   arow = getRow(id,joinL);
 		}
 		return false;
 	}

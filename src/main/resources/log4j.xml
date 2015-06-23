@@ -39,12 +39,12 @@
      <!--<appender-ref ref="FILE" />-->
   </root>
 <!--
-<logger name="org.opencloudb.server.NonBlockingSession" >    
+<logger name="io.mycat.server.NonBlockingSession" >    
  <level value="debug" /> 
 </logger>
   -->
   <!-- 
-<logger name="org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler" >    
+<logger name="io.mycat.mysql.nio.handler.MultiNodeQueryHandler" >    
  <level value="debug" /> 
 </logger>
  -->
