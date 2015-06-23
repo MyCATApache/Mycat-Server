@@ -40,7 +40,7 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.StringUtil;
 
 /**
- * 打印CobarServer所支持的语句
+ * 打印MycatServer所支持的语句
  * 
  * @author mycat
  * @author mycat
@@ -144,7 +144,8 @@ public final class ShowHelp {
         helps.put("stop @@heartbeat name:time", "Pause dataNode heartbeat");
 
         // reload
-        helps.put("reload @@config", "Reload all config from file");
+        helps.put("reload @@config", "Reload basic config from file");
+        helps.put("reload @@config_all", "Reload all config from file");
         helps.put("reload @@route", "Reload route config from file");
         helps.put("reload @@user", "Reload user config from file");
 
