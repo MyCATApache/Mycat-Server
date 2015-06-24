@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -180,13 +180,10 @@ public abstract class PhysicalDatasource {
 	}
 
 	public void heatBeatCheck(long timeout, long conHeartBeatPeriod) {
-		int ildeCloseCount = hostConfig.getMinCon() * 3;
 		int maxConsInOneCheck = 5;
 		LinkedList<BackendConnection> heartBeatCons = new LinkedList<BackendConnection>();
-
 		long hearBeatTime = TimeUtil.currentTimeMillis() - conHeartBeatPeriod;
-		long hearBeatTime2 = TimeUtil.currentTimeMillis() - 2
-				* conHeartBeatPeriod;
+		long hearBeatTime2 = TimeUtil.currentTimeMillis() - 2* conHeartBeatPeriod;
 		for (ConQueue queue : conMap.getAllConQueue()) {
 			checkIfNeedHeartBeat(heartBeatCons, queue,
 					queue.getAutoCommitCons(), hearBeatTime, hearBeatTime2);
@@ -200,23 +197,23 @@ public abstract class PhysicalDatasource {
 
 		if (!heartBeatCons.isEmpty()) {
 			for (BackendConnection con : heartBeatCons) {
-				conHeartBeatHanler
-						.doHeartBeat(con, hostConfig.getHearbeatSQL());
+				conHeartBeatHanler.doHeartBeat(con, hostConfig.getHearbeatSQL());//判断机器状态
 			}
 		}
-
-		// check if there has timeouted heatbeat cons
+		// 检查是否有心跳连接超时，如果有，删除
 		conHeartBeatHanler.abandTimeOuttedConns();
-		int idleCons = getIdleCount();
-		int activeCons = this.getActiveCount();
-		int createCount = (hostConfig.getMinCon() - idleCons) / 3;
+
+		int idleCons = getIdleCount();//当前空闲连接
+
+		int activeCons = this.getActiveCount();//当前最大活动连接
+
+		int createCount = (hostConfig.getMinCon() - idleCons);//创造的连接
 		// create if idle too little
-		if ((createCount > 0) && (idleCons + activeCons < size)
-				&& (idleCons < hostConfig.getMinCon())) {
+		if ((createCount > 0) && (idleCons + activeCons < size)&& (idleCons < hostConfig.getMinCon())) {
             createByIdleLitte(idleCons, createCount);
-		} else if (getIdleCount() > hostConfig.getMinCon() + ildeCloseCount) {
-			closeByIdleMany(ildeCloseCount);
-		} else {
+		} else if (idleCons > hostConfig.getMinCon()&&idleCons<=hostConfig.getMaxCon()) {//空闲连接较多
+			closeByIdleMany(idleCons-hostConfig.getMinCon());//删除多余的空闲连接，保留最低
+		} else {//连接数报警
 			int activeCount = this.getActiveCount();
 			if (activeCount > size) {
 				StringBuilder s = new StringBuilder();
@@ -341,19 +338,22 @@ public abstract class PhysicalDatasource {
 	}
 
     public void getConnection(String schema,boolean autocommit, final ResponseHandler handler,
-        final Object attachment) throws IOException {
-        BackendConnection con = this.conMap.tryTakeCon(schema,autocommit);
-        if (con != null) {
-            takeCon(con, handler, attachment, schema);
-            return;
-        } else {
-            LOGGER.info("not ilde connection in pool,create new connection for " + this.name
-                + " of schema "+schema);
-            // create connection
-            createNewConnection(handler, attachment, schema);
-            
-        }
-        
+    	final Object attachment) throws IOException {
+            BackendConnection con = this.conMap.tryTakeCon(schema,autocommit);
+            if (con != null) {
+                takeCon(con, handler, attachment, schema);
+                return;
+            } else {
+                int activeCons = this.getActiveCount();//当前最大活动连接
+        		if(activeCons+1>size){//下一个连接大于最大连接数
+        			LOGGER.error("the max activeConnnections size can not be max than maxconnections");
+        			throw new IOException("the max activeConnnections size can not be max than maxconnections");
+        		}else{            // create connection
+        			LOGGER.info("not ilde connection in pool,create new connection for " + this.name
+        	                + " of schema "+schema);
+        			createNewConnection(handler, attachment, schema);
+        		}
+            }
     }
 
 	private void returnCon(BackendConnection c) {
