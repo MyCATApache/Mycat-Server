@@ -1,7 +1,6 @@
 package io.mycat.sqlengine;
 
-import io.mycat.MycatServer;
-import io.mycat.net2.NetSystem;
+import io.mycat.net.nio.NetSystem;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;

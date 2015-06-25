@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.mycat.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.5-dev</version>
+	<version>2.0-dev</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>

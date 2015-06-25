@@ -24,12 +24,12 @@
 package io.mycat.mpp;
 
 import io.mycat.mpp.tmp.RowDataSorter;
-import io.mycat.mysql.nio.handler.MultiNodeQueryHandler;
-import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.net2.NetSystem;
+import io.mycat.mysql.hander.MultiNodeQueryHandler;
+import io.mycat.mysql.packet.RowDataPacket;
+import io.mycat.net.nio.NetSystem;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.NonBlockingSession;
+import io.mycat.session.NonBlockingSession;
 import io.mycat.util.StringUtil;
 
 import java.util.ArrayList;

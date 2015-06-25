@@ -23,7 +23,7 @@
  */
 package io.mycat;
 
-import io.mycat.net2.ExecutorUtil;
+import io.mycat.net.ExecutorUtil;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;

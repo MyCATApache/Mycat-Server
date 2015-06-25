@@ -2,7 +2,7 @@ package io.mycat.mpp.tmp;
 
 import io.mycat.mpp.OrderCol;
 import io.mycat.mpp.RowDataPacketSorter;
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.mysql.packet.RowDataPacket;
 
 import java.util.*;
 

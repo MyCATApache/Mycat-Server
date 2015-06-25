@@ -24,14 +24,14 @@
 package io.mycat.sqlengine.response;
 
 import io.mycat.config.Fields;
-import io.mycat.mysql.PacketUtil;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.net2.BufferArray;
-import io.mycat.net2.NetSystem;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.util.PacketUtil;
+import io.mycat.mysql.packet.EOFPacket;
+import io.mycat.mysql.packet.FieldPacket;
+import io.mycat.mysql.packet.ResultSetHeaderPacket;
+import io.mycat.mysql.packet.RowDataPacket;
+import io.mycat.net.buffer.BufferArray;
+import io.mycat.net.nio.NetSystem;
+import io.mycat.mysql.MySQLFrontConnection;
 import io.mycat.util.IntegerUtil;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;

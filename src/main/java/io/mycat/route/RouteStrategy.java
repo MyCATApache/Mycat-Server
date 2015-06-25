@@ -3,7 +3,7 @@ package io.mycat.route;
 import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.MySQLFrontConnection;
 
 import java.sql.SQLNonTransientException;
 

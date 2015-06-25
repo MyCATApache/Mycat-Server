@@ -24,10 +24,10 @@
 package io.mycat.sqlengine.handler;
 
 import io.mycat.config.ErrorCode;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net2.Connection;
-import io.mycat.net2.NetSystem;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.packet.OkPacket;
+import io.mycat.net.nio.Connection;
+import io.mycat.net.nio.NetSystem;
+import io.mycat.mysql.MySQLFrontConnection;
 import io.mycat.util.StringUtil;
 
 import java.nio.ByteBuffer;

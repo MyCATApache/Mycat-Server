@@ -24,11 +24,11 @@
 package io.mycat.sqlengine.handler;
 
 import io.mycat.config.ErrorCode;
-import io.mycat.mysql.ByteUtil;
-import io.mycat.mysql.PreparedStatement;
+import io.mycat.mysql.util.ByteUtil;
+import io.mycat.mysql.util.PreparedStatement;
 import io.mycat.net.handler.FrontendPrepareHandler;
-import io.mycat.net.mysql.ExecutePacket;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.packet.ExecutePacket;
+import io.mycat.mysql.MySQLFrontConnection;
 import io.mycat.sqlengine.response.PreparedStmtResponse;
 
 import java.io.UnsupportedEncodingException;

@@ -27,8 +27,8 @@ import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.heartbeat.DBHeartbeat;
 import io.mycat.heartbeat.MySQLHeartbeat;
-import io.mycat.mysql.nio.handler.ResponseHandler;
-import io.mycat.net2.mysql.MySQLBackendConnectionFactory;
+import io.mycat.mysql.hander.ResponseHandler;
+import io.mycat.mysql.MySQLBackendConnectionFactory;
 
 import java.io.IOException;
 

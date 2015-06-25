@@ -1,7 +1,7 @@
 package io.mycat.sqlcmd;
 
 import io.mycat.backend.BackendConnection;
-import io.mycat.server.NonBlockingSession;
+import io.mycat.session.NonBlockingSession;
 
 /**
  * sql command like set xxxx ,only return OK /Err Pacakage,can't return restult

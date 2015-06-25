@@ -3,7 +3,7 @@ package io.mycat.sqlengine;
 import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.MySQLFrontConnection;
 /**
  * mycat catlet ,used to execute sql and return result to client,some like
  * database's procedure.

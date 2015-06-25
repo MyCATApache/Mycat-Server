@@ -25,10 +25,10 @@ package io.mycat.sqlengine.response;
 
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
-import io.mycat.net.mysql.ErrorPacket;
-import io.mycat.net.mysql.HeartbeatPacket;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.packet.ErrorPacket;
+import io.mycat.mysql.packet.HeartbeatPacket;
+import io.mycat.mysql.packet.OkPacket;
+import io.mycat.mysql.MySQLFrontConnection;
 import io.mycat.util.TimeUtil;
 
 import org.apache.log4j.Logger;

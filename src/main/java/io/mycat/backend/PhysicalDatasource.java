@@ -27,11 +27,11 @@ import io.mycat.config.Alarms;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.heartbeat.DBHeartbeat;
-import io.mycat.mysql.nio.handler.ConnectionHeartBeatHandler;
-import io.mycat.mysql.nio.handler.DelegateResponseHandler;
-import io.mycat.mysql.nio.handler.NewConnectionRespHandler;
-import io.mycat.mysql.nio.handler.ResponseHandler;
-import io.mycat.net2.NetSystem;
+import io.mycat.mysql.hander.ConnectionHeartBeatHandler;
+import io.mycat.mysql.hander.DelegateResponseHandler;
+import io.mycat.mysql.hander.NewConnectionRespHandler;
+import io.mycat.mysql.hander.ResponseHandler;
+import io.mycat.net.nio.NetSystem;
 import io.mycat.util.TimeUtil;
 
 import java.io.IOException;
@@ -209,8 +209,8 @@ public abstract class PhysicalDatasource {
 		if ((createCount > 0) && (idleCons + activeCons < size)
 				&& (idleCons < hostConfig.getMinCon())) {
 			createByIdleLitte(idleCons, createCount);
-		} else if (getIdleCount() > hostConfig.getMinCon() + ildeCloseCount) {
-			closeByIdleMany(ildeCloseCount);
+		} else if (idleCons > hostConfig.getMinCon()) {
+			closeByIdleMany(idleCons-hostConfig.getMinCon());
 		} else {
 			int activeCount = this.getActiveCount();
 			if (activeCount > size) {
@@ -347,11 +347,15 @@ public abstract class PhysicalDatasource {
 			takeCon(con, handler, attachment, schema);
 			return;
 		} else {
-			LOGGER.info("not ilde connection in pool,create new connection for "
-					+ this.name + " of schema " + schema);
-			// create connection
-			createNewConnection(handler, attachment, schema);
-
+            int activeCons = this.getActiveCount();//当前最大活动连接
+            if(activeCons+1>size){//下一个连接大于最大连接数
+                LOGGER.error("the max activeConnnections size can not be max than maxconnections");
+                throw new IOException("the max activeConnnections size can not be max than maxconnections");
+            }else{            // create connection
+                LOGGER.info("not ilde connection in pool,create new connection for " + this.name
+                                	                + " of schema "+schema);
+                createNewConnection(handler, attachment, schema);
+            }
 		}
 
 	}

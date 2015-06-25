@@ -1,8 +1,8 @@
 package io.mycat.sqlcmd;
 
 import io.mycat.backend.BackendConnection;
-import io.mycat.net.mysql.ErrorPacket;
-import io.mycat.server.NonBlockingSession;
+import io.mycat.mysql.packet.ErrorPacket;
+import io.mycat.session.NonBlockingSession;
 
 public class CommitCommand implements SQLCtrlCommand {
 

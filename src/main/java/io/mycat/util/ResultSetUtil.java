@@ -1,9 +1,8 @@
 package io.mycat.util;
 
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.mysql.packet.FieldPacket;
+import io.mycat.mysql.packet.RowDataPacket;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
