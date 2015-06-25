@@ -13,6 +13,7 @@ import io.mycat.net.mysql.HandshakePacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.Reply323Packet;
 import io.mycat.net.mysql.RequestFilePacket;
+import io.mycat.net2.Connection;
 import io.mycat.net2.ConnectionException;
 import io.mycat.net2.NIOHandler;
 
@@ -49,7 +50,7 @@ public class MySQLBackendConnectionHandler implements
 			try {
 				doHandleBusinessMsg(con, buf, start, readedLength);
 			} catch (Exception e) {
-				LOGGER.warn("caught err ", e);
+				LOGGER.warn("caught err of con "+con, e);
 			}
 			return;
 		}
@@ -85,15 +86,19 @@ public class MySQLBackendConnectionHandler implements
 				}
 				// 处理认证结果
 				source.setAuthenticated(true);
+				source.setState(Connection.State.connected);
 				boolean clientCompress = Capabilities.CLIENT_COMPRESS == (Capabilities.CLIENT_COMPRESS & packet.serverCapabilities);
 				boolean usingCompress = MycatServer.getInstance().getConfig()
 						.getSystem().getUseCompression() == 1;
+				
 				if (clientCompress && usingCompress) {
 					source.setSupportCompress(true);
 				}
+				
 				if (source.getRespHandler() != null) {
 					source.getRespHandler().connectionAcquired(source);
 				}
+			
 				break;
 			case ErrorPacket.FIELD_COUNT:
 				ErrorPacket err = new ErrorPacket();
@@ -141,14 +146,16 @@ public class MySQLBackendConnectionHandler implements
 	private void doConnecting(MySQLBackendConnection con, ByteBuffer buf,
 			int start, int readedLength) {
 		byte[] data = new byte[readedLength];
-		buf.get(data, start, readedLength);
+		buf.position(start);
+		buf.get(data, 0, readedLength);
 		handleLogin(con, data);
 	}
 
 	public void doHandleBusinessMsg(final MySQLBackendConnection source,
 			final ByteBuffer buf, final int start, final int readedLength) {
 		byte[] data = new byte[readedLength];
-		buf.get(data, start, readedLength);
+		buf.position(start);
+		buf.get(data, 0, readedLength);
 		handleData(source, data);
 	}
 

@@ -376,11 +376,10 @@ public abstract class PhysicalDatasource {
 	}
 
 	public void releaseChannel(BackendConnection c) {
+		returnCon(c);
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("release channel " + c);
 		}
-		// release connection
-		returnCon(c);
 	}
 
 	public void connectionClosed(BackendConnection conn) {
