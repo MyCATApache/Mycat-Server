@@ -1,6 +1,6 @@
 package io.mycat.config.util;
 
-import io.mycat.config.model.SystemConfig;
+import io.mycat.SystemConfig;
 
 import java.io.File;
 import java.io.FileInputStream;

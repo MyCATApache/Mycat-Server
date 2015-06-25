@@ -25,7 +25,8 @@ package io.mycat.net.mysql;
 
 import io.mycat.mysql.BufferUtil;
 import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.GenalMySQLConnection;
 
 import java.nio.ByteBuffer;
 
@@ -93,8 +94,8 @@ public class HandshakePacket extends MySQLPacket {
         restOfScrambleBuff = mm.readBytesWithNull();
     }
 
-    public void write(FrontendConnection c) {
-        ByteBuffer buffer = c.allocate();
+    public void write(GenalMySQLConnection c) {
+        ByteBuffer buffer =NetSystem.getInstance().getBufferPool().allocate();
         BufferUtil.writeUB3(buffer, calcPacketSize());
         buffer.put(packetId);
         buffer.put(protocolVersion);

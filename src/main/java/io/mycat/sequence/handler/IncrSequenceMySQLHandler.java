@@ -9,7 +9,7 @@ import io.mycat.mysql.nio.handler.ResponseHandler;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParse;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -250,15 +250,10 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 	private void executeException(BackendConnection c, Throwable e) {
 		SequenceVal seqVal = ((SequenceVal) c.getAttachment());
 		seqVal.dbfinished = true;
-		String errMgs=e.toString();
+		String errMgs = e.toString();
 		IncrSequenceMySQLHandler.latestErrors.put(seqVal.seqName, errMgs);
 		LOGGER.warn("executeException   " + errMgs);
-		c.close("exception:" +errMgs);
-
-	}
-
-	@Override
-	public void writeQueueAvailable() {
+		c.close("exception:" + errMgs);
 
 	}
 

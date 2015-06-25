@@ -24,7 +24,8 @@
 package io.mycat.net.mysql;
 
 import io.mycat.mysql.BufferUtil;
-import io.mycat.net.FrontendConnection;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 
 import java.nio.ByteBuffer;
 
@@ -38,11 +39,11 @@ public class RequestFilePacket extends MySQLPacket
     public byte[] fileName;
 
 
-    @Override
-    public ByteBuffer write(ByteBuffer buffer, FrontendConnection c, boolean writeSocketIfFull)
+    public void write(MySQLFrontConnection c)
     {
         int size = calcPacketSize();
-        buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size, writeSocketIfFull);
+        ByteBuffer buffer = NetSystem.getInstance().getBufferPool()
+				.allocate();
         BufferUtil.writeUB3(buffer, size);
         buffer.put(packetId);
         buffer.put(command);
@@ -54,8 +55,6 @@ public class RequestFilePacket extends MySQLPacket
         }
 
         c.write(buffer);
-
-        return buffer;
     }
 
     @Override

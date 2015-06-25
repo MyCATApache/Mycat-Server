@@ -25,10 +25,10 @@ package io.mycat.server;
 
 import io.mycat.MycatConfig;
 import io.mycat.MycatServer;
+import io.mycat.SystemConfig;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.config.ErrorCode;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.mysql.nio.handler.CommitNodeHandler;
 import io.mycat.mysql.nio.handler.KillConnectionHandler;
 import io.mycat.mysql.nio.handler.MultiNodeCoordinator;
@@ -36,13 +36,12 @@ import io.mycat.mysql.nio.handler.MultiNodeQueryHandler;
 import io.mycat.mysql.nio.handler.RollbackNodeHandler;
 import io.mycat.mysql.nio.handler.RollbackReleaseHandler;
 import io.mycat.mysql.nio.handler.SingleNodeHandler;
-import io.mycat.net.FrontendConnection;
 import io.mycat.net.mysql.OkPacket;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.sqlcmd.SQLCmdConstant;
 
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -61,7 +60,7 @@ public class NonBlockingSession implements Session {
 	public static final Logger LOGGER = Logger
 			.getLogger(NonBlockingSession.class);
 
-	private final ServerConnection source;
+	private final MySQLFrontConnection source;
 	private final ConcurrentHashMap<RouteResultsetNode, BackendConnection> target;
 	// life-cycle: each sql execution
 	private volatile SingleNodeHandler singleNodeHandler;
@@ -71,7 +70,7 @@ public class NonBlockingSession implements Session {
 	private final CommitNodeHandler commitHandler;
 	private volatile String xaTXID;
 
-	public NonBlockingSession(ServerConnection source) {
+	public NonBlockingSession(MySQLFrontConnection source) {
 		this.source = source;
 		this.target = new ConcurrentHashMap<RouteResultsetNode, BackendConnection>(
 				2, 0.75f);
@@ -80,7 +79,7 @@ public class NonBlockingSession implements Session {
 	}
 
 	@Override
-	public ServerConnection getSource() {
+	public MySQLFrontConnection getSource() {
 		return source;
 	}
 
@@ -136,7 +135,6 @@ public class NonBlockingSession implements Session {
 			boolean autocommit = source.isAutocommit();
 			SystemConfig sysConfig = MycatServer.getInstance().getConfig()
 					.getSystem();
-			int mutiNodeLimitType = sysConfig.getMutiNodeLimitType();
 			multiNodeHandler = new MultiNodeQueryHandler(type, rrs, autocommit,
 					this);
 
@@ -152,9 +150,7 @@ public class NonBlockingSession implements Session {
 	public void commit() {
 		final int initCount = target.size();
 		if (initCount <= 0) {
-			ByteBuffer buffer = source.allocate();
-			buffer = source.writeToBuffer(OkPacket.OK, buffer);
-			source.write(buffer);
+			source.write(OkPacket.OK);
 			return;
 		} else if (initCount == 1) {
 			BackendConnection con = target.elements().nextElement();
@@ -176,9 +172,7 @@ public class NonBlockingSession implements Session {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("no session bound connections found ,no need send rollback cmd ");
 			}
-			ByteBuffer buffer = source.allocate();
-			buffer = source.writeToBuffer(OkPacket.OK, buffer);
-			source.write(buffer);
+			source.write(OkPacket.OK);
 			return;
 		}
 		rollbackHandler = new RollbackNodeHandler(this);
@@ -186,7 +180,7 @@ public class NonBlockingSession implements Session {
 	}
 
 	@Override
-	public void cancel(FrontendConnection sponsor) {
+	public void cancel(MySQLFrontConnection sponsor) {
 
 	}
 
@@ -237,14 +231,14 @@ public class NonBlockingSession implements Session {
 				if (c.isAutocommit()) {
 					c.release();
 				} else
-                //if (needRollback)
-                {
+				// if (needRollback)
+				{
 					c.setResponseHandler(new RollbackReleaseHandler());
 					c.rollback();
 				}
-//                else {
-//					c.release();
-//				}
+				// else {
+				// c.release();
+				// }
 			}
 		}
 	}
@@ -333,7 +327,7 @@ public class NonBlockingSession implements Session {
 				PhysicalDBNode dn = conf.getDataNodes().get(
 						en.getKey().getName());
 				try {
-					dn.getConnectionFromSameSource(null,true, en.getValue(),
+					dn.getConnectionFromSameSource(null, true, en.getValue(),
 							kill, en.getKey());
 				} catch (Exception e) {
 					LOGGER.error(

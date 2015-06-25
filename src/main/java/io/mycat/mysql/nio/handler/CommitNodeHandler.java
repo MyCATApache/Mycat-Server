@@ -24,10 +24,9 @@
 package io.mycat.mysql.nio.handler;
 
 import io.mycat.backend.BackendConnection;
-import io.mycat.mysql.nio.MySQLConnection;
 import io.mycat.net.mysql.ErrorPacket;
+import io.mycat.net2.mysql.MySQLBackendConnection;
 import io.mycat.server.NonBlockingSession;
-import io.mycat.server.ServerConnection;
 
 import java.util.List;
 
@@ -47,23 +46,19 @@ public class CommitNodeHandler implements ResponseHandler {
 
 	public void commit(BackendConnection conn) {
 		conn.setResponseHandler(CommitNodeHandler.this);
-	   if(conn instanceof MySQLConnection)
-	   {
-		   MySQLConnection mysqlCon = (MySQLConnection) conn;
-		   if (mysqlCon.getXaStatus() == 1)
-		   {
-			   String xaTxId = session.getXaTXID();
-			   String[] cmds = new String[]{"XA END " + xaTxId,
-					   "XA PREPARE " + xaTxId};
-			   mysqlCon.execBatchCmd(cmds);
-		   } else
-		   {
-			   conn.commit();
-		   }
-	   }else
-	   {
-		   conn.commit();
-	   }
+		if (conn instanceof MySQLBackendConnection) {
+			MySQLBackendConnection mysqlCon = (MySQLBackendConnection) conn;
+			if (mysqlCon.getXaStatus() == 1) {
+				String xaTxId = session.getXaTXID();
+				String[] cmds = new String[] { "XA END " + xaTxId,
+						"XA PREPARE " + xaTxId };
+				mysqlCon.execBatchCmd(cmds);
+			} else {
+				conn.commit();
+			}
+		} else {
+			conn.commit();
+		}
 	}
 
 	@Override
@@ -74,29 +69,25 @@ public class CommitNodeHandler implements ResponseHandler {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		if(conn instanceof MySQLConnection)
-		{
-			MySQLConnection mysqlCon = (MySQLConnection) conn;
-			switch (mysqlCon.getXaStatus())
-			{
-				case 1:
-					if (mysqlCon.batchCmdFinished())
-					{
-						String xaTxId = session.getXaTXID();
-						mysqlCon.execCmd("XA COMMIT " + xaTxId);
-						mysqlCon.setXaStatus(2);
-					}
-					return;
-				case 2:
-				{
-					mysqlCon.setXaStatus(0);
-					break;
+		if (conn instanceof MySQLBackendConnection) {
+			MySQLBackendConnection mysqlCon = (MySQLBackendConnection) conn;
+			switch (mysqlCon.getXaStatus()) {
+			case 1:
+				if (mysqlCon.batchCmdFinished()) {
+					String xaTxId = session.getXaTXID();
+					mysqlCon.execCmd("XA COMMIT " + xaTxId);
+					mysqlCon.setXaStatus(2);
 				}
+				return;
+			case 2: {
+				mysqlCon.setXaStatus(0);
+				break;
+			}
 			}
 		}
 		session.clearResources(false);
-		ServerConnection source = session.getSource();
-		source.write(ok);
+		session.getSource().write(ok);
+
 	}
 
 	@Override
@@ -132,19 +123,12 @@ public class CommitNodeHandler implements ResponseHandler {
 	}
 
 	@Override
-	public void writeQueueAvailable() {
-
-	}
-
-	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
-		
 
 	}
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-		
 
 	}
 

@@ -1,6 +1,7 @@
 package io.mycat.sqlengine;
 
 import io.mycat.MycatServer;
+import io.mycat.net2.NetSystem;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -33,7 +34,7 @@ public class BatchSQLJob {
 	private void runJob(SQLJob newJob) {
 		// EngineCtx.LOGGER.info("run job " + newJob);
 		runningJobs.put(newJob.getId(), newJob);
-		MycatServer.getInstance().getBusinessExecutor().execute(newJob);
+		NetSystem.getInstance().getExecutor().execute(newJob);
 	}
 
 	public boolean jobFinished(SQLJob sqlJob) {

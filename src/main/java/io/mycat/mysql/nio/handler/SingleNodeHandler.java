@@ -26,20 +26,20 @@ package io.mycat.mysql.nio.handler;
 import io.mycat.MycatConfig;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
-import io.mycat.backend.ConnectionMeta;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.config.ErrorCode;
 import io.mycat.mysql.LoadDataUtil;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.OkPacket;
+import io.mycat.net2.BufferArray;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.MySQLBackendConnection;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
-import io.mycat.server.ServerConnection;
 import io.mycat.util.StringUtil;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -56,7 +56,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private final NonBlockingSession session;
 	// only one thread access at one time no need lock
 	private volatile byte packetId;
-	private volatile ByteBuffer buffer;
 	private volatile boolean isRunning;
 	private Runnable terminateCallBack;
 
@@ -100,18 +99,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		}
 	}
 
-	private void recycleResources() {
-
-		ByteBuffer buf = buffer;
-		if (buf != null) {
-			buffer = null;
-			session.getSource().recycle(buffer);
-
-		}
-	}
-
 	public void execute() throws Exception {
-		ServerConnection sc = session.getSource();
+		MySQLFrontConnection sc = session.getSource();
 		this.isRunning = true;
 		this.packetId = 0;
 		final BackendConnection conn = session.getTarget(node);
@@ -170,8 +159,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		err.errno = ErrorCode.ER_NEW_ABORTING_CONNECTION;
 		err.message = StringUtil.encode(e.getMessage(), session.getSource()
 				.getCharset());
-		ServerConnection source = session.getSource();
-		source.write(err.write(allocBuffer(), source, true));
+		MySQLFrontConnection source = session.getSource();
+		err.write(source);
 	}
 
 	@Override
@@ -189,10 +178,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 				+ new String(errPkg.message);
 		LOGGER.warn("execute  sql err :" + errmgs + " con:" + conn);
 		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
-		ServerConnection source = session.getSource();
+		MySQLFrontConnection source = session.getSource();
 		source.setTxInterrupt(errmgs);
 		errPkg.write(source);
-		recycleResources();
 	}
 
 	@Override
@@ -202,7 +190,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
 					false);
 			endRunning();
-			ServerConnection source = session.getSource();
+			MySQLFrontConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
 			if (rrs.isLoadData()) {
@@ -214,8 +202,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 				ok.packetId = ++packetId;// OK_PACKET
 			}
 			ok.serverStatus = source.isAutocommit() ? 2 : 1;
-
-			recycleResources();
 			source.setLastInsertId(ok.insertId);
 			ok.write(source);
 
@@ -224,9 +210,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
-		ServerConnection source = session.getSource();
-		conn.recordSql(source.getHost(), source.getSchema(),
-				node.getStatement());
+		MySQLFrontConnection source = session.getSource();
 
 		// 判断是调用存储过程的话不能在这里释放链接
 		if (!rrs.isCallStatement()) {
@@ -236,46 +220,30 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		}
 
 		eof[3] = ++packetId;
-		buffer = source.writeToBuffer(eof, allocBuffer());
-		source.write(buffer);
-	}
-
-	/**
-	 * lazy create ByteBuffer only when needed
-	 * 
-	 * @return
-	 */
-	private ByteBuffer allocBuffer() {
-		if (buffer == null) {
-			buffer = session.getSource().allocate();
-		}
-		return buffer;
+		source.write(eof);
 	}
 
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
 		header[3] = ++packetId;
-		ServerConnection source = session.getSource();
-		buffer = source.writeToBuffer(header, allocBuffer());
+		MySQLFrontConnection source = session.getSource();
+		BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
+				.allocateArray();
 		for (int i = 0, len = fields.size(); i < len; ++i) {
 			byte[] field = fields.get(i);
 			field[3] = ++packetId;
-			buffer = source.writeToBuffer(field, buffer);
+			bufferArray.write(field);
 		}
 		eof[3] = ++packetId;
-		buffer = source.writeToBuffer(eof, buffer);
+		bufferArray.write(eof);
+		source.write(bufferArray);
 	}
 
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
 		row[3] = ++packetId;
-		buffer = session.getSource().writeToBuffer(row, allocBuffer());
-	}
-
-	@Override
-	public void writeQueueAvailable() {
-
+		session.getSource().write(row);
 	}
 
 	@Override
@@ -295,7 +263,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	@Override
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
-		LoadDataUtil.requestFileDataResponse(data, conn);
+		LoadDataUtil.requestFileDataResponse(data,
+				(MySQLBackendConnection) conn);
 	}
 
 	@Override

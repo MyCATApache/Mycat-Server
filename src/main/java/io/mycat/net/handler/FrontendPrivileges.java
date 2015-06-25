@@ -57,6 +57,6 @@ public interface FrontendPrivileges {
      * @param user
      * @return
      */
-    Boolean isReadOnly(String user);
+    boolean isReadOnly(String user);
 
 }

@@ -27,14 +27,9 @@ import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.config.model.QuarantineConfig;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
-import io.mycat.net.AbstractConnection;
 import io.mycat.util.TimeUtil;
 
-import java.io.IOException;
-import java.net.StandardSocketOptions;
-import java.nio.channels.NetworkChannel;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -89,33 +84,7 @@ public class MycatConfig {
 		return system;
 	}
 
-	public void setSocketParams(AbstractConnection con, boolean isFrontChannel)
-			throws IOException {
-		int sorcvbuf = 0;
-		int sosndbuf = 0;
-		int soNoDelay = 0;
-		if (isFrontChannel) {
-			sorcvbuf = system.getFrontsocketsorcvbuf();
-			sosndbuf = system.getFrontsocketsosndbuf();
-			soNoDelay = system.getFrontSocketNoDelay();
-		} else {
-			sorcvbuf = system.getBacksocketsorcvbuf();
-			sosndbuf = system.getBacksocketsosndbuf();
-			soNoDelay = system.getBackSocketNoDelay();
-		}
-		NetworkChannel channel=con.getChannel();
-		channel.setOption(StandardSocketOptions.SO_RCVBUF, sorcvbuf);
-		channel.setOption(StandardSocketOptions.SO_SNDBUF, sosndbuf);
-		channel.setOption(StandardSocketOptions.TCP_NODELAY, soNoDelay == 1);
-		channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-		channel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
-		
-		con.setMaxPacketSize(system.getMaxPacketSize());
-		con.setPacketHeaderSize(system.getPacketHeaderSize());
-		con.setIdleTimeout(system.getIdleTimeout());
-		con.setCharset(system.getCharset());
-
-	}
+	
 
 	public Map<String, UserConfig> getUsers() {
 		return users;

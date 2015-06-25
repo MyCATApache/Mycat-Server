@@ -29,19 +29,20 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-public class SimpleLogHandler implements ResponseHandler{
+public class SimpleLogHandler implements ResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(SimpleLogHandler.class);
+
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
-		LOGGER.warn(conn+" connectionError "+e);
-		
+		LOGGER.warn(conn + " connectionError " + e);
+
 	}
 
 	@Override
 	public void connectionAcquired(BackendConnection conn) {
-		LOGGER.info("connectionAcquired "+conn);
-		
+		LOGGER.info("connectionAcquired " + conn);
+
 	}
 
 	@Override
@@ -51,39 +52,32 @@ public class SimpleLogHandler implements ResponseHandler{
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		LOGGER.info("okResponse: " + conn );
-		
+		LOGGER.info("okResponse: " + conn);
+
 	}
 
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
-		LOGGER.info("fieldEofResponse: " + conn );
-		
+		LOGGER.info("fieldEofResponse: " + conn);
+
 	}
 
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
-		LOGGER.info("rowResponse: " + conn );
-		
+		LOGGER.info("rowResponse: " + conn);
+
 	}
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
-		LOGGER.info("rowEofResponse: " + conn );
-		
-	}
+		LOGGER.info("rowEofResponse: " + conn);
 
-	@Override
-	public void writeQueueAvailable() {
-		
-		
 	}
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-		
-		
+
 	}
 
 }

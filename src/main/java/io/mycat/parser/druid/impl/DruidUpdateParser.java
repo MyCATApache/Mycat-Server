@@ -26,6 +26,9 @@ public class DruidUpdateParser extends DefaultDruidParser {
 		
 		List<SQLUpdateSetItem> updateSetItem = update.getItems();
 		TableConfig tc = schema.getTables().get(tableName);
+		if (tc == null) {
+            return;
+        }
 
 		if(RouterUtil.isNoSharding(schema,tableName)) {//整个schema都不分库或者该表不拆分
 			RouterUtil.routeForTableMeta(rrs, schema, tableName, rrs.getStatement());

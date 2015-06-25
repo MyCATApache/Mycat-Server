@@ -8,7 +8,7 @@ import io.mycat.backend.PhysicalDatasource;
 import io.mycat.mysql.nio.handler.ResponseHandler;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParse;
 
 import java.util.List;
 
@@ -100,7 +100,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 	}
 
 	private void doFinished(boolean failed) {
-		finished=true;
+		finished = true;
 		jobHandler.finished(dataNodeOrDatabase, failed);
 		if (ctx != null) {
 			ctx.onJobFinished(this);
@@ -152,11 +152,6 @@ public class SQLJob implements ResponseHandler, Runnable {
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		conn.release();
 		doFinished(false);
-	}
-
-	@Override
-	public void writeQueueAvailable() {
-
 	}
 
 	@Override

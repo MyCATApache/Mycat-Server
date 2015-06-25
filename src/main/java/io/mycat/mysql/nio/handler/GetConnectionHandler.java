@@ -52,10 +52,11 @@ public class GetConnectionHandler implements ResponseHandler {
 		this.total = totalNumber;
 	}
 
-	public String getStatusInfo()
-	{
-		return "finished "+ finishedCount.get()+" success "+successCons.size()+" target count:"+this.total;
+	public String getStatusInfo() {
+		return "finished " + finishedCount.get() + " success "
+				+ successCons.size() + " target count:" + this.total;
 	}
+
 	public boolean finished() {
 		return finishedCount.get() >= total;
 	}
@@ -71,7 +72,7 @@ public class GetConnectionHandler implements ResponseHandler {
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
 		finishedCount.addAndGet(1);
-		logger.warn("connect error " + conn+ e);
+		logger.warn("connect error " + conn + e);
 
 	}
 
@@ -100,11 +101,6 @@ public class GetConnectionHandler implements ResponseHandler {
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
-
-	}
-
-	@Override
-	public void writeQueueAvailable() {
 
 	}
 
