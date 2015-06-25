@@ -1,7 +1,7 @@
 package io.mycat.sqlengine;
 
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.mysql.packet.FieldPacket;
+import io.mycat.mysql.packet.RowDataPacket;
 
 import java.util.HashMap;
 import java.util.List;

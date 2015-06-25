@@ -27,8 +27,8 @@ import io.mycat.MycatServer;
 import io.mycat.config.Alarms;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.heartbeat.DBHeartbeat;
-import io.mycat.mysql.nio.handler.GetConnectionHandler;
-import io.mycat.mysql.nio.handler.ResponseHandler;
+import io.mycat.mysql.hander.GetConnectionHandler;
+import io.mycat.mysql.hander.ResponseHandler;
 
 import java.util.ArrayList;
 import java.util.Collection;

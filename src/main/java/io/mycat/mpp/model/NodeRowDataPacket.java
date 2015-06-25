@@ -1,6 +1,6 @@
 package io.mycat.mpp.model;
 
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.mysql.packet.RowDataPacket;
 import io.mycat.route.RouteResultsetNode;
 
 import java.util.ArrayList;

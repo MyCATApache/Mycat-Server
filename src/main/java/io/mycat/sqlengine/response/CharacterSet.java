@@ -27,8 +27,8 @@ import static io.mycat.sqlengine.parser.ServerParseSet.CHARACTER_SET_CLIENT;
 import static io.mycat.sqlengine.parser.ServerParseSet.CHARACTER_SET_CONNECTION;
 import static io.mycat.sqlengine.parser.ServerParseSet.CHARACTER_SET_RESULTS;
 import io.mycat.config.ErrorCode;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.packet.OkPacket;
+import io.mycat.mysql.MySQLFrontConnection;
 import io.mycat.sqlengine.parser.ServerParseSet;
 import io.mycat.util.SplitUtil;
 

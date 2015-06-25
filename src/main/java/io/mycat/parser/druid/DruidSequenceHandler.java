@@ -1,10 +1,10 @@
 package io.mycat.parser.druid;
 
 import io.mycat.SystemConfig;
-import io.mycat.sequence.handler.IncrSequenceMySQLHandler;
-import io.mycat.sequence.handler.IncrSequencePropHandler;
-import io.mycat.sequence.handler.IncrSequenceTimeHandler;
-import io.mycat.sequence.handler.SequenceHandler;
+import io.mycat.sequence.IncrSequenceMySQLHandler;
+import io.mycat.sequence.IncrSequencePropHandler;
+import io.mycat.sequence.IncrSequenceTimeHandler;
+import io.mycat.sequence.SequenceHandler;
 
 import java.io.UnsupportedEncodingException;
 import java.util.regex.Matcher;

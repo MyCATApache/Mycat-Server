@@ -23,7 +23,7 @@
  */
 package io.mycat.backend;
 
-import io.mycat.mysql.nio.handler.ResponseHandler;
+import io.mycat.mysql.hander.ResponseHandler;
 import io.mycat.route.RouteResultsetNode;
 
 import org.apache.log4j.Logger;

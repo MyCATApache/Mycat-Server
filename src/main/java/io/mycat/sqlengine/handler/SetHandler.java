@@ -37,8 +37,8 @@ import static io.mycat.sqlengine.parser.ServerParseSet.XA_FLAG_OFF;
 import static io.mycat.sqlengine.parser.ServerParseSet.XA_FLAG_ON;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Isolations;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.packet.OkPacket;
+import io.mycat.mysql.MySQLFrontConnection;
 import io.mycat.sqlengine.parser.ServerParseSet;
 import io.mycat.sqlengine.response.CharacterSet;
 

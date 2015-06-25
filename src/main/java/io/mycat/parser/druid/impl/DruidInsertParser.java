@@ -2,7 +2,7 @@ package io.mycat.parser.druid.impl;
 
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
-import io.mycat.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
+import io.mycat.mysql.hander.FetchStoreNodeOfChildTableHandler;
 import io.mycat.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.parser.druid.RouteCalculateUnit;
 import io.mycat.route.RouteResultset;

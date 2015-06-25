@@ -4,8 +4,8 @@ import io.mycat.backend.PhysicalDatasource;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.heartbeat.DBHeartbeat;
-import io.mycat.mysql.nio.handler.ResponseHandler;
-import io.mycat.net2.ConnectIdGenerator;
+import io.mycat.mysql.hander.ResponseHandler;
+import io.mycat.net.nio.ConnectIdGenerator;
 
 import java.io.IOException;
 import java.sql.Connection;
