@@ -39,8 +39,8 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.util.ConfigException;
 import io.mycat.jdbc.JDBCDatasource;
-import io.mycat.sequence.handler.IncrSequenceMySQLHandler;
-import io.mycat.sequence.handler.IncrSequenceTimeHandler;
+import io.mycat.sequence.IncrSequenceMySQLHandler;
+import io.mycat.sequence.IncrSequenceTimeHandler;
 
 import java.util.HashMap;
 import java.util.Map;

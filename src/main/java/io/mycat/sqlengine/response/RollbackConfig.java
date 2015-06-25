@@ -33,8 +33,8 @@ import io.mycat.config.ErrorCode;
 import io.mycat.config.model.QuarantineConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.UserConfig;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.packet.OkPacket;
+import io.mycat.mysql.MySQLFrontConnection;
 
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;

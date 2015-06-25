@@ -23,13 +23,13 @@
  */
 package io.mycat.sqlengine.response;
 
-import io.mycat.mysql.PreparedStatement;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.PreparedOkPacket;
-import io.mycat.net2.BufferArray;
-import io.mycat.net2.NetSystem;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.util.PreparedStatement;
+import io.mycat.mysql.packet.EOFPacket;
+import io.mycat.mysql.packet.FieldPacket;
+import io.mycat.mysql.packet.PreparedOkPacket;
+import io.mycat.net.buffer.BufferArray;
+import io.mycat.net.nio.NetSystem;
+import io.mycat.mysql.MySQLFrontConnection;
 
 /**
  * @author mycat

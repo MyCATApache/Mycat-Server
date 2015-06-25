@@ -4,7 +4,7 @@ import io.mycat.MycatServer;
 import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;

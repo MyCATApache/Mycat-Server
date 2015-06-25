@@ -24,7 +24,7 @@
 package io.mycat.sqlengine.handler;
 
 import io.mycat.config.ErrorCode;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.MySQLFrontConnection;
 
 /**
  * @author mycat

@@ -23,11 +23,7 @@
  */
 package io.mycat.sequence;
 
-import io.mycat.sequence.handler.IncrSequencePropHandler;
-import io.mycat.sequence.handler.SequenceHandler;
 import junit.framework.Assert;
-
-import org.junit.Test;
 
 /**
  * 全局序列号单元测试

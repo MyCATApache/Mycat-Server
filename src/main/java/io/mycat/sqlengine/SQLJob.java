@@ -5,8 +5,8 @@ import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.PhysicalDatasource;
-import io.mycat.mysql.nio.handler.ResponseHandler;
-import io.mycat.net.mysql.ErrorPacket;
+import io.mycat.mysql.hander.ResponseHandler;
+import io.mycat.mysql.packet.ErrorPacket;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.sqlengine.parser.ServerParse;
 

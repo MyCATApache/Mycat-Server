@@ -3,7 +3,7 @@ package io.mycat.interceptor.impl;
 import io.mycat.MycatServer;
 import io.mycat.SystemConfig;
 import io.mycat.interceptor.SQLInterceptor;
-import io.mycat.net2.NetSystem;
+import io.mycat.net.nio.NetSystem;
 import io.mycat.sqlengine.parser.ServerParse;
 
 import java.io.File;

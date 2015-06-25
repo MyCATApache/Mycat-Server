@@ -23,7 +23,7 @@
  */
 package io.mycat.mpp;
 
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.mysql.packet.RowDataPacket;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.LongUtil;
 

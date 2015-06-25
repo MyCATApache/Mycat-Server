@@ -28,7 +28,7 @@ import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheService;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.MySQLFrontConnection;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.route.handler.HintHandler;
 import io.mycat.route.handler.HintHandlerFactory;

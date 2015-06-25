@@ -25,8 +25,8 @@ package io.mycat.sqlengine.response;
 
 
 import io.mycat.MycatServer;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net2.mysql.MySQLFrontConnection;
+import io.mycat.mysql.packet.OkPacket;
+import io.mycat.mysql.MySQLFrontConnection;
 
 /**
  * @author mycat
