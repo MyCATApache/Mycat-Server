@@ -154,11 +154,6 @@ public class ConnectionHeartBeatHandler implements ResponseHandler {
 	}
 
 	@Override
-	public void writeQueueAvailable() {
-
-	}
-
-	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
 		removeFinished(conn);
 		LOGGER.warn("connection closed " + conn + " reason:" + reason);

@@ -1,12 +1,12 @@
 package io.mycat.sqlengine;
 
-import io.mycat.handler.ConfFileHandler;
 import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.EmptyPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.net2.BufferArray;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.server.NonBlockingSession;
-import io.mycat.server.ServerConnection;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.log4j.Logger;
 
 public class EngineCtx {
-	public static final Logger LOGGER = Logger.getLogger(ConfFileHandler.class);
+	public static final Logger LOGGER = Logger.getLogger(EngineCtx.class);
 	private final BatchSQLJob bachJob;
 	private AtomicInteger jobId = new AtomicInteger(0);
 	AtomicInteger packetId = new AtomicInteger(0);
@@ -78,35 +78,37 @@ public class EngineCtx {
 				writeLock.lock();
 				// write new header
 				ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-				headerPkg.fieldCount = afields.size() +bfields.size()-1;
+				headerPkg.fieldCount = afields.size() + bfields.size() - 1;
 				headerPkg.packetId = incPackageId();
 				LOGGER.debug("packge id " + headerPkg.packetId);
-				ServerConnection sc = session.getSource();
-				ByteBuffer buf = headerPkg.write(sc.allocate(), sc, true);
+				MySQLFrontConnection sc = session.getSource();
+				BufferArray bufferArray = NetSystem.getInstance()
+						.getBufferPool().allocateArray();
+				headerPkg.write(bufferArray);
 				// wirte a fields
 				for (byte[] field : afields) {
 					field[3] = incPackageId();
-					buf = sc.writeToBuffer(field, buf);
+					bufferArray.write(field);
 				}
 				// write b field
-				for (int i=1;i<bfields.size();i++) {
-				  byte[] bfield = bfields.get(i);
-				  bfield[3] = incPackageId();
-				  buf = sc.writeToBuffer(bfield, buf);
+				for (int i = 1; i < bfields.size(); i++) {
+					byte[] bfield = bfields.get(i);
+					bfield[3] = incPackageId();
+					bufferArray.write(bfield);
 				}
 				// write field eof
 				EOFPacket eofPckg = new EOFPacket();
 				eofPckg.packetId = incPackageId();
-				buf = eofPckg.write(buf, sc, true);
-				sc.write(buf);
-				//LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
+				eofPckg.write(bufferArray);
+				sc.write(bufferArray);
+				// LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
 			} finally {
 				writeLock.unlock();
 			}
 		}
 
 	}
-	
+
 	public void writeHeader(List<byte[]> afields) {
 		if (headerWrited.compareAndSet(false, true)) {
 			try {
@@ -116,50 +118,48 @@ public class EngineCtx {
 				headerPkg.fieldCount = afields.size();// -1;
 				headerPkg.packetId = incPackageId();
 				LOGGER.debug("packge id " + headerPkg.packetId);
-				ServerConnection sc = session.getSource();
-				ByteBuffer buf = headerPkg.write(sc.allocate(), sc, true);
+				MySQLFrontConnection sc = session.getSource();
+				BufferArray bufferArray = NetSystem.getInstance()
+						.getBufferPool().allocateArray();
 				// wirte a fields
 				for (byte[] field : afields) {
 					field[3] = incPackageId();
-					buf = sc.writeToBuffer(field, buf);
+					bufferArray.write(field);
 				}
 
 				// write field eof
 				EOFPacket eofPckg = new EOFPacket();
 				eofPckg.packetId = incPackageId();
-				buf = eofPckg.write(buf, sc, true);
-				sc.write(buf);
-				//LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
+				eofPckg.write(bufferArray);
+				sc.write(bufferArray);
+				// LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
 			} finally {
 				writeLock.unlock();
 			}
 		}
 
 	}
-	
+
 	public void writeRow(RowDataPacket rowDataPkg) {
-		ServerConnection sc = session.getSource();
+		MySQLFrontConnection sc = session.getSource();
 		try {
 			writeLock.lock();
 			rowDataPkg.packetId = incPackageId();
 			// 输出完整的 记录到客户端
-			ByteBuffer buf = rowDataPkg.write(sc.allocate(), sc, true);
-			sc.write(buf);
-			//LOGGER.info("write  row ,packgId:" + rowDataPkg.packetId);
+			rowDataPkg.write(sc);
+			// LOGGER.info("write  row ,packgId:" + rowDataPkg.packetId);
 		} finally {
 			writeLock.unlock();
 		}
 	}
 
 	public void writeEof() {
-		ServerConnection sc = session.getSource();
+		MySQLFrontConnection sc = session.getSource();
 		EOFPacket eofPckg = new EOFPacket();
 		eofPckg.packetId = incPackageId();
-		ByteBuffer buf = eofPckg.write(sc.allocate(), sc, false);
-		sc.write(buf);
+		eofPckg.write(sc);
 		LOGGER.info("write  eof ,packgId:" + eofPckg.packetId);
 	}
-	
 
 	public NonBlockingSession getSession() {
 		return session;

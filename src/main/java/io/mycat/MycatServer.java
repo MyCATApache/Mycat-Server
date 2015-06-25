@@ -24,26 +24,22 @@
 package io.mycat;
 
 import io.mycat.backend.PhysicalDBPool;
-import io.mycat.buffer.BufferPool;
 import io.mycat.cache.CacheService;
 import io.mycat.classloader.DynaClassLoader;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.interceptor.SQLInterceptor;
-import io.mycat.manager.ManagerConnectionFactory;
-import io.mycat.net.AIOAcceptor;
-import io.mycat.net.AIOConnector;
-import io.mycat.net.NIOAcceptor;
-import io.mycat.net.NIOConnector;
-import io.mycat.net.NIOProcessor;
-import io.mycat.net.NIOReactorPool;
-import io.mycat.net.SocketAcceptor;
-import io.mycat.net.SocketConnector;
+import io.mycat.net2.BufferPool;
+import io.mycat.net2.ExecutorUtil;
+import io.mycat.net2.NIOAcceptor;
+import io.mycat.net2.NIOConnector;
+import io.mycat.net2.NIOReactorPool;
+import io.mycat.net2.NameableExecutor;
+import io.mycat.net2.NamebleScheduledExecutor;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.MySQLFrontConnectionFactory;
+import io.mycat.net2.mysql.MySQLFrontConnectionHandler;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
-import io.mycat.server.ServerConnectionFactory;
 import io.mycat.statistic.SQLRecorder;
-import io.mycat.util.ExecutorUtil;
-import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;
 
 import java.io.File;
@@ -55,14 +51,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-
+import org.apache.log4j.Logger;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
@@ -81,12 +74,8 @@ public class MycatServer {
 	private final MyCATSequnceProcessor sequnceProcessor = new MyCATSequnceProcessor();
 	private final DynaClassLoader catletClassLoader;
 	private final SQLInterceptor sqlInterceptor;
-	private volatile int nextProcessor;
-	private BufferPool bufferPool;
-	private boolean aio = false;
 	private final AtomicLong xaIDInc = new AtomicLong();
-
-	public static final MycatServer getInstance() {
+		public static final MycatServer getInstance() {
 		return INSTANCE;
 	}
 
@@ -95,10 +84,7 @@ public class MycatServer {
 	private final SQLRecorder sqlRecorder;
 	private final AtomicBoolean isOnline;
 	private final long startupTime;
-	private NIOProcessor[] processors;
-	private SocketConnector connector;
-	private NameableExecutor businessExecutor;
-	private NameableExecutor timerExecutor;
+	private NamebleScheduledExecutor timerExecutor;
 	private ListeningExecutorService listeningExecutorService;
 
 	public MycatServer() {
@@ -121,14 +107,6 @@ public class MycatServer {
 				+ File.separator + "catlet", config.getSystem()
 				.getCatletClassCheckSeconds());
 		this.startupTime = TimeUtil.currentTimeMillis();
-	}
-
-	public BufferPool getBufferPool() {
-		return bufferPool;
-	}
-
-	public NameableExecutor getTimerExecutor() {
-		return timerExecutor;
 	}
 
 	public DynaClassLoader getCatletClassLoader() {
@@ -154,7 +132,7 @@ public class MycatServer {
 			}
 		}
 		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "."
-				+ seq+"'";
+				+ seq + "'";
 	}
 
 	/**
@@ -208,83 +186,45 @@ public class MycatServer {
 		LOGGER.info(inf);
 		LOGGER.info("sysconfig params:" + system.toString());
 
-		// startup manager
-		ManagerConnectionFactory mf = new ManagerConnectionFactory();
-		ServerConnectionFactory sf = new ServerConnectionFactory();
-		SocketAcceptor manager = null;
-		SocketAcceptor server = null;
-		aio = (system.getUsingAIO() == 1);
-
-		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
-		processors = new NIOProcessor[processorCount];
 		int processBuferPool = system.getProcessorBufferPool();
 		int processBufferChunk = system.getProcessorBufferChunk();
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
-		bufferPool = new BufferPool(processBuferPool, processBufferChunk,
+
+		// server startup
+		LOGGER.info("===============================================");
+		LOGGER.info(NAME + " is ready to startup ,network config:" + system);
+
+		// message byte buffer pool
+		BufferPool bufferPool = new BufferPool(processBuferPool,
+				processBufferChunk, system.getFrontSocketSoRcvbuf(),
 				socketBufferLocalPercent / processorCount);
-		businessExecutor = ExecutorUtil.create("BusinessExecutor",
-				threadPoolSize);
-		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
-		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
+		// Business Executor ，用来执行那些耗时的任务
+		NameableExecutor businessExecutor = ExecutorUtil.create(
+				"BusinessExecutor", threadPoolSize);
+		// 定时器Executor，用来执行定时任务
+		timerExecutor = ExecutorUtil.createSheduledExecute("Timer",
+				system.getTimerExecutor());
+		listeningExecutorService = MoreExecutors
+				.listeningDecorator(businessExecutor);
 
-		for (int i = 0; i < processors.length; i++) {
-			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
-					businessExecutor);
-		}
+		// create netsystem to store our network related objects
+		NetSystem netSystem = new NetSystem(bufferPool, businessExecutor,
+				timerExecutor);
+		netSystem.setNetConfig(system);
+		// Reactor pool
+		NIOReactorPool reactorPool = new NIOReactorPool(
+				BufferPool.LOCAL_BUF_THREAD_PREX + "NIOREACTOR", processorCount);
+		NIOConnector connector = new NIOConnector(
+				BufferPool.LOCAL_BUF_THREAD_PREX + "NIOConnector", reactorPool);
+		connector.start();
+		netSystem.setConnector(connector);
 
-		if (aio) {
-			LOGGER.info("using aio network handler ");
-			asyncChannelGroups = new AsynchronousChannelGroup[processorCount];
-			// startup connector
-			connector = new AIOConnector();
-			for (int i = 0; i < processors.length; i++) {
-				asyncChannelGroups[i] = AsynchronousChannelGroup
-						.withFixedThreadPool(processorCount,
-								new ThreadFactory() {
-									private int inx = 1;
-
-									@Override
-									public Thread newThread(Runnable r) {
-										Thread th = new Thread(r);
-										th.setName(BufferPool.LOCAL_BUF_THREAD_PREX
-												+ "AIO" + (inx++));
-										LOGGER.info("created new AIO thread "
-												+ th.getName());
-										return th;
-									}
-								});
-
-			}
-			manager = new AIOAcceptor(NAME + "Manager", system.getBindIp(),
-					system.getManagerPort(), mf, this.asyncChannelGroups[0]);
-
-			// startup server
-
-			server = new AIOAcceptor(NAME + "Server", system.getBindIp(),
-					system.getServerPort(), sf, this.asyncChannelGroups[0]);
-
-		} else {
-			LOGGER.info("using nio network handler ");
-			NIOReactorPool reactorPool = new NIOReactorPool(
-					BufferPool.LOCAL_BUF_THREAD_PREX + "NIOREACTOR",
-					processors.length);
-			connector = new NIOConnector(BufferPool.LOCAL_BUF_THREAD_PREX
-					+ "NIOConnector", reactorPool);
-			((NIOConnector) connector).start();
-
-			manager = new NIOAcceptor(BufferPool.LOCAL_BUF_THREAD_PREX + NAME
-					+ "Manager", system.getBindIp(), system.getManagerPort(),
-					mf, reactorPool);
-
-			server = new NIOAcceptor(BufferPool.LOCAL_BUF_THREAD_PREX + NAME
-					+ "Server", system.getBindIp(), system.getServerPort(), sf,
-					reactorPool);
-		}
-		// manager start
-		manager.start();
-		LOGGER.info(manager.getName() + " is started and listening on "
-				+ manager.getPort());
+		MySQLFrontConnectionFactory frontFactory = new MySQLFrontConnectionFactory(
+				new MySQLFrontConnectionHandler());
+		NIOAcceptor server = new NIOAcceptor(BufferPool.LOCAL_BUF_THREAD_PREX
+				+ NAME + "Server", system.getBindIp(), system.getServerPort(),
+				frontFactory, reactorPool);
 		server.start();
 		// server started
 		LOGGER.info(server.getName() + " is started and listening on "
@@ -400,27 +340,8 @@ public class MycatServer {
 		return cacheService;
 	}
 
-	public NameableExecutor getBusinessExecutor() {
-		return businessExecutor;
-	}
-
 	public RouteService getRouterservice() {
 		return routerService;
-	}
-
-	public NIOProcessor nextProcessor() {
-		if (++nextProcessor == processors.length) {
-			nextProcessor = 0;
-		}
-		return processors[nextProcessor];
-	}
-
-	public NIOProcessor[] getProcessors() {
-		return processors;
-	}
-
-	public SocketConnector getConnector() {
-		return connector;
 	}
 
 	public SQLRecorder getSqlRecorder() {
@@ -462,25 +383,11 @@ public class MycatServer {
 					@Override
 					public void run() {
 						try {
-							for (NIOProcessor p : processors) {
-								p.checkBackendCons();
-							}
+							NetSystem.getInstance().checkConnections();
 						} catch (Exception e) {
-							LOGGER.warn("checkBackendCons caught err:" + e);
+							LOGGER.warn("checkBackendCons caught err:", e);
 						}
 
-					}
-				});
-				timerExecutor.execute(new Runnable() {
-					@Override
-					public void run() {
-						try {
-							for (NIOProcessor p : processors) {
-								p.checkFrontCons();
-							}
-						} catch (Exception e) {
-							LOGGER.warn("checkFrontCons caught err:" + e);
-						}
 					}
 				});
 			}
@@ -530,10 +437,6 @@ public class MycatServer {
 				});
 			}
 		};
-	}
-
-	public boolean isAIO() {
-		return aio;
 	}
 
 	public ListeningExecutorService getListeningExecutorService() {

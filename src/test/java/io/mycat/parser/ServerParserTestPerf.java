@@ -23,7 +23,7 @@
  */
 package io.mycat.parser;
 
-import io.mycat.server.parser.ServerParseSet;
+import io.mycat.sqlengine.parser.ServerParseSet;
 
 /**
  * @author mycat

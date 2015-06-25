@@ -1,10 +1,10 @@
 package demo.catlets;
 
+import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.server.ServerConnection;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.sqlengine.AllJobFinishedListener;
 import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;
@@ -36,7 +36,7 @@ public class MyHellowJoin implements Catlet {
 
 	@Override
 	public void route(SystemConfig sysConfig, SchemaConfig schema, int sqlType,
-			String realSQL, String charset, ServerConnection sc,
+			String realSQL, String charset, MySQLFrontConnection sc,
 			LayerCachePool cachePool) {
 		
 		

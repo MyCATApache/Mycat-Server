@@ -25,7 +25,8 @@ package io.mycat.net.mysql;
 
 import io.mycat.mysql.BufferUtil;
 import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.GenalMySQLConnection;
 
 import java.nio.ByteBuffer;
 
@@ -87,21 +88,10 @@ public class OkPacket extends MySQLPacket {
 		}
 	}
 
-	public byte[] writeToBytes(FrontendConnection c) {
-		ByteBuffer buffer = c.allocate();
-		this.write(buffer, c);
-		buffer.flip();
-		byte[] data = new byte[buffer.limit()];
-		buffer.get(data);
-		c.recycle(buffer);
-		return data;
-	}
 
-	private ByteBuffer write(ByteBuffer buffer, FrontendConnection c) {
 
-		int size = calcPacketSize();
-		buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size,
-				true);
+	public void write(GenalMySQLConnection c) {
+		ByteBuffer buffer=NetSystem.getInstance().getBufferPool().allocate();
 		BufferUtil.writeUB3(buffer, calcPacketSize());
 		buffer.put(packetId);
 		buffer.put(fieldCount);
@@ -112,16 +102,10 @@ public class OkPacket extends MySQLPacket {
 		if (message != null) {
 			BufferUtil.writeWithLength(buffer, message);
 		}
-
-		return buffer;
-
-	}
-
-	public void write(FrontendConnection c) {
-		ByteBuffer buffer = write(c.allocate(), c);
 		c.write(buffer);
 	}
 
+	
 	@Override
 	public int calcPacketSize() {
 		int i = 1;

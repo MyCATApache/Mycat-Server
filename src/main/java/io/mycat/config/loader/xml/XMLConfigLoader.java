@@ -23,6 +23,7 @@
  */
 package io.mycat.config.loader.xml;
 
+import io.mycat.SystemConfig;
 import io.mycat.config.loader.ConfigLoader;
 import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.model.ClusterConfig;
@@ -30,7 +31,6 @@ import io.mycat.config.model.DataHostConfig;
 import io.mycat.config.model.DataNodeConfig;
 import io.mycat.config.model.QuarantineConfig;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
 
 import java.util.Map;

@@ -23,11 +23,11 @@
  */
 package io.mycat.parser;
 
-import io.mycat.server.parser.ServerParse;
-import io.mycat.server.parser.ServerParseSelect;
-import io.mycat.server.parser.ServerParseSet;
-import io.mycat.server.parser.ServerParseShow;
-import io.mycat.server.parser.ServerParseStart;
+import io.mycat.sqlengine.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParseSelect;
+import io.mycat.sqlengine.parser.ServerParseSet;
+import io.mycat.sqlengine.parser.ServerParseShow;
+import io.mycat.sqlengine.parser.ServerParseStart;
 
 import org.junit.Assert;
 import org.junit.Test;

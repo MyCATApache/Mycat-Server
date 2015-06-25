@@ -1,14 +1,12 @@
 package io.mycat.parser.druid;
 
-import static junit.framework.Assert.*;
-
-import org.junit.Test;
-
-import io.mycat.config.model.SystemConfig;
-import io.mycat.parser.druid.DruidSequenceHandler;
+import static junit.framework.Assert.assertEquals;
+import io.mycat.SystemConfig;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.junit.Test;
 
 /**
  * 获取MYCAT SEQ 表名。

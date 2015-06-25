@@ -26,13 +26,12 @@ package io.mycat.mysql.nio.handler;
 import io.mycat.MycatConfig;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
-import io.mycat.backend.ConnectionMeta;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.cache.CachePool;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -182,11 +181,6 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 		finished.incrementAndGet();
 		LOGGER.warn("executeException   " + e);
 		c.close("exception:" + e);
-
-	}
-
-	@Override
-	public void writeQueueAvailable() {
 
 	}
 

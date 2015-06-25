@@ -26,10 +26,11 @@ package io.mycat.net.mysql;
 import io.mycat.mysql.BufferUtil;
 import io.mycat.mysql.MySQLMessage;
 import io.mycat.mysql.StreamUtil;
-import io.mycat.net.BackendAIOConnection;
+import io.mycat.net2.BufferArray;
+import io.mycat.net2.Connection;
+import io.mycat.net2.NetSystem;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
@@ -92,45 +93,56 @@ import java.nio.ByteBuffer;
  */
 public class CommandPacket extends MySQLPacket {
 
-    public byte command;
-    public byte[] arg;
+	public byte command;
+	public byte[] arg;
 
-    public void read(byte[] data) {
-        MySQLMessage mm = new MySQLMessage(data);
-        packetLength = mm.readUB3();
-        packetId = mm.read();
-        command = mm.read();
-        arg = mm.readBytes();
-    }
+	public void read(byte[] data) {
+		MySQLMessage mm = new MySQLMessage(data);
+		packetLength = mm.readUB3();
+		packetId = mm.read();
+		command = mm.read();
+		arg = mm.readBytes();
+	}
 
 
+	public void write(BufferArray bufferArray) {
+		int size = calcPacketSize();
+		ByteBuffer buffer = bufferArray.checkWriteBuffer(packetHeaderSize
+				+ size);
+		BufferUtil.writeUB3(buffer, calcPacketSize());
+		buffer.put(packetId);
+		buffer.put(command);
+		buffer = bufferArray.write(arg);
 
-    public void write(OutputStream out) throws IOException {
-        StreamUtil.writeUB3(out, calcPacketSize());
-        StreamUtil.write(out, packetId);
-        StreamUtil.write(out, command);
-        out.write(arg);
-    }
+	}
 
-    @Override
-    public void write(BackendAIOConnection c) {
-        ByteBuffer buffer = c.allocate();
-        BufferUtil.writeUB3(buffer, calcPacketSize());
-        buffer.put(packetId);
-        buffer.put(command);
-        buffer = c.writeToBuffer(arg, buffer);
-        c.write(buffer);
-    }
+	public void write(Connection conn) {
+		int size = calcPacketSize();
+		int totalSize = size + packetHeaderSize;
+		if (NetSystem.getInstance().getBufferPool().getChunkSize() >= totalSize) {
+			ByteBuffer buffer = NetSystem.getInstance().getBufferPool()
+					.allocate();
+			BufferUtil.writeUB3(buffer, size);
+			buffer.put(packetId);
+			buffer.put(command);
+			conn.write(buffer);
+		} else {
+			BufferArray bufArray = NetSystem.getInstance().getBufferPool()
+					.allocateArray();
+			write(bufArray);
+			conn.write(bufArray);
+		}
 
-    @Override
-    public int calcPacketSize() {
-        return 1 + arg.length;
-    }
+	}
 
-    @Override
-    protected String getPacketInfo() {
-        return "MySQL Command Packet";
-    }
+	@Override
+	public int calcPacketSize() {
+		return 1 + arg.length;
+	}
 
-	
+	@Override
+	protected String getPacketInfo() {
+		return "MySQL Command Packet";
+	}
+
 }

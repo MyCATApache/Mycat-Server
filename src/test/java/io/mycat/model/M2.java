@@ -23,7 +23,7 @@
  */
 package io.mycat.model;
 
-import io.mycat.util.ExecutorUtil;
+import io.mycat.net2.ExecutorUtil;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;

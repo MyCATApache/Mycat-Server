@@ -23,6 +23,7 @@
  */
 package io.mycat.config.model;
 
+import io.mycat.SystemConfig;
 import io.mycat.backend.PhysicalDBPool;
 
 import java.util.Map;

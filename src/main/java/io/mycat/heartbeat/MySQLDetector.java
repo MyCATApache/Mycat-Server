@@ -23,8 +23,8 @@
  */
 package io.mycat.heartbeat;
 
+import io.mycat.backend.MySQLDataSource;
 import io.mycat.config.model.DataHostConfig;
-import io.mycat.mysql.nio.MySQLDataSource;
 import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
 import io.mycat.sqlengine.SQLJob;
 import io.mycat.sqlengine.SQLQueryResult;

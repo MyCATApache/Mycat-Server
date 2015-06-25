@@ -1,21 +1,21 @@
 package demo.catlets;
 
 import io.mycat.MycatServer;
+import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.sequence.handler.IncrSequenceMySQLHandler;
 import io.mycat.sequence.handler.IncrSequencePropHandler;
 import io.mycat.sequence.handler.SequenceHandler;
-import io.mycat.server.ServerConnection;
-import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;
+import io.mycat.sqlengine.parser.ServerParse;
 import io.mycat.util.StringUtil;
 
 import org.apache.log4j.Logger;
@@ -44,7 +44,7 @@ public class BatchInsertSequence implements Catlet {
 	private SchemaConfig schema;
 	private int sqltype; 
 	private String charset; 
-	private ServerConnection sc;
+	private MySQLFrontConnection sc;
 	private LayerCachePool cachePool;
 
 	@Override
@@ -69,7 +69,7 @@ public class BatchInsertSequence implements Catlet {
 
 	@Override
 	public void route(SystemConfig sysConfig, SchemaConfig schema, int sqlType,
-			String realSQL, String charset, ServerConnection sc,
+			String realSQL, String charset, MySQLFrontConnection sc,
 			LayerCachePool cachePool) {
 		int rs = ServerParse.parse(realSQL);
 		this.sqltype = rs & 0xff;

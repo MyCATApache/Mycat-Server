@@ -1,9 +1,9 @@
 package io.mycat.sqlengine;
 
+import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.server.ServerConnection;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 /**
  * mycat catlet ,used to execute sql and return result to client,some like
  * database's procedure.
@@ -20,7 +20,7 @@ public interface Catlet {
 	void processSQL(String sql, EngineCtx ctx);
 	
 	void route(SystemConfig sysConfig, SchemaConfig schema,
-			int sqlType, String realSQL, String charset, ServerConnection sc,
+			int sqlType, String realSQL, String charset, MySQLFrontConnection sc,
 			LayerCachePool cachePool) ;
 	//void setRoute(RouteResultset rrs);
 }

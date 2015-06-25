@@ -23,34 +23,39 @@
  */
 package io.mycat.mysql.nio.handler;
 
-
-import org.apache.log4j.Logger;
-
-
-
 import io.mycat.MycatConfig;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
-import io.mycat.backend.ConnectionMeta;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.mpp.ColMeta;
 import io.mycat.mpp.DataMergeService;
-import io.mycat.mpp.LoadData;
 import io.mycat.mpp.MergeCol;
 import io.mycat.mysql.LoadDataUtil;
-import io.mycat.net.BackendAIOConnection;
-import io.mycat.net.mysql.*;
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.OkPacket;
+import io.mycat.net.mysql.ResultSetHeaderPacket;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.net2.BufferArray;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.MySQLBackendConnection;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
-import io.mycat.server.ServerConnection;
-import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParse;
 
-import java.io.*;
-import java.nio.ByteBuffer;
-import java.util.*;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.log4j.Logger;
 
 /**
  * @author mycat
@@ -175,7 +180,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			} else if (canClose(conn, false)) {
 				return;
 			}
-			ServerConnection source = session.getSource();
+			MySQLFrontConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
 			lock.lock();
@@ -244,7 +249,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			return;
 		}
 
-		final ServerConnection source = session.getSource();
+		final MySQLFrontConnection source = session.getSource();
 		if (!isCallProcedure) {
 			if (clearIfSessionClosed(session)) {
 				return;
@@ -265,14 +270,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				}
 			}
 			if (dataMergeSvr != null) {
-				try
-				{
+				try {
 					dataMergeSvr.outputMergeResult(session, eof);
-				} catch (Exception e)
-				{
+				} catch (Exception e) {
 					handleDataProcessException(e);
 				}
-
 
 			} else {
 				try {
@@ -290,11 +292,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 	}
 
-	public void outputMergeResult(final ServerConnection source,
+	public void outputMergeResult(final MySQLFrontConnection source,
 			final byte[] eof) {
 		try {
 			lock.lock();
-			ByteBuffer buffer = session.getSource().allocate();
+			BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
+					.allocateArray();
 			final DataMergeService dataMergeService = this.dataMergeSvr;
 			final RouteResultset rrs = dataMergeService.getRrs();
 
@@ -321,14 +324,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				}
 				i++;
 				row.packetId = ++packetId;
-				buffer = row.write(buffer, source, true);
+				row.write(bufferArray);
 			}
 
 			eof[3] = ++packetId;
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("last packet id:" + packetId);
 			}
-			source.write(source.writeToBuffer(eof, buffer));
+			source.write(bufferArray);
 
 		} catch (Exception e) {
 			handleDataProcessException(e);
@@ -341,7 +344,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
-		ServerConnection source = null;
+		MySQLFrontConnection source = null;
 		if (fieldsReturned) {
 			return;
 		}
@@ -377,17 +380,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			}
 
 			source = session.getSource();
-			ByteBuffer buffer = source.allocate();
+			BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
+					.allocateArray();
 			fieldCount = fields.size();
 			if (shouldRemoveAvgField.size() > 0) {
 				ResultSetHeaderPacket packet = new ResultSetHeaderPacket();
 				packet.packetId = ++packetId;
 				packet.fieldCount = fieldCount - shouldRemoveAvgField.size();
-				buffer = packet.write(buffer, source, true);
+				packet.write(bufferArray);
 			} else {
-
 				header[3] = ++packetId;
-				buffer = source.writeToBuffer(header, buffer);
+				bufferArray.write(header);
 			}
 
 			String primaryKey = null;
@@ -418,7 +421,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 							fieldPkg.name = newFieldName.getBytes();
 							fieldPkg.packetId = ++packetId;
 							shouldSkip = true;
-							buffer = fieldPkg.write(buffer, source, false);
+							fieldPkg.write(bufferArray);
 
 						}
 
@@ -437,12 +440,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				}
 				if (!shouldSkip) {
 					field[3] = ++packetId;
-					buffer = source.writeToBuffer(field, buffer);
+					bufferArray.write(field);
 				}
 			}
 			eof[3] = ++packetId;
-			buffer = source.writeToBuffer(eof, buffer);
-			source.write(buffer);
+			bufferArray.write(eof);
+			source.write(bufferArray);
 			if (dataMergeSvr != null) {
 				dataMergeSvr.onRowMetaData(columToIndx, fieldCount);
 
@@ -509,14 +512,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 	}
 
-	@Override
-	public void writeQueueAvailable() {
-
-	}
-
+	
 	@Override
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
-		LoadDataUtil.requestFileDataResponse(data, conn);
+		LoadDataUtil.requestFileDataResponse(data, (MySQLBackendConnection) conn);
 	}
 
 }

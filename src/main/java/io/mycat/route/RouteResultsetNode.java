@@ -24,7 +24,7 @@
 package io.mycat.route;
 
 import io.mycat.mpp.LoadData;
-import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParse;
 
 import java.io.Serializable;
 

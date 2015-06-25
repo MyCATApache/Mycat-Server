@@ -25,7 +25,9 @@ package io.mycat.net.mysql;
 
 import io.mycat.mysql.BufferUtil;
 import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
+import io.mycat.net2.BufferArray;
+import io.mycat.net2.Connection;
+import io.mycat.net2.NetSystem;
 
 import java.nio.ByteBuffer;
 
@@ -47,41 +49,52 @@ import java.nio.ByteBuffer;
  * @author mycat
  */
 public class EOFPacket extends MySQLPacket {
-    public static final byte FIELD_COUNT = (byte) 0xfe;
+	public static final byte FIELD_COUNT = (byte) 0xfe;
 
-    public byte fieldCount = FIELD_COUNT;
-    public int warningCount;
-    public int status = 2;
+	public byte fieldCount = FIELD_COUNT;
+	public int warningCount;
+	public int status = 2;
 
-    public void read(byte[] data) {
-        MySQLMessage mm = new MySQLMessage(data);
-        packetLength = mm.readUB3();
-        packetId = mm.read();
-        fieldCount = mm.read();
-        warningCount = mm.readUB2();
-        status = mm.readUB2();
-    }
+	public void read(byte[] data) {
+		MySQLMessage mm = new MySQLMessage(data);
+		packetLength = mm.readUB3();
+		packetId = mm.read();
+		fieldCount = mm.read();
+		warningCount = mm.readUB2();
+		status = mm.readUB2();
+	}
 
-    @Override
-    public ByteBuffer write(ByteBuffer buffer, FrontendConnection c,boolean writeSocketIfFull) {
-        int size = calcPacketSize();
-        buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size,writeSocketIfFull);
-        BufferUtil.writeUB3(buffer, size);
-        buffer.put(packetId);
-        buffer.put(fieldCount);
-        BufferUtil.writeUB2(buffer, warningCount);
-        BufferUtil.writeUB2(buffer, status);
-        return buffer;
-    }
+	@Override
+	public void write(BufferArray bufferArray) {
+		int size = calcPacketSize();
+		ByteBuffer buffer = bufferArray.checkWriteBuffer(packetHeaderSize
+				+ size);
+		BufferUtil.writeUB3(buffer, size);
+		buffer.put(packetId);
+		buffer.put(fieldCount);
+		BufferUtil.writeUB2(buffer, warningCount);
+		BufferUtil.writeUB2(buffer, status);
+	}
 
-    @Override
-    public int calcPacketSize() {
-        return 5;// 1+2+2;
-    }
+	public void write(Connection con) {
+		int size = calcPacketSize();
+		ByteBuffer buffer = NetSystem.getInstance().getBufferPool().allocate();
+		BufferUtil.writeUB3(buffer, size);
+		buffer.put(packetId);
+		buffer.put(fieldCount);
+		BufferUtil.writeUB2(buffer, warningCount);
+		BufferUtil.writeUB2(buffer, status);
+		con.write(buffer);
+	}
 
-    @Override
-    protected String getPacketInfo() {
-        return "MySQL EOF Packet";
-    }
+	@Override
+	public int calcPacketSize() {
+		return 5;// 1+2+2;
+	}
+
+	@Override
+	protected String getPacketInfo() {
+		return "MySQL EOF Packet";
+	}
 
 }

@@ -73,15 +73,8 @@ public interface ResponseHandler {
 	void rowEofResponse(byte[] eof, BackendConnection conn);
 
 	/**
-	 * 写队列为空，可以写数据了
-	 * 
-	 */
-	void writeQueueAvailable();
-
-	/**
 	 * on connetion close event
 	 */
 	void connectionClose(BackendConnection conn, String reason);
 
-	
 }

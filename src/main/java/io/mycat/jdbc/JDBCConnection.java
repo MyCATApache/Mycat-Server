@@ -1,34 +1,25 @@
 package io.mycat.jdbc;
 
-import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Isolations;
 import io.mycat.mysql.nio.handler.ConnectionHeartBeatHandler;
 import io.mycat.mysql.nio.handler.ResponseHandler;
-import io.mycat.net.NIOProcessor;
-import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.OkPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.ServerConnection;
-import io.mycat.server.parser.ServerParse;
 import io.mycat.util.MysqlDefs;
-import io.mycat.util.ResultSetUtil;
 import io.mycat.util.StringUtil;
 import io.mycat.util.TimeUtil;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.*;
 
 import org.apache.log4j.Logger;
 
@@ -56,19 +47,8 @@ public class JDBCConnection implements BackendConnection {
 	private long lastTime;
 	private boolean isSpark = false;
 
-	private NIOProcessor processor;
-	
-	
-	
-	public NIOProcessor getProcessor() {
-        return processor;
-    }
 
-    public void setProcessor(NIOProcessor processor) {
-        this.processor = processor;
-    }
-
-    public JDBCConnection() {
+	public JDBCConnection() {
 		startTime = System.currentTimeMillis();
 	}
 
@@ -85,9 +65,6 @@ public class JDBCConnection implements BackendConnection {
 	public void close(String reason) {
 		try {
 			con.close();
-			if(processor!=null){
-			    processor.removeConnection(this);
-			}
 			
 		} catch (SQLException e) {
 		}
@@ -95,14 +72,14 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	public void setId(long id) {
-        this.id = id;
-    }
-	
-	public JDBCDatasource getPool() {
-        return pool;
-    }
+		this.id = id;
+	}
 
-    public void setPool(JDBCDatasource pool) {
+	public JDBCDatasource getPool() {
+		return pool;
+	}
+
+	public void setPool(JDBCDatasource pool) {
 		this.pool = pool;
 	}
 
@@ -125,9 +102,10 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public void idleCheck() {
-	    if(TimeUtil.currentTimeMillis() > lastTime + pool.getConfig().getIdleTimeout()){
-	        close(" idle  check");
-	    }
+		if (TimeUtil.currentTimeMillis() > lastTime
+				+ pool.getConfig().getIdleTimeout()) {
+			close(" idle  check");
+		}
 	}
 
 	@Override
@@ -135,28 +113,23 @@ public class JDBCConnection implements BackendConnection {
 		return startTime;
 	}
 
-	@Override
 	public String getHost() {
 		return this.host;
 	}
 
-	@Override
 	public int getPort() {
 		return this.port;
 	}
 
-	@Override
 	public int getLocalPort() {
 		return 0;
 	}
 
-	@Override
 	public long getNetInBytes() {
 
 		return 0;
 	}
 
-	@Override
 	public long getNetOutBytes() {
 		return 0;
 	}
@@ -235,9 +208,8 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	@Override
-	public boolean setResponseHandler(ResponseHandler commandHandler) {
+	public void setResponseHandler(ResponseHandler commandHandler) {
 		respHandler = commandHandler;
-		return false;
 	}
 
 	@Override
@@ -251,100 +223,90 @@ public class JDBCConnection implements BackendConnection {
 		}
 	}
 
-    private  int convertNativeIsolationToJDBC(int nativeIsolation)
-    {
-        if(nativeIsolation== Isolations.REPEATED_READ)
-        {
-            return Connection.TRANSACTION_REPEATABLE_READ;
-        }else
-        if(nativeIsolation==Isolations.SERIALIZABLE)
-        {
-            return Connection.TRANSACTION_SERIALIZABLE;
-        } else
-        {
-            return nativeIsolation;
-        }
-    }
-
-
-
-    private void syncIsolation(int nativeIsolation)
-    {
-       int jdbcIsolation=convertNativeIsolationToJDBC(nativeIsolation);
-       int srcJdbcIsolation=   getTxIsolation();
-        if(jdbcIsolation==srcJdbcIsolation)return;
-        if("oracle".equalsIgnoreCase(getDbType())
-                &&jdbcIsolation!=Connection.TRANSACTION_READ_COMMITTED
-                &&jdbcIsolation!=Connection.TRANSACTION_SERIALIZABLE)
-        {
-          //oracle 只支持2个级别        ,且只能更改一次隔离级别，否则会报 ORA-01453
-          return;
-        }
-        try
-        {
-            con.setTransactionIsolation(jdbcIsolation);
-        } catch (SQLException e)
-        {
-            LOGGER.warn("set txisolation error:",e);
-        }
-    }
-
-	private void executeSQL(RouteResultsetNode rrn, ServerConnection sc,
-							boolean autocommit) throws IOException {
-		String orgin = rrn.getStatement();
-		// String sql = rrn.getStatement().toLowerCase();
-		// LOGGER.info("JDBC SQL:"+orgin+"|"+sc.toString());
-		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
-			modifiedSQLExecuted = true;
+	private int convertNativeIsolationToJDBC(int nativeIsolation) {
+		if (nativeIsolation == Isolations.REPEATED_READ) {
+			return Connection.TRANSACTION_REPEATABLE_READ;
+		} else if (nativeIsolation == Isolations.SERIALIZABLE) {
+			return Connection.TRANSACTION_SERIALIZABLE;
+		} else {
+			return nativeIsolation;
 		}
+	}
 
+	private void syncIsolation(int nativeIsolation) {
+		int jdbcIsolation = convertNativeIsolationToJDBC(nativeIsolation);
+		int srcJdbcIsolation = getTxIsolation();
+		if (jdbcIsolation == srcJdbcIsolation)
+			return;
+		if ("oracle".equalsIgnoreCase(getDbType())
+				&& jdbcIsolation != Connection.TRANSACTION_READ_COMMITTED
+				&& jdbcIsolation != Connection.TRANSACTION_SERIALIZABLE) {
+			// oracle 只支持2个级别 ,且只能更改一次隔离级别，否则会报 ORA-01453
+			return;
+		}
 		try {
-
-               syncIsolation(sc.getTxIsolation()) ;
-			if (!this.schema.equals(this.oldSchema)) {
-				con.setCatalog(schema);
-				this.oldSchema = schema;
-			}
-            if (!this.isSpark) {
-                con.setAutoCommit(autocommit);
-            }
-			int sqlType = rrn.getSqlType();
-
-			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
-				if ((sqlType == ServerParse.SHOW) && (!dbType.equals("MYSQL"))) {
-					// showCMD(sc, orgin);
-					//ShowVariables.execute(sc, orgin);
-					ShowVariables.execute(sc, orgin,this);
-				} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
-					//ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
-					ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()),this);
-				} else {
-					ouputResultSet(sc, orgin);
-				}
-			} else {
-				executeddl(sc, orgin);
-			}
-
+			con.setTransactionIsolation(jdbcIsolation);
 		} catch (SQLException e) {
+			LOGGER.warn("set txisolation error:", e);
+		}
+	}
 
-			String msg = e.getMessage();
-			ErrorPacket error = new ErrorPacket();
-			error.packetId = ++packetId;
-			error.errno = e.getErrorCode();
-			error.message = msg.getBytes();
-			this.respHandler.errorResponse(error.writeToBytes(sc), this);
-		}
-		catch (Exception e) {
-			String msg = e.getMessage();
-			ErrorPacket error = new ErrorPacket();
-			error.packetId = ++packetId;
-			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
-			error.message = msg.getBytes();
-			this.respHandler.errorResponse(error.writeToBytes(sc), this);
-		}
-		finally {
-			this.running = false;
-		}
+	private void executeSQL(RouteResultsetNode rrn, MySQLFrontConnection sc,
+			boolean autocommit) throws IOException {
+//		String orgin = rrn.getStatement();
+//		// String sql = rrn.getStatement().toLowerCase();
+//		// LOGGER.info("JDBC SQL:"+orgin+"|"+sc.toString());
+//		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
+//			modifiedSQLExecuted = true;
+//		}
+//
+//		try {
+//
+//			syncIsolation(sc.getTxIsolation());
+//			if (!this.schema.equals(this.oldSchema)) {
+//				con.setCatalog(schema);
+//				this.oldSchema = schema;
+//			}
+//			if (!this.isSpark) {
+//				con.setAutoCommit(autocommit);
+//			}
+//			int sqlType = rrn.getSqlType();
+//
+//			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
+//				if ((sqlType == ServerParse.SHOW) && (!dbType.equals("MYSQL"))) {
+//					// showCMD(sc, orgin);
+//					// ShowVariables.execute(sc, orgin);
+//					ShowVariables.execute(sc);
+////				} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
+////					// ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
+////					ShowVariables.justReturnValue(sc,
+////							String.valueOf(sc.getId()), this);
+//				} else 
+//					{
+//					ouputResultSet(sc, orgin);
+//				}
+//			} else {
+//				executeddl(sc, orgin);
+//			}
+//
+//		} catch (SQLException e) {
+//
+//			String msg = e.getMessage();
+//			ErrorPacket error = new ErrorPacket();
+//			error.packetId = ++packetId;
+//			error.errno = e.getErrorCode();
+//			error.message = msg.getBytes();
+//			this.respHandler.errorResponse(error.writeToBytes(sc), this);
+//		} catch (Exception e) {
+//			String msg = e.getMessage();
+//			ErrorPacket error = new ErrorPacket();
+//			error.packetId = ++packetId;
+//			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
+//			error.message = msg.getBytes();
+//			this.respHandler.errorResponse(error.writeToBytes(sc), this);
+//		} finally {
+//			this.running = false;
+//		}
 
 	}
 
@@ -360,152 +322,148 @@ public class JDBCConnection implements BackendConnection {
 		return fieldPacket;
 	}
 
-	private void executeddl(ServerConnection sc, String sql)
+	private void executeddl(MySQLFrontConnection sc, String sql)
 			throws SQLException {
-		Statement stmt = null;
-		try {
-			stmt = con.createStatement();
-			int count = stmt.executeUpdate(sql);
-			OkPacket okPck = new OkPacket();
-			okPck.affectedRows = count;
-			okPck.insertId = 0;
-			okPck.packetId = ++packetId;
-			okPck.message = " OK!".getBytes();
-			this.respHandler.okResponse(okPck.writeToBytes(sc), this);
-		} finally {
-			if (stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-
-				}
-			}
-		}
+//		Statement stmt = null;
+//		try {
+//			stmt = con.createStatement();
+//			int count = stmt.executeUpdate(sql);
+//			OkPacket okPck = new OkPacket();
+//			okPck.affectedRows = count;
+//			okPck.insertId = 0;
+//			okPck.packetId = ++packetId;
+//			okPck.message = " OK!".getBytes();
+//			this.respHandler.okResponse(okPck.writeToBytes(sc), this);
+//		} finally {
+//			if (stmt != null) {
+//				try {
+//					stmt.close();
+//				} catch (SQLException e) {
+//
+//				}
+//			}
+//		}
 	}
 
-	private void ouputResultSet(ServerConnection sc, String sql)
+	private void ouputResultSet(MySQLFrontConnection sc, String sql)
 			throws SQLException {
-		ResultSet rs = null;
-		Statement stmt = null;
-
-		try {
-			stmt = con.createStatement();
-			rs = stmt.executeQuery(sql);
-
-			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
-					this.isSpark);
-			int colunmCount = fieldPks.size();
-			ByteBuffer byteBuf = sc.allocate();
-			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-			headerPkg.fieldCount = fieldPks.size();
-			headerPkg.packetId = ++packetId;
-
-			byteBuf = headerPkg.write(byteBuf, sc, true);
-			byteBuf.flip();
-			byte[] header = new byte[byteBuf.limit()];
-			byteBuf.get(header);
-			byteBuf.clear();
-			List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
-			Iterator<FieldPacket> itor = fieldPks.iterator();
-			while (itor.hasNext()) {
-				FieldPacket curField = itor.next();
-				curField.packetId = ++packetId;
-				byteBuf = curField.write(byteBuf, sc, false);
-				byteBuf.flip();
-				byte[] field = new byte[byteBuf.limit()];
-				byteBuf.get(field);
-				byteBuf.clear();
-				fields.add(field);
-				itor.remove();
-			}
-			EOFPacket eofPckg = new EOFPacket();
-			eofPckg.packetId = ++packetId;
-			byteBuf = eofPckg.write(byteBuf, sc, false);
-			byteBuf.flip();
-			byte[] eof = new byte[byteBuf.limit()];
-			byteBuf.get(eof);
-			byteBuf.clear();
-			this.respHandler.fieldEofResponse(header, fields, eof, this);
-
-			// output row
-			while (rs.next()) {
-				RowDataPacket curRow = new RowDataPacket(colunmCount);
-				for (int i = 0; i < colunmCount; i++) {
-					int j = i + 1;
-					curRow.add(StringUtil.encode(rs.getString(j),
-							sc.getCharset()));
-				}
-				curRow.packetId = ++packetId;
-				byteBuf = curRow.write(byteBuf, sc, false);
-				byteBuf.flip();
-				byte[] row = new byte[byteBuf.limit()];
-				byteBuf.get(row);
-				byteBuf.clear();
-				this.respHandler.rowResponse(row, this);
-			}
-
-			// end row
-			eofPckg = new EOFPacket();
-			eofPckg.packetId = ++packetId;
-			byteBuf = eofPckg.write(byteBuf, sc, false);
-			byteBuf.flip();
-			eof = new byte[byteBuf.limit()];
-			byteBuf.get(eof);
-			sc.recycle(byteBuf);
-			this.respHandler.rowEofResponse(eof, this);
-		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-
-				}
-			}
-			if (stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-
-				}
-			}
-		}
+//		ResultSet rs = null;
+//		Statement stmt = null;
+//
+//		try {
+//			stmt = con.createStatement();
+//			rs = stmt.executeQuery(sql);
+//
+//			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
+//			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
+//					this.isSpark);
+//			int colunmCount = fieldPks.size();
+//			BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
+//					.allocateArray();
+//			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+//			headerPkg.fieldCount = fieldPks.size();
+//			headerPkg.packetId = ++packetId;
+//
+//			 = headerPkg.write(bufferArray);
+//			byteBuf.flip();
+//			byte[] header = new byte[byteBuf.limit()];
+//			byteBuf.get(header);
+//			byteBuf.clear();
+//			List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
+//			Iterator<FieldPacket> itor = fieldPks.iterator();
+//			while (itor.hasNext()) {
+//				FieldPacket curField = itor.next();
+//				curField.packetId = ++packetId;
+//				byteBuf = curField.write(byteBuf, sc, false);
+//				byteBuf.flip();
+//				byte[] field = new byte[byteBuf.limit()];
+//				byteBuf.get(field);
+//				byteBuf.clear();
+//				fields.add(field);
+//				itor.remove();
+//			}
+//			EOFPacket eofPckg = new EOFPacket();
+//			eofPckg.packetId = ++packetId;
+//			byteBuf = eofPckg.write(byteBuf, sc, false);
+//			byteBuf.flip();
+//			byte[] eof = new byte[byteBuf.limit()];
+//			byteBuf.get(eof);
+//			byteBuf.clear();
+//			this.respHandler.fieldEofResponse(header, fields, eof, this);
+//
+//			// output row
+//			while (rs.next()) {
+//				RowDataPacket curRow = new RowDataPacket(colunmCount);
+//				for (int i = 0; i < colunmCount; i++) {
+//					int j = i + 1;
+//					curRow.add(StringUtil.encode(rs.getString(j),
+//							sc.getCharset()));
+//				}
+//				curRow.packetId = ++packetId;
+//				byteBuf = curRow.write(byteBuf, sc, false);
+//				byteBuf.flip();
+//				byte[] row = new byte[byteBuf.limit()];
+//				byteBuf.get(row);
+//				byteBuf.clear();
+//				this.respHandler.rowResponse(row, this);
+//			}
+//
+//			// end row
+//			eofPckg = new EOFPacket();
+//			eofPckg.packetId = ++packetId;
+//			byteBuf = eofPckg.write(byteBuf, sc, false);
+//			byteBuf.flip();
+//			eof = new byte[byteBuf.limit()];
+//			byteBuf.get(eof);
+//			sc.recycle(byteBuf);
+//			this.respHandler.rowEofResponse(eof, this);
+//		} finally {
+//			if (rs != null) {
+//				try {
+//					rs.close();
+//				} catch (SQLException e) {
+//
+//				}
+//			}
+//			if (stmt != null) {
+//				try {
+//					stmt.close();
+//				} catch (SQLException e) {
+//
+//				}
+//			}
+//		}
 	}
 
 	@Override
 	public void query(final String sql) throws UnsupportedEncodingException {
-		if(respHandler instanceof ConnectionHeartBeatHandler)
-		{
+		if (respHandler instanceof ConnectionHeartBeatHandler) {
 			justForHeartbeat(sql);
-		}    else
-		{
+		} else {
 			throw new UnsupportedEncodingException("unsupported yet ");
 		}
 	}
-	private void justForHeartbeat(String sql)
-			  {
+
+	private void justForHeartbeat(String sql) {
 
 		Statement stmt = null;
 
 		try {
 			stmt = con.createStatement();
 			stmt.execute(sql);
-			if(!isAutocommit()){ //如果在写库上，如果是事务方式的连接，需要进行手动commit
-			    con.commit();
+			if (!isAutocommit()) { // 如果在写库上，如果是事务方式的连接，需要进行手动commit
+				con.commit();
 			}
 			this.respHandler.okResponse(OkPacket.OK, this);
 
-		}
-		catch (Exception e)
-		{
+		} catch (Exception e) {
 			String msg = e.getMessage();
 			ErrorPacket error = new ErrorPacket();
 			error.packetId = ++packetId;
 			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
 			error.message = msg.getBytes();
 			this.respHandler.errorResponse(error.writeToBytes(), this);
-		}
-		finally {
+		} finally {
 			if (stmt != null) {
 				try {
 					stmt.close();
@@ -515,6 +473,7 @@ public class JDBCConnection implements BackendConnection {
 			}
 		}
 	}
+
 	@Override
 	public Object getAttachment() {
 		return this.attachement;
@@ -527,7 +486,7 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public void execute(final RouteResultsetNode node,
-						final ServerConnection source, final boolean autocommit)
+			final MySQLFrontConnection source, final boolean autocommit)
 			throws IOException {
 		Runnable runnable = new Runnable() {
 			@Override
@@ -540,12 +499,7 @@ public class JDBCConnection implements BackendConnection {
 			}
 		};
 
-		MycatServer.getInstance().getBusinessExecutor().execute(runnable);
-	}
-
-	@Override
-	public void recordSql(String host, String schema, String statement) {
-
+		NetSystem.getInstance().getExecutor().execute(runnable);
 	}
 
 	@Override
@@ -612,15 +566,18 @@ public class JDBCConnection implements BackendConnection {
 	}
 
 	@Override
-    public String toString() {
-        return "JDBCConnection [id=" + id +",autocommit="+this.isAutocommit()+",pool=" + pool + ", schema=" + schema + ", dbType=" + dbType + ", oldSchema="
-                + oldSchema + ", packetId=" + packetId + ", txIsolation=" + txIsolation + ", running=" + running
-                + ", borrowed=" + borrowed + ", host=" + host + ", port=" + port + ", con=" + con
-                + ", respHandler=" + respHandler + ", attachement=" + attachement + ", headerOutputed="
-                + headerOutputed + ", modifiedSQLExecuted=" + modifiedSQLExecuted + ", startTime=" + startTime
-                + ", lastTime=" + lastTime + ", isSpark=" + isSpark + ", processor=" + processor + "]";
-    }
-	
-	
+	public String toString() {
+		return "JDBCConnection [id=" + id + ",autocommit="
+				+ this.isAutocommit() + ",pool=" + pool + ", schema=" + schema
+				+ ", dbType=" + dbType + ", oldSchema=" + oldSchema
+				+ ", packetId=" + packetId + ", txIsolation=" + txIsolation
+				+ ", running=" + running + ", borrowed=" + borrowed + ", host="
+				+ host + ", port=" + port + ", con=" + con + ", respHandler="
+				+ respHandler + ", attachement=" + attachement
+				+ ", headerOutputed=" + headerOutputed
+				+ ", modifiedSQLExecuted=" + modifiedSQLExecuted
+				+ ", startTime=" + startTime + ", lastTime=" + lastTime
+				+ ", isSpark=" + isSpark+"]";
+	}
 
 }

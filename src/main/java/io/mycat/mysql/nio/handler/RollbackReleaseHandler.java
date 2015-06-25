@@ -56,7 +56,7 @@ public class RollbackReleaseHandler implements ResponseHandler {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		logger.info("client error ocurred ,rollbacked backend conn "+conn);
+		logger.info("client error ocurred ,rollbacked backend conn " + conn);
 		conn.release();
 	}
 
@@ -71,11 +71,6 @@ public class RollbackReleaseHandler implements ResponseHandler {
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
-
-	}
-
-	@Override
-	public void writeQueueAvailable() {
 
 	}
 

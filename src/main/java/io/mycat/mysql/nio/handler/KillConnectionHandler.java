@@ -24,10 +24,10 @@
 package io.mycat.mysql.nio.handler;
 
 import io.mycat.backend.BackendConnection;
-import io.mycat.mysql.nio.MySQLConnection;
 import io.mycat.net.mysql.CommandPacket;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.MySQLPacket;
+import io.mycat.net2.mysql.MySQLBackendConnection;
 import io.mycat.server.NonBlockingSession;
 
 import java.io.UnsupportedEncodingException;
@@ -42,18 +42,18 @@ public class KillConnectionHandler implements ResponseHandler {
 	private static final Logger LOGGER = Logger
 			.getLogger(KillConnectionHandler.class);
 
-	private final MySQLConnection killee;
+	private final MySQLBackendConnection killee;
 	private final NonBlockingSession session;
 
 	public KillConnectionHandler(BackendConnection killee,
 			NonBlockingSession session) {
-		this.killee = (MySQLConnection) killee;
+		this.killee = (MySQLBackendConnection) killee;
 		this.session = session;
 	}
 
 	@Override
 	public void connectionAcquired(BackendConnection conn) {
-		MySQLConnection mysqlCon = (MySQLConnection) conn;
+		MySQLBackendConnection mysqlCon = (MySQLBackendConnection) conn;
 		conn.setResponseHandler(this);
 		CommandPacket packet = new CommandPacket();
 		packet.packetId = 0;
@@ -111,11 +111,6 @@ public class KillConnectionHandler implements ResponseHandler {
 
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
-	}
-
-	@Override
-	public void writeQueueAvailable() {
-
 	}
 
 	@Override

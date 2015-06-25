@@ -25,9 +25,9 @@ package io.mycat.net.mysql;
 
 import io.mycat.mysql.BufferUtil;
 import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.GenalMySQLConnection;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
 /**
@@ -84,17 +84,8 @@ public class ErrorPacket extends MySQLPacket {
 		message = mm.readBytes();
 	}
 
-	public byte[] writeToBytes(FrontendConnection c) {
-		ByteBuffer buffer = c.allocate();
-		buffer = write(buffer, c, false);
-		buffer.flip();
-		byte[] data = new byte[buffer.limit()];
-		buffer.get(data);
-		c.recycle(buffer);
-		return data;
-	}
 	public byte[] writeToBytes() {
-		ByteBuffer buffer = ByteBuffer.allocate(calcPacketSize()+4);
+		ByteBuffer buffer = ByteBuffer.allocate(calcPacketSize() + 4);
 		int size = calcPacketSize();
 		BufferUtil.writeUB3(buffer, size);
 		buffer.put(packetId);
@@ -111,12 +102,10 @@ public class ErrorPacket extends MySQLPacket {
 
 		return data;
 	}
-	@Override
-	public ByteBuffer write(ByteBuffer buffer, FrontendConnection c,
-			boolean writeSocketIfFull) {
+
+	public void write(GenalMySQLConnection c) {
+		ByteBuffer buffer = NetSystem.getInstance().getBufferPool().allocate();
 		int size = calcPacketSize();
-		buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size,
-				writeSocketIfFull);
 		BufferUtil.writeUB3(buffer, size);
 		buffer.put(packetId);
 		buffer.put(fieldCount);
@@ -124,17 +113,11 @@ public class ErrorPacket extends MySQLPacket {
 		buffer.put(mark);
 		buffer.put(sqlState);
 		if (message != null) {
-			buffer = c.writeToBuffer(message, buffer);
+			buffer.put(message);
+
 		}
-		return buffer;
-	}
-
-
-
-	public void write(FrontendConnection c) {
-		ByteBuffer buffer = c.allocate();
-		buffer = this.write(buffer, c, true);
 		c.write(buffer);
+
 	}
 
 	@Override

@@ -25,7 +25,9 @@ package io.mycat.net.mysql;
 
 import io.mycat.mysql.BufferUtil;
 import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
+import io.mycat.net2.BufferArray;
+import io.mycat.net2.Connection;
+import io.mycat.net2.NetSystem;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -55,9 +57,7 @@ import java.util.List;
  */
 public class RowDataPacket extends MySQLPacket {
 	private static final byte NULL_MARK = (byte) 251;
-    private static final byte EMPTY_MARK = (byte) 0;
-
-	public byte[] value;
+	private static final byte EMPTY_MARK = (byte) 0;
 	public int fieldCount;
 	public final List<byte[]> fieldValues;
 
@@ -67,16 +67,16 @@ public class RowDataPacket extends MySQLPacket {
 	}
 
 	public void add(byte[] value) {
-		//这里应该修改value
+		// 这里应该修改value
 		fieldValues.add(value);
 	}
+
 	public void addFieldCount(int add) {
-		//这里应该修改field
-		fieldCount=fieldCount+add;
+		// 这里应该修改field
+		fieldCount = fieldCount + add;
 	}
-	
+
 	public void read(byte[] data) {
-		value = data;
 		MySQLMessage mm = new MySQLMessage(data);
 		packetLength = mm.readUB3();
 		packetId = mm.read();
@@ -86,28 +86,56 @@ public class RowDataPacket extends MySQLPacket {
 	}
 
 	@Override
-	public ByteBuffer write(ByteBuffer bb, FrontendConnection c,
-			boolean writeSocketIfFull) {
-		bb = c.checkWriteBuffer(bb, c.getPacketHeaderSize(), writeSocketIfFull);
-		BufferUtil.writeUB3(bb, calcPacketSize());
-		bb.put(packetId);
+	public void write(BufferArray bufferArray) {
+		int size = calcPacketSize();
+		ByteBuffer buffer = bufferArray.checkWriteBuffer(packetHeaderSize
+				+ size);
+		BufferUtil.writeUB3(buffer, size);
+		buffer.put(packetId);
 		for (int i = 0; i < fieldCount; i++) {
 			byte[] fv = fieldValues.get(i);
-			if (fv == null ) {
-				bb = c.checkWriteBuffer(bb, 1, writeSocketIfFull);
-				bb.put(RowDataPacket.NULL_MARK);
-			}else if (fv.length == 0) {
-                bb = c.checkWriteBuffer(bb, 1, writeSocketIfFull);
-                bb.put(RowDataPacket.EMPTY_MARK);
-            }
-            else {
-				bb = c.checkWriteBuffer(bb, BufferUtil.getLength(fv.length),
-						writeSocketIfFull);
-				BufferUtil.writeLength(bb, fv.length);
-				bb = c.writeToBuffer(fv, bb);
+			if (fv == null) {
+				buffer = bufferArray.checkWriteBuffer(1);
+				buffer.put(RowDataPacket.NULL_MARK);
+			} else if (fv.length == 0) {
+				buffer = bufferArray.checkWriteBuffer(1);
+				buffer.put(RowDataPacket.EMPTY_MARK);
+			} else {
+				buffer = bufferArray.checkWriteBuffer(BufferUtil
+						.getLength(fv.length));
+				BufferUtil.writeLength(buffer, fv.length);
+				bufferArray.write(fv);
 			}
 		}
-		return bb;
+	}
+
+	public void write(Connection conn) {
+		int size = calcPacketSize();
+		int totalSize = size + packetHeaderSize;
+		if (NetSystem.getInstance().getBufferPool().getChunkSize() >= totalSize) {
+			ByteBuffer buffer = NetSystem.getInstance().getBufferPool()
+					.allocate();
+			BufferUtil.writeUB3(buffer, size);
+			buffer.put(packetId);
+			for (int i = 0; i < fieldCount; i++) {
+				byte[] fv = fieldValues.get(i);
+				if (fv == null) {
+					buffer.put(RowDataPacket.NULL_MARK);
+				} else if (fv.length == 0) {
+					buffer.put(RowDataPacket.EMPTY_MARK);
+				} else {
+					BufferUtil.writeLength(buffer, fv.length);
+					buffer.put(fv);
+				}
+			}
+			conn.write(buffer);
+		} else {
+			BufferArray bufArray = NetSystem.getInstance().getBufferPool()
+					.allocateArray();
+			write(bufArray);
+			conn.write(bufArray);
+		}
+
 	}
 
 	@Override
