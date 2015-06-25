@@ -23,6 +23,7 @@
  */
 package io.mycat;
 
+import io.mycat.backend.MySQLDataSource;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
@@ -35,11 +36,9 @@ import io.mycat.config.model.DataHostConfig;
 import io.mycat.config.model.DataNodeConfig;
 import io.mycat.config.model.QuarantineConfig;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.util.ConfigException;
 import io.mycat.jdbc.JDBCDatasource;
-import io.mycat.mysql.nio.MySQLDataSource;
 import io.mycat.sequence.handler.IncrSequenceMySQLHandler;
 import io.mycat.sequence.handler.IncrSequenceTimeHandler;
 

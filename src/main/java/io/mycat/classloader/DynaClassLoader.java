@@ -1,7 +1,5 @@
 package io.mycat.classloader;
 
-import io.mycat.config.model.SystemConfig;
-
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;

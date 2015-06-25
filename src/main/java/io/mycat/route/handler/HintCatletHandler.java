@@ -1,11 +1,11 @@
 package io.mycat.route.handler;
 
 import io.mycat.MycatServer;
+import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
-import io.mycat.server.ServerConnection;
 import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;
 
@@ -19,7 +19,8 @@ import org.apache.log4j.Logger;
  */
 public class HintCatletHandler implements HintHandler {
 
-	private static final Logger LOGGER = Logger.getLogger(HintCatletHandler.class);
+	private static final Logger LOGGER = Logger
+			.getLogger(HintCatletHandler.class);
 
 	/**
 	 * 从全局的schema列表中查询指定的schema是否存在， 如果存在则替换connection属性中原有的schema，
@@ -38,9 +39,9 @@ public class HintCatletHandler implements HintHandler {
 	 */
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
-			int sqlType, String realSQL, String charset, ServerConnection sc,
-			LayerCachePool cachePool, String hintSQLValue)
-			throws SQLNonTransientException {
+			int sqlType, String realSQL, String charset,
+			MySQLFrontConnection sc, LayerCachePool cachePool,
+			String hintSQLValue) throws SQLNonTransientException {
 		// sc.setEngineCtx ctx
 		String cateletClass = hintSQLValue;
 		if (LOGGER.isDebugEnabled()) {
@@ -50,10 +51,11 @@ public class HintCatletHandler implements HintHandler {
 		try {
 			Catlet catlet = (Catlet) MycatServer.getInstance()
 					.getCatletClassLoader().getInstanceofClass(cateletClass);
-			catlet.route(sysConfig, schema, sqlType, realSQL,charset, sc, cachePool);
+			catlet.route(sysConfig, schema, sqlType, realSQL, charset, sc,
+					cachePool);
 			catlet.processSQL(realSQL, new EngineCtx(sc.getSession2()));
 		} catch (Exception e) {
-			LOGGER.warn("catlet error "+e);
+			LOGGER.warn("catlet error " + e);
 			throw new SQLNonTransientException(e);
 		}
 		return null;

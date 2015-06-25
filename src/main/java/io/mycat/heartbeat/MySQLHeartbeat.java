@@ -23,10 +23,10 @@
  */
 package io.mycat.heartbeat;
 
+import io.mycat.backend.MySQLDataSource;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.config.model.DataHostConfig;
-import io.mycat.mysql.nio.MySQLDataSource;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

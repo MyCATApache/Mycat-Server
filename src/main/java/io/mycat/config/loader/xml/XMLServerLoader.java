@@ -23,9 +23,9 @@
  */
 package io.mycat.config.loader.xml;
 
+import io.mycat.SystemConfig;
 import io.mycat.config.model.ClusterConfig;
 import io.mycat.config.model.QuarantineConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.util.ConfigException;
 import io.mycat.config.util.ConfigUtil;

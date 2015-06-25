@@ -25,7 +25,7 @@ package io.mycat.net.mysql;
 
 import io.mycat.mysql.BufferUtil;
 import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
+import io.mycat.net2.BufferArray;
 
 import java.nio.ByteBuffer;
 
@@ -94,15 +94,12 @@ public class FieldPacket extends MySQLPacket {
 	}
 
 	@Override
-	public ByteBuffer write(ByteBuffer buffer, FrontendConnection c,
-			boolean writeSocketIfFull) {
+	public  void write(BufferArray bufferArray) {
 		int size = calcPacketSize();
-		buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size,
-				writeSocketIfFull);
+		ByteBuffer buffer = bufferArray.checkWriteBuffer(packetHeaderSize + size);
 		BufferUtil.writeUB3(buffer, size);
 		buffer.put(packetId);
 		writeBody(buffer);
-		return buffer;
 	}
 
 	@Override

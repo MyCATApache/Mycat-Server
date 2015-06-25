@@ -1,16 +1,5 @@
 package io.mycat.route.util;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.wall.spi.WallVisitorUtils;
-import com.google.common.base.Strings;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
-import org.apache.log4j.Logger;
-
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
@@ -20,20 +9,40 @@ import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.mpp.ColumnRoutePair;
 import io.mycat.mpp.LoadData;
 import io.mycat.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.parser.druid.DruidShardingParseInfo;
 import io.mycat.parser.druid.RouteCalculateUnit;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.SessionSQLPair;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
-import io.mycat.server.ServerConnection;
-import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParse;
 import io.mycat.util.StringUtil;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
+
+import org.apache.log4j.Logger;
+
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
+import com.google.common.base.Strings;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -205,7 +214,7 @@ public class RouterUtil {
 	}
 
 	public static boolean processWithMycatSeq(SchemaConfig schema, int sqlType,
-	                                          String origSQL, ServerConnection sc) {
+	                                          String origSQL, MySQLFrontConnection sc) {
 		// check if origSQL is with global sequence
 		// @micmiu it is just a simple judgement
 		if (origSQL.indexOf(" MYCATSEQ_") != -1) {
@@ -215,12 +224,12 @@ public class RouterUtil {
 		return false;
 	}
 	
-	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
+	public static void processSQL(MySQLFrontConnection sc,SchemaConfig schema,String sql,int sqlType){
 		MycatServer.getInstance().getSequnceProcessor().addNewSql(new SessionSQLPair(sc.getSession2(), schema, sql, sqlType));
 	}
 
 	public static boolean processInsert(SchemaConfig schema, int sqlType,
-	                                    String origSQL, ServerConnection sc) throws SQLNonTransientException {
+	                                    String origSQL, MySQLFrontConnection sc) throws SQLNonTransientException {
 		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
 		TableConfig tableConfig = schema.getTables().get(tableName);
 		boolean processedInsert=false;
@@ -253,7 +262,7 @@ public class RouterUtil {
 		return isPrimaryKeyInFields;
 	}
 	
-	public static boolean processInsert(ServerConnection sc,SchemaConfig schema,
+	public static boolean processInsert(MySQLFrontConnection sc,SchemaConfig schema,
 			int sqlType,String origSQL,String tableName,String primaryKey) throws SQLNonTransientException {
 		
 		int firstLeftBracketIndex = origSQL.indexOf("(");
@@ -285,7 +294,7 @@ public class RouterUtil {
 		return processedInsert;
 	}
 	
-	private static void processInsert(ServerConnection sc,SchemaConfig schema,int sqlType,String origSQL,String tableName,String primaryKey,int afterFirstLeftBracketIndex,int afterLastLeftBracketIndex){
+	private static void processInsert(MySQLFrontConnection sc,SchemaConfig schema,int sqlType,String origSQL,String tableName,String primaryKey,int afterFirstLeftBracketIndex,int afterLastLeftBracketIndex){
 		int primaryKeyLength=primaryKey.length();
 		int insertSegOffset=afterFirstLeftBracketIndex;
 		String mycatSeqPrefix="next value for MYCATSEQ_";
@@ -926,7 +935,7 @@ public class RouterUtil {
 
 
 	public static boolean processERChildTable(final SchemaConfig schema, final String origSQL,
-	                                          final ServerConnection sc) throws SQLNonTransientException {
+	                                          final MySQLFrontConnection sc) throws SQLNonTransientException {
 		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
 		final TableConfig tc = schema.getTables().get(tableName);
 

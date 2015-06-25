@@ -1,27 +1,27 @@
 package io.mycat.route.impl;
 
-import org.apache.log4j.Logger;
-
 import io.mycat.MycatServer;
+import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.mpp.LoadData;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.util.RouterUtil;
-import io.mycat.server.ServerConnection;
-import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParse;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
+
+import org.apache.log4j.Logger;
 
 public abstract class AbstractRouteStrategy implements RouteStrategy {
 	private static final Logger LOGGER = Logger.getLogger(AbstractRouteStrategy.class);
 
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String origSQL, 
-			String charset, ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
+			String charset, MySQLFrontConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
 
 		//process some before route logic
 		if (beforeRouteProcess(schema, sqlType, origSQL, sc)) return null;
@@ -63,7 +63,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		return rrs;
 	}
 
-	private boolean beforeRouteProcess(SchemaConfig schema, int sqlType, String origSQL, ServerConnection sc) throws SQLNonTransientException {
+	private boolean beforeRouteProcess(SchemaConfig schema, int sqlType, String origSQL, MySQLFrontConnection sc) throws SQLNonTransientException {
 		return RouterUtil.processWithMycatSeq(schema, sqlType, origSQL, sc) ||
                 (sqlType == ServerParse.INSERT && RouterUtil.processERChildTable(schema, origSQL, sc)) ||
 				(sqlType == ServerParse.INSERT && RouterUtil.processInsert(schema, sqlType, origSQL,sc));

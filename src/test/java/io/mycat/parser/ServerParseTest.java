@@ -1,6 +1,6 @@
 package io.mycat.parser;
 
-import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParse;
 import junit.framework.Assert;
 
 import org.junit.Test;

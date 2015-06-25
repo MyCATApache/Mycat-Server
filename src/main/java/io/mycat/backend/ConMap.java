@@ -1,15 +1,12 @@
 package io.mycat.backend;
 
-import io.mycat.MycatServer;
-import io.mycat.jdbc.JDBCConnection;
-import io.mycat.mysql.nio.MySQLConnection;
-import io.mycat.net.NIOProcessor;
+import io.mycat.net2.Connection;
+import io.mycat.net2.NetSystem;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class ConMap {
 	// key -schema
@@ -62,79 +59,55 @@ public class ConMap {
 	public int getActiveCountForSchema(String schema,
 			PhysicalDatasource dataSouce) {
 		int total = 0;
-		for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
-			for (BackendConnection con : processor.getBackends().values()) {
-				if (con instanceof MySQLConnection) {
-					MySQLConnection mysqlCon = (MySQLConnection) con;
-
-					if (mysqlCon.getSchema().equals(schema)
-							&& mysqlCon.getPool() == dataSouce) {
-						if (mysqlCon.isBorrowed()) {
-							total++;
-						}
+		for (Connection conn : NetSystem.getInstance().getAllConnectios()
+				.values()) {
+			if (conn instanceof BackendConnection) {
+				BackendConnection theCon = (BackendConnection) conn;
+				if (theCon.getSchema().equals(schema)
+						&& theCon.getPool() == dataSouce) {
+					if (theCon.isBorrowed()) {
+						total++;
 					}
-
-                }else if (con instanceof JDBCConnection) {
-                    JDBCConnection jdbcCon = (JDBCConnection) con;
-                    if (jdbcCon.getSchema().equals(schema) && jdbcCon.getPool() == dataSouce) {
-                        if (jdbcCon.isBorrowed()) {
-                            total++;
-                        }
-                    }
-                }
-            }
-        }
-        return total;
-    }
-
-	public int getActiveCountForDs(PhysicalDatasource dataSouce) {
-		int total = 0;
-		for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
-			for (BackendConnection con : processor.getBackends().values()) {
-				if (con instanceof MySQLConnection) {
-					MySQLConnection mysqlCon = (MySQLConnection) con;
-
-					if (mysqlCon.getPool() == dataSouce) {
-						if (mysqlCon.isBorrowed() && !mysqlCon.isClosed()) {
-							total++;
-						}
-					}
-
-                } else if (con instanceof JDBCConnection) {
-                    JDBCConnection jdbcCon = (JDBCConnection) con;
-                    if (jdbcCon.getPool() == dataSouce) {
-                        if (jdbcCon.isBorrowed() && !jdbcCon.isClosed()) {
-                            total++;
-                        }
-                    }
-                }
-            }
-        }
-        return total;
-    }
-
-    public void clearConnections(String reason, PhysicalDatasource dataSouce) {
-        for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
-            ConcurrentMap<Long, BackendConnection> map = processor.getBackends();
-            Iterator<Entry<Long, BackendConnection>> itor = map.entrySet().iterator();
-            while (itor.hasNext()) {
-                Entry<Long, BackendConnection> entry = itor.next();
-                BackendConnection con = entry.getValue();
-                if (con instanceof MySQLConnection) {
-                    if (((MySQLConnection) con).getPool() == dataSouce) {
-                        con.close(reason);
-                        itor.remove();
-                    }
-                }else if(con instanceof JDBCConnection){
-                    if(((JDBCConnection) con).getPool() == dataSouce){
-                        con.close(reason);
-                        itor.remove();
-                    }
-                }
-            }
+				}
+			}
 
 		}
-		items.clear();
+		return total;
+	}
+
+	public int getActiveCountForDs(PhysicalDatasource dataSouce) {
+
+		int total = 0;
+		for (Connection conn : NetSystem.getInstance().getAllConnectios()
+				.values()) {
+			if (conn instanceof BackendConnection) {
+				BackendConnection theCon = (BackendConnection) conn;
+				if (theCon.getPool() == dataSouce) {
+					if (theCon.isBorrowed()) {
+						total++;
+					}
+				}
+			}
+
+		}
+		return total;
+	}
+
+	public void clearConnections(String reason, PhysicalDatasource dataSouce) {
+
+		Iterator<Entry<Long, Connection>> itor = NetSystem.getInstance()
+				.getAllConnectios().entrySet().iterator();
+		while (itor.hasNext()) {
+			Entry<Long, Connection> entry = itor.next();
+			Connection con = entry.getValue();
+			if (con instanceof BackendConnection) {
+				if (((BackendConnection) con).getPool() == dataSouce) {
+					con.close(reason);
+					itor.remove();
+				}
+			}
+
+		}
 	}
 
 }

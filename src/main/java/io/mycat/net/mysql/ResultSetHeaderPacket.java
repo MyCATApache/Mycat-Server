@@ -25,7 +25,7 @@ package io.mycat.net.mysql;
 
 import io.mycat.mysql.BufferUtil;
 import io.mycat.mysql.MySQLMessage;
-import io.mycat.net.FrontendConnection;
+import io.mycat.net2.BufferArray;
 
 import java.nio.ByteBuffer;
 
@@ -54,44 +54,44 @@ import java.nio.ByteBuffer;
  */
 public class ResultSetHeaderPacket extends MySQLPacket {
 
-    public int fieldCount;
-    public long extra;
+	public int fieldCount;
+	public long extra;
 
-    public void read(byte[] data) {
-        MySQLMessage mm = new MySQLMessage(data);
-        this.packetLength = mm.readUB3();
-        this.packetId = mm.read();
-        this.fieldCount = (int) mm.readLength();
-        if (mm.hasRemaining()) {
-            this.extra = mm.readLength();
-        }
-    }
+	public void read(byte[] data) {
+		MySQLMessage mm = new MySQLMessage(data);
+		this.packetLength = mm.readUB3();
+		this.packetId = mm.read();
+		this.fieldCount = (int) mm.readLength();
+		if (mm.hasRemaining()) {
+			this.extra = mm.readLength();
+		}
+	}
 
-    @Override
-    public ByteBuffer write(ByteBuffer buffer, FrontendConnection c,boolean writeSocketIfFull) {
-        int size = calcPacketSize();
-        buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size,writeSocketIfFull);
-        BufferUtil.writeUB3(buffer, size);
-        buffer.put(packetId);
-        BufferUtil.writeLength(buffer, fieldCount);
-        if (extra > 0) {
-            BufferUtil.writeLength(buffer, extra);
-        }
-        return buffer;
-    }
+	@Override
+	public void write(BufferArray bufferArray) {
+		int size = calcPacketSize();
+		ByteBuffer buffer = bufferArray
+				.checkWriteBuffer(MySQLPacket.packetHeaderSize + size);
+		BufferUtil.writeUB3(buffer, size);
+		buffer.put(packetId);
+		BufferUtil.writeLength(buffer, fieldCount);
+		if (extra > 0) {
+			BufferUtil.writeLength(buffer, extra);
+		}
+	}
 
-    @Override
-    public int calcPacketSize() {
-        int size = BufferUtil.getLength(fieldCount);
-        if (extra > 0) {
-            size += BufferUtil.getLength(extra);
-        }
-        return size;
-    }
+	@Override
+	public int calcPacketSize() {
+		int size = BufferUtil.getLength(fieldCount);
+		if (extra > 0) {
+			size += BufferUtil.getLength(extra);
+		}
+		return size;
+	}
 
-    @Override
-    protected String getPacketInfo() {
-        return "MySQL ResultSetHeader Packet";
-    }
+	@Override
+	protected String getPacketInfo() {
+		return "MySQL ResultSetHeader Packet";
+	}
 
 }

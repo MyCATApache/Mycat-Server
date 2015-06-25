@@ -1,20 +1,14 @@
 package io.mycat.route.function;
 
-import com.google.common.hash.Hashing;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import io.mycat.SimpleCachePool;
+import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.route.function.PartitionByRangeDateHash;
 
 import java.sql.SQLNonTransientException;
 import java.text.ParseException;
@@ -23,6 +17,11 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.google.common.hash.Hashing;
 
 public class PartitionByRangeDateHashTest
 {

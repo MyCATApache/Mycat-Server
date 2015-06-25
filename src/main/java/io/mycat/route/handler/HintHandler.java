@@ -1,10 +1,10 @@
 package io.mycat.route.handler;
 
+import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
-import io.mycat.server.ServerConnection;
 
 import java.sql.SQLNonTransientException;
 
@@ -15,7 +15,7 @@ import java.sql.SQLNonTransientException;
 public interface HintHandler {
 
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
-			int sqlType, String realSQL, String charset, ServerConnection sc,
-			LayerCachePool cachePool, String hintSQLValue)
-			throws SQLNonTransientException;
+			int sqlType, String realSQL, String charset,
+			MySQLFrontConnection sc, LayerCachePool cachePool,
+			String hintSQLValue) throws SQLNonTransientException;
 }

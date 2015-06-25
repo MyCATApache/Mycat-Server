@@ -23,16 +23,16 @@
  */
 package io.mycat.route;
 
+import io.mycat.SystemConfig;
 import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheService;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.route.handler.HintHandler;
 import io.mycat.route.handler.HintHandlerFactory;
-import io.mycat.server.ServerConnection;
-import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.parser.ServerParse;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
@@ -62,7 +62,7 @@ public class RouteService {
 	}
 
 	public RouteResultset route(SystemConfig sysconf, SchemaConfig schema,
-			int sqlType, String stmt, String charset, ServerConnection sc)
+			int sqlType, String stmt, String charset, MySQLFrontConnection sc)
 			throws SQLNonTransientException {
 		RouteResultset rrs = null;
 		String cacheKey = null;

@@ -130,9 +130,4 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 				.append(": field's eof").toString());
 	}
 
-	@Override
-	public void writeQueueAvailable() {
-
-	}
-
 }

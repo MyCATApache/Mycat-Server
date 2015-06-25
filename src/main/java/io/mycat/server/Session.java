@@ -23,7 +23,7 @@
  */
 package io.mycat.server;
 
-import io.mycat.net.FrontendConnection;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
 
 /**
@@ -34,7 +34,7 @@ public interface Session {
     /**
      * 取得源端连接
      */
-    FrontendConnection getSource();
+	MySQLFrontConnection getSource();
 
     /**
      * 取得当前目标端数量
@@ -62,7 +62,7 @@ public interface Session {
      * @param sponsor
      *            如果发起者为null，则表示由自己发起。
      */
-    void cancel(FrontendConnection sponsor);
+    void cancel(MySQLFrontConnection sponsor);
 
     /**
      * 终止会话，必须在关闭源端连接后执行该方法。

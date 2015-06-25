@@ -25,7 +25,8 @@ package io.mycat.net.mysql;
 
 import io.mycat.mysql.BufferUtil;
 import io.mycat.mysql.StreamUtil;
-import io.mycat.net.BackendAIOConnection;
+import io.mycat.net2.NetSystem;
+import io.mycat.net2.mysql.GenalMySQLConnection;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -48,9 +49,8 @@ public class Reply323Packet extends MySQLPacket {
         }
     }
 
-    @Override
-    public void write(BackendAIOConnection c) {
-        ByteBuffer buffer = c.allocate();
+    public void write(GenalMySQLConnection c) {
+        ByteBuffer buffer =NetSystem.getInstance().getBufferPool().allocate();
         BufferUtil.writeUB3(buffer, calcPacketSize());
         buffer.put(packetId);
         if (seed == null) {

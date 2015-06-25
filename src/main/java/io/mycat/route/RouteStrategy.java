@@ -1,9 +1,9 @@
 package io.mycat.route;
 
+import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.server.ServerConnection;
+import io.mycat.net2.mysql.MySQLFrontConnection;
 
 import java.sql.SQLNonTransientException;
 
@@ -14,6 +14,6 @@ import java.sql.SQLNonTransientException;
  */
 public interface RouteStrategy {
 	public RouteResultset route(SystemConfig sysConfig,
-			SchemaConfig schema,int sqlType, String origSQL, String charset, ServerConnection sc, LayerCachePool cachePool)
+			SchemaConfig schema,int sqlType, String origSQL, String charset, MySQLFrontConnection sc, LayerCachePool cachePool)
 			throws SQLNonTransientException;
 }

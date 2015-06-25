@@ -23,10 +23,10 @@
  */
 package io.mycat.mpp;
 
-import io.mycat.MycatServer;
 import io.mycat.mpp.tmp.RowDataSorter;
 import io.mycat.mysql.nio.handler.MultiNodeQueryHandler;
 import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.net2.NetSystem;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
@@ -105,7 +105,7 @@ public class DataMergeService {
 		};
 		jobQueue.offer(outPutJob);
 		if (jobRuninng == false && !jobQueue.isEmpty()) {
-			MycatServer.getInstance().getBusinessExecutor()
+			NetSystem.getInstance().getExecutor()
 					.execute(jobQueue.poll());
 		}
 	}
@@ -249,7 +249,7 @@ public class DataMergeService {
 			}
 		}
 		if (batchJob != null && jobRuninng == false) {
-			MycatServer.getInstance().getBusinessExecutor().execute(batchJob);
+			NetSystem.getInstance().getExecutor().execute(batchJob);
 		} else if (batchJob != null) {
 			jobQueue.offer(batchJob);
 		}
@@ -296,7 +296,7 @@ public class DataMergeService {
 					// for next job
 					Runnable newJob = jobQueue.poll();
 					if (newJob != null) {
-						MycatServer.getInstance().getBusinessExecutor()
+						NetSystem.getInstance().getExecutor()
 								.execute(newJob);
 					} else {
 						jobRuninng = false;
