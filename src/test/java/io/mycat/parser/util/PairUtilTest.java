@@ -23,8 +23,8 @@
  */
 package io.mycat.parser.util;
 
-import io.mycat.parser.util.Pair;
-import io.mycat.parser.util.PairUtil;
+import io.mycat.util.Pair;
+import io.mycat.util.PairUtil;
 import junit.framework.TestCase;
 
 import org.junit.Assert;

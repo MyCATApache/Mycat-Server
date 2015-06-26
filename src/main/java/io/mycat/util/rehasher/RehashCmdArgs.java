@@ -1,7 +1,7 @@
 package io.mycat.util.rehasher;
 
+import io.mycat.util.CmdArgs;
 import io.mycat.util.StringUtil;
-import io.mycat.util.cmd.CmdArgs;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;

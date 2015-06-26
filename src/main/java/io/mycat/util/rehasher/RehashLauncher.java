@@ -1,9 +1,9 @@
 package io.mycat.util.rehasher;
 
-import io.mycat.exception.RehashException;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.route.function.PartitionByMod;
 import io.mycat.route.function.PartitionByMurmurHash;
+import io.mycat.server.exception.RehashException;
 import io.mycat.util.CollectionUtil;
 
 import java.io.File;

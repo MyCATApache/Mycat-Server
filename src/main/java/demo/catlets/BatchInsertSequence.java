@@ -1,21 +1,21 @@
 package demo.catlets;
 
-import io.mycat.MycatServer;
-import io.mycat.SystemConfig;
 import io.mycat.cache.LayerCachePool;
-import io.mycat.config.ErrorCode;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.TableConfig;
-import io.mycat.mysql.MySQLFrontConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.sequence.IncrSequenceMySQLHandler;
-import io.mycat.sequence.IncrSequencePropHandler;
-import io.mycat.sequence.SequenceHandler;
+import io.mycat.server.ErrorCode;
+import io.mycat.server.MySQLFrontConnection;
+import io.mycat.server.MycatServer;
+import io.mycat.server.SystemConfig;
+import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.TableConfig;
+import io.mycat.server.parser.ServerParse;
+import io.mycat.server.sequence.IncrSequenceMySQLHandler;
+import io.mycat.server.sequence.IncrSequencePropHandler;
+import io.mycat.server.sequence.SequenceHandler;
 import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;
-import io.mycat.sqlengine.parser.ServerParse;
 import io.mycat.util.StringUtil;
 
 import org.apache.log4j.Logger;
