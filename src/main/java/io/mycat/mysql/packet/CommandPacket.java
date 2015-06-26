@@ -122,6 +122,7 @@ public class CommandPacket extends MySQLPacket {
 			BufferUtil.writeUB3(buffer, size);
 			buffer.put(packetId);
 			buffer.put(command);
+			buffer.put(arg);
 			conn.write(buffer);
 		} else {
 			BufferArray bufArray = NetSystem.getInstance().getBufferPool()

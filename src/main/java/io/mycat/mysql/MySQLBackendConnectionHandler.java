@@ -2,11 +2,19 @@ package io.mycat.mysql;
 
 import io.mycat.MycatServer;
 import io.mycat.config.Capabilities;
+import io.mycat.mysql.hander.LoadDataResponseHandler;
+import io.mycat.mysql.hander.ResponseHandler;
+import io.mycat.mysql.packet.EOFPacket;
+import io.mycat.mysql.packet.ErrorPacket;
+import io.mycat.mysql.packet.HandshakePacket;
+import io.mycat.mysql.packet.OkPacket;
+import io.mycat.mysql.packet.Reply323Packet;
+import io.mycat.mysql.packet.RequestFilePacket;
+import io.mycat.mysql.packet.ResultStatus;
 import io.mycat.mysql.util.ByteUtil;
 import io.mycat.mysql.util.CharsetUtil;
 import io.mycat.mysql.util.SecurityUtil;
-import io.mycat.mysql.hander.LoadDataResponseHandler;
-import io.mycat.mysql.hander.ResponseHandler;
+import io.mycat.net.nio.Connection;
 import io.mycat.net.nio.ConnectionException;
 import io.mycat.net.nio.NIOHandler;
 
@@ -14,7 +22,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
-import io.mycat.mysql.packet.*;
 import org.apache.log4j.Logger;
 
 public class MySQLBackendConnectionHandler implements
@@ -44,7 +51,7 @@ public class MySQLBackendConnectionHandler implements
 			try {
 				doHandleBusinessMsg(con, buf, start, readedLength);
 			} catch (Exception e) {
-				LOGGER.warn("caught err ", e);
+				LOGGER.warn("caught err of con "+con, e);
 			}
 			return;
 		}
@@ -80,15 +87,19 @@ public class MySQLBackendConnectionHandler implements
 				}
 				// 处理认证结果
 				source.setAuthenticated(true);
+				source.setState(Connection.State.connected);
 				boolean clientCompress = Capabilities.CLIENT_COMPRESS == (Capabilities.CLIENT_COMPRESS & packet.serverCapabilities);
 				boolean usingCompress = MycatServer.getInstance().getConfig()
 						.getSystem().getUseCompression() == 1;
+				
 				if (clientCompress && usingCompress) {
 					source.setSupportCompress(true);
 				}
+				
 				if (source.getRespHandler() != null) {
 					source.getRespHandler().connectionAcquired(source);
 				}
+			
 				break;
 			case ErrorPacket.FIELD_COUNT:
 				ErrorPacket err = new ErrorPacket();
@@ -136,14 +147,16 @@ public class MySQLBackendConnectionHandler implements
 	private void doConnecting(MySQLBackendConnection con, ByteBuffer buf,
 			int start, int readedLength) {
 		byte[] data = new byte[readedLength];
-		buf.get(data, start, readedLength);
+		buf.position(start);
+		buf.get(data, 0, readedLength);
 		handleLogin(con, data);
 	}
 
 	public void doHandleBusinessMsg(final MySQLBackendConnection source,
 			final ByteBuffer buf, final int start, final int readedLength) {
 		byte[] data = new byte[readedLength];
-		buf.get(data, start, readedLength);
+		buf.position(start);
+		buf.get(data, 0, readedLength);
 		handleData(source, data);
 	}
 

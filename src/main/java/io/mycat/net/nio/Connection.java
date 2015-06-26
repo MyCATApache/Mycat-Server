@@ -640,7 +640,7 @@ public abstract class Connection implements ClosableConnection{
 	 * 
 	 * @throws IOException
 	 */
-	public void asynRead() throws IOException {
+	protected void asynRead() throws IOException {
 		if (this.isClosed) {
 			return;
 		}
