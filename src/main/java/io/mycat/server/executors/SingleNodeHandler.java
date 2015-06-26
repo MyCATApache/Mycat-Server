@@ -230,6 +230,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		MySQLFrontConnection source = session.getSource();
 		BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
 				.allocateArray();
+		bufferArray.write(header);
 		for (int i = 0, len = fields.size(); i < len; ++i) {
 			byte[] field = fields.get(i);
 			field[3] = ++packetId;
