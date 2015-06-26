@@ -328,10 +328,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			}
 
 			eof[3] = ++packetId;
+			bufferArray.write(eof);
+			source.write(bufferArray);
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("last packet id:" + packetId);
 			}
-			source.write(bufferArray);
+			
 
 		} catch (Exception e) {
 			handleDataProcessException(e);

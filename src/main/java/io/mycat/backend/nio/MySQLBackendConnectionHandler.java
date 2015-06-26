@@ -225,6 +225,8 @@ public class MySQLBackendConnectionHandler implements
 		ResponseHandler respHand = source.getRespHandler();
 		if (respHand != null) {
 			respHand.okResponse(data, source);
+		}else {
+			closeNoHandler(source);
 		}
 	}
 
