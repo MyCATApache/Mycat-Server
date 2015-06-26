@@ -23,7 +23,7 @@
  */
 package io.mycat.mysql;
 
-import io.mycat.mysql.util.MySQLMessage;
+import io.mycat.server.packet.MySQLMessage;
 
 import org.junit.Assert;
 import org.junit.Test;

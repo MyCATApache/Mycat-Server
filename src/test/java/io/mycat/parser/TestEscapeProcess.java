@@ -18,7 +18,7 @@ package io.mycat.parser;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import io.mycat.interceptor.impl.DefaultSqlInterceptor;
+import io.mycat.server.interceptor.impl.DefaultSqlInterceptor;
 
 import java.sql.SQLSyntaxErrorException;
 

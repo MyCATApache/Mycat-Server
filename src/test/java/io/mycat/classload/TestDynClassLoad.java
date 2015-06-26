@@ -1,6 +1,6 @@
 package io.mycat.classload;
 
-import io.mycat.classloader.DynaClassLoader;
+import io.mycat.server.classloader.DynaClassLoader;
 
 import org.junit.Assert;
 import org.junit.Test;

@@ -1,9 +1,9 @@
 package io.mycat.backend;
 
-import io.mycat.mysql.hander.ResponseHandler;
-import io.mycat.net.nio.ClosableConnection;
-import io.mycat.mysql.MySQLFrontConnection;
+import io.mycat.net.ClosableConnection;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.MySQLFrontConnection;
+import io.mycat.server.executors.ResponseHandler;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;

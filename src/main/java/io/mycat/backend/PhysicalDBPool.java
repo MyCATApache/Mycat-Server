@@ -23,12 +23,12 @@
  */
 package io.mycat.backend;
 
-import io.mycat.MycatServer;
-import io.mycat.config.Alarms;
-import io.mycat.config.model.DataHostConfig;
-import io.mycat.heartbeat.DBHeartbeat;
-import io.mycat.mysql.hander.GetConnectionHandler;
-import io.mycat.mysql.hander.ResponseHandler;
+import io.mycat.backend.heartbeat.DBHeartbeat;
+import io.mycat.server.Alarms;
+import io.mycat.server.MycatServer;
+import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.executors.GetConnectionHandler;
+import io.mycat.server.executors.ResponseHandler;
 
 import java.util.ArrayList;
 import java.util.Collection;

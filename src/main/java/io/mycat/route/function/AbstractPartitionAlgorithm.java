@@ -1,6 +1,6 @@
 package io.mycat.route.function;
 
-import io.mycat.config.model.rule.RuleAlgorithm;
+import io.mycat.server.config.RuleAlgorithm;
 
 /**
  * 路由分片函数抽象类

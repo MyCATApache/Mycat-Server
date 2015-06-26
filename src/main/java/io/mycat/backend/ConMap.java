@@ -1,7 +1,7 @@
 package io.mycat.backend;
 
-import io.mycat.net.nio.Connection;
-import io.mycat.net.nio.NetSystem;
+import io.mycat.net.Connection;
+import io.mycat.net.NetSystem;
 
 import java.util.Collection;
 import java.util.Iterator;
