@@ -23,8 +23,8 @@
  */
 package io.mycat.route.function;
 
-import io.mycat.config.model.rule.RuleAlgorithm;
 import io.mycat.route.util.PartitionUtil;
+import io.mycat.server.config.RuleAlgorithm;
 
 public final class PartitionByLong extends AbstractPartitionAlgorithm implements RuleAlgorithm {
 	protected int[] count;

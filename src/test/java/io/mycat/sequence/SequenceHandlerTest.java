@@ -23,6 +23,8 @@
  */
 package io.mycat.sequence;
 
+import io.mycat.server.sequence.IncrSequencePropHandler;
+import io.mycat.server.sequence.SequenceHandler;
 import junit.framework.Assert;
 
 /**

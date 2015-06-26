@@ -23,6 +23,9 @@
  */
 package io.mycat;
 
+import io.mycat.server.MycatServer;
+import io.mycat.server.SystemConfig;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 

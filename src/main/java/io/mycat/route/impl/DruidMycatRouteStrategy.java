@@ -1,16 +1,16 @@
 package io.mycat.route.impl;
 
 import io.mycat.cache.LayerCachePool;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.parser.druid.DruidParser;
-import io.mycat.parser.druid.DruidParserFactory;
-import io.mycat.parser.druid.MycatSchemaStatVisitor;
-import io.mycat.parser.druid.MycatStatementParser;
-import io.mycat.parser.druid.RouteCalculateUnit;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.parser.druid.DruidParser;
+import io.mycat.route.parser.druid.DruidParserFactory;
+import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
+import io.mycat.route.parser.druid.MycatStatementParser;
+import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.route.util.RouterUtil;
-import io.mycat.sqlengine.parser.ServerParse;
+import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.parser.ServerParse;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;

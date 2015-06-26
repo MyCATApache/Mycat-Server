@@ -23,7 +23,7 @@
  */
 package io.mycat.parser;
 
-import io.mycat.parser.ManagerParse;
+import io.mycat.server.parser.ManagerParse;
 
 /**
  * @author mycat

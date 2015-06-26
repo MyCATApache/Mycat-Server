@@ -1,12 +1,12 @@
 package io.mycat.sqlengine;
 
-import io.mycat.mysql.packet.EOFPacket;
-import io.mycat.mysql.packet.ResultSetHeaderPacket;
-import io.mycat.mysql.packet.RowDataPacket;
-import io.mycat.net.buffer.BufferArray;
-import io.mycat.net.nio.NetSystem;
-import io.mycat.mysql.MySQLFrontConnection;
-import io.mycat.session.NonBlockingSession;
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
+import io.mycat.server.MySQLFrontConnection;
+import io.mycat.server.NonBlockingSession;
+import io.mycat.server.packet.EOFPacket;
+import io.mycat.server.packet.ResultSetHeaderPacket;
+import io.mycat.server.packet.RowDataPacket;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;

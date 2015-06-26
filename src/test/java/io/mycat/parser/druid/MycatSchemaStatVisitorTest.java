@@ -1,7 +1,7 @@
 package io.mycat.parser.druid;
 
-import io.mycat.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.impl.DruidMycatRouteStrategy;
+import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 
 import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;

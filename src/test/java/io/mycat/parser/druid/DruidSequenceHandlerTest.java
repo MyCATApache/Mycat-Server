@@ -1,7 +1,8 @@
 package io.mycat.parser.druid;
 
 import static junit.framework.Assert.assertEquals;
-import io.mycat.SystemConfig;
+import io.mycat.route.parser.druid.DruidSequenceHandler;
+import io.mycat.server.SystemConfig;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

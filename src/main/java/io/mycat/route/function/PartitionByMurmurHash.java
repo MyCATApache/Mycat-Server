@@ -23,8 +23,8 @@
  */
 package io.mycat.route.function;
 
-import io.mycat.config.model.rule.RuleAlgorithm;
-import io.mycat.exception.MurmurHashException;
+import io.mycat.server.config.RuleAlgorithm;
+import io.mycat.server.exception.MurmurHashException;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;

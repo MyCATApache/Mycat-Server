@@ -25,9 +25,11 @@ package io.mycat;
 
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.PhysicalDBPool;
-import io.mycat.config.model.QuarantineConfig;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.UserConfig;
+import io.mycat.server.MycatCluster;
+import io.mycat.server.SystemConfig;
+import io.mycat.server.config.QuarantineConfig;
+import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.UserConfig;
 import io.mycat.util.TimeUtil;
 
 import java.util.ArrayList;

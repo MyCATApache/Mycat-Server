@@ -23,12 +23,12 @@
  */
 package io.mycat.parser;
 
-import io.mycat.parser.ManagerParse;
-import io.mycat.parser.ManagerParseClear;
-import io.mycat.parser.ManagerParseReload;
-import io.mycat.parser.ManagerParseRollback;
-import io.mycat.parser.ManagerParseShow;
-import io.mycat.parser.ManagerParseStop;
+import io.mycat.server.parser.ManagerParse;
+import io.mycat.server.parser.ManagerParseClear;
+import io.mycat.server.parser.ManagerParseReload;
+import io.mycat.server.parser.ManagerParseRollback;
+import io.mycat.server.parser.ManagerParseShow;
+import io.mycat.server.parser.ManagerParseStop;
 
 import org.junit.Assert;
 import org.junit.Test;
