@@ -23,15 +23,15 @@
  */
 package io.mycat.backend;
 
-import io.mycat.config.Alarms;
-import io.mycat.config.model.DBHostConfig;
-import io.mycat.config.model.DataHostConfig;
-import io.mycat.heartbeat.DBHeartbeat;
-import io.mycat.mysql.hander.ConnectionHeartBeatHandler;
-import io.mycat.mysql.hander.DelegateResponseHandler;
-import io.mycat.mysql.hander.NewConnectionRespHandler;
-import io.mycat.mysql.hander.ResponseHandler;
-import io.mycat.net.nio.NetSystem;
+import io.mycat.backend.heartbeat.DBHeartbeat;
+import io.mycat.net.NetSystem;
+import io.mycat.server.Alarms;
+import io.mycat.server.config.DBHostConfig;
+import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.executors.ConnectionHeartBeatHandler;
+import io.mycat.server.executors.DelegateResponseHandler;
+import io.mycat.server.executors.NewConnectionRespHandler;
+import io.mycat.server.executors.ResponseHandler;
 import io.mycat.util.TimeUtil;
 
 import java.io.IOException;
@@ -380,11 +380,10 @@ public abstract class PhysicalDatasource {
 	}
 
 	public void releaseChannel(BackendConnection c) {
+		returnCon(c);
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("release channel " + c);
 		}
-		// release connection
-		returnCon(c);
 	}
 
 	public void connectionClosed(BackendConnection conn) {

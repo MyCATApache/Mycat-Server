@@ -23,8 +23,8 @@
  */
 package io.mycat.route;
 
-import io.mycat.mpp.LoadData;
-import io.mycat.sqlengine.parser.ServerParse;
+import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.mpp.LoadData;
 
 import java.io.Serializable;
 

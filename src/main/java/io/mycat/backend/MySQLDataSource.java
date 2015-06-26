@@ -23,12 +23,12 @@
  */
 package io.mycat.backend;
 
-import io.mycat.config.model.DBHostConfig;
-import io.mycat.config.model.DataHostConfig;
-import io.mycat.heartbeat.DBHeartbeat;
-import io.mycat.heartbeat.MySQLHeartbeat;
-import io.mycat.mysql.hander.ResponseHandler;
-import io.mycat.mysql.MySQLBackendConnectionFactory;
+import io.mycat.backend.heartbeat.DBHeartbeat;
+import io.mycat.backend.heartbeat.MySQLHeartbeat;
+import io.mycat.backend.nio.MySQLBackendConnectionFactory;
+import io.mycat.server.config.DBHostConfig;
+import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.executors.ResponseHandler;
 
 import java.io.IOException;
 

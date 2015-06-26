@@ -1,6 +1,6 @@
 package io.mycat.route.function;
 
-import io.mycat.config.model.rule.RuleAlgorithm;
+import io.mycat.server.config.RuleAlgorithm;
 
 /**
  * 直接根据字符子串（必须是数字）计算分区号（由应用传递参数，显式指定分区号）。

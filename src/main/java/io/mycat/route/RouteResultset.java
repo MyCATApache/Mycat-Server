@@ -24,10 +24,10 @@
 package io.mycat.route;
 
 import io.mycat.MycatConfig;
-import io.mycat.MycatServer;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.mpp.HavingCols;
-import io.mycat.parser.util.PageSQLUtil;
+import io.mycat.route.util.PageSQLUtil;
+import io.mycat.server.MycatServer;
+import io.mycat.server.config.SchemaConfig;
+import io.mycat.sqlengine.mpp.HavingCols;
 import io.mycat.util.FormatUtil;
 
 import java.io.Serializable;
