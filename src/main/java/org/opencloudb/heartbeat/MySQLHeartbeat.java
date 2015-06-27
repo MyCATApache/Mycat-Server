@@ -266,6 +266,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 								LOGGER.info("try to switch datasource ,not checked slave synchronize status "
 										+ theSource.getConfig());
 								pool.switchSource(nextId, true, reason);
+                                break;
 							}
 
 						}
