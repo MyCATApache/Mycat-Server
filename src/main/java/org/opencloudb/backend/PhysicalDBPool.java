@@ -481,7 +481,6 @@ public class PhysicalDBPool {
 	 * @return
 	 */
 	private ArrayList<PhysicalDatasource> getAllActiveReadSources(){
-		int curActive = activedIndex;
 		ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(
 				this.allDs.size());
 		for (int i = 0; i < this.writeSources.length; i++) {
