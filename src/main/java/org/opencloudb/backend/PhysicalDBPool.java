@@ -44,6 +44,7 @@ public class PhysicalDBPool {
 	public static final int BALANCE_NONE = 0;
 	public static final int BALANCE_ALL_BACK = 1;
 	public static final int BALANCE_ALL = 2;
+    public static final int BALANCE_ALL_READ = 3;
 	public static final int WRITE_ONLYONE_NODE = 0;
 	public static final int WRITE_RANDOM_NODE = 1;
 	public static final int WRITE_ALL_NODE = 2;
@@ -185,9 +186,7 @@ public class PhysicalDBPool {
 		}
 	}
 
-	/**
-	 * 鍒囨崲鏁版嵁婧�
-	 */
+
 	public boolean switchSource(int newIndex, boolean isAlarm, String reason) {
 		if (this.writeType != PhysicalDBPool.WRITE_ONLYONE_NODE
 				|| !checkIndex(newIndex)) {
@@ -308,13 +307,13 @@ public class PhysicalDBPool {
 
 	public void doHeartbeat() {
 
-		// 妫�煡鍐呴儴鏄惁鏈夎繛鎺ユ睜閰嶇疆淇℃伅
+
 		if (writeSources == null || writeSources.length == 0) {
 			return;
 		}
 
 		for (PhysicalDatasource source : this.allDs) {
-			// 鍑嗗鎵ц蹇冭烦妫�祴
+
 			if (source != null) {
 				source.doHeartbeat();
 			} else {
@@ -324,7 +323,7 @@ public class PhysicalDBPool {
 				LOGGER.error(s.toString());
 			}
 		}
-		// 璇诲簱鐨勫績璺虫娴�
+
 	}
 
 	/**
@@ -418,6 +417,11 @@ public class PhysicalDBPool {
 			theNode = randomSelect(okSources);
 			break;
 		}
+            case BALANCE_ALL_READ: {
+                okSources = getAllActiveReadSources();
+                theNode = randomSelect(okSources);
+                break;
+            }
 		case BALANCE_NONE:
 		default:
 			// return default write data source
@@ -507,7 +511,36 @@ public class PhysicalDBPool {
 		return okSources;
 	}
 
-	public String[] getSchemas() {
+    /**
+     * return all read sources
+     *
+     * @return
+     */
+    private ArrayList<PhysicalDatasource> getAllActiveReadSources(){
+        ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(
+                this.allDs.size());
+        for (int i = 0; i < this.writeSources.length; i++) {
+            if (isAlive(writeSources[i])) {// write node is active
+
+                if (!readSources.isEmpty()) {
+                    // check all slave nodes
+                    PhysicalDatasource[] allSlaves = this.readSources.get(i);
+                    if (allSlaves != null) {
+                        for (PhysicalDatasource slave : allSlaves) {
+                            if (isAlive(slave)) {
+                                okSources.add(slave);
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+        return okSources;
+    }
+
+
+    public String[] getSchemas() {
 		return schemas;
 	}
 
