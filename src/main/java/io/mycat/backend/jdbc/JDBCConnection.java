@@ -1,6 +1,7 @@
 package io.mycat.backend.jdbc;
 
 import io.mycat.backend.BackendConnection;
+import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ErrorCode;
@@ -8,18 +9,23 @@ import io.mycat.server.Isolations;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.executors.ConnectionHeartBeatHandler;
 import io.mycat.server.executors.ResponseHandler;
-import io.mycat.server.packet.ErrorPacket;
-import io.mycat.server.packet.FieldPacket;
-import io.mycat.server.packet.OkPacket;
-import io.mycat.util.MysqlDefs;
+import io.mycat.server.packet.*;
+import io.mycat.server.parser.ServerParse;
+import io.mycat.server.response.ShowVariables;
+import io.mycat.util.ResultSetUtil;
 import io.mycat.util.StringUtil;
 import io.mycat.util.TimeUtil;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -253,186 +259,172 @@ public class JDBCConnection implements BackendConnection {
 
 	private void executeSQL(RouteResultsetNode rrn, MySQLFrontConnection sc,
 			boolean autocommit) throws IOException {
-//		String orgin = rrn.getStatement();
-//		// String sql = rrn.getStatement().toLowerCase();
-//		// LOGGER.info("JDBC SQL:"+orgin+"|"+sc.toString());
-//		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
-//			modifiedSQLExecuted = true;
-//		}
-//
-//		try {
-//
-//			syncIsolation(sc.getTxIsolation());
-//			if (!this.schema.equals(this.oldSchema)) {
-//				con.setCatalog(schema);
-//				this.oldSchema = schema;
-//			}
-//			if (!this.isSpark) {
-//				con.setAutoCommit(autocommit);
-//			}
-//			int sqlType = rrn.getSqlType();
-//
-//			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
-//				if ((sqlType == ServerParse.SHOW) && (!dbType.equals("MYSQL"))) {
-//					// showCMD(sc, orgin);
-//					// ShowVariables.execute(sc, orgin);
-//					ShowVariables.execute(sc);
-////				} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
-////					// ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
-////					ShowVariables.justReturnValue(sc,
-////							String.valueOf(sc.getId()), this);
-//				} else 
-//					{
-//					ouputResultSet(sc, orgin);
-//				}
-//			} else {
-//				executeddl(sc, orgin);
-//			}
-//
-//		} catch (SQLException e) {
-//
-//			String msg = e.getMessage();
-//			ErrorPacket error = new ErrorPacket();
-//			error.packetId = ++packetId;
-//			error.errno = e.getErrorCode();
-//			error.message = msg.getBytes();
-//			this.respHandler.errorResponse(error.writeToBytes(sc), this);
-//		} catch (Exception e) {
-//			String msg = e.getMessage();
-//			ErrorPacket error = new ErrorPacket();
-//			error.packetId = ++packetId;
-//			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
-//			error.message = msg.getBytes();
-//			this.respHandler.errorResponse(error.writeToBytes(sc), this);
-//		} finally {
-//			this.running = false;
-//		}
+		String orgin = rrn.getStatement();
+		// String sql = rrn.getStatement().toLowerCase();
+		// LOGGER.info("JDBC SQL:"+orgin+"|"+sc.toString());
+		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
+			modifiedSQLExecuted = true;
+		}
+
+		try {
+
+			syncIsolation(sc.getTxIsolation());
+			if (!this.schema.equals(this.oldSchema)) {
+				con.setCatalog(schema);
+				this.oldSchema = schema;
+			}
+			if (!this.isSpark) {
+				con.setAutoCommit(autocommit);
+			}
+			int sqlType = rrn.getSqlType();
+
+			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
+				if ((sqlType == ServerParse.SHOW) && (!dbType.equals("MYSQL"))) {
+					// showCMD(sc, orgin);
+					// ShowVariables.execute(sc, orgin);
+					ShowVariables.execute(sc);
+//				} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
+//					// ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
+//					ShowVariables.justReturnValue(sc,
+//							String.valueOf(sc.getId()), this);
+				} else
+					{
+					ouputResultSet(sc, orgin);
+				}
+			} else {
+				executeddl(sc, orgin);
+			}
+
+		} catch (SQLException e) {
+
+			String msg = e.getMessage();
+			ErrorPacket error = new ErrorPacket();
+			error.packetId = ++packetId;
+			error.errno = e.getErrorCode();
+			error.message = msg.getBytes();
+			this.respHandler.errorResponse(error.writeToBytes(), this);
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			ErrorPacket error = new ErrorPacket();
+			error.packetId = ++packetId;
+			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
+			error.message = msg.getBytes();
+			this.respHandler.errorResponse(error.writeToBytes(), this);
+		} finally {
+			this.running = false;
+		}
 
 	}
 
-	private FieldPacket getNewFieldPacket(String charset, String fieldName) {
-		FieldPacket fieldPacket = new FieldPacket();
-		fieldPacket.orgName = StringUtil.encode(fieldName, charset);
-		fieldPacket.name = StringUtil.encode(fieldName, charset);
-		fieldPacket.length = 20;
-		fieldPacket.flags = 0;
-		fieldPacket.decimals = 0;
-		int javaType = 12;
-		fieldPacket.type = (byte) (MysqlDefs.javaTypeMysql(javaType) & 0xff);
-		return fieldPacket;
-	}
+
 
 	private void executeddl(MySQLFrontConnection sc, String sql)
 			throws SQLException {
-//		Statement stmt = null;
-//		try {
-//			stmt = con.createStatement();
-//			int count = stmt.executeUpdate(sql);
-//			OkPacket okPck = new OkPacket();
-//			okPck.affectedRows = count;
-//			okPck.insertId = 0;
-//			okPck.packetId = ++packetId;
-//			okPck.message = " OK!".getBytes();
-//			this.respHandler.okResponse(okPck.writeToBytes(sc), this);
-//		} finally {
-//			if (stmt != null) {
-//				try {
-//					stmt.close();
-//				} catch (SQLException e) {
-//
-//				}
-//			}
-//		}
+		Statement stmt = null;
+		try {
+			stmt = con.createStatement();
+			int count = stmt.executeUpdate(sql);
+			OkPacket okPck = new OkPacket();
+			okPck.affectedRows = count;
+			okPck.insertId = 0;
+			okPck.packetId = ++packetId;
+			okPck.message = " OK!".getBytes();
+			this.respHandler.okResponse(okPck.writeToBytes(), this);
+		} finally {
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
+		}
 	}
 
 	private void ouputResultSet(MySQLFrontConnection sc, String sql)
 			throws SQLException {
-//		ResultSet rs = null;
-//		Statement stmt = null;
-//
-//		try {
-//			stmt = con.createStatement();
-//			rs = stmt.executeQuery(sql);
-//
-//			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-//			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
-//					this.isSpark);
-//			int colunmCount = fieldPks.size();
-//			BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
-//					.allocateArray();
-//			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-//			headerPkg.fieldCount = fieldPks.size();
-//			headerPkg.packetId = ++packetId;
-//
-//			 = headerPkg.write(bufferArray);
-//			byteBuf.flip();
-//			byte[] header = new byte[byteBuf.limit()];
-//			byteBuf.get(header);
-//			byteBuf.clear();
-//			List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
-//			Iterator<FieldPacket> itor = fieldPks.iterator();
-//			while (itor.hasNext()) {
-//				FieldPacket curField = itor.next();
-//				curField.packetId = ++packetId;
-//				byteBuf = curField.write(byteBuf, sc, false);
-//				byteBuf.flip();
-//				byte[] field = new byte[byteBuf.limit()];
-//				byteBuf.get(field);
-//				byteBuf.clear();
-//				fields.add(field);
-//				itor.remove();
-//			}
-//			EOFPacket eofPckg = new EOFPacket();
-//			eofPckg.packetId = ++packetId;
-//			byteBuf = eofPckg.write(byteBuf, sc, false);
-//			byteBuf.flip();
-//			byte[] eof = new byte[byteBuf.limit()];
-//			byteBuf.get(eof);
-//			byteBuf.clear();
-//			this.respHandler.fieldEofResponse(header, fields, eof, this);
-//
-//			// output row
-//			while (rs.next()) {
-//				RowDataPacket curRow = new RowDataPacket(colunmCount);
-//				for (int i = 0; i < colunmCount; i++) {
-//					int j = i + 1;
-//					curRow.add(StringUtil.encode(rs.getString(j),
-//							sc.getCharset()));
-//				}
-//				curRow.packetId = ++packetId;
-//				byteBuf = curRow.write(byteBuf, sc, false);
-//				byteBuf.flip();
-//				byte[] row = new byte[byteBuf.limit()];
-//				byteBuf.get(row);
-//				byteBuf.clear();
-//				this.respHandler.rowResponse(row, this);
-//			}
-//
-//			// end row
-//			eofPckg = new EOFPacket();
-//			eofPckg.packetId = ++packetId;
-//			byteBuf = eofPckg.write(byteBuf, sc, false);
-//			byteBuf.flip();
-//			eof = new byte[byteBuf.limit()];
-//			byteBuf.get(eof);
-//			sc.recycle(byteBuf);
-//			this.respHandler.rowEofResponse(eof, this);
-//		} finally {
-//			if (rs != null) {
-//				try {
-//					rs.close();
-//				} catch (SQLException e) {
-//
-//				}
-//			}
-//			if (stmt != null) {
-//				try {
-//					stmt.close();
-//				} catch (SQLException e) {
-//
-//				}
-//			}
-//		}
+		ResultSet rs = null;
+		Statement stmt = null;
+
+		try {
+			stmt = con.createStatement();
+			rs = stmt.executeQuery(sql);
+
+			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
+			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
+                    this.isSpark);
+			int colunmCount = fieldPks.size();
+			BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
+					.allocateArray();
+			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+			headerPkg.fieldCount = fieldPks.size();
+			headerPkg.packetId = ++packetId;
+
+			  headerPkg.write(bufferArray);
+
+			byte[] header =bufferArray.writeToByteArrayAndRecycle();
+
+			List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
+			Iterator<FieldPacket> itor = fieldPks.iterator();
+			while (itor.hasNext()) {
+                bufferArray = NetSystem.getInstance().getBufferPool()
+                        .allocateArray();
+				FieldPacket curField = itor.next();
+				curField.packetId = ++packetId;
+                 curField.write(bufferArray);
+				byte[] field = bufferArray.writeToByteArrayAndRecycle();
+				fields.add(field);
+				itor.remove();
+			}
+
+            bufferArray = NetSystem.getInstance().getBufferPool()
+                    .allocateArray();
+			EOFPacket eofPckg = new EOFPacket();
+			eofPckg.packetId = ++packetId;
+            eofPckg.write(bufferArray);
+			byte[] eof = bufferArray.writeToByteArrayAndRecycle();
+			this.respHandler.fieldEofResponse(header, fields, eof, this);
+
+			// output row
+			while (rs.next()) {
+                bufferArray = NetSystem.getInstance().getBufferPool()
+                        .allocateArray();
+				RowDataPacket curRow = new RowDataPacket(colunmCount);
+				for (int i = 0; i < colunmCount; i++) {
+					int j = i + 1;
+					curRow.add(StringUtil.encode(rs.getString(j),
+							sc.getCharset()));
+				}
+				curRow.packetId = ++packetId;
+                curRow.write(bufferArray);
+				byte[] row =bufferArray.writeToByteArrayAndRecycle();
+				this.respHandler.rowResponse(row, this);
+			}
+
+			// end row
+            bufferArray = NetSystem.getInstance().getBufferPool()
+                    .allocateArray();
+			eofPckg = new EOFPacket();
+			eofPckg.packetId = ++packetId;
+            eofPckg.write(bufferArray);
+			eof = bufferArray.writeToByteArrayAndRecycle();
+			this.respHandler.rowEofResponse(eof, this);
+		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+
+				}
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
+		}
 	}
 
 	@Override

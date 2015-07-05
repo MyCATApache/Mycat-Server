@@ -87,7 +87,24 @@ public class OkPacket extends MySQLPacket {
 		}
 	}
 
+    public byte[] writeToBytes() {
+        ByteBuffer buffer=NetSystem.getInstance().getBufferPool().allocate();
+        BufferUtil.writeUB3(buffer, calcPacketSize());
+        buffer.put(packetId);
+        buffer.put(fieldCount);
+        BufferUtil.writeLength(buffer, affectedRows);
+        BufferUtil.writeLength(buffer, insertId);
+        BufferUtil.writeUB2(buffer, serverStatus);
+        BufferUtil.writeUB2(buffer, warningCount);
+        if (message != null) {
+            BufferUtil.writeWithLength(buffer, message);
+        }
+        buffer.flip();
+        byte[] data = new byte[buffer.limit()];
+        buffer.get(data);
 
+        return data;
+    }
 
 	public void write(GenalMySQLConnection c) {
 		ByteBuffer buffer=NetSystem.getInstance().getBufferPool().allocate();
