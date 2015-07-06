@@ -65,7 +65,7 @@ RUN_CMD="\"$JAVA_HOME/bin/java\""
 RUN_CMD="$RUN_CMD -DMYCAT_HOME=\"$MYCAT_HOME\""
 RUN_CMD="$RUN_CMD -classpath \"$MYCAT_CLASSPATH\""
 RUN_CMD="$RUN_CMD $JAVA_OPTS"
-RUN_CMD="$RUN_CMD org.opencloudb.MycatStartup  $@"
+RUN_CMD="$RUN_CMD io.mycat.MycatStartup  $@"
 RUN_CMD="$RUN_CMD >> \"$MYCAT_HOME/logs/console.log\" 2>&1 &"
 echo $RUN_CMD
 eval $RUN_CMD

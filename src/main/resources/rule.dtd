@@ -14,7 +14,7 @@
  - limitations under the License.
 -->
 <!ELEMENT mycat:rule (tableRule*,function*)>
-<!ATTLIST mycat:rule xmlns:mycat CDATA #FIXED "http://org.opencloudb/">
+<!ATTLIST mycat:rule xmlns:mycat CDATA #FIXED "http://io.mycat/">
 
 <!ELEMENT tableRule (rule+)>
 <!ATTLIST tableRule name CDATA #REQUIRED>

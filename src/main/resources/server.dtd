@@ -14,7 +14,7 @@
  - limitations under the License.
 -->
 <!ELEMENT mycat:server (system?,user+,cluster?,quarantine?)>
-<!ATTLIST mycat:server xmlns:mycat CDATA #FIXED "http://org.opencloudb/">
+<!ATTLIST mycat:server xmlns:mycat CDATA #FIXED "http://io.mycat/">
 
 <!ELEMENT system (property*) >
 
