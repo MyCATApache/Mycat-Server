@@ -26,14 +26,7 @@ package io.mycat.server.sqlhandler;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.parser.ServerParseSelect;
-import io.mycat.server.response.SelectDatabase;
-import io.mycat.server.response.SelectIdentity;
-import io.mycat.server.response.SelectLastInsertId;
-import io.mycat.server.response.SelectUser;
-import io.mycat.server.response.SelectVersion;
-import io.mycat.server.response.SelectVersionComment;
-import io.mycat.server.response.SessionIncrement;
-import io.mycat.server.response.SessionIsolation;
+import io.mycat.server.response.*;
 import io.mycat.util.ParseUtil;
 
 /**
@@ -102,6 +95,9 @@ public final class SelectHandler {
 			offset = ServerParseSelect.skipAs(stmt, offset);
 			SelectIdentity.response(c, stmt, offset, orgName);
 			break;
+            case ServerParseSelect.SELECT_VAR_ALL:
+                SelectVariables.execute(c, stmt);
+                break;
 		default:
 			c.execute(stmt, ServerParse.SELECT);
 		}
