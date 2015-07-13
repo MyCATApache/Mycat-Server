@@ -27,14 +27,7 @@ import org.opencloudb.parser.util.ParseUtil;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.server.parser.ServerParseSelect;
-import org.opencloudb.server.response.SelectDatabase;
-import org.opencloudb.server.response.SelectIdentity;
-import org.opencloudb.server.response.SelectLastInsertId;
-import org.opencloudb.server.response.SelectUser;
-import org.opencloudb.server.response.SelectVersion;
-import org.opencloudb.server.response.SelectVersionComment;
-import org.opencloudb.server.response.SessionIncrement;
-import org.opencloudb.server.response.SessionIsolation;
+import org.opencloudb.server.response.*;
 
 /**
  * @author mycat
@@ -102,6 +95,9 @@ public final class SelectHandler {
 			offset = ServerParseSelect.skipAs(stmt, offset);
 			SelectIdentity.response(c, stmt, offset, orgName);
 			break;
+            case ServerParseSelect.SELECT_VAR_ALL:
+                SelectVariables.execute(c,stmt);
+                break;
 		default:
 			c.execute(stmt, ServerParse.SELECT);
 		}
