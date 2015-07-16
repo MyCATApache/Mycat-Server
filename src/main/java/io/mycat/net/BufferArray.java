@@ -1,5 +1,7 @@
 package io.mycat.net;
 
+import io.mycat.util.ByteBufferUtil;
+
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -81,5 +83,58 @@ public class BufferArray {
 		}
 		return curWritingBlock;
 	}
+
+
+    public byte[] writeToByteArrayAndRecycle() {
+        BufferArray bufferArray=this;
+        try {
+
+              int size=0;
+            List<ByteBuffer> blockes = bufferArray.getWritedBlockLst();
+            if (!bufferArray.getWritedBlockLst().isEmpty()) {
+                for (ByteBuffer curBuf : blockes) {
+                    curBuf.flip();
+                    size+=curBuf.remaining();
+                }
+            }
+            ByteBuffer curBuf = bufferArray.getCurWritingBlock();
+            curBuf.flip();
+            if(curBuf.hasRemaining())
+            {
+                size += curBuf.remaining();
+            }
+            if(size>0)
+            {
+                int offset=0;
+                byte[] all=new byte[size];
+                if (!bufferArray.getWritedBlockLst().isEmpty()) {
+                    for (ByteBuffer tBuf : blockes) {
+
+                        ByteBufferUtil.arrayCopy(tBuf,0,all,offset,tBuf.remaining());
+                        offset+=tBuf.remaining();
+
+                        NetSystem.getInstance().getBufferPool().recycle(tBuf);
+                    }
+                }
+                ByteBuffer tBuf = bufferArray.getCurWritingBlock();
+                if(tBuf.hasRemaining())
+                {
+                    ByteBufferUtil.arrayCopy(tBuf,0,all,offset,tBuf.remaining());
+
+                    NetSystem.getInstance().getBufferPool().recycle(tBuf);
+                   // offset += curBuf.remaining();
+                }
+                return all;
+            }
+
+        } finally {
+
+            bufferArray.clear();
+        }
+
+      return EMPTY;
+    }
+
+    private static byte[] EMPTY=new byte[0];
 
 }

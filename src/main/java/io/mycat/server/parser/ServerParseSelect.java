@@ -40,6 +40,7 @@ public final class ServerParseSelect {
 	public static final int VERSION = 6;
 	public static final int SESSION_INCREMENT = 7;
 	public static final int SESSION_ISOLATION = 8;
+    public static final int SELECT_VAR_ALL = 9;
 
 	private static final char[] _VERSION_COMMENT = "VERSION_COMMENT"
 			.toCharArray();
@@ -91,10 +92,14 @@ public final class ServerParseSelect {
 	 * @return
 	 */
 	private static int sessionVarCheck(String stmt, int offset) {
-		if (stmt.substring(offset).toLowerCase()
-				.startsWith("session.auto_increment_increment")) {
+        String s = stmt.substring(offset).toLowerCase();
+        if (s.startsWith("session.auto_increment_increment")) {
+            if(s.length()>32&&s.charAt(32)==',')
+            {
+                return    SELECT_VAR_ALL;
+            }
 			return SESSION_INCREMENT;
-		} else if (stmt.substring(offset).toLowerCase()
+		} else if (s
 				.startsWith("session.tx_isolation")) {
 			return SESSION_ISOLATION;
 		} else {
