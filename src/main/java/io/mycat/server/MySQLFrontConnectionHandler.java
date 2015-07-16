@@ -210,6 +210,7 @@ public class MySQLFrontConnectionHandler implements
 			return;
 		}
 		buf.position(start + 4);
+		buf.limit(readedLength);
 		switch (buf.get()) {
 		case MySQLPacket.COM_INIT_DB:
 			source.initDB(buf);

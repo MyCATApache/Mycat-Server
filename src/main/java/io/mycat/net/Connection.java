@@ -181,7 +181,12 @@ public abstract class Connection implements ClosableConnection{
 	@SuppressWarnings("unchecked")
 	public void handle(final ByteBuffer data, final int start,
 			final int readedLength) {
-		handler.handle(this, data, start, readedLength);
+		int oLimit = data.limit();
+		try{
+			handler.handle(this, data, start, readedLength);
+		}finally {
+			data.limit(oLimit);
+		}
 	}
 
 	/**
@@ -236,23 +241,25 @@ public abstract class Connection implements ClosableConnection{
 				offset += length;
 				// reached end
 				if (position == offset) {
-					// if cur buffer is temper none direct byte buffer and not
-					// received large message in recent 30 seconds
-					// then change to direct buffer for performance
-					if (!readBuffer.isDirect()
-							&& lastLargeMessageTime < lastReadTime - 30 * 1000L) {// used
-																					// temp
-																					// heap
-						if (LOGGER.isDebugEnabled()) {
-							LOGGER.debug("change to direct con read buffer ,cur temp buf size :"
-									+ readBuffer.capacity());
+					if(readBuffer != null){
+						// if cur buffer is temper none direct byte buffer and not
+						// received large message in recent 30 seconds
+						// then change to direct buffer for performance
+						if (!readBuffer.isDirect() && lastLargeMessageTime < lastReadTime - 30 * 1000L) {// used
+							// temp
+							// heap
+							if (LOGGER.isDebugEnabled()) {
+								LOGGER.debug("change to direct con read buffer ,cur temp buf size :"
+										+ readBuffer.capacity());
+							}
+							recycle(readBuffer);
+							readBuffer = NetSystem.getInstance().getBufferPool()
+									.allocateConReadBuffer();
+						} else {
+							readBuffer.clear();
 						}
-						recycle(readBuffer);
-						readBuffer = NetSystem.getInstance().getBufferPool()
-								.allocateConReadBuffer();
-					} else {
-						readBuffer.clear();
 					}
+
 					// no more data ,break
 					readBufferOffset = 0;
 					break;
