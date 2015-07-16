@@ -24,6 +24,9 @@
 package io.mycat.server.packet.util;
 
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 
 /**
  * @author mycat
@@ -143,5 +146,41 @@ public class BufferUtil {
             return 9 + length;
         }
     }
+    public static final String readString(ByteBuffer buffer) {
+        if (buffer.position() >= buffer.limit()) {
+            return null;
+        }
+        return buffer.asCharBuffer().toString();
+    }
 
+    public static final String readString(ByteBuffer buffer,String charset) {
+        if (buffer.position() >= buffer.limit()) {
+            return null;
+        }
+
+        Charset charsets = Charset.forName(charset);
+        return charsets.decode(buffer).toString();
+    }
+
+
+    public static int readUB2(ByteBuffer buffer) {
+        int i = buffer.get() & 0xff;
+        i |= (buffer.get() & 0xff) << 8;
+        return i;
+    }
+
+    public static int readUB3(ByteBuffer buffer) {
+        int i = buffer.get() & 0xff;
+        i |= (buffer.get() & 0xff) << 8;
+        i |= (buffer.get() & 0xff) << 16;
+        return i;
+    }
+
+    public static long readUB4(ByteBuffer buffer) {
+        long l = (long) (buffer.get() & 0xff);
+        l |= (long) (buffer.get() & 0xff) << 8;
+        l |= (long) (buffer.get() & 0xff) << 16;
+        l |= (long) (buffer.get() & 0xff) << 24;
+        return l;
+    }
 }
