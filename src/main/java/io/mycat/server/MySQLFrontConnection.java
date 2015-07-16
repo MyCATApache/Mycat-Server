@@ -6,6 +6,7 @@ import io.mycat.server.config.SchemaConfig;
 import io.mycat.server.packet.HandshakePacket;
 import io.mycat.server.packet.MySQLMessage;
 import io.mycat.server.packet.OkPacket;
+import io.mycat.server.packet.util.BufferUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.sqlhandler.BeginHandler;
 import io.mycat.server.sqlhandler.ExplainHandler;
@@ -17,12 +18,16 @@ import io.mycat.server.sqlhandler.SetHandler;
 import io.mycat.server.sqlhandler.ShowHandler;
 import io.mycat.server.sqlhandler.StartHandler;
 import io.mycat.server.sqlhandler.UseHandler;
+import io.mycat.util.ByteUtil;
 import io.mycat.util.RandomUtil;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.Set;
 
 /**
@@ -135,10 +140,10 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		return this.session;
 	}
 
-	public void initDB(byte[] data) {
-		MySQLMessage mm = new MySQLMessage(data);
-		mm.position(5);
-		String db = mm.readString();
+	public void initDB(ByteBuffer data) {
+//		MySQLMessage mm = new MySQLMessage(data);
+//		mm.position(5);
+		String db = BufferUtil.readString(data);
 
 		// 检查schema的有效性
 		if (db == null || !privileges.schemaExists(db)) {
@@ -210,7 +215,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 
 	}
 
-	public void query(byte[] data) {
+	public void query(ByteBuffer data) {
 
 		if (this.isClosed()) {
 			LOGGER.warn("ignore execute ,server connection is closed " + this);
@@ -224,12 +229,12 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		}
 
 		// 取得语句
-		MySQLMessage mm = new MySQLMessage(data);
-		mm.position(5);
+//		MySQLMessage mm = new MySQLMessage(data);
+//		mm.position(5);
 		String sql = null;
 		try {
-			sql = mm.readString(charset);
-		} catch (UnsupportedEncodingException e) {
+			sql = BufferUtil.readString(data, charset);
+		} catch (UnsupportedCharsetException e) {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET,
 					"Unknown charset '" + charset + "'");
 			return;
@@ -240,8 +245,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			return;
 		}
 		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug(new StringBuilder().append(this).append(" ")
-					.append(sql).toString());
+			LOGGER.debug(this + " " + sql);
 		}
 
 		// sql = StringUtil.replace(sql, "`", "");
@@ -295,8 +299,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			KillHandler.handle(sql, rs >>> 8, this);
 			break;
 		case ServerParse.KILL_QUERY:
-			LOGGER.warn(new StringBuilder().append("Unsupported command:")
-					.append(sql).toString());
+			LOGGER.warn("Unsupported command:" + sql);
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
 					"Unsupported command");
 			break;
@@ -310,8 +313,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			rollback();
 			break;
 		case ServerParse.HELP:
-			LOGGER.warn(new StringBuilder().append("Unsupported command:")
-					.append(sql).toString());
+			LOGGER.warn("Unsupported command:" + sql);
 			writeErrMessage(ErrorCode.ER_SYNTAX_ERROR, "Unsupported command");
 			break;
 		case ServerParse.MYSQL_CMD_COMMENT:
@@ -325,8 +327,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			break;
 		default:
 			if (this.isReadOnlyUser()) {
-				LOGGER.warn(new StringBuilder().append("User readonly:")
-						.append(sql).toString());
+				LOGGER.warn("User readonly:" + sql);
 				writeErrMessage(ErrorCode.ER_USER_READ_ONLY, "User readonly");
 				break;
 			}
@@ -376,15 +377,13 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		}
 	}
 
-	public void stmtPrepare(byte[] data) {
+	public void stmtPrepare(ByteBuffer data) {
 		if (prepareHandler != null) {
 			// 取得语句
-			MySQLMessage mm = new MySQLMessage(data);
-			mm.position(5);
 			String sql = null;
 			try {
-				sql = mm.readString(charset);
-			} catch (UnsupportedEncodingException e) {
+				sql = BufferUtil.readString(data,charset);
+			} catch (UnsupportedCharsetException e) {
 				writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET,
 						"Unknown charset '" + charset + "'");
 				return;
@@ -411,7 +410,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		}
 	}
 
-	public void stmtClose(byte[] data) {
+	public void stmtClose() {
 		if (prepareHandler != null) {
 			prepareHandler.close();
 		} else {
@@ -516,11 +515,11 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		write(OkPacket.OK);
 	}
 
-	public void heartbeat(byte[] data) {
+	public void heartbeat() {
 		write(OkPacket.OK);
 	}
 
-	public void kill(byte[] data) {
+	public void kill() {
 		writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Unknown command");
 	}
 

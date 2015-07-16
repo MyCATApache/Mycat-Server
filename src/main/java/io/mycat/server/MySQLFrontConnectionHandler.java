@@ -195,10 +195,13 @@ public class MySQLFrontConnectionHandler implements
 
 	public void doHandleBusinessMsg(final MySQLFrontConnection source,
 			final ByteBuffer buf, final int start, final int readedLength) {
-		byte[] data = new byte[readedLength];
-		buf.get(data, start, readedLength);
+//		byte[] data = new byte[readedLength];
+//		buf.get(data, start, readedLength);
+
 		if (source.getLoadDataInfileHandler() != null
 				&& source.getLoadDataInfileHandler().isStartLoadData()) {
+			byte[] data = new byte[readedLength];
+			buf.get(data, start, readedLength);
 			MySQLMessage mm = new MySQLMessage(data);
 			int packetLength = mm.readUB3();
 			if (packetLength + 4 == data.length) {
@@ -206,12 +209,13 @@ public class MySQLFrontConnectionHandler implements
 			}
 			return;
 		}
-		switch (data[4]) {
+		buf.position(start + 4);
+		switch (buf.get()) {
 		case MySQLPacket.COM_INIT_DB:
-			source.initDB(data);
+			source.initDB(buf);
 			break;
 		case MySQLPacket.COM_QUERY:
-			source.query(data);
+			source.query(buf);
 			break;
 		case MySQLPacket.COM_PING:
 			source.ping();
@@ -220,22 +224,23 @@ public class MySQLFrontConnectionHandler implements
 			source.close("quit cmd");
 			break;
 		case MySQLPacket.COM_PROCESS_KILL:
-			source.kill(data);
+			source.kill();
 			break;
 		case MySQLPacket.COM_STMT_PREPARE:
-			source.stmtPrepare(data);
+			source.stmtPrepare(buf);
 			break;
 		case MySQLPacket.COM_STMT_EXECUTE:
-
+			byte[] data = new byte[readedLength];
+			buf.get(data, start, readedLength);
 			source.stmtExecute(data);
 			break;
 		case MySQLPacket.COM_STMT_CLOSE:
 
-			source.stmtClose(data);
+			source.stmtClose();
 			break;
 		case MySQLPacket.COM_HEARTBEAT:
 
-			source.heartbeat(data);
+			source.heartbeat();
 			break;
 		default:
 			source.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
