@@ -93,7 +93,9 @@ public class PhysicalDBPool {
 	public int getWriteType() {
 		return writeType;
 	}
-
+	public int getBalance() {
+		return banlance;
+	}
 	private void setDataSourceProps() {
 		for (PhysicalDatasource ds : this.allDs) {
 			ds.setDbPool(this);
