@@ -110,7 +110,7 @@ public abstract class PhysicalDatasource {
 	}
 	public boolean isSalveOrRead(){
 		int currentIndex = getIndex();
-        if(currentIndex==dbPool.activedIndex ||this.readNode ){
+        if(currentIndex!=dbPool.activedIndex ||this.readNode ){
         	return true;
         }
         return false;
