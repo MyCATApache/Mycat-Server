@@ -108,6 +108,13 @@ public abstract class PhysicalDatasource {
 		}
 		return currentIndex;
 	}
+	public boolean isSalveOrRead(){
+		int currentIndex = getIndex();
+        if(currentIndex==dbPool.activedIndex ||this.readNode ){
+        	return true;
+        }
+        return false;
+	}
 
 	public long getExecuteCount() {
 		long executeCount = 0;

@@ -109,13 +109,11 @@ public class MySQLDetector implements
 	@Override
 	public void onRestult(SQLQueryResult<Map<String, String>> result) {
 		if (result.isSuccess()) {
-			int activedIndex = heartbeat.getSource().getDbPool().getActivedIndex();
-			int currentIndex = heartbeat.getSource().getIndex();
 			int balance = heartbeat.getSource().getDbPool().getBalance();
 			PhysicalDatasource source = heartbeat.getSource();
 			if (source.getHostConfig().getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS
 					&& PhysicalDBPool.BALANCE_NONE!=balance
-					&&(source.isReadNode()|| activedIndex!=currentIndex)) {//从节点或者读节点
+					&&source.isSalveOrRead()) {//从节点或者读节点
 				String Slave_IO_Running = result.getResult().get(
 						"Slave_IO_Running");
 				String Slave_SQL_Running = result.getResult().get(
