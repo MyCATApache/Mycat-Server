@@ -170,7 +170,7 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 						+ " for fetch sequnce sql " + seqVal.sql);
 			}
 			// 修正获取seq的逻辑，在读写分离的情况下只能走写节点。修改Select模式为Update模式。
-			mysqlDN.getConnection(mysqlDN.getDatabase(), false,
+			mysqlDN.getConnection(mysqlDN.getDatabase(), true,
 					new RouteResultsetNode(seqVal.dataNode, ServerParse.UPDATE,
 							seqVal.sql), this, seqVal);
 		} catch (Exception e) {
@@ -189,7 +189,6 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 		conn.setResponseHandler(this);
 		try {
 			conn.query(((SequenceVal) conn.getAttachment()).sql);
-			conn.commit();
 		} catch (Exception e) {
 			executeException(conn, e);
 		}
