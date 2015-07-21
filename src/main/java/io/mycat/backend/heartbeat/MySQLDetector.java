@@ -113,7 +113,7 @@ public class MySQLDetector implements
 			PhysicalDatasource source = heartbeat.getSource();
 			if (source.getHostConfig().getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS
 					&& PhysicalDBPool.BALANCE_NONE!=balance
-					&&source.isSalveOrRead()) {//从节点或者读节点
+					&& source.isSalveOrRead()) {//从节点或者读节点
 				String Slave_IO_Running = result.getResult().get(
 						"Slave_IO_Running");
 				String Slave_SQL_Running = result.getResult().get(
