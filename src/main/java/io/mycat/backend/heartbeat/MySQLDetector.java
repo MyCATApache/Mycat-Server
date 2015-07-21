@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,14 +16,16 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.backend.heartbeat;
 
 import io.mycat.backend.MySQLDataSource;
+import io.mycat.backend.PhysicalDBPool;
+import io.mycat.backend.PhysicalDatasource;
 import io.mycat.server.config.DataHostConfig;
 import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
 import io.mycat.sqlengine.SQLJob;
@@ -107,7 +109,11 @@ public class MySQLDetector implements
 	@Override
 	public void onRestult(SQLQueryResult<Map<String, String>> result) {
 		if (result.isSuccess()) {
-			if (heartbeat.getSource().getHostConfig().getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS) {
+			int balance = heartbeat.getSource().getDbPool().getBalance();
+			PhysicalDatasource source = heartbeat.getSource();
+			if (source.getHostConfig().getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS
+					&& PhysicalDBPool.BALANCE_NONE!=balance
+					&& source.isSalveOrRead()) {//从节点或者读节点
 				String Slave_IO_Running = result.getResult().get(
 						"Slave_IO_Running");
 				String Slave_SQL_Running = result.getResult().get(

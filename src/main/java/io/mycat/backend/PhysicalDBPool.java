@@ -94,7 +94,9 @@ public class PhysicalDBPool {
 	public int getWriteType() {
 		return writeType;
 	}
-
+	public int getBalance() {
+		return banlance;
+	}
 	private void setDataSourceProps() {
 		for (PhysicalDatasource ds : this.allDs) {
 			ds.setDbPool(this);
@@ -459,6 +461,10 @@ public class PhysicalDBPool {
 
 	private boolean canSelectAsReadNode(PhysicalDatasource theSource) {
 
+		if(theSource.getHeartbeat().getSlaveBehindMaster()==null
+				||theSource.getHeartbeat().getDbSynStatus()==DBHeartbeat.DB_SYN_ERROR){
+			return false;
+		}
 		return (theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_NORMAL)
 				&& (theSource.getHeartbeat().getSlaveBehindMaster() < this.dataHostConfig
 						.getSlaveThreshold());
