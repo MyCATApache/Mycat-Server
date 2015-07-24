@@ -27,9 +27,9 @@ import java.util.Set;
 
 /**
  * MySQL Front connection
- * 
+ *
  * @author wuzhih
- * 
+ *
  */
 
 public class MySQLFrontConnection extends GenalMySQLConnection {
@@ -223,14 +223,6 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			return;
 		}
 
-		// 检查当前使用的DB
-		String db = this.schema;
-		if (db == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
-					"No MyCAT Database selected");
-			return;
-		}
-
 		// 取得语句
 		MySQLMessage mm = new MySQLMessage(data);
 		mm.position(5);
@@ -262,6 +254,20 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		// 执行查询
 		int rs = ServerParse.parse(sql);
 		int sqlType = rs & 0xff;
+
+		// 检查当前使用的DB
+		String db = this.schema;
+		if (db == null
+				&& sqlType!=ServerParse.USE
+				&& sqlType!=ServerParse.HELP
+				&& sqlType!=ServerParse.SET
+				&& sqlType!=ServerParse.SHOW
+				&& sqlType!=ServerParse.KILL
+				&& sqlType!=ServerParse.KILL_QUERY
+				&& sqlType!=ServerParse.MYSQL_COMMENT ) {
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
+			return;
+		}
 
 		switch (sqlType) {
 		case ServerParse.EXPLAIN:
@@ -480,7 +486,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 
 	/**
 	 * 撤销执行中的语句
-	 * 
+	 *
 	 * @param sponsor
 	 *            发起者为null表示是自己
 	 */
