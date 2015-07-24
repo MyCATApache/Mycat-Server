@@ -449,13 +449,18 @@ public class PhysicalDBPool {
 		}
 
 	}
-
+    public int getBalance() {
+        		return banlance;
+        	}
 	private boolean isAlive(PhysicalDatasource theSource) {
 		return (theSource.getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS);
 	}
 
 	private boolean canSelectAsReadNode(PhysicalDatasource theSource) {
-
+        if(theSource.getHeartbeat().getSlaveBehindMaster()==null
+                			||theSource.getHeartbeat().getDbSynStatus()==DBHeartbeat.DB_SYN_ERROR){
+            			return false;
+            	}
 		return (theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_NORMAL)
 				&& (theSource.getHeartbeat().getSlaveBehindMaster() < this.dataHostConfig
 						.getSlaveThreshold());

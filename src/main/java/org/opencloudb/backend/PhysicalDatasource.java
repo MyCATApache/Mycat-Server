@@ -178,6 +178,25 @@ public abstract class PhysicalDatasource {
 
 	}
 
+    public int getIndex(){
+        		int currentIndex = 0;
+        		for(int i=0;i<dbPool.getSources().length;i++){
+            			PhysicalDatasource writeHostDatasource = dbPool.getSources()[i];
+            			if(writeHostDatasource.getName().equals(getName())){
+                				currentIndex = i;
+                				break;
+                			}
+            		}
+        		return currentIndex;
+        	}
+    	public boolean isSalveOrRead(){
+        		int currentIndex = getIndex();
+                if(currentIndex!=dbPool.activedIndex ||this.readNode ){
+                    	return true;
+                    }
+                return false;
+        	}
+
 	public void heatBeatCheck(long timeout, long conHeartBeatPeriod) {
 		int ildeCloseCount = hostConfig.getMinCon() * 3;
 		int maxConsInOneCheck = 5;
