@@ -27,6 +27,8 @@ import io.mycat.backend.PhysicalDBPool;
 import io.mycat.server.SystemConfig;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Datahost is a group of DB servers which is synchronized with each other
@@ -38,6 +40,7 @@ public class DataHostConfig {
 	public static final int NOT_SWITCH_DS = -1;
 	public static final int DEFAULT_SWITCH_DS = 1;
 	public static final int SYN_STATUS_SWITCH_DS = 2;
+    private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
 	private String name;
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;
@@ -48,6 +51,7 @@ public class DataHostConfig {
 	private final DBHostConfig[] writeHosts;
 	private final Map<Integer, DBHostConfig[]> readHosts;
 	private String hearbeatSQL;
+    private boolean isShowSlaveSql=false;
 	private String connectionInitSql;
     private int slaveThreshold = -1;
 	private final int switchType;
@@ -150,9 +154,16 @@ public class DataHostConfig {
 
 	public void setHearbeatSQL(String heartbeatSQL) {
 		this.hearbeatSQL = heartbeatSQL;
-
+        Matcher matcher = pattern.matcher(heartbeatSQL);
+        if (matcher.find())
+        {
+            isShowSlaveSql=true;
+        }
 	}
-
+    public boolean isShowSlaveSql()
+    {
+        return isShowSlaveSql;
+    }
 	public String getFilters() {
 		return filters;
 	}
