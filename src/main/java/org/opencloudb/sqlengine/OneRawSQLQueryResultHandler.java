@@ -47,11 +47,11 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 			Integer ind = fetchColPosMap.get(fetchCol);
 			if (ind != null) {
 				byte[] columnData = rowDataPkg.fieldValues.get(ind);
-				String columnVal = new String(columnData);
-				result.put(fetchCol, columnVal);
+                    String columnVal = columnData!=null?new String(columnData):null;
+                    result.put(fetchCol, columnVal);
 			} else {
 				LOGGER.warn("cant't find column in sql query result "
-						+ fetchCol);
+                        + fetchCol);
 			}
 		}
         
@@ -61,7 +61,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	@Override
 	public void finished(String dataNode, boolean failed) {
 		SQLQueryResult<Map<String, String>> queryRestl=new SQLQueryResult<Map<String, String>>(this.result,!failed);
-	     this.callback.onRestult(queryRestl);
+	     this.callback.onResult(queryRestl);
 
 	}
 
