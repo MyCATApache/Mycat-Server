@@ -108,6 +108,7 @@ public class ConMap {
 			}
 
 		}
+        items.clear();
 	}
 
 }
