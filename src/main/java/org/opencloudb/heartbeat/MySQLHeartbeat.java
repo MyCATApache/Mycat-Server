@@ -196,12 +196,10 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		// should continues check error status
 		if (++errorCount < maxRetryCount) {
 
-			if (detector != null && isStop.get()) {
-				detector.quit();
-			} else {
-				heartbeat(); // error count not enough, heart beat again
-			}
-		//	return;
+            if (detector != null && !detector.isQuit()) {
+                heartbeat(); // error count not enough, heart beat again
+            }
+
 		}else
         {
             if (detector != null ) {
