@@ -121,8 +121,9 @@ public final class NIOConnector extends Thread implements SocketConnector {
 			}
 		} catch (Exception e) {
 			clearSelectionKey(key);
+            c.close(e.toString());
 			c.onConnectFailed(e);
-			c.close(e.toString());
+
 		}
 	}
 
