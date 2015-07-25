@@ -201,10 +201,15 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			} else {
 				heartbeat(); // error count not enough, heart beat again
 			}
-			return;
-		}
-		this.status = ERROR_STATUS;
-		this.errorCount = 0;
+		//	return;
+		}else
+        {
+            if (detector != null ) {
+                detector.quit();
+            }
+            this.status = ERROR_STATUS;
+            this.errorCount = 0;
+        }
 	}
 
 	private void setTimeout(MySQLDetector detector) {
