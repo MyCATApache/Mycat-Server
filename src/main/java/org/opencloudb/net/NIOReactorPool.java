@@ -16,7 +16,7 @@ public class NIOReactorPool {
 	}
 
 	public NIOReactor getNextReactor() {
-		if (++nextReactor == reactors.length) {
+		if (++nextReactor >= reactors.length) {
 			nextReactor = 0;
 		}
 		return reactors[nextReactor];
