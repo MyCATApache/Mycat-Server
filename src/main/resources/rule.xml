@@ -8,7 +8,7 @@
 	License for the specific language governing permissions and - limitations 
 	under the License. -->
 <!DOCTYPE mycat:rule SYSTEM "rule.dtd">
-<mycat:rule xmlns:mycat="http://org.opencloudb/">
+<mycat:rule xmlns:mycat="http://io.mycat/">
 	<tableRule name="rule1">
 		<rule>
 			<columns>id</columns>
@@ -59,9 +59,23 @@
 			<algorithm>latestMonth</algorithm>
 		</rule>
 	</tableRule>
+	
+	<tableRule name="auto-sharding-rang-mod">
+		<rule>
+			<columns>id</columns>
+			<algorithm>rang-mod</algorithm>
+		</rule>
+	</tableRule>
+	
+	<tableRule name="jch">
+		<rule>
+			<columns>id</columns>
+			<algorithm>jump-consistent-hash</algorithm>
+		</rule>
+	</tableRule>
 
 	<function name="murmur"
-		class="org.opencloudb.route.function.PartitionByMurmurHash">
+		class="io.mycat.route.function.PartitionByMurmurHash">
 		<property name="seed">0</property><!-- 默认是0 -->
 		<property name="count">2</property><!-- 要分片的数据库节点数量，必须指定，否则没法分片 -->
 		<property name="virtualBucketTimes">160</property><!-- 一个实际的数据库节点被映射为这么多虚拟节点，默认是160倍，也就是虚拟节点数是物理节点数的160倍 -->
@@ -70,29 +84,37 @@
 			用于测试时观察各物理节点与虚拟节点的分布情况，如果指定了这个属性，会把虚拟节点的murmur hash值与物理节点的映射按行输出到这个文件，没有默认值，如果不指定，就不会输出任何东西 -->
 	</function>
 	<function name="hash-int"
-		class="org.opencloudb.route.function.PartitionByFileMap">
+		class="io.mycat.route.function.PartitionByFileMap">
 		<property name="mapFile">partition-hash-int.txt</property>
 	</function>
 	<function name="rang-long"
-		class="org.opencloudb.route.function.AutoPartitionByLong">
+		class="io.mycat.route.function.AutoPartitionByLong">
 		<property name="mapFile">autopartition-long.txt</property>
 	</function>
-	<function name="mod-long" class="org.opencloudb.route.function.PartitionByMod">
+	<function name="mod-long" class="io.mycat.route.function.PartitionByMod">
 		<!-- how many data nodes -->
 		<property name="count">3</property>
 	</function>
 
-	<function name="func1" class="org.opencloudb.route.function.PartitionByLong">
+	<function name="func1" class="io.mycat.route.function.PartitionByLong">
 		<property name="partitionCount">8</property>
 		<property name="partitionLength">128</property>
 	</function>
 	<function name="latestMonth"
-		class="org.opencloudb.route.function.LatestMonthPartion">
+		class="io.mycat.route.function.LatestMonthPartion">
 		<property name="splitOneDay">24</property>
 	</function>
 	<function name="partbymonth"
-		class="org.opencloudb.route.function.PartitionByMonth">
+		class="io.mycat.route.function.PartitionByMonth">
 		<property name="dateFormat">yyyy-MM-dd</property>
 		<property name="sBeginDate">2015-01-01</property>
+	</function>
+	
+	<function name="rang-mod" class="io.mycat.route.function.PartitionByRangeMod">
+        	<property name="mapFile">partition-range-mod.txt</property>
+	</function>
+	
+	<function name="jump-consistent-hash" class="io.mycat.route.function.PartitionByJumpConsistentHash">
+		<property name="totalBuckets">3</property>
 	</function>
 </mycat:rule>

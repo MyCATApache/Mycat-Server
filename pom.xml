@@ -2,13 +2,13 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.opencloudb.mycat</groupId>
+	<groupId>io.mycat.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.4-dev</version>
+	<version>2.0-dev</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
-	<url>http://org.opencloudb</url>
+	<url>http://io.mycat</url>
 
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
@@ -23,6 +23,25 @@
 		<developerConnection>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</developerConnection>
 		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</url>
 	</scm>
+	<repositories>
+		<repository>
+			<id>nexus</id>
+			<name>local private nexus</name>
+			<url>http://nexus.mycat.io/content/groups/public</url>
+		</repository>
+	</repositories>
+	<distributionManagement>
+		<repository>
+			<id>releases</id>
+			<name>Internal Releases</name>
+			<url>http://nexus.mycat.io/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<name>Internal Snapshots</name>
+			<url>http://nexus.mycat.io/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<dependencies>
 		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
 			<version>18.0</version> </dependency> -->
@@ -31,16 +50,16 @@
 			<artifactId>mongo-java-driver</artifactId>
 			<version>2.11.4</version>
 		</dependency>
-  	    <dependency>
-  		   <groupId>org.iq80.leveldb</groupId>
-  		   <artifactId>leveldb</artifactId>
-  		   <version>0.7</version>
-  	   </dependency>
-  	    <dependency>
-  		   <groupId>org.iq80.leveldb</groupId>
-  		   <artifactId>leveldb-api</artifactId>
-  		   <version>0.7</version>
-  	   </dependency>   	    		
+		<dependency>
+			<groupId>org.iq80.leveldb</groupId>
+			<artifactId>leveldb</artifactId>
+			<version>0.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.iq80.leveldb</groupId>
+			<artifactId>leveldb-api</artifactId>
+			<version>0.7</version>
+		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
@@ -49,7 +68,7 @@
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>druid</artifactId>
-			<version>1.0.13</version>
+			<version>1.0.14</version>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>
@@ -62,7 +81,6 @@
 			<artifactId>mysql-connector-java</artifactId>
 			<version>5.1.35</version>
 			<scope>test</scope>
-
 		</dependency>
 		<dependency>
 			<groupId>net.sf.ehcache</groupId>
@@ -101,8 +119,13 @@
 		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
-			<version>1.5.2</version>
+			<version>1.5.4</version>
 			<type>jar</type>
+		</dependency>
+		<dependency>
+  		<groupId>com.sequoiadb.org</groupId>
+  		<artifactId>sequoiadb-java-driver</artifactId>
+ 			<version>1.0-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 
@@ -110,7 +133,7 @@
 
 	<issueManagement>
 		<system>JIRA</system>
-		<url>http://org.opencloudb</url>
+		<url>http://io.mycat</url>
 	</issueManagement>
 
 	<build>
@@ -149,7 +172,7 @@
 								<pluginExecution>
 									<pluginExecutionFilter>
 										<groupId>com.google.code.maven-replacer-plugin</groupId>
-										<artifactId>maven-replacer-plugin</artifactId>
+										<artifactId>replacer</artifactId>
 										<versionRange>[1.0.0,)</versionRange>
 										<goals>
 											<goal>replace</goal>
@@ -168,47 +191,68 @@
 		<plugins>
 			<plugin>
 				<groupId>com.google.code.maven-replacer-plugin</groupId>
-				<artifactId>maven-replacer-plugin</artifactId>
-				<version>1.4.0</version>
+				<artifactId>replacer</artifactId>
+				<version>1.5.3</version>
 				<executions>
 					<execution>
+						<id>version</id>
 						<phase>process-sources</phase>
 						<goals>
 							<goal>replace</goal>
 						</goals>
+						<configuration>
+							<file>${project.basedir}/${version.template.file}</file>
+							<outputFile>${project.basedir}/${version.file}</outputFile>
+							<replacements>
+								<replacement>
+									<token>@buildnumber@</token>
+									<value>${buildNumber}</value>
+								</replacement>
+								<replacement>
+									<token>@buildtime@</token>
+									<value>${maven.build.timestamp}</value>
+								</replacement>
+								<replacement>
+									<token>@pomversion@</token>
+									<value>${project.version}</value>
+								</replacement>
+								<replacement>
+									<token>@giturl@</token>
+									<value>https://github.com/MyCATApache/Mycat-Server.git</value>
+								</replacement>
+								<replacement>
+									<token>@mycatsite@</token>
+									<value>http://www.mycat.org.cn</value>
+								</replacement>
+								<replacement>
+									<token>@qqgroup@</token>
+									<value>106088787</value>
+								</replacement>
+							</replacements>
+						</configuration>
+					</execution>
+					<execution>
+						<id>version2</id>
+
+						<phase>process-sources</phase>
+						<goals>
+							<goal>replace</goal>
+						</goals>
+						<configuration>
+							<file>${project.basedir}/src/main/java/io/mycat/server/Versions.template</file>
+							<outputFile>${project.basedir}/src/main/java/io/mycat/server/Versions.java</outputFile>
+							<replacements>
+								<replacement>
+									<token>@server-version@</token>
+									<value>5.5.8-mycat-${project.version}-${timestamp}</value>
+								</replacement>
+							</replacements>
+						</configuration>
 					</execution>
 				</executions>
-				<configuration>
-					<file>${version.template.file}</file>
-					<outputFile>${version.file}</outputFile>
-					<replacements>
-						<replacement>
-							<token>@buildnumber@</token>
-							<value>${buildNumber}</value>
-						</replacement>
-						<replacement>
-							<token>@buildtime@</token>
-							<value>${maven.build.timestamp}</value>
-						</replacement>
-						<replacement>
-							<token>@pomversion@</token>
-							<value>${project.version}</value>
-						</replacement>
-						<replacement>
-							<token>@giturl@</token>
-							<value>https://github.com/MyCATApache/Mycat-Server.git</value>
-						</replacement>
-						<replacement>
-							<token>@mycatsite@</token>
-							<value>http://www.mycat.org.cn</value>
-						</replacement>
-						<replacement>
-							<token>@qqgroup@</token>
-							<value>106088787</value>
-						</replacement>
-					</replacements>
-				</configuration>
+
 			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -287,7 +331,7 @@
 					<daemons>
 						<daemon>
 							<id>mycat</id>
-							<mainClass>org.opencloudb.MycatStartup</mainClass>
+							<mainClass>io.mycat.MycatStartup</mainClass>
 							<commandLineArguments>
 								<commandLineArgument>start</commandLineArgument>
 							</commandLineArguments>
