@@ -8,7 +8,7 @@
 	License for the specific language governing permissions and - limitations 
 	under the License. -->
 <!DOCTYPE mycat:schema SYSTEM "schema.dtd">
-<mycat:schema xmlns:mycat="http://org.opencloudb/">
+<mycat:schema xmlns:mycat="http://io.mycat/">
 
 	<schema name="cndb" checkSQLschema="true" >
 		<table name="offer" dataNode="offer_dn$0-127" rule="offerRule" />
@@ -32,6 +32,7 @@
 	<schema name="solo1" dataNode="solo1" />
 
 	<schema name="TESTDB"  sqlMaxLimit="100">
+		<table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
 		<!-- global table is auto cloned to all defined data nodes ,so can join 
 			with any table whose sharding node is in the same data node -->
 		<table name="company" type="global" dataNode="dn1,dn2,dn3" />
@@ -49,6 +50,11 @@
 				parentKey="id" />
 		</table>
 		<table name="globalsn" primaryKey="ID" type="global" dataNode="dn1" />
+        <table name="offer" primaryKey="id" dataNode="offer_dn$1-20"
+               rule="auto-sharding-rang-mod" />
+
+        <table name="offer1" primaryKey="id" dataNode="offer_dn$1-36"
+               rule="rangeDateHash" />
 	</schema>
 
     <schema name="mysqldb"  sqlMaxLimit="100">

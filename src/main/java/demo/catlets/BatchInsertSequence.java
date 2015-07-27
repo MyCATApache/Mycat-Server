@@ -1,23 +1,25 @@
 package demo.catlets;
 
+import io.mycat.cache.LayerCachePool;
+import io.mycat.route.RouteResultset;
+import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.factory.RouteStrategyFactory;
+import io.mycat.server.ErrorCode;
+import io.mycat.server.MySQLFrontConnection;
+import io.mycat.server.MycatServer;
+import io.mycat.server.SystemConfig;
+import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.TableConfig;
+import io.mycat.server.parser.ServerParse;
+import io.mycat.server.sequence.IncrSequenceMySQLHandler;
+import io.mycat.server.sequence.IncrSequencePropHandler;
+import io.mycat.server.sequence.SequenceHandler;
+import io.mycat.sqlengine.Catlet;
+import io.mycat.sqlengine.EngineCtx;
+import io.mycat.util.StringUtil;
+
 import org.apache.log4j.Logger;
-import org.opencloudb.MycatServer;
-import org.opencloudb.cache.LayerCachePool;
-import org.opencloudb.config.ErrorCode;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.config.model.TableConfig;
-import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.RouteResultsetNode;
-import org.opencloudb.route.factory.RouteStrategyFactory;
-import org.opencloudb.sequence.handler.IncrSequenceMySQLHandler;
-import org.opencloudb.sequence.handler.IncrSequencePropHandler;
-import org.opencloudb.sequence.handler.SequenceHandler;
-import org.opencloudb.server.ServerConnection;
-import org.opencloudb.server.parser.ServerParse;
-import org.opencloudb.sqlengine.Catlet;
-import org.opencloudb.sqlengine.EngineCtx;
-import org.opencloudb.util.StringUtil;
+
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
@@ -42,7 +44,7 @@ public class BatchInsertSequence implements Catlet {
 	private SchemaConfig schema;
 	private int sqltype; 
 	private String charset; 
-	private ServerConnection sc;
+	private MySQLFrontConnection sc;
 	private LayerCachePool cachePool;
 
 	@Override
@@ -67,7 +69,7 @@ public class BatchInsertSequence implements Catlet {
 
 	@Override
 	public void route(SystemConfig sysConfig, SchemaConfig schema, int sqlType,
-			String realSQL, String charset, ServerConnection sc,
+			String realSQL, String charset, MySQLFrontConnection sc,
 			LayerCachePool cachePool) {
 		int rs = ServerParse.parse(realSQL);
 		this.sqltype = rs & 0xff;
