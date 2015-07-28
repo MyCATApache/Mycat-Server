@@ -371,12 +371,16 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 //		RouterUtil.tryRouteForTables(schema, ctx, rrs, true, cachePool);
 		SortedSet<RouteResultsetNode> nodeSet = new TreeSet<RouteResultsetNode>();
-		for(RouteCalculateUnit unit : ctx.getRouteCalculateUnits()) {
+		boolean isAllGlobalTable = RouterUtil.isAllGlobalTable(ctx, schema);
+		for (RouteCalculateUnit unit : ctx.getRouteCalculateUnits()) {
 			RouteResultset rrsTmp = RouterUtil.tryRouteForTables(schema, ctx, unit, rrs, true, cachePool);
-			if(rrsTmp != null) {
-				for(RouteResultsetNode node :rrsTmp.getNodes()) {
+			if (rrsTmp != null) {
+				for (RouteResultsetNode node : rrsTmp.getNodes()) {
 					nodeSet.add(node);
 				}
+			}
+			if(isAllGlobalTable) {//都是全局表时只计算一遍路由
+				break;
 			}
 		}
 		
