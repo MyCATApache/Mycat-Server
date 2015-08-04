@@ -409,7 +409,7 @@ public class PhysicalDBPool {
         switch (banlance) {
             case BALANCE_ALL_BACK: {// all read nodes and the standard by masters
 
-                okSources = getAllActiveRWSources(false, checkSlaveSynStatus());
+                okSources = getAllActiveRWSources(true, false, checkSlaveSynStatus());
                 if (okSources.isEmpty()) {
                     theNode = this.getSource();
                 } else {
@@ -418,12 +418,12 @@ public class PhysicalDBPool {
                 break;
             }
             case BALANCE_ALL: {
-                okSources = getAllActiveRWSources(true, checkSlaveSynStatus());
+                okSources = getAllActiveRWSources(true, true, checkSlaveSynStatus());
                 theNode = randomSelect(okSources);
                 break;
             }
             case BALANCE_ALL_READ: {
-                okSources = getAllActiveReadSources();
+                okSources = getAllActiveRWSources(false, false, checkSlaveSynStatus());
                 theNode = randomSelect(okSources);
                 break;
             }
@@ -473,10 +473,15 @@ public class PhysicalDBPool {
 
     /**
      * return all backup write sources
+     * 
+     * @param includeWriteNode if include write nodes
+     * @param includeCurWriteNode if include current active write node. invalid when <code>includeWriteNode<code> is false
+     * @param filterWithSlaveThreshold
      *
      * @return
      */
     private ArrayList<PhysicalDatasource> getAllActiveRWSources(
+    		boolean includeWriteNode, 
             boolean includeCurWriteNode, boolean filterWithSlaveThreshold) {
         int curActive = activedIndex;
         ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(
@@ -484,16 +489,18 @@ public class PhysicalDBPool {
         for (int i = 0; i < this.writeSources.length; i++) {
             PhysicalDatasource theSource = writeSources[i];
             if (isAlive(theSource)) {// write node is active
-                if (i == curActive && includeCurWriteNode == false) {
-                    // not include cur active source
-                } else if (filterWithSlaveThreshold) {
-                    if (canSelectAsReadNode(theSource)) {
-                        okSources.add(theSource);
-                    } else {
-                        continue;
-                    }
-                } else {
-                    okSources.add(theSource);
+                if (includeWriteNode) {
+	            	if (i == curActive && includeCurWriteNode == false) {
+	                    // not include cur active source
+	                } else if (filterWithSlaveThreshold) {
+	                    if (canSelectAsReadNode(theSource)) {
+	                        okSources.add(theSource);
+	                    } else {
+	                        continue;
+	                    }
+	                } else {
+	                    okSources.add(theSource);
+	                }
                 }
                 if (!readSources.isEmpty()) {
                     // check all slave nodes
@@ -510,33 +517,6 @@ public class PhysicalDBPool {
                                 } else {
                                     okSources.add(slave);
                                 }
-                            }
-                        }
-                    }
-                }
-            }
-
-        }
-        return okSources;
-    }
-    /**
-     * return all read sources
-     *
-     * @return
-     */
-    private ArrayList<PhysicalDatasource> getAllActiveReadSources(){
-        ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(
-                this.allDs.size());
-        for (int i = 0; i < this.writeSources.length; i++) {
-            if (isAlive(writeSources[i])) {// write node is active
-
-                if (!readSources.isEmpty()) {
-                    // check all slave nodes
-                    PhysicalDatasource[] allSlaves = this.readSources.get(i);
-                    if (allSlaves != null) {
-                        for (PhysicalDatasource slave : allSlaves) {
-                            if (isAlive(slave)) {
-                                okSources.add(slave);
                             }
                         }
                     }
