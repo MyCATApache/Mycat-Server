@@ -407,10 +407,11 @@ public class MycatServer {
 	}
 
 	public NIOProcessor nextProcessor() {
-		if (++nextProcessor == processors.length) {
-			nextProcessor = 0;
+		int i = ++nextProcessor;
+		if (i >= processors.length) {
+			i = nextProcessor = 0;
 		}
-		return processors[nextProcessor];
+		return processors[i];
 	}
 
 	public NIOProcessor[] getProcessors() {
