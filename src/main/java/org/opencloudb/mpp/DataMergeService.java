@@ -79,7 +79,7 @@ public class DataMergeService {
 		batchedNodeRows = new HashMap<String, AtomicReferenceArray<byte[]>>();
 		for (RouteResultsetNode node : rrs.getNodes()) {
 			batchedNodeRows.put(node.getName(),
-					new AtomicReferenceArray<byte[]>(10));
+					new AtomicReferenceArray<byte[]>(100));
 		}
 	}
 
