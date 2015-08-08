@@ -123,9 +123,12 @@ public class DataMergeService {
 		jobQueue.offer(outPutJob);
 		if (jobRuninng == false && !jobQueue.isEmpty()) {
 
+            Runnable job = jobQueue.poll();
+            if(job!=null)
+            {
                 MycatServer.getInstance().getBusinessExecutor()
-                        .execute(jobQueue.poll());
-
+                        .execute(job);
+            }
 		}
 	}
 
