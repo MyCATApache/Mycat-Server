@@ -79,7 +79,7 @@ public class DataMergeService {
 		batchedNodeRows = new HashMap<String, AtomicReferenceArray<byte[]>>();
 		for (RouteResultsetNode node : rrs.getNodes()) {
 			batchedNodeRows.put(node.getName(),
-					new AtomicReferenceArray<byte[]>(100));
+					new AtomicReferenceArray<byte[]>(10));
 		}
 	}
 
@@ -101,14 +101,23 @@ public class DataMergeService {
 		Runnable outPutJob = new Runnable() {
 			@Override
 			public void run() {
-              while (rowBatchCount.get()>=0)
-              {
+                if(rowBatchCount.get()>0)
+                {
+                    jobQueue.offer(this);
                     if(rowBatchCount.get()==0)
                     {
-                        multiQueryHandler.outputMergeResult(session.getSource(), eof);
-                      break;
+                        Runnable newJob = jobQueue.poll();
+                        if (newJob != null)
+                        {
+                            newJob.run();
+                        }
                     }
+                } else
+                {
+                    multiQueryHandler.outputMergeResult(session.getSource(), eof);
+
                 }
+
 			}
 		};
 		jobQueue.offer(outPutJob);
@@ -310,8 +319,9 @@ public class DataMergeService {
 					// for next job
 					Runnable newJob = jobQueue.poll();
 					if (newJob != null) {
-						MycatServer.getInstance().getBusinessExecutor()
-								.execute(newJob);
+//						MycatServer.getInstance().getBusinessExecutor()
+//								.execute(newJob);
+                        newJob.run();
 					} else {
 						jobRuninng = false;
 					}
