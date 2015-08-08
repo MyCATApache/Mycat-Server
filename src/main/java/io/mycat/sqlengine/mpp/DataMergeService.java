@@ -80,7 +80,7 @@ public class DataMergeService {
 		batchedNodeRows = new HashMap<String, AtomicReferenceArray<byte[]>>();
 		for (RouteResultsetNode node : rrs.getNodes()) {
 			batchedNodeRows.put(node.getName(),
-					new AtomicReferenceArray<byte[]>(100));
+					new AtomicReferenceArray<byte[]>(10));
 		}
 	}
 
@@ -102,20 +102,32 @@ public class DataMergeService {
 		Runnable outPutJob = new Runnable() {
 			@Override
 			public void run() {
-              while (rowBatchCount.get()>=0)
-              {
+                if(rowBatchCount.get()>0)
+                {
+                    jobQueue.offer(this);
                     if(rowBatchCount.get()==0)
                     {
-                        multiQueryHandler.outputMergeResult(session.getSource(), eof);
-                      break;
+                        Runnable newJob = jobQueue.poll();
+                        if (newJob != null)
+                        {
+                            newJob.run();
+                        }
                     }
+                } else
+                {
+                    multiQueryHandler.outputMergeResult(session.getSource(), eof);
+
                 }
 			}
 		};
 		jobQueue.offer(outPutJob);
 		if (jobRuninng == false && !jobQueue.isEmpty()) {
-			NetSystem.getInstance().getExecutor()
-					.execute(jobQueue.poll());
+            Runnable runnable = jobQueue.poll();
+            if(runnable!=null)
+            {
+                NetSystem.getInstance().getExecutor()
+                        .execute(runnable);
+            }
 		}
 	}
 
@@ -308,8 +320,9 @@ public class DataMergeService {
 					// for next job
 					Runnable newJob = jobQueue.poll();
 					if (newJob != null) {
-						NetSystem.getInstance().getExecutor()
-								.execute(newJob);
+//						NetSystem.getInstance().getExecutor()
+//								.execute(newJob);
+                        newJob.run();
 					} else {
 						jobRuninng = false;
 					}
