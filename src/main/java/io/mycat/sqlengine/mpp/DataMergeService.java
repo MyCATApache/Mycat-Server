@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -70,6 +71,7 @@ public class DataMergeService {
 	private final MultiNodeQueryHandler multiQueryHandler;
 	private int fieldCount;
 	private final RouteResultset rrs;
+    private AtomicInteger rowBatchCount=new AtomicInteger(0);
 
 	public DataMergeService(MultiNodeQueryHandler queryHandler,
 			RouteResultset rrs) {
@@ -100,7 +102,14 @@ public class DataMergeService {
 		Runnable outPutJob = new Runnable() {
 			@Override
 			public void run() {
-				multiQueryHandler.outputMergeResult(session.getSource(), eof);
+              while (rowBatchCount.get()>=0)
+              {
+                    if(rowBatchCount.get()==0)
+                    {
+                        multiQueryHandler.outputMergeResult(session.getSource(), eof);
+                      break;
+                    }
+                }
 			}
 		};
 		jobQueue.offer(outPutJob);
@@ -282,7 +291,10 @@ public class DataMergeService {
 		}
 		if (rows.isEmpty()) {
 			return null;
-		}
+		}  else
+        {
+            rowBatchCount.incrementAndGet();
+        }
 		Runnable job = new Runnable() {
 			public void run() {
 				try {
@@ -292,7 +304,7 @@ public class DataMergeService {
 							break;
 						}
 					}
-
+                    rowBatchCount.decrementAndGet();
 					// for next job
 					Runnable newJob = jobQueue.poll();
 					if (newJob != null) {
@@ -348,6 +360,7 @@ public class DataMergeService {
 		grouper = null;
 		sorter = null;
 		result = null;
+        rowBatchCount.set(-1);
 		jobQueue.clear();
 	}
 
