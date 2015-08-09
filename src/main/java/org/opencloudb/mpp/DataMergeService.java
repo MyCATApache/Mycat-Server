@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -69,6 +70,7 @@ public class DataMergeService {
 	private final MultiNodeQueryHandler multiQueryHandler;
 	private int fieldCount;
 	private final RouteResultset rrs;
+    private AtomicInteger rowBatchCount=new AtomicInteger(0);
 
 	public DataMergeService(MultiNodeQueryHandler queryHandler,
 			RouteResultset rrs) {
@@ -99,13 +101,34 @@ public class DataMergeService {
 		Runnable outPutJob = new Runnable() {
 			@Override
 			public void run() {
-				multiQueryHandler.outputMergeResult(session.getSource(), eof);
+                if(rowBatchCount.get()>0)
+                {
+                    jobQueue.offer(this);
+                    if(rowBatchCount.get()==0)
+                    {
+                        Runnable newJob = jobQueue.poll();
+                        if (newJob != null)
+                        {
+                            newJob.run();
+                        }
+                    }
+                } else
+                {
+                    multiQueryHandler.outputMergeResult(session.getSource(), eof);
+
+                }
+
 			}
 		};
 		jobQueue.offer(outPutJob);
 		if (jobRuninng == false && !jobQueue.isEmpty()) {
-			MycatServer.getInstance().getBusinessExecutor()
-					.execute(jobQueue.poll());
+
+            Runnable job = jobQueue.poll();
+            if(job!=null)
+            {
+                MycatServer.getInstance().getBusinessExecutor()
+                        .execute(job);
+            }
 		}
 	}
 
@@ -271,6 +294,7 @@ public class DataMergeService {
 
 	private Runnable createJob(final String dnName,
 			AtomicReferenceArray<byte[]> batchedArray) {
+
 		final ArrayList<byte[]> rows = new ArrayList<byte[]>(
 				batchedArray.length());
 		for (int i = 0; i < batchedArray.length(); i++) {
@@ -281,7 +305,10 @@ public class DataMergeService {
 		}
 		if (rows.isEmpty()) {
 			return null;
-		}
+		}  else
+        {
+            rowBatchCount.incrementAndGet();
+        }
 		Runnable job = new Runnable() {
 			public void run() {
 				try {
@@ -291,12 +318,13 @@ public class DataMergeService {
 							break;
 						}
 					}
-
+                    rowBatchCount.decrementAndGet();
 					// for next job
 					Runnable newJob = jobQueue.poll();
 					if (newJob != null) {
-						MycatServer.getInstance().getBusinessExecutor()
-								.execute(newJob);
+//						MycatServer.getInstance().getBusinessExecutor()
+//								.execute(newJob);
+                        newJob.run();
 					} else {
 						jobRuninng = false;
 					}
@@ -347,6 +375,7 @@ public class DataMergeService {
 		grouper = null;
 		sorter = null;
 		result = null;
+        rowBatchCount.set(-1);
 		jobQueue.clear();
 	}
 
