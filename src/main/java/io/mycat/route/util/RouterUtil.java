@@ -851,7 +851,8 @@ public class RouterUtil {
 			TableConfig tableConfig = schema.getTables().get(table);
 			if(tableConfig!=null && tableConfig.isGlobalTable()) {
 				isAllGlobal = true;
-				break;
+			} else {
+				return false;
 			}
 		}
 		return isAllGlobal;
