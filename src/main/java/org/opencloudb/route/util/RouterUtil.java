@@ -42,7 +42,7 @@ public class RouterUtil {
 	private static final Logger LOGGER = Logger.getLogger(RouterUtil.class);
 	/**
 	 * 移除执行语句中的数据库名
-	 * 
+	 *
 	 * @param stmt
 	 *            执行语句
 	 * @param schema
@@ -79,10 +79,10 @@ public class RouterUtil {
 		sb.append(stmt.substring(strtPos));
 		return sb.toString();
 	}
-	
+
 	/**
 	 * 获取第一个节点作为路由
-	 * 
+	 *
 	 * @param rrs
 	 *            数据路由集合
 	 * @param dataNode
@@ -106,10 +106,10 @@ public class RouterUtil {
 		}
 		return rrs;
 	}
-	
+
 	/**
 	 * 获取table名字
-	 * 
+	 *
 	 * @param stmt
 	 *            执行语句
 	 * @param repPos
@@ -131,10 +131,10 @@ public class RouterUtil {
 		}
 		return tableName;
 	}
-	
+
 	/**
 	 * 获取语句中前关键字位置和占位个数表名位置
-	 * 
+	 *
 	 * @param upStmt
 	 *            执行语句
 	 * @param start
@@ -154,10 +154,10 @@ public class RouterUtil {
 			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
 		}
 	}
-	
+
 	/**
 	 * 获取语句中前关键字位置和占位个数表名位置
-	 * 
+	 *
 	 * @param upStmt
 	 *            执行语句
 	 * @param start
@@ -180,10 +180,10 @@ public class RouterUtil {
 			return new int[] { tabInd2, token2.length() };
 		}
 	}
-	
+
 	/**
 	 * 获取开始位置后的 LIKE、WHERE 位置 如果不含 LIKE、WHERE 则返回执行语句的长度
-	 * 
+	 *
 	 * @param upStmt
 	 *            执行sql
 	 * @param start
@@ -212,7 +212,7 @@ public class RouterUtil {
 		}
 		return false;
 	}
-	
+
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
 		MycatServer.getInstance().getSequnceProcessor().addNewSql(new SessionSQLPair(sc.getSession2(), schema, sql, sqlType));
 	}
@@ -250,10 +250,10 @@ public class RouterUtil {
 		}
 		return isPrimaryKeyInFields;
 	}
-	
+
 	public static boolean processInsert(ServerConnection sc,SchemaConfig schema,
 			int sqlType,String origSQL,String tableName,String primaryKey) throws SQLNonTransientException {
-		
+
 		int firstLeftBracketIndex = origSQL.indexOf("(");
 		int firstRightBracketIndex = origSQL.indexOf(")");
 		String upperSql = origSQL.toUpperCase();
@@ -265,13 +265,13 @@ public class RouterUtil {
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
-		
+
 		if(selectIndex > 0 &&fromIndex>0&&selectIndex>firstRightBracketIndex) {
 			String msg = "multi insert not provided" ;
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
-		
+
 		if(valuesIndex + "VALUES".length() <= firstLeftBracketIndex) {
 			throw new SQLSyntaxErrorException("insert must provide ColumnList");
 		}
@@ -282,14 +282,14 @@ public class RouterUtil {
 		}
 		return processedInsert;
 	}
-	
+
 	private static void processInsert(ServerConnection sc,SchemaConfig schema,int sqlType,String origSQL,String tableName,String primaryKey,int afterFirstLeftBracketIndex,int afterLastLeftBracketIndex){
 		int primaryKeyLength=primaryKey.length();
 		int insertSegOffset=afterFirstLeftBracketIndex;
 		String mycatSeqPrefix="next value for MYCATSEQ_";
 		int mycatSeqPrefixLength=mycatSeqPrefix.length();
 		int tableNameLength=tableName.length();
-		
+
 		char[] newSQLBuf=new char[origSQL.length()+primaryKeyLength+mycatSeqPrefixLength+tableNameLength+2];
 		origSQL.getChars(0, afterFirstLeftBracketIndex, newSQLBuf, 0);
 		primaryKey.getChars(0,primaryKeyLength,newSQLBuf,insertSegOffset);
@@ -307,7 +307,7 @@ public class RouterUtil {
 		origSQL.getChars(afterLastLeftBracketIndex, origSQL.length(), newSQLBuf, insertSegOffset);
 		processSQL(sc,schema,new String(newSQLBuf),sqlType);
 	}
-	
+
 	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt) {
 		RouteResultsetNode[] nodes = new RouteResultsetNode[dataNodes.size()];
 		int i = 0;
@@ -323,13 +323,13 @@ public class RouterUtil {
 		rrs.setNodes(nodes);
 		return rrs;
 	}
-	
+
 	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt,boolean isGlobalTable) {
 		rrs=routeToMultiNode(cache,rrs,dataNodes,stmt);
 		rrs.setGlobalTable(isGlobalTable);
 		return rrs;
 	}
-	
+
 	public static void routeForTableMeta(RouteResultset rrs,
 			SchemaConfig schema, String tableName, String sql) {
 		String dataNode = null;
@@ -349,7 +349,7 @@ public class RouterUtil {
 
 	/**
 	 * 根据标名随机获取一个节点
-	 * 
+	 *
 	 * @param schema
 	 *            数据库名
 	 * @param table
@@ -369,10 +369,10 @@ public class RouterUtil {
 		}
 		return dataNode;
 	}
-	
+
 	/**
 	 * 根据 ER分片规则获取路由集合
-	 * 
+	 *
 	 * @param stmt
 	 *            执行的语句
 	 * @param rrs
@@ -417,15 +417,15 @@ public class RouterUtil {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleByJoinValueCalculate(RouteResultset rrs, TableConfig tc,
 			Set<ColumnRoutePair> colRoutePairSet) throws SQLNonTransientException {
-		
+
 		String joinValue = "";
-		
+
 		if(colRoutePairSet.size() > 1) {
 			LOGGER.warn("joinKey can't have multi Value");
 		} else {
@@ -433,9 +433,9 @@ public class RouterUtil {
 			ColumnRoutePair joinCol = (ColumnRoutePair)it.next();
 			joinValue = joinCol.colValue;
 		}
-		
-		Set<String> retNodeSet = new LinkedHashSet<String>(); 
-		
+
+		Set<String> retNodeSet = new LinkedHashSet<String>();
+
 		Set<String> nodeSet = new LinkedHashSet<String>();
 		if (tc.isSecondLevel()
 				&& tc.getParentTC().getPartitionColumn()
@@ -444,7 +444,7 @@ public class RouterUtil {
 														// rule to
 														// find
 														// datanode
-			
+
 			nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
 			if (nodeSet.isEmpty()) {
 				throw new SQLNonTransientException(
@@ -456,7 +456,7 @@ public class RouterUtil {
 						+ nodeSet + " sql :" + rrs.getStatement());
 			}
 			retNodeSet.addAll(nodeSet);
-			
+
 //			for(ColumnRoutePair pair : colRoutePairSet) {
 //				nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
 //				if (nodeSet.isEmpty() || nodeSet.size() > 1) {//an exception would be thrown, if sql was executed on more than on sharding
@@ -475,11 +475,11 @@ public class RouterUtil {
 		} else {
 			retNodeSet.addAll(tc.getParentTC().getDataNodes());
 		}
-		
+
 		return retNodeSet;
 	}
-		
-	
+
+
 	/**
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
@@ -547,11 +547,11 @@ public class RouterUtil {
 		if(tables.size() == 1) {
 			return RouterUtil.tryRouteForOneTable(schema, ctx, routeUnit, tables.get(0), rrs, isSelect, cachePool);
 		}
-		
+
 		Set<String> retNodesSet = new HashSet<String>();
 		//每个表对应的路由映射
 		Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
-		
+
 		//分库解析信息不为空
 		Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions = routeUnit.getTablesAndConditions();
 		if(tablesAndConditions != null && tablesAndConditions.size() > 0) {
@@ -561,7 +561,7 @@ public class RouterUtil {
 				return rrs;
 			}
 		}
-		
+
 		//为全局表和单库表找路由
 		for(String tableName : tables) {
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
@@ -580,7 +580,7 @@ public class RouterUtil {
 				tablesRouteMap.get(tableName).addAll(tableConfig.getDataNodes());
 			}
 		}
-		
+
 		boolean isFirstAdd = true;
 		for(Map.Entry<String, Set<String>> entry : tablesRouteMap.entrySet()) {
 			if(entry.getValue() == null || entry.getValue().size() == 0) {
@@ -600,10 +600,10 @@ public class RouterUtil {
 				}
 			}
 		}
-		
+
 		if(retNodesSet != null && retNodesSet.size() > 0) {
 			if(retNodesSet.size() > 1 && isAllGlobalTable(ctx, schema)) {
-				// mulit routes ,not cache route result				
+				// mulit routes ,not cache route result
 				if (isSelect) {
 					rrs.setCacheAble(false);
 					routeToSingleNode(rrs, retNodesSet.iterator().next(), ctx.getSql());
@@ -611,18 +611,18 @@ public class RouterUtil {
 				else {//delete 删除全局表的记录
 					routeToMultiNode(isSelect, rrs, retNodesSet, ctx.getSql(),true);
 				}
-				
+
 			} else {
 				routeToMultiNode(isSelect, rrs, retNodesSet, ctx.getSql());
 			}
-			
+
 		}
 		return rrs;
-		
+
 	}
 
 	/**
-	 * 
+	 *
 	 * 单表路由
 	 * @param schema
 	 * @param ctx
@@ -672,13 +672,13 @@ public class RouterUtil {
 						return rrs;
 					}
 				}
-				
+
 				if(tablesRouteMap.get(tableName) == null) {
 					return routeToMultiNode(rrs.isCacheAble(), rrs, tc.getDataNodes(), ctx.getSql());
 				} else {
 //					boolean isCache = rrs.isCacheAble();
 //					if(tablesRouteMap.get(tableName).size() > 1) {
-//						
+//
 //					}
 					return routeToMultiNode(rrs.isCacheAble(), rrs, tablesRouteMap.get(tableName), ctx.getSql());
 				}
@@ -694,7 +694,7 @@ public class RouterUtil {
 	 * @throws SQLNonTransientException
 	 */
 	public static void findRouteWithcConditionsForTables(SchemaConfig schema, RouteResultset rrs,
-			Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions, 
+			Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
 			Map<String, Set<String>> tablesRouteMap, String sql, LayerCachePool cachePool, boolean isSelect)
 			throws SQLNonTransientException {
 		//为分库表找路由
@@ -769,7 +769,7 @@ public class RouterUtil {
 							if(pair.colValue != null) {
 								Integer nodeIndex = tableConfig.getRule().getRuleAlgorithm().calculate(pair.colValue);
 								if(nodeIndex == null) {
-									String msg = "can't find any valid datanode :" + tableConfig.getName() 
+									String msg = "can't find any valid datanode :" + tableConfig.getName()
 											+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
 									LOGGER.warn(msg);
 									throw new SQLNonTransientException(msg);
@@ -792,7 +792,7 @@ public class RouterUtil {
 											tablesRouteMap.put(tableName, new HashSet<String>());
 										}
 										tablesRouteMap.get(tableName).add(node);
-										
+
 									}
 								}
 							}
@@ -800,9 +800,9 @@ public class RouterUtil {
 					}
 				} else if(joinKey != null && columnsMap.get(joinKey) != null && columnsMap.get(joinKey).size() != 0) {//childTable  (如果是select 语句的父子表join)之前要找到root table,将childTable移除,只留下root table
 					Set<ColumnRoutePair> joinKeyValue = columnsMap.get(joinKey);
-	
+
 					ColumnRoutePair joinCol = null;
-					
+
 					Set<String> dataNodeSet = ruleByJoinValueCalculate(rrs, tableConfig, joinKeyValue);
 
 					if (dataNodeSet.isEmpty()) {
@@ -822,7 +822,7 @@ public class RouterUtil {
 						routeToSingleNode(rrs, dataNodeSet.iterator().next(), sql);
 						return;
 					}
-				
+
 				} else {
 					//没找到拆分字段，该表的所有节点都路由
 					if(tablesRouteMap.get(tableName) == null) {
@@ -837,17 +837,17 @@ public class RouterUtil {
 	public static boolean isAllGlobalTable(DruidShardingParseInfo ctx, SchemaConfig schema) {
 		boolean isAllGlobal = false;
 		for(String table : ctx.getTables()) {
-			if(schema.getTables().get(table).isGlobalTable()) {
+			TableConfig tableConfig = schema.getTables().get(table);
+			if(tableConfig!=null && tableConfig.isGlobalTable()) {
 				isAllGlobal = true;
-			} else {
-				return false;
+				break;
 			}
 		}
 		return isAllGlobal;
 	}
 
 	/**
-	 * 
+	 *
 	 * @param schema
 	 * @param ctx
 	 * @param tc
@@ -863,7 +863,7 @@ public class RouterUtil {
 			hasRequiredValue = false;
 		} else {
 			for(Map.Entry<String, Set<ColumnRoutePair>> condition : routeUnit.getTablesAndConditions().get(tableName).entrySet()) {
-				
+
 				String colName = condition.getKey();
 				//条件字段是拆分字段
 				if(colName.equals(tc.getPartitionColumn())) {
@@ -895,7 +895,7 @@ public class RouterUtil {
 
 		return false;
 	}
-	
+
 	/**
 	 * 判断条件是否永真
 	 * @param expr
@@ -908,7 +908,7 @@ public class RouterUtil {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * 判断条件是否永假的
 	 * @param expr
