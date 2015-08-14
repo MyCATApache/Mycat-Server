@@ -10,6 +10,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SchemaConfig;
@@ -103,6 +104,36 @@ public class RouterUtil {
 		rrs.setFinishedRoute(true);
 		if (rrs.getCanRunInReadDB() != null) {
 			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
+		}
+		return rrs;
+	}
+
+	/**
+	 * 获取第一个节点作为路由
+	 *
+	 * @param rrs
+	 *            数据路由集合
+	 * @param dataNode
+	 *            数据库所在节点
+	 * @param stmt
+	 *            执行语句
+	 * @return 数据路由集合
+	 * @author mycat
+	 */
+	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt) {
+		//ddl create deal
+		if(ServerParse.CREATE_DDL==sqlType){
+			Map<String,PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
+			int nodeSize = dataNodes.size();
+			Iterator<String> iterator = dataNodes.keySet().iterator();
+			RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSize];
+			int i = 0;
+			while(iterator.hasNext()){
+				String name = iterator.next();
+				nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
+				i++;
+			}
+			rrs.setNodes(nodes);
 		}
 		return rrs;
 	}
