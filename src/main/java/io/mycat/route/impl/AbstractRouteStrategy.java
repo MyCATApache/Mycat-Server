@@ -20,7 +20,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	private static final Logger LOGGER = Logger.getLogger(AbstractRouteStrategy.class);
 
 	@Override
-	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String origSQL, 
+	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String origSQL,
 			String charset, MySQLFrontConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
 
 		//process some before route logic
@@ -28,7 +28,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 
 		// user handler
 		String stmt = MycatServer.getInstance().getSqlInterceptor().interceptSQL(origSQL, sqlType);
-		
+
 		if (origSQL != stmt && LOGGER.isDebugEnabled()) {
 			LOGGER.debug("sql intercepted to " + stmt + " from " + origSQL);
 		}
@@ -46,6 +46,11 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
             //rrs携带ServerConnection的autocommit状态用于在sql解析的时候遇到select ... for update的时候动态设定RouteResultsetNode的canRunInReadDB属性
 		if (sc != null ) {
 			rrs.setAutocommit(sc.isAutocommit());
+		}
+
+		//ddl create deal
+		if(ServerParse.CREATE_DDL==sqlType){
+			return RouterUtil.routeToDDLNode(rrs, sqlType, stmt);
 		}
 
 		// check if there is sharding in schema
@@ -80,9 +85,9 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	 * @throws SQLNonTransientException
 	 */
 	public abstract RouteResultset routeNormalSqlWithAST(SchemaConfig schema,String stmt,RouteResultset rrs,String charset,LayerCachePool cachePool) throws SQLNonTransientException;
-	
+
 	/**
-	 * 
+	 *
 	 * @param schema
 	 * @param sqlType
 	 * @param stmt
@@ -91,7 +96,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	 * @throws SQLSyntaxErrorException
 	 */
 	public abstract RouteResultset routeSystemInfo(SchemaConfig schema,int sqlType,String stmt,RouteResultset rrs) throws SQLSyntaxErrorException;
-	
+
 	/**
 	 * show  之类的语句
 	 * @param schema

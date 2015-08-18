@@ -1,5 +1,6 @@
 package io.mycat.route.util;
 
+import io.mycat.backend.PhysicalDBNode;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
@@ -114,6 +115,36 @@ public class RouterUtil {
 		rrs.setFinishedRoute(true);
 		if (rrs.getCanRunInReadDB() != null) {
 			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
+		}
+		return rrs;
+	}
+
+	/**
+	 * 路由ddl 到所有分片
+	 *
+	 * @param rrs
+	 *            数据路由集合
+	 * @param dataNode
+	 *            数据库所在节点
+	 * @param stmt
+	 *            执行语句
+	 * @return 数据路由集合
+	 * @author mycat
+	 */
+	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt) {
+		//ddl create deal
+		if(ServerParse.CREATE_DDL==sqlType){
+			Map<String,PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
+			int nodeSize = dataNodes.size();
+			Iterator<String> iterator = dataNodes.keySet().iterator();
+			RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSize];
+			int i = 0;
+			while(iterator.hasNext()){
+				String name = iterator.next();
+				nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
+				i++;
+			}
+			rrs.setNodes(nodes);
 		}
 		return rrs;
 	}
