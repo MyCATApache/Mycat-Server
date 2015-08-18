@@ -125,6 +125,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 				if (detector == null || detector.isQuit()) {
 					try {
 						detector = new MySQLDetector(this);
+						detector.heartbeat();
 					} catch (Exception e) {
 						LOGGER.warn(source.getConfig().toString(), e);
 						setResult(ERROR_STATUS, detector, null);
@@ -151,19 +152,22 @@ public class MySQLHeartbeat extends DBHeartbeat {
 
 	public void setResult(int result, MySQLDetector detector, String msg) {
 		this.isChecking.set(false);
+		String reason = "";
 		switch (result) {
 		case OK_STATUS:
 			setOk(detector);
 			break;
 		case ERROR_STATUS:
 			setError(detector);
+			reason = "ERROR_STATUS";
 			break;
 		case TIMEOUT_STATUS:
 			setTimeout(detector);
+			reason = "TIMEOUT_STATUS";
 			break;
 		}
 		if (this.status != OK_STATUS) {
-			switchSourceIfNeed("heartbeat error");
+			switchSourceIfNeed("heartbeat error："+reason);
 		}
 	}
 
