@@ -18,6 +18,7 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
+import io.mycat.backend.PhysicalDBNode;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
@@ -319,6 +320,35 @@ public class RouterUtil {
 		processSQL(sc,schema,new String(newSQLBuf),sqlType);
 	}
 
+	/**
+	 * 路由ddl 到所有分片
+	 *
+	 * @param rrs
+	 *            数据路由集合
+	 * @param dataNode
+	 *            数据库所在节点
+	 * @param stmt
+	 *            执行语句
+	 * @return 数据路由集合
+	 * @author mycat
+	 */
+	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt) {
+		//ddl create deal
+		if(ServerParse.DDL==sqlType){
+			Map<String,PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
+			int nodeSize = dataNodes.size();
+			Iterator<String> iterator = dataNodes.keySet().iterator();
+			RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSize];
+			int i = 0;
+			while(iterator.hasNext()){
+				String name = iterator.next();
+				nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
+				i++;
+			}
+			rrs.setNodes(nodes);
+		}
+		return rrs;
+	}
 	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt) {
 		RouteResultsetNode[] nodes = new RouteResultsetNode[dataNodes.size()];
 		int i = 0;
