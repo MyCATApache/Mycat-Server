@@ -122,7 +122,7 @@ public class RouterUtil {
 	 */
 	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt) {
 		//ddl create deal
-		if(ServerParse.CREATE_DDL==sqlType){
+		if(ServerParse.DDL==sqlType){
 			Map<String,PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
 			int nodeSize = dataNodes.size();
 			Iterator<String> iterator = dataNodes.keySet().iterator();
