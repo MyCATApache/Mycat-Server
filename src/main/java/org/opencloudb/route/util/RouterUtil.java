@@ -261,6 +261,10 @@ public class RouterUtil {
 	}
 
 	private static boolean isPKInFields(String origSQL,String primaryKey,int firstLeftBracketIndex,int firstRightBracketIndex){
+        if(primaryKey==null)
+        {
+           throw new RuntimeException("please make sure the primaryKey's config is not null in schemal.xml")  ;
+        }
 		boolean isPrimaryKeyInFields=false;
 		String upperSQL=origSQL.substring(firstLeftBracketIndex,firstRightBracketIndex+1).toUpperCase();
 		for(int pkOffset=0,primaryKeyLength=primaryKey.length(),pkStart=0;;){
@@ -417,7 +421,8 @@ public class RouterUtil {
 	 * @author mycat
 	 */
 
-	public static RouteResultset routeByERParentKey(String stmt,
+	public static RouteResultset routeByERParentKey(ServerConnection sc,SchemaConfig schema,
+                                                    int sqlType,String stmt,
 			RouteResultset rrs, TableConfig tc, String joinKeyVal)
 			throws SQLNonTransientException {
 		// only has one parent level and ER parent key is parent
@@ -439,6 +444,11 @@ public class RouterUtil {
 						"parent key can't find  valid datanode ,expect 1 but found: "
 								+ dataNodeSet.size());
 			}
+            boolean processedInsert=false;
+            if ( sc!=null && tc.isAutoIncrement()) {
+                String primaryKey = tc.getPrimaryKey();
+                processedInsert=processInsert(sc,schema,sqlType,stmt,tc.getName(),primaryKey);
+            }
 			String dn = dataNodeSet.iterator().next();
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
@@ -561,7 +571,6 @@ public class RouterUtil {
 	 * 多表路由
 	 * @param schema
 	 * @param ctx
-	 * @param tables
 	 * @param rrs
 	 * @param isSelect
 	 * @return
@@ -982,7 +991,7 @@ public class RouterUtil {
 			String sql = insertStmt.toString();
 
 			// try to route by ER parent partion key
-			RouteResultset theRrs = RouterUtil.routeByERParentKey(sql, rrs, tc, joinKeyVal);
+			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc,schema,ServerParse.INSERT,sql, rrs, tc, joinKeyVal);
 
 			if (theRrs != null) {
 				rrs.setFinishedRoute(true);
