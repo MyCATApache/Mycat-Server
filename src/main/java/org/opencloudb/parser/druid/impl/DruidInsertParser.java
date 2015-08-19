@@ -16,6 +16,7 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.function.AbstractPartitionAlgorithm;
 import org.opencloudb.route.util.RouterUtil;
+import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.StringUtil;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
@@ -130,7 +131,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 		String sql = insertStmt.toString();
 		
 		// try to route by ER parent partion key
-		RouteResultset theRrs = RouterUtil.routeByERParentKey(sql, rrs, tc,joinKeyVal);
+		RouteResultset theRrs = RouterUtil.routeByERParentKey(null,schema, ServerParse.INSERT,sql, rrs, tc,joinKeyVal);
 		if (theRrs != null) {
 			rrs.setFinishedRoute(true);
 			return theRrs;
