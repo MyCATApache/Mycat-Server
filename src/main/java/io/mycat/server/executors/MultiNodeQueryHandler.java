@@ -35,6 +35,7 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.MycatServer;
 import io.mycat.server.NonBlockingSession;
+import io.mycat.server.packet.BinaryRowDataPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
@@ -46,6 +47,7 @@ import io.mycat.sqlengine.mpp.DataMergeService;
 import io.mycat.sqlengine.mpp.MergeCol;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -79,6 +81,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private volatile boolean fieldsReturned;
 	private int okCount;
 	private final boolean isCallProcedure;
+	private boolean prepared;
+	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
 
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
@@ -323,8 +327,16 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 					break;
 				}
 				i++;
-				row.packetId = ++packetId;
-				row.write(bufferArray);
+				if(prepared) {
+					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+					binRowDataPk.read(fieldPackets, row);
+					binRowDataPk.packetId = ++packetId;
+					binRowDataPk.write(bufferArray);
+				} else {
+					row.packetId = ++packetId;
+					row.write(bufferArray);
+				}
+				
 			}
 
 			eof[3] = ++packetId;
@@ -411,6 +423,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				if (needMerg) {
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
+					fieldPackets.add(fieldPkg);
 					String fieldName = new String(fieldPkg.name).toUpperCase();
 					if (columToIndx != null
 							&& !columToIndx.containsKey(fieldName)) {
@@ -424,7 +437,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 							fieldPkg.packetId = ++packetId;
 							shouldSkip = true;
 							fieldPkg.write(bufferArray);
-
 						}
 
 						columToIndx.put(fieldName,
@@ -434,6 +446,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 					// find primary key index
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
+					fieldPackets.add(fieldPkg);
 					String fieldName = new String(fieldPkg.name);
 					if (primaryKey.equalsIgnoreCase(fieldName)) {
 						primaryKeyIndex = i;
@@ -518,6 +531,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	@Override
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
 		LoadDataUtil.requestFileDataResponse(data, (MySQLBackendConnection) conn);
+	}
+
+	public boolean isPrepared() {
+		return prepared;
+	}
+
+	public void setPrepared(boolean prepared) {
+		this.prepared = prepared;
 	}
 
 }

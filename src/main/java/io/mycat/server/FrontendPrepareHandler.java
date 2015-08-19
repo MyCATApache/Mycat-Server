@@ -34,6 +34,7 @@ public interface FrontendPrepareHandler {
 
     void execute(byte[] data);
 
-    void close();
+    void close(byte[] data);
 
+    void clear();
 }

@@ -4,3 +4,5 @@ MavenVersion 1.4-dev
 GitUrl https://github.com/MyCATApache/Mycat-Server.git
 MyCatSite http://www.mycat.org.cn
 QQGroup 106088787
+
+testOnlineCommit

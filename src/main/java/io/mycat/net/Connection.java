@@ -239,6 +239,10 @@ public abstract class Connection implements ClosableConnection{
 					// if cur buffer is temper none direct byte buffer and not
 					// received large message in recent 30 seconds
 					// then change to direct buffer for performance
+					if(isClosed) {
+						// 当调用CMD_QUIT之后readBuffer==null
+						return;
+					}
 					if (!readBuffer.isDirect()
 							&& lastLargeMessageTime < lastReadTime - 30 * 1000L) {// used
 																					// temp

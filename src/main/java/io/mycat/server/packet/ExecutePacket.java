@@ -111,6 +111,10 @@ public class ExecutePacket extends MySQLPacket {
         for (int i = 0; i < nullBitMap.length; i++) {
             nullBitMap[i] = mm.read();
         }
+        
+        if(parameterCount <= 0) {
+        	return ;
+        }
 
         // 当newParameterBoundFlag==1时，更新参数类型。
         newParameterBoundFlag = mm.read();

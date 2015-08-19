@@ -47,6 +47,8 @@ public class PreparedStmtResponse {
         preparedOk.parametersNumber = pstmt.getParametersNumber();
         BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
 				.allocateArray();
+        preparedOk.write(bufferArray);
+        
         // write parameter field packet
         int parametersNumber = preparedOk.parametersNumber;
         if (parametersNumber > 0) {
