@@ -49,7 +49,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		}
 
 		//ddl create deal
-		if(ServerParse.CREATE_DDL==sqlType){
+		if(ServerParse.DDL==sqlType){
 			return RouterUtil.routeToDDLNode(rrs, sqlType, stmt);
 		}
 
