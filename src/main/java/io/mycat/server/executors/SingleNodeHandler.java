@@ -35,11 +35,15 @@ import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.MycatServer;
 import io.mycat.server.NonBlockingSession;
+import io.mycat.server.packet.BinaryRowDataPacket;
 import io.mycat.server.packet.ErrorPacket;
+import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.OkPacket;
+import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.LoadDataUtil;
 import io.mycat.util.StringUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -58,6 +62,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private volatile byte packetId;
 	private volatile boolean isRunning;
 	private Runnable terminateCallBack;
+	private boolean prepared;
+	private int fieldCount;
+	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
 
 	public SingleNodeHandler(RouteResultset rrs, NonBlockingSession session) {
 		this.rrs = rrs;
@@ -234,8 +241,13 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		for (int i = 0, len = fields.size(); i < len; ++i) {
 			byte[] field = fields.get(i);
 			field[3] = ++packetId;
+			// 保存field信息
+			FieldPacket fieldPk = new FieldPacket();
+			fieldPk.read(field);
+			fieldPackets.add(fieldPk);
 			bufferArray.write(field);
 		}
+		fieldCount = fieldPackets.size();
 		eof[3] = ++packetId;
 		bufferArray.write(eof);
 		source.write(bufferArray);
@@ -244,7 +256,16 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
 		row[3] = ++packetId;
-		session.getSource().write(row);
+		if(prepared) {
+			RowDataPacket rowDataPk = new RowDataPacket(fieldCount);
+			rowDataPk.read(row);
+			BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+			binRowDataPk.read(fieldPackets, rowDataPk);
+			binRowDataPk.packetId = rowDataPk.packetId;
+			binRowDataPk.write(session.getSource());
+		} else {
+			session.getSource().write(row);
+		}
 	}
 
 	@Override
@@ -272,6 +293,14 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public String toString() {
 		return "SingleNodeHandler [node=" + node + ", packetId=" + packetId
 				+ "]";
+	}
+
+	public boolean isPrepared() {
+		return prepared;
+	}
+
+	public void setPrepared(boolean prepared) {
+		this.prepared = prepared;
 	}
 
 }
