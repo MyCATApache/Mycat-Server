@@ -32,7 +32,7 @@ public final class DateUtil extends DateUtils {
     public final static String MONTH_FORMAT           = "yyyyMM";
 
     /** yyyy年MM月dd�? */
-    public final static String CHINA_FORMAT           = "yyyy年MM月dd�?";
+    public final static String CHINA_FORMAT           = "yyyy年MM月dd日";
 
     /** yyyy-MM-dd HH:mm:ss */
     public final static String LONG_WEB_FORMAT        = "yyyy-MM-dd HH:mm:ss";
@@ -41,11 +41,11 @@ public final class DateUtil extends DateUtils {
     public final static String LONG_WEB_FORMAT_NO_SEC = "yyyy-MM-dd HH:mm";
 
     /**
-     * 日期对象解析成日期字符串基础方法，可以据此封装出多种便捷的方法直接使�?
+     * 日期对象解析成日期字符串基础方法，可以据此封装出多种便捷的方法直接使用
      * 
-     * @param date 待格式化的日期对�?
-     * @param format 输出的格�?
-     * @return 格式化的字符�?
+     * @param date 待格式化的日期对
+     * @param format 输出的格式
+     * @return 格式化的字符
      */
     public static String format(Date date, String format) {
         if (date == null || StringUtil.isBlank(format)) {
@@ -56,9 +56,9 @@ public final class DateUtil extends DateUtils {
     }
 
     /**
-     * 格式化当前时�?
+     * 格式化当前时间
      * 
-     * @param format 输出的格�?
+     * @param format 输出的格式
      * @return
      */
     public static String formatCurrent(String format) {
@@ -70,10 +70,10 @@ public final class DateUtil extends DateUtils {
     }
 
     /**
-     * 日期字符串解析成日期对象基础方法，可以在此封装出多种便捷的方法直接使�?
+     * 日期字符串解析成日期对象基础方法，可以在此封装出多种便捷的方法直接使用
      * 
-     * @param dateStr 日期字符�?
-     * @param format 输入的格�?
+     * @param dateStr 日期字符
+     * @param format 输入的格式
      * @return 日期对象
      * @throws ParseException 
      */
@@ -92,10 +92,10 @@ public final class DateUtil extends DateUtils {
     /**
      * 日期字符串格式化基础方法，可以在此封装出多种便捷的方法直接使�?
      * 
-     * @param dateStr 日期字符�?
-     * @param formatIn 输入的日期字符串的格�?
+     * @param dateStr 日期字符
+     * @param formatIn 输入的日期字符串的格式
      * @param formatOut 输出日期字符串的格式
-     * @return 已经格式化的字符�?
+     * @return 已经格式化的字符
      * @throws ParseException
      */
     public static String format(String dateStr, String formatIn, String formatOut)
@@ -106,10 +106,10 @@ public final class DateUtil extends DateUtils {
     }
 
     /**
-     * 把日期对象按�?<code>yyyyMMdd</code>格式解析成字符串
+     * 把日期对象按<code>yyyyMMdd</code>格式解析成字符串
      * 
-     * @param date 待格式化的日期对�? 
-     * @return 格式化的字符�?
+     * @param date 待格式化的日期对
+     * @return 格式化的字符串
      */
     public static String formatShort(Date date) {
         return format(date, SHORT_FORMAT);
@@ -119,18 +119,18 @@ public final class DateUtil extends DateUtils {
      * 把日期字符串按照<code>yyyyMMdd</code>格式，进行格式化
      * 
      * @param dateStr 待格式化的日期字符串
-     * @param formatIn 输入的日期字符串的格�? 
-     * @return 格式化的字符�?
+     * @param formatIn 输入的日期字符串的格式
+     * @return 格式化的字符
      */
     public static String formatShort(String dateStr, String formatIn) throws ParseException {
         return format(dateStr, formatIn, SHORT_FORMAT);
     }
 
     /**
-     * 把日期对象按�?<code>yyyy-MM-dd</code>格式解析成字符串
+     * 把日期对象按<code>yyyy-MM-dd</code>格式解析成字符串
      * 
-     * @param date 待格式化的日期对�? 
-     * @return 格式化的字符�?
+     * @param date 待格式化的日期对
+     * @return 格式化的字符
      */
     public static String formatWeb(Date date) {
         return format(date, WEB_FORMAT);
@@ -140,8 +140,8 @@ public final class DateUtil extends DateUtils {
      * 把日期字符串按照<code>yyyy-MM-dd</code>格式，进行格式化
      * 
      * @param dateStr 待格式化的日期字符串
-     * @param formatIn 输入的日期字符串的格�? 
-     * @return 格式化的字符�?
+     * @param formatIn 输入的日期字符串的格式
+     * @return 格式化的字符
      * @throws ParseException 
      */
     public static String formatWeb(String dateStr, String formatIn) throws ParseException {
@@ -149,10 +149,10 @@ public final class DateUtil extends DateUtils {
     }
 
     /**
-     * 把日期对象按�?<code>yyyyMM</code>格式解析成字符串
+     * 把日期对象按<code>yyyyMM</code>格式解析成字符串
      * 
-     * @param date 待格式化的日期对�? 
-     * @return 格式化的字符�?
+     * @param date 待格式化的日期对
+     * @return 格式化的字符
      */
     public static String formatMonth(Date date) {
 
@@ -160,10 +160,10 @@ public final class DateUtil extends DateUtils {
     }
 
     /**
-     * 把日期对象按�?<code>HHmmss</code>格式解析成字符串
+     * 把日期对象按<code>HHmmss</code>格式解析成字符串
      * 
-     * @param date 待格式化的日期对�? 
-     * @return 格式化的字符�?
+     * @param date 待格式化的日期对
+     * @return 格式化的字符
      */
     public static String formatTime(Date date) {
         return format(date, TIME_FORMAT);
@@ -172,7 +172,7 @@ public final class DateUtil extends DateUtils {
     /**
      * 获取yyyyMMddHHmmss+n位随机数格式的时间戳
      * 
-     * @param n 随机数位�?
+     * @param n 随机数位
      * @return
      */
     public static String getTimestamp(int n) {
@@ -190,11 +190,11 @@ public final class DateUtil extends DateUtils {
     }
 
     /**
-     * 把当日日期作为基准，按照格式返回相差�?定间隔的日期
+     * 把当日日期作为基准，按照格式返回相差定间隔的日期
      *
      * @param format 日期格式
-     * @param daysAfter 和当日比相差几天，例�?3代表3天后�?-1代表1天前
-     * @param monthAfter 和当日比相差几月，例�?2代表2月后�?-3代表3月前
+     * @param daysAfter 和当日比相差几天，例如3代表3天后，-1代表1天前
+     * @param monthAfter 和当日比相差几月，例如2代表2月后，-3代表3月前
      * @return
      */
     public static String getDateCompareToday(String format, int daysAfter, int monthAfter) {
@@ -209,7 +209,7 @@ public final class DateUtil extends DateUtils {
     }
 
     /**
-     * 根据日期格式返回上月的日�?
+     * 根据日期格式返回上月的日期
      * 
      * @param format
      * @return
