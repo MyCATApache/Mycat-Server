@@ -23,14 +23,14 @@ public class StringUtil extends StringUtils {
     /**  判断字符串是否为数字 */
     public static final Pattern NUMBER_PATTERN          = Pattern.compile("^[0-9]+$");
 
-    /** 默认中文编码字符�? */
+    /** 默认中文编码字符 */
     public static final String  DEFAULT_CHINESE_CHARSET = "GBK";
 
     private static final String LINE_END                = System.getProperty("line.separator");
 
     /**
-     * 扩展并左对齐字符串，用指定字符串填充右边�?
-     * 新增对中文字符串的支持，注意方法名称�?<code>alignLeft<b>s</b></code>
+     * 扩展并左对齐字符串，用指定字符串填充右边
+     * 新增对中文字符串的支持，注意方法名称<code>alignLeft<b>s</b></code>
      * 
      * <pre>
      * StringUtil.alignLeft(null, *, *)      = null
@@ -45,9 +45,9 @@ public class StringUtil extends StringUtils {
      * StringUtil.alignLeft("中文", 5, "")    = "中文 "
      * </pre>
      *
-     * @param str 要对齐的字符�?
+     * @param str 要对齐的字符串
      * @param size 扩展字符串到指定宽度
-     * @param padStr 填充字符�?
+     * @param padStr 填充字符串
      *
      * @return 扩展后的字符串，如果字符串为<code>null</code>，则返回<code>null</code>
      */
@@ -82,8 +82,8 @@ public class StringUtil extends StringUtils {
     }
 
     /**
-     * 扩展并右对齐字符串，用指定字符串填充左边�?
-     * 新增对中文字符串的支持，注意方法名称�?<code>alignRight<b>s</b></code>
+     * 扩展并右对齐字符串，用指定字符串填充左边
+     * 新增对中文字符串的支持，注意方法名称<code>alignRight<b>s</b></code>
      * 
      * <pre>
      * StringUtil.alignRight(null, *, *)      = null
@@ -98,9 +98,9 @@ public class StringUtil extends StringUtils {
      * StringUtil.alignRight("中文", 5, "")    = " 中文"
      * </pre>
      *
-     * @param str 要对齐的字符�?
+     * @param str 要对齐的字符串
      * @param size 扩展字符串到指定宽度
-     * @param padStr 填充字符�?
+     * @param padStr 填充字符串
      *
      * @return 扩展后的字符串，如果字符串为<code>null</code>，则返回<code>null</code>
      */
@@ -134,14 +134,14 @@ public class StringUtil extends StringUtils {
     }
 
     /**
-     * 取指定字符串的子串，新增对中文字符串的支�?
-     * 注意方法名称�?<code>substring<b>s</b></code>   
+     * 取指定字符串的子串，新增对中文字符串的支持
+     * 注意方法名称<code>substring<b>s</b></code>   
      *
-     * @param str 字符�?
+     * @param str 字符串
      * @param start 起始索引，如果为负数，表示从尾部计算
      * @param end 结束索引（不含），如果为负数，表示从尾部计算
      *
-     * @return 子串，如果原始串�?<code>null</code>，则返回<code>null</code>
+     * @return 子串，如果原始串<code>null</code>，则返回<code>null</code>
      */
     public static String substrings(String str, int start, int end) {
         if (str == null) {
@@ -156,8 +156,8 @@ public class StringUtil extends StringUtils {
     }
 
     /**
-     * 根据长度<code>length</code>把字符串切成两段，保存数�?<br>
-     * 确保中文不要被切成两�?
+     * 根据长度<code>length</code>把字符串切成两段，保存数据<br>
+     * 确保中文不要被切成两段
      * 
      * @param message
      * @param length
@@ -173,7 +173,7 @@ public class StringUtil extends StringUtils {
     }
 
     /**
-     * 字符串是否包含中�?
+     * 字符串是否包含中文
      * 
      * @param message
      * @param length
@@ -191,7 +191,7 @@ public class StringUtil extends StringUtils {
     }
 
     /**
-     * 字符串起始长�?<code>length</code>的字符串是否包含中文
+     * 字符串起始长度<code>length</code>的字符串是否包含中文
      * 
      * @param message
      * @param length
@@ -204,8 +204,8 @@ public class StringUtil extends StringUtils {
     }
 
     /**
-     * 在字符串中查找指定字符集合中的字符，并返回第�?个匹配的起始索引�? 如果字符串为<code>null</code>，则返回<code>-1</code>�?
-     * 如果字符集合�?<code>null</code>或空，也返回<code>-1</code>�?
+     * 在字符串中查找指定字符集合中的字符，并返回匹配的起始索引 如果字符串为<code>null</code>，则返回<code>-1</code>
+     * 如果字符集合<code>null</code>或空，也返回<code>-1</code>
      * <pre>
      * StringUtil.indexOfAny(null, *,0)                = -1
      * StringUtil.indexOfAny("", *,0)                  = -1
@@ -216,11 +216,11 @@ public class StringUtil extends StringUtils {
      * StringUtil.indexOfAny("aba", ['z'],0)           = -1
      * </pre>
      *
-     * @param str 要扫描的字符�?
+     * @param str 要扫描的字符串
      * @param searchChars 要搜索的字符集合
-     * @param startPos �?始搜索的索引值，如果小于0，则看作0
+     * @param startPos 起始搜索的索引值，如果小于0，则看作0
      *
-     * @return 第一个匹配的索引值�?�如果字符串�?<code>null</code>或未找到，则返回<code>-1</code>
+     * @return 第一个匹配的索引值 如果字符串<code>null</code>或未找到，则返回<code>-1</code>
      */
     public static int indexOfAny(String str, char[] searchChars, int startPos) {
         if ((str == null) || (str.length() == 0) || (searchChars == null)
@@ -242,7 +242,7 @@ public class StringUtil extends StringUtils {
     }
 
     /**
-     * 过滤要输出到json的字符串，将'�?"进行转义输出
+     * 过滤要输出到json的字符串，进行转义输出
      * @param input
      * @return
      */
@@ -311,7 +311,7 @@ public class StringUtil extends StringUtils {
 
     /**
      * 根据url获取系统名称
-     * 如果url里面包括系统名就返回，否则直接返回域�?
+     * 如果url里面包括系统名就返回，否则直接返回域名
      * 如http://bops.alipay.com 返回bops
      * http://www.alipay.com  返回  alipay.com
      * @param url
