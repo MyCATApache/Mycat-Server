@@ -117,4 +117,13 @@
 	<function name="jump-consistent-hash" class="io.mycat.route.function.PartitionByJumpConsistentHash">
 		<property name="totalBuckets">3</property>
 	</function>
+	<function name="parseByVelocity" class="io.mycat.route.function.PartitionByVelocity"><!--id="20010222330011" partition=95 -->
+		<property name="columnName">id</property><!-- 分片的表字段 -->
+        <property name="rule"><![CDATA[
+			#set($Integer=0)##
+			#set($monthday=$stringUtil.substring($ID,4,8))##
+			#set($prefix=$monthday.hashCode()%100)##
+    		$!prefix]]>
+		</property><!-- 分片的规则，用Velocity模板语言实现，分片更加灵活，更加易于易用 -->
+	</function>
 </mycat:rule>
