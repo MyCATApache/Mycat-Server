@@ -78,6 +78,7 @@ public final class NIOReactor {
 											LOGGER.warn("caught err: "+con, e);
 										}
 										con.close("program err:" + e.toString());
+										continue;
 									}
 								}
 								if (key.isWritable()) {
