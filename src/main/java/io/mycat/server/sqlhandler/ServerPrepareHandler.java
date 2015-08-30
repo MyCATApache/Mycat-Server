@@ -101,7 +101,9 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     	long pstmtId = ByteUtil.readUB4(data, 5); // 获取prepare stmt id
     	LOGGER.debug("close prepare stmt, stmtId = " + pstmtId);
     	PreparedStatement pstmt = pstmtForId.remove(pstmtId);
-    	pstmtForSql.remove(pstmt.getStatement());
+    	if(pstmt != null) {
+    		pstmtForSql.remove(pstmt.getStatement());
+    	}
     }
     
     @Override

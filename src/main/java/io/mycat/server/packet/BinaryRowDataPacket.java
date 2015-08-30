@@ -34,6 +34,7 @@ import java.util.List;
  */
 public class BinaryRowDataPacket extends MySQLPacket {
 	
+	private static final byte EMPTY_MARK = 0;
 	public int fieldCount;
 	public List<byte[]> fieldValues;
 	public byte packetHeader = (byte) 0;
@@ -57,10 +58,11 @@ public class BinaryRowDataPacket extends MySQLPacket {
 		for (int i = 0; i < fieldCount; i++) {
 			byte[] fv = _fieldValues.get(i);
 			FieldPacket fieldPk = fieldPackets.get(i);
-			if (fv == null || fv.length == 0) { // 字段值为null,根据协议规定存储nullBitMap
+			if (fv == null) { // 字段值为null,根据协议规定存储nullBitMap
 				int bitMapPos = (i + 2) / 8;
 				int bitPos = (i + 2) % 8;
 				nullBitMap[bitMapPos] |= (byte) (1 << bitPos);
+				this.fieldValues.add(fv);
 			} else {
 				// 从RowDataPacket的fieldValue的数据转化成BinaryRowDataPacket的fieldValue数据
 				int fieldType = fieldPk.type;
@@ -205,12 +207,10 @@ public class BinaryRowDataPacket extends MySQLPacket {
 		BufferUtil.writeUB3(bb, calcPacketSize());
 		bb.put(packetId);
 		bb.put(packetHeader); // packet header [00]
-		for(int i = 0; i < nullBitMap.length; i++) { // NULL-Bitmap
-			bb.put(nullBitMap[i]);
-		}
+		bb.put(nullBitMap); // NULL-Bitmap
 		for(int i = 0; i < fieldCount; i++) { // values
 			byte[] fv = fieldValues.get(i);
-			if(fv != null && fv.length > 0) {
+			if(fv != null) {
 				bb = bufferArray.checkWriteBuffer(BufferUtil.getLength(fv.length));
 				FieldPacket fieldPk = this.fieldPackets.get(i);
 				int fieldType = fieldPk.type;
@@ -234,7 +234,13 @@ public class BinaryRowDataPacket extends MySQLPacket {
 					default:
 						break;
 				}
-				bufferArray.write(fv);
+				if(fv.length > 0) {
+					bufferArray.write(fv);
+				} else {
+					byte[] bArr = new byte[1];
+					bArr[0] = BinaryRowDataPacket.EMPTY_MARK; // write EMPTY_MARK like RowDataPacket
+					bufferArray.write(bArr);
+				}
 			}
 		}
 	}
@@ -248,12 +254,10 @@ public class BinaryRowDataPacket extends MySQLPacket {
 			BufferUtil.writeUB3(bb, calcPacketSize());
 			bb.put(packetId);
 			bb.put(packetHeader); // packet header [00]
-			for(int i = 0; i < nullBitMap.length; i++) { // NULL-Bitmap
-				bb.put(nullBitMap[i]);
-			}
+			bb.put(nullBitMap); // NULL-Bitmap
 			for(int i = 0; i < fieldCount; i++) { // values
 				byte[] fv = fieldValues.get(i);
-				if(fv != null && fv.length > 0) {
+				if(fv != null) {
 					FieldPacket fieldPk = this.fieldPackets.get(i);
 					int fieldType = fieldPk.type;
 					switch(fieldType) {
@@ -276,7 +280,11 @@ public class BinaryRowDataPacket extends MySQLPacket {
 						default:
 							break;
 					}
-					bb.put(fv);
+					if(fv.length > 0) {
+						bb.put(fv);
+					} else {
+						bb.put(BinaryRowDataPacket.EMPTY_MARK); // write EMPTY_MARK like RowDataPacket
+					}
 				}
 			}
 			conn.write(bb);
@@ -312,7 +320,11 @@ public class BinaryRowDataPacket extends MySQLPacket {
 				case Fields.FIELD_TYPE_DECIMAL:
 				case Fields.FIELD_TYPE_NEW_DECIMAL:
 					// 长度编码的字符串需要一个字节来存储长度
-					size = size + 1 + value.length;
+					if(value.length != 0) {
+						size = size + 1 + value.length;
+					} else {
+						size = size + 1 + 1;
+					}
 					break;
 					default:
 						size = size + value.length;

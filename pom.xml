@@ -123,15 +123,21 @@
 			<type>jar</type>
 		</dependency>
 		<dependency>
-  		<groupId>com.sequoiadb.org</groupId>
-  		<artifactId>sequoiadb-java-driver</artifactId>
- 			<version>1.0-SNAPSHOT</version>
+  		<groupId>com.sequoiadb</groupId>
+  		<artifactId>sequoiadb-driver</artifactId>
+ 			<version>1.12</version>
 		</dependency>
 		<dependency>
 		    <groupId>org.apache.velocity</groupId>
             <artifactId>velocity</artifactId>
             <version>1.7</version>
         </dependency>
+        <!-- joda日期处理工具 -->
+        <dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+			<version>2.8.2</version>
+		</dependency>
 	</dependencies>
 
 
