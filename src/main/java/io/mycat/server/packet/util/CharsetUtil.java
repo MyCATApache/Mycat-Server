@@ -38,6 +38,16 @@ public class CharsetUtil {
     private static final Map<Integer,String> INDEX_TO_CHARSET = new HashMap<>();
     private static final Map<String, Integer> CHARSET_TO_INDEX = new HashMap<>();
     static {
+        //添加常见编码默认值，防止用户未配置文件 index_to_charset.properties
+        INDEX_TO_CHARSET.put(1,"big5");
+        INDEX_TO_CHARSET.put(8,"latin1");
+        INDEX_TO_CHARSET.put(9,"latin2");
+        INDEX_TO_CHARSET.put(14,"cp1251");
+        INDEX_TO_CHARSET.put(28,"gbk");
+        INDEX_TO_CHARSET.put(24,"gb2312");
+        INDEX_TO_CHARSET.put(33,"utf8");
+        INDEX_TO_CHARSET.put(45,"utf8mb4");
+
 
         String filePath = Thread.currentThread().getContextClassLoader()
                 .getResource("").getPath().replaceAll("%20", " ")
@@ -62,8 +72,9 @@ public class CharsetUtil {
             }
         }
 
-//        CHARSET_TO_INDEX.put("iso_8859_1", 14);
-//        CHARSET_TO_INDEX.put("utf-8", 33);
+        CHARSET_TO_INDEX.put("iso-8859-1", 14);
+        CHARSET_TO_INDEX.put("iso_8859_1", 14);
+        CHARSET_TO_INDEX.put("utf-8", 33);
     }
 
     public static final String getCharset(int index) {
