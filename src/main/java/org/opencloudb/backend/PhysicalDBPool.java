@@ -292,16 +292,16 @@ public class PhysicalDBPool {
 		while (!getConHandler.finished()
 				&& (System.currentTimeMillis() < timeOut)) {
 			try {
-				Thread.sleep(200);
+				Thread.sleep(100);
 
 			} catch (InterruptedException e) {
 				LOGGER.error("initError", e);
 			}
 		}
 		LOGGER.info("init result :" + getConHandler.getStatusInfo());
-		for (BackendConnection c : list) {
-			c.release();
-		}
+//		for (BackendConnection c : list) {
+//			c.release();
+//		}
 		return !list.isEmpty();
 	}
 
