@@ -62,8 +62,8 @@ public class CharsetUtil {
             }
         }
 
-        CHARSET_TO_INDEX.put("iso_8859_1", 14);
-        CHARSET_TO_INDEX.put("utf-8", 33);
+//        CHARSET_TO_INDEX.put("iso_8859_1", 14);
+//        CHARSET_TO_INDEX.put("utf-8", 33);
     }
 
     public static final String getCharset(int index) {
