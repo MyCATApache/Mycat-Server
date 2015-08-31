@@ -55,7 +55,7 @@ public class RollbackReleaseHandler implements ResponseHandler {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		logger.info("client error ocurred ,rollbacked backend conn "+conn);
+		logger.debug("autocomit is false,but no commit or rollback ,so mycat rollbacked backend conn "+conn);
 		conn.release();
 	}
 
