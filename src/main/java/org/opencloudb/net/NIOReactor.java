@@ -95,7 +95,6 @@ public final class NIOReactor {
 									try {
 										con.asynRead();
 									} catch (IOException e) {
-                                        LOGGER.warn("caught err:", e);
                                         con.close("program err:" + e.toString());
 										continue;
 									} catch (Exception e) {
@@ -139,8 +138,7 @@ public final class NIOReactor {
 					((NIOSocketWR) c.getSocketWR()).register(selector);
 					c.register();
 				} catch (Exception e) {
-					LOGGER.warn("register error ", e);
-					c.close("register err");
+					c.close("register err" + e.toString());
 				}
 			}
 		}
