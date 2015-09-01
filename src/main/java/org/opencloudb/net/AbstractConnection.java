@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.base.Strings;
 import org.apache.log4j.Logger;
 import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.util.CompressUtil;
@@ -443,6 +444,11 @@ public abstract class AbstractConnection implements NIOConnection {
 			}
 			this.cleanup();
 			isSupportCompress=false;
+
+			//ignore null information
+			if (Strings.isNullOrEmpty(reason)) {
+				return;
+			}
 			LOGGER.info("close connection,reason:" + reason + " ," + this);
 			if (reason.contains("connection,reason:java.net.ConnectException")) {
 				throw new RuntimeException(" errr");
