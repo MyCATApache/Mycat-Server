@@ -34,7 +34,6 @@ import java.util.List;
  */
 public class BinaryRowDataPacket extends MySQLPacket {
 	
-	private static final byte EMPTY_MARK = 0;
 	public int fieldCount;
 	public List<byte[]> fieldValues;
 	public byte packetHeader = (byte) 0;
@@ -228,7 +227,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 				case Fields.FIELD_TYPE_BIT:
 				case Fields.FIELD_TYPE_DECIMAL:
 				case Fields.FIELD_TYPE_NEW_DECIMAL:
-					// 长度编码的字符串需要一个字节来存储长度
+					// 长度编码的字符串需要一个字节来存储长度(0表示空字符串)
 					BufferUtil.writeLength(bb, fv.length);
 					break;
 					default:
@@ -236,11 +235,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 				}
 				if(fv.length > 0) {
 					bufferArray.write(fv);
-				} else {
-					byte[] bArr = new byte[1];
-					bArr[0] = BinaryRowDataPacket.EMPTY_MARK; // write EMPTY_MARK like RowDataPacket
-					bufferArray.write(bArr);
-				}
+				} 
 			}
 		}
 	}
@@ -274,7 +269,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 					case Fields.FIELD_TYPE_BIT:
 					case Fields.FIELD_TYPE_DECIMAL:
 					case Fields.FIELD_TYPE_NEW_DECIMAL:
-						// 长度编码的字符串需要一个字节来存储长度
+						// 长度编码的字符串需要一个字节来存储长度(0表示空字符串)
 						BufferUtil.writeLength(bb, fv.length);
 						break;
 						default:
@@ -282,9 +277,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 					}
 					if(fv.length > 0) {
 						bb.put(fv);
-					} else {
-						bb.put(BinaryRowDataPacket.EMPTY_MARK); // write EMPTY_MARK like RowDataPacket
-					}
+					} 
 				}
 			}
 			conn.write(bb);
@@ -323,7 +316,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 					if(value.length != 0) {
 						size = size + 1 + value.length;
 					} else {
-						size = size + 1 + 1;
+						size = size + 1; // 处理空字符串,只计算长度1个字节
 					}
 					break;
 					default:
