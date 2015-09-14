@@ -25,14 +25,11 @@ package io.mycat.route.function;
 
 import io.mycat.server.config.RuleAlgorithm;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * number column partion by Mod operator

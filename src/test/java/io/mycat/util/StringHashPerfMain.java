@@ -23,7 +23,6 @@
  */
 package io.mycat.util;
 
-import io.mycat.util.StringUtil;
 
 /**
  * @author mycat

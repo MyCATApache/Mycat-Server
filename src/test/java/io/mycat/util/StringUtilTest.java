@@ -23,8 +23,6 @@
  */
 package io.mycat.util;
 
-import io.mycat.util.StringUtil;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 

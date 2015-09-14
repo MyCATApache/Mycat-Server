@@ -23,8 +23,6 @@
  */
 package io.mycat;
 
-import io.mycat.ConfigInitializer;
-
 import org.junit.Test;
 
 /**
