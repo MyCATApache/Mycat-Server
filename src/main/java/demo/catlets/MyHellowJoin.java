@@ -2,8 +2,8 @@ package demo.catlets;
 
 import io.mycat.cache.LayerCachePool;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.sqlengine.AllJobFinishedListener;
 import io.mycat.sqlengine.Catlet;

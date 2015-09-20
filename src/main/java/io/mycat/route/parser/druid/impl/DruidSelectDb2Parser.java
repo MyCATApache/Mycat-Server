@@ -11,7 +11,7 @@ import com.alibaba.druid.util.JdbcConstants;
 
 import io.mycat.route.RouteResultset;
 import io.mycat.route.util.PageSQLUtil;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 
 import java.util.List;
 import java.util.regex.Matcher;

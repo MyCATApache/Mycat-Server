@@ -3,8 +3,8 @@ package io.mycat.backend.jdbc;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.net.ConnectIdGenerator;
-import io.mycat.server.config.DBHostConfig;
-import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.config.node.DBHostConfig;
+import io.mycat.server.config.node.DataHostConfig;
 import io.mycat.server.executors.ResponseHandler;
 
 import java.io.IOException;

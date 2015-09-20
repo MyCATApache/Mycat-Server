@@ -23,11 +23,13 @@
  */
 package io.mycat.server;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.config.node.MycatConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.executors.CommitNodeHandler;
 import io.mycat.server.executors.KillConnectionHandler;
 import io.mycat.server.executors.MultiNodeCoordinator;

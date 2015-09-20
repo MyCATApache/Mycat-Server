@@ -1,5 +1,6 @@
 package io.mycat.net;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 
 import java.io.IOException;
@@ -10,8 +11,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
+import io.mycat.server.config.node.SystemConfig;
 
 import io.mycat.util.TimeUtil;
 import org.slf4j.Logger;

@@ -2,8 +2,8 @@ package io.mycat.route.parser.druid.impl;
 
 import io.mycat.route.RouteResultset;
 import io.mycat.route.util.RouterUtil;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.TableConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.TableConfig;
 import io.mycat.util.StringUtil;
 
 import java.sql.SQLNonTransientException;
