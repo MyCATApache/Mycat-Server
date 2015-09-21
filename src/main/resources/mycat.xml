@@ -122,8 +122,8 @@
 	    <dataHost name="jdbchost" maxCon="2000" minCon="10" balance="1"
 	       writeType="0" dbType="mysql" dbDriver="native" switchType="1">
 			<heartbeat>select 1</heartbeat>
-			<writeHost host="master" url="121.40.121.133:3306" user="root" password="zaq1xsw2cde3"></writeHost>
-			<writeHost host="slave" url="116.236.223.115:3307" user="root" password="root"></writeHost>
+			<writeHost host="master" url="localhost:3306" user="root" password="root"></writeHost>
+			<writeHost host="slave" url="localhost:3306" user="root" password="root"></writeHost>
 		</dataHost>
     </schema-config>
     <rule-config>
