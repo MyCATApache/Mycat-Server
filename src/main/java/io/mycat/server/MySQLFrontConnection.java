@@ -1,8 +1,9 @@
 package io.mycat.server;
 
+import io.mycat.MycatServer;
 import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultset;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.packet.HandshakePacket;
 import io.mycat.server.packet.MySQLMessage;
 import io.mycat.server.packet.OkPacket;

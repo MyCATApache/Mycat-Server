@@ -23,8 +23,9 @@
  */
 package io.mycat.server;
 
-import io.mycat.MycatConfig;
-import io.mycat.server.config.UserConfig;
+import io.mycat.MycatServer;
+import io.mycat.server.config.node.MycatConfig;
+import io.mycat.server.config.node.UserConfig;
 
 import java.util.Map;
 import java.util.Set;

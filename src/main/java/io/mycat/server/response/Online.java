@@ -24,8 +24,8 @@
 package io.mycat.server.response;
 
 
+import io.mycat.MycatServer;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
 import io.mycat.server.packet.OkPacket;
 
 /**

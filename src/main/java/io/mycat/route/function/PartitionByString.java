@@ -24,7 +24,6 @@
 package io.mycat.route.function;
 
 import io.mycat.route.util.PartitionUtil;
-import io.mycat.server.config.RuleAlgorithm;
 import io.mycat.util.Pair;
 import io.mycat.util.StringUtil;
 

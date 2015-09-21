@@ -5,10 +5,9 @@ import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.SchemaLoader;
-import io.mycat.server.config.XMLSchemaLoader;
+import io.mycat.server.config.loader.ConfigInitializer;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 
 import java.sql.SQLNonTransientException;
 import java.text.ParseException;
@@ -58,8 +57,8 @@ public class PartitionByRangeDateHashTest
 
         for (int i = 0; i < 60*60*24*3-1; i++)
         {
-              cal.add(Calendar.SECOND, 1);
-        int v=    partition.calculate(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(cal.getTime()))     ;
+            cal.add(Calendar.SECOND, 1);
+            int v = partition.calculate(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(cal.getTime()))     ;
             Assert.assertTrue(v<6);
         }
 
@@ -73,10 +72,8 @@ public class PartitionByRangeDateHashTest
     protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 
     public PartitionByRangeDateHashTest() {
-        String schemaFile = "/route/schema.xml";
-        String ruleFile = "/route/rule.xml";
-        SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
-        schemaMap = schemaLoader.getSchemas();
+		ConfigInitializer confInit = new ConfigInitializer(true);
+        schemaMap = confInit.getSchemas();
     }
 
     @Test

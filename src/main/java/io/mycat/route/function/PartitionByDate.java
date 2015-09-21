@@ -1,6 +1,5 @@
 package io.mycat.route.function;
 
-import io.mycat.server.config.RuleAlgorithm;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -9,13 +8,12 @@ import org.apache.log4j.Logger;
 
 /**
  * 例子 按日期列分区  格式 between操作解析的范例
- * 
+ *
  * @author lxy
- * 
+ *
  */
 public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleAlgorithm {
-	private static final Logger LOGGER = Logger
-			.getLogger(PartitionByDate.class);
+	private static final Logger LOGGER = Logger.getLogger(PartitionByDate.class);
 
 	private String sBeginDate;
 	private String sPartionDay;
@@ -23,7 +21,7 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 
 	private long beginDate;
 	private long partionTime;
-	
+
 	private static final long oneDay = 86400000;
 
 	@Override
@@ -47,7 +45,7 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 
 		} catch (ParseException e) {
 			throw new java.lang.IllegalArgumentException(e);
-			
+
 		}
 	}
 

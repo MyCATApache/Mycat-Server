@@ -23,17 +23,17 @@
  */
 package io.mycat.server.response;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.server.Alarms;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatCluster;
-import io.mycat.server.MycatNode;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.MycatNodeConfig;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.cluster.MycatClusterConfig;
+import io.mycat.server.config.cluster.MycatNode;
+import io.mycat.server.config.cluster.MycatNodeConfig;
+import io.mycat.server.config.node.MycatConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
@@ -104,7 +104,7 @@ public class ShowMyCATCluster {
     private static List<RowDataPacket> getRows(MySQLFrontConnection c) {
         List<RowDataPacket> rows = new LinkedList<RowDataPacket>();
         MycatConfig config = MycatServer.getInstance().getConfig();
-        MycatCluster cluster = config.getCluster();
+        MycatClusterConfig cluster = config.getCluster();
         Map<String, SchemaConfig> schemas = config.getSchemas();
         SchemaConfig schema = (c.getSchema() == null) ? null : schemas.get(c.getSchema());
 

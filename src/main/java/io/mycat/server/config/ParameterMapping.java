@@ -23,6 +23,7 @@
  */
 package io.mycat.server.config;
 
+import io.mycat.server.config.cluster.BeanConfig;
 import io.mycat.util.StringUtil;
 
 import java.beans.BeanInfo;

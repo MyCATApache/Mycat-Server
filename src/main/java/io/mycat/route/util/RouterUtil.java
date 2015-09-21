@@ -1,5 +1,6 @@
 package io.mycat.route.util;
 
+import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
@@ -9,10 +10,9 @@ import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.RuleConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.TableConfig;
+import io.mycat.server.config.node.RuleConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.TableConfig;
 import io.mycat.server.executors.FetchStoreNodeOfChildTableHandler;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;

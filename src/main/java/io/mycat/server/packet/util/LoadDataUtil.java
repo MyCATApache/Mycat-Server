@@ -1,10 +1,10 @@
 package io.mycat.server.packet.util;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.nio.MySQLBackendConnection;
 import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.MycatServer;
 import io.mycat.server.packet.BinaryPacket;
 import io.mycat.sqlengine.mpp.LoadData;
 
