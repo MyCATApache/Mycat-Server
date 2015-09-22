@@ -23,11 +23,13 @@
  */
 package io.mycat.server.packet.util;
 
+import java.io.FileInputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.FileInputStream;
-import java.util.*;
 
 /**
  * @author mycat
@@ -38,7 +40,7 @@ public class CharsetUtil {
     private static final Map<Integer,String> INDEX_TO_CHARSET = new HashMap<>();
     private static final Map<String, Integer> CHARSET_TO_INDEX = new HashMap<>();
     static {
-        //Ìí¼Ó³£¼û±àÂëÄ¬ÈÏÖµ£¬·ÀÖ¹ÓÃ»§Î´ÅäÖÃÎÄ¼þ index_to_charset.properties
+        //ï¿½ï¿½Ó³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¬ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½Ö¹ï¿½Ã»ï¿½Î´ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ index_to_charset.properties
         INDEX_TO_CHARSET.put(1,"big5");
         INDEX_TO_CHARSET.put(8,"latin1");
         INDEX_TO_CHARSET.put(9,"latin2");

@@ -23,8 +23,6 @@
  */
 package io.mycat.util;
 
-import io.mycat.util.SmallSet;
-
 import java.util.Collection;
 import java.util.Iterator;
 

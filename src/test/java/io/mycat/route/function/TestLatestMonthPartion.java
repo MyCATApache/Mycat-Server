@@ -1,7 +1,6 @@
 package io.mycat.route.function;
 
 import static org.junit.Assert.assertTrue;
-import io.mycat.route.function.LatestMonthPartion;
 
 import org.junit.Test;
 

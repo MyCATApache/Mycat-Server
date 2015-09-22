@@ -1,10 +1,6 @@
 package io.mycat.backend.jdbc.sequoiadb;
 
 
-import com.sequoiadb.base.DBCursor;
-import org.bson.BSONObject;
-import org.bson.types.BasicBSONList;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -31,6 +27,11 @@ import java.util.HashMap;
 //import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.bson.BSONObject;
+import org.bson.types.BasicBSONList;
+
+import com.sequoiadb.base.DBCursor;
 /**  
  * 功能详细描述
  * @author sohudo[http://blog.csdn.net/wind520]

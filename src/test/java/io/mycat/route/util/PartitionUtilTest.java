@@ -23,8 +23,6 @@
  */
 package io.mycat.route.util;
 
-import io.mycat.route.util.PartitionUtil;
-
 import org.junit.Assert;
 import org.junit.Test;
 

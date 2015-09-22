@@ -4,7 +4,8 @@ import io.mycat.server.packet.RowDataPacket;
 import io.mycat.sqlengine.mpp.OrderCol;
 import io.mycat.sqlengine.mpp.RowDataPacketSorter;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * 

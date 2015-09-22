@@ -1,13 +1,13 @@
 package io.mycat.route.function;
 
-import com.google.common.hash.Hashing;
-
-import org.apache.log4j.Logger;
-
 import io.mycat.server.config.RuleAlgorithm;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+
+import org.apache.log4j.Logger;
+
+import com.google.common.hash.Hashing;
 
 /**
  * 先根据日期分组，再根据时间hash使得短期内数据分布的更均匀

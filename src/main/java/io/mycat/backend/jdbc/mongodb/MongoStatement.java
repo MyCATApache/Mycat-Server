@@ -1,7 +1,5 @@
 package io.mycat.backend.jdbc.mongodb;
 
-import com.mongodb.DBCursor;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;

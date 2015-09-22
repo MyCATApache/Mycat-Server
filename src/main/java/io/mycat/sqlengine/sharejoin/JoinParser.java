@@ -1,10 +1,10 @@
 package io.mycat.sqlengine.sharejoin;
 
 
-import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;

@@ -6,7 +6,6 @@ import io.mycat.server.config.SchemaConfig;
 
 import java.sql.SQLNonTransientException;
 
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.sql.ast.SQLStatement;
 
 /**

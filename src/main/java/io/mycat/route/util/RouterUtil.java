@@ -1,5 +1,6 @@
 package io.mycat.route.util;
 
+import io.mycat.backend.PhysicalDBNode;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
@@ -18,7 +19,6 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
-import io.mycat.backend.PhysicalDBNode;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;

@@ -23,7 +23,6 @@
  */
 package io.mycat.route.function;
 
-import io.mycat.route.function.PartitionByPrefixPattern;
 import junit.framework.Assert;
 
 import org.junit.Test;

@@ -1,6 +1,9 @@
 package io.mycat.net;
 
 import io.mycat.backend.BackendConnection;
+import io.mycat.server.MycatServer;
+import io.mycat.server.SystemConfig;
+import io.mycat.util.TimeUtil;
 
 import java.io.IOException;
 import java.net.StandardSocketOptions;
@@ -10,10 +13,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
-
-import io.mycat.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
