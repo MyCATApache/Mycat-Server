@@ -23,10 +23,10 @@
  */
 package io.mycat.backend;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.server.Alarms;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.config.node.DataHostConfig;
 import io.mycat.server.executors.GetConnectionHandler;
 import io.mycat.server.executors.ResponseHandler;
 import org.slf4j.Logger;
@@ -244,8 +244,7 @@ public class PhysicalDBPool {
 
                 if (this.writeType == WRITE_ONLYONE_NODE) {
                     // only init one write datasource
-                    MycatServer.getInstance().saveDataHostIndex(hostName,
-                            activedIndex);
+                    MycatServer.getInstance().saveDataHostIndex(hostName, activedIndex);
                     break;
                 }
             }
@@ -468,7 +467,7 @@ public class PhysicalDBPool {
 
     /**
      * return all backup write sources
-     * 
+     *
      * @param includeWriteNode if include write nodes
      * @param includeCurWriteNode if include current active write node. invalid when <code>includeWriteNode<code> is false
      * @param filterWithSlaveThreshold
@@ -476,7 +475,7 @@ public class PhysicalDBPool {
      * @return
      */
     private ArrayList<PhysicalDatasource> getAllActiveRWSources(
-    		boolean includeWriteNode, 
+    		boolean includeWriteNode,
             boolean includeCurWriteNode, boolean filterWithSlaveThreshold) {
         int curActive = activedIndex;
         ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(

@@ -1,8 +1,8 @@
 package io.mycat.server.interceptor.impl;
 
+import io.mycat.MycatServer;
 import io.mycat.net.NetSystem;
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.server.parser.ServerParse;
 import org.slf4j.Logger;

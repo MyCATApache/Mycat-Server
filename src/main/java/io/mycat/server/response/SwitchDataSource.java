@@ -24,9 +24,9 @@
 package io.mycat.server.response;
 
 
+import io.mycat.MycatServer;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.parser.ManagerParseSwitch;
 import io.mycat.util.Pair;

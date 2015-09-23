@@ -1,5 +1,6 @@
 package io.mycat.backend.nio;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.MySQLDataSource;
 import io.mycat.route.RouteResultsetNode;
@@ -7,7 +8,6 @@ import io.mycat.server.Capabilities;
 import io.mycat.server.GenalMySQLConnection;
 import io.mycat.server.Isolations;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
 import io.mycat.server.exception.UnknownTxIsolationException;
 import io.mycat.server.executors.ResponseHandler;
 import io.mycat.server.packet.CommandPacket;

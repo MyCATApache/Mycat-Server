@@ -26,7 +26,7 @@ package io.mycat.backend.heartbeat;
 import io.mycat.backend.MySQLDataSource;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
-import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.config.node.DataHostConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

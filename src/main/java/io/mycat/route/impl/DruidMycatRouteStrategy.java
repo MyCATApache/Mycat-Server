@@ -10,7 +10,7 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.parser.druid.*;
 import io.mycat.route.util.RouterUtil;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.parser.ServerParse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

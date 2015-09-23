@@ -1,8 +1,8 @@
 package io.mycat.net;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.util.TimeUtil;
 
 import java.io.IOException;
@@ -18,9 +18,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 存放当前所有连接的信息，包括客户端和服务端等，以及Network部分所使用共用对象
- * 
+ *
  * @author wuzhih
- * 
+ *
  */
 public class NetSystem {
 	private static final Logger LOGGER = LoggerFactory
@@ -109,7 +109,7 @@ public class NetSystem {
 
 	/**
 	 * 添加一个连接到系统中被监控
-	 * 
+	 *
 	 * @param c
 	 */
 	public void addConnection(Connection c) {

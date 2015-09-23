@@ -9,7 +9,7 @@ import io.mycat.route.parser.druid.DruidParser;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.sqlengine.mpp.RangeValue;
 import io.mycat.util.StringUtil;
 import org.slf4j.Logger;

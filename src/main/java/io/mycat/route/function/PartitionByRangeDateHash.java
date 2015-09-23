@@ -1,7 +1,6 @@
 package io.mycat.route.function;
 
 import com.google.common.hash.Hashing;
-import io.mycat.server.config.RuleAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

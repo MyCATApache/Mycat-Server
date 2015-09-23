@@ -23,7 +23,7 @@
  */
 package io.mycat.server.executors;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.nio.MySQLBackendConnection;
@@ -33,8 +33,8 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
 import io.mycat.server.NonBlockingSession;
+import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.packet.util.LoadDataUtil;

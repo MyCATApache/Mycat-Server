@@ -1,6 +1,5 @@
 package io.mycat.route.function;
 
-import io.mycat.server.config.RuleAlgorithm;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

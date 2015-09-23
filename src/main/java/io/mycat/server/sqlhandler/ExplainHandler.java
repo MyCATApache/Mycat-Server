@@ -23,6 +23,7 @@
  */
 package io.mycat.server.sqlhandler;
 
+import io.mycat.MycatServer;
 import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultset;
@@ -30,8 +31,7 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
