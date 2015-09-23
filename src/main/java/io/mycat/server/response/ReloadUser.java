@@ -27,15 +27,16 @@ package io.mycat.server.response;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.packet.OkPacket;
-
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public final class ReloadUser {
 
-    private static final Logger logger = Logger.getLogger(ReloadUser.class);
+    private static final Logger logger = LoggerFactory
+            .getLogger(ReloadUser.class);
 
     public static void execute(MySQLFrontConnection c) {
         boolean status = false;

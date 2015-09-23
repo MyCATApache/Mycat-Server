@@ -27,12 +27,12 @@ import io.mycat.backend.MySQLDataSource;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.server.config.DataHostConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
@@ -40,7 +40,8 @@ import org.apache.log4j.Logger;
 public class MySQLHeartbeat extends DBHeartbeat {
 
 	private static final int MAX_RETRY_COUNT = 5;
-	public static final Logger LOGGER = Logger.getLogger(MySQLHeartbeat.class);
+	public static final Logger LOGGER = LoggerFactory
+			.getLogger(MySQLHeartbeat.class);
 
 	private final MySQLDataSource source;
 

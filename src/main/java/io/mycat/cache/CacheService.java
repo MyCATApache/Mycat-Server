@@ -23,21 +23,22 @@
  */
 package io.mycat.cache;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
-
 /**
  * cache service for other component default using memory cache encache
- * 
+ *
  * @author wuzhih
- * 
  */
 public class CacheService {
-	private static final Logger logger = Logger.getLogger(CacheService.class);
+    private static final Logger logger = LoggerFactory
+            .getLogger(CacheService.class);
 
 	private final Map<String, CachePoolFactory> poolFactorys = new HashMap<String, CachePoolFactory>();
 	private final Map<String, CachePool> allPools = new HashMap<String, CachePool>();
@@ -167,7 +168,7 @@ public class CacheService {
 
 	/**
 	 * get cache pool by name ,caller should cache result
-	 * 
+	 *
 	 * @param poolName
 	 * @return CachePool
 	 */

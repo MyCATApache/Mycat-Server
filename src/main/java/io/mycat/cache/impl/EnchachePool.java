@@ -27,8 +27,8 @@ import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheStatic;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
-
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * encache based cache pool
@@ -37,7 +37,8 @@ import org.apache.log4j.Logger;
  * 
  */
 public class EnchachePool implements CachePool {
-	private static final Logger LOGGER = Logger.getLogger(EnchachePool.class);
+	private static final Logger LOGGER = LoggerFactory
+			.getLogger(EnchachePool.class);
 	private final Cache enCache;
 	private final CacheStatic cacheStati = new CacheStatic();
     private final String name;

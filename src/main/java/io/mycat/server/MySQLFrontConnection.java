@@ -264,7 +264,8 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 				&& sqlType!=ServerParse.SHOW
 				&& sqlType!=ServerParse.KILL
 				&& sqlType!=ServerParse.KILL_QUERY
-				&& sqlType!=ServerParse.MYSQL_COMMENT ) {
+				&& sqlType!=ServerParse.MYSQL_COMMENT
+				&& sqlType!=ServerParse.MYSQL_CMD_COMMENT) {
 			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
 			return;
 		}

@@ -23,26 +23,16 @@
  */
 package io.mycat.server.sqlhandler;
 
-import static io.mycat.server.parser.ServerParseSet.AUTOCOMMIT_OFF;
-import static io.mycat.server.parser.ServerParseSet.AUTOCOMMIT_ON;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CLIENT;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CONNECTION;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_RESULTS;
-import static io.mycat.server.parser.ServerParseSet.NAMES;
-import static io.mycat.server.parser.ServerParseSet.TX_READ_COMMITTED;
-import static io.mycat.server.parser.ServerParseSet.TX_READ_UNCOMMITTED;
-import static io.mycat.server.parser.ServerParseSet.TX_REPEATED_READ;
-import static io.mycat.server.parser.ServerParseSet.TX_SERIALIZABLE;
-import static io.mycat.server.parser.ServerParseSet.XA_FLAG_OFF;
-import static io.mycat.server.parser.ServerParseSet.XA_FLAG_ON;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.Isolations;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.parser.ServerParseSet;
 import io.mycat.server.response.CharacterSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.log4j.Logger;
+import static io.mycat.server.parser.ServerParseSet.*;
 
 /**
  * SET 语句处理
@@ -51,7 +41,8 @@ import org.apache.log4j.Logger;
  */
 public final class SetHandler {
 
-	private static final Logger logger = Logger.getLogger(SetHandler.class);
+	private static final Logger logger = LoggerFactory
+			.getLogger(SetHandler.class);
 	private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0,
 			0, 0, 0 };
 

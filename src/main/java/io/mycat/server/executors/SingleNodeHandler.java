@@ -39,17 +39,17 @@ import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.packet.util.LoadDataUtil;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		LoadDataResponseHandler {
-	private static final Logger LOGGER = Logger
+	public static final Logger LOGGER = LoggerFactory
 			.getLogger(SingleNodeHandler.class);
 	private final RouteResultsetNode node;
 	private final RouteResultset rrs;

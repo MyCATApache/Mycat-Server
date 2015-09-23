@@ -24,6 +24,9 @@
 package io.mycat.server.response;
 
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.mycat.ConfigInitializer;
 import io.mycat.MycatConfig;
 import io.mycat.backend.PhysicalDBNode;
@@ -37,22 +40,18 @@ import io.mycat.server.config.QuarantineConfig;
 import io.mycat.server.config.SchemaConfig;
 import io.mycat.server.config.UserConfig;
 import io.mycat.server.packet.OkPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
 /**
  * @author mycat
  */
 public final class ReloadConfig {
-	private static final Logger LOGGER = Logger.getLogger(ReloadConfig.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ReloadConfig.class);
 
 	public static void execute(MySQLFrontConnection c, final boolean loadAll) {
 		final ReentrantLock lock = MycatServer.getInstance().getConfig()

@@ -1,15 +1,12 @@
 package io.mycat.server.classloader;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.log4j.Logger;
 
 /**
  * used for mycat's catlet class loader ,catlet's class file is stored in
@@ -19,7 +16,8 @@ import org.apache.log4j.Logger;
  * 
  */
 public class DynaClassLoader {
-	private static final Logger LOGGER = Logger.getLogger("DynaClassLoader");
+	private static final Logger LOGGER = LoggerFactory
+			.getLogger("DynaClassLoader");
 	/** key- class full name */
 	private static Map<String, DynaClass> loadedDynaClassMap = new ConcurrentHashMap<String, DynaClass>();
 	private final String extClassHome;

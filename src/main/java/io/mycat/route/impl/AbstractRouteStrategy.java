@@ -10,14 +10,14 @@ import io.mycat.server.SystemConfig;
 import io.mycat.server.config.SchemaConfig;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.LoadData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 
-import org.apache.log4j.Logger;
-
 public abstract class AbstractRouteStrategy implements RouteStrategy {
-	private static final Logger LOGGER = Logger.getLogger(AbstractRouteStrategy.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRouteStrategy.class);
 
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String origSQL,

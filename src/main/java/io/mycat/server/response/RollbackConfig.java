@@ -35,17 +35,17 @@ import io.mycat.server.config.QuarantineConfig;
 import io.mycat.server.config.SchemaConfig;
 import io.mycat.server.config.UserConfig;
 import io.mycat.server.packet.OkPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public final class RollbackConfig {
-	private static final Logger LOGGER = Logger.getLogger(RollbackConfig.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(RollbackConfig.class);
 
 	public static void execute(MySQLFrontConnection c) {
 		final ReentrantLock lock = MycatServer.getInstance().getConfig()

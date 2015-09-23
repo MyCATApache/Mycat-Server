@@ -8,17 +8,17 @@ import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.MycatServer;
 import io.mycat.server.SystemConfig;
 import io.mycat.server.config.SchemaConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
-
-import org.apache.log4j.Logger;
 
 /**
  * 处理注释中类型为schema 的情况（按照指定schema做路由解析）
  */
 public class HintSchemaHandler implements HintHandler {
 
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(HintSchemaHandler.class);
 
 	private RouteStrategy routeStrategy;
