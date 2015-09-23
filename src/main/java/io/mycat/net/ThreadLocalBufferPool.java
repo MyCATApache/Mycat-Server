@@ -1,6 +1,5 @@
 package io.mycat.net;
 
-import io.mycat.net.BufferQueue;
 
 public class ThreadLocalBufferPool extends ThreadLocal<BufferQueue> {
 	private final int size;

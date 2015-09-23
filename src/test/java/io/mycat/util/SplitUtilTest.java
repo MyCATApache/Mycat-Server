@@ -23,7 +23,6 @@
  */
 package io.mycat.util;
 
-import io.mycat.util.SplitUtil;
 import junit.framework.Assert;
 
 import org.junit.Test;

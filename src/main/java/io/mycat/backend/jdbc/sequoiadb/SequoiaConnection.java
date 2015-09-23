@@ -20,8 +20,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.base.CollectionSpace;
+import com.sequoiadb.base.Sequoiadb;
 import com.sequoiadb.exception.BaseException;
 /**  
  * 功能详细描述

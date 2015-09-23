@@ -24,10 +24,11 @@ import java.nio.ByteOrder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import com.google.common.primitives.*;
-
-
 import sun.misc.Unsafe;
+
+import com.google.common.primitives.Longs;
+import com.google.common.primitives.UnsignedBytes;
+import com.google.common.primitives.UnsignedLongs;
 
 /**
  * Utility code to do optimized byte-array comparison.

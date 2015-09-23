@@ -24,8 +24,8 @@
 package io.mycat;
 
 import io.mycat.server.config.loader.ConfigInitializer;
-
 import org.junit.Test;
+
 
 /**
  * @author mycat

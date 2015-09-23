@@ -3,7 +3,7 @@
 <mycat>
     <server-config>
 		<system>
-			<property name="sequnceHandlerType">0</property>
+			<property name="sequnceHandlerType">2</property>
 			<property name="serverPort">8066</property>
 			<property name="managerPort">9066</property>
 			<property name="charset">utf8</property>
@@ -52,7 +52,9 @@
     </server-config>
     <schema-config>
         <schema name="mycat" checkSQLschema="true" sqlMaxLimit="100" dataNode="dn4" >
-        	<table name="TUSER" primaryKey="id" autoIncrement="true" rule="auto-sharding-long" dataNode="dn4"></table>
+        	<table name="TUSER" primaryKey="id" autoIncrement="true" rule="auto-sharding-long" dataNode="dn4,dn5">
+        	    <childTable  name="TUSER_DETAIL" primaryKey="id" autoIncrement="true" joinKey="USER_ID" parentKey="id"></childTable>
+        	</table>
 		</schema>
 		<schema name="TESTDB" checkSQLschema="false" sqlMaxLimit="100">
 			<!-- auto sharding by id (long) -->
@@ -119,11 +121,11 @@
 			url="jdbc:mysql://localhost:3306" user="root" password="123456"> </writeHost>
 			</dataHost> -->
         <dataNode name="dn4" dataHost="jdbchost" database="mycat_node1" />
+        <dataNode name="dn5" dataHost="jdbchost" database="mycat_node1" />
 	    <dataHost name="jdbchost" maxCon="2000" minCon="10" balance="1"
 	       writeType="0" dbType="mysql" dbDriver="native" switchType="1">
 			<heartbeat>select 1</heartbeat>
-			<writeHost host="master" url="localhost:3306" user="root" password="root"></writeHost>
-			<writeHost host="slave" url="localhost:3306" user="root" password="root"></writeHost>
+			<writeHost host="master" url="121.40.121.133:3306" user="root" password="zaq1xsw2cde3"></writeHost>
 		</dataHost>
     </schema-config>
     <rule-config>

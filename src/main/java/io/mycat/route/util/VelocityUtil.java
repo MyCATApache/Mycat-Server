@@ -3,6 +3,7 @@ package io.mycat.route.util;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
+
 import org.apache.log4j.Logger;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
