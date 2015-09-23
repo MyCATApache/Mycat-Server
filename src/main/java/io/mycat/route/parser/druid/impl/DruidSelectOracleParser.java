@@ -1,7 +1,7 @@
 package io.mycat.route.parser.druid.impl;
 
 import io.mycat.route.RouteResultset;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 
 import java.util.List;
 import java.util.Map;
@@ -278,6 +278,6 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
 
 
-	
+
 
 }

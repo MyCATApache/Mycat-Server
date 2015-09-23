@@ -2,7 +2,7 @@ package io.mycat.backend.nio;
 
 import io.mycat.backend.MySQLDataSource;
 import io.mycat.net.NetSystem;
-import io.mycat.server.config.DBHostConfig;
+import io.mycat.server.config.node.DBHostConfig;
 import io.mycat.server.executors.ResponseHandler;
 
 import java.io.IOException;

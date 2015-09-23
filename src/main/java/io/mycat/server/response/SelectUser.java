@@ -23,11 +23,11 @@
  */
 package io.mycat.server.response;
 
+import io.mycat.MycatServer;
 import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.FieldPacket;

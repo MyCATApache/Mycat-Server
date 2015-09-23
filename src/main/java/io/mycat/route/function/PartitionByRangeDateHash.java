@@ -1,7 +1,5 @@
 package io.mycat.route.function;
 
-import io.mycat.server.config.RuleAlgorithm;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
@@ -18,8 +16,7 @@ import com.google.common.hash.Hashing;
  */
 public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm implements RuleAlgorithm
 {
-    private static final Logger LOGGER = Logger
-            .getLogger(PartitionByRangeDateHash.class);
+    private static final Logger LOGGER = Logger.getLogger(PartitionByRangeDateHash.class);
 
     private String sBeginDate;
     private String sPartionDay;

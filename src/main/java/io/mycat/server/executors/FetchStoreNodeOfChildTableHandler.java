@@ -23,12 +23,12 @@
  */
 package io.mycat.server.executors;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.cache.CachePool;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.MycatServer;
+import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.parser.ServerParse;

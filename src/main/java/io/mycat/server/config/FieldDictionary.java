@@ -23,6 +23,8 @@
  */
 package io.mycat.server.config;
 
+import io.mycat.server.config.info.JVMInfo;
+
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;

@@ -1,15 +1,15 @@
 package demo.catlets;
 
+import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.TableConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
+import io.mycat.server.config.node.TableConfig;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.sequence.IncrSequenceMySQLHandler;
 import io.mycat.server.sequence.IncrSequencePropHandler;

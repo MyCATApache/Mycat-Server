@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -32,9 +32,9 @@ import org.apache.log4j.Logger;
 
 /**
  * cache service for other component default using memory cache encache
- * 
+ *
  * @author wuzhih
- * 
+ *
  */
 public class CacheService {
 	private static final Logger logger = Logger.getLogger(CacheService.class);
@@ -64,7 +64,7 @@ public class CacheService {
 	private void init() throws Exception {
 		Properties props = new Properties();
 		props.load(CacheService.class
-				.getResourceAsStream("/cacheservice.properties"));
+				.getResourceAsStream("/caches.properties"));
 		final String poolFactoryPref = "factory.";
 		final String poolKeyPref = "pool.";
 		final String layedPoolKeyPref = "layedpool.";
@@ -167,7 +167,7 @@ public class CacheService {
 
 	/**
 	 * get cache pool by name ,caller should cache result
-	 * 
+	 *
 	 * @param poolName
 	 * @return CachePool
 	 */

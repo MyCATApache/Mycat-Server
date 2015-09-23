@@ -6,8 +6,8 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.parser.ServerParse;
 
 import java.sql.SQLNonTransientException;

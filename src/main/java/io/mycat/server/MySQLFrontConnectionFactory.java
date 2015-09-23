@@ -1,8 +1,10 @@
 package io.mycat.server;
 
+import io.mycat.MycatServer;
 import io.mycat.net.Connection;
 import io.mycat.net.ConnectionFactory;
 import io.mycat.net.NIOHandler;
+import io.mycat.server.config.node.SystemConfig;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
