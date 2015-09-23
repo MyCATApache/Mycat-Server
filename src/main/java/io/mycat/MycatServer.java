@@ -34,7 +34,6 @@ import io.mycat.server.MySQLFrontConnectionFactory;
 import io.mycat.server.MySQLFrontConnectionHandler;
 import io.mycat.server.classloader.DynaClassLoader;
 import io.mycat.server.config.ConfigException;
-import io.mycat.server.config.Log4jInitializer;
 import io.mycat.server.config.cluster.ClusterSync;
 import io.mycat.server.config.loader.ConfigFactory;
 import io.mycat.server.config.node.MycatConfig;
@@ -153,12 +152,6 @@ public class MycatServer {
 
 	public MycatConfig getConfig() {
 		return config;
-	}
-
-	public void beforeStart() {
-		String home = SystemConfig.getHomePath();
-		Log4jInitializer.configureAndWatch(home + "/conf/log4j.xml",
-				LOG_WATCH_DELAY);
 	}
 
 	public void startup() throws IOException {

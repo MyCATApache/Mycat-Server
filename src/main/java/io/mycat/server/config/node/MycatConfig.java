@@ -30,18 +30,18 @@ import io.mycat.server.config.cluster.MycatClusterConfig;
 import io.mycat.server.config.loader.ConfigInitializer;
 import io.mycat.server.config.loader.ConfigReLoader;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
-
 /**
  * @author mycat
  */
 public class MycatConfig implements ConfigReLoader{
-	private static final Logger LOGGER = Logger.getLogger("MycatConfig");
+	private static final Logger LOGGER = LoggerFactory.getLogger("MycatConfig");
 
 	private static final int RELOAD = 1;
 	private static final int ROLLBACK = 2;
