@@ -30,9 +30,11 @@ import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.route.handler.HintHandler;
 import io.mycat.route.handler.HintHandlerFactory;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
@@ -40,11 +42,9 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
-
 public class RouteService {
-    private static final Logger LOGGER = Logger
-            .getLogger(RouteService.class);
+	private static final Logger LOGGER = LoggerFactory
+			.getLogger(RouteService.class);
 	private final CachePool sqlRouteCache;
 	private final LayerCachePool tableId2DataNodeCache;
 

@@ -23,16 +23,15 @@
  */
 package io.mycat.server.response;
 
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CLIENT;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CONNECTION;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_RESULTS;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.parser.ServerParseSet;
 import io.mycat.util.SplitUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.log4j.Logger;
+import static io.mycat.server.parser.ServerParseSet.*;
 
 /**
  * 字符集属性设置
@@ -42,7 +41,8 @@ import org.apache.log4j.Logger;
  */
 public class CharacterSet {
 
-	private static final Logger logger = Logger.getLogger(CharacterSet.class);
+	private static final Logger logger = LoggerFactory
+			.getLogger(CharacterSet.class);
 
 	public static void response(String stmt, MySQLFrontConnection c, int rs) {
 		if (-1 == stmt.indexOf(',')) {

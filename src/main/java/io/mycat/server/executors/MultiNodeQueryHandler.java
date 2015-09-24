@@ -23,7 +23,7 @@
  */
 package io.mycat.server.executors;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.nio.MySQLBackendConnection;
@@ -33,8 +33,8 @@ import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
 import io.mycat.server.NonBlockingSession;
+import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
@@ -44,25 +44,19 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColMeta;
 import io.mycat.sqlengine.mpp.DataMergeService;
 import io.mycat.sqlengine.mpp.MergeCol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		LoadDataResponseHandler {
-	private static final Logger LOGGER = Logger
+	public static final Logger LOGGER = LoggerFactory
 			.getLogger(MultiNodeQueryHandler.class);
 
 	private final RouteResultset rrs;

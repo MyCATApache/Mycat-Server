@@ -29,17 +29,17 @@ import io.mycat.server.NonBlockingSession;
 import io.mycat.server.packet.CommandPacket;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.MySQLPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public class KillConnectionHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(KillConnectionHandler.class);
 
 	private final MySQLBackendConnection killee;

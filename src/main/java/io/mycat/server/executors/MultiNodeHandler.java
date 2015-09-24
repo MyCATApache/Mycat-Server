@@ -28,17 +28,17 @@ import io.mycat.server.ErrorCode;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
-	private static final Logger LOGGER = Logger
+	public static final Logger LOGGER = LoggerFactory
 			.getLogger(MultiNodeHandler.class);
 	protected final ReentrantLock lock = new ReentrantLock();
 	protected final NonBlockingSession session;

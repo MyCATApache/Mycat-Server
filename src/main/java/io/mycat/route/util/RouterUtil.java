@@ -1,5 +1,14 @@
 package io.mycat.route.util;
 
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
+import com.google.common.base.Strings;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import io.mycat.MycatServer;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
@@ -10,40 +19,21 @@ import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.RuleConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.TableConfig;
+import io.mycat.server.config.node.RuleConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.TableConfig;
 import io.mycat.server.executors.FetchStoreNodeOfChildTableHandler;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
-
-import org.apache.log4j.Logger;
-
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.wall.spi.WallVisitorUtils;
-import com.google.common.base.Strings;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -51,7 +41,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  *
  */
 public class RouterUtil {
-    private static final Logger LOGGER = Logger.getLogger(RouterUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RouterUtil.class);
     /**
      * 移除执行语句中的数据库名
      *

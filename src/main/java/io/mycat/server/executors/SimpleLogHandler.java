@@ -24,13 +24,13 @@
 package io.mycat.server.executors;
 
 import io.mycat.backend.BackendConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import org.apache.log4j.Logger;
-
 public class SimpleLogHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(SimpleLogHandler.class);
 
 	@Override

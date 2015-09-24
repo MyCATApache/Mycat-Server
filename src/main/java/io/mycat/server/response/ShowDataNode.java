@@ -23,7 +23,7 @@
  */
 package io.mycat.server.response;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
@@ -31,8 +31,8 @@ import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.MycatConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;

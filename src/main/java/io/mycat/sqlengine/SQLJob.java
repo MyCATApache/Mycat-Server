@@ -1,18 +1,18 @@
 package io.mycat.sqlengine;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.MycatServer;
+import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.executors.ResponseHandler;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
-
-import org.apache.log4j.Logger;
 
 /**
  * asyn execute in EngineCtx or standalone (EngineCtx=null)
@@ -21,7 +21,8 @@ import org.apache.log4j.Logger;
  * 
  */
 public class SQLJob implements ResponseHandler, Runnable {
-	public static final Logger LOGGER = Logger.getLogger(SQLJob.class);
+	public static final Logger LOGGER = LoggerFactory
+			.getLogger(SQLJob.class);
 	private final String sql;
 	private final String dataNodeOrDatabase;
 	private BackendConnection connection;

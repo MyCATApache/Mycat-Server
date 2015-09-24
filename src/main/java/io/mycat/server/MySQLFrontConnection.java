@@ -1,8 +1,9 @@
 package io.mycat.server;
 
+import io.mycat.MycatServer;
 import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultset;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.packet.HandshakePacket;
 import io.mycat.server.packet.MySQLMessage;
 import io.mycat.server.packet.OkPacket;
@@ -264,7 +265,8 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 				&& sqlType!=ServerParse.SHOW
 				&& sqlType!=ServerParse.KILL
 				&& sqlType!=ServerParse.KILL_QUERY
-				&& sqlType!=ServerParse.MYSQL_COMMENT ) {
+				&& sqlType!=ServerParse.MYSQL_COMMENT
+				&& sqlType!=ServerParse.MYSQL_CMD_COMMENT) {
 			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
 			return;
 		}

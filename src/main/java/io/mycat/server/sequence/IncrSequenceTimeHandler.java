@@ -1,51 +1,36 @@
 package io.mycat.server.sequence;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+import io.mycat.server.config.node.SequenceConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.log4j.Logger;
+import java.util.Map;
 
-public class IncrSequenceTimeHandler implements SequenceHandler {
-    protected static final Logger LOGGER = Logger.getLogger(IncrSequenceTimeHandler.class);
+public class IncrSequenceTimeHandler extends SequenceHandler {
+	protected static final Logger LOGGER = LoggerFactory
+			.getLogger(IncrSequenceTimeHandler.class);
 
-	private static final String SEQUENCE_DB_PROPS = "sequence_time_conf.properties";
 	private static final IncrSequenceTimeHandler instance = new IncrSequenceTimeHandler();
-	private static IdWorker workey = new IdWorker(1,1);
+	private static IdWorker workey = new IdWorker(0,0);
 
-
-	public static IncrSequenceTimeHandler getInstance() {
+	public static SequenceHandler getInstance() {
 		return IncrSequenceTimeHandler.instance;
 	}
 
-	public IncrSequenceTimeHandler() {
-		load();
-	}
-
-
-	public void load(){
-		// load sequnce properties
-		Properties props = loadProps(SEQUENCE_DB_PROPS);
-
-		long workid = Long.valueOf(props.getProperty("WORKID"));
-		long dataCenterId = Long.valueOf(props.getProperty("DATAACENTERID"));
-
-		workey = new IdWorker(workid,dataCenterId);
-	}
-	private Properties loadProps(String propsFile){
-		Properties props = new Properties();
-		InputStream inp = Thread.currentThread().getContextClassLoader().getResourceAsStream(propsFile);
-
-		if (inp == null) {
-			throw new java.lang.RuntimeException("time sequnce properties not found " + propsFile);
+	static{
+		SequenceConfig sequenceConfig = SequenceHandler.getConfig();
+		Map<String, Object> props = sequenceConfig.getProps();
+		if(!props.isEmpty()){
+			long workerId =  Integer.valueOf((String)props.get("WORKID")) ;
+			long datacenterId = Integer.valueOf((String)props.get("DATAACENTERID")) ;
+			IncrSequenceTimeHandler.instance.setWorkey(new IdWorker(workerId,datacenterId) );
 		}
-		try {
-			props.load(inp);
-		} catch (IOException e) {
-			throw new java.lang.RuntimeException(e);
-		}
-		return props;
 	}
+
+	private IncrSequenceTimeHandler() {
+
+	}
+
 	@Override
 	public long nextId(String prefixName) {
 		return workey.nextId();
@@ -137,6 +122,10 @@ public class IncrSequenceTimeHandler implements SequenceHandler {
 
 
 
+	}
+
+	public void setWorkey(IdWorker workey) {
+		IncrSequenceTimeHandler.workey = workey;
 	}
 
 

@@ -25,6 +25,8 @@ package io.mycat.server.executors;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.server.packet.ErrorPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -34,8 +36,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
-
 /**
  * heartbeat check for mysql connections
  * 
@@ -43,7 +43,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class ConnectionHeartBeatHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	public static final Logger LOGGER = LoggerFactory
 			.getLogger(ConnectionHeartBeatHandler.class);
 	protected final ReentrantLock lock = new ReentrantLock();
 	private final ConcurrentHashMap<Long, HeartBeatCon> allCons = new ConcurrentHashMap<Long, HeartBeatCon>();

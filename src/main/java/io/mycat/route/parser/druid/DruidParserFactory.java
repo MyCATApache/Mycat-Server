@@ -11,8 +11,8 @@ import io.mycat.route.parser.druid.impl.DruidSelectParser;
 import io.mycat.route.parser.druid.impl.DruidSelectPostgresqlParser;
 import io.mycat.route.parser.druid.impl.DruidSelectSqlServerParser;
 import io.mycat.route.parser.druid.impl.DruidUpdateParser;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.TableConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.TableConfig;
 
 import java.util.ArrayList;
 import java.util.HashSet;

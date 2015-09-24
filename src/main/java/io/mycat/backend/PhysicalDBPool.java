@@ -23,23 +23,18 @@
  */
 package io.mycat.backend;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.server.Alarms;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.config.node.DataHostConfig;
 import io.mycat.server.executors.GetConnectionHandler;
 import io.mycat.server.executors.ResponseHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 public class PhysicalDBPool {
     public static final int BALANCE_NONE = 0;
@@ -51,7 +46,7 @@ public class PhysicalDBPool {
     public static final int WRITE_ALL_NODE = 2;
     public static final long LONG_TIME = 300000;
 
-    protected static final Logger LOGGER = Logger
+    protected static final Logger LOGGER = LoggerFactory
             .getLogger(PhysicalDBPool.class);
     private final String hostName;
     protected PhysicalDatasource[] writeSources;
@@ -249,8 +244,7 @@ public class PhysicalDBPool {
 
                 if (this.writeType == WRITE_ONLYONE_NODE) {
                     // only init one write datasource
-                    MycatServer.getInstance().saveDataHostIndex(hostName,
-                            activedIndex);
+                    MycatServer.getInstance().saveDataHostIndex(hostName, activedIndex);
                     break;
                 }
             }
@@ -473,7 +467,7 @@ public class PhysicalDBPool {
 
     /**
      * return all backup write sources
-     * 
+     *
      * @param includeWriteNode if include write nodes
      * @param includeCurWriteNode if include current active write node. invalid when <code>includeWriteNode<code> is false
      * @param filterWithSlaveThreshold
@@ -481,7 +475,7 @@ public class PhysicalDBPool {
      * @return
      */
     private ArrayList<PhysicalDatasource> getAllActiveRWSources(
-    		boolean includeWriteNode, 
+    		boolean includeWriteNode,
             boolean includeCurWriteNode, boolean filterWithSlaveThreshold) {
         int curActive = activedIndex;
         ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(

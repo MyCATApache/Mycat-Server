@@ -1,76 +1,58 @@
 package io.mycat.server.sequence;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.MycatServer;
 import io.mycat.server.config.ConfigException;
+import io.mycat.server.config.node.MycatConfig;
+import io.mycat.server.config.node.SequenceConfig;
 import io.mycat.server.executors.ResponseHandler;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.log4j.Logger;
-
-public class IncrSequenceMySQLHandler implements SequenceHandler {
-
-	protected static final Logger LOGGER = Logger
+public class IncrSequenceMySQLHandler extends SequenceHandler {
+	public static final Logger LOGGER = LoggerFactory
 			.getLogger(IncrSequenceMySQLHandler.class);
 
-	private static final String SEQUENCE_DB_PROPS = "sequence_db_conf.properties";
 	protected static final String errSeqResult = "-999999999,null";
 	protected static Map<String, String> latestErrors = new ConcurrentHashMap<String, String>();
 	private final FetchMySQLSequnceHandler mysqlSeqFetcher = new FetchMySQLSequnceHandler();
+	/**
+	 * save sequnce -> curval
+	 */
+	private ConcurrentHashMap<String, SequenceVal> seqValueMap = new ConcurrentHashMap<String, SequenceVal>();
 
 	private static class IncrSequenceMySQLHandlerHolder {
 		private static final IncrSequenceMySQLHandler instance = new IncrSequenceMySQLHandler();
 	}
-
-	public static IncrSequenceMySQLHandler getInstance() {
+	public static SequenceHandler getInstance() {
 		return IncrSequenceMySQLHandlerHolder.instance;
 	}
 
 	public IncrSequenceMySQLHandler() {
-
 		load();
 	}
 
 	public void load() {
+		Properties props = new Properties();
 		// load sequnce properties
-		Properties props = loadProps(SEQUENCE_DB_PROPS);
+		SequenceConfig sequenceConfig = SequenceHandler.getConfig();
+		Map<String, Object> data = sequenceConfig.getProps();
+		Set<String> keySet = data.keySet();
+        for(String key : keySet){
+        	props.put(key, data.get(key));
+        }
 		removeDesertedSequenceVals(props);
 		putNewSequenceVals(props);
-	}
-
-	private Properties loadProps(String propsFile) {
-
-		Properties props = new Properties();
-		InputStream inp = Thread.currentThread().getContextClassLoader()
-				.getResourceAsStream(propsFile);
-
-		if (inp == null) {
-			throw new java.lang.RuntimeException(
-					"db sequnce properties not found " + propsFile);
-
-		}
-		try {
-			props.load(inp);
-		} catch (IOException e) {
-			throw new java.lang.RuntimeException(e);
-		}
-
-		return props;
 	}
 
 	private void removeDesertedSequenceVals(Properties props) {
@@ -95,11 +77,6 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 			}
 		}
 	}
-
-	/**
-	 * save sequnce -> curval
-	 */
-	private ConcurrentHashMap<String, SequenceVal> seqValueMap = new ConcurrentHashMap<String, SequenceVal>();
 
 	@Override
 	public long nextId(String seqName) {
@@ -155,10 +132,11 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 		}
 
 	}
+
 }
 
 class FetchMySQLSequnceHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(FetchMySQLSequnceHandler.class);
 
 	public void execute(SequenceVal seqVal) {

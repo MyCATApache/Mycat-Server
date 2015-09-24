@@ -1,15 +1,21 @@
 package demo.catlets;
 
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.TableConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
+import io.mycat.server.config.node.TableConfig;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.sequence.IncrSequenceMySQLHandler;
 import io.mycat.server.sequence.IncrSequencePropHandler;
@@ -17,15 +23,8 @@ import io.mycat.server.sequence.SequenceHandler;
 import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;
 import io.mycat.util.StringUtil;
-
-import org.apache.log4j.Logger;
-
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 执行批量插入sequence Id
@@ -33,7 +32,8 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
  * @date 2015/03/20
  */
 public class BatchInsertSequence implements Catlet {
-	private static final Logger LOGGER = Logger.getLogger(BatchInsertSequence.class);
+	private static final Logger LOGGER = LoggerFactory
+			.getLogger(BatchInsertSequence.class);
 	
 	private RouteResultset rrs;//路由结果集
 	private String executeSql;//接收执行处理任务的sql

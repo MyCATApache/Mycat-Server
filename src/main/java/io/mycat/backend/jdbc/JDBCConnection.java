@@ -9,17 +9,14 @@ import io.mycat.server.Isolations;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.executors.ConnectionHeartBeatHandler;
 import io.mycat.server.executors.ResponseHandler;
-import io.mycat.server.packet.EOFPacket;
-import io.mycat.server.packet.ErrorPacket;
-import io.mycat.server.packet.FieldPacket;
-import io.mycat.server.packet.OkPacket;
-import io.mycat.server.packet.ResultSetHeaderPacket;
-import io.mycat.server.packet.RowDataPacket;
+import io.mycat.server.packet.*;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.response.ShowVariables;
 import io.mycat.util.ResultSetUtil;
 import io.mycat.util.StringUtil;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -32,10 +29,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
-
 public class JDBCConnection implements BackendConnection {
-	protected static final Logger LOGGER = Logger
+	protected static final Logger LOGGER = LoggerFactory
 			.getLogger(JDBCConnection.class);
 	private JDBCDatasource pool;
 	private volatile String schema;

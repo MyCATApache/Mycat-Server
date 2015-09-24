@@ -23,6 +23,7 @@
  */
 package io.mycat.server.sqlhandler;
 
+import io.mycat.MycatServer;
 import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultset;
@@ -30,8 +31,7 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
@@ -39,15 +39,15 @@ import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.StringUtil;
-
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public class ExplainHandler {
 
-	private static final Logger logger = Logger.getLogger(ExplainHandler.class);
+	private static final Logger logger = LoggerFactory.getLogger(ExplainHandler.class);
 	private static final RouteResultsetNode[] EMPTY_ARRAY = new RouteResultsetNode[0];
 	private static final int FIELD_COUNT = 2;
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];

@@ -1,13 +1,11 @@
 package io.mycat.route.function;
 
-import io.mycat.server.config.RuleAlgorithm;
+import com.google.common.hash.Hashing;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-
-import org.apache.log4j.Logger;
-
-import com.google.common.hash.Hashing;
 
 /**
  * 先根据日期分组，再根据时间hash使得短期内数据分布的更均匀
@@ -18,7 +16,7 @@ import com.google.common.hash.Hashing;
  */
 public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm implements RuleAlgorithm
 {
-    private static final Logger LOGGER = Logger
+    private static final Logger LOGGER = LoggerFactory
             .getLogger(PartitionByRangeDateHash.class);
 
     private String sBeginDate;

@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,14 +16,13 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.route.function;
 
-import io.mycat.server.config.RuleAlgorithm;
 import io.mycat.server.exception.MurmurHashException;
 
 import java.io.BufferedReader;
@@ -53,15 +52,15 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 	private static final int DEFAULT_VIRTUAL_BUCKET_TIMES=160;
 	private static final int DEFAULT_WEIGHT=1;
 	private static final Charset DEFAULT_CHARSET=Charset.forName("UTF-8");
-	
+
 	private int seed;
 	private int count;
 	private int virtualBucketTimes=DEFAULT_VIRTUAL_BUCKET_TIMES;
 	private Map<Integer,Integer> weightMap=new HashMap<>();
 //	private String bucketMapPath;
-	
+
 	private HashFunction hash;
-	
+
 	private SortedMap<Integer,Integer> bucketMap;
 	@Override
 	public void init()  {
@@ -151,8 +150,8 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 	 * 节点的权重，没有指定权重的节点默认是1。以properties文件的格式填写，以从0开始到count-1的整数值也就是节点索引为key，以节点权重值为值。
 	 * 所有权重值必须是正整数，否则以1代替
 	 * @param weightMapPath
-	 * @throws IOException 
-	 * @throws  
+	 * @throws IOException
+	 * @throws
 	 */
 	public void setWeightMapFile(String weightMapPath) throws IOException{
 		Properties props=new Properties();
@@ -188,11 +187,11 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		PartitionByMurmurHash hash=new PartitionByMurmurHash();
 		hash.count=10;//分片数
 		hash.init();
-		
+
 		int[] bucket=new int[hash.count];
-		
+
 		Map<Integer,List<Integer>> hashed=new HashMap<>();
-		
+
 		int total=1000_0000;//数据量
 		int c=0;
 		for(int i=100_0000;i<total+100_0000;i++){//假设分片键从100万开始
@@ -217,14 +216,14 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 			System.out.println(idx+++"  "+i+"   "+(i/(double)total));
 		}
 		System.out.println(d+"  "+c);
-		
+
 		Properties props=new Properties();
 		for(Map.Entry entry:hash.bucketMap.entrySet()){
 			props.setProperty(entry.getKey().toString(), entry.getValue().toString());
 		}
 		ByteArrayOutputStream out=new ByteArrayOutputStream();
 		props.store(out, null);
-		
+
 		props.clear();
 		props.load(new ByteArrayInputStream(out.toByteArray()));
 		System.out.println(props);
@@ -235,9 +234,9 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		PartitionByMurmurHash hash=new PartitionByMurmurHash();
 		hash.count=12;//分片数
 		hash.init();
-		
+
 		int[] bucket=new int[hash.count];
-		
+
 		int total=partition.size();//数据量
 		int c=0;
 		for(int i:partition){//假设分片键从100万开始

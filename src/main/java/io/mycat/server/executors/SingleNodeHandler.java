@@ -23,7 +23,7 @@
  */
 package io.mycat.server.executors;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.nio.MySQLBackendConnection;
@@ -33,23 +33,23 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
 import io.mycat.server.NonBlockingSession;
+import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.packet.util.LoadDataUtil;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		LoadDataResponseHandler {
-	private static final Logger LOGGER = Logger
+	public static final Logger LOGGER = LoggerFactory
 			.getLogger(SingleNodeHandler.class);
 	private final RouteResultsetNode node;
 	private final RouteResultset rrs;

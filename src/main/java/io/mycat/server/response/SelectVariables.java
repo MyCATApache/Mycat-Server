@@ -23,6 +23,7 @@
  */
 package io.mycat.server.response;
 
+import com.google.common.base.Splitter;
 import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
@@ -32,21 +33,20 @@ import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.log4j.Logger;
-
-import com.google.common.base.Splitter;
 
 /**
  * @author mycat
  */
 public final class SelectVariables
 {
-    private static final Logger LOGGER = Logger.getLogger(SelectVariables.class);
+    private static final Logger LOGGER = LoggerFactory
+            .getLogger(SelectVariables.class);
 
 
     public static void execute(MySQLFrontConnection c, String sql) {

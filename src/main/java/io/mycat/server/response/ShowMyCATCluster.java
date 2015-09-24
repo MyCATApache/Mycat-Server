@@ -23,17 +23,17 @@
  */
 package io.mycat.server.response;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.server.Alarms;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatCluster;
-import io.mycat.server.MycatNode;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.MycatNodeConfig;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.cluster.MycatClusterConfig;
+import io.mycat.server.config.cluster.MycatNode;
+import io.mycat.server.config.cluster.MycatNodeConfig;
+import io.mycat.server.config.node.MycatConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
@@ -41,19 +41,20 @@ import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
 import io.mycat.util.IntegerUtil;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public class ShowMyCATCluster {
 
-    private static final Logger alarm = Logger.getLogger("alarm");
+    private static final Logger alarm = LoggerFactory
+            .getLogger("alarm");
 
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
@@ -104,7 +105,7 @@ public class ShowMyCATCluster {
     private static List<RowDataPacket> getRows(MySQLFrontConnection c) {
         List<RowDataPacket> rows = new LinkedList<RowDataPacket>();
         MycatConfig config = MycatServer.getInstance().getConfig();
-        MycatCluster cluster = config.getCluster();
+        MycatClusterConfig cluster = config.getCluster();
         Map<String, SchemaConfig> schemas = config.getSchemas();
         SchemaConfig schema = (c.getSchema() == null) ? null : schemas.get(c.getSchema());
 
