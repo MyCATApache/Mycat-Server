@@ -30,15 +30,16 @@ import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.HeartbeatPacket;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.util.TimeUtil;
-
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public class Heartbeat {
 
-	private static final Logger HEARTBEAT = Logger.getLogger("heartbeat");
+	public static final Logger HEARTBEAT = LoggerFactory
+			.getLogger("heartbeat");
 
 	public static void response(MySQLFrontConnection c, byte[] data) {
 		HeartbeatPacket hp = new HeartbeatPacket();

@@ -29,16 +29,16 @@ import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.config.loader.ReloadUtil;
 import io.mycat.server.packet.OkPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public final class RollbackCallBack {
-	private static final Logger LOGGER = Logger.getLogger(RollbackCallBack.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(RollbackCallBack.class);
 
 	public static void execute(MySQLFrontConnection c) {
 		final ReentrantLock lock = MycatServer.getInstance().getConfig().getLock();

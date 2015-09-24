@@ -27,16 +27,16 @@ import io.mycat.backend.BackendConnection;
 import io.mycat.backend.nio.MySQLBackendConnection;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.packet.ErrorPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public class CommitNodeHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	public static final Logger LOGGER = LoggerFactory
 			.getLogger(CommitNodeHandler.class);
 	private final NonBlockingSession session;
 

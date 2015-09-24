@@ -33,6 +33,8 @@ import io.mycat.server.executors.DelegateResponseHandler;
 import io.mycat.server.executors.NewConnectionRespHandler;
 import io.mycat.server.executors.ResponseHandler;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,10 +43,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.log4j.Logger;
-
 public abstract class PhysicalDatasource {
-    private static final Logger LOGGER = Logger
+    public static final Logger LOGGER = LoggerFactory
             .getLogger(PhysicalDatasource.class);
 
     private final String name;

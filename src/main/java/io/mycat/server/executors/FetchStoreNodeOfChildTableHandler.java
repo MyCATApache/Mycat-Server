@@ -32,13 +32,13 @@ import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 /**
  * company where id=(select company_id from customer where id=3); the one which
@@ -48,7 +48,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(FetchStoreNodeOfChildTableHandler.class);
 	private String sql;
 	private volatile String result;

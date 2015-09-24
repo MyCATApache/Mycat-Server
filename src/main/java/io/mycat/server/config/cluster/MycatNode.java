@@ -23,14 +23,15 @@
  */
 package io.mycat.server.config.cluster;
 
-
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public class MycatNode {
-	private static final Logger LOGGER = Logger.getLogger(MycatNode.class);
+	private static final Logger LOGGER = LoggerFactory
+			.getLogger(MycatNode.class);
 
 	private final String name;
 	private final MycatNodeConfig config;

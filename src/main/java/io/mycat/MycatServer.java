@@ -23,29 +23,25 @@
  */
 package io.mycat;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.cache.CacheService;
-import io.mycat.net.BufferPool;
-import io.mycat.net.ExecutorUtil;
-import io.mycat.net.NIOAcceptor;
-import io.mycat.net.NIOConnector;
-import io.mycat.net.NIOReactorPool;
-import io.mycat.net.NameableExecutor;
-import io.mycat.net.NamebleScheduledExecutor;
-import io.mycat.net.NetSystem;
+import io.mycat.net.*;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.server.MySQLFrontConnectionFactory;
 import io.mycat.server.MySQLFrontConnectionHandler;
 import io.mycat.server.classloader.DynaClassLoader;
 import io.mycat.server.config.ConfigException;
-import io.mycat.server.config.Log4jInitializer;
 import io.mycat.server.config.cluster.ClusterSync;
 import io.mycat.server.config.loader.ConfigFactory;
 import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -56,11 +52,6 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.log4j.Logger;
-
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-
 /**
  * @author mycat
  */
@@ -69,7 +60,7 @@ public class MycatServer {
 	private static final long LOG_WATCH_DELAY = 60000L;
 	private static final long TIME_UPDATE_PERIOD = 20L;
 	private static final MycatServer INSTANCE = new MycatServer();
-	private static final Logger LOGGER = Logger.getLogger("MycatServer");
+	private static final Logger LOGGER = LoggerFactory.getLogger("MycatServer");
 	private final RouteService routerService;
 	private final CacheService cacheService;
 	private AsynchronousChannelGroup[] asyncChannelGroups;
@@ -161,12 +152,6 @@ public class MycatServer {
 
 	public MycatConfig getConfig() {
 		return config;
-	}
-
-	public void beforeStart() {
-		String home = SystemConfig.getHomePath();
-		Log4jInitializer.configureAndWatch(home + "/conf/log4j.xml",
-				LOG_WATCH_DELAY);
 	}
 
 	public void startup() throws IOException {

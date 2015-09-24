@@ -22,23 +22,25 @@
  *
  */
 package io.mycat.server.response;
+
 import io.mycat.net.Connection;
 import io.mycat.net.NetSystem;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.util.SplitUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public final class KillConnection {
 
-    private static final Logger logger = Logger.getLogger(KillConnection.class);
+    private static final Logger logger = LoggerFactory
+            .getLogger(KillConnection.class);
 
     public static void response(String stmt, int offset, MySQLFrontConnection mc) {
         int count = 0;

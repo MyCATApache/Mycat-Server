@@ -1,13 +1,14 @@
 package io.mycat.server.sequence;
 
 import io.mycat.server.config.node.SequenceConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-import org.apache.log4j.Logger;
-
 public class IncrSequenceTimeHandler extends SequenceHandler {
-    protected static final Logger LOGGER = Logger.getLogger(IncrSequenceTimeHandler.class);
+	protected static final Logger LOGGER = LoggerFactory
+			.getLogger(IncrSequenceTimeHandler.class);
 
 	private static final IncrSequenceTimeHandler instance = new IncrSequenceTimeHandler();
 	private static IdWorker workey = new IdWorker(0,0);

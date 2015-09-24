@@ -1,19 +1,18 @@
 package io.mycat.server.response;
 
-import org.apache.log4j.Logger;
-
+import com.google.common.util.concurrent.FutureCallback;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.config.loader.ReloadUtil;
 import io.mycat.server.packet.OkPacket;
-
-import com.google.common.util.concurrent.FutureCallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 异步执行回调类，用于回写数据给用户等。
  */
 public class ReloadCallBack implements FutureCallback<Boolean> {
-	private static final Logger LOGGER = Logger.getLogger(ReloadUtil.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ReloadUtil.class);
 
 	private MySQLFrontConnection mc;
 

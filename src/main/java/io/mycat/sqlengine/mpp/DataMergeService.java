@@ -31,24 +31,16 @@ import io.mycat.server.executors.MultiNodeQueryHandler;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.sqlengine.tmp.RowDataSorter;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
@@ -57,7 +49,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class DataMergeService {
-	private static final Logger LOGGER = Logger
+	public static final Logger LOGGER = LoggerFactory
 			.getLogger(DataMergeService.class);
 	private RowDataPacketGrouper grouper = null;
 	private RowDataPacketSorter sorter = null;

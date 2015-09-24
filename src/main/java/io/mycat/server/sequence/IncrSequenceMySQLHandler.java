@@ -11,21 +11,17 @@ import io.mycat.server.executors.ResponseHandler;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.log4j.Logger;
-
 public class IncrSequenceMySQLHandler extends SequenceHandler {
-
-	protected static final Logger LOGGER = Logger.getLogger(IncrSequenceMySQLHandler.class);
+	public static final Logger LOGGER = LoggerFactory
+			.getLogger(IncrSequenceMySQLHandler.class);
 
 	protected static final String errSeqResult = "-999999999,null";
 	protected static Map<String, String> latestErrors = new ConcurrentHashMap<String, String>();
@@ -140,7 +136,7 @@ public class IncrSequenceMySQLHandler extends SequenceHandler {
 }
 
 class FetchMySQLSequnceHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(FetchMySQLSequnceHandler.class);
 
 	public void execute(SequenceVal seqVal) {

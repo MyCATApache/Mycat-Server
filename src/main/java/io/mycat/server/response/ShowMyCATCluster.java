@@ -41,19 +41,20 @@ import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
 import io.mycat.util.IntegerUtil;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public class ShowMyCATCluster {
 
-    private static final Logger alarm = Logger.getLogger("alarm");
+    private static final Logger alarm = LoggerFactory
+            .getLogger("alarm");
 
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
