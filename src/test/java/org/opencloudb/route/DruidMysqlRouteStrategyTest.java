@@ -1044,6 +1044,22 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 	    Assert.assertTrue(rrs.getNodes().length == 3);
     }
     
+    /**
+     * 测试 global table 的or语句
+     * 
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testGlobalTableOr() throws Exception {
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        String sql = "select id from company where 1 = 1 and name ='company1' or name = 'company2'" ;
+        for(int i = 0; i < 20; i++) {
+        	RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+            Assert.assertTrue(rrs.getNodes().length == 1);
+        }
+    }
+    
     private String formatSql(String sql) {
         MySqlStatementParser parser = new MySqlStatementParser(sql);
         SQLStatement stmt = parser.parseStatement();

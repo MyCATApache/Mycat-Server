@@ -1,25 +1,29 @@
 package org.opencloudb.route.impl;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
+import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.mpp.LoadData;
 import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.RouteStrategy;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-
 public abstract class AbstractRouteStrategy implements RouteStrategy {
 	private static final Logger LOGGER = Logger.getLogger(AbstractRouteStrategy.class);
 
 	@Override
-	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String origSQL, 
+	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String origSQL,
 			String charset, ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
 
 		//process some before route logic
@@ -27,7 +31,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 
 		// user handler
 		String stmt = MycatServer.getInstance().getSqlInterceptor().interceptSQL(origSQL, sqlType);
-		
+
 		if (origSQL != stmt && LOGGER.isDebugEnabled()) {
 			LOGGER.debug("sql intercepted to " + stmt + " from " + origSQL);
 		}
@@ -47,6 +51,10 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 			rrs.setAutocommit(sc.isAutocommit());
 		}
 
+		//ddl create deal
+		if(ServerParse.DDL==sqlType){
+			return RouterUtil.routeToDDLNode(rrs, sqlType, stmt);
+		}
 		// check if there is sharding in schema
 		if (schema.isNoSharding() && ServerParse.SHOW != sqlType) {
 			rrs = RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
@@ -79,9 +87,9 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	 * @throws SQLNonTransientException
 	 */
 	public abstract RouteResultset routeNormalSqlWithAST(SchemaConfig schema,String stmt,RouteResultset rrs,String charset,LayerCachePool cachePool) throws SQLNonTransientException;
-	
+
 	/**
-	 * 
+	 *
 	 * @param schema
 	 * @param sqlType
 	 * @param stmt
@@ -90,7 +98,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	 * @throws SQLSyntaxErrorException
 	 */
 	public abstract RouteResultset routeSystemInfo(SchemaConfig schema,int sqlType,String stmt,RouteResultset rrs) throws SQLSyntaxErrorException;
-	
+
 	/**
 	 * show  之类的语句
 	 * @param schema
