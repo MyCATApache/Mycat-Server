@@ -295,13 +295,35 @@ public final class ManagerParse {
 			char c3 = stmt.charAt(++offset);
 			if ((c1 == 'O' || c1 == 'o') && (c2 == 'W' || c2 == 'w')
 					&& (c3 == ' ' || c3 == '\t' || c3 == '\r' || c3 == '\n')) {
-				return (offset << 8) | SHOW;
+				return showMgr(stmt,offset);
 			}
 		}
 		return OTHER;
 	}
 
-	// SWITCH' '
+    /** 
+     * 校验 命令是否是  SHOW' '@@xxx<br/> 
+     * 
+     * @author Coollf
+     * @date: 2015年9月29日 下午1:21:49
+     * @version 1.0
+     *
+     * @param stmt
+     * @param offset
+     * @return
+     */ 
+    private static int showMgr(String stmt, int offset) {
+        while(stmt.length() > offset+1){
+            char c1 = stmt.charAt(offset++);
+            char c2 = stmt.charAt(offset++);
+            if(c1 == c2 && c2 == '@'){
+                return SHOW;
+            }
+        }
+        return OTHER;
+    }
+
+    // SWITCH' '
 	private static int swh(String stmt, int offset) {
 		if (stmt.length() > offset + 5) {
 			char c1 = stmt.charAt(++offset);

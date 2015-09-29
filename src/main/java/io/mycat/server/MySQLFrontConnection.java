@@ -6,6 +6,7 @@ import io.mycat.server.config.SchemaConfig;
 import io.mycat.server.packet.HandshakePacket;
 import io.mycat.server.packet.MySQLMessage;
 import io.mycat.server.packet.OkPacket;
+import io.mycat.server.parser.ManagerParse;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.sqlhandler.BeginHandler;
 import io.mycat.server.sqlhandler.ExplainHandler;
@@ -250,10 +251,18 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		if (sql.endsWith(";")) {
 			sql = sql.substring(0, sql.length() - 1);
 		}
-
-		// 执行查询
-		int rs = ServerParse.parse(sql);
+		
+		//优先检查是否是mycat管理命令
+		int rs = ManagerParse.parse(sql);
 		int sqlType = rs & 0xff;
+		if(sqlType == ManagerParse.SHOW || sqlType == ManagerParse.KILL_CONN){
+		    
+		}
+		
+		
+		// 执行查询
+		rs = ServerParse.parse(sql);
+		sqlType = rs & 0xff;
 
 		// 检查当前使用的DB
 		String db = this.schema;
