@@ -313,12 +313,8 @@ public final class ManagerParse {
      * @return
      */ 
     private static int showMgr(String stmt, int offset) {
-        while(stmt.length() > offset+1){
-            char c1 = stmt.charAt(offset++);
-            char c2 = stmt.charAt(offset++);
-            if(c1 == c2 && c2 == '@'){
-                return SHOW;
-            }
+        if(stmt.indexOf("@@")!=-1){
+        	return SHOW;
         }
         return OTHER;
     }

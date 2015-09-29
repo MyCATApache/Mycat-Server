@@ -23,6 +23,8 @@
  */
 package io.mycat.server.syshandler;
 
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.packet.EOFPacket;
@@ -31,14 +33,10 @@ import io.mycat.server.packet.ResultSetHeaderPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
 
-import io.mycat.server.MySQLFrontConnectionNIOUtils;
-
-import java.nio.ByteBuffer;
-
 /**
  * @author mycat
  */
-public final class SelectVersionComment {
+public final class ManageSelectVersionComment {
 
     private static final byte[] VERSION_COMMENT = "MyCat Server (monitor)".getBytes();
     private static final int FIELD_COUNT = 1;
@@ -57,33 +55,33 @@ public final class SelectVersionComment {
     }
 
     public static void execute(MySQLFrontConnection c) {
-        ByteBuffer buffer = MySQLFrontConnectionNIOUtils.allocate();
+       BufferArray bufferArray = NetSystem.getInstance().getBufferPool().allocateArray();
 
         // write header
-        buffer = header.write(buffer, c,true);
+        header.write(bufferArray);
 
         // write fields
         for (FieldPacket field : fields) {
-            buffer = field.write(buffer, c,true);
+             field.write(bufferArray);
         }
 
         // write eof
-        buffer = eof.write(buffer, c,true);
+        eof.write(bufferArray);
 
         // write rows
         byte packetId = eof.packetId;
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(VERSION_COMMENT);
         row.packetId = ++packetId;
-        buffer = row.write(buffer, c,true);
+        row.write(bufferArray);
 
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
-        buffer = lastEof.write(buffer, c,true);
+        lastEof.write(bufferArray);
 
         // post write
-        c.write(buffer);
+        c.write(bufferArray);
     }
 
 }

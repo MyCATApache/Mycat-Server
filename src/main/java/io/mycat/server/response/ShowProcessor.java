@@ -23,7 +23,9 @@
  */
 package io.mycat.server.response;
 
+import io.mycat.net.BufferArray;
 import io.mycat.net.BufferPool;
+import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.MySQLFrontConnectionNIOUtils;
@@ -95,56 +97,57 @@ public final class ShowProcessor {
     }
 
     public static void execute(MySQLFrontConnection c) {
-        ByteBuffer buffer = MySQLFrontConnectionNIOUtils.allocate();
+    	BufferArray bufferArray = NetSystem.getInstance().getBufferPool().allocateArray();
 
         // write header
-        buffer = header.write(buffer, c,true);
+        header.write(bufferArray);
 
         // write fields
         for (FieldPacket field : fields) {
-            buffer = field.write(buffer, c,true);
+            field.write(bufferArray);
         }
 
         // write eof
-        buffer = eof.write(buffer, c,true);
+        eof.write(bufferArray);
 
         // write rows
         byte packetId = eof.packetId;
-        for (NIOProcessor p : MycatServer.getInstance().getProcessors()) {
-            RowDataPacket row = getRow(p, c.getCharset());
-            row.packetId = ++packetId;
-            buffer = row.write(buffer, c,true);
-        }
+        //TODO COOLLF 待修正
+//        for (NIOProcessor p : MycatServer.getInstance().getProcessors()) {
+//            RowDataPacket row = getRow(p, c.getCharset());
+//            row.packetId = ++packetId;
+//            buffer = row.write(buffer, c,true);
+//        }
 
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
-        buffer = lastEof.write(buffer, c,true);
+        lastEof.write(bufferArray);
 
         // write buffer
-        c.write(buffer);
+        c.write(bufferArray);
     }
 
-    private static RowDataPacket getRow(NIOProcessor processor, String charset) {
-    	BufferPool bufferPool=processor.getBufferPool();
-    	int bufferSize=bufferPool.size();
-    	int bufferCapacity=bufferPool.capacity();
-    	long bufferSharedOpts=bufferPool.getSharedOptsCount();
-    	int bufferUsagePercent=(bufferCapacity-bufferSize)*100/bufferCapacity;
-        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-        row.add(processor.getName().getBytes());
-        row.add(LongUtil.toBytes(processor.getNetInBytes()));
-        row.add(LongUtil.toBytes(processor.getNetOutBytes()));
-        row.add(LongUtil.toBytes(0));
-        row.add(IntegerUtil.toBytes(0));
-        row.add(IntegerUtil.toBytes(processor.getWriteQueueSize()));
-        row.add(IntegerUtil.toBytes(bufferSize));
-        row.add(IntegerUtil.toBytes(bufferCapacity));
-        row.add(IntegerUtil.toBytes(bufferUsagePercent));
-        row.add(LongUtil.toBytes(bufferSharedOpts));
-        row.add(IntegerUtil.toBytes(processor.getFrontends().size()));
-        row.add(IntegerUtil.toBytes(processor.getBackends().size()));
-        return row;
-    }
+//    private static RowDataPacket getRow(NIOProcessor processor, String charset) {
+//    	BufferPool bufferPool=processor.getBufferPool();
+//    	int bufferSize=bufferPool.size();
+//    	int bufferCapacity=bufferPool.capacity();
+//    	long bufferSharedOpts=bufferPool.getSharedOptsCount();
+//    	int bufferUsagePercent=(bufferCapacity-bufferSize)*100/bufferCapacity;
+//        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
+//        row.add(processor.getName().getBytes());
+//        row.add(LongUtil.toBytes(processor.getNetInBytes()));
+//        row.add(LongUtil.toBytes(processor.getNetOutBytes()));
+//        row.add(LongUtil.toBytes(0));
+//        row.add(IntegerUtil.toBytes(0));
+//        row.add(IntegerUtil.toBytes(processor.getWriteQueueSize()));
+//        row.add(IntegerUtil.toBytes(bufferSize));
+//        row.add(IntegerUtil.toBytes(bufferCapacity));
+//        row.add(IntegerUtil.toBytes(bufferUsagePercent));
+//        row.add(LongUtil.toBytes(bufferSharedOpts));
+//        row.add(IntegerUtil.toBytes(processor.getFrontends().size()));
+//        row.add(IntegerUtil.toBytes(processor.getBackends().size()));
+//        return row;
+//    }
 
 }

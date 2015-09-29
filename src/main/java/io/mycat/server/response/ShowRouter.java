@@ -23,16 +23,15 @@
  */
 package io.mycat.server.response;
 
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
-import io.mycat.server.MySQLFrontConnectionNIOUtils;
-import io.mycat.server.MycatServer;
+import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
-import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
 
-import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
@@ -68,35 +67,36 @@ public final class ShowRouter {
         eof.packetId = ++packetId;
     }
 
-    public static void execute(MySQLFrontConnectionNIOUtils c) {
-        ByteBuffer buffer = MySQLFrontConnectionNIOUtils.allocate();
+    public static void execute(MySQLFrontConnection c) {
+        BufferArray bufferArray = NetSystem.getInstance().getBufferPool().allocateArray();
 
         // write header
-        buffer = header.write(buffer, c,true);
+        header.write(bufferArray);
 
         // write fields
         for (FieldPacket field : fields) {
-            buffer = field.write(buffer, c,true);
+            field.write(bufferArray);
         }
 
         // write eof
-        buffer = eof.write(buffer, c,true);
+        eof.write(bufferArray);
 
         // write rows
         byte packetId = eof.packetId;
-        for (NIOProcessor p : MycatServer.getInstance().getProcessors()) {
-            RowDataPacket row = getRow(p, c.getCharset());
-            row.packetId = ++packetId;
-            buffer = row.write(buffer, c,true);
-        }
+        //TODO COOLLF 待修正
+//        for (NIOProcessor p : MycatServer.getInstance().getProcessors()) {
+//            RowDataPacket row = getRow(p, c.getCharset());
+//            row.packetId = ++packetId;
+//            buffer = row.write(buffer, c,true);
+//        }
 
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
-        buffer = lastEof.write(buffer, c,true);
+        lastEof.write(bufferArray);
 
         // write buffer
-        c.write(buffer);
+        c.write(bufferArray);
     }
 
     private static final NumberFormat nf = DecimalFormat.getInstance();
@@ -104,14 +104,14 @@ public final class ShowRouter {
         nf.setMaximumFractionDigits(3);
     }
 
-    private static RowDataPacket getRow(NIOProcessor processor, String charset) {
-        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-        row.add(processor.getName().getBytes());
-        row.add(null);
-        row.add(null);
-        row.add(null);
-        row.add(null);
-        return row;
-    }
+//    private static RowDataPacket getRow(NIOProcessor processor, String charset) {
+//        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
+//        row.add(processor.getName().getBytes());
+//        row.add(null);
+//        row.add(null);
+//        row.add(null);
+//        row.add(null);
+//        return row;
+//    }
 
 }

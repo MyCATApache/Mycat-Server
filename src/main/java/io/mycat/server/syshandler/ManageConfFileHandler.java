@@ -23,6 +23,8 @@
  */
 package io.mycat.server.syshandler;
 
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.MycatServer;
@@ -45,13 +47,10 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.xml.parsers.ParserConfigurationException;
-
-import static io.mycat.server.MySQLFrontConnectionNIOUtils.allocate;
 
 import org.apache.log4j.Logger;
 import org.xml.sax.SAXException;
@@ -61,9 +60,10 @@ import org.xml.sax.SAXException;
  * 
  * @author wuzh
  */
-public final class ConfFileHandler {
+//TODO COOLLF 待修正
+public final class ManageConfFileHandler {
 	private static final Logger LOGGER = Logger
-			.getLogger(ConfFileHandler.class);
+			.getLogger(ManageConfFileHandler.class);
 	private static final int FIELD_COUNT = 1;
 	private static final ResultSetHeaderPacket header = PacketUtil
 			.getHeader(FIELD_COUNT);
@@ -82,53 +82,53 @@ public final class ConfFileHandler {
 	}
 
 	public static void handle( String stmt,MySQLFrontConnection c) {
-		ByteBuffer buffer = allocate();
+		BufferArray bufferArray = NetSystem.getInstance().getBufferPool().allocateArray();
 
 		// write header
-		buffer = header.write(buffer, c,true);
+		header.write(bufferArray);
 
 		// write fields
 		for (FieldPacket field : fields) {
-			buffer = field.write(buffer, c,true);
+			 field.write(bufferArray);
 		}
 
 		// write eof
-		buffer = eof.write(buffer, c,true);
+		eof.write(bufferArray);
 		// write rows
 		byte packetId = eof.packetId;
 		String theStmt = stmt.toUpperCase().trim();
 		PackageBufINf bufInf = null;
 		if (theStmt.equals("FILE @@LIST")) {
-			bufInf = listConfigFiles(c, buffer, packetId);
+			bufInf = listConfigFiles(c, bufferArray, packetId);
 		} else if (theStmt.startsWith("FILE @@SHOW")) {
 			int index = stmt.lastIndexOf(' ');
 			String fileName = stmt.substring(index + 1);
-			bufInf = showConfigFile(c, buffer, packetId, fileName);
+			bufInf = showConfigFile(c, bufferArray, packetId, fileName);
 		} else if (theStmt.startsWith(UPLOAD_CMD)) {
 			int index = stmt.indexOf(' ', UPLOAD_CMD.length());
 			int index2 = stmt.indexOf(' ', index + 1);
 			if (index <= 0 || index2 <= 0 || index + 1 > stmt.length()
 					|| index2 + 1 > stmt.length()) {
-				bufInf = showInfo(c, buffer, packetId, "Invald param ,usage  ");
+				bufInf = showInfo(c, bufferArray, packetId, "Invald param ,usage  ");
 			}
 			String fileName = stmt.substring(index + 1, index2);
 			String content = stmt.substring(index2 + 1).trim();
-			bufInf = upLoadConfigFile(c, buffer, packetId, fileName, content);
+			bufInf = upLoadConfigFile(c, bufferArray, packetId, fileName, content);
 		} else {
 
-			bufInf = showInfo(c, buffer, packetId, "Invald command ");
+			bufInf = showInfo(c, bufferArray, packetId, "Invald command ");
 		}
 
 		packetId = bufInf.packetId;
-		buffer = bufInf.buffer;
+		//bufInf.buffer;
 
 		// write last eof
 		EOFPacket lastEof = new EOFPacket();
 		lastEof.packetId = ++packetId;
-		buffer = lastEof.write(buffer, c,true);
+		lastEof.write(bufferArray);
 
 		// write buffer
-		c.write(buffer);
+		c.write(bufferArray);
 	}
 
 	private static void checkXMLFile(String xmlFileName, byte[] data)
@@ -187,7 +187,7 @@ public final class ConfFileHandler {
 	}
 
 	private static PackageBufINf upLoadConfigFile(MySQLFrontConnection c,
-			ByteBuffer buffer, byte packetId, String fileName, String content) {
+			BufferArray buffer, byte packetId, String fileName, String content) {
 		LOGGER.info("Upload Daas Config file " + fileName + " ,content:"
 				+ content);
 		String tempFileName = System.currentTimeMillis() + "_" + fileName;
@@ -250,19 +250,17 @@ public final class ConfFileHandler {
 	}
 
 	private static PackageBufINf showInfo(MySQLFrontConnection c,
-			ByteBuffer buffer, byte packetId, String string) {
+			BufferArray buffer, byte packetId, String string) {
 		PackageBufINf bufINf = new PackageBufINf();
 		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 		row.add(StringUtil.encode(string, c.getCharset()));
 		row.packetId = ++packetId;
-		buffer = row.write(buffer, c,true);
-		bufINf.packetId = packetId;
-		bufINf.buffer = buffer;
+		row.write(buffer);
 		return bufINf;
 	}
 
 	private static PackageBufINf showConfigFile(MySQLFrontConnection c,
-			ByteBuffer buffer, byte packetId, String fileName) {
+			BufferArray buffer, byte packetId, String fileName) {
 		File file = new File(SystemConfig.getHomePath(), "conf"
 				+ File.separator + fileName);
 		BufferedReader br = null;
@@ -277,9 +275,8 @@ public final class ConfFileHandler {
 				RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 				row.add(StringUtil.encode(line, c.getCharset()));
 				row.packetId = ++packetId;
-				buffer = row.write(buffer, c,true);
+				row.write(buffer);
 			}
-			bufINf.buffer = buffer;
 			bufINf.packetId = packetId;
 			return bufINf;
 
@@ -288,8 +285,7 @@ public final class ConfFileHandler {
 			RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 			row.add(StringUtil.encode(e.toString(), c.getCharset()));
 			row.packetId = ++packetId;
-			buffer = row.write(buffer, c,true);
-			bufINf.buffer = buffer;
+			row.write(buffer);
 		} finally {
 			if (br != null) {
 				try {
@@ -305,7 +301,7 @@ public final class ConfFileHandler {
 	}
 
 	private static PackageBufINf listConfigFiles(MySQLFrontConnection c,
-			ByteBuffer buffer, byte packetId) {
+			BufferArray buffer, byte packetId) {
 		PackageBufINf bufINf = new PackageBufINf();
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 		try {
@@ -320,11 +316,10 @@ public final class ConfFileHandler {
 									+ df.format(new Date(f.lastModified())),
 							c.getCharset()));
 					row.packetId = ++packetId;
-					buffer = row.write(buffer, c,true);
+					row.write(buffer);
 				}
 			}
 
-			bufINf.buffer = buffer;
 			bufINf.packetId = packetId;
 			return bufINf;
 
@@ -333,8 +328,7 @@ public final class ConfFileHandler {
 			RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 			row.add(StringUtil.encode(e.toString(), c.getCharset()));
 			row.packetId = ++packetId;
-			buffer = row.write(buffer, c,true);
-			bufINf.buffer = buffer;
+			row.write(buffer);
 		}
 		bufINf.packetId = packetId;
 		return bufINf;

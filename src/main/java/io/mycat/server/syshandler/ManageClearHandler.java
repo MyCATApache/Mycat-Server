@@ -32,7 +32,7 @@ import io.mycat.util.StringUtil;
 /**
  * @author mycat
  */
-public class ClearHandler {
+public class ManageClearHandler {
 
     public static void handle(String stmt, MySQLFrontConnection c, int offset) {
         int rs = ManagerParseClear.parse(stmt, offset);

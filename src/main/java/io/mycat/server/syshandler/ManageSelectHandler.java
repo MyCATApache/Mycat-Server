@@ -25,18 +25,22 @@ package io.mycat.server.syshandler;
 
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.parser.ManagerParseStop;
-import io.mycat.server.response.StopHeartbeat;
+import io.mycat.server.parser.ManagerParseSelect;
+import io.mycat.server.response.SelectSessionAutoIncrement;
+import io.mycat.server.response.SelectVersionComment;
 
 /**
  * @author mycat
  */
-public final class StopHandler {
+public final class ManageSelectHandler {
 
     public static void handle(String stmt, MySQLFrontConnection c, int offset) {
-        switch (ManagerParseStop.parse(stmt, offset)) {
-        case ManagerParseStop.HEARTBEAT:
-            StopHeartbeat.execute(stmt, c);
+        switch (ManagerParseSelect.parse(stmt, offset)) {
+        case ManagerParseSelect.VERSION_COMMENT:
+            SelectVersionComment.response(c);
+            break;
+        case ManagerParseSelect.SESSION_AUTO_INCREMENT:
+            SelectSessionAutoIncrement.execute(c);
             break;
         default:
             c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");

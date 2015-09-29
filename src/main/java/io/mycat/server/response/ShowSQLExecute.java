@@ -21,21 +21,23 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.response;
+package io.mycat.server.response;
+
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
+import io.mycat.server.Fields;
+import io.mycat.server.MySQLFrontConnection;
+import io.mycat.server.packet.EOFPacket;
+import io.mycat.server.packet.FieldPacket;
+import io.mycat.server.packet.ResultSetHeaderPacket;
+import io.mycat.server.packet.RowDataPacket;
+import io.mycat.server.packet.util.PacketUtil;
+import io.mycat.util.LongUtil;
+import io.mycat.util.StringUtil;
 
 import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-
-import org.opencloudb.config.Fields;
-import org.opencloudb.manager.ManagerConnection;
-import org.opencloudb.mysql.PacketUtil;
-import org.opencloudb.net.mysql.EOFPacket;
-import org.opencloudb.net.mysql.FieldPacket;
-import org.opencloudb.net.mysql.ResultSetHeaderPacket;
-import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.util.LongUtil;
-import org.opencloudb.util.StringUtil;
 
 /**
  * 查询各SQL在所有pool中的执行情况
@@ -74,35 +76,36 @@ public final class ShowSQLExecute {
         eof.packetId = ++packetId;
     }
 
-    public static void execute(ManagerConnection c) {
-        ByteBuffer buffer = c.allocate();
+    public static void execute(MySQLFrontConnection c) {
+    	BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
+				.allocateArray();
 
         // write header
-        buffer = header.write(buffer, c,true);
+        header.write(bufferArray);
 
         // write fields
         for (FieldPacket field : fields) {
-            buffer = field.write(buffer, c,true);
+            field.write(bufferArray);
         }
 
         // write eof
-        buffer = eof.write(buffer, c,true);
+        eof.write(bufferArray);
 
         // write rows
         byte packetId = eof.packetId;
         for (int i = 0; i < 3; i++) {
             RowDataPacket row = getRow(1000 * (i + 1), c.getCharset());
             row.packetId = ++packetId;
-            buffer = row.write(buffer, c,true);
+            row.write(bufferArray);
         }
 
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
-        buffer = lastEof.write(buffer, c,true);
+        lastEof.write(bufferArray);
 
         // write buffer
-        c.write(buffer);
+        c.write(bufferArray);
     }
 
     private static RowDataPacket getRow(long id, String charset) {

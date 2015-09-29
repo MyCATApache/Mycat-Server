@@ -23,6 +23,8 @@
  */
 package io.mycat.server.syshandler;
 
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.MySQLFrontConnectionNIOUtils;
@@ -50,7 +52,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ShowServerLog {
+public final class ManageShowServerLog {
 	private static final int FIELD_COUNT = 1;
 	private static final ResultSetHeaderPacket header = PacketUtil
 			.getHeader(FIELD_COUNT);
@@ -58,7 +60,7 @@ public final class ShowServerLog {
 	private static final EOFPacket eof = new EOFPacket();
 	private static final String DEFAULT_LOGFILE = "mycat.log";
     private static final Logger                LOGGER          = LoggerFactory
-                                                                   .getLogger(ShowServerLog.class);
+                                                                   .getLogger(ManageShowServerLog.class);
 	static {
 		int i = 0;
 		byte packetId = 0;
@@ -80,18 +82,18 @@ public final class ShowServerLog {
 
 	public static void handle(String stmt,MySQLFrontConnection c) {
 
-		ByteBuffer buffer = MySQLFrontConnectionNIOUtils.allocate();
+		BufferArray bufferArray = NetSystem.getInstance().getBufferPool().allocateArray();
 
 		// write header
-		buffer = header.write(buffer, c,true);
+		header.write(bufferArray);
 
 		// write fields
 		for (FieldPacket field : fields) {
-			buffer = field.write(buffer, c,true);
+			field.write(bufferArray);
 		}
 
 		// write eof
-		buffer = eof.write(buffer, c,true);
+		eof.write(bufferArray);
 
 		// write rows
 
@@ -100,7 +102,7 @@ public final class ShowServerLog {
 		// show log key=warn limit=0,30
 		Map<String, String> condPairMap = getCondPair(stmt);
 		if (condPairMap.isEmpty()) {
-			bufInf = showLogSum(c, buffer, packetId);
+			bufInf = showLogSum(c, bufferArray, packetId);
 		} else {
 			String logFile = condPairMap.get("file");
 			if (logFile == null) {
@@ -114,24 +116,23 @@ public final class ShowServerLog {
 			int end = Integer.valueOf(start + page);
 			String key = condPairMap.get("key");
 			String regex = condPairMap.get("regex");
-			bufInf = showLogRange(c, buffer, packetId, key, regex, start, end,
+			bufInf = showLogRange(c, bufferArray, packetId, key, regex, start, end,
 					logFile);
 
 		}
 
 		packetId = bufInf.packetId;
-		buffer = bufInf.buffer;
 
 		EOFPacket lastEof = new EOFPacket();
 		lastEof.packetId = ++packetId;
-		buffer = lastEof.write(buffer, c,true);
+		lastEof.write(bufferArray);
 
 		// write buffer
-		c.write(buffer);
+		c.write(bufferArray);
 	}
 
 	public static PackageBufINf showLogRange(MySQLFrontConnection c,
-			ByteBuffer buffer, byte packetId, String key, String regex,
+			BufferArray buffer, byte packetId, String key, String regex,
 			int start, int end, String logFile) {
 		PackageBufINf bufINf = new PackageBufINf();
 		Pattern pattern = null;
@@ -157,11 +158,10 @@ public final class ShowServerLog {
 						row.add(StringUtil.encode(curLine + "->" + line,
 								c.getCharset()));
 						row.packetId = ++packetId;
-						buffer = row.write(buffer, c,true);
+						row.write(buffer);
 					}
 				}
 			}
-			bufINf.buffer = buffer;
 			bufINf.packetId = packetId;
 			return bufINf;
 
@@ -170,8 +170,7 @@ public final class ShowServerLog {
 			RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 			row.add(StringUtil.encode(e.toString(), c.getCharset()));
 			row.packetId = ++packetId;
-			buffer = row.write(buffer, c,true);
-			bufINf.buffer = buffer;
+			row.write(buffer);
 		} finally {
 			if (br != null) {
 				try {
@@ -187,7 +186,7 @@ public final class ShowServerLog {
 	}
 
 	private static PackageBufINf showLogSum(MySQLFrontConnection c,
-			ByteBuffer buffer, byte packetId) {
+			BufferArray buffer, byte packetId) {
 		PackageBufINf bufINf = new PackageBufINf();
 		File[] logFiles = new File(SystemConfig.getHomePath(), "logs")
 				.listFiles();
@@ -218,21 +217,20 @@ public final class ShowServerLog {
 			row.add(StringUtil.encode("files in log dir:" + totalLines
 					+ fileNames, c.getCharset()));
 			row.packetId = ++packetId;
-			buffer = row.write(buffer, c,true);
+			row.write(buffer);
 			row = new RowDataPacket(FIELD_COUNT);
 			row.add(StringUtil.encode("Total lines " + totalLines + " ,tail "
 					+ queue.size() + " line is following:", c.getCharset()));
 			row.packetId = ++packetId;
-			buffer = row.write(buffer, c,true);
+			row.write(buffer);
 			int size = queue.size() - 1;
 			for (int i = size; i >= 0; i--) {
 				String data = queue.get(i);
 				row = new RowDataPacket(FIELD_COUNT);
 				row.add(StringUtil.encode(data, c.getCharset()));
 				row.packetId = ++packetId;
-				buffer = row.write(buffer, c,true);
+				row.write(buffer);
 			}
-			bufINf.buffer = buffer;
 			bufINf.packetId = packetId;
 			return bufINf;
 
@@ -241,8 +239,7 @@ public final class ShowServerLog {
 			RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 			row.add(StringUtil.encode(e.toString(), c.getCharset()));
 			row.packetId = ++packetId;
-			buffer = row.write(buffer, c,true);
-			bufINf.buffer = buffer;
+			row.write(buffer);
 		} finally {
 			if (br != null) {
 				try {

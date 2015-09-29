@@ -23,13 +23,14 @@ import io.mycat.server.sqlhandler.SetHandler;
 import io.mycat.server.sqlhandler.ShowHandler;
 import io.mycat.server.sqlhandler.StartHandler;
 import io.mycat.server.sqlhandler.UseHandler;
-import io.mycat.server.syshandler.ClearHandler;
-import io.mycat.server.syshandler.ConfFileHandler;
-import io.mycat.server.syshandler.ReloadHandler;
-import io.mycat.server.syshandler.RollbackHandler;
-import io.mycat.server.syshandler.ShowServerLog;
-import io.mycat.server.syshandler.StopHandler;
-import io.mycat.server.syshandler.SwitchHandler;
+import io.mycat.server.syshandler.ManageClearHandler;
+import io.mycat.server.syshandler.ManageConfFileHandler;
+import io.mycat.server.syshandler.ManageReloadHandler;
+import io.mycat.server.syshandler.ManageRollbackHandler;
+import io.mycat.server.syshandler.ManageShowHandler;
+import io.mycat.server.syshandler.ManageShowServerLog;
+import io.mycat.server.syshandler.ManageStopHandler;
+import io.mycat.server.syshandler.ManageSwitchHandler;
 import io.mycat.util.RandomUtil;
 
 import java.io.IOException;
@@ -37,6 +38,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
+
 /**
  * MySQL Front connection
  *
@@ -45,9 +47,9 @@ import java.util.Set;
  */
 
 public class MySQLFrontConnection extends GenalMySQLConnection {
-	private static final int SHIFT = 0;
+	private static final int SHIFT = 8;
 
-    protected FrontendPrivileges privileges;
+	protected FrontendPrivileges privileges;
 
 	protected FrontendPrepareHandler prepareHandler;
 	protected LoadDataInfileHandler loadDataInfileHandler;
@@ -61,8 +63,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		flag |= Capabilities.CLIENT_LONG_FLAG;
 		flag |= Capabilities.CLIENT_CONNECT_WITH_DB;
 		// flag |= Capabilities.CLIENT_NO_SCHEMA;
-		boolean usingCompress = MycatServer.getInstance().getConfig()
-				.getSystem().getUseCompression() == 1;
+		boolean usingCompress = MycatServer.getInstance().getConfig().getSystem().getUseCompression() == 1;
 		if (usingCompress) {
 			flag |= Capabilities.CLIENT_COMPRESS;
 		}
@@ -84,10 +85,8 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 
 		session = new NonBlockingSession(this);
 		InetSocketAddress remoteAddr = null;
-		InetSocketAddress localAddr = (InetSocketAddress) channel
-				.getLocalAddress();
-		remoteAddr = (InetSocketAddress) ((SocketChannel) channel)
-				.getRemoteAddress();
+		InetSocketAddress localAddr = (InetSocketAddress) channel.getLocalAddress();
+		remoteAddr = (InetSocketAddress) ((SocketChannel) channel).getRemoteAddress();
 		this.host = remoteAddr.getHostString();
 		this.port = localAddr.getPort();
 		this.localPort = remoteAddr.getPort();
@@ -156,13 +155,11 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 
 		// 检查schema的有效性
 		if (db == null || !privileges.schemaExists(db)) {
-			writeErrMessage(ErrorCode.ER_BAD_DB_ERROR, "Unknown database '"
-					+ db + "'");
+			writeErrMessage(ErrorCode.ER_BAD_DB_ERROR, "Unknown database '" + db + "'");
 			return;
 		}
 		if (!privileges.userExists(user, host)) {
-			writeErrMessage(ErrorCode.ER_ACCESS_DENIED_ERROR,
-					"Access denied for user '" + user + "'");
+			writeErrMessage(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + user + "'");
 			return;
 		}
 		readOnlyUser = privileges.isReadOnly(user);
@@ -171,8 +168,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			this.schema = db;
 			write(OkPacket.OK);
 		} else {
-			String s = "Access denied for user '" + user + "' to database '"
-					+ db + "'";
+			String s = "Access denied for user '" + user + "' to database '" + db + "'";
 			writeErrMessage(ErrorCode.ER_DBACCESS_DENIED_ERROR, s);
 		}
 
@@ -188,8 +184,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			}
 
 		} else {
-			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
-					"load data infile sql is not  unsupported!");
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "load data infile sql is not  unsupported!");
 		}
 
 	}
@@ -203,8 +198,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 				writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.getMessage());
 			}
 		} else {
-			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
-					"load data infile  data is not  unsupported!");
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "load data infile  data is not  unsupported!");
 		}
 
 	}
@@ -218,8 +212,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 				writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.getMessage());
 			}
 		} else {
-			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
-					"load data infile end is not  unsupported!");
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "load data infile end is not  unsupported!");
 		}
 
 	}
@@ -232,8 +225,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		}
 		// 状态检查
 		if (txInterrupted) {
-			writeErrMessage(ErrorCode.ER_YES,
-					"Transaction error, need to rollback." + txInterrputMsg);
+			writeErrMessage(ErrorCode.ER_YES, "Transaction error, need to rollback." + txInterrputMsg);
 			return;
 		}
 
@@ -244,8 +236,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		try {
 			sql = mm.readString(charset);
 		} catch (UnsupportedEncodingException e) {
-			writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET,
-					"Unknown charset '" + charset + "'");
+			writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
 			return;
 		}
 
@@ -254,8 +245,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			return;
 		}
 		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug(new StringBuilder().append(this).append(" ")
-					.append(sql).toString());
+			LOGGER.debug(new StringBuilder().append(this).append(" ").append(sql).toString());
 		}
 
 		// sql = StringUtil.replace(sql, "`", "");
@@ -264,70 +254,64 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		if (sql.endsWith(";")) {
 			sql = sql.substring(0, sql.length() - 1);
 		}
-		
-		//优先检查是否是mycat管理命令
+
+		// 优先检查是否是mycat管理命令
 		int rs = ManagerParse.parse(sql);
 		int sqlType = rs & 0xff;
-		if(sqlType == ManagerParse.SHOW || sqlType == ManagerParse.KILL_CONN){
-		    switch (rs & 0xff) {
-		            case ManagerParse.SELECT:
-		                SelectHandler.handle(sql, this, rs >>> SHIFT);
-		                break;
-		            case ManagerParse.SET:
-		                this.write(writeToBuffer(OkPacket.OK, allocate()));
-		                break;
-		            case ManagerParse.SHOW:
-		                ShowHandler.handle(sql, this, rs >>> SHIFT);
-		                break;
-		            case ManagerParse.SWITCH:
-		                SwitchHandler.handler(sql, this, rs >>> SHIFT);
-		                break;
-		            case ManagerParse.KILL_CONN:
-		                KillConnection.response(sql, rs >>> SHIFT, this);
-		                break;
-		            case ManagerParse.OFFLINE:
-		                Offline.execute(sql, this);
-		                break;
-		            case ManagerParse.ONLINE:
-		                Online.execute(sql, this);
-		                break;
-		            case ManagerParse.STOP:
-		                StopHandler.handle(sql, this, rs >>> SHIFT);
-		                break;
-		            case ManagerParse.RELOAD:
-		                ReloadHandler.handle(sql, this, rs >>> SHIFT);
-		                break;
-		            case ManagerParse.ROLLBACK:
-		                RollbackHandler.handle(sql, this, rs >>> SHIFT);
-		                break;
-		            case ManagerParse.CLEAR:
-		                ClearHandler.handle(sql, this, rs >>> SHIFT);
-		                break;
-		            case ManagerParse.CONFIGFILE:
-		                ConfFileHandler.handle(sql, this);
-		                break;
-		            case ManagerParse.LOGFILE:
-		                ShowServerLog.handle(sql, this);
-		                break;
-		            default:
-		                this.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+		if (sqlType == ManagerParse.SHOW || sqlType == ManagerParse.KILL_CONN) {
+			switch (rs & 0xff) {
+			case ManagerParse.SELECT:
+				SelectHandler.handle(sql, this, rs >>> SHIFT);
+				break;
+			case ManagerParse.SET:
+				this.write(writeToBuffer(OkPacket.OK, allocate()));
+				break;
+			case ManagerParse.SHOW:
+				ManageShowHandler.handle(sql, this, rs >>> SHIFT);
+				break;
+			case ManagerParse.SWITCH:
+				ManageSwitchHandler.handler(sql, this, rs >>> SHIFT);
+				break;
+			case ManagerParse.KILL_CONN:
+				KillConnection.response(sql, rs >>> SHIFT, this);
+				break;
+			case ManagerParse.OFFLINE:
+				Offline.execute(sql, this);
+				break;
+			case ManagerParse.ONLINE:
+				Online.execute(sql, this);
+				break;
+			case ManagerParse.STOP:
+				ManageStopHandler.handle(sql, this, rs >>> SHIFT);
+				break;
+			case ManagerParse.RELOAD:
+				ManageReloadHandler.handle(sql, this, rs >>> SHIFT);
+				break;
+			case ManagerParse.ROLLBACK:
+				ManageRollbackHandler.handle(sql, this, rs >>> SHIFT);
+				break;
+			case ManagerParse.CLEAR:
+				ManageClearHandler.handle(sql, this, rs >>> SHIFT);
+				break;
+			case ManagerParse.CONFIGFILE:
+				ManageConfFileHandler.handle(sql, this);
+				break;
+			case ManagerParse.LOGFILE:
+				ManageShowServerLog.handle(sql, this);
+				break;
+			default:
+				this.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+			}
+
 		}
-		
-		
 		// 执行查询
 		rs = ServerParse.parse(sql);
 		sqlType = rs & 0xff;
 
 		// 检查当前使用的DB
 		String db = this.schema;
-		if (db == null
-				&& sqlType!=ServerParse.USE
-				&& sqlType!=ServerParse.HELP
-				&& sqlType!=ServerParse.SET
-				&& sqlType!=ServerParse.SHOW
-				&& sqlType!=ServerParse.KILL
-				&& sqlType!=ServerParse.KILL_QUERY
-				&& sqlType!=ServerParse.MYSQL_COMMENT ) {
+		if (db == null && sqlType != ServerParse.USE && sqlType != ServerParse.HELP && sqlType != ServerParse.SET && sqlType != ServerParse.SHOW
+				&& sqlType != ServerParse.KILL && sqlType != ServerParse.KILL_QUERY && sqlType != ServerParse.MYSQL_COMMENT) {
 			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
 			return;
 		}
@@ -358,10 +342,8 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			KillHandler.handle(sql, rs >>> 8, this);
 			break;
 		case ServerParse.KILL_QUERY:
-			LOGGER.warn(new StringBuilder().append("Unsupported command:")
-					.append(sql).toString());
-			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
-					"Unsupported command");
+			LOGGER.warn(new StringBuilder().append("Unsupported command:").append(sql).toString());
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Unsupported command");
 			break;
 		case ServerParse.USE:
 			UseHandler.handle(sql, this, rs >>> 8);
@@ -373,8 +355,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			rollback();
 			break;
 		case ServerParse.HELP:
-			LOGGER.warn(new StringBuilder().append("Unsupported command:")
-					.append(sql).toString());
+			LOGGER.warn(new StringBuilder().append("Unsupported command:").append(sql).toString());
 			writeErrMessage(ErrorCode.ER_SYNTAX_ERROR, "Unsupported command");
 			break;
 		case ServerParse.MYSQL_CMD_COMMENT:
@@ -388,8 +369,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			break;
 		default:
 			if (this.isReadOnlyUser()) {
-				LOGGER.warn(new StringBuilder().append("User readonly:")
-						.append(sql).toString());
+				LOGGER.warn(new StringBuilder().append("User readonly:").append(sql).toString());
 				writeErrMessage(ErrorCode.ER_USER_READ_ONLY, "User readonly");
 				break;
 			}
@@ -402,11 +382,9 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 	}
 
 	public void execute(String sql, int type) {
-		SchemaConfig schema = MycatServer.getInstance().getConfig()
-				.getSchemas().get(this.schema);
+		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(this.schema);
 		if (schema == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
-					"Unknown MyCAT Database '" + schema + "'");
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "Unknown MyCAT Database '" + schema + "'");
 			return;
 		}
 		routeEndExecuteSQL(sql, type, schema);
@@ -417,20 +395,13 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		// 路由计算
 		RouteResultset rrs = null;
 		try {
-			rrs = MycatServer
-					.getInstance()
-					.getRouterservice()
-					.route(MycatServer.getInstance().getConfig().getSystem(),
-							schema, type, sql, this.charset, this);
+			rrs = MycatServer.getInstance().getRouterservice().route(MycatServer.getInstance().getConfig().getSystem(), schema, type, sql, this.charset, this);
 
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
-			LOGGER.warn(
-					s.append(this).append(sql).toString() + " err:"
-							+ e.toString(), e);
+			LOGGER.warn(s.append(this).append(sql).toString() + " err:" + e.toString(), e);
 			String msg = e.getMessage();
-			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e
-					.getClass().getSimpleName() : msg);
+			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return;
 		}
 		if (rrs != null) {
@@ -448,8 +419,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			try {
 				sql = mm.readString(charset);
 			} catch (UnsupportedEncodingException e) {
-				writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET,
-						"Unknown charset '" + charset + "'");
+				writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
 				return;
 			}
 			if (sql == null || sql.length() == 0) {
@@ -460,8 +430,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			// 执行预处理
 			prepareHandler.prepare(sql);
 		} else {
-			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
-					"Prepare unsupported!");
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
 		}
 	}
 
@@ -469,8 +438,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		if (prepareHandler != null) {
 			prepareHandler.execute(data);
 		} else {
-			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
-					"Prepare unsupported!");
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
 		}
 	}
 
@@ -478,8 +446,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		if (prepareHandler != null) {
 			prepareHandler.close();
 		} else {
-			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
-					"Prepare unsupported!");
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
 		}
 	}
 
@@ -488,35 +455,25 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		// 检查当前使用的DB
 		String db = this.schema;
 		if (db == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
-					"No MyCAT Database selected");
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
 			return null;
 		}
-		SchemaConfig schema = MycatServer.getInstance().getConfig()
-				.getSchemas().get(db);
+		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(db);
 		if (schema == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
-					"Unknown MyCAT Database '" + db + "'");
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "Unknown MyCAT Database '" + db + "'");
 			return null;
 		}
 
 		// 路由计算
 		RouteResultset rrs = null;
 		try {
-			rrs = MycatServer
-					.getInstance()
-					.getRouterservice()
-					.route(MycatServer.getInstance().getConfig().getSystem(),
-							schema, type, sql, this.charset, this);
+			rrs = MycatServer.getInstance().getRouterservice().route(MycatServer.getInstance().getConfig().getSystem(), schema, type, sql, this.charset, this);
 
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
-			LOGGER.warn(
-					s.append(this).append(sql).toString() + " err:"
-							+ e.toString(), e);
+			LOGGER.warn(s.append(this).append(sql).toString() + " err:" + e.toString(), e);
 			String msg = e.getMessage();
-			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e
-					.getClass().getSimpleName() : msg);
+			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return null;
 		}
 		return rrs;
@@ -527,8 +484,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 	 */
 	public void commit() {
 		if (txInterrupted) {
-			writeErrMessage(ErrorCode.ER_YES,
-					"Transaction error, need to rollback.");
+			writeErrMessage(ErrorCode.ER_YES, "Transaction error, need to rollback.");
 		} else {
 			session.commit();
 		}

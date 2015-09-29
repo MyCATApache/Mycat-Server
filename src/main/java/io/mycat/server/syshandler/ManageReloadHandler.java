@@ -25,25 +25,35 @@ package io.mycat.server.syshandler;
 
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.parser.ManagerParseSelect;
-import io.mycat.server.response.SelectSessionAutoIncrement;
-import io.mycat.server.response.SelectVersionComment;
+import io.mycat.server.parser.ManagerParseReload;
+import io.mycat.server.response.ReloadConfig;
+import io.mycat.server.response.ReloadUser;
 
 /**
  * @author mycat
  */
-public final class SelectHandler {
+public final class ManageReloadHandler
+{
 
-    public static void handle(String stmt, MySQLFrontConnection c, int offset) {
-        switch (ManagerParseSelect.parse(stmt, offset)) {
-        case ManagerParseSelect.VERSION_COMMENT:
-            SelectVersionComment.response(c);
-            break;
-        case ManagerParseSelect.SESSION_AUTO_INCREMENT:
-            SelectSessionAutoIncrement.execute(c);
-            break;
-        default:
-            c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+    public static void handle(String stmt, MySQLFrontConnection c, int offset)
+    {
+        int rs = ManagerParseReload.parse(stmt, offset);
+        switch (rs)
+        {
+            case ManagerParseReload.CONFIG:
+                ReloadConfig.execute(c,false);
+                break;
+            case ManagerParseReload.CONFIG_ALL:
+                ReloadConfig.execute(c,true);
+                break;
+            case ManagerParseReload.ROUTE:
+                c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+                break;
+            case ManagerParseReload.USER:
+                ReloadUser.execute(c);
+                break;
+            default:
+                c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
         }
     }
 

@@ -28,6 +28,7 @@ import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseShow;
 import io.mycat.server.response.ShowBackend;
 import io.mycat.server.response.ShowCollation;
+import io.mycat.server.response.ShowCommand;
 import io.mycat.server.response.ShowConnection;
 import io.mycat.server.response.ShowConnectionSQL;
 import io.mycat.server.response.ShowDataNode;
@@ -38,6 +39,10 @@ import io.mycat.server.response.ShowHelp;
 import io.mycat.server.response.ShowParser;
 import io.mycat.server.response.ShowProcessor;
 import io.mycat.server.response.ShowRouter;
+import io.mycat.server.response.ShowSQL;
+import io.mycat.server.response.ShowSQLDetail;
+import io.mycat.server.response.ShowSQLExecute;
+import io.mycat.server.response.ShowSQLSlow;
 import io.mycat.server.response.ShowServer;
 import io.mycat.server.response.ShowSession;
 import io.mycat.server.response.ShowThreadPool;
@@ -50,10 +55,11 @@ import io.mycat.util.StringUtil;
 /**
  * @author mycat
  */
-public final class ShowHandler {
+public final class ManageShowHandler {
 
 	public static void handle(String stmt, MySQLFrontConnection c, int offset) {
 		int rs = ManagerParseShow.parse(stmt, offset);
+		rs =6 ;
 		switch (rs & 0xff) {
 		case ManagerParseShow.COMMAND:
 			ShowCommand.execute(c);
@@ -152,7 +158,7 @@ public final class ShowHandler {
 			ShowThreadPool.execute(c);
 			break;
 		case ManagerParseShow.CACHE:
-			ShowCache.execute(c);
+			ManageShowCache.execute(c);
 			break;
 		case ManagerParseShow.SESSION:
 			ShowSession.execute(c);

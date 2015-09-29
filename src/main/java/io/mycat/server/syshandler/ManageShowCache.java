@@ -27,6 +27,8 @@ import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheService;
 import io.mycat.cache.CacheStatic;
 import io.mycat.cache.LayerCachePool;
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.MycatServer;
@@ -41,7 +43,7 @@ import io.mycat.util.StringUtil;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-public class ShowCache {
+public class ManageShowCache {
 
 	private static final int FIELD_COUNT = 8;
 	private static final ResultSetHeaderPacket header = PacketUtil
@@ -74,18 +76,18 @@ public class ShowCache {
 
 	public static void execute(MySQLFrontConnection c) {
 
-		ByteBuffer buffer = c.allocate();
+		BufferArray bufferArray = NetSystem.getInstance().getBufferPool().allocateArray();
 
 		// write header
-		buffer = header.write(buffer, c,true);
+		header.write(bufferArray);
 
 		// write fields
 		for (FieldPacket field : fields) {
-			buffer = field.write(buffer, c,true);
+			field.write(bufferArray);
 		}
 
 		// write eof
-		buffer = eof.write(buffer, c,true);
+		eof.write(bufferArray);
 
 		// write rows
 		byte packetId = eof.packetId;
@@ -100,23 +102,23 @@ public class ShowCache {
 					RowDataPacket row = getRow(cacheName+'.'+staticsEntry.getKey(),
 							staticsEntry.getValue(), c.getCharset());
 					row.packetId = ++packetId;
-					buffer = row.write(buffer, c,true);
+					row.write(bufferArray);
 				}
 			} else {
 				RowDataPacket row = getRow(cacheName,
 						cachePool.getCacheStatic(), c.getCharset());
 				row.packetId = ++packetId;
-				buffer = row.write(buffer, c,true);
+				row.write(bufferArray);
 			}
 		}
 
 		// write last eof
 		EOFPacket lastEof = new EOFPacket();
 		lastEof.packetId = ++packetId;
-		buffer = lastEof.write(buffer, c,true);
+		lastEof.write(bufferArray);
 
 		// write buffer
-		c.write(buffer);
+		c.write(bufferArray);
 	}
 
 	private static RowDataPacket getRow(String poolName,

@@ -31,7 +31,7 @@ import io.mycat.server.response.SwitchDataSource;
 /**
  * @author mycat
  */
-public final class SwitchHandler {
+public final class ManageSwitchHandler {
 
     public static void handler(String stmt, MySQLFrontConnection c, int offset) {
         switch (ManagerParseSwitch.parse(stmt, offset)) {

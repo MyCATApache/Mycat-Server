@@ -23,9 +23,10 @@
  */
 package io.mycat.server.response;
 
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MySQLFrontConnectionNIOUtils;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
@@ -33,8 +34,6 @@ import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
-
-import java.nio.ByteBuffer;
 
 /**
  * 查询指定SQL ID所对应的SQL语句
@@ -62,32 +61,33 @@ public final class ShowSQL {
     }
 
     public static void execute(MySQLFrontConnection c, long sql) {
-        ByteBuffer buffer = MySQLFrontConnectionNIOUtils.allocate();
+    	BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
+				.allocateArray();
 
         // write header
-        buffer = header.write(buffer, c,true);
+        header.write(bufferArray);
 
         // write fields
         for (FieldPacket field : fields) {
-            buffer = field.write(buffer, c,true);
+             field.write(bufferArray);
         }
 
         // write eof
-        buffer = eof.write(buffer, c,true);
+        eof.write(bufferArray);
 
         // write rows
         byte packetId = eof.packetId;
         RowDataPacket row = getRow(sql, c.getCharset());
         row.packetId = ++packetId;
-        buffer = row.write(buffer, c,true);
+        row.write(bufferArray);
 
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
-        buffer = lastEof.write(buffer, c,true);
+        lastEof.write(bufferArray);
 
         // write buffer
-        c.write(buffer);
+        c.write(bufferArray);
     }
 
     private static RowDataPacket getRow(long sql, String charset) {

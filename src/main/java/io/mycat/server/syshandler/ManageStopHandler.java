@@ -25,25 +25,18 @@ package io.mycat.server.syshandler;
 
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.parser.ManagerParseRollback;
-import io.mycat.server.response.RollbackConfig;
-import io.mycat.server.response.RollbackUser;
+import io.mycat.server.parser.ManagerParseStop;
+import io.mycat.server.response.StopHeartbeat;
 
 /**
  * @author mycat
  */
-public final class RollbackHandler {
+public final class ManageStopHandler {
 
     public static void handle(String stmt, MySQLFrontConnection c, int offset) {
-        switch (ManagerParseRollback.parse(stmt, offset)) {
-        case ManagerParseRollback.CONFIG:
-            RollbackConfig.execute(c);
-            break;
-        case ManagerParseRollback.ROUTE:
-            c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
-            break;
-        case ManagerParseRollback.USER:
-            RollbackUser.execute(c);
+        switch (ManagerParseStop.parse(stmt, offset)) {
+        case ManagerParseStop.HEARTBEAT:
+            StopHeartbeat.execute(stmt, c);
             break;
         default:
             c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");

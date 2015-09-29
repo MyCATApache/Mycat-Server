@@ -25,35 +25,28 @@ package io.mycat.server.syshandler;
 
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.parser.ManagerParseReload;
-import io.mycat.server.response.ReloadConfig;
-import io.mycat.server.response.ReloadUser;
+import io.mycat.server.parser.ManagerParseRollback;
+import io.mycat.server.response.RollbackConfig;
+import io.mycat.server.response.RollbackUser;
 
 /**
  * @author mycat
  */
-public final class ReloadHandler
-{
+public final class ManageRollbackHandler {
 
-    public static void handle(String stmt, MySQLFrontConnection c, int offset)
-    {
-        int rs = ManagerParseReload.parse(stmt, offset);
-        switch (rs)
-        {
-            case ManagerParseReload.CONFIG:
-                ReloadConfig.execute(c,false);
-                break;
-            case ManagerParseReload.CONFIG_ALL:
-                ReloadConfig.execute(c,true);
-                break;
-            case ManagerParseReload.ROUTE:
-                c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
-                break;
-            case ManagerParseReload.USER:
-                ReloadUser.execute(c);
-                break;
-            default:
-                c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+    public static void handle(String stmt, MySQLFrontConnection c, int offset) {
+        switch (ManagerParseRollback.parse(stmt, offset)) {
+        case ManagerParseRollback.CONFIG:
+            RollbackConfig.execute(c);
+            break;
+        case ManagerParseRollback.ROUTE:
+            c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+            break;
+        case ManagerParseRollback.USER:
+            RollbackUser.execute(c);
+            break;
+        default:
+            c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
         }
     }
 
