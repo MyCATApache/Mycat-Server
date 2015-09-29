@@ -41,7 +41,7 @@ public class DDLRouteTest {
         RouteService routerService = new RouteService(cacheService);
 
         // create table/view/function/..
-        String sql = " create table t5(idd int)";
+        String sql = " create table company(idd int)";
         sql = RouterUtil.getFixedSql(sql);
         String tablename =  RouterUtil.getTableName(sql, RouterUtil.getCreateTablePos(sql, 0));
         List<String> dataNodes = new ArrayList<>();
@@ -55,11 +55,11 @@ public class DDLRouteTest {
         int rs = ServerParse.parse(sql);
 		int sqlType = rs & 0xff;
         RouteResultset rrs = routerService.route(new SystemConfig(), schema, sqlType, sql, "UTF-8", null);
-        Assert.assertTrue("T5".equals(tablename));
+        Assert.assertTrue("COMPANY".equals(tablename));
         Assert.assertTrue(rrs.getNodes().length == nodeSize);
 
         // drop table test
-        sql = " drop table t5";
+        sql = " drop table COMPANY";
         sql = RouterUtil.getFixedSql(sql);
         tablename =  RouterUtil.getTableName(sql, RouterUtil.getDropTablePos(sql, 0));
         tables = schema.getTables();
@@ -71,11 +71,11 @@ public class DDLRouteTest {
         rs = ServerParse.parse(sql);
 		sqlType = rs & 0xff;
         rrs = routerService.route(new SystemConfig(), schema, sqlType, sql, "UTF-8", null);
-        Assert.assertTrue("T5".equals(tablename));
+        Assert.assertTrue("COMPANY".equals(tablename));
         Assert.assertTrue(rrs.getNodes().length == nodeSize);
 
         //alter table
-        sql = "   alter table t5 add COLUMN name int ;";
+        sql = "   alter table COMPANY add COLUMN name int ;";
         sql = RouterUtil.getFixedSql(sql);
         tablename =  RouterUtil.getTableName(sql, RouterUtil.getAlterTablePos(sql, 0));
         tables = schema.getTables();
@@ -86,11 +86,11 @@ public class DDLRouteTest {
         rs = ServerParse.parse(sql);
 		sqlType = rs & 0xff;
         rrs = routerService.route(new SystemConfig(), schema, sqlType, sql, "UTF-8", null);
-        Assert.assertTrue("T5".equals(tablename));
+        Assert.assertTrue("COMPANY".equals(tablename));
         Assert.assertTrue(rrs.getNodes().length == nodeSize);
 
         //truncate table;
-        sql = " truncate table t5";
+        sql = " truncate table COMPANY";
         sql = RouterUtil.getFixedSql(sql);
         tablename =  RouterUtil.getTableName(sql, RouterUtil.getTruncateTablePos(sql, 0));
         tables = schema.getTables();
@@ -101,7 +101,7 @@ public class DDLRouteTest {
         rs = ServerParse.parse(sql);
 		sqlType = rs & 0xff;
         rrs = routerService.route(new SystemConfig(), schema, sqlType, sql, "UTF-8", null);
-        Assert.assertTrue("T5".equals(tablename));
+        Assert.assertTrue("COMPANY".equals(tablename));
         Assert.assertTrue(rrs.getNodes().length == nodeSize);
 
 
