@@ -8,6 +8,9 @@ import io.mycat.server.packet.MySQLMessage;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.parser.ManagerParse;
 import io.mycat.server.parser.ServerParse;
+import io.mycat.server.response.KillConnection;
+import io.mycat.server.response.Offline;
+import io.mycat.server.response.Online;
 import io.mycat.server.sqlhandler.BeginHandler;
 import io.mycat.server.sqlhandler.ExplainHandler;
 import io.mycat.server.sqlhandler.KillHandler;
@@ -34,7 +37,9 @@ import java.util.Set;
  */
 
 public class MySQLFrontConnection extends GenalMySQLConnection {
-	protected FrontendPrivileges privileges;
+	private static final int SHIFT = 0;
+
+    protected FrontendPrivileges privileges;
 
 	protected FrontendPrepareHandler prepareHandler;
 	protected LoadDataInfileHandler loadDataInfileHandler;
@@ -256,7 +261,48 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		int rs = ManagerParse.parse(sql);
 		int sqlType = rs & 0xff;
 		if(sqlType == ManagerParse.SHOW || sqlType == ManagerParse.KILL_CONN){
-		    
+		    switch (rs & 0xff) {
+		            case ManagerParse.SELECT:
+		                SelectHandler.handle(sql, this, rs >>> SHIFT);
+		                break;
+		            case ManagerParse.SET:
+		                this.write(this.writeToBuffer(OkPacket.OK, this.allocate()));
+		                break;
+		            case ManagerParse.SHOW:
+		                ShowHandler.handle(sql, this, rs >>> SHIFT);
+		                break;
+		            case ManagerParse.SWITCH:
+		                SwitchHandler.handler(sql, this, rs >>> SHIFT);
+		                break;
+		            case ManagerParse.KILL_CONN:
+		                KillConnection.response(sql, rs >>> SHIFT, this);
+		                break;
+		            case ManagerParse.OFFLINE:
+		                Offline.execute(sql, this);
+		                break;
+		            case ManagerParse.ONLINE:
+		                Online.execute(sql, this);
+		                break;
+		            case ManagerParse.STOP:
+		                StopHandler.handle(sql, this, rs >>> SHIFT);
+		                break;
+		            case ManagerParse.RELOAD:
+		                ReloadHandler.handle(sql, this, rs >>> SHIFT);
+		                break;
+		            case ManagerParse.ROLLBACK:
+		                RollbackHandler.handle(sql, this, rs >>> SHIFT);
+		                break;
+		            case ManagerParse.CLEAR:
+		                ClearHandler.handle(sql, this, rs >>> SHIFT);
+		                break;
+		            case ManagerParse.CONFIGFILE:
+		                ConfFileHandler.handle(sql, this);
+		                break;
+		            case ManagerParse.LOGFILE:
+		                ShowServerLog.handle(sql, this);
+		                break;
+		            default:
+		                this.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 		}
 		
 		
