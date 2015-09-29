@@ -10,7 +10,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
-import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SchemaConfig;
@@ -108,35 +107,6 @@ public class RouterUtil {
 		return rrs;
 	}
 
-	/**
-	 * 获取第一个节点作为路由
-	 *
-	 * @param rrs
-	 *            数据路由集合
-	 * @param dataNode
-	 *            数据库所在节点
-	 * @param stmt
-	 *            执行语句
-	 * @return 数据路由集合
-	 * @author mycat
-	 */
-	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt) {
-		//ddl create deal
-		if(ServerParse.DDL==sqlType){
-			Map<String,PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
-			int nodeSize = dataNodes.size();
-			Iterator<String> iterator = dataNodes.keySet().iterator();
-			RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSize];
-			int i = 0;
-			while(iterator.hasNext()){
-				String name = iterator.next();
-				nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
-				i++;
-			}
-			rrs.setNodes(nodes);
-		}
-		return rrs;
-	}
 
 
 	/**
@@ -145,8 +115,9 @@ public class RouterUtil {
 	 * @return RouteResultset
 	 * @author aStoneGod
 	 */
-	public static RouteResultset routeToDDLNode2(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
+	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
 		//检查表是否在配置文件中
+		stmt = getFixedSql(stmt);
 		String tablename = "";
 		if(stmt.startsWith("CREATE")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(stmt, 0));
@@ -182,6 +153,20 @@ public class RouterUtil {
 		throw new SQLSyntaxErrorException("op table not in schema----"+tablename);
 	}
 
+	/**
+	 * 处理SQL
+	 *
+	 * @param stmt
+	 *            执行语句
+	 * @return 处理后SQL
+	 * @author AStoneGod
+	 */
+
+	public static String getFixedSql(String stmt){
+		if (stmt.endsWith(";"))
+			stmt = stmt.substring(0,stmt.length()-2);
+		return stmt = stmt.trim().toUpperCase().replace("`","");
+	}
 
 	/**
 	 * 获取table名字
