@@ -21,6 +21,13 @@ import io.mycat.server.sqlhandler.SetHandler;
 import io.mycat.server.sqlhandler.ShowHandler;
 import io.mycat.server.sqlhandler.StartHandler;
 import io.mycat.server.sqlhandler.UseHandler;
+import io.mycat.server.syshandler.ClearHandler;
+import io.mycat.server.syshandler.ConfFileHandler;
+import io.mycat.server.syshandler.ReloadHandler;
+import io.mycat.server.syshandler.RollbackHandler;
+import io.mycat.server.syshandler.ShowServerLog;
+import io.mycat.server.syshandler.StopHandler;
+import io.mycat.server.syshandler.SwitchHandler;
 import io.mycat.util.RandomUtil;
 
 import java.io.IOException;
