@@ -35,6 +35,9 @@ import io.mycat.server.response.ShowDataSource;
 import io.mycat.server.response.ShowDatabase;
 import io.mycat.server.response.ShowHeartbeat;
 import io.mycat.server.response.ShowHelp;
+import io.mycat.server.response.ShowParser;
+import io.mycat.server.response.ShowProcessor;
+import io.mycat.server.response.ShowRouter;
 import io.mycat.server.response.ShowServer;
 import io.mycat.server.response.ShowSession;
 import io.mycat.server.response.ShowThreadPool;
@@ -98,7 +101,8 @@ public final class ShowHandler {
 			ShowHelp.execute(c);
 			break;
 		case ManagerParseShow.HEARTBEAT:
-			ShowHeartbeat.response(c);
+//			ShowHeartbeat.response(c);
+			ShowHeartbeat.execute(c);
 			break;
 		case ManagerParseShow.PARSER:
 			ShowParser.execute(c);

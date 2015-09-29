@@ -24,6 +24,7 @@
 package io.mycat.server.syshandler;
 
 import io.mycat.server.ErrorCode;
+import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseSwitch;
 import io.mycat.server.response.SwitchDataSource;
 
@@ -32,9 +33,9 @@ import io.mycat.server.response.SwitchDataSource;
  */
 public final class SwitchHandler {
 
-    public static void handler(String stmt, ManagerConnection c, int offset) {
+    public static void handler(String stmt, MySQLFrontConnection c, int offset) {
         switch (ManagerParseSwitch.parse(stmt, offset)) {
-        case DATASOURCE:
+        case ManagerParseSwitch.DATASOURCE:
             SwitchDataSource.response(stmt, c);
             break;
         default:

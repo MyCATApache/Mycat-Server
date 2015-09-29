@@ -1,5 +1,7 @@
 package io.mycat.server;
 
+import static io.mycat.server.MySQLFrontConnectionNIOUtils.allocate;
+import static io.mycat.server.MySQLFrontConnectionNIOUtils.writeToBuffer;
 import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.config.SchemaConfig;
@@ -35,7 +37,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
-
 /**
  * MySQL Front connection
  *
@@ -273,7 +274,7 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		                SelectHandler.handle(sql, this, rs >>> SHIFT);
 		                break;
 		            case ManagerParse.SET:
-		                this.write(this.writeToBuffer(OkPacket.OK, this.allocate()));
+		                this.write(writeToBuffer(OkPacket.OK, allocate()));
 		                break;
 		            case ManagerParse.SHOW:
 		                ShowHandler.handle(sql, this, rs >>> SHIFT);

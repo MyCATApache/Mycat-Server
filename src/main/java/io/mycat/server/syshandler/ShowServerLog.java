@@ -25,6 +25,7 @@ package io.mycat.server.syshandler;
 
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
+import io.mycat.server.MySQLFrontConnectionNIOUtils;
 import io.mycat.server.MycatServer;
 import io.mycat.server.SystemConfig;
 import io.mycat.server.packet.EOFPacket;
@@ -77,9 +78,9 @@ public final class ShowServerLog {
 		return file;
 	}
 
-	public static void handle(String stmt,ManagerConnection c) {
+	public static void handle(String stmt,MySQLFrontConnection c) {
 
-		ByteBuffer buffer = c.allocate();
+		ByteBuffer buffer = MySQLFrontConnectionNIOUtils.allocate();
 
 		// write header
 		buffer = header.write(buffer, c,true);
@@ -185,7 +186,7 @@ public final class ShowServerLog {
 		return bufINf;
 	}
 
-	private static PackageBufINf showLogSum(ManagerConnection c,
+	private static PackageBufINf showLogSum(MySQLFrontConnection c,
 			ByteBuffer buffer, byte packetId) {
 		PackageBufINf bufINf = new PackageBufINf();
 		File[] logFiles = new File(SystemConfig.getHomePath(), "logs")

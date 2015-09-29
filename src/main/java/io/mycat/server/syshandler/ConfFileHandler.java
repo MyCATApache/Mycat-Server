@@ -51,6 +51,8 @@ import java.util.Date;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import static io.mycat.server.MySQLFrontConnectionNIOUtils.allocate;
+
 import org.apache.log4j.Logger;
 import org.xml.sax.SAXException;
 
@@ -80,7 +82,7 @@ public final class ConfFileHandler {
 	}
 
 	public static void handle( String stmt,MySQLFrontConnection c) {
-		ByteBuffer buffer = c.allocate();
+		ByteBuffer buffer = allocate();
 
 		// write header
 		buffer = header.write(buffer, c,true);
@@ -184,7 +186,7 @@ public final class ConfFileHandler {
 		return outStream.toByteArray();
 	}
 
-	private static PackageBufINf upLoadConfigFile(ManagerConnection c,
+	private static PackageBufINf upLoadConfigFile(MySQLFrontConnection c,
 			ByteBuffer buffer, byte packetId, String fileName, String content) {
 		LOGGER.info("Upload Daas Config file " + fileName + " ,content:"
 				+ content);
@@ -247,7 +249,7 @@ public final class ConfFileHandler {
 		}
 	}
 
-	private static PackageBufINf showInfo(ManagerConnection c,
+	private static PackageBufINf showInfo(MySQLFrontConnection c,
 			ByteBuffer buffer, byte packetId, String string) {
 		PackageBufINf bufINf = new PackageBufINf();
 		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
@@ -259,7 +261,7 @@ public final class ConfFileHandler {
 		return bufINf;
 	}
 
-	private static PackageBufINf showConfigFile(ManagerConnection c,
+	private static PackageBufINf showConfigFile(MySQLFrontConnection c,
 			ByteBuffer buffer, byte packetId, String fileName) {
 		File file = new File(SystemConfig.getHomePath(), "conf"
 				+ File.separator + fileName);
@@ -302,7 +304,7 @@ public final class ConfFileHandler {
 		return bufINf;
 	}
 
-	private static PackageBufINf listConfigFiles(ManagerConnection c,
+	private static PackageBufINf listConfigFiles(MySQLFrontConnection c,
 			ByteBuffer buffer, byte packetId) {
 		PackageBufINf bufINf = new PackageBufINf();
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");

@@ -36,10 +36,10 @@ public final class SelectHandler {
 
     public static void handle(String stmt, MySQLFrontConnection c, int offset) {
         switch (ManagerParseSelect.parse(stmt, offset)) {
-        case VERSION_COMMENT:
-            SelectVersionComment.execute(c);
+        case ManagerParseSelect.VERSION_COMMENT:
+            SelectVersionComment.response(c);
             break;
-        case SESSION_AUTO_INCREMENT:
+        case ManagerParseSelect.SESSION_AUTO_INCREMENT:
             SelectSessionAutoIncrement.execute(c);
             break;
         default:
