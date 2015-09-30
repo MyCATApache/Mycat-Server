@@ -133,6 +133,11 @@
 			<artifactId>sequoiadb-driver</artifactId>
 			<version>1.12</version>
 		</dependency>
+		<dependency>
+		    <groupId>org.antlr</groupId>
+		    <artifactId>antlr4-runtime</artifactId>
+		    <version>4.5</version>
+		</dependency>
 	</dependencies>
 
 
