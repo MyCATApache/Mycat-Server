@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="module_mycat-server" default="compile.module.mycat-server">
+  <dirname property="module.mycat-server.basedir" file="${ant.file.module_mycat-server}"/>
+  
+  <property name="module.jdk.home.mycat-server" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.mycat-server" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.mycat-server" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.mycat-server" value="-encoding UTF-8 -source 1.7 -target 1.7 ${compiler.args}"/>
+  
+  <property name="mycat-server.output.dir" value="${module.mycat-server.basedir}/target/classes"/>
+  <property name="mycat-server.testoutput.dir" value="${module.mycat-server.basedir}/target/test-classes"/>
+  
+  <path id="mycat-server.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="mycat-server.module.production.classpath">
+    <path refid="${module.jdk.classpath.mycat-server}"/>
+    <path refid="library.maven:_org.mongodb:mongo-java-driver:2.11.4.classpath"/>
+    <path refid="library.maven:_org.iq80.leveldb:leveldb:0.7.classpath"/>
+    <path refid="library.maven:_org.iq80.leveldb:leveldb-api:0.7.classpath"/>
+    <path refid="library.maven:_com.google.guava:guava:18.0.classpath"/>
+    <path refid="library.maven:_com.alibaba:druid:1.0.14.classpath"/>
+    <pathelement location="D:/code/Java/jdk1.7.0_51/lib/jconsole.jar"/>
+    <pathelement location="D:/code/Java/jdk1.7.0_51/lib/tools.jar"/>
+    <path refid="library.maven:_log4j:log4j:1.2.17.classpath"/>
+    <path refid="library.maven:_net.sf.ehcache:ehcache-core:2.6.11.classpath"/>
+    <path refid="library.maven:_org.mapdb:mapdb:1.0.7.classpath"/>
+    <path refid="library.maven:_junit:junit:4.4.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-api:1.7.12.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-log4j12:1.7.12.classpath"/>
+    <path refid="library.maven:_com.univocity:univocity-parsers:1.5.4.classpath"/>
+    <path refid="library.maven:_com.sequoiadb.org:sequoiadb-java-driver:1.0-snapshot.classpath"/>
+  </path>
+  
+  <path id="mycat-server.runtime.production.module.classpath">
+    <pathelement location="${mycat-server.output.dir}"/>
+    <path refid="library.maven:_org.mongodb:mongo-java-driver:2.11.4.classpath"/>
+    <path refid="library.maven:_org.iq80.leveldb:leveldb:0.7.classpath"/>
+    <path refid="library.maven:_org.iq80.leveldb:leveldb-api:0.7.classpath"/>
+    <path refid="library.maven:_com.google.guava:guava:18.0.classpath"/>
+    <path refid="library.maven:_com.alibaba:druid:1.0.14.classpath"/>
+    <pathelement location="D:/code/Java/jdk1.7.0_51/lib/jconsole.jar"/>
+    <pathelement location="D:/code/Java/jdk1.7.0_51/lib/tools.jar"/>
+    <path refid="library.maven:_log4j:log4j:1.2.17.classpath"/>
+    <path refid="library.maven:_net.sf.ehcache:ehcache-core:2.6.11.classpath"/>
+    <path refid="library.maven:_org.mapdb:mapdb:1.0.7.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-api:1.7.12.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-log4j12:1.7.12.classpath"/>
+    <path refid="library.maven:_com.univocity:univocity-parsers:1.5.4.classpath"/>
+    <path refid="library.maven:_com.sequoiadb.org:sequoiadb-java-driver:1.0-snapshot.classpath"/>
+  </path>
+  
+  <path id="mycat-server.module.classpath">
+    <path refid="${module.jdk.classpath.mycat-server}"/>
+    <pathelement location="${mycat-server.output.dir}"/>
+    <path refid="library.maven:_org.mongodb:mongo-java-driver:2.11.4.classpath"/>
+    <path refid="library.maven:_org.iq80.leveldb:leveldb:0.7.classpath"/>
+    <path refid="library.maven:_org.iq80.leveldb:leveldb-api:0.7.classpath"/>
+    <path refid="library.maven:_com.google.guava:guava:18.0.classpath"/>
+    <path refid="library.maven:_com.alibaba:druid:1.0.14.classpath"/>
+    <pathelement location="D:/code/Java/jdk1.7.0_51/lib/jconsole.jar"/>
+    <pathelement location="D:/code/Java/jdk1.7.0_51/lib/tools.jar"/>
+    <path refid="library.maven:_log4j:log4j:1.2.17.classpath"/>
+    <path refid="library.maven:_mysql:mysql-connector-java:5.1.35.classpath"/>
+    <path refid="library.maven:_net.sf.ehcache:ehcache-core:2.6.11.classpath"/>
+    <path refid="library.maven:_org.mapdb:mapdb:1.0.7.classpath"/>
+    <path refid="library.maven:_junit:junit:4.4.classpath"/>
+    <path refid="library.maven:_org.codehaus.jsr166-mirror:jsr166y:1.7.0.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-api:1.7.12.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-log4j12:1.7.12.classpath"/>
+    <path refid="library.maven:_com.univocity:univocity-parsers:1.5.4.classpath"/>
+    <path refid="library.maven:_com.sequoiadb.org:sequoiadb-java-driver:1.0-snapshot.classpath"/>
+  </path>
+  
+  <path id="mycat-server.runtime.module.classpath">
+    <pathelement location="${mycat-server.testoutput.dir}"/>
+    <pathelement location="${mycat-server.output.dir}"/>
+    <path refid="library.maven:_org.mongodb:mongo-java-driver:2.11.4.classpath"/>
+    <path refid="library.maven:_org.iq80.leveldb:leveldb:0.7.classpath"/>
+    <path refid="library.maven:_org.iq80.leveldb:leveldb-api:0.7.classpath"/>
+    <path refid="library.maven:_com.google.guava:guava:18.0.classpath"/>
+    <path refid="library.maven:_com.alibaba:druid:1.0.14.classpath"/>
+    <pathelement location="D:/code/Java/jdk1.7.0_51/lib/jconsole.jar"/>
+    <pathelement location="D:/code/Java/jdk1.7.0_51/lib/tools.jar"/>
+    <path refid="library.maven:_log4j:log4j:1.2.17.classpath"/>
+    <path refid="library.maven:_mysql:mysql-connector-java:5.1.35.classpath"/>
+    <path refid="library.maven:_net.sf.ehcache:ehcache-core:2.6.11.classpath"/>
+    <path refid="library.maven:_org.mapdb:mapdb:1.0.7.classpath"/>
+    <path refid="library.maven:_junit:junit:4.4.classpath"/>
+    <path refid="library.maven:_org.codehaus.jsr166-mirror:jsr166y:1.7.0.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-api:1.7.12.classpath"/>
+    <path refid="library.maven:_org.slf4j:slf4j-log4j12:1.7.12.classpath"/>
+    <path refid="library.maven:_com.univocity:univocity-parsers:1.5.4.classpath"/>
+    <path refid="library.maven:_com.sequoiadb.org:sequoiadb-java-driver:1.0-snapshot.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.mycat-server">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.mycat-server">
+    <patternset refid="excluded.from.module.mycat-server"/>
+  </patternset>
+  
+  <path id="mycat-server.module.sourcepath">
+    <dirset dir="${module.mycat-server.basedir}">
+      <include name="src/main/java"/>
+      <include name="src/main/resources"/>
+    </dirset>
+  </path>
+  
+  <path id="mycat-server.module.test.sourcepath">
+    <dirset dir="${module.mycat-server.basedir}">
+      <include name="src/test/java"/>
+      <include name="src/test/resources"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.mycat-server" depends="compile.module.mycat-server.production,compile.module.mycat-server.tests" description="Compile module Mycat-server"/>
+  
+  <target name="compile.module.mycat-server.production" depends="register.custom.compilers" description="Compile module Mycat-server; production classes">
+    <mkdir dir="${mycat-server.output.dir}"/>
+    <javac2 destdir="${mycat-server.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.mycat-server}/javac">
+      <compilerarg line="${compiler.args.mycat-server}"/>
+      <bootclasspath refid="mycat-server.module.bootclasspath"/>
+      <classpath refid="mycat-server.module.production.classpath"/>
+      <src refid="mycat-server.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.mycat-server"/>
+    </javac2>
+    
+    <copy todir="${mycat-server.output.dir}">
+      <fileset dir="${module.mycat-server.basedir}/src/main/java">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+      <fileset dir="${module.mycat-server.basedir}/src/main/resources">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.mycat-server.tests" depends="register.custom.compilers,compile.module.mycat-server.production" description="compile module Mycat-server; test classes" unless="skip.tests">
+    <mkdir dir="${mycat-server.testoutput.dir}"/>
+    <javac2 destdir="${mycat-server.testoutput.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.mycat-server}/javac">
+      <compilerarg line="${compiler.args.mycat-server}"/>
+      <bootclasspath refid="mycat-server.module.bootclasspath"/>
+      <classpath refid="mycat-server.module.classpath"/>
+      <src refid="mycat-server.module.test.sourcepath"/>
+      <patternset refid="excluded.from.compilation.mycat-server"/>
+    </javac2>
+    
+    <copy todir="${mycat-server.testoutput.dir}">
+      <fileset dir="${module.mycat-server.basedir}/src/test/java">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+      <fileset dir="${module.mycat-server.basedir}/src/test/resources">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="clean.module.mycat-server" description="cleanup module">
+    <delete dir="${mycat-server.output.dir}"/>
+    <delete dir="${mycat-server.testoutput.dir}"/>
+  </target>
+</project>
