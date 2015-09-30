@@ -1,11 +1,9 @@
 package io.mycat.route.factory;
 
+import io.mycat.MycatServer;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.impl.DruidMycatRouteStrategy;
-import io.mycat.server.MycatServer;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 

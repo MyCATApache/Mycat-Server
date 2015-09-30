@@ -1,5 +1,6 @@
 package io.mycat.server;
 
+import io.mycat.MycatServer;
 import io.mycat.net.Connection;
 import io.mycat.net.NIOHandler;
 import io.mycat.server.packet.AuthPacket;

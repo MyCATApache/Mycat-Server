@@ -1,17 +1,17 @@
 package io.mycat.route.handler;
 
+import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
-
-import org.apache.log4j.Logger;
 
 /**
  * 处理注释中类型为catlet 的情况,每个catlet为一个用户自定义Java代码类，用于进行复杂查询SQL（只能是查询SQL）的自定义执行过程，
@@ -19,7 +19,7 @@ import org.apache.log4j.Logger;
  */
 public class HintCatletHandler implements HintHandler {
 
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(HintCatletHandler.class);
 
 	/**

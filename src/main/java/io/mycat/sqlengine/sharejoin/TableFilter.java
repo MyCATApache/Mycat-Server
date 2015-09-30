@@ -1,11 +1,14 @@
 package io.mycat.sqlengine.sharejoin;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.apache.log4j.Logger;
-/**  
+
+/**
  * 功能详细描述:分片join,单独的语句
  * @author sohudo[http://blog.csdn.net/wind520]
  * @create 2015年02月01日 
@@ -13,7 +16,8 @@ import org.apache.log4j.Logger;
  */
 
 public class TableFilter {
-	protected static final Logger LOGGER = Logger.getLogger(TableFilter.class);
+	public static final Logger LOGGER = LoggerFactory
+			.getLogger(TableFilter.class);
 	
 	private LinkedHashMap<String,String> fieldAliasMap = new LinkedHashMap<String,String>();
 	private String tName;

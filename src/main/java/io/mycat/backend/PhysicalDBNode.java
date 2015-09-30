@@ -25,11 +25,11 @@ package io.mycat.backend;
 
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.executors.ResponseHandler;
-
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PhysicalDBNode {
-	protected static final Logger LOGGER = Logger
+	protected static final Logger LOGGER = LoggerFactory
 			.getLogger(PhysicalDBNode.class);
 
 	protected final String name;

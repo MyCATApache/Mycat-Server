@@ -1,24 +1,24 @@
 package io.mycat.route.handler;
 
+import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
-
-import org.apache.log4j.Logger;
 
 /**
  * 处理注释中类型为schema 的情况（按照指定schema做路由解析）
  */
 public class HintSchemaHandler implements HintHandler {
 
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(HintSchemaHandler.class);
 
 	private RouteStrategy routeStrategy;

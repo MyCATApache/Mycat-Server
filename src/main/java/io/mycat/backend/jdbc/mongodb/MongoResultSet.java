@@ -1,9 +1,5 @@
 package io.mycat.backend.jdbc.mongodb;
 
-import com.mongodb.BasicDBList;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -30,6 +26,10 @@ import java.util.HashMap;
 //import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import com.mongodb.BasicDBList;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 /**  
  * 功能详细描述
  * @author sohudo[http://blog.csdn.net/wind520]

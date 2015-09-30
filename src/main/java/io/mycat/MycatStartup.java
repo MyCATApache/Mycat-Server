@@ -23,19 +23,23 @@
  */
 package io.mycat;
 
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
+import io.mycat.server.config.node.SystemConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import org.apache.log4j.helpers.LogLog;
 
 /**
  * @author mycat
  */
 public final class MycatStartup {
 	private static final String dateFormat = "yyyy-MM-dd HH:mm:ss";
+
+	private static final class Holder {
+		private static final Logger LOGGER = LoggerFactory
+				.getLogger(MycatStartup.class);
+	}
 
 	public static void main(String[] args) {
 		try {
@@ -46,7 +50,6 @@ public final class MycatStartup {
 			}
 			// init
 			MycatServer server = MycatServer.getInstance();
-			server.beforeStart();
 
 			// startup
 			server.startup();
@@ -56,7 +59,7 @@ public final class MycatStartup {
 			}
 		} catch (Exception e) {
 			SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
-			LogLog.error(sdf.format(new Date()) + " startup error", e);
+			Holder.LOGGER.error(sdf.format(new Date()) + " startup error", e);
 			System.exit(-1);
 		}
 	}

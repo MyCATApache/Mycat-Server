@@ -1,6 +1,5 @@
 package io.mycat.route.function;
 
-import io.mycat.server.config.RuleAlgorithm;
 
 /**
  * 跳增一致性哈希分片

@@ -1,6 +1,5 @@
 package io.mycat.route.function;
 
-import io.mycat.route.function.PartitionByJumpConsistentHash;
 import junit.framework.Assert;
 
 import org.junit.Test;

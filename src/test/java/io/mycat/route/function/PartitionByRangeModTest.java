@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -28,14 +28,15 @@ import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.SchemaLoader;
-import io.mycat.server.config.XMLSchemaLoader;
+import io.mycat.server.config.loader.ConfigInitializer;
+import io.mycat.server.config.node.RuleConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 
 import java.math.BigInteger;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
+import java.util.Set;
 
 import junit.framework.Assert;
 
@@ -47,33 +48,40 @@ public class PartitionByRangeModTest
     @Test
     public void test()
     {
-        PartitionByRangeMod autoPartition = new PartitionByRangeMod();
-        autoPartition.setMapFile("partition-range-mod.txt");
-        autoPartition.init();
-        String idVal = "0";
-        Assert.assertEquals(true, 0 == autoPartition.calculate(idVal));
-        idVal = "1";
-        Assert.assertEquals(true, 1 == autoPartition.calculate(idVal));
-        idVal = "2";
-        Assert.assertEquals(true, 2 == autoPartition.calculate(idVal));
-        idVal = "3";
-        Assert.assertEquals(true, 3 == autoPartition.calculate(idVal));
-        idVal = "4";
-        Assert.assertEquals(true, 4 == autoPartition.calculate(idVal));
-        idVal = "5";
-        Assert.assertEquals(true, 0 == autoPartition.calculate(idVal));
+    	ConfigInitializer confInit = new ConfigInitializer(true);
+        Map<String, RuleConfig> ruleConfigs = confInit.getTableRules();
+        Set<String> sets = ruleConfigs.keySet();
+        for(String ruleStr : sets){
+        	if(ruleConfigs.get(ruleStr).getFunctionName().indexOf("PartitionByRangeMod")!=-1){
+        		AbstractPartitionAlgorithm autoPartition = ruleConfigs.get(ruleStr).getRuleAlgorithm();
+        		autoPartition.init();
+                String idVal = "0";
+                Assert.assertEquals(true, 0 == autoPartition.calculate(idVal));
+                idVal = "1";
+                Assert.assertEquals(true, 1 == autoPartition.calculate(idVal));
+                idVal = "2";
+                Assert.assertEquals(true, 2 == autoPartition.calculate(idVal));
+                idVal = "3";
+                Assert.assertEquals(true, 3 == autoPartition.calculate(idVal));
+                idVal = "4";
+                Assert.assertEquals(true, 4 == autoPartition.calculate(idVal));
+                idVal = "5";
+                Assert.assertEquals(true, 0 == autoPartition.calculate(idVal));
 
-        idVal="2000000";
-		Assert.assertEquals(true, 0==autoPartition.calculate(idVal));
+                idVal="2000000";
+        		Assert.assertEquals(true, 0==autoPartition.calculate(idVal));
 
-		idVal="2000001";
-		Assert.assertEquals(true, 5==autoPartition.calculate(idVal));
+        		idVal="2000001";
+        		Assert.assertEquals(true, 5==autoPartition.calculate(idVal));
 
-		idVal="4000000";
-		Assert.assertEquals(true, 5==autoPartition.calculate(idVal));
+        		idVal="4000000";
+        		Assert.assertEquals(true, 5==autoPartition.calculate(idVal));
 
-		idVal="4000001";
-		Assert.assertEquals(true, 7==autoPartition.calculate(idVal));
+        		idVal="4000001";
+        		Assert.assertEquals(true, 7==autoPartition.calculate(idVal));
+        	}
+
+        }
     }
 
 
@@ -88,10 +96,8 @@ public class PartitionByRangeModTest
     protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 
     public PartitionByRangeModTest() {
-        String schemaFile = "/route/schema.xml";
-        String ruleFile = "/route/rule.xml";
-        SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
-        schemaMap = schemaLoader.getSchemas();
+    	ConfigInitializer confInit = new ConfigInitializer(true);
+        schemaMap = confInit.getSchemas();
     }
 
     @Test

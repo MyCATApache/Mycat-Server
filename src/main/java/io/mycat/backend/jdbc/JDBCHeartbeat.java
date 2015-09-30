@@ -2,15 +2,14 @@ package io.mycat.backend.jdbc;
 
 import io.mycat.backend.HeartbeatRecorder;
 import io.mycat.backend.heartbeat.DBHeartbeat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 public class JDBCHeartbeat extends DBHeartbeat{
 	private final ReentrantLock lock;
@@ -18,9 +17,10 @@ public class JDBCHeartbeat extends DBHeartbeat{
     private final boolean heartbeatnull;
     private Long lastSendTime = System.currentTimeMillis();
     private Long lastReciveTime = System.currentTimeMillis();
-    
-    
-    private Logger logger = Logger.getLogger(this.getClass());
+
+
+	private static final Logger logger = LoggerFactory
+			.getLogger(JDBCHeartbeat.class);
     
 	public JDBCHeartbeat(JDBCDatasource source)
 	{

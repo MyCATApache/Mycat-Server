@@ -1,6 +1,6 @@
 package io.mycat.route.parser.druid;
 
-import io.mycat.server.SystemConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.sequence.IncrSequenceMySQLHandler;
 import io.mycat.server.sequence.IncrSequencePropHandler;
 import io.mycat.server.sequence.IncrSequenceTimeHandler;
@@ -22,7 +22,7 @@ public class DruidSequenceHandler {
 	private final static String MATCHED_FEATURE = "NEXT VALUE FOR MYCATSEQ_";
 
     private final static   Pattern pattern = Pattern.compile("(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+", Pattern.CASE_INSENSITIVE);
-	
+
 	public DruidSequenceHandler(int seqHandlerType) {
 		switch(seqHandlerType){
 		case SystemConfig.SEQUENCEHANDLER_MYSQLDB:

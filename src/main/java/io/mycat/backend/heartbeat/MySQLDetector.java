@@ -26,7 +26,7 @@ package io.mycat.backend.heartbeat;
 import io.mycat.backend.MySQLDataSource;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
-import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.config.node.DataHostConfig;
 import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
 import io.mycat.sqlengine.SQLJob;
 import io.mycat.sqlengine.SQLQueryResult;

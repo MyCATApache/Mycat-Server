@@ -1,15 +1,14 @@
 package io.mycat.route;
 
+import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.cache.CacheService;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.SchemaLoader;
-import io.mycat.server.config.XMLSchemaLoader;
+import io.mycat.server.config.loader.ConfigInitializer;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.parser.ServerParse;
 
 import java.util.Map;
@@ -24,10 +23,8 @@ public class DDLRouteTest {
 	protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("fdbparser");
 
 	public DDLRouteTest() {
-		String schemaFile = "/route/schema.xml";
-		String ruleFile = "/route/rule.xml";
-		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
-		schemaMap = schemaLoader.getSchemas();
+		ConfigInitializer confInit = new ConfigInitializer(true);
+		schemaMap = confInit.getSchemas();
 	}
 
 	/**
