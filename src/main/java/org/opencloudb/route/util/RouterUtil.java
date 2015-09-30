@@ -189,12 +189,45 @@ public class RouterUtil {
 			thiInd = stmt.length();
 		}
 		repPos[1] = secInd;
-		String tableName = stmt.substring(secInd, thiInd).trim();
+		String tableName = "";
+		if (stmt.toUpperCase().startsWith("DESC")||stmt.toUpperCase().startsWith("DESCRIBE")){
+			tableName = stmt.substring(startPos, thiInd).trim();
+		}else {
+			tableName = stmt.substring(secInd, thiInd).trim();
+		}
 
 		//ALTER TABLE
 		if (tableName.contains(" ")){
 			tableName = tableName.substring(0,tableName.indexOf(" "));
 		}
+		int ind2 = tableName.indexOf('.');
+		if (ind2 > 0) {
+			tableName = tableName.substring(ind2 + 1);
+		}
+		return tableName;
+	}
+
+
+	/**
+	 * 获取show语句table名字
+	 *
+	 * @param stmt
+	 *            执行语句
+	 * @param repPos
+	 *            开始位置和位数
+	 * @return 表名
+	 * @author AStoneGod
+	 */
+	public static String getShowTableName(String stmt, int[] repPos) {
+		int startPos = repPos[0];
+		int secInd = stmt.indexOf(' ', startPos + 1);
+		if (secInd < 0) {
+			secInd = stmt.length();
+		}
+
+		repPos[1] = secInd;
+		String tableName = stmt.substring(startPos, secInd).trim();
+
 		int ind2 = tableName.indexOf('.');
 		if (ind2 > 0) {
 			tableName = tableName.substring(ind2 + 1);
