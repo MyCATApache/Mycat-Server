@@ -24,21 +24,13 @@
 package io.mycat.server.response;
 
 import io.mycat.net.BufferArray;
-import io.mycat.net.BufferPool;
 import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MySQLFrontConnectionNIOUtils;
-import io.mycat.server.MycatServer;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
-import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
-import io.mycat.util.IntegerUtil;
-import io.mycat.util.LongUtil;
-
-import java.nio.ByteBuffer;
 
 /**
  * 查看处理器状态

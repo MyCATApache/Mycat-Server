@@ -23,11 +23,11 @@
  */
 package io.mycat.server.response;
 
-import static io.mycat.server.MySQLFrontConnectionNIOUtils.allocate;
-import static io.mycat.server.MySQLFrontConnectionNIOUtils.writeToBuffer;
 import io.mycat.MycatConfig;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.PhysicalDBPool;
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.MycatServer;
@@ -44,7 +44,9 @@ public class ClearSlow {
     	PhysicalDBPool ds = null;
         if (dn != null && ((ds = dn.getDbPool())!= null)) {
            // ds.getSqlRecorder().clear();
-           c.write(writeToBuffer(OkPacket.OK, allocate()));
+            BufferArray bufferArray = NetSystem.getInstance().getBufferPool().allocateArray();
+            bufferArray.write(OkPacket.OK);
+           c.write(bufferArray);
         } else {
             c.writeErrMessage(ErrorCode.ER_YES, "Invalid DataNode:" + name);
         }
@@ -62,7 +64,10 @@ public class ClearSlow {
 //                    ds.getSqlRecorder().clear();
 //                }
 //            }
-           c.write(writeToBuffer(OkPacket.OK, allocate()));
+            
+           BufferArray bufferArray = NetSystem.getInstance().getBufferPool().allocateArray();
+           bufferArray.write(OkPacket.OK);
+           c.write(bufferArray);
         } else {
             c.writeErrMessage(ErrorCode.ER_YES, "Invalid Schema:" + name);
         }

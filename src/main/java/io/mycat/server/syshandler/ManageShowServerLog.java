@@ -27,7 +27,6 @@ import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MySQLFrontConnectionNIOUtils;
 import io.mycat.server.MycatServer;
 import io.mycat.server.SystemConfig;
 import io.mycat.server.packet.EOFPacket;
