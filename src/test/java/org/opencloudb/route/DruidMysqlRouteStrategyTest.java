@@ -581,7 +581,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     public void testTableMetaRead() throws Exception {
         final SchemaConfig schema = schemaMap.get("cndb");
 
-        String sql = "desc offer";
+        String sql = " desc offer";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.DESCRIBE, sql, null, null,
                 cachePool);
         Assert.assertEquals(false, rrs.isCacheAble());

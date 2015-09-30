@@ -158,10 +158,9 @@ public class FieldPacket extends MySQLPacket {
 		buffer.put((byte) (type & 0xff));
 		BufferUtil.writeUB2(buffer, flags);
 		buffer.put(decimals);
-		//modified by 执笔相思, 协议这两个字节是0x00
-		buffer.put((byte)0x00);
         buffer.put((byte)0x00);
-		
+        buffer.put((byte)0x00);
+		//buffer.position(buffer.position() + FILLER.length);
 		if (definition != null) {
 			BufferUtil.writeWithLength(buffer, definition);
 		}

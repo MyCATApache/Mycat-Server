@@ -1,23 +1,19 @@
 package org.opencloudb.route.impl;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.Iterator;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
-import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.mpp.LoadData;
 import org.opencloudb.route.RouteResultset;
-import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.RouteStrategy;
 import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
 
 public abstract class AbstractRouteStrategy implements RouteStrategy {
 	private static final Logger LOGGER = Logger.getLogger(AbstractRouteStrategy.class);
@@ -53,7 +49,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 
 		//ddl create deal
 		if(ServerParse.DDL==sqlType){
-			return RouterUtil.routeToDDLNode(rrs, sqlType, stmt);
+			return RouterUtil.routeToDDLNode(rrs,sqlType,stmt,schema);
 		}
 		// check if there is sharding in schema
 		if (schema.isNoSharding() && ServerParse.SHOW != sqlType) {

@@ -39,7 +39,7 @@ public class CharsetUtil {
     private static final Map<String, Integer> CHARSET_TO_INDEX = new HashMap<>();
     static {
 
-        //添加常见编码默认值，防止用户未配置文件 index_to_charset.properties
+        // index_to_charset.properties
         INDEX_TO_CHARSET.put(1,"big5");
         INDEX_TO_CHARSET.put(8,"latin1");
         INDEX_TO_CHARSET.put(9,"latin2");
