@@ -101,7 +101,7 @@ public class RowDataPacket extends MySQLPacket {
                 bb.put(RowDataPacket.EMPTY_MARK);
             }
             else {
-				bb = c.checkWriteBuffer(bb, fv.length,
+				bb = c.checkWriteBuffer(bb, BufferUtil.getLength(fv),
 						writeSocketIfFull);
 				BufferUtil.writeLength(bb, fv.length);
 				bb = c.writeToBuffer(fv, bb);
