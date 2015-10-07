@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 /**
  * @author mycat
  */
+@Deprecated
 public final class ServerParse {
 
 	public static final int OTHER = -1;

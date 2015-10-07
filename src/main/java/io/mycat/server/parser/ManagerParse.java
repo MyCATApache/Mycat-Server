@@ -29,6 +29,7 @@ import io.mycat.util.ParseUtil;
  * @author mycat
  * @author mycat
  */
+@Deprecated
 public final class ManagerParse {
 
 	public static final int OTHER = -1;
