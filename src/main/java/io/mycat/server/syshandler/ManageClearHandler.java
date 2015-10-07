@@ -35,6 +35,8 @@ import io.mycat.util.StringUtil;
 public class ManageClearHandler {
 
     public static void handle(String stmt, MySQLFrontConnection c, int offset) {
+    	offset = stmt.indexOf("@");
+    	offset  = offset == -1? 0 : offset;
         int rs = ManagerParseClear.parse(stmt, offset);
         switch (rs & 0xff) {
         case ManagerParseClear.SLOW_DATANODE: {

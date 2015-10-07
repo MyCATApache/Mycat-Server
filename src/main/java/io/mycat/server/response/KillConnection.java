@@ -42,6 +42,7 @@ public final class KillConnection {
 
     public static void response(String stmt, int offset, MySQLFrontConnection mc) {
         int count = 0;
+        offset = stmt.indexOf("@@connection")+1+"@@connection".length();
         List<MySQLFrontConnection> list = getList(stmt, offset, mc);
         if (list != null)
             for (MySQLFrontConnection c : list) {

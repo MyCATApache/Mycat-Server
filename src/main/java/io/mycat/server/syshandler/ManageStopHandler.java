@@ -33,14 +33,16 @@ import io.mycat.server.response.StopHeartbeat;
  */
 public final class ManageStopHandler {
 
-    public static void handle(String stmt, MySQLFrontConnection c, int offset) {
-        switch (ManagerParseStop.parse(stmt, offset)) {
-        case ManagerParseStop.HEARTBEAT:
-            StopHeartbeat.execute(stmt, c);
-            break;
-        default:
-            c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
-        }
-    }
+	public static void handle(String stmt, MySQLFrontConnection c, int offset) {
+		offset = stmt.indexOf("@");
+		offset = offset == -1 ? 0 : offset;
+		switch (ManagerParseStop.parse(stmt, offset)) {
+		case ManagerParseStop.HEARTBEAT:
+			StopHeartbeat.execute(stmt, c);
+			break;
+		default:
+			c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+		}
+	}
 
 }

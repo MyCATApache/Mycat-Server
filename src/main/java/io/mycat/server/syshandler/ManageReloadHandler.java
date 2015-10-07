@@ -37,6 +37,8 @@ public final class ManageReloadHandler
 
     public static void handle(String stmt, MySQLFrontConnection c, int offset)
     {
+    	offset = stmt.indexOf("@");
+    	offset  = offset == -1? 0 : offset;
         int rs = ManagerParseReload.parse(stmt, offset);
         switch (rs)
         {

@@ -35,6 +35,8 @@ import io.mycat.server.response.RollbackUser;
 public final class ManageRollbackHandler {
 
     public static void handle(String stmt, MySQLFrontConnection c, int offset) {
+    	offset = stmt.indexOf("@");
+    	offset  = offset == -1? 0 : offset;
         switch (ManagerParseRollback.parse(stmt, offset)) {
         case ManagerParseRollback.CONFIG:
             RollbackConfig.execute(c);
