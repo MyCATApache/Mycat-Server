@@ -138,7 +138,8 @@ public final class ManageShowHandler {
 			if (StringUtil.isEmpty(name)) {
 				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 			} else {
-				 ShowSlow.dataNode(c, name);
+				// ShowSlow.dataNode(c, name);
+				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 			}
 			break;
 		}
@@ -147,7 +148,8 @@ public final class ManageShowHandler {
 			if (StringUtil.isEmpty(name)) {
 				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 			} else {
-				 ShowSlow.schema(c, name);
+				// ShowSlow.schema(c, name);
+				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 			}
 			break;
 		}
