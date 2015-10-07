@@ -70,8 +70,8 @@ sql:
    |
     help_sql
    |
-     mysql_comment_sql //skip comment is empty
-   |
+   //  mysql_comment_sql //skip comment is empty
+   //|
     call_sql
    |
     describe_sql

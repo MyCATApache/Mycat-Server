@@ -1,4 +1,4 @@
-// Generated from C:\Users\Coollf\Mycat.g4 by ANTLR 4.1
+// Generated from C:\Users\Coollf\git\Mycat-Server\src\main\java\io\mycat\server\parser\antlr\Mycat.g4 by ANTLR 4.1
 package io.mycat.server.parser.antlr;
 
 import org.antlr.v4.runtime.ParserRuleContext;

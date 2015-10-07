@@ -59,7 +59,6 @@ public final class ManageShowHandler {
 
 	public static void handle(String stmt, MySQLFrontConnection c, int offset) {
 		int rs = ManagerParseShow.parse(stmt, offset);
-		rs =6 ;
 		switch (rs & 0xff) {
 		case ManagerParseShow.COMMAND:
 			ShowCommand.execute(c);
@@ -139,8 +138,7 @@ public final class ManageShowHandler {
 			if (StringUtil.isEmpty(name)) {
 				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 			} else {
-				// ShowSlow.dataNode(c, name);
-				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+				 ShowSlow.dataNode(c, name);
 			}
 			break;
 		}
@@ -149,8 +147,7 @@ public final class ManageShowHandler {
 			if (StringUtil.isEmpty(name)) {
 				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 			} else {
-				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
-				// ShowSlow.schema(c, name);
+				 ShowSlow.schema(c, name);
 			}
 			break;
 		}

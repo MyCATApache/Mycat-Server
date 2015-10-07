@@ -76,17 +76,17 @@ public class MycatServerParse {
 		public static final int DDL = 100;
 
 		// Mycat manager sql types
-		public static final int MGR_SHOW = 10003;
-		public static final int MGR_SWITCH = 10004;
-		public static final int MGR_KILL_CONN = 10005;
-		public static final int MGR_STOP = 10006;
-		public static final int MGR_RELOAD = 10007;
-		public static final int MGR_ROLLBACK = 10008;
-		public static final int MGR_OFFLINE = 10009;
-		public static final int MGR_ONLINE = 10010;
-		public static final int MGR_CLEAR = 10011;
-		public static final int MGR_CONFIGFILE = 10012;
-		public static final int MGR_LOGFILE = 10013;
+		public static final int MGR_SHOW = 123;
+		public static final int MGR_SWITCH = 124;
+		public static final int MGR_KILL_CONN = 125;
+		public static final int MGR_STOP = 126;
+		public static final int MGR_RELOAD = 127;
+		public static final int MGR_ROLLBACK = 128;
+		public static final int MGR_OFFLINE = 129;
+		public static final int MGR_ONLINE = 130;
+		public static final int MGR_CLEAR = 131;
+		public static final int MGR_CONFIGFILE = 132;
+		public static final int MGR_LOGFILE = 133;
 
 	}
 
@@ -351,7 +351,7 @@ class MycatSqlTypeListener extends MycatBaseListener {
 	 */
 	@Override
 	public void exitMysql_comment_sql(Mysql_comment_sqlContext ctx) {
-		this.sqlType = SqlType.MYSQL_COMMENT;
+	//	this.sqlType = SqlType.MYSQL_COMMENT;
 	}
 
 	/*

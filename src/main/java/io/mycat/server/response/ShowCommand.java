@@ -23,6 +23,8 @@
  */
 package io.mycat.server.response;
 
+import io.mycat.net.BufferArray;
+import io.mycat.net.NetSystem;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.MycatServer;
@@ -86,34 +88,34 @@ public final class ShowCommand {
     }
 
     public static void execute(MySQLFrontConnection c) {
-//        ByteBuffer buffer = c.allocate();
-//
-//        // write header
-//        buffer = header.write(buffer, c,true);
-//
-//        // write fields
-//        for (FieldPacket field : fields) {
-//            buffer = field.write(buffer, c,true);
-//        }
-//
-//        // write eof
-//        buffer = eof.write(buffer, c,true);
-//
-//        // write rows
-//        byte packetId = eof.packetId;
+       BufferArray buffer = NetSystem.getInstance().getBufferPool().allocateArray();
+
+        // write header
+        header.write(buffer);
+
+        // write fields
+        for (FieldPacket field : fields) {
+           field.write(buffer);
+        }
+
+        // write eof
+        eof.write(buffer);
+
+        // write rows
+        byte packetId = eof.packetId;
 //        for (NIOProcessor p : MycatServer.getInstance().getProcessors()) {
 //            RowDataPacket row = getRow(p, c.getCharset());
 //            row.packetId = ++packetId;
 //            buffer = row.write(buffer, c,true);
 //        }
-//
-//        // write last eof
-//        EOFPacket lastEof = new EOFPacket();
-//        lastEof.packetId = ++packetId;
-//        buffer = lastEof.write(buffer, c,true);
-//
-//        // write buffer
-//        c.write(buffer);
+
+        // write last eof
+        EOFPacket lastEof = new EOFPacket();
+        lastEof.packetId = ++packetId;
+        lastEof.write(buffer);
+
+        // write buffer
+        c.write(buffer);
     }
 
 //    private static RowDataPacket getRow(NIOProcessor processor, String charset) {
