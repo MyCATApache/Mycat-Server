@@ -351,7 +351,7 @@ class MycatSqlTypeListener extends MycatBaseListener {
 	 */
 	@Override
 	public void exitMysql_comment_sql(Mysql_comment_sqlContext ctx) {
-	//	this.sqlType = SqlType.MYSQL_COMMENT;
+		this.sqlType = SqlType.MYSQL_COMMENT;
 	}
 
 	/*
