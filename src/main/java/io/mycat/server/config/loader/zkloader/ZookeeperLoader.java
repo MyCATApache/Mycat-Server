@@ -1,125 +1,120 @@
 package io.mycat.server.config.loader.zkloader;
 
-import com.google.common.base.Strings;
-import com.google.common.io.CharSource;
-import com.google.common.io.Resources;
+import io.mycat.locator.ZookeeperServiceLocator;
 import io.mycat.server.config.ConfigException;
 import io.mycat.server.config.cluster.MycatClusterConfig;
 import io.mycat.server.config.loader.ConfigLoader;
-import io.mycat.server.config.loader.SystemLoader;
 import io.mycat.server.config.node.*;
+import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Map;
 
 public class ZookeeperLoader implements ConfigLoader {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(ZookeeperLoader.class);
-    private static final String ZK_ID_FILENAME = "myid";
+    private static final String ZK_CONFIG_FILE_NAME = "/zk.yaml";
 
-    private SystemConfig systemConfig;
+    private final SystemConfig systemConfig;
+    private final Map<String, UserConfig> userConfigs;
+    private final Map<String, DataNodeConfig> dataNodeConfigs;
 
     public ZookeeperLoader() {
-        String myId;
-        try {
-            //read myid file.
-            URL fileUrl = Resources.getResource(ZK_ID_FILENAME);
-            CharSource fileContents = Resources.asCharSource(fileUrl, StandardCharsets.UTF_8);
-            myId = fileContents.read();
-        } catch (IOException e) {
-            LOGGER.error("occur a I/O error during reading file!", e);
-            throw new ConfigException(e);
-        }
+        final ZkConfig zkConfig = loadZkConfig();
+        final CuratorFramework zkConnection = ZookeeperServiceLocator.createConnection(zkConfig.getZkURL());
+        final String myClusterId = zkConfig.getClusterID();
 
-        if (Strings.isNullOrEmpty(myId)) {
-            LOGGER.error("myid file is null or empty!");
-            throw new ConfigException("myid file is null or empty!");
-        }
+        //system config
+        ZkSystemConfigLoader zkSystemLoader = new ZkSystemConfigLoader(myClusterId);
+        //user config
+        ZkUserConfigLoader zkUserConfigLoader = new ZkUserConfigLoader(myClusterId);
+        //data node config
+        ZkDataNodeConfigLoader zkDataNodeConfigLoader = new ZkDataNodeConfigLoader(myClusterId);
 
-        SystemLoader zkSystemLoader = new ZkSystemLoader(myId);
+        Arrays.asList(zkSystemLoader, zkUserConfigLoader, zkUserConfigLoader)
+                .stream()
+                .forEach(loader -> loader.fetchConfig(zkConnection));
+
         this.systemConfig = zkSystemLoader.getSystemConfig();
+        this.userConfigs = zkUserConfigLoader.getUserConfig();
+        this.dataNodeConfigs = zkDataNodeConfigLoader.getDataNodeConfigs();
+    }
+
+    private ZkConfig loadZkConfig() {
+        LOGGER.trace("load file with name :" + ZK_CONFIG_FILE_NAME);
+
+        InputStream configIS = getClass().getResourceAsStream(ZK_CONFIG_FILE_NAME);
+        if (configIS == null) {
+            throw new ConfigException("can't find zk properties file : " + ZK_CONFIG_FILE_NAME);
+        }
+        return new Yaml().loadAs(configIS, ZkConfig.class);
     }
 
     @Override
     public SchemaConfig getSchemaConfig(String schema) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Map<String, SchemaConfig> getSchemaConfigs() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Map<String, DataNodeConfig> getDataNodeConfigs() {
-        // TODO Auto-generated method stub
-        return null;
+        return this.dataNodeConfigs;
     }
 
     @Override
     public Map<String, DataHostConfig> getDataHostConfigs() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Map<String, RuleConfig> getTableRuleConfigs() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public SystemConfig getSystemConfig() {
-        // TODO Auto-generated method stub
-        return null;
+        return this.systemConfig;
     }
 
     @Override
     public UserConfig getUserConfig(String user) {
-        // TODO Auto-generated method stub
-        return null;
+        return this.userConfigs.get(user);
     }
 
     @Override
     public Map<String, UserConfig> getUserConfigs() {
-        // TODO Auto-generated method stub
-        return null;
+        return this.userConfigs;
     }
 
     @Override
     public QuarantineConfig getQuarantineConfigs() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public MycatClusterConfig getClusterConfigs() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public CharsetConfig getCharsetConfigs() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public HostIndexConfig getHostIndexConfig() {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public SequenceConfig getSequenceConfig() {
-        // TODO Auto-generated method stub
         return null;
     }
-
 }
