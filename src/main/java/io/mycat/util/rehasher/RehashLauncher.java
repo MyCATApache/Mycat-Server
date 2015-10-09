@@ -100,7 +100,6 @@ public class RehashLauncher {
             murmur.setCount(rehashHosts.length);
             murmur.setSeed(args.getMurmurHashSeed());
             murmur.setVirtualBucketTimes(args.getMurmurHashVirtualBucketTimes());
-            murmur.setWeightMapFile(args.getMurmurWeightMapFile());
             murmur.init();
 	    } else if (HashType.MOD.equals(args.getHashType())) {
 	        alg=new PartitionByMod();
