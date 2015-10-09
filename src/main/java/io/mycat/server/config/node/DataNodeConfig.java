@@ -25,32 +25,56 @@ package io.mycat.server.config.node;
 
 /**
  * 用于描述一个数据节点的配置
- * 
+ *
  * @author mycat
  */
 public final class DataNodeConfig {
 
-	private final String name;
-	private final String database;
-	private final String dataHost;
+    private String name;
+    private String database;
+    private String dataHost;
 
-	public DataNodeConfig(String name, String database, String dataHost) {
-		super();
-		this.name = name;
-		this.database = database;
-		this.dataHost = dataHost;
-	}
+    public DataNodeConfig() {
+        super();
+    }
 
-	public String getName() {
-		return name;
-	}
+    public DataNodeConfig(String name, String database, String dataHost) {
+        super();
+        this.name = name;
+        this.database = database;
+        this.dataHost = dataHost;
+    }
 
-	public String getDatabase() {
-		return database;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public String getDataHost() {
-		return dataHost;
-	}
+    public String getDatabase() {
+        return database;
+    }
 
+    public String getDataHost() {
+        return dataHost;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDatabase(String database) {
+        this.database = database;
+    }
+
+    public void setDataHost(String dataHost) {
+        this.dataHost = dataHost;
+    }
+
+    @Override
+    public String toString() {
+        return "DataNodeConfig{" +
+                "name='" + name + '\'' +
+                ", database='" + database + '\'' +
+                ", dataHost='" + dataHost + '\'' +
+                '}';
+    }
 }

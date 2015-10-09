@@ -38,7 +38,7 @@ public class ZkCreate {
     private static final String CONFIG_RULE_KEY = "rule";
     private static final String CONFIG_SEQUENCE_KEY = "sequence";
     private static final String CONFIG_SCHEMA_KEY = "schema";
-    private static final String CONFIG_DATAHOST_KEY = "datanode";
+    private static final String CONFIG_DATAHOST_KEY = "datahost";
 
     private static String PARENT_PATH;
 
@@ -127,7 +127,6 @@ public class ZkCreate {
 
         //start connection
         curatorFramework.start();
-
         //wait 3 second to establish connect
         try {
             curatorFramework.blockUntilConnected(3, TimeUnit.SECONDS);

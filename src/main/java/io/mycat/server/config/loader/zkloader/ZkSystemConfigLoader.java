@@ -18,13 +18,15 @@ import org.slf4j.LoggerFactory;
 public class ZkSystemConfigLoader extends AbstractZKLoaders implements SystemLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkSystemConfigLoader.class);
 
+    //directory name of server config in zookeeper
+    protected static final String SERVER_CONFIG_DIRECTORY = "server-config";
     //directory name of system config in zookeeper
     private static final String SYSTEM_DIRECTORY = "system";
 
     private SystemConfig systemConfig;
 
     public ZkSystemConfigLoader(final String clusterID) {
-        super(clusterID,SERVER_CONFIG_DIRECTORY);
+        super(clusterID, SERVER_CONFIG_DIRECTORY);
     }
 
     @Override
@@ -34,7 +36,7 @@ public class ZkSystemConfigLoader extends AbstractZKLoaders implements SystemLoa
         //example: /mycat-cluster-1 /server-config/system
         String systemConfigPath = ZKPaths.makePath(BASE_CONFIG_PATH, SYSTEM_DIRECTORY);
 
-        LOGGER.trace("fetch system config from zookeeper with path: {}",systemConfigPath);
+        LOGGER.trace("fetch system config from zookeeper with path: {}", systemConfigPath);
         try {
             byte[] systemValue = zkConnection.getData().forPath(systemConfigPath);
             this.systemConfig = JSON.parseObject(systemValue, SystemConfig.class);

@@ -20,11 +20,11 @@ user :
       - testdb
 datanode :
   -
-    name : dn1,
+    name : dn1
     dataHost : host1
     database : order
   -
-    name : dn2,
+    name : dn2
     dataHost : host2
     database : order
 rule :
@@ -82,7 +82,7 @@ schema :
       autoincrement : true
       datanode : dn1
       rule : rule1
-datanode :
+datahost :
   datahost-1 :
     name : datahost-1
     maxcon : 2000

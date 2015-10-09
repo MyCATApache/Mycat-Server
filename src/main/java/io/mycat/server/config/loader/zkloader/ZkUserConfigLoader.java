@@ -16,16 +16,19 @@ import java.util.stream.Collectors;
  * <p>
  * load user configuration from Zookeeper.
  * </p>
+ * Created by v1.lion on 2015/9/27.
  */
 public class ZkUserConfigLoader extends AbstractZKLoaders {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkUserConfigLoader.class);
+
     //directory name of user config in zookeeper
     private static final String USERS_DIRECTORY = "user";
 
+    //hold user name mapping to UserConfig
     private Map<String, UserConfig> userConfigs;
 
     public ZkUserConfigLoader(final String clusterID) {
-        super(clusterID, SERVER_CONFIG_DIRECTORY);
+        super(clusterID, ZkSystemConfigLoader.SERVER_CONFIG_DIRECTORY);
     }
 
 
@@ -33,8 +36,9 @@ public class ZkUserConfigLoader extends AbstractZKLoaders {
     public void fetchConfig(CuratorFramework zkConnection) {
 
         //user config path in zookeeper
-        //example: /mycat-cluster-1 /server-config/user
+        //example: /mycat-cluster-1/server-config/user
         String usersPath = ZKPaths.makePath(BASE_CONFIG_PATH, USERS_DIRECTORY);
+
 
         try {
             this.userConfigs = zkConnection
@@ -43,22 +47,26 @@ public class ZkUserConfigLoader extends AbstractZKLoaders {
                     .stream()
                     .map(username -> ZKPaths.makePath(usersPath, username))
                     .map(userPath -> {
+                        byte[] userRawData;
                         try {
-                            LOGGER.trace("fetch user config from zookeeper with path: {}", userPath);
-                            byte[] userRawData = zkConnection.getData().forPath(userPath);
-                            return (UserConfig) JSON.parseObject(userRawData, UserConfig.class);
+                            userRawData = zkConnection.getData().forPath(userPath);
+                            LOGGER.trace("fetch user config from zookeeper with path: {} and raw data : {}"
+                                    , userPath, String.valueOf(userRawData));
                         } catch (Exception e) {
-                            LOGGER.error("fetch user config error!", e);
+                            LOGGER.error("fetch user config from zookeeper error: {}", e.getMessage(), e);
                             throw new ConfigException(e);
                         }
+
+                        return (UserConfig) JSON.parseObject(userRawData, UserConfig.class);
                     })
                     .collect(
                             Collectors.toMap(UserConfig::getName, Function.identity())
                     );
         } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LOGGER.error("fetch user child node from zookeeper error : {} , path {} ", e.getMessage(), usersPath);
             throw new ConfigException(e);
         }
+
     }
 
     public Map<String, UserConfig> getUserConfig() {

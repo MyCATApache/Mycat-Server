@@ -10,14 +10,11 @@ import org.slf4j.LoggerFactory;
  * Created by v1.lion on 2015/10/8.
  */
 public abstract class AbstractZKLoaders {
-    //directory name of server config in zookeeper
-    protected static final String SERVER_CONFIG_DIRECTORY = "server-config";
-    //directory name of data node config in zookeeper
-    protected static final String DATANODE_CONFIG_DIRECTORY = "datanode-config";
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractZKLoaders.class);
+
     //parent config path in zookeeper
     //example /mycat-cluster-/server-config/
-    // (/ CLUSTER_ID /CONFIG_DIRECTORY_NAME)
+    // /CLUSTER_ID/CONFIG_DIRECTORY_NAME
     protected final String BASE_CONFIG_PATH;
 
     public AbstractZKLoaders() {
@@ -31,7 +28,6 @@ public abstract class AbstractZKLoaders {
     }
 
     /**
-     *
      * fetch config form zookeeper and then transform them to bean.
      *
      * @param zkConnection a zookeeper connection

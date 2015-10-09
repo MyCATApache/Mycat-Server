@@ -21,6 +21,7 @@ public class ZookeeperLoader implements ConfigLoader {
     private final SystemConfig systemConfig;
     private final Map<String, UserConfig> userConfigs;
     private final Map<String, DataNodeConfig> dataNodeConfigs;
+    private final Map<String, RuleConfig> ruleConfigs;
 
     public ZookeeperLoader() {
         final ZkConfig zkConfig = loadZkConfig();
@@ -33,14 +34,18 @@ public class ZookeeperLoader implements ConfigLoader {
         ZkUserConfigLoader zkUserConfigLoader = new ZkUserConfigLoader(myClusterId);
         //data node config
         ZkDataNodeConfigLoader zkDataNodeConfigLoader = new ZkDataNodeConfigLoader(myClusterId);
+        //rule config
+        ZkRuleConfigLoader zkRuleConfigLoader = new ZkRuleConfigLoader(myClusterId);
 
-        Arrays.asList(zkSystemLoader, zkUserConfigLoader, zkUserConfigLoader)
+
+        Arrays.asList(zkSystemLoader, zkUserConfigLoader, zkDataNodeConfigLoader,zkRuleConfigLoader)
                 .stream()
                 .forEach(loader -> loader.fetchConfig(zkConnection));
 
         this.systemConfig = zkSystemLoader.getSystemConfig();
         this.userConfigs = zkUserConfigLoader.getUserConfig();
         this.dataNodeConfigs = zkDataNodeConfigLoader.getDataNodeConfigs();
+        this.ruleConfigs = zkRuleConfigLoader.getRuleConfigs();
     }
 
     private ZkConfig loadZkConfig() {
@@ -75,7 +80,7 @@ public class ZookeeperLoader implements ConfigLoader {
 
     @Override
     public Map<String, RuleConfig> getTableRuleConfigs() {
-        return null;
+        return this.ruleConfigs;
     }
 
     @Override
