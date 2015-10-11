@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toMap;
+
 /**
  * Created by v1.lion on 2015/10/8.
  */
@@ -31,21 +33,10 @@ public class ZkDataNodeConfigLoader extends AbstractZKLoaders {
     public void fetchConfig(CuratorFramework zkConnection) {
         //data node config path in zookeeper
         //example: /mycat-cluster-1/datanode-config
-        byte[] rawDataNode;
-        try {
-            rawDataNode = zkConnection
-                    .getData()
-                    .forPath(BASE_CONFIG_PATH);
-        } catch (Exception e) {
-            LOGGER.error("fetch data node config from zookeeper error : {}, path : {}",
-                    e.getMessage(), BASE_CONFIG_PATH);
-            throw new ConfigException(e);
-        }
-
-        this.dataNodeConfigs = JSON.parseArray(new String(rawDataNode, StandardCharsets.UTF_8)
-                , DataNodeConfig.class)
+        String rawDataNodeStr = super.fetchDataToString(zkConnection, "");
+        this.dataNodeConfigs = JSON.parseArray(rawDataNodeStr, DataNodeConfig.class)
                 .stream()
-                .collect(Collectors.toMap(DataNodeConfig::getName, Function.identity()));
+                .collect(toMap(DataNodeConfig::getName, Function.identity()));
     }
 
     public Map<String, DataNodeConfig> getDataNodeConfigs() {

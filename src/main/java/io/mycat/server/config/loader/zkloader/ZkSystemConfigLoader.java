@@ -1,11 +1,9 @@
 package io.mycat.server.config.loader.zkloader;
 
 import com.alibaba.fastjson.JSON;
-import io.mycat.server.config.ConfigException;
 import io.mycat.server.config.loader.SystemLoader;
 import io.mycat.server.config.node.SystemConfig;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.utils.ZKPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,10 +14,9 @@ import org.slf4j.LoggerFactory;
  * Created by v1.lion on 2015/9/27.
  */
 public class ZkSystemConfigLoader extends AbstractZKLoaders implements SystemLoader {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ZkSystemConfigLoader.class);
-
     //directory name of server config in zookeeper
     protected static final String SERVER_CONFIG_DIRECTORY = "server-config";
+    private static final Logger LOGGER = LoggerFactory.getLogger(ZkSystemConfigLoader.class);
     //directory name of system config in zookeeper
     private static final String SYSTEM_DIRECTORY = "system";
 
@@ -34,16 +31,10 @@ public class ZkSystemConfigLoader extends AbstractZKLoaders implements SystemLoa
 
         //system config path in zookeeper
         //example: /mycat-cluster-1 /server-config/system
-        String systemConfigPath = ZKPaths.makePath(BASE_CONFIG_PATH, SYSTEM_DIRECTORY);
+        this.systemConfig = JSON.parseObject(super.fetchData(zkConnection, SYSTEM_DIRECTORY)
+                , SystemConfig.class);
 
-        LOGGER.trace("fetch system config from zookeeper with path: {}", systemConfigPath);
-        try {
-            byte[] systemValue = zkConnection.getData().forPath(systemConfigPath);
-            this.systemConfig = JSON.parseObject(systemValue, SystemConfig.class);
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
-            throw new ConfigException(e);
-        }
+        LOGGER.trace("done system config from zookeeper : {}", systemConfig);
     }
 
     public SystemConfig getSystemConfig() {

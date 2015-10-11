@@ -51,18 +51,17 @@ public class ZkCreate {
         LOGGER.trace("parent path is {}", PARENT_PATH);
         framework = createConnection((String) zkConfig.getOrDefault(CONFIG_URL_KEY, "127.0.0.1:2181"));
 
-        createConfig(CONFIG_DATANODE_KEY, DATANODE_CONFIG_DIRECTORY);
-        createConfig(CONFIG_SYSTEM_KEY, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
-        createConfig(CONFIG_USER_KEY, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
-        createConfig(CONFIG_RULE_KEY, RULE_CONFIG_DIRECTORY);
-        createConfig(CONFIG_SEQUENCE_KEY, SEQUENCE_CONFIG_DIRECTORY);
-        createConfig(CONFIG_SCHEMA_KEY, SCHEMA_CONFIG_DIRECTORY);
-        createConfig(CONFIG_DATAHOST_KEY, DATAHOST_CONFIG_DIRECTORY);
-
+        createConfig(CONFIG_DATANODE_KEY, true, DATANODE_CONFIG_DIRECTORY);
+        createConfig(CONFIG_SYSTEM_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
+        createConfig(CONFIG_USER_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
+        createConfig(CONFIG_SEQUENCE_KEY, true, SEQUENCE_CONFIG_DIRECTORY);
+        createConfig(CONFIG_SCHEMA_KEY, true, SCHEMA_CONFIG_DIRECTORY);
+        createConfig(CONFIG_DATAHOST_KEY, true, DATAHOST_CONFIG_DIRECTORY);
+        createConfig(CONFIG_RULE_KEY, false, RULE_CONFIG_DIRECTORY);
 
     }
 
-    private static void createConfig(String configKey, String... configDirectory) {
+    private static void createConfig(String configKey, boolean filterInnerMap, String... configDirectory) {
         String childPath = ZKPaths.makePath(PARENT_PATH, null, configDirectory);
         LOGGER.trace("child path is {}", childPath);
 
@@ -75,7 +74,7 @@ public class ZkCreate {
             Object mapObject = zkConfig.get(configKey);
             //recursion sub map
             if (mapObject instanceof Map) {
-                createChildConfig(mapObject, childPath);
+                createChildConfig(mapObject, filterInnerMap, childPath);
                 return;
             }
 
@@ -85,31 +84,38 @@ public class ZkCreate {
         }
     }
 
-    private static void createChildConfig(Object mapObject, String childPath) throws Exception {
-        if (!(mapObject instanceof Map)) {
-            return;
-        }
+    private static void createChildConfig(Object mapObject, boolean filterInnerMap, String childPath) {
+        if (mapObject instanceof Map) {
+            Map<Object, Object> innerMap = (Map<Object, Object>) mapObject;
+            innerMap.forEach((key, value) -> {
+                if (value instanceof Map) {
+                    createChildConfig(value, filterInnerMap, ZKPaths.makePath(childPath, String.valueOf(key)));
+                } else {
+                    LOGGER.trace("sub child path is {}", childPath);
 
-        Map<String, Object> innerMap = (Map<String, Object>) mapObject;
-        for (Map.Entry<String, Object> entry : innerMap.entrySet()) {
-            if (entry.getValue() instanceof Map) {
-                createChildConfig(entry.getValue(), ZKPaths.makePath(childPath, entry.getKey()));
-            } else {
+                    try {
+                        Stat restNodeStat = framework.checkExists().forPath(childPath);
+                        if (restNodeStat == null) {
+                            framework.create().creatingParentsIfNeeded().forPath(childPath);
+                        }
 
-                LOGGER.trace("sub child path is {}", childPath);
-                Stat restNodeStat = framework.checkExists().forPath(childPath);
-                if (restNodeStat == null) {
-                    framework.create().creatingParentsIfNeeded().forPath(childPath);
+                        if (filterInnerMap) {
+                            Map<Object, Object> filteredSubItem = innerMap
+                                    .entrySet()
+                                    .stream()
+                                    .filter(mapEntry -> !(mapEntry.getValue() instanceof Map))
+                                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+                            framework.setData().forPath(childPath, JSON.toJSONString(filteredSubItem).getBytes());
+                        } else {
+                            framework.setData().forPath(childPath, JSON.toJSONString(mapObject).getBytes());
+                        }
+                    } catch (Exception e) {
+                        LOGGER.error("create node error: {} ", e.getMessage(), e);
+                        throw new RuntimeException(e);
+                    }
                 }
-
-                Map<Object, Object> filteredSubItem = innerMap
-                        .entrySet()
-                        .stream()
-                        .filter(mapEntry -> !(mapEntry.getValue() instanceof Map))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-                framework.setData().forPath(childPath, JSON.toJSONString(filteredSubItem).getBytes());
-            }
+            });
         }
     }
 

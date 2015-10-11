@@ -30,7 +30,8 @@ datanode :
 rule :
   sharding-by-enum :
     name : sharding-by-enum
-    class : io.mycat.route.function.PartitionByFileMap
+    functionName : io.mycat.route.function.PartitionByFileMap
+    column : id
     defaultnode : 0
     type : 0
     config :
@@ -38,7 +39,8 @@ rule :
       10010 : 1
   sharding-by-hour :
    name : sharding-by-hour
-   class : io.mycat.route.function.LatestMonthPartion
+   functionName : io.mycat.route.function.LatestMonthPartion
+   column : createTime
    splitOneDay : 24
 sequence:
   sequence-3 :
