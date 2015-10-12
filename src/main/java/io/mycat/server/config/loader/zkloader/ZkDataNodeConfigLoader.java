@@ -1,16 +1,13 @@
 package io.mycat.server.config.loader.zkloader;
 
 import com.alibaba.fastjson.JSON;
-import io.mycat.server.config.ConfigException;
 import io.mycat.server.config.node.DataNodeConfig;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -37,6 +34,7 @@ public class ZkDataNodeConfigLoader extends AbstractZKLoaders {
         this.dataNodeConfigs = JSON.parseArray(rawDataNodeStr, DataNodeConfig.class)
                 .stream()
                 .collect(toMap(DataNodeConfig::getName, Function.identity()));
+        LOGGER.trace("done fetch data node config.");
     }
 
     public Map<String, DataNodeConfig> getDataNodeConfigs() {
