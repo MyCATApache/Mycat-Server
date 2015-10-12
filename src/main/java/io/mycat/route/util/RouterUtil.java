@@ -444,11 +444,6 @@ public class RouterUtil {
                         "parent key can't find  valid datanode ,expect 1 but found: "
                                 + dataNodeSet.size());
             }
-            boolean processedInsert=false;
-            if ( sc!=null && tc.isAutoIncrement()) {
-                String primaryKey = tc.getPrimaryKey();
-                processedInsert=processInsert(sc,schema,sqlType,stmt,tc.getName(),primaryKey);
-            }
             String dn = dataNodeSet.iterator().next();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
@@ -992,11 +987,18 @@ public class RouterUtil {
             String sql = insertStmt.toString();
 
             // try to route by ER parent partion key
-            RouteResultset theRrs = RouterUtil.routeByERParentKey(sc,schema,ServerParse.INSERT,sql, rrs, tc, joinKeyVal);
+            //RouteResultset theRrs = RouterUtil.routeByERParentKey(sc,schema,ServerParse.INSERT,sql, rrs, tc, joinKeyVal);
 
-            if (theRrs != null) {
-                rrs.setFinishedRoute(true);
-                sc.getSession2().execute(rrs, ServerParse.INSERT);
+            if (null != null) {
+            	boolean processedInsert=false;
+                if ( sc!=null && tc.isAutoIncrement()) {
+                    String primaryKey = tc.getPrimaryKey();
+                    processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
+                }
+                if(processedInsert==false){
+                	rrs.setFinishedRoute(true);
+                    sc.getSession2().execute(rrs, ServerParse.INSERT);
+                }
                 return true;
             }
 
@@ -1030,9 +1032,20 @@ public class RouterUtil {
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("found partion node for child table to insert " + result + " sql :" + origSQL);
                     }
-
-                    RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
-                    sc.getSession2().execute(executeRrs, ServerParse.INSERT);
+                    boolean processedInsert=false;
+                    if ( sc!=null && tc.isAutoIncrement()) {
+                        try {
+                            String primaryKey = tc.getPrimaryKey();
+							processedInsert=processInsert(sc,schema,ServerParse.INSERT,origSQL,tc.getName(),primaryKey);
+						} catch (SQLNonTransientException e) {
+							LOGGER.warn("sequence processInsert error,",e);
+		                    sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
+						}
+                    }
+                    if(processedInsert==false){
+                    	RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
+                        sc.getSession2().execute(executeRrs, ServerParse.INSERT);
+                    }
                 }
 
                 @Override
