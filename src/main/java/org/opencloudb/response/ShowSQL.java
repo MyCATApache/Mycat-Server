@@ -24,6 +24,9 @@
 package org.opencloudb.response;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import org.opencloudb.config.Fields;
 import org.opencloudb.manager.ManagerConnection;
@@ -32,8 +35,11 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.stat.impl.MysqlStatFilter;
 import org.opencloudb.util.LongUtil;
 import org.opencloudb.util.StringUtil;
+
+import com.alibaba.druid.util.JdbcSqlStatUtils;
 
 /**
  * 查询指定SQL ID所对应的SQL语句
@@ -92,7 +98,29 @@ public final class ShowSQL {
     private static RowDataPacket getRow(long sql, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(LongUtil.toBytes(sql));
-        row.add(StringUtil.encode("insert into T (...", charset));
+        
+       //List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        Map<?, ?> sqlStatMap =MysqlStatFilter.getInstance().getSqlStatMap();
+        if (sql>sqlStatMap.size()){
+        	row.add(StringUtil.encode(("not fond"), charset));
+        	 return row;
+        }
+        long i=0;
+        for (Object sqlStat : sqlStatMap.values()) {
+            Map<String, Object> data = JdbcSqlStatUtils.getData(sqlStat);
+
+            long executeCount = (Long) data.get("ExecuteCount");
+            long runningCount = (Long) data.get("RunningCount");
+
+          //  if (executeCount == 0 && runningCount == 0) {
+          //      continue;
+          //  }
+            i++;
+           if (i==sql) {
+        	   row.add(StringUtil.encode((String)data.get("SQL"), charset));
+        	   break;
+           }         
+        }        
         return row;
     }
 
