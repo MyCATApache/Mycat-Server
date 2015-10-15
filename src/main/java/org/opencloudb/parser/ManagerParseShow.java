@@ -60,6 +60,7 @@ public final class ManagerParseShow {
     public static final int BACKEND = 27;
     public static final int CACHE = 28;
     public static final int SESSION = 29;
+    public static final int SYSPARAM = 30;
 
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -360,6 +361,9 @@ public final class ManagerParseShow {
             case 'L':
             case 'l':
                 return show2SlCheck(stmt, offset);
+            case 'Y':
+            case 'y':
+                return show2sysparam(stmt, offset);
             default:
                 return OTHER;
             }
@@ -387,6 +391,26 @@ public final class ManagerParseShow {
                         return OTHER;
                     }
                 }
+            }
+        }
+        return OTHER;
+    }
+    
+	// SHOW @@SYSPARAM
+    static int show2sysparam(String stmt, int offset) {
+        if (stmt.length() > offset + "SPARAM".length()) {
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+            char c6 = stmt.charAt(++offset);
+            if ((c1 == 'S' || c1 == 's') && (c2 == 'P' || c2 == 'p') && (c3 == 'A' || c3 == 'a')
+                    && (c4 == 'R' || c4 == 'r') && (c5 == 'A' || c5 == 'a') && (c6 == 'M' || c6 == 'm')) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return OTHER;
+                }
+                return SYSPARAM;
             }
         }
         return OTHER;
