@@ -46,6 +46,7 @@ import org.opencloudb.response.ShowSQLExecute;
 import org.opencloudb.response.ShowSQLSlow;
 import org.opencloudb.response.ShowServer;
 import org.opencloudb.response.ShowSession;
+import org.opencloudb.response.ShowSysParam;
 import org.opencloudb.response.ShowThreadPool;
 import org.opencloudb.response.ShowTime;
 import org.opencloudb.response.ShowVariables;
@@ -60,6 +61,9 @@ public final class ShowHandler {
 	public static void handle(String stmt, ManagerConnection c, int offset) {
 		int rs = ManagerParseShow.parse(stmt, offset);
 		switch (rs & 0xff) {
+		case ManagerParseShow.SYSPARAM://add rainbow
+			ShowSysParam.execute(c);
+			break;
 		case ManagerParseShow.COMMAND:
 			ShowCommand.execute(c);
 			break;
