@@ -4,29 +4,32 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ConQueue {
+	
 	private final ConcurrentLinkedQueue<BackendConnection> autoCommitCons = new ConcurrentLinkedQueue<BackendConnection>();
 	private final ConcurrentLinkedQueue<BackendConnection> manCommitCons = new ConcurrentLinkedQueue<BackendConnection>();
+	
 	private long executeCount;
 
 	public BackendConnection takeIdleCon(boolean autoCommit) {
+		
 		ConcurrentLinkedQueue<BackendConnection> f1 = autoCommitCons;
 		ConcurrentLinkedQueue<BackendConnection> f2 = manCommitCons;
 
 		if (!autoCommit) {
 			f1 = manCommitCons;
 			f2 = autoCommitCons;
-
 		}
+		
 		BackendConnection con = f1.poll();
 		if (con == null || con.isClosedOrQuit()) {
 			con = f2.poll();
 		}
+		
 		if (con == null || con.isClosedOrQuit()) {
 			return null;
 		} else {
 			return con;
 		}
-
 	}
 
 	public long getExecuteCount() {
@@ -46,6 +49,7 @@ public class ConQueue {
 	public boolean isSameCon(BackendConnection con) {
 		if (autoCommitCons.contains(con)) {
 			return true;
+			
 		} else if (manCommitCons.contains(con)) {
 			return true;
 		}
@@ -61,21 +65,22 @@ public class ConQueue {
 	}
 
 	public ArrayList<BackendConnection> getIdleConsToClose(int count) {
-		ArrayList<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(
-				count);
+		
+		ArrayList<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(count);
+		
 		while (!manCommitCons.isEmpty() && readyCloseCons.size() < count) {
 			BackendConnection theCon = manCommitCons.poll();
 			if (theCon != null) {
 				readyCloseCons.add(theCon);
 			}
 		}
+		
 		while (!autoCommitCons.isEmpty() && readyCloseCons.size() < count) {
 			BackendConnection theCon = autoCommitCons.poll();
 			if (theCon != null) {
 				readyCloseCons.add(theCon);
 			}
-
-		}
+		}		
 		return readyCloseCons;
 	}
 

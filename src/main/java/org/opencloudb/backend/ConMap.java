@@ -12,6 +12,7 @@ import org.opencloudb.mysql.nio.MySQLConnection;
 import org.opencloudb.net.NIOProcessor;
 
 public class ConMap {
+	
 	// key -schema
 	private final ConcurrentHashMap<String, ConQueue> items = new ConcurrentHashMap<String, ConQueue>();
 
@@ -25,6 +26,7 @@ public class ConMap {
 		return queue;
 	}
 
+	//获取一个可用连接
 	public BackendConnection tryTakeCon(final String schema, boolean autoCommit) {
 		final ConQueue queue = items.get(schema);
 		BackendConnection con = tryTakeCon(queue, autoCommit);
@@ -41,40 +43,37 @@ public class ConMap {
 			}
 		}
 		return null;
-
 	}
 
+	//获取一个可用连接
 	private BackendConnection tryTakeCon(ConQueue queue, boolean autoCommit) {
-
 		BackendConnection con = null;
 		if (queue != null && ((con = queue.takeIdleCon(autoCommit)) != null)) {
 			return con;
 		} else {
 			return null;
 		}
-
 	}
 
 	public Collection<ConQueue> getAllConQueue() {
 		return items.values();
 	}
 
-	public int getActiveCountForSchema(String schema,
-			PhysicalDatasource dataSouce) {
+	public int getActiveCountForSchema(String schema, PhysicalDatasource dataSouce) {
+		
 		int total = 0;
 		for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
 			for (BackendConnection con : processor.getBackends().values()) {
-				if (con instanceof MySQLConnection) {
+				
+				if (con instanceof MySQLConnection) {					
 					MySQLConnection mysqlCon = (MySQLConnection) con;
-
-					if (mysqlCon.getSchema().equals(schema)
-							&& mysqlCon.getPool() == dataSouce) {
+					if (mysqlCon.getSchema().equals(schema)	&& mysqlCon.getPool() == dataSouce) {
 						if (mysqlCon.isBorrowed()) {
 							total++;
 						}
 					}
 
-                }else if (con instanceof JDBCConnection) {
+                } else if (con instanceof JDBCConnection) {                	
                     JDBCConnection jdbcCon = (JDBCConnection) con;
                     if (jdbcCon.getSchema().equals(schema) && jdbcCon.getPool() == dataSouce) {
                         if (jdbcCon.isBorrowed()) {
@@ -88,12 +87,13 @@ public class ConMap {
     }
 
 	public int getActiveCountForDs(PhysicalDatasource dataSouce) {
+		
 		int total = 0;
 		for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
 			for (BackendConnection con : processor.getBackends().values()) {
+				
 				if (con instanceof MySQLConnection) {
 					MySQLConnection mysqlCon = (MySQLConnection) con;
-
 					if (mysqlCon.getPool() == dataSouce) {
 						if (mysqlCon.isBorrowed() && !mysqlCon.isClosed()) {
 							total++;

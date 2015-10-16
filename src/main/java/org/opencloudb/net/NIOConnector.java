@@ -36,20 +36,30 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 
 /**
+ * 处理 与MySql Server 建立连接
+ * 
  * @author mycat
  */
 public final class NIOConnector extends Thread implements SocketConnector {
+	
 	private static final Logger LOGGER = Logger.getLogger(NIOConnector.class);
+	
 	public static final ConnectIdGenerator ID_GENERATOR = new ConnectIdGenerator();
 
 	private final String name;
+	
+	//事件选择器
 	private final Selector selector;
+	
+	//需要建立连接的对象，临时放在这个队列里
 	private final BlockingQueue<AbstractConnection> connectQueue;
 	private long connectCount;
+	
+	//当连接建立后，从reactorPool中分配一个NIOReactor，处理Read和Write事件
 	private final NIOReactorPool reactorPool;
 
-	public NIOConnector(String name, NIOReactorPool reactorPool)
-			throws IOException {
+	public NIOConnector(String name, NIOReactorPool reactorPool) throws IOException {
+		
 		super.setName(name);
 		this.name = name;
 		this.selector = Selector.open();
@@ -61,6 +71,11 @@ public final class NIOConnector extends Thread implements SocketConnector {
 		return connectCount;
 	}
 
+	/**
+	 *  把需要建立的连接放到 connectQueue 队列中，然后再唤醒selector，
+	 *  
+	 *  postConnect 是在新建连接或者心跳时被XXXXConnectionFactory触发的
+	 */
 	public void postConnect(AbstractConnection c) {
 		connectQueue.offer(c);
 		selector.wakeup();
@@ -68,16 +83,23 @@ public final class NIOConnector extends Thread implements SocketConnector {
 
 	@Override
 	public void run() {
+		
 		final Selector tSelector = this.selector;
+		
+		//无限循环
 		for (;;) {
 			++connectCount;
-			try {
-			    tSelector.select(1000L);
-				connect(tSelector);
+			try {				
+				//阻塞，等待有事件发生唤醒
+				tSelector.select(1000L);
+			    
+				//建立连接
+			    connect(tSelector);
+				
 				Set<SelectionKey> keys = tSelector.selectedKeys();
 				try {
 					for (SelectionKey key : keys) {
-						Object att = key.attachment();
+						Object att = key.attachment();						
 						if (att != null && key.isValid() && key.isConnectable()) {
 							finishConnect(key, att);
 						} else {
@@ -87,18 +109,28 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				} finally {
 					keys.clear();
 				}
+				
 			} catch (Exception e) {
 				LOGGER.warn(name, e);
 			}
 		}
 	}
 
+	//处理postConnect函数操作的connectQueue队列
 	private void connect(Selector selector) {
+		
 		AbstractConnection c = null;
+		
+		//判断connectQueue中是否新的连接请求
 		while ((c = connectQueue.poll()) != null) {
 			try {
+				//建立一个SocketChannel
 				SocketChannel channel = (SocketChannel) c.getChannel();
+				
+				//在selector中进行注册OP_CONNECT
 				channel.register(selector, SelectionKey.OP_CONNECT, c);
+				
+				//发起SocketChannel.connect()操作
 				channel.connect(new InetSocketAddress(c.host, c.port));
 			} catch (Exception e) {
 				c.close(e.toString());
@@ -106,19 +138,24 @@ public final class NIOConnector extends Thread implements SocketConnector {
 		}
 	}
 
+	//只注册了OP_CONNECT事件，所以只对OP_CONNECT事件进行处理
 	private void finishConnect(SelectionKey key, Object att) {
+		
 		BackendAIOConnection c = (BackendAIOConnection) att;
 		try {
-			if (finishConnect(c, (SocketChannel) c.channel)) {
+			
+			if ( finishConnect(c, (SocketChannel) c.channel) ) {				
 				clearSelectionKey(key);
 				c.setId(ID_GENERATOR.getId());
-				NIOProcessor processor = MycatServer.getInstance()
-						.nextProcessor();
+				
+				NIOProcessor processor = MycatServer.getInstance().nextProcessor();
 				c.setProcessor(processor);
+				
+				// 当连接建立完毕后，分配一个NIOReactor，处理后续的Read和Write事件
 				NIOReactor reactor = reactorPool.getNextReactor();
 				reactor.postRegister(c);
-
 			}
+			
 		} catch (Exception e) {
 			clearSelectionKey(key);
             c.close(e.toString());
@@ -127,12 +164,14 @@ public final class NIOConnector extends Thread implements SocketConnector {
 		}
 	}
 
+	//完成连接
 	private boolean finishConnect(AbstractConnection c, SocketChannel channel)
 			throws IOException {
+		
 		if (channel.isConnectionPending()) {
-			channel.finishConnect();
-
+			channel.finishConnect();			
 			c.setLocalPort(channel.socket().getLocalPort());
+			
 			return true;
 		} else {
 			return false;
