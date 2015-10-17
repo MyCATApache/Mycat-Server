@@ -405,15 +405,28 @@ public class RouterUtil {
      * @author aStoneGod
      */
     public static int[] getDropTablePos(String upStmt, int start) {
-        String token1 = "DROP ";
-        String token2 = " TABLE ";
-        int createInd = upStmt.indexOf(token1, start);
-        int tabInd = upStmt.indexOf(token2, start);
-        // 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
-        if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
-            return new int[] { tabInd, token2.length() };
-        } else {
-            return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+        //增加 if exists判断
+        if(upStmt.contains("EXISTS")){
+            String token1 = "IF ";
+            String token2 = " EXISTS ";
+            int ifInd = upStmt.indexOf(token1, start);
+            int tabInd = upStmt.indexOf(token2, start);
+            if (ifInd >= 0 && tabInd > 0 && tabInd > ifInd) {
+                return new int[] { tabInd, token2.length() };
+            } else {
+                return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+            }
+        }else {
+            String token1 = "DROP ";
+            String token2 = " TABLE ";
+            int createInd = upStmt.indexOf(token1, start);
+            int tabInd = upStmt.indexOf(token2, start);
+
+            if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
+                return new int[] { tabInd, token2.length() };
+            } else {
+                return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+            }
         }
     }
 
@@ -478,6 +491,11 @@ public class RouterUtil {
                 }
                 rrs.setNodes(nodes);
             }
+            return rrs;
+        }else if(schema.getDataNode()!=null){		//默认节点ddl
+            RouteResultsetNode[] nodes = new RouteResultsetNode[1];
+            nodes[0] = new RouteResultsetNode(schema.getDataNode(), sqlType, stmt);
+            rrs.setNodes(nodes);
             return rrs;
         }
         //不在，返回null
