@@ -117,6 +117,7 @@ public class RouterUtil {
 	 */
 	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
 		//检查表是否在配置文件中
+		System.out.println("stmt" + stmt);
 		stmt = getFixedSql(stmt);
 		String tablename = "";
 		if(stmt.startsWith("CREATE")){
@@ -128,6 +129,7 @@ public class RouterUtil {
 		}else if (stmt.startsWith("TRUNCATE")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
 		}
+
 		if (schema.getTables().containsKey(tablename)){
 			if(ServerParse.DDL==sqlType){
 				List<String> dataNodes = new ArrayList<>();
@@ -170,6 +172,7 @@ public class RouterUtil {
 	public static String getFixedSql(String stmt){
 		if (stmt.endsWith(";"))
 			stmt = stmt.substring(0,stmt.length()-2);
+		stmt = stmt.replaceAll("\r\n", " "); //对于\r\n的字符 用 空格处理 rainbow
 		return stmt = stmt.trim().toUpperCase().replace("`","");
 	}
 
@@ -1249,7 +1252,6 @@ public class RouterUtil {
 	private static boolean isMultiInsert(MySqlInsertStatement insertStmt) {
 		return (insertStmt.getValuesList() != null && insertStmt.getValuesList().size() > 1) || insertStmt.getQuery() != null;
 	}
-
 }
 
 
