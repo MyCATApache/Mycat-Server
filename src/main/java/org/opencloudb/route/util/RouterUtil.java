@@ -1,13 +1,19 @@
 package org.opencloudb.route.util;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.wall.spi.WallVisitorUtils;
-import com.google.common.base.Strings;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
@@ -28,10 +34,14 @@ import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.StringUtil;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.*;
-import java.util.concurrent.Callable;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
+import com.google.common.base.Strings;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -128,6 +138,7 @@ public class RouterUtil {
 		}else if (stmt.startsWith("TRUNCATE")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
 		}
+
 		if (schema.getTables().containsKey(tablename)){
 			if(ServerParse.DDL==sqlType){
 				List<String> dataNodes = new ArrayList<>();
@@ -170,6 +181,7 @@ public class RouterUtil {
 	public static String getFixedSql(String stmt){
 		if (stmt.endsWith(";"))
 			stmt = stmt.substring(0,stmt.length()-2);
+		stmt = stmt.replaceAll("\r\n", " "); //对于\r\n的字符 用 空格处理 rainbow
 		return stmt = stmt.trim().toUpperCase().replace("`","");
 	}
 
@@ -625,8 +637,8 @@ public class RouterUtil {
 		if(colRoutePairSet.size() > 1) {
 			LOGGER.warn("joinKey can't have multi Value");
 		} else {
-			Iterator it = colRoutePairSet.iterator();
-			ColumnRoutePair joinCol = (ColumnRoutePair)it.next();
+			Iterator<ColumnRoutePair> it = colRoutePairSet.iterator();
+			ColumnRoutePair joinCol = it.next();
 			joinValue = joinCol.colValue;
 		}
 
@@ -995,9 +1007,7 @@ public class RouterUtil {
 					}
 				} else if(joinKey != null && columnsMap.get(joinKey) != null && columnsMap.get(joinKey).size() != 0) {//childTable  (如果是select 语句的父子表join)之前要找到root table,将childTable移除,只留下root table
 					Set<ColumnRoutePair> joinKeyValue = columnsMap.get(joinKey);
-
-					ColumnRoutePair joinCol = null;
-
+					
 					Set<String> dataNodeSet = ruleByJoinValueCalculate(rrs, tableConfig, joinKeyValue);
 
 					if (dataNodeSet.isEmpty()) {
@@ -1249,7 +1259,6 @@ public class RouterUtil {
 	private static boolean isMultiInsert(MySqlInsertStatement insertStmt) {
 		return (insertStmt.getValuesList() != null && insertStmt.getValuesList().size() > 1) || insertStmt.getQuery() != null;
 	}
-
 }
 
 
