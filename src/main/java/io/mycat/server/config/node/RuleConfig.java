@@ -23,11 +23,11 @@
  */
 package io.mycat.server.config.node;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.server.config.ConfigException;
+
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**

@@ -25,8 +25,6 @@ package io.mycat.server.executors;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.server.packet.ErrorPacket;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -35,6 +33,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * heartbeat check for mysql connections

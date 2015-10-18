@@ -35,13 +35,9 @@ import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.config.node.QuarantineConfig;
 import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.config.node.SequenceConfig;
-import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.config.node.UserConfig;
-import io.mycat.server.response.ReloadCallBack;
+import io.mycat.server.response.manage.ReloadCallBack;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReentrantLock;

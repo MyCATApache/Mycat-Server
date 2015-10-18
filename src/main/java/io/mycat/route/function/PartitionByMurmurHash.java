@@ -23,6 +23,8 @@
  */
 package io.mycat.route.function;
 
+import io.mycat.server.exception.MurmurHashException;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -36,8 +38,6 @@ import java.util.TreeMap;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-
-import io.mycat.server.exception.MurmurHashException;
 
 /**
  * consistancy hash, murmur hash

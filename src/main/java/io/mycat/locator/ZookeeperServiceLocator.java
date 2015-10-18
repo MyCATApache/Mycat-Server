@@ -1,13 +1,14 @@
 package io.mycat.locator;
 
 import io.mycat.server.config.ConfigException;
+
+import java.util.concurrent.TimeUnit;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * ServiceLocator zookeeper implements.

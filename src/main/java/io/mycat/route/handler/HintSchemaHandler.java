@@ -8,10 +8,11 @@ import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.config.node.SystemConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 处理注释中类型为schema 的情况（按照指定schema做路由解析）

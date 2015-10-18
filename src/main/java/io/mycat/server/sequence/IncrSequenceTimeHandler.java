@@ -1,10 +1,11 @@
 package io.mycat.server.sequence;
 
 import io.mycat.server.config.node.SequenceConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IncrSequenceTimeHandler extends SequenceHandler {
 	protected static final Logger LOGGER = LoggerFactory
