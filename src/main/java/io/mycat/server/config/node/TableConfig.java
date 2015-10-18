@@ -134,6 +134,10 @@ public class TableConfig {
         this.parentKey = parentKey;
     }
 
+	public TableConfig(){
+		super();
+	}
+
     public TableConfig(String name, String primaryKey, boolean autoIncrement, boolean needAddLimit,
                        int tableType, String dataNode, Set<String> dbType, RuleConfig rule,
                        boolean ruleRequired, TableConfig parentTC, boolean isChildTable, String joinKey,

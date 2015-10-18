@@ -61,18 +61,19 @@ public class ZkSchemaConfigLoader extends AbstractZKLoaders {
 
         Map<String, TableConfig> tables = super.fetchChildren(this.zkConnection, schemaName)
                 .stream()
-                .map(tableName -> generateTable(tableName))
+                .map(tableName -> generateTable(schemaName, tableName))
                 .collect(Collectors.toMap(TableConfig::getName, Function.identity()));
 
         schemaConfig.setTables(tables);
         return schemaConfig;
     }
 
-    private TableConfig generateTable(final String tableName) {
+    private TableConfig generateTable(final String schemaName, final String tableName) {
         //parse TableConfig
         //mycat-cluster-1/ schema-config/ ${schema name} /${table name}
         TableConfig tableConfig = JSON.parseObject(
-                super.fetchData(this.zkConnection, tableName), TableConfig.class);
+                super.fetchData(this.zkConnection, schemaName, tableName), TableConfig.class);
+        tableConfig.setRule(this.ruleConfigLoadr.getRuleConfigs().get(tableConfig.getRuleName()));
         tableConfig.checkConfig();
 
         return null;
