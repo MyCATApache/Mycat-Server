@@ -26,6 +26,7 @@ package io.mycat.server.syshandler;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseReload;
+import io.mycat.server.response.manage.ReloadConfig;
 import io.mycat.server.response.manage.ReloadUser;
 
 /**
@@ -42,11 +43,11 @@ public final class ManageReloadHandler
         switch (rs)
         {
             case ManagerParseReload.CONFIG:
-               // ReloadConfig.execute(c,false);
+                ReloadConfig.execute(c,false);
                 c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
                 break;
             case ManagerParseReload.CONFIG_ALL:
-                //ReloadConfig.execute(c,true);
+                ReloadConfig.execute(c,true);
                 c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
                 break;
             case ManagerParseReload.ROUTE:
