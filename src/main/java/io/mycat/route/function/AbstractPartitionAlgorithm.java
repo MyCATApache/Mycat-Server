@@ -13,7 +13,7 @@ import java.util.Map;
  *
  */
 public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm {
-	private LinkedHashMap<String, Object> config = new LinkedHashMap<String, Object>();
+	private Map<String, Object> config = new LinkedHashMap<String, Object>();
 
 	@Override
 	public void init() { }
@@ -58,10 +58,10 @@ public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm {
 		}
 	}
 
-	public LinkedHashMap<String, Object> getConfig() {
+	public Map<String, Object> getConfig() {
 		return config;
 	}
-	public void setConfig(LinkedHashMap<String, Object> config) {
+	public void setConfig(Map<String, Object> config) {
 		this.config = config;
 	}
 

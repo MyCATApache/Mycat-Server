@@ -1,0 +1,3 @@
+zkURL : 192.168.56.101:2181
+clusterID : cluster1
+myID : 001

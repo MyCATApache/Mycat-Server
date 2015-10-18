@@ -70,8 +70,8 @@ sql:
    |
     help_sql
    |
-   //  mysql_comment_sql //skip comment is empty
-   //|
+   // mysql_comment_sql //skip comment is empty
+  // |
     call_sql
    |
     describe_sql
@@ -162,8 +162,6 @@ load_data_infile_sql : LOAD DATA INFILE .*?;
 mysql_comment_sql:;
 
 //mysql sql end;
-
-
 
 SET:
 

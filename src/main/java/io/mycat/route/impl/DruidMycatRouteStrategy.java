@@ -141,7 +141,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		if (indx[0] > 0) {
 			// has table
 			int[] repPos = { indx[0] + indx[1], 0 };
-			String tableName = RouterUtil.getTableName(stmt, repPos);
+			String tableName = RouterUtil.getShowTableName(stmt, repPos);
 			// IN DB pattern
 			int[] indx2 = RouterUtil.getSpecPos(upStmt, indx[0] + indx[1] + 1);
 			if (indx2[0] > 0) {// find LIKE OR WHERE
@@ -268,6 +268,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			break;
 		case ServerParse.DESCRIBE:// if origSQL is meta SQL, such as describe table
 			int ind = stmt.indexOf(' ');
+			stmt = stmt.trim();
 			return analyseDescrSQL(schema, rrs, stmt, ind + 1);
 		}
 		return null;
