@@ -26,8 +26,8 @@ package io.mycat.server.syshandler;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseSelect;
-import io.mycat.server.response.SelectVersionComment;
 import io.mycat.server.response.manage.SelectSessionAutoIncrement;
+import io.mycat.server.response.manage.SelectVersionComment;
 
 /**
  * @author mycat
@@ -37,7 +37,7 @@ public final class ManageSelectHandler {
     public static void handle(String stmt, MySQLFrontConnection c, int offset) {
         switch (ManagerParseSelect.parse(stmt, offset)) {
         case ManagerParseSelect.VERSION_COMMENT:
-            SelectVersionComment.response(c);
+            SelectVersionComment.execute(c);
             break;
         case ManagerParseSelect.SESSION_AUTO_INCREMENT:
             SelectSessionAutoIncrement.execute(c);
