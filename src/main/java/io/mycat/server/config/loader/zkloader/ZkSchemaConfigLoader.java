@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.TableConfig;
 
 /**
  * Created by v1.lion on 2015/10/18.
@@ -54,8 +55,34 @@ public class ZkSchemaConfigLoader extends AbstractZKLoaders {
 
     private SchemaConfig createSchema(final String schemaName) {
         //parse schema
+        //mycat-cluster-1/ schema-config/ ${schema name}
         SchemaConfig schemaConfig = JSON.parseObject(
                 super.fetchData(this.zkConnection, schemaName), SchemaConfig.class);
+
+        Map<String, TableConfig> tables = super.fetchChildren(this.zkConnection, schemaName)
+                .stream()
+                .map(tableName -> generateTable(tableName))
+                .collect(Collectors.toMap(TableConfig::getName, Function.identity()));
+
+        schemaConfig.setTables(tables);
+        return schemaConfig;
+    }
+
+    private TableConfig generateTable(final String tableName) {
+        //parse TableConfig
+        //mycat-cluster-1/ schema-config/ ${schema name} /${table name}
+        TableConfig tableConfig = JSON.parseObject(
+                super.fetchData(this.zkConnection, tableName), TableConfig.class);
+        tableConfig.checkConfig();
+
+        return null;
+    }
+
+    //
+    private TableConfig generateChildTable(final String childTableName) {
+        //recursion parse child TableConfig
+        //mycat-cluster-1/ schema-config/ ${schema name} /${table name} /$child table name
+
 
         return null;
     }

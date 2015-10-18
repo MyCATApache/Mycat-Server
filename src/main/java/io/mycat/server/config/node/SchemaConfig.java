@@ -57,6 +57,10 @@ public class SchemaConfig {
     private String defaultDataNodeDbType;
     private Map<String, String> dataNodeDbTypeMap = new HashMap<>();
 
+	public SchemaConfig(){
+		super();
+	}
+
 	public SchemaConfig(String name, String dataNode,
 			Map<String, TableConfig> tables, int defaultMaxLimit,
 			boolean checkSQLschema) {
@@ -109,6 +113,14 @@ public class SchemaConfig {
 		return defaultMaxLimit;
 	}
 
+	public void setCheckSQLSchema(boolean checkSQLSchema) {
+		this.checkSQLSchema = checkSQLSchema;
+	}
+
+	public void setDefaultMaxLimit(int defaultMaxLimit) {
+		this.defaultMaxLimit = defaultMaxLimit;
+	}
+
 	private void buildJoinMap(Map<String, TableConfig> tables2) {
 
 		if (tables == null || tables.isEmpty()) {
@@ -150,6 +162,10 @@ public class SchemaConfig {
 
 	public String getDataNode() {
 		return dataNode;
+	}
+
+	public void setDataNode(String dataNode) {
+		this.dataNode = dataNode;
 	}
 
 	public Map<String, TableConfig> getTables() {

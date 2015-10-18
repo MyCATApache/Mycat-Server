@@ -46,6 +46,7 @@ public class TableConfig {
     private int tableType;
     private ArrayList<String> dataNodes;
     private RuleConfig rule;
+	private String ruleName;
     private String partitionColumn;
     private boolean ruleRequired;
     private TableConfig parentTC;
@@ -294,6 +295,13 @@ public class TableConfig {
         if (this.ruleRequired && this.rule == null) {
             throw new IllegalArgumentException("ruleRequired but rule is null");
         }
-
     }
+
+	public String getRuleName() {
+		return ruleName;
+	}
+
+	public void setRuleName(String ruleName) {
+		this.ruleName = ruleName;
+	}
 }

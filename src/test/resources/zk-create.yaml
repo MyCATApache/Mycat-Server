@@ -61,15 +61,15 @@ sequence:
 schema :
   testdb :
     name : schema-testdb
-    checksqlschema : true
-    sqlmaxLimit : 100
+    checkSQLSchema : true
+    defaultMaxLimit : 100
 
     TUSER :
       name :  TUSER
       primarykey :  userid
       autoincrement: true
       datanode :  dn1
-      rule :  rule1
+      ruleName :  rule1
 
       TUSER_DETAIL :
         name :  TUSER_DETAIL
@@ -83,7 +83,7 @@ schema :
       primarykey : id
       autoincrement : true
       datanode : dn1
-      rule : rule1
+      ruleName : rule1
 datahost :
   datahost-1 :
     name : datahost-1
