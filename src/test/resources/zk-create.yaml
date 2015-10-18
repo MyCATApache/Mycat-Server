@@ -21,11 +21,11 @@ user :
 datanode :
   -
     name : dn1
-    dataHost : host1
+    dataHost : datahost-1
     database : order
   -
     name : dn2
-    dataHost : host2
+    dataHost : datahost-1
     database : order
 rule :
   sharding-by-enum :
@@ -92,22 +92,22 @@ datahost :
     balance : 0
     writetype : 0
     dbtype : mysql
-    heartbeat : "select 1"
+    heartbeatSQL : "select 1"
 
     writehost-1 :
-      host: master
+      hostName: master
       url: 121.40.121.133:3306
       user: root
       password: root
 
       readhost-1 :
-        host: slave
+        hostName: slave
         url: 11.0.121.133:3306
         user: root
         password: root
 
     writehost-2 :
-      host: master
+      hostName: master
       url: 1.40.121.131:3306
       user: root
       password: root

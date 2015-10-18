@@ -6,6 +6,7 @@ import io.mycat.server.config.cluster.ClusterSync;
 import io.mycat.server.config.cluster.DatabaseClusterSync;
 import io.mycat.server.config.cluster.LocalClusterSync;
 import io.mycat.server.config.cluster.ZookeeperClusterSync;
+import io.mycat.server.config.loader.zkloader.ZookeeperLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -97,7 +98,9 @@ public class ConfigFactory {
 		return null;
 	}
 	private static ConfigLoader instanceZkLoader(){
-		return null;
+        ZookeeperLoader zookeeperLoader = new ZookeeperLoader();
+        zookeeperLoader.initConfig();
+        return null;
 	};
 	private static ConfigLoader instanceLocalLoader(){
 		return new LocalLoader();

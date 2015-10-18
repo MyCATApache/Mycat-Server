@@ -34,29 +34,28 @@ import java.util.Set;
  * @author mycat
  */
 public class SchemaConfig {
-	private final Random random = new Random();
-	private final String name;
-	private final Map<String, TableConfig> tables;
-	private final boolean noSharding;
-	private final String dataNode;
-	private final Set<String> metaDataNodes;
-	private final Set<String> allDataNodes;
-	/**
-	 * when a select sql has no limit condition ,and default max limit to
-	 * prevent memory problem when return a large result set
-	 */
-	private final int defaultMaxLimit;
-	private final boolean checkSQLSchema;
-	private  boolean needSupportMultiDBType=false;
-	private  String defaultDataNodeDbType;
-	/**
-	 * key is join relation ,A.ID=B.PARENT_ID value is Root Table ,if a->b*->c*
-	 * ,then A is root table
-	 */
-	private final Map<String, TableConfig> joinRel2TableMap = new HashMap<String, TableConfig>();
-	private final String[] allDataNodeStrArr;
-
-	private  Map<String,String> dataNodeDbTypeMap=new HashMap<>();
+    private Random random = new Random();
+    private String name;
+    private Map<String, TableConfig> tables;
+    private boolean noSharding;
+    private String dataNode;
+    private Set<String> metaDataNodes;
+    private Set<String> allDataNodes;
+    /**
+     * when a select sql has no limit condition ,and default max limit to prevent memory problem
+     * when return a large result set
+     */
+    private int defaultMaxLimit;
+    private boolean checkSQLSchema;
+    /**
+     * key is join relation ,A.ID=B.PARENT_ID value is Root Table ,if a->b*->c* ,then A is root
+     * table
+     */
+    private Map<String, TableConfig> joinRel2TableMap = new HashMap<String, TableConfig>();
+    private String[] allDataNodeStrArr;
+    private boolean needSupportMultiDBType = false;
+    private String defaultDataNodeDbType;
+    private Map<String, String> dataNodeDbTypeMap = new HashMap<>();
 
 	public SchemaConfig(String name, String dataNode,
 			Map<String, TableConfig> tables, int defaultMaxLimit,
@@ -64,25 +63,29 @@ public class SchemaConfig {
 		this.name = name;
 		this.dataNode = dataNode;
 		this.checkSQLSchema = checkSQLschema;
-		this.tables = tables;
 		this.defaultMaxLimit = defaultMaxLimit;
-		buildJoinMap(tables);
-		this.noSharding = (tables == null || tables.isEmpty());
-		if (noSharding && dataNode == null) {
-			throw new RuntimeException(name
-					+ " in noSharding mode schema must have default dataNode ");
-		}
-		this.metaDataNodes = buildMetaDataNodes();
-		this.allDataNodes = buildAllDataNodes();
-//		this.metaDataNodes = buildAllDataNodes();
-		if (this.allDataNodes != null && !this.allDataNodes.isEmpty()) {
-			String[] dnArr = new String[this.allDataNodes.size()];
-			dnArr = this.allDataNodes.toArray(dnArr);
-			this.allDataNodeStrArr = dnArr;
-		} else {
-			this.allDataNodeStrArr = null;
-		}
+        this.setTables(tables);
 	}
+
+    public void setTables(Map<String, TableConfig> tables) {
+        this.tables = tables;
+        buildJoinMap(tables);
+        this.noSharding = (tables == null || tables.isEmpty());
+        if (noSharding && dataNode == null) {
+            throw new RuntimeException(name
+                    + " in noSharding mode schema must have default dataNode ");
+        }
+        this.metaDataNodes = buildMetaDataNodes();
+        this.allDataNodes = buildAllDataNodes();
+//		this.metaDataNodes = buildAllDataNodes();
+        if (this.allDataNodes != null && !this.allDataNodes.isEmpty()) {
+            String[] dnArr = new String[this.allDataNodes.size()];
+            dnArr = this.allDataNodes.toArray(dnArr);
+            this.allDataNodeStrArr = dnArr;
+        } else {
+            this.allDataNodeStrArr = null;
+        }
+    }
 
 	public String getDefaultDataNodeDbType()
 	{
@@ -96,6 +99,10 @@ public class SchemaConfig {
 
 	public boolean isCheckSQLSchema() {
 		return checkSQLSchema;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public int getDefaultMaxLimit() {

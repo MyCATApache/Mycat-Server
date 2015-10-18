@@ -1,10 +1,5 @@
 package io.mycat.server.config.loader.zkloader;
 
-import io.mycat.locator.ZookeeperServiceLocator;
-import io.mycat.server.config.ConfigException;
-import io.mycat.server.config.cluster.MycatClusterConfig;
-import io.mycat.server.config.loader.ConfigLoader;
-import io.mycat.server.config.node.*;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,16 +9,37 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
 
+import io.mycat.locator.ZookeeperServiceLocator;
+import io.mycat.server.config.ConfigException;
+import io.mycat.server.config.cluster.MycatClusterConfig;
+import io.mycat.server.config.loader.ConfigLoader;
+import io.mycat.server.config.node.CharsetConfig;
+import io.mycat.server.config.node.DataHostConfig;
+import io.mycat.server.config.node.DataNodeConfig;
+import io.mycat.server.config.node.HostIndexConfig;
+import io.mycat.server.config.node.QuarantineConfig;
+import io.mycat.server.config.node.RuleConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SequenceConfig;
+import io.mycat.server.config.node.SystemConfig;
+import io.mycat.server.config.node.UserConfig;
+
 public class ZookeeperLoader implements ConfigLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZookeeperLoader.class);
     private static final String ZK_CONFIG_FILE_NAME = "/zk.yaml";
 
-    private final SystemConfig systemConfig;
-    private final Map<String, UserConfig> userConfigs;
-    private final Map<String, DataNodeConfig> dataNodeConfigs;
-    private final Map<String, RuleConfig> ruleConfigs;
+    private SystemConfig systemConfig;
+    private Map<String, UserConfig> userConfigs;
+    private Map<String, DataNodeConfig> dataNodeConfigs;
+    private Map<String, DataHostConfig> dataHostConfigs;
+    private Map<String, RuleConfig> ruleConfigs;
+    private Map<String, SchemaConfig> schemaConfigs;
 
     public ZookeeperLoader() {
+        super();
+    }
+
+    public void initConfig() {
         final ZkConfig zkConfig = loadZkConfig();
         final CuratorFramework zkConnection = ZookeeperServiceLocator.createConnection(zkConfig.getZkURL());
         final String myClusterId = zkConfig.getClusterID();
@@ -32,20 +48,27 @@ public class ZookeeperLoader implements ConfigLoader {
         ZkSystemConfigLoader zkSystemLoader = new ZkSystemConfigLoader(myClusterId);
         //user config
         ZkUserConfigLoader zkUserConfigLoader = new ZkUserConfigLoader(myClusterId);
-        //data node config
-        ZkDataNodeConfigLoader zkDataNodeConfigLoader = new ZkDataNodeConfigLoader(myClusterId);
+
+        //data host and data node config
+        ZkDataNodeConfigLoader dataNodeConfigLoader = new ZkDataNodeConfigLoader(myClusterId
+                , new ZkDataHostConfigLoader(myClusterId));
+
         //rule config
-        ZkRuleConfigLoader zkRuleConfigLoader = new ZkRuleConfigLoader(myClusterId);
+        ZkRuleConfigLoader ruleConfigLoader = new ZkRuleConfigLoader(myClusterId);
 
+        // composed ZkDataHostConfigLoader,ZkDataNodeConfigLoader and ZkRuleConfigLoader
+        ZkSchemaConfigLoader zkSchemaConfigLoader = new ZkSchemaConfigLoader(myClusterId,
+                dataNodeConfigLoader, ruleConfigLoader);
 
-        Arrays.asList(zkSystemLoader, zkUserConfigLoader, zkDataNodeConfigLoader,zkRuleConfigLoader)
+        Arrays.asList(zkSystemLoader, zkUserConfigLoader, zkSchemaConfigLoader)
                 .stream()
                 .forEach(loader -> loader.fetchConfig(zkConnection));
 
         this.systemConfig = zkSystemLoader.getSystemConfig();
         this.userConfigs = zkUserConfigLoader.getUserConfig();
-        this.dataNodeConfigs = zkDataNodeConfigLoader.getDataNodeConfigs();
-        this.ruleConfigs = zkRuleConfigLoader.getRuleConfigs();
+        this.dataHostConfigs = dataNodeConfigLoader.getDataHostConfigs();
+        this.dataNodeConfigs = dataNodeConfigLoader.getDataNodeConfigs();
+        this.schemaConfigs = zkSchemaConfigLoader.getSchemaConfigs();
     }
 
     private ZkConfig loadZkConfig() {
@@ -75,7 +98,7 @@ public class ZookeeperLoader implements ConfigLoader {
 
     @Override
     public Map<String, DataHostConfig> getDataHostConfigs() {
-        return null;
+        return this.dataHostConfigs;
     }
 
     @Override
