@@ -97,7 +97,7 @@ public class PartitionByFileMap extends AbstractPartitionAlgorithm implements Ru
 		app2Partition = new HashMap<Object, Integer>();
 		for(String key : keys){
 			if(type == 0) {
-				app2Partition.put(Integer.valueOf(key), Integer.valueOf((String)this.getConfig().get(key)));
+				app2Partition.put(Integer.valueOf(key), Integer.valueOf(String.valueOf(this.getConfig().get(key))));
 			}else {
 				app2Partition.put(key, Integer.valueOf((String)this.getConfig().get(key)));
 			}

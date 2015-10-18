@@ -50,7 +50,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 
 		//ddl create deal
 		if(ServerParse.DDL==sqlType){
-			return RouterUtil.routeToDDLNode(rrs, sqlType, stmt);
+			return RouterUtil.routeToDDLNode(rrs, sqlType, stmt,schema);
 		}
 
 		// check if there is sharding in schema

@@ -43,8 +43,26 @@
 		</snapshotRepository>
 	</distributionManagement>
 	<dependencies>
-		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
-			<version>18.0</version> </dependency> -->
+		<dependency>
+			<groupId>org.codehaus.jsr166-mirror</groupId>
+			<artifactId>jsr166y</artifactId>
+			<version>1.7.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.4</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- driver -->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.35</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongo-java-driver</artifactId>
@@ -60,10 +78,30 @@
 			<artifactId>leveldb-api</artifactId>
 			<version>0.7</version>
 		</dependency>
+
+		<!-- common -->
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>18.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>jsr305</artifactId>
+			<version>3.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-beanutils</groupId>
+			<artifactId>commons-beanutils</artifactId>
+			<version>1.9.2</version>
+		</dependency>
+
+		<!-- parse -->
+		<dependency>
+			<groupId>com.univocity</groupId>
+			<artifactId>univocity-parsers</artifactId>
+			<version>1.5.4</version>
+			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba</groupId>
@@ -71,10 +109,26 @@
 			<version>1.0.14</version>
 		</dependency>
 		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<version>5.1.35</version>
-			<scope>test</scope>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<version>1.16</version>
+		</dependency>
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>fastjson</artifactId>
+			<version>1.2.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.velocity</groupId>
+			<artifactId>velocity</artifactId>
+			<version>1.7</version>
+		</dependency>
+
+		<!-- cache -->
+		<dependency>
+			<groupId>org.mapdb</groupId>
+			<artifactId>mapdb</artifactId>
+			<version>1.0.7</version>
 		</dependency>
 		<dependency>
 			<groupId>net.sf.ehcache</groupId>
@@ -82,29 +136,8 @@
 			<version>2.6.11</version>
 			<scope>compile</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.mapdb</groupId>
-			<artifactId>mapdb</artifactId>
-			<version>1.0.7</version>
-		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.4</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.codehaus.jsr166-mirror</groupId>
-			<artifactId>jsr166y</artifactId>
-			<version>1.7.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.univocity</groupId>
-			<artifactId>univocity-parsers</artifactId>
-			<version>1.5.4</version>
-			<type>jar</type>
-		</dependency>
+
+		<!-- zookeeper -->
 		<dependency>
 			<groupId>org.apache.velocity</groupId>
 			<artifactId>velocity</artifactId>
@@ -123,10 +156,30 @@
 			<version>2.3</version>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.curator</groupId>
+			<artifactId>curator-framework</artifactId>
+			<version>2.9.0</version>
+		</dependency>
+
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.12</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-slf4j-impl</artifactId>
+			<version>2.3</version>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
 			<version>2.3</version>
 		</dependency>
+
+
 
 		<dependency>
 			<groupId>org.antlr</groupId>
@@ -266,8 +319,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 					<encoding>${app.encoding}</encoding>
 				</configuration>
 			</plugin>
@@ -482,7 +535,6 @@
 					<providerImplementations>
 						<git>git</git>
 					</providerImplementations>
-
 				</configuration>
 				<dependencies>
 					<dependency>
@@ -496,11 +548,7 @@
 						<version>RELEASE</version>
 					</dependency>
 				</dependencies>
-
 			</plugin>
-
 		</plugins>
 	</build>
-
-
 </project>

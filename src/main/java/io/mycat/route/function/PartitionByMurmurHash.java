@@ -23,14 +23,9 @@
  */
 package io.mycat.route.function;
 
-import io.mycat.server.exception.MurmurHashException;
-
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +37,8 @@ import java.util.TreeMap;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 
+import io.mycat.server.exception.MurmurHashException;
+
 /**
  * consistancy hash, murmur hash
  * implemented by Guava
@@ -50,8 +47,6 @@ import com.google.common.hash.Hashing;
  */
 public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements RuleAlgorithm  {
 	private static final int DEFAULT_VIRTUAL_BUCKET_TIMES=160;
-	private static final int DEFAULT_WEIGHT=1;
-	private static final Charset DEFAULT_CHARSET=Charset.forName("UTF-8");
 
 	private int seed;
 	private int count;
@@ -111,7 +106,7 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 
 	private static void hashTest() throws IOException{
 		PartitionByMurmurHash hash=new PartitionByMurmurHash();
-		hash.count=10;//分片数
+		hash.count=1000;//分片数
 		hash.init();
 
 		int[] bucket=new int[hash.count];
@@ -120,7 +115,7 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 
 		int total=1000_0000;//数据量
 		int c=0;
-		for(int i=100_0000;i<total+100_0000;i++){//假设分片键从100万开始
+		for(int i=100_0000;i<total+100_000;i++){//假设分片键从100万开始
 			c++;
 			int h=hash.calculate(Integer.toString(i));
 			bucket[h]++;

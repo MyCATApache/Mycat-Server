@@ -1,0 +1,113 @@
+zkURL : 192.168.56.101:2181
+clusterID : cluster1
+myID : 001
+system:
+  defaultsqlparser : druidparser
+  serverport : 8066
+  sequncehandlertype : 1
+user :
+  test :
+    name : test
+    password : admin
+    readOnly : true
+    schemas  :
+      - testdb
+  mycat :
+    name: mycat
+    password: admin
+    readOnly : false
+    schemas:
+      - testdb
+datanode :
+  -
+    name : dn1
+    dataHost : host1
+    database : order
+  -
+    name : dn2
+    dataHost : host2
+    database : order
+rule :
+  sharding-by-enum :
+    name : sharding-by-enum
+    functionName : io.mycat.route.function.PartitionByFileMap
+    column : id
+    defaultnode : 0
+    type : 0
+    config :
+      10000 : 0
+      10010 : 1
+  sharding-by-hour :
+   name : sharding-by-hour
+   functionName : io.mycat.route.function.LatestMonthPartion
+   column : createTime
+   splitOneDay : 24
+sequence:
+  sequence-3 :
+    current_value : 100000
+    increament : 100
+  sequence-2 :
+    workid: 1
+    centerid : 2
+  sequence-0 :
+    type : file
+  sequence-1 :
+    type : 1
+    config :
+      current_value : 100000
+      increament : 100
+    sequence-mapping :
+      T_NODE :  0
+schema :
+  testdb :
+    name : schema-testdb
+    checksqlschema : true
+    sqlmaxLimit : 100
+
+    TUSER :
+      name :  TUSER
+      primarykey :  userid
+      autoincrement: true
+      datanode :  dn1
+      rule :  rule1
+
+      TUSER_DETAIL :
+        name :  TUSER_DETAIL
+        primarykey :  id
+        autoincrement: true
+        joinkey : userid
+        parentkey : userid
+
+    torder :
+      name : torder
+      primarykey : id
+      autoincrement : true
+      datanode : dn1
+      rule : rule1
+datahost :
+  datahost-1 :
+    name : datahost-1
+    maxcon : 2000
+    mincon : 10
+    balance : 0
+    writetype : 0
+    dbtype : mysql
+    heartbeat : "select 1"
+
+    writehost-1 :
+      host: master
+      url: 121.40.121.133:3306
+      user: root
+      password: root
+
+      readhost-1 :
+        host: slave
+        url: 11.0.121.133:3306
+        user: root
+        password: root
+
+    writehost-2 :
+      host: master
+      url: 1.40.121.131:3306
+      user: root
+      password: root
