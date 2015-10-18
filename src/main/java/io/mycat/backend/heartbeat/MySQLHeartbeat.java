@@ -27,12 +27,13 @@ import io.mycat.backend.MySQLDataSource;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.server.config.node.DataHostConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat

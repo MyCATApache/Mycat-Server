@@ -26,7 +26,7 @@ package io.mycat.server.syshandler;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseClear;
-import io.mycat.server.response.ClearSlow;
+import io.mycat.server.response.manage.ClearSlow;
 import io.mycat.util.StringUtil;
 
 /**

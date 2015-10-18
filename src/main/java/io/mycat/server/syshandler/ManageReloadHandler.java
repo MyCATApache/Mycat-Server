@@ -26,7 +26,7 @@ package io.mycat.server.syshandler;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseReload;
-import io.mycat.server.response.ReloadUser;
+import io.mycat.server.response.manage.ReloadUser;
 
 /**
  * @author mycat

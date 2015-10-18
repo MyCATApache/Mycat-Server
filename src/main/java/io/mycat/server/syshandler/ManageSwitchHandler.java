@@ -26,7 +26,7 @@ package io.mycat.server.syshandler;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseSwitch;
-import io.mycat.server.response.SwitchDataSource;
+import io.mycat.server.response.manage.SwitchDataSource;
 
 /**
  * @author mycat

@@ -21,14 +21,14 @@ import io.mycat.server.sqlhandler.UseHandler;
 import io.mycat.server.syshandler.ManageClearHandler;
 import io.mycat.server.syshandler.ManageConfFileHandler;
 import io.mycat.server.syshandler.ManageKillConnection;
+import io.mycat.server.syshandler.ManageOffline;
+import io.mycat.server.syshandler.ManageOnline;
 import io.mycat.server.syshandler.ManageReloadHandler;
 import io.mycat.server.syshandler.ManageRollbackHandler;
 import io.mycat.server.syshandler.ManageShowHandler;
 import io.mycat.server.syshandler.ManageShowServerLog;
 import io.mycat.server.syshandler.ManageStopHandler;
 import io.mycat.server.syshandler.ManageSwitchHandler;
-import io.mycat.server.syshandler.ManageOffline;
-import io.mycat.server.syshandler.ManageOnline;
 import io.mycat.util.RandomUtil;
 
 import java.io.IOException;

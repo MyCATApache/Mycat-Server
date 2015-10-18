@@ -28,11 +28,12 @@ import io.mycat.net.NetSystem;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.util.SplitUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat

@@ -1,25 +1,31 @@
 package io.mycat.route.impl;
 
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.route.parser.druid.*;
+import io.mycat.route.parser.druid.DruidParser;
+import io.mycat.route.parser.druid.DruidParserFactory;
+import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
+import io.mycat.route.parser.druid.MycatStatementParser;
+import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.parser.ServerParse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
 
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DruidMycatRouteStrategy.class);

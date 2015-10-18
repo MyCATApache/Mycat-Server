@@ -28,11 +28,12 @@ import io.mycat.server.ErrorCode;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.util.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat

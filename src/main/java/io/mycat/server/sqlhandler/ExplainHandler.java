@@ -39,6 +39,7 @@ import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.StringUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,18 +1,16 @@
 package io.mycat.server.config.loader.zkloader;
 
-import com.alibaba.fastjson.JSON;
-import io.mycat.server.config.ConfigException;
+import static java.util.stream.Collectors.toMap;
 import io.mycat.server.config.node.UserConfig;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.utils.ZKPaths;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.toMap;
+import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.fastjson.JSON;
 
 /**
  * <p>

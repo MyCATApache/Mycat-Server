@@ -26,8 +26,8 @@ package io.mycat.server.syshandler;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseSelect;
-import io.mycat.server.response.SelectSessionAutoIncrement;
 import io.mycat.server.response.SelectVersionComment;
+import io.mycat.server.response.manage.SelectSessionAutoIncrement;
 
 /**
  * @author mycat

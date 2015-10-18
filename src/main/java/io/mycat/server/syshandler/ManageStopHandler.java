@@ -26,7 +26,7 @@ package io.mycat.server.syshandler;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseStop;
-import io.mycat.server.response.StopHeartbeat;
+import io.mycat.server.response.manage.StopHeartbeat;
 
 /**
  * @author mycat

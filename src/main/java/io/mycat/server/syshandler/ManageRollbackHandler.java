@@ -26,7 +26,7 @@ package io.mycat.server.syshandler;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.parser.ManagerParseRollback;
-import io.mycat.server.response.RollbackUser;
+import io.mycat.server.response.manage.RollbackUser;
 
 /**
  * @author mycat
