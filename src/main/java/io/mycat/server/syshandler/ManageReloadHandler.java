@@ -44,11 +44,9 @@ public final class ManageReloadHandler
         {
             case ManagerParseReload.CONFIG:
                 ReloadConfig.execute(c,false);
-                c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
                 break;
             case ManagerParseReload.CONFIG_ALL:
                 ReloadConfig.execute(c,true);
-                c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
                 break;
             case ManagerParseReload.ROUTE:
                 c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
