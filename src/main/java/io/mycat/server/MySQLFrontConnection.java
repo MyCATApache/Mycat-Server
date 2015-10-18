@@ -8,9 +8,6 @@ import io.mycat.server.packet.HandshakePacket;
 import io.mycat.server.packet.MySQLMessage;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.parser.MycatServerParse;
-import io.mycat.server.response.KillConnection;
-import io.mycat.server.response.Offline;
-import io.mycat.server.response.Online;
 import io.mycat.server.sqlhandler.BeginHandler;
 import io.mycat.server.sqlhandler.ExplainHandler;
 import io.mycat.server.sqlhandler.KillHandler;
@@ -23,12 +20,15 @@ import io.mycat.server.sqlhandler.StartHandler;
 import io.mycat.server.sqlhandler.UseHandler;
 import io.mycat.server.syshandler.ManageClearHandler;
 import io.mycat.server.syshandler.ManageConfFileHandler;
+import io.mycat.server.syshandler.ManageKillConnection;
 import io.mycat.server.syshandler.ManageReloadHandler;
 import io.mycat.server.syshandler.ManageRollbackHandler;
 import io.mycat.server.syshandler.ManageShowHandler;
 import io.mycat.server.syshandler.ManageShowServerLog;
 import io.mycat.server.syshandler.ManageStopHandler;
 import io.mycat.server.syshandler.ManageSwitchHandler;
+import io.mycat.server.syshandler.ManageOffline;
+import io.mycat.server.syshandler.ManageOnline;
 import io.mycat.util.RandomUtil;
 
 import java.io.IOException;
@@ -275,13 +275,13 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 			ManageSwitchHandler.handler(sql, this, rs >>> SHIFT);
 			break;
 		case MycatServerParse.SqlType.MGR_KILL_CONN:
-			KillConnection.response(sql, rs >>> SHIFT, this);
+			ManageKillConnection.response(sql, rs >>> SHIFT, this);
 			break;
 		case MycatServerParse.SqlType.MGR_OFFLINE:
-			Offline.execute(sql, this);
+			ManageOffline.execute(sql, this);
 			break;
 		case MycatServerParse.SqlType.MGR_ONLINE:
-			Online.execute(sql, this);
+			ManageOnline.execute(sql, this);
 			break;
 		case MycatServerParse.SqlType.MGR_STOP:
 			ManageStopHandler.handle(sql, this, rs >>> SHIFT);

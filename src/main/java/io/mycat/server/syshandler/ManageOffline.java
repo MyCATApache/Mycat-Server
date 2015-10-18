@@ -21,7 +21,7 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package io.mycat.server.response;
+package io.mycat.server.syshandler;
 
 
 import io.mycat.MycatServer;
@@ -31,7 +31,7 @@ import io.mycat.server.packet.OkPacket;
 /**
  * @author mycat
  */
-public class Offline {
+public class ManageOffline {
 
     private static final OkPacket ok = new OkPacket();
     static {

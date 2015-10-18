@@ -21,7 +21,7 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package io.mycat.server.response;
+package io.mycat.server.syshandler;
 
 import io.mycat.net.Connection;
 import io.mycat.net.NetSystem;
@@ -37,10 +37,10 @@ import java.util.List;
 /**
  * @author mycat
  */
-public final class KillConnection {
+public final class ManageKillConnection {
 
     private static final Logger logger = LoggerFactory
-            .getLogger(KillConnection.class);
+            .getLogger(ManageKillConnection.class);
 
     public static void response(String stmt, int offset, MySQLFrontConnection mc) {
         int count = 0;
