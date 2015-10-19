@@ -284,17 +284,20 @@ public class XMLSchemaLoader implements SchemaLoader {
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Element tableElement = (Element) nodeList.item(i);
 			String tableNameElement = tableElement.getAttribute("name").toUpperCase();
-			
-			
+
 			//TODO:路由, 增加对动态日期表的支持
 			String tableNameSuffixElement = tableElement.getAttribute("nameSuffix").toUpperCase();
 			if ( !"".equals( tableNameSuffixElement ) ) {				
+				
+				if( tableNameElement.split(",").length > 1 ) {
+					throw new ConfigException("nameSuffix " + tableNameSuffixElement + ", require name parameter cannot multiple breaks!");
+				}
+				
 				tableNameElement = doTableNameSuffix(tableNameElement, tableNameSuffixElement);
 			}
-
+			
 			String[] tableNames = tableNameElement.split(",");
 			String primaryKey = tableElement.hasAttribute("primaryKey") ? tableElement.getAttribute("primaryKey").toUpperCase() : null;
-
 			boolean autoIncrement = false;
 			if (tableElement.hasAttribute("autoIncrement")) {
 				autoIncrement = Boolean.parseBoolean(tableElement.getAttribute("autoIncrement"));

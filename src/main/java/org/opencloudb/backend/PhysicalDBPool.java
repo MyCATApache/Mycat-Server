@@ -159,7 +159,7 @@ public class PhysicalDBPool {
 					
 					if (alives.isEmpty()) {
 						result = writeSources[0];
-					} else {
+					} else {						
 						// random select one
 						index = Math.abs(wnrandom.nextInt()) % alives.size();
 						result = writeSources[alives.get(index)];
@@ -461,7 +461,7 @@ public class PhysicalDBPool {
 	 * @param okSources
 	 * @return
 	 */
-	private PhysicalDatasource randomSelect(ArrayList<PhysicalDatasource> okSources) {
+	public PhysicalDatasource randomSelect(ArrayList<PhysicalDatasource> okSources) {
 		
 		if (okSources.isEmpty()) {
 			return this.getSource();
