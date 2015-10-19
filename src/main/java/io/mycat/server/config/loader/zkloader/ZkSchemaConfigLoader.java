@@ -1,16 +1,12 @@
 package io.mycat.server.config.loader.zkloader;
 
-import com.alibaba.fastjson.JSON;
-import io.mycat.server.config.node.DataNodeConfig;
 import io.mycat.server.config.node.SchemaConfig;
+
+import java.util.Map;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
-import java.util.function.Function;
-
-import static java.util.stream.Collectors.toMap;
 
 /**
  * Created by v1.lion on 2015/10/8.

@@ -1,13 +1,14 @@
 package io.mycat.server.config.loader.zkloader;
 
 import io.mycat.server.config.ConfigException;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.ZKPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 /**
  * provide a abstract constructor to construct zookeeper path.

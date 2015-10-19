@@ -1,6 +1,5 @@
 package io.mycat.route.function;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 

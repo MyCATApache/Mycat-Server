@@ -1,20 +1,21 @@
 package io.mycat.server.config.loader.zkloader;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import static java.util.stream.Collectors.toMap;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.server.config.ConfigException;
 import io.mycat.server.config.node.RuleConfig;
-import org.apache.commons.beanutils.BeanUtils;
-import org.apache.curator.framework.CuratorFramework;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.function.Function;
 
-import static java.util.stream.Collectors.toMap;
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 
 /**
  * Created by v1.lion on 2015/10/8.

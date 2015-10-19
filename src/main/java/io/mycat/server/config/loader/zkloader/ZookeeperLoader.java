@@ -4,15 +4,25 @@ import io.mycat.locator.ZookeeperServiceLocator;
 import io.mycat.server.config.ConfigException;
 import io.mycat.server.config.cluster.MycatClusterConfig;
 import io.mycat.server.config.loader.ConfigLoader;
-import io.mycat.server.config.node.*;
-import org.apache.curator.framework.CuratorFramework;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
+import io.mycat.server.config.node.CharsetConfig;
+import io.mycat.server.config.node.DataHostConfig;
+import io.mycat.server.config.node.DataNodeConfig;
+import io.mycat.server.config.node.HostIndexConfig;
+import io.mycat.server.config.node.QuarantineConfig;
+import io.mycat.server.config.node.RuleConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SequenceConfig;
+import io.mycat.server.config.node.SystemConfig;
+import io.mycat.server.config.node.UserConfig;
 
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
+
+import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
 public class ZookeeperLoader implements ConfigLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZookeeperLoader.class);

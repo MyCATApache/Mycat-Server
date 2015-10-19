@@ -4,12 +4,13 @@ import io.mycat.backend.BackendConnection;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.sqlcmd.SQLCtrlCommand;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MultiNodeCoordinator implements ResponseHandler {
 	public static final Logger LOGGER = LoggerFactory

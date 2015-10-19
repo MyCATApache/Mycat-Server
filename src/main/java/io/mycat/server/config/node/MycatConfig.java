@@ -30,12 +30,13 @@ import io.mycat.server.config.cluster.MycatClusterConfig;
 import io.mycat.server.config.loader.ConfigInitializer;
 import io.mycat.server.config.loader.ConfigReLoader;
 import io.mycat.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
