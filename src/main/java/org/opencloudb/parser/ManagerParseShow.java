@@ -1003,7 +1003,9 @@ public final class ManagerParseShow {
                 return OTHER;
             }
         }
-        return OTHER;
+        else
+        	return SQL;
+
     }
 
     // SHOW @@SQL.
@@ -1031,7 +1033,7 @@ public final class ManagerParseShow {
         for (++offset; stmt.length() > offset; ++offset) {
             switch (stmt.charAt(offset)) {
             case ' ':
-                continue;
+            	return SQL;
             case 'W':
             case 'w':
                 if (isWhere(stmt, offset)) {

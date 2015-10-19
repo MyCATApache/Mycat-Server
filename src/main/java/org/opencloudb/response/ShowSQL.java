@@ -79,13 +79,18 @@ public final class ShowSQL {
 
         // write eof
         buffer = eof.write(buffer, c,true);
+        
+        Map<?, ?> sqlStatMap =MysqlStatFilter.getInstance().getSqlStatMap();
 
         // write rows
         byte packetId = eof.packetId;
-        RowDataPacket row = getRow(sql, c.getCharset());
-        row.packetId = ++packetId;
-        buffer = row.write(buffer, c,true);
-
+        int i=0;  
+        for (Object sqlStat : sqlStatMap.values()) {
+        	i++;
+           RowDataPacket row = getRow(sqlStat,i, c.getCharset());//getRow(sqlStat,sql, c.getCharset());
+           row.packetId = ++packetId;
+           buffer = row.write(buffer, c,true);
+        }
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
@@ -95,32 +100,17 @@ public final class ShowSQL {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(long sql, String charset) {
+    private static RowDataPacket getRow(Object sqlStat,long sql, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(LongUtil.toBytes(sql));
-        
-       //List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
-        Map<?, ?> sqlStatMap =MysqlStatFilter.getInstance().getSqlStatMap();
-        if (sql>sqlStatMap.size()){
+        if (sqlStat==null){
         	row.add(StringUtil.encode(("not fond"), charset));
         	 return row;
         }
-        long i=0;
-        for (Object sqlStat : sqlStatMap.values()) {
-            Map<String, Object> data = JdbcSqlStatUtils.getData(sqlStat);
-
-            long executeCount = (Long) data.get("ExecuteCount");
-            long runningCount = (Long) data.get("RunningCount");
-
-          //  if (executeCount == 0 && runningCount == 0) {
-          //      continue;
-          //  }
-            i++;
-           if (i==sql) {
-        	   row.add(StringUtil.encode((String)data.get("SQL"), charset));
-        	   break;
-           }         
-        }        
+        Map<String, Object> data = JdbcSqlStatUtils.getData(sqlStat);
+       // long executeCount = (Long) data.get("ExecuteCount");
+        //long runningCount = (Long) data.get("RunningCount");
+        row.add(StringUtil.encode((String)data.get("SQL"), charset));
         return row;
     }
 
