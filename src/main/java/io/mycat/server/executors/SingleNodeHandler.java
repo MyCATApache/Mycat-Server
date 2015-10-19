@@ -39,11 +39,10 @@ import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.packet.util.LoadDataUtil;
 import io.mycat.util.StringUtil;
-
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * @author mycat

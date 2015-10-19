@@ -1,9 +1,9 @@
 package io.mycat.sqlengine;
 
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public interface SQLJobHandler {
 	Logger LOGGER = LoggerFactory

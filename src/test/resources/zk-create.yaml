@@ -18,30 +18,59 @@ user :
     readOnly : false
     schemas:
       - testdb
-datanode :
-  -
-    name : dn1
-    dataHost : host1
-    database : order
-  -
-    name : dn2
-    dataHost : host2
-    database : order
 rule :
   sharding-by-enum :
     name : sharding-by-enum
     functionName : io.mycat.route.function.PartitionByFileMap
-    column : id
+    column : create_time
     defaultnode : 0
     type : 0
     config :
       10000 : 0
       10010 : 1
   sharding-by-hour :
-   name : sharding-by-hour
-   functionName : io.mycat.route.function.LatestMonthPartion
-   column : createTime
-   splitOneDay : 24
+    name : sharding-by-hour
+    functionName : io.mycat.route.function.LatestMonthPartion
+    column : createTime
+    splitOneDay : 24
+
+  auto-sharding-long :
+   name : auto-sharding-long
+   column : id
+   functionName : io.mycat.route.function.AutoPartitionByLong
+   defaultNode : 0
+   config :
+         0-2000000 : 0
+         2000001-4000000 : 1
+         4000001-8000000 : 2
+
+  sharding-by-mod :
+   name : sharding-by-mod
+   column : id
+   functionName : io.mycat.route.function.PartitionByMod
+   count : 3
+
+  auto-sharding-rang-mod :
+   name : auto-sharding-rang-mod
+   column : id
+   functionName : io.mycat.route.function.PartitionByRangeMod
+   defaultNode : 21
+   config :
+         0-200M : 5
+         200M1-400M : 1
+         400M1-600M : 4
+         600M1-800M : 4
+         800M1-1000M : 6
+
+  auto-sharding-rang-mod :
+   name : sharding-by-RangeDateHash
+   column : create_time
+   functionName : io.mycat.route.function.PartitionByRangeDateHash
+   sBeginDate : 2014-01-01 00:00:00
+   sPartionDay : 3
+   dateFormat : yyyy-MM-dd HH:mm:ss
+   groupPartionSize : 6
+
 sequence:
   sequence-3 :
     current_value : 100000
@@ -58,32 +87,98 @@ sequence:
       increament : 100
     sequence-mapping :
       T_NODE :  0
+
 schema :
-  testdb :
-    name : schema-testdb
-    checksqlschema : true
-    sqlmaxLimit : 100
+  TESTDB :
+    name : TESTDB
+    checkSQLSchema : false
+    defaultMaxLimit : 100
 
-    TUSER :
-      name :  TUSER
-      primarykey :  userid
-      autoincrement: true
-      datanode :  dn1
-      rule :  rule1
+    travelrecord :
+      name :  travelrecord
+      datanode :  dn1,dn2,dn3
+      ruleName :  auto-sharding-long
 
-      TUSER_DETAIL :
-        name :  TUSER_DETAIL
-        primarykey :  id
-        autoincrement: true
-        joinkey : userid
-        parentkey : userid
+    company :
+      name :  company
+      datanode :  dn1,dn2,dn3
+      primaryKey : ID
+      type : 1  //全局表为 1
 
-    torder :
-      name : torder
-      primarykey : id
-      autoincrement : true
-      datanode : dn1
-      rule : rule1
+    goods :
+      name :  goods
+      datanode :  dn1,dn2
+      primaryKey : ID
+      type : 1  //全局表为 1
+
+    hotnews :
+      name :  hotnews
+      datanode :  dn1,dn2,dn3
+      primaryKey : ID
+      ruleName : sharding-by-mod
+
+    employee :
+      name :  employee
+      datanode :  dn1,dn2
+      primaryKey : ID
+      ruleName : sharding-by-enum
+
+    customer :
+      name :  customer
+      datanode :  dn1,dn2
+      primaryKey : ID
+      ruleName : sharding-by-enum
+
+      orders :
+        name :  orders
+        primarykey :  ID
+        joinkey : customer_id
+        parentkey : ID
+
+        order_items :
+          name :  order_items
+          joinkey : order_id
+          parentkey : ID
+
+      customer_addr :
+        name :  customer_addr
+        joinkey : customer_id
+        parentkey : ID
+
+    offer :
+      name :  offer
+      datanode :  offer_dn$1-20
+      primaryKey : id
+      ruleName : auto-sharding-rang-mod
+
+    offer1 :
+      name :  offer1
+      datanode :  offer_dn$1-36
+      primaryKey : id
+      ruleName : sharding-by-RangeDateHash
+
+datanode :
+  -
+    name : dn1
+    dataHost : localhost1
+    database : db1
+  -
+    name : dn2
+    dataHost : localhost1
+    database : db2
+
+    name : dn3
+    dataHost : localhost1
+    database : db3
+
+    name : dn3
+    dataHost : localhost1
+    database : db3
+
+    name : offer_dn$0-127
+    dataHost : localhost1
+    database : db1$0-127
+
 datahost :
   datahost-1 :
     name : datahost-1
@@ -92,22 +187,33 @@ datahost :
     balance : 0
     writetype : 0
     dbtype : mysql
-    heartbeat : "select 1"
+    heartbeatSQL : "select 1"
 
-    writehost-1 :
-      host: master
-      url: 121.40.121.133:3306
-      user: root
-      password: root
+     name : datahost-1
+        maxcon : 1000
+        mincon : 10
+        balance : 0
+        writetype : 0
+        dbtype : mysql
+        dbDriver : native
+        switchType : 1
+        slaveThreshold : 100
+        heartbeatSQL : select user()
 
-      readhost-1 :
-        host: slave
-        url: 11.0.121.133:3306
-        user: root
-        password: root
+        hostM1 :
+          host : hostM1
+          url : localhost:3306
+          user : root
+          password : 123456
 
-    writehost-2 :
-      host: master
-      url: 1.40.121.131:3306
-      user: root
-      password: root
+#          readHost :
+#            host : hostS1
+#            url : localhost:3306
+#            user : root
+#            password : 123456
+
+        hostM2 :
+          host : hostM2
+          url : localhost:3316
+          user : root
+          password : 123456

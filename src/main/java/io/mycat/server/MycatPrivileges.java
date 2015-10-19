@@ -26,12 +26,11 @@ package io.mycat.server;
 import io.mycat.MycatServer;
 import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.config.node.UserConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat

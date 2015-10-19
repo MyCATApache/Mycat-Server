@@ -24,11 +24,10 @@
 package io.mycat.server.executors;
 
 import io.mycat.backend.BackendConnection;
-
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class SimpleLogHandler implements ResponseHandler {
 	private static final Logger LOGGER = LoggerFactory

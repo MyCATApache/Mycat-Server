@@ -33,6 +33,8 @@ import io.mycat.server.executors.DelegateResponseHandler;
 import io.mycat.server.executors.NewConnectionRespHandler;
 import io.mycat.server.executors.ResponseHandler;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,9 +42,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class PhysicalDatasource {
     public static final Logger LOGGER = LoggerFactory
@@ -215,7 +214,7 @@ public abstract class PhysicalDatasource {
         if (!heartBeatCons.isEmpty()) {
             for (BackendConnection con : heartBeatCons) {
                 conHeartBeatHanler
-                        .doHeartBeat(con, hostConfig.getHearbeatSQL());
+                        .doHeartBeat(con, hostConfig.getHeartbeatSQL());
             }
         }
 

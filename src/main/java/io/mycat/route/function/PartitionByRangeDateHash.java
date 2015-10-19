@@ -1,12 +1,11 @@
 package io.mycat.route.function;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-
+import com.google.common.hash.Hashing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.hash.Hashing;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 /**
  * 先根据日期分组，再根据时间hash使得短期内数据分布的更均匀

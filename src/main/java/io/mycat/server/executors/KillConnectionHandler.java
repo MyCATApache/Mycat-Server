@@ -29,12 +29,11 @@ import io.mycat.server.NonBlockingSession;
 import io.mycat.server.packet.CommandPacket;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.packet.MySQLPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat

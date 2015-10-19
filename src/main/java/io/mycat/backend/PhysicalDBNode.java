@@ -25,7 +25,6 @@ package io.mycat.backend;
 
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.executors.ResponseHandler;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

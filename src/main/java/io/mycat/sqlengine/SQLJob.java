@@ -9,11 +9,10 @@ import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.executors.ResponseHandler;
 import io.mycat.server.packet.ErrorPacket;
 import io.mycat.server.parser.ServerParse;
-
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * asyn execute in EngineCtx or standalone (EngineCtx=null)

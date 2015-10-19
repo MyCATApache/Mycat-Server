@@ -1,5 +1,7 @@
 package io.mycat.net;
 
+import io.mycat.util.ByteBufferUtil;
+
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -108,8 +110,7 @@ public class BufferArray {
                 if (!bufferArray.getWritedBlockLst().isEmpty()) {
                     for (ByteBuffer tBuf : blockes) {
 
-                        //ByteBufferUtil.arrayCopy(tBuf,0,all,offset,tBuf.remaining());
-                       tBuf.put(all, offset, tBuf.remaining());
+                        ByteBufferUtil.arrayCopy(tBuf,0,all,offset,tBuf.remaining());
                         offset+=tBuf.remaining();
 
                         NetSystem.getInstance().getBufferPool().recycle(tBuf);
@@ -118,8 +119,7 @@ public class BufferArray {
                 ByteBuffer tBuf = bufferArray.getCurWritingBlock();
                 if(tBuf.hasRemaining())
                 {
-                	tBuf.put(all, offset, tBuf.remaining());
-                   // ByteBufferUtil.arrayCopy(tBuf,0,all,offset,tBuf.remaining());
+                    ByteBufferUtil.arrayCopy(tBuf,0,all,offset,tBuf.remaining());
 
                     NetSystem.getInstance().getBufferPool().recycle(tBuf);
                    // offset += curBuf.remaining();

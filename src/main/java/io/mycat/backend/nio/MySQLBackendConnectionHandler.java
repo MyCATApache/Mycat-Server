@@ -7,23 +7,16 @@ import io.mycat.net.NIOHandler;
 import io.mycat.server.Capabilities;
 import io.mycat.server.executors.LoadDataResponseHandler;
 import io.mycat.server.executors.ResponseHandler;
-import io.mycat.server.packet.EOFPacket;
-import io.mycat.server.packet.ErrorPacket;
-import io.mycat.server.packet.HandshakePacket;
-import io.mycat.server.packet.OkPacket;
-import io.mycat.server.packet.Reply323Packet;
-import io.mycat.server.packet.RequestFilePacket;
-import io.mycat.server.packet.ResultStatus;
+import io.mycat.server.packet.*;
 import io.mycat.server.packet.util.ByteUtil;
 import io.mycat.server.packet.util.CharsetUtil;
 import io.mycat.server.packet.util.SecurityUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MySQLBackendConnectionHandler implements
 		NIOHandler<MySQLBackendConnection> {
