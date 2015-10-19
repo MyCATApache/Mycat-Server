@@ -2,12 +2,9 @@ package org.opencloudb.config;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
-import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.loader.ConfigLoader;
@@ -15,14 +12,12 @@ import org.opencloudb.config.loader.xml.XMLConfigLoader;
 import org.opencloudb.config.loader.xml.XMLSchemaLoader;
 import org.opencloudb.config.model.DBHostConfig;
 import org.opencloudb.config.model.DataHostConfig;
-import org.opencloudb.config.model.DataNodeConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.jdbc.JDBCDatasource;
 import org.opencloudb.mysql.nio.MySQLDataSource;
-import org.opencloudb.mysql.nio.handler.ResponseHandler;
 
 import junit.framework.Assert;
 
@@ -30,7 +25,6 @@ public class ConfigTest {
 	
 	private SystemConfig system;
 	private Map<String, SchemaConfig> schemas;
-	private Map<String, PhysicalDBNode> dataNodes;
 	private Map<String, PhysicalDBPool> dataHosts;
 	
 	public ConfigTest() {
@@ -44,7 +38,6 @@ public class ConfigTest {
 		this.system = configLoader.getSystemConfig();
 		this.schemas = configLoader.getSchemaConfigs();
         this.dataHosts = initDataHosts(configLoader);
-        this.dataNodes = initDataNodes(configLoader);
 	}
 	
 	
@@ -77,8 +70,6 @@ public class ConfigTest {
     	PhysicalDatasource source = pool.randomSelect( okSources );
   
     	Assert.assertTrue( source != null );
-    	
-
     }
     
 	private Map<String, PhysicalDBPool> initDataHosts(ConfigLoader configLoader) {
@@ -136,24 +127,5 @@ public class ConfigTest {
 				readSourcesMap, conf.getBalance(), conf.getWriteType());
 		return pool;
 	}
-
-	private Map<String, PhysicalDBNode> initDataNodes(ConfigLoader configLoader) {
-		Map<String, DataNodeConfig> nodeConfs = configLoader.getDataNodes();
-		Map<String, PhysicalDBNode> nodes = new HashMap<String, PhysicalDBNode>(
-				nodeConfs.size());
-		for (DataNodeConfig conf : nodeConfs.values()) {
-			PhysicalDBPool pool = this.dataHosts.get(conf.getDataHost());
-			if (pool == null) {
-				throw new ConfigException("dataHost not exists "
-						+ conf.getDataHost());
-
-			}
-			PhysicalDBNode dataNode = new PhysicalDBNode(conf.getName(),
-					conf.getDatabase(), pool);
-			nodes.put(dataNode.getName(), dataNode);
-		}
-		return nodes;
-	}
-
 
 }
