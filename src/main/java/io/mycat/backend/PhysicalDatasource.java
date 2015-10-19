@@ -214,7 +214,7 @@ public abstract class PhysicalDatasource {
         if (!heartBeatCons.isEmpty()) {
             for (BackendConnection con : heartBeatCons) {
                 conHeartBeatHanler
-                        .doHeartBeat(con, hostConfig.getHearbeatSQL());
+                        .doHeartBeat(con, hostConfig.getHeartbeatSQL());
             }
         }
 

@@ -55,7 +55,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		this.lock = new ReentrantLock(false);
 		this.maxRetryCount = MAX_RETRY_COUNT;
 		this.status = INIT_STATUS;
-		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL();
+		this.heartbeatSQL = source.getHostConfig().getHeartbeatSQL();
 	}
 
 	public MySQLDataSource getSource() {

@@ -27,7 +27,7 @@ public class JDBCHeartbeat extends DBHeartbeat{
 		this.source = source;
 		lock = new ReentrantLock(false);
 		this.status = INIT_STATUS;
-		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL().trim();
+		this.heartbeatSQL = source.getHostConfig().getHeartbeatSQL().trim();
 		this.heartbeatnull= heartbeatSQL.length()==0;
 	}
 

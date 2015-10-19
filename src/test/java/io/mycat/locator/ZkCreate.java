@@ -92,30 +92,33 @@ public class ZkCreate {
                     createChildConfig(value, filterInnerMap, ZKPaths.makePath(childPath, String.valueOf(key)));
                 } else {
                     LOGGER.trace("sub child path is {}", childPath);
-
-                    try {
-                        Stat restNodeStat = framework.checkExists().forPath(childPath);
-                        if (restNodeStat == null) {
-                            framework.create().creatingParentsIfNeeded().forPath(childPath);
-                        }
-
-                        if (filterInnerMap) {
-                            Map<Object, Object> filteredSubItem = innerMap
-                                    .entrySet()
-                                    .stream()
-                                    .filter(mapEntry -> !(mapEntry.getValue() instanceof Map))
-                                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-                            framework.setData().forPath(childPath, JSON.toJSONString(filteredSubItem).getBytes());
-                        } else {
-                            framework.setData().forPath(childPath, JSON.toJSONString(mapObject).getBytes());
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error("create node error: {} ", e.getMessage(), e);
-                        throw new RuntimeException(e);
-                    }
+                    processLeafNode(innerMap, filterInnerMap, childPath);
                 }
             });
+        }
+    }
+
+    private static void processLeafNode(Map<Object, Object> innerMap, boolean filterInnerMap, String childPath) {
+        try {
+            Stat restNodeStat = framework.checkExists().forPath(childPath);
+            if (restNodeStat == null) {
+                framework.create().creatingParentsIfNeeded().forPath(childPath);
+            }
+
+            if (filterInnerMap) {
+                Map<Object, Object> filteredSubItem = innerMap
+                        .entrySet()
+                        .stream()
+                        .filter(mapEntry -> !(mapEntry.getValue() instanceof Map))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+                framework.setData().forPath(childPath, JSON.toJSONString(filteredSubItem).getBytes());
+            } else {
+                framework.setData().forPath(childPath, JSON.toJSONString(innerMap).getBytes());
+            }
+        } catch (Exception e) {
+            LOGGER.error("create node error: {} ", e.getMessage(), e);
+            throw new RuntimeException(e);
         }
     }
 
