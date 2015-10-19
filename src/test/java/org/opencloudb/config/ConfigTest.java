@@ -48,10 +48,14 @@ public class ConfigTest {
      */
     @Test
     public void testReadHostWeight() throws Exception {
-    	SchemaConfig sc = this.schemas.get("dbtest1");
-    	Map<String, TableConfig> tbm = sc.getTables();
-    	Assert.assertTrue( tbm.size() == 32);
-
+    	
+    	ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>();
+    	
+    	PhysicalDBPool pool = this.dataHosts.get("localhost2");   
+    	okSources.addAll(pool.getAllDataSources());    	
+    	PhysicalDatasource source = pool.randomSelect( okSources );
+  
+    	Assert.assertTrue( source != null );
     }
     
     /**
@@ -61,15 +65,9 @@ public class ConfigTest {
      */
     @Test
     public void testDynamicYYYYMMTable() throws Exception {
-    		
-    	PhysicalDBPool pool = this.dataHosts.get("localhost2");
-    	
-    	ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>();
-    	okSources.addAll(pool.getAllDataSources());
-    	
-    	PhysicalDatasource source = pool.randomSelect( okSources );
-  
-    	Assert.assertTrue( source != null );
+    	SchemaConfig sc = this.schemas.get("dbtest1");
+    	Map<String, TableConfig> tbm = sc.getTables();
+    	Assert.assertTrue( tbm.size() == 32);    	
     }
     
 	private Map<String, PhysicalDBPool> initDataHosts(ConfigLoader configLoader) {
