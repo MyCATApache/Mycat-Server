@@ -25,7 +25,7 @@
  
   
   <root>
-    <level value="info1" />
+    <level value="info" />
     <appender-ref ref="STDOUT" />
   </root>
 
