@@ -23,15 +23,6 @@
  */
 package org.opencloudb.net;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.NetworkChannel;
-import java.nio.channels.SocketChannel;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.Capabilities;
@@ -46,6 +37,15 @@ import org.opencloudb.net.mysql.MySQLPacket;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.util.CompressUtil;
 import org.opencloudb.util.RandomUtil;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.NetworkChannel;
+import java.nio.channels.SocketChannel;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author mycat
@@ -512,4 +512,8 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 	}
 
+	@Override
+	public void close(String reason) {
+		super.close(isAuthenticated ? reason : "");
+	}
 }
