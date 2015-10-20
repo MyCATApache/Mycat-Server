@@ -70,10 +70,9 @@ public class MongoConnection implements Connection {
 	}
 
 	@Override
-	public void setAutoCommit(boolean autoCommit) throws SQLException {
-		
-	    if (!autoCommit)  
-		  throw new RuntimeException("autoCommit has to be on");	
+	public void setAutoCommit(boolean autoCommit) throws SQLException {		
+	   //if (!autoCommit)  
+		//  throw new RuntimeException("autoCommit has to be on");	
 	}
 
 	@Override

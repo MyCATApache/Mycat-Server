@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.opencloudb.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.4-RELEASE</version>
+	<version>1.4-release</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
@@ -12,7 +12,7 @@
 
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
-		<!-- maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format> 
+		<!-- maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format>
 			<buildNumber>${maven.build.timestamp}</buildNumber -->
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
 		<version.template.file>version.txt.template</version.template.file>
@@ -43,7 +43,7 @@
 		</snapshotRepository>
 	</distributionManagement>
 	<dependencies>
-		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
+		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId>
 			<version>18.0</version> </dependency> -->
 		<dependency>
 			<groupId>org.mongodb</groupId>
@@ -293,7 +293,7 @@
 						<goals>
 							<goal>test-jar</goal>
 						</goals>
-						<!-- configuration> <finalName>${project.build.finalName}-${buildNumber}</finalName> 
+						<!-- configuration> <finalName>${project.build.finalName}-${buildNumber}</finalName>
 							</configuration -->
 					</execution>
 				</executions>
@@ -310,7 +310,7 @@
 					<additionalConfig>
 						<file>
 							<name>.settings/org.eclipse.core.resources.prefs</name>
-							<content>  
+							<content>
                <![CDATA[eclipse.preferences.version=1${line.separator}encoding/<project>=${app.encoding}${line.separator}]]>
 							</content>
 						</file>

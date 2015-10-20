@@ -1,16 +1,21 @@
 package org.opencloudb.route.util;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.wall.spi.WallVisitorUtils;
-import com.google.common.base.Strings;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
-import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SchemaConfig;
@@ -29,10 +34,14 @@ import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.StringUtil;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.*;
-import java.util.concurrent.Callable;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.wall.spi.WallVisitorUtils;
+import com.google.common.base.Strings;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -108,34 +117,72 @@ public class RouterUtil {
 		return rrs;
 	}
 
+
+
 	/**
-	 * 获取第一个节点作为路由
+	 * 修复DDL路由
 	 *
-	 * @param rrs
-	 *            数据路由集合
-	 * @param dataNode
-	 *            数据库所在节点
+	 * @return RouteResultset
+	 * @author aStoneGod
+	 */
+	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
+		//检查表是否在配置文件中
+		stmt = getFixedSql(stmt);
+		String tablename = "";
+		if(stmt.startsWith("CREATE")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(stmt, 0));
+		}else if(stmt.startsWith("DROP")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(stmt, 0));
+		}else if(stmt.startsWith("ALTER")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(stmt, 0));
+		}else if (stmt.startsWith("TRUNCATE")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
+		}
+
+		if (schema.getTables().containsKey(tablename)){
+			if(ServerParse.DDL==sqlType){
+				List<String> dataNodes = new ArrayList<>();
+				Map<String, TableConfig> tables = schema.getTables();
+				TableConfig tc;
+				if (tables != null && (tc = tables.get(tablename)) != null) {
+					dataNodes = tc.getDataNodes();
+				}
+				Iterator<String> iterator1 = dataNodes.iterator();
+				int nodeSize = dataNodes.size();
+				RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSize];
+
+				for(int i=0;i<nodeSize;i++){
+					String name = iterator1.next();
+					nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
+				}
+				rrs.setNodes(nodes);
+			}
+			return rrs;
+		}else if(schema.getDataNode()!=null){		//默认节点ddl
+			RouteResultsetNode[] nodes = new RouteResultsetNode[1];
+			nodes[0] = new RouteResultsetNode(schema.getDataNode(), sqlType, stmt);
+			rrs.setNodes(nodes);
+			return rrs;
+		}
+		//both tablename and defaultnode null
+		LOGGER.error("table not in schema----"+tablename);
+		throw new SQLSyntaxErrorException("op table not in schema----"+tablename);
+	}
+
+	/**
+	 * 处理SQL
+	 *
 	 * @param stmt
 	 *            执行语句
-	 * @return 数据路由集合
-	 * @author mycat
+	 * @return 处理后SQL
+	 * @author AStoneGod
 	 */
-	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt) {
-		//ddl create deal
-		if(ServerParse.DDL==sqlType){
-			Map<String,PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
-			int nodeSize = dataNodes.size();
-			Iterator<String> iterator = dataNodes.keySet().iterator();
-			RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSize];
-			int i = 0;
-			while(iterator.hasNext()){
-				String name = iterator.next();
-				nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
-				i++;
-			}
-			rrs.setNodes(nodes);
-		}
-		return rrs;
+
+	public static String getFixedSql(String stmt){
+		if (stmt.endsWith(";"))
+			stmt = stmt.substring(0,stmt.length()-2);
+		stmt = stmt.replaceAll("\r\n", " "); //对于\r\n的字符 用 空格处理 rainbow
+		return stmt = stmt.trim().toUpperCase().replace("`","");
 	}
 
 	/**
@@ -146,7 +193,7 @@ public class RouterUtil {
 	 * @param repPos
 	 *            开始位置和位数
 	 * @return 表名
-	 * @author mycat
+	 * @author AStoneGod
 	 */
 	public static String getTableName(String stmt, int[] repPos) {
 		int startPos = repPos[0];
@@ -154,8 +201,50 @@ public class RouterUtil {
 		if (secInd < 0) {
 			secInd = stmt.length();
 		}
+		int thiInd = stmt.indexOf('(',secInd+1);
+		if (thiInd < 0) {
+			thiInd = stmt.length();
+		}
+		repPos[1] = secInd;
+		String tableName = "";
+		if (stmt.toUpperCase().startsWith("DESC")||stmt.toUpperCase().startsWith("DESCRIBE")){
+			tableName = stmt.substring(startPos, thiInd).trim();
+		}else {
+			tableName = stmt.substring(secInd, thiInd).trim();
+		}
+
+		//ALTER TABLE
+		if (tableName.contains(" ")){
+			tableName = tableName.substring(0,tableName.indexOf(" "));
+		}
+		int ind2 = tableName.indexOf('.');
+		if (ind2 > 0) {
+			tableName = tableName.substring(ind2 + 1);
+		}
+		return tableName;
+	}
+
+
+	/**
+	 * 获取show语句table名字
+	 *
+	 * @param stmt
+	 *            执行语句
+	 * @param repPos
+	 *            开始位置和位数
+	 * @return 表名
+	 * @author AStoneGod
+	 */
+	public static String getShowTableName(String stmt, int[] repPos) {
+		int startPos = repPos[0];
+		int secInd = stmt.indexOf(' ', startPos + 1);
+		if (secInd < 0) {
+			secInd = stmt.length();
+		}
+
 		repPos[1] = secInd;
 		String tableName = stmt.substring(startPos, secInd).trim();
+
 		int ind2 = tableName.indexOf('.');
 		if (ind2 > 0) {
 			tableName = tableName.substring(ind2 + 1);
@@ -174,12 +263,95 @@ public class RouterUtil {
 	 * @author mycat
 	 */
 	public static int[] getCreateTablePos(String upStmt, int start) {
-		String token1 = " CREATE ";
+		String token1 = "CREATE ";
 		String token2 = " TABLE ";
 		int createInd = upStmt.indexOf(token1, start);
 		int tabInd = upStmt.indexOf(token2, start);
 		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
-		if (createInd > 0 && tabInd > 0 && tabInd > createInd) {
+		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
+			return new int[] { tabInd, token2.length() };
+		} else {
+			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+		}
+	}
+
+	/**
+	 * 获取ALTER语句中前关键字位置和占位个数表名位置
+	 *
+	 * @param upStmt
+	 *            执行语句
+	 * @param start
+	 *            开始位置
+	 * @return int[]关键字位置和占位个数
+	 * @author aStoneGod
+	 */
+	public static int[] getAlterTablePos(String upStmt, int start) {
+		String token1 = "ALTER ";
+		String token2 = " TABLE ";
+		int createInd = upStmt.indexOf(token1, start);
+		int tabInd = upStmt.indexOf(token2, start);
+		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
+		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
+			return new int[] { tabInd, token2.length() };
+		} else {
+			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+		}
+	}
+
+	/**
+	 * 获取DROP语句中前关键字位置和占位个数表名位置
+	 *
+	 * @param upStmt
+	 *            执行语句
+	 * @param start
+	 *            开始位置
+	 * @return int[]关键字位置和占位个数
+	 * @author aStoneGod
+	 */
+	public static int[] getDropTablePos(String upStmt, int start) {
+		//增加 if exists判断
+		if(upStmt.contains("EXISTS")){
+			String token1 = "IF ";
+			String token2 = " EXISTS ";
+			int ifInd = upStmt.indexOf(token1, start);
+			int tabInd = upStmt.indexOf(token2, start);
+			if (ifInd >= 0 && tabInd > 0 && tabInd > ifInd) {
+				return new int[] { tabInd, token2.length() };
+			} else {
+				return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+			}
+		}else {
+			String token1 = "DROP ";
+			String token2 = " TABLE ";
+			int createInd = upStmt.indexOf(token1, start);
+			int tabInd = upStmt.indexOf(token2, start);
+
+			if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
+				return new int[] { tabInd, token2.length() };
+			} else {
+				return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+			}
+		}
+	}
+
+
+	/**
+	 * 获取TRUNCATE语句中前关键字位置和占位个数表名位置
+	 *
+	 * @param upStmt
+	 *            执行语句
+	 * @param start
+	 *            开始位置
+	 * @return int[]关键字位置和占位个数
+	 * @author aStoneGod
+	 */
+	public static int[] getTruncateTablePos(String upStmt, int start) {
+		String token1 = "TRUNCATE ";
+		String token2 = " TABLE ";
+		int createInd = upStmt.indexOf(token1, start);
+		int tabInd = upStmt.indexOf(token2, start);
+		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
+		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
 			return new int[] { tabInd, token2.length() };
 		} else {
 			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
@@ -417,7 +589,7 @@ public class RouterUtil {
 	 * @param joinKeyVal
 	 *            连接属性
 	 * @return RouteResultset(数据路由集合)
-	 * @throws SQLNonTransientException
+	 * @throws java.sql.SQLNonTransientException
 	 * @author mycat
 	 */
 
@@ -444,11 +616,6 @@ public class RouterUtil {
 						"parent key can't find  valid datanode ,expect 1 but found: "
 								+ dataNodeSet.size());
 			}
-            boolean processedInsert=false;
-            if ( sc!=null && tc.isAutoIncrement()) {
-                String primaryKey = tc.getPrimaryKey();
-                processedInsert=processInsert(sc,schema,sqlType,stmt,tc.getName(),primaryKey);
-            }
 			String dn = dataNodeSet.iterator().next();
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
@@ -470,8 +637,8 @@ public class RouterUtil {
 		if(colRoutePairSet.size() > 1) {
 			LOGGER.warn("joinKey can't have multi Value");
 		} else {
-			Iterator it = colRoutePairSet.iterator();
-			ColumnRoutePair joinCol = (ColumnRoutePair)it.next();
+			Iterator<ColumnRoutePair> it = colRoutePairSet.iterator();
+			ColumnRoutePair joinCol = it.next();
 			joinValue = joinCol.colValue;
 		}
 
@@ -574,7 +741,7 @@ public class RouterUtil {
 	 * @param rrs
 	 * @param isSelect
 	 * @return
-	 * @throws SQLNonTransientException
+	 * @throws java.sql.SQLNonTransientException
 	 */
 	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx, RouteCalculateUnit routeUnit, RouteResultset rrs,
 			boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
@@ -670,7 +837,7 @@ public class RouterUtil {
 	 * @param rrs
 	 * @param isSelect
 	 * @return
-	 * @throws SQLNonTransientException
+	 * @throws java.sql.SQLNonTransientException
 	 */
 	public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx, RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs,
 			boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
@@ -707,7 +874,7 @@ public class RouterUtil {
 				//每个表对应的路由映射
 				Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
 				if(routeUnit.getTablesAndConditions() != null && routeUnit.getTablesAndConditions().size() > 0) {
-					RouterUtil.findRouteWithcConditionsForTables(schema, rrs, routeUnit.getTablesAndConditions(), tablesRouteMap, ctx.getSql(),cachePool,isSelect);
+					RouterUtil.findRouteWithcConditionsForTables(schema, rrs, routeUnit.getTablesAndConditions(), tablesRouteMap, ctx.getSql(), cachePool, isSelect);
 					if(rrs.isFinishedRoute()) {
 						return rrs;
 					}
@@ -731,7 +898,7 @@ public class RouterUtil {
 	 * @param schema
 	 * @param tablesAndConditions
 	 * @param tablesRouteMap
-	 * @throws SQLNonTransientException
+	 * @throws java.sql.SQLNonTransientException
 	 */
 	public static void findRouteWithcConditionsForTables(SchemaConfig schema, RouteResultset rrs,
 			Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
@@ -840,9 +1007,7 @@ public class RouterUtil {
 					}
 				} else if(joinKey != null && columnsMap.get(joinKey) != null && columnsMap.get(joinKey).size() != 0) {//childTable  (如果是select 语句的父子表join)之前要找到root table,将childTable移除,只留下root table
 					Set<ColumnRoutePair> joinKeyValue = columnsMap.get(joinKey);
-
-					ColumnRoutePair joinCol = null;
-
+					
 					Set<String> dataNodeSet = ruleByJoinValueCalculate(rrs, tableConfig, joinKeyValue);
 
 					if (dataNodeSet.isEmpty()) {
@@ -991,11 +1156,18 @@ public class RouterUtil {
 			String sql = insertStmt.toString();
 
 			// try to route by ER parent partion key
-			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc,schema,ServerParse.INSERT,sql, rrs, tc, joinKeyVal);
+			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, joinKeyVal);
 
 			if (theRrs != null) {
-				rrs.setFinishedRoute(true);
-				sc.getSession2().execute(rrs, ServerParse.INSERT);
+				boolean processedInsert=false;
+                if ( sc!=null && tc.isAutoIncrement()) {
+                    String primaryKey = tc.getPrimaryKey();
+                    processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
+                }
+                if(processedInsert==false){
+                	rrs.setFinishedRoute(true);
+                    sc.getSession2().execute(rrs, ServerParse.INSERT);
+                }
 				return true;
 			}
 
@@ -1030,8 +1202,21 @@ public class RouterUtil {
 						LOGGER.debug("found partion node for child table to insert " + result + " sql :" + origSQL);
 					}
 
-					RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
-					sc.getSession2().execute(executeRrs, ServerParse.INSERT);
+					boolean processedInsert=false;
+                    if ( sc!=null && tc.isAutoIncrement()) {
+                        try {
+                            String primaryKey = tc.getPrimaryKey();
+							processedInsert=processInsert(sc,schema,ServerParse.INSERT,origSQL,tc.getName(),primaryKey);
+						} catch (SQLNonTransientException e) {
+							LOGGER.warn("sequence processInsert error,",e);
+		                    sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
+						}
+                    }
+                    if(processedInsert==false){
+                    	RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
+    					sc.getSession2().execute(executeRrs, ServerParse.INSERT);
+                    }
+
 				}
 
 				@Override
@@ -1074,7 +1259,6 @@ public class RouterUtil {
 	private static boolean isMultiInsert(MySqlInsertStatement insertStmt) {
 		return (insertStmt.getValuesList() != null && insertStmt.getValuesList().size() > 1) || insertStmt.getQuery() != null;
 	}
-
 }
 
 
