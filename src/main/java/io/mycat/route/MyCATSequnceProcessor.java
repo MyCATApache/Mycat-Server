@@ -11,12 +11,11 @@ import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MyCATSequnceProcessor {
 	private static final Logger LOGGER = LoggerFactory

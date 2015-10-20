@@ -1,12 +1,12 @@
 package io.mycat.sqlengine.sharejoin;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 功能详细描述:分片join,单独的语句

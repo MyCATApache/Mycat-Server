@@ -62,8 +62,6 @@ public final class ManagerParseShow {
     public static final int SESSION = 29;
 
     public static int parse(String stmt, int offset) {
-    	offset = stmt.indexOf("@");
-    	offset =  offset== -1? 0:offset; 
         int i = offset;
         for (; i < stmt.length(); i++) {
             switch (stmt.charAt(i)) {

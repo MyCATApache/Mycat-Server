@@ -23,16 +23,11 @@
  */
 package io.mycat;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.cache.CacheService;
-import io.mycat.net.BufferPool;
-import io.mycat.net.ExecutorUtil;
-import io.mycat.net.NIOAcceptor;
-import io.mycat.net.NIOConnector;
-import io.mycat.net.NIOReactorPool;
-import io.mycat.net.NameableExecutor;
-import io.mycat.net.NamebleScheduledExecutor;
-import io.mycat.net.NetSystem;
+import io.mycat.net.*;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.server.MySQLFrontConnectionFactory;
@@ -45,6 +40,8 @@ import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,12 +51,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * @author mycat
