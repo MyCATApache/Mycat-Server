@@ -9,5 +9,6 @@ public class ZookeeperLoaderTest {
     @Test
     public void testConstruct() {
         ZookeeperLoader zookeeperLoader = new ZookeeperLoader();
+        zookeeperLoader.initConfig();
     }
 }

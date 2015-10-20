@@ -707,7 +707,7 @@ public class LocalLoader implements ConfigLoader {
 			hostConf.setMinCon(minCon);
 			hostConf.setBalance(balance);
 			hostConf.setWriteType(writeType);
-			hostConf.setHearbeatSQL(heartbeatSQL);
+			hostConf.setHeartbeatSQL(heartbeatSQL);
 			hostConf.setConnectionInitSql(initConSQL);
 			hostConf.setFilters(filters);
 			hostConf.setLogTime(logTime);
