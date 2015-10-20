@@ -55,7 +55,7 @@ public class MycatStatementParser extends MySqlStatementParser
     {
         acceptIdentifier("DATA");
 
-        MySqlLoadDataInFileStatement stmt = new MySqlLoadDataInFileStatement();
+        LoadDataStatement stmt = new LoadDataStatement();
 
         if (identifierEquals(LOW_PRIORITY)) {
             stmt.setLowPriority(true);
