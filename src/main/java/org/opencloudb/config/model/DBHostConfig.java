@@ -24,6 +24,7 @@
 package org.opencloudb.config.model;
 
 public class DBHostConfig {
+	
 	private long idleTimeout = SystemConfig.DEFAULT_IDLE_TIMEOUT; // 连接池中连接空闲超时时间
 	private final String hostName;
 	private final String ip;
@@ -35,7 +36,8 @@ public class DBHostConfig {
 	private int minCon ;
 	private String dbType;
 	private String filters="mergeStat";
-	private long logTime=300000;
+	private long logTime = 300000;
+	private int weight;				
 
 	public String getDbType() {
 		return dbType;
@@ -116,6 +118,14 @@ public class DBHostConfig {
 
 	public void setLogTime(long logTime) {
 		this.logTime = logTime;
+	}
+
+	public int getWeight() {
+		return weight;
+	}
+
+	public void setWeight(int weight) {
+		this.weight = weight;
 	}
 
 	@Override

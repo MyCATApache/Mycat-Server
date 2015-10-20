@@ -126,14 +126,15 @@ public final class ShowHelp {
         helps.put("show @@connection.sql", "Report connection sql");
         helps.put("show @@sql.execute", "Report execute status");
         helps.put("show @@sql.detail where id = ?", "Report execute detail status");
-        helps.put("show @@sql where id = ?", "Report specify SQL");
+        helps.put("show @@sql", "Report SQL list");
+        helps.put("show @@sql where id = ?", "Report  specify SQL");
         helps.put("show @@sql.slow", "Report slow SQL");
         helps.put("show @@parser", "Report parser status");
         helps.put("show @@router", "Report router status");
         helps.put("show @@heartbeat", "Report heartbeat status");
         helps.put("show @@slow where schema = ?", "Report schema slow sql");
         helps.put("show @@slow where datanode = ?", "Report datanode slow sql");
-
+        helps.put("show @@sysparam", "Report system param");
         // switch
         helps.put("switch @@datasource name:index", "Switch dataSource");
 

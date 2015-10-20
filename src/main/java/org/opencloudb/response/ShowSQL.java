@@ -24,6 +24,9 @@
 package org.opencloudb.response;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import org.opencloudb.config.Fields;
 import org.opencloudb.manager.ManagerConnection;
@@ -32,8 +35,11 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.stat.impl.MysqlStatFilter;
 import org.opencloudb.util.LongUtil;
 import org.opencloudb.util.StringUtil;
+
+import com.alibaba.druid.util.JdbcSqlStatUtils;
 
 /**
  * 查询指定SQL ID所对应的SQL语句
@@ -73,13 +79,18 @@ public final class ShowSQL {
 
         // write eof
         buffer = eof.write(buffer, c,true);
+        
+        Map<?, ?> sqlStatMap =MysqlStatFilter.getInstance().getSqlStatMap();
 
         // write rows
         byte packetId = eof.packetId;
-        RowDataPacket row = getRow(sql, c.getCharset());
-        row.packetId = ++packetId;
-        buffer = row.write(buffer, c,true);
-
+        int i=0;  
+        for (Object sqlStat : sqlStatMap.values()) {
+        	i++;
+           RowDataPacket row = getRow(sqlStat,i, c.getCharset());//getRow(sqlStat,sql, c.getCharset());
+           row.packetId = ++packetId;
+           buffer = row.write(buffer, c,true);
+        }
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
@@ -89,10 +100,17 @@ public final class ShowSQL {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(long sql, String charset) {
+    private static RowDataPacket getRow(Object sqlStat,long sql, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(LongUtil.toBytes(sql));
-        row.add(StringUtil.encode("insert into T (...", charset));
+        if (sqlStat==null){
+        	row.add(StringUtil.encode(("not fond"), charset));
+        	 return row;
+        }
+        Map<String, Object> data = JdbcSqlStatUtils.getData(sqlStat);
+       // long executeCount = (Long) data.get("ExecuteCount");
+        //long runningCount = (Long) data.get("RunningCount");
+        row.add(StringUtil.encode((String)data.get("SQL"), charset));
         return row;
     }
 
