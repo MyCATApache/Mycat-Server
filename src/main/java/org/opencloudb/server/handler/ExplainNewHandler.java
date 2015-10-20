@@ -1,30 +1,6 @@
-/*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
- * terms of the GNU General Public License version 2 only, as published by the
- * Free Software Foundation.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
- * https://code.google.com/p/opencloudb/.
- *
- */
 package org.opencloudb.server.handler;
 
 import java.nio.ByteBuffer;
-import java.sql.SQLNonTransientException;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
@@ -43,22 +19,54 @@ import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.StringUtil;
 
 /**
- * @author mycat
+ * 新的 Explain 实现
+ * 
+ * @author zhuam
+ *
  */
-public class ExplainHandler {
+public class ExplainNewHandler {
 
 	private static final Logger logger = Logger.getLogger(ExplainHandler.class);
+	
 	private static final RouteResultsetNode[] EMPTY_ARRAY = new RouteResultsetNode[0];
-	private static final int FIELD_COUNT = 2;
+	private static final int FIELD_COUNT = 12;
+	
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
+	
 	static {
-		fields[0] = PacketUtil.getField("DATA_NODE",
-				Fields.FIELD_TYPE_VAR_STRING);
-		fields[1] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
+		
+		//主机信息
+		fields[0] = PacketUtil.getField("data_node", Fields.FIELD_TYPE_VAR_STRING);
+		fields[1] = PacketUtil.getField("sql", Fields.FIELD_TYPE_VAR_STRING);
+		
+		//实际DB执行信息
+		fields[2] = PacketUtil.getField("id", Fields.FIELD_TYPE_LONG);
+		fields[3] = PacketUtil.getField("select_type", Fields.FIELD_TYPE_VAR_STRING);
+		fields[4] = PacketUtil.getField("table", Fields.FIELD_TYPE_VAR_STRING);
+		fields[5] = PacketUtil.getField("type", Fields.FIELD_TYPE_VAR_STRING);
+		fields[6] = PacketUtil.getField("possible_keys", Fields.FIELD_TYPE_VAR_STRING);
+		fields[7] = PacketUtil.getField("key", Fields.FIELD_TYPE_VAR_STRING);
+		fields[8] = PacketUtil.getField("key_len", Fields.FIELD_TYPE_LONG);
+		fields[9] = PacketUtil.getField("ref", Fields.FIELD_TYPE_VAR_STRING);
+		fields[10] = PacketUtil.getField("rows", Fields.FIELD_TYPE_LONG);
+		fields[11] = PacketUtil.getField("Extra", Fields.FIELD_TYPE_VAR_STRING);
 	}
 
 	public static void handle(String stmt, ServerConnection c, int offset) {
-		stmt = stmt.substring(offset);
+		
+		//String stmt1 = stmt.substring(offset);
+		
+		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(c.getSchema());
+		if(schema != null) {
+        	//不分库的schema，从后端 mysql中查
+            if(schema.isNoSharding()) {
+            	c.execute(stmt, ServerParse.EXPLAIN);
+                return;
+            }
+        } else {
+             c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,"No database selected");
+        }
+
 		RouteResultset rrs = getRouteResultset(c, stmt);
 		if (rrs == null)
 			return;
