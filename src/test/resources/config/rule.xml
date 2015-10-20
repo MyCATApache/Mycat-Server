@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
- - Copyright 1999-2012 Alibaba Group.
  -  
  - Licensed under the Apache License, Version 2.0 (the "License");
  - you may not use this file except in compliance with the License.
@@ -14,19 +13,22 @@
  - See the License for the specific language governing permissions and
  - limitations under the License.
 -->
-<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
-<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+<!DOCTYPE mycat:rule SYSTEM "rule.dtd">
+<mycat:rule xmlns:mycat="http://org.opencloudb/">
 
-  <appender name="STDOUT" class="org.apache.log4j.ConsoleAppender">
-    <layout class="org.apache.log4j.PatternLayout">
-      <param name="ConversionPattern" value="%d{HH:mm:ss.SSS}  %5p [%t] (%F:%L) -%m%n" />
-    </layout>
-  </appender>
- 
-  
-  <root>
-    <level value="info" />
-    <appender-ref ref="STDOUT" />
-  </root>
+  <!-- 路由规则定义，定义什么表，什么字段，采用什么路由算法 -->
+  <tableRule name="rule1">
+    <rule>
+      <columns>id</columns>
+      <algorithm>func1</algorithm>
+    </rule>
+  </tableRule>
 
-</log4j:configuration>
+  <!-- 路由函数定义 -->
+  <function name="func1"
+    class="org.opencloudb.route.function.PartitionByLong">
+    <property name="partitionCount">2</property>
+    <property name="partitionLength">512</property>
+  </function>
+
+</mycat:rule>
