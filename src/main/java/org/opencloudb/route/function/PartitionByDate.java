@@ -13,35 +13,46 @@ import org.opencloudb.config.model.rule.RuleAlgorithm;
  * 
  */
 public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleAlgorithm {
-	private static final Logger LOGGER = Logger
-			.getLogger(PartitionByDate.class);
+	private static final Logger LOGGER = Logger.getLogger(PartitionByDate.class);
 
 	private String sBeginDate;
+	private String sEndDate;
 	private String sPartionDay;
 	private String dateFormat;
 
 	private long beginDate;
 	private long partionTime;
+	private long endDate;
+	private int nCount;
+
 	
 	private static final long oneDay = 86400000;
 
 	@Override
 	public void init() {
 		try {
-			beginDate = new SimpleDateFormat(dateFormat).parse(sBeginDate)
-					.getTime();
+			partionTime = Integer.parseInt(sPartionDay) * oneDay;
+			
+			beginDate = new SimpleDateFormat(dateFormat).parse(sBeginDate).getTime();
+
+			if(sEndDate!=null&&!sEndDate.equals("")){
+			    endDate = new SimpleDateFormat(dateFormat).parse(sEndDate).getTime();
+			    nCount = (int) ((endDate - beginDate) / partionTime) + 1;
+			}
 		} catch (ParseException e) {
 			throw new java.lang.IllegalArgumentException(e);
 		}
-		partionTime = Integer.parseInt(sPartionDay) * oneDay;
 	}
 
 	@Override
 	public Integer calculate(String columnValue) {
 		try {
-			long targetTime = new SimpleDateFormat(dateFormat).parse(
-					columnValue).getTime();
+			long targetTime = new SimpleDateFormat(dateFormat).parse(columnValue).getTime();
 			int targetPartition = (int) ((targetTime - beginDate) / partionTime);
+
+			if(targetTime>endDate && nCount!=0){
+				targetPartition = targetPartition%nCount;
+			}
 			return targetPartition;
 
 		} catch (ParseException e) {
@@ -65,6 +76,12 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 
 	public void setDateFormat(String dateFormat) {
 		this.dateFormat = dateFormat;
+	}
+	public String getsEndDate() {
+		return this.sEndDate;
+	}
+	public void setsEndDate(String sEndDate) {
+		this.sEndDate = sEndDate;
 	}
 
 }
