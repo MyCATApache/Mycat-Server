@@ -10,7 +10,7 @@ public class StatSqlInterceptor implements SQLInterceptor {
 		// TODO Auto-generated method stub
 		final int atype = sqlType;
         final String sqls = DefaultSqlInterceptor.processEscape(sql);
-        MysqlStatFilter.getInstance().createSqlStat(sqls);
+        //MysqlStatFilter.getInstance().createSqlStat(sqls);
         return sql;
 	}
 

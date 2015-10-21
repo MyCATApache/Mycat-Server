@@ -51,6 +51,7 @@ import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.sqlcmd.SQLCmdConstant;
+import org.opencloudb.stat.impl.MysqlStatFilter;
 
 /**
  * @author mycat
@@ -122,7 +123,7 @@ public class NonBlockingSession implements Session {
 							+ source.getSchema());
 			return;
 		}
-
+		MysqlStatFilter.getInstance().createSqlStat(rrs.getStatement());
 		if (nodes.length == 1) {
 			singleNodeHandler = new SingleNodeHandler(rrs, this);
 			try {
