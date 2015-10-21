@@ -7,6 +7,7 @@ import java.util.Collections;
 
 import org.opencloudb.stat.StatFilter;
 
+import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
 import com.alibaba.druid.stat.JdbcDataSourceStat;
 import com.alibaba.druid.stat.JdbcSqlStat;
 import com.alibaba.druid.stat.JdbcStatContext;
@@ -80,7 +81,11 @@ public class MysqlStatFilter implements StatFilter {
 
 	@Override
 	public String mergeSql(String sql, String dbType) {
-		// TODO Auto-generated method stub
+        try {
+            sql = ParameterizedOutputVisitorUtils.parameterize(sql, dbType);
+        } catch (Exception e) {
+          //  LOG.error("merge sql error, dbType " + dbType + ", sql : \n" + sql, e);
+        }
 		return sql;
 	}
 	
@@ -88,7 +93,7 @@ public class MysqlStatFilter implements StatFilter {
         JdbcStatContext context = JdbcStatManager.getInstance().getStatContext();
         String contextSql = context != null ? context.getSql() : null;
         if (contextSql != null && contextSql.length() > 0) {
-            return dataSourceStat.createSqlStat(contextSql);
+            return updateSqlStat(contextSql);
         } else {
             String dbType = this.dbType;
 
@@ -96,10 +101,16 @@ public class MysqlStatFilter implements StatFilter {
            //     dbType = dataSource.getDbType();
            // }
             sql = mergeSql(sql, dbType);
-            return dataSourceStat.createSqlStat(sql);
+            return updateSqlStat(sql);
         }
     }   
-    
+    public JdbcSqlStat updateSqlStat(String sql){
+    	JdbcSqlStat sqlStat=dataSourceStat.createSqlStat(sql);
+    	sqlStat.incrementExecuteSuccessCount();
+    	sqlStat.addExecuteTime(System.currentTimeMillis());
+    	sqlStat.setExecuteLastStartTime(System.currentTimeMillis());
+    	return sqlStat;
+    }
     public Map<String, JdbcSqlStat> getSqlStatMap() {
         return this.dataSourceStat.getSqlStatMap();
     }

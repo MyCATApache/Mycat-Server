@@ -48,7 +48,7 @@ import com.alibaba.druid.util.JdbcSqlStatUtils;
  */
 public final class ShowSQL {
 
-    private static final int FIELD_COUNT = 2;
+    private static final int FIELD_COUNT = 3;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -60,9 +60,13 @@ public final class ShowSQL {
         fields[i] = PacketUtil.getField("SQL_ID", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
 
+        fields[i] = PacketUtil.getField("EXEC_COUNT", Fields.FIELD_TYPE_LONGLONG);
+        fields[i++].packetId = ++packetId;        
+        
         fields[i] = PacketUtil.getField("SQL_DETAIL", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
-
+        //fields[i] = PacketUtil.getField("LAST_TIME", Fields.FIELD_TYPE_LONGLONG);
+        //fields[i++].packetId = ++packetId;
         eof.packetId = ++packetId;
     }
 
@@ -108,9 +112,11 @@ public final class ShowSQL {
         	 return row;
         }
         Map<String, Object> data = JdbcSqlStatUtils.getData(sqlStat);
-       // long executeCount = (Long) data.get("ExecuteCount");
-        //long runningCount = (Long) data.get("RunningCount");
+        long executeCount = (Long) data.get("ExecuteCount");
+        //long LastTime = (Long) data.get("LastTime");
+        row.add(LongUtil.toBytes(executeCount));
         row.add(StringUtil.encode((String)data.get("SQL"), charset));
+      //  row.add(LongUtil.toBytes(LastTime));
         return row;
     }
 
