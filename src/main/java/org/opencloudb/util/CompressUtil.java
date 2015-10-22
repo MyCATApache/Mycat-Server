@@ -14,26 +14,31 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
+
+/**
+ * 压缩数据包协议
+ * 
+ * http://dev.mysql.com/doc/internals/en/compressed-packet-header.html
+ * 
+ * (包头)
+ * 3 Bytes   压缩长度   
+ * 1 Bytes   压缩序列号
+ * 3 Bytes   压缩前的长度
+ * 
+ * (包体)
+ * n Bytes   压缩内容 或 未压缩内容
+ *   
+ * | -------------------------------------------------------------------------------------- |   
+ * | comp-length  |  seq-id  | uncomp-len   |                Compressed Payload             | 
+ * | ------------------------------------------------ ------------------------------------- |  	
+ * |  22 00 00    |   00     |  32 00 00    | compress("\x2e\x00\x00\x00\x03select ...")    |
+ * | -------------------------------------------------------------------------------------- | 	
+ * 
+ * 	 Q:为什么消息体是 压缩内容 或者未压缩内容?
+ *   A:这是因为mysql内部有一个约定，如果查询语句payload小于50字节时， 对内容不压缩而保持原貌的方式，而mysql此举是为了减少CPU性能开销
+ * 
+ */
 public class CompressUtil {
-	
-	/**
-	 * -----------------------------------------------------------------
-	 * 压缩数据包协议
-	 * 
-	 * (包头)
-	 * 3 Bytes   压缩长度   
-	 * 1 Bytes   压缩序列号
-	 * 3 Bytes   压缩前的长度
-	 * 
-	 * (包体)
-	 * n Bytes   压缩内容 或 未压缩内容
-	 * 
-	 * Q:为什么消息体是 压缩内容 或者未压缩内容?
-	 * A:这是因为mysql内部有一个约定，如果查询语句payload小于50字节时，
-	 *   对内容不压缩而保持原貌的方式，而mysql此举是为了减少CPU性能开销
-	 * 
-	 * -----------------------------------------------------------------
-	 */
 
 	public static final int MINI_LENGTH_TO_COMPRESS = 50;
 	public static final int NO_COMPRESS_PACKET_LENGTH =  MINI_LENGTH_TO_COMPRESS + 4;
@@ -76,15 +81,15 @@ public class CompressUtil {
 			int packetLength = 0;
 			
 			//可读的长度
-			int readableLength = msg.length() - msg.position();
-			if ( readableLength > 3 ) {
+			int readLength = msg.length() - msg.position();
+			if ( readLength > 3 ) {
 				packetLength = msg.readUB3();
 				msg.move(-3);
 			}
 			
 			//校验数据包完整性
-			if ( readableLength < packetLength + 4 ) {
-				byte[] packet = msg.readBytes(readableLength);
+			if ( readLength < packetLength + 4 ) {
+				byte[] packet = msg.readBytes(readLength);
 				if (packet.length != 0) {
 					compressUnfinishedDataQueue.add(packet);		//不完整的包
 				}
@@ -94,13 +99,15 @@ public class CompressUtil {
 				if ( packet.length != 0 ) {
 					
 					if ( packet.length <= NO_COMPRESS_PACKET_LENGTH ) {
-						BufferUtil.writeUB3(byteBuf, packet.length);
-						byteBuf.put(packet[3]);
-						BufferUtil.writeUB3(byteBuf, 0);
-						byteBuf.put(packet);
+						BufferUtil.writeUB3(byteBuf, packet.length);    //压缩长度
+						byteBuf.put(packet[3]);			 		 		//压缩序号
+						BufferUtil.writeUB3(byteBuf, 0);  				//压缩前的长度设置为0
+						byteBuf.put(packet);							//包体
 
 					} else {						
-						byte[] compress = compress(packet);
+						
+						byte[] compress = compress(packet);				//压缩
+						
 						BufferUtil.writeUB3(byteBuf, compress.length);
 						byteBuf.put(packet[3]);
 						BufferUtil.writeUB3(byteBuf, packet.length);
@@ -163,15 +170,15 @@ public class CompressUtil {
 		MySQLMessage msg = new MySQLMessage(in);
 		while ( msg.hasRemaining() ) {
 			
-			int readableLength = msg.length() - msg.position();
+			int readLength = msg.length() - msg.position();
 			int packetLength = 0;
-			if (readableLength > 3) {
+			if (readLength > 3) {
 				packetLength = msg.readUB3();
 				msg.move(-3);
 			}
 			
-			if (readableLength < packetLength + 4) {				
-				byte[] packet = msg.readBytes(readableLength);
+			if (readLength < packetLength + 4) {				
+				byte[] packet = msg.readBytes(readLength);
 				if ( packet.length != 0 ) {
 					decompressUnfinishedDataQueue.add(packet);
 				}
