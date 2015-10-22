@@ -15,13 +15,27 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 public class CompressUtil {
+	
+	/**
+	 * -----------------------------------------------------------------
+	 * 压缩数据包协议
+	 * 
+	 * (包头)
+	 * 3 Bytes   压缩长度   
+	 * 1 Bytes   压缩序列号
+	 * 3 Bytes   压缩前的长度
+	 * 
+	 * (包体)
+	 * n Bytes   压缩内容 或 未压缩内容
+	 * 
+	 * -----------------------------------------------------------------
+	 */
 
 	public int MINI_LENGTH_TO_COMPRESS = 50;
 
 	
 	/**
 	 * 压缩数据包
-	 * 
 	 * @param input
 	 * @param con
 	 * @param compressUnfinishedDataQueue
@@ -38,15 +52,7 @@ public class CompressUtil {
 
 	
 	/**
-	 * -----------------------------------------------------------------
-	 * 压缩数据包协议
-	 * 
-	 * 3 Bytes   压缩长度   
-	 * 1 Bytes   压缩序列号
-	 * 3 Bytes   压缩前的长度
-	 * n Bytes   压缩内容 或 未压缩内容
-	 * -----------------------------------------------------------------
-	 * 
+	 * 压缩数据包
 	 * @param data
 	 * @param con
 	 * @param compressUnfinishedDataQueue

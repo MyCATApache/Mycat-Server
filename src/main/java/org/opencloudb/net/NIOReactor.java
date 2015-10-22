@@ -98,7 +98,6 @@ public final class NIOReactor {
                                         con.close("program err:" + e.toString());
 										continue;
 									} catch (Exception e) {
-										e.printStackTrace();
 										LOGGER.debug("caught err:", e);
 										con.close("program err:" + e.toString());
 										continue;
