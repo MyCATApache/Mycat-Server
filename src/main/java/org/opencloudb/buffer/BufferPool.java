@@ -35,10 +35,8 @@ import org.apache.log4j.Logger;
  * @author mycat
  */
 public final class BufferPool {
-	
 	// this value not changed ,isLocalCacheThread use it
 	public static final String LOCAL_BUF_THREAD_PREX = "$_";
-	
 	private  final ThreadLocalBufferPool localBufferPool;
 	private static final Logger LOGGER = Logger.getLogger(BufferPool.class);
 	private final int chunkSize;
