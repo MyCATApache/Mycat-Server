@@ -23,6 +23,7 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -30,6 +31,7 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
+import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mysql.LoadDataUtil;
@@ -222,37 +224,22 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
  
 		}
 	}
-	
-	private String dump(ByteBuffer byteBuffer){                   
-        ByteBuffer dd = byteBuffer.duplicate();
-        dd.flip();
-        
-        int length = dd.limit();
-        byte[] data = new byte[length];
-        dd.get(data,0,length);
-        
-        return StringUtil.dumpAsHex(data, length);
-    }
 
-	/**
-	 * 数据原路写回
-	 */
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		ServerConnection source = session.getSource();
-		conn.recordSql(source.getHost(), source.getSchema(), node.getStatement());
+		conn.recordSql(source.getHost(), source.getSchema(),
+				node.getStatement());
 
 		// 判断是调用存储过程的话不能在这里释放链接
 		if (!rrs.isCallStatement()) {
-			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
+			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
+					false);
 			endRunning();
 		}
 
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, allocBuffer());
-		
-		System.out.println( dump(buffer) );
-		
 		source.write(buffer);
 	}
 

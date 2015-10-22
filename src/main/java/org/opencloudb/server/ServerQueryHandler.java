@@ -61,8 +61,7 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		
 		switch (sqlType) {
 		case ServerParse.EXPLAIN:
-			ExplainNewHandler.handle(sql, c, rs >>> 8);
-			//ExplainHandler.handle(sql, c, rs >>> 8);
+			ExplainHandler.handle(sql, c, rs >>> 8);
 			break;
 		case ServerParse.SET:
 			SetHandler.handle(sql, c, rs >>> 8);
