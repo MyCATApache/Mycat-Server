@@ -400,10 +400,10 @@ public abstract class AbstractConnection implements NIOConnection {
 			if (writeSocketIfFull) {
 				writeNotSend(buffer);
 				return processor.getBufferPool().allocate(capacity);
-			} else {// Relocate a larger buffer
+			} else {
+				// Relocate a larger buffer
 				buffer.flip();
-				ByteBuffer newBuf = processor.getBufferPool().allocate(
-						capacity + buffer.limit() + 1);
+				ByteBuffer newBuf = processor.getBufferPool().allocate(	capacity + buffer.limit() + 1 );
 				newBuf.put(buffer);
 				this.recycle(buffer);
 				return newBuf;

@@ -38,10 +38,8 @@ public class CompressUtil {
 
 	
 	/**
-	 * 压缩数据包
-	 * 
 	 * -----------------------------------------------------------------
-	 * 压缩协议
+	 * 压缩数据包协议
 	 * 
 	 * 3 Bytes   压缩长度   
 	 * 1 Bytes   压缩序列号
@@ -117,8 +115,8 @@ public class CompressUtil {
 		
 		//包头
 		//-----------------------------------------
-		int packetLength = msg.readUB3();  //包长
-		byte packetId = msg.read();		   //包号
+		int packetLength = msg.readUB3();  //压缩的包长
+		byte packetId = msg.read();		   //压缩的包号
 		int oldLen = msg.readUB3();		   //压缩前的长度
 		
 		//未压缩, 直接返回

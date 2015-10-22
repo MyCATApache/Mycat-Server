@@ -14,8 +14,12 @@
 	  <property name="processors">4</property>
 	  <property name="processorHandler">8</property>
 	  <property name="processorExecutor">8</property>
+	  <property name="processorBufferChunk">614400</property>
+	  <property name="processorBufferPool">61440000</property>
+	  
 	  <property name="clusterHeartbeatUser">_HEARTBEAT_USER_</property>
 	  <property name="clusterHeartbeatPass">_HEARTBEAT_PASS_</property>
+	  <property name="useCompression">1</property>	  
 	</system>
 	
 	<!-- 用户访问定义，用户名、密码、schema等信息。 -->
