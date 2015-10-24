@@ -24,6 +24,9 @@
 package org.opencloudb.response;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import org.opencloudb.config.Fields;
 import org.opencloudb.manager.ManagerConnection;
@@ -32,8 +35,11 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.stat.impl.MysqlStatFilter;
 import org.opencloudb.util.LongUtil;
 import org.opencloudb.util.StringUtil;
+
+import com.alibaba.druid.util.JdbcSqlStatUtils;
 
 /**
  * 查询指定SQL ID所对应的SQL语句
@@ -42,7 +48,7 @@ import org.opencloudb.util.StringUtil;
  */
 public final class ShowSQL {
 
-    private static final int FIELD_COUNT = 2;
+    private static final int FIELD_COUNT = 3;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -54,9 +60,13 @@ public final class ShowSQL {
         fields[i] = PacketUtil.getField("SQL_ID", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
 
+        fields[i] = PacketUtil.getField("EXEC_COUNT", Fields.FIELD_TYPE_LONGLONG);
+        fields[i++].packetId = ++packetId;        
+        
         fields[i] = PacketUtil.getField("SQL_DETAIL", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
-
+        //fields[i] = PacketUtil.getField("LAST_TIME", Fields.FIELD_TYPE_LONGLONG);
+        //fields[i++].packetId = ++packetId;
         eof.packetId = ++packetId;
     }
 
@@ -73,13 +83,18 @@ public final class ShowSQL {
 
         // write eof
         buffer = eof.write(buffer, c,true);
+        
+        Map<?, ?> sqlStatMap =MysqlStatFilter.getInstance().getSqlStatMap();
 
         // write rows
         byte packetId = eof.packetId;
-        RowDataPacket row = getRow(sql, c.getCharset());
-        row.packetId = ++packetId;
-        buffer = row.write(buffer, c,true);
-
+        int i=0;  
+        for (Object sqlStat : sqlStatMap.values()) {
+        	i++;
+           RowDataPacket row = getRow(sqlStat,i, c.getCharset());//getRow(sqlStat,sql, c.getCharset());
+           row.packetId = ++packetId;
+           buffer = row.write(buffer, c,true);
+        }
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
@@ -89,10 +104,19 @@ public final class ShowSQL {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(long sql, String charset) {
+    private static RowDataPacket getRow(Object sqlStat,long sql, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(LongUtil.toBytes(sql));
-        row.add(StringUtil.encode("insert into T (...", charset));
+        if (sqlStat==null){
+        	row.add(StringUtil.encode(("not fond"), charset));
+        	 return row;
+        }
+        Map<String, Object> data = JdbcSqlStatUtils.getData(sqlStat);
+        long executeCount = (Long) data.get("ExecuteCount");
+        //long LastTime = (Long) data.get("LastTime");
+        row.add(LongUtil.toBytes(executeCount));
+        row.add(StringUtil.encode((String)data.get("SQL"), charset));
+      //  row.add(LongUtil.toBytes(LastTime));
         return row;
     }
 
