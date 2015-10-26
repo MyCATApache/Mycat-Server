@@ -53,9 +53,10 @@ public class CompressUtil {
 	 */
 	public static ByteBuffer compressMysqlPacket(ByteBuffer input, AbstractConnection con,
 			ConcurrentLinkedQueue<byte[]> compressUnfinishedDataQueue) {
-
+		
 		byte[] byteArrayFromBuffer = getByteArrayFromBuffer(input);
 		con.recycle(input);
+		
 		byteArrayFromBuffer = mergeBytes(byteArrayFromBuffer, compressUnfinishedDataQueue);
 		return compressMysqlPacket(byteArrayFromBuffer, con, compressUnfinishedDataQueue);
 	}
