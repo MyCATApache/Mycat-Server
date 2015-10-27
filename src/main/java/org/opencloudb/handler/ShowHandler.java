@@ -46,6 +46,7 @@ import org.opencloudb.response.ShowSQLExecute;
 import org.opencloudb.response.ShowSQLSlow;
 import org.opencloudb.response.ShowServer;
 import org.opencloudb.response.ShowSession;
+import org.opencloudb.response.ShowSysLog;
 import org.opencloudb.response.ShowSysParam;
 import org.opencloudb.response.ShowThreadPool;
 import org.opencloudb.response.ShowTime;
@@ -63,6 +64,10 @@ public final class ShowHandler {
 		switch (rs & 0xff) {
 		case ManagerParseShow.SYSPARAM://add rainbow
 			ShowSysParam.execute(c);
+			break;
+		case ManagerParseShow.SYSLOG: //add by zhuam
+			String lines = stmt.substring(rs >>> 8).trim();
+			ShowSysLog.execute(c, Integer.parseInt( lines ) );
 			break;
 		case ManagerParseShow.COMMAND:
 			ShowCommand.execute(c);
