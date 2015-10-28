@@ -175,13 +175,15 @@ public final class ParseUtil {
             return parseIdentifierEscape(stmt, aliasIndex);
         default:
             int offset = aliasIndex;
-            for (; offset < stmt.length() && CharTypes.isIdentifierChar(stmt.charAt(offset)); ++offset);
+            for (; offset < stmt.length() && CharTypes.isIdentifierChar(stmt.charAt(offset)); ++offset) {
+                ;
+            }
             return stmt.substring(aliasIndex, offset);
         }
     }
 
     /**
-     * 注解保留，注释
+     * 解析注释，返回stmt中注释结尾的index
      * @param stmt
      * @param offset
      * @return
@@ -192,30 +194,21 @@ public final class ParseUtil {
         switch (stmt.charAt(n)) {
         case '/':
             if (len > ++n && stmt.charAt(n++) == '*' && len > n + 1) {
-            	//对两种注解放过：/*!mycat:  和 /*#mycat:
-            	if(stmt.charAt(n) == '!') {
-            		break;
-            	} else if (stmt.charAt(n) == '#') {
-            		if(len > n + 5 && stmt.charAt(n + 1) == 'm'
-            				&& stmt.charAt(n + 2) == 'y'
-            				&& stmt.charAt(n + 3) == 'c'
-            				&& stmt.charAt(n + 4) == 'a'
-            				&& stmt.charAt(n + 5) == 't') {
-            			break;
-            			
-            		}
-            	}
                 for (int i = n; i < len; ++i) {
                     if (stmt.charAt(i) == '*') {
                         int m = i + 1;
-                        if (len > m && stmt.charAt(m) == '/') return m;
+                        if (len > m && stmt.charAt(m) == '/') {
+                            return m;
+                        }
                     }
                 }
             }
             break;
         case '#':
             for (int i = n + 1; i < len; ++i) {
-                if (stmt.charAt(i) == '\n') return i;
+                if (stmt.charAt(i) == '\n') {
+                    return i;
+                }
             }
             break;
         }
@@ -257,7 +250,9 @@ public final class ParseUtil {
                                                             int offset,
                                                             String nextExpectedString,
                                                             boolean checkSepChar) {
-        if (nextExpectedString == null || nextExpectedString.length() < 1) return offset;
+        if (nextExpectedString == null || nextExpectedString.length() < 1) {
+            return offset;
+        }
         int i = offset;
         int index = 0;
         char expectedChar;
@@ -281,7 +276,9 @@ public final class ParseUtil {
             if (checkSepChar) {
                 ok = nextCharIsSep(stmt, i);
             }
-            if (ok) return i;
+            if (ok) {
+                return i;
+            }
         }
         return offset;
     }
