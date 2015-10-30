@@ -43,7 +43,7 @@ import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
-
+import org.opencloudb.stat.SqlSlowUtil;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -72,7 +72,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private volatile boolean fieldsReturned;
 	private int okCount;
 	private final boolean isCallProcedure;
-
+	private long startTime;
+	private int execCount=0;
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
 		super(session);
@@ -103,6 +104,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	protected void reset(int initCount) {
 		super.reset(initCount);
 		this.okCount = initCount;
+		this.execCount=0;
 	}
 
 	public void execute() throws Exception {
@@ -117,7 +119,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			lock.unlock();
 		}
 		MycatConfig conf = MycatServer.getInstance().getConfig();
-
+		startTime=System.currentTimeMillis();
 		for (final RouteResultsetNode node : rrs.getNodes()) {
 			final BackendConnection conn = session.getTarget(node);
 			if (session.tryExistsCon(conn, node)) {
@@ -201,8 +203,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				if (this.isFail() || session.closed()) {
 					tryErrorFinished(true);
 					return;
-				}
-
+				}				
 				lock.lock();
 				try {
 					if (rrs.isLoadData()) {
@@ -340,6 +341,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
 		ServerConnection source = null;
+		execCount++;
+		if (execCount==rrs.getNodes().length){
+			SqlSlowUtil.SqlExecuteTime(startTime, rrs);
+		}
 		if (fieldsReturned) {
 			return;
 		}

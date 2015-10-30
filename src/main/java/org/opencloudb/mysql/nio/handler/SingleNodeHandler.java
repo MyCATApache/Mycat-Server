@@ -41,6 +41,7 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
+import org.opencloudb.stat.SqlSlowUtil;
 import org.opencloudb.util.StringUtil;
 
 /**
@@ -58,7 +59,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private volatile ByteBuffer buffer;
 	private volatile boolean isRunning;
 	private Runnable terminateCallBack;
-
+	private long startTime;
+	
 	public SingleNodeHandler(RouteResultset rrs, NonBlockingSession session) {
 		this.rrs = rrs;
 		this.node = rrs.getNodes()[0];
@@ -110,6 +112,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	}
 
 	public void execute() throws Exception {
+		startTime=System.currentTimeMillis();
 		ServerConnection sc = session.getSource();
 		this.isRunning = true;
 		this.packetId = 0;
@@ -194,10 +197,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		recycleResources();
 	}
 
+
 	@Override
-	public void okResponse(byte[] data, BackendConnection conn) {
-		boolean executeResponse = conn.syncAndExcute();
-		if (executeResponse) {
+	public void okResponse(byte[] data, BackendConnection conn) {        
+		boolean executeResponse = conn.syncAndExcute();		
+		if (executeResponse) {			
 			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
 					false);
 			endRunning();
@@ -217,7 +221,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			recycleResources();
 			source.setLastInsertId(ok.insertId);
 			ok.write(source);
-
+ 
 		}
 	}
 
@@ -254,6 +258,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
+		SqlSlowUtil.SqlExecuteTime(startTime, rrs);
 		header[3] = ++packetId;
 		ServerConnection source = session.getSource();
 		buffer = source.writeToBuffer(header, allocBuffer());
