@@ -328,7 +328,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 				writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Empty SQL");
 				return;
 			}
-
+			
+			// 记录SQL
+			this.setExecuteSql(sql);
+			
 			// 执行预处理
 			prepareHandler.prepare(sql);
 		} else {
