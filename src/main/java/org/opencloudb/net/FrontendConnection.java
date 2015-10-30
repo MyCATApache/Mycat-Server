@@ -62,6 +62,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 	protected byte[] seed;
 	protected String user;
 	protected String schema;
+	protected String executeSql;
 
 	protected FrontendPrivileges privileges;
 	protected FrontendQueryHandler queryHandler;
@@ -126,7 +127,6 @@ public abstract class FrontendConnection extends AbstractConnection {
 	public void setProcessor(NIOProcessor processor) {
 		super.setProcessor(processor);
 		processor.addFrontend(this);
-
 	}
 
 	public LoadDataInfileHandler getLoadDataInfileHandler() {
@@ -171,6 +171,14 @@ public abstract class FrontendConnection extends AbstractConnection {
 
 	public void setSchema(String schema) {
 		this.schema = schema;
+	}
+
+	public String getExecuteSql() {
+		return executeSql;
+	}
+
+	public void setExecuteSql(String executeSql) {
+		this.executeSql = executeSql;
 	}
 
 	public byte[] getSeed() {
@@ -291,6 +299,9 @@ public abstract class FrontendConnection extends AbstractConnection {
 			if (sql.endsWith(";")) {
 				sql = sql.substring(0, sql.length() - 1);
 			}
+			
+			// 记录SQL
+			this.setExecuteSql(sql);
 
 			// 执行查询
 			queryHandler.setReadOnly(privileges.isReadOnly(user));
