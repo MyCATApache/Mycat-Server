@@ -112,4 +112,28 @@ public class MycatPrivileges implements FrontendPrivileges {
             return null;
         }
     }
+
+	@Override
+	public int getBenchmark(String user) {
+		MycatConfig conf = MycatServer.getInstance().getConfig();
+        UserConfig uc = conf.getUsers().get(user);
+        if (uc != null) {
+            return uc.getBenchmark();
+        } else {
+            return 0;
+        }
+	}
+
+	@Override
+	public String getBenchmarkSmsTel(String user) {
+		MycatConfig conf = MycatServer.getInstance().getConfig();
+        UserConfig uc = conf.getUsers().get(user);
+        if (uc != null) {
+            return uc.getBenchmarkSmsTel();
+        } else {
+            return null;
+        }
+	}
+	
+	
 }

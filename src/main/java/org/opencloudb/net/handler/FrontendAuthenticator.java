@@ -34,6 +34,7 @@ import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mysql.SecurityUtil;
 import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.NIOHandler;
+import org.opencloudb.net.NIOProcessor;
 import org.opencloudb.net.mysql.AuthPacket;
 import org.opencloudb.net.mysql.MySQLPacket;
 import org.opencloudb.net.mysql.QuitPacket;
@@ -44,9 +45,10 @@ import org.opencloudb.net.mysql.QuitPacket;
  * @author mycat
  */
 public class FrontendAuthenticator implements NIOHandler {
+	
     private static final Logger LOGGER = Logger.getLogger(FrontendAuthenticator.class);
     private static final byte[] AUTH_OK = new byte[] { 7, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0 };
-
+    
     protected final FrontendConnection source;
 
     public FrontendAuthenticator(FrontendConnection source) {
@@ -75,7 +77,13 @@ public class FrontendAuthenticator implements NIOHandler {
             failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "'");
             return;
         }
-
+        
+        // check degrade
+        if ( isDegrade( auth.user ) ) {
+        	 failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because service be degraded ");
+             return;
+        }
+        
         // check schema
         switch (checkSchema(auth.database, auth.user)) {
         case ErrorCode.ER_BAD_DB_ERROR:
@@ -89,7 +97,40 @@ public class FrontendAuthenticator implements NIOHandler {
             success(auth);
         }
     }
+    
+    //TODO: add by zhuam
+    //前端 connection 达到该用户设定的阀值后, 立马降级拒绝连接
+    protected boolean isDegrade(String user) {
+    	
+    	int benchmark = source.getPrivileges().getBenchmark(user);
+    	if ( benchmark > 0 ) {
+    	
+	    	int forntedsLength = 0;
+	    	NIOProcessor[] processors = MycatServer.getInstance().getProcessors();
+			for (NIOProcessor p : processors) {
+				forntedsLength += p.getForntedsLength();
+			}
+		
+			if ( forntedsLength >= benchmark ) {				
+				//预警通知
+				/*
+				String tel = source.getPrivileges().getBenchmarkSmsTel(user);
+				if ( tel != null ) {
+					
+					StringBuffer cBuffer = new StringBuffer();
+					cBuffer.append("db proxy access denied, this is user:").append( user );
+					cBuffer.append(" service degrade, because its benchmark is: ").append( benchmark );
+					cBuffer.append(", but the current fornteds is: ").append( forntedsLength );
 
+					new Thread( new SmsThread(tel, cBuffer.toString()) ).start();;
+				}*/			
+				return true;
+			}			
+    	}
+		
+		return false;
+    }
+    
     protected boolean checkUser(String user, String host) {
         return source.getPrivileges().userExists(user, host);
     }
