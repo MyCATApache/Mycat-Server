@@ -142,14 +142,12 @@ public class ShowHeartbeat {
 					row.add(IntegerUtil.toBytes(ds.getConfig().getPort()));
 					row.add(IntegerUtil.toBytes(hb.getStatus()));
 					row.add(IntegerUtil.toBytes(hb.getErrorCount()));
-					row.add(hb.isChecking() ? "checking".getBytes() : "idle"
-							.getBytes());
+					row.add(hb.isChecking() ? "checking".getBytes() : "idle".getBytes());
 					row.add(LongUtil.toBytes(hb.getTimeout()));
 					row.add(hb.getRecorder().get().getBytes());
 					String lat = hb.getLastActiveTime();
 					row.add(lat == null ? null : lat.getBytes());
-					row.add(hb.isStop() ? "true".getBytes() : "false"
-							.getBytes());
+					row.add(hb.isStop() ? "true".getBytes() : "false".getBytes());
 				} else {
 					row.add(null);
 					row.add(null);

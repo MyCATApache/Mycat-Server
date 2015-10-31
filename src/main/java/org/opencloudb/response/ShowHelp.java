@@ -132,6 +132,8 @@ public final class ShowHelp {
         helps.put("show @@parser", "Report parser status");
         helps.put("show @@router", "Report router status");
         helps.put("show @@heartbeat", "Report heartbeat status");
+        helps.put("show @@heartbeat.detail where name=?", "Report heartbeat current detail");
+        helps.put("show @@data.syndetail", "Report db data synchronous detail");
         helps.put("show @@slow where schema = ?", "Report schema slow sql");
         helps.put("show @@slow where datanode = ?", "Report datanode slow sql");
         helps.put("show @@sysparam", "Report system param");

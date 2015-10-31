@@ -36,6 +36,7 @@ import org.opencloudb.response.ShowDataNode;
 import org.opencloudb.response.ShowDataSource;
 import org.opencloudb.response.ShowDatabase;
 import org.opencloudb.response.ShowHeartbeat;
+import org.opencloudb.response.ShowHeartbeatDetail;
 import org.opencloudb.response.ShowHelp;
 import org.opencloudb.response.ShowParser;
 import org.opencloudb.response.ShowProcessor;
@@ -181,6 +182,9 @@ public final class ShowHandler {
 			break;
 		case ManagerParseShow.VERSION:
 			ShowVersion.execute(c);
+			break;
+		case ManagerParseShow.HEARTBEAT_DETAIL://by songwie
+			ShowHeartbeatDetail.response(c,stmt);
 			break;
 		default:
 			c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");

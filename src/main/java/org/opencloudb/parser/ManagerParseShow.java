@@ -62,6 +62,8 @@ public final class ManagerParseShow {
     public static final int SESSION = 29;
     public static final int SYSPARAM = 30;
     public static final int SYSLOG = 31;
+    public static final int HEARTBEAT_DETAIL = 32;
+    public static final int DATA_SYNC = 31;
 
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -271,7 +273,7 @@ public final class ManagerParseShow {
                 return show2HelCheck(stmt, offset);
             case 'A':
             case 'a':
-                return show2HeaCheck(stmt, offset);
+                return ManagerParseHeartbeat.show2HeaCheck(stmt, offset);
             default:
                 return OTHER;
             }
@@ -293,25 +295,7 @@ public final class ManagerParseShow {
         return OTHER;
     }
 
-    // SHOW @@HEARTBEAT
-    static int show2HeaCheck(String stmt, int offset) {
-        if (stmt.length() > offset + "RTBEAT".length()) {
-            char c1 = stmt.charAt(++offset);
-            char c2 = stmt.charAt(++offset);
-            char c3 = stmt.charAt(++offset);
-            char c4 = stmt.charAt(++offset);
-            char c5 = stmt.charAt(++offset);
-            char c6 = stmt.charAt(++offset);
-            if ((c1 == 'R' || c1 == 'r') && (c2 == 'T' || c2 == 't') & (c3 == 'B' || c3 == 'b')
-                    && (c4 == 'E' || c4 == 'e') & (c5 == 'A' || c5 == 'a') && (c6 == 'T' || c6 == 't')) {
-                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
-                    return OTHER;
-                }
-                return HEARTBEAT;
-            }
-        }
-        return OTHER;
-    }
+    
 
     // SHOW @@P
     static int show2PCheck(String stmt, int offset) {
