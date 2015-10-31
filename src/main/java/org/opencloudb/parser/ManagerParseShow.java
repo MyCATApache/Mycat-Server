@@ -63,7 +63,8 @@ public final class ManagerParseShow {
     public static final int SYSPARAM = 30;
     public static final int SYSLOG = 31;
     public static final int HEARTBEAT_DETAIL = 32;
-    public static final int DATA_SYNC = 31;
+    public static final int DATASOURCE_SYNC = 33;
+    public static final int DATASOURCE_SYNC_DETAIL = 34;
 
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -245,6 +246,75 @@ public final class ManagerParseShow {
                         return OTHER;
                     }
                 }
+            }
+        }
+        return OTHER;
+    }
+    // SHOW @@DataSyn
+    static int show2DataSynCheck(String stmt, int offset) {
+        if (stmt.length() > ++offset) {
+            switch (stmt.charAt(offset)) {
+            case 'S':
+            case 's':
+            	if (stmt.length() > offset + "yn".length()) {
+            		char c1 = stmt.charAt(++offset);
+                    char c2 = stmt.charAt(++offset);
+                    if ((c1 == 'Y' || c1 == 'y') && (c2 == 'N' || c2 == 'n')){
+                        switch (stmt.charAt(++offset)) {
+                        case 'S':
+                        case 's':
+                        	return show2SynStatuslCheck(stmt,offset);
+                        case 'D':
+                        case 'd':
+                        	return show2SynDetailCheck(stmt,offset);
+                        default:
+                            return OTHER;
+                        }
+
+                    }else{
+                    	return OTHER;
+                    }
+            	}
+            default:
+                return OTHER;
+            }
+        }
+        return OTHER;
+    }
+    //show @@datasource.syndetail
+    static int show2SynDetailCheck(String stmt, int offset) {
+        if (stmt.length() > offset + "etail".length()) {
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+
+            if ((c1 == 'E' || c1 == 'e') && (c2 == 'T' || c2 == 't') && (c3 == 'A' || c3 == 'a')
+                    && (c4 == 'I' || c4 == 'i') && (c5 == 'L' || c5 == 'l')) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return OTHER;
+                }
+                return DATASOURCE_SYNC_DETAIL;
+            }
+        }
+        return OTHER;
+    }
+    //show @@datasource.synstatus  
+    static int show2SynStatuslCheck(String stmt, int offset) {
+        if (stmt.length() > offset + "tatus".length()) {
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+
+            if ((c1 == 'T' || c1 == 't') && (c2 == 'A' || c2 == 'a') && (c3 == 'T' || c3 == 't')
+                    && (c4 == 'U' || c4 == 'u') && (c5 == 'S' || c5 == 's')) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return OTHER;
+                }
+                return DATASOURCE_SYNC;
             }
         }
         return OTHER;
@@ -735,6 +805,8 @@ public final class ManagerParseShow {
                     case 'W':
                     case 'w':
                         return show2DataSWhereCheck(stmt, offset);
+                    case '.':
+                        return show2DataSynCheck(stmt, offset);
                     default:
                         return OTHER;
                     }

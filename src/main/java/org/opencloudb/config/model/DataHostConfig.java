@@ -39,6 +39,7 @@ public class DataHostConfig {
 	public static final int NOT_SWITCH_DS = -1;
 	public static final int DEFAULT_SWITCH_DS = 1;
 	public static final int SYN_STATUS_SWITCH_DS = 2;
+	public static final int CLUSTER_STATUS_SWITCH_DS = 3;
     private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
 	private String name;
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
