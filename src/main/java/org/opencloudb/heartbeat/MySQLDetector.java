@@ -23,8 +23,6 @@
  */
 package org.opencloudb.heartbeat;
 
-import java.util.Calendar;
-import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -50,7 +48,7 @@ public class MySQLDetector implements
 	private volatile long lasstReveivedQryTime;
 	private volatile SQLJob sqlJob;
 	private static final String[] MYSQL_SLAVE_STAUTS_COLMS = new String[] {
-			"Seconds_Behind_Master", "Slave_IO_Running", "Slave_SQL_Running" };
+			"Seconds_Behind_Master", "Slave_IO_Running", "Slave_SQL_Running","Slave_IO_State","Master_Host","Master_User","Master_Port", "Connect_Retry","Last_IO_Error"};
 
 	public MySQLDetector(MySQLHeartbeat heartbeat) {
 		this.heartbeat = heartbeat;
@@ -113,36 +111,24 @@ public class MySQLDetector implements
 		if (result.isSuccess()) {
             int balance = heartbeat.getSource().getDbPool().getBalance();
             PhysicalDatasource source = heartbeat.getSource();
+            int switchType = source.getHostConfig().getSwitchType();
             Map<String, String> resultResult = result.getResult();
-            			if (source.getHostConfig().isShowSlaveSql()
-                                &&(source.getHostConfig().getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS  ||
-                                 PhysicalDBPool.BALANCE_NONE!=balance  )
-                    					 )
+            if (source.getHostConfig().isShowSlaveSql()  &&(switchType == DataHostConfig.SYN_STATUS_SWITCH_DS  || PhysicalDBPool.BALANCE_NONE!=balance  ) )
             {
-
-                String Slave_IO_Running =resultResult!=null? resultResult.get(
-                        "Slave_IO_Running"):null;
-				String Slave_SQL_Running = resultResult!=null?resultResult.get(
-                        "Slave_SQL_Running"):null;
-				if (Slave_IO_Running != null
-						&& Slave_IO_Running.equals(Slave_SQL_Running)
-						&& Slave_SQL_Running.equals("Yes")) {
+                String Slave_IO_Running =resultResult!=null? resultResult.get("Slave_IO_Running"):null;
+				String Slave_SQL_Running = resultResult!=null?resultResult.get("Slave_SQL_Running"):null;
+				if (Slave_IO_Running != null && Slave_IO_Running.equals(Slave_SQL_Running) && Slave_SQL_Running.equals("Yes")) {
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
-					String Seconds_Behind_Master = resultResult.get(
-                            "Seconds_Behind_Master");
-					if (null != Seconds_Behind_Master
-							&& !"".equals(Seconds_Behind_Master)) {
-						heartbeat.setSlaveBehindMaster(Integer
-								.valueOf(Seconds_Behind_Master));
+					String Seconds_Behind_Master = resultResult.get( "Seconds_Behind_Master");
+					if (null != Seconds_Behind_Master && !"".equals(Seconds_Behind_Master)) {
+						heartbeat.setSlaveBehindMaster(Integer.valueOf(Seconds_Behind_Master));
 					}
-				} else  if(source.isSalveOrRead())
-                {
-					MySQLHeartbeat.LOGGER
-							.warn("found MySQL master/slave Replication err !!! "
-									+ heartbeat.getSource().getConfig());
+				} else  if(source.isSalveOrRead()){
+					MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication err !!! " + heartbeat.getSource().getConfig());
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
 				}
 
+				heartbeat.getAsynRecorder().set(resultResult, switchType);
 			}
 			heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
 		} else {

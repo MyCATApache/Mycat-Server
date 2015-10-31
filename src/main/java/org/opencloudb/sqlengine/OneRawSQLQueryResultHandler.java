@@ -50,8 +50,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
                     String columnVal = columnData!=null?new String(columnData):null;
                     result.put(fetchCol, columnVal);
 			} else {
-				LOGGER.warn("cant't find column in sql query result "
-                        + fetchCol);
+				LOGGER.warn("cant't find column in sql query result " + fetchCol);
 			}
 		}
         
