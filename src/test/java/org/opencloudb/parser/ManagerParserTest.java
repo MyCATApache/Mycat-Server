@@ -398,5 +398,15 @@ public class ManagerParserTest {
         Assert.assertEquals(ManagerParseShow.HEARTBEAT_DETAIL,
                 0xff & ManagerParseShow.parse("show @@heartbeat.detail where name=master",5)); 
     }
+    @Test
+    public void testSynStatus() {
+        Assert.assertEquals(ManagerParseShow.DATASOURCE_SYNC,
+                0xff & ManagerParseShow.parse("show @@datasource.synstatus",5)); 
+    }
+    @Test
+    public void testSynDetail() {
+        Assert.assertEquals(ManagerParseShow.DATASOURCE_SYNC_DETAIL,
+                0xff & ManagerParseShow.parse("show @@datasource.syndetail where name=slave",5)); 
+    }
 
 }
