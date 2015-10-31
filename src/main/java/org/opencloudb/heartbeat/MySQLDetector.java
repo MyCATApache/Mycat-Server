@@ -23,6 +23,8 @@
  */
 package org.opencloudb.heartbeat;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -81,7 +83,7 @@ public class MySQLDetector implements
 	}
 
 	public void heartbeat() {
-		lastSendQryTime = System.currentTimeMillis();
+		lastSendQryTime = TimeUtil.currentTimeMillis();
 		MySQLDataSource ds = heartbeat.getSource();
 		String databaseName = ds.getDbPool().getSchemas()[0];
 		String[] fetchColms={};
@@ -146,7 +148,8 @@ public class MySQLDetector implements
 		} else {
 			heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
 		}
-		lasstReveivedQryTime = System.currentTimeMillis();
+		lasstReveivedQryTime = TimeUtil.currentTimeMillis();
+		heartbeat.getRecorder().set(lasstReveivedQryTime - lastSendQryTime);
 	}
 
 	public void close(String msg) {
@@ -156,5 +159,4 @@ public class MySQLDetector implements
 			sqlJob = null;
 		}
 	}
-
 }

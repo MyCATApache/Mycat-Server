@@ -39,14 +39,17 @@ public class HeartbeatRecorder {
     private static final long AVG1_TIME = 60 * 1000L;
     private static final long AVG2_TIME = 10 * 60 * 1000L;
     private static final long AVG3_TIME = 30 * 60 * 1000L;
+    private static final long SWAP_TIME = 24 * 60 * 60 * 1000L;
 
     private long avg1;
     private long avg2;
     private long avg3;
     private final List<Record> records;
+    private final List<Record> recordsAll;
 
     public HeartbeatRecorder() {
         this.records = new LinkedList<Record>();
+        this.recordsAll = new LinkedList<Record>();
     }
 
     public String get() {
@@ -54,10 +57,11 @@ public class HeartbeatRecorder {
     }
 
     public void set(long value) {
+        long time = TimeUtil.currentTimeMillis();
         if (value < 0) {
+            recordsAll.add(new Record(0, time));
             return;
         }
-        long time = TimeUtil.currentTimeMillis();
         remove(time);
         int size = records.size();
         if (size == 0) {
@@ -69,6 +73,7 @@ public class HeartbeatRecorder {
             records.remove(0);
         }
         records.add(new Record(value, time));
+        recordsAll.add(new Record(value, time));
         calculate(time);
     }
 
@@ -81,6 +86,16 @@ public class HeartbeatRecorder {
             Record record = records.get(0);
             if (time >= record.time + AVG3_TIME) {
                 records.remove(0);
+            } else {
+                break;
+            }
+        }
+        
+        final List<Record> recordsAll = this.recordsAll;
+        while (recordsAll.size() > 0) {
+            Record record = recordsAll.get(0);
+            if (time >= record.time + AVG3_TIME) {
+            	recordsAll.remove(0);
             } else {
                 break;
             }
@@ -113,17 +128,34 @@ public class HeartbeatRecorder {
         avg3 = (v3 / c3);
     }
 
-    /**
+    public List<Record> getRecordsAll() {
+		return this.recordsAll;
+	}
+
+	/**
      * @author mycat
      */
-    private static class Record {
-        private long value;
-        private long time;
+    public static class Record {
+    	private long value;
+    	private long time;
 
         Record(long value, long time) {
             this.value = value;
             this.time = time;
         }
+		public long getValue() {
+			return this.value;
+		}
+		public void setValue(long value) {
+			this.value = value;
+		}
+		public long getTime() {
+			return this.time;
+		}
+		public void setTime(long time) {
+			this.time = time;
+		}
+        
+        
     }
-
 }
