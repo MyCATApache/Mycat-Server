@@ -33,7 +33,7 @@ public final class ManagerParseHeartbeat {
     public static final int OTHER = -1;
     public static final int DATASOURCE = 1;
     
- // SHOW @@HEARTBEAT
+   // SHOW @@HEARTBEAT
     static int show2HeaCheck(String stmt, int offset) {
         if (stmt.length() > offset + "RTBEAT".length()) {
             char c1 = stmt.charAt(++offset);

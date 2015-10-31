@@ -35,6 +35,8 @@ import org.opencloudb.response.ShowConnectionSQL;
 import org.opencloudb.response.ShowDataNode;
 import org.opencloudb.response.ShowDataSource;
 import org.opencloudb.response.ShowDatabase;
+import org.opencloudb.response.ShowDatasourceSyn;
+import org.opencloudb.response.ShowDatasourceSynDetail;
 import org.opencloudb.response.ShowHeartbeat;
 import org.opencloudb.response.ShowHeartbeatDetail;
 import org.opencloudb.response.ShowHelp;
@@ -186,6 +188,12 @@ public final class ShowHandler {
 		case ManagerParseShow.HEARTBEAT_DETAIL://by songwie
 			ShowHeartbeatDetail.response(c,stmt);
 			break;
+		case ManagerParseShow.DATASOURCE_SYNC://by songwie
+			ShowDatasourceSyn.response(c,stmt);
+			break;	
+		case ManagerParseShow.DATASOURCE_SYNC_DETAIL://by songwie
+			ShowDatasourceSynDetail.response(c,stmt);
+			break;	
 		default:
 			c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 		}

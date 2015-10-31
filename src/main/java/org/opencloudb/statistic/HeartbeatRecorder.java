@@ -26,6 +26,7 @@ package org.opencloudb.statistic;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.opencloudb.util.TimeUtil;
 
 /**
@@ -46,6 +47,8 @@ public class HeartbeatRecorder {
     private long avg3;
     private final List<Record> records;
     private final List<Record> recordsAll;
+    
+	private static final Logger LOGGER = Logger.getLogger("DataSourceSyncRecorder");
 
     public HeartbeatRecorder() {
         this.records = new LinkedList<Record>();
@@ -57,24 +60,28 @@ public class HeartbeatRecorder {
     }
 
     public void set(long value) {
-        long time = TimeUtil.currentTimeMillis();
-        if (value < 0) {
-            recordsAll.add(new Record(0, time));
-            return;
-        }
-        remove(time);
-        int size = records.size();
-        if (size == 0) {
+    	try{
+    		long time = TimeUtil.currentTimeMillis();
+            if (value < 0) {
+                recordsAll.add(new Record(0, time));
+                return;
+            }
+            remove(time);
+            int size = records.size();
+            if (size == 0) {
+                records.add(new Record(value, time));
+                avg1 = avg2 = avg3 = value;
+                return;
+            }
+            if (size >= MAX_RECORD_SIZE) {
+                records.remove(0);
+            }
             records.add(new Record(value, time));
-            avg1 = avg2 = avg3 = value;
-            return;
-        }
-        if (size >= MAX_RECORD_SIZE) {
-            records.remove(0);
-        }
-        records.add(new Record(value, time));
-        recordsAll.add(new Record(value, time));
-        calculate(time);
+            recordsAll.add(new Record(value, time));
+            calculate(time);
+    	}catch(Exception e){ 
+    		LOGGER.error("record HeartbeatRecorder error " + e.getMessage());
+    	}
     }
 
     /**
@@ -94,7 +101,7 @@ public class HeartbeatRecorder {
         final List<Record> recordsAll = this.recordsAll;
         while (recordsAll.size() > 0) {
             Record record = recordsAll.get(0);
-            if (time >= record.time + AVG3_TIME) {
+            if (time >= record.time + SWAP_TIME) {
             	recordsAll.remove(0);
             } else {
                 break;
