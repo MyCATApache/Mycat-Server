@@ -494,7 +494,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         StringBuilder sb = new StringBuilder();
         for (int i = 0, srcLength = src.length; i < srcLength; i++)
         {
-            String s = src[i];
+            String s = src[i]!=null?src[i]:"";
             if(loadData.getEnclose()==null)
             {
                   sb.append(s);

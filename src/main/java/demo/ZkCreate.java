@@ -1,7 +1,7 @@
-package io.mycat.locator;
+package demo;
 
 import com.alibaba.fastjson.JSON;
-import io.mycat.server.config.ConfigException;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -92,37 +92,40 @@ public class ZkCreate {
                     createChildConfig(value, filterInnerMap, ZKPaths.makePath(childPath, String.valueOf(key)));
                 } else {
                     LOGGER.trace("sub child path is {}", childPath);
-
-                    try {
-                        Stat restNodeStat = framework.checkExists().forPath(childPath);
-                        if (restNodeStat == null) {
-                            framework.create().creatingParentsIfNeeded().forPath(childPath);
-                        }
-
-                        if (filterInnerMap) {
-                            Map<Object, Object> filteredSubItem = innerMap
-                                    .entrySet()
-                                    .stream()
-                                    .filter(mapEntry -> !(mapEntry.getValue() instanceof Map))
-                                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-                            framework.setData().forPath(childPath, JSON.toJSONString(filteredSubItem).getBytes());
-                        } else {
-                            framework.setData().forPath(childPath, JSON.toJSONString(mapObject).getBytes());
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error("create node error: {} ", e.getMessage(), e);
-                        throw new RuntimeException(e);
-                    }
+                    processLeafNode(innerMap, filterInnerMap, childPath);
                 }
             });
+        }
+    }
+
+    private static void processLeafNode(Map<Object, Object> innerMap, boolean filterInnerMap, String childPath) {
+        try {
+            Stat restNodeStat = framework.checkExists().forPath(childPath);
+            if (restNodeStat == null) {
+                framework.create().creatingParentsIfNeeded().forPath(childPath);
+            }
+
+            if (filterInnerMap) {
+                Map<Object, Object> filteredSubItem = innerMap
+                        .entrySet()
+                        .stream()
+                        .filter(mapEntry -> !(mapEntry.getValue() instanceof Map))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+                framework.setData().forPath(childPath, JSON.toJSONString(filteredSubItem).getBytes());
+            } else {
+                framework.setData().forPath(childPath, JSON.toJSONString(innerMap).getBytes());
+            }
+        } catch (Exception e) {
+            LOGGER.error("create node error: {} ", e.getMessage(), e);
+            throw new RuntimeException(e);
         }
     }
 
     private static Map<String, Object> loadZkConfig() {
         InputStream configIS = ZkCreate.class.getResourceAsStream(ZK_CONFIG_FILE_NAME);
         if (configIS == null) {
-            throw new ConfigException("can't find zk properties file : " + ZK_CONFIG_FILE_NAME);
+            throw new RuntimeException("can't find zk properties file : " + ZK_CONFIG_FILE_NAME);
         }
         return (Map<String, Object>) new Yaml().load(configIS);
     }
@@ -144,6 +147,6 @@ public class ZkCreate {
 
         //fail situation
         curatorFramework.close();
-        throw new ConfigException("failed to connect to zookeeper service : " + url);
+        throw new RuntimeException("failed to connect to zookeeper service : " + url);
     }
 }

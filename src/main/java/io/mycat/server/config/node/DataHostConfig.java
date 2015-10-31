@@ -23,161 +23,184 @@
  */
 package io.mycat.server.config.node;
 
-import io.mycat.backend.PhysicalDBPool;
-
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.mycat.backend.PhysicalDBPool;
 
 /**
  * Datahost is a group of DB servers which is synchronized with each other
  *
  * @author wuzhih
- *
  */
 public class DataHostConfig {
-	public static final int NOT_SWITCH_DS = -1;
-	public static final int DEFAULT_SWITCH_DS = 1;
-	public static final int SYN_STATUS_SWITCH_DS = 2;
-    private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
-	private String name;
-	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
-	private int minCon = 10;
-	private int balance = PhysicalDBPool.BALANCE_NONE;
-	private int writeType = PhysicalDBPool.WRITE_ONLYONE_NODE;
-	private final String dbType;
-	private final String dbDriver;
-	private final DBHostConfig[] writeHosts;
-	private final Map<Integer, DBHostConfig[]> readHosts;
-	private String hearbeatSQL;
-    private boolean isShowSlaveSql=false;
-	private String connectionInitSql;
+    public static final int NOT_SWITCH_DS = -1;
+    public static final int DEFAULT_SWITCH_DS = 1;
+    public static final int SYN_STATUS_SWITCH_DS = 2;
+    private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*", Pattern.CASE_INSENSITIVE);
+    private String dbType;
+    private String dbDriver;
+    private int switchType;
+    private DBHostConfig[] writeHosts;
+    private Map<Integer, DBHostConfig[]> readHosts;
+    private String name;
+    private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
+    private int minCon = 10;
+    private int balance = PhysicalDBPool.BALANCE_NONE;
+    private int writeType = PhysicalDBPool.WRITE_ONLYONE_NODE;
+    private String heartbeatSQL;
+    private boolean isShowSlaveSql = false;
+    private String connectionInitSql;
     private int slaveThreshold = -1;
-	private final int switchType;
-	private String filters="mergeStat";
-	private long logTime=300000;
+    private String filters = "mergeStat";
+    private long logTime = 300000;
 
-	public DataHostConfig(String name, String dbType, String dbDriver,
-			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold) {
-		super();
-		this.name = name;
-		this.dbType = dbType;
-		this.dbDriver = dbDriver;
-		this.writeHosts = writeHosts;
-		this.readHosts = readHosts;
-		this.switchType=switchType;
-		this.slaveThreshold=slaveThreshold;
-	}
+    public DataHostConfig() {
+        super();
+    }
 
-	public int getSlaveThreshold() {
-		return slaveThreshold;
-	}
+    public DataHostConfig(String name, String dbType, String dbDriver,
+                          DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts, int switchType, int slaveThreshold) {
+        super();
+        this.name = name;
+        this.dbType = dbType;
+        this.dbDriver = dbDriver;
+        this.writeHosts = writeHosts;
+        this.readHosts = readHosts;
+        this.switchType = switchType;
+        this.slaveThreshold = slaveThreshold;
+    }
 
-	public void setSlaveThreshold(int slaveThreshold) {
-		this.slaveThreshold = slaveThreshold;
-	}
+    public int getSlaveThreshold() {
+        return slaveThreshold;
+    }
 
-	public int getSwitchType() {
-		return switchType;
-	}
+    public void setSlaveThreshold(int slaveThreshold) {
+        this.slaveThreshold = slaveThreshold;
+    }
 
-	public String getConnectionInitSql()
-	{
-		return connectionInitSql;
-	}
+    public int getSwitchType() {
+        return switchType;
+    }
 
-	public void setConnectionInitSql(String connectionInitSql)
-	{
-		this.connectionInitSql = connectionInitSql;
-	}
+    public String getConnectionInitSql() {
+        return connectionInitSql;
+    }
 
-	public int getWriteType() {
-		return writeType;
-	}
+    public void setConnectionInitSql(String connectionInitSql) {
+        this.connectionInitSql = connectionInitSql;
+    }
 
-	public void setWriteType(int writeType) {
-		this.writeType = writeType;
-	}
+    public int getWriteType() {
+        return writeType;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public void setWriteType(int writeType) {
+        this.writeType = writeType;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public int getMaxCon() {
-		return maxCon;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public void setMaxCon(int maxCon) {
-		this.maxCon = maxCon;
-	}
+    public int getMaxCon() {
+        return maxCon;
+    }
 
-	public int getMinCon() {
-		return minCon;
-	}
+    public void setMaxCon(int maxCon) {
+        this.maxCon = maxCon;
+    }
 
-	public void setMinCon(int minCon) {
-		this.minCon = minCon;
-	}
+    public int getMinCon() {
+        return minCon;
+    }
 
-	public int getBalance() {
-		return balance;
-	}
+    public void setMinCon(int minCon) {
+        this.minCon = minCon;
+    }
 
-	public void setBalance(int balance) {
-		this.balance = balance;
-	}
+    public int getBalance() {
+        return balance;
+    }
 
-	public String getDbType() {
-		return dbType;
-	}
+    public void setBalance(int balance) {
+        this.balance = balance;
+    }
 
-	public String getDbDriver() {
-		return dbDriver;
-	}
+    public String getDbType() {
+        return dbType;
+    }
 
-	public DBHostConfig[] getWriteHosts() {
-		return writeHosts;
-	}
+    public String getDbDriver() {
+        return dbDriver;
+    }
 
-	public Map<Integer, DBHostConfig[]> getReadHosts() {
-		return readHosts;
-	}
+    public DBHostConfig[] getWriteHosts() {
+        return writeHosts;
+    }
 
-	public String getHearbeatSQL() {
-		return hearbeatSQL;
-	}
+    public Map<Integer, DBHostConfig[]> getReadHosts() {
+        return readHosts;
+    }
 
-	public void setHearbeatSQL(String heartbeatSQL) {
-		this.hearbeatSQL = heartbeatSQL;
+    public String getHeartbeatSQL() {
+        return heartbeatSQL;
+    }
+
+    public void setHeartbeatSQL(String heartbeatSQL) {
+        this.heartbeatSQL = heartbeatSQL;
         Matcher matcher = pattern.matcher(heartbeatSQL);
-        if (matcher.find())
-        {
-            isShowSlaveSql=true;
+        if (matcher.find()) {
+            isShowSlaveSql = true;
         }
-	}
-    public boolean isShowSlaveSql()
-    {
+    }
+
+    public boolean isShowSlaveSql() {
         return isShowSlaveSql;
     }
-	public String getFilters() {
-		return filters;
-	}
 
-	public void setFilters(String filters) {
-		this.filters = filters;
-	}
+    public String getFilters() {
+        return filters;
+    }
 
-	public long getLogTime() {
-		return logTime;
-	}
+    public void setFilters(String filters) {
+        this.filters = filters;
+    }
 
-	public void setLogTime(long logTime) {
-		this.logTime = logTime;
-	}
+    public long getLogTime() {
+        return logTime;
+    }
 
+    public void setLogTime(long logTime) {
+        this.logTime = logTime;
+    }
 
+    public void setDbType(String dbType) {
+        this.dbType = dbType;
+    }
+
+    public void setDbDriver(String dbDriver) {
+        this.dbDriver = dbDriver;
+    }
+
+    public void setSwitchType(int switchType) {
+        this.switchType = switchType;
+    }
+
+    public void setWriteHosts(DBHostConfig[] writeHosts) {
+        this.writeHosts = writeHosts;
+    }
+
+    public void setReadHosts(Map<Integer, DBHostConfig[]> readHosts) {
+        this.readHosts = readHosts;
+    }
+
+    public void setIsShowSlaveSql(boolean isShowSlaveSql) {
+        this.isShowSlaveSql = isShowSlaveSql;
+    }
 }
