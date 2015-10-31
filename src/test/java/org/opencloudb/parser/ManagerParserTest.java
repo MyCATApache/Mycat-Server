@@ -393,5 +393,10 @@ public class ManagerParserTest {
         Assert.assertEquals(ManagerParseClear.SLOW_DATANODE,
                 0xff & ManagerParseClear.parse("clear @@SLOW where  DATANODE= d", 5));
     }
+    @Test
+    public void testHeartBearDetail() {
+        Assert.assertEquals(ManagerParseShow.HEARTBEAT_DETAIL,
+                0xff & ManagerParseShow.parse("show @@heartbeat.detail where name=master",5)); 
+    }
 
 }
