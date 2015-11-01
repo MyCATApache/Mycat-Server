@@ -81,7 +81,7 @@ public class MySQLDetector implements
 	}
 
 	public void heartbeat() {
-		lastSendQryTime = TimeUtil.currentTimeMillis();
+		lastSendQryTime = TimeUtil.currentTimeNanos();
 		MySQLDataSource ds = heartbeat.getSource();
 		String databaseName = ds.getDbPool().getSchemas()[0];
 		String[] fetchColms={};
@@ -134,8 +134,8 @@ public class MySQLDetector implements
 		} else {
 			heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
 		}
-		lasstReveivedQryTime = TimeUtil.currentTimeMillis();
-		heartbeat.getRecorder().set(lasstReveivedQryTime - lastSendQryTime);
+		lasstReveivedQryTime = TimeUtil.currentTimeNanos();
+		heartbeat.getRecorder().set((lasstReveivedQryTime - lastSendQryTime)/(1000*1000L));
 	}
 
 	public void close(String msg) {
