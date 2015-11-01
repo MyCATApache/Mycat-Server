@@ -1,5 +1,7 @@
 package io.mycat.server.config.loader.zkloader;
 
+import com.google.common.collect.ObjectArrays;
+
 import com.alibaba.fastjson.JSON;
 
 import org.apache.curator.framework.CuratorFramework;
@@ -9,11 +11,13 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.config.node.TableConfig;
 
 /**
+ *
  * Created by v1.lion on 2015/10/18.
  */
 public class ZkSchemaConfigLoader extends AbstractZKLoaders {
@@ -49,7 +53,7 @@ public class ZkSchemaConfigLoader extends AbstractZKLoaders {
         //example: /mycat-cluster-1/schema-config / ${schemaName}
         this.schemaConfigs = super.fetchChildren(zkConnection)
                 .stream()
-                .map(schemaName -> createSchema(schemaName))
+                .map(this::createSchema)
                 .collect(Collectors.toMap(SchemaConfig::getName, Function.identity()));
     }
 
@@ -59,33 +63,61 @@ public class ZkSchemaConfigLoader extends AbstractZKLoaders {
         SchemaConfig schemaConfig = JSON.parseObject(
                 super.fetchData(this.zkConnection, schemaName), SchemaConfig.class);
 
+        //parse TableConfig
+        //mycat-cluster-1/ schema-config/ ${schema name} /${table name}
         Map<String, TableConfig> tables = super.fetchChildren(this.zkConnection, schemaName)
                 .stream()
-                .map(tableName -> generateTable(schemaName, tableName))
+                .flatMap(tableName -> generateTable(schemaName, tableName))
                 .collect(Collectors.toMap(TableConfig::getName, Function.identity()));
 
         schemaConfig.setTables(tables);
         return schemaConfig;
     }
 
-    private TableConfig generateTable(final String schemaName, final String tableName) {
-        //parse TableConfig
-        //mycat-cluster-1/ schema-config/ ${schema name} /${table name}
+    /**
+     * create parent tableConfig.
+     */
+    private Stream<TableConfig> generateTable(final String schemaName, final String tableName) {
+        TableConfig parentTableConfig = createTableConfig(schemaName, tableName);
+
+        return Stream.concat(
+                super.fetchChildren(zkConnection, schemaName, tableName)
+                        .stream()
+                        .flatMap(childTableName -> generateChildTable(parentTableConfig,
+                                schemaName, tableName, childTableName)),
+                Stream.of(parentTableConfig));
+    }
+
+    /**
+     * create child tableConfig.
+     */
+    private Stream<TableConfig> generateChildTable(TableConfig parentTableConfig,
+                                                   final String schemaName,
+                                                   final String... childTableName) {
+        //recursion parse child TableConfig
+        //mycat-cluster-1/ schema-config/ ${schema name} /${table name} /${child table name}
+        //deep first.
+        TableConfig childTableConfig = createTableConfig(schemaName, childTableName);
+        childTableConfig.setParentTC(parentTableConfig);
+
+        return Stream.concat(
+                super.fetchChildren(zkConnection,
+                        ObjectArrays.concat(new String[]{schemaName}, childTableName, String.class))
+                        .stream()
+                        .flatMap(
+                                grandChildTableName -> generateChildTable(childTableConfig,
+                                        schemaName,
+                                        ObjectArrays.concat(childTableName, new String[]{grandChildTableName}, String.class))
+                        )
+                , Stream.of(childTableConfig));
+    }
+
+    private TableConfig createTableConfig(String schemaName, String... tableName) {
         TableConfig tableConfig = JSON.parseObject(
                 super.fetchData(this.zkConnection, schemaName, tableName), TableConfig.class);
         tableConfig.setRule(this.ruleConfigLoadr.getRuleConfigs().get(tableConfig.getRuleName()));
         tableConfig.checkConfig();
-
-        return null;
-    }
-
-    //
-    private TableConfig generateChildTable(final String childTableName) {
-        //recursion parse child TableConfig
-        //mycat-cluster-1/ schema-config/ ${schema name} /${table name} /$child table name
-
-
-        return null;
+        return tableConfig;
     }
 
     public Map<String, SchemaConfig> getSchemaConfigs() {
