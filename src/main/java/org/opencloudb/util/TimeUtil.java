@@ -34,6 +34,9 @@ public class TimeUtil {
     public static final long currentTimeMillis() {
         return CURRENT_TIME;
     }
+    public static final long currentTimeNanos() {
+        return System.nanoTime();
+    }
 
     public static final void update() {
         CURRENT_TIME = System.currentTimeMillis();
