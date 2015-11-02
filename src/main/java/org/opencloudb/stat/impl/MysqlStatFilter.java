@@ -16,7 +16,6 @@ import com.alibaba.druid.util.JdbcSqlStatUtils;
 import com.alibaba.druid.util.MapComparator;
 
 public class MysqlStatFilter implements StatFilter {
-	
     private final static int              DEFAULT_PAGE           = 1;
     private final static int              DEFAULT_PER_PAGE_COUNT = Integer.MAX_VALUE;
     private static final String           DEFAULT_ORDER_TYPE     = "asc";
@@ -95,9 +94,12 @@ public class MysqlStatFilter implements StatFilter {
         String contextSql = context != null ? context.getSql() : null;
         if (contextSql != null && contextSql.length() > 0) {
             return updateSqlStat(contextSql);
-            
         } else {
             String dbType = this.dbType;
+
+           // if (dbType == null) {
+           //     dbType = dataSource.getDbType();
+           // }
             sql = mergeSql(sql, dbType);
             return updateSqlStat(sql);
         }

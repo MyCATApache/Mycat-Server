@@ -19,31 +19,24 @@ import org.opencloudb.net.NIOProcessor;
 import com.google.common.collect.Lists;
 
 public class JDBCDatasource extends PhysicalDatasource {
-	
 	static {
-		
 		// 加载可能的驱动
-		List<String> drivers = Lists.newArrayList(
-				"com.mysql.jdbc.Driver", 
-				"org.opencloudb.jdbc.mongodb.MongoDriver",
-				"org.opencloudb.jdbc.sequoiadb.SequoiaDriver", 
-				"oracle.jdbc.OracleDriver",
-				"com.microsoft.sqlserver.jdbc.SQLServerDriver", 
-				"org.apache.hive.jdbc.HiveDriver",
-				"com.ibm.db2.jcc.DB2Driver", 
-				"org.postgresql.Driver");
-		
-		for (String driver : drivers) {
-			try {
+		List<String> drivers = Lists.newArrayList("com.mysql.jdbc.Driver", "org.opencloudb.jdbc.mongodb.MongoDriver","org.opencloudb.jdbc.sequoiadb.SequoiaDriver", "oracle.jdbc.OracleDriver",
+				"com.microsoft.sqlserver.jdbc.SQLServerDriver","org.apache.hive.jdbc.HiveDriver","com.ibm.db2.jcc.DB2Driver","org.postgresql.Driver");
+		for (String driver : drivers)
+		{
+			try
+			{
 				Class.forName(driver);
-			} catch (ClassNotFoundException ignored) {
+			} catch (ClassNotFoundException ignored)
+			{
 			}
 		}
 	}
-	
 	public JDBCDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
 		super(config, hostConfig, isReadNode);
+
 	}
 
 	@Override
@@ -62,12 +55,14 @@ public class JDBCDatasource extends PhysicalDatasource {
 		c.setSchema(schema);
 		c.setDbType(cfg.getDbType());
 		
-		NIOProcessor processor = (NIOProcessor) MycatServer.getInstance().nextProcessor();
+		NIOProcessor processor = (NIOProcessor) MycatServer.getInstance()
+                .nextProcessor();
 		c.setProcessor(processor);
 		c.setId(NIOConnector.ID_GENERATOR.getId());  //复用mysql的Backend的ID，需要在process中存储
 
 		processor.addBackend(c);
 		try {
+
 			Connection con = getConnection();
 			// c.setIdleTimeout(pool.getConfig().getIdleTimeout());
 			c.setCon(con);
@@ -79,22 +74,29 @@ public class JDBCDatasource extends PhysicalDatasource {
 
 	}
 
-	Connection getConnection() throws SQLException {
-		DBHostConfig cfg = getConfig();
+    Connection getConnection() throws SQLException
+    {
+        DBHostConfig cfg = getConfig();
 		Connection connection = DriverManager.getConnection(cfg.getUrl(), cfg.getUser(), cfg.getPassword());
-		String initSql = getHostConfig().getConnectionInitSql();
-		if (initSql != null && !"".equals(initSql)) {
-			Statement statement = null;
-			try {
-				statement = connection.createStatement();
-				statement.execute(initSql);
-			} finally {
-				if (statement != null) {
+		String initSql=getHostConfig().getConnectionInitSql();
+		if(initSql!=null&&!"".equals(initSql))
+		{     Statement statement =null;
+			try
+			{
+				 statement = connection.createStatement();
+				 statement.execute(initSql);
+			}finally
+			{
+				if(statement!=null)
+				{
 					statement.close();
 				}
 			}
 		}
 		return connection;
-	}
+    }
+
+
+
 
 }

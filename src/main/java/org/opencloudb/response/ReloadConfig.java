@@ -89,9 +89,11 @@ public final class ReloadConfig {
 		for (PhysicalDBPool dn : dataHosts.values()) {
 			dn.setSchemas(MycatServer.getInstance().getConfig().getDataNodeSchemasOfDataHost(dn.getHostName()));
 			// init datahost
-			String index = DnPropertyUtil.loadDnIndexProps().getProperty(dn.getHostName(), "0");
+			String index = DnPropertyUtil.loadDnIndexProps().getProperty(dn.getHostName(),
+					"0");
 			if (!"0".equals(index)) {
-				LOGGER.info("init datahost: " + dn.getHostName() + "  to use datasource index:" + index);
+				LOGGER.info("init datahost: " + dn.getHostName()
+						+ "  to use datasource index:" + index);
 			}
 			dn.init(Integer.valueOf(index));
 

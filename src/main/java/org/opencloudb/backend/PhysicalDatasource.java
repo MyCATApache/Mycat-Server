@@ -44,8 +44,8 @@ import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.util.TimeUtil;
 
 public abstract class PhysicalDatasource {
-	
-	private static final Logger LOGGER = Logger.getLogger(PhysicalDatasource.class);
+	private static final Logger LOGGER = Logger
+			.getLogger(PhysicalDatasource.class);
 
 	private final String name;
 	private final int size;
@@ -203,11 +203,14 @@ public abstract class PhysicalDatasource {
 		LinkedList<BackendConnection> heartBeatCons = new LinkedList<BackendConnection>();
 
 		long hearBeatTime = TimeUtil.currentTimeMillis() - conHeartBeatPeriod;
-		long hearBeatTime2 = TimeUtil.currentTimeMillis() - 2 * conHeartBeatPeriod;
+		long hearBeatTime2 = TimeUtil.currentTimeMillis() - 2
+				* conHeartBeatPeriod;
 		for (ConQueue queue : conMap.getAllConQueue()) {
-			checkIfNeedHeartBeat(heartBeatCons, queue, queue.getAutoCommitCons(), hearBeatTime, hearBeatTime2);
+			checkIfNeedHeartBeat(heartBeatCons, queue,
+					queue.getAutoCommitCons(), hearBeatTime, hearBeatTime2);
 			if (heartBeatCons.size() < maxConsInOneCheck) {
-				checkIfNeedHeartBeat(heartBeatCons, queue, queue.getManCommitCons(), hearBeatTime, hearBeatTime2);
+				checkIfNeedHeartBeat(heartBeatCons, queue,
+						queue.getManCommitCons(), hearBeatTime, hearBeatTime2);
 			} else if (heartBeatCons.size() >= maxConsInOneCheck) {
 				break;
 			}
@@ -215,7 +218,8 @@ public abstract class PhysicalDatasource {
 
 		if (!heartBeatCons.isEmpty()) {
 			for (BackendConnection con : heartBeatCons) {
-				conHeartBeatHanler.doHeartBeat(con, hostConfig.getHearbeatSQL());
+				conHeartBeatHanler
+						.doHeartBeat(con, hostConfig.getHearbeatSQL());
 			}
 		}
 
@@ -225,7 +229,8 @@ public abstract class PhysicalDatasource {
 		int activeCons = this.getActiveCount();
 		int createCount = (hostConfig.getMinCon() - idleCons) / 3;
 		// create if idle too little
-		if ((createCount > 0) && (idleCons + activeCons < size)	&& (idleCons < hostConfig.getMinCon())) {
+		if ((createCount > 0) && (idleCons + activeCons < size)
+				&& (idleCons < hostConfig.getMinCon())) {
             createByIdleLitte(idleCons, createCount);
         } else if (idleCons > hostConfig.getMinCon()) {
             closeByIdleMany(idleCons-hostConfig.getMinCon());
@@ -233,7 +238,8 @@ public abstract class PhysicalDatasource {
 			int activeCount = this.getActiveCount();
 			if (activeCount > size) {
 				StringBuilder s = new StringBuilder();
-				s.append(Alarms.DEFAULT).append("DATASOURCE EXCEED [name=").append(name).append(",active=");
+				s.append(Alarms.DEFAULT).append("DATASOURCE EXCEED [name=")
+						.append(name).append(",active=");
 				s.append(activeCount).append(",size=").append(size).append(']');
 				LOGGER.warn(s.toString());
 			}
@@ -242,7 +248,8 @@ public abstract class PhysicalDatasource {
 
     private void closeByIdleMany(int ildeCloseCount) {
         LOGGER.info("too many ilde cons ,close some for datasouce  " + name);
-        List<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(ildeCloseCount);
+        List<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(
+        		ildeCloseCount);
         for (ConQueue queue : conMap.getAllConQueue()) {
         	readyCloseCons.addAll(queue.getIdleConsToClose(ildeCloseCount));
         	if (readyCloseCons.size() >= ildeCloseCount) {
@@ -270,7 +277,8 @@ public abstract class PhysicalDatasource {
         	}
         	try {
         		// creat new connection
-        		this.createNewConnection(simpleHandler, null, schemas[i	% schemas.length]);
+        		this.createNewConnection(simpleHandler, null, schemas[i
+        				% schemas.length]);
         	} catch (IOException e) {
         		LOGGER.warn("create connection err " + e);
         	}
@@ -333,7 +341,8 @@ public abstract class PhysicalDatasource {
 				try {
 					createNewConnection(new DelegateResponseHandler(handler) {
 						@Override
-						public void connectionError(Throwable e, BackendConnection conn) {
+						public void connectionError(Throwable e,
+								BackendConnection conn) {
 							handler.connectionError(e, conn);
 						}
 
@@ -361,7 +370,8 @@ public abstract class PhysicalDatasource {
                 LOGGER.error("the max activeConnnections size can not be max than maxconnections");
                 throw new IOException("the max activeConnnections size can not be max than maxconnections");
             }else{            // create connection
-                LOGGER.info("not ilde connection in pool,create new connection for " + this.name + " of schema "+schema);
+                LOGGER.info("not ilde connection in pool,create new connection for " + this.name
+                        + " of schema "+schema);
                 createNewConnection(handler, attachment, schema);
             }
             
@@ -382,6 +392,7 @@ public abstract class PhysicalDatasource {
 			ok = queue.getManCommitCons().offer(c);
 		}
 		if (!ok) {
+
 			LOGGER.warn("can't return to pool ,so close con " + c);
 			c.close("can't return to pool ");
 		}
@@ -400,6 +411,7 @@ public abstract class PhysicalDatasource {
 		if (queue != null) {
 			queue.removeCon(conn);
 		}
+
 	}
 
 	public abstract void createNewConnection(ResponseHandler handler,

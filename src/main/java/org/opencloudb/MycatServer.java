@@ -301,15 +301,13 @@ public class MycatServer {
 			node.init(Integer.valueOf(index));
 			node.startHeartbeat();
 		}
-		
-		long processorCheckPeriod = system.getProcessorCheckPeriod();
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
-		long dataNodeHeartbeatPeriod = system.getDataNodeHeartbeatPeriod();
-				
 		timer.schedule(updateTime(), 0L, TIME_UPDATE_PERIOD);
-		timer.schedule(processorCheck(), 0L, processorCheckPeriod);
-		timer.schedule(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L,	dataNodeIldeCheckPeriod);
-		timer.schedule(dataNodeHeartbeat(), 0L,	dataNodeHeartbeatPeriod);
+		timer.schedule(processorCheck(), 0L, system.getProcessorCheckPeriod());
+		timer.schedule(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L,
+				dataNodeIldeCheckPeriod);
+		timer.schedule(dataNodeHeartbeat(), 0L,
+				system.getDataNodeHeartbeatPeriod());
 		timer.schedule(catletClassClear(), 30000);
 
 	}
@@ -496,12 +494,13 @@ public class MycatServer {
 				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
-						Map<String, PhysicalDBPool> nodes = config.getDataHosts();
+						Map<String, PhysicalDBPool> nodes = config
+								.getDataHosts();
 						for (PhysicalDBPool node : nodes.values()) {
 							node.heartbeatCheck(heartPeriod);
 						}
-						
-						Map<String, PhysicalDBPool> _nodes = config.getBackupDataHosts();
+						Map<String, PhysicalDBPool> _nodes = config
+								.getBackupDataHosts();
 						if (_nodes != null) {
 							for (PhysicalDBPool node : _nodes.values()) {
 								node.heartbeatCheck(heartPeriod);
@@ -521,7 +520,8 @@ public class MycatServer {
 				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
-						Map<String, PhysicalDBPool> nodes = config.getDataHosts();
+						Map<String, PhysicalDBPool> nodes = config
+								.getDataHosts();
 						for (PhysicalDBPool node : nodes.values()) {
 							node.doHeartbeat();
 						}
