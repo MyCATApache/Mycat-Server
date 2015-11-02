@@ -40,9 +40,8 @@ import org.opencloudb.util.TimeUtil;
  * @author mycat
  */
 public class ServerConnection extends FrontendConnection {
-	
-	private static final Logger LOGGER = Logger.getLogger(ServerConnection.class);
-	
+	private static final Logger LOGGER = Logger
+			.getLogger(ServerConnection.class);
 	private static final long AUTH_TIMEOUT = 15 * 1000L;
 
 	private volatile int txIsolation;
@@ -52,7 +51,8 @@ public class ServerConnection extends FrontendConnection {
 	private long lastInsertId;
 	private NonBlockingSession session;
 
-	public ServerConnection(NetworkChannel channel)	throws IOException {
+	public ServerConnection(NetworkChannel channel)
+			throws IOException {
 		super(channel);
 		this.txInterrupted = false;
 		this.autocommit = true;
@@ -63,7 +63,8 @@ public class ServerConnection extends FrontendConnection {
 		if (isAuthenticated) {
 			return super.isIdleTimeout();
 		} else {
-			return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime, lastReadTime) + AUTH_TIMEOUT;
+			return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime,
+					lastReadTime) + AUTH_TIMEOUT;
 		}
 	}
 
@@ -130,20 +131,23 @@ public class ServerConnection extends FrontendConnection {
 		}
 		// 状态检查
 		if (txInterrupted) {
-			writeErrMessage(ErrorCode.ER_YES, "Transaction error, need to rollback." + txInterrputMsg);
+			writeErrMessage(ErrorCode.ER_YES,
+					"Transaction error, need to rollback." + txInterrputMsg);
 			return;
 		}
 
 		// 检查当前使用的DB
 		String db = this.schema;
 		if (db == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
+					"No MyCAT Database selected");
 			return;
 		}
-		
-		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(db);
+		SchemaConfig schema = MycatServer.getInstance().getConfig()
+				.getSchemas().get(db);
 		if (schema == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "Unknown MyCAT Database '" + db + "'");
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
+					"Unknown MyCAT Database '" + db + "'");
 			return;
 		}
 
@@ -156,12 +160,15 @@ public class ServerConnection extends FrontendConnection {
 		// 检查当前使用的DB
 		String db = this.schema;
 		if (db == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,	"No MyCAT Database selected");
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
+					"No MyCAT Database selected");
 			return null;
 		}
-		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(db);
+		SchemaConfig schema = MycatServer.getInstance().getConfig()
+				.getSchemas().get(db);
 		if (schema == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "Unknown MyCAT Database '" + db + "'");
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
+					"Unknown MyCAT Database '" + db + "'");
 			return null;
 		}
 
@@ -215,7 +222,8 @@ public class ServerConnection extends FrontendConnection {
 	 */
 	public void commit() {
 		if (txInterrupted) {
-			writeErrMessage(ErrorCode.ER_YES, "Transaction error, need to rollback.");
+			writeErrMessage(ErrorCode.ER_YES,
+					"Transaction error, need to rollback.");
 		} else {
 			session.commit();
 		}
@@ -253,7 +261,8 @@ public class ServerConnection extends FrontendConnection {
 	public void close(String reason) {
 		super.close(reason);
 		session.terminate();
-		if (getLoadDataInfileHandler() != null) {
+		if(getLoadDataInfileHandler()!=null)
+		{
 			getLoadDataInfileHandler().clear();
 		}
 	}
