@@ -1,4 +1,4 @@
-zkURL : 192.168.56.101:2181
+zkURL : 127.0.0.1:2181
 clusterID : cluster1
 myID : 001
 system:
@@ -66,7 +66,7 @@ rule :
    name : sharding-by-RangeDateHash
    column : create_time
    functionName : io.mycat.route.function.PartitionByRangeDateHash
-   sBeginDate : 2014-01-01 00:00:00
+   sBeginDate : "2014-01-01 00:00:00"
    sPartionDay : 3
    dateFormat : yyyy-MM-dd HH:mm:ss
    groupPartionSize : 6
@@ -180,31 +180,23 @@ datanode :
     database : db1$0-127
 
 datahost :
-  datahost-1 :
-    name : datahost-1
-    maxcon : 2000
+  localhost1 :
+    name : localhost1
+    maxcon : 1000
     mincon : 10
     balance : 0
     writetype : 0
     dbtype : mysql
-    heartbeatSQL : "select 1"
+    dbDriver : native
+    switchType : 1
+    slaveThreshold : 100
+    heartbeatSQL : select user()
 
-     name : datahost-1
-        maxcon : 1000
-        mincon : 10
-        balance : 0
-        writetype : 0
-        dbtype : mysql
-        dbDriver : native
-        switchType : 1
-        slaveThreshold : 100
-        heartbeatSQL : select user()
-
-        hostM1 :
-          host : hostM1
-          url : localhost:3306
-          user : root
-          password : 123456
+    hostM1 :
+      host : hostM1
+      url : localhost:3306
+      user : root
+      password : 123456
 
 #          readHost :
 #            host : hostS1
@@ -212,8 +204,8 @@ datahost :
 #            user : root
 #            password : 123456
 
-        hostM2 :
-          host : hostM2
-          url : localhost:3316
-          user : root
-          password : 123456
+    hostM2 :
+      host : hostM2
+      url : localhost:3316
+      user : root
+      password : 123456

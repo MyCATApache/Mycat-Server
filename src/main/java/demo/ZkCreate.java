@@ -1,7 +1,7 @@
-package io.mycat.locator;
+package demo;
 
 import com.alibaba.fastjson.JSON;
-import io.mycat.server.config.ConfigException;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -125,7 +125,7 @@ public class ZkCreate {
     private static Map<String, Object> loadZkConfig() {
         InputStream configIS = ZkCreate.class.getResourceAsStream(ZK_CONFIG_FILE_NAME);
         if (configIS == null) {
-            throw new ConfigException("can't find zk properties file : " + ZK_CONFIG_FILE_NAME);
+            throw new RuntimeException("can't find zk properties file : " + ZK_CONFIG_FILE_NAME);
         }
         return (Map<String, Object>) new Yaml().load(configIS);
     }
@@ -147,6 +147,6 @@ public class ZkCreate {
 
         //fail situation
         curatorFramework.close();
-        throw new ConfigException("failed to connect to zookeeper service : " + url);
+        throw new RuntimeException("failed to connect to zookeeper service : " + url);
     }
 }

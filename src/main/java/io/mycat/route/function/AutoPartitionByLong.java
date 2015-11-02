@@ -74,7 +74,7 @@ public class AutoPartitionByLong extends AbstractPartitionAlgorithm implements R
 			String pairs[] = key.trim().split("-");
 			long longStart = NumberParseUtil.parseLong(pairs[0].trim());
 			long longEnd = NumberParseUtil.parseLong(pairs[1].trim());
-			int nodeId = Integer.parseInt((String)this.getConfig().get(key));
+			int nodeId = Integer.parseInt(String.valueOf(this.getConfig().get(key)));
 			longRongs[i] = new LongRange(nodeId, longStart, longEnd);
 			i++;
 		}
