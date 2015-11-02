@@ -24,6 +24,8 @@
 package org.opencloudb.response;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.opencloudb.config.Fields;
@@ -105,15 +107,16 @@ public final class ShowSQL {
     private static RowDataPacket getRow(Object sqlStat,long sql, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(LongUtil.toBytes(sql));
-        if ( sqlStat == null ){
+        if (sqlStat==null){
         	row.add(StringUtil.encode(("not fond"), charset));
         	 return row;
         }
-        
         Map<String, Object> data = JdbcSqlStatUtils.getData(sqlStat);
         long executeCount = (Long) data.get("ExecuteCount");
+        //long LastTime = (Long) data.get("LastTime");
         row.add(LongUtil.toBytes(executeCount));
         row.add(StringUtil.encode((String)data.get("SQL"), charset));
+      //  row.add(LongUtil.toBytes(LastTime));
         return row;
     }
 
