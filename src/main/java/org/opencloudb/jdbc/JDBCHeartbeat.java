@@ -1,7 +1,6 @@
 package org.opencloudb.jdbc;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -12,6 +11,7 @@ import org.opencloudb.heartbeat.DBHeartbeat;
 import org.opencloudb.statistic.HeartbeatRecorder;
 
 public class JDBCHeartbeat extends DBHeartbeat{
+	
 	private final ReentrantLock lock;
 	private final JDBCDatasource source;
     private final boolean heartbeatnull;
@@ -21,98 +21,83 @@ public class JDBCHeartbeat extends DBHeartbeat{
     
     private Logger logger = Logger.getLogger(this.getClass());
     
-	public JDBCHeartbeat(JDBCDatasource source)
-	{
+	public JDBCHeartbeat(JDBCDatasource source) {
 		this.source = source;
 		lock = new ReentrantLock(false);
 		this.status = INIT_STATUS;
 		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL().trim();
-		this.heartbeatnull= heartbeatSQL.length()==0;
+		this.heartbeatnull = heartbeatSQL.length() == 0;
 	}
 
 	@Override
-	public void start()
-	{
-		if (this.heartbeatnull){
+	public void start() {
+		if (this.heartbeatnull) {
 			stop();
 			return;
 		}
 		lock.lock();
-		try
-		{
+		try {
 			isStop.compareAndSet(true, false);
 			this.status = DBHeartbeat.OK_STATUS;
-		} finally
-		{
+		} finally {
 			lock.unlock();
 		}
 	}
 
 	@Override
-	public void stop()
-	{
+	public void stop() {
 		lock.lock();
-		try
-		{
-			if (isStop.compareAndSet(false, true))
-			{
+		try {
+			if (isStop.compareAndSet(false, true)) {
 				isChecking.set(false);
 			}
-		} finally
-		{
+		} finally {
 			lock.unlock();
 		}
 	}
 
 	@Override
-	public String getLastActiveTime()
-	{
-	    long t = lastReciveTime;
-	    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return sdf.format(new Date(t));
+	public String getLastActiveTime() {
+		long t = lastReciveTime;
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		return sdf.format(new Date(t));
 	}
 
 	@Override
-	public long getTimeout()
-	{
+	public long getTimeout() {
 		return 0;
 	}
+
 	@Override
 	public HeartbeatRecorder getRecorder() {
-        recorder.set(lastReciveTime - lastSendTime);
-        return recorder;
-    }
-	
+		recorder.set(lastReciveTime - lastSendTime);
+		return recorder;
+	}
+
 	@Override
-	public void heartbeat()
-	{
-	    
+	public void heartbeat() {
+
 		if (isStop.get())
 			return;
 		lastSendTime = System.currentTimeMillis();
 		lock.lock();
-		try
-		{
+		try {
 			isChecking.set(true);
 
-			try (Connection c = source.getConnection())
-			{
-				try (Statement s = c.createStatement())
-				{
+			try (Connection c = source.getConnection()) {
+				try (Statement s = c.createStatement()) {
 					s.execute(heartbeatSQL);
 				}
 			}
 			status = OK_STATUS;
-			if(logger.isDebugEnabled()){
-			    logger.debug("JDBCHeartBeat con query sql: "+heartbeatSQL);
+			if (logger.isDebugEnabled()) {
+				logger.debug("JDBCHeartBeat con query sql: " + heartbeatSQL);
 			}
-			
-		} catch (Exception ex)
-		{
-		    logger.error("JDBCHeartBeat error",ex);
+
+		} catch (Exception ex) {
+			logger.error("JDBCHeartBeat error", ex);
 			status = ERROR_STATUS;
-		} finally
-		{
+		} finally {
 			lock.unlock();
 			this.isChecking.set(false);
 			lastReciveTime = System.currentTimeMillis();

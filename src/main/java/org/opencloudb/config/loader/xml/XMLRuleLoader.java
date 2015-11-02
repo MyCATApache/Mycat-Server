@@ -73,7 +73,7 @@ public class XMLRuleLoader {
 	
 
 	
-	private void load(String dtdFile, String xmlFile) {
+	private void load(String dtdFile, String xmlFile) {		
 		InputStream dtd = null;
 		InputStream xml = null;
 		try {

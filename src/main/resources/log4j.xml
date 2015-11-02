@@ -24,7 +24,7 @@
   <appender name="FILE" class="org.apache.log4j.RollingFileAppender">
     <param name="file" value="${MYCAT_HOME}/logs/mycat.log" />
     <param name="Append" value="false"/>
-    <param name="MaxFileSize" value="10000KB"/>
+    <param name="MaxFileSize" value="10MB"/>
     <param name="MaxBackupIndex" value="10"/> 
     <param name="encoding" value="UTF-8" />
     <layout class="org.apache.log4j.PatternLayout">
