@@ -51,7 +51,7 @@ public class ConfigTest {
 	public void testReadUserBenchmark() {
 		UserConfig userConfig = this.users.get("test");
 		int benchmark = userConfig.getBenchmark();
-		Assert.assertTrue( benchmark == 1111 );
+		Assert.assertTrue( benchmark == 11111 );
 	}
 	
 	
