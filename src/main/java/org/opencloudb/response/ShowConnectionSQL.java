@@ -123,7 +123,7 @@ public final class ShowConnectionSQL {
         long rt = c.getLastReadTime();
         long wt = c.getLastWriteTime();
         row.add(LongUtil.toBytes((wt > rt) ? (wt - rt) : (TimeUtil.currentTimeMillis() - rt)));
-        row.add(null);
+        row.add( StringUtil.encode(c.getExecuteSql(), charset) );
         return row;
     }
 
