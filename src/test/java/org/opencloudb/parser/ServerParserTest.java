@@ -63,6 +63,20 @@ public class ServerParserTest {
     }
 
     @Test
+    public void testMycatComment() {
+        Assert.assertEquals(ServerParse.SELECT, 0xff & ServerParse.parse("/*#mycat:schema=DN1*/SELECT ..."));
+        Assert.assertEquals(ServerParse.UPDATE, 0xff & ServerParse.parse("/*#mycat: schema = DN1 */ UPDATE ..."));
+        Assert.assertEquals(ServerParse.DELETE, 0xff & ServerParse.parse("/*#mycat: sql = SELECT id FROM user */ DELETE ..."));
+    }
+
+    @Test
+    public void testOldMycatComment() {
+        Assert.assertEquals(ServerParse.SELECT, 0xff & ServerParse.parse("/*!mycat:schema=DN1*/SELECT ..."));
+        Assert.assertEquals(ServerParse.UPDATE, 0xff & ServerParse.parse("/*!mycat: schema = DN1 */ UPDATE ..."));
+        Assert.assertEquals(ServerParse.DELETE, 0xff & ServerParse.parse("/*!mycat: sql = SELECT id FROM user */ DELETE ..."));
+    }
+
+    @Test
     public void testIsDelete() {
         Assert.assertEquals(ServerParse.DELETE, ServerParse.parse("delete ..."));
         Assert.assertEquals(ServerParse.DELETE, ServerParse.parse("DELETE ..."));

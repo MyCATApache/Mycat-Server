@@ -25,6 +25,7 @@ package org.opencloudb.heartbeat;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.opencloudb.statistic.DataSourceSyncRecorder;
 import org.opencloudb.statistic.HeartbeatRecorder;
 
 public abstract class DBHeartbeat {
@@ -46,6 +47,7 @@ public abstract class DBHeartbeat {
 	protected int errorCount;
 	protected volatile int status;
 	protected final HeartbeatRecorder recorder = new HeartbeatRecorder();
+	protected final DataSourceSyncRecorder asynRecorder = new DataSourceSyncRecorder();
 
 	private volatile Integer slaveBehindMaster;
 	private volatile int dbSynStatus = DB_SYN_NORMAL;
@@ -122,6 +124,10 @@ public abstract class DBHeartbeat {
 
 	public boolean isNeedHeartbeat() {
 		return heartbeatSQL != null;
+	}
+
+	public DataSourceSyncRecorder getAsynRecorder() {
+		return this.asynRecorder;
 	}
 
 }

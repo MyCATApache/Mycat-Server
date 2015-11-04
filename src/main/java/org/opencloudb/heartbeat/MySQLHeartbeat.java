@@ -169,9 +169,6 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	}
 
 	private void setOk(MySQLDetector detector) {
-
-		recorder.set(detector.getLasstReveivedQryTime()
-				- detector.getLastSendQryTime());
 		switch (status) {
 		case DBHeartbeat.TIMEOUT_STATUS:
 			this.status = DBHeartbeat.INIT_STATUS;

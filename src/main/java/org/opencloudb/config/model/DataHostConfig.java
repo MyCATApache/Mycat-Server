@@ -39,7 +39,9 @@ public class DataHostConfig {
 	public static final int NOT_SWITCH_DS = -1;
 	public static final int DEFAULT_SWITCH_DS = 1;
 	public static final int SYN_STATUS_SWITCH_DS = 2;
+	public static final int CLUSTER_STATUS_SWITCH_DS = 3;
     private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
+    private static final Pattern patternCluster = Pattern.compile("\\s*show\\s+status\\s+like\\s+'wsrep%'",Pattern.CASE_INSENSITIVE);
 	private String name;
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;
@@ -51,6 +53,7 @@ public class DataHostConfig {
 	private final Map<Integer, DBHostConfig[]> readHosts;
 	private String hearbeatSQL;
     private boolean isShowSlaveSql=false;
+    private boolean isShowClusterSql=false;
 	private String connectionInitSql;
     private int slaveThreshold = -1;
 	private final int switchType;
@@ -163,6 +166,11 @@ public class DataHostConfig {
         {
             isShowSlaveSql=true;
         }
+        Matcher matcher2 = patternCluster.matcher(heartbeatSQL);
+        if (matcher2.find())
+        {
+        	isShowClusterSql=true;
+        }
 	}
 
 	public String getFilters() {
@@ -177,9 +185,11 @@ public class DataHostConfig {
 		return logTime;
 	}
 
+	public boolean isShowClusterSql() {
+		return this.isShowClusterSql;
+	}
+
 	public void setLogTime(long logTime) {
 		this.logTime = logTime;
 	}
-
-
 }
