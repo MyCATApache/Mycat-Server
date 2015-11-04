@@ -47,8 +47,8 @@ public class RowDataPacketSorter {
         this.orderCols = orderCols;
     }
 
-    public void addRow(RowDataPacket row) {
-        this.sorted.add(row);
+    public boolean addRow(RowDataPacket row) {
+        return this.sorted.add(row);
 
     }
 

@@ -23,20 +23,16 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
-
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
-import org.opencloudb.mpp.LoadData;
 import org.opencloudb.mpp.MergeCol;
 import org.opencloudb.mysql.LoadDataUtil;
-import org.opencloudb.net.BackendAIOConnection;
 import org.opencloudb.net.mysql.*;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
@@ -73,7 +69,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private int okCount;
 	private final boolean isCallProcedure;
 	private long startTime;
-	private int execCount=0;
+	private int execCount = 0;
+
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
 		super(session);
@@ -104,7 +101,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	protected void reset(int initCount) {
 		super.reset(initCount);
 		this.okCount = initCount;
-		this.execCount=0;
+		this.execCount = 0;
+	}
+
+	public NonBlockingSession getSession() {
+		return session;
 	}
 
 	public void execute() throws Exception {
@@ -119,7 +120,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			lock.unlock();
 		}
 		MycatConfig conf = MycatServer.getInstance().getConfig();
-		startTime=System.currentTimeMillis();
+		startTime = System.currentTimeMillis();
 		for (final RouteResultsetNode node : rrs.getNodes()) {
 			final BackendConnection conn = session.getTarget(node);
 			if (session.tryExistsCon(conn, node)) {
@@ -203,7 +204,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				if (this.isFail() || session.closed()) {
 					tryErrorFinished(true);
 					return;
-				}				
+				}
 				lock.lock();
 				try {
 					if (rrs.isLoadData()) {
@@ -264,14 +265,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				}
 			}
 			if (dataMergeSvr != null) {
-				try
-				{
+				try {
 					dataMergeSvr.outputMergeResult(session, eof);
-				} catch (Exception e)
-				{
+				} catch (Exception e) {
 					handleDataProcessException(e);
 				}
-
 
 			} else {
 				try {
@@ -298,27 +296,20 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			final RouteResultset rrs = dataMergeService.getRrs();
 
 			// 处理limit语句
-			final int start = rrs.getLimitStart();
-			final int end = start + rrs.getLimitSize();
+			int start = rrs.getLimitStart();
+			int end = start + rrs.getLimitSize();
 
-			Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
-			Iterator<RowDataPacket> itor = results.iterator();
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("output merge result ,total data "
-						+ results.size() + " start :" + start + " end :" + end
-						+ " package id start:" + packetId);
+			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
+			List<RowDataPacket> results = dataMergeSvr.getResults(eof);
+			if (rrs.getOrderByCols() == null) {
+				end = results.size();
+				start = 0;
 			}
+			if (end > results.size())
+				end = results.size();
 
-			int i = 0;
-			while (itor.hasNext()) {
-				RowDataPacket row = itor.next();
-				if (i < start) {
-					i++;
-					continue;
-				} else if (i == end) {
-					break;
-				}
-				i++;
+			for (int i = start; i < end; i++) {
+				RowDataPacket row = results.get(i);
 				row.packetId = ++packetId;
 				buffer = row.write(buffer, source, true);
 			}
@@ -342,7 +333,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			byte[] eof, BackendConnection conn) {
 		ServerConnection source = null;
 		execCount++;
-		if (execCount==rrs.getNodes().length){
+		if (execCount == rrs.getNodes().length) {
 			SqlSlowUtil.SqlExecuteTime(startTime, rrs);
 		}
 		if (fieldsReturned) {
@@ -477,7 +468,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			if (dataMergeSvr != null) {
 				final String dnName = ((RouteResultsetNode) conn
 						.getAttachment()).getName();
-				dataMergeSvr.onNewRecord(dnName, row);
+				dataMergeSvr.onNewRecord(dnName, row, conn);
 
 			} else {
 				if (primaryKeyIndex != -1) {// cache
