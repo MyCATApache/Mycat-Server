@@ -79,11 +79,11 @@ public class AuthenticationPacket extends PostgreSQLPacket {
 	}
 
 	public static AuthenticationPacket parse(byte[] packetData) throws IllegalAccessException {
+		ByteBuffer buffer = ByteBuffer.allocate(packetData.length);
 		if (packetData == null || packetData.length == 0 || packetData[0] != PacketMarker.B_Auth.getValue()) {
 			throw new IllegalAccessException("this packetData not is AuthenticationPacket");
 		}
 		AuthenticationPacket packet = new AuthenticationPacket();
-		ByteBuffer buffer = ByteBuffer.allocate(packetData.length);
 		buffer.put(packetData);
 		packet.length = PostgreSQLIOUtils.redInteger4(buffer, 1);
 		packet.authType = AuthType.valueOf(PostgreSQLIOUtils.redInteger4(buffer, 5));
