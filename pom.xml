@@ -378,8 +378,6 @@
                             </platforms>
                             <jvmSettings>
                                 <!-- 启动内存配置 -->
-                                <initialMemorySize>2048</initialMemorySize>
-                                <maxMemorySize>2048</maxMemorySize>
                                 <maxStackSize>128</maxStackSize>
                                 <systemProperties>
                                     <systemProperty>MYCAT_HOME=.</systemProperty>
@@ -394,6 +392,8 @@
                                     <extraArgument>-Dcom.sun.management.jmxremote.port=1984</extraArgument>
                                     <extraArgument>-Dcom.sun.management.jmxremote.authenticate=false</extraArgument>
                                     <extraArgument>-Dcom.sun.management.jmxremote.ssl=false</extraArgument>
+                                    <extraArgument>-Xmx4G</extraArgument>
+                                    <extraArgument>-Xms1G</extraArgument>
                                 </extraArguments>
                             </jvmSettings>
                             <generatorConfigurations>
