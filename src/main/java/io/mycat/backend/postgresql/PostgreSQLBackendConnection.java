@@ -17,6 +17,10 @@ import io.mycat.server.executors.ResponseHandler;
  *
  */
 public class PostgreSQLBackendConnection extends Connection implements BackendConnection{
+	/****
+	 * xa 事物状态
+	 */
+	private volatile int xaStatus = 0;
 
 	public PostgreSQLBackendConnection(SocketChannel channel) {
 		super(channel);
