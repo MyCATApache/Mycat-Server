@@ -78,20 +78,16 @@ public class AuthenticationPacket extends PostgreSQLPacket {
 		this.salt = salt;
 	}
 
-	public static AuthenticationPacket parse(byte[] packetData) throws IllegalAccessException {
-		ByteBuffer buffer = ByteBuffer.allocate(packetData.length);
-		if (packetData == null || packetData.length == 0 || packetData[0] != PacketMarker.B_Auth.getValue()) {
+	public static AuthenticationPacket parse(ByteBuffer buffer, int offset) throws IllegalAccessException {
+		if (buffer.get(offset) != PacketMarker.B_Auth.getValue()) {
 			throw new IllegalAccessException("this packetData not is AuthenticationPacket");
 		}
 		AuthenticationPacket packet = new AuthenticationPacket();
-		buffer.put(packetData);
-		packet.length = PostgreSQLIOUtils.redInteger4(buffer, 1);
-		packet.authType = AuthType.valueOf(PostgreSQLIOUtils.redInteger4(buffer, 5));
-		if(packet.authType == AuthType.MD5Password){
-			packet.salt  = PostgreSQLIOUtils.redByteArray(buffer,9,4);
+		packet.length = PostgreSQLIOUtils.redInteger4(buffer, offset + 1);
+		packet.authType = AuthType.valueOf(PostgreSQLIOUtils.redInteger4(buffer, offset + 1 + 4));
+		if (packet.authType == AuthType.MD5Password) {
+			packet.salt = PostgreSQLIOUtils.redByteArray(buffer, offset + 1 + 4 + 4, 4);
 		}
 		return packet;
-
 	}
-
 }

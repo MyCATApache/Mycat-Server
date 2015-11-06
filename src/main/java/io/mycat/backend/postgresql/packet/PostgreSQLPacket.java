@@ -25,8 +25,40 @@ public abstract class PostgreSQLPacket {
 		/***
 		 * 密码请求包
 		 */
-		F_PwdMess('p')
+		F_PwdMess('p'),
+		
+		
+		/**
+		 * 错误包响应
+		 */
+		B_Error('E'),
+		
+		/***
+		 * 后台传回的秘钥
+		 */
+		B_BackendKey('K'),
+		
+		
+		/***
+		 * paramter 状态信息
+		 */
+		B_ParameterStatus('S'),
+		
+		
+		/**
+		 * 等待查询
+		 */
+		B_ReadyForQuery('Z'),
+		
+		
+		/**
+		 * 警告响应
+		 */
+		B_NoticeResponse('N')
 		;
+		
+		
+		
 		
 		private char value;
 
