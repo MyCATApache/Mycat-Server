@@ -608,6 +608,9 @@ public class LocalLoader implements ConfigLoader {
 		String nodeUrl = node.getAttribute("url");
 		String user = node.getAttribute("user");
 		String password = node.getAttribute("password");
+		String weightStr = node.getAttribute("weight");
+		int weight = "".equals(weightStr) ? PhysicalDBPool.WEIGHT : Integer.valueOf(weightStr) ;
+		
 		String ip = null;
 		int port = 0;
 		if (empty(nodeHost) || empty(nodeUrl) || empty(user)) {
@@ -633,13 +636,13 @@ public class LocalLoader implements ConfigLoader {
 			port = url.getPort();
 		}
 
-		DBHostConfig conf = new DBHostConfig(nodeHost, ip, port, nodeUrl, user,
-				password);
+		DBHostConfig conf = new DBHostConfig(nodeHost, ip, port, nodeUrl, user, password);
 		conf.setDbType(dbType);
 		conf.setMaxCon(maxCon);
 		conf.setMinCon(minCon);
 		conf.setFilters(filters);
 		conf.setLogTime(logTime);
+		conf.setWeight(weight); 	//新增权重
 		return conf;
 	}
 

@@ -163,6 +163,12 @@ public class GenalMySQLConnection extends Connection {
 	}
 
 	public boolean setCharset(String charset) {
+		
+		//修复PHP字符集设置错误, 如： set names 'utf8'
+		if ( charset != null ) {			
+			charset = charset.replace("'", "");
+		}
+		
 		int ci = CharsetUtil.getIndex(charset);
 		if (ci > 0) {
 			this.charset = charset.equalsIgnoreCase("utf8mb4") ? "utf8"
