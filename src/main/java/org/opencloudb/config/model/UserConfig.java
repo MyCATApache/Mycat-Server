@@ -32,7 +32,10 @@ public class UserConfig {
 
     private String name;
     private String password;
-    private boolean readOnly=false;
+    private int benchmark = 0;		// 负载限制, 默认0表示不限制
+    private String benchmarkSmsTel;
+    
+    private boolean readOnly = false;
     
     public boolean isReadOnly() {
 		return readOnly;
@@ -60,7 +63,23 @@ public class UserConfig {
         this.password = password;
     }
 
-    public Set<String> getSchemas() {
+	public int getBenchmark() {
+		return benchmark;
+	}
+
+	public void setBenchmark(int benchmark) {
+		this.benchmark = benchmark;
+	}
+
+	public String getBenchmarkSmsTel() {
+		return benchmarkSmsTel;
+	}
+
+	public void setBenchmarkSmsTel(String benchmarkSmsTel) {
+		this.benchmarkSmsTel = benchmarkSmsTel;
+	}
+
+	public Set<String> getSchemas() {
         return schemas;
     }
 

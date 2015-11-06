@@ -139,6 +139,7 @@ public final class ShowHelp {
         helps.put("show @@slow where schema = ?", "Report schema slow sql");
         helps.put("show @@slow where datanode = ?", "Report datanode slow sql");
         helps.put("show @@sysparam", "Report system param");
+        helps.put("show @@syslog limit=?", "Report system mycat.log");
         // switch
         helps.put("switch @@datasource name:index", "Switch dataSource");
 

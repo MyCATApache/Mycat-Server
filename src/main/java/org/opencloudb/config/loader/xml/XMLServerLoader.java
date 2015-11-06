@@ -155,10 +155,22 @@ public class XMLServerLoader {
                 user.setName(name);
                 Map<String, Object> props = ConfigUtil.loadElements(e);
 				user.setPassword((String) props.get("password"));
+				
+				String benchmark = (String) props.get("benchmark");
+				if(null != benchmark) {
+					user.setBenchmark( Integer.parseInt(benchmark) );
+				}
+				
+				String benchmarkSmsTel = (String) props.get("benchmarkSmsTel");
+				if(null != benchmarkSmsTel) {
+					user.setBenchmarkSmsTel( benchmarkSmsTel );
+				}
+				
 				String readOnly = (String) props.get("readOnly");
 				if (null != readOnly) {
 					user.setReadOnly(Boolean.valueOf(readOnly));
 				}
+				
 				String schemas = (String) props.get("schemas");
                 if (schemas != null) {
                     String[] strArray = SplitUtil.split(schemas, ',', true);
