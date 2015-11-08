@@ -37,6 +37,7 @@ public class DBHostConfig {
     private String dbType;
     private String filters = "mergeStat";
     private long logTime = 300000;
+    private int weight;				
 
     public DBHostConfig() {
         super();
@@ -148,6 +149,14 @@ public class DBHostConfig {
     public void setLogTime(long logTime) {
         this.logTime = logTime;
     }
+    
+	public int getWeight() {
+		return weight;
+	}
+
+	public void setWeight(int weight) {
+		this.weight = weight;
+	}
 
     @Override
     public String toString() {
