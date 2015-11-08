@@ -1,7 +1,6 @@
 package io.mycat.backend.postgresql.packet;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 public class ParameterStatus extends PostgreSQLPacket {
 	/**
@@ -34,7 +33,7 @@ public class ParameterStatus extends PostgreSQLPacket {
 		for (int i = 0; i < bs.length; i++) {
 			bs[i] = buffer.get(offset + 1 + 4 + i);
 		}
-		String _val = new String(bs, Charset.forName("UTF-8"));
+		String _val = new String(bs, UTF8);
 		String[] vs = _val.split(" ");
 		ps.key = vs[0];
 		ps.value = _val.substring(ps.key.length());

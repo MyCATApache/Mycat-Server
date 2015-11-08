@@ -21,7 +21,7 @@ public class PasswordMessage extends PostgreSQLPacket {
 	public PasswordMessage(String user, String password, AuthType aut, byte[] salt)
 			throws UnsupportedEncodingException {
 		if (aut == AuthType.MD5Password) {
-			this.password = MD5Digest.encode(user.getBytes("UTF-8"), password.getBytes("UTF-8"), salt);
+			this.password = MD5Digest.encode(user.getBytes(UTF8), password.getBytes(UTF8), salt);
 		}
 	}
 

@@ -41,7 +41,7 @@ public class ErrorResponse extends PostgreSQLPacket {
 			for(int i =0;i<str.length;i++){
 				str[i] = buffer.get(offset + 1 + 4 + 4 +i);
 			}
-			err.errMsg = new String(str, "utf-8");
+			err.errMsg = new String(str,UTF8);
 		}
 		return err;
 	}

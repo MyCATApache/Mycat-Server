@@ -27,6 +27,7 @@ import io.mycat.backend.postgresql.packet.NoticeResponse;
 import io.mycat.backend.postgresql.packet.ParameterStatus;
 import io.mycat.backend.postgresql.packet.PasswordMessage;
 import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
+import io.mycat.backend.postgresql.packet.Query;
 import io.mycat.backend.postgresql.packet.ReadyForQuery;
 import io.mycat.backend.postgresql.utils.PostgreSQLIOUtils;
 
@@ -45,7 +46,7 @@ public class PostgresqlKnightriders {
 		List<String[]> paramList = new ArrayList<String[]>();
 		String user = "postgres";
 		String password = "coollf";
-		String database = "odoo";
+		String database = "Coollf";
 		String appName = "MyCat-Server";
 		String assumeMinServerVersion = "9.0.0";
 
@@ -92,7 +93,18 @@ public class PostgresqlKnightriders {
 						pak.write(buffer);
 						socket.getOutputStream().write(buffer.array());
 						List<PostgreSQLPacket> sqlPacket = rec(socket);
-						System.out.println(JSON.toJSONString(sqlPacket));		
+						System.out.println(JSON.toJSONString(sqlPacket));
+						
+						Query query = new Query("SELECT * from  ump_coupon"+"\0");
+						
+						ByteBuffer oby = ByteBuffer.allocate(query.getLength() + 1);
+						query.write(oby);
+						
+						socket.getOutputStream().write(oby.array());
+						
+						sqlPacket = rec(socket);
+						System.out.println(JSON.toJSONString(sqlPacket));
+						
 					}
 				}
 			}

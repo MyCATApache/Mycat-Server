@@ -38,7 +38,7 @@ public class NoticeResponse extends PostgreSQLPacket {
 			for (int i = 0; i < str.length; i++) {
 				str[i] = buffer.get(offset + 1 + 4 + 1 + i);
 			}
-			noticeResponse.msg = new String(str, Charset.forName("UTF-8"));
+			noticeResponse.msg = new String(str,UTF8);
 		}
 		return noticeResponse;
 	}
