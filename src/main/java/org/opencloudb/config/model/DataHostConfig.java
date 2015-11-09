@@ -59,9 +59,10 @@ public class DataHostConfig {
 	private final int switchType;
 	private String filters="mergeStat";
 	private long logTime=300000;
+	private boolean tempReadHostAvailable = false;  //如果写服务挂掉, 临时读服务是否继续可用
 
 	public DataHostConfig(String name, String dbType, String dbDriver,
-			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold) {
+			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold, boolean tempReadHostAvailable) {
 		super();
 		this.name = name;
 		this.dbType = dbType;
@@ -70,6 +71,11 @@ public class DataHostConfig {
 		this.readHosts = readHosts;
 		this.switchType=switchType;
 		this.slaveThreshold=slaveThreshold;
+		this.tempReadHostAvailable = tempReadHostAvailable;
+	}
+	
+	public boolean isTempReadHostAvailable() {
+		return this.tempReadHostAvailable;
 	}
 
 	public int getSlaveThreshold() {
