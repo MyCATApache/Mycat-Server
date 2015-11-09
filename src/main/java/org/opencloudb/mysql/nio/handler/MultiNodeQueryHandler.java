@@ -122,7 +122,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		startTime = System.currentTimeMillis();
 		for (final RouteResultsetNode node : rrs.getNodes()) {
-			final BackendConnection conn = session.getTarget(node);
+			 BackendConnection conn = session.getTarget(node);
 			if (session.tryExistsCon(conn, node)) {
 				_execute(conn, node);
 			} else {
@@ -465,23 +465,25 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 		lock.lock();
 		try {
+			RouteResultsetNode rNode = (RouteResultsetNode) conn
+					.getAttachment();
+			String dataNode = rNode.getName();
 			if (dataMergeSvr != null) {
-				final String dnName = ((RouteResultsetNode) conn
-						.getAttachment()).getName();
-				dataMergeSvr.onNewRecord(dnName, row, conn);
-
+				if (dataMergeSvr.onNewRecord(dataNode, row)) {
+					isClosedByDiscard.set(true);
+					canClose(conn, false);
+					conn.discardClose("discard data");
+					LOGGER.warn(conn);
+				}
 			} else {
-				if (primaryKeyIndex != -1) {// cache
-											// primaryKey->
-											// dataNode
+				// cache primaryKey-> dataNode
+				if (primaryKeyIndex != -1) {
 					RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 					rowDataPkg.read(row);
 					String primaryKey = new String(
 							rowDataPkg.fieldValues.get(primaryKeyIndex));
 					LayerCachePool pool = MycatServer.getInstance()
 							.getRouterservice().getTableId2DataNodeCache();
-					String dataNode = ((RouteResultsetNode) conn
-							.getAttachment()).getName();
 					pool.putIfAbsent(priamaryKeyTable, primaryKey, dataNode);
 				}
 				row[3] = ++packetId;
@@ -489,7 +491,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			}
 
 		} catch (Exception e) {
-
 			handleDataProcessException(e);
 		} finally {
 			lock.unlock();

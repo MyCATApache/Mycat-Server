@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
-import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.mpp.tmp.RowDataSorter;
 import org.opencloudb.mysql.BufferUtil;
 import org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler;
@@ -212,23 +211,19 @@ public class DataMergeService implements Runnable {
 	 *            raw data
 	 * @param conn
 	 */
-	public boolean onNewRecord(String dataNode, byte[] rowData,
-			BackendConnection conn) {
+	public boolean onNewRecord(String dataNode, byte[] rowData) {
 		// 对于无需排序的SQL,取前getLimitSize条就足够
 		if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()) {
 			packs.add(END_FLAG_PACK);
-			conn.close("discard data");
 			return true;
 		}
 		// 对于需要排序的数据,由于mysql传递过来的数据是有序的,
 		// 如果某个节点的当前数据已经不会进入,后续的数据也不会入堆
 		if (canDiscard.size() == rrs.getNodes().length) {
 			packs.add(END_FLAG_PACK);
-			conn.close("discard data");
 			return true;
 		}
 		if (canDiscard.get(dataNode) != null) {
-			conn.close("discard data");
 			return true;
 		}
 		PackWraper data = new PackWraper();
@@ -268,13 +263,14 @@ public class DataMergeService implements Runnable {
 	@Override
 	public void run() {
 
+		int warningCount = 0;
 		EOFPacket eofp = new EOFPacket();
 		ByteBuffer eof = ByteBuffer.allocate(9);
 		BufferUtil.writeUB3(eof, eofp.calcPacketSize());
 		eof.put(eofp.packetId);
 		eof.put(eofp.fieldCount);
+		BufferUtil.writeUB2(eof, warningCount);
 		BufferUtil.writeUB2(eof, eofp.status);
-		BufferUtil.writeUB2(eof, eofp.warningCount);
 		ServerConnection source = multiQueryHandler.getSession().getSource();
 
 		while (!Thread.interrupted()) {
