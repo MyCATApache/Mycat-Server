@@ -38,7 +38,6 @@ import org.opencloudb.net.NIOProcessor;
 import org.opencloudb.net.mysql.AuthPacket;
 import org.opencloudb.net.mysql.MySQLPacket;
 import org.opencloudb.net.mysql.QuitPacket;
-import org.opencloudb.sms.SmsThread;
 
 /**
  * 前端认证处理器
@@ -112,19 +111,7 @@ public class FrontendAuthenticator implements NIOHandler {
 				forntedsLength += p.getForntedsLength();
 			}
 		
-			if ( forntedsLength >= benchmark ) {				
-				//预警通知
-				String tel = source.getPrivileges().getBenchmarkSmsTel(user);
-				if ( tel != null ) {
-					
-					StringBuffer cBuffer = new StringBuffer();
-					cBuffer.append("mycat access denied user=").append( user ).append(",");
-					cBuffer.append("limit=").append( benchmark ).append(",");
-					cBuffer.append("fornteds=").append( forntedsLength ).append(",");
-					cBuffer.append("so service degrade");
-
-					new Thread( new SmsThread(tel, cBuffer.toString()) ).start();;
-				}				
+			if ( forntedsLength >= benchmark ) {							
 				return true;
 			}			
     	}
