@@ -30,6 +30,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,6 +76,7 @@ public class DataMergeService implements Runnable {
 	private List<RowDataPacket> result = new Vector<RowDataPacket>();
 	private static Logger LOGGER = Logger.getLogger(DataMergeService.class);
 	private BlockingQueue<PackWraper> packs = new LinkedBlockingQueue<PackWraper>();
+	private ConcurrentHashMap<String, byte[]> minData = new ConcurrentHashMap<String, byte[]>();
 	private ConcurrentHashMap<String, Boolean> canDiscard = new ConcurrentHashMap<String, Boolean>();
 
 	public DataMergeService(MultiNodeQueryHandler handler, RouteResultset rrs) {
@@ -87,36 +90,6 @@ public class DataMergeService implements Runnable {
 
 	public void outputMergeResult(NonBlockingSession session, byte[] eof) {
 		packs.add(END_FLAG_PACK);
-	}
-
-	/**
-	 * return merged data
-	 * 
-	 * @return (最多i*(offset+size)行数据)
-	 */
-	public List<RowDataPacket> getResults(byte[] eof) {
-		List<RowDataPacket> tmpResult = result;
-		if (this.grouper != null) {
-			tmpResult = grouper.getResult();
-			grouper = null;
-		}
-		if (sorter != null) {
-			// 处理grouper处理后的数据
-			if (tmpResult != null) {
-				Iterator<RowDataPacket> itor = tmpResult.iterator();
-				while (itor.hasNext()) {
-					sorter.addRow(itor.next());
-					itor.remove();
-				}
-			}
-			tmpResult = sorter.getSortedResult();
-			sorter = null;
-		}
-		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("prepare mpp merge result for " + rrs.getStatement());
-		}
-
-		return tmpResult;
 	}
 
 	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
@@ -214,12 +187,20 @@ public class DataMergeService implements Runnable {
 	public boolean onNewRecord(String dataNode, byte[] rowData) {
 		// 对于无需排序的SQL,取前getLimitSize条就足够
 		if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()) {
-			packs.add(END_FLAG_PACK);
 			return true;
 		}
+		int length = rrs.getNodes().length;
+
+		if (minData.size() < length) {
+			minData.putIfAbsent(dataNode, rowData);
+			if (minData.size() >= length-1) {
+				getMinNode(minData);
+			}
+		}
+
 		// 对于需要排序的数据,由于mysql传递过来的数据是有序的,
 		// 如果某个节点的当前数据已经不会进入,后续的数据也不会入堆
-		if (canDiscard.size() == rrs.getNodes().length) {
+		if (canDiscard.size() == length) {
 			packs.add(END_FLAG_PACK);
 			return true;
 		}
@@ -232,6 +213,30 @@ public class DataMergeService implements Runnable {
 		packs.add(data);
 		areadyAdd.getAndIncrement();
 		return false;
+	}
+
+	/**
+	 * @param minData
+	 */
+	private void getMinNode(ConcurrentHashMap<String, byte[]> data) {
+		String minNode = null;
+		byte[] minData = null;
+		Set<Entry<String, byte[]>> entrySet = data.entrySet();
+		for (Entry<String, byte[]> entry : entrySet) {
+			if (minNode == null) {
+				minData = entry.getValue();
+				minNode = entry.getKey();
+			} else {
+				RowDataPacket row = new RowDataPacket(fieldCount);
+				row.read(minData);
+				RowDataPacket row2 = new RowDataPacket(fieldCount);
+				row2.read(entry.getValue());
+				if (sorter.getCmp().compare(row, row2) > 0) {
+					minData = entry.getValue();
+					minNode = entry.getKey();
+				}
+			}
+		}
 	}
 
 	private static int[] toColumnIndex(String[] columns,
@@ -254,15 +259,14 @@ public class DataMergeService implements Runnable {
 	 * release resources
 	 */
 	public void clear() {
-		hasOrderBy = false;
 		result.clear();
+		hasOrderBy = false;
 		grouper = null;
 		sorter = null;
 	}
 
 	@Override
 	public void run() {
-
 		int warningCount = 0;
 		EOFPacket eofp = new EOFPacket();
 		ByteBuffer eof = ByteBuffer.allocate(9);
@@ -277,7 +281,6 @@ public class DataMergeService implements Runnable {
 			try {
 				PackWraper pack = packs.take();
 				if (pack == END_FLAG_PACK) {
-					multiQueryHandler.outputMergeResult(source, eof.array());
 					break;
 				}
 				RowDataPacket row = new RowDataPacket(fieldCount);
@@ -295,6 +298,37 @@ public class DataMergeService implements Runnable {
 				LOGGER.error("Merge multi data error", e);
 			}
 		}
+		byte[] array = eof.array();
+		multiQueryHandler.outputMergeResult(source, array, getResults(array));
 	}
 
+	/**
+	 * return merged data
+	 * 
+	 * @return (最多i*(offset+size)行数据)
+	 */
+	private List<RowDataPacket> getResults(byte[] eof) {
+		List<RowDataPacket> tmpResult = result;
+		if (this.grouper != null) {
+			tmpResult = grouper.getResult();
+			grouper = null;
+		}
+		if (sorter != null) {
+			// 处理grouper处理后的数据
+			if (tmpResult != null) {
+				Iterator<RowDataPacket> itor = tmpResult.iterator();
+				while (itor.hasNext()) {
+					sorter.addRow(itor.next());
+					itor.remove();
+				}
+			}
+			tmpResult = sorter.getSortedResult();
+			sorter = null;
+		}
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("prepare mpp merge result for " + rrs.getStatement());
+		}
+
+		return tmpResult;
+	}
 }

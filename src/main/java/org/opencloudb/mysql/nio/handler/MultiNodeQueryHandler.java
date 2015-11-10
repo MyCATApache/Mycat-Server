@@ -122,7 +122,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		startTime = System.currentTimeMillis();
 		for (final RouteResultsetNode node : rrs.getNodes()) {
-			 BackendConnection conn = session.getTarget(node);
+			BackendConnection conn = session.getTarget(node);
 			if (session.tryExistsCon(conn, node)) {
 				_execute(conn, node);
 			} else {
@@ -288,19 +288,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	}
 
 	public void outputMergeResult(final ServerConnection source,
-			final byte[] eof) {
+			final byte[] eof, List<RowDataPacket> results) {
 		try {
 			lock.lock();
 			ByteBuffer buffer = session.getSource().allocate();
-			final DataMergeService dataMergeService = this.dataMergeSvr;
-			final RouteResultset rrs = dataMergeService.getRrs();
+			final RouteResultset rrs = this.dataMergeSvr.getRrs();
 
 			// 处理limit语句
 			int start = rrs.getLimitStart();
 			int end = start + rrs.getLimitSize();
 
 			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
-			List<RowDataPacket> results = dataMergeSvr.getResults(eof);
 			if (rrs.getOrderByCols() == null) {
 				end = results.size();
 				start = 0;
@@ -471,9 +469,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			if (dataMergeSvr != null) {
 				if (dataMergeSvr.onNewRecord(dataNode, row)) {
 					isClosedByDiscard.set(true);
-					canClose(conn, false);
-					conn.discardClose("discard data");
-					LOGGER.warn(conn);
+					// canClose(conn, false);
+					// conn.discardClose("discard data");
+					// LOGGER.warn(conn);
 				}
 			} else {
 				// cache primaryKey-> dataNode
