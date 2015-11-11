@@ -30,7 +30,19 @@ public class SqlStat {
 		Sql[] newsqls = Arrays.copyOf(sqls, sqls.length);
 		Arrays.sort(newsqls, new SqlComparator());
 		return newsqls;
-
+	}
+	
+	public void reset() {
+		final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            for (int i = 0; i < count; i++) {
+            	sqls[i] = null;
+            }
+            index = 0;
+        } finally {
+            lock.unlock();
+        }
 	}
 
     public void add(String sql, long startTime, long executeTime ) {

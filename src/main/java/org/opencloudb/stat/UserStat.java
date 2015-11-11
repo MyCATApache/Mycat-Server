@@ -57,6 +57,13 @@ public class UserStat {
 	public SqlStat getSqlStat() {
 		return sqlStat;
 	}
+	
+	public void reset() {
+		
+		this.sqlRecorder.clear();
+		this.rwStat.reset();
+		this.sqlStat.reset();
+	}
 
 	/**
 	 * 更新状态

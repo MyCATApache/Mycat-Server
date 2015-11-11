@@ -43,13 +43,13 @@ public class RWStat {
 	
 	public void reset() {
 		
-		rCount.set(0);
-		wCount.set(0);
+		this.rCount.set(0);
+		this.wCount.set(0);
 		
-		lastExecuteTime = 0;
+		this.lastExecuteTime = 0;
 		
-		timeHistogram.reset();
-		executeHistogram.reset();
+		this.timeHistogram.reset();
+		this.executeHistogram.reset();
 	}
 	
 	public void add(int sqlType, long time, long now) {
