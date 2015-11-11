@@ -30,8 +30,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,7 +74,6 @@ public class DataMergeService implements Runnable {
 	private List<RowDataPacket> result = new Vector<RowDataPacket>();
 	private static Logger LOGGER = Logger.getLogger(DataMergeService.class);
 	private BlockingQueue<PackWraper> packs = new LinkedBlockingQueue<PackWraper>();
-	private ConcurrentHashMap<String, byte[]> minData = new ConcurrentHashMap<String, byte[]>();
 	private ConcurrentHashMap<String, Boolean> canDiscard = new ConcurrentHashMap<String, Boolean>();
 
 	public DataMergeService(MultiNodeQueryHandler handler, RouteResultset rrs) {
@@ -189,18 +186,10 @@ public class DataMergeService implements Runnable {
 		if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()) {
 			return true;
 		}
-		int length = rrs.getNodes().length;
-
-		if (minData.size() < length) {
-			minData.putIfAbsent(dataNode, rowData);
-			if (minData.size() >= length-1) {
-				getMinNode(minData);
-			}
-		}
-
 		// 对于需要排序的数据,由于mysql传递过来的数据是有序的,
 		// 如果某个节点的当前数据已经不会进入,后续的数据也不会入堆
-		if (canDiscard.size() == length) {
+		if (canDiscard.size() == rrs.getNodes().length) {
+			LOGGER.error("now we output to client");
 			packs.add(END_FLAG_PACK);
 			return true;
 		}
@@ -213,30 +202,6 @@ public class DataMergeService implements Runnable {
 		packs.add(data);
 		areadyAdd.getAndIncrement();
 		return false;
-	}
-
-	/**
-	 * @param minData
-	 */
-	private void getMinNode(ConcurrentHashMap<String, byte[]> data) {
-		String minNode = null;
-		byte[] minData = null;
-		Set<Entry<String, byte[]>> entrySet = data.entrySet();
-		for (Entry<String, byte[]> entry : entrySet) {
-			if (minNode == null) {
-				minData = entry.getValue();
-				minNode = entry.getKey();
-			} else {
-				RowDataPacket row = new RowDataPacket(fieldCount);
-				row.read(minData);
-				RowDataPacket row2 = new RowDataPacket(fieldCount);
-				row2.read(entry.getValue());
-				if (sorter.getCmp().compare(row, row2) > 0) {
-					minData = entry.getValue();
-					minNode = entry.getKey();
-				}
-			}
-		}
 	}
 
 	private static int[] toColumnIndex(String[] columns,
@@ -267,6 +232,7 @@ public class DataMergeService implements Runnable {
 
 	@Override
 	public void run() {
+
 		int warningCount = 0;
 		EOFPacket eofp = new EOFPacket();
 		ByteBuffer eof = ByteBuffer.allocate(9);
