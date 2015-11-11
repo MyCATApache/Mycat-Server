@@ -45,6 +45,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 	protected volatile String error;
 	protected byte packetId;
 	protected final AtomicBoolean errorRepsponsed = new AtomicBoolean(false);
+	protected final AtomicBoolean isClosedByDiscard = new AtomicBoolean(false);
 
 	public MultiNodeHandler(NonBlockingSession session) {
 		if (session == null) {
@@ -205,6 +206,10 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 	}
 
 	public void connectionClose(BackendConnection conn, String reason) {
+		if(isClosedByDiscard.get()){
+			LOGGER.info(reason);
+			return;
+		}
 		this.setFail("closed connection:" + reason + " con:" + conn);
 		boolean finished = false;
 		lock.lock();
