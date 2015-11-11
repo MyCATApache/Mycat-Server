@@ -1,7 +1,6 @@
 package org.opencloudb.interceptor.impl;
 
 import org.opencloudb.interceptor.SQLInterceptor;
-import org.opencloudb.stat.impl.MysqlStatFilter;
 
 public class StatSqlInterceptor implements SQLInterceptor {
 

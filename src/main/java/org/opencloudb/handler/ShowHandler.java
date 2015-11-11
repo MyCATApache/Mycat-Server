@@ -47,6 +47,7 @@ import org.opencloudb.response.ShowSQL;
 import org.opencloudb.response.ShowSQLDetail;
 import org.opencloudb.response.ShowSQLExecute;
 import org.opencloudb.response.ShowSQLSlow;
+import org.opencloudb.response.ShowSQLSum;
 import org.opencloudb.response.ShowServer;
 import org.opencloudb.response.ShowSession;
 import org.opencloudb.response.ShowSysLog;
@@ -143,6 +144,9 @@ public final class ShowHandler {
 			break;
 		case ManagerParseShow.SQL_SLOW:
 			ShowSQLSlow.execute(c);
+			break;
+		case ManagerParseShow.SQL_SUM:
+			ShowSQLSum.execute(c);
 			break;
 		case ManagerParseShow.SLOW_DATANODE: {
 			String name = stmt.substring(rs >>> 8).trim();

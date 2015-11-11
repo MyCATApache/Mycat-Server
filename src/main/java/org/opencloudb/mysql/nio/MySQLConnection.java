@@ -345,9 +345,7 @@ public class MySQLConnection extends BackendAIOConnection {
 			return false;
 		}
 
-		private void updateConnectionInfo(MySQLConnection conn)
-
-		{
+		private void updateConnectionInfo(MySQLConnection conn)	{
 			conn.xaStatus = (xaStarted == true) ? 1 : 0;
 			if (schema != null) {
 				conn.schema = schema;
@@ -363,7 +361,6 @@ public class MySQLConnection extends BackendAIOConnection {
 				conn.autocommit = autocommit;
 			}
 		}
-
 	}
 
 	/**

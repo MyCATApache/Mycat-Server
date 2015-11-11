@@ -31,6 +31,7 @@ public final class SQLRecord implements Comparable<SQLRecord> {
     public String host;
     public String schema;
     public String statement;
+    
     public long startTime;
     public long executeTime;
     public String dataNode;
@@ -48,10 +49,7 @@ public final class SQLRecord implements Comparable<SQLRecord> {
 
     @Override
     public int hashCode() {
-        // TODO Auto-generated method stub
         return super.hashCode();
     }
-    
-    
 
 }

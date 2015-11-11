@@ -23,7 +23,6 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -31,7 +30,6 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mysql.LoadDataUtil;
@@ -41,7 +39,7 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
-import org.opencloudb.stat.SqlSlowUtil;
+import org.opencloudb.stat.UserStatFilter;
 import org.opencloudb.util.StringUtil;
 
 /**
@@ -49,8 +47,9 @@ import org.opencloudb.util.StringUtil;
  */
 public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		LoadDataResponseHandler {
-	private static final Logger LOGGER = Logger
-			.getLogger(SingleNodeHandler.class);
+	
+	private static final Logger LOGGER = Logger.getLogger(SingleNodeHandler.class);
+	
 	private final RouteResultsetNode node;
 	private final RouteResultset rrs;
 	private final NonBlockingSession session;
@@ -112,7 +111,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	}
 
 	public void execute() throws Exception {
-		startTime=System.currentTimeMillis();
+		this.startTime = System.currentTimeMillis();
 		ServerConnection sc = session.getSource();
 		this.isRunning = true;
 		this.packetId = 0;
@@ -202,8 +201,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public void okResponse(byte[] data, BackendConnection conn) {        
 		boolean executeResponse = conn.syncAndExcute();		
 		if (executeResponse) {			
-			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
-					false);
+			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
 			endRunning();
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
@@ -221,6 +219,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			recycleResources();
 			source.setLastInsertId(ok.insertId);
 			ok.write(source);
+			
+			//TODO: add by zhuam
+			//记录状态
+			UserStatFilter.getInstance().updateStat(session.getSource().getUser(), 
+					rrs.getSqlType(), rrs.getStatement(), startTime);
  
 		}
 	}
@@ -258,7 +261,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
-		SqlSlowUtil.SqlExecuteTime(startTime, rrs);
+		
+		//记录状态
+		UserStatFilter.getInstance().updateStat(session.getSource().getUser(), 
+				rrs.getSqlType(), rrs.getStatement(), startTime);
+		
 		header[3] = ++packetId;
 		ServerConnection source = session.getSource();
 		buffer = source.writeToBuffer(header, allocBuffer());
