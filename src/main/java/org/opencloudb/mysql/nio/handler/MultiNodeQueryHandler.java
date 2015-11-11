@@ -28,22 +28,19 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
-import org.opencloudb.mpp.LoadData;
 import org.opencloudb.mpp.MergeCol;
 import org.opencloudb.mysql.LoadDataUtil;
-import org.opencloudb.net.BackendAIOConnection;
 import org.opencloudb.net.mysql.*;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
-import org.opencloudb.stat.SqlSlowUtil;
+import org.opencloudb.stat.UserStatFilter;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -55,8 +52,8 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		LoadDataResponseHandler {
-	private static final Logger LOGGER = Logger
-			.getLogger(MultiNodeQueryHandler.class);
+	
+	private static final Logger LOGGER = Logger.getLogger(MultiNodeQueryHandler.class);
 
 	private final RouteResultset rrs;
 	private final NonBlockingSession session;
@@ -73,7 +70,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private int okCount;
 	private final boolean isCallProcedure;
 	private long startTime;
-	private int execCount=0;
+	private int execCount = 0;
+	
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
 		super(session);
@@ -118,8 +116,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		} finally {
 			lock.unlock();
 		}
+		
 		MycatConfig conf = MycatServer.getInstance().getConfig();
-		startTime=System.currentTimeMillis();
+		this.startTime = System.currentTimeMillis();
 		for (final RouteResultsetNode node : rrs.getNodes()) {
 			final BackendConnection conn = session.getTarget(node);
 			if (session.tryExistsCon(conn, node)) {
@@ -342,8 +341,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			byte[] eof, BackendConnection conn) {
 		ServerConnection source = null;
 		execCount++;
-		if (execCount==rrs.getNodes().length){
-			SqlSlowUtil.SqlExecuteTime(startTime, rrs);
+		if (execCount == rrs.getNodes().length){
+			//记录状态
+			UserStatFilter.getInstance().updateStat(session.getSource().getUser(), 
+					rrs.getSqlType(), rrs.getStatement(), startTime);
 		}
 		if (fieldsReturned) {
 			return;
@@ -514,7 +515,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 
 	@Override
 	public void writeQueueAvailable() {
-
 	}
 
 	@Override

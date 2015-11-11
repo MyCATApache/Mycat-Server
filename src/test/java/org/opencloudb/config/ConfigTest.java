@@ -45,6 +45,16 @@ public class ConfigTest {
 	}
 	
 	/**
+	 * 测试 临时读可用 配置
+	 */
+	@Test
+	public void testTempReadHostAvailable() {
+		PhysicalDBPool pool = this.dataHosts.get("localhost2");   
+		DataHostConfig hostConfig = pool.getSource().getHostConfig();
+		Assert.assertTrue( hostConfig.isTempReadHostAvailable() == true );
+	}
+	
+	/**
 	 * 测试 用户服务降级 拒连 配置
 	 */
 	@Test
