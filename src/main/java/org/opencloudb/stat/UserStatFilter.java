@@ -12,8 +12,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class UserStatFilter {
 	
-	private final static int MAX_SIZE = 500;	
-	
 	private LinkedHashMap<String, UserStat> userStatMap = new LinkedHashMap<String, UserStat>();	
 	private ReentrantReadWriteLock  lock  = new ReentrantReadWriteLock();
 	
@@ -23,24 +21,16 @@ public class UserStatFilter {
         return instance;
     }  
 	
-	private UserStatFilter() {		
-		
-		this.userStatMap = new LinkedHashMap<String, UserStat>(16, 0.75f, false) {			
-			private static final long serialVersionUID = 1L;			
-			protected boolean removeEldestEntry(Map.Entry<String, UserStat> eldest) {
-				boolean remove = (size() > MAX_SIZE);
-				return remove;
-			}
-		};
-	}
-	
+	/**
+	 * update status
+	 */
 	public void updateStat(String user, int sqlType, String sql, long startTime) {	
 		
-		UserStat userStat = createUserStat(user);
+		UserStat userStat = getUserStat(user);
 		userStat.update(sqlType, sql, startTime);		
 	}
 	
-	private UserStat createUserStat(String user) {
+	private UserStat getUserStat(String user) {
         lock.writeLock().lock();
         try {
         	UserStat userStat = userStatMap.get(user);
@@ -53,20 +43,6 @@ public class UserStatFilter {
             lock.writeLock().unlock();
         }
     }	
-	
-	public UserStat getUserStatByUser(String user) {		
-		lock.readLock().lock();
-        try {
-            for (Map.Entry<String, UserStat> entry : this.userStatMap.entrySet()) {
-                if ( entry.getValue().getUser().equals(user) ) {
-                    return entry.getValue();
-                }
-            }
-            return null;
-        } finally {
-            lock.readLock().unlock();
-        }
-	}
 	
 	public Map<String, UserStat> getUserStatMap() {
 		Map<String, UserStat> map = new LinkedHashMap<String, UserStat>(userStatMap.size());
