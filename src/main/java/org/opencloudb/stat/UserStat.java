@@ -85,10 +85,10 @@ public class UserStat {
 		}
 		
 		//执行状态记录
-		rwStat.record(sqlType, executeTime, now);
+		this.rwStat.add(sqlType, executeTime, now);
 		
 		//记录SQL
-		sqlStat.add(sql, startTime, executeTime );
+		this.sqlStat.add(sql, startTime, executeTime );
 	}
 
 }

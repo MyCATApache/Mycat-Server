@@ -52,7 +52,7 @@ public class RWStat {
 		executeHistogram.reset();
 	}
 	
-	public void record(int sqlType, long time, long now) {
+	public void add(int sqlType, long time, long now) {
 	
 		switch(sqlType) {
     	case ServerParse.SELECT:
