@@ -32,20 +32,22 @@ public class MaxHeap implements HeapItf {
 		int max = 0;
 		int mid = size >> 1;// ==size/2
 		while (i <= mid) {
-			int l = i << 1, r = l + 1;
-			if (l < size && cmp.compare(data.get(l), data.get(i)) > 0) {
-				max = l;
-			} else {
-				max = i;
+			max = i;
+			int left = i << 1;
+			int right = left + 1;
+			if (left < size && cmp.compare(data.get(left), data.get(i)) > 0) {
+				max = left;
 			}
-			if (r < size && cmp.compare(data.get(r), data.get(max)) > 0) {
-				max = r;
+			if (right < size && cmp.compare(data.get(right), data.get(max)) > 0) {
+				max = right;
 			}
-			if (i != max) {
-				swap(i, max);
-				i = max;
-			} else {
+			if (i == max)
 				break;
+			if (i != max) {
+				RowDataPacket tmp = data.get(i);
+				data.set(i, data.get(max));
+				data.set(max, tmp);
+				i = max;
 			}
 		}
 
