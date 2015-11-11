@@ -106,6 +106,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		this.okCount = initCount;
 	}
 
+	public NonBlockingSession getSession() {
+		return session;
+	}
+
 	public void execute() throws Exception {
 		final ReentrantLock lock = this.lock;
 		lock.lock();
@@ -296,27 +300,28 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			final RouteResultset rrs = dataMergeService.getRrs();
 
 			// 处理limit语句
-			final int start = rrs.getLimitStart();
-			final int end = start + rrs.getLimitSize();
-
-			Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
-			Iterator<RowDataPacket> itor = results.iterator();
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("output merge result ,total data "
-						+ results.size() + " start :" + start + " end :" + end
-						+ " package id start:" + packetId);
+			int start = rrs.getLimitStart();
+			int end = start + rrs.getLimitSize();
+			/*
+			 * modify by coder_czp@126.com#2015/11/2 优化为通过索引获取,避免无效循环
+			 * Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
+			 * Iterator<RowDataPacket> itor = results.iterator(); if
+			 * (LOGGER.isDebugEnabled()) {
+			 * LOGGER.debug("output merge result ,total data " + results.size()
+			 * + " start :" + start + " end :" + end + " package id start:" +
+			 * packetId); } int i = 0; while (itor.hasNext()) { RowDataPacket
+			 * row = itor.next(); if (i < start) { i++; continue; } else if (i
+			 * == end) { break; } i++; row.packetId = ++packetId; buffer =
+			 * row.write(buffer, source, true); }
+			 */
+			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
+			List<RowDataPacket> results = dataMergeSvr.getResults(eof);
+			if (rrs.getOrderByCols() == null) {
+				end = results.size();
+				start = 0;
 			}
-
-			int i = 0;
-			while (itor.hasNext()) {
-				RowDataPacket row = itor.next();
-				if (i < start) {
-					i++;
-					continue;
-				} else if (i == end) {
-					break;
-				}
-				i++;
+			for (int i = start; i < end; i++) {
+				RowDataPacket row = results.get(i);
 				row.packetId = ++packetId;
 				row.write(bufferArray);
 			}
@@ -327,7 +332,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("last packet id:" + packetId);
 			}
-			
 
 		} catch (Exception e) {
 			handleDataProcessException(e);
@@ -508,10 +512,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 	}
 
-	
 	@Override
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
-		LoadDataUtil.requestFileDataResponse(data, (MySQLBackendConnection) conn);
+		LoadDataUtil.requestFileDataResponse(data,
+				(MySQLBackendConnection) conn);
 	}
 
 }
