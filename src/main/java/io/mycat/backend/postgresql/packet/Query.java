@@ -1,6 +1,6 @@
 package io.mycat.backend.postgresql.packet;
 
-import io.mycat.backend.postgresql.utils.PostgreSQLIOUtils;
+import io.mycat.backend.postgresql.utils.PIOUtils;
 
 import java.nio.ByteBuffer;
 
@@ -34,13 +34,13 @@ public class Query extends PostgreSQLPacket {
 	}
 
 	public Query(String sql) {
-		this.sql = sql;
+		this.sql = sql.trim() + "\0";
 	}
 
 	public void write(ByteBuffer buffer) {
-		PostgreSQLIOUtils.SendChar(getMarker(), buffer);
-		PostgreSQLIOUtils.SendInteger4(getLength(), buffer);
-		PostgreSQLIOUtils.SendString(sql, buffer);
+		PIOUtils.SendChar(getMarker(), buffer);
+		PIOUtils.SendInteger4(getLength(), buffer);
+		PIOUtils.SendString(sql, buffer);
 	}
 
 }

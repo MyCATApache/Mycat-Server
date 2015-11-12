@@ -2,7 +2,7 @@ package io.mycat.backend.postgresql.packet;
 
 import java.nio.ByteBuffer;
 
-import io.mycat.backend.postgresql.utils.PostgreSQLIOUtils;
+import io.mycat.backend.postgresql.utils.PIOUtils;
 
 public class AuthenticationPacket extends PostgreSQLPacket {
 	public static enum AuthType {
@@ -83,10 +83,10 @@ public class AuthenticationPacket extends PostgreSQLPacket {
 			throw new IllegalAccessException("this packetData not is AuthenticationPacket");
 		}
 		AuthenticationPacket packet = new AuthenticationPacket();
-		packet.length = PostgreSQLIOUtils.redInteger4(buffer, offset + 1);
-		packet.authType = AuthType.valueOf(PostgreSQLIOUtils.redInteger4(buffer, offset + 1 + 4));
+		packet.length = PIOUtils.redInteger4(buffer, offset + 1);
+		packet.authType = AuthType.valueOf(PIOUtils.redInteger4(buffer, offset + 1 + 4));
 		if (packet.authType == AuthType.MD5Password) {
-			packet.salt = PostgreSQLIOUtils.redByteArray(buffer, offset + 1 + 4 + 4, 4);
+			packet.salt = PIOUtils.redByteArray(buffer, offset + 1 + 4 + 4, 4);
 		}
 		return packet;
 	}

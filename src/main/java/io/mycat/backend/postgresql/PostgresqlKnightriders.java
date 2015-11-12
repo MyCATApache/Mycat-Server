@@ -1,6 +1,21 @@
 package io.mycat.backend.postgresql;
 
-import java.io.ByteArrayOutputStream;
+import io.mycat.backend.postgresql.packet.AuthenticationPacket;
+import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
+import io.mycat.backend.postgresql.packet.BackendKeyData;
+import io.mycat.backend.postgresql.packet.CommandComplete;
+import io.mycat.backend.postgresql.packet.DataRow;
+import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
+import io.mycat.backend.postgresql.packet.ErrorResponse;
+import io.mycat.backend.postgresql.packet.NoticeResponse;
+import io.mycat.backend.postgresql.packet.ParameterStatus;
+import io.mycat.backend.postgresql.packet.PasswordMessage;
+import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
+import io.mycat.backend.postgresql.packet.Query;
+import io.mycat.backend.postgresql.packet.ReadyForQuery;
+import io.mycat.backend.postgresql.packet.RowDescription;
+import io.mycat.backend.postgresql.utils.PIOUtils;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -19,18 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
 
-import io.mycat.backend.postgresql.packet.AuthenticationPacket;
-import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
-import io.mycat.backend.postgresql.packet.BackendKeyData;
-import io.mycat.backend.postgresql.packet.ErrorResponse;
-import io.mycat.backend.postgresql.packet.NoticeResponse;
-import io.mycat.backend.postgresql.packet.ParameterStatus;
-import io.mycat.backend.postgresql.packet.PasswordMessage;
-import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
-import io.mycat.backend.postgresql.packet.Query;
-import io.mycat.backend.postgresql.packet.ReadyForQuery;
-import io.mycat.backend.postgresql.utils.PostgreSQLIOUtils;
-
 /*************
  * 提交代码..
  * 
@@ -39,14 +42,15 @@ import io.mycat.backend.postgresql.utils.PostgreSQLIOUtils;
  */
 public class PostgresqlKnightriders {
 
-	private static Logger logger = LoggerFactory.getLogger(PostgresqlKnightriders.class);
+	private static Logger logger = LoggerFactory
+			.getLogger(PostgresqlKnightriders.class);
 
 	public static void main(String[] args) {
 
 		List<String[]> paramList = new ArrayList<String[]>();
 		String user = "postgres";
 		String password = "coollf";
-		String database = "Coollf";
+		String database = "mycat";
 		String appName = "MyCat-Server";
 		String assumeMinServerVersion = "9.0.0";
 
@@ -64,13 +68,15 @@ public class PostgresqlKnightriders {
 			Socket socket = new Socket("localhost", 5432);
 			if (nio) {
 
-				SocketChannel channel = SocketChannel.open(new InetSocketAddress("localhost", 5432));
+				SocketChannel channel = SocketChannel
+						.open(new InetSocketAddress("localhost", 5432));
 
 				channel.configureBlocking(false);
 
 				// 打开并注册选择器到信道
 				Selector selector = Selector.open();
-				channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+				channel.register(selector, SelectionKey.OP_READ
+						| SelectionKey.OP_WRITE);
 
 				// 启动读取线程
 				new TCPClientReadThread(selector);
@@ -83,28 +89,41 @@ public class PostgresqlKnightriders {
 
 			} else {
 				sendStartupPacket(socket, paramList.toArray(new String[0][]));
-				PostgreSQLPacket packet = rec(socket).get(0);
+				PostgreSQLPacket packet = readParsePacket(socket).get(0);
 				if (packet instanceof AuthenticationPacket) {
-					AuthType aut = ((AuthenticationPacket) packet).getAuthType();
+					AuthType aut = ((AuthenticationPacket) packet)
+							.getAuthType();
 					if (aut != AuthType.Ok) {
-						PasswordMessage pak = new PasswordMessage(user, password, aut,
+						PasswordMessage pak = new PasswordMessage(user,
+								password, aut,
 								((AuthenticationPacket) packet).getSalt());
-						ByteBuffer buffer = ByteBuffer.allocate(pak.getLength() + 1);
+						ByteBuffer buffer = ByteBuffer
+								.allocate(pak.getLength() + 1);
 						pak.write(buffer);
 						socket.getOutputStream().write(buffer.array());
-						List<PostgreSQLPacket> sqlPacket = rec(socket);
+						List<PostgreSQLPacket> sqlPacket = readParsePacket(socket);
 						System.out.println(JSON.toJSONString(sqlPacket));
-						
-						Query query = new Query("SELECT * from  ump_coupon"+"\0");
-						
-						ByteBuffer oby = ByteBuffer.allocate(query.getLength() + 1);
+
+						Query query = new Query("SELECT * from  ump_coupon");
+						// Query query = new Query("SELECT 1"+"\0");
+
+						ByteBuffer oby = ByteBuffer
+								.allocate(query.getLength() + 1);
 						query.write(oby);
-						
+
 						socket.getOutputStream().write(oby.array());
-						
-						sqlPacket = rec(socket);
+
+						sqlPacket = readParsePacket(socket);
+						for( PostgreSQLPacket p: sqlPacket){
+							if(p instanceof DataRow){
+								;
+								for(DataColumn c : ((DataRow) p).getColumns()){
+									System.out.println(new String(c.getData(),"utf-8"));
+								}
+							}
+						}
 						System.out.println(JSON.toJSONString(sqlPacket));
-						
+
 					}
 				}
 			}
@@ -117,7 +136,8 @@ public class PostgresqlKnightriders {
 		}
 	}
 
-	private static List<PostgreSQLPacket> rec(Socket socket) throws IOException, IllegalAccessException {
+	private static List<PostgreSQLPacket> readParsePacket(Socket socket)
+			throws IOException, IllegalAccessException {
 		byte[] bytes = new byte[1024];
 		int leg = socket.getInputStream().read(bytes, 0, bytes.length);
 		List<PostgreSQLPacket> pgs = new ArrayList<>();
@@ -127,23 +147,43 @@ public class PostgresqlKnightriders {
 			PostgreSQLPacket pg = null;
 			switch (MAKE) {
 			case 'R':
-				pg = AuthenticationPacket.parse(ByteBuffer.wrap(bytes, offset, leg-offset), offset);
+				pg = AuthenticationPacket.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
 			case 'E':
-				pg = ErrorResponse.parse(ByteBuffer.wrap(bytes, offset, leg-offset), offset);
+				pg = ErrorResponse.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
 			case 'K':
-				pg = BackendKeyData.parse(ByteBuffer.wrap(bytes, offset, leg-offset), offset);
+				pg = BackendKeyData.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
 			case 'S':
-				pg = ParameterStatus.parse(ByteBuffer.wrap(bytes, offset, leg-offset), offset);
+				pg = ParameterStatus.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
 			case 'Z':
-				pg = ReadyForQuery.parse(ByteBuffer.wrap(bytes, offset, leg-offset), offset);
+				pg = ReadyForQuery.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
 			case 'N':
-				pg = NoticeResponse.parse(ByteBuffer.wrap(bytes, offset, leg-offset), offset);
+				pg = NoticeResponse.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
+			case 'C':
+				pg = CommandComplete.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+				break;
+			case 'T' :
+				pg = RowDescription.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+				break;
+			case 'D' :
+				pg = DataRow.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+				break;
+			default:
+				throw new RuntimeException("Unknown packet");
 			}
 			if (pg != null) {
 				offset = offset + pg.getLength() + 1;
@@ -179,7 +219,8 @@ public class PostgresqlKnightriders {
 		return start + tz.substring(4);
 	}
 
-	private static void sendStartupPacket(Socket socket, String[][] params) throws IOException {
+	private static void sendStartupPacket(Socket socket, String[][] params)
+			throws IOException {
 		OutputStream sout = socket.getOutputStream();
 		if (logger.isDebugEnabled()) {
 			StringBuilder details = new StringBuilder();
@@ -201,7 +242,8 @@ public class PostgresqlKnightriders {
 		for (int i = 0; i < params.length; ++i) {
 			encodedParams[i * 2] = params[i][0].getBytes("UTF-8");
 			encodedParams[i * 2 + 1] = params[i][1].getBytes("UTF-8");
-			length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
+			length += encodedParams[i * 2].length + 1
+					+ encodedParams[i * 2 + 1].length + 1;
 		}
 
 		length += 1; // Terminating \0
@@ -211,12 +253,12 @@ public class PostgresqlKnightriders {
 		/*
 		 * Send the startup message.
 		 */
-		PostgreSQLIOUtils.SendInteger4(length, buffer);
-		PostgreSQLIOUtils.SendInteger2(3, buffer); // protocol major
-		PostgreSQLIOUtils.SendInteger2(0, buffer); // protocol minor
+		PIOUtils.SendInteger4(length, buffer);
+		PIOUtils.SendInteger2(3, buffer); // protocol major
+		PIOUtils.SendInteger2(0, buffer); // protocol minor
 		for (byte[] encodedParam : encodedParams) {
-			PostgreSQLIOUtils.Send(encodedParam, buffer);
-			PostgreSQLIOUtils.SendChar(0, buffer);
+			PIOUtils.Send(encodedParam, buffer);
+			PIOUtils.SendChar(0, buffer);
 		}
 		sout.write(buffer.array());
 	}
@@ -225,7 +267,8 @@ public class PostgresqlKnightriders {
 
 class TCPClientReadThread implements Runnable {
 
-	private static Logger logger = LoggerFactory.getLogger(TCPClientReadThread.class);
+	private static Logger logger = LoggerFactory
+			.getLogger(TCPClientReadThread.class);
 	private Selector selector;
 
 	public TCPClientReadThread(Selector selector) {
@@ -255,10 +298,13 @@ class TCPClientReadThread implements Runnable {
 						buffer.flip();
 
 						// 将字节转化为为UTF-16的字符串
-						String receivedString = Charset.forName("UTF-18").newDecoder().decode(buffer).toString();
+						String receivedString = Charset.forName("UTF-18")
+								.newDecoder().decode(buffer).toString();
 
 						// 控制台打印出来
-						System.out.println("接收到来自服务器" + sc.socket().getRemoteSocketAddress() + "的信息:" + receivedString);
+						System.out.println("接收到来自服务器"
+								+ sc.socket().getRemoteSocketAddress() + "的信息:"
+								+ receivedString);
 
 						// 为下一次读取作准备
 						sk.interestOps(SelectionKey.OP_READ);
@@ -273,7 +319,8 @@ class TCPClientReadThread implements Runnable {
 		}
 	}
 
-	private static void sendStartupPacket(SocketChannel socketChannel) throws IOException {
+	private static void sendStartupPacket(SocketChannel socketChannel)
+			throws IOException {
 		List<String[]> paramList = new ArrayList<String[]>();
 		String user = "postgres";
 		String password = "coollf";
@@ -311,7 +358,8 @@ class TCPClientReadThread implements Runnable {
 		for (int i = 0; i < params.length; ++i) {
 			encodedParams[i * 2] = params[i][0].getBytes("UTF-8");
 			encodedParams[i * 2 + 1] = params[i][1].getBytes("UTF-8");
-			length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
+			length += encodedParams[i * 2].length + 1
+					+ encodedParams[i * 2 + 1].length + 1;
 		}
 
 		length += 1; // Terminating \0
@@ -321,12 +369,12 @@ class TCPClientReadThread implements Runnable {
 		/*
 		 * Send the startup message.
 		 */
-		PostgreSQLIOUtils.SendInteger4(length, buffer);
-		PostgreSQLIOUtils.SendInteger2(3, buffer); // protocol major
-		PostgreSQLIOUtils.SendInteger2(0, buffer); // protocol minor
+		PIOUtils.SendInteger4(length, buffer);
+		PIOUtils.SendInteger2(3, buffer); // protocol major
+		PIOUtils.SendInteger2(0, buffer); // protocol minor
 		for (byte[] encodedParam : encodedParams) {
-			PostgreSQLIOUtils.Send(encodedParam, buffer);
-			PostgreSQLIOUtils.SendChar(0, buffer);
+			PIOUtils.Send(encodedParam, buffer);
+			PIOUtils.SendChar(0, buffer);
 		}
 		buffer.flip();
 		socketChannel.write(buffer);

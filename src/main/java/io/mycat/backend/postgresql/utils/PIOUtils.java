@@ -1,5 +1,6 @@
 package io.mycat.backend.postgresql.utils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -10,7 +11,7 @@ import java.nio.charset.Charset;
  * @author Coollf
  *
  */
-public class PostgreSQLIOUtils {
+public class PIOUtils {
 
 	public final static Charset UTF8 = Charset.forName("utf-8");
 
@@ -33,6 +34,16 @@ public class PostgreSQLIOUtils {
 
 	public static int redInteger4(ByteBuffer buffer, int offset) {
 		return buffer.getInt(offset);
+	}
+	
+	/***
+	 * 读取数据
+	 * @param buffer
+	 * @param offset
+	 * @return
+	 */
+	public static short redInteger2(ByteBuffer buffer, int offset) {
+		return buffer.getShort(offset);
 	}
 
 	/**
@@ -84,5 +95,19 @@ public class PostgreSQLIOUtils {
 	public static void SendString(String string, ByteBuffer buffer) {
 		buffer.put(string.getBytes(UTF8));
 	}
+
+	public static String redString(ByteBuffer buffer, int offset, Charset charset) throws IOException {
+		ByteArrayOutputStream out  =new ByteArrayOutputStream();
+		for(int i=offset ;i< buffer.limit();i++){
+			out.write(new byte[]{buffer.get(i)});
+			if(((char)buffer.get(i)) == '\0'){
+				System.out.println(i - offset);
+				break;
+			}			
+		}
+		return new String(out.toByteArray(),charset);
+	}
+
+	
 
 }

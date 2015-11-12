@@ -4,8 +4,8 @@ import java.nio.charset.Charset;
 
 public abstract class PostgreSQLPacket {
 
-	public final static Charset   UTF8 =  Charset.forName("utf-8");
-	
+	public final static Charset UTF8 = Charset.forName("utf-8");
+
 	/***
 	 * 获取包长度
 	 * 
@@ -19,6 +19,41 @@ public abstract class PostgreSQLPacket {
 	 * @return
 	 */
 	public abstract char getMarker();
+
+	/***
+	 * 数据类型
+	 * 
+	 * @author Coollf
+	 *
+	 */
+	public static enum DateType {
+		UNKNOWN;
+
+		public static DateType valueOf(int val) {
+			return UNKNOWN;
+		}
+
+	}
+
+	/****
+	 * 数据协议
+	 * 
+	 * @author Coollf
+	 *
+	 */
+	public static enum DataProtocol {
+		TEXT, BINARY, UNKNOWN;
+
+		public static DataProtocol valueOf(short val) {
+			if (val == 0) {
+				return TEXT;
+			}
+			if (val == 1) {
+				return BINARY;
+			}
+			return UNKNOWN;
+		}
+	}
 
 	public static enum PacketMarker {
 		/**
@@ -55,11 +90,26 @@ public abstract class PostgreSQLPacket {
 		 * 警告响应
 		 */
 		B_NoticeResponse('N'),
-		
+
 		/***
 		 * 简单查询
 		 */
-		F_Query('Q');
+		F_Query('Q'),
+
+		/******
+		 * SQL 命令正常结束
+		 */
+		B_CommandComplete('C'),
+
+		/***
+		 * 数据行描述
+		 */
+		B_RowDescription('T'),
+		
+		/***
+		 * 数据行数据
+		 */
+		B_DataRow('D');
 
 		private char value;
 

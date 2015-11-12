@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 
 import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
 import io.mycat.backend.postgresql.utils.MD5Digest;
-import io.mycat.backend.postgresql.utils.PostgreSQLIOUtils;
+import io.mycat.backend.postgresql.utils.PIOUtils;
 
 //PasswordMessage (F)
 //Byte1('p')
@@ -40,9 +40,9 @@ public class PasswordMessage extends PostgreSQLPacket {
 	}
 
 	public void write(ByteBuffer buffer) {
-		PostgreSQLIOUtils.SendChar(getMarker(), buffer);
-		PostgreSQLIOUtils.SendInteger4(getLength(), buffer);
-		PostgreSQLIOUtils.Send(password, buffer);
+		PIOUtils.SendChar(getMarker(), buffer);
+		PIOUtils.SendInteger4(getLength(), buffer);
+		PIOUtils.Send(password, buffer);
 	}
 
 }
