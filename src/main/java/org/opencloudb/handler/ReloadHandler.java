@@ -28,6 +28,7 @@ import org.opencloudb.manager.ManagerConnection;
 import org.opencloudb.parser.ManagerParseReload;
 import org.opencloudb.response.ReloadConfig;
 import org.opencloudb.response.ReloadUser;
+import org.opencloudb.response.ReloadUserStat;
 
 /**
  * @author mycat
@@ -51,6 +52,9 @@ public final class ReloadHandler
                 break;
             case ManagerParseReload.USER:
                 ReloadUser.execute(c);
+                break;
+            case ManagerParseReload.USER_STAT:
+                ReloadUserStat.execute(c);
                 break;
             default:
                 c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
