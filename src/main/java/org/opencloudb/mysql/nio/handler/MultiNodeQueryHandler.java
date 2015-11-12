@@ -39,7 +39,7 @@ import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
-import org.opencloudb.stat.SqlSlowUtil;
+import org.opencloudb.stat.UserStatFilter;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -332,7 +332,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		ServerConnection source = null;
 		execCount++;
 		if (execCount == rrs.getNodes().length) {
-			SqlSlowUtil.SqlExecuteTime(startTime, rrs);
+			//记录状态
+			UserStatFilter.getInstance().updateStat(session.getSource().getUser(), 
+					rrs.getSqlType(), rrs.getStatement(), startTime);
 		}
 		if (fieldsReturned) {
 			return;
