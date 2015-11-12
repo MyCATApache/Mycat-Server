@@ -299,7 +299,7 @@ public class RouterUtil {
 	 */
 	public static int[] getDropTablePos(String upStmt, int start) {
 		//增加 if exists判断
-		if(upStmt.contains("EXISTS")){
+		if(upStmt.toUpperCase().contains("EXISTS")){
 			String token1 = "IF ";
 			String token2 = " EXISTS ";
 			int ifInd = upStmt.toUpperCase().indexOf(token1, start);
