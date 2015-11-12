@@ -71,8 +71,7 @@ public class RowDescription extends PostgreSQLPacket {
 		}
 		RowDescription pack = new RowDescription();
 		pack.length = PIOUtils.redInteger4(buffer, offset + 1);
-		pack.columnNumber = PIOUtils.redInteger2(buffer,
-				offset + 1 + 4);
+		pack.columnNumber = PIOUtils.redInteger2(buffer, offset + 1 + 4);
 
 		pack.columns = new ColumnDescription[pack.columnNumber];
 		int _offset = offset + 1 + 4 + 2;
@@ -86,15 +85,15 @@ public class RowDescription extends PostgreSQLPacket {
 			_offset += 4;
 			col.coid = PIOUtils.redInteger2(buffer, _offset);
 			_offset += 2;
-			col.columnType = DateType.valueOf(PIOUtils.redInteger4(
-					buffer, _offset));
+			col.columnType = DateType.valueOf(PIOUtils.redInteger4(buffer,
+					_offset));
 			_offset += 4;
 			col.typlen = PIOUtils.redInteger2(buffer, _offset);
 			_offset += 2;
 			col.atttypmod = PIOUtils.redInteger4(buffer, _offset);
 			_offset += 4;
-			col.protocol = DataProtocol.valueOf(PIOUtils.redInteger2(
-					buffer, _offset));
+			col.protocol = DataProtocol.valueOf(PIOUtils.redInteger2(buffer,
+					_offset));
 			_offset += 2;
 			pack.columns[i] = col;
 		}

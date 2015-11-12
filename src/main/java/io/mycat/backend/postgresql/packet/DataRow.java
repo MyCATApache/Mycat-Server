@@ -29,7 +29,7 @@ public class DataRow extends PostgreSQLPacket {
 		 */
 		private int length;
 		private byte[] data;
-		
+
 		private boolean isNull;
 
 		/**
@@ -130,15 +130,15 @@ public class DataRow extends PostgreSQLPacket {
 		for (int i = 0; i < pack.columns.length; i++) {
 			DataColumn col = new DataColumn();
 			col.length = PIOUtils.redInteger4(buffer, _offset);
-			_offset +=4;
-			if(col.length == -1){
-				//数据为空
+			_offset += 4;
+			if (col.length == -1) {
+				// 数据为空
 				col.isNull = true;
-			}else{
+			} else {
 				col.data = PIOUtils.redByteArray(buffer, _offset, col.length);
 				_offset += col.length;
 			}
-			pack.columns[i] = col; 
+			pack.columns[i] = col;
 		}
 		return pack;
 	}

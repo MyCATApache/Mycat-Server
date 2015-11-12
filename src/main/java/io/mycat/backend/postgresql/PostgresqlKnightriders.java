@@ -4,8 +4,11 @@ import io.mycat.backend.postgresql.packet.AuthenticationPacket;
 import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
 import io.mycat.backend.postgresql.packet.BackendKeyData;
 import io.mycat.backend.postgresql.packet.CommandComplete;
+import io.mycat.backend.postgresql.packet.CopyInResponse;
+import io.mycat.backend.postgresql.packet.CopyOutResponse;
 import io.mycat.backend.postgresql.packet.DataRow;
 import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
+import io.mycat.backend.postgresql.packet.EmptyQueryResponse;
 import io.mycat.backend.postgresql.packet.ErrorResponse;
 import io.mycat.backend.postgresql.packet.NoticeResponse;
 import io.mycat.backend.postgresql.packet.ParameterStatus;
@@ -114,16 +117,24 @@ public class PostgresqlKnightriders {
 						socket.getOutputStream().write(oby.array());
 
 						sqlPacket = readParsePacket(socket);
-						for( PostgreSQLPacket p: sqlPacket){
-							if(p instanceof DataRow){
+						for (PostgreSQLPacket p : sqlPacket) {
+							if (p instanceof DataRow) {
 								;
-								for(DataColumn c : ((DataRow) p).getColumns()){
-									System.out.println(new String(c.getData(),"utf-8"));
+								for (DataColumn c : ((DataRow) p).getColumns()) {
+									System.out.println(new String(c.getData(),
+											"utf-8"));
 								}
 							}
 						}
 						System.out.println(JSON.toJSONString(sqlPacket));
+						query = new Query("");
+						oby = ByteBuffer.allocate(query.getLength() + 1);
+						query.write(oby);
 
+						socket.getOutputStream().write(oby.array());
+
+						sqlPacket = readParsePacket(socket);
+						System.out.println(JSON.toJSONString(sqlPacket));
 					}
 				}
 			}
@@ -174,12 +185,26 @@ public class PostgresqlKnightriders {
 				pg = CommandComplete.parse(
 						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
-			case 'T' :
+			case 'T':
 				pg = RowDescription.parse(
 						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
-			case 'D' :
+			case 'D':
 				pg = DataRow.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+				break;
+
+			case 'I':
+				pg = EmptyQueryResponse.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+				break;
+
+			case 'G':
+				pg = CopyInResponse.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+				break;
+			case 'H':
+				pg = CopyOutResponse.parse(
 						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
 			default:

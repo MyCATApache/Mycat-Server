@@ -105,11 +105,26 @@ public abstract class PostgreSQLPacket {
 		 * 数据行描述
 		 */
 		B_RowDescription('T'),
-		
+
 		/***
 		 * 数据行数据
 		 */
-		B_DataRow('D');
+		B_DataRow('D'),
+
+		/***
+		 * 空查询
+		 */
+		B_EmptyQueryResponse('I'), 
+		
+		/*************
+		 * 拷贝数据进PGsql
+		 */
+		B_CopyInResponse('G'), 
+		
+		/***
+		 * 从PGsql 中拷贝数据出来
+		 */
+		B_CopyOutResponse('H');
 
 		private char value;
 

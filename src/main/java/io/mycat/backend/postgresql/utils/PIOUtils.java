@@ -108,6 +108,16 @@ public class PIOUtils {
 		return new String(out.toByteArray(),charset);
 	}
 
+	/**
+	 * 读取1byte数据
+	 * @param buffer
+	 * @param _offset
+	 * @return
+	 */
+	public static byte redInteger1(ByteBuffer buffer, int _offset) {
+		return buffer.get(_offset);
+	}
+
 	
 
 }
