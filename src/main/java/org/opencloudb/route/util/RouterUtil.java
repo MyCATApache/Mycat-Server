@@ -119,13 +119,14 @@ public class RouterUtil {
 		//检查表是否在配置文件中
 		stmt = getFixedSql(stmt);
 		String tablename = "";
-		if(stmt.toUpperCase().startsWith("CREATE")){
+		String upStmt = stmt.toUpperCase();
+		if(upStmt.startsWith("CREATE")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(stmt, 0));
-		}else if(stmt.toUpperCase().startsWith("DROP")){
+		}else if(upStmt.startsWith("DROP")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(stmt, 0));
-		}else if(stmt.toUpperCase().startsWith("ALTER")){
+		}else if(upStmt.startsWith("ALTER")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(stmt, 0));
-		}else if (stmt.toUpperCase().startsWith("TRUNCATE")){
+		}else if (upStmt.startsWith("TRUNCATE")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
 		}
 		tablename = tablename.toUpperCase();
