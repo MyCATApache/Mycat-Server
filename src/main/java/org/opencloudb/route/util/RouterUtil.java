@@ -118,16 +118,16 @@ public class RouterUtil {
 	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
 		//检查表是否在配置文件中
 		stmt = getFixedSql(stmt);
-		String tablename = "";
-		String upStmt = stmt.toUpperCase();
+		String tablename = "";		
+		final String upStmt = stmt.toUpperCase();
 		if(upStmt.startsWith("CREATE")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(stmt, 0));
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
 		}else if(upStmt.startsWith("DROP")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(stmt, 0));
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
 		}else if(upStmt.startsWith("ALTER")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(stmt, 0));
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(upStmt, 0));
 		}else if (upStmt.startsWith("TRUNCATE")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(upStmt, 0));
 		}
 		tablename = tablename.toUpperCase();
 		
@@ -256,8 +256,8 @@ public class RouterUtil {
 	public static int[] getCreateTablePos(String upStmt, int start) {
 		String token1 = "CREATE ";
 		String token2 = " TABLE ";
-		int createInd = upStmt.toUpperCase().indexOf(token1, start);
-		int tabInd = upStmt.toUpperCase().indexOf(token2, start);
+		int createInd = upStmt.indexOf(token1, start);
+		int tabInd = upStmt.indexOf(token2, start);
 		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
 		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
 			return new int[] { tabInd, token2.length() };
@@ -279,8 +279,8 @@ public class RouterUtil {
 	public static int[] getAlterTablePos(String upStmt, int start) {
 		String token1 = "ALTER ";
 		String token2 = " TABLE ";
-		int createInd = upStmt.toUpperCase().indexOf(token1, start);
-		int tabInd = upStmt.toUpperCase().indexOf(token2, start);
+		int createInd = upStmt.indexOf(token1, start);
+		int tabInd = upStmt.indexOf(token2, start);
 		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
 		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
 			return new int[] { tabInd, token2.length() };
@@ -301,11 +301,11 @@ public class RouterUtil {
 	 */
 	public static int[] getDropTablePos(String upStmt, int start) {
 		//增加 if exists判断
-		if(upStmt.toUpperCase().contains("EXISTS")){
+		if(upStmt.contains("EXISTS")){
 			String token1 = "IF ";
 			String token2 = " EXISTS ";
-			int ifInd = upStmt.toUpperCase().indexOf(token1, start);
-			int tabInd = upStmt.toUpperCase().indexOf(token2, start);
+			int ifInd = upStmt.indexOf(token1, start);
+			int tabInd = upStmt.indexOf(token2, start);
 			if (ifInd >= 0 && tabInd > 0 && tabInd > ifInd) {
 				return new int[] { tabInd, token2.length() };
 			} else {
@@ -314,8 +314,8 @@ public class RouterUtil {
 		}else {
 			String token1 = "DROP ";
 			String token2 = " TABLE ";
-			int createInd = upStmt.toUpperCase().indexOf(token1, start);
-			int tabInd = upStmt.toUpperCase().indexOf(token2, start);
+			int createInd = upStmt.indexOf(token1, start);
+			int tabInd = upStmt.indexOf(token2, start);
 
 			if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
 				return new int[] { tabInd, token2.length() };
@@ -339,8 +339,8 @@ public class RouterUtil {
 	public static int[] getTruncateTablePos(String upStmt, int start) {
 		String token1 = "TRUNCATE ";
 		String token2 = " TABLE ";
-		int createInd = upStmt.toUpperCase().indexOf(token1, start);
-		int tabInd = upStmt.toUpperCase().indexOf(token2, start);
+		int createInd = upStmt.indexOf(token1, start);
+		int tabInd = upStmt.indexOf(token2, start);
 		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
 		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
 			return new int[] { tabInd, token2.length() };
@@ -362,8 +362,8 @@ public class RouterUtil {
 	public static int[] getSpecPos(String upStmt, int start) {
 		String token1 = " FROM ";
 		String token2 = " IN ";
-		int tabInd1 = upStmt.toUpperCase().indexOf(token1, start);
-		int tabInd2 = upStmt.toUpperCase().indexOf(token2, start);
+		int tabInd1 = upStmt.indexOf(token1, start);
+		int tabInd2 = upStmt.indexOf(token2, start);
 		if (tabInd1 > 0) {
 			if (tabInd2 < 0) {
 				return new int[] { tabInd1, token1.length() };
