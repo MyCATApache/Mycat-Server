@@ -12,6 +12,8 @@
 
 package io.mycat.server.quartz.job;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.alibaba.fastjson.JSON;
 
 import io.mycat.server.quartz.zk.ZkConfig;
@@ -41,6 +43,13 @@ public class JobService {
 
 	public void addJob(JobConfiguration job) throws Exception {
 		zkService.createNode(nodePath + "/" + job.getJobName(), JSON.toJSONString(job).getBytes("utf-8"));
+	}
+
+	public void remove(String jobKey) throws IllegalArgumentException {
+		if (StringUtils.isBlank(jobKey)) {
+			throw new IllegalArgumentException();
+		}
+		zkService.remove(jobKey);
 	}
 
 }

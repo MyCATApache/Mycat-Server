@@ -39,13 +39,11 @@ public class NodePathCacheListener implements PathChildrenCacheListener {
 
 	@Override
 	public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
-		if (event.getType().equals(Type.CHILD_ADDED)) {
-
-		}
 
 		if (event.getData() == null) {
 			return;
 		}
+		
 		byte[] data = event.getData().getData();
 		if (data == null) {
 			return;

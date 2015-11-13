@@ -1,6 +1,4 @@
-package io.mycat.server.quartz;
-
-import java.util.Date;
+package io.mycat.server.quartz.job;
 
 import org.apache.log4j.Logger;
 import org.quartz.JobExecutionContext;
@@ -19,14 +17,13 @@ public class JobTriggerListener extends TriggerListenerSupport {
 	}
 
 	// 监听任务是否完成
-	@Override
+	@Override	
 	public void triggerComplete(Trigger trigger, JobExecutionContext context,
 			CompletedExecutionInstruction triggerInstructionCode) {
 		// 任务key
 		JobKey jobKey = trigger.getJobKey();
 
 		logger.info(jobKey + "on " + " was finish!");
-		System.out.println(JobTriggerListener.class.getName()+"  正在执行!!!");
 		super.triggerComplete(trigger, context, triggerInstructionCode);
 	}
 

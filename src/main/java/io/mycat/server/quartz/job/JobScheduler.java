@@ -20,13 +20,7 @@ import org.quartz.impl.StdSchedulerFactory;
 
 import com.google.common.base.Joiner;
 
-import io.mycat.server.quartz.JobTriggerListener;
-
 public class JobScheduler {
-
-	private static final String SCHEDULER_INSTANCE_NAME_SUFFIX = "Scheduler";
-
-	private static final String CRON_TRIGGER_INDENTITY_SUFFIX = "Trigger";
 
 	private JobDetail jobDetail;
 
@@ -60,10 +54,10 @@ public class JobScheduler {
 	 * @return
 	 */
 	private JobDetail createJobDetail() {
-		JobDataMap jobDataMap=new JobDataMap();
+		JobDataMap jobDataMap = new JobDataMap();
 		jobDataMap.put("jobConfiguration", jobConfiguration);
-		JobDetail result = JobBuilder.newJob(jobConfiguration.getJobClass()).setJobData(jobDataMap).withIdentity(jobConfiguration.getJobName())
-				.build();
+		JobDetail result = JobBuilder.newJob(jobConfiguration.getJobClass()).setJobData(jobDataMap)
+				.withIdentity(jobConfiguration.getJobName()).build();
 		return result;
 	}
 
@@ -75,9 +69,8 @@ public class JobScheduler {
 	 */
 	private CronTrigger createTrigger(final String cronExpression) {
 		CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExpression);
-		return TriggerBuilder.newTrigger()
-				.withIdentity(Joiner.on("_").join(jobConfiguration.getJobName(), CRON_TRIGGER_INDENTITY_SUFFIX))
-				.withSchedule(cronScheduleBuilder).build();
+		return TriggerBuilder.newTrigger().withIdentity(jobConfiguration.getJobName()).withSchedule(cronScheduleBuilder)
+				.build();
 	}
 
 	/**
@@ -88,11 +81,9 @@ public class JobScheduler {
 	 * @throws SchedulerException
 	 */
 	private Scheduler initializeScheduler(final String jobName) throws SchedulerException {
-		StdSchedulerFactory factory = new StdSchedulerFactory();
-		factory.initialize(getBaseQuartzProperties(jobName));
-		Scheduler result = factory.getScheduler();
-		result.getListenerManager().addTriggerListener(new JobTriggerListener());
-		return result;
+		Scheduler schedule = StdSchedulerFactory.getDefaultScheduler();
+		schedule.getListenerManager().addTriggerListener(new JobTriggerListener());
+		return schedule;
 	}
 
 	/**
@@ -105,7 +96,7 @@ public class JobScheduler {
 		Properties result = new Properties();
 		result.put("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
 		result.put("org.quartz.threadPool.threadCount", "1");
-		result.put("org.quartz.scheduler.instanceName", Joiner.on("_").join(jobName, SCHEDULER_INSTANCE_NAME_SUFFIX));
+		result.put("org.quartz.scheduler.instanceName", jobName);
 		prepareEnvironments(result);
 		return result;
 	}
@@ -193,9 +184,6 @@ public class JobScheduler {
 	 * @throws SchedulerException
 	 */
 	public void rescheduleJob(final String cronExpression) throws SchedulerException {
-		scheduler.rescheduleJob(
-				TriggerKey
-						.triggerKey(Joiner.on("_").join(jobConfiguration.getJobName(), CRON_TRIGGER_INDENTITY_SUFFIX)),
-				createTrigger(cronExpression));
+		scheduler.rescheduleJob(TriggerKey.triggerKey(jobConfiguration.getJobName()), createTrigger(cronExpression));
 	}
 }
