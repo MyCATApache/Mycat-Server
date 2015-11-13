@@ -119,16 +119,17 @@ public class RouterUtil {
 		//检查表是否在配置文件中
 		stmt = getFixedSql(stmt);
 		String tablename = "";
-		if(stmt.startsWith("CREATE")){
+		if(stmt.toUpperCase().startsWith("CREATE")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(stmt, 0));
-		}else if(stmt.startsWith("DROP")){
+		}else if(stmt.toUpperCase().startsWith("DROP")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(stmt, 0));
-		}else if(stmt.startsWith("ALTER")){
+		}else if(stmt.toUpperCase().startsWith("ALTER")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(stmt, 0));
-		}else if (stmt.startsWith("TRUNCATE")){
+		}else if (stmt.toUpperCase().startsWith("TRUNCATE")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
 		}
-
+		tablename = tablename.toUpperCase();
+		
 		if (schema.getTables().containsKey(tablename)){
 			if(ServerParse.DDL==sqlType){
 				List<String> dataNodes = new ArrayList<>();

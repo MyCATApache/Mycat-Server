@@ -70,7 +70,12 @@ public class DDLRouteTest {
         // create table/view/function/..
         String sql = " create table company(idd int)";
         sql = RouterUtil.getFixedSql(sql);
+        
+        //TODO : modify by zhuam
+        // 小写表名，需要额外转为 大写 做比较
         String tablename =  RouterUtil.getTableName(sql, RouterUtil.getCreateTablePos(sql, 0));
+        tablename = tablename.toUpperCase();
+        
         List<String> dataNodes = new ArrayList<>();
         Map<String, TableConfig> tables = schema.getTables();
         TableConfig tc;
@@ -147,7 +152,11 @@ public class DDLRouteTest {
         // create table/view/function/..
         String sql = " create table company(idd int)";
         sql = RouterUtil.getFixedSql(sql);
+        
+        //TODO：modify by zhuam 小写表名，转为大写比较
         String tablename =  RouterUtil.getTableName(sql, RouterUtil.getCreateTablePos(sql, 0));
+        tablename = tablename.toUpperCase();        
+        
         List<String> dataNodes = new ArrayList<>();
         Map<String, TableConfig> tables = schema.getTables();
         TableConfig tc;
