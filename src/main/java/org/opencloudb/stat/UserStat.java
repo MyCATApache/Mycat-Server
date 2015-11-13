@@ -1,6 +1,5 @@
 package org.opencloudb.stat;
 
-import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.statistic.SQLRecord;
 import org.opencloudb.statistic.SQLRecorder;
@@ -11,9 +10,6 @@ import org.opencloudb.statistic.SQLRecorder;
  * @author Ben
  */
 public class UserStat {
-	
-
-	private static final Logger LOGGER = Logger.getLogger(UserStat.class);
 	
 	private final static int SQL_SLOW_TIME = 1000;
 	
@@ -73,10 +69,6 @@ public class UserStat {
 	 * @param startTime
 	 */
 	public void update(int sqlType, String sql, long startTime) {	
-		
-		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("System record stat: sqlType:" + sqlType + ", sql:" + sql + ", startTime:" + startTime);
-		}
 		
 		long now = System.currentTimeMillis();
 		
