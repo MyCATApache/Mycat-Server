@@ -59,8 +59,8 @@ public class ZkDownload {
         framework = createConnection((String)zkConfig.get(CONFIG_URL_KEY));
 
         try {
-//            List<Map<String,JSONObject>> listDataNode = getDatanodeConfig("datanode-config");
-//            List<Map<String,JSONObject>> listDataHost = getDataHostNodeConfig("datahost-config");
+            List<Map<String,JSONObject>> listDataNode = getDatanodeConfig("datanode-config");
+            List<Map<String,JSONObject>> listDataHost = getDataHostNodeConfig("datahost-config");
             List<Map<String,JSONObject>> listServer  = getServerNodeConfig(SERVER_CONFIG_DIRECTORY);
             List<Map<String,JSONObject>> listSchema = getSchemaConfig(SCHEMA_CONFIG_DIRECTORY);
             List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
@@ -81,14 +81,13 @@ public class ZkDownload {
     }
 
 
-
     //config txt file
     public static void conf2File(String fileName,String config) {
         BufferedWriter fw = null;
         try {
             String filePath = SystemConfig.getHomePath()+"/src/main/resources";
             File file = new File(filePath+fileName);
-            System.out.println(filePath);
+            //System.out.println(filePath);
             file.delete();
             file.createNewFile();
             fw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, true), "UTF-8")); // 指定编码格式，以免读取时中文字符异常
@@ -276,9 +275,9 @@ public class ZkDownload {
             data = new String(framework.getData().forPath(childPath),"utf8");
             if (data.startsWith("[")&&data.endsWith("]")){ //JsonArray
                 JSONArray jsonArray = JSONArray.parseArray(data);
-                System.out.println("----------------------JSONARRAY------------------------");
-                System.out.println("---------------------"+childPath+"-------------------------");
-                System.out.println(jsonArray);
+//                System.out.println("----------------------JSONARRAY------------------------");
+//                System.out.println("---------------------"+childPath+"-------------------------");
+//                System.out.println(jsonArray);
                 for (int i=0;i<jsonArray.size();i++){
                     map.put(childPath,(JSONObject)jsonArray.get(i));
                     list.add(map);
@@ -287,9 +286,9 @@ public class ZkDownload {
             }else {  //JsonObject
 
                 JSONObject jsonObject = JSONObject.parseObject(data);
-                System.out.println("----------------------jsonObject------------------------");
-                System.out.println("---------------------" + childPath + "-------------------------");
-                System.out.println(jsonObject);
+//                System.out.println("----------------------jsonObject------------------------");
+//                System.out.println("---------------------" + childPath + "-------------------------");
+//                System.out.println(jsonObject);
                 map.put(childPath,jsonObject);
                 list.add(map);
                 return list;
@@ -425,72 +424,7 @@ public class ZkDownload {
         for (int i=0;i<mapList.size();i++){
             String key = mapList.get(i).keySet().toString().replace("[","").replace("]","").trim();
             JSONObject jsonObject = mapList.get(i).get(key);
-            Element system = serverElement.addElement("function");
-            if (jsonObject.containsKey("name")){
-                system.addAttribute("name",jsonObject.getString("name"));
-            }
-            if (jsonObject.containsKey("functionName")){
-                //1.4 class
-                String pathFor14 = "org.opencloudb.route.function";
-                String func = jsonObject.getString("functionName");
-                String className = pathFor14 + func.substring(func.lastIndexOf("."),func.length());
-                system.addAttribute("class",className);
-            }
-            if (jsonObject.containsKey("count")){
-                Element serverport = system.addElement("property").addAttribute("name", "count");
-                serverport.setText(jsonObject.getString("count"));
-            }
-            if (jsonObject.containsKey("virtualBucketTimes")){
-                Element serverport = system.addElement("property").addAttribute("name", "virtualBucketTimes");
-                serverport.setText(jsonObject.getString("virtualBucketTimes"));
-            }
-            if (jsonObject.containsKey("partitionCount")){
-                Element serverport = system.addElement("property").addAttribute("name", "partitionCount");
-                serverport.setText(jsonObject.getString("partitionCount"));
-            }
-            if (jsonObject.containsKey("partitionLength")){
-                Element serverport = system.addElement("property").addAttribute("name", "partitionLength");
-                serverport.setText(jsonObject.getString("partitionLength"));
-            }
-            if (jsonObject.containsKey("splitOneDay")){
-                Element serverport = system.addElement("property").addAttribute("name", "splitOneDay");
-                serverport.setText(jsonObject.getString("splitOneDay"));
-            }
-            if (jsonObject.containsKey("dateFormat")){
-                Element serverport = system.addElement("property").addAttribute("name", "dateFormat");
-                serverport.setText(jsonObject.getString("dateFormat"));
-            }
-            if (jsonObject.containsKey("sBeginDate")){
-                Element serverport = system.addElement("property").addAttribute("name", "sBeginDate");
-                serverport.setText(jsonObject.getString("sBeginDate"));
-            }
-            if (jsonObject.containsKey("type")){
-                Element serverport = system.addElement("property").addAttribute("name", "type");
-                serverport.setText(jsonObject.getString("type"));
-            }
-            if (jsonObject.containsKey("totalBuckets")){
-                Element serverport = system.addElement("property").addAttribute("name", "totalBuckets");
-                serverport.setText(jsonObject.getString("totalBuckets"));
-            }
-
-            //mapFile from config
-            if (jsonObject.containsKey("config")){
-                String config = jsonObject.getString("config").replace("{","").replace("}","").replace("\"","").replace(":","=");
-                String mapFile = jsonObject.getString("name");
-                Element mapFileEl = system.addElement("property").addAttribute("name", "mapFile");
-                mapFileEl.setText(mapFile+".txt");
-                conf2File("/"+mapFile+".txt",config);
-            }
-            if (jsonObject.containsKey("groupPartionSize")){
-                Element serverport = system.addElement("property").addAttribute("name", "groupPartionSize");
-                serverport.setText(jsonObject.getString("groupPartionSize"));
-            }
-            if (jsonObject.containsKey("sPartionDay")){
-                Element serverport = system.addElement("property").addAttribute("name", "sPartionDay");
-                serverport.setText(jsonObject.getString("sPartionDay"));
-            }
-
-            //tableRule
+                    //tableRule
             Element ruleEl = serverElement.addElement("tableRule").addAttribute("name",jsonObject.getString("name"));
             if (jsonObject.containsKey("column")){
                 Element ruleEl1 = ruleEl.addElement("rule");
@@ -501,6 +435,76 @@ public class ZkDownload {
                     Element algorithm = ruleEl1.addElement("algorithm");
                     algorithm.setText(jsonObject.getString("name"));
                 }
+            }
+        }
+
+        //function
+        for (int i=0;i<mapList.size();i++) {
+            String key = mapList.get(i).keySet().toString().replace("[", "").replace("]", "").trim();
+            JSONObject jsonObject = mapList.get(i).get(key);
+            Element system = serverElement.addElement("function");
+            if (jsonObject.containsKey("name")) {
+                system.addAttribute("name", jsonObject.getString("name"));
+            }
+            if (jsonObject.containsKey("functionName")) {
+                //1.4 class
+                String pathFor14 = "org.opencloudb.route.function";
+                String func = jsonObject.getString("functionName");
+                String className = pathFor14 + func.substring(func.lastIndexOf("."), func.length());
+                system.addAttribute("class", className);
+            }
+            if (jsonObject.containsKey("count")) {
+                Element serverport = system.addElement("property").addAttribute("name", "count");
+                serverport.setText(jsonObject.getString("count"));
+            }
+            if (jsonObject.containsKey("virtualBucketTimes")) {
+                Element serverport = system.addElement("property").addAttribute("name", "virtualBucketTimes");
+                serverport.setText(jsonObject.getString("virtualBucketTimes"));
+            }
+            if (jsonObject.containsKey("partitionCount")) {
+                Element serverport = system.addElement("property").addAttribute("name", "partitionCount");
+                serverport.setText(jsonObject.getString("partitionCount"));
+            }
+            if (jsonObject.containsKey("partitionLength")) {
+                Element serverport = system.addElement("property").addAttribute("name", "partitionLength");
+                serverport.setText(jsonObject.getString("partitionLength"));
+            }
+            if (jsonObject.containsKey("splitOneDay")) {
+                Element serverport = system.addElement("property").addAttribute("name", "splitOneDay");
+                serverport.setText(jsonObject.getString("splitOneDay"));
+            }
+            if (jsonObject.containsKey("dateFormat")) {
+                Element serverport = system.addElement("property").addAttribute("name", "dateFormat");
+                serverport.setText(jsonObject.getString("dateFormat"));
+            }
+            if (jsonObject.containsKey("sBeginDate")) {
+                Element serverport = system.addElement("property").addAttribute("name", "sBeginDate");
+                serverport.setText(jsonObject.getString("sBeginDate"));
+            }
+            if (jsonObject.containsKey("type")) {
+                Element serverport = system.addElement("property").addAttribute("name", "type");
+                serverport.setText(jsonObject.getString("type"));
+            }
+            if (jsonObject.containsKey("totalBuckets")) {
+                Element serverport = system.addElement("property").addAttribute("name", "totalBuckets");
+                serverport.setText(jsonObject.getString("totalBuckets"));
+            }
+
+            //mapFile from config
+            if (jsonObject.containsKey("config")) {
+                String config = jsonObject.getString("config").replace("{", "").replace("}", "").replace("\"", "").replace(":", "=");
+                String mapFile = jsonObject.getString("name");
+                Element mapFileEl = system.addElement("property").addAttribute("name", "mapFile");
+                mapFileEl.setText(mapFile + ".txt");
+                conf2File("/" + mapFile + ".txt", config);
+            }
+            if (jsonObject.containsKey("groupPartionSize")) {
+                Element serverport = system.addElement("property").addAttribute("name", "groupPartionSize");
+                serverport.setText(jsonObject.getString("groupPartionSize"));
+            }
+            if (jsonObject.containsKey("sPartionDay")) {
+                Element serverport = system.addElement("property").addAttribute("name", "sPartionDay");
+                serverport.setText(jsonObject.getString("sPartionDay"));
             }
         }
         json2XmlFile(document,"rule.xml");
@@ -533,7 +537,7 @@ public class ZkDownload {
                         String temp = tablePath.substring(subLength, tablePath.length());
                         if (temp.contains("/") && temp.contains(schema)&&temp.lastIndexOf("/")<=schema.length()) {
                             String tableName = temp.substring(schema.length() + 1, temp.length());
-                            System.out.println("table:" + tableName);
+//                            System.out.println("table:" + tableName);
                             JSONObject tableJsonObject = mapList.get(j).get(tablePath);
                             Element tableEl = schemaEl.addElement("table");
                             if (tableJsonObject.containsKey("name"))
@@ -556,7 +560,7 @@ public class ZkDownload {
                                 if (tempChildTableName.contains("/") && tempChildTableName.contains(tableName)) {
                                     String childTable = tempChildTableName.substring(tableName.length() + 1, tempChildTableName.length());
                                     if (tempChildTableName.substring(tempChildTableName.lastIndexOf("/")+1,tempChildTableName.length()).equals(childTable)){
-                                        System.out.println("childTable:" + childTable);
+//                                        System.out.println("childTable:" + childTable);
                                         JSONObject childTableJsonObject = mapList.get(k).get(childTablePath);
                                         Element childTableEl = tableEl.addElement("childTable");
                                         if (childTableJsonObject.containsKey("name"))
@@ -576,7 +580,7 @@ public class ZkDownload {
                                             if (tempchild_childTablePath.contains("/") && tempchild_childTablePath.contains(childTable)) {
                                                 String child_childTablePathName = tempchild_childTablePath.substring(childTable.length() + 1, tempchild_childTablePath.length());
                                                 if (tempchild_childTablePath.substring(tempchild_childTablePath.lastIndexOf("/")+1,tempchild_childTablePath.length()).equals(child_childTablePathName)){
-                                                    System.out.println("child-childTable:" + child_childTablePathName);
+                                                    //System.out.println("child-childTable:" + child_childTablePathName);
                                                     JSONObject child_childTableJsonObject = mapList.get(l).get(child_childTablePath);
                                                     Element child_childTablePathEl = childTableEl.addElement("childTable");
                                                     if (child_childTableJsonObject.containsKey("name"))
@@ -644,7 +648,7 @@ public class ZkDownload {
                     String temp = host.substring(subLength, host.length());
                     if (temp.contains("/") && temp.contains(key)&&temp.lastIndexOf("/")<=key.length()) {
                         String childHost = temp.substring(key.length() + 1, temp.length());
-                        System.out.println("childHost:" + childHost);
+                        //System.out.println("childHost:" + childHost);
                         JSONObject childJsonObject = mapList.get(j).get(host);
                         Element writeHost = dataHost.addElement("writeHost");
                         if (childJsonObject.containsKey("host"))
@@ -663,7 +667,7 @@ public class ZkDownload {
                             String tempread = readhost.substring(host.length()-childHost.length(), readhost.length());
                             if (tempread.contains("/") && tempread.contains(childHost)) {
                                 String readHost = tempread.substring(childHost.length() + 1, tempread.length());
-                                System.out.println("readHost:" + readHost);
+                                //System.out.println("readHost:" + readHost);
                                 JSONObject readJsonObject = mapList.get(k).get(readhost);
                                 Element readHostEl = writeHost.addElement("readHost");
                                 if (readJsonObject.containsKey("host"))
