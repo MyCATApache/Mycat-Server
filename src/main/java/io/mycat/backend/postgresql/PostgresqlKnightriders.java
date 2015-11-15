@@ -8,15 +8,20 @@ import io.mycat.backend.postgresql.packet.CopyInResponse;
 import io.mycat.backend.postgresql.packet.CopyOutResponse;
 import io.mycat.backend.postgresql.packet.DataRow;
 import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
+import io.mycat.backend.postgresql.packet.CancelRequest;
 import io.mycat.backend.postgresql.packet.EmptyQueryResponse;
 import io.mycat.backend.postgresql.packet.ErrorResponse;
 import io.mycat.backend.postgresql.packet.NoticeResponse;
 import io.mycat.backend.postgresql.packet.ParameterStatus;
+import io.mycat.backend.postgresql.packet.Parse;
+import io.mycat.backend.postgresql.packet.ParseComplete;
 import io.mycat.backend.postgresql.packet.PasswordMessage;
 import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
+import io.mycat.backend.postgresql.packet.PostgreSQLPacket.DateType;
 import io.mycat.backend.postgresql.packet.Query;
 import io.mycat.backend.postgresql.packet.ReadyForQuery;
 import io.mycat.backend.postgresql.packet.RowDescription;
+import io.mycat.backend.postgresql.packet.Terminate;
 import io.mycat.backend.postgresql.utils.PIOUtils;
 
 import java.io.IOException;
@@ -31,6 +36,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,6 +112,14 @@ public class PostgresqlKnightriders {
 						socket.getOutputStream().write(buffer.array());
 						List<PostgreSQLPacket> sqlPacket = readParsePacket(socket);
 						System.out.println(JSON.toJSONString(sqlPacket));
+						int pid = 0;
+						int secretKey = 0;
+						for (PostgreSQLPacket p : sqlPacket) {
+							if (p instanceof BackendKeyData) {
+								pid = ((BackendKeyData) p).getPid();
+								secretKey = ((BackendKeyData) p).getSecretKey();
+							}
+						}
 
 						Query query = new Query("SELECT * from  ump_coupon");
 						// Query query = new Query("SELECT 1"+"\0");
@@ -135,6 +149,34 @@ public class PostgresqlKnightriders {
 
 						sqlPacket = readParsePacket(socket);
 						System.out.println(JSON.toJSONString(sqlPacket));
+
+						// CancelRequest cancelRequest = new CancelRequest(pid,
+						// secretKey);
+						// oby = ByteBuffer.allocate(cancelRequest.getLength());
+						// cancelRequest.write(oby);
+						// socket.getOutputStream().write(oby.array());
+						// List<PostgreSQLPacket> pgs = readParsePacket(socket);
+						// System.out.println(JSON.toJSONString(pgs));
+
+						// 解析sql
+						String uuid = UUID.randomUUID().toString();
+
+						String sql = "INSERT into ump_coupon(id_,name_,time) VALUES (3,'你好啊',now())";
+						Parse parse = new Parse(uuid, sql);
+						oby = ByteBuffer.allocate(parse.getLength() + 1+4);
+						
+						parse.write(oby);
+						socket.getOutputStream().write(oby.array());
+						List<PostgreSQLPacket> tre = readParsePacket(socket);
+						System.out.println(JSON.toJSONString(tre));
+
+						Terminate terminate = new Terminate();
+						oby = ByteBuffer.allocate(terminate.getLength() + 1);
+						terminate.write(oby);
+						socket.getOutputStream().write(oby.array());
+						tre = readParsePacket(socket);
+						System.out.println(tre);
+
 					}
 				}
 			}
@@ -205,6 +247,10 @@ public class PostgresqlKnightriders {
 				break;
 			case 'H':
 				pg = CopyOutResponse.parse(
+						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+				break;
+			case '1':
+				pg = ParseComplete.parse(
 						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
 				break;
 			default:

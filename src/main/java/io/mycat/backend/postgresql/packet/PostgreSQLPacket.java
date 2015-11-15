@@ -29,8 +29,21 @@ public abstract class PostgreSQLPacket {
 	public static enum DateType {
 		UNKNOWN;
 
+		private int value = 0;
+
 		public static DateType valueOf(int val) {
 			return UNKNOWN;
+		}
+
+		private DateType() {
+		}
+
+		private DateType(int value) {
+			this.value = value;
+		}
+
+		public int getValue() {
+			return value;
 		}
 
 	}
@@ -114,17 +127,42 @@ public abstract class PostgreSQLPacket {
 		/***
 		 * 空查询
 		 */
-		B_EmptyQueryResponse('I'), 
-		
+		B_EmptyQueryResponse('I'),
+
 		/*************
 		 * 拷贝数据进PGsql
 		 */
-		B_CopyInResponse('G'), 
-		
+		B_CopyInResponse('G'),
+
 		/***
 		 * 从PGsql 中拷贝数据出来
 		 */
-		B_CopyOutResponse('H');
+		B_CopyOutResponse('H'),
+
+		/**
+		 * 连接启动信息
+		 */
+		F_StartupMessage('\0'),
+
+		/***
+		 * 终止请求
+		 */
+		F_Terminate('X'),
+
+		/***
+		 * 解析sql语句请求
+		 */
+		F_Parse('P'),
+
+		/**
+		 * sql 解析成功
+		 */
+		B_ParseComplete('1'), 
+		
+		/***
+		 * 绑定参数成功
+		 */
+		B_BindComplete('2');
 
 		private char value;
 
