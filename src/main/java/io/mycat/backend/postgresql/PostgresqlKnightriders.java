@@ -94,7 +94,7 @@ public class PostgresqlKnightriders {
 				// String[0][]));
 				ByteBuffer in = ByteBuffer.allocate(10);
 				channel.read(in);
-				System.out.println(in);
+				//System.out.println(in);
 
 			} else {
 				sendStartupPacket(socket, paramList.toArray(new String[0][]));
@@ -121,7 +121,7 @@ public class PostgresqlKnightriders {
 							}
 						}
 
-						Query query = new Query("SELECT * from  ump_coupon");
+						Query query = new Query("SELECT text_,timestamp_ from ump_types");
 						// Query query = new Query("SELECT 1"+"\0");
 
 						ByteBuffer oby = ByteBuffer
@@ -191,7 +191,7 @@ public class PostgresqlKnightriders {
 
 	private static List<PostgreSQLPacket> readParsePacket(Socket socket)
 			throws IOException, IllegalAccessException {
-		byte[] bytes = new byte[1024];
+		byte[] bytes = new byte[1024*10];
 		int leg = socket.getInputStream().read(bytes, 0, bytes.length);
 		List<PostgreSQLPacket> pgs = new ArrayList<>();
 		int offset = 0;
@@ -201,57 +201,57 @@ public class PostgresqlKnightriders {
 			switch (MAKE) {
 			case 'R':
 				pg = AuthenticationPacket.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case 'E':
 				pg = ErrorResponse.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case 'K':
 				pg = BackendKeyData.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case 'S':
 				pg = ParameterStatus.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case 'Z':
 				pg = ReadyForQuery.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case 'N':
 				pg = NoticeResponse.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case 'C':
 				pg = CommandComplete.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case 'T':
 				pg = RowDescription.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case 'D':
 				pg = DataRow.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 
 			case 'I':
 				pg = EmptyQueryResponse.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 
 			case 'G':
 				pg = CopyInResponse.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case 'H':
 				pg = CopyOutResponse.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			case '1':
 				pg = ParseComplete.parse(
-						ByteBuffer.wrap(bytes, offset, leg - offset), offset);
+						ByteBuffer.wrap(bytes), offset);
 				break;
 			default:
 				throw new RuntimeException("Unknown packet");

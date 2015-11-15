@@ -101,7 +101,7 @@ public class PIOUtils {
 		for(int i=offset ;i< buffer.limit();i++){
 			out.write(new byte[]{buffer.get(i)});
 			if(((char)buffer.get(i)) == '\0'){
-				System.out.println(i - offset);
+				//System.out.println(i - offset);
 				break;
 			}			
 		}
@@ -117,6 +117,8 @@ public class PIOUtils {
 	public static byte redInteger1(ByteBuffer buffer, int _offset) {
 		return buffer.get(_offset);
 	}
+	
+	
 
 	
 

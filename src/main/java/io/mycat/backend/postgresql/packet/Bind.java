@@ -121,4 +121,60 @@ public class Bind extends PostgreSQLPacket {
 		return marker;
 	}
 
+	/**
+	 * @return the name
+	 */
+	public String getName() {
+		return name;
+	}
+
+	/**
+	 * @return the sql
+	 */
+	public String getSql() {
+		return sql;
+	}
+
+	/**
+	 * @return the parameterProtocolNumber
+	 */
+	public short getParameterProtocolNumber() {
+		return parameterProtocolNumber;
+	}
+
+	/**
+	 * @return the parameterProtocol
+	 */
+	public DataProtocol[] getParameterProtocol() {
+		return parameterProtocol;
+	}
+
+	/**
+	 * @return the parameterNumber
+	 */
+	public short getParameterNumber() {
+		return parameterNumber;
+	}
+
+	/**
+	 * @return the parameter
+	 */
+	public DataParameter[] getParameter() {
+		return parameter;
+	}
+
+	/**
+	 * @return the resultNumber
+	 */
+	public short getResultNumber() {
+		return resultNumber;
+	}
+
+	/**
+	 * @return the resultProtocol
+	 */
+	public DataProtocol[] getResultProtocol() {
+		return resultProtocol;
+	}
+
 }

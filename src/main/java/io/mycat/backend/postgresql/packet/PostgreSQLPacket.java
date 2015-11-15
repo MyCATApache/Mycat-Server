@@ -27,11 +27,100 @@ public abstract class PostgreSQLPacket {
 	 *
 	 */
 	public static enum DateType {
-		UNKNOWN;
+		bit_(1560), boo_(16), box_(603), bytea_(17), char_(1042), cidr_(650), circle_(
+				718), date_(1082), decimal_(1700), float4_(700), float8_(701), inet_(
+				869), int2_(21), int4_(23), int8_(20), interval_(1186), json_(
+				114), jsonb_(3802), line_(628), lseg_(601), macaddr_(829), money_(
+				790), path_(602), point_(600), polygon_(604), serial2_(21), serial4_(
+				23), serial8_(20), text_(25), time_(1083), timetz_(1266), timestamp_(
+				1114), timestamptz_(1184), tsquery_(3615), tsvector_(3614), txid_snapshot_(
+				2970), uuid_(2950), varbit_(1562), varchar_(1043), xml_(142), UNKNOWN;
 
 		private int value = 0;
 
 		public static DateType valueOf(int val) {
+			switch (val) {
+			case 1560:
+				return bit_;
+			case 16:
+				return boo_;
+			case 603:
+				return box_;
+			case 17:
+				return bytea_;
+			case 1042:
+				return char_;
+			case 650:
+				return cidr_;
+			case 718:
+				return circle_;
+			case 1082:
+				return date_;
+			case 1700:
+				return decimal_;
+			case 700:
+				return float4_;
+			case 701:
+				return float8_;
+			case 869:
+				return inet_;
+			case 21:
+				return int2_;
+			case 23:
+				return int4_;
+			case 20:
+				return int8_;
+			case 1186:
+				return interval_;
+			case 114:
+				return json_;
+			case 3802:
+				return jsonb_;
+			case 628:
+				return line_;
+			case 601:
+				return lseg_;
+			case 829:
+				return macaddr_;
+			case 790:
+				return money_;
+			case 602:
+				return path_;
+			case 600:
+				return point_;
+			case 604:
+				return polygon_;
+//			case 21:
+//				return serial2_;
+//			case 23:
+//				return serial4_;
+//			case 20:
+//				return serial8_;
+			case 25:
+				return text_;
+			case 1083:
+				return time_;
+			case 1266:
+				return timetz_;
+			case 1114:
+				return timestamp_;
+			case 1184:
+				return timestamptz_;
+			case 3615:
+				return tsquery_;
+			case 3614:
+				return tsvector_;
+			case 2970:
+				return txid_snapshot_;
+			case 2950:
+				return uuid_;
+			case 1562:
+				return varbit_;
+			case 1043:
+				return varchar_;
+			case 142:
+				return xml_;
+			}
 			return UNKNOWN;
 		}
 
@@ -157,8 +246,8 @@ public abstract class PostgreSQLPacket {
 		/**
 		 * sql 解析成功
 		 */
-		B_ParseComplete('1'), 
-		
+		B_ParseComplete('1'),
+
 		/***
 		 * 绑定参数成功
 		 */
