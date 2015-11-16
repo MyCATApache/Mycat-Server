@@ -20,7 +20,7 @@ import org.opencloudb.util.StringUtil;
 /**
  * 查询用户的 SQL 执行情况
  * 
- * 1、用户 R/W 数 及读占比
+ * 1、用户 R/W数、读占比、并发数
  * 2、请求时间范围
  * 3、请求的耗时范围
  * 
@@ -30,7 +30,7 @@ public class ShowSQLSum {
 	
 	private static DecimalFormat decimalFormat = new DecimalFormat("0.00");
 
-    private static final int FIELD_COUNT = 6;
+    private static final int FIELD_COUNT = 9;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -46,13 +46,24 @@ public class ShowSQLSum {
         fields[i] = PacketUtil.getField("USER", Fields.FIELD_TYPE_VARCHAR);
         fields[i++].packetId = ++packetId;
         
-        fields[i] = PacketUtil.getField("R/W, R%", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i] = PacketUtil.getField("R", Fields.FIELD_TYPE_LONGLONG);
+        fields[i++].packetId = ++packetId;
+        
+        fields[i] = PacketUtil.getField("W", Fields.FIELD_TYPE_LONGLONG);
+        fields[i++].packetId = ++packetId;
+        
+        fields[i] = PacketUtil.getField("R%", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i++].packetId = ++packetId;
+        
+        fields[i] = PacketUtil.getField("MAX", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
 
-        fields[i] = PacketUtil.getField("22-06h, 06-13h, 13-18h, 18-22h", Fields.FIELD_TYPE_VAR_STRING);
+        //22-06h, 06-13h, 13-18h, 18-22h
+        fields[i] = PacketUtil.getField("TIME_COUNT", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;        
         
-        fields[i] = PacketUtil.getField("<10ms, 10ms-200ms, 200ms-1s, >1s", Fields.FIELD_TYPE_VAR_STRING);
+        //<10ms, 10ms-200ms, 200ms-1s, >1s
+        fields[i] = PacketUtil.getField("TTL_COUNT", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
         
         fields[i] = PacketUtil.getField("LAST_TIME", Fields.FIELD_TYPE_LONGLONG);
@@ -104,12 +115,16 @@ public class ShowSQLSum {
         
         String user = userStat.getUser();
         RWStat rwStat = userStat.getRWStat();
-        long RCOUNT = rwStat.getRCount();
-        long WCOUNT = rwStat.getWCount();
-        String RP = decimalFormat.format( 1.0D * RCOUNT / (RCOUNT + WCOUNT) );
+        long R = rwStat.getRCount();
+        long W = rwStat.getWCount();
+        String __R = decimalFormat.format( 1.0D * R / (R + W) );
+        int MAX = rwStat.getConcurrentMax();
         
         row.add( StringUtil.encode( user, charset) );
-        row.add( StringUtil.encode( RCOUNT  + "/" + WCOUNT + ", " + RP, charset) );
+        row.add( LongUtil.toBytes( R ) );
+        row.add( LongUtil.toBytes( W ) );
+        row.add( StringUtil.encode( String.valueOf( __R ), charset) );
+        row.add( StringUtil.encode( String.valueOf( MAX ), charset) );
         row.add( StringUtil.encode( rwStat.getExecuteHistogram().toString(), charset) );
         row.add( StringUtil.encode( rwStat.getTimeHistogram().toString(), charset) );
         row.add( LongUtil.toBytes( rwStat.getLastExecuteTime() ) );

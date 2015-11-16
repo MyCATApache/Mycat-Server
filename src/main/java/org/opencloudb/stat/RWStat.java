@@ -1,6 +1,7 @@
 package org.opencloudb.stat;
 
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.opencloudb.server.parser.ServerParse;
@@ -13,12 +14,22 @@ import org.opencloudb.server.parser.ServerParse;
  */
 public class RWStat {
 	
-	//R/W 次数
+	/**
+	 * R/W 次数
+	 */
 	private final AtomicLong rCount = new AtomicLong(0);
     private final AtomicLong wCount = new AtomicLong(0);
     
-    //最后执行时间
+    /**
+     * 最后执行时间
+     */
     private long lastExecuteTime;
+    
+	/**
+	 * 最大的并发
+	 */
+    private final AtomicInteger runningCount  = new AtomicInteger();
+	private final AtomicInteger concurrentMax = new AtomicInteger();
 	
     /**
      * 执行耗时
@@ -42,10 +53,10 @@ public class RWStat {
 	}
 	
 	public void reset() {
-		
 		this.rCount.set(0);
 		this.wCount.set(0);
-		
+		this.runningCount.set(0);
+		this.concurrentMax.set(0);
 		this.lastExecuteTime = 0;
 		
 		this.timeHistogram.reset();
@@ -53,6 +64,21 @@ public class RWStat {
 	}
 	
 	public void add(int sqlType, long time, long now) {
+		
+		//before 计算最大并发数
+		//-----------------------------------------------------
+		int invoking = runningCount.incrementAndGet();
+        for (;;) {
+            int max = concurrentMax.get();
+            if (invoking > max) {
+                if (concurrentMax.compareAndSet(max, invoking)) {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        //-----------------------------------------------------
 	
 		switch(sqlType) {
     	case ServerParse.SELECT:
@@ -99,15 +125,26 @@ public class RWStat {
 			
 		} else if ( now > hour18 && now <= hour22 ) {
 			this.executeHistogram.record(22);	
-		}
-		
+		}		
 		
 		this.lastExecuteTime = now;
+		
+		//after
+		//-----------------------------------------------------
+		runningCount.decrementAndGet();		
 	}
 	
     public long getLastExecuteTime() {
         return lastExecuteTime;
     }	
+    
+    public AtomicInteger getRunningCount() {
+		return runningCount;
+	}
+
+	public int getConcurrentMax() {
+        return concurrentMax.get();
+    }
     
     public long getRCount() {
         return this.rCount.get();

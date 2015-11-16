@@ -27,8 +27,10 @@ public class UserStat {
 	 * 慢查询记录器  TOP 10
 	 */
 	private SQLRecorder sqlRecorder;
-	
+
 	private String user;
+	
+
 	
 	public UserStat(String user) {
 		super();
@@ -54,8 +56,7 @@ public class UserStat {
 		return sqlStat;
 	}
 	
-	public void reset() {
-		
+	public void reset() {		
 		this.sqlRecorder.clear();
 		this.rwStat.reset();
 		this.sqlStat.reset();
