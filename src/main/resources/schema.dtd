@@ -57,6 +57,7 @@
   writeType CDATA #IMPLIED
   switchType  CDATA #IMPLIED
   slaveThreshold  CDATA #IMPLIED
+  tempReadHostAvailable CDATA #IMPLIED
   dbType CDATA #REQUIRED
   filters CDATA #IMPLIED
   logTime CDATA #IMPLIED
