@@ -2,11 +2,10 @@ package io.mycat.route.parser.druid;
 
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 
 import java.sql.SQLNonTransientException;
 
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.sql.ast.SQLStatement;
 
 /**

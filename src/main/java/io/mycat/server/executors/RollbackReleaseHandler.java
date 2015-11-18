@@ -24,16 +24,16 @@
 package io.mycat.server.executors;
 
 import io.mycat.backend.BackendConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public class RollbackReleaseHandler implements ResponseHandler {
-	private static final Logger logger = Logger
+	private static final Logger logger = LoggerFactory
 			.getLogger(RollbackReleaseHandler.class);
 
 	public RollbackReleaseHandler() {
@@ -56,7 +56,7 @@ public class RollbackReleaseHandler implements ResponseHandler {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		logger.info("client error ocurred ,rollbacked backend conn " + conn);
+        logger.debug("autocomit is false,but no commit or rollback ,so mycat rollbacked backend conn "+conn);
 		conn.release();
 	}
 

@@ -1,16 +1,19 @@
 package io.mycat.route.impl;
 
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
-import io.mycat.route.parser.druid.DruidParser;
-import io.mycat.route.parser.druid.DruidParserFactory;
-import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
-import io.mycat.route.parser.druid.MycatStatementParser;
-import io.mycat.route.parser.druid.RouteCalculateUnit;
+import io.mycat.route.parser.druid.*;
 import io.mycat.route.util.RouterUtil;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
@@ -18,16 +21,8 @@ import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.log4j.Logger;
-
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
-
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
-	public static final Logger LOGGER = Logger.getLogger(DruidMycatRouteStrategy.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DruidMycatRouteStrategy.class);
 	
 	@Override
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
@@ -146,7 +141,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		if (indx[0] > 0) {
 			// has table
 			int[] repPos = { indx[0] + indx[1], 0 };
-			String tableName = RouterUtil.getTableName(stmt, repPos);
+			String tableName = RouterUtil.getShowTableName(stmt, repPos);
 			// IN DB pattern
 			int[] indx2 = RouterUtil.getSpecPos(upStmt, indx[0] + indx[1] + 1);
 			if (indx2[0] > 0) {// find LIKE OR WHERE
@@ -273,6 +268,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			break;
 		case ServerParse.DESCRIBE:// if origSQL is meta SQL, such as describe table
 			int ind = stmt.indexOf(' ');
+			stmt = stmt.trim();
 			return analyseDescrSQL(schema, rrs, stmt, ind + 1);
 		}
 		return null;

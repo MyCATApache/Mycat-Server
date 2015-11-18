@@ -23,23 +23,19 @@
  */
 package io.mycat.backend;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.server.Alarms;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.config.node.DataHostConfig;
 import io.mycat.server.executors.GetConnectionHandler;
 import io.mycat.server.executors.ResponseHandler;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Random;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 public class PhysicalDBPool {
     public static final int BALANCE_NONE = 0;
@@ -50,8 +46,9 @@ public class PhysicalDBPool {
     public static final int WRITE_RANDOM_NODE = 1;
     public static final int WRITE_ALL_NODE = 2;
     public static final long LONG_TIME = 300000;
+    public static final int WEIGHT = 0;
 
-    protected static final Logger LOGGER = Logger
+    protected static final Logger LOGGER = LoggerFactory
             .getLogger(PhysicalDBPool.class);
     private final String hostName;
     protected PhysicalDatasource[] writeSources;
@@ -249,8 +246,7 @@ public class PhysicalDBPool {
 
                 if (this.writeType == WRITE_ONLYONE_NODE) {
                     // only init one write datasource
-                    MycatServer.getInstance().saveDataHostIndex(hostName,
-                            activedIndex);
+                    MycatServer.getInstance().saveDataHostIndex(hostName, activedIndex);
                     break;
                 }
             }
@@ -311,24 +307,19 @@ public class PhysicalDBPool {
     }
 
     public void doHeartbeat() {
-
-        // 妫�煡鍐呴儴鏄惁鏈夎繛鎺ユ睜閰嶇疆淇℃伅
         if (writeSources == null || writeSources.length == 0) {
             return;
         }
-
+        
         for (PhysicalDatasource source : this.allDs) {
-            // 鍑嗗鎵ц蹇冭烦妫�祴
             if (source != null) {
                 source.doHeartbeat();
             } else {
                 StringBuilder s = new StringBuilder();
-                s.append(Alarms.DEFAULT).append(hostName)
-                        .append(" current dataSource is null!");
+                s.append(Alarms.DEFAULT).append(hostName).append(" current dataSource is null!");
                 LOGGER.error(s.toString());
             }
         }
-        // 璇诲簱鐨勫績璺虫娴�
     }
 
     /**
@@ -444,16 +435,54 @@ public class PhysicalDBPool {
                 && (dataHostConfig.getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS);
     }
 
-    private PhysicalDatasource randomSelect(
-            ArrayList<PhysicalDatasource> okSources) {
-        if (okSources.isEmpty()) {
-            return this.getSource();
-        } else {
-            int index = Math.abs(random.nextInt()) % okSources.size();
-            return okSources.get(index);
-        }
-
-    }
+    /**
+	 * TODO: modify by zhuam
+	 * 
+	 * 随机选择，按权重设置随机概率。
+     * 在一个截面上碰撞的概率高，但调用量越大分布越均匀，而且按概率使用权重后也比较均匀，有利于动态调整提供者权重。
+	 * @param okSources
+	 * @return
+	 */
+	public PhysicalDatasource randomSelect(ArrayList<PhysicalDatasource> okSources) {
+		
+		if (okSources.isEmpty()) {
+			return this.getSource();
+			
+		} else {		
+			
+			int length = okSources.size(); 	// 总个数
+	        int totalWeight = 0; 			// 总权重
+	        boolean sameWeight = true; 		// 权重是否都一样
+	        for (int i = 0; i < length; i++) {	        	
+	            int weight = okSources.get(i).getConfig().getWeight();
+	            totalWeight += weight; 		// 累计总权重	            
+	            if (sameWeight && i > 0 
+	            		&& weight != okSources.get(i-1).getConfig().getWeight() ) {	  // 计算所有权重是否一样          		            	
+	                sameWeight = false; 	
+	            }
+	        }
+	        
+	        if (totalWeight > 0 && !sameWeight ) {
+	            
+	        	// 如果权重不相同且权重大于0则按总权重数随机
+	            int offset = random.nextInt(totalWeight);
+	            
+	            // 并确定随机值落在哪个片断上
+	            for (int i = 0; i < length; i++) {
+	                offset -= okSources.get(i).getConfig().getWeight();
+	                if (offset < 0) {
+	                    return okSources.get(i);
+	                }
+	            }
+	        }
+	        
+	        // 如果权重相同或权重为0则均等随机
+	        return okSources.get( random.nextInt(length) );	
+	        
+			//int index = Math.abs(random.nextInt()) % okSources.size();
+			//return okSources.get(index);
+		}
+	}
 
     private boolean isAlive(PhysicalDatasource theSource) {
         return (theSource.getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS);
@@ -473,7 +502,7 @@ public class PhysicalDBPool {
 
     /**
      * return all backup write sources
-     * 
+     *
      * @param includeWriteNode if include write nodes
      * @param includeCurWriteNode if include current active write node. invalid when <code>includeWriteNode<code> is false
      * @param filterWithSlaveThreshold
@@ -481,7 +510,7 @@ public class PhysicalDBPool {
      * @return
      */
     private ArrayList<PhysicalDatasource> getAllActiveRWSources(
-    		boolean includeWriteNode, 
+    		boolean includeWriteNode,
             boolean includeCurWriteNode, boolean filterWithSlaveThreshold) {
         int curActive = activedIndex;
         ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(

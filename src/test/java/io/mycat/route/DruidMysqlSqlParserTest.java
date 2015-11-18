@@ -3,10 +3,9 @@ package io.mycat.route;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.SchemaLoader;
-import io.mycat.server.config.XMLSchemaLoader;
+import io.mycat.server.config.loader.ConfigInitializer;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 
 import java.sql.SQLNonTransientException;
 import java.util.Map;
@@ -22,10 +21,8 @@ public class DruidMysqlSqlParserTest
     protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 
 	public DruidMysqlSqlParserTest() {
-		String schemaFile = "/route/schema.xml";
-		String ruleFile = "/route/rule.xml";
-		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
-		schemaMap = schemaLoader.getSchemas();
+		ConfigInitializer confInit = new ConfigInitializer(true);
+		schemaMap = confInit.getSchemas();
 	}
 
 	@Test
@@ -49,7 +46,7 @@ public class DruidMysqlSqlParserTest
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(0, rrs.getLimitStart());
         Assert.assertEquals(15, rrs.getLimitSize());
-		
+
         sql="select * from offer1 order by id desc limit 5,10" ;
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);

@@ -23,6 +23,8 @@
  */
 package io.mycat.server.config;
 
+import io.mycat.server.config.info.JVMInfo;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;

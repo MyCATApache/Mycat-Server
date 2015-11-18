@@ -23,6 +23,7 @@
  */
 package io.mycat.server.sqlhandler;
 
+import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
@@ -33,10 +34,9 @@ import io.mycat.route.util.RouterUtil;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.LoadDataInfileHandler;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.TableConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
+import io.mycat.server.config.node.TableConfig;
 import io.mycat.server.packet.BinaryPacket;
 import io.mycat.server.packet.RequestFilePacket;
 import io.mycat.server.parser.ServerParse;
@@ -494,7 +494,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         StringBuilder sb = new StringBuilder();
         for (int i = 0, srcLength = src.length; i < srcLength; i++)
         {
-            String s = src[i];
+            String s = src[i]!=null?src[i]:"";
             if(loadData.getEnclose()==null)
             {
                   sb.append(s);

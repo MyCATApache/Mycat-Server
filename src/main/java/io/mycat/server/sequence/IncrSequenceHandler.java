@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -30,15 +30,14 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 递增序列号处理器
- * 
+ *
  * @author <a href="http://www.micmiu.com">Michael</a>
  * @time Create on 2013-12-29 下午10:42:39
  * @version 1.0
  */
-public abstract class IncrSequenceHandler implements SequenceHandler {
+public abstract class IncrSequenceHandler extends SequenceHandler {
 
-	public static final Logger logger = LoggerFactory
-			.getLogger(IncrSequenceHandler.class);
+	public static final Logger logger = LoggerFactory.getLogger(IncrSequenceHandler.class);
 
 	public static final String FILE_NAME = "sequence_conf.properties";
 

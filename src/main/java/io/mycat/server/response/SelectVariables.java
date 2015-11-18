@@ -33,10 +33,9 @@ import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.PacketUtil;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +45,8 @@ import java.util.Map;
  */
 public final class SelectVariables
 {
-    private static final Logger LOGGER = Logger.getLogger(SelectVariables.class);
+    private static final Logger LOGGER = LoggerFactory
+            .getLogger(SelectVariables.class);
 
 
     public static void execute(MySQLFrontConnection c, String sql) {

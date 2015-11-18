@@ -1,10 +1,12 @@
 package io.mycat.server.interceptor.impl;
 
+import io.mycat.MycatServer;
 import io.mycat.net.NetSystem;
-import io.mycat.server.MycatServer;
-import io.mycat.server.SystemConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -14,8 +16,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.log4j.Logger;
 
 public class StatisticsSqlInterceptor implements SQLInterceptor {
 
@@ -68,7 +68,7 @@ public class StatisticsSqlInterceptor implements SQLInterceptor {
 		}
 	}
 
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(StatisticsSqlInterceptor.class);
 
 	private static Map<String, Integer> typeMap = new HashMap<String, Integer>();

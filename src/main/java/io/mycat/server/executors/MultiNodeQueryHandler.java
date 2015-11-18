@@ -23,7 +23,7 @@
  */
 package io.mycat.server.executors;
 
-import io.mycat.MycatConfig;
+import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.nio.MySQLBackendConnection;
@@ -33,9 +33,9 @@ import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.packet.BinaryRowDataPacket;
+import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
@@ -45,26 +45,19 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColMeta;
 import io.mycat.sqlengine.mpp.DataMergeService;
 import io.mycat.sqlengine.mpp.MergeCol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.log4j.Logger;
 
 /**
  * @author mycat
  */
 public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		LoadDataResponseHandler {
-	private static final Logger LOGGER = Logger
+	public static final Logger LOGGER = LoggerFactory
 			.getLogger(MultiNodeQueryHandler.class);
 
 	private final RouteResultset rrs;
@@ -114,6 +107,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	protected void reset(int initCount) {
 		super.reset(initCount);
 		this.okCount = initCount;
+	}
+
+	public NonBlockingSession getSession() {
+		return session;
 	}
 
 	public void execute() throws Exception {
@@ -306,27 +303,28 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			final RouteResultset rrs = dataMergeService.getRrs();
 
 			// 处理limit语句
-			final int start = rrs.getLimitStart();
-			final int end = start + rrs.getLimitSize();
-
-			Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
-			Iterator<RowDataPacket> itor = results.iterator();
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("output merge result ,total data "
-						+ results.size() + " start :" + start + " end :" + end
-						+ " package id start:" + packetId);
+			int start = rrs.getLimitStart();
+			int end = start + rrs.getLimitSize();
+			/*
+			 * modify by coder_czp@126.com#2015/11/2 优化为通过索引获取,避免无效循环
+			 * Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
+			 * Iterator<RowDataPacket> itor = results.iterator(); if
+			 * (LOGGER.isDebugEnabled()) {
+			 * LOGGER.debug("output merge result ,total data " + results.size()
+			 * + " start :" + start + " end :" + end + " package id start:" +
+			 * packetId); } int i = 0; while (itor.hasNext()) { RowDataPacket
+			 * row = itor.next(); if (i < start) { i++; continue; } else if (i
+			 * == end) { break; } i++; row.packetId = ++packetId; buffer =
+			 * row.write(buffer, source, true); }
+			 */
+			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
+			List<RowDataPacket> results = dataMergeSvr.getResults(eof);
+			if (rrs.getOrderByCols() == null) {
+				end = results.size();
+				start = 0;
 			}
-
-			int i = 0;
-			while (itor.hasNext()) {
-				RowDataPacket row = itor.next();
-				if (i < start) {
-					i++;
-					continue;
-				} else if (i == end) {
-					break;
-				}
-				i++;
+			for (int i = start; i < end; i++) {
+				RowDataPacket row = results.get(i);
 				if(prepared) {
 					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
 					binRowDataPk.read(fieldPackets, row);
@@ -336,7 +334,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 					row.packetId = ++packetId;
 					row.write(bufferArray);
 				}
-				
 			}
 
 			eof[3] = ++packetId;
@@ -345,7 +342,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("last packet id:" + packetId);
 			}
-			
 
 		} catch (Exception e) {
 			handleDataProcessException(e);
@@ -527,10 +523,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 	}
 
-	
 	@Override
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
-		LoadDataUtil.requestFileDataResponse(data, (MySQLBackendConnection) conn);
+		LoadDataUtil.requestFileDataResponse(data,
+				(MySQLBackendConnection) conn);
 	}
 
 	public boolean isPrepared() {

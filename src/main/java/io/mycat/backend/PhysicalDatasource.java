@@ -26,13 +26,15 @@ package io.mycat.backend;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.net.NetSystem;
 import io.mycat.server.Alarms;
-import io.mycat.server.config.DBHostConfig;
-import io.mycat.server.config.DataHostConfig;
+import io.mycat.server.config.node.DBHostConfig;
+import io.mycat.server.config.node.DataHostConfig;
 import io.mycat.server.executors.ConnectionHeartBeatHandler;
 import io.mycat.server.executors.DelegateResponseHandler;
 import io.mycat.server.executors.NewConnectionRespHandler;
 import io.mycat.server.executors.ResponseHandler;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,10 +43,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.log4j.Logger;
-
 public abstract class PhysicalDatasource {
-    private static final Logger LOGGER = Logger
+    public static final Logger LOGGER = LoggerFactory
             .getLogger(PhysicalDatasource.class);
 
     private final String name;
@@ -214,7 +214,7 @@ public abstract class PhysicalDatasource {
         if (!heartBeatCons.isEmpty()) {
             for (BackendConnection con : heartBeatCons) {
                 conHeartBeatHanler
-                        .doHeartBeat(con, hostConfig.getHearbeatSQL());
+                        .doHeartBeat(con, hostConfig.getHeartbeatSQL());
             }
         }
 

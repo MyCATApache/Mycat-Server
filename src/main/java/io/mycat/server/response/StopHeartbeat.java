@@ -24,18 +24,18 @@
 package io.mycat.server.response;
 
 
+import io.mycat.MycatServer;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.MycatServer;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.parser.ManagerParseStop;
 import io.mycat.util.FormatUtil;
 import io.mycat.util.Pair;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-
-import org.apache.log4j.Logger;
 
 /**
  * 暂停数据节点心跳检测
@@ -44,7 +44,8 @@ import org.apache.log4j.Logger;
  */
 public final class StopHeartbeat {
 
-    private static final Logger logger = Logger.getLogger(StopHeartbeat.class);
+    private static final Logger logger = LoggerFactory
+            .getLogger(StopHeartbeat.class);
 
     public static void execute(String stmt, MySQLFrontConnection c) {
         int count = 0;
@@ -57,9 +58,7 @@ public final class StopHeartbeat {
                 if (dn != null) {
                     dn.getSource().setHeartbeatRecoveryTime(TimeUtil.currentTimeMillis() + time);
                     ++count;
-                    StringBuilder s = new StringBuilder();
-                    s.append(dn.getHostName()).append(" stop heartbeat '");
-                    logger.warn(s.append(FormatUtil.formatTime(time, 3)).append("' by manager."));
+                    logger.warn("{} stop heartbeat '{}' by manager.",dn.getHostName(),FormatUtil.formatTime(time, 3));
                 }
             }
         }

@@ -7,16 +7,17 @@ import io.mycat.server.NonBlockingSession;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
 import io.mycat.server.packet.RowDataPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
-
 public class EngineCtx {
-	public static final Logger LOGGER = Logger.getLogger(EngineCtx.class);
+	public static final Logger LOGGER = LoggerFactory
+			.getLogger(EngineCtx.class);
 	private final BatchSQLJob bachJob;
 	private AtomicInteger jobId = new AtomicInteger(0);
 	AtomicInteger packetId = new AtomicInteger(0);

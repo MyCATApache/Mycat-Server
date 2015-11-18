@@ -6,8 +6,8 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ErrorCode;
 import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.parser.ServerParse;
@@ -23,14 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-
-
-
-
-
-
-
 
 //import org.opencloudb.route.RouteStrategy;
 //import org.opencloudb.route.impl.DruidMysqlRouteStrategy;

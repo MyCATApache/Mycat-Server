@@ -23,8 +23,6 @@
  */
 package io.mycat.util;
 
-import io.mycat.util.HexFormatUtil;
-
 import java.util.ArrayList;
 import java.util.List;
 

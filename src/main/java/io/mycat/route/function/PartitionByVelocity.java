@@ -1,7 +1,6 @@
 package io.mycat.route.function;
 
 import io.mycat.route.util.VelocityUtil;
-import io.mycat.server.config.RuleAlgorithm;
 
 
 /**

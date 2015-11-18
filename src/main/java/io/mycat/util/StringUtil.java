@@ -23,14 +23,14 @@
  */
 package io.mycat.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.sqlengine.mpp.LoadData;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Random;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat

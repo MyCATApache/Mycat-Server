@@ -23,7 +23,6 @@
  */
 package io.mycat.cache;
 
-import io.mycat.cache.CacheStatic;
 import io.mycat.cache.impl.EnchachePool;
 import junit.framework.Assert;
 import net.sf.ehcache.Cache;

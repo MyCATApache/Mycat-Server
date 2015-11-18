@@ -1,5 +1,21 @@
 package io.mycat.route.parser.druid.impl;
 
+import io.mycat.MycatServer;
+import io.mycat.cache.LayerCachePool;
+import io.mycat.route.RouteResultset;
+import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.parser.druid.RouteCalculateUnit;
+import io.mycat.route.util.RouterUtil;
+import io.mycat.server.ErrorCode;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.TableConfig;
+import io.mycat.sqlengine.mpp.ColumnRoutePair;
+import io.mycat.sqlengine.mpp.HavingCols;
+import io.mycat.sqlengine.mpp.MergeCol;
+import io.mycat.sqlengine.mpp.OrderCol;
+import io.mycat.util.ObjectUtil;
+import io.mycat.util.StringUtil;
+
 import java.sql.SQLNonTransientException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -10,13 +26,20 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import com.alibaba.druid.sql.ast.expr.*;
-
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLNumericLiteralExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
@@ -29,21 +52,6 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.L
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
 import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
-import io.mycat.cache.LayerCachePool;
-import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteResultsetNode;
-import io.mycat.route.parser.druid.RouteCalculateUnit;
-import io.mycat.route.util.RouterUtil;
-import io.mycat.server.ErrorCode;
-import io.mycat.server.MycatServer;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.TableConfig;
-import io.mycat.sqlengine.mpp.ColumnRoutePair;
-import io.mycat.sqlengine.mpp.HavingCols;
-import io.mycat.sqlengine.mpp.MergeCol;
-import io.mycat.sqlengine.mpp.OrderCol;
-import io.mycat.util.ObjectUtil;
-import io.mycat.util.StringUtil;
 
 public class DruidSelectParser extends DefaultDruidParser {
 

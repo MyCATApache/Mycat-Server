@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -26,10 +26,9 @@ package io.mycat.route.perf;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.server.SystemConfig;
-import io.mycat.server.config.SchemaConfig;
-import io.mycat.server.config.SchemaLoader;
-import io.mycat.server.config.XMLSchemaLoader;
+import io.mycat.server.config.loader.ConfigInitializer;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
 
 import java.sql.SQLNonTransientException;
 
@@ -41,10 +40,8 @@ public class NoShardingSpace {
     private static int total=1000000;
     protected LayerCachePool cachePool = new SimpleCachePool();
     public NoShardingSpace() {
-    	String schemaFile = "/route/schema.xml";
-		String ruleFile = "/route/rule.xml";
-		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
-		schema = schemaLoader.getSchemas().get("dubbo");
+    	ConfigInitializer confInit = new ConfigInitializer(true);
+		schema = confInit.getSchemas().get("dubbo");
     }
 
     public void testDefaultSpace() throws SQLNonTransientException {

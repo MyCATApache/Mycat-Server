@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,18 +16,20 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.server.config;
 
+import io.mycat.server.config.cluster.BeanConfig;
 import io.mycat.util.StringUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -88,7 +90,7 @@ public class ConfigUtil {
     public static Document getDocument(final InputStream dtd, InputStream xml) throws ParserConfigurationException,
             SAXException, IOException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setValidating(true);
+//factory.setValidating(false);
         factory.setNamespaceAware(false);
         DocumentBuilder builder = factory.newDocumentBuilder();
         builder.setEntityResolver(new EntityResolver() {
@@ -142,6 +144,28 @@ public class ConfigUtil {
 
     public static Map<String, Object> loadElements(Element parent) {
         Map<String, Object> map = new HashMap<String, Object>();
+        NodeList children = parent.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node instanceof Element) {
+                Element e = (Element) node;
+                String name = e.getNodeName();
+                if ("property".equals(name)) {
+                    String key = e.getAttribute("name");
+                    NodeList nl = e.getElementsByTagName("bean");
+                    if (nl.getLength() == 0) {
+                        String value = e.getTextContent();
+                        map.put(key, StringUtil.isEmpty(value) ? null : value.trim());
+                    } else {
+                        map.put(key, loadBean((Element) nl.item(0)));
+                    }
+                }
+            }
+        }
+        return map;
+    }
+    public static LinkedHashMap<String, Object> loadLinkElements(Element parent) {
+    	LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
         NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node node = children.item(i);

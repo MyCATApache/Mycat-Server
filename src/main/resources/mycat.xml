@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mycat:server>
+<mycat>
+    <server-config>
+		<system>
+			<property name="sequnceHandlerType">2</property>
+			<property name="serverPort">8066</property>
+			<property name="managerPort">9066</property>
+			<property name="charset">utf8</property>
+		    <!-- <property name="registryAddress">zookeeper://121.40.121.133:4181</property> -->
+		    <!--   <property name="useCompression">1</property> -->
+			<!-- 1为开启mysql压缩协议 -->
+			<!--
+			 <property name="processorBufferChunk">40960</property>
+			-->
+			<!--
+
+				<property name="processors">1</property>
+				<property name="processorExecutor">32</property>
+
+			-->
+			<!-- 默认是65535 64K 用于sql解析时最大文本长度  -->
+			<!--
+			<property name="maxStringLiteralLength">65535</property>
+			-->
+			<!-- <property name="sequnceHandlerType">0</property> -->
+			<!-- <property name="backSocketNoDelay">1</property> -->
+			<!-- <property name="frontSocketNoDelay">1</property> -->
+			<!-- <property name="processorExecutor">16</property> -->
+			<!--
+			<property name="mutiNodeLimitType">1</property> 0：开启小数量级（默认） ；1：开启亿级数据排序
+	    	<property name="mutiNodePatchSize">100</property> 亿级数量排序批量
+			<property name="processors">32</property> <property name="processorExecutor">32</property>
+			<property name="serverPort">8066</property> <property name="managerPort">9066</property>
+			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property>
+			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property>
+			-->
+		</system>
+		<user name="mycat">
+			<property name="password">mycat</property>
+			<property name="schemas">mycat</property>
+		</user>
+		<user name="test">
+			<property name="password">test</property>
+			<property name="schemas">TESTDB</property>
+		</user>
+		<user name="user">
+			<property name="password">user</property>
+			<property name="schemas">TESTDB</property>
+			<property name="readOnly">true</property>
+		</user>
+    </server-config>
+    <schema-config>
+        <schema name="mycat" checkSQLschema="true" sqlMaxLimit="100" dataNode="dn4" >
+        	<table name="TUSER" primaryKey="id" autoIncrement="true" rule="auto-sharding-long" dataNode="dn4,dn5">
+        	    <childTable  name="TUSER_DETAIL" primaryKey="id" autoIncrement="true" joinKey="USER_ID" parentKey="id"></childTable>
+        	</table>
+		</schema>
+		<schema name="TESTDB" checkSQLschema="false" sqlMaxLimit="100">
+			<!-- auto sharding by id (long) -->
+			<table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
+
+			<!-- global table is auto cloned to all defined data nodes ,so can join
+				with any table whose sharding node is in the same data node -->
+			<table name="company" primaryKey="ID" type="global" dataNode="dn1,dn2,dn3" />
+			<table name="goods" primaryKey="ID" type="global" dataNode="dn1,dn2" />
+
+			<!-- random sharding using mod sharind rule -->
+			<table name="hotnews" primaryKey="ID" dataNode="dn1,dn2,dn3" rule="sharding-by-mod" />
+			<!-- <table name="dual" primaryKey="ID" dataNode="dnx,dnoracle2" type="global"
+				needAddLimit="false"/> <table name="worker" primaryKey="ID" dataNode="jdbc_dn1,jdbc_dn2,jdbc_dn3"
+				rule="mod-long" /> -->
+			<table name="employee" primaryKey="ID" dataNode="dn1,dn2" rule="sharding-by-enum" />
+			<table name="customer" primaryKey="ID" dataNode="dn1,dn2" rule="sharding-by-enum">
+				<childTable name="orders" primaryKey="ID" joinKey="customer_id" parentKey="id">
+					<childTable name="order_items" joinKey="order_id" parentKey="id" />
+				</childTable>
+				<childTable name="customer_addr" primaryKey="ID" joinKey="customer_id" parentKey="id" />
+			</table>
+			<table name="offer" primaryKey="id" dataNode="offer_dn$1-20" rule="auto-sharding-rang-mod" />
+            <table name="offer1" primaryKey="id" dataNode="offer_dn$1-36" rule="sharding-by-RangeDateHash" />
+			<!-- <table name="oc_call" primaryKey="ID" dataNode="dn1$0-743" rule="latest-month-calldate"
+				/> -->
+		</schema>
+		<!-- <dataNode name="dn1$0-743" dataHost="localhost1" database="db$0-743"
+		/> -->
+		<dataNode name="dn1" dataHost="localhost1" database="db1" />
+		<dataNode name="dn2" dataHost="localhost1" database="db2" />
+		<dataNode name="dn3" dataHost="localhost1" database="db3" />
+        <dataNode name="offer_dn$0-127" dataHost="localhost1" database="db1$0-127" />
+        <!-- <dataNode name="jdbc_dn1" dataHost="jdbchost" database="db1" /> <dataNode
+			name="jdbc_dn2" dataHost="jdbchost" database="db2" /> <dataNode name="jdbc_dn3"
+			dataHost="jdbchost" database="db3" /> -->
+		<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
+			writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
+			<heartbeat>select user()</heartbeat>
+			<!-- can have multi write hosts -->
+			<writeHost host="hostM1" url="localhost:3306" user="root"
+				password="123456">
+				<!-- can have multi read hosts -->
+
+			</writeHost>
+			<writeHost host="hostS1" url="localhost:3316" user="root"
+				password="123456" />
+			<!-- <writeHost host="hostM2" url="localhost:3316" user="root" password="123456"/> -->
+		</dataHost>
+		<!-- <dataHost name="oracle1" maxCon="1000" minCon="1" balance="0" writeType="0"
+			dbType="oracle" dbDriver="jdbc"> <heartbeat>select 1 from dual</heartbeat>
+			<connectionInitSql>alter session set nls_date_format='yyyy-mm-dd hh24:mi:ss'</connectionInitSql>
+			<writeHost host="hostM1" url="jdbc:oracle:thin:@127.0.0.1:1521:nange" user="base"
+			password="123456" > </writeHost> </dataHost> <dataHost name="jdbchost" maxCon="1000"
+			minCon="1" balance="0" writeType="0" dbType="mongodb" dbDriver="jdbc"> <heartbeat>select
+			user()</heartbeat> <writeHost host="hostM" url="mongodb://192.168.0.99/test"
+			user="admin" password="123456" ></writeHost> </dataHost> <dataHost name="sparksql"
+			maxCon="1000" minCon="1" balance="0" dbType="spark" dbDriver="jdbc"> <heartbeat>
+			</heartbeat> <writeHost host="hostM1" url="jdbc:hive2://feng01:10000" user="jifeng"
+			password="jifeng"></writeHost> </dataHost> -->
+
+		<!-- <dataHost name="jdbchost" maxCon="1000" minCon="10" balance="0" dbType="mysql"
+			dbDriver="jdbc"> <heartbeat>select user()</heartbeat> <writeHost host="hostM1"
+			url="jdbc:mysql://localhost:3306" user="root" password="123456"> </writeHost>
+			</dataHost> -->
+        <dataNode name="dn4" dataHost="jdbchost" database="mycat_node1" />
+        <dataNode name="dn5" dataHost="jdbchost" database="mycat_node1" />
+	    <dataHost name="jdbchost" maxCon="2000" minCon="10" balance="1"
+	       writeType="0" dbType="mysql" dbDriver="native" switchType="1">
+			<heartbeat>select 1</heartbeat>
+			<writeHost host="master" url="121.40.121.133:3306" user="root" password="zaq1xsw2cde3"></writeHost>
+		</dataHost>
+    </schema-config>
+    <rule-config>
+        <tableRule name="sharding-by-hour" column="create_time" functionName="io.mycat.route.function.LatestMonthPartion">
+            <property name="splitOneDay">24</property>
+        </tableRule>
+        <tableRule name="sharding-by-date" column="create_time" functionName="io.mycat.route.function.PartitionByDate">
+            <property name="dateFormat">yyyy-MM-dd</property>
+            <property name="sBeginDate">2014-01-01</property>
+            <property name="sPartionDay">10</property>
+        </tableRule>
+        <tableRule name="sharding-by-enum" column="create_time" functionName="io.mycat.route.function.PartitionByFileMap">
+            <property name="type">0</property>
+            <property name="defaultNode">0</property>
+            <config>
+                <!--10000=0 10010=1  -->
+                <property name="10000">0</property>
+                <property name="10010">1</property>
+            </config>
+        </tableRule>
+        <tableRule name="sharding-by-JumpConsistentHash" column="id" functionName="io.mycat.route.function.PartitionByJumpConsistentHash">
+            <property name="totalBuckets">3</property>
+        </tableRule>
+        <tableRule name="auto-sharding-long" column="id" functionName="io.mycat.route.function.AutoPartitionByLong">
+            <property name="defaultNode">0</property>
+            <config>
+                <!-- # range start-end ,data node index # K=1000,M=10000. -->
+                <property name="0-2000000">0</property>
+                <property name="2000001-4000000">1</property>
+                <property name="4000001-8000000">2</property>
+            </config>
+        </tableRule>
+        <tableRule name="sharding-by-mod" column="id" functionName="io.mycat.route.function.PartitionByMod">
+            <property name="count">3</property>
+        </tableRule>
+        <tableRule name="sharding-by-month" column="create_time" functionName="io.mycat.route.function.PartitionByMonth">
+           <property name="dateFormat">yyyy-MM-dd</property>
+           <property name="sBeginDate">2014-01-01</property>
+        </tableRule>
+        <tableRule name="sharding-by-MurmurHash" column="id" functionName="io.mycat.route.function.PartitionByMurmurHash">
+           <property name="seed">0</property>
+           <property name="count">2</property>
+           <property name="virtualBucketTimes">160</property>
+           <!-- <property name="weightMapFile">weightMapFile</property>
+           <property name="bucketMapPath">/home/usr/mycat/bucketMapPath</property>
+           -->
+        </tableRule>
+        <tableRule name="sharding-by-Pattern" column="id" functionName="io.mycat.route.function.PartitionByPattern">
+            <property name="patternValue">256</property>
+            <property name="defaultNode">2</property>
+            <config>
+                <!-- # # id partition range start-end ,data node index ###### first host configuration -->
+                <property name="1-32">0</property>
+                <property name="33-64">1</property>
+                <property name="65-96">2</property>
+                <property name="97-128">3</property>
+                <!-- ######## second host configuration -->
+                <property name="129-160">4</property>
+                <property name="161-192">5</property>
+                <property name="193-224">6</property>
+                <property name="225-256">7</property>
+                <property name="0-0">7</property>
+            </config>
+        </tableRule>
+        <tableRule name="sharding-by-PrefixPattern" column="id" functionName="io.mycat.route.function.PartitionByPrefixPattern">
+            <property name="patternValue">32</property>
+            <property name="prefixLength">5</property>
+            <config>
+                <!-- # range start-end ,data node index # ASCII # 8-57=0-9阿拉伯数字 # 64、65-90=@、A-Z # 97-122=a-z -->
+                <property name="1-4">0</property>
+                <property name="5-8">1</property>
+                <property name="9-12">2</property>
+                <property name="13-16">3</property>
+                <!-- ######## second host configuration -->
+                <property name="17-20">4</property>
+                <property name="21-24">5</property>
+                <property name="25-28">6</property>
+                <property name="29-32">7</property>
+                <property name="0-0">7</property>
+            </config>
+        </tableRule>
+        <!-- sPartionDay代表多少天分一个分片 groupPartionSize代表分片组的大小 -->
+        <tableRule name="sharding-by-RangeDateHash" column="create_time" functionName="io.mycat.route.function.PartitionByRangeDateHash">
+           <property name="sBeginDate">2014-01-01 00:00:00</property>
+           <property name="sPartionDay">3</property>
+           <property name="dateFormat">yyyy-MM-dd HH:mm:ss</property>
+           <property name="groupPartionSize">6</property>
+        </tableRule>
+        <!-- sPartionDay代表多少天分一个分片 groupPartionSize代表分片组的大小 -->
+        <tableRule name="auto-sharding-rang-mod" column="id" functionName="io.mycat.route.function.PartitionByRangeMod">
+           <property name="defaultNode">21</property>
+           <config>
+                <!-- # range start-end ,data node group size 以下配置一个范围代表一个分片组，=号后面的数字代表该分片组所拥有的分片的数量。-->
+                <property name="0-200M">5</property>
+                <property name="200M1-400M">1</property>
+                <property name="400M1-600M">4</property>
+                <property name="600M1-800M">4</property>
+                <property name="800M1-1000M">6</property>
+            </config>
+        </tableRule>
+        <!-- /** * “2” -> (0,2) * “1:2” -> (1,2) * “1:” -> (1,0) * “-1:” -> (-1,0) * “:-1” -> (0,-1) * “:” -> (0,0) */  -4,0代表倒数后4个 -->
+        <tableRule name="sharding-by-String" column="create_time" functionName="io.mycat.route.function.PartitionByString">
+           <property name="partitionLength">512</property><!-- zero-based -->
+           <property name="partitionCount">2</property>
+           <property name="hashSlice">0:2</property>
+        </tableRule>
+        <!--  根据Velocity模板语言，分库分表规则更加灵活，例如一共100个分库，字段中包含时间信息，取时间的月份与天，hashCode再对100取余 -->
+        <tableRule name="sharding-by-PartitionByVelocity" column="create_time" functionName="io.mycat.route.function.PartitionByVelocity">
+           <property name="columnName">id</property><!--id="20010222330011" partition=95 -->
+           <property name="rule"><![CDATA[
+					#set($Integer=0)##
+					#set($monthday=$stringUtil.substring($id,4,8))##
+					#set($prefix=$monthday.hashCode()%100)##
+		    			$!prefix]]>
+		   </property>
+        </tableRule>
+        <tableRule name="sharding-by-PartitionDirectBySubString" column="create_time" functionName="io.mycat.route.function.PartitionDirectBySubString">
+           <property name="startIndex">0</property><!-- zero-based -->
+           <property name="size">2</property>
+           <property name="partitionCount">8</property>
+           <property name="defaultPartition">0</property>
+        </tableRule>
+    </rule-config>
+    <sequence-config>
+          <!-- GLOBAL_SEQ.HISIDS= GLOBAL_SEQ.MINID=1001 GLOBAL_SEQ.MAXID=1000000000 GLOBAL_SEQ.CURID=1000 -->
+          <sequence type="0" class="io.mycat.server.sequence.IncrSequencePropHandler">
+             <!-- <property name="filePath">dn1</property> -->
+	      </sequence>
+          <!-- <sequence type="1" class="io.mycat.server.sequence.IncrSequenceMySQLHandler">
+             <property name="TUSER">dn1</property>
+	         <property name="TORDER">dn1</property>
+	      </sequence> -->
+          <!-- <sequence type="2" class="io.mycat.server.sequence.IncrSequenceTimeHandler">
+	         <property name="WORKID">1</property>
+	         <property name="DATAACENTERID">1</property>
+	      </sequence> -->
+    </sequence-config>
+    <cluster-config>
+       <cluster name="cluster">
+          <node name="mycat1">
+              <property name="host">127.0.0.1</property>
+		      <property name="weight">1</property>
+		  </node>
+		</cluster>
+		<!-- 隔离区定义，可以限定某个主机上只允许某个用户登录。 -->
+	    <quarantine>
+	       <host name="1.2.3.4">
+	           <property name="user">test</property>
+		   </host>
+		</quarantine>
+    </cluster-config>
+    <!-- <dnindex-config>
+        <property name="jdbchost">0</property>
+    </dnindex-config> -->
+    <charset-config>
+         <property name="55">utf8</property>
+    </charset-config>
+
+</mycat>
