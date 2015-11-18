@@ -78,9 +78,9 @@ public class AuthenticationPacket extends PostgreSQLPacket {
 		this.salt = salt;
 	}
 
-	public static AuthenticationPacket parse(ByteBuffer buffer, int offset) throws IllegalAccessException {
+	public static AuthenticationPacket parse(ByteBuffer buffer, int offset){
 		if (buffer.get(offset) != PacketMarker.B_Auth.getValue()) {
-			throw new IllegalAccessException("this packetData not is AuthenticationPacket");
+			throw new IllegalArgumentException("this packetData not is AuthenticationPacket");
 		}
 		AuthenticationPacket packet = new AuthenticationPacket();
 		packet.length = PIOUtils.redInteger4(buffer, offset + 1);

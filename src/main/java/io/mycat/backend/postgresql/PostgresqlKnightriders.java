@@ -1,29 +1,5 @@
 package io.mycat.backend.postgresql;
 
-import io.mycat.backend.postgresql.packet.AuthenticationPacket;
-import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
-import io.mycat.backend.postgresql.packet.BackendKeyData;
-import io.mycat.backend.postgresql.packet.CommandComplete;
-import io.mycat.backend.postgresql.packet.CopyInResponse;
-import io.mycat.backend.postgresql.packet.CopyOutResponse;
-import io.mycat.backend.postgresql.packet.DataRow;
-import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
-import io.mycat.backend.postgresql.packet.CancelRequest;
-import io.mycat.backend.postgresql.packet.EmptyQueryResponse;
-import io.mycat.backend.postgresql.packet.ErrorResponse;
-import io.mycat.backend.postgresql.packet.NoticeResponse;
-import io.mycat.backend.postgresql.packet.ParameterStatus;
-import io.mycat.backend.postgresql.packet.Parse;
-import io.mycat.backend.postgresql.packet.ParseComplete;
-import io.mycat.backend.postgresql.packet.PasswordMessage;
-import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
-import io.mycat.backend.postgresql.packet.PostgreSQLPacket.DateType;
-import io.mycat.backend.postgresql.packet.Query;
-import io.mycat.backend.postgresql.packet.ReadyForQuery;
-import io.mycat.backend.postgresql.packet.RowDescription;
-import io.mycat.backend.postgresql.packet.Terminate;
-import io.mycat.backend.postgresql.utils.PIOUtils;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -43,6 +19,19 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
 
+import io.mycat.backend.postgresql.packet.AuthenticationPacket;
+import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
+import io.mycat.backend.postgresql.packet.BackendKeyData;
+import io.mycat.backend.postgresql.packet.DataRow;
+import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
+import io.mycat.backend.postgresql.packet.Parse;
+import io.mycat.backend.postgresql.packet.PasswordMessage;
+import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
+import io.mycat.backend.postgresql.packet.Query;
+import io.mycat.backend.postgresql.packet.Terminate;
+import io.mycat.backend.postgresql.utils.PIOUtils;
+import io.mycat.backend.postgresql.utils.PacketUtils;
+
 /*************
  * 提交代码..
  * 
@@ -61,7 +50,6 @@ public class PostgresqlKnightriders {
 		String password = "coollf";
 		String database = "mycat";
 		String appName = "MyCat-Server";
-		String assumeMinServerVersion = "9.0.0";
 
 		paramList.add(new String[] { "user", user });
 		paramList.add(new String[] { "database", database });
@@ -193,76 +181,9 @@ public class PostgresqlKnightriders {
 			throws IOException, IllegalAccessException {
 		byte[] bytes = new byte[1024*10];
 		int leg = socket.getInputStream().read(bytes, 0, bytes.length);
-		List<PostgreSQLPacket> pgs = new ArrayList<>();
+		
 		int offset = 0;
-		while (offset < leg) {
-			char MAKE = (char) bytes[offset];
-			PostgreSQLPacket pg = null;
-			switch (MAKE) {
-			case 'R':
-				pg = AuthenticationPacket.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case 'E':
-				pg = ErrorResponse.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case 'K':
-				pg = BackendKeyData.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case 'S':
-				pg = ParameterStatus.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case 'Z':
-				pg = ReadyForQuery.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case 'N':
-				pg = NoticeResponse.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case 'C':
-				pg = CommandComplete.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case 'T':
-				pg = RowDescription.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case 'D':
-				pg = DataRow.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-
-			case 'I':
-				pg = EmptyQueryResponse.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-
-			case 'G':
-				pg = CopyInResponse.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case 'H':
-				pg = CopyOutResponse.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			case '1':
-				pg = ParseComplete.parse(
-						ByteBuffer.wrap(bytes), offset);
-				break;
-			default:
-				throw new RuntimeException("Unknown packet");
-			}
-			if (pg != null) {
-				offset = offset + pg.getLength() + 1;
-				pgs.add(pg);
-			}
-		}
-
-		return pgs;
+		return PacketUtils.parsePacket(bytes, offset, leg);
 	}
 
 	/**
