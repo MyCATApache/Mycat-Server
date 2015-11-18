@@ -34,7 +34,8 @@ public final class ManagerParseReload {
     public static final int CONFIG = 1;
     public static final int ROUTE = 2;
     public static final int USER = 3;
-    public static final int CONFIG_ALL = 4;
+    public static final int USER_STAT = 4;
+    public static final int CONFIG_ALL = 5;
 
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -132,6 +133,22 @@ public final class ManagerParseReload {
             char c2 = stmt.charAt(++offset);
             char c3 = stmt.charAt(++offset);
             if ((c1 == 'S' || c1 == 's') && (c2 == 'E' || c2 == 'e') && (c3 == 'R' || c3 == 'r')) {
+            	
+            	
+            	if (stmt.length() > offset + 5)
+                {
+                    char c6 = stmt.charAt(++offset);
+                    char c7 = stmt.charAt(++offset);
+                    char c8 = stmt.charAt(++offset);
+                    char c9 = stmt.charAt(++offset);
+                    char c10 = stmt.charAt(++offset);
+                    
+                    if ((c6 == '_' || c6 == '-') && (c7 == 'S' || c7 == 's') && (c8 == 'T' || c8 == 't')
+                            && (c9 == 'A' || c9 == 'a') && (c10 == 'T' || c10 == 't') ) {
+                          return USER_STAT;
+                    }
+                }
+            	
                 if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
                     return OTHER;
                 }
@@ -140,5 +157,7 @@ public final class ManagerParseReload {
         }
         return OTHER;
     }
+    
+
 
 }

@@ -15,6 +15,7 @@ import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.config.model.TableConfig;
+import org.opencloudb.config.model.UserConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.jdbc.JDBCDatasource;
 import org.opencloudb.mysql.nio.MySQLDataSource;
@@ -24,8 +25,9 @@ import junit.framework.Assert;
 public class ConfigTest {
 	
 	private SystemConfig system;
+	private final Map<String, UserConfig> users;
 	private Map<String, SchemaConfig> schemas;
-	private Map<String, PhysicalDBPool> dataHosts;
+	private Map<String, PhysicalDBPool> dataHosts;	
 	
 	public ConfigTest() {
 		
@@ -36,8 +38,30 @@ public class ConfigTest {
 		XMLConfigLoader configLoader = new XMLConfigLoader(schemaLoader);
 		
 		this.system = configLoader.getSystemConfig();
-		this.schemas = configLoader.getSchemaConfigs();
+		this.users = configLoader.getUserConfigs();
+		this.schemas = configLoader.getSchemaConfigs();		
         this.dataHosts = initDataHosts(configLoader);
+        
+	}
+	
+	/**
+	 * 测试 临时读可用 配置
+	 */
+	@Test
+	public void testTempReadHostAvailable() {
+		PhysicalDBPool pool = this.dataHosts.get("localhost2");   
+		DataHostConfig hostConfig = pool.getSource().getHostConfig();
+		Assert.assertTrue( hostConfig.isTempReadHostAvailable() == true );
+	}
+	
+	/**
+	 * 测试 用户服务降级 拒连 配置
+	 */
+	@Test
+	public void testReadUserBenchmark() {
+		UserConfig userConfig = this.users.get("test");
+		int benchmark = userConfig.getBenchmark();
+		Assert.assertTrue( benchmark == 11111 );
 	}
 	
 	

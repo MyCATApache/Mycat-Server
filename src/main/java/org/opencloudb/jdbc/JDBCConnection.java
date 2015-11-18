@@ -621,6 +621,12 @@ public class JDBCConnection implements BackendConnection {
                 + headerOutputed + ", modifiedSQLExecuted=" + modifiedSQLExecuted + ", startTime=" + startTime
                 + ", lastTime=" + lastTime + ", isSpark=" + isSpark + ", processor=" + processor + "]";
     }
+
+	@Override
+	public void discardClose(String reason) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 	
 

@@ -58,5 +58,19 @@ public interface FrontendPrivileges {
      * @return
      */
     Boolean isReadOnly(String user);
+    
+    /**
+     * 检查用户当系统有效使用的负载 百分比
+     * @param user
+     * @return
+     */
+    int getBenchmark(String user);
+    
+    /**
+     * 负载拒连后 的短信预警
+     * @param user
+     * @return
+     */
+    String getBenchmarkSmsTel(String user);
 
 }
