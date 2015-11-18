@@ -59,7 +59,7 @@ public class PostgresqlKnightriders {
 		paramList.add(new String[] { "extra_float_digits", "3" });
 		paramList.add(new String[] { "application_name", appName });
 
-		boolean nio = false;
+		boolean nio = true;
 
 		try {
 			Socket socket = new Socket("localhost", 5432);
@@ -282,28 +282,28 @@ class TCPClientReadThread implements Runnable {
 							sendStartupPacket(sc);
 							a = true;
 						}
-					} else if (sk.isReadable()) {
+						// 删除正在处理的SelectionKey
+						//selector.selectedKeys().remove(sk);
+					} 
+					if (sk.isReadable()) {
 						// 使用NIO读取Channel中的数据
 						SocketChannel sc = (SocketChannel) sk.channel();
 						ByteBuffer buffer = ByteBuffer.allocate(1024);
 						sc.read(buffer);
 						buffer.flip();
 
-						// 将字节转化为为UTF-16的字符串
-						String receivedString = Charset.forName("UTF-18")
-								.newDecoder().decode(buffer).toString();
-
+						byte[] array = buffer.array();
+						List<PostgreSQLPacket> ls = PacketUtils.parsePacket(array, 0, buffer.limit());
+						
 						// 控制台打印出来
 						System.out.println("接收到来自服务器"
-								+ sc.socket().getRemoteSocketAddress() + "的信息:"
-								+ receivedString);
+								+ JSON.toJSONString(ls));
 
 						// 为下一次读取作准备
 						sk.interestOps(SelectionKey.OP_READ);
 					}
 
-					// 删除正在处理的SelectionKey
-					selector.selectedKeys().remove(sk);
+					
 				}
 			}
 		} catch (IOException ex) {
@@ -368,6 +368,8 @@ class TCPClientReadThread implements Runnable {
 			PIOUtils.Send(encodedParam, buffer);
 			PIOUtils.SendChar(0, buffer);
 		}
+		PIOUtils.Send(new byte[]{0}, buffer);
+		
 		buffer.flip();
 		socketChannel.write(buffer);
 
