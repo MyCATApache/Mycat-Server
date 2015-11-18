@@ -1,5 +1,6 @@
 package io.mycat.sqlengine.tmp;
 
+
 import io.mycat.server.packet.RowDataPacket;
 
 import java.util.List;
@@ -47,7 +48,7 @@ public interface HeapItf {
      *
      * @param row
      */
-    void addIfRequired(RowDataPacket row);
+    boolean addIfRequired(RowDataPacket row);
 
     /**
      * 堆排序

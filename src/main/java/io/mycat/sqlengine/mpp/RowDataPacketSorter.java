@@ -27,20 +27,19 @@ import io.mycat.server.packet.RowDataPacket;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.CompareUtil;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RowDataPacketSorter {
 
+	private List<RowDataPacket> sorted = Collections.synchronizedList(new ArrayList<RowDataPacket>());
     private static final Logger LOGGER = LoggerFactory.getLogger(RowDataPacketSorter.class);
-    protected final OrderCol[] orderCols;
-
-    private Collection<RowDataPacket> sorted = new ConcurrentLinkedQueue<RowDataPacket>();
     private RowDataPacket[] array, resultTemp;
+    protected final OrderCol[] orderCols;
     private int p1, pr, p2;
 
     public RowDataPacketSorter(OrderCol[] orderCols) {
@@ -48,12 +47,12 @@ public class RowDataPacketSorter {
         this.orderCols = orderCols;
     }
 
-    public void addRow(RowDataPacket row) {
-        this.sorted.add(row);
+    public boolean addRow(RowDataPacket row) {
+       return this.sorted.add(row);
 
     }
 
-    public Collection<RowDataPacket> getSortedResult() {
+    public List<RowDataPacket> getSortedResult() {
         try {
             this.mergeSort(sorted.toArray(new RowDataPacket[sorted.size()]));
         } catch (Exception e) {
