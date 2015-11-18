@@ -23,46 +23,35 @@ public class ZkCreate {
     private static final String ZK_CONFIG_FILE_NAME = "/zk-create.yaml";
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkCreate.class);
 
-    private static final String SERVER_CONFIG_DIRECTORY = "server-config";
-    private static final String DATANODE_CONFIG_DIRECTORY = "datanode-config";
-    private static final String RULE_CONFIG_DIRECTORY = "rule-config";
-    private static final String SEQUENCE_CONFIG_DIRECTORY = "sequence-config";
-    private static final String SCHEMA_CONFIG_DIRECTORY = "schema-config";
-    private static final String DATAHOST_CONFIG_DIRECTORY = "datahost-config";
 
     private static final String CONFIG_URL_KEY = "zkURL";
-    private static final String CONFIG_CLUSTER_KEY = "clusterID";
-    private static final String CONFIG_SYSTEM_KEY = "system";
-    private static final String CONFIG_USER_KEY = "user";
-    private static final String CONFIG_DATANODE_KEY = "datanode";
-    private static final String CONFIG_RULE_KEY = "rule";
-    private static final String CONFIG_SEQUENCE_KEY = "sequence";
-    private static final String CONFIG_SCHEMA_KEY = "schema";
-    private static final String CONFIG_DATAHOST_KEY = "datahost";
 
-    private static String PARENT_PATH;
+    private static final String MYCAT_CLUSTER_KEY = "mycat-cluster";
+    private static final String MYCAT_ZONE_KEY = "mycat-zones";
+    private static final String MYCAT_NODES_KEY = "mycat-nodes";
+    private static final String MYCAT_HOST_KEY = "mycat-hosts";
+    private static final String MYCAT_MYSQLS_KEY = "mycat-mysqls";
+    private static final String MYCAT_MYSQL_GROUP_KEY = "mycat-mysqlgroup";
 
     private static CuratorFramework framework;
     private static Map<String, Object> zkConfig;
 
     public static void main(String[] args) {
         zkConfig = loadZkConfig();
-        PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)));
-        LOGGER.trace("parent path is {}", PARENT_PATH);
-        framework = createConnection((String) zkConfig.getOrDefault(CONFIG_URL_KEY, "127.0.0.1:2181"));
+        framework =
+            createConnection((String) zkConfig.getOrDefault(CONFIG_URL_KEY, "127.0.0.1:2181"));
 
-        createConfig(CONFIG_DATANODE_KEY, true, DATANODE_CONFIG_DIRECTORY);
-        createConfig(CONFIG_SYSTEM_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
-        createConfig(CONFIG_USER_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
-        createConfig(CONFIG_SEQUENCE_KEY, true, SEQUENCE_CONFIG_DIRECTORY);
-        createConfig(CONFIG_SCHEMA_KEY, true, SCHEMA_CONFIG_DIRECTORY);
-        createConfig(CONFIG_DATAHOST_KEY, true, DATAHOST_CONFIG_DIRECTORY);
-        createConfig(CONFIG_RULE_KEY, false, RULE_CONFIG_DIRECTORY);
-
+        createConfig(MYCAT_HOST_KEY, false, MYCAT_HOST_KEY);
+        createConfig(MYCAT_ZONE_KEY, false, MYCAT_ZONE_KEY);
+        createConfig(MYCAT_NODES_KEY, true, MYCAT_NODES_KEY);
+        createConfig(MYCAT_CLUSTER_KEY, true, MYCAT_CLUSTER_KEY);
+        createConfig(MYCAT_MYSQLS_KEY, true, MYCAT_MYSQLS_KEY);
+        createConfig(MYCAT_MYSQL_GROUP_KEY, true, MYCAT_MYSQL_GROUP_KEY);
     }
 
-    private static void createConfig(String configKey, boolean filterInnerMap, String... configDirectory) {
-        String childPath = ZKPaths.makePath(PARENT_PATH, null, configDirectory);
+    private static void createConfig(String configKey, boolean filterInnerMap,
+        String configDirectory, String... restDirectory) {
+        String childPath = ZKPaths.makePath("/", configDirectory, restDirectory);
         LOGGER.trace("child path is {}", childPath);
 
         try {
@@ -84,12 +73,14 @@ public class ZkCreate {
         }
     }
 
-    private static void createChildConfig(Object mapObject, boolean filterInnerMap, String childPath) {
+    private static void createChildConfig(Object mapObject, boolean filterInnerMap,
+        String childPath) {
         if (mapObject instanceof Map) {
             Map<Object, Object> innerMap = (Map<Object, Object>) mapObject;
             innerMap.forEach((key, value) -> {
                 if (value instanceof Map) {
-                    createChildConfig(value, filterInnerMap, ZKPaths.makePath(childPath, String.valueOf(key)));
+                    createChildConfig(value, filterInnerMap,
+                        ZKPaths.makePath(childPath, String.valueOf(key)));
                 } else {
                     LOGGER.trace("sub child path is {}", childPath);
                     processLeafNode(innerMap, filterInnerMap, childPath);
@@ -98,7 +89,8 @@ public class ZkCreate {
         }
     }
 
-    private static void processLeafNode(Map<Object, Object> innerMap, boolean filterInnerMap, String childPath) {
+    private static void processLeafNode(Map<Object, Object> innerMap, boolean filterInnerMap,
+        String childPath) {
         try {
             Stat restNodeStat = framework.checkExists().forPath(childPath);
             if (restNodeStat == null) {
@@ -106,13 +98,12 @@ public class ZkCreate {
             }
 
             if (filterInnerMap) {
-                Map<Object, Object> filteredSubItem = innerMap
-                        .entrySet()
-                        .stream()
-                        .filter(mapEntry -> !(mapEntry.getValue() instanceof Map))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                Map<Object, Object> filteredSubItem = innerMap.entrySet().stream()
+                    .filter(mapEntry -> !(mapEntry.getValue() instanceof Map))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                framework.setData().forPath(childPath, JSON.toJSONString(filteredSubItem).getBytes());
+                framework.setData()
+                    .forPath(childPath, JSON.toJSONString(filteredSubItem).getBytes());
             } else {
                 framework.setData().forPath(childPath, JSON.toJSONString(innerMap).getBytes());
             }
@@ -142,7 +133,7 @@ public class ZkCreate {
             if (curatorFramework.getZookeeperClient().isConnected()) {
                 return curatorFramework;
             }
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
         }
 
         //fail situation
