@@ -73,7 +73,8 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 			PIOUtils.Send(encodedParam, buffer);
 			PIOUtils.SendChar(0, buffer);
 		}
-
+		PIOUtils.SendByte((byte)0, buffer);
+		buffer.flip();
 		con.write(buffer);
 	}
 

@@ -117,6 +117,10 @@ public class PIOUtils {
 	public static byte redInteger1(ByteBuffer buffer, int _offset) {
 		return buffer.get(_offset);
 	}
+
+	public static void SendByte(byte b, ByteBuffer buffer) {
+		buffer.put(b);
+	}
 	
 	
 
