@@ -31,7 +31,7 @@ public class PasswordMessage extends PostgreSQLPacket {
 
 	@Override
 	public int getLength() {
-		return 1 + 4 + password.length;
+		return  4 + password.length;
 	}
 
 	@Override
