@@ -57,3 +57,55 @@ github上面的Mycat-download项目是编译好的二进制安装包 [https://gi
 ##### 文档：
 
 github上面的Mycat-doc项目是相关文档 [https://github.com/MyCATApache/Mycat-doc](https://github.com/MyCATApache/Mycat-doc)
+
+##### 尝试 Mycat -- Mycat All in One
+在这里我们为您提供了集 mycat-server,mycat-web,mysql，zookeeper 于一身的测试开发环境，是您开发测试必备良器，
+您只需要执行如下几个步骤便可开启属于您的 mycat 之旅 ：
+
+> <b>导入 OVA </b> 
+>* 安装Oracle VM VirtualBox
+>* 启动Oracle VM VirtualBox
+>* 下载 mycat-all-in-one 镜像文件，[戳这里下载all-in-one镜像](http://pan.baidu.com/s/1qWMkJPM),密码：v63y  
+>* File（管理） -> Import Appliances（导入虚拟电脑）<网络模式首选桥接模式>
+>* 选择CentOS 7.ova
+>* 一路Next
+
+><b> 启动虚拟机 </b>
+>* 登录虚拟机 root/123456
+>* 启动多实例Mysql
+
+   ```
+      mysqld_multi start
+   ```
+
+> <b>启动 Mycat</b>
+ ```
+    cd /opt/mycat/
+    ./bin/mycat start
+ ```
+ > <b>  ZK启动 </b>
+    
+```
+    cd /opt/zookeeper-3.4.6
+	bin/zkServer.sh start
+	bin/zkCli.sh
+```
+> <b>体验 Mycat</b> 
+   >* 启动Navicat Premium
+   >* 连接Mycat，IP:8066 test/test
+   >* 连接TESTDB
+   >* 测试
+
+```
+      select * from t_user;
+```
+<b>请留意 '体验 Mycat'该步骤中的 IP 地址的设定，虚拟机中 IP 地址若与主机地址不匹配会引发连接失败的情况，
+此时可以将 虚拟机IP 地址修改静态IP地址来解决，修改位于路径
+````
+/etc/sysconfig/network-scripts/ifcfg-enp0s3 
+````
+下面的文件，然后运行命令 
+````
+service network restart
+````
+来让刚刚修改过的文件生效即可</b>
