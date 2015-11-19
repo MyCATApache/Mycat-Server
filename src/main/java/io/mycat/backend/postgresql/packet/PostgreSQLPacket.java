@@ -19,7 +19,15 @@ public abstract class PostgreSQLPacket {
 	 * @return
 	 */
 	public abstract char getMarker();
-
+	
+	public int getPacketSize(){
+		return getLength() + 1;
+	}
+	
+	public String getType(){
+		return this.getClass().getSimpleName();
+	}
+	
 	/***
 	 * 数据类型
 	 * 

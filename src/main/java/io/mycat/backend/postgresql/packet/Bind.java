@@ -1,6 +1,5 @@
 package io.mycat.backend.postgresql.packet;
 
-import io.mycat.backend.postgresql.packet.PostgreSQLPacket.DateType;
 
 
 //		Bind (F)

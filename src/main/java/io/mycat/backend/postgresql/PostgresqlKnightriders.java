@@ -1,5 +1,19 @@
 package io.mycat.backend.postgresql;
 
+import io.mycat.backend.postgresql.packet.AuthenticationPacket;
+import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
+import io.mycat.backend.postgresql.packet.BackendKeyData;
+import io.mycat.backend.postgresql.packet.DataRow;
+import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
+import io.mycat.backend.postgresql.packet.Parse;
+import io.mycat.backend.postgresql.packet.PasswordMessage;
+import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
+import io.mycat.backend.postgresql.packet.PostgreSQLPacket.DateType;
+import io.mycat.backend.postgresql.packet.Query;
+import io.mycat.backend.postgresql.packet.Terminate;
+import io.mycat.backend.postgresql.utils.PIOUtils;
+import io.mycat.backend.postgresql.utils.PacketUtils;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -8,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
@@ -18,19 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
-
-import io.mycat.backend.postgresql.packet.AuthenticationPacket;
-import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
-import io.mycat.backend.postgresql.packet.BackendKeyData;
-import io.mycat.backend.postgresql.packet.DataRow;
-import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
-import io.mycat.backend.postgresql.packet.Parse;
-import io.mycat.backend.postgresql.packet.PasswordMessage;
-import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
-import io.mycat.backend.postgresql.packet.Query;
-import io.mycat.backend.postgresql.packet.Terminate;
-import io.mycat.backend.postgresql.utils.PIOUtils;
-import io.mycat.backend.postgresql.utils.PacketUtils;
 
 /*************
  * 提交代码..
@@ -59,14 +59,14 @@ public class PostgresqlKnightriders {
 		paramList.add(new String[] { "extra_float_digits", "3" });
 		paramList.add(new String[] { "application_name", appName });
 
-		boolean nio = true;
+		boolean nio = false;
 
 		try {
 			Socket socket = new Socket("localhost", 5432);
 			if (nio) {
 
 				SocketChannel channel = SocketChannel
-						.open(new InetSocketAddress("localhost", 5432));
+						.open(new InetSocketAddress("localhost", 5210));
 
 				channel.configureBlocking(false);
 
@@ -82,7 +82,7 @@ public class PostgresqlKnightriders {
 				// String[0][]));
 				ByteBuffer in = ByteBuffer.allocate(10);
 				channel.read(in);
-				//System.out.println(in);
+				// System.out.println(in);
 
 			} else {
 				sendStartupPacket(socket, paramList.toArray(new String[0][]));
@@ -109,7 +109,8 @@ public class PostgresqlKnightriders {
 							}
 						}
 
-						Query query = new Query("SELECT text_,timestamp_ from ump_types");
+						Query query = new Query(
+								"SELECT text_,timestamp_ from ump_types");
 						// Query query = new Query("SELECT 1"+"\0");
 
 						ByteBuffer oby = ByteBuffer
@@ -149,19 +150,20 @@ public class PostgresqlKnightriders {
 						// 解析sql
 						String uuid = UUID.randomUUID().toString();
 
-						String sql = "INSERT into ump_coupon(id_,name_,time) VALUES (3,'你好啊',now())";
-						Parse parse = new Parse(uuid, sql);
-						oby = ByteBuffer.allocate(parse.getLength() + 1+4);
-						
+						String sql = "INSERT into ump_coupon(id_,name_,time) VALUES (4 , ? , now());";
+						Parse parse = new Parse(null, sql,DateType.UNKNOWN);
+						oby = ByteBuffer.allocate(parse.getPacketSize());
+
 						parse.write(oby);
 						socket.getOutputStream().write(oby.array());
+						socket.getOutputStream().write(new byte[]{0});
 						List<PostgreSQLPacket> tre = readParsePacket(socket);
 						System.out.println(JSON.toJSONString(tre));
 
-						Terminate terminate = new Terminate();
-						oby = ByteBuffer.allocate(terminate.getLength() + 1);
-						terminate.write(oby);
-						socket.getOutputStream().write(oby.array());
+//						Terminate terminate = new Terminate();
+//						oby = ByteBuffer.allocate(terminate.getLength() + 1);
+//						terminate.write(oby);
+//						socket.getOutputStream().write(oby.array());
 						tre = readParsePacket(socket);
 						System.out.println(tre);
 
@@ -179,9 +181,9 @@ public class PostgresqlKnightriders {
 
 	private static List<PostgreSQLPacket> readParsePacket(Socket socket)
 			throws IOException, IllegalAccessException {
-		byte[] bytes = new byte[1024*10];
+		byte[] bytes = new byte[1024 * 10];
 		int leg = socket.getInputStream().read(bytes, 0, bytes.length);
-		
+
 		int offset = 0;
 		return PacketUtils.parsePacket(bytes, offset, leg);
 	}
@@ -263,6 +265,9 @@ class TCPClientReadThread implements Runnable {
 			.getLogger(TCPClientReadThread.class);
 	private Selector selector;
 
+	
+	private ByteBuffer bs ;
+	
 	public TCPClientReadThread(Selector selector) {
 		this.selector = selector;
 
@@ -273,6 +278,7 @@ class TCPClientReadThread implements Runnable {
 		boolean a = false;
 		try {
 			while (selector.select() > 0) {
+				System.out.println(".....");
 				// 遍历每个有可用IO操作Channel对应的SelectionKey
 				for (SelectionKey sk : selector.selectedKeys()) {
 
@@ -282,9 +288,13 @@ class TCPClientReadThread implements Runnable {
 							sendStartupPacket(sc);
 							a = true;
 						}
+						if(this.bs!= null){
+							sc.write(bs);
+						}
 						// 删除正在处理的SelectionKey
-						//selector.selectedKeys().remove(sk);
-					} 
+						// selector.selectedKeys().remove(sk);
+						sk.interestOps(SelectionKey.OP_READ);
+					}
 					if (sk.isReadable()) {
 						// 使用NIO读取Channel中的数据
 						SocketChannel sc = (SocketChannel) sk.channel();
@@ -293,19 +303,40 @@ class TCPClientReadThread implements Runnable {
 						buffer.flip();
 
 						byte[] array = buffer.array();
-						List<PostgreSQLPacket> ls = PacketUtils.parsePacket(array, 0, buffer.limit());
-						
+						List<PostgreSQLPacket> ls = PacketUtils.parsePacket(
+								array, 0, buffer.limit());
+						if (ls.size() > 0) {
+							if (ls.get(0) instanceof AuthenticationPacket) {
+								AuthenticationPacket aut = (AuthenticationPacket) ls
+										.get(0);
+								if (aut.getAuthType() != AuthType.Ok) {
+									PasswordMessage pak = new PasswordMessage(
+											"postgres", "coollf",
+											aut.getAuthType(), aut.getSalt());
+									ByteBuffer _buffer = ByteBuffer
+											.allocate(pak.getLength() + 2);
+									pak.write(_buffer);
+									//_buffer.put((byte)0);
+									_buffer.flip();
+									this.bs = _buffer;
+								//	sk.interestOps(SelectionKey.OP_READ);
+								}else{
+									logger.error("登陆成功啦啦啦....");
+								}
+							}
+						}
+						sk.interestOps(SelectionKey.OP_WRITE);
+
 						// 控制台打印出来
-						System.out.println("接收到来自服务器"
-								+ JSON.toJSONString(ls));
+						System.out.println("接收到来自服务器" + JSON.toJSONString(ls));
 
 						// 为下一次读取作准备
-						sk.interestOps(SelectionKey.OP_READ);
+					//	sk.interestOps(SelectionKey.OP_WRITE);
 					}
 
-					
 				}
 			}
+			System.out.println("熄火了.....");
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
@@ -368,8 +399,8 @@ class TCPClientReadThread implements Runnable {
 			PIOUtils.Send(encodedParam, buffer);
 			PIOUtils.SendChar(0, buffer);
 		}
-		PIOUtils.Send(new byte[]{0}, buffer);
-		
+		PIOUtils.Send(new byte[] { 0 }, buffer);
+
 		buffer.flip();
 		socketChannel.write(buffer);
 

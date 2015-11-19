@@ -44,7 +44,7 @@ public class Parse extends PostgreSQLPacket {
 
 	@Override
 	public int getLength() {
-		return 4 + name.getBytes().length + sql.getBytes().length + 2 + 4
+		return 4 + name.getBytes(UTF8).length + sql.getBytes(UTF8).length + 2 + 4
 				* parameterNumber; //参数为空时仍然需要多个类型为0的int
 	}
 
@@ -70,8 +70,6 @@ public class Parse extends PostgreSQLPacket {
 		for (DateType tp : parameterTypes) {
 			PIOUtils.SendInteger4(tp.getValue(), buffer);
 		}
-		if(parameterNumber ==0){
-			PIOUtils.SendInteger4(0, buffer); 
-		}
+		
 	}
 }
