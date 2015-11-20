@@ -11,6 +11,7 @@ Mycat’s target is to smoothly migrate the current stand-alone database and app
 
 * [Getting Started](https://github.com/MyCATApache/Mycat-doc/tree/master/en)
 * [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/blob/master/MyCat_In_Action_%E4%B8%AD%E6%96%87%E7%89%88.doc)
+   
 
 ## Features
 
@@ -46,3 +47,46 @@ There are some compiled binary installation packages in Mycat-download project o
 ## Document
 
 There are some documents in Mycat-doc project on github at [Mycat-doc](https://github.com/MyCATApache/Mycat-doc).
+
+## Play with Mycat -- Mycat All In One
+All in one is the integrated developing & testing environment ,a centos 7 virtual machine with Mycat-server,Mycat-WEB,MYSQL,ZooKeeper installed .   
+
+You can execute the following steps to get mycat working platform：
+<b>import CentOs7.voa </b>
+>* install Oracle VM VirtualBox
+>* run Oracle VM VirtualBox
+>* download mycat-all-in-one ，[press here to get all-in-one](http://pan.baidu.com/s/1qWMkJPM),password：v63y  
+>* File -> Import Appliances
+>* choose the path you download CentOS 7.ova, choose the ova file
+>* you can get everything done,just press next
+>
+<b>setup virtual box</b>
+>* login user name : root, password: 123456
+>* run the multiple mysql instances by the commands shown as follow:
+```
+mysqld_multi start
+```
+<b>setup Mycat</b>
+```
+  cd /opt/mycat
+  ./bin/mycat start
+```
+<b>run zookeeper</b>
+>* cd /opt/zookeeper-3.4.6
+>* bin/zkServer.sh start
+>* bin/zkCli.sh
+
+<b>connect to Mycat</b> --> this step should be done on you host computer
+>* setup Navicat Premium
+>* create a connection to Mycat with IP:8066 , username : test , password: test 
+>* if connection correct , you would see the database's name is TESTDB
+>* then you could try everything you like ,just have fun !
+
+<b>pay attention to Mycat's IP in 'connect to Mycat' step ,<br/>the IP address may different from your own host IP ,<br> 
+you need to justify the IP by rewrite the file under /etc/sysconfig/network-scripts/ifcfg-enp0s3 ,<br/>then run
+
+```
+service network restart
+````
+to let the modified file work
+</b>
