@@ -1,20 +1,18 @@
 package io.mycat.backend.postgresql;
 
+import io.mycat.backend.postgresql.packet.AuthenticationPacket;
+import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
+import io.mycat.backend.postgresql.packet.PasswordMessage;
+import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
+import io.mycat.backend.postgresql.utils.PacketUtils;
+import io.mycat.net.NIOHandler;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.mycat.backend.postgresql.packet.AuthenticationPacket;
-import io.mycat.backend.postgresql.packet.PasswordMessage;
-import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
-import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
-import io.mycat.backend.postgresql.utils.PIOUtils;
-import io.mycat.backend.postgresql.utils.PacketUtils;
-import io.mycat.net.NIOHandler;
 
 public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQLBackendConnection> {
 
@@ -22,59 +20,9 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 
 	@Override
 	public void onConnected(PostgreSQLBackendConnection con) throws IOException {
-		List<String[]> paramList = new ArrayList<String[]>();
-		String user = "postgres";
-		String password = "coollf";
-		String database = "mycat";
-		String appName = "MyCat-Server";
-
-		paramList.add(new String[] { "user", user });
-		paramList.add(new String[] { "database", database });
-		paramList.add(new String[] { "client_encoding", "UTF8" });
-		paramList.add(new String[] { "DateStyle", "ISO" });
-		paramList.add(new String[] { "TimeZone", PacketUtils.createPostgresTimeZone() });
-		paramList.add(new String[] { "extra_float_digits", "3" });
-		paramList.add(new String[] { "application_name", appName });
-		String[][] params = paramList.toArray(new String[0][]);
-		if (LOGGER.isDebugEnabled()) {
-			StringBuilder details = new StringBuilder();
-			for (int i = 0; i < params.length; ++i) {
-				if (i != 0)
-					details.append(", ");
-				details.append(params[i][0]);
-				details.append("=");
-				details.append(params[i][1]);
-			}
-			LOGGER.debug(" FE=> StartupPacket(" + details + ")");
-		}
-
-		/*
-		 * Precalculate message length and encode params.
-		 */
-		int length = 4 + 4;
-		byte[][] encodedParams = new byte[params.length * 2][];
-		for (int i = 0; i < params.length; ++i) {
-			encodedParams[i * 2] = params[i][0].getBytes("UTF-8");
-			encodedParams[i * 2 + 1] = params[i][1].getBytes("UTF-8");
-			length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
-		}
-
-		length += 1; // Terminating \0
-
-		ByteBuffer buffer = ByteBuffer.allocate(length);
-
-		/*
-		 * Send the startup message.
-		 */
-		PIOUtils.SendInteger4(length, buffer);
-		PIOUtils.SendInteger2(3, buffer); // protocol major
-		PIOUtils.SendInteger2(0, buffer); // protocol minor
-		for (byte[] encodedParam : encodedParams) {
-			PIOUtils.Send(encodedParam, buffer);
-			PIOUtils.SendChar(0, buffer);
-		}
-		PIOUtils.SendByte((byte)0, buffer);
+		ByteBuffer buffer = PacketUtils.makeStartUpPacket(con.getUser(), con.getSchema());
 		buffer.flip();
+		LOGGER.debug("尝试发送启动包信息"); 
 		con.getChannel().write(buffer);
 	}
 

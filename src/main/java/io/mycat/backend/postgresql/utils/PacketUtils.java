@@ -23,7 +23,8 @@ import io.mycat.backend.postgresql.packet.RowDescription;
 
 public class PacketUtils {
 
-	public static List<PostgreSQLPacket> parsePacket(byte[] bytes, int offset, int readLength) throws IOException {
+	public static List<PostgreSQLPacket> parsePacket(byte[] bytes, int offset,
+			int readLength) throws IOException {
 		List<PostgreSQLPacket> pgs = new ArrayList<>();
 		while (offset < readLength) {
 			char MAKE = (char) bytes[offset];
@@ -104,6 +105,57 @@ public class PacketUtils {
 			return tz;
 		}
 		return start + tz.substring(4);
+	}
+
+	public static ByteBuffer makeStartUpPacket(String user, String database)
+			throws IOException {
+		List<String[]> paramList = new ArrayList<String[]>();
+		String appName = "MyCat-Server";
+		paramList.add(new String[] { "user", user });
+		paramList.add(new String[] { "database", database });
+		paramList.add(new String[] { "client_encoding", "UTF8" });
+		paramList.add(new String[] { "DateStyle", "ISO" });
+		paramList.add(new String[] { "TimeZone", createPostgresTimeZone() });
+		paramList.add(new String[] { "extra_float_digits", "3" });
+		paramList.add(new String[] { "application_name", appName });
+		String[][] params = paramList.toArray(new String[0][]);
+		StringBuilder details = new StringBuilder();
+		for (int i = 0; i < params.length; ++i) {
+			if (i != 0)
+				details.append(", ");
+			details.append(params[i][0]);
+			details.append("=");
+			details.append(params[i][1]);
+		}
+
+		/*
+		 * Precalculate message length and encode params.
+		 */
+		int length = 4 + 4;
+		byte[][] encodedParams = new byte[params.length * 2][];
+		for (int i = 0; i < params.length; ++i) {
+			encodedParams[i * 2] = params[i][0].getBytes("UTF-8");
+			encodedParams[i * 2 + 1] = params[i][1].getBytes("UTF-8");
+			length += encodedParams[i * 2].length + 1
+					+ encodedParams[i * 2 + 1].length + 1;
+		}
+
+		length += 1; // Terminating \0
+
+		ByteBuffer buffer = ByteBuffer.allocate(length);
+
+		/*
+		 * Send the startup message.
+		 */
+		PIOUtils.SendInteger4(length, buffer);
+		PIOUtils.SendInteger2(3, buffer); // protocol major
+		PIOUtils.SendInteger2(0, buffer); // protocol minor
+		for (byte[] encodedParam : encodedParams) {
+			PIOUtils.Send(encodedParam, buffer);
+			PIOUtils.SendChar(0, buffer);
+		}
+		PIOUtils.Send(new byte[] { 0 }, buffer);
+		return buffer;
 	}
 
 }
