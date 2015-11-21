@@ -6,6 +6,8 @@ import io.mycat.net.Connection;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.executors.ResponseHandler;
+import io.mycat.server.parser.ServerParse;
+import io.mycat.server.response.ShowVariables;
 import io.mycat.util.TimeUtil;
 
 import java.io.IOException;
@@ -52,12 +54,15 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	/***
 	 * 响应handler
 	 */
-	private ResponseHandler respHandler;
+	private ResponseHandler responseHandler;
 	private boolean borrowed;
 	private volatile int txIsolation;
 	private volatile boolean modifiedSQLExecuted = false;
 	private long lastTime;
 	private AtomicBoolean isQuit;
+
+	//PostgreSQL服务端密码
+	private int serverSecretKey;
 	
 
 	public PostgreSQLBackendConnection(SocketChannel channel, boolean fromSlaveDB) {
@@ -99,7 +104,7 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 
 	@Override
 	public void setResponseHandler(ResponseHandler queryHandler) {
-		this.respHandler =  queryHandler;
+		this.responseHandler =  queryHandler;
 	}
 
 
@@ -220,15 +225,49 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 
 	@Override
 	public void query(String sql) throws UnsupportedEncodingException {
+		System.out.println("调用查询语句...."); 
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void execute(RouteResultsetNode node, MySQLFrontConnection source,
+	public void execute(RouteResultsetNode rrn, MySQLFrontConnection sc,
 			boolean autocommit) throws IOException {
-		// TODO Auto-generated method stub
 		
+		System.out.println("处理前端请求..."); 
+		this.getResponseHandler().okResponse("你妹啊!".getBytes(), this);
+		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
+			modifiedSQLExecuted = true;
+		}
+		String xaTXID = sc.getSession2().getXaTXID();
+		synAndDoExecute(xaTXID, rrn,sc, sc.getCharsetIndex(), sc.getTxIsolation(),
+				autocommit);
+		
+	}
+
+	private void synAndDoExecute(String xaTXID, RouteResultsetNode rrn, MySQLFrontConnection sc, int charsetIndex, int txIsolation2, boolean autocommit2) {
+		boolean conAutoComit = this.autocommit;
+		String conSchema = this.schema;
+		System.out.println(rrn.getStatement()); 
+		int sqlType = rrn.getSqlType();
+		if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
+			ShowVariables.execute(sc);
+//			if ((sqlType == ServerParse.SHOW)) {
+//				// showCMD(sc, orgin);
+//				// ShowVariables.execute(sc, orgin);
+//				
+////			} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
+////				// ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
+////				ShowVariables.justReturnValue(sc,
+////						String.valueOf(sc.getId()), this);
+//			} else
+//				{
+//				//ouputResultSet(sc, orgin);
+//			}
+		} else {
+			//executeddl(sc, orgin);
+		}
+
 	}
 
 	@Override
@@ -250,6 +289,32 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	public void rollback() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public void onReadData(int got) throws IOException {
+		LOGGER.debug("能读取 {} 长度的数据包",got);
+		this.handler.handle(this, getReadBuffer(), 0, got);
+		getReadBuffer().clear();//使用完成后清理
+	}
+
+	public void setServerSecretKey(int serverSecretKey) {
+		this.serverSecretKey = serverSecretKey;
+	}
+
+	/**
+	 * @return the serverSecretKey
+	 */
+	public int getServerSecretKey() {
+		return serverSecretKey;
+	}
+
+	/**
+	 * @return the responseHandler
+	 */
+	public ResponseHandler getResponseHandler() {
+		return responseHandler;
 	}
 
 }

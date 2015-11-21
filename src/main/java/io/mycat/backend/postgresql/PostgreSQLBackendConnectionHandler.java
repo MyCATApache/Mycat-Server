@@ -2,9 +2,11 @@ package io.mycat.backend.postgresql;
 
 import io.mycat.backend.postgresql.packet.AuthenticationPacket;
 import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
+import io.mycat.backend.postgresql.packet.BackendKeyData;
 import io.mycat.backend.postgresql.packet.PasswordMessage;
 import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
 import io.mycat.backend.postgresql.utils.PacketUtils;
+import io.mycat.net.Connection.State;
 import io.mycat.net.NIOHandler;
 
 import java.io.IOException;
@@ -14,16 +16,14 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
+
 public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQLBackendConnection> {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLBackendConnectionHandler.class);
 
 	@Override
 	public void onConnected(PostgreSQLBackendConnection con) throws IOException {
-		ByteBuffer buffer = PacketUtils.makeStartUpPacket(con.getUser(), con.getSchema());
-		buffer.flip();
-		LOGGER.debug("尝试发送启动包信息"); 
-		con.getChannel().write(buffer);
 	}
 
 	@Override
@@ -97,9 +97,18 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 						pak.write(buffer);
 						con.write(buffer);
 					}else{//登入成功了....
-						LOGGER.info("PostgreSQL 登入成功");
 						
+						for(int i=1;i<packets.size();i++){
+							PostgreSQLPacket _p = packets.get(i);
+							if(_p instanceof BackendKeyData){
+								con.setServerSecretKey(((BackendKeyData) _p).getSecretKey());
+							}
+						}
+						LOGGER.info("PostgreSQL 登入成功");
+						con.setState(State.connected);
+						con.getResponseHandler().connectionAcquired(con);//连接已经可以用来
 					}
+					LOGGER.debug(JSON.toJSONString(packets));
 				}
 			}
 
