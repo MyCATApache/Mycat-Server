@@ -664,6 +664,11 @@ public class LocalLoader implements ConfigLoader {
 			String slaveThresholdStr = element.getAttribute("slaveThreshold");
 			int slaveThreshold = slaveThresholdStr.equals("") ? -1 : Integer
 					.valueOf(slaveThresholdStr);
+			
+			//如果 tempReadHostAvailable 设置大于 0 则表示写主机如果挂掉， 临时的读服务依然可用
+			String tempReadHostAvailableStr = element.getAttribute("tempReadHostAvailable");
+			boolean tempReadHostAvailable = tempReadHostAvailableStr.equals("") ? false : Integer.valueOf(tempReadHostAvailableStr) > 0;
+			
 			String writeTypStr = element.getAttribute("writeType");
 			int writeType = "".equals(writeTypStr) ? PhysicalDBPool.WRITE_ONLYONE_NODE
 					: Integer.valueOf(writeTypStr);
@@ -705,7 +710,7 @@ public class LocalLoader implements ConfigLoader {
 
 			DataHostConfig hostConf = new DataHostConfig(name, dbType,
 					dbDriver, writeDbConfs, readHostsMap, switchType,
-					slaveThreshold);
+					slaveThreshold, tempReadHostAvailable);
 			hostConf.setMaxCon(maxCon);
 			hostConf.setMinCon(minCon);
 			hostConf.setBalance(balance);

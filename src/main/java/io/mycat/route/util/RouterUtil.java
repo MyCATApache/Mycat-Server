@@ -9,7 +9,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.mycat.MycatServer;
-import io.mycat.backend.PhysicalDBNode;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
@@ -27,6 +26,7 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,33 +120,33 @@ public class RouterUtil {
      * @author AStoneGod
      */
     public static String getTableName(String stmt, int[] repPos) {
-        int startPos = repPos[0];
-        int secInd = stmt.indexOf(' ', startPos + 1);
-        if (secInd < 0) {
-            secInd = stmt.length();
-        }
-        int thiInd = stmt.indexOf('(',secInd+1);
-        if (thiInd < 0) {
-            thiInd = stmt.length();
-        }
-        repPos[1] = secInd;
-        String tableName = "";
-        if (stmt.toUpperCase().startsWith("DESC")||stmt.toUpperCase().startsWith("DESCRIBE")){
-            tableName = stmt.substring(startPos, thiInd).trim();
-        }else {
-            tableName = stmt.substring(secInd, thiInd).trim();
-        }
+		int startPos = repPos[0];
+		int secInd = stmt.indexOf(' ', startPos + 1);
+		if (secInd < 0) {
+			secInd = stmt.length();
+		}
+		int thiInd = stmt.indexOf('(',secInd+1);
+		if (thiInd < 0) {
+			thiInd = stmt.length();
+		}
+		repPos[1] = secInd;
+		String tableName = "";
+		if (stmt.toUpperCase().startsWith("DESC")||stmt.toUpperCase().startsWith("DESCRIBE")){
+			tableName = stmt.substring(startPos, thiInd).trim();
+		}else {
+			tableName = stmt.substring(secInd, thiInd).trim();
+		}
 
-        //ALTER TABLE
-        if (tableName.contains(" ")){
-            tableName = tableName.substring(0,tableName.indexOf(" "));
-        }
-        int ind2 = tableName.indexOf('.');
-        if (ind2 > 0) {
-            tableName = tableName.substring(ind2 + 1);
-        }
-        return tableName;
-    }
+		//ALTER TABLE
+		if (tableName.contains(" ")){
+			tableName = tableName.substring(0,tableName.indexOf(" "));
+		}
+		int ind2 = tableName.indexOf('.');
+		if (ind2 > 0) {
+			tableName = tableName.substring(ind2 + 1);
+		}
+		return tableName;
+	}
 
     /**
      * 获取语句中前关键字位置和占位个数表名位置
@@ -159,17 +159,17 @@ public class RouterUtil {
      * @author mycat
      */
     public static int[] getCreateTablePos(String upStmt, int start) {
-        String token1 = "CREATE ";
-        String token2 = " TABLE ";
-        int createInd = upStmt.indexOf(token1, start);
-        int tabInd = upStmt.indexOf(token2, start);
-        // 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
-        if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
-            return new int[] { tabInd, token2.length() };
-        } else {
-            return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
-        }
-    }
+		String token1 = "CREATE ";
+		String token2 = " TABLE ";
+		int createInd = upStmt.indexOf(token1, start);
+		int tabInd = upStmt.indexOf(token2, start);
+		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
+		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
+			return new int[] { tabInd, token2.length() };
+		} else {
+			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+		}
+	}
 
     /**
      * 获取语句中前关键字位置和占位个数表名位置
@@ -182,20 +182,20 @@ public class RouterUtil {
      * @author mycat
      */
     public static int[] getSpecPos(String upStmt, int start) {
-        String token1 = " FROM ";
-        String token2 = " IN ";
-        int tabInd1 = upStmt.indexOf(token1, start);
-        int tabInd2 = upStmt.indexOf(token2, start);
-        if (tabInd1 > 0) {
-            if (tabInd2 < 0) {
-                return new int[] { tabInd1, token1.length() };
-            }
-            return (tabInd1 < tabInd2) ? new int[] { tabInd1, token1.length() }
-                    : new int[] { tabInd2, token2.length() };
-        } else {
-            return new int[] { tabInd2, token2.length() };
-        }
-    }
+		String token1 = " FROM ";
+		String token2 = " IN ";
+		int tabInd1 = upStmt.indexOf(token1, start);
+		int tabInd2 = upStmt.indexOf(token2, start);
+		if (tabInd1 > 0) {
+			if (tabInd2 < 0) {
+				return new int[] { tabInd1, token1.length() };
+			}
+			return (tabInd1 < tabInd2) ? new int[] { tabInd1, token1.length() }
+					: new int[] { tabInd2, token2.length() };
+		} else {
+			return new int[] { tabInd2, token2.length() };
+		}
+	}
 
     /**
      * 获取开始位置后的 LIKE、WHERE 位置 如果不含 LIKE、WHERE 则返回执行语句的长度
@@ -208,15 +208,15 @@ public class RouterUtil {
      * @author mycat
      */
     public static int getSpecEndPos(String upStmt, int start) {
-        int tabInd = upStmt.indexOf(" LIKE ", start);
-        if (tabInd < 0) {
-            tabInd = upStmt.indexOf(" WHERE ", start);
-        }
-        if (tabInd < 0) {
-            return upStmt.length();
-        }
-        return tabInd;
-    }
+		int tabInd = upStmt.indexOf(" LIKE ", start);
+		if (tabInd < 0) {
+			tabInd = upStmt.indexOf(" WHERE ", start);
+		}
+		if (tabInd < 0) {
+			return upStmt.length();
+		}
+		return tabInd;
+	}
 
     public static boolean processWithMycatSeq(SchemaConfig schema, int sqlType,
                                               String origSQL, MySQLFrontConnection sc) {
@@ -368,7 +368,7 @@ public class RouterUtil {
     public static String getFixedSql(String stmt){
         if (stmt.endsWith(";"))
             stmt = stmt.substring(0,stmt.length()-2);
-        return stmt = stmt.trim().toUpperCase().replace("`","");
+        return stmt = stmt.trim().replace("`","");  
     }
 
     /**
@@ -382,17 +382,17 @@ public class RouterUtil {
      * @author aStoneGod
      */
     public static int[] getAlterTablePos(String upStmt, int start) {
-        String token1 = "ALTER ";
-        String token2 = " TABLE ";
-        int createInd = upStmt.indexOf(token1, start);
-        int tabInd = upStmt.indexOf(token2, start);
-        // 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
-        if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
-            return new int[] { tabInd, token2.length() };
-        } else {
-            return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
-        }
-    }
+		String token1 = "ALTER ";
+		String token2 = " TABLE ";
+		int createInd = upStmt.indexOf(token1, start);
+		int tabInd = upStmt.indexOf(token2, start);
+		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
+		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
+			return new int[] { tabInd, token2.length() };
+		} else {
+			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+		}
+	}
 
     /**
      * 获取DROP语句中前关键字位置和占位个数表名位置
@@ -405,30 +405,30 @@ public class RouterUtil {
      * @author aStoneGod
      */
     public static int[] getDropTablePos(String upStmt, int start) {
-        //增加 if exists判断
-        if(upStmt.contains("EXISTS")){
-            String token1 = "IF ";
-            String token2 = " EXISTS ";
-            int ifInd = upStmt.indexOf(token1, start);
-            int tabInd = upStmt.indexOf(token2, start);
-            if (ifInd >= 0 && tabInd > 0 && tabInd > ifInd) {
-                return new int[] { tabInd, token2.length() };
-            } else {
-                return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
-            }
-        }else {
-            String token1 = "DROP ";
-            String token2 = " TABLE ";
-            int createInd = upStmt.indexOf(token1, start);
-            int tabInd = upStmt.indexOf(token2, start);
+		//增加 if exists判断
+		if(upStmt.contains("EXISTS")){
+			String token1 = "IF ";
+			String token2 = " EXISTS ";
+			int ifInd = upStmt.indexOf(token1, start);
+			int tabInd = upStmt.indexOf(token2, start);
+			if (ifInd >= 0 && tabInd > 0 && tabInd > ifInd) {
+				return new int[] { tabInd, token2.length() };
+			} else {
+				return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+			}
+		}else {
+			String token1 = "DROP ";
+			String token2 = " TABLE ";
+			int createInd = upStmt.indexOf(token1, start);
+			int tabInd = upStmt.indexOf(token2, start);
 
-            if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
-                return new int[] { tabInd, token2.length() };
-            } else {
-                return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
-            }
-        }
-    }
+			if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
+				return new int[] { tabInd, token2.length() };
+			} else {
+				return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+			}
+		}
+	}
 
 
     /**
@@ -442,17 +442,17 @@ public class RouterUtil {
      * @author aStoneGod
      */
     public static int[] getTruncateTablePos(String upStmt, int start) {
-        String token1 = "TRUNCATE ";
-        String token2 = " TABLE ";
-        int createInd = upStmt.indexOf(token1, start);
-        int tabInd = upStmt.indexOf(token2, start);
-        // 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
-        if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
-            return new int[] { tabInd, token2.length() };
-        } else {
-            return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
-        }
-    }
+		String token1 = "TRUNCATE ";
+		String token2 = " TABLE ";
+		int createInd = upStmt.indexOf(token1, start);
+		int tabInd = upStmt.indexOf(token2, start);
+		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
+		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
+			return new int[] { tabInd, token2.length() };
+		} else {
+			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+		}
+	}
 
     /**
      * 修复DDL路由
@@ -461,18 +461,21 @@ public class RouterUtil {
      * @author aStoneGod
      */
     public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
-        //检查表是否在配置文件中
-        stmt = getFixedSql(stmt);
-        String tablename = "";
-        if(stmt.startsWith("CREATE")){
-            tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(stmt, 0));
-        }else if(stmt.startsWith("DROP")){
-            tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(stmt, 0));
-        }else if(stmt.startsWith("ALTER")){
-            tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(stmt, 0));
-        }else if (stmt.startsWith("TRUNCATE")){
-            tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
-        }
+    	//检查表是否在配置文件中
+		stmt = getFixedSql(stmt);
+		String tablename = "";		
+		final String upStmt = stmt.toUpperCase();
+		if(upStmt.startsWith("CREATE")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
+		}else if(upStmt.startsWith("DROP")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
+		}else if(upStmt.startsWith("ALTER")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(upStmt, 0));
+		}else if (upStmt.startsWith("TRUNCATE")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(upStmt, 0));
+		}
+		tablename = tablename.toUpperCase();
+        
         if (schema.getTables().containsKey(tablename)){
             if(ServerParse.DDL==sqlType){
                 List<String> dataNodes = new ArrayList<>();

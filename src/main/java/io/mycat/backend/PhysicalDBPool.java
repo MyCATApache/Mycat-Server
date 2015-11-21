@@ -550,7 +550,36 @@ public class PhysicalDBPool {
                         }
                     }
                 }
-            }
+                
+            } else {
+				
+				// TODO : add by zhuam	
+			    // 如果写节点不OK, 也要保证临时的读服务正常
+				if ( this.dataHostConfig.isTempReadHostAvailable() ) {
+				
+					if (!readSources.isEmpty()) {
+						// check all slave nodes
+						PhysicalDatasource[] allSlaves = this.readSources.get(i);
+						if (allSlaves != null) {
+							for (PhysicalDatasource slave : allSlaves) {
+								if (isAlive(slave)) {
+									
+									if (filterWithSlaveThreshold) {									
+										if (canSelectAsReadNode(slave)) {
+											okSources.add(slave);
+										} else {
+											continue;
+										}
+										
+									} else {
+										okSources.add(slave);
+									}
+								}
+							}
+						}
+					}
+				}				
+			}
 
         }
         return okSources;
