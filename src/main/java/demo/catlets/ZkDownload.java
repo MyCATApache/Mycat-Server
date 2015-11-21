@@ -6,10 +6,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.ZKPaths;
-import org.dom4j.Document;
-import org.dom4j.DocumentHelper;
-import org.dom4j.Element;
-import org.dom4j.QName;
+import org.dom4j.*;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
 import org.opencloudb.config.model.SystemConfig;
@@ -63,7 +60,7 @@ public class ZkDownload {
             List<Map<String,JSONObject>> listDataHost = getDataHostNodeConfig("datahost-config");
             List<Map<String,JSONObject>> listServer  = getServerNodeConfig(SERVER_CONFIG_DIRECTORY);
             List<Map<String,JSONObject>> listSchema = getSchemaConfig(SCHEMA_CONFIG_DIRECTORY);
-            List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
+            //List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
             List<Map<String,JSONObject>> listRule  = getServerNodeConfig(RULE_CONFIG_DIRECTORY);
 
             //生成SERVER XML
@@ -305,7 +302,7 @@ public class ZkDownload {
     public static void processServerDocument(List<Map<String,JSONObject>> mapList){
         /** 建立document对象 */
         Document document = DocumentHelper.createDocument();
-       document.addDocType("mycat:server","","server.dtd");
+        document.addDocType("mycat:server","","server.dtd");
         /** 建立serverElement根节点 */
         Element serverElement = document.addElement(QName.get("mycat:server ", "http://org.opencloudb/"));
         for (int i=0;i<mapList.size();i++){
