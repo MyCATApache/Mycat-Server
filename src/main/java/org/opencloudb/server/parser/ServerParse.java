@@ -49,6 +49,7 @@ public final class ServerParse {
 	public static final int SAVEPOINT = 13;
 	public static final int USE = 14;
 	public static final int EXPLAIN = 15;
+	public static final int EXPLAIN2 = 151;
 	public static final int KILL_QUERY = 16;
 	public static final int HELP = 17;
 	public static final int MYSQL_CMD_COMMENT = 18;
@@ -255,6 +256,7 @@ public final class ServerParse {
 
 	// EXPLAIN' '
 	static int explainCheck(String stmt, int offset) {
+
 		if (stmt.length() > offset + "XPLAIN ".length()) {
 			char c1 = stmt.charAt(++offset);
 			char c2 = stmt.charAt(++offset);
@@ -269,6 +271,9 @@ public final class ServerParse {
 					&& (c7 == ' ' || c7 == '\t' || c7 == '\r' || c7 == '\n')) {
 				return (offset << 8) | EXPLAIN;
 			}
+		}
+		if(stmt != null && stmt.toLowerCase().startsWith("explain2")){
+			return (offset << 8) | EXPLAIN2;
 		}
 		return OTHER;
 	}
