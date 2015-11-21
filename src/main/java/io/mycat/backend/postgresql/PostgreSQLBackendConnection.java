@@ -1,15 +1,17 @@
 package io.mycat.backend.postgresql;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.channels.SocketChannel;
-
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.net.Connection;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.executors.ResponseHandler;
+import io.mycat.util.TimeUtil;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.channels.SocketChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /*************************************************************
  * PostgreSQL Native Connection impl
@@ -17,103 +19,185 @@ import io.mycat.server.executors.ResponseHandler;
  *
  */
 public class PostgreSQLBackendConnection extends Connection implements BackendConnection{
-	/****
-	 * xa 事物状态
+	/**
+	 * 来自子接口
 	 */
-	private volatile int xaStatus = 0;
+	private boolean fromSlaveDB;
+	
+	/***
+	 * 用户名
+	 */
+	private String user;
+	
+	/**
+	 * 密码
+	 */
+	private String password;
+	
+	/***
+	 * 对应数据库空间
+	 */
+	private String schema;
+	
+	
+	/**
+	 * 数据源配置
+	 */
+	private PostgreSQLDataSource pool;
+	private Object attachment;	
+	protected volatile String charset;
+	private volatile boolean autocommit;
+	private long currentTimeMillis;
+	
+	/***
+	 * 响应handler
+	 */
+	private ResponseHandler respHandler;
+	private boolean borrowed;
+	private volatile int txIsolation;
+	private volatile boolean modifiedSQLExecuted = false;
+	private long lastTime;
+	private AtomicBoolean isQuit;
+	
 
-	public PostgreSQLBackendConnection(SocketChannel channel) {
+	public PostgreSQLBackendConnection(SocketChannel channel, boolean fromSlaveDB) {
 		super(channel);
-	}
-
-	@Override
-	public boolean isClosed() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public void idleCheck() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public long getStartupTime() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public String getHost() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getPort() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int getLocalPort() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public long getNetInBytes() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public long getNetOutBytes() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public boolean isModifiedSQLExecuted() {
-		// TODO Auto-generated method stub
-		return false;
+		this.fromSlaveDB = fromSlaveDB;
+		this.lastTime = TimeUtil.currentTimeMillis();
+		this.isQuit = new AtomicBoolean(false);
+		this.autocommit = true;
 	}
 
 	@Override
 	public boolean isFromSlaveDB() {
-		// TODO Auto-generated method stub
-		return false;
+		return fromSlaveDB;
 	}
 
 	@Override
 	public String getSchema() {
-		// TODO Auto-generated method stub
-		return null;
+		return schema;
 	}
 
 	@Override
 	public void setSchema(String newSchema) {
-		// TODO Auto-generated method stub
-		
+		this.schema = newSchema;		
+	}
+
+
+	@Override
+	public void setAttachment(Object attachment) {
+		this.attachment = attachment;	
+	}
+
+
+	@Override
+	public void setLastTime(long currentTimeMillis) {
+		this.currentTimeMillis = currentTimeMillis;
+	}
+
+
+
+	@Override
+	public void setResponseHandler(ResponseHandler queryHandler) {
+		this.respHandler =  queryHandler;
+	}
+
+
+
+	@Override
+	public Object getAttachment() {
+		return attachment;
+	}
+
+
+
+	@Override
+	public boolean isBorrowed() {
+		return borrowed;
+	}
+
+	@Override
+	public void setBorrowed(boolean borrowed) {
+		this.lastTime = TimeUtil.currentTimeMillis();
+		this.borrowed = borrowed;
+	}
+
+	@Override
+	public int getTxIsolation() {
+		return txIsolation;
+	}
+
+	@Override
+	public boolean isAutocommit() {
+		return autocommit;
+	}
+
+
+	@Override
+	public String getCharset() {
+		return charset;
+	}
+
+	@Override
+	public PhysicalDatasource getPool() {
+		return pool;
+	}
+
+	/**
+	 * @return the user
+	 */
+	public String getUser() {
+		return user;
+	}
+
+	/**
+	 * @param user the user to set
+	 */
+	public void setUser(String user) {
+		this.user = user;
+	}
+
+	/**
+	 * @return the password
+	 */
+	public String getPassword() {
+		return password;
+	}
+
+	/**
+	 * @param password the password to set
+	 */
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	/**
+	 * @param fromSlaveDB the fromSlaveDB to set
+	 */
+	public void setFromSlaveDB(boolean fromSlaveDB) {
+		this.fromSlaveDB = fromSlaveDB;
+	}
+
+	/**
+	 * @param pool the pool to set
+	 */
+	public void setPool(PostgreSQLDataSource pool) {
+		this.pool = pool;
+	}
+
+	@Override
+	public boolean isModifiedSQLExecuted() {
+		return  modifiedSQLExecuted ;
 	}
 
 	@Override
 	public long getLastTime() {
-		// TODO Auto-generated method stub
-		return 0;
+		return lastTime;
 	}
 
 	@Override
 	public boolean isClosedOrQuit() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public void setAttachment(Object attachment) {
-		// TODO Auto-generated method stub
-		
+		return isClosed() || isQuit.get();
 	}
 
 	@Override
@@ -123,19 +207,7 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	}
 
 	@Override
-	public void setLastTime(long currentTimeMillis) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void release() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void setResponseHandler(ResponseHandler commandHandler) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -153,20 +225,24 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	}
 
 	@Override
-	public Object getAttachment() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void execute(RouteResultsetNode node, MySQLFrontConnection source, boolean autocommit) throws IOException {
+	public void execute(RouteResultsetNode node, MySQLFrontConnection source,
+			boolean autocommit) throws IOException {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public boolean syncAndExcute() {
-		// TODO Auto-generated method stub
+//		StatusSync sync = this.statusSync;
+//		if (sync == null) {
+//			return true;
+//		} else {
+//			boolean executed = sync.synAndExecuted(this);
+//			if (executed) {
+//				statusSync = null;
+//			}
+//			return executed;
+//		}
 		return false;
 	}
 
@@ -174,54 +250,6 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	public void rollback() {
 		// TODO Auto-generated method stub
 		
-	}
-
-	@Override
-	public boolean isBorrowed() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public void setBorrowed(boolean borrowed) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public int getTxIsolation() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public boolean isAutocommit() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public long getId() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public void close(String reason) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public String getCharset() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public PhysicalDatasource getPool() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 }

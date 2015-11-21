@@ -75,7 +75,7 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 		}
 		PIOUtils.SendByte((byte)0, buffer);
 		buffer.flip();
-		con.write(buffer);
+		con.getChannel().write(buffer);
 	}
 
 	@Override
@@ -147,7 +147,6 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 								((AuthenticationPacket) packet).getSalt());
 						ByteBuffer buffer = ByteBuffer.allocate(pak.getLength() + 1);
 						pak.write(buffer);
-						buffer.flip();
 						con.write(buffer);
 					}else{//登入成功了....
 						LOGGER.info("PostgreSQL 登入成功");
