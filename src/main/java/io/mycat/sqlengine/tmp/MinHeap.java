@@ -75,12 +75,14 @@ public class MinHeap implements HeapItf {
     }
 
     @Override
-    public void addIfRequired(RowDataPacket row) {
+    public boolean addIfRequired(RowDataPacket row) {
         // 淘汰堆里最小的数据
         RowDataPacket root = getRoot();
         if (cmp.compare(row, root) > 0) {
             setRoot(row);
+            return true;
         }
+        return false;
     }
 
     @Override

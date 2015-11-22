@@ -1,3 +1,5 @@
+package io.mycat.sqlengine.mpp;
+
 /*
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -21,106 +23,75 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package io.mycat.sqlengine.mpp;
 
-import io.mycat.net.NetSystem;
+import io.mycat.MycatServer;
 import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.executors.MultiNodeQueryHandler;
+import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.RowDataPacket;
+import io.mycat.server.packet.util.BufferUtil;
 import io.mycat.sqlengine.tmp.RowDataSorter;
 import io.mycat.util.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.LinkedTransferQueue;
+import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.log4j.Logger;
 
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
  * 
- * @author wuzhih
+ * @author wuzhih /modify by coder_czp/2015/11/2
  * 
  */
-public class DataMergeService {
-	public static final Logger LOGGER = LoggerFactory
-			.getLogger(DataMergeService.class);
-	private RowDataPacketGrouper grouper = null;
-	private RowDataPacketSorter sorter = null;
-	private Collection<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
-	private volatile boolean temniated = false;
-	// private final Map<String, DataNodeResultInf> dataNodeResultSumMap;
-	private final Map<String, AtomicReferenceArray<byte[]>> batchedNodeRows;
-	private final ReentrantLock lock = new ReentrantLock();
-	private final LinkedTransferQueue<Runnable> jobQueue = new LinkedTransferQueue<Runnable>();
-	private volatile boolean jobRuninng = false;
-	private final MultiNodeQueryHandler multiQueryHandler;
-	private int fieldCount;
-	private final RouteResultset rrs;
-    private AtomicInteger rowBatchCount=new AtomicInteger(0);
+public class DataMergeService implements Runnable {
 
-	public DataMergeService(MultiNodeQueryHandler queryHandler,
-			RouteResultset rrs) {
+	// 保存包和节点的关系
+	static class PackWraper {
+		byte[] data;
+		String node;
+
+	}
+
+	private int fieldCount;
+	private RouteResultset rrs;
+	private RowDataSorter sorter;
+	private RowDataPacketGrouper grouper;
+	private int MAX_MUTIL_COUNT = 20000000;
+	private BlockingQueue<PackWraper> packs;
+	private volatile boolean hasOrderBy = false;
+	private MultiNodeQueryHandler multiQueryHandler;
+	private AtomicInteger areadyAdd = new AtomicInteger();
+	private ConcurrentHashMap<String, Boolean> canDiscard;
+	public static PackWraper END_FLAG_PACK = new PackWraper();
+	private List<RowDataPacket> result = new Vector<RowDataPacket>();
+	private static Logger LOGGER = Logger.getLogger(DataMergeService.class);
+
+	public DataMergeService(MultiNodeQueryHandler handler, RouteResultset rrs) {
 		this.rrs = rrs;
-		this.multiQueryHandler = queryHandler;
-		batchedNodeRows = new HashMap<String, AtomicReferenceArray<byte[]>>();
-		for (RouteResultsetNode node : rrs.getNodes()) {
-			batchedNodeRows.put(node.getName(),
-					new AtomicReferenceArray<byte[]>(100));
-		}
+		this.multiQueryHandler = handler;
+		this.canDiscard = new ConcurrentHashMap<String, Boolean>();
+		// 在网络很好的情况下,数据会快速填充到队列,当数据大于MAX_MUTIL_COUNT时,等待处理线程处理
+		this.packs = new LinkedBlockingQueue<PackWraper>(MAX_MUTIL_COUNT);
 	}
 
 	public RouteResultset getRrs() {
 		return this.rrs;
 	}
 
-	public void outputMergeResult(final NonBlockingSession session,
-			final byte[] eof) {
-		// handle remains batch data
-		for (Entry<String, AtomicReferenceArray<byte[]>> entry : batchedNodeRows
-				.entrySet()) {
-			Runnable job = this.createJob(entry.getKey(), entry.getValue());
-			if (job != null) {
-				this.jobQueue.offer(job);
-			}
-		}
-		// add output job
-		Runnable outPutJob = new Runnable() {
-			@Override
-			public void run() {
-                if(rowBatchCount.get()>0)
-                {
-                    jobQueue.offer(this);
-                    if(rowBatchCount.get()==0)
-                    {
-                        Runnable newJob = jobQueue.poll();
-                        if (newJob != null)
-                        {
-                            newJob.run();
-                        }
-                    }
-                } else
-                {
-                    multiQueryHandler.outputMergeResult(session.getSource(), eof);
-
-                }
-			}
-		};
-		jobQueue.offer(outPutJob);
-		if (jobRuninng == false && !jobQueue.isEmpty()) {
-            Runnable runnable = jobQueue.poll();
-            if(runnable!=null)
-            {
-                NetSystem.getInstance().getExecutor()
-                        .execute(runnable);
-            }
-		}
+	public void outputMergeResult(NonBlockingSession session, byte[] eof) {
+		packs.add(END_FLAG_PACK);
 	}
 
 	/**
@@ -128,75 +99,72 @@ public class DataMergeService {
 	 * 
 	 * @return (最多i*(offset+size)行数据)
 	 */
-	public Collection<RowDataPacket> getResults(final byte[] eof) {
-
-		Collection<RowDataPacket> tmpResult = result;
+	public List<RowDataPacket> getResults(byte[] eof) {
+		List<RowDataPacket> tmpResult = result;
 		if (this.grouper != null) {
 			tmpResult = grouper.getResult();
 			grouper = null;
 		}
 		if (sorter != null) {
-			//处理grouper处理后的数据
+			// 处理grouper处理后的数据
 			if (tmpResult != null) {
 				Iterator<RowDataPacket> itor = tmpResult.iterator();
 				while (itor.hasNext()) {
-                    sorter.addRow(itor.next());
-                    itor.remove();
+					sorter.addRow(itor.next());
+					itor.remove();
 				}
 			}
-
 			tmpResult = sorter.getSortedResult();
 			sorter = null;
 		}
-		if(LOGGER.isDebugEnabled())
-		{
-			LOGGER.debug("prepare mpp merge result for "+rrs.getStatement());
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("prepare mpp merge result for " + rrs.getStatement());
 		}
-		
+
 		return tmpResult;
 	}
 
 	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
 		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("field metadata inf:"
-					+ Arrays.toString(columToIndx.entrySet().toArray()));
+			LOGGER.debug("field metadata inf:" + columToIndx.entrySet());
 		}
 		int[] groupColumnIndexs = null;
 		this.fieldCount = fieldCount;
 		if (rrs.getGroupByCols() != null) {
-			groupColumnIndexs = toColumnIndex(rrs.getGroupByCols(),
-					columToIndx);
+			groupColumnIndexs = toColumnIndex(rrs.getGroupByCols(), columToIndx);
 		}
 
 		if (rrs.getHavingCols() != null) {
-			ColMeta colMeta =  columToIndx.get(rrs.getHavingCols().getLeft().toUpperCase());
-			if(colMeta != null){
+			ColMeta colMeta = columToIndx.get(rrs.getHavingCols().getLeft()
+					.toUpperCase());
+			if (colMeta != null) {
 				rrs.getHavingCols().setColMeta(colMeta);
 			}
 		}
 
 		if (rrs.isHasAggrColumn()) {
 			List<MergeCol> mergCols = new LinkedList<MergeCol>();
-            Map<String, Integer> mergeColsMap = rrs.getMergeCols();
-            if (mergeColsMap != null) {
+			Map<String, Integer> mergeColsMap = rrs.getMergeCols();
+			if (mergeColsMap != null) {
 				for (Map.Entry<String, Integer> mergEntry : mergeColsMap
 						.entrySet()) {
 					String colName = mergEntry.getKey().toUpperCase();
-                    int type= mergEntry.getValue();
-                    if(MergeCol.MERGE_AVG== type)
-                    {
-                        ColMeta sumColMeta = columToIndx.get(colName + "SUM");
-                        ColMeta countColMeta = columToIndx.get(colName + "COUNT");
-                        if(sumColMeta!=null&&countColMeta!=null)
-                        {
-                            ColMeta colMeta =new ColMeta(sumColMeta.colIndex,countColMeta.colIndex,sumColMeta.getColType()) ;
-                            mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
-                        }
-                    } else
-                    {
-                        ColMeta colMeta = columToIndx.get(colName);
-                        mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
-                    }
+					int type = mergEntry.getValue();
+					if (MergeCol.MERGE_AVG == type) {
+						ColMeta sumColMeta = columToIndx.get(colName + "SUM");
+						ColMeta countColMeta = columToIndx.get(colName
+								+ "COUNT");
+						if (sumColMeta != null && countColMeta != null) {
+							ColMeta colMeta = new ColMeta(sumColMeta.colIndex,
+									countColMeta.colIndex,
+									sumColMeta.getColType());
+							mergCols.add(new MergeCol(colMeta, mergEntry
+									.getValue()));
+						}
+					} else {
+						ColMeta colMeta = columToIndx.get(colName);
+						mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
+					}
 				}
 			}
 			// add no alias merg column
@@ -209,28 +177,33 @@ public class DataMergeService {
 				}
 			}
 			grouper = new RowDataPacketGrouper(groupColumnIndexs,
-					mergCols.toArray(new MergeCol[mergCols.size()]),rrs.getHavingCols());
+					mergCols.toArray(new MergeCol[mergCols.size()]),
+					rrs.getHavingCols());
 		}
 		if (rrs.getOrderByCols() != null) {
 			LinkedHashMap<String, Integer> orders = rrs.getOrderByCols();
 			OrderCol[] orderCols = new OrderCol[orders.size()];
 			int i = 0;
 			for (Map.Entry<String, Integer> entry : orders.entrySet()) {
-				String key = StringUtil.removeBackquote(entry.getKey().toUpperCase());
+				String key = StringUtil.removeBackquote(entry.getKey()
+						.toUpperCase());
 				ColMeta colMeta = columToIndx.get(key);
 				if (colMeta == null) {
 					throw new java.lang.IllegalArgumentException(
-							"all columns in order by clause should be in the selected column list!" + entry.getKey());
+							"all columns in order by clause should be in the selected column list!"
+									+ entry.getKey());
 				}
 				orderCols[i++] = new OrderCol(colMeta, entry.getValue());
 			}
-//		 	sorter = new RowDataPacketSorter(orderCols);
+			// sorter = new RowDataPacketSorter(orderCols);
 			RowDataSorter tmp = new RowDataSorter(orderCols);
 			tmp.setLimit(rrs.getLimitStart(), rrs.getLimitSize());
+			hasOrderBy = true;
 			sorter = tmp;
 		} else {
-			new ConcurrentLinkedQueue<RowDataPacket>();
+			hasOrderBy = false;
 		}
+		MycatServer.getInstance().getListeningExecutorService().execute(this);
 	}
 
 	/**
@@ -243,100 +216,31 @@ public class DataMergeService {
 	 *            raw data
 	 */
 	public boolean onNewRecord(String dataNode, byte[] rowData) {
-		if (temniated) {
-			return true;
-		}
-		Runnable batchJob = null;
-		AtomicReferenceArray<byte[]> batchedArray = batchedNodeRows
-				.get(dataNode);
-		if (putBatchFailed(rowData, batchedArray)) {
-			try {
-				lock.lock();
-				if (batchedArray.get(batchedArray.length() - 1) != null) {// full
-					batchJob = createJob(dataNode, batchedArray);
-				}
-				putBatchFailed(rowData, batchedArray);
-
-			} finally {
-				lock.unlock();
+		try {
+			// 对于无需排序的SQL,取前getLimitSize条就足够
+			if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()) {
+				packs.add(END_FLAG_PACK);
+				return true;
 			}
-		}
-		if (batchJob != null && jobRuninng == false) {
-			NetSystem.getInstance().getExecutor().execute(batchJob);
-		} else if (batchJob != null) {
-			jobQueue.offer(batchJob);
-		}
-
-		return false;
-	}
-
-	private boolean handleRowData(String dataNode, byte[] rowData) {
-		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
-		rowDataPkg.read(rowData);
-		if (grouper != null) {
-			grouper.addRow(rowDataPkg);
-		} else if (sorter != null) {
-			sorter.addRow(rowDataPkg);
-		} else {
-			result.add(rowDataPkg);
+			// 对于需要排序的数据,由于mysql传递过来的数据是有序的,
+			// 如果某个节点的当前数据已经不会进入,后续的数据也不会入堆
+			if (canDiscard.size() == rrs.getNodes().length) {
+				packs.add(END_FLAG_PACK);
+				LOGGER.info("other pack can discard,now send to client");
+				return true;
+			}
+			if (canDiscard.get(dataNode) != null) {
+				return true;
+			}
+			PackWraper data = new PackWraper();
+			data.node = dataNode;
+			data.data = rowData;
+			packs.put(data);
+			areadyAdd.getAndIncrement();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		}
 		return false;
-	}
-
-	private Runnable createJob(final String dnName,
-			AtomicReferenceArray<byte[]> batchedArray) {
-		final ArrayList<byte[]> rows = new ArrayList<byte[]>(
-				batchedArray.length());
-		for (int i = 0; i < batchedArray.length(); i++) {
-			byte[] val = batchedArray.getAndSet(i, null);
-			if (val != null) {
-				rows.add(val);
-			}
-		}
-		if (rows.isEmpty()) {
-			return null;
-		}  else
-        {
-            rowBatchCount.incrementAndGet();
-        }
-		Runnable job = new Runnable() {
-			public void run() {
-				try {
-					jobRuninng = true;
-					for (byte[] row : rows) {
-						if (handleRowData(dnName, row)) {
-							break;
-						}
-					}
-                    rowBatchCount.decrementAndGet();
-					// for next job
-					Runnable newJob = jobQueue.poll();
-					if (newJob != null) {
-//						NetSystem.getInstance().getExecutor()
-//								.execute(newJob);
-                        newJob.run();
-					} else {
-						jobRuninng = false;
-					}
-				} catch (Exception e) {
-					jobRuninng = false;
-					LOGGER.warn("data Merge error:", e);
-                    multiQueryHandler.handleDataProcessException(e);
-				}
-			}
-		};
-		return job;
-	}
-
-	private boolean putBatchFailed(byte[] rowData,
-			AtomicReferenceArray<byte[]> array) {
-		int len = array.length();
-		int i = 0;
-		for (i = 0; i < len; i++) {
-			if (array.compareAndSet(i, null, rowData))
-				break;
-		}
-		return i == len;
 	}
 
 	private static int[] toColumnIndex(String[] columns,
@@ -347,7 +251,8 @@ public class DataMergeService {
 			curColMeta = toIndexMap.get(columns[i].toUpperCase());
 			if (curColMeta == null) {
 				throw new java.lang.IllegalArgumentException(
-						"all columns in group by clause should be in the selected column list.!" + columns[i]);
+						"all columns in group by clause should be in the selected column list.!"
+								+ columns[i]);
 			}
 			result[i] = curColMeta.colIndex;
 		}
@@ -358,17 +263,47 @@ public class DataMergeService {
 	 * release resources
 	 */
 	public void clear() {
-		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("clear data ");
-		}
-		temniated = true;
+		hasOrderBy = false;
+		result.clear();
 		grouper = null;
 		sorter = null;
-		result = null;
-        rowBatchCount.set(-1);
-		jobQueue.clear();
+	}
+
+	@Override
+	public void run() {
+
+		EOFPacket eofp = new EOFPacket();
+		ByteBuffer eof = ByteBuffer.allocate(9);
+		BufferUtil.writeUB3(eof, eofp.calcPacketSize());
+		eof.put(eofp.packetId);
+		eof.put(eofp.fieldCount);
+		BufferUtil.writeUB2(eof, eofp.status);
+		BufferUtil.writeUB2(eof, eofp.warningCount);
+		MySQLFrontConnection source = multiQueryHandler.getSession()
+				.getSource();
+
+		while (!Thread.interrupted()) {
+			try {
+				PackWraper pack = packs.take();
+				if (pack == END_FLAG_PACK) {
+					multiQueryHandler.outputMergeResult(source, eof.array());
+					break;
+				}
+				RowDataPacket row = new RowDataPacket(fieldCount);
+				row.read(pack.data);
+				if (grouper != null) {
+					grouper.addRow(row);
+				} else if (sorter != null) {
+					if (!sorter.addRow(row)) {
+						canDiscard.put(pack.node, true);
+					}
+				} else {
+					result.add(row);
+				}
+			} catch (Exception e) {
+				LOGGER.error("Merge multi data error", e);
+			}
+		}
 	}
 
 }
-
-
