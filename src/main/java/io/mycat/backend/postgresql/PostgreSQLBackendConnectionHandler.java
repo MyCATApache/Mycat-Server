@@ -66,6 +66,18 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 	 * @param readedLength
 	 */
 	private void doHandleBusinessMsg(PostgreSQLBackendConnection con, ByteBuffer buf, int start, int readedLength) {
+		byte[] data = new byte[readedLength];
+		buf.position(start);
+		buf.get(data, 0, readedLength);
+		try {
+			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(data, 0, readedLength);
+			//处理数据 包将数据包做返回给前台
+			//[{"columnNumber":2,"columns":[{"atttypmod":-1,"coid":0,"columnName":"@@character_set_database\u0000","columnType":"UNKNOWN","oid":0,"protocol":"TEXT","typlen":-2},{"atttypmod":-1,"coid":0,"columnName":"@@collation_database\u0000","columnType":"UNKNOWN","oid":0,"protocol":"TEXT","typlen":-2}],"length":88,"marker":"T","packetSize":89,"type":"RowDescription"},{"columnNumber":2,"columns":[{"data":"dXRmOA==","length":4,"null":false},{"data":"dXRmOF9nZW5lcmFsX2Np","length":15,"null":false}],"length":33,"marker":"D","packetSize":34,"type":"DataRow"},{"commandResponse":"SELECT 1\u0000","length":13,"marker":"C","packetSize":14,"type":"CommandComplete"},{"length":5,"marker":"Z","packetSize":6,"type":"ReadyForQuery"}]
+			//con.getResponseHandler().rowResponse(row, conn);
+			System.out.println("响应前台sql:"+ JSON.toJSONString(packets));
+		} catch (IOException e) {
+			con.getResponseHandler().errorResponse("出错了!".getBytes(), con);
+		}
 	}
 
 	/***
@@ -77,9 +89,6 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 	 * @param readedLength
 	 */
 	private void doConnecting(PostgreSQLBackendConnection con, ByteBuffer buf, int start, int readedLength) {
-		//TODO 数据库用户名密码
-		String user = "postgres";
-		String password = "coollf";
 		
 		byte[] data = new byte[readedLength];
 		buf.position(start);
@@ -91,7 +100,7 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 					AuthenticationPacket packet = (AuthenticationPacket) packets.get(0);
 					AuthType aut = packet.getAuthType();
 					if (aut != AuthType.Ok) {
-						PasswordMessage pak = new PasswordMessage(user, password, aut,
+						PasswordMessage pak = new PasswordMessage(con.getUser(), con.getPassword(), aut,
 								((AuthenticationPacket) packet).getSalt());
 						ByteBuffer buffer = ByteBuffer.allocate(pak.getLength() + 1);
 						pak.write(buffer);
@@ -113,7 +122,6 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 			}
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

@@ -2,7 +2,10 @@ package io.mycat.backend.postgresql;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDatasource;
+import io.mycat.backend.postgresql.packet.Query;
+import io.mycat.backend.postgresql.utils.PgSqlApaterUtils;
 import io.mycat.net.Connection;
+import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.executors.ResponseHandler;
@@ -12,6 +15,7 @@ import io.mycat.util.TimeUtil;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -248,24 +252,15 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	private void synAndDoExecute(String xaTXID, RouteResultsetNode rrn, MySQLFrontConnection sc, int charsetIndex, int txIsolation2, boolean autocommit2) {
 		boolean conAutoComit = this.autocommit;
 		String conSchema = this.schema;
-		System.out.println(rrn.getStatement()); 
+		String sql =  rrn.getStatement(); 
 		int sqlType = rrn.getSqlType();
 		if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
-			ShowVariables.execute(sc);
-//			if ((sqlType == ServerParse.SHOW)) {
-//				// showCMD(sc, orgin);
-//				// ShowVariables.execute(sc, orgin);
-//				
-////			} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
-////				// ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
-////				ShowVariables.justReturnValue(sc,
-////						String.valueOf(sc.getId()), this);
-//			} else
-//				{
-//				//ouputResultSet(sc, orgin);
-//			}
+			Query query = new Query(PgSqlApaterUtils.apater(sql));
+			ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
+			query.write(buf);
+			this.write(buf);
 		} else {
-			//executeddl(sc, orgin);
+			//执行命令语句
 		}
 
 	}
