@@ -6,6 +6,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.data.Stat;
+import org.opencloudb.config.model.ZkConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -29,8 +30,9 @@ public class ZkCreate {
     private static final String SCHEMA_CONFIG_DIRECTORY = "schema-config";
     private static final String DATAHOST_CONFIG_DIRECTORY = "datahost-config";
 
-    private static final String CONFIG_URL_KEY = "zkURL";
-    private static final String CONFIG_CLUSTER_KEY = "clusterID";
+    private static final String CONFIG_URL_KEY = "zkUrl";
+    private static final String CONFIG_CLUSTER_KEY = "zkClu";
+    private static final String CONFIG_CLUSTER_ID = "zkID";
     private static final String CONFIG_SYSTEM_KEY = "system";
     private static final String CONFIG_USER_KEY = "user";
     private static final String CONFIG_DATANODE_KEY = "datanode";
@@ -45,19 +47,38 @@ public class ZkCreate {
     private static Map<String, Object> zkConfig;
 
     public static void main(String[] args) {
+
+        ZkConfig zkConfig1 = new ZkConfig();
+        zkConfig1.isUsedZk();
+        if (zkConfig1.getZkUrl() != null && zkConfig1.getZkID()!=null&& zkConfig1.getZkPort()!=null&& zkConfig1.getZkClu()!=null) {
+            //upload data to zk,only use in init data...
+            boolean zkcreate = ZkCreate.init(zkConfig1.getZkUrl(), zkConfig1.getZkPort(), zkConfig1.getZkClu(), zkConfig1.getZkID());
+            if (!zkcreate)
+                System.exit(1);
+        }
+
+    }
+
+    //process zkcreate
+    public static boolean init(String zkUrl,String zkPort,String zkClu,String zkID){
+        LOGGER.info("-----start zkcreate-----");
         zkConfig = loadZkConfig();
-        PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)));
-        LOGGER.trace("parent path is {}", PARENT_PATH);
-        framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
-
-        createConfig(CONFIG_DATANODE_KEY, true, DATANODE_CONFIG_DIRECTORY);
-        createConfig(CONFIG_SYSTEM_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
-        createConfig(CONFIG_USER_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
-        createConfig(CONFIG_SEQUENCE_KEY, true, SEQUENCE_CONFIG_DIRECTORY);
-        createConfig(CONFIG_SCHEMA_KEY, true, SCHEMA_CONFIG_DIRECTORY);
-        createConfig(CONFIG_DATAHOST_KEY, true, DATAHOST_CONFIG_DIRECTORY);
-        createConfig(CONFIG_RULE_KEY, false, RULE_CONFIG_DIRECTORY);
-
+        if (!zkConfig.get("zkUrl").toString().equals(zkUrl+":"+zkPort)||!zkConfig.get("zkClu").toString().equals(zkClu)||!zkConfig.get("zkID").toString().equals(zkID)){
+            LOGGER.trace("zk config is not match, please check it!!");
+            return false;
+        }else {
+            PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
+            LOGGER.info("parent path is {}", PARENT_PATH);
+            framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
+            createConfig(CONFIG_DATANODE_KEY, true, DATANODE_CONFIG_DIRECTORY);
+            createConfig(CONFIG_SYSTEM_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
+            createConfig(CONFIG_USER_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
+            createConfig(CONFIG_SEQUENCE_KEY, true, SEQUENCE_CONFIG_DIRECTORY);
+            createConfig(CONFIG_SCHEMA_KEY, true, SCHEMA_CONFIG_DIRECTORY);
+            createConfig(CONFIG_DATAHOST_KEY, true, DATAHOST_CONFIG_DIRECTORY);
+            createConfig(CONFIG_RULE_KEY, false, RULE_CONFIG_DIRECTORY);
+            return true;
+        }
     }
 
     private static void createConfig(String configKey, boolean filterInnerMap, String... configDirectory) {
