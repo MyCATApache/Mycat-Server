@@ -23,11 +23,14 @@
  */
 package io.mycat.server.config.node;
 
-import io.mycat.util.SplitUtil;
+import com.google.common.base.Strings;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Set;
+
+import io.mycat.util.SplitUtil;
 
 /**
  * @author mycat
@@ -35,71 +38,126 @@ import java.util.Set;
 public class TableConfig {
 	public static final int TYPE_GLOBAL_TABLE = 1;
 	public static final int TYPE_GLOBAL_DEFAULT = 0;
-	private final String name;
-	private final String primaryKey;
-	private final boolean autoIncrement;
-	private final boolean needAddLimit;
-	private final Set<String> dbTypes;
-	private final int tableType;
-	private final ArrayList<String> dataNodes;
-	private final RuleConfig rule;
-	private final String partitionColumn;
-	private final boolean ruleRequired;
-	private final TableConfig parentTC;
-	private final boolean childTable;
-	private final String joinKey;
-	private final String parentKey;
-	private final String locateRTableKeySql;
-	// only has one level of parent
-	private final boolean secondLevel;
-	private final boolean partionKeyIsPrimaryKey;
-	private final Random rand = new Random();
+    private String name;
+    private String primaryKey;
+    private boolean autoIncrement;
+    private boolean needAddLimit;
+    private Set<String> dbTypes;
+    private int tableType;
+    private ArrayList<String> dataNodes;
+    private RuleConfig rule;
+	private String ruleName;
+    private String partitionColumn;
+    private boolean ruleRequired;
+    private TableConfig parentTC;
+    private boolean childTable;
+    private String joinKey;
+    private String parentKey;
+    private String locateRTableKeySql;
+    // only has one level of parent
+    private boolean secondLevel;
+    private boolean partionKeyIsPrimaryKey;
+    private Random rand = new Random();
 
-	public TableConfig(String name, String primaryKey, boolean autoIncrement,boolean needAddLimit, int tableType,
-			String dataNode,Set<String> dbType, RuleConfig rule, boolean ruleRequired,
-			TableConfig parentTC, boolean isChildTable, String joinKey,
-			String parentKey) {
-		if (name == null) {
-			throw new IllegalArgumentException("table name is null");
-		} else if (dataNode == null) {
-			throw new IllegalArgumentException("dataNode name is null");
-		}
-		this.primaryKey = primaryKey;
-		this.autoIncrement = autoIncrement;
-		this.needAddLimit=needAddLimit;
-		this.tableType = tableType;
-		this.dbTypes=dbType;
-		if (ruleRequired && rule == null) {
-			throw new IllegalArgumentException("ruleRequired but rule is null");
-		}
+    public void setName(String name) {
+        if (name == null) {
+            throw new IllegalArgumentException("table name is null");
+        }
+        this.name = name.toUpperCase();
+    }
 
-		this.name = name.toUpperCase();
-		String theDataNodes[] = SplitUtil.split(dataNode, ',', '$', '-');
+    public void setPrimaryKey(String primaryKey) {
+        this.primaryKey = primaryKey;
+    }
+
+    public void setAutoIncrement(boolean autoIncrement) {
+        this.autoIncrement = autoIncrement;
+    }
+
+    public void setNeedAddLimit(boolean needAddLimit) {
+        this.needAddLimit = needAddLimit;
+    }
+
+    public void setDbTypes(Set<String> dbTypes) {
+        this.dbTypes = dbTypes;
+    }
+
+    public void setTableType(int tableType) {
+        this.tableType = TableConfig.TYPE_GLOBAL_DEFAULT == tableType ?
+                TableConfig.TYPE_GLOBAL_DEFAULT : TableConfig.TYPE_GLOBAL_TABLE;
+    }
+
+    public void setDataNode(String dataNode) {
+        if (Strings.isNullOrEmpty(dataNode)) {
+            throw new IllegalArgumentException("dataNode name is null");
+        }
+
+        String theDataNodes[] = SplitUtil.split(dataNode, ',', '$', '-');
+
+        if (theDataNodes == null || theDataNodes.length <= 0) {
+            throw new IllegalArgumentException("invalid table dataNodes: " + dataNode);
+        }
+
+        this.dataNodes = new ArrayList<>(Arrays.asList(theDataNodes));
+    }
+
+    public void setRule(RuleConfig rule) {
+        this.partitionColumn = (rule == null) ? null : rule.getColumn();
+        this.partionKeyIsPrimaryKey = (this.partitionColumn == null) ?
+                this.primaryKey == null : this.partitionColumn.equals(this.primaryKey);
+        this.rule = rule;
+    }
 
 
-		if (theDataNodes == null || theDataNodes.length <= 0) {
-			throw new IllegalArgumentException("invalid table dataNodes: "
-					+ dataNode);
-		}
-		dataNodes = new ArrayList<String>(theDataNodes.length);
-		for (String dn : theDataNodes) {
-			dataNodes.add(dn);
-		}
-		this.rule = rule;
-		this.partitionColumn = (rule == null) ? null : rule.getColumn();
-		partionKeyIsPrimaryKey=(partitionColumn==null)?primaryKey==null:partitionColumn.equals(primaryKey);
+
+    public void setRuleRequired(boolean ruleRequired) {
+        this.ruleRequired = ruleRequired;
+    }
+
+    public void setParentTC(TableConfig parentTC) {
+        this.parentTC = parentTC;
+        if (this.parentTC != null) {
+            this.locateRTableKeySql = genLocateRootParentSQL();
+            this.secondLevel = (parentTC.parentTC == null);
+        }
+    }
+
+    public void setChildTable(boolean childTable) {
+        this.childTable = childTable;
+    }
+
+    public void setJoinKey(String joinKey) {
+        this.joinKey = joinKey;
+    }
+
+    public void setParentKey(String parentKey) {
+        this.parentKey = parentKey;
+    }
+
+	public TableConfig(){
+		super();
+	}
+
+    public TableConfig(String name, String primaryKey, boolean autoIncrement, boolean needAddLimit,
+                       int tableType, String dataNode, Set<String> dbType, RuleConfig rule,
+                       boolean ruleRequired, TableConfig parentTC, boolean isChildTable, String joinKey,
+                       String parentKey) {
+        super();
+        this.setName(name);
+        this.setDataNode(dataNode);
+        this.setRule(rule);
+        this.setParentTC(parentTC);
+        this.primaryKey = primaryKey;
+        this.autoIncrement = autoIncrement;
+        this.needAddLimit = needAddLimit;
+        this.tableType = tableType;
+        this.dbTypes = dbType;
 		this.ruleRequired = ruleRequired;
 		this.childTable = isChildTable;
-		this.parentTC = parentTC;
 		this.joinKey = joinKey;
 		this.parentKey = parentKey;
-		if (parentTC != null) {
-			locateRTableKeySql = genLocateRootParentSQL();
-			secondLevel = (parentTC.parentTC == null);
-		} else {
-			locateRTableKeySql = null;
-			secondLevel = false;
-		}
+		this.parentTC = parentTC;
+        this.checkConfig();
 	}
 
 	public String getPrimaryKey() {
@@ -237,4 +295,17 @@ public class TableConfig {
 		return partionKeyIsPrimaryKey;
 	}
 
+    public void checkConfig(){
+        if (this.ruleRequired && this.rule == null) {
+            throw new IllegalArgumentException("ruleRequired but rule is null");
+        }
+    }
+
+	public String getRuleName() {
+		return ruleName;
+	}
+
+	public void setRuleName(String ruleName) {
+		this.ruleName = ruleName;
+	}
 }

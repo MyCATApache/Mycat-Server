@@ -25,103 +25,142 @@ package io.mycat.server.config.node;
 
 
 public class DBHostConfig {
-	private long idleTimeout = SystemConfig.DEFAULT_IDLE_TIMEOUT; // 连接池中连接空闲超时时间
-	private final String hostName;
-	private final String ip;
-	private final int port;
-	private final String url;
-	private final String user;
-	private final String password;
-	private int maxCon ;
-	private int minCon ;
-	private String dbType;
-	private String filters="mergeStat";
-	private long logTime=300000;
+    private String hostName;
+    private String ip;
+    private int port;
+    private String url;
+    private String user;
+    private String password;
+    private long idleTimeout = SystemConfig.DEFAULT_IDLE_TIMEOUT; // 连接池中连接空闲超时时间
+    private int maxCon;
+    private int minCon;
+    private String dbType;
+    private String filters = "mergeStat";
+    private long logTime = 300000;
+    private int weight;				
 
-	public String getDbType() {
-		return dbType;
+    public DBHostConfig() {
+        super();
+    }
+
+    public DBHostConfig(String hostName, String ip, int port, String url,
+                        String user, String password) {
+        super();
+        this.hostName = hostName;
+        this.ip = ip;
+        this.port = port;
+        this.url = url;
+        this.user = user;
+        this.password = password;
+    }
+
+    public String getDbType() {
+        return dbType;
+    }
+
+    public void setDbType(String dbType) {
+        this.dbType = dbType;
+    }
+
+    public long getIdleTimeout() {
+        return idleTimeout;
+    }
+
+    public void setIdleTimeout(long idleTimeout) {
+        this.idleTimeout = idleTimeout;
+    }
+
+    public int getMaxCon() {
+        return maxCon;
+    }
+
+    public void setMaxCon(int maxCon) {
+        this.maxCon = maxCon;
+    }
+
+    public int getMinCon() {
+        return minCon;
+    }
+
+    public void setMinCon(int minCon) {
+        this.minCon = minCon;
+    }
+
+    public String getHostName() {
+        return hostName;
+    }
+
+    public void setHostName(String hostName) {
+        this.hostName = hostName;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public String getUser() {
+        return user;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
+    }
+
+    public String getFilters() {
+        return filters;
+    }
+
+    public void setFilters(String filters) {
+        this.filters = filters;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public long getLogTime() {
+        return logTime;
+    }
+
+    public void setLogTime(long logTime) {
+        this.logTime = logTime;
+    }
+    
+	public int getWeight() {
+		return weight;
 	}
 
-	public void setDbType(String dbType) {
-		this.dbType = dbType;
+	public void setWeight(int weight) {
+		this.weight = weight;
 	}
 
-	public DBHostConfig(String hostName, String ip, int port, String url,
-			String user, String password) {
-		super();
-		this.hostName = hostName;
-		this.ip = ip;
-		this.port = port;
-		this.url = url;
-		this.user = user;
-		this.password = password;
-	}
-
-	public long getIdleTimeout() {
-		return idleTimeout;
-	}
-
-	public void setIdleTimeout(long idleTimeout) {
-		this.idleTimeout = idleTimeout;
-	}
-
-	public int getMaxCon() {
-		return maxCon;
-	}
-
-	public void setMaxCon(int maxCon) {
-		this.maxCon = maxCon;
-	}
-
-	public int getMinCon() {
-		return minCon;
-	}
-
-	public void setMinCon(int minCon) {
-		this.minCon = minCon;
-	}
-
-	public String getHostName() {
-		return hostName;
-	}
-
-	public String getIp() {
-		return ip;
-	}
-
-	public int getPort() {
-		return port;
-	}
-
-	public String getUrl() {
-		return url;
-	}
-
-	public String getUser() {
-		return user;
-	}
-	public String getFilters() {
-		return filters;
-	}
-
-	public void setFilters(String filters) {
-		this.filters = filters;
-	}
-	public String getPassword() {
-		return password;
-	}
-
-	public long getLogTime() {
-		return logTime;
-	}
-
-	public void setLogTime(long logTime) {
-		this.logTime = logTime;
-	}
-
-	@Override
-	public String toString() {
-		return "DBHostConfig [hostName=" + hostName + ", url=" + url + "]";
-	}
+    @Override
+    public String toString() {
+        return "DBHostConfig [hostName=" + hostName + ", url=" + url + "]";
+    }
 
 }
