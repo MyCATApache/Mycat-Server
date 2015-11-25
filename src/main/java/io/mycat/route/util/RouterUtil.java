@@ -171,6 +171,33 @@ public class RouterUtil {
         }
     }
 
+
+
+    /**
+     * 获取语句中前关键字位置和占位个数表名位置
+     *
+     * @param upStmt
+     *            执行语句
+     * @param start
+     *            开始位置
+     * @return int[]关键字位置和占位个数
+     * @author aStoneGod
+     */
+    public static int[] getCreateIndexPos(String upStmt, int start) {
+        String token1 = "CREATE ";
+        String token2 = " INDEX ";
+        String token3 = " ON ";
+        int createInd = upStmt.indexOf(token1, start);
+        int idxInd = upStmt.indexOf(token2, start);
+        int onInd = upStmt.indexOf(token3, start);
+        // 既包含CREATE又包含INDEX，且CREATE关键字在INDEX关键字之前, 且包含ON...
+        if (createInd >= 0 && idxInd > 0 && idxInd > createInd && onInd > 0 && onInd > idxInd) {
+            return new int[] {onInd , token3.length() };
+        } else {
+            return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+        }
+    }
+
     /**
      * 获取语句中前关键字位置和占位个数表名位置
      *
@@ -364,11 +391,11 @@ public class RouterUtil {
      * @return 处理后SQL
      * @author AStoneGod
      */
-
     public static String getFixedSql(String stmt){
         if (stmt.endsWith(";"))
             stmt = stmt.substring(0,stmt.length()-2);
-        return stmt = stmt.trim().toUpperCase().replace("`","");
+        stmt = stmt.replaceAll("\r\n", " "); //对于\r\n的字符 用 空格处理 rainbow
+        return stmt = stmt.trim(); //.toUpperCase();
     }
 
     /**
@@ -432,6 +459,32 @@ public class RouterUtil {
 
 
     /**
+     * 获取DROP语句中前关键字位置和占位个数表名位置
+     *
+     * @param upStmt
+     *            执行语句
+     * @param start
+     *            开始位置
+     * @return int[]关键字位置和占位个数
+     * @author aStoneGod
+     */
+
+    public static int[] getDropIndexPos(String upStmt, int start) {
+        String token1 = "DROP ";
+        String token2 = " INDEX ";
+        String token3 = " ON ";
+        int createInd = upStmt.indexOf(token1, start);
+        int idxInd = upStmt.indexOf(token2, start);
+        int onInd = upStmt.indexOf(token3, start);
+        // 既包含CREATE又包含INDEX，且CREATE关键字在INDEX关键字之前, 且包含ON...
+        if (createInd >= 0 && idxInd > 0 && idxInd > createInd && onInd > 0 && onInd > idxInd) {
+            return new int[] {onInd , token3.length() };
+        } else {
+            return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+        }
+    }
+
+    /**
      * 获取TRUNCATE语句中前关键字位置和占位个数表名位置
      *
      * @param upStmt
@@ -464,15 +517,22 @@ public class RouterUtil {
         //检查表是否在配置文件中
         stmt = getFixedSql(stmt);
         String tablename = "";
-        if(stmt.startsWith("CREATE")){
-            tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(stmt, 0));
-        }else if(stmt.startsWith("DROP")){
-            tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(stmt, 0));
-        }else if(stmt.startsWith("ALTER")){
-            tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(stmt, 0));
-        }else if (stmt.startsWith("TRUNCATE")){
-            tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
+        final String upStmt = stmt.toUpperCase();
+        if(upStmt.startsWith("CREATE")){
+            if (upStmt.contains("INDEX")){
+                tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateIndexPos(upStmt, 0));
+            }else tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
+        }else if(upStmt.startsWith("DROP")){
+            if (upStmt.contains("INDEX")){
+                tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropIndexPos(upStmt, 0));
+            }else tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
+        }else if(upStmt.startsWith("ALTER")){
+            tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(upStmt, 0));
+        }else if (upStmt.startsWith("TRUNCATE")){
+            tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(upStmt, 0));
         }
+        tablename = tablename.toUpperCase();
+
         if (schema.getTables().containsKey(tablename)){
             if(ServerParse.DDL==sqlType){
                 List<String> dataNodes = new ArrayList<>();
@@ -498,11 +558,10 @@ public class RouterUtil {
             rrs.setNodes(nodes);
             return rrs;
         }
-        //不在，返回null
+        //both tablename and defaultnode null
         LOGGER.error("table not in schema----"+tablename);
         throw new SQLSyntaxErrorException("op table not in schema----"+tablename);
     }
-
 
     public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt) {
         RouteResultsetNode[] nodes = new RouteResultsetNode[dataNodes.size()];
