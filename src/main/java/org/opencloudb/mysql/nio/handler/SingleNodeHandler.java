@@ -25,20 +25,26 @@ package org.opencloudb.mysql.nio.handler;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Set;
 
+import com.google.common.base.Strings;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.mysql.LoadDataUtil;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.OkPacket;
+import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
+import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.server.response.ShowTables;
 import org.opencloudb.stat.UserStatFilter;
 import org.opencloudb.util.StringUtil;
 
@@ -58,6 +64,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private volatile boolean isRunning;
 	private Runnable terminateCallBack;
 	private long startTime;
+
+    private volatile boolean isDefaultNodeShowTable;
+    private  Set<String> shardingTablesSet;
 	
 	public SingleNodeHandler(RouteResultset rrs, NonBlockingSession session) {
 		this.rrs = rrs;
@@ -69,6 +78,17 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			throw new IllegalArgumentException("session is null!");
 		}
 		this.session = session;
+        ServerConnection source = session.getSource();
+        String schema=source.getSchema();
+        if(schema!=null)
+        {
+            SchemaConfig schemaConfig= MycatServer.getInstance().getConfig().getSchemas().get(schema);
+            isDefaultNodeShowTable=( ServerParse.SHOW==rrs.getSqlType()&&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+            if(isDefaultNodeShowTable)
+            {
+                shardingTablesSet = ShowTables.getTableSet(source, rrs.getStatement());
+            }
+        }
 	}
 
 	@Override
@@ -123,7 +143,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			MycatConfig conf = MycatServer.getInstance().getConfig();
 			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
 			dn.getConnection(dn.getDatabase(), sc.isAutocommit(), node, this,
-					node);
+                    node);
 		}
 
 	}
@@ -232,7 +252,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		ServerConnection source = session.getSource();
 		conn.recordSql(source.getHost(), source.getSchema(),
-				node.getStatement());
+                node.getStatement());
 
 		// 判断是调用存储过程的话不能在这里释放链接
 		if (!rrs.isCallStatement()) {
@@ -265,23 +285,42 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		//记录状态
 		UserStatFilter.getInstance().updateStat(session.getSource().getUser(), 
 				rrs.getSqlType(), rrs.getStatement(), startTime);
-		
-		header[3] = ++packetId;
-		ServerConnection source = session.getSource();
-		buffer = source.writeToBuffer(header, allocBuffer());
-		for (int i = 0, len = fields.size(); i < len; ++i) {
-			byte[] field = fields.get(i);
-			field[3] = ++packetId;
-			buffer = source.writeToBuffer(field, buffer);
-		}
-		eof[3] = ++packetId;
-		buffer = source.writeToBuffer(eof, buffer);
+
+            header[3] = ++packetId;
+            ServerConnection source = session.getSource();
+            buffer = source.writeToBuffer(header, allocBuffer());
+            for (int i = 0, len = fields.size(); i < len; ++i)
+            {
+                byte[] field = fields.get(i);
+                field[3] = ++packetId;
+                buffer = source.writeToBuffer(field, buffer);
+            }
+            eof[3] = ++packetId;
+            buffer = source.writeToBuffer(eof, buffer);
+        if(isDefaultNodeShowTable)
+        {
+            for (String name : shardingTablesSet) {
+                RowDataPacket row = new RowDataPacket(1);
+                row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
+                row.packetId = ++packetId;
+                buffer = row.write(buffer, source,true);
+            }
+        }
 	}
 
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
-		row[3] = ++packetId;
-		buffer = session.getSource().writeToBuffer(row, allocBuffer());
+        if(isDefaultNodeShowTable)
+        {
+            RowDataPacket rowDataPacket =new RowDataPacket(1);
+            rowDataPacket.read(row);
+            String table=  StringUtil.decode(rowDataPacket.fieldValues.get(0),conn.getCharset());
+            if(shardingTablesSet.contains(table.toUpperCase())) return;
+        }
+
+            row[3] = ++packetId;
+            buffer = session.getSource().writeToBuffer(row, allocBuffer());
+
 	}
 
 	@Override

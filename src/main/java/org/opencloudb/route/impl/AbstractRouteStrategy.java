@@ -1,5 +1,6 @@
 package org.opencloudb.route.impl;
 
+import com.google.common.base.Strings;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.cache.LayerCachePool;
@@ -51,6 +52,13 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		if(ServerParse.DDL==sqlType){
 			return RouterUtil.routeToDDLNode(rrs,sqlType,stmt,schema);
 		}
+
+        if(!Strings.isNullOrEmpty(schema.getDataNode())&&ServerParse.SHOW == sqlType)
+        {
+           return RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
+        }
+
+
 		// check if there is sharding in schema
 		if (schema.isNoSharding() && ServerParse.SHOW != sqlType) {
 			rrs = RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
