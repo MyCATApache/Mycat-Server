@@ -49,8 +49,7 @@ import org.opencloudb.util.LongUtil;
 public class ShowHeartbeat {
 
 	private static final int FIELD_COUNT = 11;
-	private static final ResultSetHeaderPacket header = PacketUtil
-			.getHeader(FIELD_COUNT);
+	private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
 	private static final EOFPacket eof = new EOFPacket();
 	static {
@@ -82,12 +81,10 @@ public class ShowHeartbeat {
 		fields[i] = PacketUtil.getField("TIMEOUT", Fields.FIELD_TYPE_LONGLONG);
 		fields[i++].packetId = ++packetId;
 
-		fields[i] = PacketUtil.getField("EXECUTE_TIME",
-				Fields.FIELD_TYPE_VAR_STRING);
+		fields[i] = PacketUtil.getField("EXECUTE_TIME",Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
 
-		fields[i] = PacketUtil.getField("LAST_ACTIVE_TIME",
-				Fields.FIELD_TYPE_DATETIME);
+		fields[i] = PacketUtil.getField("LAST_ACTIVE_TIME",Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
 
 		fields[i] = PacketUtil.getField("STOP", Fields.FIELD_TYPE_VAR_STRING);
@@ -142,14 +139,12 @@ public class ShowHeartbeat {
 					row.add(IntegerUtil.toBytes(ds.getConfig().getPort()));
 					row.add(IntegerUtil.toBytes(hb.getStatus()));
 					row.add(IntegerUtil.toBytes(hb.getErrorCount()));
-					row.add(hb.isChecking() ? "checking".getBytes() : "idle"
-							.getBytes());
+					row.add(hb.isChecking() ? "checking".getBytes() : "idle".getBytes());
 					row.add(LongUtil.toBytes(hb.getTimeout()));
 					row.add(hb.getRecorder().get().getBytes());
 					String lat = hb.getLastActiveTime();
 					row.add(lat == null ? null : lat.getBytes());
-					row.add(hb.isStop() ? "true".getBytes() : "false"
-							.getBytes());
+					row.add(hb.isStop() ? "true".getBytes() : "false".getBytes());
 				} else {
 					row.add(null);
 					row.add(null);

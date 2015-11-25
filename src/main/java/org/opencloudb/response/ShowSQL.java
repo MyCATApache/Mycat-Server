@@ -24,6 +24,7 @@
 package org.opencloudb.response;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
 
 import org.opencloudb.config.Fields;
 import org.opencloudb.manager.ManagerConnection;
@@ -32,17 +33,23 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.stat.UserStatFilter;
+
+import org.opencloudb.stat.SqlStat;
+import org.opencloudb.stat.UserStat;
 import org.opencloudb.util.LongUtil;
 import org.opencloudb.util.StringUtil;
 
+
 /**
- * 查询指定SQL ID所对应的SQL语句
+ * 查询用户最近执行的SQL记录
  * 
  * @author mycat
+ * @author zhuam
  */
 public final class ShowSQL {
 
-    private static final int FIELD_COUNT = 2;
+    private static final int FIELD_COUNT = 5;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -50,13 +57,22 @@ public final class ShowSQL {
         int i = 0;
         byte packetId = 0;
         header.packetId = ++packetId;
-
-        fields[i] = PacketUtil.getField("SQL_ID", Fields.FIELD_TYPE_LONGLONG);
+        
+        fields[i] = PacketUtil.getField("ID", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
 
-        fields[i] = PacketUtil.getField("SQL_DETAIL", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i] = PacketUtil.getField("USER", Fields.FIELD_TYPE_VARCHAR);
+        fields[i++].packetId = ++packetId;
+        
+        fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
 
+        fields[i] = PacketUtil.getField("START_TIME", Fields.FIELD_TYPE_LONGLONG);
+        fields[i++].packetId = ++packetId;        
+        
+        fields[i] = PacketUtil.getField("EXECUTE_TIME", Fields.FIELD_TYPE_LONGLONG);
+        fields[i++].packetId = ++packetId;
+        
         eof.packetId = ++packetId;
     }
 
@@ -75,11 +91,21 @@ public final class ShowSQL {
         buffer = eof.write(buffer, c,true);
 
         // write rows
-        byte packetId = eof.packetId;
-        RowDataPacket row = getRow(sql, c.getCharset());
-        row.packetId = ++packetId;
-        buffer = row.write(buffer, c,true);
+        byte packetId = eof.packetId;        
+        Map<String, UserStat> statMap = UserStatFilter.getInstance().getUserStatMap();
+    	for (UserStat userStat : statMap.values()) {
+        	String user = userStat.getUser();
+            SqlStat.Sql[] sqls = userStat.getSqlStat().getSqls();
+            for (int i = sqls.length - 1; i >= 0; i--) {
+                if (sqls[i] != null) {
+                    RowDataPacket row = getRow(user, sqls[i], i, c.getCharset());
+                    row.packetId = ++packetId;
+                    buffer = row.write(buffer, c,true);
+                }
+            }
+        }
 
+        
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
@@ -89,10 +115,14 @@ public final class ShowSQL {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(long sql, String charset) {
-        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-        row.add(LongUtil.toBytes(sql));
-        row.add(StringUtil.encode("insert into T (...", charset));
+    private static RowDataPacket getRow(String user, SqlStat.Sql sql, int idx, String charset) {
+        
+    	RowDataPacket row = new RowDataPacket(FIELD_COUNT);
+        row.add(LongUtil.toBytes(idx));          
+        row.add( StringUtil.encode( user, charset) );
+        row.add( StringUtil.encode( sql.getSql(), charset) );
+        row.add( LongUtil.toBytes( sql.getStartTime() ) );
+        row.add( LongUtil.toBytes( sql.getExecuteTime() ) );
         return row;
     }
 

@@ -104,7 +104,7 @@ public class ExplainHandler {
 	private static RowDataPacket getRow(RouteResultsetNode node, String charset) {
 		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 		row.add(StringUtil.encode(node.getName(), charset));
-		row.add(StringUtil.encode(node.getStatement(), charset));
+		row.add(StringUtil.encode(node.getStatement().replaceAll("[\\t\\n\\r]", " "), charset));
 		return row;
 	}
 

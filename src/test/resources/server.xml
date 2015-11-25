@@ -36,7 +36,9 @@
   <!-- 用户访问定义，用户名、密码、schema等信息。 -->
   <user name="test">
     <property name="password">test</property>
-    <property name="schemas">dbtest</property>
+    <property name="schemas">dbtest</property>    
+    <property name="benchmark">11111</property>   
+    <!-- benchmark 基准, 当前端的整体connection数达到基准值是, 对来自该账户的请求开始拒绝连接，0或不设表示不限制 -->
   </user>
   <!--
   <user name="root">

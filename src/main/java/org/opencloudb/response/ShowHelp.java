@@ -26,7 +26,8 @@ package org.opencloudb.response;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -103,8 +104,8 @@ public final class ShowHelp {
         return row;
     }
 
-    private static final Map<String, String> helps = new HashMap<String, String>();
-    private static final List<String> keys = new ArrayList<String>();
+    private static final Map<String, String> helps = new LinkedHashMap<String, String>();
+    private static final List<String> keys = new LinkedList<String>();
     static {
         // show
         helps.put("show @@time.current", "Report current timestamp");
@@ -115,8 +116,10 @@ public final class ShowHelp {
         helps.put("show @@database", "Report databases");
         helps.put("show @@datanode", "Report dataNodes");
         helps.put("show @@datanode where schema = ?", "Report dataNodes");
-        helps.put("show @@datasource where dataNode = ?", "Report dataSources");
         helps.put("show @@datasource", "Report dataSources");
+        helps.put("show @@datasource where dataNode = ?", "Report dataSources");
+        helps.put("show @@datasource.synstatus", "Report datasource data synchronous");
+        helps.put("show @@datasource.syndetail where name=?", "Report datasource data synchronous detail");
         helps.put("show @@processor", "Report processor status");
         helps.put("show @@command", "Report commands status");
         helps.put("show @@connection", "Report connection status");
@@ -126,14 +129,17 @@ public final class ShowHelp {
         helps.put("show @@connection.sql", "Report connection sql");
         helps.put("show @@sql.execute", "Report execute status");
         helps.put("show @@sql.detail where id = ?", "Report execute detail status");
-        helps.put("show @@sql where id = ?", "Report specify SQL");
+        helps.put("show @@sql", "Report SQL list");
+        helps.put("show @@sql where id = ?", "Report  specify SQL");
         helps.put("show @@sql.slow", "Report slow SQL");
         helps.put("show @@parser", "Report parser status");
         helps.put("show @@router", "Report router status");
         helps.put("show @@heartbeat", "Report heartbeat status");
+        helps.put("show @@heartbeat.detail where name=?", "Report heartbeat current detail");
         helps.put("show @@slow where schema = ?", "Report schema slow sql");
         helps.put("show @@slow where datanode = ?", "Report datanode slow sql");
-
+        helps.put("show @@sysparam", "Report system param");
+        helps.put("show @@syslog limit=?", "Report system mycat.log");
         // switch
         helps.put("switch @@datasource name:index", "Switch dataSource");
 
@@ -164,7 +170,6 @@ public final class ShowHelp {
 
         // list sort
         keys.addAll(helps.keySet());
-        Collections.sort(keys);
     }
 
 }

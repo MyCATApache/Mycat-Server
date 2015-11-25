@@ -336,6 +336,11 @@ public class JDBCConnection implements BackendConnection {
 			error.packetId = ++packetId;
 			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
 			error.message = msg.getBytes();
+			String err = null;
+			if(error.message!=null){
+			    err = new String(error.message);
+			}
+			LOGGER.error("sql execute error, "+ err +", "+ e);
 			this.respHandler.errorResponse(error.writeToBytes(sc), this);
 		}
 		finally {
@@ -616,6 +621,12 @@ public class JDBCConnection implements BackendConnection {
                 + headerOutputed + ", modifiedSQLExecuted=" + modifiedSQLExecuted + ", startTime=" + startTime
                 + ", lastTime=" + lastTime + ", isSpark=" + isSpark + ", processor=" + processor + "]";
     }
+
+	@Override
+	public void discardClose(String reason) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 	
 

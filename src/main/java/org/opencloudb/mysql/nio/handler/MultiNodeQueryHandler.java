@@ -23,27 +23,23 @@
  */
 package org.opencloudb.mysql.nio.handler;
 
-
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
-import org.opencloudb.backend.ConnectionMeta;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.mpp.ColMeta;
 import org.opencloudb.mpp.DataMergeService;
-import org.opencloudb.mpp.LoadData;
 import org.opencloudb.mpp.MergeCol;
 import org.opencloudb.mysql.LoadDataUtil;
-import org.opencloudb.net.BackendAIOConnection;
 import org.opencloudb.net.mysql.*;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
-
+import org.opencloudb.stat.UserStatFilter;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -72,6 +68,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private volatile boolean fieldsReturned;
 	private int okCount;
 	private final boolean isCallProcedure;
+	private long startTime;
+	private int execCount = 0;
 
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
@@ -103,6 +101,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	protected void reset(int initCount) {
 		super.reset(initCount);
 		this.okCount = initCount;
+		this.execCount = 0;
+	}
+
+	public NonBlockingSession getSession() {
+		return session;
 	}
 
 	public void execute() throws Exception {
@@ -117,9 +120,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			lock.unlock();
 		}
 		MycatConfig conf = MycatServer.getInstance().getConfig();
-
+		startTime = System.currentTimeMillis();
 		for (final RouteResultsetNode node : rrs.getNodes()) {
-			final BackendConnection conn = session.getTarget(node);
+			BackendConnection conn = session.getTarget(node);
 			if (session.tryExistsCon(conn, node)) {
 				_execute(conn, node);
 			} else {
@@ -202,7 +205,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 					tryErrorFinished(true);
 					return;
 				}
-
 				lock.lock();
 				try {
 					if (rrs.isLoadData()) {
@@ -263,14 +265,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				}
 			}
 			if (dataMergeSvr != null) {
-				try
-				{
+				try {
 					dataMergeSvr.outputMergeResult(session, eof);
-				} catch (Exception e)
-				{
+				} catch (Exception e) {
 					handleDataProcessException(e);
 				}
-
 
 			} else {
 				try {
@@ -289,35 +288,26 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	}
 
 	public void outputMergeResult(final ServerConnection source,
-			final byte[] eof) {
+			final byte[] eof, List<RowDataPacket> results) {
 		try {
 			lock.lock();
 			ByteBuffer buffer = session.getSource().allocate();
-			final DataMergeService dataMergeService = this.dataMergeSvr;
-			final RouteResultset rrs = dataMergeService.getRrs();
+			final RouteResultset rrs = this.dataMergeSvr.getRrs();
 
 			// 处理limit语句
-			final int start = rrs.getLimitStart();
-			final int end = start + rrs.getLimitSize();
+			int start = rrs.getLimitStart();
+			int end = start + rrs.getLimitSize();
 
-			Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
-			Iterator<RowDataPacket> itor = results.iterator();
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("output merge result ,total data "
-						+ results.size() + " start :" + start + " end :" + end
-						+ " package id start:" + packetId);
+			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
+			if (rrs.getOrderByCols() == null) {
+				end = results.size();
+				start = 0;
 			}
+			if (end > results.size())
+				end = results.size();
 
-			int i = 0;
-			while (itor.hasNext()) {
-				RowDataPacket row = itor.next();
-				if (i < start) {
-					i++;
-					continue;
-				} else if (i == end) {
-					break;
-				}
-				i++;
+			for (int i = start; i < end; i++) {
+				RowDataPacket row = results.get(i);
 				row.packetId = ++packetId;
 				buffer = row.write(buffer, source, true);
 			}
@@ -340,6 +330,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
 		ServerConnection source = null;
+		execCount++;
+		if (execCount == rrs.getNodes().length) {
+			//记录状态
+			UserStatFilter.getInstance().updateStat(session.getSource().getUser(), 
+					rrs.getSqlType(), rrs.getStatement(), startTime);
+		}
 		if (fieldsReturned) {
 			return;
 		}
@@ -469,23 +465,25 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 		lock.lock();
 		try {
+			RouteResultsetNode rNode = (RouteResultsetNode) conn
+					.getAttachment();
+			String dataNode = rNode.getName();
 			if (dataMergeSvr != null) {
-				final String dnName = ((RouteResultsetNode) conn
-						.getAttachment()).getName();
-				dataMergeSvr.onNewRecord(dnName, row);
-
+				if (dataMergeSvr.onNewRecord(dataNode, row)) {
+					isClosedByDiscard.set(true);
+					// canClose(conn, false);
+					// conn.discardClose("discard data");
+					// LOGGER.warn(conn);
+				}
 			} else {
-				if (primaryKeyIndex != -1) {// cache
-											// primaryKey->
-											// dataNode
+				// cache primaryKey-> dataNode
+				if (primaryKeyIndex != -1) {
 					RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 					rowDataPkg.read(row);
 					String primaryKey = new String(
 							rowDataPkg.fieldValues.get(primaryKeyIndex));
 					LayerCachePool pool = MycatServer.getInstance()
 							.getRouterservice().getTableId2DataNodeCache();
-					String dataNode = ((RouteResultsetNode) conn
-							.getAttachment()).getName();
 					pool.putIfAbsent(priamaryKeyTable, primaryKey, dataNode);
 				}
 				row[3] = ++packetId;
@@ -493,7 +491,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			}
 
 		} catch (Exception e) {
-
 			handleDataProcessException(e);
 		} finally {
 			lock.unlock();

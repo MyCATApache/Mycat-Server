@@ -118,16 +118,19 @@ public class RouterUtil {
 	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
 		//检查表是否在配置文件中
 		stmt = getFixedSql(stmt);
-		String tablename = "";
-		if(stmt.startsWith("CREATE")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(stmt, 0));
-		}else if(stmt.startsWith("DROP")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(stmt, 0));
-		}else if(stmt.startsWith("ALTER")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(stmt, 0));
-		}else if (stmt.startsWith("TRUNCATE")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
+		String tablename = "";		
+		final String upStmt = stmt.toUpperCase();
+		if(upStmt.startsWith("CREATE")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
+		}else if(upStmt.startsWith("DROP")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
+		}else if(upStmt.startsWith("ALTER")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(upStmt, 0));
+		}else if (upStmt.startsWith("TRUNCATE")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(upStmt, 0));
 		}
+		tablename = tablename.toUpperCase();
+		
 		if (schema.getTables().containsKey(tablename)){
 			if(ServerParse.DDL==sqlType){
 				List<String> dataNodes = new ArrayList<>();
@@ -147,8 +150,13 @@ public class RouterUtil {
 				rrs.setNodes(nodes);
 			}
 			return rrs;
+		}else if(schema.getDataNode()!=null){		//默认节点ddl
+			RouteResultsetNode[] nodes = new RouteResultsetNode[1];
+			nodes[0] = new RouteResultsetNode(schema.getDataNode(), sqlType, stmt);
+			rrs.setNodes(nodes);
+			return rrs;
 		}
-		//不在，返回null
+		//both tablename and defaultnode null
 		LOGGER.error("table not in schema----"+tablename);
 		throw new SQLSyntaxErrorException("op table not in schema----"+tablename);
 	}
@@ -161,11 +169,11 @@ public class RouterUtil {
 	 * @return 处理后SQL
 	 * @author AStoneGod
 	 */
-
 	public static String getFixedSql(String stmt){
 		if (stmt.endsWith(";"))
 			stmt = stmt.substring(0,stmt.length()-2);
-		return stmt = stmt.trim().toUpperCase().replace("`","");
+		stmt = stmt.replaceAll("\r\n", " "); //对于\r\n的字符 用 空格处理 rainbow
+		return stmt = stmt.trim(); //.toUpperCase();    
 	}
 
 	/**
@@ -292,15 +300,28 @@ public class RouterUtil {
 	 * @author aStoneGod
 	 */
 	public static int[] getDropTablePos(String upStmt, int start) {
-		String token1 = "DROP ";
-		String token2 = " TABLE ";
-		int createInd = upStmt.indexOf(token1, start);
-		int tabInd = upStmt.indexOf(token2, start);
-		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
-		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
-			return new int[] { tabInd, token2.length() };
-		} else {
-			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+		//增加 if exists判断
+		if(upStmt.contains("EXISTS")){
+			String token1 = "IF ";
+			String token2 = " EXISTS ";
+			int ifInd = upStmt.indexOf(token1, start);
+			int tabInd = upStmt.indexOf(token2, start);
+			if (ifInd >= 0 && tabInd > 0 && tabInd > ifInd) {
+				return new int[] { tabInd, token2.length() };
+			} else {
+				return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+			}
+		}else {
+			String token1 = "DROP ";
+			String token2 = " TABLE ";
+			int createInd = upStmt.indexOf(token1, start);
+			int tabInd = upStmt.indexOf(token2, start);
+
+			if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
+				return new int[] { tabInd, token2.length() };
+			} else {
+				return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+			}
 		}
 	}
 
@@ -365,9 +386,9 @@ public class RouterUtil {
 	 * @author mycat
 	 */
 	public static int getSpecEndPos(String upStmt, int start) {
-		int tabInd = upStmt.indexOf(" LIKE ", start);
+		int tabInd = upStmt.toUpperCase().indexOf(" LIKE ", start);
 		if (tabInd < 0) {
-			tabInd = upStmt.indexOf(" WHERE ", start);
+			tabInd = upStmt.toUpperCase().indexOf(" WHERE ", start);
 		}
 		if (tabInd < 0) {
 			return upStmt.length();
@@ -586,11 +607,6 @@ public class RouterUtil {
 						"parent key can't find  valid datanode ,expect 1 but found: "
 								+ dataNodeSet.size());
 			}
-            boolean processedInsert=false;
-            if ( sc!=null && tc.isAutoIncrement()) {
-                String primaryKey = tc.getPrimaryKey();
-                processedInsert=processInsert(sc,schema,sqlType,stmt,tc.getName(),primaryKey);
-            }
 			String dn = dataNodeSet.iterator().next();
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("found partion node (using parent partion rule directly) for child table to insert  "
@@ -612,8 +628,8 @@ public class RouterUtil {
 		if(colRoutePairSet.size() > 1) {
 			LOGGER.warn("joinKey can't have multi Value");
 		} else {
-			Iterator it = colRoutePairSet.iterator();
-			ColumnRoutePair joinCol = (ColumnRoutePair)it.next();
+			Iterator<ColumnRoutePair> it = colRoutePairSet.iterator();
+			ColumnRoutePair joinCol = it.next();
 			joinValue = joinCol.colValue;
 		}
 
@@ -982,9 +998,7 @@ public class RouterUtil {
 					}
 				} else if(joinKey != null && columnsMap.get(joinKey) != null && columnsMap.get(joinKey).size() != 0) {//childTable  (如果是select 语句的父子表join)之前要找到root table,将childTable移除,只留下root table
 					Set<ColumnRoutePair> joinKeyValue = columnsMap.get(joinKey);
-
-					ColumnRoutePair joinCol = null;
-
+					
 					Set<String> dataNodeSet = ruleByJoinValueCalculate(rrs, tableConfig, joinKeyValue);
 
 					if (dataNodeSet.isEmpty()) {
@@ -1136,8 +1150,15 @@ public class RouterUtil {
 			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, joinKeyVal);
 
 			if (theRrs != null) {
-				rrs.setFinishedRoute(true);
-				sc.getSession2().execute(rrs, ServerParse.INSERT);
+				boolean processedInsert=false;
+                if ( sc!=null && tc.isAutoIncrement()) {
+                    String primaryKey = tc.getPrimaryKey();
+                    processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
+                }
+                if(processedInsert==false){
+                	rrs.setFinishedRoute(true);
+                    sc.getSession2().execute(rrs, ServerParse.INSERT);
+                }
 				return true;
 			}
 
@@ -1172,8 +1193,21 @@ public class RouterUtil {
 						LOGGER.debug("found partion node for child table to insert " + result + " sql :" + origSQL);
 					}
 
-					RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
-					sc.getSession2().execute(executeRrs, ServerParse.INSERT);
+					boolean processedInsert=false;
+                    if ( sc!=null && tc.isAutoIncrement()) {
+                        try {
+                            String primaryKey = tc.getPrimaryKey();
+							processedInsert=processInsert(sc,schema,ServerParse.INSERT,origSQL,tc.getName(),primaryKey);
+						} catch (SQLNonTransientException e) {
+							LOGGER.warn("sequence processInsert error,",e);
+		                    sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
+						}
+                    }
+                    if(processedInsert==false){
+                    	RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
+    					sc.getSession2().execute(executeRrs, ServerParse.INSERT);
+                    }
+
 				}
 
 				@Override
@@ -1216,7 +1250,6 @@ public class RouterUtil {
 	private static boolean isMultiInsert(MySqlInsertStatement insertStmt) {
 		return (insertStmt.getValuesList() != null && insertStmt.getValuesList().size() > 1) || insertStmt.getQuery() != null;
 	}
-
 }
 
 
