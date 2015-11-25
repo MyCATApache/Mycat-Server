@@ -762,6 +762,17 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SchemaConfig schema = schemaMap.get("cndb");
         String sql = null;
         RouteResultset rrs = null;
+
+        schema = schemaMap.get("dubbo2");
+        sql = "SHOW TABLES from db_name like 'solo'";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 9, sql, null, null, cachePool);
+        Assert.assertEquals(false, rrs.isCacheAble());
+        Assert.assertEquals(-1L, rrs.getLimitSize());
+        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("SHOW TABLES like 'solo'",
+                rrs.getNodes()[0].getStatement());
+
         schema = schemaMap.get("dubbo");
         sql = "SHOW TABLES from db_name like 'solo'";
         rrs = routeStrategy.route(new SystemConfig(), schema, 9, sql, null, null, cachePool);
@@ -771,6 +782,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals("dubbo_dn", rrs.getNodes()[0].getName());
         Assert.assertEquals("SHOW TABLES like 'solo'",
                 rrs.getNodes()[0].getStatement());
+
+
 
         sql = "desc cndb.offer";
         rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null, cachePool);

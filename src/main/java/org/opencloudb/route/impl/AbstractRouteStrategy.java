@@ -53,11 +53,6 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 			return RouterUtil.routeToDDLNode(rrs,sqlType,stmt,schema);
 		}
 
-        if(!Strings.isNullOrEmpty(schema.getDataNode())&&ServerParse.SHOW == sqlType)
-        {
-           return RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
-        }
-
 
 		// check if there is sharding in schema
 		if (schema.isNoSharding() && ServerParse.SHOW != sqlType) {
