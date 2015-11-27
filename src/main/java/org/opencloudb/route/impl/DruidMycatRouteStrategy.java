@@ -5,6 +5,7 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
+import com.google.common.base.Strings;
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
@@ -133,6 +134,11 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 					stmt = "SHOW TABLES" + stmt.substring(end);
 				}
 			}
+          String defaultNode=  schema.getDataNode();
+            if(!Strings.isNullOrEmpty(defaultNode))
+            {
+             return    RouterUtil.routeToSingleNode(rrs, defaultNode, stmt);
+            }
 			return RouterUtil.routeToMultiNode(false, rrs, schema.getMetaDataNodes(), stmt);
 		}
 		// show index or column
