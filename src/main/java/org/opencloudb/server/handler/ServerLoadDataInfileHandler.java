@@ -671,6 +671,10 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         {
             settings.getFormat().setQuote(loadData.getEnclose().charAt(0));
         }
+        if(loadData.getEscape()!=null)
+        {
+            settings.getFormat().setQuoteEscape(loadData.getEscape().charAt(0));
+        }
         settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
         CsvParser parser = new CsvParser(settings);
         InputStreamReader reader = null;
