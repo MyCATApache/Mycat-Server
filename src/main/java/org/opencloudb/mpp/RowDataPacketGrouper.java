@@ -28,10 +28,11 @@ import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.LongUtil;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.List;
 
 /**
  * implement group function select a,count(*),sum(*) from A group by a
@@ -41,9 +42,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class RowDataPacketGrouper {
 
+	private List<RowDataPacket> result = Collections.synchronizedList(new ArrayList<RowDataPacket>());
 	private final MergeCol[] mergCols;
 	private final int[] groupColumnIndexs;
-	private ConcurrentLinkedQueue<RowDataPacket> result = new ConcurrentLinkedQueue<RowDataPacket>();
 	private boolean isMergAvg=false;
 	private HavingCols havingCols;
 
@@ -54,7 +55,7 @@ public class RowDataPacketGrouper {
 		this.havingCols = havingCols;
 	}
 
-	public Collection<RowDataPacket> getResult() {
+	public List<RowDataPacket> getResult() {
 		if(!isMergAvg)
 		{
 			for (RowDataPacket row : result)

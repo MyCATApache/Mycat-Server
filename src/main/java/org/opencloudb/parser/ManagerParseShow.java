@@ -45,26 +45,28 @@ public final class ManagerParseShow {
     public static final int SQL_DETAIL = 12;
     public static final int SQL_EXECUTE = 13;
     public static final int SQL_SLOW = 14;
-    public static final int THREADPOOL = 15;
-    public static final int TIME_CURRENT = 16;
-    public static final int TIME_STARTUP = 17;
-    public static final int VERSION = 18;
-    public static final int VARIABLES = 19;
-    public static final int COLLATION = 20;
-    public static final int CONNECTION_SQL = 21;
-    public static final int DATANODE_WHERE = 22;
-    public static final int DATASOURCE_WHERE = 23;
-    public static final int HEARTBEAT = 24;
-    public static final int SLOW_DATANODE = 25;
-    public static final int SLOW_SCHEMA = 26;
-    public static final int BACKEND = 27;
-    public static final int CACHE = 28;
-    public static final int SESSION = 29;
-    public static final int SYSPARAM = 30;
-    public static final int SYSLOG = 31;
-    public static final int HEARTBEAT_DETAIL = 32;
-    public static final int DATASOURCE_SYNC = 33;
-    public static final int DATASOURCE_SYNC_DETAIL = 34;
+    public static final int SQL_SUM = 15;
+    
+    public static final int THREADPOOL = 16;
+    public static final int TIME_CURRENT = 17;
+    public static final int TIME_STARTUP = 18;
+    public static final int VERSION = 19;
+    public static final int VARIABLES = 20;
+    public static final int COLLATION = 21;
+    public static final int CONNECTION_SQL = 22;
+    public static final int DATANODE_WHERE = 23;
+    public static final int DATASOURCE_WHERE = 24;
+    public static final int HEARTBEAT = 25;
+    public static final int SLOW_DATANODE = 26;
+    public static final int SLOW_SCHEMA = 27;
+    public static final int BACKEND = 28;
+    public static final int CACHE = 29;
+    public static final int SESSION = 30;
+    public static final int SYSPARAM = 31;
+    public static final int SYSLOG = 32;
+    public static final int HEARTBEAT_DETAIL = 33;
+    public static final int DATASOURCE_SYNC = 34;
+    public static final int DATASOURCE_SYNC_DETAIL = 35;
 
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -1145,7 +1147,15 @@ public final class ManagerParseShow {
                 return show2SqlECheck(stmt, offset);
             case 'S':
             case 's':
-                return show2SqlSCheck(stmt, offset);
+            	char c1 = stmt.charAt(++offset);
+            	switch (c1) {
+            	case 'L':
+            	case 'l':
+                	return show2SqlSLCheck(stmt, offset);
+            	case 'U':
+            	case 'u':
+            		return show2SqlSUCheck(stmt, offset);
+            	}
             default:
                 return OTHER;
             }
@@ -1155,7 +1165,7 @@ public final class ManagerParseShow {
 
     // SHOW @@SQL WHERE ID = XXXXXX
     static int show2SqlBlankCheck(String stmt, int offset) {
-        for (++offset; stmt.length() > offset; ++offset) {
+        for (++offset; stmt.length() > offset;) {
             switch (stmt.charAt(offset)) {
             case ' ':
             	return SQL;
@@ -1225,16 +1235,29 @@ public final class ManagerParseShow {
     }
 
     // SHOW @@SQL.SLOW
-    static int show2SqlSCheck(String stmt, int offset) {
-        if (stmt.length() > offset + "LOW".length()) {
+    static int show2SqlSLCheck(String stmt, int offset) {
+        if (stmt.length() > offset + "OW".length()) {
             char c1 = stmt.charAt(++offset);
             char c2 = stmt.charAt(++offset);
-            char c3 = stmt.charAt(++offset);
-            if ((c1 == 'L' || c1 == 'l') && (c2 == 'O' || c2 == 'o') && (c3 == 'W' || c3 == 'w')) {
+            if ((c1 == 'O' || c1 == 'o') && (c2 == 'W' || c2 == 'w')) {
                 if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
                     return OTHER;
                 }
                 return SQL_SLOW;
+            }
+        }
+        return OTHER;
+    }
+    
+    // SHOW @@SQL.SUM
+    static int show2SqlSUCheck(String stmt, int offset) {
+    	if (stmt.length() > offset + "M".length()) {
+            char c1 = stmt.charAt(++offset);
+            if ( c1 == 'M' || c1 == 'm') {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return OTHER;
+                }
+                return SQL_SUM;
             }
         }
         return OTHER;

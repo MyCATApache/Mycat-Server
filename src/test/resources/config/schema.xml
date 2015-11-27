@@ -52,7 +52,7 @@
 
 	<!-- 读权重设置 -->
 	<dataHost name="localhost2" maxCon="1000" minCon="10" balance="0"
-		writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
+		writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100" tempReadHostAvailable="1">
 		<heartbeat>select user()</heartbeat>		
 		<writeHost host="writeS" url="192.168.1.10:3306" user="root" password="123456" >
 			<!-- can have multi read hosts -->

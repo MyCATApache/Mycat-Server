@@ -127,6 +127,33 @@
   		<artifactId>sequoiadb-java-driver</artifactId>
  			<version>1.0-SNAPSHOT</version>
 		</dependency>
+
+
+		<!--DOM4J FOR XML-->
+		<dependency>
+			<groupId>dom4j</groupId>
+			<artifactId>dom4j</artifactId>
+			<version>1.6.1</version>
+		</dependency>
+
+		<!--    zookeeper   -->
+		<dependency>
+			<groupId>org.apache.curator</groupId>
+			<artifactId>curator-framework</artifactId>
+			<version>2.9.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<version>1.16</version>
+		</dependency>
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>fastjson</artifactId>
+			<version>1.2.7</version>
+		</dependency>
+
 	</dependencies>
 
 
@@ -340,8 +367,6 @@
 							</platforms>
 							<jvmSettings>
 								<!-- 启动内存配置 -->
-								<initialMemorySize>2048</initialMemorySize>
-								<maxMemorySize>2048</maxMemorySize>
 								<maxStackSize>128</maxStackSize>
 								<systemProperties>
 									<systemProperty>MYCAT_HOME=.</systemProperty>
@@ -356,6 +381,8 @@
 									<extraArgument>-Dcom.sun.management.jmxremote.port=1984</extraArgument>
 									<extraArgument>-Dcom.sun.management.jmxremote.authenticate=false </extraArgument>
 									<extraArgument>-Dcom.sun.management.jmxremote.ssl=false </extraArgument>
+									<extraArgument>-Xmx4G</extraArgument>
+									<extraArgument>-Xms1G</extraArgument>
 								</extraArguments>
 							</jvmSettings>
 							<generatorConfigurations>

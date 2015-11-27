@@ -118,17 +118,19 @@ public class RouterUtil {
 	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
 		//检查表是否在配置文件中
 		stmt = getFixedSql(stmt);
-		String tablename = "";
-		if(stmt.startsWith("CREATE")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(stmt, 0));
-		}else if(stmt.startsWith("DROP")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(stmt, 0));
-		}else if(stmt.startsWith("ALTER")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(stmt, 0));
-		}else if (stmt.startsWith("TRUNCATE")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(stmt, 0));
+		String tablename = "";		
+		final String upStmt = stmt.toUpperCase();
+		if(upStmt.startsWith("CREATE")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
+		}else if(upStmt.startsWith("DROP")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
+		}else if(upStmt.startsWith("ALTER")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(upStmt, 0));
+		}else if (upStmt.startsWith("TRUNCATE")){
+			tablename = RouterUtil.getTableName(stmt, RouterUtil.getTruncateTablePos(upStmt, 0));
 		}
-
+		tablename = tablename.toUpperCase();
+		
 		if (schema.getTables().containsKey(tablename)){
 			if(ServerParse.DDL==sqlType){
 				List<String> dataNodes = new ArrayList<>();
@@ -167,12 +169,11 @@ public class RouterUtil {
 	 * @return 处理后SQL
 	 * @author AStoneGod
 	 */
-
 	public static String getFixedSql(String stmt){
 		if (stmt.endsWith(";"))
 			stmt = stmt.substring(0,stmt.length()-2);
 		stmt = stmt.replaceAll("\r\n", " "); //对于\r\n的字符 用 空格处理 rainbow
-		return stmt = stmt.trim().toUpperCase();
+		return stmt = stmt.trim(); //.toUpperCase();    
 	}
 
 	/**
@@ -385,9 +386,9 @@ public class RouterUtil {
 	 * @author mycat
 	 */
 	public static int getSpecEndPos(String upStmt, int start) {
-		int tabInd = upStmt.indexOf(" LIKE ", start);
+		int tabInd = upStmt.toUpperCase().indexOf(" LIKE ", start);
 		if (tabInd < 0) {
-			tabInd = upStmt.indexOf(" WHERE ", start);
+			tabInd = upStmt.toUpperCase().indexOf(" WHERE ", start);
 		}
 		if (tabInd < 0) {
 			return upStmt.length();
