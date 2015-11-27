@@ -43,17 +43,36 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 		rowDataPkg.read(rowData);
 		result = new HashMap<String, String>();
-		for (String fetchCol : fetchCols) {
-			Integer ind = fetchColPosMap.get(fetchCol);
+		String variableName = "";
+		String variableValue = "";
+		
+		if(fieldCount==2){
+			Integer ind = fetchColPosMap.get("Variable_name");
 			if (ind != null) {
 				byte[] columnData = rowDataPkg.fieldValues.get(ind);
                 String columnVal = columnData!=null?new String(columnData):null;
-                result.put(fetchCol, columnVal);
-			} else {
-				LOGGER.warn("cant't find column in sql query result " + fetchCol);
+                variableName = columnVal;
+            }
+			ind = fetchColPosMap.get("Value");
+			if (ind != null) {
+				byte[] columnData = rowDataPkg.fieldValues.get(ind);
+                String columnVal = columnData!=null?new String(columnData):null;
+                variableValue = columnVal;
+            }
+            result.put(variableName, variableValue);
+		}else{
+			for (String fetchCol : fetchCols) {
+				Integer ind = fetchColPosMap.get(fetchCol);
+				if (ind != null) {
+					byte[] columnData = rowDataPkg.fieldValues.get(ind);
+	                String columnVal = columnData!=null?new String(columnData):null;
+	                result.put(fetchCol, columnVal);
+				} else {
+					LOGGER.warn("cant't find column in sql query result " + fetchCol);
+				}
 			}
 		}
-        
+		
 		return false;
 	}
 
