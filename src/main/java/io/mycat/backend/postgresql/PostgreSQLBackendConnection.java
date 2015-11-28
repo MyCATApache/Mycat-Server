@@ -229,17 +229,11 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 
 	@Override
 	public void query(String sql) throws UnsupportedEncodingException {
-		System.out.println("调用查询语句...."); 
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
 	public void execute(RouteResultsetNode rrn, MySQLFrontConnection sc,
 			boolean autocommit) throws IOException {
-		
-		System.out.println("处理前端请求..."); 
-		this.getResponseHandler().okResponse("你妹啊!".getBytes(), this);
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
@@ -252,32 +246,27 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	private void synAndDoExecute(String xaTXID, RouteResultsetNode rrn, MySQLFrontConnection sc, int charsetIndex, int txIsolation2, boolean autocommit2) {
 		boolean conAutoComit = this.autocommit;
 		String conSchema = this.schema;
-		String sql =  rrn.getStatement(); 
+		String sql =  rrn.getStatement();
+		System.err.println("SQL->:"+sql);
 		int sqlType = rrn.getSqlType();
 		if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
 			Query query = new Query(PgSqlApaterUtils.apater(sql));
 			ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
 			query.write(buf);
 			this.write(buf);
-		} else {
+		} else {//DDL
 			//执行命令语句
+			Query query = new Query(PgSqlApaterUtils.apater(sql));
+			ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
+			query.write(buf);
+			this.write(buf);
 		}
 
 	}
 
 	@Override
 	public boolean syncAndExcute() {
-//		StatusSync sync = this.statusSync;
-//		if (sync == null) {
-//			return true;
-//		} else {
-//			boolean executed = sync.synAndExecuted(this);
-//			if (executed) {
-//				statusSync = null;
-//			}
-//			return executed;
-//		}
-		return false;
+		return true;
 	}
 
 	@Override

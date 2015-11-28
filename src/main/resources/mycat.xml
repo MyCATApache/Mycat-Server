@@ -16,7 +16,7 @@
     <schema-config>
         <schema name="mycat" checkSQLschema="true" sqlMaxLimit="100" dataNode="dn1" />        	
 		<dataNode name="dn1" dataHost="pghost" database="mycat" />      
-	    <dataHost name="pghost" maxCon="2000" minCon="1" balance="1" 
+	    <dataHost name="pghost" maxCon="2000" minCon="20" balance="1" 
 	       writeType="0" dbType="PostgreSQL" dbDriver="native" switchType="1">
 			<heartbeat>select 1</heartbeat>
 			<writeHost host="host_a" url="localhost:5432" user="postgres"

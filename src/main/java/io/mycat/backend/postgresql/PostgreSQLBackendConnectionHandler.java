@@ -3,14 +3,31 @@ package io.mycat.backend.postgresql;
 import io.mycat.backend.postgresql.packet.AuthenticationPacket;
 import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
 import io.mycat.backend.postgresql.packet.BackendKeyData;
+import io.mycat.backend.postgresql.packet.CommandComplete;
+import io.mycat.backend.postgresql.packet.DataRow;
+import io.mycat.backend.postgresql.packet.ErrorResponse;
 import io.mycat.backend.postgresql.packet.PasswordMessage;
 import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
+import io.mycat.backend.postgresql.packet.ReadyForQuery;
+import io.mycat.backend.postgresql.packet.RowDescription;
 import io.mycat.backend.postgresql.utils.PacketUtils;
+import io.mycat.backend.postgresql.utils.PgPacketApaterUtils;
+import io.mycat.net.BufferArray;
 import io.mycat.net.Connection.State;
 import io.mycat.net.NIOHandler;
+import io.mycat.net.NetSystem;
+import io.mycat.server.ErrorCode;
+import io.mycat.server.packet.EOFPacket;
+import io.mycat.server.packet.ErrorPacket;
+import io.mycat.server.packet.FieldPacket;
+import io.mycat.server.packet.OkPacket;
+import io.mycat.server.packet.ResultSetHeaderPacket;
+import io.mycat.server.packet.RowDataPacket;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -18,9 +35,12 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
 
-public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQLBackendConnection> {
+public class PostgreSQLBackendConnectionHandler implements
+		NIOHandler<PostgreSQLBackendConnection> {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLBackendConnectionHandler.class);
+	private static final Logger LOGGER = LoggerFactory
+			.getLogger(PostgreSQLBackendConnectionHandler.class);
+	private byte packetId;
 
 	@Override
 	public void onConnected(PostgreSQLBackendConnection con) throws IOException {
@@ -35,7 +55,8 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 	}
 
 	@Override
-	public void handle(PostgreSQLBackendConnection con, ByteBuffer buf, int start, int readedLength) {
+	public void handle(PostgreSQLBackendConnection con, ByteBuffer buf,
+			int start, int readedLength) {
 		switch (con.getState()) {
 		case connecting: {
 			doConnecting(con, buf, start, readedLength);
@@ -51,7 +72,8 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 		}
 
 		default:
-			LOGGER.warn("not handled connecton state  err " + con.getState() + " for con " + con);
+			LOGGER.warn("not handled connecton state  err " + con.getState()
+					+ " for con " + con);
 			break;
 
 		}
@@ -65,19 +87,160 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 	 * @param start
 	 * @param readedLength
 	 */
-	private void doHandleBusinessMsg(PostgreSQLBackendConnection con, ByteBuffer buf, int start, int readedLength) {
+	private void doHandleBusinessMsg(PostgreSQLBackendConnection con,
+			ByteBuffer buf, int start, int readedLength) {
 		byte[] data = new byte[readedLength];
 		buf.position(start);
 		buf.get(data, 0, readedLength);
 		try {
-			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(data, 0, readedLength);
-			//处理数据 包将数据包做返回给前台
-			//[{"columnNumber":2,"columns":[{"atttypmod":-1,"coid":0,"columnName":"@@character_set_database\u0000","columnType":"UNKNOWN","oid":0,"protocol":"TEXT","typlen":-2},{"atttypmod":-1,"coid":0,"columnName":"@@collation_database\u0000","columnType":"UNKNOWN","oid":0,"protocol":"TEXT","typlen":-2}],"length":88,"marker":"T","packetSize":89,"type":"RowDescription"},{"columnNumber":2,"columns":[{"data":"dXRmOA==","length":4,"null":false},{"data":"dXRmOF9nZW5lcmFsX2Np","length":15,"null":false}],"length":33,"marker":"D","packetSize":34,"type":"DataRow"},{"commandResponse":"SELECT 1\u0000","length":13,"marker":"C","packetSize":14,"type":"CommandComplete"},{"length":5,"marker":"Z","packetSize":6,"type":"ReadyForQuery"}]
-			//con.getResponseHandler().rowResponse(row, conn);
-			System.out.println("响应前台sql:"+ JSON.toJSONString(packets));
-		} catch (IOException e) {
-			con.getResponseHandler().errorResponse("出错了!".getBytes(), con);
+			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(data, 0,
+					readedLength);
+			if (packets.size() > 0) {
+				if (packets.get(0) instanceof RowDescription) {//SELECT sql
+					doHandleBusinessQuery(con, packets);
+					return;
+				} else if (packets.get(0) instanceof CommandComplete) {//DDL DML 相关sql 执行
+					doHandleBusinessDDL(con, packets);
+					return;
+				} else if(packets.get(0) instanceof ErrorResponse){//查询语句句出错了
+					doHandleBusinessError(con,packets);
+					return;
+				}
+			}
+			ErrorPacket err  = new ErrorPacket();
+			err.packetId = ++packetId;
+			err.message = "SQL 服务器处理出错!".getBytes();
+			err.errno = ErrorCode.ERR_NOT_SUPPORTED;
+			con.getResponseHandler().errorResponse(err.writeToBytes(), con);
+		} catch (Exception e) {
+			LOGGER.error("处理出异常了",e);
+			ErrorPacket err  = new ErrorPacket();
+			err.packetId = ++packetId;
+			err.message = ("内部服务器处理出错!"+e.getMessage()) .getBytes();
+			err.errno = ErrorCode.ERR_NOT_SUPPORTED;
+			con.getResponseHandler().errorResponse(err.writeToBytes(), con);
 		}
+	}
+
+	/***
+	 * 处理查询出错数据包
+	 * @param con
+	 * @param packets
+	 */
+	private void doHandleBusinessError(PostgreSQLBackendConnection con,	List<PostgreSQLPacket> packets) {
+		LOGGER.debug("查询出错了!");
+		ErrorResponse errMg =   (ErrorResponse) packets.get(0);
+		ReadyForQuery readyForQuery = null;
+		for(PostgreSQLPacket _pk : packets){
+			if(_pk instanceof ReadyForQuery){
+				readyForQuery = (ReadyForQuery) _pk;
+			}
+		}
+		
+		ErrorPacket err  = new ErrorPacket();
+		err.packetId = ++packetId;
+		err.message = errMg.getErrMsg().trim().replaceAll("\0"," ").getBytes();
+		err.errno = ErrorCode.ER_UNKNOWN_ERROR;
+		con.getResponseHandler().errorResponse(err.writeToBytes(), con);
+		if(readyForQuery == null){
+			LOGGER.error("此sql出现错误,造成后端连接不能用了");
+		}
+	}
+
+	/***
+	 * 数据操作语言
+	 * 
+	 * @param con
+	 * @param packets
+	 */
+	private void doHandleBusinessDDL(PostgreSQLBackendConnection con,
+			List<PostgreSQLPacket> packets) {
+		CommandComplete cmdComplete = (CommandComplete) packets.get(0);
+		
+		OkPacket okPck = new OkPacket();
+		okPck.affectedRows = cmdComplete.getRows();
+		okPck.insertId = 0;
+		okPck.packetId = ++packetId;
+		okPck.message = " OK!".getBytes();
+		con.getResponseHandler().okResponse(okPck.writeToBytes(), con);
+	}
+
+	/*****
+	 * 处理简单查询
+	 * 
+	 * @param con
+	 * @param packets
+	 */
+	private void doHandleBusinessQuery(PostgreSQLBackendConnection con,
+			List<PostgreSQLPacket> packets) {
+		RowDescription rowHd = (RowDescription) packets.get(0);
+		List<FieldPacket> fieldPks = PgPacketApaterUtils
+				.rowDescConvertFieldPacket(rowHd);
+		List<RowDataPacket> rowDatas = new ArrayList<>();
+		CommandComplete cmdComplete = null;
+		ReadyForQuery readyForQuery = null;
+		for (int i = 1; i < packets.size(); i++) {
+			PostgreSQLPacket _packet = packets.get(i);
+			if (_packet instanceof DataRow) {
+				rowDatas.add(PgPacketApaterUtils
+						.rowDataConvertRowDataPacket((DataRow) _packet));
+			} else if (_packet instanceof CommandComplete) {
+				cmdComplete = (CommandComplete) _packet;
+			} else if (_packet instanceof ReadyForQuery) {
+				readyForQuery = (ReadyForQuery) _packet;
+			} else {
+				LOGGER.warn("unexpectedly PostgreSQLPacket:", JSON.toJSONString(_packet));
+			}
+		}
+		BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
+				.allocateArray();
+		ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+		headerPkg.fieldCount = fieldPks.size();
+		headerPkg.packetId = ++packetId;
+
+		  headerPkg.write(bufferArray);
+
+		byte[] header =bufferArray.writeToByteArrayAndRecycle();
+
+		List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
+		Iterator<FieldPacket> itor = fieldPks.iterator();
+		while (itor.hasNext()) {
+            bufferArray = NetSystem.getInstance().getBufferPool()
+                    .allocateArray();
+			FieldPacket curField = itor.next();
+			curField.packetId = ++packetId;
+             curField.write(bufferArray);
+			byte[] field = bufferArray.writeToByteArrayAndRecycle();
+			fields.add(field);
+			itor.remove();
+		}
+
+        bufferArray = NetSystem.getInstance().getBufferPool()
+                .allocateArray();
+		EOFPacket eofPckg = new EOFPacket();
+		eofPckg.packetId = ++packetId;
+        eofPckg.write(bufferArray);
+		byte[] eof = bufferArray.writeToByteArrayAndRecycle();
+		con.getResponseHandler().fieldEofResponse(header, fields, eof, con);
+
+		// output row
+		for(RowDataPacket curRow : rowDatas){
+            bufferArray = NetSystem.getInstance().getBufferPool()
+                    .allocateArray();			
+			curRow.packetId = ++packetId;
+            curRow.write(bufferArray);
+			byte[] row =bufferArray.writeToByteArrayAndRecycle();
+			con.getResponseHandler().rowResponse(row, con);
+		}
+
+		// end row
+        bufferArray = NetSystem.getInstance().getBufferPool()
+                .allocateArray();
+		eofPckg = new EOFPacket();
+		eofPckg.packetId = ++packetId;
+        eofPckg.write(bufferArray);
+		eof = bufferArray.writeToByteArrayAndRecycle();
+		con.getResponseHandler().rowEofResponse(eof, con);
 	}
 
 	/***
@@ -88,34 +251,40 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 	 * @param start
 	 * @param readedLength
 	 */
-	private void doConnecting(PostgreSQLBackendConnection con, ByteBuffer buf, int start, int readedLength) {
-		
+	private void doConnecting(PostgreSQLBackendConnection con, ByteBuffer buf,
+			int start, int readedLength) {
+
 		byte[] data = new byte[readedLength];
 		buf.position(start);
 		buf.get(data, 0, readedLength);
 		try {
-			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(data, 0, readedLength);
+			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(data, 0,
+					readedLength);
 			if (!packets.isEmpty()) {
 				if (packets.get(0) instanceof AuthenticationPacket) {// pg认证信息
-					AuthenticationPacket packet = (AuthenticationPacket) packets.get(0);
+					AuthenticationPacket packet = (AuthenticationPacket) packets
+							.get(0);
 					AuthType aut = packet.getAuthType();
 					if (aut != AuthType.Ok) {
-						PasswordMessage pak = new PasswordMessage(con.getUser(), con.getPassword(), aut,
+						PasswordMessage pak = new PasswordMessage(
+								con.getUser(), con.getPassword(), aut,
 								((AuthenticationPacket) packet).getSalt());
-						ByteBuffer buffer = ByteBuffer.allocate(pak.getLength() + 1);
+						ByteBuffer buffer = ByteBuffer
+								.allocate(pak.getLength() + 1);
 						pak.write(buffer);
 						con.write(buffer);
-					}else{//登入成功了....
-						
-						for(int i=1;i<packets.size();i++){
+					} else {// 登入成功了....
+
+						for (int i = 1; i < packets.size(); i++) {
 							PostgreSQLPacket _p = packets.get(i);
-							if(_p instanceof BackendKeyData){
-								con.setServerSecretKey(((BackendKeyData) _p).getSecretKey());
+							if (_p instanceof BackendKeyData) {
+								con.setServerSecretKey(((BackendKeyData) _p)
+										.getSecretKey());
 							}
 						}
 						LOGGER.info("PostgreSQL 登入成功");
 						con.setState(State.connected);
-						con.getResponseHandler().connectionAcquired(con);//连接已经可以用来
+						con.getResponseHandler().connectionAcquired(con);// 连接已经可以用来
 					}
 					LOGGER.debug(JSON.toJSONString(packets));
 				}
