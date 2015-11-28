@@ -139,7 +139,7 @@ public class PostgreSQLBackendConnectionHandler implements
 		
 		ErrorPacket err  = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.message = errMg.getErrMsg().trim().getBytes();
+		err.message = errMg.getErrMsg().trim().replaceAll("\0"," ").getBytes();
 		err.errno = ErrorCode.ER_UNKNOWN_ERROR;
 		con.getResponseHandler().errorResponse(err.writeToBytes(), con);
 		if(readyForQuery == null){
