@@ -6,7 +6,7 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.data.Stat;
-import org.opencloudb.config.model.ZkConfig;
+import org.opencloudb.config.ZkConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -29,7 +29,11 @@ public class ZkCreate {
     private static final String SEQUENCE_CONFIG_DIRECTORY = "sequence-config";
     private static final String SCHEMA_CONFIG_DIRECTORY = "schema-config";
     private static final String DATAHOST_CONFIG_DIRECTORY = "datahost-config";
+    private static final String MYSQLREP_CONFIG_DIRECTORY = "mysqlrep-config";
+    private static final String MYCATLB_CONFIG_DIRECTORY = "mycatlb-config";
 
+
+    private static final String CONFIG_ZONE_KEY = "zkZone";
     private static final String CONFIG_URL_KEY = "zkUrl";
     private static final String CONFIG_CLUSTER_KEY = "zkClu";
     private static final String CONFIG_CLUSTER_ID = "zkID";
@@ -40,8 +44,12 @@ public class ZkCreate {
     private static final String CONFIG_SEQUENCE_KEY = "sequence";
     private static final String CONFIG_SCHEMA_KEY = "schema";
     private static final String CONFIG_DATAHOST_KEY = "datahost";
+    private static final String CONFIG_MYSQLREP_KEY = "mysqlrep";
+    private static final String CONFIG_MYCATLB_KEY = "mycatlb";
 
-    private static String PARENT_PATH;
+
+    private static String CLU_PARENT_PATH;
+    private static String ZONE_PARENT_PATH;
 
     private static CuratorFramework framework;
     private static Map<String, Object> zkConfig;
@@ -63,26 +71,36 @@ public class ZkCreate {
     public static boolean init(String zkUrl,String zkPort,String zkClu,String zkID){
         LOGGER.info("-----start zkcreate-----");
         zkConfig = loadZkConfig();
-        if (!zkConfig.get("zkUrl").toString().equals(zkUrl+":"+zkPort)||!zkConfig.get("zkClu").toString().equals(zkClu)||!zkConfig.get("zkID").toString().equals(zkID)){
+        if (!zkConfig.get("zkUrl").toString().equals(zkUrl+":"+zkPort)||!zkConfig.get("zkClu").toString().equals(zkClu)||!zkConfig.get("zkID").toString().equals(zkID)
+                ||zkConfig.get("zkZone")==null){
             LOGGER.trace("zk config is not match, please check it!!");
             return false;
         }else {
-            PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
-            LOGGER.info("parent path is {}", PARENT_PATH);
+            ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
+
+            CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
+            LOGGER.info("parent path is {}", CLU_PARENT_PATH);
             framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
-            createConfig(CONFIG_DATANODE_KEY, true, DATANODE_CONFIG_DIRECTORY);
-            createConfig(CONFIG_SYSTEM_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
-            createConfig(CONFIG_USER_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
-            createConfig(CONFIG_SEQUENCE_KEY, true, SEQUENCE_CONFIG_DIRECTORY);
-            createConfig(CONFIG_SCHEMA_KEY, true, SCHEMA_CONFIG_DIRECTORY);
-            createConfig(CONFIG_DATAHOST_KEY, true, DATAHOST_CONFIG_DIRECTORY);
-            createConfig(CONFIG_RULE_KEY, false, RULE_CONFIG_DIRECTORY);
+
+            createConfig(CLU_PARENT_PATH,CONFIG_DATANODE_KEY, true, DATANODE_CONFIG_DIRECTORY);
+            createConfig(CLU_PARENT_PATH,CONFIG_SYSTEM_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
+            createConfig(CLU_PARENT_PATH,CONFIG_USER_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
+            createConfig(CLU_PARENT_PATH,CONFIG_SEQUENCE_KEY, true, SEQUENCE_CONFIG_DIRECTORY);
+            createConfig(CLU_PARENT_PATH,CONFIG_SCHEMA_KEY, true, SCHEMA_CONFIG_DIRECTORY);
+            createConfig(CLU_PARENT_PATH,CONFIG_DATAHOST_KEY, true, DATAHOST_CONFIG_DIRECTORY);
+            createConfig(CLU_PARENT_PATH,CONFIG_RULE_KEY, false, RULE_CONFIG_DIRECTORY);
+
+            createConfig(ZONE_PARENT_PATH,CONFIG_MYSQLREP_KEY, false, MYSQLREP_CONFIG_DIRECTORY);
+            LOGGER.info("parent path is {}", ZONE_PARENT_PATH);
+
+            createConfig(ZONE_PARENT_PATH,CONFIG_MYCATLB_KEY, false, MYCATLB_CONFIG_DIRECTORY);
+
             return true;
         }
     }
 
-    private static void createConfig(String configKey, boolean filterInnerMap, String... configDirectory) {
-        String childPath = ZKPaths.makePath(PARENT_PATH, null, configDirectory);
+    private static void createConfig(String parent_path,String configKey, boolean filterInnerMap, String... configDirectory) {
+        String childPath = ZKPaths.makePath(parent_path, null, configDirectory);
         LOGGER.trace("child path is {}", childPath);
 
         try {
