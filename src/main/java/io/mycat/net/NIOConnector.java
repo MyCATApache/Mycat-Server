@@ -2,6 +2,8 @@ package io.mycat.net;
 
 import io.mycat.backend.postgresql.PostgreSQLBackendConnection;
 import io.mycat.backend.postgresql.utils.PacketUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -12,9 +14,6 @@ import java.nio.channels.SocketChannel;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * NIO 连接器，用于连接对方Sever
@@ -68,8 +67,10 @@ public final class NIOConnector extends Thread {
 						Object att = key.attachment();
 						if (att != null && key.isValid() && key.isConnectable()) {
 							finishConnect(key, att);
-							SocketChannel sc = (SocketChannel) key.channel();
-							sendStartupPacket(sc,att);
+							if (att instanceof  PostgreSQLBackendConnection){//ONLY PG SENG
+								SocketChannel sc = (SocketChannel) key.channel();
+								sendStartupPacket(sc,att);
+							}
 						} else {
 							key.cancel();
 						}
