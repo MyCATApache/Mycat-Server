@@ -141,6 +141,9 @@ public class RouterUtil {
 		if (tableName.contains(" ")){
 			tableName = tableName.substring(0,tableName.indexOf(" "));
 		}
+		if (tableName.contains("\n")){
+			tableName = tableName.substring(0,tableName.indexOf("\n"));
+		}
 		int ind2 = tableName.indexOf('.');
 		if (ind2 > 0) {
 			tableName = tableName.substring(ind2 + 1);
