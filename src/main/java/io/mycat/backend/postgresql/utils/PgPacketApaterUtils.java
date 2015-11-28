@@ -1,10 +1,14 @@
 package io.mycat.backend.postgresql.utils;
 
 import io.mycat.backend.postgresql.packet.DataRow;
+import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
 import io.mycat.backend.postgresql.packet.RowDescription;
+import io.mycat.backend.postgresql.packet.RowDescription.ColumnDescription;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.RowDataPacket;
 
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -14,14 +18,23 @@ import java.util.List;
  *
  */
 public class PgPacketApaterUtils {
+	private static final Charset UTF8 = Charset.forName("utf-8");
+
 	/**
 	 * 列标示转换成Mysql的数据
 	 * @param description
 	 * @return
 	 */
 	public static List<FieldPacket> rowDescConvertFieldPacket(RowDescription description){
+		List<FieldPacket>  fieldPks = new ArrayList<FieldPacket>(description.getColumnNumber());
+		for(ColumnDescription c: description.getColumns()){
+			FieldPacket fieldPk = new FieldPacket();
+			fieldPk.name = c.getColumnName().getBytes(UTF8);
+			//fieldPk.type = 
+			fieldPks.add(fieldPk);
+		}
 		//TODO 等待实现
-		return null;		
+		return fieldPks;		
 	}
 	
 	/***
@@ -30,7 +43,10 @@ public class PgPacketApaterUtils {
 	 * @return
 	 */
 	public static RowDataPacket rowDataConvertRowDataPacket(DataRow dataRow){
-		//TODO 等待实现
-		return null;
+		RowDataPacket curRow = new RowDataPacket(dataRow.getColumnNumber());
+		for(DataColumn c: dataRow.getColumns()){
+			curRow.add(c.getData());
+		}		
+		return curRow;
 	}
 }

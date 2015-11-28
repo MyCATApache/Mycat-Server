@@ -45,7 +45,7 @@ public class CommandComplete extends PostgreSQLPacket {
 				return 0;
 			}
 			try {
-				return Integer.valueOf( s[s.length - 1]);
+				return Integer.valueOf( s[s.length - 1].trim());
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

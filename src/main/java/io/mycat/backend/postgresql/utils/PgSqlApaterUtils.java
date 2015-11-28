@@ -18,5 +18,6 @@ public class PgSqlApaterUtils {
 	
 	static{
 		stream.put("SELECT @@CHARACTER_SET_DATABASE, @@COLLATION_DATABASE".toUpperCase(), "SELECT 'utf8' as \"@@character_set_database\", 'utf8_general_ci' as \"@@collation_database\"");
+		stream.put("SHOW STATUS", "SELECT 'Aborted_clients' as \"Variable\" , 0 as \"Value\" where 1=2 ");
 	}
 }

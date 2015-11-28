@@ -104,6 +104,7 @@ public class PostgreSQLBackendConnectionHandler implements
 					return;
 				} else if(packets.get(0) instanceof ErrorResponse){//查询语句句出错了
 					doHandleBusinessError(con,packets);
+					return;
 				}
 			}
 			ErrorPacket err  = new ErrorPacket();
