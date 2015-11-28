@@ -23,11 +23,12 @@
  */
 package org.opencloudb;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import org.apache.log4j.helpers.LogLog;
 import org.opencloudb.config.model.SystemConfig;
+import org.opencloudb.config.model.ZkConfig;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @author mycat
@@ -36,6 +37,11 @@ public final class MycatStartup {
 	private static final String dateFormat = "yyyy-MM-dd HH:mm:ss";
 
 	public static void main(String[] args) {
+		//use zk ?
+		ZkConfig zkConfig = new ZkConfig();
+		zkConfig.initLocalXmlFromZk(zkConfig);
+
+
 		try {
 			String home = SystemConfig.getHomePath();
 			if (home == null) {

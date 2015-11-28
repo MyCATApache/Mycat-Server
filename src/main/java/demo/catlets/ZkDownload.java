@@ -32,8 +32,9 @@ public class ZkDownload {
     private static final String SCHEMA_CONFIG_DIRECTORY = "schema-config";
     private static final String DATAHOST_CONFIG_DIRECTORY = "datahost-config";
 
-    private static final String CONFIG_URL_KEY = "zkURL";
-    private static final String CONFIG_CLUSTER_KEY = "clusterID";
+    private static final String CONFIG_URL_KEY = "zkUrl";
+    private static final String CONFIG_CLUSTER_KEY = "zkClu";
+    private static final String CONFIG_CLUSTER_ID = "zkID";
     private static final String CONFIG_SYSTEM_KEY = "system";
     private static final String CONFIG_USER_KEY = "user";
     private static final String CONFIG_DATANODE_KEY = "datanode";
@@ -50,39 +51,49 @@ public class ZkDownload {
 
 
     public static void main(String[] args) throws Exception {
-        zkConfig = loadZkConfig();
-        PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)));
-        LOGGER.trace("parent path is {}", PARENT_PATH);
-        framework = createConnection((String)zkConfig.get(CONFIG_URL_KEY));
 
-        try {
-            List<Map<String,JSONObject>> listDataNode = getDatanodeConfig("datanode-config");
-            List<Map<String,JSONObject>> listDataHost = getDataHostNodeConfig("datahost-config");
-            List<Map<String,JSONObject>> listServer  = getServerNodeConfig(SERVER_CONFIG_DIRECTORY);
-            List<Map<String,JSONObject>> listSchema = getSchemaConfig(SCHEMA_CONFIG_DIRECTORY);
-            //List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
-            List<Map<String,JSONObject>> listRule  = getServerNodeConfig(RULE_CONFIG_DIRECTORY);
+        init("192.168.31.196","2181","cluster","6");
 
-            //生成SERVER XML
-            processServerDocument(listServer);
-
-            //生成SCHEMA XML
-           processSchemaDocument(listSchema);
-
-            //生成RULE XML
-           processRuleDocument(listRule);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
+    public static boolean init(String zkUrl,String zkPort,String zkClu,String zkID) throws Exception {
+        LOGGER.info("-----start zkdownload to local xml-----");
+        zkConfig = loadZkConfig();
+        if (!zkConfig.get("zkUrl").toString().equals(zkUrl+":"+zkPort)||!zkConfig.get("zkClu").toString().equals(zkClu)||!zkConfig.get("zkID").toString().equals(zkID)){
+            LOGGER.trace("zk config is not match, please check it!!");
+            return false;
+        }else {
+            PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
+            LOGGER.trace("parent path is {}", PARENT_PATH);
+            framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
+            try {
+                List<Map<String, JSONObject>> listDataNode = getDatanodeConfig(DATANODE_CONFIG_DIRECTORY);
+                List<Map<String, JSONObject>> listDataHost = getDataHostNodeConfig(DATAHOST_CONFIG_DIRECTORY);
+                List<Map<String, JSONObject>> listServer = getServerNodeConfig(SERVER_CONFIG_DIRECTORY);
+                List<Map<String, JSONObject>> listSchema = getSchemaConfig(SCHEMA_CONFIG_DIRECTORY);
+                //List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
+                List<Map<String, JSONObject>> listRule = getServerNodeConfig(RULE_CONFIG_DIRECTORY);
+
+                //生成SERVER XML
+                processServerDocument(listServer);
+
+                //生成SCHEMA XML
+                processSchemaDocument(listSchema);
+
+                //生成RULE XML
+                processRuleDocument(listRule);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
 
     //config txt file
     public static void conf2File(String fileName,String config) {
         BufferedWriter fw = null;
         try {
-            String filePath = SystemConfig.getHomePath()+"/src/main/resources";
+            String filePath = SystemConfig.getHomePath()+"/src/main/resources/";
             File file = new File(filePath+fileName);
             //System.out.println(filePath);
             file.delete();
@@ -266,7 +277,7 @@ public class ZkDownload {
 
     private static List<Map<String,JSONObject>> getConfigData(List<Map<String,JSONObject>> list,String childPath) throws IOException {
 
-        Map<String,JSONObject> map = new HashMap<>();
+
         String data= null;
         try {
             data = new String(framework.getData().forPath(childPath),"utf8");
@@ -276,6 +287,7 @@ public class ZkDownload {
 //                System.out.println("---------------------"+childPath+"-------------------------");
 //                System.out.println(jsonArray);
                 for (int i=0;i<jsonArray.size();i++){
+                    Map<String,JSONObject> map = new HashMap<>();
                     map.put(childPath,(JSONObject)jsonArray.get(i));
                     list.add(map);
                 }
@@ -286,6 +298,7 @@ public class ZkDownload {
 //                System.out.println("----------------------jsonObject------------------------");
 //                System.out.println("---------------------" + childPath + "-------------------------");
 //                System.out.println(jsonObject);
+                Map<String,JSONObject> map = new HashMap<>();
                 map.put(childPath,jsonObject);
                 list.add(map);
                 return list;
@@ -528,9 +541,14 @@ public class ZkDownload {
                         schemaElCon.addAttribute("checkSQLschema",jsonObject.get("checkSQLSchema").toString());
                     if (jsonObject.containsKey("defaultMaxLimit"))
                         schemaElCon.addAttribute("sqlMaxLimit",jsonObject.get("defaultMaxLimit").toString());
+                    if (jsonObject.containsKey("dataNode"))
+                        schemaElCon.addAttribute("dataNode",jsonObject.get("dataNode").toString());
                     //处理 table
                     for (int j=0;j<mapList.size();j++) {
                         String tablePath = mapList.get(j).keySet().toString().replace("[", "").replace("]", "").trim();
+                        if (!tablePath.contains(schema)){
+                            continue;
+                        }
                         String temp = tablePath.substring(subLength, tablePath.length());
                         if (temp.contains("/") && temp.contains(schema)&&temp.lastIndexOf("/")<=schema.length()) {
                             String tableName = temp.substring(schema.length() + 1, temp.length());
@@ -551,6 +569,9 @@ public class ZkDownload {
                             //处理childTable
                             for (int k=0;k<mapList.size();k++) {
                                 String childTablePath = mapList.get(k).keySet().toString().replace("[", "").replace("]", "").trim();
+                                if (!childTablePath.contains(schema)){
+                                    continue;
+                                }
                                 if (childTablePath.equals(tablePath)||childTablePath.compareTo(tablePath)<=0)
                                     continue;
                                 String tempChildTableName = childTablePath.substring(tablePath.length()-tableName.length(), childTablePath.length());
@@ -571,6 +592,9 @@ public class ZkDownload {
                                         //处理 child-childTable
                                         for (int l=0;l<mapList.size();l++) {
                                             String child_childTablePath = mapList.get(l).keySet().toString().replace("[", "").replace("]", "").trim();
+                                            if (!child_childTablePath.contains(schema)){
+                                                continue;
+                                            }
                                             if (child_childTablePath.equals(childTablePath)||child_childTablePath.compareTo(childTablePath)<=0||!child_childTablePath.contains(childTable))
                                                 continue;
                                             String tempchild_childTablePath = child_childTablePath.substring(subLength+schema.length()+tableName.length()+2, child_childTablePath.length());

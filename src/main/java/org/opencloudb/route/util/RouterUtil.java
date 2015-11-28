@@ -121,9 +121,13 @@ public class RouterUtil {
 		String tablename = "";		
 		final String upStmt = stmt.toUpperCase();
 		if(upStmt.startsWith("CREATE")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
+			if (upStmt.contains("INDEX")){
+				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateIndexPos(upStmt, 0));
+			}else tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
 		}else if(upStmt.startsWith("DROP")){
-			tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
+			if (upStmt.contains("INDEX")){
+				tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropIndexPos(upStmt, 0));
+			}else tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
 		}else if(upStmt.startsWith("ALTER")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(upStmt, 0));
 		}else if (upStmt.startsWith("TRUNCATE")){
@@ -267,6 +271,31 @@ public class RouterUtil {
 	}
 
 	/**
+	 * 获取语句中前关键字位置和占位个数表名位置
+	 *
+	 * @param upStmt
+	 *            执行语句
+	 * @param start
+	 *            开始位置
+	 * @return int[]关键字位置和占位个数
+	 * @author aStoneGod
+	 */
+	public static int[] getCreateIndexPos(String upStmt, int start) {
+		String token1 = "CREATE ";
+		String token2 = " INDEX ";
+		String token3 = " ON ";
+		int createInd = upStmt.indexOf(token1, start);
+		int idxInd = upStmt.indexOf(token2, start);
+		int onInd = upStmt.indexOf(token3, start);
+		// 既包含CREATE又包含INDEX，且CREATE关键字在INDEX关键字之前, 且包含ON...
+		if (createInd >= 0 && idxInd > 0 && idxInd > createInd && onInd > 0 && onInd > idxInd) {
+			return new int[] {onInd , token3.length() };
+		} else {
+			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+		}
+	}
+
+	/**
 	 * 获取ALTER语句中前关键字位置和占位个数表名位置
 	 *
 	 * @param upStmt
@@ -325,6 +354,32 @@ public class RouterUtil {
 		}
 	}
 
+
+	/**
+	 * 获取DROP语句中前关键字位置和占位个数表名位置
+	 *
+	 * @param upStmt
+	 *            执行语句
+	 * @param start
+	 *            开始位置
+	 * @return int[]关键字位置和占位个数
+	 * @author aStoneGod
+	 */
+
+	public static int[] getDropIndexPos(String upStmt, int start) {
+		String token1 = "DROP ";
+		String token2 = " INDEX ";
+		String token3 = " ON ";
+		int createInd = upStmt.indexOf(token1, start);
+		int idxInd = upStmt.indexOf(token2, start);
+		int onInd = upStmt.indexOf(token3, start);
+		// 既包含CREATE又包含INDEX，且CREATE关键字在INDEX关键字之前, 且包含ON...
+		if (createInd >= 0 && idxInd > 0 && idxInd > createInd && onInd > 0 && onInd > idxInd) {
+			return new int[] {onInd , token3.length() };
+		} else {
+			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
+		}
+	}
 
 	/**
 	 * 获取TRUNCATE语句中前关键字位置和占位个数表名位置
