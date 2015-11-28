@@ -60,36 +60,7 @@ public class ZkDownload {
 
     public static void main(String[] args) throws Exception {
 
-        //init("192.168.31.196","2181","cluster","8");
-        //test();
-
-        zkConfig = loadZkConfig();
-
-        ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
-        CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
-        LOGGER.trace("parent path is {}", CLU_PARENT_PATH);
-        framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
-        try {
-            List<Map<String, JSONObject>> listDataNode = getDatanodeConfig(DATANODE_CONFIG_DIRECTORY);
-            List<Map<String, JSONObject>> listDataHost = getDataHostNodeConfig(CLU_PARENT_PATH,DATAHOST_CONFIG_DIRECTORY);
-            List<Map<String, JSONObject>> listServer = getServerNodeConfig(SERVER_CONFIG_DIRECTORY);
-            List<Map<String, JSONObject>> listSchema = getSchemaConfig(SCHEMA_CONFIG_DIRECTORY);
-            //List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
-            List<Map<String, JSONObject>> listRule = getServerNodeConfig(RULE_CONFIG_DIRECTORY);
-
-            //System.out.println(listDataHost);
-            //processMysqlRepDocument(listDataHost);
-            //生成SERVER XML
-            //processServerDocument(listServer);
-
-            //生成SCHEMA XML
-            processSchemaDocument(listSchema);
-
-            //生成RULE XML
-           // processRuleDocument(listRule);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        init("192.168.31.196","2181","cluster","3");
     }
 
     public static Set<Map<String,JSONObject>> getMysqlRep(List<Map<String, JSONObject>> listMysqlRep,String trepid) throws Exception {
@@ -188,17 +159,6 @@ public class ZkDownload {
        // json2XmlFile(document,"mysqlrep.xml");
     }
 
-    public static void test() throws Exception {
-        zkConfig = loadZkConfig();
-        ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
-        CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
-        LOGGER.trace("parent path is {}", CLU_PARENT_PATH);
-        framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
-        List<Map<String, JSONObject>> listMysqlRep = getDataHostNodeConfig(ZONE_PARENT_PATH,MYSQLREP_CONFIG_DIRECTORY);
-        System.out.println("-------------------------------------");
-        System.out.println(listMysqlRep);
-
-    }
 
     public static boolean init(String zkUrl,String zkPort,String zkClu,String zkID) throws Exception {
         LOGGER.info("-----start zkdownload to local xml-----");
