@@ -1,6 +1,7 @@
 zkUrl : 192.168.31.196:2181
+zkZone : mycat-zone100
 zkClu : cluster
-zkID : 8
+zkID : 3
 system:
   defaultsqlparser : druidparser
   serverport : 8066
@@ -213,6 +214,12 @@ datahost :
     slaveThreshold : 100
     heartbeatSQL : select user()
 
+    repid : rep1,rep2
+
+
+mysqlrep :
+  rep1 :
+    id : 1
     hostM1 :
       host : hostM1
       url : 10.16.0.215:3306
@@ -225,8 +232,36 @@ datahost :
         user : root
         password : admin
 
-#    hostM2 :
-#      host : hostM2
-#      url : localhost:3316
-#      user : root
-#      password : 123456
+    hostM2 :
+      host : hostM2
+      url : localhost:3316
+      user : root
+      password : 123456
+
+  rep2 :
+    id : 2
+    hostM3 :
+      host : hostM3
+      url : 10.16.0.215:3306
+      user : root
+      password : admin
+
+      readHost :
+        host : hostS3
+        url : 10.16.0.216:3306
+        user : root
+        password : admin
+
+    hostM4 :
+      host : hostM4
+      url : localhost:3316
+      user : root
+      password : 123456
+
+
+mycatlb :
+  lb-cluster1 :
+    id : 1
+    name : lb-cluster1
+    zone : mycat-zone100
+    hostid : localhost1

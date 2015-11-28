@@ -25,7 +25,7 @@ package org.opencloudb;
 
 import org.apache.log4j.helpers.LogLog;
 import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.config.model.ZkConfig;
+import org.opencloudb.config.ZkConfig;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
