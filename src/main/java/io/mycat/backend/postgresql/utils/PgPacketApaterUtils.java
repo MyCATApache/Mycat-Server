@@ -4,6 +4,7 @@ import io.mycat.backend.postgresql.packet.DataRow;
 import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
 import io.mycat.backend.postgresql.packet.RowDescription;
 import io.mycat.backend.postgresql.packet.RowDescription.ColumnDescription;
+import io.mycat.server.Fields;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.RowDataPacket;
 
@@ -30,7 +31,7 @@ public class PgPacketApaterUtils {
 		for(ColumnDescription c: description.getColumns()){
 			FieldPacket fieldPk = new FieldPacket();
 			fieldPk.name = c.getColumnName().getBytes(UTF8);
-			//fieldPk.type = 
+			fieldPk.type = Fields.FIELD_TYPE_VARCHAR;
 			fieldPks.add(fieldPk);
 		}
 		//TODO 等待实现
