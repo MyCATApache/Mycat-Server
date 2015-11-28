@@ -37,6 +37,22 @@ public class CommandComplete extends PostgreSQLPacket {
 	public int getLength() {
 		return length;
 	}
+	
+	public int getRows(){
+		if(commandResponse != null){
+			String[] s = commandResponse.split(" +");
+			if(s.length == 0){
+				return 0;
+			}
+			try {
+				return Integer.valueOf( s[s.length - 1]);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}		
+		return 0;
+	}
+	
 
 	@Override
 	public char getMarker() {
