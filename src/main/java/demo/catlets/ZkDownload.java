@@ -31,7 +31,10 @@ public class ZkDownload {
     private static final String SEQUENCE_CONFIG_DIRECTORY = "sequence-config";
     private static final String SCHEMA_CONFIG_DIRECTORY = "schema-config";
     private static final String DATAHOST_CONFIG_DIRECTORY = "datahost-config";
+    private static final String MYSQLREP_CONFIG_DIRECTORY = "mysqlrep-config";
 
+
+    private static final String CONFIG_ZONE_KEY = "zkZone";
     private static final String CONFIG_URL_KEY = "zkUrl";
     private static final String CONFIG_CLUSTER_KEY = "zkClu";
     private static final String CONFIG_CLUSTER_ID = "zkID";
@@ -42,8 +45,13 @@ public class ZkDownload {
     private static final String CONFIG_SEQUENCE_KEY = "sequence";
     private static final String CONFIG_SCHEMA_KEY = "schema";
     private static final String CONFIG_DATAHOST_KEY = "datahost";
+    private static final String CONFIG_MYSQLREP_KEY = "mysqlrep";
 
-    private static String PARENT_PATH;
+
+
+    private static String CLU_PARENT_PATH;
+    private static String ZONE_PARENT_PATH;
+
 
     private static CuratorFramework framework;
     private static Map<String, Object> zkConfig;
@@ -52,7 +60,143 @@ public class ZkDownload {
 
     public static void main(String[] args) throws Exception {
 
-        init("192.168.31.196","2181","cluster","6");
+        //init("192.168.31.196","2181","cluster","8");
+        //test();
+
+        zkConfig = loadZkConfig();
+
+        ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
+        CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
+        LOGGER.trace("parent path is {}", CLU_PARENT_PATH);
+        framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
+        try {
+            List<Map<String, JSONObject>> listDataNode = getDatanodeConfig(DATANODE_CONFIG_DIRECTORY);
+            List<Map<String, JSONObject>> listDataHost = getDataHostNodeConfig(CLU_PARENT_PATH,DATAHOST_CONFIG_DIRECTORY);
+            List<Map<String, JSONObject>> listServer = getServerNodeConfig(SERVER_CONFIG_DIRECTORY);
+            List<Map<String, JSONObject>> listSchema = getSchemaConfig(SCHEMA_CONFIG_DIRECTORY);
+            //List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
+            List<Map<String, JSONObject>> listRule = getServerNodeConfig(RULE_CONFIG_DIRECTORY);
+
+            //System.out.println(listDataHost);
+            //processMysqlRepDocument(listDataHost);
+            //生成SERVER XML
+            //processServerDocument(listServer);
+
+            //生成SCHEMA XML
+            processSchemaDocument(listSchema);
+
+            //生成RULE XML
+           // processRuleDocument(listRule);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Set<Map<String,JSONObject>> getMysqlRep(List<Map<String, JSONObject>> listMysqlRep,String trepid) throws Exception {
+        Set<Map<String, JSONObject>> set = new HashSet<>();
+        String[] repids = trepid.split(",");
+        for (String repid : repids){
+            for (int i=0; i<listMysqlRep.size();i++){
+                String datahostName = listMysqlRep.get(i).keySet().toString().replace("[", "").replace("]", "").trim();
+                if (datahostName.contains(repid))
+                    set.add(listMysqlRep.get(i));
+            }
+        }
+        return set;
+    }
+
+    public static void processMysqlRepDocument(Element serverElement,List<Map<String,JSONObject>> mapList) throws Exception {
+
+        for (int i=0;i<mapList.size();i++){
+            int subLength = CLU_PARENT_PATH.length()+DATAHOST_CONFIG_DIRECTORY.length()+2;
+            int repLength = ZONE_PARENT_PATH.length()+MYSQLREP_CONFIG_DIRECTORY.length()+2;
+            String datahostName = mapList.get(i).keySet().toString().replace("[", "").replace("]", "").trim();
+            if (!datahostName.substring(subLength,datahostName.length()).contains("/")){
+                String key =datahostName.substring(subLength,datahostName.length());
+                JSONObject jsonObject = mapList.get(i).get(datahostName);
+                Element dataHost = serverElement.addElement("dataHost");
+                if (!key.isEmpty()){
+                    Element datahost = dataHost.addAttribute("name", key);
+                    if (jsonObject.containsKey("writetype"))
+                        datahost.addAttribute("writeType",jsonObject.get("writetype").toString());
+                    if (jsonObject.containsKey("switchType"))
+                        datahost.addAttribute("switchType",jsonObject.get("switchType").toString());
+                    if (jsonObject.containsKey("slaveThreshold"))
+                        datahost.addAttribute("slaveThreshold",jsonObject.get("slaveThreshold").toString());
+                    if (jsonObject.containsKey("balance"))
+                        datahost.addAttribute("balance",jsonObject.get("balance").toString());
+                    if (jsonObject.containsKey("dbtype"))
+                        datahost.addAttribute("dbType",jsonObject.get("dbtype").toString());
+                    if (jsonObject.containsKey("maxcon"))
+                        datahost.addAttribute("maxCon",jsonObject.get("maxcon").toString());
+                    if (jsonObject.containsKey("mincon"))
+                        datahost.addAttribute("minCon",jsonObject.get("mincon").toString());
+                    if (jsonObject.containsKey("dbDriver"))
+                        datahost.addAttribute("dbDriver",jsonObject.get("dbDriver").toString());
+                    if (jsonObject.containsKey("heartbeatSQL")){
+                        Element  heartbeatSQL = dataHost.addElement("heartbeat");
+                        heartbeatSQL.setText(jsonObject.get("heartbeatSQL").toString());
+                    }
+
+                    String repid = jsonObject.get("repid").toString();
+                    List<Map<String, JSONObject>> listMysqlRep = getDataHostNodeConfig(ZONE_PARENT_PATH,MYSQLREP_CONFIG_DIRECTORY);
+                    Set<Map<String,JSONObject>> datahostSet = getMysqlRep(listMysqlRep,repid);
+                    Iterator<Map<String,JSONObject>> it = datahostSet.iterator();
+                    //处理WriteHost
+                    for (Map<String,JSONObject> wdh : datahostSet) {
+                        String host = wdh.keySet().toString().replace("[", "").replace("]", "").trim();
+                        String temp = host.substring(repLength, host.length());
+                        if (temp.contains("/")&&!temp.contains("readHost")) {
+                            String currepid = temp.substring(0,temp.indexOf("/"));
+                            String childHost = temp.substring(temp.indexOf("/")+1, temp.length());
+                            JSONObject childJsonObject = wdh.get(host);
+                            Element writeHost = dataHost.addElement("writeHost");
+                            if (childJsonObject.containsKey("host"))
+                                writeHost.addAttribute("host", childJsonObject.get("host").toString());
+                            if (childJsonObject.containsKey("url"))
+                                writeHost.addAttribute("url", childJsonObject.get("url").toString());
+                            if (childJsonObject.containsKey("user"))
+                                writeHost.addAttribute("user", childJsonObject.get("user").toString());
+                            if (childJsonObject.containsKey("password"))
+                                writeHost.addAttribute("password", childJsonObject.get("password").toString());
+                            //处理readHost
+                            for (Map<String,JSONObject> rdh : datahostSet) {
+                                String readhost = rdh.keySet().toString().replace("[", "").replace("]", "").trim();
+                                if (readhost.equals(host)||readhost.compareTo(host)<=0||!readhost.contains(currepid))
+                                    continue;
+                                String tempread = readhost.substring(host.length()-childHost.length(), readhost.length());
+                                if (tempread.contains("/") && tempread.contains(childHost)) {
+                                    String readHost = tempread.substring(childHost.length() + 1, tempread.length());
+                                    //System.out.println("readHost:" + readHost);
+                                    JSONObject readJsonObject = rdh.get(readhost);
+                                    Element readHostEl = writeHost.addElement("readHost");
+                                    if (readJsonObject.containsKey("host"))
+                                        readHostEl.addAttribute("host", readJsonObject.get("host").toString());
+                                    if (readJsonObject.containsKey("url"))
+                                        readHostEl.addAttribute("url", readJsonObject.get("url").toString());
+                                    if (readJsonObject.containsKey("user"))
+                                        readHostEl.addAttribute("user", readJsonObject.get("user").toString());
+                                    if (readJsonObject.containsKey("password"))
+                                        readHostEl.addAttribute("password", readJsonObject.get("password").toString());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+       // json2XmlFile(document,"mysqlrep.xml");
+    }
+
+    public static void test() throws Exception {
+        zkConfig = loadZkConfig();
+        ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
+        CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
+        LOGGER.trace("parent path is {}", CLU_PARENT_PATH);
+        framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
+        List<Map<String, JSONObject>> listMysqlRep = getDataHostNodeConfig(ZONE_PARENT_PATH,MYSQLREP_CONFIG_DIRECTORY);
+        System.out.println("-------------------------------------");
+        System.out.println(listMysqlRep);
 
     }
 
@@ -63,12 +207,13 @@ public class ZkDownload {
             LOGGER.trace("zk config is not match, please check it!!");
             return false;
         }else {
-            PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
-            LOGGER.trace("parent path is {}", PARENT_PATH);
+            ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
+            CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
+            LOGGER.trace("parent path is {}", CLU_PARENT_PATH);
             framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
             try {
                 List<Map<String, JSONObject>> listDataNode = getDatanodeConfig(DATANODE_CONFIG_DIRECTORY);
-                List<Map<String, JSONObject>> listDataHost = getDataHostNodeConfig(DATAHOST_CONFIG_DIRECTORY);
+                List<Map<String, JSONObject>> listDataHost = getDataHostNodeConfig(CLU_PARENT_PATH,DATAHOST_CONFIG_DIRECTORY);
                 List<Map<String, JSONObject>> listServer = getServerNodeConfig(SERVER_CONFIG_DIRECTORY);
                 List<Map<String, JSONObject>> listSchema = getSchemaConfig(SCHEMA_CONFIG_DIRECTORY);
                 //List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
@@ -120,7 +265,7 @@ public class ZkDownload {
 
     //Datanode Config
     public static List<Map<String,JSONObject>> getDatanodeConfig(String configKey)throws Exception {
-        String nodePath = PARENT_PATH + "/" + configKey;
+        String nodePath = CLU_PARENT_PATH + "/" + configKey;
         LOGGER.trace("child path is {}", nodePath);
         List<Map<String,JSONObject>> listServer = new ArrayList<>();
         listServer = getDatanodeConfig(listServer, nodePath);
@@ -153,7 +298,7 @@ public class ZkDownload {
 
     //Schema Config
     public static List<Map<String,JSONObject>> getSchemaConfig(String configKey)throws Exception {
-        String nodePath = PARENT_PATH + "/" + configKey;
+        String nodePath = CLU_PARENT_PATH + "/" + configKey;
         LOGGER.trace("child path is {}", nodePath);
         List<Map<String,JSONObject>> listServer = new ArrayList<>();
         listServer = getSchemaChildConfig(listServer, nodePath);
@@ -177,7 +322,7 @@ public class ZkDownload {
 
     //sequence Config
     public static List<Map<String,JSONObject>> getSequenceNodeConfig(String configKey)throws Exception {
-        String nodePath = PARENT_PATH + "/" + configKey;
+        String nodePath = CLU_PARENT_PATH + "/" + configKey;
         LOGGER.trace("child path is {}", nodePath);
         List<Map<String,JSONObject>> listServer = new ArrayList<>();
         listServer = getSequenceChildConfig(listServer, nodePath);
@@ -217,7 +362,7 @@ public class ZkDownload {
 
     //Server Config
     public static List<Map<String,JSONObject>> getServerNodeConfig(String configKey)throws Exception {
-        String nodePath = PARENT_PATH + "/" + configKey;
+        String nodePath = CLU_PARENT_PATH + "/" + configKey;
         LOGGER.trace("child path is {}", nodePath);
         List<Map<String,JSONObject>> listServer = new ArrayList<>();
         listServer = getServerChildConfig(listServer, nodePath);
@@ -249,8 +394,8 @@ public class ZkDownload {
     }
 
     //DataHost Config
-    public static List<Map<String,JSONObject>> getDataHostNodeConfig(String configKey)throws Exception {
-        String nodePath = PARENT_PATH + "/" + configKey;
+    public static List<Map<String,JSONObject>> getDataHostNodeConfig(String parent_path,String configKey)throws Exception {
+        String nodePath = parent_path + "/" + configKey;
         LOGGER.trace("child path is {}", nodePath);
         List<Map<String,JSONObject>> listServer = new ArrayList<>();
         listServer = getDataHostChildConfig(listServer, nodePath);
@@ -529,7 +674,7 @@ public class ZkDownload {
         /** 建立serverElement根节点 */
         Element serverElement = document.addElement(QName.get("mycat:schema ", "http://org.opencloudb/"));
         for (int i=0;i<mapList.size();i++){
-            int subLength = PARENT_PATH.length()+SCHEMA_CONFIG_DIRECTORY.length()+2;
+            int subLength = CLU_PARENT_PATH.length()+SCHEMA_CONFIG_DIRECTORY.length()+2;
             String SchemaPath = mapList.get(i).keySet().toString().replace("[", "").replace("]", "").trim();
             if (!SchemaPath.substring(subLength,SchemaPath.length()).contains("/")){
                 String schema =SchemaPath.substring(subLength,SchemaPath.length());
@@ -626,8 +771,8 @@ public class ZkDownload {
         processDataNodeDocument(serverElement,listDataNode);
 
         //datahost
-        List<Map<String,JSONObject>> listDataHost = getDataHostNodeConfig(DATAHOST_CONFIG_DIRECTORY);
-        processDatahostDocument(serverElement,listDataHost);
+        List<Map<String,JSONObject>> listDataHost = getDataHostNodeConfig(CLU_PARENT_PATH,DATAHOST_CONFIG_DIRECTORY);
+        processMysqlRepDocument(serverElement, listDataHost);
         json2XmlFile(document,"schema.xml");
     }
 
@@ -635,7 +780,7 @@ public class ZkDownload {
     //Datahost.xml
     public static void processDatahostDocument(Element serverElement,List<Map<String,JSONObject>> mapList){
         for (int i=0;i<mapList.size();i++){
-        int subLength = PARENT_PATH.length()+DATAHOST_CONFIG_DIRECTORY.length()+2;
+        int subLength = CLU_PARENT_PATH.length()+DATAHOST_CONFIG_DIRECTORY.length()+2;
         String datahostName = mapList.get(i).keySet().toString().replace("[", "").replace("]", "").trim();
         if (!datahostName.substring(subLength,datahostName.length()).contains("/")){
             String key =datahostName.substring(subLength,datahostName.length());
