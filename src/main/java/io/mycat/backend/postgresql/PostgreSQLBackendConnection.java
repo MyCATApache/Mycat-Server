@@ -266,7 +266,7 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 
 	@Override
 	public boolean syncAndExcute() {
-		return false;
+		return true;
 	}
 
 	@Override
