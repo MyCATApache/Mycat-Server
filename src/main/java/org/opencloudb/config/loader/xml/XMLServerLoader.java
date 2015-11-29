@@ -144,7 +144,7 @@ public class XMLServerLoader {
         }
         quarantine.setWhitehost(whitehost);
         
-        NodeList sqlNodes = root.getElementsByTagName("sqllist");
+        /*NodeList sqlNodes = root.getElementsByTagName("sqllist");
         List<String> blacklist = new LinkedList<String>();
         for (int i = 0, n = sqlNodes.getLength(); i < n; i++) {
             Node node = sqlNodes.item(i);
@@ -154,9 +154,8 @@ public class XMLServerLoader {
                 blacklist.add(sql);
             }
         }
-        quarantine.setBlacklist(blacklist);
+        quarantine.setBlacklist(blacklist);*/
         
-        quarantine.init();
     }
 
     private void loadUsers(Element root) {
