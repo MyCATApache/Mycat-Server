@@ -50,7 +50,7 @@ public final class QuarantineConfig {
     
     public QuarantineConfig() { }
     
-    public void init(){
+    /*public void init(){
     	WallContext wallContext = WallContext.createIfNotExists("mysql");
     	if(provider==null){
     		provider = new MySqlWallProvider();
@@ -60,7 +60,7 @@ public final class QuarantineConfig {
     	for(String sql : blacklist){
         	provider.addBlackSql(sql, wallContext.getTableStats(), wallContext.getFunctionStats(), violations, true);
     	}
-    }
+    }*/
     
     public WallProvider getWallProvider(){
     	return provider;
