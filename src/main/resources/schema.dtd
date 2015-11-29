@@ -65,8 +65,9 @@
 
 <!ELEMENT writeHost (readHost)*>
 <!ATTLIST writeHost
-  host NMTOKEN #REQUIRED
+  usingDecrypt CDATA #REQUIRED
   url CDATA #REQUIRED
+  host NMTOKEN #REQUIRED
   password CDATA #REQUIRED
   user NMTOKEN #REQUIRED>
 

@@ -26,12 +26,17 @@ package org.opencloudb.config.loader.xml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
+import org.opencloudb.MycatConfig;
+import org.opencloudb.MycatServer;
 import org.opencloudb.config.model.ClusterConfig;
 import org.opencloudb.config.model.QuarantineConfig;
 import org.opencloudb.config.model.SystemConfig;
@@ -39,6 +44,7 @@ import org.opencloudb.config.model.UserConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.config.util.ConfigUtil;
 import org.opencloudb.config.util.ParameterMapping;
+import org.opencloudb.util.DecryptUtil;
 import org.opencloudb.util.SplitUtil;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -110,38 +116,47 @@ public class XMLServerLoader {
 
     private void loadQuarantine(Element root) {
         NodeList list = root.getElementsByTagName("host");
+        Map<String, List<UserConfig>> whitehost = new HashMap<String, List<UserConfig>>();
+
         for (int i = 0, n = list.getLength(); i < n; i++) {
             Node node = list.item(i);
             if (node instanceof Element) {
                 Element e = (Element) node;
-                String host = e.getAttribute("name").trim();
-                if (quarantine.getHosts().containsKey(host)) {
+                String host = e.getAttribute("host").trim();
+                String userStr = e.getAttribute("user").trim();
+                if (this.quarantine.existsHost(host)) {
                     throw new ConfigException("host duplicated : " + host);
                 }
-
-                Map<String, Object> props = ConfigUtil.loadElements(e);
-                String[] users = SplitUtil.split((String) props.get("user"), ',', true);
-                HashSet<String> set = new HashSet<String>();
-                if (null != users) {
-                    for (String user : users) {
-                        UserConfig uc = this.users.get(user);
-                        if (null == uc) {
-                            throw new ConfigException("[user: " + user + "] doesn't exist in [host: " + host + "]");
-                        }
-
-                        if (null == uc.getSchemas() || uc.getSchemas().size() == 0) {
-                            throw new ConfigException("[host: " + host + "] contains one root privileges user: " + user);
-                        }
-                        if (set.contains(user)) {
-                            throw new ConfigException("[host: " + host + "] contains duplicate user: " + user);
-                        } else {
-                            set.add(user);
-                        }
+                String []users = userStr.split(",");
+                List<UserConfig> userConfigs = new ArrayList<UserConfig>();
+                for(String user : users){
+                	UserConfig uc = this.users.get(user);
+                    if (null == uc) {
+                        throw new ConfigException("[user: " + user + "] doesn't exist in [host: " + host + "]");
                     }
+                    if (uc.getSchemas() == null || uc.getSchemas().size() == 0) {
+                        throw new ConfigException("[host: " + host + "] contains one root privileges user: " + user);
+                    }
+                    userConfigs.add(uc);
                 }
-                quarantine.getHosts().put(host, set);
+                whitehost.put(host, userConfigs);
             }
         }
+        quarantine.setWhitehost(whitehost);
+        
+        NodeList sqlNodes = root.getElementsByTagName("sqllist");
+        List<String> blacklist = new LinkedList<String>();
+        for (int i = 0, n = sqlNodes.getLength(); i < n; i++) {
+            Node node = sqlNodes.item(i);
+            if (node instanceof Element) {
+                Element e = (Element) node;
+                String sql = e.getAttribute("sql").trim();
+                blacklist.add(sql);
+            }
+        }
+        quarantine.setBlacklist(blacklist);
+        
+        quarantine.init();
     }
 
     private void loadUsers(Element root) {
@@ -152,9 +167,13 @@ public class XMLServerLoader {
                 Element e = (Element) node;
                 String name = e.getAttribute("name");
                 UserConfig user = new UserConfig();
-                user.setName(name);
                 Map<String, Object> props = ConfigUtil.loadElements(e);
-				user.setPassword((String) props.get("password"));
+                String password = (String)props.get("password");
+                String usingDecrypt = (String)props.get("usingDecrypt");
+                String passwordDecrypt = DecryptUtil.mycatDecrypt(usingDecrypt,name,password);
+                user.setName(name);
+                user.setPassword(passwordDecrypt);
+                user.setEncryptPassword(password);
 				
 				String benchmark = (String) props.get("benchmark");
 				if(null != benchmark) {

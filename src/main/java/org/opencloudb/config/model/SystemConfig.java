@@ -600,11 +600,12 @@ public final class SystemConfig {
 				+ ", sqlInterceptor=" + sqlInterceptor
 				+ ", sqlInterceptorType=" + sqlInterceptorType
 				+ ", sqlInterceptorFile=" + sqlInterceptorFile
-				+ ", mutiNodeLimitType="
-				+ mutiNodeLimitType + ", mutiNodePatchSize="
-				+ mutiNodePatchSize + ", defaultSqlParser=" + defaultSqlParser
-				+ ", usingAIO=" + usingAIO + ", packetHeaderSize="
-				+ packetHeaderSize + ", maxPacketSize=" + maxPacketSize
+				+ ", mutiNodeLimitType=" + mutiNodeLimitType 
+				+ ", mutiNodePatchSize=" + mutiNodePatchSize 
+				+ ", defaultSqlParser=" + defaultSqlParser
+				+ ", usingAIO=" + usingAIO 
+				+ ", packetHeaderSize=" + packetHeaderSize 
+				+ ", maxPacketSize=" + maxPacketSize
 				+ ", mycatNodeId=" + mycatNodeId + "]";
 	}
 

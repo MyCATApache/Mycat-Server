@@ -27,9 +27,16 @@
 <!ELEMENT group (property) >
 <!ATTLIST group name NMTOKEN #REQUIRED>
 
-<!ELEMENT quarantine (host+) >
+<!ELEMENT quarantine (whitehost*,blacklist*) >
+<!ELEMENT whitehost (host*)>
+<!ELEMENT blacklist (sqllist*)>
 <!ELEMENT host (property*)>
-<!ATTLIST host name NMTOKEN #REQUIRED>
+<!ELEMENT sqllist (property*)>
+<!ATTLIST host 
+   host CDATA #REQUIRED
+   user CDATA #REQUIRED
+   >
+<!ATTLIST sqllist sql CDATA #REQUIRED>
 
 <!ELEMENT property (#PCDATA | bean)*>
 <!ATTLIST property name NMTOKEN #REQUIRED>
