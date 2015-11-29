@@ -35,11 +35,13 @@ import org.opencloudb.config.model.DBHostConfig;
 import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.config.model.DataNodeConfig;
 import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.config.model.TableConfigMap;
 import org.opencloudb.config.model.rule.TableRuleConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.config.util.ConfigUtil;
+import org.opencloudb.util.DecryptUtil;
 import org.opencloudb.util.SplitUtil;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -556,6 +558,8 @@ public class XMLSchemaLoader implements SchemaLoader {
 		String nodeUrl = node.getAttribute("url");
 		String user = node.getAttribute("user");
 		String password = node.getAttribute("password");
+		String usingDecrypt = node.getAttribute("usingDecrypt");
+		String passwordEncryty= DecryptUtil.DBHostDecrypt(usingDecrypt, nodeHost, user, password);
 		
 		String weightStr = node.getAttribute("weight");
 		int weight = "".equals(weightStr) ? PhysicalDBPool.WEIGHT : Integer.valueOf(weightStr) ;
@@ -584,7 +588,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			port = url.getPort();
 		}
 
-		DBHostConfig conf = new DBHostConfig(nodeHost, ip, port, nodeUrl, user, password);
+		DBHostConfig conf = new DBHostConfig(nodeHost, ip, port, nodeUrl, user, passwordEncryty,password);
 		conf.setDbType(dbType);
 		conf.setMaxCon(maxCon);
 		conf.setMinCon(minCon);

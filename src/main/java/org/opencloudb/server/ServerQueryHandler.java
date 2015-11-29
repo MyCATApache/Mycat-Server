@@ -73,6 +73,7 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 			ShowHandler.handle(sql, c, rs >>> 8);
 			break;
 		case ServerParse.SELECT:
+			QuarantineHandler.handle(sql, c);
 			SelectHandler.handle(sql, c, rs >>> 8);
 			break;
 		case ServerParse.START:
@@ -89,8 +90,7 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 			break;
 		case ServerParse.KILL_QUERY:
 			LOGGER.warn(new StringBuilder().append("Unsupported command:").append(sql).toString());
-			c.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
-					"Unsupported command");
+			c.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,"Unsupported command");
 			break;
 		case ServerParse.USE:
 			UseHandler.handle(sql, c, rs >>> 8);
@@ -120,6 +120,7 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 				c.writeErrMessage(ErrorCode.ER_USER_READ_ONLY, "User readonly");
 				break;
 			}
+			QuarantineHandler.handle(sql, c);
 			c.execute(sql, rs & 0xff);
 		}
 	}

@@ -31,7 +31,8 @@ import java.util.Set;
 public class UserConfig {
 
     private String name;
-    private String password;
+    private String password;//明文
+    private String encryptPassword; //密文
     private int benchmark = 0;		// 负载限制, 默认0表示不限制
     private String benchmarkSmsTel;
     
@@ -83,7 +84,15 @@ public class UserConfig {
         return schemas;
     }
 
-    public void setSchemas(Set<String> schemas) {
+	public String getEncryptPassword() {
+		return this.encryptPassword;
+	}
+
+	public void setEncryptPassword(String encryptPassword) {
+		this.encryptPassword = encryptPassword;
+	}
+
+	public void setSchemas(Set<String> schemas) {
         this.schemas = schemas;
     }
 

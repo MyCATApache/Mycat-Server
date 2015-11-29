@@ -21,26 +21,30 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.config.loader;
+package org.opencloudb.server.handler;
 
-import java.util.Map;
-
-import org.opencloudb.config.model.DataHostConfig;
-import org.opencloudb.config.model.DataNodeConfig;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.config.model.rule.TableRuleConfig;
+import org.opencloudb.server.ServerConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * @author mycat
+ * @author songwie
  */
-public interface SchemaLoader {
-    Map<String, TableRuleConfig> getTableRules();
+public final class QuarantineHandler {
 
-    Map<String, DataHostConfig> getDataHosts();
-
-    Map<String, DataNodeConfig> getDataNodes();
-
-    Map<String, SchemaConfig> getSchemas();
+	private static Logger logger = LoggerFactory.getLogger(QuarantineHandler.class);
+	
+	public static void handle(String sql, ServerConnection c) {
+		/*MycatConfig config = MycatServer.getInstance().getConfig();
+		QuarantineConfig qc = config.getQuarantine();
+		WallProvider wall = qc.getWallProvider();
+		WallCheckResult result = wall.check(sql);
+		if (result.getViolations().size() > 0) {
+            Violation violation = result.getViolations().get(0);
+            logger.warn("found sql quarantine," + violation.getMessage());
+            c.writeErrMessage(ErrorCode.ERR_WRONG_USED, "found sql quarantine," + violation.getMessage());
+        }*/
+		 
+	}
 
 }
