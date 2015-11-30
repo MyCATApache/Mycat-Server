@@ -185,11 +185,16 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	private void backConnectionErr(ErrorPacket errPkg, BackendConnection conn) {
 		endRunning();
+		
+		ServerConnection source = session.getSource();
+		String errHost = source.getHost();
+		int errPort = source.getPort();
+		
 		String errmgs = " errno:" + errPkg.errno + " "
 				+ new String(errPkg.message);
-		LOGGER.warn("execute  sql err :" + errmgs + " con:" + conn);
+		LOGGER.warn("execute  sql err :" + errmgs + " con:" + conn + " frontend host:" + errHost + "/" + errPort);
 		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
-		ServerConnection source = session.getSource();
+		
 		source.setTxInterrupt(errmgs);
 		errPkg.write(source);
 		recycleResources();
