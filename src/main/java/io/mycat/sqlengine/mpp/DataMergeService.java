@@ -218,7 +218,7 @@ public class DataMergeService implements Runnable {
 	public boolean onNewRecord(String dataNode, byte[] rowData) {
 		try {
 			// 对于无需排序的SQL,取前getLimitSize条就足够
-			if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()) {
+			if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()&& rrs.getLimitSize()!=-1) {
 				packs.add(END_FLAG_PACK);
 				return true;
 			}
