@@ -24,51 +24,52 @@ public class MaxHeap implements HeapItf {
 	public void buildHeap() {
 		int len = data.size();
 		for (int i = len / 2 - 1; i >= 0; i--) {
-			heapify(i, len);
+            heapifyRecursive(i, len);
 		}
 	}
 
-	private void heapify(int i, int size) {
-		int max = 0;
-		int mid = size >> 1;// ==size/2
-		while (i <= mid) {
-			max = i;
-			int left = i << 1;
-			int right = left + 1;
-			if (left < size && cmp.compare(data.get(left), data.get(i)) > 0) {
-				max = left;
-			}
-			if (right < size && cmp.compare(data.get(right), data.get(max)) > 0) {
-				max = right;
-			}
-			if (i == max)
-				break;
-			if (i != max) {
-				RowDataPacket tmp = data.get(i);
-				data.set(i, data.get(max));
-				data.set(max, tmp);
-				i = max;
-			}
-		}
+    private void heapify(int i, int size) {
+        int max = 0;
+        int mid = size >> 1;// ==size/2
+        while (i <= mid) {
+            max = i;
+            int left = i << 1;
+            int right = left + 1;
+            if (left < size && cmp.compare(data.get(left), data.get(i)) > 0) {
+                max = left;
+            }
+            if (right < size && cmp.compare(data.get(right), data.get(max)) > 0) {
+                max = right;
+            }
+            if (i == max)
+                break;
+            if (i != max) {
+                RowDataPacket tmp = data.get(i);
+                data.set(i, data.get(max));
+                data.set(max, tmp);
+                i = max;
+            }
+        }
 
-	}
+    }
 
-	// 递归版本
-	protected void heapifyRecursive(int i, int size) {
-		int l = left(i);
-		int r = right(i);
-		int max = i;
-		if (l < size && cmp.compare(data.get(l), data.get(i)) > 0)
-			max = l;
-		if (r < size && cmp.compare(data.get(r), data.get(max)) > 0)
-			max = r;
-		if (i == max)
-			return;
-		swap(i, max);
-		heapify(max, size);
-	}
+    // 递归版本
+    protected void heapifyRecursive(int i, int size) {
+        int l = left(i);
+        int r = right(i);
+        int max = i;
+        if (l < size && cmp.compare(data.get(l), data.get(i)) > 0)
+            max = l;
+        if (r < size && cmp.compare(data.get(r), data.get(max)) > 0)
+            max = r;
+        if (i == max)
+            return;
+        swap(i, max);
+        heapifyRecursive(max, size);
+    }
 
-	private int right(int i) {
+
+    private int right(int i) {
 		return (i + 1) << 1;
 	}
 
@@ -91,7 +92,7 @@ public class MaxHeap implements HeapItf {
 	@Override
 	public void setRoot(RowDataPacket root) {
 		data.set(0, root);
-		heapify(0, data.size());
+        heapifyRecursive(0, data.size());
 	}
 
 	@Override
@@ -127,7 +128,7 @@ public class MaxHeap implements HeapItf {
 		// 末尾与头交换，交换后调整最大堆
 		for (int i = total - 1; i > min; i--) {
 			swap(0, i);
-			heapify(0, i);
+            heapifyRecursive(0, i);
 		}
 	}
 
