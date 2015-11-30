@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.backend.heartbeat.DBHeartbeat;
+import io.mycat.backend.postgresql.heartbeat.PostgreSQLHeartbeat;
 import io.mycat.server.config.node.DBHostConfig;
 import io.mycat.server.config.node.DataHostConfig;
 import io.mycat.server.executors.ResponseHandler;
