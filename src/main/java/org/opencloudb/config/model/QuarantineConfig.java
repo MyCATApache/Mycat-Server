@@ -82,7 +82,7 @@ public final class QuarantineConfig {
 		return this.whitehost==null ? false : whitehost.get(host)!=null ;
 	}
 	public boolean canConnect(String host,String user) {
-		if(whitehost==null){
+		if(whitehost==null || whitehost.size()==0){
 			MycatConfig config = MycatServer.getInstance().getConfig();
 			Map<String, UserConfig> users = config.getUsers();
 			return users.containsKey(user);
