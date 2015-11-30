@@ -1,20 +1,20 @@
 package demo.catlets;
 
-import com.alibaba.fastjson.JSON;
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.data.Stat;
-import org.opencloudb.config.ZkConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
-import java.io.InputStream;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import com.alibaba.fastjson.JSON;
 
 /**
  * Created by v1.lion on 2015/10/7.
@@ -56,47 +56,37 @@ public class ZkCreate {
 
     public static void main(String[] args) {
 
-        ZkConfig zkConfig1 = new ZkConfig();
-        zkConfig1.isUsedZk();
-        if (zkConfig1.getZkUrl() != null && zkConfig1.getZkID()!=null&& zkConfig1.getZkPort()!=null&& zkConfig1.getZkClu()!=null) {
-            //upload data to zk,only use in init data...
-            boolean zkcreate = ZkCreate.init(zkConfig1.getZkUrl(), zkConfig1.getZkPort(), zkConfig1.getZkClu(), zkConfig1.getZkID());
-            if (!zkcreate)
-                System.exit(1);
-        }
+    	boolean zkcreate = ZkCreate.init();
+        if (!zkcreate)
+            System.exit(1);
 
     }
 
     //process zkcreate
-    public static boolean init(String zkUrl,String zkPort,String zkClu,String zkID){
+    public static boolean init( ){
         LOGGER.info("-----start zkcreate-----");
         zkConfig = loadZkConfig();
-        if (!zkConfig.get("zkUrl").toString().equals(zkUrl+":"+zkPort)||!zkConfig.get("zkClu").toString().equals(zkClu)||!zkConfig.get("zkID").toString().equals(zkID)
-                ||zkConfig.get("zkZone")==null){
-            LOGGER.trace("zk config is not match, please check it!!");
-            return false;
-        }else {
-            ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
+        
+        ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
 
-            CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
-            LOGGER.info("parent path is {}", CLU_PARENT_PATH);
-            framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
+        CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
+        LOGGER.info("parent path is {}", CLU_PARENT_PATH);
+        framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
 
-            createConfig(CLU_PARENT_PATH,CONFIG_DATANODE_KEY, true, DATANODE_CONFIG_DIRECTORY);
-            createConfig(CLU_PARENT_PATH,CONFIG_SYSTEM_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
-            createConfig(CLU_PARENT_PATH,CONFIG_USER_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
-            createConfig(CLU_PARENT_PATH,CONFIG_SEQUENCE_KEY, true, SEQUENCE_CONFIG_DIRECTORY);
-            createConfig(CLU_PARENT_PATH,CONFIG_SCHEMA_KEY, true, SCHEMA_CONFIG_DIRECTORY);
-            createConfig(CLU_PARENT_PATH,CONFIG_DATAHOST_KEY, true, DATAHOST_CONFIG_DIRECTORY);
-            createConfig(CLU_PARENT_PATH,CONFIG_RULE_KEY, false, RULE_CONFIG_DIRECTORY);
+        createConfig(CLU_PARENT_PATH,CONFIG_DATANODE_KEY, true, DATANODE_CONFIG_DIRECTORY);
+        createConfig(CLU_PARENT_PATH,CONFIG_SYSTEM_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
+        createConfig(CLU_PARENT_PATH,CONFIG_USER_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
+        createConfig(CLU_PARENT_PATH,CONFIG_SEQUENCE_KEY, true, SEQUENCE_CONFIG_DIRECTORY);
+        createConfig(CLU_PARENT_PATH,CONFIG_SCHEMA_KEY, true, SCHEMA_CONFIG_DIRECTORY);
+        createConfig(CLU_PARENT_PATH,CONFIG_DATAHOST_KEY, true, DATAHOST_CONFIG_DIRECTORY);
+        createConfig(CLU_PARENT_PATH,CONFIG_RULE_KEY, false, RULE_CONFIG_DIRECTORY);
 
-            createConfig(ZONE_PARENT_PATH,CONFIG_MYSQLREP_KEY, false, MYSQLREP_CONFIG_DIRECTORY);
-            LOGGER.info("parent path is {}", ZONE_PARENT_PATH);
+        createConfig(ZONE_PARENT_PATH,CONFIG_MYSQLREP_KEY, false, MYSQLREP_CONFIG_DIRECTORY);
+        LOGGER.info("parent path is {}", ZONE_PARENT_PATH);
 
-            createConfig(ZONE_PARENT_PATH,CONFIG_MYCATLB_KEY, false, MYCATLB_CONFIG_DIRECTORY);
+        createConfig(ZONE_PARENT_PATH,CONFIG_MYCATLB_KEY, false, MYCATLB_CONFIG_DIRECTORY);
 
-            return true;
-        }
+        return true;
     }
 
     private static void createConfig(String parent_path,String configKey, boolean filterInnerMap, String... configDirectory) {
@@ -158,7 +148,8 @@ public class ZkCreate {
         }
     }
 
-    private static Map<String, Object> loadZkConfig() {
+    @SuppressWarnings("unchecked")
+	private static Map<String, Object> loadZkConfig() {
         InputStream configIS = ZkCreate.class.getResourceAsStream(ZK_CONFIG_FILE_NAME);
         if (configIS == null) {
             throw new RuntimeException("can't find zk properties file : " + ZK_CONFIG_FILE_NAME);
