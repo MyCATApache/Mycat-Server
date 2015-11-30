@@ -80,7 +80,7 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	// 已经认证通过
 	private boolean isAuthenticated;
 
-	private boolean metaDataSyned;
+	private volatile boolean metaDataSyned = true;
 
 	private volatile StatusSync statusSync;
 
@@ -313,6 +313,10 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 		metaDataSyned = false;
 		statusSync = new StatusSync(xaCmd != null, conSchema, clientCharSetIndex, clientTxIsoLation, expectAutocommit,
 				synCount);
+		Query query = new Query(rrn.getStatement());
+		ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
+		query.write(buf);
+		this.write(buf);
 	}
 
 	@Override
@@ -347,7 +351,11 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	public void onReadData(int got) throws IOException {
 		LOGGER.debug("能读取 {} 长度的数据包", got);
 		this.handler.handle(this, getReadBuffer(), 0, got);
-		getReadBuffer().clear();// 使用完成后清理
+		if(getReadBuffer()!=null){
+			getReadBuffer().clear();// 使用完成后清理
+		}else{
+			System.err.println("getReadBuffer()为空");
+		}
 	}
 
 	public void setServerSecretKey(int serverSecretKey) {
