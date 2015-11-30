@@ -187,12 +187,13 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		endRunning();
 		
 		ServerConnection source = session.getSource();
+		String errUser = source.getUser();
 		String errHost = source.getHost();
 		int errPort = source.getPort();
 		
 		String errmgs = " errno:" + errPkg.errno + " "
 				+ new String(errPkg.message);
-		LOGGER.warn("execute  sql err :" + errmgs + " con:" + conn + " frontend host:" + errHost + "/" + errPort);
+		LOGGER.warn("execute  sql err :" + errmgs + " con:" + conn + " frontend host:" + errHost + "/" + errPort + "/" + errUser);
 		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
 		
 		source.setTxInterrupt(errmgs);
