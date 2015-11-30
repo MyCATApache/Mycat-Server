@@ -12,6 +12,6 @@ public class ZkConfig {
 		return new ZkConfig();
 	}
     public void initZk(){
-    	//ZkCreate.main(null);
+    	ZkCreate.main(null);
     }
 }

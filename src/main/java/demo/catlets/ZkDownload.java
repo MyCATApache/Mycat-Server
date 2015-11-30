@@ -1,12 +1,30 @@
 package demo.catlets;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.ZKPaths;
-import org.dom4j.*;
+import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.dom4j.QName;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
 import org.opencloudb.config.model.SystemConfig;
@@ -14,9 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
-import java.io.*;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 
 /**
  * aStoneGod 2015.11
@@ -37,7 +54,7 @@ public class ZkDownload {
     private static final String CONFIG_ZONE_KEY = "zkZone";
     private static final String CONFIG_URL_KEY = "zkUrl";
     private static final String CONFIG_CLUSTER_KEY = "zkClu";
-    private static final String CONFIG_CLUSTER_ID = "zkID";
+    private static final String CONFIG_MYCAT_ID = "zkID";
     private static final String CONFIG_SYSTEM_KEY = "system";
     private static final String CONFIG_USER_KEY = "user";
     private static final String CONFIG_DATANODE_KEY = "datanode";
@@ -51,6 +68,7 @@ public class ZkDownload {
 
     private static String CLU_PARENT_PATH;
     private static String ZONE_PARENT_PATH;
+    private static String SERVER_PARENT_PATH;
 
 
     private static CuratorFramework framework;
@@ -59,8 +77,44 @@ public class ZkDownload {
 
 
     public static void main(String[] args) throws Exception {
-
         init();
+    }
+
+    public static boolean init()  {
+        LOGGER.info("start zkdownload to local xml");
+        zkConfig = loadZkConfig();
+        
+        ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
+        CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)));
+        SERVER_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_MYCAT_ID))));
+        LOGGER.trace("parent path is {}", CLU_PARENT_PATH);
+        framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
+        try {
+        	boolean exitsZk = isHavingConfig();
+        	if(exitsZk){
+        		List<Map<String, JSONObject>> listDataNode = getDatanodeConfig(DATANODE_CONFIG_DIRECTORY);
+                List<Map<String, JSONObject>> listDataHost = getDataHostNodeConfig(CLU_PARENT_PATH,DATAHOST_CONFIG_DIRECTORY);
+                List<Map<String, JSONObject>> listServer = getServerNodeConfig(SERVER_CONFIG_DIRECTORY);
+                List<Map<String, JSONObject>> listSchema = getSchemaConfig(SCHEMA_CONFIG_DIRECTORY);
+                //List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
+                List<Map<String, JSONObject>> listRule = getServerNodeConfig(RULE_CONFIG_DIRECTORY);
+
+                //生成SERVER XML
+                processServerDocument(listServer);
+
+                //生成SCHEMA XML
+                processSchemaDocument(listSchema);
+
+                //生成RULE XML
+                processRuleDocument(listRule);
+        	}else{
+        		return false;
+        	}
+        }catch (Exception e) {
+        	LOGGER.warn("start zkdownload to local error,",e);
+        }
+        
+        return true;
     }
 
     public static Set<Map<String,JSONObject>> getMysqlRep(List<Map<String, JSONObject>> listMysqlRep,String trepid) throws Exception {
@@ -158,39 +212,7 @@ public class ZkDownload {
         }
        // json2XmlFile(document,"mysqlrep.xml");
     }
-
-
-    public static boolean init() throws Exception {
-        LOGGER.info("-----start zkdownload to local xml-----");
-        zkConfig = loadZkConfig();
-        
-        ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
-        CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)+"/"+String.valueOf(zkConfig.get(CONFIG_CLUSTER_ID))));
-        LOGGER.trace("parent path is {}", CLU_PARENT_PATH);
-        framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
-        try {
-            List<Map<String, JSONObject>> listDataNode = getDatanodeConfig(DATANODE_CONFIG_DIRECTORY);
-            List<Map<String, JSONObject>> listDataHost = getDataHostNodeConfig(CLU_PARENT_PATH,DATAHOST_CONFIG_DIRECTORY);
-            List<Map<String, JSONObject>> listServer = getServerNodeConfig(SERVER_CONFIG_DIRECTORY);
-            List<Map<String, JSONObject>> listSchema = getSchemaConfig(SCHEMA_CONFIG_DIRECTORY);
-            //List<Map<String,JSONObject>> listSequence  = getSequenceNodeConfig(SEQUENCE_CONFIG_DIRECTORY);
-            List<Map<String, JSONObject>> listRule = getServerNodeConfig(RULE_CONFIG_DIRECTORY);
-
-            //生成SERVER XML
-            processServerDocument(listServer);
-
-            //生成SCHEMA XML
-            processSchemaDocument(listSchema);
-
-            //生成RULE XML
-            processRuleDocument(listRule);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-        return true;
-    }
-
+    
     //config txt file
     public static void conf2File(String fileName,String config) {
         BufferedWriter fw = null;
@@ -220,6 +242,24 @@ public class ZkDownload {
         }
     }
 
+    //zk Config
+    public static boolean isHavingConfig()throws Exception {
+        String nodePath = CLU_PARENT_PATH ;
+        LOGGER.trace("child path is {}", nodePath);
+        List list = null;
+        try {
+            list  = framework.getChildren().forPath(nodePath);
+		} catch(NoNodeException e){
+        	LOGGER.warn("remote zk center not exists node :" + nodePath  );
+        	return false;
+        }
+        if(list!=null && list.size()>0){
+        	return true;
+        }
+
+        return false;
+    }
+    
     //Datanode Config
     public static List<Map<String,JSONObject>> getDatanodeConfig(String configKey)throws Exception {
         String nodePath = CLU_PARENT_PATH + "/" + configKey;
@@ -851,7 +891,8 @@ public class ZkDownload {
 
 
 
-    private static Map<String, Object> loadZkConfig() {
+    @SuppressWarnings("unchecked")
+	private static Map<String, Object> loadZkConfig() {
         InputStream configIS = ZkDownload.class.getResourceAsStream(ZK_CONFIG_FILE_NAME);
         if (configIS == null) {
             throw new RuntimeException("can't find zk properties file : " + ZK_CONFIG_FILE_NAME);
