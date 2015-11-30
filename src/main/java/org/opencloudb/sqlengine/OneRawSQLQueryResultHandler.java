@@ -13,7 +13,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	private final SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callback;
 	private final String[] fetchCols;
 	private int fieldCount = 0;
-	private Map<String, String> result ;
+	private Map<String, String> result = new HashMap<String, String>();;
 	public OneRawSQLQueryResultHandler(String[] fetchCols,
 			SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callBack) {
 
@@ -42,7 +42,6 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	public boolean onRowData(String dataNode, byte[] rowData) {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 		rowDataPkg.read(rowData);
-		result = new HashMap<String, String>();
 		String variableName = "";
 		String variableValue = "";
 		
