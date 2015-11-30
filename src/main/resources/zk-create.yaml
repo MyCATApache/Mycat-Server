@@ -1,6 +1,7 @@
-zkUrl : 192.168.31.196:2181
+zkUrl : 121.40.121.133:4181
 zkZone : mycat-zone100
 zkClu : cluster
+zkLb : lb-cluster1
 zkID : 3
 system:
   defaultsqlparser : druidparser
