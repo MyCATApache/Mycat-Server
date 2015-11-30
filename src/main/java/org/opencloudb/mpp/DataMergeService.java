@@ -183,7 +183,7 @@ public class DataMergeService implements Runnable {
 	 */
 	public boolean onNewRecord(String dataNode, byte[] rowData) {
 		// 对于无需排序的SQL,取前getLimitSize条就足够
-		if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()) {
+		if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()&& rrs.getLimitSize()!=-1) {
 			return true;
 		}
 		// 对于需要排序的数据,由于mysql传递过来的数据是有序的,
