@@ -77,7 +77,7 @@ public class DecryptUtil {
        		    throw new ConfigException("user " + user + " passwrod need to decrype ,but decrype password is wrong !",e2);
 			}
 		}
-		return user;
+		return passwrod;
 	}
 	public static String DBHostDecrypt(String usingDecrypt,String host,String user ,String passwrod){
 		if("1".equals(usingDecrypt)){
@@ -96,7 +96,7 @@ public class DecryptUtil {
        		    throw new ConfigException("host " + host + ",user " + user + " passwrod need to decrype ,but decrype password is wrong !",e2);
 			}
 		}
-		return user;
+		return passwrod;
 	}
 	
 
