@@ -298,6 +298,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			int start = rrs.getLimitStart();
 			int end = start + rrs.getLimitSize();
 
+                        if (start < 0)
+				start = 0;
+
+			if (rrs.getLimitSize() < 0)
+				end = results.size();
+				
 			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
 			if (rrs.getOrderByCols() == null) {
 				end = results.size();
