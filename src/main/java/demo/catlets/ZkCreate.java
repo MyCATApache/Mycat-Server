@@ -1,10 +1,6 @@
 package demo.catlets;
 
-import java.io.InputStream;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.alibaba.fastjson.JSON;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -14,7 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
-import com.alibaba.fastjson.JSON;
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by v1.lion on 2015/10/7.
@@ -23,6 +22,12 @@ public class ZkCreate {
     private static final String ZK_CONFIG_FILE_NAME = "/zk-create.yaml";
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkCreate.class);
 
+    private static final String MYCATZONE_CONFIG_DIRECTORY = "mycat-zones-config";
+    private static final String MYCATHOST_CONFIG_DIRECTORY = "mycat-hosts-config";
+    private static final String MYCATNODE_CONFIG_DIRECTORY = "mycat-nodes-config";
+    private static final String MYCATLB_CONFIG_DIRECTORY = "mycatlbs-config";
+    private static final String MYCATMYSQLS_CONFIG_DIRECTORY = "mycat-mysqls-config";
+    private static final String MYCATMYSQL_GROUP_CONFIG_DIRECTORY = "mycat-mysqlgroup-config";
     private static final String SERVER_CONFIG_DIRECTORY = "server-config";
     private static final String DATANODE_CONFIG_DIRECTORY = "datanode-config";
     private static final String RULE_CONFIG_DIRECTORY = "rule-config";
@@ -30,10 +35,16 @@ public class ZkCreate {
     private static final String SCHEMA_CONFIG_DIRECTORY = "schema-config";
     private static final String DATAHOST_CONFIG_DIRECTORY = "datahost-config";
     private static final String MYSQLREP_CONFIG_DIRECTORY = "mysqlrep-config";
-    private static final String MYCATLB_CONFIG_DIRECTORY = "mycatlb-config";
 
 
-    private static final String CONFIG_ZONE_KEY = "zkZone";
+    private static final String CONFIG_MYCAT_KEY = "zkZone";
+    private static final String CONFIG_MYCATZONE_KEY = "mycat-zones";
+    private static final String CONFIG_MYCATHOST_KEY = "mycat-hosts";
+    private static final String CONFIG_MYCATNODE_KEY = "mycat-nodes";
+    private static final String CONFIG_MYCATMYSQLS_KEY = "mycat-mysqls";
+    private static final String CONFIG_MYCATMYSQL_GROUP_KEY = "mycat-mysqlgroup";
+    private static final String CONFIG_MYSQLREP_KEY = "mysqlrep";
+    private static final String CONFIG_MYCATLB_KEY = "mycat-lbs";
     private static final String CONFIG_URL_KEY = "zkUrl";
     private static final String CONFIG_CLUSTER_KEY = "zkClu";
     private static final String CONFIG_CLUSTER_ID = "zkID";
@@ -45,8 +56,7 @@ public class ZkCreate {
     private static final String CONFIG_SEQUENCE_KEY = "sequence";
     private static final String CONFIG_SCHEMA_KEY = "schema";
     private static final String CONFIG_DATAHOST_KEY = "datahost";
-    private static final String CONFIG_MYSQLREP_KEY = "mysqlrep";
-    private static final String CONFIG_MYCATLB_KEY = "mycatlb";
+
 
 
     private static String CLU_PARENT_PATH;
@@ -57,10 +67,25 @@ public class ZkCreate {
     private static Map<String, Object> zkConfig;
     
     public static void main(String[] args) {
+//
+//    	boolean zkcreate = ZkCreate.init();
+//        if (!zkcreate)
+//            System.exit(1);
+        LOGGER.info("start zkcreate ");
+        zkConfig = loadZkConfig();
+        LOGGER.info("need to zkcreate  to remote center ");
+        ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_MYCAT_KEY)));
 
-    	boolean zkcreate = ZkCreate.init();
-        if (!zkcreate)
-            System.exit(1);
+        CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)));
+        LOGGER.info("parent path is {}", CLU_PARENT_PATH);
+        framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
+
+        createConfig(ZONE_PARENT_PATH,CONFIG_MYCATZONE_KEY, true, MYCATZONE_CONFIG_DIRECTORY);
+        createConfig(ZONE_PARENT_PATH,CONFIG_MYCATHOST_KEY, true, MYCATHOST_CONFIG_DIRECTORY);
+        createConfig(ZONE_PARENT_PATH,CONFIG_MYCATNODE_KEY, true, MYCATNODE_CONFIG_DIRECTORY);
+        createConfig(ZONE_PARENT_PATH,CONFIG_MYCATLB_KEY, true, MYCATLB_CONFIG_DIRECTORY);
+        createConfig(ZONE_PARENT_PATH,CONFIG_MYCATMYSQLS_KEY, true, MYCATMYSQLS_CONFIG_DIRECTORY);
+        createConfig(ZONE_PARENT_PATH,CONFIG_MYCATMYSQL_GROUP_KEY, true, MYCATMYSQL_GROUP_CONFIG_DIRECTORY);
 
     }
 
@@ -72,7 +97,7 @@ public class ZkCreate {
         if(isUsed){
         	if(ZkDownload.init()==false){
         		LOGGER.info("need to zkcreate  to remote center ");
-            	ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
+            	ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_MYCAT_KEY)));
 
                 CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)));
                 LOGGER.info("parent path is {}", CLU_PARENT_PATH);
