@@ -23,7 +23,6 @@
  */
 package org.opencloudb;
 
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -59,21 +58,12 @@ public class MycatPrivileges implements FrontendPrivileges {
     @Override
     public boolean userExists(String user, String host) {
         MycatConfig conf = MycatServer.getInstance().getConfig();
-        Map<String, Set<String>> quarantineHosts = conf.getQuarantine().getHosts();
-        if (quarantineHosts.containsKey(host)) {
-            boolean rs = quarantineHosts.get(host).contains(user);
-            if (!rs) {
-                ALARM.error(new StringBuilder().append(Alarms.QUARANTINE_ATTACK).append("[host=").append(host)
-                        .append(",user=").append(user).append(']').toString());
-            }
-            return rs;
-        } else {
-            if (user != null && user.equals(conf.getSystem().getClusterHeartbeatUser())) {
-                return true;
-            } else {
-                return conf.getUsers().containsKey(user);
-            }
+        if(conf.getQuarantine().canConnect(host,user)==false){
+        	 ALARM.error(new StringBuilder().append(Alarms.QUARANTINE_ATTACK).append("[host=").append(host)
+                     .append(",user=").append(user).append(']').toString());
+        	 return false;
         }
+        return true;
     }
 
     @Override

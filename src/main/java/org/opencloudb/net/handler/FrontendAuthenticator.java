@@ -68,13 +68,13 @@ public class FrontendAuthenticator implements NIOHandler {
 
         // check user
         if (!checkUser(auth.user, source.getHost())) {
-            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "'");
+            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "' with host '" + source.getHost()+ "'");
             return;
         }
 
         // check password
         if (!checkPassword(auth.password, auth.user)) {
-            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "'");
+            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because password is error ");
             return;
         }
         

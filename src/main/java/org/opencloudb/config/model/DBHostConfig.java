@@ -32,6 +32,7 @@ public class DBHostConfig {
 	private final String url;
 	private final String user;
 	private final String password;
+    private final String encryptPassword; //密文
 	private int maxCon ;
 	private int minCon ;
 	private String dbType;
@@ -48,7 +49,7 @@ public class DBHostConfig {
 	}
 
 	public DBHostConfig(String hostName, String ip, int port, String url,
-			String user, String password) {
+			String user, String password,String encryptPassword) {
 		super();
 		this.hostName = hostName;
 		this.ip = ip;
@@ -56,6 +57,7 @@ public class DBHostConfig {
 		this.url = url;
 		this.user = user;
 		this.password = password;
+		this.encryptPassword = encryptPassword;
 	}
 
 	public long getIdleTimeout() {
@@ -126,6 +128,10 @@ public class DBHostConfig {
 
 	public void setWeight(int weight) {
 		this.weight = weight;
+	}
+
+	public String getEncryptPassword() {
+		return this.encryptPassword;
 	}
 
 	@Override

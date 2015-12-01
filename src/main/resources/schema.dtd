@@ -65,19 +65,21 @@
 
 <!ELEMENT writeHost (readHost)*>
 <!ATTLIST writeHost
-  host NMTOKEN #REQUIRED
   url CDATA #REQUIRED
+  host NMTOKEN #REQUIRED
   password CDATA #REQUIRED
-  user NMTOKEN #REQUIRED>
+  user NMTOKEN #REQUIRED
+  usingDecrypt CDATA #IMPLIED>
 
 <!ELEMENT heartbeat (#PCDATA)>
-        <!ELEMENT connectionInitSql (#PCDATA)>
+<!ELEMENT connectionInitSql (#PCDATA)>
 <!ELEMENT readHost (property*) >
 <!ATTLIST readHost
   host NMTOKEN #REQUIRED
   url CDATA #REQUIRED
   password CDATA #REQUIRED
   user NMTOKEN #REQUIRED
-  weight CDATA #IMPLIED>
+  weight CDATA #IMPLIED
+  usingDecrypt CDATA #IMPLIED>
 
 

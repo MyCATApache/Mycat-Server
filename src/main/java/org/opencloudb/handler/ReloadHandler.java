@@ -26,7 +26,9 @@ package org.opencloudb.handler;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.manager.ManagerConnection;
 import org.opencloudb.parser.ManagerParseReload;
+import org.opencloudb.parser.util.ParseUtil;
 import org.opencloudb.response.ReloadConfig;
+import org.opencloudb.response.ReloadSqlSlowTime;
 import org.opencloudb.response.ReloadUser;
 import org.opencloudb.response.ReloadUserStat;
 
@@ -56,6 +58,10 @@ public final class ReloadHandler
             case ManagerParseReload.USER_STAT:
                 ReloadUserStat.execute(c);
                 break;
+            case ManagerParseReload.SQL_SLOW:
+            	ReloadSqlSlowTime.execute(c,ParseUtil.getSQLId(stmt));
+                break;                
+                
             default:
                 c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
         }
