@@ -317,7 +317,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			 */
 			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
 			List<RowDataPacket> results = dataMergeSvr.getResults(eof);
-
+            if (start < 0)
+               			start = 0;
             if(rrs.getLimitSize()<0)
             {
                 end=results.size();
