@@ -219,7 +219,7 @@ public class DataMergeService implements Runnable {
 		try {
 			// 对于无需排序的SQL,取前getLimitSize条就足够
 			//聚合函数COUNT.SUM.AVG等需要等待所有分片返回结果，所有需要添加条件!rrs.isHasAggrColumn()
-			if (!rrs.isHasAggrColumn() && !hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()) {
+			if (!rrs.isHasAggrColumn() && !hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()&& rrs.getLimitSize()!=-1) {
 				packs.add(END_FLAG_PACK);
 				return true;
 			}
