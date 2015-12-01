@@ -1,8 +1,9 @@
 zkUrl : 121.40.121.133:4181
 zkZone : mycat-zone100
-zkClu : cluster
+zkClu : mycluster1
 zkLb : lb-cluster1
 zkID : 3
+zkUsed : false
 system:
   defaultsqlparser : druidparser
   serverport : 8066
