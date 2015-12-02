@@ -120,6 +120,7 @@ public final class ShowHelp {
         helps.put("show @@datasource where dataNode = ?", "Report dataSources");
         helps.put("show @@datasource.synstatus", "Report datasource data synchronous");
         helps.put("show @@datasource.syndetail where name=?", "Report datasource data synchronous detail");
+        helps.put("show @@datasource.cluster", "Report datasource galary cluster variables");
         helps.put("show @@processor", "Report processor status");
         helps.put("show @@command", "Report commands status");
         helps.put("show @@connection", "Report connection status");
