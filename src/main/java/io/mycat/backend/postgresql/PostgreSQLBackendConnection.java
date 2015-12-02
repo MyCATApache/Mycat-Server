@@ -1,12 +1,5 @@
 package io.mycat.backend.postgresql;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.backend.postgresql.packet.Query;
@@ -22,6 +15,13 @@ import io.mycat.server.packet.util.CharsetUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.TimeUtil;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /*************************************************************
  * PostgreSQL Native Connection impl
  * 
@@ -29,6 +29,16 @@ import io.mycat.util.TimeUtil;
  *
  */
 public class PostgreSQLBackendConnection extends Connection implements BackendConnection {
+	private static final Query _READ_UNCOMMITTED = new Query("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
+	private static final Query _READ_COMMITTED = new Query("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED");
+	private static final Query _REPEATED_READ = new Query("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+	private static final Query _SERIALIZABLE = new Query("SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+	private static final Query _AUTOCOMMIT_ON = new Query("SET autocommit=1");
+	private static final Query _AUTOCOMMIT_OFF = new Query("SET autocommit=0");
+	private static final Query _COMMIT = new Query("rollback");
+	private static final Query _ROLLBACK = new Query("commit");
+	
+	
 	/**
 	 * 来自子接口
 	 */
@@ -56,12 +66,18 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	private Object attachment;
 	protected volatile String charset = "utf8";
 	private volatile boolean autocommit;
-	private long currentTimeMillis;
+	private volatile long currentTimeMillis;
+	
+	
+	/****
+	 * PG是否在事物中
+	 */
+	private volatile boolean inTransaction = false;
 
 	/***
 	 * 响应handler
 	 */
-	private ResponseHandler responseHandler;
+	private volatile ResponseHandler responseHandler;
 	private boolean borrowed;
 	private volatile int txIsolation;
 	private volatile boolean modifiedSQLExecuted = false;
@@ -270,7 +286,7 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	}
 
 	private void synAndDoExecute(String xaTXID, RouteResultsetNode rrn, MySQLFrontConnection sc, int charsetIndex,
-			int txIsolation2, boolean autocommit2) {
+			int txIsolation2, boolean clientAutoCommit) {
 		boolean conAutoComit = this.autocommit;
 		String conSchema = this.schema;
 		String sql = rrn.getStatement();
@@ -317,6 +333,7 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 		ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
 		query.write(buf);
 		this.write(buf);
+		metaDataSyned = true;
 	}
 
 	@Override
@@ -328,22 +345,12 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	@Override
 	public boolean syncAndExcute() {
 		return true;
-		// StatusSync sync = this.statusSync;
-		// if (sync == null) {
-		// return true;
-		// } else {
-		// boolean executed = sync.synAndExecuted(this);
-		// if (executed) {
-		// statusSync = null;
-		// }
-		// return executed;
-		// }
 	}
+	
 
 	@Override
 	public void rollback() {
-		// TODO Auto-generated method stub
-
+	
 	}
 
 	@SuppressWarnings("unchecked")
@@ -430,6 +437,20 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 
 	public void setCharset(String charset) {
 		this.charset = charset;
+	}
+
+	/**
+	 * @return the inTransaction
+	 */
+	public boolean isInTransaction() {
+		return inTransaction;
+	}
+
+	/**
+	 * @param inTransaction the inTransaction to set
+	 */
+	public void setInTransaction(boolean inTransaction) {
+		this.inTransaction = inTransaction;
 	}
 
 }

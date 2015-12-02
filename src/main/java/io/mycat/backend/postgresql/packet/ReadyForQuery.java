@@ -97,4 +97,18 @@ public class ReadyForQuery extends PostgreSQLPacket {
 		}
 	}
 
+	/**
+	 * @return the state
+	 */
+	public TransactionState getState() {
+		return state;
+	}
+
+	/**
+	 * @param state the state to set
+	 */
+	public void setState(TransactionState state) {
+		this.state = state;
+	}
+
 }
