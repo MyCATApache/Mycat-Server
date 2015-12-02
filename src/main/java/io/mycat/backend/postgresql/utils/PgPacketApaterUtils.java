@@ -2,6 +2,7 @@ package io.mycat.backend.postgresql.utils;
 
 import io.mycat.backend.postgresql.packet.DataRow;
 import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
+import io.mycat.backend.postgresql.packet.PostgreSQLPacket.DateType;
 import io.mycat.backend.postgresql.packet.RowDescription;
 import io.mycat.backend.postgresql.packet.RowDescription.ColumnDescription;
 import io.mycat.server.Fields;
@@ -31,13 +32,26 @@ public class PgPacketApaterUtils {
 		for(ColumnDescription c: description.getColumns()){
 			FieldPacket fieldPk = new FieldPacket();
 			fieldPk.name = c.getColumnName().getBytes(UTF8);
-			fieldPk.type = Fields.FIELD_TYPE_VARCHAR;
+			fieldPk.type = convertFieldType(c.getColumnType());
 			fieldPks.add(fieldPk);
 		}
 		//TODO 等待实现
 		return fieldPks;		
 	}
 	
+	/***
+	 * 将pg的sql类型转换成
+	 * @param columnType
+	 * @return
+	 */
+	private static int convertFieldType(DateType columnType) {
+		if(columnType == DateType.timestamp_){
+			return Fields.FIELD_TYPE_TIMESTAMP;
+		}
+		
+		return Fields.FIELD_TYPE_VARCHAR;
+	}
+
 	/***
 	 * 行数据转换成mysql的数据
 	 * @param dataRow
