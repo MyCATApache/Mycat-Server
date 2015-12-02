@@ -1,6 +1,13 @@
 zkURL : 127.0.0.1:2181
 mycat-cluster:
   mycat-cluster-1:
+    blockSQLs:
+      sql1 :
+        name : sql1
+      sql2 :
+        name : sql2
+      sql3 :
+        name : sql3
     user :
       test :
         name : test
@@ -183,24 +190,7 @@ mycat-cluster:
         switchType : 1
         slaveThreshold : 100
         heartbeatSQL : select user()
-
-        hostM1 :
-          host : hostM1
-          url : localhost:3306
-          user : root
-          password : 123456
-
-    #          readHost :
-    #            host : hostS1
-    #            url : localhost:3306
-    #            user : root
-    #            password : 123456
-
-        hostM2 :
-          host : hostM2
-          url : localhost:3316
-          user : root
-          password : 123456
+        mysqlGroup : mysql_rep_1
 
 #集群中所有的主机信息
 mycat-hosts:
@@ -241,9 +231,13 @@ mycat-mysqls:
 
 mycat-mysqlgroup :
   mysql_rep_1:
+    name: mysql_rep_1
     repType: 0
     zone: bj
-    writeHost: mysqlId1
-    readHosts:
-      mysqlId2: mysqlId2
-      mysqlId3: mysqlId3
+    servers:
+      - mysqlId1
+      - mysqlId2
+      - mysqlId3
+    cur-write-server: mysqlId2
+    auto-write-switch: true
+    heartbeatSQL : select user()

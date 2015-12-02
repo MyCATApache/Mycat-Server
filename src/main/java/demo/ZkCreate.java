@@ -1,7 +1,6 @@
 package demo;
 
 import com.alibaba.fastjson.JSON;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -51,7 +50,7 @@ public class ZkCreate {
 
     private static void createConfig(String configKey, boolean filterInnerMap,
         String configDirectory, String... restDirectory) {
-        String childPath = ZKPaths.makePath("/", configDirectory, restDirectory);
+        String childPath = ZKPaths.makePath("/" + "mycat", configDirectory, restDirectory);
         LOGGER.trace("child path is {}", childPath);
 
         try {
@@ -122,8 +121,8 @@ public class ZkCreate {
     }
 
     private static CuratorFramework createConnection(String url) {
-        CuratorFramework curatorFramework = CuratorFrameworkFactory
-                .newClient(url, new ExponentialBackoffRetry(100, 6));
+        CuratorFramework curatorFramework =
+            CuratorFrameworkFactory.newClient(url, new ExponentialBackoffRetry(100, 6));
 
         //start connection
         curatorFramework.start();
