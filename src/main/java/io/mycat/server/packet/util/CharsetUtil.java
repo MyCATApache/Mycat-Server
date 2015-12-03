@@ -29,6 +29,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
+
 /**
  * @author mycat
  */
@@ -47,7 +49,8 @@ public class CharsetUtil {
             INDEX_TO_CHARSET.put(24,"gb2312");
             INDEX_TO_CHARSET.put(33,"utf8");
             INDEX_TO_CHARSET.put(45,"utf8mb4");
-
+            INDEX_TO_CHARSET.put(46,"utf8mb4");
+            
             CHARSET_TO_INDEX.put("iso-8859-1", 14);
             CHARSET_TO_INDEX.put("iso_8859_1", 14);
             CHARSET_TO_INDEX.put("utf-8", 33);
@@ -60,14 +63,16 @@ public class CharsetUtil {
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
+        
         // charset --> index
-        for (int i = 0; i < INDEX_TO_CHARSET.size(); i++) {
-            String charset = INDEX_TO_CHARSET.get(i);
-            if (charset != null && CHARSET_TO_INDEX.get(charset) == null) {
-                CHARSET_TO_INDEX.put(charset, i);
-            }
+        for(Integer key : INDEX_TO_CHARSET.keySet()){
+        	String charset = INDEX_TO_CHARSET.get(key);
+        	if(charset != null && CHARSET_TO_INDEX.get(charset) == null){
+        		CHARSET_TO_INDEX.put(charset, key);
+        	}
         }
     }
+    
     public static final String getCharset(int index) {
         return INDEX_TO_CHARSET.get(index);
     }
