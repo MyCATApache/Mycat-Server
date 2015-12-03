@@ -96,9 +96,17 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	// 已经认证通过
 	private boolean isAuthenticated;
 
+	/**
+	 * 元数据同步
+	 */
 	private volatile boolean metaDataSyned = true;
 
 	private volatile StatusSync statusSync;
+	
+	/***
+	 * 当前事物ID
+	 */
+	private volatile String currentXaTxId;
 
 	public PostgreSQLBackendConnection(SocketChannel channel, boolean fromSlaveDB) {
 		super(channel);
@@ -317,7 +325,7 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 		if (expectAutocommit == false && xaTxID != null && xaStatus == 0) {
 			clientTxIsoLation = Isolations.SERIALIZABLE;
 			xaCmd = "XA START " + xaTxID + ';';
-
+			currentXaTxId = xaTxID;
 		}
 		int schemaSyn = conSchema.equals(oldSchema) ? 0 : 1;
 		int charsetSyn = (this.charsetIndex == clientCharSetIndex) ? 0 : 1;
@@ -338,19 +346,31 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 
 	@Override
 	public void commit() {
-		// TODO Auto-generated method stub
-
+		ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
+		_COMMIT.write(buf);
+		this.write(buf);
 	}
 
 	@Override
 	public boolean syncAndExcute() {
-		return true;
+		StatusSync sync = this.statusSync;
+		if (sync == null) {
+			return true;
+		} else {
+			boolean executed = sync.synAndExecuted(this);
+			if (executed) {
+				statusSync = null;
+			}
+			return executed;
+		}
 	}
 	
 
 	@Override
 	public void rollback() {
-	
+		ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
+		_ROLLBACK.write(buf);
+		this.write(buf); 
 	}
 
 	@SuppressWarnings("unchecked")

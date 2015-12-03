@@ -6,6 +6,7 @@ import io.mycat.backend.postgresql.packet.BackendKeyData;
 import io.mycat.backend.postgresql.packet.CommandComplete;
 import io.mycat.backend.postgresql.packet.DataRow;
 import io.mycat.backend.postgresql.packet.ErrorResponse;
+import io.mycat.backend.postgresql.packet.NoticeResponse;
 import io.mycat.backend.postgresql.packet.PasswordMessage;
 import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
 import io.mycat.backend.postgresql.packet.ReadyForQuery;
@@ -115,6 +116,8 @@ public class PostgreSQLBackendConnectionHandler implements
 																		// 执行
 					doHandleBusinessDDL(con, packets);
 					return;
+				} else if (packets.get(0) instanceof NoticeResponse){
+					doHandleBusinessNotice(con, packets);
 				} else if (packets.get(0) instanceof ErrorResponse) {// 查询语句句出错了
 					doHandleBusinessError(con, packets);
 					return;
@@ -134,6 +137,8 @@ public class PostgreSQLBackendConnectionHandler implements
 			con.getResponseHandler().errorResponse(err.writeToBytes(), con);
 		}
 	}
+
+	
 
 	/***
 	 * 处理查询出错数据包
@@ -190,6 +195,40 @@ public class PostgreSQLBackendConnectionHandler implements
 		okPck.insertId = 0;
 		okPck.packetId = ++packetId;
 		okPck.message = " OK!".getBytes();
+		con.getResponseHandler().okResponse(okPck.writeToBytes(), con);
+	}
+	
+	/******
+	 * 执行成功但是又警告信息
+	 * @param con
+	 * @param packets
+	 */
+	private void doHandleBusinessNotice(PostgreSQLBackendConnection con,
+			List<PostgreSQLPacket> packets) {
+		NoticeResponse notice = (NoticeResponse) packets.get(0);		
+		CommandComplete cmdComplete = null;
+		ReadyForQuery readyForQuery = null;
+		for (PostgreSQLPacket packet : packets) {
+			if(packet instanceof CommandComplete){
+				cmdComplete = (CommandComplete) packet;
+			}
+			if (packet instanceof ReadyForQuery) {
+				readyForQuery = (ReadyForQuery) packet;
+			}
+		}
+		if (readyForQuery != null) {
+			if ((readyForQuery.getState() == TransactionState.IN) != con
+					.isInTransaction()) {
+				con.setInTransaction((readyForQuery.getState() == TransactionState.IN));
+			}
+		}
+
+		OkPacket okPck = new OkPacket();
+		okPck.affectedRows = cmdComplete.getRows();
+		okPck.insertId = 0;
+		okPck.packetId = ++packetId;
+		String msg = notice.getMsg().replace("\0"," ") +"\n OK!";		
+		okPck.message =  msg.getBytes();		
 		con.getResponseHandler().okResponse(okPck.writeToBytes(), con);
 	}
 
