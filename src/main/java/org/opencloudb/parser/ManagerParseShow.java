@@ -67,6 +67,7 @@ public final class ManagerParseShow {
     public static final int HEARTBEAT_DETAIL = 33;
     public static final int DATASOURCE_SYNC = 34;
     public static final int DATASOURCE_SYNC_DETAIL = 35;
+    public static final int DATASOURCE_CLUSTER = 36;
 
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -273,6 +274,23 @@ public final class ManagerParseShow {
                             return OTHER;
                         }
 
+                    }else{
+                    	return OTHER;
+                    }
+            	}
+            case 'C':
+            case 'c':
+            	if (stmt.length() > offset + "luster".length()) {
+            		char c1 = stmt.charAt(++offset);
+                    char c2 = stmt.charAt(++offset);
+                    char c3 = stmt.charAt(++offset);
+                    char c4 = stmt.charAt(++offset);
+                    char c5 = stmt.charAt(++offset);
+                    char c6 = stmt.charAt(++offset);
+                    if ((c1 == 'L' || c1 == 'l') && (c2 == 'U' || c2 == 'u') 
+                    		&& (c3 == 'S' || c3 == 's') && (c4 == 'T' || c4 == 't')
+                    		&& (c5 == 'E' || c5 == 'e')&& (c6 == 'R' || c6 == 'r') ){
+                    	return DATASOURCE_CLUSTER;
                     }else{
                     	return OTHER;
                     }
