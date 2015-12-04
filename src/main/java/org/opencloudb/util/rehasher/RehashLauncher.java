@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,7 +37,7 @@ public class RehashLauncher {
         public void run(){
         	int pageSize=500;
         	int page=0;
-        	List<Map<String, Object>> list=null;
+        	List list=null;
         	
         	int total=0;
         	int rehashed=0;
@@ -52,8 +51,8 @@ public class RehashLauncher {
                     pageSize);
                 while (!CollectionUtil.isEmpty(list)) {
         			for(int i=0,l=list.size();i<l;i++){
-        				Map<String, Object> sf=list.get(i);
-        				Integer hash=alg.calculate(sf.get(args.getShardingField()).toString());
+        				Object sf=list.get(i);
+        				Integer hash=alg.calculate(sf.toString());
         				String host=rehashHosts[hash];
         				total++;
         				if(host.equals(hostWithDatabase)){
