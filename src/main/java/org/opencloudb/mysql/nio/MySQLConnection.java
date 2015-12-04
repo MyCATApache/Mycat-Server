@@ -638,6 +638,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	@Override
 	public String toString() {
 		return "MySQLConnection [id=" + id + ", lastTime=" + lastTime
+				+ ", user=" + user
 				+ ", schema=" + schema + ", old shema=" + oldSchema
 				+ ", borrowed=" + borrowed + ", fromSlaveDB=" + fromSlaveDB
 				+ ", threadId=" + threadId + ", charset=" + charset

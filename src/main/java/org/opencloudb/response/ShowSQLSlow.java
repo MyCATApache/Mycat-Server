@@ -34,7 +34,7 @@ import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.stat.UserStat;
-import org.opencloudb.stat.UserStatFilter;
+import org.opencloudb.stat.UserStatAnalyzer;
 import org.opencloudb.statistic.SQLRecord;
 import org.opencloudb.util.LongUtil;
 import org.opencloudb.util.StringUtil;
@@ -91,7 +91,7 @@ public final class ShowSQLSlow {
 
         // write rows
         byte packetId = eof.packetId;        
-        Map<String, UserStat> statMap = UserStatFilter.getInstance().getUserStatMap();
+        Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
         for (UserStat userStat : statMap.values()) {
         	String user = userStat.getUser();
             SQLRecord[] records = userStat.getSqlRecorder().getRecords();

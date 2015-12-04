@@ -11,14 +11,14 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author zhuam
  *
  */
-public class SqlStat {
+public class UserSqlStat {
 	
 	private int index;
 	private final int count;
 	private final Sql[] sqls;
 	private final ReentrantLock lock;
 	 
-	public SqlStat(int count) {		
+	public UserSqlStat(int count) {		
 		this.index = 0;
         this.count = count;        
         this.sqls = new Sql[count];
@@ -45,13 +45,12 @@ public class SqlStat {
         }
 	}
 
-    public void add(String sql, long startTime, long executeTime ) {
+    public void add(String sql,  long executeTime, long startTime, long endTime ) {
     	
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
-        	Sql newSql = new Sql(sql, startTime, executeTime);
-        	
+        	Sql newSql = new Sql(sql, executeTime, startTime, endTime);        	
             if (index < count) {
                 sqls[index++] = newSql;
             } else {
@@ -82,14 +81,16 @@ public class SqlStat {
     public class Sql {
     	
     	private String sql;
-    	private long startTime;
     	private long executeTime;
+    	private long startTime;
+    	private long endTime;
     	
-		public Sql(String sql, long startTime, long executeTime) {
+		public Sql(String sql, long executeTime, long startTime, long endTime) {
 			super();
 			this.sql = sql;
-			this.startTime = startTime;
 			this.executeTime = executeTime;
+			this.startTime = startTime;
+			this.endTime = endTime;
 		}
 
 		public String getSql() {
@@ -102,6 +103,10 @@ public class SqlStat {
 
 		public long getExecuteTime() {
 			return executeTime;
+		}
+
+		public long getEndTime() {
+			return endTime;
 		}
 
     }
