@@ -25,6 +25,7 @@ package io.mycat;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.cache.CacheService;
 import io.mycat.net.*;
@@ -39,7 +40,9 @@ import io.mycat.server.config.loader.ConfigFactory;
 import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.interceptor.SQLInterceptor;
+import io.mycat.server.packet.util.CharsetUtil;
 import io.mycat.util.TimeUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,7 +161,7 @@ public class MycatServer {
 
 		SystemConfig system = config.getSystem();
 		int processorCount = system.getProcessors();
-
+		
 		// server startup
 		LOGGER.info("===============================================");
 		LOGGER.info(NAME + " is ready to startup ...");
@@ -217,7 +220,12 @@ public class MycatServer {
 		// server started
 		LOGGER.info(server.getName() + " is started and listening on "
 				+ server.getPort());
-		LOGGER.info("===============================================");
+		
+		// Before init datahost, we get mysqld's charset and collation_index mapping 
+		// from INFORMATION_SCHEMA.COLLATIONS table, and put them in cache.
+		LOGGER.info(" init charset and collation ...");
+		CharsetUtil.initCharsetAndCollation(config.getDataHosts());
+		
 		// init datahost
 		config.initDatasource();
 
@@ -229,7 +237,7 @@ public class MycatServer {
 		timer.schedule(dataNodeHeartbeat(), 0L,
 				system.getDataNodeHeartbeatPeriod());
 		timer.schedule(catletClassClear(), 30000);
-
+	
 	}
 
 	private TimerTask catletClassClear() {
@@ -244,8 +252,8 @@ public class MycatServer {
 			};
 		};
 	}
-
-
+	
+	
 
 	public RouteService getRouterService() {
 		return routerService;
