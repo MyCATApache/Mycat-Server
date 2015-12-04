@@ -148,6 +148,7 @@
 			<groupId>org.apache.curator</groupId>
 			<artifactId>curator-framework</artifactId>
 			<version>2.9.0</version>
+
 		</dependency>
 
         <!--    Logging     -->

@@ -11,16 +11,16 @@
                 <Pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} %5p [%t] (%l) - %m%n</Pattern>
             </PatternLayout>
             <Policies>
-                <OnStartupTriggeringPolicy />
+                <OnStartupTriggeringPolicy/>
                 <SizeBasedTriggeringPolicy size="250 MB"/>
-                <TimeBasedTriggeringPolicy />
+                <TimeBasedTriggeringPolicy/>
             </Policies>
         </RollingFile>
     </Appenders>
     <Loggers>
-        <Root level="DEBUG">
+        <logger name="org.apache.*" level="ERROR" additivity="false"/>
+        <Root level="trace">
             <AppenderRef ref="Console"/>
-            <AppenderRef ref="RollingFile"/>
         </Root>
     </Loggers>
 </Configuration>
