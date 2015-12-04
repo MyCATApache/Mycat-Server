@@ -16,12 +16,12 @@ public class UserStat {
 	/**
 	 * SQL 执行记录
 	 */
-	private SqlStat sqlStat = null;
+	private UserSqlStat sqlStat = null;
 	
 	/**
 	 * CURD 执行分布
 	 */
-	private RWStat rwStat = null;
+	private UserRWStat rwStat = null;
 	
 	/**
 	 * 慢查询记录器  TOP 10
@@ -35,8 +35,8 @@ public class UserStat {
 	public UserStat(String user) {
 		super();
 		this.user = user;		
-		this.rwStat = new RWStat();
-		this.sqlStat = new SqlStat(10);
+		this.rwStat = new UserRWStat();
+		this.sqlStat = new UserSqlStat(10);
 		this.sqlRecorder =  new SQLRecorder(MycatServer.getInstance().getConfig().getSystem().getSqlRecordCount());
 	}
 
@@ -48,11 +48,11 @@ public class UserStat {
 		return sqlRecorder;
 	}
 
-	public RWStat getRWStat() {
+	public UserRWStat getRWStat() {
 		return rwStat;
 	}
 
-	public SqlStat getSqlStat() {
+	public UserSqlStat getSqlStat() {
 		return sqlStat;
 	}
 	
@@ -69,12 +69,10 @@ public class UserStat {
 	 * @param sql
 	 * @param startTime
 	 */
-	public void update(int sqlType, String sql, long startTime) {	
-		
-		long now = System.currentTimeMillis();
+	public void update(int sqlType, String sql, long startTime, long endTime) {	
 		
 		//慢查询记录
-		long executeTime = now - startTime;		
+		long executeTime = endTime - startTime;		
 		if ( executeTime >= SQL_SLOW_TIME ){			
 			SQLRecord record = new SQLRecord();
 			record.executeTime = executeTime;
@@ -85,10 +83,10 @@ public class UserStat {
 		}
 		
 		//执行状态记录
-		this.rwStat.add(sqlType, executeTime, now);
+		this.rwStat.add(sqlType, executeTime, startTime, endTime);
 		
 		//记录SQL
-		this.sqlStat.add(sql, startTime, executeTime );
+		this.sqlStat.add(sql, executeTime, startTime, endTime );
 	}
 
 }

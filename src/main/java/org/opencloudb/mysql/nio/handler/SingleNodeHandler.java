@@ -39,7 +39,8 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
-import org.opencloudb.stat.UserStatFilter;
+import org.opencloudb.stat.QueryResult;
+import org.opencloudb.stat.QueryResultDispatcher;
 import org.opencloudb.util.StringUtil;
 
 /**
@@ -185,11 +186,18 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	private void backConnectionErr(ErrorPacket errPkg, BackendConnection conn) {
 		endRunning();
-		String errmgs = " errno:" + errPkg.errno + " "
-				+ new String(errPkg.message);
-		LOGGER.warn("execute  sql err :" + errmgs + " con:" + conn);
-		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
+		
 		ServerConnection source = session.getSource();
+		String errUser = source.getUser();
+		String errHost = source.getHost();
+		int errPort = source.getLocalPort();
+		
+		String errmgs = " errno:" + errPkg.errno + " " + new String(errPkg.message);
+		LOGGER.warn("execute  sql err :" + errmgs + " con:" + conn 
+				+ " frontend host:" + errHost + "/" + errPort + "/" + errUser);
+		
+		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
+		
 		source.setTxInterrupt(errmgs);
 		errPkg.write(source);
 		recycleResources();
@@ -221,9 +229,10 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			ok.write(source);
 			
 			//TODO: add by zhuam
-			//记录状态
-			UserStatFilter.getInstance().updateStat(session.getSource().getUser(), 
+			//查询结果派发
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 					rrs.getSqlType(), rrs.getStatement(), startTime);
+			QueryResultDispatcher.dispatchQuery( queryResult );
  
 		}
 	}
@@ -262,9 +271,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
 		
-		//记录状态
-		UserStatFilter.getInstance().updateStat(session.getSource().getUser(), 
+		
+		//TODO: add by zhuam
+		//查询结果派发
+		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 				rrs.getSqlType(), rrs.getStatement(), startTime);
+		QueryResultDispatcher.dispatchQuery( queryResult );
 		
 		header[3] = ++packetId;
 		ServerConnection source = session.getSource();
