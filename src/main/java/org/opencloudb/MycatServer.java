@@ -185,7 +185,7 @@ public class MycatServer {
 		String home = SystemConfig.getHomePath();
 		Log4jInitializer.configureAndWatch(home + "/conf/log4j.xml", LOG_WATCH_DELAY);
 		
-		ZkConfig.instance().initZk();
+		//ZkConfig.instance().initZk();
 	}
 
 	public void startup() throws IOException {
