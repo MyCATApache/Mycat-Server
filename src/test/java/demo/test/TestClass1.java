@@ -22,7 +22,7 @@ public class TestClass1 {
         Class.forName(jdbcdriver);
         Connection c = DriverManager.getConnection(jdbcurl,username,password); 
         Statement st = c.createStatement();
-        print( "test jdbc " , st.executeQuery("select count(*) from t_sys_log ")); 
+        print( "test jdbc " , st.executeQuery("select count(*) from travelrecord ")); 
         System.out.println("OK......");
     }
 
