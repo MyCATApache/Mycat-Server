@@ -33,9 +33,9 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.stat.UserStatFilter;
+import org.opencloudb.stat.UserStatAnalyzer;
 
-import org.opencloudb.stat.SqlStat;
+import org.opencloudb.stat.UserSqlStat;
 import org.opencloudb.stat.UserStat;
 import org.opencloudb.util.LongUtil;
 import org.opencloudb.util.StringUtil;
@@ -92,10 +92,10 @@ public final class ShowSQL {
 
         // write rows
         byte packetId = eof.packetId;        
-        Map<String, UserStat> statMap = UserStatFilter.getInstance().getUserStatMap();
+        Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
     	for (UserStat userStat : statMap.values()) {
         	String user = userStat.getUser();
-            SqlStat.Sql[] sqls = userStat.getSqlStat().getSqls();
+            UserSqlStat.Sql[] sqls = userStat.getSqlStat().getSqls();
             for (int i = sqls.length - 1; i >= 0; i--) {
                 if (sqls[i] != null) {
                     RowDataPacket row = getRow(user, sqls[i], i, c.getCharset());
@@ -115,7 +115,7 @@ public final class ShowSQL {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(String user, SqlStat.Sql sql, int idx, String charset) {
+    private static RowDataPacket getRow(String user, UserSqlStat.Sql sql, int idx, String charset) {
         
     	RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(LongUtil.toBytes(idx));          

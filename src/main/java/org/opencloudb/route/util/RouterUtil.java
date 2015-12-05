@@ -39,15 +39,17 @@ import java.util.concurrent.Callable;
  *
  */
 public class RouterUtil {
+	
 	private static final Logger LOGGER = Logger.getLogger(RouterUtil.class);
+	
+	
 	/**
 	 * 移除执行语句中的数据库名
 	 *
-	 * @param stmt
-	 *            执行语句
-	 * @param schema
-	 *            数据库名
-	 * @return 执行语句
+	 * @param stmt		 执行语句
+	 * @param schema  	数据库名
+	 * @return 			执行语句
+	 * 
 	 * @author mycat
 	 */
 
@@ -83,13 +85,11 @@ public class RouterUtil {
 	/**
 	 * 获取第一个节点作为路由
 	 *
-	 * @param rrs
-	 *            数据路由集合
-	 * @param dataNode
-	 *            数据库所在节点
-	 * @param stmt
-	 *            执行语句
-	 * @return 数据路由集合
+	 * @param rrs		          数据路由集合
+	 * @param dataNode  	数据库所在节点
+	 * @param stmt   		执行语句
+	 * @return 				数据路由集合
+	 * 
 	 * @author mycat
 	 */
 	public static RouteResultset routeToSingleNode(RouteResultset rrs,
@@ -168,9 +168,8 @@ public class RouterUtil {
 	/**
 	 * 处理SQL
 	 *
-	 * @param stmt
-	 *            执行语句
-	 * @return 处理后SQL
+	 * @param stmt   执行语句
+	 * @return 		 处理后SQL
 	 * @author AStoneGod
 	 */
 	public static String getFixedSql(String stmt){
@@ -183,10 +182,8 @@ public class RouterUtil {
 	/**
 	 * 获取table名字
 	 *
-	 * @param stmt
-	 *            执行语句
-	 * @param repPos
-	 *            开始位置和位数
+	 * @param stmt  	执行语句
+	 * @param repPos	开始位置和位数
 	 * @return 表名
 	 * @author AStoneGod
 	 */
@@ -223,10 +220,8 @@ public class RouterUtil {
 	/**
 	 * 获取show语句table名字
 	 *
-	 * @param stmt
-	 *            执行语句
-	 * @param repPos
-	 *            开始位置和位数
+	 * @param stmt	        执行语句
+	 * @param repPos   开始位置和位数
 	 * @return 表名
 	 * @author AStoneGod
 	 */
@@ -250,11 +245,10 @@ public class RouterUtil {
 	/**
 	 * 获取语句中前关键字位置和占位个数表名位置
 	 *
-	 * @param upStmt
-	 *            执行语句
-	 * @param start
-	 *            开始位置
-	 * @return int[]关键字位置和占位个数
+	 * @param upStmt     执行语句
+	 * @param start      开始位置
+	 * @return int[]	  关键字位置和占位个数
+	 * 
 	 * @author mycat
 	 */
 	public static int[] getCreateTablePos(String upStmt, int start) {
@@ -298,11 +292,9 @@ public class RouterUtil {
 	/**
 	 * 获取ALTER语句中前关键字位置和占位个数表名位置
 	 *
-	 * @param upStmt
-	 *            执行语句
-	 * @param start
-	 *            开始位置
-	 * @return int[]关键字位置和占位个数
+	 * @param upStmt   执行语句
+	 * @param start    开始位置
+	 * @return int[]   关键字位置和占位个数
 	 * @author aStoneGod
 	 */
 	public static int[] getAlterTablePos(String upStmt, int start) {
@@ -321,11 +313,9 @@ public class RouterUtil {
 	/**
 	 * 获取DROP语句中前关键字位置和占位个数表名位置
 	 *
-	 * @param upStmt
-	 *            执行语句
-	 * @param start
-	 *            开始位置
-	 * @return int[]关键字位置和占位个数
+	 * @param upStmt 	执行语句
+	 * @param start  	开始位置
+	 * @return int[]	关键字位置和占位个数
 	 * @author aStoneGod
 	 */
 	public static int[] getDropTablePos(String upStmt, int start) {
@@ -384,11 +374,9 @@ public class RouterUtil {
 	/**
 	 * 获取TRUNCATE语句中前关键字位置和占位个数表名位置
 	 *
-	 * @param upStmt
-	 *            执行语句
-	 * @param start
-	 *            开始位置
-	 * @return int[]关键字位置和占位个数
+	 * @param upStmt    执行语句
+	 * @param start     开始位置
+	 * @return int[]	关键字位置和占位个数
 	 * @author aStoneGod
 	 */
 	public static int[] getTruncateTablePos(String upStmt, int start) {
@@ -407,11 +395,9 @@ public class RouterUtil {
 	/**
 	 * 获取语句中前关键字位置和占位个数表名位置
 	 *
-	 * @param upStmt
-	 *            执行语句
-	 * @param start
-	 *            开始位置
-	 * @return int[]关键字位置和占位个数
+	 * @param upStmt   执行语句
+	 * @param start    开始位置
+	 * @return int[]   关键字位置和占位个数
 	 * @author mycat
 	 */
 	public static int[] getSpecPos(String upStmt, int start) {
@@ -433,10 +419,8 @@ public class RouterUtil {
 	/**
 	 * 获取开始位置后的 LIKE、WHERE 位置 如果不含 LIKE、WHERE 则返回执行语句的长度
 	 *
-	 * @param upStmt
-	 *            执行sql
-	 * @param start
-	 *            开发位置
+	 * @param upStmt   执行sql
+	 * @param start    开发位置
 	 * @return int
 	 * @author mycat
 	 */
@@ -479,25 +463,26 @@ public class RouterUtil {
 	}
 
 	private static boolean isPKInFields(String origSQL,String primaryKey,int firstLeftBracketIndex,int firstRightBracketIndex){
-        if(primaryKey==null)
-        {
-           throw new RuntimeException("please make sure the primaryKey's config is not null in schemal.xml")  ;
-        }
-		boolean isPrimaryKeyInFields=false;
-		String upperSQL=origSQL.substring(firstLeftBracketIndex,firstRightBracketIndex+1).toUpperCase();
-		for(int pkOffset=0,primaryKeyLength=primaryKey.length(),pkStart=0;;){
-			pkStart=upperSQL.indexOf(primaryKey, pkOffset);
-			if(pkStart>=0 && pkStart<firstRightBracketIndex){
-				char pkSide=upperSQL.charAt(pkStart-1);
-				if(pkSide<=' ' || pkSide=='`' || pkSide==',' || pkSide=='('){
-					pkSide=upperSQL.charAt(pkStart+primaryKey.length());
-					isPrimaryKeyInFields=pkSide<=' ' || pkSide=='`' || pkSide==',' || pkSide==')';
+		
+		if (primaryKey == null) {
+			throw new RuntimeException("please make sure the primaryKey's config is not null in schemal.xml");
+		}
+		
+		boolean isPrimaryKeyInFields = false;
+		String upperSQL = origSQL.substring(firstLeftBracketIndex, firstRightBracketIndex + 1).toUpperCase();
+		for (int pkOffset = 0, primaryKeyLength = primaryKey.length(), pkStart = 0;;) {
+			pkStart = upperSQL.indexOf(primaryKey, pkOffset);
+			if (pkStart >= 0 && pkStart < firstRightBracketIndex) {
+				char pkSide = upperSQL.charAt(pkStart - 1);
+				if (pkSide <= ' ' || pkSide == '`' || pkSide == ',' || pkSide == '(') {
+					pkSide = upperSQL.charAt(pkStart + primaryKey.length());
+					isPrimaryKeyInFields = pkSide <= ' ' || pkSide == '`' || pkSide == ',' || pkSide == ')';
 				}
-				if(isPrimaryKeyInFields){
+				if (isPrimaryKeyInFields) {
 					break;
 				}
-				pkOffset=pkStart+primaryKeyLength;
-			}else{
+				pkOffset = pkStart + primaryKeyLength;
+			} else {
 				break;
 			}
 		}
@@ -536,29 +521,31 @@ public class RouterUtil {
 		return processedInsert;
 	}
 
-	private static void processInsert(ServerConnection sc,SchemaConfig schema,int sqlType,String origSQL,String tableName,String primaryKey,int afterFirstLeftBracketIndex,int afterLastLeftBracketIndex){
-		int primaryKeyLength=primaryKey.length();
-		int insertSegOffset=afterFirstLeftBracketIndex;
-		String mycatSeqPrefix="next value for MYCATSEQ_";
-		int mycatSeqPrefixLength=mycatSeqPrefix.length();
-		int tableNameLength=tableName.length();
+	private static void processInsert(ServerConnection sc, SchemaConfig schema, int sqlType, String origSQL,
+			String tableName, String primaryKey, int afterFirstLeftBracketIndex, int afterLastLeftBracketIndex) {
+		
+		int primaryKeyLength = primaryKey.length();
+		int insertSegOffset = afterFirstLeftBracketIndex;
+		String mycatSeqPrefix = "next value for MYCATSEQ_";
+		int mycatSeqPrefixLength = mycatSeqPrefix.length();
+		int tableNameLength = tableName.length();
 
-		char[] newSQLBuf=new char[origSQL.length()+primaryKeyLength+mycatSeqPrefixLength+tableNameLength+2];
+		char[] newSQLBuf = new char[origSQL.length() + primaryKeyLength + mycatSeqPrefixLength + tableNameLength + 2];
 		origSQL.getChars(0, afterFirstLeftBracketIndex, newSQLBuf, 0);
-		primaryKey.getChars(0,primaryKeyLength,newSQLBuf,insertSegOffset);
-		insertSegOffset+=primaryKeyLength;
-		newSQLBuf[insertSegOffset]=',';
+		primaryKey.getChars(0, primaryKeyLength, newSQLBuf, insertSegOffset);
+		insertSegOffset += primaryKeyLength;
+		newSQLBuf[insertSegOffset] = ',';
 		insertSegOffset++;
-		origSQL.getChars(afterFirstLeftBracketIndex,afterLastLeftBracketIndex,newSQLBuf,insertSegOffset);
-		insertSegOffset+=afterLastLeftBracketIndex-afterFirstLeftBracketIndex;
+		origSQL.getChars(afterFirstLeftBracketIndex, afterLastLeftBracketIndex, newSQLBuf, insertSegOffset);
+		insertSegOffset += afterLastLeftBracketIndex - afterFirstLeftBracketIndex;
 		mycatSeqPrefix.getChars(0, mycatSeqPrefixLength, newSQLBuf, insertSegOffset);
-		insertSegOffset+=mycatSeqPrefixLength;
-		tableName.getChars(0,tableNameLength,newSQLBuf,insertSegOffset);
-		insertSegOffset+=tableNameLength;
-		newSQLBuf[insertSegOffset]=',';
+		insertSegOffset += mycatSeqPrefixLength;
+		tableName.getChars(0, tableNameLength, newSQLBuf, insertSegOffset);
+		insertSegOffset += tableNameLength;
+		newSQLBuf[insertSegOffset] = ',';
 		insertSegOffset++;
 		origSQL.getChars(afterLastLeftBracketIndex, origSQL.length(), newSQLBuf, insertSegOffset);
-		processSQL(sc,schema,new String(newSQLBuf),sqlType);
+		processSQL(sc, schema, new String(newSQLBuf), sqlType);
 	}
 
 	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt) {
@@ -577,8 +564,10 @@ public class RouterUtil {
 		return rrs;
 	}
 
-	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt,boolean isGlobalTable) {
-		rrs=routeToMultiNode(cache,rrs,dataNodes,stmt);
+	public static RouteResultset routeToMultiNode(boolean cache, RouteResultset rrs, Collection<String> dataNodes,
+			String stmt, boolean isGlobalTable) {
+		
+		rrs = routeToMultiNode(cache, rrs, dataNodes, stmt);
 		rrs.setGlobalTable(isGlobalTable);
 		return rrs;
 	}
@@ -603,11 +592,9 @@ public class RouterUtil {
 	/**
 	 * 根据标名随机获取一个节点
 	 *
-	 * @param schema
-	 *            数据库名
-	 * @param table
-	 *            表名
-	 * @return 数据节点
+	 * @param schema     数据库名
+	 * @param table      表名
+	 * @return 			  数据节点
 	 * @author mycat
 	 */
 	private static String getMetaReadDataNode(SchemaConfig schema,
@@ -626,15 +613,11 @@ public class RouterUtil {
 	/**
 	 * 根据 ER分片规则获取路由集合
 	 *
-	 * @param stmt
-	 *            执行的语句
-	 * @param rrs
-	 *            数据路由集合
-	 * @param tc
-	 *            表实体
-	 * @param joinKeyVal
-	 *            连接属性
-	 * @return RouteResultset(数据路由集合)
+	 * @param stmt            执行的语句
+	 * @param rrs      		     数据路由集合
+	 * @param tc	      	     表实体
+	 * @param joinKeyVal      连接属性
+	 * @return RouteResultset(数据路由集合)	 * 
 	 * @throws java.sql.SQLNonTransientException
 	 * @author mycat
 	 */
@@ -643,6 +626,7 @@ public class RouterUtil {
                                                     int sqlType,String stmt,
 			RouteResultset rrs, TableConfig tc, String joinKeyVal)
 			throws SQLNonTransientException {
+		
 		// only has one parent level and ER parent key is parent
 		// table's partition key
 		if (tc.isSecondLevel()
@@ -655,8 +639,7 @@ public class RouterUtil {
 			Set<ColumnRoutePair> parentColVal = new HashSet<ColumnRoutePair>(1);
 			ColumnRoutePair pair = new ColumnRoutePair(joinKeyVal);
 			parentColVal.add(pair);
-			Set<String> dataNodeSet = ruleCalculate(tc.getParentTC(),
-					parentColVal);
+			Set<String> dataNodeSet = ruleCalculate(tc.getParentTC(), parentColVal);
 			if (dataNodeSet.isEmpty() || dataNodeSet.size() > 1) {
 				throw new SQLNonTransientException(
 						"parent key can't find  valid datanode ,expect 1 but found: "
@@ -782,15 +765,11 @@ public class RouterUtil {
 
 	/**
 	 * 多表路由
-	 * @param schema
-	 * @param ctx
-	 * @param rrs
-	 * @param isSelect
-	 * @return
-	 * @throws java.sql.SQLNonTransientException
 	 */
-	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx, RouteCalculateUnit routeUnit, RouteResultset rrs,
-			boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
+	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx,
+			RouteCalculateUnit routeUnit, RouteResultset rrs, boolean isSelect, LayerCachePool cachePool)
+					throws SQLNonTransientException {
+		
 		List<String> tables = ctx.getTables();
 		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
 			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
@@ -877,28 +856,22 @@ public class RouterUtil {
 	/**
 	 *
 	 * 单表路由
-	 * @param schema
-	 * @param ctx
-	 * @param tableName
-	 * @param rrs
-	 * @param isSelect
-	 * @return
-	 * @throws java.sql.SQLNonTransientException
 	 */
-	public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx, RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs,
-			boolean isSelect, LayerCachePool cachePool) throws SQLNonTransientException {
-		if(isNoSharding(schema,tableName))
-		{
+	public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx,
+			RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs, boolean isSelect,
+			LayerCachePool cachePool) throws SQLNonTransientException {
+		
+		if (isNoSharding(schema, tableName)) {
 			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
 		}
 
 		TableConfig tc = schema.getTables().get(tableName);
 		if(tc == null) {
-			String msg = "can't find table define in schema "
-					+ tableName + " schema:" + schema.getName();
+			String msg = "can't find table define in schema " + tableName + " schema:" + schema.getName();
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
+		
 		if(tc.isGlobalTable()) {//全局表
 			if(isSelect) {
 				// global select ,not cache route result
@@ -929,10 +902,6 @@ public class RouterUtil {
 				if(tablesRouteMap.get(tableName) == null) {
 					return routeToMultiNode(rrs.isCacheAble(), rrs, tc.getDataNodes(), ctx.getSql());
 				} else {
-//					boolean isCache = rrs.isCacheAble();
-//					if(tablesRouteMap.get(tableName).size() > 1) {
-//
-//					}
 					return routeToMultiNode(rrs.isCacheAble(), rrs, tablesRouteMap.get(tableName), ctx.getSql());
 				}
 			}
@@ -941,15 +910,12 @@ public class RouterUtil {
 
 	/**
 	 * 处理分库表路由
-	 * @param schema
-	 * @param tablesAndConditions
-	 * @param tablesRouteMap
-	 * @throws java.sql.SQLNonTransientException
 	 */
 	public static void findRouteWithcConditionsForTables(SchemaConfig schema, RouteResultset rrs,
 			Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
 			Map<String, Set<String>> tablesRouteMap, String sql, LayerCachePool cachePool, boolean isSelect)
 			throws SQLNonTransientException {
+		
 		//为分库表找路由
 		for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
 			String tableName = entry.getKey().toUpperCase();
@@ -1129,19 +1095,18 @@ public class RouterUtil {
 
 
 	/**
-	 *     增加判断支持未配置分片的表走默认的dataNode
+	 * 增加判断支持未配置分片的表走默认的dataNode
 	 * @param schemaConfig
 	 * @param tableName
 	 * @return
 	 */
-	public static boolean isNoSharding(SchemaConfig schemaConfig,String tableName)
-	{
-		if(schemaConfig.isNoSharding())
-		{
+	public static boolean isNoSharding(SchemaConfig schemaConfig, String tableName) {
+		
+		if (schemaConfig.isNoSharding()) {
 			return true;
 		}
-		if(schemaConfig.getDataNode()!=null&&!schemaConfig.getTables().containsKey(tableName))
-		{
+		
+		if (schemaConfig.getDataNode() != null && !schemaConfig.getTables().containsKey(tableName)) {
 			return true;
 		}
 
@@ -1303,11 +1268,8 @@ public class RouterUtil {
 	 * @return
 	 */
 	private static boolean isMultiInsert(MySqlInsertStatement insertStmt) {
-		return (insertStmt.getValuesList() != null && insertStmt.getValuesList().size() > 1) || insertStmt.getQuery() != null;
+		return (insertStmt.getValuesList() != null && insertStmt.getValuesList().size() > 1)
+				|| insertStmt.getQuery() != null;
 	}
+
 }
-
-
-
-
-
