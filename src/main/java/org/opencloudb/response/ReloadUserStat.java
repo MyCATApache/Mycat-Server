@@ -20,7 +20,7 @@ public final class ReloadUserStat {
         }
     	
         StringBuilder s = new StringBuilder();
-        s.append(c).append("Reset show @@sql、 @@sql.sum、 @@sql.slow success by manager");
+        s.append(c).append("Reset show @@sql  @@sql.sum  @@sql.slow success by manager");
         
         logger.warn(s.toString());
         
@@ -28,7 +28,7 @@ public final class ReloadUserStat {
         ok.packetId = 1;
         ok.affectedRows = 1;
         ok.serverStatus = 2;
-        ok.message = "Reset show @@sql、 @@sql.sum、 @@sql.slow success".getBytes();
+        ok.message = "Reset show @@sql  @@sql.sum @@sql.slow success".getBytes();
         ok.write(c);
     }
 
