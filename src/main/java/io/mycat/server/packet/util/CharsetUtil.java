@@ -76,8 +76,12 @@ public class CharsetUtil {
             for (String index : map.keySet()){	
             	int collationIndex = Integer.parseInt(index);
             	String charsetName = INDEX_TO_CHARSET.get(collationIndex);
-                INDEX_TO_CHARSET.put(collationIndex, charsetName);
-                CHARSET_TO_INDEX.put(charsetName, collationIndex);
+            	if(StringUtils.isNotBlank(charsetName)){
+            		INDEX_TO_CHARSET.put(collationIndex, charsetName);
+                    CHARSET_TO_INDEX.put(charsetName, collationIndex);
+            	}else{
+            		logger.warn("the collationIndex: "+ collationIndex +" of element charset-config in mycat.xml is wrong.");
+            	}
             }
             
             logger.debug("load from mycat.xml: " + JSON.toJSONString(INDEX_TO_CHARSET));
