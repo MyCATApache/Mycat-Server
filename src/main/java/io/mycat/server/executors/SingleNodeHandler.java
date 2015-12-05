@@ -42,6 +42,7 @@ import io.mycat.server.packet.OkPacket;
 import io.mycat.server.packet.RowDataPacket;
 import io.mycat.server.packet.util.LoadDataUtil;
 import io.mycat.server.parser.ServerParse;
+import io.mycat.server.parser.ServerParseShow;
 import io.mycat.server.response.ShowTables;
 import io.mycat.util.StringUtil;
 import org.slf4j.Logger;
@@ -79,10 +80,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		this.session = session;
         MySQLFrontConnection source = session.getSource();
         String schema=source.getSchema();
-        if(schema!=null)
+        if(schema!=null&&ServerParse.SHOW==rrs.getSqlType())
         {
             SchemaConfig schemaConfig= MycatServer.getInstance().getConfig().getSchemas().get(schema);
-            isDefaultNodeShowTable=( ServerParse.SHOW==rrs.getSqlType()&&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+            int type= ServerParseShow.tableCheck(rrs.getStatement(),0) ;
+            isDefaultNodeShowTable=(ServerParseShow.TABLES==type &&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+
             if(isDefaultNodeShowTable)
             {
                 shardingTablesSet = ShowTables.getTableSet(source, rrs.getStatement());
