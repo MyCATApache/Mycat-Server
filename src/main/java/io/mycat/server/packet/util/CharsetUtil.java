@@ -120,11 +120,14 @@ public class CharsetUtil {
     				while(!getCharsetCollationFromMysql(config)){
     					getCharsetCollationFromMysql(config);
     				}
+    				logger.debug(" init charset and collation success...");
     				return;	// 结束外层 for 循环
     			}
     		}
     	}
-    	
+    	logger.error(" init charset and collation from mysqld failed, please check datahost in mycat.xml."+
+    			System.getProperty("line.separator") + 
+    			" if your backend database is not mysqld, please ignore this message.");
     }
     
     public static final String getCharset(int index) {
@@ -197,7 +200,6 @@ public class CharsetUtil {
 					String collationName = rs.getString(3);
 					boolean isDefaultCollation = (rs.getString(4) != null 
 							&& "Yes".equalsIgnoreCase(rs.getString(4))) ? true : false;
-					System.out.println(charsetName + ", " + collationName + ", " + collationIndex + ", " + isDefaultCollation);
 					
 					INDEX_TO_CHARSET.put(collationIndex, charsetName);
 					if(isDefaultCollation){	// 每一个 charsetName 对应多个collationIndex，此处选择默认的collationIndex
@@ -207,15 +209,16 @@ public class CharsetUtil {
 					CharsetCollation cc =  new CharsetCollation(charsetName, collationIndex, collationName, isDefaultCollation);
 					COLLATION_TO_CHARSETCOLLATION.put(collationName, cc);
 				}
-				if(INDEX_TO_CHARSET.size() > 0)
+				// 这里判断不能使用 INDEX_TO_CHARSET.size()，因为 load 方法中可能已经先put了值
+				if(COLLATION_TO_CHARSETCOLLATION.size() > 0)	
 					return true;
 				return false;
 			} catch (SQLException e) {
-				logger.error(e.getMessage());
+				logger.warn(e.getMessage());
 			}
     		
 		} catch (SQLException e) {
-			logger.error(e.getMessage());
+			logger.warn(e.getMessage());
 		}
     	
     	return false;
@@ -228,19 +231,21 @@ public class CharsetUtil {
      * @return
      * @throws SQLException
      */
-    public static Connection getConnection(DBHostConfig cfg) throws SQLException {
-    	try {
-			Class.forName("com.mysql.jdbc.Driver");
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-			logger.error(e.getMessage());
-		}
-    	
-    	logger.debug(JSON.toJSONString(cfg));
+    public static Connection getConnection(DBHostConfig cfg){
+    	if(cfg == null) return null;
     	
     	String url = new StringBuffer("jdbc:mysql://").append(cfg.getUrl()).append("/mysql").toString();
-		Connection connection = DriverManager.getConnection(url, cfg.getUser(), cfg.getPassword());
-		
+		Connection connection = null;
+    	try {
+			Class.forName("com.mysql.jdbc.Driver");
+			connection = DriverManager.getConnection(url, cfg.getUser(), cfg.getPassword());
+		} catch (ClassNotFoundException | SQLException e) {
+			if(e instanceof ClassNotFoundException)
+				logger.error(e.getMessage());
+			else
+				logger.warn(e.getMessage() + ", " + JSON.toJSONString(cfg));
+		}
+    	
 		return connection;
 	}
     
