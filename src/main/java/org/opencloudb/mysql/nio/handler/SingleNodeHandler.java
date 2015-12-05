@@ -45,6 +45,7 @@ import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.server.parser.ServerParseShow;
 import org.opencloudb.server.response.ShowTables;
 
 import org.opencloudb.stat.QueryResult;
@@ -84,10 +85,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		this.session = session;
         ServerConnection source = session.getSource();
         String schema=source.getSchema();
-        if(schema!=null)
+        if(schema!=null&&ServerParse.SHOW==rrs.getSqlType())
         {
             SchemaConfig schemaConfig= MycatServer.getInstance().getConfig().getSchemas().get(schema);
-            isDefaultNodeShowTable=( ServerParse.SHOW==rrs.getSqlType()&&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+           int type= ServerParseShow.tableCheck(rrs.getStatement(),0) ;
+            isDefaultNodeShowTable=(ServerParseShow.TABLES==type &&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+
             if(isDefaultNodeShowTable)
             {
                 shardingTablesSet = ShowTables.getTableSet(source, rrs.getStatement());
