@@ -25,6 +25,7 @@ package io.mycat.server.packet.util;
 
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
+import io.mycat.server.config.node.CharsetConfig;
 import io.mycat.server.config.node.DBHostConfig;
 
 import java.sql.Connection;
@@ -79,12 +80,9 @@ public class CharsetUtil {
             	if(StringUtils.isNotBlank(charsetName)){
             		INDEX_TO_CHARSET.put(collationIndex, charsetName);
                     CHARSET_TO_INDEX.put(charsetName, collationIndex);
-            	}else{
-            		logger.warn("the collationIndex: "+ collationIndex +" of element charset-config in mycat.xml is wrong.");
             	}
             }
-            
-            logger.debug("load from mycat.xml: " + JSON.toJSONString(INDEX_TO_CHARSET));
+            logger.debug("load charset and collation from mycat.xml.");
             
         } catch (Exception e) {
             logger.error(e.getMessage());
@@ -104,7 +102,7 @@ public class CharsetUtil {
      * 
      * @param dataHosts mycat.xml 配置文件中读取处理的  dataHost 元素的 map
      */
-    public static void initCharsetAndCollation(Map<String, PhysicalDBPool> dataHosts){
+    public static void initCharsetAndCollation(Map<String, PhysicalDBPool> dataHosts, CharsetConfig charConfig){
     	if(dataHosts == null){
     		logger.error("param dataHosts is null");
     		return;
@@ -124,6 +122,10 @@ public class CharsetUtil {
     				while(!getCharsetCollationFromMysql(config)){
     					getCharsetCollationFromMysql(config);
     				}
+    				// ConfigInitializer 中的 initCharsetConfig 其实没有 load 成功，
+    				// 因为它在 initCharsetAndCollation 函数前面运行，所以这里重新 load 一下
+    				if(charConfig != null && charConfig.getProps() != null)
+    					CharsetUtil.load(charConfig.getProps());
     				logger.debug(" init charset and collation success...");
     				return;	// 结束外层 for 循环
     			}

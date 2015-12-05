@@ -224,7 +224,7 @@ public class MycatServer {
 		// Before init datahost, we get mysqld's charset and collation_index mapping 
 		// from INFORMATION_SCHEMA.COLLATIONS table, and put them in cache.
 		LOGGER.info(" init charset and collation ...");
-		CharsetUtil.initCharsetAndCollation(config.getDataHosts());
+		CharsetUtil.initCharsetAndCollation(config.getDataHosts(), config.getCharsetConfig());
 		
 		// init datahost
 		config.initDatasource();
