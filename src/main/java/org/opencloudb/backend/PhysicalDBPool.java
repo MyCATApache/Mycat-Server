@@ -252,6 +252,13 @@ public class PhysicalDBPool {
 		for (int i = 0; i < writeSources.length; i++) {
 			int j = loop(i + index);
 			if (initSource(j, writeSources[j])) {
+
+                //不切换-1时，如果主写挂了   不允许切换过去
+                if(dataHostConfig.getSwitchType()==DataHostConfig.NOT_SWITCH_DS&&j>0)
+                {
+                   break;
+                }
+
 				active = j;
 				activedIndex = active;
 				initSuccess = true;

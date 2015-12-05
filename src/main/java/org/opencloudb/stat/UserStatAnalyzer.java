@@ -5,31 +5,38 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * 管理用户状态
+ * 按访问用户 计算SQL的运行状态
  * 
  * @author Ben
  *
  */
-public class UserStatFilter {
+public class UserStatAnalyzer implements QueryResultListener {
 	
 	private LinkedHashMap<String, UserStat> userStatMap = new LinkedHashMap<String, UserStat>();	
 	private ReentrantReadWriteLock  lock  = new ReentrantReadWriteLock();
 	
-    private final static UserStatFilter instance  = new UserStatFilter();
+    private final static UserStatAnalyzer instance  = new UserStatAnalyzer();
     
-    public static UserStatFilter getInstance() {
+    private UserStatAnalyzer() {
+    }
+    
+    public static UserStatAnalyzer getInstance() {
         return instance;
     }  
 	
-	/**
-	 * update status
-	 */
-	public void updateStat(String user, int sqlType, String sql, long startTime) {	
+	@Override
+	public void onQuery(QueryResult query) {
+		
+		String user = query.getUser();
+		int sqlType = query.getSqlType();
+		String sql = query.getSql();
+		long startTime = query.getStartTime();
+		long endTime = query.getEndTime();
 		
 		UserStat userStat = getUserStat(user);
-		userStat.update(sqlType, sql, startTime);		
-	}
-	
+		userStat.update(sqlType, sql, startTime, endTime);		
+	}	
+
 	private UserStat getUserStat(String user) {
         lock.writeLock().lock();
         try {
@@ -53,6 +60,5 @@ public class UserStatFilter {
             lock.readLock().unlock();
         }
         return map;
-	}	
-
+	}
 }
