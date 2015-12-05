@@ -18,12 +18,12 @@ public class TestClass1 {
         String jdbcurl="jdbc:mysql://127.0.0.1:8066/TESTDB?useUnicode=true&characterEncoding=utf-8";
         String username="test";
         String password="test";
-            Class.forName(jdbcdriver);
-            Connection c = DriverManager.getConnection(jdbcurl,username,password); 
+        System.out.println("开始连接mysql:"+jdbcurl);
+        Class.forName(jdbcdriver);
+        Connection c = DriverManager.getConnection(jdbcurl,username,password); 
         Statement st = c.createStatement();
-
         print( "test jdbc " , st.executeQuery("select count(*) from t_sys_log ")); 
-
+        System.out.println("OK......");
     }
 
          static void print( String name , ResultSet res )
