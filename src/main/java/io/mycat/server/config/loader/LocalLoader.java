@@ -35,6 +35,7 @@ import io.mycat.server.config.node.DBHostConfig;
 import io.mycat.server.config.node.DataHostConfig;
 import io.mycat.server.config.node.DataNodeConfig;
 import io.mycat.server.config.node.HostIndexConfig;
+import io.mycat.server.config.node.JdbcDriver;
 import io.mycat.server.config.node.QuarantineConfig;
 import io.mycat.server.config.node.RuleConfig;
 import io.mycat.server.config.node.SchemaConfig;
@@ -96,7 +97,7 @@ public class LocalLoader implements ConfigLoader {
         this.sequenceConfig = new SequenceConfig();
     }
 
-    private Element loadRoot() {
+    private static Element loadRoot() {
         InputStream dtd = null;
         InputStream xml = null;
         Element root = null;
@@ -200,8 +201,11 @@ public class LocalLoader implements ConfigLoader {
 		loadSequenceConfig(root);
 		return this.sequenceConfig;
 	}
-
-
+	
+	public static Map<String, JdbcDriver> loadJdbcDriverConfig() {
+		Element root = loadRoot();
+		return loadJdbcDriverConfig(root);
+	}
 
 	private void loadUsers(Element root) {
         NodeList list = root.getElementsByTagName("user");
@@ -918,6 +922,28 @@ public class LocalLoader implements ConfigLoader {
             throw new ConfigException("loadSequenceConfig error: " + e.getMessage());
 		}
 	}
+	
+	private static Map<String, JdbcDriver> loadJdbcDriverConfig(Element root) {
+		NodeList list = root.getElementsByTagName("driver");
+        try {
+        	Map<String, JdbcDriver> jdbcDriverConfig = new HashMap<>();
+        	for(int i=0; i<list.getLength(); i++){
+        		Node node = list.item(i);
+        		if(node != null){
+        			String dbType = ((Element) node).getAttribute("dbType");
+                    String className = ((Element) node).getAttribute("className");
+                    JdbcDriver driver = new JdbcDriver(dbType, className);
+                    jdbcDriverConfig.put(dbType.toLowerCase(), driver);
+        		}
+        	}
+        	return jdbcDriverConfig;
+		} catch (Exception e) {
+			e.printStackTrace();
+            throw new ConfigException("loadJdbcDriverConfig error: " + e.getMessage());
+		}
+	}
 
+	
+	
 
 }

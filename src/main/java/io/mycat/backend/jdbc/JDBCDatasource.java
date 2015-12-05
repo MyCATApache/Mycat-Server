@@ -3,8 +3,10 @@ package io.mycat.backend.jdbc;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.net.ConnectIdGenerator;
+import io.mycat.server.config.loader.LocalLoader;
 import io.mycat.server.config.node.DBHostConfig;
 import io.mycat.server.config.node.DataHostConfig;
+import io.mycat.server.config.node.JdbcDriver;
 import io.mycat.server.executors.ResponseHandler;
 
 import java.io.IOException;
@@ -12,27 +14,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.List;
+import java.util.Map;
 
-import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JDBCDatasource extends PhysicalDatasource {
-	static {
-		// 加载可能的驱动
-		List<String> drivers = Lists.newArrayList("com.mysql.jdbc.Driver",
-				"org.opencloudb.jdbc.mongodb.MongoDriver",
-				"org.opencloudb.jdbc.sequoiadb.SequoiaDriver",
-				"oracle.jdbc.OracleDriver",
-				"com.microsoft.sqlserver.jdbc.SQLServerDriver",
-				"org.apache.hive.jdbc.HiveDriver", "com.ibm.db2.jcc.DB2Driver",
-				"org.postgresql.Driver");
-		for (String driver : drivers) {
-			try {
-				Class.forName(driver);
-			} catch (ClassNotFoundException ignored) {
-			}
-		}
-	}
+	public static final Logger logger = LoggerFactory.getLogger(JDBCDatasource.class);
+	public static Map<String, JdbcDriver> jdbcDriverConfig = LocalLoader.loadJdbcDriverConfig();
 
 	public JDBCDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
@@ -49,21 +38,33 @@ public class JDBCDatasource extends PhysicalDatasource {
 	public void createNewConnection(ResponseHandler handler, String schema)
 			throws IOException {
 		DBHostConfig cfg = getConfig();
-		JDBCConnection c = new JDBCConnection();
-
-		c.setHost(cfg.getIp());
-		c.setPort(cfg.getPort());
-		c.setPool(this);
-		c.setSchema(schema);
-		c.setDbType(cfg.getDbType());
-		c.setId(ConnectIdGenerator.getINSTNCE().getId()); // 复用mysql的Backend的ID，需要在process中存储
+		JdbcDriver driver = jdbcDriverConfig.get(cfg.getDbType().toLowerCase());	// 获取对应 dbType 的驱动 className
 		try {
-
+			if(driver != null)
+				Class.forName(driver.getClassName());	
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			logger.error("createNewConnection error " + e.getMessage());
+			return;
+		}
+		
+		JDBCConnection c = null;
+		try {
+			// TODO: 这里需要实现连继池
 			Connection con = getConnection();
+			c = new JDBCConnection();
+			c.setHost(cfg.getIp());
+			c.setPort(cfg.getPort());
+			c.setPool(this);
+			c.setSchema(schema);
+			c.setDbType(cfg.getDbType());
+			c.setId(ConnectIdGenerator.getINSTNCE().getId()); // 复用mysql的Backend的ID，需要在process中存储
+			
 			// c.setIdleTimeout(pool.getConfig().getIdleTimeout());
 			c.setCon(con);
 			// notify handler
 			handler.connectionAcquired(c);
+			
 		} catch (Exception e) {
 			handler.connectionError(e, c);
 		}
