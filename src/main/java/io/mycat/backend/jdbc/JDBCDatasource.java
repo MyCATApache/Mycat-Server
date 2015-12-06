@@ -16,12 +16,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JDBCDatasource extends PhysicalDatasource {
 	public static final Logger logger = LoggerFactory.getLogger(JDBCDatasource.class);
-	public static Map<String, JdbcDriver> jdbcDriverConfig = LocalLoader.loadJdbcDriverConfig();
+	private static Map<String, JdbcDriver> jdbcDriverConfig = LocalLoader.loadJdbcDriverConfig();
 
 	public JDBCDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
@@ -38,13 +39,23 @@ public class JDBCDatasource extends PhysicalDatasource {
 	public void createNewConnection(ResponseHandler handler, String schema)
 			throws IOException {
 		DBHostConfig cfg = getConfig();
-		JdbcDriver driver = jdbcDriverConfig.get(cfg.getDbType().toLowerCase());	// 获取对应 dbType 的驱动 className
+		
+		if(StringUtils.isBlank(cfg.getDbType())){
+			logger.error(" dbType for " + cfg.getHostName() + " in mycat.xml has no value. ");
+			return;
+		}
+		
+		JdbcDriver driver = getJdbcDriverBydbType(cfg.getDbType().toLowerCase());
 		try {
-			if(driver != null)
+			if(driver != null && StringUtils.isNotBlank(driver.getClassName())){
 				Class.forName(driver.getClassName());	
+			}else{
+				logger.error(" driver for " + cfg.getDbType() + " is not exist or className has no value,"
+						+ " please check jdbcDriver-config element in mycat.xml.");
+			}
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
-			logger.error("createNewConnection error " + e.getMessage());
+			logger.error("createNewConnection error: " + e.getMessage());
 			return;
 		}
 		
@@ -76,18 +87,34 @@ public class JDBCDatasource extends PhysicalDatasource {
 		Connection connection = DriverManager.getConnection(cfg.getUrl(),
 				cfg.getUser(), cfg.getPassword());
 		String initSql = getHostConfig().getConnectionInitSql();
-		if (initSql != null && !"".equals(initSql)) {
-			Statement statement = null;
-			try {
-				statement = connection.createStatement();
+		if (StringUtils.isNotBlank(initSql)) {
+			try (Statement statement = connection.createStatement()){
 				statement.execute(initSql);
-			} finally {
-				if (statement != null) {
-					statement.close();
-				}
+			} catch(SQLException e) {
+				logger.warn(" getConnection error: " + e.getMessage());
 			}
 		}
 		return connection;
+	}
+	
+	/**
+	 * 根据 dbType 获取 JdbcDriver
+	 * @param dbType mysql
+	 * @return JdbcDriver: {'mysql':'com.mysql.jdbc.Driver'}
+	 */
+	public static JdbcDriver getJdbcDriverBydbType(String dbType){
+		if(StringUtils.isNotBlank(dbType)){
+			return jdbcDriverConfig.get(dbType.toLowerCase());	// 获取对应 dbType 的 JdbcDriver
+		}
+		return null;
+	}
+
+	public static Map<String, JdbcDriver> getJdbcDriverConfig() {
+		return jdbcDriverConfig;
+	}
+
+	public static void setJdbcDriverConfig(Map<String, JdbcDriver> jdbcDriverConfig) {
+		JDBCDatasource.jdbcDriverConfig = jdbcDriverConfig;
 	}
 
 }

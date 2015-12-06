@@ -46,6 +46,9 @@ import io.mycat.server.config.node.TableConfigMap;
 import io.mycat.server.config.node.UserConfig;
 import io.mycat.util.SplitUtil;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -63,15 +66,20 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * @author mycat
  */
 public class LocalLoader implements ConfigLoader {
-
+	private static final Logger logger = LoggerFactory.getLogger("LocalLoader");
     private  Map<String, DataHostConfig> dataHosts;
     private  Map<String, DataNodeConfig> dataNodes;
     private  Map<String, SchemaConfig> schemas;
@@ -83,7 +91,30 @@ public class LocalLoader implements ConfigLoader {
     private  CharsetConfig charsetConfig;
     private  HostIndexConfig hostIndexConfig;
     private  SequenceConfig sequenceConfig;
-
+    
+    // 为了避免原代码中频繁调用 loadRoot 去频繁读取 /mycat.dtd 和 /mycat.xml，所以将两个文件进行缓存，
+    // 注意这里并不会一直缓存在内存中，随着 LocalLoader 对象的回收，缓存占用的内存自然也会被回收。
+    private static byte[] xmlBuffer = null;
+    private static byte[] dtdBuffer = null;
+    private static  ByteArrayOutputStream xmlBaos = null;
+    private static  ByteArrayOutputStream dtdBaos = null;
+    
+    static {
+    	InputStream input = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
+    	if(input != null){
+    		dtdBuffer = new byte[1024 * 512];
+    		dtdBaos = new ByteArrayOutputStream();
+    		bufferFileStream(input, dtdBuffer, dtdBaos);
+    	}
+    	
+        input = ConfigFactory.class.getResourceAsStream("/mycat.xml");
+    	if(input != null){
+    		xmlBuffer = new byte[1024 * 512];
+            xmlBaos = new ByteArrayOutputStream();
+            bufferFileStream(input, xmlBuffer, xmlBaos);
+    	}
+    }
+    
     public LocalLoader(){
     	this.system = new SystemConfig();
         this.users = new HashMap<String, UserConfig>();
@@ -96,31 +127,66 @@ public class LocalLoader implements ConfigLoader {
         this.hostIndexConfig = new HostIndexConfig();
         this.sequenceConfig = new SequenceConfig();
     }
-
+    
+    /**
+     * 原来的老方法
+     * @return
+     */
+//    private static Element loadRoot() {
+//        InputStream dtd = null;
+//        InputStream xml = null;
+//        Element root = null;
+//        try {
+//            dtd = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
+//            xml = ConfigFactory.class.getResourceAsStream("/mycat.xml");
+//            root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
+//        } catch (ConfigException e) {
+//            throw e;
+//        } catch (Exception e) {
+//            throw new ConfigException(e);
+//        } finally {
+//            if (dtd != null) {
+//                try {
+//                    dtd.close();
+//                } catch (IOException e) { }
+//            }
+//            if (xml != null) {
+//                try {
+//                    xml.close();
+//                } catch (IOException e) { }
+//            }
+//        }
+//        return root;
+//    }
+    
+    /**
+     * 优化后的方法
+     * @return
+     */
     private static Element loadRoot() {
-        InputStream dtd = null;
-        InputStream xml = null;
         Element root = null;
+        InputStream mycatXml = null;
+        InputStream	mycatDtd = null;
+        
+        if(xmlBaos != null)
+        	mycatXml = new ByteArrayInputStream(xmlBaos.toByteArray());
+        if(dtdBaos != null)
+        	mycatDtd = new ByteArrayInputStream(dtdBaos.toByteArray());
+        
         try {
-            dtd = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
-            xml = ConfigFactory.class.getResourceAsStream("/mycat.xml");
-            root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
-        } catch (ConfigException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ConfigException(e);
-        } finally {
-            if (dtd != null) {
-                try {
-                    dtd.close();
-                } catch (IOException e) { }
-            }
-            if (xml != null) {
-                try {
-                    xml.close();
-                } catch (IOException e) { }
-            }
-        }
+			root = ConfigUtil.getDocument(mycatDtd, mycatXml).getDocumentElement();
+		} catch (ParserConfigurationException | SAXException | IOException e1) {
+			e1.printStackTrace();
+			logger.error("loadRoot error: " + e1.getMessage());
+		}finally{
+			if(mycatXml != null){
+				try { mycatXml.close(); } catch (IOException e) {}
+			}
+			if(mycatDtd != null){
+				try { mycatDtd.close(); } catch (IOException e) {}
+			}
+		}
+        
         return root;
     }
 
@@ -943,7 +1009,25 @@ public class LocalLoader implements ConfigLoader {
 		}
 	}
 
-	
-	
+    private static void bufferFileStream(InputStream input, byte[] buffer, ByteArrayOutputStream baos){
+        int len = -1;
+        try {
+    		while ((len = input.read(buffer)) > -1 ) {
+    			baos.write(buffer, 0, len);
+			}
+    		baos.flush();
+		} catch (IOException e) {
+			e.printStackTrace();
+			logger.error(" bufferFileStream error: " + e.getMessage());
+		}
+    }
+
+	public static ByteArrayOutputStream getXmlBaos() {
+		return xmlBaos;
+	}
+
+	public static ByteArrayOutputStream getDtdBaos() {
+		return dtdBaos;
+	}
 
 }

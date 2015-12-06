@@ -8,6 +8,7 @@ import io.mycat.server.config.cluster.LocalClusterSync;
 import io.mycat.server.config.cluster.ZookeeperClusterSync;
 import io.mycat.server.config.loader.zkloader.ZookeeperLoader;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -56,8 +57,10 @@ public class ConfigFactory {
         InputStream dtd = null;
         InputStream xml = null;
         try {
-            dtd = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
-            xml = ConfigFactory.class.getResourceAsStream("/mycat.xml");
+        	if(LocalLoader.getDtdBaos() != null)
+        		dtd = new ByteArrayInputStream(LocalLoader.getDtdBaos().toByteArray());
+        	if(LocalLoader.getXmlBaos() != null)
+        		xml = new ByteArrayInputStream(LocalLoader.getXmlBaos().toByteArray());
             Element root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
             registryAddress = loadSystem(root);
         } catch (ConfigException e) {

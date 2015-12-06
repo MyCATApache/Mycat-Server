@@ -284,7 +284,7 @@
          <property name="55">utf8</property>
     </charset-config>
     
-    <!-- 当后端需要使用JDBC方式来处理时，需要配置对应的项目 -->
+    <!-- 当后端需要使用JDBC方式来处理时，需要配置对应的条目 -->
     <jdbcDriver-config>
     	<driver dbType="mysql" className="com.mysql.jdbc.Driver" />
     	<driver dbType="oracle" className="oracle.jdbc.OracleDriver" />
