@@ -23,9 +23,15 @@
  */
 package org.opencloudb.server.handler;
 
+import org.opencloudb.MycatServer;
+import org.opencloudb.config.ErrorCode;
+import org.opencloudb.config.model.QuarantineConfig;
 import org.opencloudb.server.ServerConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.alibaba.druid.wall.WallCheckResult;
+import com.alibaba.druid.wall.WallProvider;
 
 /**
  * @author songwie
@@ -33,18 +39,30 @@ import org.slf4j.LoggerFactory;
 public final class QuarantineHandler {
 
 	private static Logger logger = LoggerFactory.getLogger(QuarantineHandler.class);
+	private static boolean check = false;
 	
-	public static void handle(String sql, ServerConnection c) {
-		/*MycatConfig config = MycatServer.getInstance().getConfig();
-		QuarantineConfig qc = config.getQuarantine();
-		WallProvider wall = qc.getWallProvider();
-		WallCheckResult result = wall.check(sql);
-		if (result.getViolations().size() > 0) {
-            Violation violation = result.getViolations().get(0);
-            logger.warn("found sql quarantine," + violation.getMessage());
-            c.writeErrMessage(ErrorCode.ERR_WRONG_USED, "found sql quarantine," + violation.getMessage());
-        }*/
-		 
+	private final static ThreadLocal<WallProvider> contextLocal = new ThreadLocal<WallProvider>();
+	
+	public static boolean handle(String sql, ServerConnection c) {
+		if(contextLocal.get()==null){
+			QuarantineConfig quarantineConfig = MycatServer.getInstance().getConfig().getQuarantine();
+            if(quarantineConfig!=null){
+            	if(quarantineConfig.isCheck()){
+            	   contextLocal.set(quarantineConfig.getProvider());
+            	   check = true;
+            	}
+            }
+		}
+		if(check){
+			WallCheckResult result = contextLocal.get().check(sql);
+			if (!result.getViolations().isEmpty()) {
+	        	logger.warn(result.getViolations().get(0).getMessage());
+	            c.writeErrMessage(ErrorCode.ERR_WRONG_USED, result.getViolations().get(0).getMessage());
+	            return false;
+	        }
+		}
+		
+		return true;
 	}
 
 }
