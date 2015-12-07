@@ -94,7 +94,7 @@ public final class ServerParseSelect {
 	private static int sessionVarCheck(String stmt, int offset) {
         String s = stmt.substring(offset).toLowerCase();
         if (s.startsWith("session.auto_increment_increment")) {
-            if(s.length()>32&&s.charAt(32)==',')
+            if(s.contains("@@"))
             {
                 return    SELECT_VAR_ALL;
             }
