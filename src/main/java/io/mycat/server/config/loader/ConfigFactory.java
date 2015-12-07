@@ -54,32 +54,13 @@ public class ConfigFactory {
 		}
 	}
 	private static void load() {
-        InputStream dtd = null;
-        InputStream xml = null;
         try {
-        	if(LocalLoader.getDtdBaos() != null)
-        		dtd = new ByteArrayInputStream(LocalLoader.getDtdBaos().toByteArray());
-        	if(LocalLoader.getXmlBaos() != null)
-        		xml = new ByteArrayInputStream(LocalLoader.getXmlBaos().toByteArray());
-            Element root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
+            Element root = LocalLoader.getRoot();
             registryAddress = loadSystem(root);
         } catch (ConfigException e) {
             throw e;
         } catch (Exception e) {
             throw new ConfigException(e);
-        } finally {
-            if (dtd != null) {
-                try {
-                    dtd.close();
-                } catch (IOException e) {
-                }
-            }
-            if (xml != null) {
-                try {
-                    xml.close();
-                } catch (IOException e) {
-                }
-            }
         }
     }
 	private static String loadSystem(Element root) throws IllegalAccessException, InvocationTargetException {
