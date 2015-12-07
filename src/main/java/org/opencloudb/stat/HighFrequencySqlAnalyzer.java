@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.opencloudb.server.parser.ServerParse;
+
 import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
 
 /**
@@ -39,32 +41,42 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 	@Override
 	public void onQuery(QueryResult query) {
 		
+		int sqlType = query.getSqlType();
 		String sql = query.getSql();		
 		String newSql = this.sqlParser.mergeSql(sql);
 		
 		this.lock.writeLock().lock();
         try {
         	
-        	if ( this.sqlFrequencyMap.size() >= CAPACITY_SIZE ) {
+        	switch(sqlType) {
+        	case ServerParse.SELECT:		
+        	case ServerParse.UPDATE:			
+        	case ServerParse.INSERT:		
+        	case ServerParse.DELETE:
+        	case ServerParse.REPLACE:  
         		
-        		// 删除频率次数排名靠后的SQL
-        		List<Map.Entry<String, SqlFrequency>> list = this.sortFrequency( sqlFrequencyMap, true );
-        		for (int i = 0; i < DELETE_SIZE; i++) {
-        			
-        			Entry<String, SqlFrequency> entry = list.get(i);
-        			String key = entry.getKey();
-        			this.sqlFrequencyMap.remove( key );
-        		}
+	        	if ( this.sqlFrequencyMap.size() >= CAPACITY_SIZE ) {
+	        		
+	        		// 删除频率次数排名靠后的SQL
+	        		List<Map.Entry<String, SqlFrequency>> list = this.sortFrequency( sqlFrequencyMap, true );
+	        		for (int i = 0; i < DELETE_SIZE; i++) {
+	        			
+	        			Entry<String, SqlFrequency> entry = list.get(i);
+	        			String key = entry.getKey();
+	        			this.sqlFrequencyMap.remove( key );
+	        		}
+	        	}
+	        	
+	        	SqlFrequency frequency = this.sqlFrequencyMap.get( newSql );
+	            if ( frequency == null) {
+	            	frequency = new SqlFrequency();
+	            	frequency.setSql( newSql );
+	            } 
+	            frequency.setLastTime( query.getEndTime() );
+	            frequency.incCount();
+	            this.sqlFrequencyMap.put(newSql, frequency);
+	            
         	}
-        	
-        	SqlFrequency frequency = this.sqlFrequencyMap.get( newSql );
-            if ( frequency == null) {
-            	frequency = new SqlFrequency();
-            	frequency.setSql( newSql );
-            } 
-            frequency.setLastTime( query.getEndTime() );
-            frequency.incCount();
-            this.sqlFrequencyMap.put(newSql, frequency);
             
         } finally {
         	this.lock.writeLock().unlock();
