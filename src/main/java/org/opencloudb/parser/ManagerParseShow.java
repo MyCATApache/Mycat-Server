@@ -47,6 +47,7 @@ public final class ManagerParseShow {
     public static final int SQL_SLOW = 14;
     public static final int SQL_SUM_USER = 15;
     public static final int SQL_SUM_TABLE = 16;
+    public static final int SQL_HIGH = 17;
     
     public static final int THREADPOOL = 18;
     public static final int TIME_CURRENT = 19;
@@ -1176,6 +1177,9 @@ public final class ManagerParseShow {
             	case 'u':
             		return show2SqlSUCheck(stmt, offset);
             	}
+            case 'H':
+            case 'h':
+            	return show2SqlHCheck(stmt, offset);
             default:
                 return OTHER;
             }
@@ -1264,6 +1268,23 @@ public final class ManagerParseShow {
                     return OTHER;
                 }
                 return SQL_SLOW;
+            }
+        }
+        return OTHER;
+    }
+    
+    // SHOW @@SQL.HIGH
+    static int show2SqlHCheck(String stmt, int offset) {
+    	
+    	if (stmt.length() > offset + "IGH".length()) {
+    		char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            if ((c1 == 'I' || c1 == 'i') && (c2 == 'G' || c2 == 'g') && (c3 == 'H' || c3 == 'h') ) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return OTHER;
+                }
+                return SQL_HIGH;
             }
         }
         return OTHER;

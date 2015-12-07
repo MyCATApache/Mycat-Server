@@ -47,6 +47,7 @@ import org.opencloudb.response.ShowRouter;
 import org.opencloudb.response.ShowSQL;
 import org.opencloudb.response.ShowSQLDetail;
 import org.opencloudb.response.ShowSQLExecute;
+import org.opencloudb.response.ShowSQLHigh;
 import org.opencloudb.response.ShowSQLSlow;
 import org.opencloudb.response.ShowSQLSumTable;
 import org.opencloudb.response.ShowSQLSumUser;
@@ -146,6 +147,9 @@ public final class ShowHandler {
 			break;
 		case ManagerParseShow.SQL_SLOW:
 			ShowSQLSlow.execute(c);
+			break;
+		case ManagerParseShow.SQL_HIGH:
+			ShowSQLHigh.execute(c);
 			break;
 		case ManagerParseShow.SQL_SUM_USER:
 			ShowSQLSumUser.execute(c);
