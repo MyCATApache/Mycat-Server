@@ -44,7 +44,7 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 		int sqlType = query.getSqlType();
 		String sql = query.getSql();		
 		String newSql = this.sqlParser.mergeSql(sql);
-		
+		long executeTime = query.getEndTime() - query.getStartTime();
 		this.lock.writeLock().lock();
         try {
         	
@@ -74,6 +74,7 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 	            } 
 	            frequency.setLastTime( query.getEndTime() );
 	            frequency.incCount();
+	            frequency.setExecuteTime(executeTime);
 	            this.sqlFrequencyMap.put(newSql, frequency);
 	            
         	}
@@ -127,7 +128,11 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 		private String sql;
 		private int count = 0;
 		private long lastTime = 0;
-
+		private long executeTime=0;
+		private long maxTime=0;
+		private long avgTime=0;
+		private long minTime=0;
+		
 		public String getSql() {
 			return sql;
 		}
@@ -150,6 +155,33 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 
 		public void setLastTime(long lastTime) {
 			this.lastTime = lastTime;
+		}
+		public long getExecuteTime() {
+			return executeTime;
+		}
+		public long getMaxTime() {
+			return maxTime;
+		}
+		public long getMinTime() {
+			return minTime;
+		}
+		public long getAvgTime() {
+			return avgTime;
+		}		
+		public void setExecuteTime(long execTime) {
+			if (execTime> this.maxTime){
+				this.maxTime = execTime;			  
+			}
+			if (this.minTime==0){
+				this.minTime = execTime;
+			}
+			if (execTime < this.minTime){
+				this.minTime = execTime;			  
+			}	
+			if (this.executeTime+execTime>0){
+			  this.avgTime=(this.executeTime+execTime)/2;
+			}
+			this.executeTime = execTime;	
 		}			
 	}
 	
