@@ -17,6 +17,7 @@ public class QueryResultDispatcher {
 	static {
 		listeners.add( UserStatAnalyzer.getInstance() );
 		listeners.add( TableStatAnalyzer.getInstance() );
+		listeners.add( HighFrequencySqlAnalyzer.getInstance() );
 	}
 	
 	public static void addListener(QueryResultListener listener) {
