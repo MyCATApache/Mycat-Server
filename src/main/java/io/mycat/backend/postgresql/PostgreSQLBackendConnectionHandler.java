@@ -106,6 +106,7 @@ public class PostgreSQLBackendConnectionHandler implements
 		try {
 			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(data, 0,
 					readedLength);
+			System.err.println(JSON.toJSONString(packets)); 
 			if (packets.size() > 0) {
 				if (packets.get(0) instanceof RowDescription) {// SELECT sql
 					doHandleBusinessQuery(con, packets);
@@ -127,14 +128,21 @@ public class PostgreSQLBackendConnectionHandler implements
 			err.packetId = ++packetId;
 			err.message = "SQL 服务器处理出错!".getBytes();
 			err.errno = ErrorCode.ERR_NOT_SUPPORTED;
-			con.getResponseHandler().errorResponse(err.writeToBytes(), con);
+			if(con.getResponseHandler()!=null){
+				con.getResponseHandler().errorResponse(err.writeToBytes(), con);
+			}
 		} catch (Exception e) {
 			LOGGER.error("处理出异常了", e);
 			ErrorPacket err = new ErrorPacket();
 			err.packetId = ++packetId;
 			err.message = ("内部服务器处理出错!" + e.getMessage()).getBytes();
 			err.errno = ErrorCode.ERR_NOT_SUPPORTED;
-			con.getResponseHandler().errorResponse(err.writeToBytes(), con);
+			ResponseHandler respHand = con.getResponseHandler();
+			if(respHand!=null){
+				respHand.errorResponse(err.writeToBytes(), con);
+			}else{
+				System.err.println("respHand 不为空");
+			}
 		}
 	}
 

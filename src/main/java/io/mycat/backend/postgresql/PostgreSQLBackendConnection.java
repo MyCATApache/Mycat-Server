@@ -10,6 +10,7 @@ import io.mycat.net.NetSystem;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.Isolations;
 import io.mycat.server.MySQLFrontConnection;
+import io.mycat.server.exception.UnknownTxIsolationException;
 import io.mycat.server.executors.ResponseHandler;
 import io.mycat.server.packet.util.CharsetUtil;
 import io.mycat.server.parser.ServerParse;
@@ -28,17 +29,21 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Coollf
  *
  */
-public class PostgreSQLBackendConnection extends Connection implements BackendConnection {
-	private static final Query _READ_UNCOMMITTED = new Query("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
-	private static final Query _READ_COMMITTED = new Query("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED");
-	private static final Query _REPEATED_READ = new Query("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ");
-	private static final Query _SERIALIZABLE = new Query("SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+public class PostgreSQLBackendConnection extends Connection implements
+		BackendConnection {
+	private static final Query _READ_UNCOMMITTED = new Query(
+			"SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
+	private static final Query _READ_COMMITTED = new Query(
+			"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED");
+	private static final Query _REPEATED_READ = new Query(
+			"SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+	private static final Query _SERIALIZABLE = new Query(
+			"SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE");
 	private static final Query _AUTOCOMMIT_ON = new Query("SET autocommit=1");
 	private static final Query _AUTOCOMMIT_OFF = new Query("SET autocommit=0");
 	private static final Query _COMMIT = new Query("rollback");
 	private static final Query _ROLLBACK = new Query("commit");
-	
-	
+
 	/**
 	 * 来自子接口
 	 */
@@ -66,9 +71,7 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	private Object attachment;
 	protected volatile String charset = "utf8";
 	private volatile boolean autocommit;
-	private volatile long currentTimeMillis;
-	
-	
+
 	/****
 	 * PG是否在事物中
 	 */
@@ -80,7 +83,7 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	private volatile ResponseHandler responseHandler;
 	private boolean borrowed;
 	private volatile int txIsolation;
-	private volatile boolean modifiedSQLExecuted = false;
+	private volatile boolean modifiedSQLExecuted = true;
 	private long lastTime;
 	private AtomicBoolean isQuit;
 
@@ -102,13 +105,15 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	private volatile boolean metaDataSyned = true;
 
 	private volatile StatusSync statusSync;
-	
+
 	/***
 	 * 当前事物ID
 	 */
 	private volatile String currentXaTxId;
+	private long currentTimeMillis;
 
-	public PostgreSQLBackendConnection(SocketChannel channel, boolean fromSlaveDB) {
+	public PostgreSQLBackendConnection(SocketChannel channel,
+			boolean fromSlaveDB) {
 		super(channel);
 		this.fromSlaveDB = fromSlaveDB;
 		this.lastTime = TimeUtil.currentTimeMillis();
@@ -248,7 +253,8 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 		if (isQuit.compareAndSet(false, true) && !isClosed()) {
 			if (isAuthenticated) {// 断开 与PostgreSQL连接
 				Terminate terminate = new Terminate();
-				ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
+				ByteBuffer buf = NetSystem.getInstance().getBufferPool()
+						.allocate();
 				terminate.write(buf);
 				write(buf);
 			} else {
@@ -279,49 +285,33 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 
 	@Override
 	public void query(String query) throws UnsupportedEncodingException {
-		RouteResultsetNode rrn = new RouteResultsetNode("default", ServerParse.SELECT, query);
+		RouteResultsetNode rrn = new RouteResultsetNode("default",
+				ServerParse.SELECT, query);
 		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
 	}
 
 	@Override
-	public void execute(RouteResultsetNode rrn, MySQLFrontConnection sc, boolean autocommit) throws IOException {
+	public void execute(RouteResultsetNode rrn, MySQLFrontConnection sc,
+			boolean autocommit) throws IOException {
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
 		String xaTXID = sc.getSession2().getXaTXID();
-		synAndDoExecute(xaTXID, rrn, sc, sc.getCharsetIndex(), sc.getTxIsolation(), autocommit);
+		synAndDoExecute(xaTXID, rrn,sc.getCharsetIndex(),
+				sc.getTxIsolation(), autocommit);
 
 	}
 
-	private void synAndDoExecute(String xaTXID, RouteResultsetNode rrn, MySQLFrontConnection sc, int charsetIndex,
-			int txIsolation2, boolean clientAutoCommit) {
-		boolean conAutoComit = this.autocommit;
-		String conSchema = this.schema;
-		String sql = rrn.getStatement();
-		System.err.println("SQL->:" + sql);
-		int sqlType = rrn.getSqlType();
-		if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
-			Query query = new Query(PgSqlApaterUtils.apater(sql));
-			ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
-			query.write(buf);
-			this.write(buf);
-		} else {// DDL
-			// 执行命令语句
-			Query query = new Query(PgSqlApaterUtils.apater(sql));
-			ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
-			query.write(buf);
-			this.write(buf);
-		}
-	}
-
-	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn, int clientCharSetIndex, int clientTxIsoLation,
+	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn,
+			int clientCharSetIndex, int clientTxIsoLation,
 			boolean clientAutoCommit) {
 		String xaCmd = null;
 
 		boolean conAutoComit = this.autocommit;
 		String conSchema = this.schema;
 		// never executed modify sql,so auto commit
-		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB() || clientAutoCommit;
+		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB()
+				|| clientAutoCommit;
 		if (expectAutocommit == false && xaTxID != null && xaStatus == 0) {
 			clientTxIsoLation = Isolations.SERIALIZABLE;
 			xaCmd = "XA START " + xaTxID + ';';
@@ -332,17 +322,86 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
 		int autoCommitSyn = (conAutoComit == expectAutocommit) ? 0 : 1;
 		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn;
-		// TODO COOLLF 此处大锅待实现. 相关 事物, 切换 库,自动提交等功能实现.
-
+		
+		if(synCount == 0){
+			String sql = rrn.getStatement();
+			Query query = new Query(PgSqlApaterUtils.apater(sql));
+			ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
+			query.write(buf);
+			this.write(buf);
+			return;
+		}
+		
+		// TODO COOLLF 此处大锅待实现. 相关 事物, 切换 库,自动提交等功能实现
+		StringBuilder sb = new StringBuilder();
+		if (charsetSyn == 1) {
+			getCharsetCommand(sb, clientCharSetIndex);
+		}
+		if (txIsoLationSyn == 1) {
+			getTxIsolationCommand(sb, clientTxIsoLation);
+		}
+		if (autoCommitSyn == 1) {
+			getAutocommitCommand(sb, expectAutocommit);
+		}
+		if (xaCmd != null) {
+			sb.append(xaCmd);
+		}
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("con need syn ,total syn cmd " + synCount
+					+ " commands " + sb.toString() + "schema change:"
+					+ ("" != null) + " con:" + this);
+		}
+		
 		metaDataSyned = false;
-		statusSync = new StatusSync(xaCmd != null, conSchema, clientCharSetIndex, clientTxIsoLation, expectAutocommit,
+		statusSync = new StatusSync(xaCmd != null, conSchema,
+				clientCharSetIndex, clientTxIsoLation, expectAutocommit,
 				synCount);
-		Query query = new Query(rrn.getStatement());
+		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement())).toString();
+		System.err.println("xaTxID="+ xaTxID + "SQL:"+sql);
+		Query query = new Query(sql);
 		ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
 		query.write(buf);
 		this.write(buf);
 		metaDataSyned = true;
 	}
+	
+	/**
+	 * 获取 更改事物级别sql
+	 * @param 
+	 * @param txIsolation
+	 */
+	private static void getTxIsolationCommand(StringBuilder sb, int txIsolation) {
+		switch (txIsolation) {
+		case Isolations.READ_UNCOMMITTED:
+			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");
+			return;
+		case Isolations.READ_COMMITTED:
+			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;");
+			return;
+		case Isolations.REPEATED_READ:
+			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
+			return;
+		case Isolations.SERIALIZABLE:
+			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE;");
+			return;
+		default:
+			throw new UnknownTxIsolationException("txIsolation:" + txIsolation);
+		}
+	}
+	
+	private void getAutocommitCommand(StringBuilder sb, boolean autoCommit) {
+		if (autoCommit) {
+			sb.append("SET autocommit=1;");
+		} else {
+			sb.append("begin transaction;");
+		}
+	}
+	
+	private static void getCharsetCommand(StringBuilder sb, int clientCharIndex) {
+//		sb.append("SET names ").append(CharsetUtil.getCharset(clientCharIndex))
+//				.append(";");
+	}
+
 
 	@Override
 	public void commit() {
@@ -364,23 +423,22 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 			return executed;
 		}
 	}
-	
 
 	@Override
 	public void rollback() {
 		ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
 		_ROLLBACK.write(buf);
-		this.write(buf); 
+		this.write(buf);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public void onReadData(int got) throws IOException {
-		LOGGER.debug("能读取 {} 长度的数据包", got);
-		this.handler.handle(this, getReadBuffer(), 0, got);
-		if(getReadBuffer()!=null){
-			getReadBuffer().clear();// 使用完成后清理
-		}else{
+		ByteBuffer buf = getReadBuffer();
+		if (buf != null) {
+			this.handler.handle(this, buf, 0, got);
+			buf.clear();// 使用完成后清理
+		} else {
 			System.err.println("getReadBuffer()为空");
 		}
 	}
@@ -411,8 +469,9 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 		private final AtomicInteger synCmdCount;
 		private final boolean xaStarted;
 
-		public StatusSync(boolean xaStarted, String schema, Integer charsetIndex, Integer txtIsolation,
-				Boolean autocommit, int synCount) {
+		public StatusSync(boolean xaStarted, String schema,
+				Integer charsetIndex, Integer txtIsolation, Boolean autocommit,
+				int synCount) {
 			super();
 			this.xaStarted = xaStarted;
 			this.schema = schema;
@@ -467,9 +526,11 @@ public class PostgreSQLBackendConnection extends Connection implements BackendCo
 	}
 
 	/**
-	 * @param inTransaction the inTransaction to set
+	 * @param inTransaction
+	 *            the inTransaction to set
 	 */
 	public void setInTransaction(boolean inTransaction) {
+		
 		this.inTransaction = inTransaction;
 	}
 
