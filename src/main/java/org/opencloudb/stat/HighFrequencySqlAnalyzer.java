@@ -20,8 +20,8 @@ import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
  */
 public class HighFrequencySqlAnalyzer implements QueryResultListener {
 	
-	private static final int CAPACITY_SIZE = 10;
-	private static final int DELETE_SIZE = 2;
+	private static final int CAPACITY_SIZE = 1000;
+	private static final int DELETE_SIZE = 100;
 	
 	private LinkedHashMap<String, SqlFrequency> sqlFrequencyMap = new LinkedHashMap<String, SqlFrequency>();	
 	private ReentrantReadWriteLock lock  = new ReentrantReadWriteLock();
