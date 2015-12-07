@@ -48,7 +48,7 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
         	if ( this.sqlFrequencyMap.size() >= CAPACITY_SIZE ) {
         		
         		// 删除频率次数排名靠后的SQL
-        		List<Map.Entry<String, SqlFrequency>> list = this.sortFrequency( sqlFrequencyMap, false );
+        		List<Map.Entry<String, SqlFrequency>> list = this.sortFrequency( sqlFrequencyMap, true );
         		for (int i = 0; i < DELETE_SIZE; i++) {
         			
         			Entry<String, SqlFrequency> entry = list.get(i);
@@ -74,15 +74,17 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 	/**
 	 * 获取 SQL 访问频率
 	 */
-	public Map<String, SqlFrequency> getSqlFrequency() {
-		Map<String, SqlFrequency> map = new LinkedHashMap<String, SqlFrequency>( sqlFrequencyMap.size() );
+	public List<Map.Entry<String, SqlFrequency>> getSqlFrequency() {
+		
+		List<Map.Entry<String, SqlFrequency>> list = null;
+		
         lock.readLock().lock();
         try {
-            map.putAll( sqlFrequencyMap );
+        	list = this.sortFrequency( sqlFrequencyMap, false );
         } finally {
             lock.readLock().unlock();
         }
-        return map;
+        return list;
 	}	
 	
 	/**

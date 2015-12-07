@@ -1,6 +1,7 @@
 package org.opencloudb.response;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 
 import org.opencloudb.config.Fields;
@@ -64,13 +65,14 @@ public final class ShowSQLHigh {
 
         // write rows
         byte packetId = eof.packetId;        
-        Map<String, SqlFrequency> sqlMap = HighFrequencySqlAnalyzer.getInstance().getSqlFrequency();
-        int i = 0;
-        for (SqlFrequency sqlFrequency : sqlMap.values()) {
-        	i++;
-        	RowDataPacket row = getRow(i, sqlFrequency.getSql(), sqlFrequency.getCount(), sqlFrequency.getLastTime(), c.getCharset());
-            row.packetId = ++packetId;
-            buffer = row.write(buffer, c,true);
+        List<Map.Entry<String, SqlFrequency>> list = HighFrequencySqlAnalyzer.getInstance().getSqlFrequency();
+        if ( list != null ) {        
+	        for (int i = 0; i < list.size(); i++) {
+	        	SqlFrequency sqlFrequency = list.get(i).getValue();
+	        	RowDataPacket row = getRow(i, sqlFrequency.getSql(), sqlFrequency.getCount(), sqlFrequency.getLastTime(), c.getCharset());
+	            row.packetId = ++packetId;
+	            buffer = row.write(buffer, c,true);
+	        }
         }
 
         // write last eof
