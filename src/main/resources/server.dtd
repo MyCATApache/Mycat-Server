@@ -29,9 +29,9 @@
 
 <!ELEMENT quarantine (whitehost*,blacklist*) >
 <!ELEMENT whitehost (host*)>
-<!ELEMENT blacklist (sqllist*)>
+<!ELEMENT blacklist (property*)>
+<!ATTLIST blacklist check NMTOKEN #REQUIRED>
 <!ELEMENT host (property*)>
-<!ELEMENT sqllist (property*)>
 <!ATTLIST host 
    host CDATA #REQUIRED
    user CDATA #REQUIRED
