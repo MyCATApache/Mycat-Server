@@ -1,9 +1,9 @@
 package org.opencloudb.buffer;
 
 public class ThreadLocalBufferPool extends ThreadLocal<BufferQueue> {
-	private final int size;
+	private final long size;
 
-	public ThreadLocalBufferPool(int size) {
+	public ThreadLocalBufferPool(long size) {
 		this.size = size;
 	}
 

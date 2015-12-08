@@ -127,10 +127,10 @@ public final class ShowProcessor {
 
     private static RowDataPacket getRow(NIOProcessor processor, String charset) {
     	BufferPool bufferPool=processor.getBufferPool();
-    	int bufferSize=bufferPool.size();
-    	int bufferCapacity=bufferPool.capacity();
+    	long bufferSize=bufferPool.size();
+    	long bufferCapacity=bufferPool.capacity();
     	long bufferSharedOpts=bufferPool.getSharedOptsCount();
-    	int bufferUsagePercent=(bufferCapacity-bufferSize)*100/bufferCapacity;
+    	long bufferUsagePercent=(bufferCapacity-bufferSize)*100/bufferCapacity;
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(processor.getName().getBytes());
         row.add(LongUtil.toBytes(processor.getNetInBytes()));
@@ -138,9 +138,9 @@ public final class ShowProcessor {
         row.add(LongUtil.toBytes(0));
         row.add(IntegerUtil.toBytes(0));
         row.add(IntegerUtil.toBytes(processor.getWriteQueueSize()));
-        row.add(IntegerUtil.toBytes(bufferSize));
-        row.add(IntegerUtil.toBytes(bufferCapacity));
-        row.add(IntegerUtil.toBytes(bufferUsagePercent));
+        row.add(LongUtil.toBytes(bufferSize));
+        row.add(LongUtil.toBytes(bufferCapacity));
+        row.add(LongUtil.toBytes(bufferUsagePercent));
         row.add(LongUtil.toBytes(bufferSharedOpts));
         row.add(IntegerUtil.toBytes(processor.getFrontends().size()));
         row.add(IntegerUtil.toBytes(processor.getBackends().size()));

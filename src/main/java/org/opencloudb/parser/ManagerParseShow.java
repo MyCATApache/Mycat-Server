@@ -45,30 +45,33 @@ public final class ManagerParseShow {
     public static final int SQL_DETAIL = 12;
     public static final int SQL_EXECUTE = 13;
     public static final int SQL_SLOW = 14;
-    public static final int SQL_SUM = 15;
+    public static final int SQL_SUM_USER = 15;
+    public static final int SQL_SUM_TABLE = 16;
+    public static final int SQL_HIGH = 17;
     
-    public static final int THREADPOOL = 16;
-    public static final int TIME_CURRENT = 17;
-    public static final int TIME_STARTUP = 18;
-    public static final int VERSION = 19;
-    public static final int VARIABLES = 20;
-    public static final int COLLATION = 21;
-    public static final int CONNECTION_SQL = 22;
-    public static final int DATANODE_WHERE = 23;
-    public static final int DATASOURCE_WHERE = 24;
-    public static final int HEARTBEAT = 25;
-    public static final int SLOW_DATANODE = 26;
-    public static final int SLOW_SCHEMA = 27;
-    public static final int BACKEND = 28;
-    public static final int CACHE = 29;
-    public static final int SESSION = 30;
-    public static final int SYSPARAM = 31;
-    public static final int SYSLOG = 32;
-    public static final int HEARTBEAT_DETAIL = 33;
-    public static final int DATASOURCE_SYNC = 34;
-    public static final int DATASOURCE_SYNC_DETAIL = 35;
-    public static final int DATASOURCE_CLUSTER = 36;
+    public static final int THREADPOOL = 18;
+    public static final int TIME_CURRENT = 19;
+    public static final int TIME_STARTUP = 20;
+    public static final int VERSION = 21;
+    public static final int VARIABLES = 22;
+    public static final int COLLATION = 23;
+    public static final int CONNECTION_SQL = 24;
+    public static final int DATANODE_WHERE = 25;
+    public static final int DATASOURCE_WHERE = 26;
+    public static final int HEARTBEAT = 27;
+    public static final int SLOW_DATANODE = 28;
+    public static final int SLOW_SCHEMA = 29;
+    public static final int BACKEND = 30;
+    public static final int CACHE = 31;
+    public static final int SESSION = 32;
+    public static final int SYSPARAM = 33;
+    public static final int SYSLOG = 34;
+    public static final int HEARTBEAT_DETAIL = 35;
+    public static final int DATASOURCE_SYNC = 36;
+    public static final int DATASOURCE_SYNC_DETAIL = 37;
+    public static final int DATASOURCE_CLUSTER = 38;
 
+    
     public static int parse(String stmt, int offset) {
         int i = offset;
         for (; i < stmt.length(); i++) {
@@ -1174,6 +1177,9 @@ public final class ManagerParseShow {
             	case 'u':
             		return show2SqlSUCheck(stmt, offset);
             	}
+            case 'H':
+            case 'h':
+            	return show2SqlHCheck(stmt, offset);
             default:
                 return OTHER;
             }
@@ -1267,19 +1273,67 @@ public final class ManagerParseShow {
         return OTHER;
     }
     
+    // SHOW @@SQL.HIGH
+    static int show2SqlHCheck(String stmt, int offset) {
+    	
+    	if (stmt.length() > offset + "IGH".length()) {
+    		char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            if ((c1 == 'I' || c1 == 'i') && (c2 == 'G' || c2 == 'g') && (c3 == 'H' || c3 == 'h') ) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return OTHER;
+                }
+                return SQL_HIGH;
+            }
+        }
+        return OTHER;
+    }
+    
     // SHOW @@SQL.SUM
     static int show2SqlSUCheck(String stmt, int offset) {
     	if (stmt.length() > offset + "M".length()) {
             char c1 = stmt.charAt(++offset);
             if ( c1 == 'M' || c1 == 'm') {
-                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                if (stmt.length() > ++offset && stmt.charAt(offset) == '.') {
+                	
+                	/**
+                	 *  TODO: modify by zhuam
+                	 *   
+                	 *  兼容之前指令
+                	 *  在保留 SHOW @@SQL.SUM 指令的同时， 扩展支持  SHOW @@SQL.SUM.TABLE 、 SHOW @@SQL.SUM.USER   
+                	 */       	
+                	if ( stmt.length() > (offset+4) ) {                		
+	                	char c2 = stmt.charAt(++offset);
+	                	char c3 = stmt.charAt(++offset);
+	                	char c4 = stmt.charAt(++offset);
+	                	char c5 = stmt.charAt(++offset);	                	
+	                	
+	                	if ( (c2 == 'U' || c2 == 'u') && (c3 == 'S' || c3 == 's')
+	                	  && (c4 == 'E' || c4 == 'e') && (c5 == 'R' || c5 == 'r') ) {		                		
+	                		 return SQL_SUM_USER;
+	                		
+	                	} else if ( (c2 == 'T' || c2 == 't') && (c3 == 'A' || c3 == 'a')
+				             	 && (c4 == 'B' || c4 == 'b') && (c5 == 'L' || c5 == 'l') ) {
+
+	                		 if ( stmt.length() > (offset+1) ) {	                			 
+	                			 char c6 = stmt.charAt(++offset);
+	                			 if ( c6 == 'E' || c6 == 'e') {
+	                				 return SQL_SUM_TABLE;
+	                			 }
+	                		 }
+	                	}
+	                	
+                	} 
+                	
                     return OTHER;
                 }
-                return SQL_SUM;
+                return SQL_SUM_USER;
             }
         }
         return OTHER;
     }
+    
 
     static boolean isWhere(String stmt, int offset) {
         if (stmt.length() > offset + 5) {

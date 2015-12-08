@@ -6,14 +6,14 @@ import org.apache.log4j.Logger;
 import org.opencloudb.manager.ManagerConnection;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.stat.UserStat;
-import org.opencloudb.stat.UserStatFilter;
+import org.opencloudb.stat.UserStatAnalyzer;
 
 public class ReloadSqlSlowTime {
 	private static final Logger logger = Logger.getLogger(ReloadSqlSlowTime.class);
 
     public static void execute(ManagerConnection c,long time) {
     	
-    	Map<String, UserStat> statMap = UserStatFilter.getInstance().getUserStatMap();
+    	Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
         for (UserStat userStat : statMap.values()) {
         	userStat.setSlowTime(time);
         }

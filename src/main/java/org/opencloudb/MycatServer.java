@@ -185,7 +185,7 @@ public class MycatServer {
 		String home = SystemConfig.getHomePath();
 		Log4jInitializer.configureAndWatch(home + "/conf/log4j.xml", LOG_WATCH_DELAY);
 		
-		ZkConfig.instance().initZk();
+		//ZkConfig.instance().initZk();
 	}
 
 	public void startup() throws IOException {
@@ -218,7 +218,7 @@ public class MycatServer {
 		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
 		processors = new NIOProcessor[processorCount];
-		int processBuferPool = system.getProcessorBufferPool();
+		long processBuferPool = system.getProcessorBufferPool();
 		int processBufferChunk = system.getProcessorBufferChunk();
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
 		bufferPool = new BufferPool(processBuferPool, processBufferChunk,
