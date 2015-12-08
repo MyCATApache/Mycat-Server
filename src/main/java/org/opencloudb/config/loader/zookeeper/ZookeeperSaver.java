@@ -65,7 +65,7 @@ public class ZookeeperSaver {
         server.setUser(userList);
 
         //save to file
-        marshaller(server, "server.xml");
+        marshaller(server, "server");
         return server;
     }
 
@@ -73,9 +73,14 @@ public class ZookeeperSaver {
         Marshaller marshaller = jaxbContext.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
-        Path path = Paths.get(getClass().getResource("/").getFile(), fileName);
+        marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
+            String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", fileName));
 
-        try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE,StandardOpenOption.WRITE)) {
+        Path path = Paths.get(getClass().getResource("/").getFile(), fileName + ".xml");
+
+        try (OutputStream out = Files
+            .newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE)) {
             marshaller.marshal(object, out);
         }
     }
