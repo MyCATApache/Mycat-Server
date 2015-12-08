@@ -1,5 +1,12 @@
 package io.mycat.backend.postgresql;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.backend.postgresql.packet.Query;
@@ -16,13 +23,6 @@ import io.mycat.server.packet.util.CharsetUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.TimeUtil;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /*************************************************************
  * PostgreSQL Native Connection impl
  * 
@@ -31,18 +31,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PostgreSQLBackendConnection extends Connection implements
 		BackendConnection {
-	private static final Query _READ_UNCOMMITTED = new Query(
-			"SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
-	private static final Query _READ_COMMITTED = new Query(
-			"SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED");
-	private static final Query _REPEATED_READ = new Query(
-			"SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ");
-	private static final Query _SERIALIZABLE = new Query(
-			"SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-	private static final Query _AUTOCOMMIT_ON = new Query("SET autocommit=1");
-	private static final Query _AUTOCOMMIT_OFF = new Query("SET autocommit=0");
-	private static final Query _COMMIT = new Query("rollback");
-	private static final Query _ROLLBACK = new Query("commit");
+	private static final Query _COMMIT = new Query("commit");
+	private static final Query _ROLLBACK = new Query("rollback");
 
 	/**
 	 * 来自子接口
@@ -83,7 +73,7 @@ public class PostgreSQLBackendConnection extends Connection implements
 	private volatile ResponseHandler responseHandler;
 	private boolean borrowed;
 	private volatile int txIsolation;
-	private volatile boolean modifiedSQLExecuted = true;
+	private volatile boolean modifiedSQLExecuted = false;
 	private long lastTime;
 	private AtomicBoolean isQuit;
 
@@ -94,7 +84,7 @@ public class PostgreSQLBackendConnection extends Connection implements
 
 	private int xaStatus;
 
-	private Object oldSchema;
+	private String oldSchema;
 
 	// 已经认证通过
 	private boolean isAuthenticated;
@@ -133,7 +123,14 @@ public class PostgreSQLBackendConnection extends Connection implements
 
 	@Override
 	public void setSchema(String newSchema) {
-		this.schema = newSchema;
+		String curSchema = schema;
+		if (curSchema == null) {
+			this.schema = newSchema;
+			this.oldSchema = newSchema;
+		} else {
+			this.oldSchema = curSchema;
+			this.schema = newSchema;
+		}
 	}
 
 	@Override
@@ -357,7 +354,7 @@ public class PostgreSQLBackendConnection extends Connection implements
 				clientCharSetIndex, clientTxIsoLation, expectAutocommit,
 				synCount);
 		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement())).toString();
-		System.err.println("xaTxID="+ xaTxID + "SQL:"+sql);
+		System.err.println("con="+ this.hashCode() + ":SQL:"+sql);
 		Query query = new Query(sql);
 		ByteBuffer buf = NetSystem.getInstance().getBufferPool().allocate();
 		query.write(buf);
@@ -398,8 +395,7 @@ public class PostgreSQLBackendConnection extends Connection implements
 	}
 	
 	private static void getCharsetCommand(StringBuilder sb, int clientCharIndex) {
-//		sb.append("SET names ").append(CharsetUtil.getCharset(clientCharIndex))
-//				.append(";");
+		sb.append("SET names '").append(CharsetUtil.getCharset(clientCharIndex).toUpperCase()).append("';");
 	}
 
 
@@ -514,8 +510,20 @@ public class PostgreSQLBackendConnection extends Connection implements
 
 	}
 
-	public void setCharset(String charset) {
-		this.charset = charset;
+	public boolean setCharset(String charset) {
+		if ( charset != null ) {			
+			charset = charset.replace("'", "");
+		}
+		
+		int ci = CharsetUtil.getIndex(charset);
+		if (ci > 0) {
+			this.charset = charset.equalsIgnoreCase("utf8mb4") ? "utf8"
+					: charset;
+			this.charsetIndex = ci;
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	/**

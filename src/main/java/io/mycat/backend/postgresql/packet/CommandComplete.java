@@ -27,7 +27,7 @@ import java.nio.ByteBuffer;
 public class CommandComplete extends PostgreSQLPacket {
 
 	private int length;
-	
+
 	/**
 	 * 命令
 	 */
@@ -37,42 +37,58 @@ public class CommandComplete extends PostgreSQLPacket {
 	public int getLength() {
 		return length;
 	}
+
+	public boolean isDDLComplete() {
+		return commandResponse != null && (commandResponse.startsWith("INSERT") || commandResponse.startsWith("DELETE")
+				|| commandResponse.startsWith("UPDATE"));
+	}
 	
-	public int getRows(){
-		if(commandResponse != null){
+	public boolean isTranComplete(){
+		return commandResponse != null && (commandResponse.startsWith("ROLLBACK") || commandResponse.startsWith("COMMIT"));
+	}
+
+	public boolean isSelectComplete() {
+		return commandResponse != null && (commandResponse.startsWith("SELECT"));
+	}
+	
+	public int getRows() {
+		if(!isDDLComplete()){
+			return 0;
+		}
+		if (commandResponse != null) {
 			String[] s = commandResponse.split(" +");
-			if(s.length == 0){
+			if (s.length == 0) {
 				return 0;
 			}
 			try {
-				return Integer.valueOf( s[s.length - 1].trim());
+				return Integer.valueOf(s[s.length - 1].trim());
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.out.println(commandResponse);
 			}
-		}		
+		}
 		return 0;
 	}
-	
 
 	@Override
 	public char getMarker() {
 		return PacketMarker.B_CommandComplete.getValue();
 	}
-	
+
 	public static CommandComplete parse(ByteBuffer buffer, int offset) {
 		if (buffer.get(offset) != PacketMarker.B_CommandComplete.getValue()) {
 			throw new IllegalArgumentException("this packetData not is CommandComplete");
 		}
-		CommandComplete  packet = new CommandComplete();
+		CommandComplete packet = new CommandComplete();
 		packet.length = PIOUtils.redInteger4(buffer, offset + 1);
-		packet.commandResponse = new String(PIOUtils.redByteArray(buffer, offset+1+4, packet.length-4),UTF8);
+		packet.commandResponse = new String(PIOUtils.redByteArray(buffer, offset + 1 + 4, packet.length - 4), UTF8);
 		return packet;
-		
-		
+
 	}
 
 	public String getCommandResponse() {
 		return commandResponse;
 	}
+
+	
 }
