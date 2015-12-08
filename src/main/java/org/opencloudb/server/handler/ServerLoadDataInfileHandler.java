@@ -52,6 +52,7 @@ import org.opencloudb.route.util.RouterUtil;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.ObjectUtil;
+import org.opencloudb.util.StringUtil;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -177,14 +178,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         List<SQLExpr> columns = statement.getColumns();
         if(tableConfig!=null)
         {
-            String pColumn = tableConfig.getPartitionColumn();
+        	String pColumn = getPartitionColumn();
             if (pColumn != null && columns != null && columns.size() > 0)
             {
 
                 for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
                 {
-                    SQLExpr column = columns.get(i);
-                    if (pColumn.equalsIgnoreCase(column.toString()))
+    				String column = StringUtil.removeBackquote(columns.get(i).toString());
+                    if (pColumn.equalsIgnoreCase(column))
                     {
                         partitionColumnIndex = i;
                         break;
@@ -343,7 +344,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             {
                 String value = lineList[partitionColumnIndex];
                 RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
-                routeCalculateUnit.addShardingExpr(tableName, tableConfig.getPartitionColumn(), parseFieldString(value,loadData.getEnclose()));
+                routeCalculateUnit.addShardingExpr(tableName, getPartitionColumn(), parseFieldString(value,loadData.getEnclose()));
                 ctx.addRouteCalculateUnit(routeCalculateUnit);
                 try
                 {
@@ -454,11 +455,19 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             String dnPath = tempPath + dnName + ".txt";
             data.setFileName(dnPath);
         }
+        File dnFilePath = new File(tempPath);
 
            File dnFile = new File(data.getFileName());
+             
             try
             {
-             Files.append(joinLine(data.getData(),data), dnFile, Charset.forName(loadData.getCharset()));
+            	if (!dnFilePath.exists()) {  
+            		dnFilePath.mkdirs();   
+                } 
+            	if (!dnFile.exists()) {  
+             	   dnFile.createNewFile();   
+                } 	
+            	Files.append(joinLine(data.getData(),data), dnFile, Charset.forName(loadData.getCharset()));
 
             } catch (IOException e)
             {
@@ -802,6 +811,18 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
         fileDirToDel.delete();
     }
+
+	private String getPartitionColumn() {
+		String pColumn;
+		if (tableConfig.isSecondLevel()
+				&& tableConfig.getParentTC().getPartitionColumn()
+				.equals(tableConfig.getParentKey())) {
+			pColumn = tableConfig.getJoinKey();
+		}else {
+			pColumn = tableConfig.getPartitionColumn();
+		}
+		return pColumn;
+	}
 
 
 }
