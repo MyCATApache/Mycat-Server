@@ -1,11 +1,11 @@
 package org.opencloudb.config;
 
+import org.json.JSONObject;
 import org.opencloudb.config.loader.zookeeper.ZookeeperLoader;
+import org.opencloudb.config.loader.zookeeper.ZookeeperSaver;
 
-/**
- * Created by StoneGod on 2015/11/23.
- */
 public class ZkConfig {
+
     private ZkConfig() {
     }
 
@@ -15,7 +15,8 @@ public class ZkConfig {
 
     public void initZk() {
         try {
-            new ZookeeperLoader().buildConfig();
+            JSONObject jsonObject = new ZookeeperLoader().loadConfig();
+            new ZookeeperSaver().saveConfig(jsonObject);
         } catch (Exception e) {
             e.printStackTrace();
         }

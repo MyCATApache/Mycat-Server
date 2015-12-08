@@ -1,13 +1,8 @@
 package org.opencloudb.config.loader.zookeeper;
 
-import demo.catlets.ZkCreate;
-import org.apache.curator.test.TestingServer;
 import org.json.JSONObject;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.io.IOException;
+import org.opencloudb.config.ZookeeperTestServer;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -15,25 +10,13 @@ import static org.junit.Assert.assertThat;
 /**
  * Created by lion on 12/6/15.
  */
-public class ZookeeperLoaderTest {
-
-    private static TestingServer testingServer;
-
-    @BeforeClass public static void setUpZookeeper() throws Exception {
-        testingServer = new TestingServer(true);
-        ZkCreate.main(new String[] {"/zk-create-test.yaml", testingServer.getConnectString()});
-    }
-
-    @AfterClass public static void tearDown() throws IOException {
-        testingServer.close();
-    }
-
+public class ZookeeperLoaderTest extends ZookeeperTestServer {
     @Test public void testBuildConfig() throws Exception {
 
         ZookeeperLoader loader = new ZookeeperLoader();
         loader.setZkURl(testingServer.getConnectString());
 
-        JSONObject jsonObject = loader.buildConfig();
+        JSONObject jsonObject = loader.loadConfig();
 
         JSONObject node = jsonObject.getJSONObject(ZookeeperLoader.NODE_KEY);
         JSONObject mysqlGroup = jsonObject.getJSONObject(ZookeeperLoader.MYSQLGROUP_KEY);
@@ -102,7 +85,7 @@ public class ZookeeperLoaderTest {
                 + "\"dn2\":{\"name\":\"dn2\",\"dataHost\":\"localhost1\","
                 + "\"database\":\"db2\"},\"dn3\":{\"name\":\"dn3\",\"dataHost\":\"localhost1\","
                 + "\"database\":\"db3\"},\"dn1\":{\"name\":\"dn1\",\"dataHost\":\"localhost1\","
-                + "\"database\":\"db1\"}},\"user\":{\"test\":{\"schemas\":[\"testdb\"],"
+                + "\"database\":\"db1\"}},\"user\":{\"test\":{\"schemas\":[\"testdb\",\"test\"],"
                 + "\"readOnly\":true,\"name\":\"test\",\"password\":\"admin\"},"
                 + "\"mycat\":{\"schemas\":[\"testdb\"],\"readOnly\":false,\"name\":\"mycat\","
                 + "\"password\":\"admin\"}},\"blockSQLs\":{\"sql3\":{\"name\":\"sql3\"},"

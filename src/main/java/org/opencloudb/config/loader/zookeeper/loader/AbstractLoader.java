@@ -1,4 +1,4 @@
-package org.opencloudb.config.loader.zookeeper;
+package org.opencloudb.config.loader.zookeeper.loader;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.ZKPaths;

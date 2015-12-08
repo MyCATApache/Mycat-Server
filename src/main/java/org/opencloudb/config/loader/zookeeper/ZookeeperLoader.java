@@ -5,6 +5,10 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.json.JSONObject;
+import org.opencloudb.config.loader.zookeeper.loader.ClusterLoader;
+import org.opencloudb.config.loader.zookeeper.loader.MysqlGroupLoader;
+import org.opencloudb.config.loader.zookeeper.loader.MysqlsLoader;
+import org.opencloudb.config.loader.zookeeper.loader.NodesLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,15 +17,14 @@ import java.util.concurrent.TimeUnit;
 
 
 public class ZookeeperLoader {
-    private static final String ZK_CONFIG_FILE_NAME = "/myid.properties";
     public static final String NODE_KEY = "node";
     public static final String CLUSTER_KEY = "cluster";
     public static final String MYSQLGROUP_KEY = "mysqlGroup";
     public static final String MYSQLS_KEY = "mysqls";
-
+    private static final String ZK_CONFIG_FILE_NAME = "/myid.properties";
     protected String zkURl;
 
-    public JSONObject buildConfig() throws Exception {
+    public JSONObject loadConfig() throws Exception {
         Properties properties = loadZkConfig();
 
         CuratorFramework curatorFramework =
