@@ -158,6 +158,7 @@ public class MySQLDetector implements
 							+ " wsrep_ready: "+ wsrep_ready
 					);
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
+					heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
 				}
     			heartbeat.getAsynRecorder().set(resultResult, switchType);
     		}else{
