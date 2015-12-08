@@ -2,8 +2,10 @@ package org.opencloudb.route;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+
 import junit.framework.Assert;
 import junit.framework.TestCase;
+
 import org.junit.Test;
 import org.opencloudb.SimpleCachePool;
 import org.opencloudb.cache.LayerCachePool;
@@ -1071,6 +1073,36 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         	RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
             Assert.assertTrue(rrs.getNodes().length == 1);
         }
+    }
+    
+    /**
+     * 测试别名路由
+     *
+     * @throws Exception
+     */
+    public void testAlias() throws Exception {
+
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        RouteResultset rrs = null;
+        //不支持childtable 批量插入
+        //update 全局表
+        String sql = "update company a set name = '' where a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+
+        Assert.assertEquals(3, rrs.getNodes().length);
+
+        //update带别名时的路由
+        sql = "update travelrecord a set name = '' where a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+        Assert.assertEquals(1, rrs.getNodes().length);
+        
+        //别名大小写路由
+        sql = "select * from travelrecord A where a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+        Assert.assertEquals(1, rrs.getNodes().length);
     }
     
     private String formatSql(String sql) {
