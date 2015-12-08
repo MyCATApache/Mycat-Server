@@ -44,18 +44,18 @@ public final class BufferPool {
 	private long sharedOptsCount;
 	//private volatile int newCreated;
         private AtomicInteger newCreated = new AtomicInteger(0);
-	private final int threadLocalCount;
-	private final int capactiy;
+	private final long threadLocalCount;
+	private final long capactiy;
 	private long totalBytes = 0;
 	private long totalCounts = 0;
 
-	public BufferPool(int bufferSize, int chunkSize, int threadLocalPercent) {
+	public BufferPool(long bufferSize, int chunkSize, int threadLocalPercent) {
 		this.chunkSize = chunkSize;
-		int size = bufferSize / chunkSize;
+		long size = bufferSize / chunkSize;
 		size = (bufferSize % chunkSize == 0) ? size : size + 1;
 		this.capactiy = size;
 		threadLocalCount = threadLocalPercent * capactiy / 100;
-		for (int i = 0; i < capactiy; i++) {
+		for (long i = 0; i < capactiy; i++) {
 			items.offer(createDirectBuffer(chunkSize));
 		}
 		localBufferPool = new ThreadLocalBufferPool(
@@ -77,11 +77,11 @@ public final class BufferPool {
 		return sharedOptsCount;
 	}
 
-	public int size() {
+	public long size() {
 		return this.items.size();
 	}
 
-	public int capacity() {
+	public long capacity() {
 		return capactiy + newCreated.get();
 	}
 
@@ -179,8 +179,8 @@ public final class BufferPool {
 	}
 
 	public static void main(String[] args) {
-		BufferPool pool = new BufferPool(1024 * 5, 1024, 2);
-		int i = pool.capacity();
+		BufferPool pool = new BufferPool(3276800000L, 1024, 2);
+		long i = pool.capacity();
 		List<ByteBuffer> all = new ArrayList<ByteBuffer>();
 		for (int j = 0; j <= i; j++) {
 			all.add(pool.allocate());

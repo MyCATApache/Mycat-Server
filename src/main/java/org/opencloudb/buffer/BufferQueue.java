@@ -34,10 +34,10 @@ import java.util.List;
  * @author mycat
  */
 public final class BufferQueue {
-	private final int total;
+	private final long total;
 	private final LinkedList<ByteBuffer> items = new LinkedList<ByteBuffer>();
 
-	public BufferQueue(int capacity) {
+	public BufferQueue(long capacity) {
 		this.total = capacity;
 	}
 
@@ -50,7 +50,7 @@ public final class BufferQueue {
 		return this.items.size();
 	}
 
-	public Collection<ByteBuffer> removeItems(int count) {
+	public Collection<ByteBuffer> removeItems(long count) {
 
 		List<ByteBuffer> removed = new ArrayList<ByteBuffer>();
 		Iterator<ByteBuffer> itor = items.iterator();
