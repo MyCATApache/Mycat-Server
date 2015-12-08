@@ -12,7 +12,7 @@ import org.opencloudb.server.parser.ServerParse;
  * @author zhuam
  *
  */
-public class RWStat {
+public class UserRWStat {
 	
 	/**
 	 * R/W 次数
@@ -48,7 +48,7 @@ public class RWStat {
 	private int time_zone_offset = 0;
 	private int one_hour = 3600 * 1000;
 	
-	public RWStat() {
+	public UserRWStat() {
 		this.time_zone_offset = TimeZone.getDefault().getRawOffset();
 	}
 	
@@ -63,7 +63,7 @@ public class RWStat {
 		this.executeHistogram.reset();
 	}
 	
-	public void add(int sqlType, long time, long now) {
+	public void add(int sqlType, long executeTime, long startTime, long endTime) {
 		
 		//before 计算最大并发数
 		//-----------------------------------------------------
@@ -94,40 +94,40 @@ public class RWStat {
     	}
     	
     	//SQL执行所在的耗时区间
-    	if ( time <= 10 ) {
+    	if ( executeTime <= 10 ) {
     		this.timeHistogram.record(10);
     		
-    	} else if ( time > 10 && time <= 200 ) {
+    	} else if ( executeTime > 10 && executeTime <= 200 ) {
     		this.timeHistogram.record(200);
     		
-    	} else if ( time > 200 && time <= 1000 ) {
+    	} else if ( executeTime > 200 && executeTime <= 1000 ) {
     		this.timeHistogram.record(1000);
     		
-    	} else if ( time > 1000) {
+    	} else if ( executeTime > 1000) {
     		this.timeHistogram.record(2000);
     	}
     	
     	//SQL执行所在的时间区间	
-		long hour0 = now / ( 24 * one_hour ) * ( 24 * one_hour )- time_zone_offset;
+		long hour0 = endTime / ( 24 * one_hour ) * ( 24 * one_hour )- time_zone_offset;
 		long hour06 = hour0 + 6 * one_hour - 1; 
 		long hour13 = hour0 + 13 * one_hour - 1; 
 		long hour18 = hour0 + 18 * one_hour - 1;
 		long hour22 = hour0 + 22 * one_hour - 1; 
 		
-		if ( now <= hour06 || now > hour22 ) {
+		if ( endTime <= hour06 || endTime > hour22 ) {
 			this.executeHistogram.record(6);
 			
-		} else if ( now > hour06 && now <= hour13 ) {
+		} else if ( endTime > hour06 && endTime <= hour13 ) {
 			this.executeHistogram.record(13);
 			
-		} else if ( now > hour13 && now <= hour18 ) {
+		} else if ( endTime > hour13 && endTime <= hour18 ) {
 			this.executeHistogram.record(18);
 			
-		} else if ( now > hour18 && now <= hour22 ) {
+		} else if ( endTime > hour18 && endTime <= hour22 ) {
 			this.executeHistogram.record(22);	
 		}		
 		
-		this.lastExecuteTime = now;
+		this.lastExecuteTime = endTime;
 		
 		//after
 		//-----------------------------------------------------

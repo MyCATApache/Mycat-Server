@@ -1,10 +1,6 @@
 package demo.catlets;
 
-import java.io.InputStream;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.alibaba.fastjson.JSON;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -14,7 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
-import com.alibaba.fastjson.JSON;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by v1.lion on 2015/10/7.
@@ -23,84 +22,37 @@ public class ZkCreate {
     private static final String ZK_CONFIG_FILE_NAME = "/zk-create.yaml";
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkCreate.class);
 
-    private static final String SERVER_CONFIG_DIRECTORY = "server-config";
-    private static final String DATANODE_CONFIG_DIRECTORY = "datanode-config";
-    private static final String RULE_CONFIG_DIRECTORY = "rule-config";
-    private static final String SEQUENCE_CONFIG_DIRECTORY = "sequence-config";
-    private static final String SCHEMA_CONFIG_DIRECTORY = "schema-config";
-    private static final String DATAHOST_CONFIG_DIRECTORY = "datahost-config";
-    private static final String MYSQLREP_CONFIG_DIRECTORY = "mysqlrep-config";
-    private static final String MYCATLB_CONFIG_DIRECTORY = "mycatlb-config";
 
+    private static final String CONFIG_URL_KEY = "zkURL";
 
-    private static final String CONFIG_ZONE_KEY = "zkZone";
-    private static final String CONFIG_URL_KEY = "zkUrl";
-    private static final String CONFIG_CLUSTER_KEY = "zkClu";
-    private static final String CONFIG_CLUSTER_ID = "zkID";
-    private static final String CONFIG_ZK_USERD = "zkUsed";
-    private static final String CONFIG_SYSTEM_KEY = "system";
-    private static final String CONFIG_USER_KEY = "user";
-    private static final String CONFIG_DATANODE_KEY = "datanode";
-    private static final String CONFIG_RULE_KEY = "rule";
-    private static final String CONFIG_SEQUENCE_KEY = "sequence";
-    private static final String CONFIG_SCHEMA_KEY = "schema";
-    private static final String CONFIG_DATAHOST_KEY = "datahost";
-    private static final String CONFIG_MYSQLREP_KEY = "mysqlrep";
-    private static final String CONFIG_MYCATLB_KEY = "mycatlb";
-
-
-    private static String CLU_PARENT_PATH;
-    private static String ZONE_PARENT_PATH;
-    private static String SERVER_PARENT_PATH;
+    private static final String MYCAT_CLUSTER_KEY = "mycat-cluster";
+    private static final String MYCAT_ZONE_KEY = "mycat-zones";
+    private static final String MYCAT_NODES_KEY = "mycat-nodes";
+    private static final String MYCAT_HOST_KEY = "mycat-hosts";
+    private static final String MYCAT_MYSQLS_KEY = "mycat-mysqls";
+    private static final String MYCAT_MYSQL_GROUP_KEY = "mycat-mysqlgroup";
 
     private static CuratorFramework framework;
     private static Map<String, Object> zkConfig;
-    
+
     public static void main(String[] args) {
-
-    	boolean zkcreate = ZkCreate.init();
-        if (!zkcreate)
-            System.exit(1);
-
-    }
-
-    //process zkcreate
-    public static boolean init( ){
-        LOGGER.info("start zkcreate ");
         zkConfig = loadZkConfig();
-        boolean isUsed = (boolean) zkConfig.get(CONFIG_ZK_USERD);
-        if(isUsed){
-        	if(ZkDownload.init()==false){
-        		LOGGER.info("need to zkcreate  to remote center ");
-            	ZONE_PARENT_PATH = ZKPaths.makePath("/", String.valueOf(zkConfig.get(CONFIG_ZONE_KEY)));
+        String url = zkConfig.containsKey(CONFIG_URL_KEY)? (String) zkConfig.get(CONFIG_URL_KEY) : "127.0.0.1:2181";
+        framework =
+            createConnection(url)
+                .usingNamespace("mycat");
 
-                CLU_PARENT_PATH = ZKPaths.makePath(ZONE_PARENT_PATH + "/", String.valueOf(zkConfig.get(CONFIG_CLUSTER_KEY)));
-                LOGGER.info("parent path is {}", CLU_PARENT_PATH);
-                framework = createConnection((String) zkConfig.get(CONFIG_URL_KEY));
-
-                createConfig(CLU_PARENT_PATH,CONFIG_DATANODE_KEY, true, DATANODE_CONFIG_DIRECTORY);
-                createConfig(CLU_PARENT_PATH,CONFIG_SYSTEM_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_SYSTEM_KEY);
-                createConfig(CLU_PARENT_PATH,CONFIG_USER_KEY, true, SERVER_CONFIG_DIRECTORY, CONFIG_USER_KEY);
-                createConfig(CLU_PARENT_PATH,CONFIG_SEQUENCE_KEY, true, SEQUENCE_CONFIG_DIRECTORY);
-                createConfig(CLU_PARENT_PATH,CONFIG_SCHEMA_KEY, true, SCHEMA_CONFIG_DIRECTORY);
-                createConfig(CLU_PARENT_PATH,CONFIG_DATAHOST_KEY, true, DATAHOST_CONFIG_DIRECTORY);
-                createConfig(CLU_PARENT_PATH,CONFIG_RULE_KEY, false, RULE_CONFIG_DIRECTORY);
-
-                createConfig(ZONE_PARENT_PATH,CONFIG_MYSQLREP_KEY, false, MYSQLREP_CONFIG_DIRECTORY);
-                LOGGER.info("parent path is {}", ZONE_PARENT_PATH);
-
-                createConfig(ZONE_PARENT_PATH,CONFIG_MYCATLB_KEY, false, MYCATLB_CONFIG_DIRECTORY);
-                LOGGER.info("zkcreate  to remote center end ...");
-        	}
-        }else{
-        	LOGGER.info("dont't need to zkcreate  to remote center ");
-        }
-        
-        return true;
+        createConfig(MYCAT_HOST_KEY, false, MYCAT_HOST_KEY);
+        createConfig(MYCAT_ZONE_KEY, false, MYCAT_ZONE_KEY);
+        createConfig(MYCAT_NODES_KEY, true, MYCAT_NODES_KEY);
+        createConfig(MYCAT_CLUSTER_KEY, true, MYCAT_CLUSTER_KEY);
+        createConfig(MYCAT_MYSQLS_KEY, true, MYCAT_MYSQLS_KEY);
+        createConfig(MYCAT_MYSQL_GROUP_KEY, true, MYCAT_MYSQL_GROUP_KEY);
     }
 
-    private static void createConfig(String parent_path,String configKey, boolean filterInnerMap, String... configDirectory) {
-        String childPath = ZKPaths.makePath(parent_path, null, configDirectory);
+    private static void createConfig(String configKey, boolean filterInnerMap,
+        String configDirectory, String... restDirectory) {
+        String childPath = ZKPaths.makePath("/", configDirectory, restDirectory);
         LOGGER.trace("child path is {}", childPath);
 
         try {
@@ -122,44 +74,49 @@ public class ZkCreate {
         }
     }
 
-    private static void createChildConfig(Object mapObject, boolean filterInnerMap, String childPath) {
+    private static void createChildConfig(Object mapObject, boolean filterInnerMap,
+        String childPath) {
         if (mapObject instanceof Map) {
             Map<Object, Object> innerMap = (Map<Object, Object>) mapObject;
-            Iterator<Map.Entry<Object, Object>> it = innerMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<Object, Object> entry = it.next();
+            for (Map.Entry<Object, Object> entry : innerMap.entrySet()) {
                 if (entry.getValue() instanceof Map) {
-                    createChildConfig(entry.getValue(), filterInnerMap, ZKPaths.makePath(childPath, String.valueOf(entry.getKey())));
+                    createChildConfig(entry.getValue(), filterInnerMap,
+                        ZKPaths.makePath(childPath, String.valueOf(entry.getKey())));
                 } else {
                     LOGGER.trace("sub child path is {}", childPath);
                     processLeafNode(innerMap, filterInnerMap, childPath);
-
                 }
             }
         }
     }
 
-    private static void processLeafNode(Map<Object, Object> innerMap, boolean filterInnerMap, String childPath) {
+    private static void processLeafNode(Map<Object, Object> innerMap, boolean filterInnerMap,
+        String childPath) {
         try {
             Stat restNodeStat = framework.checkExists().forPath(childPath);
             if (restNodeStat == null) {
                 framework.create().creatingParentsIfNeeded().forPath(childPath);
             }
-//
-//            if (filterInnerMap) {
-                Iterator<Map.Entry<Object, Object>> it = innerMap.entrySet().iterator();
+
+            if (filterInnerMap) {
+                Map<Object, Object> filtered = new HashMap<>();
+                for (Map.Entry<Object, Object> entry : innerMap.entrySet()) {
+                    if (!(entry.getValue() instanceof Map)) {
+                        filtered.put(entry.getKey(), entry.getValue());
+                    }
+                }
+
+                framework.setData().forPath(childPath, JSON.toJSONString(filtered).getBytes());
+            } else {
                 framework.setData().forPath(childPath, JSON.toJSONString(innerMap).getBytes());
-//            } else {
-//                framework.setData().forPath(childPath, JSON.toJSONString(innerMap).getBytes());
-//            }
+            }
         } catch (Exception e) {
             LOGGER.error("create node error: {} ", e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-	private static Map<String, Object> loadZkConfig() {
+    @SuppressWarnings("unchecked") private static Map<String, Object> loadZkConfig() {
         InputStream configIS = ZkCreate.class.getResourceAsStream(ZK_CONFIG_FILE_NAME);
         if (configIS == null) {
             throw new RuntimeException("can't find zk properties file : " + ZK_CONFIG_FILE_NAME);
@@ -168,8 +125,8 @@ public class ZkCreate {
     }
 
     private static CuratorFramework createConnection(String url) {
-        CuratorFramework curatorFramework = CuratorFrameworkFactory
-                .newClient(url, new ExponentialBackoffRetry(100, 6));
+        CuratorFramework curatorFramework =
+            CuratorFrameworkFactory.newClient(url, new ExponentialBackoffRetry(100, 6));
 
         //start connection
         curatorFramework.start();
@@ -179,7 +136,7 @@ public class ZkCreate {
             if (curatorFramework.getZookeeperClient().isConnected()) {
                 return curatorFramework;
             }
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
         }
 
         //fail situation
