@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.log4j.Logger;
 import org.opencloudb.server.parser.ServerParse;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -29,7 +30,7 @@ import com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter;
  *
  */
 public class TableStatAnalyzer implements QueryResultListener {
-	
+	private static final Logger LOGGER = Logger.getLogger(TableStatAnalyzer.class);
 	private LinkedHashMap<String, TableStat> tableStatMap = new LinkedHashMap<String, TableStat>();	
 	private ReentrantReadWriteLock  lock  = new ReentrantReadWriteLock();
 	
@@ -172,8 +173,8 @@ public class TableStatAnalyzer implements QueryResultListener {
 		 * 解析 SQL table name
 		 */
 		public List<String> parseTableNames(String sql) {
-			
 			final List<String> tables = new ArrayList<String>();
+		  try{			
 			
 			SQLStatement stmt = parseStmt(sql);
 			if (stmt instanceof MySqlReplaceStatement ) {
@@ -199,8 +200,12 @@ public class TableStatAnalyzer implements QueryResultListener {
 						return super.visit(x);
 					}
 				});
-			}			
-			return tables;
+			}	
+		  } catch (Exception e) {
+			  LOGGER.error("TableStatAnalyzer err:"+ e.toString());
+		  }
+		  
+		 return tables;
 		}
 	}	
 
