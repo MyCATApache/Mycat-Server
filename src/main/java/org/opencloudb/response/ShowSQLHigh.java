@@ -24,7 +24,7 @@ import org.opencloudb.util.StringUtil;
  */
 public final class ShowSQLHigh {
 	
-	private static final int FIELD_COUNT = 7;
+	private static final int FIELD_COUNT = 8;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -49,7 +49,8 @@ public final class ShowSQLHigh {
         fields[i++].packetId = ++packetId;
         fields[i] = PacketUtil.getField("MIN_TIME", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
-      
+        fields[i] = PacketUtil.getField("EXECUTE_TIME", Fields.FIELD_TYPE_LONGLONG);
+        fields[i++].packetId = ++packetId;        
         
         fields[i] = PacketUtil.getField("LAST_TIME", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
@@ -77,7 +78,7 @@ public final class ShowSQLHigh {
         if ( list != null ) {        
 	        for (int i = 0; i < list.size(); i++) {
 	        	SqlFrequency sqlFrequency = list.get(i).getValue();
-	        	RowDataPacket row = getRow(i, sqlFrequency.getSql(), sqlFrequency.getCount(), sqlFrequency.getAvgTime(),sqlFrequency.getMaxTime(),sqlFrequency.getMinTime(),sqlFrequency.getLastTime(), c.getCharset());
+	        	RowDataPacket row = getRow(i, sqlFrequency.getSql(), sqlFrequency.getCount(), sqlFrequency.getAvgTime(),sqlFrequency.getMaxTime(),sqlFrequency.getMinTime(),sqlFrequency.getExecuteTime(),sqlFrequency.getLastTime(), c.getCharset());
 	            row.packetId = ++packetId;
 	            buffer = row.write(buffer, c,true);
 	        }
@@ -92,7 +93,7 @@ public final class ShowSQLHigh {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(int i, String sql, int count, long avgTime,long maxTime,long minTime,long lastTime, String charset) {
+    private static RowDataPacket getRow(int i, String sql, int count, long avgTime,long maxTime,long minTime,long executTime,long lastTime, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add( LongUtil.toBytes( i ) );
         row.add( StringUtil.encode(sql, charset) );
@@ -100,6 +101,7 @@ public final class ShowSQLHigh {
         row.add( LongUtil.toBytes( avgTime ) );
         row.add( LongUtil.toBytes( maxTime ) );
         row.add( LongUtil.toBytes( minTime ) );
+        row.add( LongUtil.toBytes( executTime ) );
         row.add( LongUtil.toBytes( lastTime ) );
         return row;
     }

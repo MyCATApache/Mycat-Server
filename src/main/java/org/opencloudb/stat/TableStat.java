@@ -92,6 +92,10 @@ public class TableStat {
         return this.wCount.get();
     }
     
+	public int getCount() {
+		return new Long(getRCount()+getWCount()).intValue();
+	}    
+	
     public List<RelaTable> getRelaTables() {    	
     	List<RelaTable> tables = new ArrayList<RelaTable>();
     	tables.addAll( this.relaTableMap.values() );

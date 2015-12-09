@@ -72,15 +72,26 @@ public class ShowSQLSumTable {
         buffer = eof.write(buffer, c,true);
 
         // write rows
-        byte packetId = eof.packetId;
-        int i=0;  
+        byte packetId = eof.packetId;          
         
+        /*
+        int i=0;
         Map<String, TableStat> statMap = TableStatAnalyzer.getInstance().getTableStatMap();
         for (TableStat tableStat : statMap.values()) {
         	i++;
            RowDataPacket row = getRow(tableStat,i, c.getCharset());//getRow(sqlStat,sql, c.getCharset());
            row.packetId = ++packetId;
            buffer = row.write(buffer, c,true);
+        }
+        */
+        List<Map.Entry<String, TableStat>> list =TableStatAnalyzer.getInstance().getTableStats();
+        if ( list != null ) {        
+	        for (int i = 0; i < list.size(); i++) {
+	        	TableStat tableStat=list.get(i).getValue();
+	            RowDataPacket row = getRow(tableStat,i, c.getCharset());
+	            row.packetId = ++packetId;
+	            buffer = row.write(buffer, c,true);	        	
+	        }
         }
         // write last eof
         EOFPacket lastEof = new EOFPacket();

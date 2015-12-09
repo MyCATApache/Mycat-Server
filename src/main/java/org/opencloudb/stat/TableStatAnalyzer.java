@@ -1,6 +1,9 @@
 package org.opencloudb.stat;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +104,43 @@ public class TableStatAnalyzer implements QueryResultListener {
         return map;
 	}
 	
+	/**
+	 * 获取 table 访问排序统计
+	 */
+	public List<Map.Entry<String, TableStat>> getTableStats() {
+		
+		List<Map.Entry<String, TableStat>> list = null;
+		
+        lock.readLock().lock();
+        try {
+        	list = this.sortTableStats(tableStatMap , false );
+        } finally {
+            lock.readLock().unlock();
+        }
+        return list;
+	}	
+	/**
+	 * 排序
+	 */
+	private List<Map.Entry<String, TableStat>> sortTableStats(HashMap<String, TableStat> map,
+			final boolean bAsc) {
+
+		List<Map.Entry<String, TableStat>> list = new ArrayList<Map.Entry<String, TableStat>>(map.entrySet());
+
+		Collections.sort(list, new Comparator<Map.Entry<String, TableStat>>() {
+			public int compare(Map.Entry<String, TableStat> o1, Map.Entry<String, TableStat> o2) {
+
+				if (!bAsc) {
+					return o2.getValue().getCount() - o1.getValue().getCount(); // 降序
+				} else {
+					return o1.getValue().getCount() - o2.getValue().getCount(); // 升序
+				}
+			}
+		});
+
+		return list;
+
+	}	
 	/**
 	 * 解析 table name
 	 */
