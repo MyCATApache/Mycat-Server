@@ -323,10 +323,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
             {
                 end=results.size();
             }
-			if (rrs.getOrderByCols() == null) {
-				end = results.size();
-				start = 0;
-			}
+//			if (rrs.getOrderByCols() == null) {
+//				end = results.size();
+//				start = 0;
+//			}
 			for (int i = start; i < end; i++) {
 				RowDataPacket row = results.get(i);
 				row.packetId = ++packetId;
