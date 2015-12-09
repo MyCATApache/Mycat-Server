@@ -550,4 +550,34 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     
     public void endVisit(MySqlDeleteStatement x) {
     }
+    
+    public boolean visit(SQLUpdateStatement x) {
+        setAliasMap();
+
+        setMode(x, Mode.Update);
+
+        SQLName identName = x.getTableName();
+        if (identName != null) {
+            String ident = identName.toString();
+            String alias = x.getTableSource().getAlias();
+            setCurrentTable(ident);
+
+            TableStat stat = getTableStat(ident);
+            stat.incrementUpdateCount();
+
+            Map<String, String> aliasMap = getAliasMap();
+            
+            aliasMap.put(ident, ident);
+            if(alias != null) {
+            	aliasMap.put(alias, ident);
+            }
+        } else {
+            x.getTableSource().accept(this);
+        }
+
+        accept(x.getItems());
+        accept(x.getWhere());
+
+        return false;
+    }
 }
