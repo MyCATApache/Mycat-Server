@@ -218,7 +218,7 @@ public class MycatServer {
 		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
 		processors = new NIOProcessor[processorCount];
-		int processBuferPool = system.getProcessorBufferPool();
+		long processBuferPool = system.getProcessorBufferPool();
 		int processBufferChunk = system.getProcessorBufferChunk();
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
 		bufferPool = new BufferPool(processBuferPool, processBufferChunk,
