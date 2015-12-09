@@ -15,6 +15,7 @@ mycat-cluster:
         readOnly : true
         schemas  :
           - testdb
+          - test
       mycat :
         name: mycat
         password: admin

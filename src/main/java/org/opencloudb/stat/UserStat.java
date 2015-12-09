@@ -36,7 +36,7 @@ public class UserStat {
 		super();
 		this.user = user;		
 		this.rwStat = new UserRWStat();
-		this.sqlStat = new UserSqlStat(10);
+		this.sqlStat = new UserSqlStat(50);
 		this.sqlRecorder =  new SQLRecorder(MycatServer.getInstance().getConfig().getSystem().getSqlRecordCount());
 	}
 
