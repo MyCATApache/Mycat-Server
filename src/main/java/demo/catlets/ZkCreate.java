@@ -32,7 +32,7 @@ public class ZkCreate {
     private static Map<String, Object> zkConfig;
 
     public static void main(String[] args) {
-        final String url;
+         String url;
         if (args != null && args.length > 0) {
             ZK_CONFIG_FILE_NAME = args[0];
             url = args[1];
@@ -41,7 +41,7 @@ public class ZkCreate {
                 (String) zkConfig.get(CONFIG_URL_KEY) :
                 "127.0.0.1:2181";
         }
-
+        
         zkConfig = loadZkConfig();
         framework = createConnection(url).usingNamespace("mycat");
 
