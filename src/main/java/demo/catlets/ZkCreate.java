@@ -37,14 +37,13 @@ public class ZkCreate {
             ZK_CONFIG_FILE_NAME = args[0];
             url = args[1];
         } else {
-            url = (String) zkConfig.get(CONFIG_URL_KEY);
+            url = zkConfig.containsKey(CONFIG_URL_KEY) ?
+                (String) zkConfig.get(CONFIG_URL_KEY) :
+                "127.0.0.1:2181";
         }
 
         zkConfig = loadZkConfig();
-        String url = zkConfig.containsKey(CONFIG_URL_KEY)? (String) zkConfig.get(CONFIG_URL_KEY) : "127.0.0.1:2181";
-        framework =
-            createConnection(url)
-                .usingNamespace("mycat");
+        framework = createConnection(url).usingNamespace("mycat");
 
         createConfig(MYCAT_HOST_KEY, false, MYCAT_HOST_KEY);
         createConfig(MYCAT_ZONE_KEY, false, MYCAT_ZONE_KEY);
