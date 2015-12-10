@@ -319,7 +319,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			List<RowDataPacket> results = dataMergeSvr.getResults(eof);
             if (start < 0)
                			start = 0;
-            if(rrs.getLimitSize()<0)
+            if(rrs.getLimitSize()<0 || end > results.size())
             {
                 end=results.size();
             }
