@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.opencloudb.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.4-RC</version>
+	<version>1.4.1-dev</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
@@ -12,7 +12,7 @@
 
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
-		<!-- maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format> 
+		<!-- maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format>
 			<buildNumber>${maven.build.timestamp}</buildNumber -->
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
 		<version.template.file>version.txt.template</version.template.file>
@@ -43,7 +43,7 @@
 		</snapshotRepository>
 	</distributionManagement>
 	<dependencies>
-		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
+		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId>
 			<version>18.0</version> </dependency> -->
 		<dependency>
 			<groupId>org.mongodb</groupId>
@@ -126,6 +126,42 @@
   		<groupId>com.sequoiadb.org</groupId>
   		<artifactId>sequoiadb-java-driver</artifactId>
  			<version>1.0-SNAPSHOT</version>
+		</dependency>
+
+
+		<!--DOM4J FOR XML-->
+		<dependency>
+			<groupId>dom4j</groupId>
+			<artifactId>dom4j</artifactId>
+			<version>1.6.1</version>
+		</dependency>
+
+		<!--    zookeeper   -->
+		<dependency>
+			<groupId>org.apache.curator</groupId>
+			<artifactId>curator-framework</artifactId>
+			<version>2.9.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.curator</groupId>
+			<artifactId>curator-test</artifactId>
+			<version>2.9.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<version>1.16</version>
+		</dependency>
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>fastjson</artifactId>
+			<version>1.2.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20151123</version>
 		</dependency>
 	</dependencies>
 
@@ -293,7 +329,7 @@
 						<goals>
 							<goal>test-jar</goal>
 						</goals>
-						<!-- configuration> <finalName>${project.build.finalName}-${buildNumber}</finalName> 
+						<!-- configuration> <finalName>${project.build.finalName}-${buildNumber}</finalName>
 							</configuration -->
 					</execution>
 				</executions>
@@ -310,7 +346,7 @@
 					<additionalConfig>
 						<file>
 							<name>.settings/org.eclipse.core.resources.prefs</name>
-							<content>  
+							<content>
                <![CDATA[eclipse.preferences.version=1${line.separator}encoding/<project>=${app.encoding}${line.separator}]]>
 							</content>
 						</file>
@@ -340,8 +376,6 @@
 							</platforms>
 							<jvmSettings>
 								<!-- 启动内存配置 -->
-								<initialMemorySize>2048</initialMemorySize>
-								<maxMemorySize>2048</maxMemorySize>
 								<maxStackSize>128</maxStackSize>
 								<systemProperties>
 									<systemProperty>MYCAT_HOME=.</systemProperty>
@@ -356,6 +390,8 @@
 									<extraArgument>-Dcom.sun.management.jmxremote.port=1984</extraArgument>
 									<extraArgument>-Dcom.sun.management.jmxremote.authenticate=false </extraArgument>
 									<extraArgument>-Dcom.sun.management.jmxremote.ssl=false </extraArgument>
+									<extraArgument>-Xmx4G</extraArgument>
+									<extraArgument>-Xms1G</extraArgument>
 								</extraArguments>
 							</jvmSettings>
 							<generatorConfigurations>

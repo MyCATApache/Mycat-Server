@@ -15,7 +15,17 @@ public class LoadData
     private  String lineTerminatedBy;
     private String fieldTerminatedBy;
     private  String enclose;
+    private  String escape;
 
+    public String getEscape()
+    {
+        return escape;
+    }
+
+    public void setEscape(String escape)
+    {
+        this.escape = escape;
+    }
 
     public boolean isLocal()
     {

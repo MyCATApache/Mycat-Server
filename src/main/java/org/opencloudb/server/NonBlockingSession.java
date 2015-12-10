@@ -122,7 +122,6 @@ public class NonBlockingSession implements Session {
 							+ source.getSchema());
 			return;
 		}
-
 		if (nodes.length == 1) {
 			singleNodeHandler = new SingleNodeHandler(rrs, this);
 			try {

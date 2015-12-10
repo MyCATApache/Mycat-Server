@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -125,6 +125,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 				if (detector == null || detector.isQuit()) {
 					try {
 						detector = new MySQLDetector(this);
+						detector.heartbeat();
 					} catch (Exception e) {
 						LOGGER.warn(source.getConfig().toString(), e);
 						setResult(ERROR_STATUS, detector, null);
@@ -168,9 +169,6 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	}
 
 	private void setOk(MySQLDetector detector) {
-
-		recorder.set(detector.getLasstReveivedQryTime()
-				- detector.getLastSendQryTime());
 		switch (status) {
 		case DBHeartbeat.TIMEOUT_STATUS:
 			this.status = DBHeartbeat.INIT_STATUS;
@@ -196,15 +194,18 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		// should continues check error status
 		if (++errorCount < maxRetryCount) {
 
-			if (detector != null && isStop.get()) {
-				detector.quit();
-			} else {
-				heartbeat(); // error count not enough, heart beat again
-			}
-			return;
-		}
-		this.status = ERROR_STATUS;
-		this.errorCount = 0;
+            if (detector != null && !detector.isQuit()) {
+                heartbeat(); // error count not enough, heart beat again
+            }
+
+		}else
+        {
+            if (detector != null ) {
+                detector.quit();
+            }
+            this.status = ERROR_STATUS;
+            this.errorCount = 0;
+        }
 	}
 
 	private void setTimeout(MySQLDetector detector) {
@@ -235,8 +236,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			synchronized (pool) {
 				// try to see if need switch datasource
 				curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
-				if (curDatasourceHB != DBHeartbeat.INIT_STATUS
-						&& curDatasourceHB != DBHeartbeat.OK_STATUS) {
+				if (curDatasourceHB != DBHeartbeat.INIT_STATUS && curDatasourceHB != DBHeartbeat.OK_STATUS) {
 					int curIndex = pool.getActivedIndex();
 					int nextId = pool.next(curIndex);
 					PhysicalDatasource[] allWriteNodes = pool.getSources();
@@ -249,23 +249,20 @@ public class MySQLHeartbeat extends DBHeartbeat {
 						int theSourceHBStatus = theSourceHB.getStatus();
 						if (theSourceHBStatus == DBHeartbeat.OK_STATUS) {
 							if (switchType == DataHostConfig.SYN_STATUS_SWITCH_DS) {
-								if (Integer.valueOf(0).equals(
-										theSourceHB.getSlaveBehindMaster())) {
-									LOGGER.info("try to switch datasource ,slave is synchronized to master "
-											+ theSource.getConfig());
+								if (Integer.valueOf(0).equals( theSourceHB.getSlaveBehindMaster())) {
+									LOGGER.info("try to switch datasource ,slave is synchronized to master " + theSource.getConfig());
 									pool.switchSource(nextId, true, reason);
 									break;
 								} else {
 									LOGGER.warn("ignored  datasource ,slave is not  synchronized to master , slave behind master :"
-											+ theSourceHB
-													.getSlaveBehindMaster()
+											+ theSourceHB.getSlaveBehindMaster()
 											+ " " + theSource.getConfig());
 								}
 							} else {
 								// normal switch
-								LOGGER.info("try to switch datasource ,not checked slave synchronize status "
-										+ theSource.getConfig());
+								LOGGER.info("try to switch datasource ,not checked slave synchronize status " + theSource.getConfig());
 								pool.switchSource(nextId, true, reason);
+                                break;
 							}
 
 						}

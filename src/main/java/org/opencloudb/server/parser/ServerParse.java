@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -49,6 +49,7 @@ public final class ServerParse {
 	public static final int SAVEPOINT = 13;
 	public static final int USE = 14;
 	public static final int EXPLAIN = 15;
+	public static final int EXPLAIN2 = 151;
 	public static final int KILL_QUERY = 16;
 	public static final int HELP = 17;
 	public static final int MYSQL_CMD_COMMENT = 18;
@@ -56,6 +57,7 @@ public final class ServerParse {
 	public static final int CALL = 20;
 	public static final int DESCRIBE = 21;
     public static final int LOAD_DATA_INFILE_SQL = 99;
+    public static final int DDL = 100;
     private static final  Pattern pattern = Pattern.compile("(load)+\\s+(data)+\\s+\\w*\\s*(infile)+",Pattern.CASE_INSENSITIVE);
 
 	public static int parse(String stmt) {
@@ -81,15 +83,18 @@ public final class ServerParse {
 					return MYSQL_COMMENT;
 				}
 				continue;
+			case 'A':
+			case 'a':
+				return aCheck(stmt,i);
 			case 'B':
 			case 'b':
 				return beginCheck(stmt, i);
 			case 'C':
 			case 'c':
-				return commitOrCallCheck(stmt, i);
+				return commitOrCallCheckOrCreate(stmt, i);
 			case 'D':
 			case 'd':
-				return dCheck(stmt, i);
+				return deleteOrdCheck(stmt, i);
 			case 'E':
 			case 'e':
 				return explainCheck(stmt, i);
@@ -102,6 +107,9 @@ public final class ServerParse {
 			case 'S':
 			case 's':
 				return sCheck(stmt, i);
+			case 'T':
+			case 't':
+				return tCheck(stmt, i);
 			case 'U':
 			case 'u':
 				return uCheck(stmt, i);
@@ -136,8 +144,102 @@ public final class ServerParse {
 
 		return OTHER;
 	}
+	//truncate
+	private static int tCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 7) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			char c5 = stmt.charAt(++offset);
+			char c6 = stmt.charAt(++offset);
+			char c7 = stmt.charAt(++offset);
+			char c8 = stmt.charAt(++offset);
 
-
+			if ((c1 == 'R' || c1 == 'r')
+					&& (c2 == 'U' || c2 == 'u')
+					&& (c3 == 'N' || c3 == 'n')
+					&& (c4 == 'C' || c4 == 'c')
+					&& (c5 == 'A' || c5 == 'a')
+					&& (c6 == 't' || c6 == 't')
+					&& (c7 == 'E' || c7 == 'e')
+					&& (c8 == ' ' || c8 == '\t' || c8 == '\r' || c8 == '\n')) {
+				return DDL;
+			}
+		}
+		return OTHER;
+	}
+	//alter table/view/...
+	private static int aCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 4) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			char c5 = stmt.charAt(++offset);
+			if ((c1 == 'L' || c1 == 'l')
+					&& (c2 == 'T' || c2 == 't')
+					&& (c3 == 'E' || c3 == 'e')
+					&& (c4 == 'R' || c4 == 'r')
+					&& (c5 == ' ' || c5 == '\t' || c5 == '\r' || c5 == '\n')) {
+				return DDL;
+			}
+		}
+		return OTHER;
+	}
+	//create table/view/...
+	private static int createCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 5) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			char c5 = stmt.charAt(++offset);
+			char c6 = stmt.charAt(++offset);
+			if ((c1 == 'R' || c1 == 'r')
+					&& (c2 == 'E' || c2 == 'e')
+					&& (c3 == 'A' || c3 == 'a')
+					&& (c4 == 'T' || c4 == 't')
+					&& (c5 == 'E' || c5 == 'e')
+					&& (c6 == ' ' || c6 == '\t' || c6 == '\r' || c6 == '\n')) {
+				return DDL;
+			}
+		}
+		return OTHER;
+	}
+	//drop
+	private static int dropCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 3) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			if ((c1 == 'R' || c1 == 'r')
+					&& (c2 == 'O' || c2 == 'o')
+					&& (c3 == 'P' || c3 == 'p')
+					&& (c4 == ' ' || c4 == '\t' || c4 == '\r' || c4 == '\n')) {
+				return DDL;
+			}
+		}
+		return OTHER;
+	}
+	// delete or drop
+    static int deleteOrdCheck(String stmt, int offset){
+    	int sqlType = OTHER;
+		switch (stmt.charAt((offset + 1))) {
+		case 'E':
+		case 'e':
+			sqlType = dCheck(stmt, offset);
+			break;
+		case 'R':
+		case 'r':
+			sqlType = dropCheck(stmt, offset);
+			break;
+		default:
+			sqlType = OTHER;
+		}
+		return sqlType;
+    }
 	// HELP' '
 	static int helpCheck(String stmt, int offset) {
 		if (stmt.length() > offset + "ELP ".length()) {
@@ -154,6 +256,7 @@ public final class ServerParse {
 
 	// EXPLAIN' '
 	static int explainCheck(String stmt, int offset) {
+
 		if (stmt.length() > offset + "XPLAIN ".length()) {
 			char c1 = stmt.charAt(++offset);
 			char c2 = stmt.charAt(++offset);
@@ -168,6 +271,9 @@ public final class ServerParse {
 					&& (c7 == ' ' || c7 == '\t' || c7 == '\r' || c7 == '\n')) {
 				return (offset << 8) | EXPLAIN;
 			}
+		}
+		if(stmt != null && stmt.toLowerCase().startsWith("explain2")){
+			return (offset << 8) | EXPLAIN2;
 		}
 		return OTHER;
 	}
@@ -286,7 +392,7 @@ public final class ServerParse {
 		return OTHER;
 	}
 
-	static int commitOrCallCheck(String stmt, int offset) {
+	static int commitOrCallCheckOrCreate(String stmt, int offset) {
 		int sqlType = OTHER;
 		switch (stmt.charAt((offset + 1))) {
 		case 'O':
@@ -296,6 +402,10 @@ public final class ServerParse {
 		case 'A':
 		case 'a':
 			sqlType = callCheck(stmt, offset);
+			break;
+		case 'R':
+		case 'r':
+			sqlType = createCheck(stmt, offset);
 			break;
 		default:
 			sqlType = OTHER;

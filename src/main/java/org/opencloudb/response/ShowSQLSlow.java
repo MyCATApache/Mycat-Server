@@ -24,8 +24,8 @@
 package org.opencloudb.response;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
 
-import org.opencloudb.MycatServer;
 import org.opencloudb.config.Fields;
 import org.opencloudb.manager.ManagerConnection;
 import org.opencloudb.mysql.PacketUtil;
@@ -33,37 +33,34 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
+import org.opencloudb.stat.UserStat;
+import org.opencloudb.stat.UserStatAnalyzer;
 import org.opencloudb.statistic.SQLRecord;
-import org.opencloudb.util.IntegerUtil;
 import org.opencloudb.util.LongUtil;
 import org.opencloudb.util.StringUtil;
 
 /**
- * 查询执行时间超过设定阈值的SQL
+ * 查询每个用户的执行时间超过设定阈值的SQL, 默认TOP10
  * 
  * @author mycat
+ * @author zhuam
  */
 public final class ShowSQLSlow {
 
-    private static final int FIELD_COUNT = 7;
+    private static final int FIELD_COUNT = 5;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
+    
     static {
         int i = 0;
         byte packetId = 0;
         header.packetId = ++packetId;
-
-        fields[i] = PacketUtil.getField("HOST", Fields.FIELD_TYPE_VAR_STRING);
-        fields[i++].packetId = ++packetId;
-
-        fields[i] = PacketUtil.getField("SCHEMA", Fields.FIELD_TYPE_LONG);
+        
+        fields[i] = PacketUtil.getField("USER", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
 
         fields[i] = PacketUtil.getField("DATASOURCE", Fields.FIELD_TYPE_VAR_STRING);
-        fields[i++].packetId = ++packetId;
-
-        fields[i] = PacketUtil.getField("INDEX", Fields.FIELD_TYPE_LONG);
         fields[i++].packetId = ++packetId;
 
         fields[i] = PacketUtil.getField("START_TIME", Fields.FIELD_TYPE_LONGLONG);
@@ -93,13 +90,17 @@ public final class ShowSQLSlow {
         buffer = eof.write(buffer, c,true);
 
         // write rows
-        byte packetId = eof.packetId;
-        SQLRecord[] records = MycatServer.getInstance().getSqlRecorder().getRecords();
-        for (int i = records.length - 1; i >= 0; i--) {
-            if (records[i] != null) {
-                RowDataPacket row = getRow(records[i], c.getCharset());
-                row.packetId = ++packetId;
-                buffer = row.write(buffer, c,true);
+        byte packetId = eof.packetId;        
+        Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
+        for (UserStat userStat : statMap.values()) {
+        	String user = userStat.getUser();
+            SQLRecord[] records = userStat.getSqlRecorder().getRecords();
+            for (int i = records.length - 1; i >= 0; i--) {
+                if (records[i] != null) {
+                    RowDataPacket row = getRow(user, records[i], c.getCharset());
+                    row.packetId = ++packetId;
+                    buffer = row.write(buffer, c,true);
+                }
             }
         }
 
@@ -112,15 +113,13 @@ public final class ShowSQLSlow {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(SQLRecord sql, String charset) {
+    private static RowDataPacket getRow(String user, SQLRecord sql, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-        row.add(StringUtil.encode(sql.host, charset));
-        row.add(StringUtil.encode(sql.schema, charset));
-        row.add(StringUtil.encode(sql.dataNode, charset));
-        row.add(IntegerUtil.toBytes(sql.dataNodeIndex));
-        row.add(LongUtil.toBytes(sql.startTime));
-        row.add(LongUtil.toBytes(sql.executeTime));
-        row.add(StringUtil.encode(sql.statement, charset));
+        row.add( StringUtil.encode(user, charset) );
+        row.add( StringUtil.encode(sql.dataNode, charset) );
+        row.add( LongUtil.toBytes(sql.startTime) );
+        row.add( LongUtil.toBytes(sql.executeTime) );
+        row.add( StringUtil.encode(sql.statement, charset) );
         return row;
     }
 

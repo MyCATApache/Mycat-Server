@@ -47,8 +47,8 @@ public class RowDataPacketSorter {
         this.orderCols = orderCols;
     }
 
-    public void addRow(RowDataPacket row) {
-        this.sorted.add(row);
+    public boolean addRow(RowDataPacket row) {
+        return this.sorted.add(row);
 
     }
 
@@ -158,11 +158,11 @@ public class RowDataPacketSorter {
     }
 
     public static final int compareObject(Object l, Object r, OrderCol orderCol) {
-
+      return compareObject(( byte[])l, (byte[])r, orderCol);
+    }
+    
+    public static final int compareObject(byte[] left,byte[] right, OrderCol orderCol) {
         int colType = orderCol.getColMeta().getColType();
-        byte[] left = (byte[]) l;
-        byte[] right = (byte[]) r;
-        // System.out.println("------------" + colType);
         switch (colType) {
         case ColMeta.COL_TYPE_DECIMAL:
         case ColMeta.COL_TYPE_INT:

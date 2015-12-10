@@ -21,8 +21,10 @@
 <!ATTLIST schema checkSQLschema NMTOKEN #IMPLIED>
 <!ATTLIST schema dataNode CDATA #IMPLIED>
 <!ATTLIST schema sqlMaxLimit CDATA #IMPLIED>
+
 <!ELEMENT table (property*,(childTable*))>
 <!ATTLIST table name CDATA #REQUIRED>
+<!ATTLIST table nameSuffix CDATA #IMPLIED>
 <!ATTLIST table dataNode CDATA #REQUIRED>
 <!ATTLIST table rule NMTOKEN #IMPLIED>
 <!ATTLIST table ruleRequired NMTOKEN #IMPLIED>
@@ -30,6 +32,7 @@
 <!ATTLIST table autoIncrement NMTOKEN #IMPLIED>
 <!ATTLIST table needAddLimit NMTOKEN #IMPLIED>
 <!ATTLIST table type NMTOKEN #IMPLIED>
+
 
 <!ELEMENT childTable (property*,(childTable*))>
 <!ATTLIST childTable name NMTOKEN #REQUIRED>
@@ -54,6 +57,7 @@
   writeType CDATA #IMPLIED
   switchType  CDATA #IMPLIED
   slaveThreshold  CDATA #IMPLIED
+  tempReadHostAvailable CDATA #IMPLIED
   dbType CDATA #REQUIRED
   filters CDATA #IMPLIED
   logTime CDATA #IMPLIED
@@ -61,18 +65,21 @@
 
 <!ELEMENT writeHost (readHost)*>
 <!ATTLIST writeHost
-  host NMTOKEN #REQUIRED
   url CDATA #REQUIRED
+  host NMTOKEN #REQUIRED
   password CDATA #REQUIRED
-  user NMTOKEN #REQUIRED>
+  user NMTOKEN #REQUIRED
+  usingDecrypt CDATA #IMPLIED>
 
 <!ELEMENT heartbeat (#PCDATA)>
-        <!ELEMENT connectionInitSql (#PCDATA)>
+<!ELEMENT connectionInitSql (#PCDATA)>
 <!ELEMENT readHost (property*) >
 <!ATTLIST readHost
   host NMTOKEN #REQUIRED
   url CDATA #REQUIRED
   password CDATA #REQUIRED
-  user NMTOKEN #REQUIRED>
+  user NMTOKEN #REQUIRED
+  weight CDATA #IMPLIED
+  usingDecrypt CDATA #IMPLIED>
 
 

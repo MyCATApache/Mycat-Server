@@ -178,6 +178,25 @@ public abstract class PhysicalDatasource {
 
 	}
 
+    public int getIndex(){
+        		int currentIndex = 0;
+        		for(int i=0;i<dbPool.getSources().length;i++){
+            			PhysicalDatasource writeHostDatasource = dbPool.getSources()[i];
+            			if(writeHostDatasource.getName().equals(getName())){
+                				currentIndex = i;
+                				break;
+                			}
+            		}
+        		return currentIndex;
+        	}
+    	public boolean isSalveOrRead(){
+        		int currentIndex = getIndex();
+                if(currentIndex!=dbPool.activedIndex ||this.readNode ){
+                    	return true;
+                    }
+                return false;
+        	}
+
 	public void heatBeatCheck(long timeout, long conHeartBeatPeriod) {
 		int ildeCloseCount = hostConfig.getMinCon() * 3;
 		int maxConsInOneCheck = 5;
@@ -213,9 +232,9 @@ public abstract class PhysicalDatasource {
 		if ((createCount > 0) && (idleCons + activeCons < size)
 				&& (idleCons < hostConfig.getMinCon())) {
             createByIdleLitte(idleCons, createCount);
-		} else if (getIdleCount() > hostConfig.getMinCon() + ildeCloseCount) {
-			closeByIdleMany(ildeCloseCount);
-		} else {
+        } else if (idleCons > hostConfig.getMinCon()) {
+            closeByIdleMany(idleCons-hostConfig.getMinCon());
+        } else {
 			int activeCount = this.getActiveCount();
 			if (activeCount > size) {
 				StringBuilder s = new StringBuilder();
@@ -346,10 +365,15 @@ public abstract class PhysicalDatasource {
             takeCon(con, handler, attachment, schema);
             return;
         } else {
-            LOGGER.info("not ilde connection in pool,create new connection for " + this.name
-                + " of schema "+schema);
-            // create connection
-            createNewConnection(handler, attachment, schema);
+            int activeCons = this.getActiveCount();//当前最大活动连接
+            if(activeCons+1>size){//下一个连接大于最大连接数
+                LOGGER.error("the max activeConnnections size can not be max than maxconnections");
+                throw new IOException("the max activeConnnections size can not be max than maxconnections");
+            }else{            // create connection
+                LOGGER.info("not ilde connection in pool,create new connection for " + this.name
+                        + " of schema "+schema);
+                createNewConnection(handler, attachment, schema);
+            }
             
         }
         

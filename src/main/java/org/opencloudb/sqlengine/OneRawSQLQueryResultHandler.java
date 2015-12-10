@@ -13,7 +13,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	private final SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callback;
 	private final String[] fetchCols;
 	private int fieldCount = 0;
-	private Map<String, String> result ;
+	private Map<String, String> result = new HashMap<String, String>();;
 	public OneRawSQLQueryResultHandler(String[] fetchCols,
 			SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callBack) {
 
@@ -42,26 +42,43 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	public boolean onRowData(String dataNode, byte[] rowData) {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 		rowDataPkg.read(rowData);
-		result = new HashMap<String, String>();
-		for (String fetchCol : fetchCols) {
-			Integer ind = fetchColPosMap.get(fetchCol);
+		String variableName = "";
+		String variableValue = "";
+		
+		if(fieldCount==2){
+			Integer ind = fetchColPosMap.get("Variable_name");
 			if (ind != null) {
 				byte[] columnData = rowDataPkg.fieldValues.get(ind);
-				String columnVal = new String(columnData);
-				result.put(fetchCol, columnVal);
-			} else {
-				LOGGER.warn("cant't find column in sql query result "
-						+ fetchCol);
+                String columnVal = columnData!=null?new String(columnData):null;
+                variableName = columnVal;
+            }
+			ind = fetchColPosMap.get("Value");
+			if (ind != null) {
+				byte[] columnData = rowDataPkg.fieldValues.get(ind);
+                String columnVal = columnData!=null?new String(columnData):null;
+                variableValue = columnVal;
+            }
+            result.put(variableName, variableValue);
+		}else{
+			for (String fetchCol : fetchCols) {
+				Integer ind = fetchColPosMap.get(fetchCol);
+				if (ind != null) {
+					byte[] columnData = rowDataPkg.fieldValues.get(ind);
+	                String columnVal = columnData!=null?new String(columnData):null;
+	                result.put(fetchCol, columnVal);
+				} else {
+					LOGGER.warn("cant't find column in sql query result " + fetchCol);
+				}
 			}
 		}
-        
+		
 		return false;
 	}
 
 	@Override
 	public void finished(String dataNode, boolean failed) {
 		SQLQueryResult<Map<String, String>> queryRestl=new SQLQueryResult<Map<String, String>>(this.result,!failed);
-	     this.callback.onRestult(queryRestl);
+	     this.callback.onResult(queryRestl);
 
 	}
 

@@ -60,7 +60,9 @@ public abstract class BackendAIOConnection extends AbstractConnection implements
 	
 
 	
-
+	public void discardClose(String reason){
+		//跨节点处理,中断后端连接时关闭
+	}
 	public abstract void onConnectFailed(Throwable e);
 
 	public boolean finishConnect() throws IOException {

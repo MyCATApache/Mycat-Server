@@ -123,10 +123,13 @@ public class DefaultDruidParser implements DruidParser {
 				
 				if(key.equals(value)) {
 					ctx.addTable(key.toUpperCase());
-				} else {
-					tableAliasMap.put(key, value);
-				}
+				} 
+//				else {
+//					tableAliasMap.put(key, value);
+//				}
+				tableAliasMap.put(key.toUpperCase(), value);
 			}
+			visitor.getAliasMap().putAll(tableAliasMap);
 			ctx.setTableAliasMap(tableAliasMap);
 		}
 		ctx.setRouteCalculateUnits(this.buildRouteCalculateUnits(visitor, mergedConditionList));
@@ -145,7 +148,13 @@ public class DefaultDruidParser implements DruidParser {
 				if(checkConditionValues(values)) {
 					String columnName = StringUtil.removeBackquote(condition.getColumn().getName().toUpperCase());
 					String tableName = StringUtil.removeBackquote(condition.getColumn().getTable().toUpperCase());
-					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(condition.getColumn().getTable()) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
+					
+					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(tableName) != null 
+							&& !visitor.getAliasMap().get(tableName).equals(tableName)) {
+						tableName = visitor.getAliasMap().get(tableName);
+					}
+					
+					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(condition.getColumn().getTable().toUpperCase()) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
 						continue;
 					}
 					

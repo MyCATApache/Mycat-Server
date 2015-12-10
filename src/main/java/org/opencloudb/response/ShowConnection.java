@@ -49,7 +49,7 @@ import org.opencloudb.util.TimeUtil;
  */
 public final class ShowConnection {
 
-	private static final int FIELD_COUNT = 14;
+	private static final int FIELD_COUNT = 15;
 	private static final ResultSetHeaderPacket header = PacketUtil
 			.getHeader(FIELD_COUNT);
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
@@ -73,6 +73,9 @@ public final class ShowConnection {
 		fields[i++].packetId = ++packetId;
 
 		fields[i] = PacketUtil.getField("LOCAL_PORT", Fields.FIELD_TYPE_LONG);
+		fields[i++].packetId = ++packetId;
+		
+		fields[i] = PacketUtil.getField("USER", Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
 
 		fields[i] = PacketUtil.getField("SCHEMA", Fields.FIELD_TYPE_VAR_STRING);
@@ -153,12 +156,12 @@ public final class ShowConnection {
 		row.add(StringUtil.encode(c.getHost(), charset));
 		row.add(IntegerUtil.toBytes(c.getPort()));
 		row.add(IntegerUtil.toBytes(c.getLocalPort()));
+		row.add(StringUtil.encode(c.getUser(), charset));
 		row.add(StringUtil.encode(c.getSchema(), charset));
 		row.add(StringUtil.encode(c.getCharset()+":"+c.getCharsetIndex(), charset));
 		row.add(LongUtil.toBytes(c.getNetInBytes()));
 		row.add(LongUtil.toBytes(c.getNetOutBytes()));
-		row.add(LongUtil.toBytes((TimeUtil.currentTimeMillis() - c
-				.getStartupTime()) / 1000L));
+		row.add(LongUtil.toBytes((TimeUtil.currentTimeMillis() - c.getStartupTime()) / 1000L));
 		ByteBuffer bb = c.getReadBuffer();
 		row.add(IntegerUtil.toBytes(bb == null ? 0 : bb.capacity()));
 		row.add(IntegerUtil.toBytes(c.getWriteQueue().size()));

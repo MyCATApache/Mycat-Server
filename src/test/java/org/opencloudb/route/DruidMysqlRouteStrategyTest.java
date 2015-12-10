@@ -2,8 +2,10 @@ package org.opencloudb.route;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+
 import junit.framework.Assert;
 import junit.framework.TestCase;
+
 import org.junit.Test;
 import org.opencloudb.SimpleCachePool;
 import org.opencloudb.cache.LayerCachePool;
@@ -581,7 +583,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     public void testTableMetaRead() throws Exception {
         final SchemaConfig schema = schemaMap.get("cndb");
 
-        String sql = "desc offer";
+        String sql = " desc offer";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.DESCRIBE, sql, null, null,
                 cachePool);
         Assert.assertEquals(false, rrs.isCacheAble());
@@ -762,6 +764,17 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SchemaConfig schema = schemaMap.get("cndb");
         String sql = null;
         RouteResultset rrs = null;
+
+        schema = schemaMap.get("dubbo2");
+        sql = "SHOW TABLES from db_name like 'solo'";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 9, sql, null, null, cachePool);
+        Assert.assertEquals(false, rrs.isCacheAble());
+        Assert.assertEquals(-1L, rrs.getLimitSize());
+        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("SHOW TABLES like 'solo'",
+                rrs.getNodes()[0].getStatement());
+
         schema = schemaMap.get("dubbo");
         sql = "SHOW TABLES from db_name like 'solo'";
         rrs = routeStrategy.route(new SystemConfig(), schema, 9, sql, null, null, cachePool);
@@ -771,6 +784,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals("dubbo_dn", rrs.getNodes()[0].getName());
         Assert.assertEquals("SHOW TABLES like 'solo'",
                 rrs.getNodes()[0].getStatement());
+
+
 
         sql = "desc cndb.offer";
         rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null, cachePool);
@@ -1042,6 +1057,52 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 	    rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
 	
 	    Assert.assertTrue(rrs.getNodes().length == 3);
+    }
+    
+    /**
+     * 测试 global table 的or语句
+     * 
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testGlobalTableOr() throws Exception {
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        String sql = "select id from company where 1 = 1 and name ='company1' or name = 'company2'" ;
+        for(int i = 0; i < 20; i++) {
+        	RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+            Assert.assertTrue(rrs.getNodes().length == 1);
+        }
+    }
+    
+    /**
+     * 测试别名路由
+     *
+     * @throws Exception
+     */
+    public void testAlias() throws Exception {
+
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        RouteResultset rrs = null;
+        //不支持childtable 批量插入
+        //update 全局表
+        String sql = "update company a set name = '' where a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+
+        Assert.assertEquals(3, rrs.getNodes().length);
+
+        //update带别名时的路由
+        sql = "update travelrecord a set name = '' where a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+        Assert.assertEquals(1, rrs.getNodes().length);
+        
+        //别名大小写路由
+        sql = "select * from travelrecord A where a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+        Assert.assertEquals(1, rrs.getNodes().length);
     }
     
     private String formatSql(String sql) {

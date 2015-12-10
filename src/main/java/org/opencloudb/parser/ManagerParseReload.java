@@ -34,8 +34,9 @@ public final class ManagerParseReload {
     public static final int CONFIG = 1;
     public static final int ROUTE = 2;
     public static final int USER = 3;
-    public static final int CONFIG_ALL = 4;
-
+    public static final int USER_STAT = 4;
+    public static final int CONFIG_ALL = 5;
+    public static final int SQL_SLOW = 6;
     public static int parse(String stmt, int offset) {
         int i = offset;
         for (; i < stmt.length(); i++) {
@@ -68,6 +69,9 @@ public final class ManagerParseReload {
                 case 'U':
                 case 'u':
                     return reload2UCheck(stmt, offset);
+                case 'S':
+                case 's':
+                    return reload2SCheck(stmt, offset);                    
                 default:
                     return OTHER;
                 }
@@ -132,10 +136,46 @@ public final class ManagerParseReload {
             char c2 = stmt.charAt(++offset);
             char c3 = stmt.charAt(++offset);
             if ((c1 == 'S' || c1 == 's') && (c2 == 'E' || c2 == 'e') && (c3 == 'R' || c3 == 'r')) {
+            	
+            	
+            	if (stmt.length() > offset + 5)
+                {
+                    char c6 = stmt.charAt(++offset);
+                    char c7 = stmt.charAt(++offset);
+                    char c8 = stmt.charAt(++offset);
+                    char c9 = stmt.charAt(++offset);
+                    char c10 = stmt.charAt(++offset);
+                    
+                    if ((c6 == '_' || c6 == '-') && (c7 == 'S' || c7 == 's') && (c8 == 'T' || c8 == 't')
+                            && (c9 == 'A' || c9 == 'a') && (c10 == 'T' || c10 == 't') ) {
+                          return USER_STAT;
+                    }
+                }
+            	
                 if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
                     return OTHER;
                 }
                 return USER;
+            }
+        }
+        return OTHER;
+    }
+    
+    // RELOAD @@SQL
+    static int reload2SCheck(String stmt, int offset) {
+        if (stmt.length() > offset + 4) {
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+            char c6 = stmt.charAt(++offset);           
+            if ((c1 == 'Q' || c1 == 'q') && (c2 == 'L' || c2 == 'l') && (c3 == 's' || c3 == 'S')
+                    && (c4 == 'L' || c4 == 'l') && (c5 == 'O' || c5 == 'o') && (c6 == 'W' || c6 == 'w') ) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return SQL_SLOW ;
+                }
+                return OTHER;
             }
         }
         return OTHER;

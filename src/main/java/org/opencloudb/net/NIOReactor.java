@@ -89,20 +89,21 @@ public final class NIOReactor {
 						AbstractConnection con = null;
 						try {
 							Object att = key.attachment();
-							if (att != null && key.isValid()) {
+							if (att != null) {
 								con = (AbstractConnection) att;
-								if (key.isReadable()) {
+								if (key.isValid() && key.isReadable()) {
 									try {
 										con.asynRead();
 									} catch (IOException e) {
-                                        LOGGER.warn("caught err:", e);
                                         con.close("program err:" + e.toString());
+										continue;
 									} catch (Exception e) {
 										LOGGER.debug("caught err:", e);
 										con.close("program err:" + e.toString());
+										continue;
 									}
 								}
-								if (key.isWritable()) {
+								if (key.isValid() && key.isWritable()) {
 									con.doNextWriteCheck();
 								}
 							} else {
@@ -137,8 +138,7 @@ public final class NIOReactor {
 					((NIOSocketWR) c.getSocketWR()).register(selector);
 					c.register();
 				} catch (Exception e) {
-					LOGGER.warn("register error ", e);
-					c.close("register err");
+					c.close("register err" + e.toString());
 				}
 			}
 		}

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.base.Strings;
 import org.apache.log4j.Logger;
 import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.util.CompressUtil;
@@ -94,6 +95,12 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	public boolean setCharset(String charset) {
+		
+		//修复PHP字符集设置错误, 如： set names 'utf8'
+		if ( charset != null ) {			
+			charset = charset.replace("'", "");
+		}
+		
 		int ci = CharsetUtil.getIndex(charset);
 		if (ci > 0) {
 			this.charset = charset.equalsIgnoreCase("utf8mb4")?"utf8":charset;
@@ -443,6 +450,11 @@ public abstract class AbstractConnection implements NIOConnection {
 			}
 			this.cleanup();
 			isSupportCompress=false;
+
+			//ignore null information
+			if (Strings.isNullOrEmpty(reason)) {
+				return;
+			}
 			LOGGER.info("close connection,reason:" + reason + " ," + this);
 			if (reason.contains("connection,reason:java.net.ConnectException")) {
 				throw new RuntimeException(" errr");

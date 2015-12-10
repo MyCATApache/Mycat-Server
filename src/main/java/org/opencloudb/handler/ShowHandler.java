@@ -35,7 +35,11 @@ import org.opencloudb.response.ShowConnectionSQL;
 import org.opencloudb.response.ShowDataNode;
 import org.opencloudb.response.ShowDataSource;
 import org.opencloudb.response.ShowDatabase;
+import org.opencloudb.response.ShowDatasourceCluster;
+import org.opencloudb.response.ShowDatasourceSyn;
+import org.opencloudb.response.ShowDatasourceSynDetail;
 import org.opencloudb.response.ShowHeartbeat;
+import org.opencloudb.response.ShowHeartbeatDetail;
 import org.opencloudb.response.ShowHelp;
 import org.opencloudb.response.ShowParser;
 import org.opencloudb.response.ShowProcessor;
@@ -43,9 +47,14 @@ import org.opencloudb.response.ShowRouter;
 import org.opencloudb.response.ShowSQL;
 import org.opencloudb.response.ShowSQLDetail;
 import org.opencloudb.response.ShowSQLExecute;
+import org.opencloudb.response.ShowSQLHigh;
 import org.opencloudb.response.ShowSQLSlow;
+import org.opencloudb.response.ShowSQLSumTable;
+import org.opencloudb.response.ShowSQLSumUser;
 import org.opencloudb.response.ShowServer;
 import org.opencloudb.response.ShowSession;
+import org.opencloudb.response.ShowSysLog;
+import org.opencloudb.response.ShowSysParam;
 import org.opencloudb.response.ShowThreadPool;
 import org.opencloudb.response.ShowTime;
 import org.opencloudb.response.ShowVariables;
@@ -60,6 +69,13 @@ public final class ShowHandler {
 	public static void handle(String stmt, ManagerConnection c, int offset) {
 		int rs = ManagerParseShow.parse(stmt, offset);
 		switch (rs & 0xff) {
+		case ManagerParseShow.SYSPARAM://add rainbow
+			ShowSysParam.execute(c);
+			break;
+		case ManagerParseShow.SYSLOG: //add by zhuam
+			String lines = stmt.substring(rs >>> 8).trim();
+			ShowSysLog.execute(c, Integer.parseInt( lines ) );
+			break;
 		case ManagerParseShow.COMMAND:
 			ShowCommand.execute(c);
 			break;
@@ -132,6 +148,15 @@ public final class ShowHandler {
 		case ManagerParseShow.SQL_SLOW:
 			ShowSQLSlow.execute(c);
 			break;
+		case ManagerParseShow.SQL_HIGH:
+			ShowSQLHigh.execute(c);
+			break;
+		case ManagerParseShow.SQL_SUM_USER:
+			ShowSQLSumUser.execute(c);
+			break;
+		case ManagerParseShow.SQL_SUM_TABLE:
+			ShowSQLSumTable.execute(c);
+			break;
 		case ManagerParseShow.SLOW_DATANODE: {
 			String name = stmt.substring(rs >>> 8).trim();
 			if (StringUtil.isEmpty(name)) {
@@ -173,6 +198,18 @@ public final class ShowHandler {
 		case ManagerParseShow.VERSION:
 			ShowVersion.execute(c);
 			break;
+		case ManagerParseShow.HEARTBEAT_DETAIL://by songwie
+			ShowHeartbeatDetail.response(c,stmt);
+			break;
+		case ManagerParseShow.DATASOURCE_SYNC://by songwie
+			ShowDatasourceSyn.response(c,stmt);
+			break;	
+		case ManagerParseShow.DATASOURCE_SYNC_DETAIL://by songwie
+			ShowDatasourceSynDetail.response(c,stmt);
+			break;	
+		case ManagerParseShow.DATASOURCE_CLUSTER://by songwie
+			ShowDatasourceCluster.response(c,stmt);
+			break;	
 		default:
 			c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 		}

@@ -53,15 +53,15 @@ public class XMLConfigLoader implements ConfigLoader {
     private final ClusterConfig cluster;
 
     public XMLConfigLoader(SchemaLoader schemaLoader) {
-        this.dataHosts = schemaLoader.getDataHosts();
-        this.dataNodes = schemaLoader.getDataNodes();
-        this.schemas = schemaLoader.getSchemas();
-        schemaLoader = null;
         XMLServerLoader serverLoader = new XMLServerLoader();
         this.system = serverLoader.getSystem();
         this.users = serverLoader.getUsers();
         this.quarantine = serverLoader.getQuarantine();
         this.cluster = serverLoader.getCluster();
+        this.dataHosts = schemaLoader.getDataHosts();
+        this.dataNodes = schemaLoader.getDataNodes();
+        this.schemas = schemaLoader.getSchemas();
+        schemaLoader = null;
     }
 
     @Override

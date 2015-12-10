@@ -60,5 +60,6 @@ public interface BackendConnection extends ClosableConnection {
 
 	public long getId();
 
+	public void discardClose(String reason);
 
 }

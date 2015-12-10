@@ -47,7 +47,7 @@ public interface HeapItf {
      *
      * @param row
      */
-    void addIfRequired(RowDataPacket row);
+    boolean addIfRequired(RowDataPacket row);
 
     /**
      * 堆排序
