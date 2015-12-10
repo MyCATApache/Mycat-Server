@@ -175,13 +175,16 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 			if (this.minTime==0){
 				this.minTime = execTime;
 			}
-			if (execTime < this.minTime){
+			if (execTime>0) {
+			  if (execTime < this.minTime){
 				this.minTime = execTime;			  
-			}	
-			if (this.executeTime+execTime>0){
-			  this.avgTime=(this.executeTime+execTime)/2;
+			  }	
+			  if (this.executeTime+execTime>0){
+			    this.avgTime=(this.executeTime+execTime)/2;
+			  }
 			}
 			this.executeTime = execTime;	
+		   //System.out.println(" exec:"+execTime +" max:"+maxTime+" min:"+minTime+ " avg:"+avgTime);	
 		}			
 	}
 	

@@ -1,11 +1,11 @@
 package demo.catlets;
 
-import com.alibaba.fastjson.JSON;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.data.Stat;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -19,32 +19,36 @@ import java.util.concurrent.TimeUnit;
  * Created by v1.lion on 2015/10/7.
  */
 public class ZkCreate {
-    private static final String ZK_CONFIG_FILE_NAME = "/zk-create.yaml";
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkCreate.class);
-
-
     private static final String CONFIG_URL_KEY = "zkURL";
-
     private static final String MYCAT_CLUSTER_KEY = "mycat-cluster";
     private static final String MYCAT_ZONE_KEY = "mycat-zones";
     private static final String MYCAT_NODES_KEY = "mycat-nodes";
     private static final String MYCAT_HOST_KEY = "mycat-hosts";
     private static final String MYCAT_MYSQLS_KEY = "mycat-mysqls";
     private static final String MYCAT_MYSQL_GROUP_KEY = "mycat-mysqlgroup";
-
+    private static String ZK_CONFIG_FILE_NAME = "/zk-create.yaml";
     private static CuratorFramework framework;
-    private static Map<String, Object> zkConfig;
+    //private static Map<String, Object> zkConfig;
+    private static Map<String, Object> zkConfig = new HashMap<String, Object>(); //initialized by shenhai.yan for line 40 NullPointerException
 
     public static void main(String[] args) {
+         String url;
+        if (args != null && args.length > 0) {
+            ZK_CONFIG_FILE_NAME = args[0];
+            url = args[1];
+        } else {
+            url = zkConfig.containsKey(CONFIG_URL_KEY) ?
+                (String) zkConfig.get(CONFIG_URL_KEY) :
+                "127.0.0.1:2181";
+        }
+        
         zkConfig = loadZkConfig();
-        String url = zkConfig.containsKey(CONFIG_URL_KEY)? (String) zkConfig.get(CONFIG_URL_KEY) : "127.0.0.1:2181";
-        framework =
-            createConnection(url)
-                .usingNamespace("mycat");
+        framework = createConnection(url).usingNamespace("mycat");
 
         createConfig(MYCAT_HOST_KEY, false, MYCAT_HOST_KEY);
         createConfig(MYCAT_ZONE_KEY, false, MYCAT_ZONE_KEY);
-        createConfig(MYCAT_NODES_KEY, true, MYCAT_NODES_KEY);
+        createConfig(MYCAT_NODES_KEY, false, MYCAT_NODES_KEY);
         createConfig(MYCAT_CLUSTER_KEY, true, MYCAT_CLUSTER_KEY);
         createConfig(MYCAT_MYSQLS_KEY, true, MYCAT_MYSQLS_KEY);
         createConfig(MYCAT_MYSQL_GROUP_KEY, true, MYCAT_MYSQL_GROUP_KEY);
@@ -56,10 +60,7 @@ public class ZkCreate {
         LOGGER.trace("child path is {}", childPath);
 
         try {
-            Stat systemPropertiesNodeStat = framework.checkExists().forPath(childPath);
-            if (systemPropertiesNodeStat == null) {
-                framework.create().creatingParentsIfNeeded().forPath(childPath);
-            }
+            ZKPaths.mkdirs(framework.getZookeeperClient().getZooKeeper(), childPath);
 
             Object mapObject = zkConfig.get(configKey);
             //recursion sub map
@@ -68,7 +69,7 @@ public class ZkCreate {
                 return;
             }
 
-            framework.setData().forPath(childPath, JSON.toJSONString(mapObject).getBytes());
+            framework.setData().forPath(childPath, new JSONObject(mapObject).toString().getBytes());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -106,9 +107,11 @@ public class ZkCreate {
                     }
                 }
 
-                framework.setData().forPath(childPath, JSON.toJSONString(filtered).getBytes());
+                framework.setData()
+                    .forPath(childPath, new JSONObject(filtered).toString().getBytes());
             } else {
-                framework.setData().forPath(childPath, JSON.toJSONString(innerMap).getBytes());
+                framework.setData()
+                    .forPath(childPath, new JSONObject(innerMap).toString().getBytes());
             }
         } catch (Exception e) {
             LOGGER.error("create node error: {} ", e.getMessage(), e);
@@ -137,6 +140,7 @@ public class ZkCreate {
                 return curatorFramework;
             }
         } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
         }
 
         //fail situation
