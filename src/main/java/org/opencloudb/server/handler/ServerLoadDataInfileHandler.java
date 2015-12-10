@@ -420,7 +420,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
                 if (toFile)
                 {
-                    if(data.getData().size()>100000)
+                    //避免当导入数据跨多分片时内存溢出的情况
+                    if(data.getData().size()>1000)
                     {
                         saveDataToFile(data,name);
                     }
