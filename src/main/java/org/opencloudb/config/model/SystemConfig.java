@@ -95,6 +95,7 @@ public final class SystemConfig {
 	private int defaultMaxLimit = DEFAULT_MAX_LIMIT;
 	public static final int SEQUENCEHANDLER_LOCALFILE = 0;
 	public static final int SEQUENCEHANDLER_MYSQLDB = 1;
+	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "org.opencloudb.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";
