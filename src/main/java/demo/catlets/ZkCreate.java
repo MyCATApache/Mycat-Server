@@ -29,7 +29,8 @@ public class ZkCreate {
     private static final String MYCAT_MYSQL_GROUP_KEY = "mycat-mysqlgroup";
     private static String ZK_CONFIG_FILE_NAME = "/zk-create.yaml";
     private static CuratorFramework framework;
-    private static Map<String, Object> zkConfig;
+    //private static Map<String, Object> zkConfig;
+    private static Map<String, Object> zkConfig = new HashMap<String, Object>(); //initialized by shenhai.yan for line 40 NullPointerException
 
     public static void main(String[] args) {
          String url;
