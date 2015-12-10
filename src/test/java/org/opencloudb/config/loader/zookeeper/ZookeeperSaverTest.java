@@ -15,7 +15,6 @@ import static org.junit.matchers.IsCollectionContaining.hasItems;
 /**
  * Created by lion on 12/8/15.
  */
-@Ignore
 public class ZookeeperSaverTest extends ZookeeperTestServer {
     private JSONObject config;
 
