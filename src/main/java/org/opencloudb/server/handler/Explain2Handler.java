@@ -59,8 +59,13 @@ public class Explain2Handler {
 
 		try {
 			stmt = stmt.substring(offset);
-			String dataNode = stmt.substring(stmt.indexOf("=") + 1 ,stmt.indexOf("sql")).trim();
-			String sql = "explain " + stmt.substring(stmt.lastIndexOf("=") + 1 ,stmt.length()).trim();
+			if(!stmt.toLowerCase().contains("datanode=") || !stmt.toLowerCase().contains("sql=")){
+				showerror(stmt, c, "explain2 datanode=? sql=?");
+				return ;
+			}
+			String dataNode = stmt.substring(stmt.indexOf("=") + 1 ,stmt.indexOf("sql=")).trim();
+			String sql = "explain " + stmt.substring(stmt.lastIndexOf("sql=") + 4 ,stmt.length()).trim();
+			
 			if(dataNode == null || dataNode.isEmpty() || sql == null || sql.isEmpty()){
 				showerror(stmt, c, "dataNode or sql is null or empty");
 			}else{
