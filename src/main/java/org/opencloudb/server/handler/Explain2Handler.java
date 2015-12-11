@@ -64,18 +64,19 @@ public class Explain2Handler {
 				return ;
 			}
 			String dataNode = stmt.substring(stmt.indexOf("=") + 1 ,stmt.indexOf("sql=")).trim();
-			String sql = "explain " + stmt.substring(stmt.lastIndexOf("sql=") + 4 ,stmt.length()).trim();
+			String sql = "explain " + stmt.substring(stmt.indexOf("sql=") + 4 ,stmt.length()).trim();
 			
 			if(dataNode == null || dataNode.isEmpty() || sql == null || sql.isEmpty()){
 				showerror(stmt, c, "dataNode or sql is null or empty");
-			}else{
-				RouteResultsetNode node = new RouteResultsetNode(dataNode, ServerParse.SELECT, sql);
-				RouteResultset	rrs =  new RouteResultset(sql, ServerParse.SELECT);
-				EMPTY_ARRAY[0] = node; 
-				rrs.setNodes(EMPTY_ARRAY);
-				SingleNodeHandler singleNodeHandler = new SingleNodeHandler(rrs, c.getSession2());
-				singleNodeHandler.execute();
+				return;
 			}
+			
+			RouteResultsetNode node = new RouteResultsetNode(dataNode, ServerParse.SELECT, sql);
+			RouteResultset	rrs =  new RouteResultset(sql, ServerParse.SELECT);
+			EMPTY_ARRAY[0] = node; 
+			rrs.setNodes(EMPTY_ARRAY);
+			SingleNodeHandler singleNodeHandler = new SingleNodeHandler(rrs, c.getSession2());
+			singleNodeHandler.execute();
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e.getCause());
 			e.printStackTrace();
@@ -116,5 +117,4 @@ public class Explain2Handler {
 		// post write
 		c.write(buffer);
 	}
-
 }
