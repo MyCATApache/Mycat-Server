@@ -1,10 +1,12 @@
 package org.opencloudb.config;
 
+import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.opencloudb.config.loader.zookeeper.ZookeeperLoader;
 import org.opencloudb.config.loader.zookeeper.ZookeeperSaver;
 
 public class ZkConfig {
+    private static final Logger LOGGER = Logger.getLogger(ZkConfig.class);
 
     private ZkConfig() {
     }
@@ -18,7 +20,7 @@ public class ZkConfig {
             JSONObject jsonObject = new ZookeeperLoader().loadConfig();
             new ZookeeperSaver().saveConfig(jsonObject);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("fail to load configuration form zookeeper,using local file to run!", e);
         }
     }
 }

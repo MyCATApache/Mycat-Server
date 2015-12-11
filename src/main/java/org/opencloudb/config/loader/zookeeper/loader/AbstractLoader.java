@@ -27,22 +27,12 @@ public abstract class AbstractLoader {
 
         //terminal condition,have not child node.
         if (childNames.isEmpty()) {
-
             return new JSONObject(getDataToString(path));
-
         } else {
-
-            JSONObject jsonObject = new JSONObject();
+            JSONObject jsonObject = new JSONObject(getDataToString(path));
             for (String childName : childNames) {
                 final String childPath = ZKPaths.makePath(path, childName);
-                JSONObject childJsonObject = new JSONObject(getDataToString(childPath));
-
-                for (String subChildName : getChildNames(childPath)) {
-                    final String subChildPath = ZKPaths.makePath(childPath, subChildName);
-                    childJsonObject.put(subChildName, takeData(subChildPath));
-                }
-
-                jsonObject.put(childName, childJsonObject);
+                jsonObject.put(childName, takeData(childPath));
             }
             return jsonObject;
         }
