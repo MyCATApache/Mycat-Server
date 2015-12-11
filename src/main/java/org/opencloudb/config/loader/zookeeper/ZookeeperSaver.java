@@ -9,9 +9,7 @@ import org.opencloudb.config.loader.zookeeper.entitiy.Property;
 import org.opencloudb.config.loader.zookeeper.entitiy.Server;
 
 import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,18 +24,17 @@ public class ZookeeperSaver {
     private final static Joiner commaJonier = Joiner.on(",");
     private JAXBContext jaxbContext;
 
-    public ZookeeperSaver() throws JAXBException {
+    public ZookeeperSaver() throws Exception {
         super();
         this.jaxbContext =
             JAXBContext.newInstance(org.opencloudb.config.loader.zookeeper.entitiy.Server.class);
     }
 
-    public void saveConfig(JSONObject jsonObject) throws JAXBException, IOException {
-        saveServer(jsonObject);
-
+    public void saveConfig(JSONObject jsonObject) throws Exception {
+        saveServer(jsonObject, "server");
     }
 
-    Server saveServer(JSONObject jsonObject) throws JAXBException, IOException {
+    Server saveServer(JSONObject jsonObject, String fileName) throws Exception {
         JSONObject myNode = jsonObject.getJSONObject(ZookeeperLoader.NODE_KEY);
         JSONObject users = jsonObject.getJSONObject(ZookeeperLoader.CLUSTER_KEY);
         Preconditions.checkNotNull(myNode);
@@ -58,23 +55,31 @@ public class ZookeeperSaver {
         if (user != null && user.length() > 0) {
             for (String key : user.keySet()) {
                 Server.User serverUser = new Server.User();
-                putProperty(user.getJSONObject(key), serverUser);
+                JSONObject userObject = user.getJSONObject(key);
+
+                serverUser.setName(userObject.getString("name"));
+
+                //ignore name and set other to properties;
+                userObject.remove("name");
+
+                putProperty(userObject, serverUser);
                 userList.add(serverUser);
             }
         }
         server.setUser(userList);
 
         //save to file
-        marshaller(server, "server");
+        marshaller(server, fileName, "server");
         return server;
     }
 
-    private void marshaller(Object object, String fileName) throws JAXBException, IOException {
+    private void marshaller(Object object, String fileName, String dtdName) throws Exception {
         Marshaller marshaller = jaxbContext.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+        marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
 
         marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
-            String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", fileName));
+            String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", dtdName));
 
         Path path = Paths.get(getClass().getResource("/").getFile(), fileName + ".xml");
 

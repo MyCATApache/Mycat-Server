@@ -141,6 +141,7 @@ public class MySQLDetector implements
 				}
 
 				heartbeat.getAsynRecorder().set(resultResult, switchType);
+				heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
             }
             else if(PhysicalDBPool.BALANCE_NONE!=balance && switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS 
             		&& source.getHostConfig().isShowClusterSql())

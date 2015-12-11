@@ -184,7 +184,7 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 			  }
 			}
 			this.executeTime = execTime;	
-		   System.out.println(" exec:"+execTime +" max:"+maxTime+" min:"+minTime+ " avg:"+avgTime);	
+		   //System.out.println(" exec:"+execTime +" max:"+maxTime+" min:"+minTime+ " avg:"+avgTime);	
 		}			
 	}
 	
