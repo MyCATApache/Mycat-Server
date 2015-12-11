@@ -55,7 +55,14 @@ public class ZookeeperSaver {
         if (user != null && user.length() > 0) {
             for (String key : user.keySet()) {
                 Server.User serverUser = new Server.User();
-                putProperty(user.getJSONObject(key), serverUser);
+                JSONObject userObject = user.getJSONObject(key);
+
+                serverUser.setName(userObject.getString("name"));
+
+                //ignore name and set other to properties;
+                userObject.remove("name");
+
+                putProperty(userObject, serverUser);
                 userList.add(serverUser);
             }
         }
@@ -71,7 +78,7 @@ public class ZookeeperSaver {
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
         marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
-            String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", fileName));
+            String.format("\n<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", fileName));
 
         Path path = Paths.get(getClass().getResource("/" + fileName + ".xml").toURI());
 

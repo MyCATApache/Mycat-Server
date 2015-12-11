@@ -2,7 +2,6 @@ package org.opencloudb.config.loader.zookeeper;
 
 import org.json.JSONObject;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opencloudb.config.ZookeeperTestServer;
 import org.opencloudb.config.loader.zookeeper.entitiy.Property;
@@ -42,27 +41,29 @@ public class ZookeeperSaverTest extends ZookeeperTestServer {
 
         Server.User expectTest = new Server.User();
         Property expectTestP1 = new Property().setName("readOnly").setValue("true");
-        Property expectTestP2 = new Property().setName("name").setValue("test");
         Property expectTestP3 = new Property().setName("password").setValue("admin");
         Property expectTestP4 = new Property().setName("schemas").setValue("testdb,test");
         expectTest.addProperty(expectTestP1);
-        expectTest.addProperty(expectTestP2);
         expectTest.addProperty(expectTestP3);
         expectTest.addProperty(expectTestP4);
+        expectTest.setName("test");
 
+        assertThat(server.getUser().get(0).getName(),is(expectTest.getName()));
         assertThat(server.getUser().get(0).getProperty(),
-            hasItems(expectTestP1, expectTestP2, expectTestP3, expectTestP4));
+            hasItems(expectTestP1, expectTestP3, expectTestP4));
 
         Server.User expectMycat = new Server.User();
         Property expectMycatP1 = new Property().setName("readOnly").setValue("false");
-        Property expectMycatP2 = new Property().setName("name").setValue("mycat");
         Property expectMycatP3 = new Property().setName("password").setValue("admin");
         Property expectMycatP4 = new Property().setName("schemas").setValue("testdb");
         expectMycat.addProperty(expectMycatP1);
-        expectMycat.addProperty(expectMycatP2);
         expectMycat.addProperty(expectMycatP3);
         expectMycat.addProperty(expectMycatP4);
+        expectMycat.setName("mycat");
+
+
+        assertThat(server.getUser().get(1).getName(),is(expectMycat.getName()));
         assertThat(server.getUser().get(1).getProperty(),
-            hasItems(expectMycatP1, expectMycatP2, expectMycatP3, expectMycatP4));
+            hasItems(expectMycatP1, expectMycatP3, expectMycatP4));
     }
 }
