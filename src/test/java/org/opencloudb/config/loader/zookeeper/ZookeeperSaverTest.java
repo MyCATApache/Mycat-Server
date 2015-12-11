@@ -26,7 +26,7 @@ public class ZookeeperSaverTest extends ZookeeperTestServer {
     @Test public void testSaveServer() throws Exception {
 
         ZookeeperSaver saver = new ZookeeperSaver();
-        Server server = saver.saveServer(config);
+        Server server = saver.saveServer(config,"server_zk");
 
         assertThat(server.getSystem().getProperty().size(), is(3));
         assertThat(server.getSystem().getProperty().get(0),
