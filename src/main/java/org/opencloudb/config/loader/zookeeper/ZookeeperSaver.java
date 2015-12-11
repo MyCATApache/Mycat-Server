@@ -76,9 +76,10 @@ public class ZookeeperSaver {
     private void marshaller(Object object, String fileName, String dtdName) throws Exception {
         Marshaller marshaller = jaxbContext.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+        marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
 
         marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
-            String.format("\n<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", dtdName));
+            String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", dtdName));
 
         Path path = Paths.get(getClass().getResource("/").getFile(), fileName + ".xml");
 
