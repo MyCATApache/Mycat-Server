@@ -14,6 +14,18 @@ package io.mycat.backend.postgresql.packet;
 //		
 //		String
 //		从通知进程传递过来的额外的信息。（目前，这个特性还未实现，因此这个字段总是一个空字串。）
-public class NotificationResponse {
+public class NotificationResponse extends PostgreSQLPacket{
+
+	@Override
+	public int getLength() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public char getMarker() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 
 }

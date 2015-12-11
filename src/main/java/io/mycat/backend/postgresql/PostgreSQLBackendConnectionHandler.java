@@ -1,27 +1,21 @@
 package io.mycat.backend.postgresql;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.fastjson.JSON;
-
 import io.mycat.backend.postgresql.packet.AuthenticationPacket;
 import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
 import io.mycat.backend.postgresql.packet.BackendKeyData;
 import io.mycat.backend.postgresql.packet.CommandComplete;
+import io.mycat.backend.postgresql.packet.CopyInResponse;
+import io.mycat.backend.postgresql.packet.CopyOutResponse;
 import io.mycat.backend.postgresql.packet.DataRow;
+import io.mycat.backend.postgresql.packet.EmptyQueryResponse;
 import io.mycat.backend.postgresql.packet.ErrorResponse;
 import io.mycat.backend.postgresql.packet.NoticeResponse;
+import io.mycat.backend.postgresql.packet.NotificationResponse;
 import io.mycat.backend.postgresql.packet.ParameterStatus;
 import io.mycat.backend.postgresql.packet.PasswordMessage;
 import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
 import io.mycat.backend.postgresql.packet.ReadyForQuery;
+import io.mycat.backend.postgresql.packet.ReadyForQuery.TransactionState;
 import io.mycat.backend.postgresql.packet.RowDescription;
 import io.mycat.backend.postgresql.utils.PacketUtils;
 import io.mycat.backend.postgresql.utils.PgPacketApaterUtils;
@@ -37,6 +31,17 @@ import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.OkPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
 import io.mycat.server.packet.RowDataPacket;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.fastjson.JSON;
 
 public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQLBackendConnection> {
 
@@ -100,68 +105,33 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 		buf.get(data, 0, readedLength);
 		try {
 			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(data, 0, readedLength);
-			System.err.println(JSON.toJSONString(packets));
-			int _length = packets.size();
-			if (_length > 0) {
-				for (int offset = 0; offset < _length;) {
-					PostgreSQLPacket head = packets.get(offset);
-					if (head instanceof RowDescription) {
-						List<PostgreSQLPacket> pgs = new ArrayList<>();
-						List<PostgreSQLPacket> comp = new ArrayList<>();
-						pgs.add(head);
-						// 查询结包
-						for (int i = offset + 1; i < _length; i++) {
-							if (packets.get(i) instanceof DataRow) {
-								pgs.add(packets.get(i));
-							} else if (packets.get(i) instanceof CommandComplete) {
-								CommandComplete com = (CommandComplete) packets.get(i);
-								if (com.isSelectComplete()) {
-									break;
-								}
-								comp.add(packets.get(i));
-							} else {
-								break;
-							}
-						}
-
-						if (comp.size() > 0) {
-							doHandleBusinessDDL(con, comp);
-							offset = offset + comp.size();
-						}
-
-						offset = offset + pgs.size();
-						doHandleBusinessQuery(con, pgs);
-					} else if (head instanceof CommandComplete) {
-						List<PostgreSQLPacket> pgs = new ArrayList<>();
-						pgs.add(head);
-						offset = offset + pgs.size();
-						doHandleBusinessDDL(con, pgs);
-					} else if (head instanceof NoticeResponse) {
-						List<PostgreSQLPacket> pgs = new ArrayList<>();
-						pgs.add(head);
-						offset = offset + pgs.size();
-						doHandleBusinessNotice(con, pgs);
-					} else if (head instanceof ErrorResponse) {
-						List<PostgreSQLPacket> pgs = new ArrayList<>();
-						pgs.add(head);
-						offset = offset + pgs.size();
-						doHandleBusinessError(con, pgs);
-					} else if (head instanceof ReadyForQuery) {
-						List<PostgreSQLPacket> pgs = new ArrayList<>();
-						pgs.add(head);
-						offset = offset + pgs.size();
-						doHandleBusinessReady(con, pgs);
-					}else if( head instanceof ParameterStatus){
-						offset ++;
-					}
-				}
-			} else {
-				ErrorPacket err = new ErrorPacket();
-				err.packetId = ++packetId;
-				err.message = "SQL 服务器处理出错!".getBytes();
-				err.errno = ErrorCode.ERR_NOT_SUPPORTED;
-				if (con.getResponseHandler() != null) {
-					con.getResponseHandler().errorResponse(err.writeToBytes(), con);
+			if(packets== null || packets.isEmpty()){
+				throw new RuntimeException("数据包解析出错");
+			}
+			SelectResponse response = null;
+			for(PostgreSQLPacket packet: packets){
+				if(packet instanceof ErrorResponse){
+					doProcessErrorResponse(con,(ErrorResponse)packet);
+				}else if(packet instanceof RowDescription){
+					response = new SelectResponse((RowDescription) packet);
+				}else if(packet instanceof DataRow){
+					response.addDataRow((DataRow)packet);
+				}else if(packet instanceof ParameterStatus){
+					doProcessParameterStatus(con,(ParameterStatus)packet);
+				}else if(packet instanceof CommandComplete){
+					doProcessCommandComplete(con, (CommandComplete) packet,response);
+				}else if(packet instanceof NoticeResponse){
+					doProcessNoticeResponse(con, (NoticeResponse)packet);
+				}else if(packet instanceof ReadyForQuery){
+					doProcessReadyForQuery(con, (ReadyForQuery) packet);
+				}else if(packet instanceof NotificationResponse){
+					doProcessNotificationResponse(con,(NotificationResponse)packet);
+				}else if(packet instanceof CopyInResponse){
+					doProcessCopyInResponse(con,(CopyInResponse)packet);
+				}else if(packet instanceof CopyOutResponse){
+					doProcessCopyOutResponse(con,(CopyOutResponse)packet);
+				}else if(packet instanceof EmptyQueryResponse){
+					doProcessEmptyQueryResponse(con,(EmptyQueryResponse)packet);
 				}
 			}
 		} catch (Exception e) {
@@ -179,29 +149,59 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 		}
 	}
 
+	private void doProcessEmptyQueryResponse(PostgreSQLBackendConnection con,EmptyQueryResponse packet) {
+		// TODO(现阶段无空白sql)
+	}
+
+	private void doProcessCopyOutResponse(PostgreSQLBackendConnection con,CopyOutResponse packet) {
+		// TODO(复制数据暂时不需要)		
+	}
+
+	private void doProcessCopyInResponse(PostgreSQLBackendConnection con,CopyInResponse packet) {
+		// TODO(复制数据暂时不需要)		
+	}
+
+	private void doProcessNotificationResponse(PostgreSQLBackendConnection con,NotificationResponse notificationResponse) {
+		// TODO(后台参数改变通知)		
+	}
+
+	private void doProcessParameterStatus(PostgreSQLBackendConnection con,ParameterStatus parameterStatus) {		
+		// TODO(设置参数响应)		
+	}
+
 	/**
 	 * 后台已经完成了.
 	 * 
 	 * @param con
-	 * @param pgs
+	 * @param packet
 	 */
-	private void doHandleBusinessReady(PostgreSQLBackendConnection con, List<PostgreSQLPacket> pgs) {
-
+	private void doProcessReadyForQuery(PostgreSQLBackendConnection con, ReadyForQuery readyForQuery) {
+		if(con.isInTransaction() != (readyForQuery.getState() == TransactionState.IN)){//设置连接的后台事物状态
+			con.setInTransaction((readyForQuery.getState() == TransactionState.IN));
+		}
+	}
+	
+	/******
+	 * 执行成功但是又警告信息
+	 * 
+	 * @param con
+	 * @param packet
+	 */
+	private void doProcessNoticeResponse(PostgreSQLBackendConnection con, NoticeResponse noticeResponse) {
+		//TODO (通知提醒信息)
 	}
 
 	/***
 	 * 处理查询出错数据包
 	 * 
 	 * @param con
-	 * @param packets
+	 * @param errMg
 	 */
-	private void doHandleBusinessError(PostgreSQLBackendConnection con, List<PostgreSQLPacket> packets) {
+	private void doProcessErrorResponse(PostgreSQLBackendConnection con, ErrorResponse errorResponse) {
 		LOGGER.debug("查询出错了!");
-		ErrorResponse errMg = (ErrorResponse) packets.get(0);
-
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.message = errMg.getErrMsg().trim().replaceAll("\0", " ").getBytes();
+		err.message = errorResponse.getErrMsg().trim().replaceAll("\0", " ").getBytes();
 		err.errno = ErrorCode.ER_UNKNOWN_ERROR;
 		con.getResponseHandler().errorResponse(err.writeToBytes(), con);
 
@@ -211,48 +211,26 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 	 * 数据操作语言
 	 * 
 	 * @param con
-	 * @param packets
+	 * @param commandComplete
+	 * @param response
 	 */
-	private void doHandleBusinessDDL(PostgreSQLBackendConnection con, List<PostgreSQLPacket> packets) {
-		for (CommandComplete cmdComplete : packets.toArray(new CommandComplete[0])) {
-			if (cmdComplete.isSelectComplete()) {
-				return;
+	private void doProcessCommandComplete(PostgreSQLBackendConnection con, CommandComplete commandComplete, SelectResponse response) {
+		if(commandComplete.isSelectComplete()){
+			if(response == null){
+				throw new RuntimeException("the select proess err ,the SelectResponse is empty");
 			}
-			if (cmdComplete.isDDLComplete()) {
-				OkPacket okPck = new OkPacket();
-				okPck.affectedRows = cmdComplete.getRows();
-				okPck.insertId = 0;
-				okPck.packetId = ++packetId;
-				okPck.message = " OK!".getBytes();
-				con.getResponseHandler().okResponse(okPck.writeToBytes(), con);
-			} else if (cmdComplete.isTranComplete()) {
-				OkPacket okPck = new OkPacket();
-				okPck.affectedRows = cmdComplete.getRows();
-				okPck.insertId = 0;
-				okPck.packetId = ++packetId;
-				okPck.message = cmdComplete.getCommandResponse().trim().getBytes();
-				con.getResponseHandler().okResponse(okPck.writeToBytes(), con);
-			} else {
-				OkPacket okPck = new OkPacket();
-				okPck.affectedRows = 0;
-				okPck.insertId = 0;
-				okPck.packetId = ++packetId;
-				okPck.message = cmdComplete.getCommandResponse().trim().getBytes();
-				con.getResponseHandler().okResponse(okPck.writeToBytes(), con);
-				LOGGER.warn("其他命令完成,暂时忽略:", JSON.toJSONString(cmdComplete));
-			}
+			doProcessBusinessQuery(con, response ,commandComplete);
+		}else{
+			OkPacket okPck = new OkPacket();
+			okPck.affectedRows = 0;
+			okPck.insertId = 0;
+			okPck.packetId = ++packetId;
+			okPck.message = commandComplete.getCommandResponse().trim().getBytes();
+			con.getResponseHandler().okResponse(okPck.writeToBytes(), con);
 		}
 	}
 
-	/******
-	 * 执行成功但是又警告信息
-	 * 
-	 * @param con
-	 * @param packets
-	 */
-	private void doHandleBusinessNotice(PostgreSQLBackendConnection con, List<PostgreSQLPacket> packets) {
 
-	}
 
 	/*****
 	 * 处理简单查询
@@ -260,20 +238,12 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 	 * @param con
 	 * @param packets
 	 */
-	private void doHandleBusinessQuery(PostgreSQLBackendConnection con, List<PostgreSQLPacket> packets) {
-		RowDescription rowHd = (RowDescription) packets.get(0);
+	private void doProcessBusinessQuery(PostgreSQLBackendConnection con, SelectResponse response,CommandComplete commandComplete) {
+		RowDescription rowHd = response.getDescription();
 		List<FieldPacket> fieldPks = PgPacketApaterUtils.rowDescConvertFieldPacket(rowHd);
 		List<RowDataPacket> rowDatas = new ArrayList<>();
-		CommandComplete cmdComplete = null;
-		for (int i = 1; i < packets.size(); i++) {
-			PostgreSQLPacket _packet = packets.get(i);
-			if (_packet instanceof DataRow) {
-				rowDatas.add(PgPacketApaterUtils.rowDataConvertRowDataPacket((DataRow) _packet));
-			} else if (_packet instanceof CommandComplete) {
-				cmdComplete = (CommandComplete) _packet;
-			} else {
-				LOGGER.warn("unexpectedly PostgreSQLPacket:", JSON.toJSONString(_packet));
-			}
+		for (DataRow dataRow : response.getDataRows()) {
+			rowDatas.add(PgPacketApaterUtils.rowDataConvertRowDataPacket(dataRow));
 		}
 
 		BufferArray bufferArray = NetSystem.getInstance().getBufferPool().allocateArray();
@@ -371,6 +341,35 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	static class SelectResponse{
+		private RowDescription description;
+		
+		private List<DataRow> dataRows = new ArrayList<>();
+
+		public List<DataRow> getDataRows() {
+			return dataRows;
+		}
+
+		public void addDataRow(DataRow packet) {
+			this.dataRows.add(packet);
+		}
+
+		public void setDataRows(List<DataRow> dataRows) {
+			this.dataRows = dataRows;
+		}
+
+		public RowDescription getDescription() {
+			return description;
+		}
+		
+		
+		public SelectResponse(RowDescription description) {
+			this.description = description;
+		}
+		
+		
 	}
 
 }

@@ -20,6 +20,7 @@ public abstract class PostgreSQLPacket {
 	 */
 	public abstract char getMarker();
 	
+	
 	public int getPacketSize(){
 		return getLength() + 1;
 	}
