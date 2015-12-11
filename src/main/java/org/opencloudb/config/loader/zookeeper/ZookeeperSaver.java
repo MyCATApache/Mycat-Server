@@ -31,10 +31,10 @@ public class ZookeeperSaver {
     }
 
     public void saveConfig(JSONObject jsonObject) throws Exception {
-        saveServer(jsonObject);
+        saveServer(jsonObject, "server");
     }
 
-    Server saveServer(JSONObject jsonObject) throws Exception {
+    Server saveServer(JSONObject jsonObject, String fileName) throws Exception {
         JSONObject myNode = jsonObject.getJSONObject(ZookeeperLoader.NODE_KEY);
         JSONObject users = jsonObject.getJSONObject(ZookeeperLoader.CLUSTER_KEY);
         Preconditions.checkNotNull(myNode);
@@ -69,18 +69,18 @@ public class ZookeeperSaver {
         server.setUser(userList);
 
         //save to file
-        marshaller(server, "server");
+        marshaller(server, fileName, "server");
         return server;
     }
 
-    private void marshaller(Object object, String fileName) throws Exception {
+    private void marshaller(Object object, String fileName, String dtdName) throws Exception {
         Marshaller marshaller = jaxbContext.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
         marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
-            String.format("\n<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", fileName));
+            String.format("\n<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", dtdName));
 
-        Path path = Paths.get(getClass().getResource("/" + fileName + ".xml").toURI());
+        Path path = Paths.get(getClass().getResource("/").getFile(), fileName + ".xml");
 
         try (OutputStream out = Files
             .newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
