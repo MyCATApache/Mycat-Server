@@ -47,7 +47,7 @@ public class ReadyForQuery extends PostgreSQLPacket {
 		}
 		ReadyForQuery readyForQuery = new ReadyForQuery();
 		readyForQuery.length = buffer.getInt(offset + 1);
-		readyForQuery.state = TransactionState.valueOf((char)buffer.array()[offset+1+4]);
+		readyForQuery.state = TransactionState.valueOf((char)buffer.get(offset+1+4));
 		return readyForQuery;
 	}
 

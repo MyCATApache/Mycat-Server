@@ -64,7 +64,7 @@ public class RowDescription extends PostgreSQLPacket {
 	}
 
 	public static RowDescription parse(ByteBuffer buffer, int offset)
-			throws IOException {
+			throws  IOException {
 		if (buffer.get(offset) != PacketMarker.B_RowDescription.getValue()) {
 			throw new IllegalArgumentException(
 					"this packetData not is RowDescription");

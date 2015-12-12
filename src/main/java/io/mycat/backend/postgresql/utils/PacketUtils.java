@@ -23,6 +23,67 @@ import io.mycat.backend.postgresql.packet.RowDescription;
 
 public class PacketUtils {
 
+	public static List<PostgreSQLPacket> parsePacket(ByteBuffer buffer,int offset,int readLength) throws  IOException{
+		final ByteBuffer bytes = buffer;
+		List<PostgreSQLPacket> pgs = new ArrayList<>();
+		while(offset < readLength){
+			char MAKE = (char)bytes.get(offset);
+			PostgreSQLPacket pg = null;
+			switch (MAKE) {
+			case 'R':
+				pg = AuthenticationPacket.parse(bytes, offset);
+				break;
+			case 'E':
+				pg = ErrorResponse.parse(bytes, offset);
+				break;
+			case 'K':
+				pg = BackendKeyData.parse(bytes, offset);
+				break;
+			case 'S':
+				pg = ParameterStatus.parse(bytes, offset);
+				break;
+			case 'Z':
+				pg = ReadyForQuery.parse(bytes, offset);
+				break;
+			case 'N':
+				pg = NoticeResponse.parse(bytes, offset);
+				break;
+			case 'C':
+				pg = CommandComplete.parse(bytes, offset);
+				break;
+			case 'T':
+				pg = RowDescription.parse(bytes, offset);
+				break;
+			case 'D':
+				pg = DataRow.parse(bytes, offset);
+				break;
+
+			case 'I':
+				pg = EmptyQueryResponse.parse(bytes, offset);
+				break;
+
+			case 'G':
+				pg = CopyInResponse.parse(bytes, offset);
+				break;
+			case 'H':
+				pg = CopyOutResponse.parse(bytes, offset);
+				break;
+			case '1':
+				pg = ParseComplete.parse(bytes, offset);
+				break;
+			default:
+				throw new RuntimeException("Unknown packet");
+			}
+			if (pg != null) {
+				offset = offset + pg.getLength() + 1;
+				pgs.add(pg);
+			}
+			
+		}
+		return pgs;
+	}
+	
+	@Deprecated
 	public static List<PostgreSQLPacket> parsePacket(byte[] bytes, int offset,
 			int readLength) throws IOException {
 		List<PostgreSQLPacket> pgs = new ArrayList<>();

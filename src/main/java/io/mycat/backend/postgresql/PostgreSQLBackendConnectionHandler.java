@@ -100,11 +100,8 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 	 * @param readedLength
 	 */
 	private void doHandleBusinessMsg(PostgreSQLBackendConnection con, ByteBuffer buf, int start, int readedLength) {
-		byte[] data = new byte[readedLength];
-		buf.position(start);
-		buf.get(data, 0, readedLength);
 		try {
-			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(data, 0, readedLength);
+			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(buf, 0, readedLength);
 			if(packets== null || packets.isEmpty()){
 				throw new RuntimeException("数据包解析出错");
 			}
@@ -307,12 +304,8 @@ public class PostgreSQLBackendConnectionHandler implements NIOHandler<PostgreSQL
 	 * @param readedLength
 	 */
 	private void doConnecting(PostgreSQLBackendConnection con, ByteBuffer buf, int start, int readedLength) {
-
-		byte[] data = new byte[readedLength];
-		buf.position(start);
-		buf.get(data, 0, readedLength);
 		try {
-			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(data, 0, readedLength);
+			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(buf, 0, readedLength);
 			if (!packets.isEmpty()) {
 				if (packets.get(0) instanceof AuthenticationPacket) {// pg认证信息
 					AuthenticationPacket packet = (AuthenticationPacket) packets.get(0);

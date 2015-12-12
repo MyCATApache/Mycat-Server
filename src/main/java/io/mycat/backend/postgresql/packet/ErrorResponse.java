@@ -29,7 +29,7 @@ public class ErrorResponse extends PostgreSQLPacket {
 	 * @throws IllegalAccessException
 	 */
 	public static ErrorResponse parse(ByteBuffer buffer, int offset)
-			throws IllegalArgumentException, UnsupportedEncodingException {
+			throws IllegalArgumentException  {
 		if ((char) buffer.get(offset) != PacketMarker.B_Error.getValue()) {
 			throw new IllegalArgumentException("this packet not is ErrorResponse");
 		}
