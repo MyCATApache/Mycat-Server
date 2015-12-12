@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,8 +111,21 @@ public class CharsetUtil {
     	if(COLLATION_TO_CHARSETCOLLATION.size() > 0)	// 已经初始化
     		return;
     	
-    	// 遍历 配置文件 mycat.xml 中的 dataHost 元素，直到可以成功连上mysqld，
-    	// 并且获取 charset 和 collation 信息
+    	// 先利用mycat.xml配置文件 中的 heartbeat(该配置一般是存在的)的连接信息来获得CharsetCollation，如果成功就结束，尽量缩短启动时间；
+    	// 如果没有成功，则遍历mycat.xml配置文件 中的所有dataHost元素，来获得CharsetCollation;
+    	DBHostConfig dBHostconfig = getConfigByDataHostName(dataHosts, "jdbchost");
+    	if(dBHostconfig != null){
+    		if(getCharsetCollationFromMysql(dBHostconfig)){
+    			// ConfigInitializer 中的 initCharsetConfig 其实没有 load 成功，
+				// 因为它在 initCharsetAndCollation 函数前面运行，所以这里重新 load 一下
+				if(charConfig != null && charConfig.getProps() != null)
+					CharsetUtil.load(charConfig.getProps());
+				logger.debug(" init charset and collation success...");
+				return;
+    		}
+    	}
+    	
+    	// 遍历 配置文件 mycat.xml 中的 dataHost 元素，直到可以成功连上mysqld，并且获取 charset 和 collation 信息
     	for(String key : dataHosts.keySet()){
     		PhysicalDBPool pool = dataHosts.get(key);
     		if(pool != null && pool.getSource() != null){
@@ -132,8 +146,17 @@ public class CharsetUtil {
     		}
     	}
     	logger.error(" init charset and collation from mysqld failed, please check datahost in mycat.xml."+
-    			System.getProperty("line.separator") + 
+    				SystemUtils.LINE_SEPARATOR + 
     			" if your backend database is not mysqld, please ignore this message.");
+    }
+    
+    public static DBHostConfig getConfigByDataHostName(Map<String, PhysicalDBPool> dataHosts, String hostName){
+    	PhysicalDBPool pool = dataHosts.get(hostName);
+		if(pool != null && pool.getSource() != null){
+			PhysicalDatasource ds = pool.getSource();
+			return ds.getConfig();
+		}
+		return null;
     }
     
     public static final String getCharset(int index) {

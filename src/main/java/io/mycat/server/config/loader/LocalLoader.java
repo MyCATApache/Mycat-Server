@@ -104,26 +104,15 @@ public class LocalLoader implements ConfigLoader {
     }
     
     private static Element loadRoot() {
-        InputStream dtd = null;
-        InputStream xml = null;
-        
         if(document == null){
-        	try {
-                dtd = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
-                xml = ConfigFactory.class.getResourceAsStream("/mycat.xml");
+        	try(InputStream dtd = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
+        		InputStream xml = ConfigFactory.class.getResourceAsStream("/mycat.xml");){
                 document = ConfigUtil.getDocument(dtd, xml);
                 return document.getDocumentElement();
             } catch (Exception e) {
             	logger.error(" loadRoot error: " + e.getMessage());
                 throw new ConfigException(e);
-            } finally {
-                if (dtd != null) {
-                    try { dtd.close(); } catch (IOException e) { }
-                }
-                if (xml != null) {
-                    try { xml.close(); } catch (IOException e) { }
-                }
-            }
+            } 
         }
         
         return document.getDocumentElement();
