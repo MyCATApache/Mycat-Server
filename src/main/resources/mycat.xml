@@ -6,86 +6,44 @@
 			<property name="sequnceHandlerType">2</property>
 			<property name="serverPort">8066</property>
 			<property name="managerPort">9066</property>
-			<property name="charset">utf8</property>
+			<property name="charset">utf8</property>		
 		</system>
-		<user name="root">
-			<property name="password">digdeep</property>
-			<property name="schemas">testdb</property>
+		<user name="mycat">
+			<property name="password">mycat</property>
+			<property name="schemas">mycat</property>
 		</user>
     </server-config>
-    
     <schema-config>
-		<schema name="testdb" checkSQLschema="false" sqlMaxLimit="100">
-			<!-- auto sharding by id (long) -->
-			<table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
-		</schema>
-
-		<dataNode name="dn1" dataHost="localhost1" database="db1" />
-		<dataNode name="dn2" dataHost="localhost1" database="db2" />
-		<dataNode name="dn3" dataHost="localhost1" database="db3" />
-
-
-		<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
-			writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
-			<heartbeat>select user()</heartbeat>
-			<!-- can have multi write hosts -->
-			<writeHost host="hostM1" url="localhost:3306" user="root" password="digdeep">
-				<!-- can have multi read hosts -->
-			</writeHost>
-		</dataHost>
-		
-		<dataNode name="dn4" dataHost="jdbchost" database="mycat_node1" />
-        <dataNode name="dn5" dataHost="jdbchost" database="mycat_node1" />
-        
-	    <dataHost name="jdbchost" maxCon="2000" minCon="10" balance="1"
-	       writeType="0" dbType="mysql" dbDriver="native" switchType="1">
+        <schema name="mycat" checkSQLschema="true" sqlMaxLimit="100" dataNode="dn1" />        	
+		<dataNode name="dn1" dataHost="pghost" database="mycat" />      
+	    <dataHost name="pghost" maxCon="2000" minCon="20" balance="1" 
+	       writeType="0" dbType="PostgreSQL" dbDriver="native" switchType="1">
 			<heartbeat>select 1</heartbeat>
-			<writeHost host="master" url="115.194.176.225:3306" user="root" password="digdeep"></writeHost>
+			<writeHost host="host_a" url="localhost:5432" user="postgres"
+				password="coollf"/>
 		</dataHost>
     </schema-config>
-    
-    <rule-config>
-        <tableRule name="auto-sharding-long" column="id" functionName="io.mycat.route.function.AutoPartitionByLong">
-            <property name="defaultNode">0</property>
-            <config>
-                <!-- # range start-end ,data node index # K=1000,M=10000. -->
-                <property name="0-2000000">0</property>
-                <property name="2000001-4000000">1</property>
-                <property name="4000001-8000000">2</property>
-            </config>
+    <rule-config>       
+        <!-- /** * “2” -> (0,2) * “1:2” -> (1,2) * “1:” -> (1,0) * “-1:” -> (-1,0) * “:-1” -> (0,-1) * “:” -> (0,0) */  -4,0代表倒数后4个 -->
+        <tableRule name="sharding-by-String" column="create_time" functionName="io.mycat.route.function.PartitionByString">
+           <property name="partitionLength">512</property><!-- zero-based -->
+           <property name="partitionCount">2</property>
+           <property name="hashSlice">0:2</property>
+        </tableRule>
+        <tableRule name="sharding-by-PartitionDirectBySubString" column="create_time" functionName="io.mycat.route.function.PartitionDirectBySubString">
+           <property name="startIndex">0</property><!-- zero-based -->
+           <property name="size">2</property>
+           <property name="partitionCount">8</property>
+           <property name="defaultPartition">0</property>
         </tableRule>
     </rule-config>
-    
     <sequence-config>
-          <!-- GLOBAL_SEQ.HISIDS= GLOBAL_SEQ.MINID=1001 GLOBAL_SEQ.MAXID=1000000000 GLOBAL_SEQ.CURID=1000 -->
           <sequence type="0" class="io.mycat.server.sequence.IncrSequencePropHandler">
-             <!-- <property name="filePath">dn1</property> -->
 	      </sequence>
     </sequence-config>
-    
-    <!-- 
-    <cluster-config>
-       <cluster name="cluster">
-          <node name="mycat1">
-              <property name="host">127.0.0.1</property>
-		      <property name="weight">1</property>
-		  </node>
-		</cluster>
-		 隔离区定义，可以限定某个主机上只允许某个用户登录。
-	    <quarantine>
-	       <host name="1.2.3.4">
-	           <property name="user">test</property>
-		   </host>
-		</quarantine>
+    <cluster-config>    
     </cluster-config>
-     -->
-     
-    <!-- <dnindex-config>
-        <property name="jdbchost">0</property>
-    </dnindex-config> -->
-    
     <charset-config>
          <property name="55">utf8</property>
     </charset-config>
-
 </mycat>
