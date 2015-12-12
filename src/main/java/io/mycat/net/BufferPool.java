@@ -27,14 +27,14 @@ public final class BufferPool {
 	private final ConcurrentLinkedQueue<ByteBuffer> conReadBuferQueue = new ConcurrentLinkedQueue<ByteBuffer>();
 	private long sharedOptsCount;
 	private int newCreated;
-	private final int threadLocalCount;
-	private final int capactiy;
+	private final long threadLocalCount;
+	private final long capactiy;
 
-	public BufferPool(int bufferSize, int chunkSize, int conReadBuferChunk,
+	public BufferPool(long bufferSize, int chunkSize, int conReadBuferChunk,
 			int threadLocalPercent) {
 		this.chunkSize = chunkSize;
 		this.conReadBuferChunk = conReadBuferChunk;
-		int size = bufferSize / chunkSize;
+		long size = bufferSize / chunkSize;
 		size = (bufferSize % chunkSize == 0) ? size : size + 1;
 		this.capactiy = size;
 		threadLocalCount = threadLocalPercent * capactiy / 100;
@@ -63,11 +63,11 @@ public final class BufferPool {
 		return sharedOptsCount;
 	}
 
-	public int size() {
+	public long size() {
 		return this.items.size();
 	}
 
-	public int capacity() {
+	public long capacity() {
 		return capactiy + newCreated;
 	}
 
@@ -178,7 +178,7 @@ public final class BufferPool {
 
 	public static void main(String[] args) {
 		BufferPool pool = new BufferPool(1024 * 5, 1024, 1024 * 3, 2);
-		int i = pool.capacity();
+		long i = pool.capacity();
 		ArrayList<ByteBuffer> all = new ArrayList<ByteBuffer>();
 		for (int j = 0; j <= i; j++) {
 			all.add(pool.allocate());

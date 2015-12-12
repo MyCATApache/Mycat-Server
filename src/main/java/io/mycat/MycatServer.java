@@ -178,7 +178,7 @@ public class MycatServer {
 		LOGGER.info("sysconfig params:" + system.toString());
 
 		int threadPoolSize = system.getProcessorExecutor();
-		int processBuferPool = system.getProcessorBufferPool();
+		long processBuferPool = system.getProcessorBufferPool();
 		int processBufferChunk = system.getProcessorBufferChunk();
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
 
