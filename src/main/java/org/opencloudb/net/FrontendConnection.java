@@ -426,12 +426,11 @@ public abstract class FrontendConnection extends AbstractConnection {
 			loadDataInfileEnd(data[3]);
 			return;
 		}
-		
-		if (data.length > 4 && data[4] == MySQLPacket.COM_QUIT) {
+		//修改quit的判断,当load data infile 分隔符为\001 时可能会出现误判断的bug.
+		if (data.length>4 && data[0] == 1 && data[1] == 0 && data[2]== 0 && data[3] == 0 &&data[4] == MySQLPacket.COM_QUIT) {
 			this.getProcessor().getCommands().doQuit();
 			this.close("quit cmd");
 			return;
-
 		}
 		handler.handle(data);
 	}

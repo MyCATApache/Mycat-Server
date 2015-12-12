@@ -51,7 +51,18 @@ import java.util.List;
 
     @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "user") public static class User
         implements Propertied {
+
+        @XmlAttribute(required = true) protected String name;
+
         protected List<Property> property;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
 
         public List<Property> getProperty() {
             if (this.property == null) {

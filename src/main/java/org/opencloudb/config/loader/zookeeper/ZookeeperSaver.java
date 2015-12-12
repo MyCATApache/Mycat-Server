@@ -7,9 +7,11 @@ import org.json.JSONObject;
 import org.opencloudb.config.loader.zookeeper.entitiy.Propertied;
 import org.opencloudb.config.loader.zookeeper.entitiy.Property;
 import org.opencloudb.config.loader.zookeeper.entitiy.Server;
+import org.opencloudb.config.model.SystemConfig;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
+import java.io.File;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,10 +33,10 @@ public class ZookeeperSaver {
     }
 
     public void saveConfig(JSONObject jsonObject) throws Exception {
-        saveServer(jsonObject);
+        saveServer(jsonObject, "server");
     }
 
-    Server saveServer(JSONObject jsonObject) throws Exception {
+    Server saveServer(JSONObject jsonObject, String fileName) throws Exception {
         JSONObject myNode = jsonObject.getJSONObject(ZookeeperLoader.NODE_KEY);
         JSONObject users = jsonObject.getJSONObject(ZookeeperLoader.CLUSTER_KEY);
         Preconditions.checkNotNull(myNode);
@@ -55,25 +57,38 @@ public class ZookeeperSaver {
         if (user != null && user.length() > 0) {
             for (String key : user.keySet()) {
                 Server.User serverUser = new Server.User();
-                putProperty(user.getJSONObject(key), serverUser);
+                JSONObject userObject = user.getJSONObject(key);
+
+                serverUser.setName(userObject.getString("name"));
+
+                //ignore name and set other to properties;
+                userObject.remove("name");
+
+                putProperty(userObject, serverUser);
                 userList.add(serverUser);
             }
         }
         server.setUser(userList);
 
-        //save to file
-        marshaller(server, "server");
+        //save to file, /MYCAT_HOME/conf/${fileName}.xml
+        marshaller(server, getConfigPath() + fileName + ".xml", "server");
         return server;
     }
 
-    private void marshaller(Object object, String fileName) throws Exception {
+    private String getConfigPath() {
+        return SystemConfig.getHomePath() + File.separator + "conf" + File.separator;
+    }
+
+    private void marshaller(Object object, String filePathAndName, String dtdName)
+        throws Exception {
         Marshaller marshaller = jaxbContext.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+        marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
 
         marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
-            String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", fileName));
+            String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", dtdName));
 
-        Path path = Paths.get(getClass().getResource("/" + fileName + ".xml").toURI());
+        Path path = Paths.get(filePathAndName);
 
         try (OutputStream out = Files
             .newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,

@@ -3,6 +3,7 @@ package org.opencloudb.stat;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 
 /**
@@ -12,6 +13,8 @@ import org.opencloudb.MycatServer;
  *
  */
 public class QueryResultDispatcher {
+	
+	private static final Logger LOGGER = Logger.getLogger(QueryResultDispatcher.class);
 	
 	private static List<QueryResultListener> listeners = new CopyOnWriteArrayList<QueryResultListener>();
 
@@ -48,7 +51,11 @@ public class QueryResultDispatcher {
 				query.setEndTime( now );
 				
 				for(QueryResultListener listener: listeners) {
-					listener.onQuery( query );
+					try {
+						listener.onQuery( query );
+					} catch(Exception e) {
+						LOGGER.error(e);
+					}
 				}
 			}
 		});
