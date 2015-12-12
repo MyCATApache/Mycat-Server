@@ -1,16 +1,19 @@
 package io.mycat.net;
 
+import io.mycat.backend.postgresql.PostgreSQLBackendConnection;
+import io.mycat.backend.postgresql.utils.PacketUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * NIO 连接器，用于连接对方Sever
@@ -64,6 +67,10 @@ public final class NIOConnector extends Thread {
 						Object att = key.attachment();
 						if (att != null && key.isValid() && key.isConnectable()) {
 							finishConnect(key, att);
+							if (att instanceof  PostgreSQLBackendConnection){//ONLY PG SENG
+								SocketChannel sc = (SocketChannel) key.channel();
+								sendStartupPacket(sc,att);
+							}
 						} else {
 							key.cancel();
 						}
@@ -76,6 +83,15 @@ public final class NIOConnector extends Thread {
 			}
 		}
 	}
+
+	//TODO COOLLF  暂时为权宜之计,后续要进行代码结构封调整.
+	private static void sendStartupPacket(SocketChannel socketChannel, Object _att) throws IOException {
+		PostgreSQLBackendConnection att = (PostgreSQLBackendConnection) _att;
+		ByteBuffer buffer = PacketUtils.makeStartUpPacket(att.getUser(), att.getSchema());
+		buffer.flip();
+		socketChannel.write(buffer);
+	}
+
 
 	private void connect(Selector selector) {
 		Connection c = null;
@@ -97,6 +113,7 @@ public final class NIOConnector extends Thread {
 			if (finishConnect(c, (SocketChannel) c.channel)) {
 				clearSelectionKey(key);
 				c.setId(ConnectIdGenerator.getINSTNCE().getId());
+				System.out.println("----------------ConnectIdGenerator.getINSTNCE().getId()-----------------"+ConnectIdGenerator.getINSTNCE().getId());
 				NIOReactor reactor = reactorPool.getNextReactor();
 				reactor.postRegister(c);
 
@@ -111,7 +128,9 @@ public final class NIOConnector extends Thread {
 
 	private boolean finishConnect(Connection c, SocketChannel channel)
 			throws IOException {
+		System.out.println("----------------finishConnect-----------------");
 		if (channel.isConnectionPending()) {
+			System.out.println("----------------finishConnect-isConnectionPending-----------------");
 			channel.finishConnect();
 			// c.setLocalPort(channel.socket().getLocalPort());
 			return true;
