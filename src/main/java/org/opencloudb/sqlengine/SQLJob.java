@@ -126,8 +126,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		// not called for query sql
-
+		conn.syncAndExcute();
 	}
 
 	@Override

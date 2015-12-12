@@ -2,6 +2,7 @@ package org.opencloudb.config.loader.zookeeper;
 
 import org.json.JSONObject;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opencloudb.config.ZookeeperTestServer;
 import org.opencloudb.config.loader.zookeeper.entitiy.Property;
@@ -18,7 +19,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
-//@Ignore
+/**
+ * Created by lion on 12/8/15.
+ */
+@Ignore
 public class ZookeeperSaverTest extends ZookeeperTestServer {
     private JSONObject config;
 
