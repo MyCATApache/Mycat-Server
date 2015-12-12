@@ -1,5 +1,6 @@
 package io.mycat.server.response;
 
+import com.google.common.base.Strings;
 import io.mycat.MycatServer;
 import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
@@ -19,6 +20,7 @@ import io.mycat.util.StringUtil;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,11 +54,12 @@ public class ShowTables {
 		SchemaConfig schema = MycatServer.getInstance().getConfig()
 				.getSchemas().get(c.getSchema());
 		if (schema != null) {
-			// 不分库的schema，show tables从后端 mysql中查
-			if (schema.isNoSharding()) {
-				c.execute(stmt, ServerParse.SHOW);
-				return;
-			}
+            //不分库的schema，show tables从后端 mysql中查
+            String node = schema.getDataNode();
+            if(!Strings.isNullOrEmpty(node)) {
+                c.execute(stmt, ServerParse.SHOW);
+                return;
+            }
 		} else {
 			c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR, "No database selected");
 		}
@@ -66,6 +69,15 @@ public class ShowTables {
 		BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
 				.allocateArray();
 
+
+
+        int i = 0;
+        byte packetId = 0;
+        header.packetId = ++packetId;
+        fields[i] = PacketUtil.getField("Tables in " + parm.get(SCHEMA_KEY),
+                Fields.FIELD_TYPE_VAR_STRING);
+        fields[i++].packetId = ++packetId;
+        eof.packetId = ++packetId;
 		// write header
 		header.write(bufferArray);
 
@@ -78,51 +90,15 @@ public class ShowTables {
 		eof.write(bufferArray);
 
 		// write rows
-		byte packetId = eof.packetId;
-		MycatConfig conf = MycatServer.getInstance().getConfig();
+		 packetId = eof.packetId;
 
-		Map<String, UserConfig> users = conf.getUsers();
-		UserConfig user = users == null ? null : users.get(c.getUser());
-		if (user != null) {
-			TreeSet<String> tableSet = new TreeSet<String>();
-
-			Map<String, SchemaConfig> schemas = conf.getSchemas();
-			for (String name : schemas.keySet()) {
-				if (null != parm.get(SCHEMA_KEY)
-						&& parm.get(SCHEMA_KEY).toUpperCase()
-								.equals(name.toUpperCase())) {
-
-					if (null == parm.get("LIKE_KEY")) {
-						tableSet.addAll(schemas.get(name).getTables().keySet());
-					} else {
-						String p = "^"
-								+ parm.get("LIKE_KEY").replaceAll("%", ".*");
-						Pattern pattern = Pattern.compile(p,
-								Pattern.CASE_INSENSITIVE);
-						Matcher ma;
-
-						for (String tname : schemas.get(name).getTables()
-								.keySet()) {
-							ma = pattern.matcher(tname);
-							if (ma.matches()) {
-								tableSet.add(tname);
-							}
-						}
-
-					}
-
-				}
-			}
-			;
-
-			for (String name : tableSet) {
-				RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-				row.add(StringUtil.encode(name.toLowerCase(), c.getCharset()));
-				row.packetId = ++packetId;
-				row.write(bufferArray);
-			}
-		}
-
+        TreeSet<String> tableSet = getTables(c, parm);
+        for (String name : tableSet) {
+            RowDataPacket row = new RowDataPacket(FIELD_COUNT);
+            row.add(StringUtil.encode(name.toLowerCase(), c.getCharset()));
+            row.packetId = ++packetId;
+            row.write(bufferArray);
+        }
 		// write last eof
 		EOFPacket lastEof = new EOFPacket();
 		lastEof.packetId = ++packetId;
@@ -132,8 +108,59 @@ public class ShowTables {
 		c.write(bufferArray);
 
 	}
+    public static Set<String> getTableSet(MySQLFrontConnection c, String stmt)
+    {
+        Map<String,String> parm = buildFields(c,stmt);
+        return getTables(c, parm);
 
-	/**
+    }
+
+    private static TreeSet<String> getTables(MySQLFrontConnection c, Map<String, String> parm)
+    {
+        TreeSet<String> tableSet = new TreeSet<String>();
+
+        MycatConfig conf = MycatServer.getInstance().getConfig();
+
+        Map<String, UserConfig> users = conf.getUsers();
+        UserConfig user = users == null ? null : users.get(c.getUser());
+        if (user != null) {
+
+
+            Map<String, SchemaConfig> schemas = conf.getSchemas();
+            for (String name : schemas.keySet()) {
+                if (null != parm.get(SCHEMA_KEY)
+                        && parm.get(SCHEMA_KEY).toUpperCase()
+                                .equals(name.toUpperCase())) {
+
+                    if (null == parm.get("LIKE_KEY")) {
+                        tableSet.addAll(schemas.get(name).getTables().keySet());
+                    } else {
+                        String p = "^"
+                                + parm.get("LIKE_KEY").replaceAll("%", ".*");
+                        Pattern pattern = Pattern.compile(p,
+                                Pattern.CASE_INSENSITIVE);
+                        Matcher ma;
+
+                        for (String tname : schemas.get(name).getTables()
+                                .keySet()) {
+                            ma = pattern.matcher(tname);
+                            if (ma.matches()) {
+                                tableSet.add(tname);
+                            }
+                        }
+
+                    }
+
+                }
+            }
+
+
+
+        }
+        return tableSet;
+    }
+
+    /**
 	 * build fields
 	 * 
 	 * @param c
@@ -163,13 +190,7 @@ public class ShowTables {
 			map.put(SCHEMA_KEY, c.getSchema());
 		}
 
-		int i = 0;
-		byte packetId = 0;
-		header.packetId = ++packetId;
-		fields[i] = PacketUtil.getField("Tables in " + map.get(SCHEMA_KEY),
-				Fields.FIELD_TYPE_VAR_STRING);
-		fields[i++].packetId = ++packetId;
-		eof.packetId = ++packetId;
+
 
 		return map;
 

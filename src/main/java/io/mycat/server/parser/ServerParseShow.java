@@ -161,7 +161,7 @@ public final class ServerParseShow {
 
 	// SHOW TABLE
 
-	static int tableCheck(String stmt, int offset) {
+	public static int tableCheck(String stmt, int offset) {
 
 		// strict match
 		String pat1 = "^\\s*(SHOW)\\s+(TABLES)\\s*";
