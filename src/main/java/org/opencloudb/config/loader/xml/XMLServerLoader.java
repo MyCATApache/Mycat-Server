@@ -50,6 +50,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.alibaba.druid.wall.WallConfig;
+
 /**
  * @author mycat
  */
@@ -114,7 +116,7 @@ public class XMLServerLoader {
         }
     }
 
-    private void loadQuarantine(Element root) {
+    private void loadQuarantine(Element root) throws IllegalAccessException, InvocationTargetException {
         NodeList list = root.getElementsByTagName("host");
         Map<String, List<UserConfig>> whitehost = new HashMap<String, List<UserConfig>>();
 
@@ -143,18 +145,23 @@ public class XMLServerLoader {
             }
         }
         quarantine.setWhitehost(whitehost);
-        
-        /*NodeList sqlNodes = root.getElementsByTagName("sqllist");
-        List<String> blacklist = new LinkedList<String>();
-        for (int i = 0, n = sqlNodes.getLength(); i < n; i++) {
-            Node node = sqlNodes.item(i);
+        WallConfig wallConfig = new WallConfig();
+        NodeList blacklist = root.getElementsByTagName("blacklist");
+        for (int i = 0, n = blacklist.getLength(); i < n; i++) {
+            Node node = blacklist.item(i);
             if (node instanceof Element) {
-                Element e = (Element) node;
-                String sql = e.getAttribute("sql").trim();
-                blacklist.add(sql);
+            	Element e = (Element) node;
+             	String check = e.getAttribute("check");
+             	if (null != check) {
+             		quarantine.setCheck(Boolean.valueOf(check));
+				}
+
+                Map<String, Object> props = ConfigUtil.loadElements((Element) node);
+                ParameterMapping.mapping(wallConfig, props);
             }
         }
-        quarantine.setBlacklist(blacklist);*/
+        quarantine.setWallConfig(wallConfig);
+        quarantine.init();
         
     }
 

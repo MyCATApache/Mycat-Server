@@ -35,6 +35,7 @@ import org.opencloudb.response.ShowConnectionSQL;
 import org.opencloudb.response.ShowDataNode;
 import org.opencloudb.response.ShowDataSource;
 import org.opencloudb.response.ShowDatabase;
+import org.opencloudb.response.ShowDatasourceCluster;
 import org.opencloudb.response.ShowDatasourceSyn;
 import org.opencloudb.response.ShowDatasourceSynDetail;
 import org.opencloudb.response.ShowHeartbeat;
@@ -46,8 +47,10 @@ import org.opencloudb.response.ShowRouter;
 import org.opencloudb.response.ShowSQL;
 import org.opencloudb.response.ShowSQLDetail;
 import org.opencloudb.response.ShowSQLExecute;
+import org.opencloudb.response.ShowSQLHigh;
 import org.opencloudb.response.ShowSQLSlow;
-import org.opencloudb.response.ShowSQLSum;
+import org.opencloudb.response.ShowSQLSumTable;
+import org.opencloudb.response.ShowSQLSumUser;
 import org.opencloudb.response.ShowServer;
 import org.opencloudb.response.ShowSession;
 import org.opencloudb.response.ShowSysLog;
@@ -145,8 +148,14 @@ public final class ShowHandler {
 		case ManagerParseShow.SQL_SLOW:
 			ShowSQLSlow.execute(c);
 			break;
-		case ManagerParseShow.SQL_SUM:
-			ShowSQLSum.execute(c);
+		case ManagerParseShow.SQL_HIGH:
+			ShowSQLHigh.execute(c);
+			break;
+		case ManagerParseShow.SQL_SUM_USER:
+			ShowSQLSumUser.execute(c);
+			break;
+		case ManagerParseShow.SQL_SUM_TABLE:
+			ShowSQLSumTable.execute(c);
 			break;
 		case ManagerParseShow.SLOW_DATANODE: {
 			String name = stmt.substring(rs >>> 8).trim();
@@ -197,6 +206,9 @@ public final class ShowHandler {
 			break;	
 		case ManagerParseShow.DATASOURCE_SYNC_DETAIL://by songwie
 			ShowDatasourceSynDetail.response(c,stmt);
+			break;	
+		case ManagerParseShow.DATASOURCE_CLUSTER://by songwie
+			ShowDatasourceCluster.response(c,stmt);
 			break;	
 		default:
 			c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");

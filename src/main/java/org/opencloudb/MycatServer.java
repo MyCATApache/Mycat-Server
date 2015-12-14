@@ -43,6 +43,7 @@ import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.buffer.BufferPool;
 import org.opencloudb.cache.CacheService;
 import org.opencloudb.classloader.DynaClassLoader;
+import org.opencloudb.config.ZkConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.interceptor.SQLInterceptor;
 import org.opencloudb.manager.ManagerConnectionFactory;
@@ -182,8 +183,9 @@ public class MycatServer {
 
 	public void beforeStart() {
 		String home = SystemConfig.getHomePath();
-		Log4jInitializer.configureAndWatch(home + "/conf/log4j.xml",
-				LOG_WATCH_DELAY);
+		Log4jInitializer.configureAndWatch(home + "/conf/log4j.xml", LOG_WATCH_DELAY);
+		
+		//ZkConfig.instance().initZk();
 	}
 
 	public void startup() throws IOException {
@@ -216,7 +218,7 @@ public class MycatServer {
 		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
 		processors = new NIOProcessor[processorCount];
-		int processBuferPool = system.getProcessorBufferPool();
+		long processBuferPool = system.getProcessorBufferPool();
 		int processBufferChunk = system.getProcessorBufferChunk();
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
 		bufferPool = new BufferPool(processBuferPool, processBufferChunk,

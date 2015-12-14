@@ -39,7 +39,8 @@ import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
-import org.opencloudb.stat.UserStatFilter;
+import org.opencloudb.stat.QueryResult;
+import org.opencloudb.stat.QueryResultDispatcher;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -298,11 +299,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			int start = rrs.getLimitStart();
 			int end = start + rrs.getLimitSize();
 
-			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
-			if (rrs.getOrderByCols() == null) {
-				end = results.size();
+                        if (start < 0)
 				start = 0;
-			}
+
+			if (rrs.getLimitSize() < 0)
+				end = results.size();
+				
+//			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
+//			if (rrs.getOrderByCols() == null) {
+//				end = results.size();
+//				start = 0;
+//			}
 			if (end > results.size())
 				end = results.size();
 
@@ -331,10 +338,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			byte[] eof, BackendConnection conn) {
 		ServerConnection source = null;
 		execCount++;
-		if (execCount == rrs.getNodes().length) {
-			//记录状态
-			UserStatFilter.getInstance().updateStat(session.getSource().getUser(), 
+		if (execCount == rrs.getNodes().length) {			
+			//TODO: add by zhuam
+			//查询结果派发
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 					rrs.getSqlType(), rrs.getStatement(), startTime);
+			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 		if (fieldsReturned) {
 			return;

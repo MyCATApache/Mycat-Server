@@ -236,8 +236,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			synchronized (pool) {
 				// try to see if need switch datasource
 				curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
-				if (curDatasourceHB != DBHeartbeat.INIT_STATUS
-						&& curDatasourceHB != DBHeartbeat.OK_STATUS) {
+				if (curDatasourceHB != DBHeartbeat.INIT_STATUS && curDatasourceHB != DBHeartbeat.OK_STATUS) {
 					int curIndex = pool.getActivedIndex();
 					int nextId = pool.next(curIndex);
 					PhysicalDatasource[] allWriteNodes = pool.getSources();
@@ -250,22 +249,18 @@ public class MySQLHeartbeat extends DBHeartbeat {
 						int theSourceHBStatus = theSourceHB.getStatus();
 						if (theSourceHBStatus == DBHeartbeat.OK_STATUS) {
 							if (switchType == DataHostConfig.SYN_STATUS_SWITCH_DS) {
-								if (Integer.valueOf(0).equals(
-										theSourceHB.getSlaveBehindMaster())) {
-									LOGGER.info("try to switch datasource ,slave is synchronized to master "
-											+ theSource.getConfig());
+								if (Integer.valueOf(0).equals( theSourceHB.getSlaveBehindMaster())) {
+									LOGGER.info("try to switch datasource ,slave is synchronized to master " + theSource.getConfig());
 									pool.switchSource(nextId, true, reason);
 									break;
 								} else {
 									LOGGER.warn("ignored  datasource ,slave is not  synchronized to master , slave behind master :"
-											+ theSourceHB
-													.getSlaveBehindMaster()
+											+ theSourceHB.getSlaveBehindMaster()
 											+ " " + theSource.getConfig());
 								}
 							} else {
 								// normal switch
-								LOGGER.info("try to switch datasource ,not checked slave synchronize status "
-										+ theSource.getConfig());
+								LOGGER.info("try to switch datasource ,not checked slave synchronize status " + theSource.getConfig());
 								pool.switchSource(nextId, true, reason);
                                 break;
 							}
