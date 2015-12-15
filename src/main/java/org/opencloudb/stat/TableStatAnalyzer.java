@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.util.StringUtil;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
@@ -22,6 +23,8 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.alibaba.druid.sql.parser.SQLParserUtils;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
+import com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter;
+import com.alibaba.druid.util.JdbcConstants;
 
 /**
  * 按SQL表名进行计算
@@ -195,12 +198,25 @@ public class TableStatAnalyzer implements QueryResultListener {
 				tables.add( fixName( table ) );
 				
 			} else if (stmt instanceof SQLSelectStatement ) {
-				stmt.accept(new MySqlASTVisitorAdapter() {	
-					public boolean visit(SQLExprTableSource x){
-						tables.add( fixName( x.toString() ) );
-						return super.visit(x);
-					}
-				});
+				
+				//TODO: modify by owenludong
+				String dbType = ((SQLSelectStatement) stmt).getDbType();
+				if( !StringUtil.isEmpty(dbType) && JdbcConstants.MYSQL.equals(dbType) ){
+					stmt.accept(new MySqlASTVisitorAdapter() {
+						public boolean visit(SQLExprTableSource x){
+							tables.add( fixName( x.toString() ) );
+							return super.visit(x);
+						}
+					});
+					
+				} else {
+					stmt.accept(new SQLASTVisitorAdapter() {
+						public boolean visit(SQLExprTableSource x){
+							tables.add( fixName( x.toString() ) );
+							return super.visit(x);
+						}
+					});
+				}
 			}	
 		  } catch (Exception e) {
 			  LOGGER.error("TableStatAnalyzer err:"+ e.toString());
