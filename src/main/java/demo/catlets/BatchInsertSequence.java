@@ -12,6 +12,7 @@ import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.route.factory.RouteStrategyFactory;
 import org.opencloudb.sequence.handler.IncrSequenceMySQLHandler;
 import org.opencloudb.sequence.handler.IncrSequencePropHandler;
+import org.opencloudb.sequence.handler.IncrSequenceTimeHandler;
 import org.opencloudb.sequence.handler.SequenceHandler;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
@@ -98,6 +99,9 @@ public class BatchInsertSequence implements Catlet {
 							break;
 						case SystemConfig.SEQUENCEHANDLER_LOCALFILE:
 							sequenceHandler = IncrSequencePropHandler.getInstance();
+							break;
+						case SystemConfig.SEQUENCEHANDLER_LOCAL_TIME:
+							sequenceHandler = IncrSequenceTimeHandler.getInstance();
 							break;
 						default:
 							throw new java.lang.IllegalArgumentException("Invalid sequnce handler type "+seqHandlerType);
