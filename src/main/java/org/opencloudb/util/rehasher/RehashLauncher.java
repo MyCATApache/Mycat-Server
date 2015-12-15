@@ -56,7 +56,7 @@ public class RehashLauncher {
         				Integer hash=alg.calculate(sf.get(args.getShardingField()).toString());
         				String host=rehashHosts[hash];
         				total++;
-        				if(host.equals(hostWithDatabase)){
+        				if(!host.equals(hostWithDatabase)){
         					rehashed++;
         				}
         				ps.println(sf+"=>"+host);
