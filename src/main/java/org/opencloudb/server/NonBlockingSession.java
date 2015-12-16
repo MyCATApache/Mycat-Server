@@ -212,10 +212,12 @@ public class NonBlockingSession implements Session {
 		RouteResultsetNode node = (RouteResultsetNode) conn.getAttachment();
 
 		if (node != null) {
+			if(node.isDisctTable()){
+				return;
+			}
 			if (this.source.isAutocommit() || conn.isFromSlaveDB()
 					|| !conn.isModifiedSQLExecuted()) {
-				releaseConnection((RouteResultsetNode) conn.getAttachment(),
-						LOGGER.isDebugEnabled(), needRollback);
+				releaseConnection((RouteResultsetNode) conn.getAttachment(), LOGGER.isDebugEnabled(), needRollback);
 			}
 		}
 	}

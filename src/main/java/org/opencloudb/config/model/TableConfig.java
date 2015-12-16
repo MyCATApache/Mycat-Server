@@ -43,6 +43,7 @@ public class TableConfig {
 	private final Set<String> dbTypes;
 	private final int tableType;
 	private final ArrayList<String> dataNodes;
+	private final ArrayList<String> distTables;
 	private final RuleConfig rule;
 	private final String partitionColumn;
 	private final boolean ruleRequired;
@@ -59,7 +60,7 @@ public class TableConfig {
 	public TableConfig(String name, String primaryKey, boolean autoIncrement,boolean needAddLimit, int tableType,
 			String dataNode,Set<String> dbType, RuleConfig rule, boolean ruleRequired,
 			TableConfig parentTC, boolean isChildTable, String joinKey,
-			String parentKey) {
+			String parentKey,String subTables) {
 		if (name == null) {
 			throw new IllegalArgumentException("table name is null");
 		} else if (dataNode == null) {
@@ -75,17 +76,32 @@ public class TableConfig {
 		}
 
 		this.name = name.toUpperCase();
+		
 		String theDataNodes[] = SplitUtil.split(dataNode, ',', '$', '-');
-
-
 		if (theDataNodes == null || theDataNodes.length <= 0) {
-			throw new IllegalArgumentException("invalid table dataNodes: "
-					+ dataNode);
+			throw new IllegalArgumentException("invalid table dataNodes: " + dataNode);
 		}
 		dataNodes = new ArrayList<String>(theDataNodes.length);
 		for (String dn : theDataNodes) {
 			dataNodes.add(dn);
 		}
+		
+		if(subTables!=null && !subTables.equals("")){
+			String sTables[] = null;
+			sTables = SplitUtil.split(subTables, ',', '$', '-');
+			
+			this.distTables = new ArrayList<String>(sTables.length);
+			for (String table : sTables) {
+				distTables.add(table);
+			}
+			
+			if (sTables == null || sTables.length <= 0) {
+				throw new IllegalArgumentException("invalid table subTables: " + sTables);
+			}
+		}else{
+			this.distTables = new ArrayList<String>();
+		}	
+		
 		this.rule = rule;
 		this.partitionColumn = (rule == null) ? null : rule.getColumn();
 		partionKeyIsPrimaryKey=(partitionColumn==null)?primaryKey==null:partitionColumn.equals(primaryKey);
@@ -236,6 +252,17 @@ public class TableConfig {
 
 	public boolean primaryKeyIsPartionKey() {
 		return partionKeyIsPrimaryKey;
+	}
+
+	public ArrayList<String> getDistTables() {
+		return this.distTables;
+	}
+
+	public boolean isDistTable(){
+		if(this.distTables!=null && !this.distTables.isEmpty() ){
+			return true;
+		}
+		return false;
 	}
 
 }
