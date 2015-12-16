@@ -420,6 +420,10 @@
 											<name>configuration.directory.in.classpath.first</name>
 											<value>conf</value>
 										</property>
+                                        <property>
+                                            <name>wrapper.ping.timeout</name>
+                                            <value>120</value>
+                                        </property>
 										<property>
 											<name>set.default.REPO_DIR</name>
 											<value>lib</value>
