@@ -28,6 +28,7 @@ import io.mycat.backend.PhysicalDBNode;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.backend.jdbc.JDBCDatasource;
+import io.mycat.backend.postgresql.PostgreSQLDataSource;
 import io.mycat.server.config.ConfigException;
 import io.mycat.server.config.cluster.MycatClusterConfig;
 import io.mycat.server.config.node.CharsetConfig;
@@ -68,17 +69,16 @@ public class ConfigInitializer {
 		this.system = configLoader.getSystemConfig();
 		this.initCharsetConfig(configLoader);
 		this.users = configLoader.getUserConfigs();
-        if(loadDataHost)
-        {
-            this.dataHosts = initDataHosts(configLoader);
-            this.dataNodes = initDataNodes(configLoader);
-        }
-        this.tableRules = configLoader.getTableRuleConfigs();
+		if (loadDataHost) {
+			this.dataHosts = initDataHosts(configLoader);
+			this.dataNodes = initDataNodes(configLoader);
+		}
+		this.tableRules = configLoader.getTableRuleConfigs();
 		this.schemas = configLoader.getSchemaConfigs();
 		this.quarantine = configLoader.getQuarantineConfigs();
 		this.cluster = configLoader.getClusterConfigs();
 		this.sequenceConfig = configLoader.getSequenceConfig();
-        this.charsetConfig = new CharsetConfig();
+		this.charsetConfig = new CharsetConfig();
 
 		this.checkConfig();
 	}
@@ -137,25 +137,30 @@ public class ConfigInitializer {
 	public Map<String, PhysicalDBPool> getDataHosts() {
 		return this.dataHosts;
 	}
+
 	public CharsetConfig getCharsetConfig() {
 		return this.charsetConfig;
 	}
+
 	public SequenceConfig getSequenceConfig() {
 		return this.sequenceConfig;
 	}
 
-	/*private MycatCluster initCobarCluster(ConfigLoader configLoader) {
-		return new MycatCluster(configLoader.getClusterConfigs());
-	}*/
+	/*
+	 * private MycatCluster initCobarCluster(ConfigLoader configLoader) { return
+	 * new MycatCluster(configLoader.getClusterConfigs()); }
+	 */
 	public Map<String, RuleConfig> getTableRules() {
 		return tableRules;
 	}
+
 	public void setTableRules(Map<String, RuleConfig> tableRules) {
 		this.tableRules = tableRules;
 	}
 
 	private Map<String, PhysicalDBPool> initDataHosts(ConfigLoader configLoader) {
-		Map<String, DataHostConfig> nodeConfs = configLoader.getDataHostConfigs();
+		Map<String, DataHostConfig> nodeConfs = configLoader
+				.getDataHostConfigs();
 		Map<String, PhysicalDBPool> nodes = new HashMap<String, PhysicalDBPool>(
 				nodeConfs.size());
 		for (DataHostConfig conf : nodeConfs.values()) {
@@ -176,15 +181,21 @@ public class ConfigInitializer {
 				dataSources[i] = ds;
 			}
 
-		} else if(dbDriver.equals("jdbc"))
-			{
+		} else if (dbDriver.equals("jdbc")) {
 			for (int i = 0; i < nodes.length; i++) {
 				nodes[i].setIdleTimeout(system.getIdleTimeout());
 				JDBCDatasource ds = new JDBCDatasource(nodes[i], conf, isRead);
 				dataSources[i] = ds;
 			}
+		} else if ("PostgreSQL".equalsIgnoreCase(dbType)
+				&& "native".equals(dbDriver)) {
+			for (int i = 0; i < nodes.length; i++) {
+				nodes[i].setIdleTimeout(system.getIdleTimeout());
+				PostgreSQLDataSource ds = new PostgreSQLDataSource(nodes[i],
+						conf, isRead);
+				dataSources[i] = ds;
 			}
-		else {
+		} else {
 			throw new ConfigException("not supported yet !" + hostName);
 		}
 		return dataSources;
@@ -205,13 +216,15 @@ public class ConfigInitializer {
 					dbType, dbDriver, entry.getValue(), true);
 			readSourcesMap.put(entry.getKey(), readSources);
 		}
-		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(),conf, writeSources,
-				readSourcesMap, conf.getBalance(), conf.getWriteType());
+		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(), conf,
+				writeSources, readSourcesMap, conf.getBalance(),
+				conf.getWriteType());
 		return pool;
 	}
 
 	private Map<String, PhysicalDBNode> initDataNodes(ConfigLoader configLoader) {
-		Map<String, DataNodeConfig> nodeConfs = configLoader.getDataNodeConfigs();
+		Map<String, DataNodeConfig> nodeConfs = configLoader
+				.getDataNodeConfigs();
 		Map<String, PhysicalDBNode> nodes = new HashMap<String, PhysicalDBNode>(
 				nodeConfs.size());
 		for (DataNodeConfig conf : nodeConfs.values()) {
@@ -230,7 +243,7 @@ public class ConfigInitializer {
 
 	private void initCharsetConfig(ConfigLoader configLoader) {
 		this.charsetConfig = configLoader.getCharsetConfigs();
-        CharsetUtil.load(charsetConfig.getProps());
+		CharsetUtil.load(charsetConfig.getProps());
 	}
 
 	public HostIndexConfig getHostIndexs() {
