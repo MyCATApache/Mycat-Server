@@ -123,9 +123,10 @@ public class ExplainHandler {
 			return null;
 		}
 		try {
-			int sqlType = ServerParse.parse(stmt) & 0xff;
+			//updated by shenhai.yan 2015/12/16 for one issue about insert one record by using statement "explain insert into...".
+			//int sqlType = ServerParse.parse(stmt) & 0xff;
 			return MycatServer.getInstance().getRouterservice()
-					.route(MycatServer.getInstance().getConfig().getSystem(),schema, sqlType, stmt, c.getCharset(), c);
+					.route(MycatServer.getInstance().getConfig().getSystem(),schema, ServerParse.EXPLAIN, stmt, c.getCharset(), c);
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
 			logger.warn(s.append(c).append(stmt).toString()+" error:"+ e);
