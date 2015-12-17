@@ -239,6 +239,11 @@ public class PhysicalDBPool {
         for (int i = 0; i < writeSources.length; i++) {
             int j = loop(i + index);
             if (initSource(j, writeSources[j])) {
+                //不切换-1时，如果主写挂了   不允许切换过去
+                if(dataHostConfig.getSwitchType()==DataHostConfig.NOT_SWITCH_DS&&j>0)
+                {
+                    break;
+                }
                 active = j;
                 activedIndex = active;
                 initSuccess = true;
@@ -550,7 +555,36 @@ public class PhysicalDBPool {
                         }
                     }
                 }
-            }
+                
+            } else {
+				
+				// TODO : add by zhuam	
+			    // 如果写节点不OK, 也要保证临时的读服务正常
+				if ( this.dataHostConfig.isTempReadHostAvailable() ) {
+				
+					if (!readSources.isEmpty()) {
+						// check all slave nodes
+						PhysicalDatasource[] allSlaves = this.readSources.get(i);
+						if (allSlaves != null) {
+							for (PhysicalDatasource slave : allSlaves) {
+								if (isAlive(slave)) {
+									
+									if (filterWithSlaveThreshold) {									
+										if (canSelectAsReadNode(slave)) {
+											okSources.add(slave);
+										} else {
+											continue;
+										}
+										
+									} else {
+										okSources.add(slave);
+									}
+								}
+							}
+						}
+					}
+				}				
+			}
 
         }
         return okSources;

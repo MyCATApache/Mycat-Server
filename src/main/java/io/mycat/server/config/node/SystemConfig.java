@@ -91,7 +91,7 @@ public final class SystemConfig {
 	private int txIsolation;
 	private int parserCommentVersion;
 	private int sqlRecordCount;
-	private int processorBufferPool;
+	private long processorBufferPool;
 	private int processorBufferChunk;
 	private int defaultMaxLimit = DEFAULT_MAX_LIMIT;
 	public static final int SEQUENCEHANDLER_LOCALFILE = 0;
@@ -437,11 +437,11 @@ public final class SystemConfig {
 		this.sqlRecordCount = sqlRecordCount;
 	}
 
-	public int getProcessorBufferPool() {
+	public long getProcessorBufferPool() {
 		return processorBufferPool;
 	}
 
-	public void setProcessorBufferPool(int processorBufferPool) {
+	public void setProcessorBufferPool(long processorBufferPool) {
 		this.processorBufferPool = processorBufferPool;
 	}
 

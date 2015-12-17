@@ -305,6 +305,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			// 处理limit语句
 			int start = rrs.getLimitStart();
 			int end = start + rrs.getLimitSize();
+
 			/*
 			 * modify by coder_czp@126.com#2015/11/2 优化为通过索引获取,避免无效循环
 			 * Collection<RowDataPacket> results = dataMergeSvr.getResults(eof);
@@ -319,10 +320,16 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			 */
 			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
 			List<RowDataPacket> results = dataMergeSvr.getResults(eof);
-			if (rrs.getOrderByCols() == null) {
-				end = results.size();
-				start = 0;
-			}
+            if (start < 0)
+               			start = 0;
+            if(rrs.getLimitSize()<0 || end > results.size())
+            {
+                end=results.size();
+            }
+//			if (rrs.getOrderByCols() == null) {
+//				end = results.size();
+//				start = 0;
+//			}
 			for (int i = start; i < end; i++) {
 				RowDataPacket row = results.get(i);
 				if(prepared) {

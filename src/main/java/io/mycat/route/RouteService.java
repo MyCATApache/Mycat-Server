@@ -38,23 +38,22 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 public class RouteService {
-	private static final Logger LOGGER = LoggerFactory
-			.getLogger(RouteService.class);
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(RouteService.class);
+	
 	private final CachePool sqlRouteCache;
 	private final LayerCachePool tableId2DataNodeCache;
-
-    //sql注解的类型处理handler 集合，现在支持两种类型的处理：sql,schema
-    private static Map<String,HintHandler> hintHandlerMap = new HashMap<String,HintHandler>();
+	
+	private final String OLD_MYCAT_HINT = "/*!mycat:"; 	// 处理自定义分片注解, 注解格式：/*!mycat: type = value */ sql
+	private final String NEW_MYCAT_HINT = "/*#mycat:"; 	// 新的注解格式:/* !mycat: type = value */ sql，oldMycatHint的格式不兼容直连mysql
+	private final String HINT_SPLIT = "=";
 
 	public RouteService(CacheService cachService) {
 		sqlRouteCache = cachService.getCachePool("SQLRouteCache");
-		tableId2DataNodeCache = (LayerCachePool) cachService
-				.getCachePool("TableID2DataNodeCache");
+		tableId2DataNodeCache = (LayerCachePool) cachService.getCachePool("TableID2DataNodeCache");
 	}
 
 	public LayerCachePool getTableId2DataNodeCache() {
@@ -74,29 +73,23 @@ public class RouteService {
 				return rrs;
 			}
 		}
-
-		// 处理自定义分片注解, 注解格式：/*!mycat: type = value */ sql
-		String oldMycatHint = "/*!mycat:";
-		
-		//新的注解格式:/* !mycat: type = value */ sql，oldMycatHint的格式不兼容直连mysql
-		String newMycatHint = "/*#mycat:";
-        String hintSplit = "=";
         
-        boolean isMatchOldHint = stmt.startsWith(oldMycatHint);
-		/*!mycat: sql = select name from aa */
+        /*!mycat: sql = select name from aa */
         /*!mycat: schema = test */
-		if (isMatchOldHint || stmt.startsWith(newMycatHint)) {
+        boolean isMatchOldHint = stmt.startsWith(OLD_MYCAT_HINT);
+        boolean isMatchNewHint = stmt.startsWith(NEW_MYCAT_HINT);
+		if (isMatchOldHint || isMatchNewHint) {
 			int endPos = stmt.indexOf("*/");
 			if (endPos > 0) {
-				int hintLength = isMatchOldHint ? oldMycatHint.length() : newMycatHint.length();
+				int hintLength = isMatchOldHint ? OLD_MYCAT_HINT.length() : NEW_MYCAT_HINT.length();
+				
 				// 用!mycat:内部的语句来做路由分析
 				String hint = stmt.substring(hintLength, endPos).trim();
-				
-                int firstSplitPos = hint.indexOf(hintSplit);
+                int firstSplitPos = hint.indexOf(HINT_SPLIT);
                 
                 if(firstSplitPos > 0 ){
                     String hintType = hint.substring(0,firstSplitPos).trim().toLowerCase(Locale.US);
-                    String hintValue = hint.substring(firstSplitPos + hintSplit.length()).trim();
+                    String hintValue = hint.substring(firstSplitPos + HINT_SPLIT.length()).trim();
                     if(hintValue.length()==0){
                     	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
                     	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
