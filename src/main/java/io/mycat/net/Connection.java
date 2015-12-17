@@ -233,6 +233,12 @@ public abstract class Connection implements ClosableConnection{
 				// handle this package
 				readBuffer.position(offset);
 				handle(readBuffer, offset, length);
+				
+				// maybe handle stmt_close
+				if(isClosed()) {
+					return ;
+				}
+				
 				// offset to next position
 				offset += length;
 				// reached end

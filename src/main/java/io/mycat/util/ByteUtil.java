@@ -24,6 +24,7 @@
 package io.mycat.util;
 
 import java.nio.charset.Charset;
+import java.util.Date;
 
 public class ByteUtil {
 
@@ -150,7 +151,8 @@ public class ByteUtil {
 	}
 
 	public static short getShort(byte[] bytes) {
-		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
+//		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
+		return Short.parseShort(new String(bytes));
 	}
 
 	public static char getChar(byte[] bytes) {
@@ -176,6 +178,10 @@ public class ByteUtil {
 	public static double getDouble(byte[] bytes) {
 		return Double.parseDouble(new String(bytes));
 	}
+	
+	public static float getFloat(byte[] bytes) {
+		return Float.parseFloat(new String(bytes));
+	}
 
 	public static String getString(byte[] bytes, String charsetName) {
 		return new String(bytes, Charset.forName(charsetName));
@@ -188,9 +194,121 @@ public class ByteUtil {
 	public static String getDate(byte[] bytes) {
 		return new String(bytes);
 	}
+	
+	public static String getTime(byte[] bytes) {
+		return new String(bytes);
+	}
 
 	public static String getTimestmap(byte[] bytes) {
 		return new String(bytes);
+	}
+	
+	public static byte[] getBytes(Date date, boolean isTime) {
+		if(isTime) {
+			return getBytesFromTime(date);
+		} else {
+			return getBytesFromDate(date);
+		}
+    }
+	
+	private static byte[] getBytesFromTime(Date date) {
+		int day = 0;
+		int hour = DateUtil.getHour(date);
+		int minute = DateUtil.getMinute(date);
+    	int second = DateUtil.getSecond(date);
+    	int microSecond = DateUtil.getMicroSecond(date);
+    	byte[] bytes = null;
+    	byte[] tmp = null;
+    	if(day == 0 && hour == 0 && minute == 0
+    			&& second == 0 && microSecond == 0) {
+    		bytes = new byte[1];
+    		bytes[0] = (byte) 0;
+    	} else if(microSecond == 0) {
+    		bytes = new byte[1 + 8];
+    		bytes[0] = (byte) 8;
+    		bytes[1] = (byte) 0; // is_negative (1) -- (1 if minus, 0 for plus)
+    		tmp = getBytes(day);
+    		bytes[2] = tmp[0];
+    		bytes[3] = tmp[1];
+    		bytes[4] = tmp[2];
+    		bytes[5] = tmp[3];
+    		bytes[6] = (byte) hour;
+    		bytes[7] = (byte) minute;
+    		bytes[8] = (byte) second;
+    	} else {
+    		bytes = new byte[1 + 12];
+    		bytes[0] = (byte) 12;
+    		bytes[1] = (byte) 0; // is_negative (1) -- (1 if minus, 0 for plus)
+    		tmp = getBytes(day);
+    		bytes[2] = tmp[0];
+    		bytes[3] = tmp[1];
+    		bytes[4] = tmp[2];
+    		bytes[5] = tmp[3];
+    		bytes[6] = (byte) hour;
+    		bytes[7] = (byte) minute;
+    		bytes[8] = (byte) second;
+    		tmp = getBytes(microSecond);
+    		bytes[9] = tmp[0];
+    		bytes[10] = tmp[1];
+    		bytes[11] = tmp[2];
+    		bytes[12] = tmp[3];
+    	}
+    	return bytes;
+	}
+	
+	private static byte[] getBytesFromDate(Date date) {
+		int year = DateUtil.getYear(date);
+    	int month = DateUtil.getMonth(date);
+    	int day = DateUtil.getDay(date);
+    	int hour = DateUtil.getHour(date);
+    	int minute = DateUtil.getMinute(date);
+    	int second = DateUtil.getSecond(date);
+    	int microSecond = DateUtil.getMicroSecond(date);
+    	byte[] bytes = null;
+    	byte[] tmp = null;
+    	if(year == 0 && month == 0 && day == 0 
+    			&& hour == 0 && minute == 0 && second == 0
+    			&& microSecond == 0) {
+    		bytes = new byte[1];
+    		bytes[0] = (byte) 0;
+    	} else if(hour == 0 && minute == 0 && second == 0
+    			&& microSecond == 0) {
+    		bytes = new byte[1 + 4];
+    		bytes[0] = (byte) 4;
+    		tmp = getBytes((short) year);
+    		bytes[1] = tmp[0];
+    		bytes[2] = tmp[1];
+    		bytes[3] = (byte) month;
+    		bytes[4] = (byte) day;
+    	} else if(microSecond == 0) {
+    		bytes = new byte[1 + 7];
+    		bytes[0] = (byte) 7;
+    		tmp = getBytes((short) year);
+    		bytes[1] = tmp[0];
+    		bytes[2] = tmp[1];
+    		bytes[3] = (byte) month;
+    		bytes[4] = (byte) day;
+    		bytes[5] = (byte) hour;
+    		bytes[6] = (byte) minute;
+    		bytes[7] = (byte) second;
+    	} else {
+    		bytes = new byte[1 + 11];
+    		bytes[0] = (byte) 11;
+    		tmp = getBytes((short) year);
+    		bytes[1] = tmp[0];
+    		bytes[2] = tmp[1];
+    		bytes[3] = (byte) month;
+    		bytes[4] = (byte) day;
+    		bytes[5] = (byte) hour;
+    		bytes[6] = (byte) minute;
+    		bytes[7] = (byte) second;
+    		tmp = getBytes(microSecond);
+    		bytes[8] = tmp[0];
+    		bytes[9] = tmp[1];
+    		bytes[10] = tmp[2];
+    		bytes[11] = tmp[3];
+    	}
+    	return bytes;
 	}
 
 }
