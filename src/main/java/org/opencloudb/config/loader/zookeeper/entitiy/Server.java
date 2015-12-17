@@ -78,6 +78,13 @@ import java.util.List;
         @Override public void addProperty(Property property) {
             this.getProperty().add(property);
         }
+
+        @Override public String toString() {
+            return "User{" +
+                "name='" + name + '\'' +
+                ", property=" + property +
+                '}';
+        }
     }
 }
 
