@@ -614,7 +614,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			int balance = Integer.valueOf(element.getAttribute("balance"));
 			
 			String switchTypeStr = element.getAttribute("switchType");
-			int switchType = switchTypeStr.equals("") ? -1 : Integer.valueOf(switchTypeStr);
+			int switchType = switchTypeStr.equals("") ? 1 : Integer.valueOf(switchTypeStr);
 			
 			String slaveThresholdStr = element.getAttribute("slaveThreshold");
 			int slaveThreshold = slaveThresholdStr.equals("") ? -1 : Integer.valueOf(slaveThresholdStr);
