@@ -61,6 +61,8 @@ public class NonBlockingSession{
 	private final MultiNodeCoordinator multiNodeCoordinator;
 	private final CommitNodeHandler commitHandler;
 	private volatile String xaTXID;
+	
+	private boolean prepared;
 
 	public NonBlockingSession(MySQLFrontConnection source) {
 		this.source = source;
@@ -117,6 +119,9 @@ public class NonBlockingSession{
 
 		if (nodes.length == 1) {
 			singleNodeHandler = new SingleNodeHandler(rrs, this);
+			if(this.isPrepared()) {
+				singleNodeHandler.setPrepared(true);
+			}
 			try {
 				singleNodeHandler.execute();
 			} catch (Exception e) {
@@ -125,11 +130,13 @@ public class NonBlockingSession{
 			}
 		} else {
 			boolean autocommit = source.isAutocommit();
-			SystemConfig sysConfig = MycatServer.getInstance().getConfig()
-					.getSystem();
+//			SystemConfig sysConfig = MycatServer.getInstance().getConfig()
+//					.getSystem();
 			multiNodeHandler = new MultiNodeQueryHandler(type, rrs, autocommit,
 					this);
-
+			if(this.isPrepared()) {
+				multiNodeHandler.setPrepared(true);
+			}
 			try {
 				multiNodeHandler.execute();
 			} catch (Exception e) {
@@ -137,6 +144,11 @@ public class NonBlockingSession{
 				source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
 			}
 		}
+		
+		if(this.isPrepared()) {
+			this.setPrepared(false);
+		}
+		
 	}
 
 	public void commit() {
@@ -372,6 +384,16 @@ public class NonBlockingSession{
 
 	public String getXaTXID() {
 		return xaTXID;
+	}
+
+
+	public boolean isPrepared() {
+		return prepared;
+	}
+
+
+	public void setPrepared(boolean prepared) {
+		this.prepared = prepared;
 	}
 
 }
