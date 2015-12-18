@@ -11,7 +11,6 @@ import org.opencloudb.statistic.SQLRecorder;
  */
 public class UserStat {
 	
-	//private final static int SQL_SLOW_TIME = 1000;
 	private  long SQL_SLOW_TIME = 1000;
 	/**
 	 * SQL 执行记录
@@ -55,9 +54,12 @@ public class UserStat {
 	public UserSqlStat getSqlStat() {
 		return sqlStat;
 	}
+	
 	public void setSlowTime(long time) {
-		this.SQL_SLOW_TIME=time;
+		this.SQL_SLOW_TIME = time;
+		this.sqlRecorder.clear();
 	}
+	
 	public void reset() {		
 		this.sqlRecorder.clear();
 		this.rwStat.reset();

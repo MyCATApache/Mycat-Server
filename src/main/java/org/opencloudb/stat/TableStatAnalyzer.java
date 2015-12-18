@@ -33,7 +33,9 @@ import com.alibaba.druid.util.JdbcConstants;
  *
  */
 public class TableStatAnalyzer implements QueryResultListener {
+	
 	private static final Logger LOGGER = Logger.getLogger(TableStatAnalyzer.class);
+	
 	private LinkedHashMap<String, TableStat> tableStatMap = new LinkedHashMap<String, TableStat>();	
 	private ReentrantReadWriteLock  lock  = new ReentrantReadWriteLock();
 	

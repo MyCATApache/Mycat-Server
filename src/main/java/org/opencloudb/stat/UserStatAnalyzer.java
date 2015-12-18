@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.opencloudb.server.parser.ServerParse;
+
 /**
  * 按访问用户 计算SQL的运行状态
  * 
@@ -27,37 +29,43 @@ public class UserStatAnalyzer implements QueryResultListener {
 	@Override
 	public void onQuery(QueryResult query) {
 		
-		String user = query.getUser();
 		int sqlType = query.getSqlType();
 		String sql = query.getSql();
-		long startTime = query.getStartTime();
-		long endTime = query.getEndTime();
 		
-		UserStat userStat = getUserStat(user);
-		userStat.update(sqlType, sql, startTime, endTime);		
+		switch(sqlType) {
+    	case ServerParse.SELECT:		
+    	case ServerParse.UPDATE:			
+    	case ServerParse.INSERT:		
+    	case ServerParse.DELETE:
+    	case ServerParse.REPLACE:  	
+    		
+    		String user = query.getUser();
+    		long startTime = query.getStartTime();
+    		long endTime = query.getEndTime();
+    		
+    		this.lock.writeLock().lock();
+            try {
+            	UserStat userStat = userStatMap.get(user);
+                if (userStat == null) {
+                    userStat = new UserStat(user);
+                    userStatMap.put(user, userStat);
+                }                
+                userStat.update(sqlType, sql, startTime, endTime);	
+                
+            } finally {
+            	this.lock.writeLock().unlock();
+            }	
+		}
 	}	
 
-	private UserStat getUserStat(String user) {
-        lock.writeLock().lock();
-        try {
-        	UserStat userStat = userStatMap.get(user);
-            if (userStat == null) {
-                userStat = new UserStat(user);
-                userStatMap.put(user, userStat);
-            }
-            return userStat;
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }	
 	
 	public Map<String, UserStat> getUserStatMap() {
 		Map<String, UserStat> map = new LinkedHashMap<String, UserStat>(userStatMap.size());
-        lock.readLock().lock();
+		this.lock.readLock().lock();
         try {
             map.putAll(userStatMap);
         } finally {
-            lock.readLock().unlock();
+        	this.lock.readLock().unlock();
         }
         return map;
 	}
