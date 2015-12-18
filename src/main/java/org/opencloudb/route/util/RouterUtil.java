@@ -504,7 +504,7 @@ public class RouterUtil {
 			throw new SQLNonTransientException(msg);
 		}
 
-		if(selectIndex > 0 &&fromIndex>0&&selectIndex>firstRightBracketIndex) {
+		if(selectIndex > 0 &&fromIndex>0&&selectIndex>firstRightBracketIndex&&valuesIndex<0) {
 			String msg = "multi insert not provided" ;
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
