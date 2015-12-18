@@ -89,6 +89,17 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
                 "insert into offer(group_id,offer_id,member_id)values(234,123,'abc')",
                 rrs.getNodes()[0].getStatement());
 
+
+        sql = "\n" +
+                "  INSERT INTO \n" +
+                "`offer` \n" +
+                "(`asf`,member_id) \n" +
+                "VALUES \n" +
+                "(' the articles sfroms user selection ','abc')";
+        schema = schemaMap.get("cndb");
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
+        Assert.assertEquals(1, rrs.getNodes().length);
+
     }
 
     public void testGlobalTableroute() throws Exception {
