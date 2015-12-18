@@ -27,6 +27,8 @@ public class ZkCreate {
     private static final String MYCAT_HOST_KEY = "mycat-hosts";
     private static final String MYCAT_MYSQLS_KEY = "mycat-mysqls";
     private static final String MYCAT_MYSQL_GROUP_KEY = "mycat-mysqlgroup";
+    private static final String MYCAT_LBS = "mycat-lbs";
+
     private static String ZK_CONFIG_FILE_NAME = "/zk-create.yaml";
     private static CuratorFramework framework;
     //private static Map<String, Object> zkConfig;
@@ -53,6 +55,7 @@ public class ZkCreate {
         createConfig(MYCAT_CLUSTER_KEY, true, MYCAT_CLUSTER_KEY);
         createConfig(MYCAT_MYSQLS_KEY, true, MYCAT_MYSQLS_KEY);
         createConfig(MYCAT_MYSQL_GROUP_KEY, true, MYCAT_MYSQL_GROUP_KEY);
+        createConfig(MYCAT_LBS, true, MYCAT_LBS);
     }
 
     private static void createConfig(String configKey, boolean filterInnerMap,

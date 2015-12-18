@@ -239,3 +239,12 @@ mycat-mysqlgroup :
     cur-write-server: mysql_1
     auto-write-switch: true
     heartbeatSQL : select user()
+
+mycat-lbs:
+    lb_v1:
+	  hostId: fz_vm1
+      name: yyyyy
+      ip: 192.168.10.2
+      port: 9999
+      zone: fz
+      cluster: mycat-cluster-1
