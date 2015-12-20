@@ -24,9 +24,11 @@
 package io.mycat.server.sqlhandler;
 
 import io.mycat.server.ErrorCode;
+import io.mycat.server.Fields;
 import io.mycat.server.FrontendPrepareHandler;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.packet.ExecutePacket;
+import io.mycat.server.packet.util.BindValue;
 import io.mycat.server.packet.util.ByteUtil;
 import io.mycat.server.packet.util.PreparedStatement;
 import io.mycat.server.response.PreparedStmtResponse;
@@ -35,11 +37,14 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 /**
  * @author mycat
  */
 public class ServerPrepareHandler implements FrontendPrepareHandler {
 
+	private static final Logger LOGGER = Logger.getLogger(ServerPrepareHandler.class);
     private MySQLFrontConnection source;
     private volatile long pstmtId;
     private Map<String, PreparedStatement> pstmtForSql;
@@ -54,9 +59,13 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 
     @Override
     public void prepare(String sql) {
+    	LOGGER.debug("use server prepare, sql: " + sql);
         PreparedStatement pstmt = null;
         if ((pstmt = pstmtForSql.get(sql)) == null) {
-            pstmt = new PreparedStatement(++pstmtId, sql, 0, 0);
+        	// 解析获取字段个数和参数个数
+        	int columnCount = getColumnCount(sql);
+        	int paramCount = getParamCount(sql);
+            pstmt = new PreparedStatement(++pstmtId, sql, columnCount, paramCount);
             pstmtForSql.put(pstmt.getStatement(), pstmt);
             pstmtForId.put(pstmt.getId(), pstmt);
         }
@@ -67,7 +76,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     public void execute(byte[] data) {
         long pstmtId = ByteUtil.readUB4(data, 5);
         PreparedStatement pstmt = null;
-        if ((pstmt = pstmtForSql.get(pstmtId)) == null) {
+        if ((pstmt = pstmtForId.get(pstmtId)) == null) {
             source.writeErrMessage(ErrorCode.ER_ERROR_WHEN_EXECUTING_COMMAND, "Unknown pstmtId when executing.");
         } else {
             ExecutePacket packet = new ExecutePacket(pstmt);
@@ -77,13 +86,105 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
                 source.writeErrMessage(ErrorCode.ER_ERROR_WHEN_EXECUTING_COMMAND, e.getMessage());
                 return;
             }
+            BindValue[] bindValues = packet.values;
+            // 还原sql中的动态参数为实际参数值
+            String sql = prepareStmtBindValue(pstmt, bindValues);
+            // 执行sql
+            source.getSession2().setPrepared(true);
+            LOGGER.debug("execute prepare sql: " + sql);
+            source.query(sql);
         }
     }
 
     @Override
-    public void close() {
-        
-
+    public void close(byte[] data) {
+    	long pstmtId = ByteUtil.readUB4(data, 5); // 获取prepare stmt id
+    	LOGGER.debug("close prepare stmt, stmtId = " + pstmtId);
+    	PreparedStatement pstmt = pstmtForId.remove(pstmtId);
+    	if(pstmt != null) {
+    		pstmtForSql.remove(pstmt.getStatement());
+    	}
     }
+    
+    @Override
+    public void clear() {
+    	this.pstmtForId.clear();
+    	this.pstmtForSql.clear();
+    }
+    
+    // TODO 获取预处理语句中column的个数
+    private int getColumnCount(String sql) {
+    	int columnCount = 0;
+    	// TODO ...
+    	return columnCount;
+    }
+    
+    // 获取预处理sql中预处理参数个数
+    private int getParamCount(String sql) {
+    	char[] cArr = sql.toCharArray();
+    	int count = 0;
+    	for(int i = 0; i < cArr.length; i++) {
+    		if(cArr[i] == '?') {
+    			count++;
+    		}
+    	}
+    	return count;
+    }
+    
+    /**
+     * 组装sql语句,替换动态参数为实际参数值
+     * @param pstmt
+     * @param bindValues
+     * @return
+     */
+    private String prepareStmtBindValue(PreparedStatement pstmt, BindValue[] bindValues) {
+    	String sql = pstmt.getStatement();
+    	int paramNumber = pstmt.getParametersNumber();
+    	int[] paramTypes = pstmt.getParametersType();
+    	for(int i = 0; i < paramNumber; i++) {
+    		int paramType = paramTypes[i];
+    		BindValue bindValue = bindValues[i];
+    		if(bindValue.isNull) {
+    			sql = sql.replaceFirst("\\?", "NULL");
+    			continue;
+    		}
+    		switch(paramType) {
+    		case io.mycat.server.Fields.FIELD_TYPE_TINY:
+    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.byteBinding));
+    			break;
+    		case Fields.FIELD_TYPE_SHORT:
+    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.shortBinding));
+    			break;
+    		case Fields.FIELD_TYPE_LONG:
+    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.intBinding));
+    			break;
+    		case Fields.FIELD_TYPE_LONGLONG:
+    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.longBinding));
+    			break;
+    		case Fields.FIELD_TYPE_FLOAT:
+    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.floatBinding));
+    			break;
+    		case Fields.FIELD_TYPE_DOUBLE:
+    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.doubleBinding));
+    			break;
+    		case Fields.FIELD_TYPE_VAR_STRING:
+            case Fields.FIELD_TYPE_STRING:
+            case Fields.FIELD_TYPE_VARCHAR:
+            case Fields.FIELD_TYPE_BLOB:
+            	sql = sql.replaceFirst("\\?", "'" + bindValue.value + "'");
+            	break;
+            case Fields.FIELD_TYPE_TIME:
+            case Fields.FIELD_TYPE_DATE:
+            case Fields.FIELD_TYPE_DATETIME:
+            case Fields.FIELD_TYPE_TIMESTAMP:
+            	sql = sql.replaceFirst("\\?", "'" + bindValue.value + "'");
+            	break;
+            default:
+            	sql = sql.replaceFirst("\\?", bindValue.value.toString());
+            	break;
+    		}
+    	}
+    	return sql;
+    } 
 
 }

@@ -23,6 +23,10 @@
  */
 package io.mycat.server.sqlhandler;
 
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
 import io.mycat.MycatServer;
 import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
@@ -32,6 +36,7 @@ import io.mycat.server.ErrorCode;
 import io.mycat.server.Fields;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.TableConfig;
 import io.mycat.server.packet.EOFPacket;
 import io.mycat.server.packet.FieldPacket;
 import io.mycat.server.packet.ResultSetHeaderPacket;
@@ -42,11 +47,14 @@ import io.mycat.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
 /**
  * @author mycat
  */
 public class ExplainHandler {
-
+    private final static Pattern pattern = Pattern.compile("(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+", Pattern.CASE_INSENSITIVE);
 	private static final Logger logger = LoggerFactory.getLogger(ExplainHandler.class);
 	private static final RouteResultsetNode[] EMPTY_ARRAY = new RouteResultsetNode[0];
 	private static final int FIELD_COUNT = 2;
@@ -124,6 +132,11 @@ public class ExplainHandler {
 		}
 		try {
 			int sqlType = ServerParse.parse(stmt) & 0xff;
+            if(ServerParse.INSERT==sqlType&&isMycatSeq(stmt, schema))
+            {
+                c.writeErrMessage(ErrorCode.ER_PARSE_ERROR, "insert sql using mycat seq,you must provide primaryKey value for explain");
+                return null;
+            }
 			return MycatServer
 					.getInstance()
 					.getRouterservice()
@@ -138,5 +151,33 @@ public class ExplainHandler {
 			return null;
 		}
 	}
+    private static boolean isMycatSeq(String stmt, SchemaConfig schema)
+    {
+        if(pattern.matcher(stmt).find())  return true;
+        SQLStatementParser parser =new MySqlStatementParser(stmt);
+        MySqlInsertStatement statement = (MySqlInsertStatement) parser.parseStatement();
+        String tableName=   statement.getTableName().getSimpleName();
+        TableConfig tableConfig= schema.getTables().get(tableName.toUpperCase());
+        if(tableConfig==null) return false;
+        if(tableConfig.isAutoIncrement())
+        {
+            boolean isHasIdInSql=false;
+            String primaryKey = tableConfig.getPrimaryKey();
+            List<SQLExpr> columns = statement.getColumns();
+            for (SQLExpr column : columns)
+            {
+                String columnName = column.toString();
+                if(primaryKey.equalsIgnoreCase(columnName))
+                {
+                    isHasIdInSql = true;
+                    break;
+                }
+            }
+            if(!isHasIdInSql) return true;
+        }
+
+
+        return false;
+    }
 
 }

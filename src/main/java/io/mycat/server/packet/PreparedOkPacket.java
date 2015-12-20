@@ -23,6 +23,7 @@
  */
 package io.mycat.server.packet;
 
+import io.mycat.net.BufferArray;
 import io.mycat.net.NetSystem;
 import io.mycat.server.GenalMySQLConnection;
 import io.mycat.server.packet.util.BufferUtil;
@@ -76,6 +77,21 @@ public class PreparedOkPacket extends MySQLPacket {
         int size = calcPacketSize();
         BufferUtil.writeUB3(buffer, size);
         buffer.put(packetId);
+        buffer.put(flag);
+        BufferUtil.writeUB4(buffer, statementId);
+        BufferUtil.writeUB2(buffer, columnsNumber);
+        BufferUtil.writeUB2(buffer, parametersNumber);
+        buffer.put(filler);
+        BufferUtil.writeUB2(buffer, warningCount);
+        c.write(buffer);
+    }
+    
+    public void write(BufferArray bufferArray) {
+    	int size = calcPacketSize();
+    	int totalSize = size + packetHeaderSize;
+    	ByteBuffer buffer = bufferArray.checkWriteBuffer(totalSize);
+    	BufferUtil.writeUB3(buffer, size);
+    	buffer.put(packetId);
         buffer.put(flag);
         BufferUtil.writeUB4(buffer, statementId);
         BufferUtil.writeUB2(buffer, columnsNumber);
