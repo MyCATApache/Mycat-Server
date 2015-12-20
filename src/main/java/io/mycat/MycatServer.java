@@ -40,7 +40,7 @@ import io.mycat.server.config.loader.ConfigFactory;
 import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.interceptor.SQLInterceptor;
-import io.mycat.server.packet.util.CharsetUtil;
+import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.util.TimeUtil;
 
 import org.slf4j.Logger;
@@ -221,14 +221,9 @@ public class MycatServer {
 		LOGGER.info(server.getName() + " is started and listening on "
 				+ server.getPort());
 		
-		// Before init datahost, we get mysqld's charset and collation_index mapping 
-		// from INFORMATION_SCHEMA.COLLATIONS table, and put them in cache.
-		LOGGER.info(" init charset and collation ...");
-		CharsetUtil.initCharsetAndCollation(config.getDataHosts(), config.getCharsetConfig());
-		
 		// init datahost
 		config.initDatasource();
-
+		
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
 		timer.schedule(updateTime(), 0L, TIME_UPDATE_PERIOD);
 		timer.schedule(processorCheck(), 0L, system.getProcessorCheckPeriod());
@@ -236,6 +231,7 @@ public class MycatServer {
 				dataNodeIldeCheckPeriod);
 		timer.schedule(dataNodeHeartbeat(), 0L,
 				system.getDataNodeHeartbeatPeriod());
+		timer.schedule(glableTableConsistencyCheck(), 0L, 1000 * 1000L);
 		timer.schedule(catletClassClear(), 30000);
 	
 	}
@@ -339,6 +335,21 @@ public class MycatServer {
 		};
 	}
 
+	//  全局表一致性检查任务
+	private TimerTask glableTableConsistencyCheck() {
+		return new TimerTask() {
+			@Override
+			public void run() {
+				timerExecutor.execute(new Runnable() {
+					@Override
+					public void run() {
+						GlobalTableUtil.consistencyCheck();
+					}
+				});
+			}
+		};
+	}
+	
 	// 数据节点定时心跳任务
 	private TimerTask dataNodeHeartbeat() {
 		return new TimerTask() {

@@ -49,7 +49,7 @@ public abstract class Connection implements ClosableConnection{
 	private final ReentrantLock writeQueueLock = new ReentrantLock();
 	private int readBufferOffset;
 	private long lastLargeMessageTime;
-	protected volatile boolean isClosed;
+	protected boolean isClosed;
 	protected boolean isSocketClosed;
 	protected long startupTime;
 	protected long lastReadTime;
@@ -210,9 +210,8 @@ public abstract class Connection implements ClosableConnection{
 		NetSystem.getInstance().addNetInBytes(got);
 
 		// 循环处理字节信息
-		int offset = readBufferOffset, length = 0, position = readBuffer
-				.position();
-		while(readBuffer != null) {
+		int offset = readBufferOffset, length = 0, position = readBuffer.position();
+		while(readBuffer != null && !isClosed) {
 			length = getPacketLength(readBuffer, offset, position);
 			// LOGGER.info("message lenth "+length+" offset "+offset+" positon "+position+" capactiy "+readBuffer.capacity());
 			// System.out.println("message lenth "+length+" offset "+offset+" positon "+position);
@@ -261,7 +260,8 @@ public abstract class Connection implements ClosableConnection{
 				} else {
 					// try next package parse
 					readBufferOffset = offset;
-					readBuffer.position(position);
+					if(readBuffer != null)
+						readBuffer.position(position);
 					continue;
 				}
 			} else {

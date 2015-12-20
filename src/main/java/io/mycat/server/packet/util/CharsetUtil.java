@@ -25,7 +25,6 @@ package io.mycat.server.packet.util;
 
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
-import io.mycat.server.config.node.CharsetConfig;
 import io.mycat.server.config.node.DBHostConfig;
 
 import java.sql.Connection;
@@ -59,38 +58,57 @@ import com.alibaba.fastjson.JSON;
 public class CharsetUtil {
     public static final Logger logger = LoggerFactory.getLogger(CharsetUtil.class);
     
-    /** collationIndex 和 charsetName 的映射 */
+    /** collationIndex 和 charsetName 的映射  */
     private static final Map<Integer,String> INDEX_TO_CHARSET = new HashMap<>();
     
-    /** charsetName 到 默认collationIndex 的映射 */
+    /** charsetName 到 默认collationIndex 的映射  */
     private static final Map<String, Integer> CHARSET_TO_INDEX = new HashMap<>();
     
-    /** collationName 到 CharsetCollation 对象的映射 */
+    /** collationName 到 CharsetCollation 对象的映射  */
     private static final Map<String, CharsetCollation> COLLATION_TO_CHARSETCOLLATION = new HashMap<>();
 
     /**
-     * 加载配置文件中 mycat中 charset-config 元素的配置的  collationIndex --> charsetName
-     * @param map
+     * 异步 初始化 charset 和 collation(根据 mycat.xml文件中的 dataHosts 去mysqld读取 charset 和 collation 的映射关系)
+     * 使用异步时，应该改用 ConcurrentHashMap 
+     * @param charsetConfigMap mycat.xml文件中 charset-config 元素指定的 collationIndex --> charsetName
      */
-    public static void load(Map<String, Object> map){
+    public static void asynLoad(Map<String, PhysicalDBPool> dataHosts, Map<String, Object> charsetConfigMap){
+    	Runnable runn = new Runnable() {
+			public void run() {
+				CharsetUtil.load(dataHosts, charsetConfigMap);
+			}
+		};
+		new Thread(runn).start();
+    }
+    
+    /**
+     * 同步 初始化 charset 和 collation(根据 mycat.xml文件中的 dataHosts 去mysqld读取 charset 和 collation 的映射关系)
+     * @param charsetConfigMap mycat.xml文件中 charset-config 元素指定的 collationIndex 和 charsetName 映射
+     */
+    public static void load(Map<String, PhysicalDBPool> dataHosts, Map<String, Object> charsetConfigMap){
         try {
+        	if(dataHosts != null && dataHosts.size() > 0)
+        		CharsetUtil.initCharsetAndCollation(dataHosts);	// 去mysqld读取 charset 和 collation 的映射关系
+        	else
+        		logger.debug("param dataHosts is null");
+        	
         	// 加载配置文件中的 指定的  collationIndex --> charsetName
-            for (String index : map.keySet()){	
+            for (String index : charsetConfigMap.keySet()){	
             	int collationIndex = Integer.parseInt(index);
             	String charsetName = INDEX_TO_CHARSET.get(collationIndex);
             	if(StringUtils.isNotBlank(charsetName)){
             		INDEX_TO_CHARSET.put(collationIndex, charsetName);
                     CHARSET_TO_INDEX.put(charsetName, collationIndex);
             	}
+            	logger.debug("load charset and collation from mycat.xml.");
             }
-            logger.debug("load charset and collation from mycat.xml.");
-            
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
     }
     
     /**
+     * <pre>
      * 根据 dataHosts 去mysqld读取 charset 和 collation 的映射关系：
      * mysql> SELECT ID,CHARACTER_SET_NAME,COLLATION_NAME,IS_DEFAULT FROM INFORMATION_SCHEMA.COLLATIONS;
 	 * +-----+--------------------+--------------------------+------------+
@@ -100,26 +118,19 @@ public class CharsetUtil {
 	 * |  84 | big5               | big5_bin                 |            |
 	 * |   3 | dec8               | dec8_swedish_ci          | Yes        |
 	 * |  69 | dec8               | dec8_bin                 |            |
-     * 
-     * @param dataHosts mycat.xml 配置文件中读取处理的  dataHost 元素的 map
+	 *</pre>
      */
-    public static void initCharsetAndCollation(Map<String, PhysicalDBPool> dataHosts, CharsetConfig charConfig){
-    	if(dataHosts == null){
-    		logger.error("param dataHosts is null");
+    private static void initCharsetAndCollation(Map<String, PhysicalDBPool> dataHosts){
+    	if(COLLATION_TO_CHARSETCOLLATION.size() > 0){	// 已经初始化
+    		logger.debug(" charset and collation has already init ...");
     		return;
     	}
-    	if(COLLATION_TO_CHARSETCOLLATION.size() > 0)	// 已经初始化
-    		return;
-    	
-    	// 先利用mycat.xml配置文件 中的 heartbeat(该配置一般是存在的)的连接信息来获得CharsetCollation，如果成功就结束，尽量缩短启动时间；
+    		
+    	// 先利用mycat.xml配置文件 中的 heartbeat(该配置一般是存在的)的连接信息来获得CharsetCollation，避免后面的遍历；
     	// 如果没有成功，则遍历mycat.xml配置文件 中的所有dataHost元素，来获得CharsetCollation;
     	DBHostConfig dBHostconfig = getConfigByDataHostName(dataHosts, "jdbchost");
     	if(dBHostconfig != null){
     		if(getCharsetCollationFromMysql(dBHostconfig)){
-    			// ConfigInitializer 中的 initCharsetConfig 其实没有 load 成功，
-				// 因为它在 initCharsetAndCollation 函数前面运行，所以这里重新 load 一下
-				if(charConfig != null && charConfig.getProps() != null)
-					CharsetUtil.load(charConfig.getProps());
 				logger.debug(" init charset and collation success...");
 				return;
     		}
@@ -136,10 +147,6 @@ public class CharsetUtil {
     				while(!getCharsetCollationFromMysql(config)){
     					getCharsetCollationFromMysql(config);
     				}
-    				// ConfigInitializer 中的 initCharsetConfig 其实没有 load 成功，
-    				// 因为它在 initCharsetAndCollation 函数前面运行，所以这里重新 load 一下
-    				if(charConfig != null && charConfig.getProps() != null)
-    					CharsetUtil.load(charConfig.getProps());
     				logger.debug(" init charset and collation success...");
     				return;	// 结束外层 for 循环
     			}
@@ -174,9 +181,11 @@ public class CharsetUtil {
         if (StringUtils.isBlank(charset)) {
             return 0;
         } else {
-        	if("Cp1252".equalsIgnoreCase(charset))
+        	Integer i = CHARSET_TO_INDEX.get(charset.toLowerCase());
+        	if(i == null && "Cp1252".equalsIgnoreCase(charset) )
         		charset = "latin1";	// 参见：http://www.cp1252.com/ The windows 1252 codepage, also called Latin 1
-            Integer i = CHARSET_TO_INDEX.get(charset.toLowerCase());
+        	
+            i = CHARSET_TO_INDEX.get(charset.toLowerCase());
             return (i == null) ? 0 : i;
         }
     }
@@ -238,7 +247,6 @@ public class CharsetUtil {
 					CharsetCollation cc =  new CharsetCollation(charsetName, collationIndex, collationName, isDefaultCollation);
 					COLLATION_TO_CHARSETCOLLATION.put(collationName, cc);
 				}
-				// 这里判断不能使用 INDEX_TO_CHARSET.size()，因为 load 方法中可能已经先put了值
 				if(COLLATION_TO_CHARSETCOLLATION.size() > 0)	
 					return true;
 				return false;
@@ -249,35 +257,46 @@ public class CharsetUtil {
 		} catch (SQLException e) {
 			logger.warn(e.getMessage());
 		}
-    	
     	return false;
     }
     
     
     /**
      * 利用参数 DBHostConfig cfg 获得物理数据库的连接(java.sql.Connection)
+     * 在mysqld刚启动马上启动mycat-server，该函数执行很慢。
+     * 但是又不能又不能使用mysql协议来获得所要的数据，因为mysql协议中mysqld在第一次发来的handshake
+     * 就指定了 "serverCharsetIndex":46，在登录之前，我们无法修改connection的字符，必须使用 serverCharsetIndex
+     * 指定的字符编码完成 handshake 和登录：
+     *  {"packetId":0,"packetLength":78,"protocolVersion":10,"restOfScrambleBuff":"OihYY2tvakVadV5Y",
+	 *	 "seed":"YiJ+eWVsb2c=","serverCapabilities":63487,
+	 *   "serverCharsetIndex":46,"serverStatus":2,"serverVersion":"NS42LjI3LWxvZw==","threadId":65}
+     * 所以我们无法使用 mysql协议从mysqld获得字符信息，而JDBC协议中可以在url中指定字符集。所以只能用JDBC来获得字符信息。
      * @param cfg
      * @return
      * @throws SQLException
      */
     public static Connection getConnection(DBHostConfig cfg){
+    	long  millisecondsBegin = System.currentTimeMillis();
     	if(cfg == null) return null;
     	
-    	String url = new StringBuffer("jdbc:mysql://").append(cfg.getUrl()).append("/mysql").toString();
+    	String url = new StringBuffer("jdbc:mysql://").append(cfg.getUrl())
+    		.append("/mysql").append("?characterEncoding=UTF-8").toString();
 		Connection connection = null;
-    	try {
+		long  millisecondsEnd2 = System.currentTimeMillis();
+		try {
 			Class.forName("com.mysql.jdbc.Driver");
+			logger.debug(" function Class.forName cost milliseconds: " + (millisecondsEnd2 - millisecondsBegin));
 			connection = DriverManager.getConnection(url, cfg.getUser(), cfg.getPassword());
 		} catch (ClassNotFoundException | SQLException e) {
 			if(e instanceof ClassNotFoundException)
 				logger.error(e.getMessage());
 			else
-				logger.warn(e.getMessage() + ", " + JSON.toJSONString(cfg));
+				logger.warn(e.getMessage() + " " + JSON.toJSONString(cfg));
 		}
-    	
+    	long  millisecondsEnd = System.currentTimeMillis();
+        logger.debug(" function getConnection cost milliseconds: " + (millisecondsEnd - millisecondsEnd2));
 		return connection;
 	}
-    
 }
 
 /**

@@ -44,7 +44,10 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 	 */
 	@Override
 	public String interceptSQL(String sql, int sqlType) {
-		return processEscape(sql);
+		String result = processEscape(sql);
+		// 全局表一致性 sql 改写拦截
+		result = GlobalTableUtil.interceptSQL(result, sqlType);
+		return result;
 	}
 
 }
