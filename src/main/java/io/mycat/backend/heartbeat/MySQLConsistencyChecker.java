@@ -77,7 +77,6 @@ public class MySQLConsistencyChecker{
 		this.jobCount.set(0);
 		beginTime = new Date().getTime();
         String[] physicalSchemas = source.getDbPool().getSchemas();
-        LOGGER.debug("physicalSchemas " + JSON.toJSONString(physicalSchemas));
         for(String dbName : physicalSchemas){
         	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null);
         	OneRawSQLQueryResultHandler resultHandler = 

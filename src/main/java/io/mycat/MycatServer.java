@@ -52,6 +52,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -231,7 +232,8 @@ public class MycatServer {
 				dataNodeIldeCheckPeriod);
 		timer.schedule(dataNodeHeartbeat(), 0L,
 				system.getDataNodeHeartbeatPeriod());
-		timer.schedule(glableTableConsistencyCheck(), 0L, 1000 * 1000L);
+		timer.schedule(glableTableConsistencyCheck(), 0L, 
+						system.getGlableTableCheckPeriod());
 		timer.schedule(catletClassClear(), 30000);
 	
 	}

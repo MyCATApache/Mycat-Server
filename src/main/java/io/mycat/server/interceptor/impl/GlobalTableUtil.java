@@ -60,25 +60,24 @@ public class GlobalTableUtil{
 	}
 	
 	public static String consistencyInterceptor(String sql, int sqlType){
-		LOGGER.debug("sqlType: " + sqlType);
-		LOGGER.debug("before sql: " +  sql);
-
 		// 统一使用mycat-server所在机器的时间，防止不同mysqld时间不同步
 		operationTimestamp = String.valueOf(new Date().getTime());
-		
 		String tableName = getTableName(sql, sqlType);
 		if(StringUtils.isBlank(tableName))
 			return sql;
+		if(!isGlobalTable(tableName))
+			return sql;
+		
+		LOGGER.debug("sqlType: " + sqlType);
+		LOGGER.debug("before sql: " +  sql);
 		
 		if(innerColumnNotExist.size() > 0){
 			for(SQLQueryResult<Map<String, String>> map : innerColumnNotExist){
-				if(tableName.equalsIgnoreCase(map.getTableName())){
-					StringBuilder warnStr = new StringBuilder();
-					if(map != null)
-						warnStr.append(map.getDataNode()).append(".");
-					warnStr.append(tableName).append(" inner column: ")
-					.append(GlobalTableUtil.GLOBAL_TABLE_MYCAT_COLUMN)
-					.append(" is not exist.");
+				if(map != null && tableName.equalsIgnoreCase(map.getTableName())){
+					StringBuilder warnStr = new StringBuilder(map.getDataNode())
+							.append(".").append(tableName).append(" inner column: ")
+							.append(GLOBAL_TABLE_MYCAT_COLUMN)
+							.append(" is not exist.");
 					LOGGER.warn(warnStr.toString());
 					return sql;
 				}
@@ -144,65 +143,76 @@ public class GlobalTableUtil{
 	 * @return
 	 */
 	private static String convertInsertSQL(String sql, String tableName){
-		// insert into tb select & insert into tb set col=xxx
-		if(Pattern.matches(".*(?i)insert.*[into].*set.*", sql)
-				|| Pattern.matches(".*(?i)insert.*[into].*select.*", sql)){
+		// insert into tb select
+		if(Pattern.matches(".*(?i)insert\\s+(into\\s+)?.*select.*", sql)){
 			return sql;
 		}
-		
 		try{
+			if(!isGlobalTable(tableName))
+				return sql;
+			
 			int index = sql.indexOf(')');
 			String insertStr = sql.substring(0, index);	// insert into user(id,name,_mycat_op_time
 			String valuesStr = sql.substring(index);	// ) values(1111,'dig',11111);
-
-			if(isGlobalTable(tableName)){
-				// 批量插入： values 后至少有两个 ()()
-				String multiValuesReg = ".*(?i)insert.*[into].*value.*\\(.*\\).*\\(.*\\).*";
-				if(Pattern.matches(multiValuesReg, sql)){
-					String reg = ".*(?i)insert.*" + GLOBAL_TABLE_MYCAT_COLUMN 
-									+ ".*value.*\\(.*\\).*\\(.*\\).*";
-					if(Pattern.matches(reg, sql)){	
-						LOGGER.warn("Do not insert value to inner col: "
-								+ GLOBAL_TABLE_MYCAT_COLUMN);
-						return replaceMultiValue(sql);
+			
+			// 批量插入： values 后至少有两个 ()()
+			String multiValuesReg = ".*(?i)insert.*(into\\s+)?.*value.*\\(.*\\).*\\(.*\\).*";
+			if(Pattern.matches(multiValuesReg, sql)){
+				String reg = ".*(?i)insert.*"+GLOBAL_TABLE_MYCAT_COLUMN+".*value.*\\(.*\\).*\\(.*\\).*";
+				// values 后至少有两个 ()()，并且带有 GLOBAL_TABLE_MYCAT_COLUMN 列
+				if(Pattern.matches(reg, sql)){	
+					LOGGER.warn("Do not insert value to inner col: "+GLOBAL_TABLE_MYCAT_COLUMN);
+					return replaceMultiValue(sql);
+				}
+				// values 后至少有两个 ()()，没有 GLOBAL_TABLE_MYCAT_COLUMN 列
+				// insert into user(id,name) valueS(1111,'dig'),(1111,'dig');
+				// valuesStr = ") valueS(1111,'dig'),(1111,'dig');"
+				String[] strArr = valuesStr.split("\\)\\s*,\\s*"); // 将 values以 '),'分割
+				StringBuilder newSQL = new StringBuilder(insertStr).append(",")
+											.append(GLOBAL_TABLE_MYCAT_COLUMN);
+				for(int i=0; i< strArr.length; i++){
+					if(i == strArr.length-1){
+						int idx = strArr[i].indexOf(")");
+						newSQL.append(strArr[i].substring(0, idx));
+						newSQL.append(",").append(operationTimestamp)
+						.append(strArr[i].substring(idx));
+					}else{
+						newSQL.append(strArr[i]).append(",").
+						append(operationTimestamp).append("),");
 					}
-
-					String[] strArr = valuesStr.split("\\)\\s*,\\s*"); //将 values以 '),'分割
-					StringBuilder newSQL = new StringBuilder(insertStr).append(",")
-									.append(GLOBAL_TABLE_MYCAT_COLUMN);
-					for(int i=0; i< strArr.length; i++){
-						if(i == strArr.length-1){
-							int idx = strArr[i].indexOf(")");
-							newSQL.append(strArr[i].substring(0, idx));
-							newSQL.append(",").append(operationTimestamp)
-							.append(strArr[i].substring(idx));
-						}else{
-							newSQL.append(strArr[i]).append(",").
-							append(operationTimestamp).append("),");
-						}
-					}
-					return newSQL.toString();
+				}
+				return newSQL.toString();
+			}
+			
+			// 非批量插入
+			
+			// 处理  insert into set 语句
+			// insert into company set name=xx, _mycat_op_time=11111111,addr=xxx; 
+			if(Pattern.matches(".*(?i)insert.*(into\\s+)?.*set.*", sql)){
+         		String regStr = ".*(?i)insert.*(into\\s+)?set.*" + GLOBAL_TABLE_MYCAT_COLUMN + "\\s*=.*";
+         		return dealWithUpdateOrInsertSet(regStr, sql, "insert");
+			}
+			
+			String oneValuesReg = ".*(?i)insert.*(into\\s+)?.*value.*\\(.*\\).*";
+			if(Pattern.matches(oneValuesReg, sql)){
+				String reg = ".*(?i)insert.*" + GLOBAL_TABLE_MYCAT_COLUMN + ".*value.*\\(.*\\).*";
+				// insert into company(name,_mycat_op_time,addr) values(xx,11111111,xxx);
+				if(Pattern.matches(reg, sql)){
+					LOGGER.warn("Do not insert value to inner col: " + GLOBAL_TABLE_MYCAT_COLUMN);
+					return replaceColValue(sql);
 				}
 				
-				String oneValuesReg = ".*(?i)insert.*[into].*value.*\\(.*\\).*";
-				if(Pattern.matches(oneValuesReg, sql)){
-					String reg = ".*(?i)insert.*" + GLOBAL_TABLE_MYCAT_COLUMN 
-											+ ".*value.*\\(.*\\).*";
-					if(Pattern.matches(reg, sql)){
-						LOGGER.warn("Do not insert value to inner col: "
-								+ GLOBAL_TABLE_MYCAT_COLUMN);
-						return replaceColValue(sql);
-					}
-					
-					int appendIndex = valuesStr.lastIndexOf(')');
-					String valueStr1 = valuesStr.substring(0, appendIndex);	
-					String valueStr2 = valuesStr.substring(appendIndex);
-					String newSQL = new StringBuilder(insertStr)
-						.append(",").append(GLOBAL_TABLE_MYCAT_COLUMN)
-						.append(valueStr1).append(",")
-						.append(operationTimestamp).append(valueStr2).toString();
-					return newSQL;
-				}
+				// sql = "insert into company(name,addr) values(xx,xxx);"
+				// insertStr = "insert into company(name,addr"
+				// valuesStr = ") values(xx,xxx);"
+				int appendIndex = valuesStr.lastIndexOf(')');
+				String valueStr1 = valuesStr.substring(0, appendIndex);	// ) values(xx,xxx
+				String valueStr2 = valuesStr.substring(appendIndex);	// );
+				String newSQL = new StringBuilder(insertStr)
+					.append(",").append(GLOBAL_TABLE_MYCAT_COLUMN)
+					.append(valueStr1).append(",")
+					.append(operationTimestamp).append(valueStr2).toString();
+				return newSQL;
 			}
 		}catch(Exception e){ // 发生异常，则返回原始 sql
 			LOGGER.warn(e.getMessage());
@@ -230,60 +240,69 @@ public class GlobalTableUtil{
 	 * @return
 	 */
 	private static String convertUpdateSQL(String sql, String tableName){
-        if(tableName.indexOf(',') != -1){
+		// update user, tuser set user.name='dddd',tuser.pwd='aaa' 
+        if(tableName.indexOf(',') != -1){	
         	 LOGGER.warn("Do not support Multiple-table udpate syntax...");
         	 return sql;
         }
-      
         try{
-        	if(isGlobalTable(tableName)){
-        		// update company set name=xx, _mycat_op_time=11111111,sex=xxx;
-         		String regStr = ".*(?i)update.*set.*" + GLOBAL_TABLE_MYCAT_COLUMN + "\\s*=.*";
-         		if(Pattern.matches(regStr, sql)){
-         			LOGGER.warn("client cannot update value to inner column: " + GLOBAL_TABLE_MYCAT_COLUMN);
-         			
-         			int idx = sql.indexOf(GLOBAL_TABLE_MYCAT_COLUMN) + GLOBAL_TABLE_MYCAT_COLUMN.length();
-         			String updateStr = sql.substring(0, idx);	// update company set  _mycat_op_time
-         			StringBuilder sb = new StringBuilder(updateStr);
-         			sb.append("=").append(operationTimestamp);
-         			
-         			String valueStr = sql.substring(idx);
-         			String[] arr = valueStr.split("\\s*,\\s*");
-         			if(arr != null && arr.length > 1){
-         				sb.append(",");
-         				for(int i=1; i<arr.length; i++){
-         					if(i<arr.length-1)
-         						sb.append(arr[i]).append(",");
-         					if(i == arr.length-1)
-         						sb.append(arr[i]);
-         				}
-         			}
-         			return sb.toString();
-         		}
-        		
-           	 	StringBuilder newSQL = new StringBuilder();
-        		int idx = sql.toUpperCase().indexOf("WHERE");
-        		if(idx == -1){	// 没有 where 子句
-        			if(sql.lastIndexOf(';') == -1){	// 尾部没有 ;
-        				 return newSQL.append(sql).append(",").append(GLOBAL_TABLE_MYCAT_COLUMN)
-        						.append("=").append(operationTimestamp).toString();
-        			}else{
-        				return newSQL.append(sql.substring(0, sql.indexOf(";")))
-        						.append(",").append(GLOBAL_TABLE_MYCAT_COLUMN).append("=")
-        						.append(operationTimestamp).append(";").toString();
-        			}
-        		 }else{	// 有 where 子句
-        			String updateStr = sql.substring(0, idx);	// update user set name='aaa' 
-        			String whereStr = sql.substring(idx);		// where id=2222;
-        			return newSQL.append(updateStr).append(",").append(GLOBAL_TABLE_MYCAT_COLUMN)
-        					.append("=").append(operationTimestamp).append(" ").append(whereStr).toString();
-        		 }
-            }
+        	if(!isGlobalTable(tableName))
+        		return sql;
+        	
+    		// update company set name=xx, _mycat_op_time=11111111,sex=xxx where id=2
+     		String regStr = ".*(?i)update.*set.*" + GLOBAL_TABLE_MYCAT_COLUMN + "\\s*=.*";
+     		dealWithUpdateOrInsertSet(regStr, sql, "update");
+     		
         }catch(Exception e){
         	LOGGER.warn(e.getMessage());
 			return sql;
         }
         return sql;
+	}
+	
+	private static String dealWithUpdateOrInsertSet(String regStr, String sql, String type){
+		// update      company set name=xx, _mycat_op_time=11111111,addr=xxx where id=2
+		// insert into company set name=xx, _mycat_op_time=11111111,addr=xxx;
+ 		if(Pattern.matches(regStr, sql)){
+ 			if("insert".equalsIgnoreCase(type)){
+				LOGGER.warn("Do not insert value to inner column: " + GLOBAL_TABLE_MYCAT_COLUMN);
+ 			}
+ 			if("update".equalsIgnoreCase(type)){
+ 				LOGGER.warn("Do not update value to inner column: " + GLOBAL_TABLE_MYCAT_COLUMN);
+ 			}
+ 			// "insert into company set name=xx, _mycat_op_time=11111111,addr=xxx;";
+ 			// "insert into company set name=xx, _mycat_op_time='11111111',addr=xxx;";
+ 			// "insert into company set name=xx, _mycat_op_time=\"11111111\",addr=xxx";
+ 			return sql.replaceAll(GLOBAL_TABLE_MYCAT_COLUMN+"=[\"|']{0,1}\\d*[\"|']{0,1}", 
+ 							      GLOBAL_TABLE_MYCAT_COLUMN+"="+operationTimestamp);
+ 		}
+		
+ 		StringBuilder newSQL = new StringBuilder();
+ 		
+ 		// insert into company set name=xx,addr=xxx; 
+ 		if("insert".equalsIgnoreCase(type)){
+ 			sql = sql.trim();
+ 			if(sql.indexOf(';') != sql.length()-1){	// 尾部没有 ;
+				 return newSQL.append(sql)
+						.append(",").append(GLOBAL_TABLE_MYCAT_COLUMN)
+						.append("=").append(operationTimestamp).toString();
+			}else{
+				return newSQL.append(sql.substring(0, sql.length()-1))	// 先去掉末尾的;
+						.append(",").append(GLOBAL_TABLE_MYCAT_COLUMN).append("=")
+						.append(operationTimestamp).append(";").toString();	// 在加上末尾的;
+			}
+ 		}
+ 		
+ 		// update company set name=xx,addr=xxx where id=2;
+ 		if("update".equalsIgnoreCase(type)){
+ 			int idx = sql.toUpperCase().indexOf(" SET ") + 5;
+ 			String udpateStr = sql.substring(0, idx);	// update company set 
+ 			String setStr = sql.substring(idx);			// name=xx,addr=xxx where id=2;
+ 			return new StringBuilder(udpateStr).append(GLOBAL_TABLE_MYCAT_COLUMN)
+ 					.append("=").append(operationTimestamp).append(",")
+ 					.append(setStr).toString();
+ 		}
+ 		return sql;
 	}
 	
 	/**
@@ -328,7 +347,7 @@ public class GlobalTableUtil{
 	 */
 	private static String convertReplaceSQL(String sql){
 		// mycat-server 不支持该语法: replace into tb select;
-		if(Pattern.matches(".*(?i)replace.*[into].*select.*", sql)){
+		if(Pattern.matches(".*(?i)replace.*(into\\s+)?.*select.*", sql)){
 			return sql;
 		}
 		String regStr = ".*(?i)replace.*\\(.*" + GLOBAL_TABLE_MYCAT_COLUMN + ".*";
@@ -337,13 +356,13 @@ public class GlobalTableUtil{
  			return sql;
  		}
 		
-		String multiValuesReg = ".*(?i)replace.*[into].*value.*\\(.*\\).*\\(.*\\).*"; 
-		String replaceSetReg = ".*(?i)replace.*[into].*set.*"; 
+		String multiValuesReg = ".*(?i)replace.*(into\\s+)?.*value.*\\(.*\\).*\\(.*\\).*"; 
+		String replaceSetReg = ".*(?i)replace.*(into\\s+)?.*set.*"; 
 		try{
 			int index = sql.indexOf(')');
 			String insertStr = sql.substring(0, index);
 			String valuesStr = sql.substring(index);
-			String tableName = insertStr.substring(insertStr.indexOf("into ")+5,
+			String tableName = insertStr.substring(insertStr.toUpperCase().indexOf("INTO ")+5,
 											insertStr.indexOf('('));
 			tableName = tableName.trim();
 			
@@ -396,22 +415,20 @@ public class GlobalTableUtil{
 	}
 	
 	private static String getTableName(String sql, int sqlType){
+		String tableName = null;
 		if(sqlType == ServerParse.INSERT){
-			int index = sql.indexOf(')');
-			String insertStr = sql.substring(0, index);	// insert into user(id,name,_mycat_op_time
-			String tableName = null;
-			int j = insertStr.toUpperCase().indexOf("INTO ");
-			if(j != -1){	// 有关键字 into
-				tableName = insertStr.substring(j+5, insertStr.indexOf('('));
-			}else{			// 没有关键字 into: insert company(id,name,addr) values();
-				tableName = insertStr.substring(6, insertStr.indexOf('('));
-			}
+			// 注意必须使用非贪婪模式
+			String reg = ".*(?i)insert\\s+(into\\s+)?(.+?)\\(.*"; // into 关键字是可选的
+			Matcher matcher = Pattern.compile(reg).matcher(sql);
+			if(matcher.find()){
+				tableName = matcher.group(2);
+	        }
 			return  tableName != null ? tableName.trim() : null;
 		}
 		if(sqlType == ServerParse.UPDATE){
-			String reg = ".*(?i)update(.*)set.*"; // 提取表名
+			// 注意必须使用非贪婪模式
+			String reg = ".*(?i)update(.+?)set.*"; // 提取表名
 			Matcher matcher = Pattern.compile(reg).matcher(sql);
-			String tableName = null;
 			if(matcher.find()){
 				tableName = matcher.group(1);
 	        }
@@ -429,10 +446,12 @@ public class GlobalTableUtil{
 			int index = sql.indexOf(')');
 			String insertStr = sql.substring(0, index);	// insert into user(id,name,_mycat_op_time
 			String valuesStr = sql.substring(index);	// ) values(1111,'dig',11111);
+			if(insertStr.split("\\s*,\\s*").length != valuesStr.split("\\s*,\\s*").length)
+				return sql;	// 字段的值中包含了字符 ',' 所以分割得到的数组长度不一致
 			
 			int columnIndex = getColIdxForInsert(insertStr);
 			StringBuilder sb = new StringBuilder(insertStr)
-							.append(replaceValue(valuesStr, columnIndex));
+							.append(replaceIndexValue(valuesStr, columnIndex));
 			return sb.toString();
 		}catch(Exception e){
 			e.printStackTrace();
@@ -441,13 +460,13 @@ public class GlobalTableUtil{
 	}
 	
 	/**
-	 * @param 
+	 * 根据内部列  _mycat_op_time 的idx，将对应idx位置的value替换掉 
 	 * valuesStr ) values(1111,'dig',11111);
 	 * (1111,'dig',2222
 	 * (1111,'dig',2222);
 	 * ) valueS(1111,'dig',22
 	 */
-	private static String replaceValue(String valuesStr, int columnIndex){
+	private static String replaceIndexValue(String valuesStr, int columnIndex){
 		String[] values = valuesStr.split("\\s*,\\s*");
 		StringBuilder sb = new StringBuilder();
 		for(int j=0; j<values.length; j++){
@@ -467,7 +486,8 @@ public class GlobalTableUtil{
 	private static int getColIdxForInsert(String insertStr){
 		String[] columns = insertStr.split("\\s*,\\s*");
 		for(int i=0; i<columns.length; i++){
-			if(columns[i] != null && columns[i].contains(GLOBAL_TABLE_MYCAT_COLUMN)){
+			if(columns[i] != null && columns[i].toLowerCase()
+					.contains(GLOBAL_TABLE_MYCAT_COLUMN.toLowerCase())){
 				return i;
 			}
 		}
@@ -475,30 +495,37 @@ public class GlobalTableUtil{
 	}
 	
 	/**
+	 * 根据内部列  _mycat_op_time 的idx，将对于idx位置的value替换掉 
 	 * insert into user(id,name) valueS(1111,'dig'),(1111,'dig'),(1111,'dig'),(1111,'dig');
+	 * insert into user(id,name,_mycat_op_time) valueS(1111,'dig',22),(1111,'dig',22);
 	 * @return
 	 */
 	private static String replaceMultiValue(String sql){
 		int index = sql.indexOf(')');
 		String insertStr = sql.substring(0, index);	// insert into user(id,name,_mycat_op_time
 		String valuesStr = sql.substring(index);	// ) valueS(1111,'dig',22),(1111,'dig',22);
-	
+		int columnNum = insertStr.split("\\s*,\\s*").length;
 		int columnIndex = getColIdxForInsert(insertStr);
 	
 		// ) valueS(1111,'dig',22),(1111,'dig',22),(1111,'dig',22);
-		String[] strArr = valuesStr.split("\\)\\s*,\\s*"); //将 values以 '),'分割:  (1111,'dig'
+		String[] strArr = valuesStr.split("\\)\\s*,\\s*"); //将 values以 '),'分割:  (1111,'dig',22
+		
 		StringBuilder newSQL = new StringBuilder(insertStr)
 						.append(",").append(GLOBAL_TABLE_MYCAT_COLUMN);
 			
 		for(int i=0; i< strArr.length; i++){
 			if(i == strArr.length-1){
 				// (1111,'dig',2222);
-				String str = replaceValue(strArr[i], columnIndex);	
+				if(columnNum != strArr[i].split("\\s*,\\s*").length)
+					return sql;
+				String str = replaceIndexValue(strArr[i], columnIndex);	
 				newSQL.append(str);
 			}else{
 				// ) valueS(1111,'dig',22
 				// (1111,'dig',22
-				String str = replaceValue(strArr[i], columnIndex);	
+				if(columnNum != strArr[i].split("\\s*,\\s*").length)
+					return sql;
+				String str = replaceIndexValue(strArr[i], columnIndex);	
 				newSQL.append(str);
 			}
 		}
@@ -631,57 +658,9 @@ public class GlobalTableUtil{
 					}
 				}
 			}
-			
-//			for(SQLQueryResult<Map<String, String>> map : list){
-//				Map<String, String> row = map.getResult();
-//				if(row != null){
-//					if(row.containsKey(GlobalTableUtil.COUNT_COLUMN)){
-//						LOGGER.debug(map.getDataNode() + "." + map.getTableName() + "." + GlobalTableUtil.COUNT_COLUMN
-//								+ ": "+ map.getResult().get(GlobalTableUtil.COUNT_COLUMN));
-//					}
-//				}
-//			}
-			
-//			for(SQLQueryResult<Map<String, String>> map : list){
-//				Map<String, String> row = map.getResult();
-//				if(row != null){
-//					if(row.containsKey(GlobalTableUtil.INNER_COLUMN)){
-//						int count = 0;
-//						try{
-//							if(StringUtils.isNotBlank(row.get(GlobalTableUtil.INNER_COLUMN)))
-//								count = Integer.parseInt(row.get(GlobalTableUtil.INNER_COLUMN).trim());
-//						}catch(NumberFormatException e){
-//							LOGGER.warn(row.get(GlobalTableUtil.INNER_COLUMN) + ", " + e.getMessage());
-//						}finally{
-//							if(count <= 0){
-//								LOGGER.warn(map.getDataNode() + "." + map.getTableName() + " inner column: " 
-//										+ GlobalTableUtil.GLOBAL_TABLE_MYCAT_COLUMN + " is not exist.");
-//								if(StringUtils.isNotBlank(map.getTableName())){
-//									for(SQLQueryResult<Map<String, String>> sqr : innerColumnNotExist){
-//										String name = map.getTableName();
-//										String node = map.getDataNode();
-//										if(name != null && !name.equalsIgnoreCase(sqr.getTableName())
-//												|| node != null && !node.equalsIgnoreCase(sqr.getDataNode())){
-//											innerColumnNotExist.add(map);
-//										}
-//									}
-//								}
-//							}
-//							isInnerColumnCheckFinished = 1;
-//						}
-//					}
-//				}
-//			}
 		}finally{
 			lock.unlock();
 		}
-		
-//		[{"dataNode":"db3","result":{"max_timestamp":"1450423751170"},"success":true,"tableName":"COMPANY"},
-//		 {"dataNode":"db2","result":{"max_timestamp":"1450423751170"},"success":true,"tableName":"COMPANY"},
-//		 {"dataNode":"db1","result":{"max_timestamp":"1450423751170"},"success":true,"tableName":"COMPANY"},
-//		 {"dataNode":"db3","result":{"record_count":"1"},"success":true,"tableName":"COMPANY"},
-//		 {"dataNode":"db2","result":{"record_count":"1"},"success":true,"tableName":"COMPANY"},
-//		 {"dataNode":"db1","result":{"record_count":"1"},"success":true,"tableName":"COMPANY"}]
 		return list;
 	}
 	
