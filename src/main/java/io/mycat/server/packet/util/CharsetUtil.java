@@ -23,6 +23,7 @@
  */
 package io.mycat.server.packet.util;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.server.config.node.DBHostConfig;
@@ -34,6 +35,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.SystemUtils;
@@ -41,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * 该类被彻底重构，fix 掉了原来的  collationIndex 和 charset 之间对应关系的兼容性问题，
@@ -73,12 +76,11 @@ public class CharsetUtil {
      * @param charsetConfigMap mycat.xml文件中 charset-config 元素指定的 collationIndex --> charsetName
      */
     public static void asynLoad(Map<String, PhysicalDBPool> dataHosts, Map<String, Object> charsetConfigMap){
-    	Runnable runn = new Runnable() {
+    	MycatServer.getInstance().getListeningExecutorService().execute(new Runnable() {
 			public void run() {
 				CharsetUtil.load(dataHosts, charsetConfigMap);
 			}
-		};
-		new Thread(runn).start();
+		});
     }
     
     /**
