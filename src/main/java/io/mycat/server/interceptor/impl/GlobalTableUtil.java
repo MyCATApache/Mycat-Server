@@ -151,6 +151,23 @@ public class GlobalTableUtil{
 			if(!isGlobalTable(tableName))
 				return sql;
 			
+			// 处理  insert into set 语句
+			// insert into company set name=xx, _mycat_op_time=11111111,addr=xxx; 
+			if(Pattern.matches(".*(?i)insert\\s+(into\\s+)?.*\\s+set\\s+.*", sql)){
+         		String regStr = ".*(?i)insert.*(into\\s+)?set.*" + GLOBAL_TABLE_MYCAT_COLUMN + "\\s*=.*";
+         		return dealWithUpdateOrInsertSet(regStr, sql, "insert");
+			}
+			
+			// 获取列名： id,name,addr
+			String re = ".*(?i)insert\\s+(into)?\\s+.*\\((.*)\\)\\s+value(s)?.*";
+			Matcher matcher = Pattern.compile(re).matcher(sql);
+			String cols = null;
+			if(matcher.find())
+				cols = matcher.group(2);
+			if((cols != null && cols.indexOf(')') != -1)
+					|| tableName.indexOf(')') != -1)	//排除特殊情况： 如果表名列名中含有 ')'
+				return sql;
+				
 			int index = sql.indexOf(')');
 			String insertStr = sql.substring(0, index);	// insert into user(id,name,_mycat_op_time
 			String valuesStr = sql.substring(index);	// ) values(1111,'dig',11111);
@@ -167,10 +184,13 @@ public class GlobalTableUtil{
 				// values 后至少有两个 ()()，没有 GLOBAL_TABLE_MYCAT_COLUMN 列
 				// insert into user(id,name) valueS(1111,'dig'),(1111,'dig');
 				// valuesStr = ") valueS(1111,'dig'),(1111,'dig');"
+				int colNum = insertStr.split("\\s+,\\s+").length;
 				String[] strArr = valuesStr.split("\\)\\s*,\\s*"); // 将 values以 '),'分割
 				StringBuilder newSQL = new StringBuilder(insertStr).append(",")
 											.append(GLOBAL_TABLE_MYCAT_COLUMN);
 				for(int i=0; i< strArr.length; i++){
+					if(colNum != strArr[i].split("\\s+,\\s+").length)
+						return sql;
 					if(i == strArr.length-1){
 						int idx = strArr[i].indexOf(")");
 						newSQL.append(strArr[i].substring(0, idx));
@@ -185,13 +205,6 @@ public class GlobalTableUtil{
 			}
 			
 			// 非批量插入
-			
-			// 处理  insert into set 语句
-			// insert into company set name=xx, _mycat_op_time=11111111,addr=xxx; 
-			if(Pattern.matches(".*(?i)insert.*(into\\s+)?.*set.*", sql)){
-         		String regStr = ".*(?i)insert.*(into\\s+)?set.*" + GLOBAL_TABLE_MYCAT_COLUMN + "\\s*=.*";
-         		return dealWithUpdateOrInsertSet(regStr, sql, "insert");
-			}
 			
 			String oneValuesReg = ".*(?i)insert.*(into\\s+)?.*value.*\\(.*\\).*";
 			if(Pattern.matches(oneValuesReg, sql)){
@@ -620,12 +633,12 @@ public class GlobalTableUtil{
 				Map<String, String> row = map.getResult();
 				if(row != null){
 					if(row.containsKey(GlobalTableUtil.MAX_COLUMN)){
-						LOGGER.debug(map.getDataNode() + "." + map.getTableName() 
+						LOGGER.info(map.getDataNode() + "." + map.getTableName() 
 								+ "." + GlobalTableUtil.MAX_COLUMN
 								+ ": "+ map.getResult().get(GlobalTableUtil.MAX_COLUMN));
 					}
 					if(row.containsKey(GlobalTableUtil.COUNT_COLUMN)){
-						LOGGER.debug(map.getDataNode() + "." + map.getTableName() 
+						LOGGER.info(map.getDataNode() + "." + map.getTableName() 
 								+ "." + GlobalTableUtil.COUNT_COLUMN
 								+ ": "+ map.getResult().get(GlobalTableUtil.COUNT_COLUMN));
 					}
