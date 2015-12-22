@@ -404,7 +404,7 @@ public class GlobalTableUtil{
 										try {
 											TimeUnit.SECONDS.sleep(1);
 										} catch (InterruptedException e) {
-											e.printStackTrace();
+											LOGGER.warn(e.getMessage());
 										}
 									}
 									LOGGER.debug("isInnerColumnCheckFinished:" + isInnerColumnCheckFinished);
@@ -414,7 +414,7 @@ public class GlobalTableUtil{
 									try {
 										TimeUnit.SECONDS.sleep(1);
 									} catch (InterruptedException e) {
-										e.printStackTrace();
+										LOGGER.warn(e.getMessage());
 									}
 									
 									checker = new MySQLConsistencyChecker(mds, table.getName());

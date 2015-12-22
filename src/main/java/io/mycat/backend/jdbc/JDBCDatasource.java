@@ -36,7 +36,6 @@ public class JDBCDatasource extends PhysicalDatasource {
 						Class.forName(driver.getClassName());
 					} catch (ClassNotFoundException e) {
 						logger.error("Class.forName load jdbcDriver for "+key+" error: " + e.getMessage());
-						e.printStackTrace();
 					}	
 				}else{
 					logger.error(" driver for " + key + " is not exist or className has no value,"
