@@ -11,9 +11,11 @@ import io.mycat.server.executors.ResponseHandler;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Enumeration;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -22,7 +24,27 @@ import org.slf4j.LoggerFactory;
 
 public class JDBCDatasource extends PhysicalDatasource {
 	public static final Logger logger = LoggerFactory.getLogger(JDBCDatasource.class);
-	private static Map<String, JdbcDriver> jdbcDriverConfig = LocalLoader.loadJdbcDriverConfig();
+	private static Map<String, JdbcDriver> jdbcDriverConfig = null;
+	
+	static { // 最多也就3,4个数据库，一次性加载驱动类
+		jdbcDriverConfig = LocalLoader.loadJdbcDriverConfig();
+		if(jdbcDriverConfig != null && jdbcDriverConfig.size() > 0){
+			for(String key : jdbcDriverConfig.keySet()){
+				JdbcDriver driver = jdbcDriverConfig.get(key);
+				if(driver != null && StringUtils.isNotBlank(driver.getClassName())){
+					try {
+						Class.forName(driver.getClassName());
+					} catch (ClassNotFoundException e) {
+						logger.error("Class.forName load jdbcDriver for "+key+" error: " + e.getMessage());
+						e.printStackTrace();
+					}	
+				}else{
+					logger.error(" driver for " + key + " is not exist or className has no value,"
+							+ " please check jdbcDriver-config element in mycat.xml.");
+				}
+			}
+		}
+	}
 
 	public JDBCDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
@@ -39,25 +61,6 @@ public class JDBCDatasource extends PhysicalDatasource {
 	public void createNewConnection(ResponseHandler handler, String schema)
 			throws IOException {
 		DBHostConfig cfg = getConfig();
-		
-		if(StringUtils.isBlank(cfg.getDbType())){
-			logger.error(" dbType for " + cfg.getHostName() + " in mycat.xml has no value. ");
-			return;
-		}
-		
-		JdbcDriver driver = getJdbcDriverBydbType(cfg.getDbType().toLowerCase());
-		try {
-			if(driver != null && StringUtils.isNotBlank(driver.getClassName())){
-				Class.forName(driver.getClassName());	
-			}else{
-				logger.error(" driver for " + cfg.getDbType() + " is not exist or className has no value,"
-						+ " please check jdbcDriver-config element in mycat.xml.");
-			}
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-			logger.error("createNewConnection error: " + e.getMessage());
-			return;
-		}
 		
 		JDBCConnection c = null;
 		try {
@@ -84,6 +87,9 @@ public class JDBCDatasource extends PhysicalDatasource {
 
 	Connection getConnection() throws SQLException {
 		DBHostConfig cfg = getConfig();
+		Enumeration<Driver> drivers = DriverManager.getDrivers();
+		Driver d = drivers.nextElement();
+		d.getClass().getName();
 		Connection connection = DriverManager.getConnection(cfg.getUrl(),
 				cfg.getUser(), cfg.getPassword());
 		String initSql = getHostConfig().getConnectionInitSql();
