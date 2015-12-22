@@ -151,6 +151,8 @@ public class SQLJob implements ResponseHandler, Runnable {
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
+		//connection do synchronization
+		conn.syncAndExcute();
 		conn.release();
 		doFinished(false);
 	}
