@@ -353,55 +353,6 @@ public class GlobalTableUtil{
 		}
 	}
 	
-	/**
-	 * UPDATE [LOW_PRIORITY] [IGNORE] table_reference
-    	SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}] ...
-    	[WHERE where_condition]
-    	[ORDER BY ...]
-    	[LIMIT row_count]
-
-		Multiple-table syntax:
-
-		UPDATE [LOW_PRIORITY] [IGNORE] table_references
-    	SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}] ...
-    	[WHERE where_condition]
-    	
-    	update user, tuser set user.name='dddd',tuser.pwd='aaa' 
-    	where user.id=2 and tuser.id=0;
-	 * @param sql update tuser set pwd='aaa', name='digdee' where id=0;
-	 * @return
-	 */
-	private static String convertUpdateSQL2(String sql, String tableName){
-		// update user, tuser set user.name='dddd',tuser.pwd='aaa' 
-        if(tableName.indexOf(',') != -1){	
-        	 LOGGER.warn("Do not support Multiple-table udpate syntax...");
-        	 return sql;
-        }
-        try{
-        	if(!isGlobalTable(tableName))
-        		return sql;
-        	
-    		// update company set name=xx, _mycat_op_time=11111111,sex=xxx where id=2
-     		String regStr = ".*(?i)update.*set.*" + GLOBAL_TABLE_MYCAT_COLUMN + "\\s*=.*";
-     		if(Pattern.matches(regStr, sql)){
-     			LOGGER.warn("Do not update value to inner column: " + GLOBAL_TABLE_MYCAT_COLUMN);
-     			// "update  company set name=xx, _mycat_op_time=11111111,addr=xxx;";
-     			// "update  company set name=xx, _mycat_op_time='11111111',addr=xxx;";
-     			// "update  company set name=xx, _mycat_op_time=\"11111111\",addr=xxx";
-     			return sql.replaceAll(GLOBAL_TABLE_MYCAT_COLUMN+"=[\"|']{0,1}\\d*[\"|']{0,1}", 
-     							      GLOBAL_TABLE_MYCAT_COLUMN+"="+operationTimestamp);
-     		}
-     		
-     		return new StringBuilder(100).append(sql.substring(0, sql.length()-1))	// 先去掉末尾的;
-					.append(",").append(GLOBAL_TABLE_MYCAT_COLUMN).append("=")
-					.append(operationTimestamp).append(";").toString();	// 在加上末尾的;
-     		
-        }catch(Exception e){
-        	LOGGER.warn(e.getMessage());
-			return sql;
-        }
-	}
-	
 	private static void getGlobalTable(){
 		MycatConfig config = MycatServer.getInstance().getConfig();
 		Map<String, SchemaConfig> schemaMap = config.getSchemas();
