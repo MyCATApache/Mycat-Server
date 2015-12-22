@@ -56,7 +56,10 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 			}
 		}
         
-		return false;
+		// 返回false，表示还有数据要处理，数据处理没有结束;
+		// 如果返回true，连接会被SQLJob关闭：conn.close("not needed by user proc")
+		// 对应的各种资源：socketchannel,read buffer,write buffer等都会被回收，连接会被从连接池中删除
+		return false;	
 	}
 
 	@Override

@@ -278,7 +278,6 @@ public class CharsetUtil {
      * @throws SQLException
      */
     public static Connection getConnection(DBHostConfig cfg){
-    	long  millisecondsBegin = System.currentTimeMillis();
     	if(cfg == null) return null;
     	
     	String url = new StringBuffer("jdbc:mysql://").append(cfg.getUrl())
@@ -287,7 +286,6 @@ public class CharsetUtil {
 		long  millisecondsEnd2 = System.currentTimeMillis();
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			logger.debug(" function Class.forName cost milliseconds: " + (millisecondsEnd2 - millisecondsBegin));
 			connection = DriverManager.getConnection(url, cfg.getUser(), cfg.getPassword());
 		} catch (ClassNotFoundException | SQLException e) {
 			if(e instanceof ClassNotFoundException)
