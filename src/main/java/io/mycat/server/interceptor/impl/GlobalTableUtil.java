@@ -175,14 +175,14 @@ public class GlobalTableUtil{
 			
 			sb.append(" values");
 			List<ValuesClause> vcl = insert.getValuesList();
-			if(vcl != null && vcl.size() > 1){
+			if(vcl != null && vcl.size() > 1){	// 批量insert
 				for(int j=0; j<vcl.size(); j++){
 				   if(j != vcl.size() - 1)
 					   appendValues(vcl.get(j).getValues(), sb, idx).append(",");
 				   else
 					   appendValues(vcl.get(j).getValues(), sb, idx);
 				}
-			}else{
+			}else{	// 非批量 insert
 				List<SQLExpr> valuse = insert.getValues().getValues();
 				appendValues(valuse, sb, idx);
 			}
@@ -339,7 +339,7 @@ public class GlobalTableUtil{
 				}
 			}
 				
-			if(limit != null){		// limit 10;   limit 10,10;
+			if(limit != null){		// 分为两种情况： limit 10;   limit 10,10;
 				sb.append(" limit ");
 				if(limit.getOffset() != null)
 					sb.append(limit.getOffset().toString()).append(",");
