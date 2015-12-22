@@ -370,7 +370,7 @@ public abstract class PhysicalDatasource {
                 LOGGER.error("the max activeConnnections size can not be max than maxconnections");
                 throw new IOException("the max activeConnnections size can not be max than maxconnections");
             }else{            // create connection
-                LOGGER.info("not ilde connection in pool,create new connection for " + this.name
+                LOGGER.info("no ilde connection in pool,create new connection for " + this.name
                         + " of schema "+schema);
                 createNewConnection(handler, attachment, schema);
             }
