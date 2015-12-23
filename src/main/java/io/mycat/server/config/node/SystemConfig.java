@@ -68,6 +68,7 @@ public final class SystemConfig {
 	private static final int DEFAULT_SQL_RECORD_COUNT = 10;
 	// 全局表一致性检测任务，默认24小时调度一次
 	private static final long DEFAULT_GLOBAL_TABLE_CHECK_PERIOD = 24 * 60 * 60 * 1000L;
+	private boolean globalTableCheckSwitchOn = true;	// 全局表一致性检查开关
 	private int maxStringLiteralLength = 65535;
 	private int frontWriteQueueSize = 2048;
 	private String bindIp = "0.0.0.0";
@@ -578,6 +579,14 @@ public final class SystemConfig {
 		this.mycatNodeId = mycatNodeId;
 	}
 
+	public boolean isGlobalTableCheckSwitchOn() {
+		return globalTableCheckSwitchOn;
+	}
+
+	public void setGlobalTableCheckSwitchOn(boolean globalTableCheckSwitchOn) {
+		this.globalTableCheckSwitchOn = globalTableCheckSwitchOn;
+	}
+
 	@Override
 	public String toString() {
 		return "SystemConfig [processorBufferLocalPercent="
@@ -603,6 +612,7 @@ public final class SystemConfig {
 				+ ", clusterHeartbeatUser=" + clusterHeartbeatUser
 				+ ", clusterHeartbeatPass=" + clusterHeartbeatPass
 				+ ", clusterHeartbeatPeriod=" + clusterHeartbeatPeriod
+				+ ", globalTableCheckSwitchOn=" + globalTableCheckSwitchOn
 				+ ", glableTableCheckPeriod=" + glableTableCheckPeriod
 				+ ", clusterHeartbeatTimeout=" + clusterHeartbeatTimeout
 				+ ", clusterHeartbeatRetry=" + clusterHeartbeatRetry

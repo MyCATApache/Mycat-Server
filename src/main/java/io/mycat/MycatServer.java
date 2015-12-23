@@ -232,8 +232,9 @@ public class MycatServer {
 				dataNodeIldeCheckPeriod);
 		timer.schedule(dataNodeHeartbeat(), 0L,
 				system.getDataNodeHeartbeatPeriod());
-		timer.schedule(glableTableConsistencyCheck(), 0L, 
-						system.getGlableTableCheckPeriod());
+		if(system.isGlobalTableCheckSwitchOn())	// 全局表一致性检测是否开启
+			timer.schedule(glableTableConsistencyCheck(), 0L, 
+							system.getGlableTableCheckPeriod());
 		timer.schedule(catletClassClear(), 30000);
 	
 	}
