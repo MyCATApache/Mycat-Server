@@ -43,7 +43,6 @@ public class MultiRowSQLQueryResultHandler extends OneRawSQLQueryResultHandler{
 			this.callback.onResult(queryResult); // callback 是构造函数传进来，在得到结果是进行回调
 		else
 			LOGGER.warn(" callback is null ");
-//		LOGGER.debug(JSON.toJSONString(queryResult));
 	}
 
 

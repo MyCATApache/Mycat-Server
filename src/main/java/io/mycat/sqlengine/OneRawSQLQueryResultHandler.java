@@ -70,7 +70,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 
 	}
 
-	// 子类 MultiRowSQLQueryResultHandler 需要调用
+	// 子类 MultiRowSQLQueryResultHandler 需要使用
 	protected Map<String, String> getResult() {
 		return result;
 	}
