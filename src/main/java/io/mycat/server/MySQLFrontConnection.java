@@ -77,8 +77,10 @@ public class MySQLFrontConnection extends GenalMySQLConnection {
 		remoteAddr = (InetSocketAddress) ((SocketChannel) channel)
 				.getRemoteAddress();
 		this.host = remoteAddr.getHostString();
-		this.port = localAddr.getPort();
-		this.localPort = remoteAddr.getPort();
+		//this.port = localAddr.getPort();
+		//this.localPort = remoteAddr.getPort(); 这里写反了
+		this.port = remoteAddr.getPort();
+		this.localPort = localAddr.getPort();
 		loadDataInfileHandler = new ServerLoadDataInfileHandler(this);
 		prepareHandler = new ServerPrepareHandler(this);
 	}
