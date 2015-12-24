@@ -456,17 +456,13 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             String dnPath = tempPath + dnName + ".txt";
             data.setFileName(dnPath);
         }
-        File dnFilePath = new File(tempPath);
 
            File dnFile = new File(data.getFileName());
              
             try
             {
-            	if (!dnFilePath.exists()) {  
-            		dnFilePath.mkdirs();   
-                } 
             	if (!dnFile.exists()) {  
-             	   dnFile.createNewFile();   
+                    Files.createParentDirs(dnFile);
                 } 	
             	Files.append(joinLine(data.getData(),data), dnFile, Charset.forName(loadData.getCharset()));
 
@@ -541,7 +537,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             ObjectUtil.copyProperties(loadData, newLoadData);
             newLoadData.setLocal(true);
             LoadData loadData1 = routeMap.get(dn);
-            if (isHasStoreToFile)
+            if (loadData1.getFileName()!=null)//此处判断是否有保存分库load的临时文件dn1.txt/dn2.txt，不是判断是否有clientTemp.txt
             {
                 newLoadData.setFileName(loadData1.getFileName());
             } else
