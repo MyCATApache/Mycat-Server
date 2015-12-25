@@ -191,7 +191,8 @@ public class QueryConditionAnalyzer implements QueryResultListener {
 		}		
 	}
 	
-   /* public static void main(String arg[]) {
+   /* -----------------------------------------------------------------
+    public static void main(String arg[]) {
     	
     	String sql = "SELECT `fnum`, `forg`, `fdst`, `airline`, `ftype` , `ports_of_call`, " +
 					"`scheduled_deptime`, `scheduled_arrtime`, `actual_deptime`, `actual_arrtime`, " +
@@ -209,6 +210,6 @@ public class QueryConditionAnalyzer implements QueryResultListener {
     	
     	List<Map.Entry<Object, Long>> list = analyzer.getValues();
     	System.out.println( list );
-    }*/
-
+     }
+    */
 }

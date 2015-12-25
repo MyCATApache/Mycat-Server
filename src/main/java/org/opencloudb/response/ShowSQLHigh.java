@@ -37,9 +37,6 @@ public final class ShowSQLHigh {
         fields[i] = PacketUtil.getField("ID", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
 
-        fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
-        fields[i++].packetId = ++packetId;
-
         fields[i] = PacketUtil.getField("FREQUENCY", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
         
@@ -53,6 +50,9 @@ public final class ShowSQLHigh {
         fields[i++].packetId = ++packetId;        
         
         fields[i] = PacketUtil.getField("LAST_TIME", Fields.FIELD_TYPE_LONGLONG);
+        fields[i++].packetId = ++packetId;
+        
+        fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
         
         eof.packetId = ++packetId;
@@ -96,13 +96,13 @@ public final class ShowSQLHigh {
     private static RowDataPacket getRow(int i, String sql, int count, long avgTime,long maxTime,long minTime,long executTime,long lastTime, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add( LongUtil.toBytes( i ) );
-        row.add( StringUtil.encode(sql, charset) );
         row.add( LongUtil.toBytes( count ) );
         row.add( LongUtil.toBytes( avgTime ) );
         row.add( LongUtil.toBytes( maxTime ) );
         row.add( LongUtil.toBytes( minTime ) );
         row.add( LongUtil.toBytes( executTime ) );
         row.add( LongUtil.toBytes( lastTime ) );
+        row.add( StringUtil.encode(sql, charset) );
         return row;
     }
 
