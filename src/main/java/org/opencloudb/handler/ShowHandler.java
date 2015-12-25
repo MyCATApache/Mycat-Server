@@ -45,6 +45,7 @@ import org.opencloudb.response.ShowParser;
 import org.opencloudb.response.ShowProcessor;
 import org.opencloudb.response.ShowRouter;
 import org.opencloudb.response.ShowSQL;
+import org.opencloudb.response.ShowSQLCondition;
 import org.opencloudb.response.ShowSQLDetail;
 import org.opencloudb.response.ShowSQLExecute;
 import org.opencloudb.response.ShowSQLHigh;
@@ -151,6 +152,9 @@ public final class ShowHandler {
 		case ManagerParseShow.SQL_HIGH:
 			ShowSQLHigh.execute(c);
 			break;
+		case ManagerParseShow.SQL_CONDITION:
+			ShowSQLCondition.execute(c);
+			break;			
 		case ManagerParseShow.SQL_SUM_USER:
 			ShowSQLSumUser.execute(c);
 			break;

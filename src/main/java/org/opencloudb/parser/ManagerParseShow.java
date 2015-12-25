@@ -48,28 +48,29 @@ public final class ManagerParseShow {
     public static final int SQL_SUM_USER = 15;
     public static final int SQL_SUM_TABLE = 16;
     public static final int SQL_HIGH = 17;
+    public static final int SQL_CONDITION = 18;
     
-    public static final int THREADPOOL = 18;
-    public static final int TIME_CURRENT = 19;
-    public static final int TIME_STARTUP = 20;
-    public static final int VERSION = 21;
-    public static final int VARIABLES = 22;
-    public static final int COLLATION = 23;
-    public static final int CONNECTION_SQL = 24;
-    public static final int DATANODE_WHERE = 25;
-    public static final int DATASOURCE_WHERE = 26;
-    public static final int HEARTBEAT = 27;
-    public static final int SLOW_DATANODE = 28;
-    public static final int SLOW_SCHEMA = 29;
-    public static final int BACKEND = 30;
-    public static final int CACHE = 31;
-    public static final int SESSION = 32;
-    public static final int SYSPARAM = 33;
-    public static final int SYSLOG = 34;
-    public static final int HEARTBEAT_DETAIL = 35;
-    public static final int DATASOURCE_SYNC = 36;
-    public static final int DATASOURCE_SYNC_DETAIL = 37;
-    public static final int DATASOURCE_CLUSTER = 38;
+    public static final int THREADPOOL = 21;
+    public static final int TIME_CURRENT = 22;
+    public static final int TIME_STARTUP = 23;
+    public static final int VERSION = 24;
+    public static final int VARIABLES = 25;
+    public static final int COLLATION = 26;
+    public static final int CONNECTION_SQL = 27;
+    public static final int DATANODE_WHERE = 28;
+    public static final int DATASOURCE_WHERE = 29;
+    public static final int HEARTBEAT = 30;
+    public static final int SLOW_DATANODE = 31;
+    public static final int SLOW_SCHEMA = 32;
+    public static final int BACKEND = 33;
+    public static final int CACHE = 34;
+    public static final int SESSION = 35;
+    public static final int SYSPARAM = 36;
+    public static final int SYSLOG = 37;
+    public static final int HEARTBEAT_DETAIL = 38;
+    public static final int DATASOURCE_SYNC = 39;
+    public static final int DATASOURCE_SYNC_DETAIL = 40;
+    public static final int DATASOURCE_CLUSTER = 41;
 
     
     public static int parse(String stmt, int offset) {
@@ -1180,6 +1181,9 @@ public final class ManagerParseShow {
             case 'H':
             case 'h':
             	return show2SqlHCheck(stmt, offset);
+            case 'C':
+            case 'c':
+            	return show2SqlCCheck(stmt, offset);
             default:
                 return OTHER;
             }
@@ -1285,6 +1289,30 @@ public final class ManagerParseShow {
                     return OTHER;
                 }
                 return SQL_HIGH;
+            }
+        }
+        return OTHER;
+    }
+    
+    // SHOW @@sql.condition
+    static int show2SqlCCheck(String stmt, int offset) {
+    	
+    	if (stmt.length() > offset + "ONDITION".length()) {
+    		char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+            char c6 = stmt.charAt(++offset);
+            char c7 = stmt.charAt(++offset);
+            char c8 = stmt.charAt(++offset);
+            if ( (c1 == 'O' || c1 == 'o') && (c2 == 'N' || c2 == 'n') && (c3 == 'D' || c3 == 'd') &&
+            		(c4 == 'I' || c4 == 'i') && (c5 == 'T' || c5 == 't') && (c6 == 'I' || c6 == 'i') &&
+            		(c7 == 'O' || c7 == 'o') && (c8 == 'N' || c8 == 'n') ) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return OTHER;
+                }
+                return SQL_CONDITION;
             }
         }
         return OTHER;
