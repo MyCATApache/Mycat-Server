@@ -21,6 +21,8 @@ import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
@@ -282,6 +284,16 @@ public class GlobalTableUtil{
 	        
 			StringBuilder sb = new StringBuilder(150);
 			
+			SQLExpr se = update.getWhere();
+			// where中有子查询： update company set name='com' where id in (select id from xxx where ...)
+			if(se instanceof SQLInSubQueryExpr){
+				// return sql;
+				int idx = sql.toUpperCase().indexOf(" SET ") + 5;
+				sb.append(sql.substring(0, idx)).append(GLOBAL_TABLE_MYCAT_COLUMN)
+				.append("=").append(operationTimestamp)
+				.append(",").append(sql.substring(idx));
+				return sb.toString();
+			}
 			String where = null;
 			if(update.getWhere() != null)
 				where = update.getWhere().toString();
