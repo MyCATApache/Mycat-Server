@@ -242,7 +242,7 @@ mycat-mysqlgroup :
 
 mycat-lbs:
     lb_v1:
-	  hostId: fz_vm1
+      hostId: fz_vm1
       name: yyyyy
       ip: 192.168.10.2
       port: 9999
