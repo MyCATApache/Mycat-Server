@@ -3,7 +3,8 @@ package org.opencloudb.config.loader.zookeeper.entitiy;
 import javax.xml.bind.annotation.*;
 import java.util.Objects;
 
-@XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "Property") public class Property {
+@XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "Property") public class Property
+    implements Named {
 
     @XmlValue protected String value;
     @XmlAttribute(name = "name") protected String name;
