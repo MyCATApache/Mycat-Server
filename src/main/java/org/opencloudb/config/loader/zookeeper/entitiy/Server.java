@@ -50,7 +50,7 @@ import java.util.List;
 
 
     @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "user") public static class User
-        implements Propertied {
+        implements Propertied, Named {
 
         @XmlAttribute(required = true) protected String name;
 

@@ -40,8 +40,8 @@ import java.util.List;
      * * </rule>
      * </tableRule>
      */
-    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "tableRule")
-    public static class TableRule {
+    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "tableRule") public static class TableRule
+        implements Named {
         @XmlElement(required = true, name = "rule") protected Rule rule;
         @XmlAttribute(required = true) protected String name;
 
@@ -101,7 +101,7 @@ import java.util.List;
      * </function>
      */
     @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "function") public static class Function
-        implements Propertied {
+        implements Propertied, Named {
         @XmlAttribute(required = true) protected String name;
 
         @XmlAttribute(required = true, name = "class") protected String clazz;

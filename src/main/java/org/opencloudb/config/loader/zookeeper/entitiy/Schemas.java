@@ -49,7 +49,8 @@ import java.util.List;
      * *
      * </schema>
      */
-    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "schema") public static class Schema {
+    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "schema") public static class Schema
+        implements Named {
         @XmlAttribute(required = true) protected String name;
         @XmlAttribute protected Boolean checkSQLschema;
         @XmlAttribute protected Integer sqlMaxLimit;
@@ -103,7 +104,8 @@ import java.util.List;
         /**
          * <table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
          */
-        @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "table") public static class Table {
+        @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "table") public static class Table
+            implements Named {
             @XmlAttribute(required = true) protected String name;
             @XmlAttribute protected String nameSuffix;
             @XmlAttribute(required = true) protected String dataNode;
@@ -203,7 +205,7 @@ import java.util.List;
              * <childTable name="order_items" joinKey="order_id" parentKey="id" />
              */
             @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "childTable")
-            public static class ChildTable {
+            public static class ChildTable implements Named {
                 @XmlAttribute(required = true) protected String name;
                 @XmlAttribute(required = true) protected String joinKey;
                 @XmlAttribute(required = true) protected String parentKey;
@@ -270,7 +272,8 @@ import java.util.List;
     /**
      * <dataNode name="dn1" dataHost="localhost1" database="db1" />
      */
-    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "dataNode") public static class DataNode {
+    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "dataNode") public static class DataNode
+        implements Named {
         @XmlAttribute(required = true) protected String name;
         @XmlAttribute(required = true) protected String dataHost;
         @XmlAttribute(required = true) protected String database;
@@ -306,7 +309,8 @@ import java.util.List;
      * writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
      * </dataHost>
      */
-    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "dataHost") public static class DataHost {
+    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "dataHost") public static class DataHost
+        implements Named {
         @XmlAttribute(required = true) protected Integer balance;
         @XmlAttribute(required = true) protected Integer maxCon;
         @XmlAttribute(required = true) protected Integer minCon;
@@ -432,7 +436,7 @@ import java.util.List;
             @XmlAttribute(required = true) protected String user;
             @XmlAttribute protected Boolean usingDecrypt;
 
-            protected List<ReadHost> readHost;
+            private List<ReadHost> readHost;
 
             public String getHost() {
                 return host;
@@ -485,49 +489,13 @@ import java.util.List;
                 this.readHost = readHost;
             }
 
+
             /**
              * <readHost host="" url="" password="" user=""></readHost>
              */
             @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "readHost")
-            public static class ReadHost {
-                @XmlAttribute(required = true) protected String host;
-                @XmlAttribute(required = true) protected String url;
-                @XmlAttribute(required = true) protected String password;
-                @XmlAttribute(required = true) protected String user;
+            public static class ReadHost extends WriteHost {
                 @XmlAttribute protected String weight;
-                @XmlAttribute protected Boolean usingDecrypt;
-
-                public String getHost() {
-                    return host;
-                }
-
-                public void setHost(String host) {
-                    this.host = host;
-                }
-
-                public String getUrl() {
-                    return url;
-                }
-
-                public void setUrl(String url) {
-                    this.url = url;
-                }
-
-                public String getPassword() {
-                    return password;
-                }
-
-                public void setPassword(String password) {
-                    this.password = password;
-                }
-
-                public String getUser() {
-                    return user;
-                }
-
-                public void setUser(String user) {
-                    this.user = user;
-                }
 
                 public String getWeight() {
                     return weight;
@@ -537,12 +505,8 @@ import java.util.List;
                     this.weight = weight;
                 }
 
-                public Boolean isUsingDecrypt() {
-                    return usingDecrypt;
-                }
-
-                public void setUsingDecrypt(Boolean usingDecrypt) {
-                    this.usingDecrypt = usingDecrypt;
+                @XmlTransient @Override public List<ReadHost> getReadHost() {
+                    return super.getReadHost();
                 }
             }
         }

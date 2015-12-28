@@ -73,7 +73,10 @@ public class ZkCreate {
                 return;
             }
 
-            framework.setData().forPath(childPath, new JSONObject(mapObject).toString().getBytes());
+            if (mapObject != null) {
+                framework.setData()
+                    .forPath(childPath, new JSONObject(mapObject).toString().getBytes());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
