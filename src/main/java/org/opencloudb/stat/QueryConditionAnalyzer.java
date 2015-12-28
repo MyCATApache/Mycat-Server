@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.log4j.Logger;
 import org.opencloudb.server.parser.ServerParse;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -34,6 +35,8 @@ import com.alibaba.druid.stat.TableStat.Condition;
  *
  */
 public class QueryConditionAnalyzer implements QueryResultListener {
+	
+	private static final Logger LOGGER = Logger.getLogger(QueryConditionAnalyzer.class);
 	
 	private String tableName = null;
 	private String columnName = null;
@@ -65,18 +68,23 @@ public class QueryConditionAnalyzer implements QueryResultListener {
 	
 			switch(sqlType) {
 	    	case ServerParse.SELECT:		
-
     			List<Object> values = sqlParser.parseConditionValues(sql, this.tableName, this.columnName);
 	    		if ( values != null ) {
-	    			for(Object value : values) {
+	    			
+	    			if ( this.map.size() < 100000 ) {
 	    				
-	    				Long count = this.map.get(value);
-	    				if (count == null) {
-	    					count = 1L;
-	    				} else {
-	    					count++;
-	    				}	    				
-	    				this.map.put(value, count);	    				
+		    			for(Object value : values) {
+		    				Long count = this.map.get(value);
+		    				if (count == null) {
+		    					count = 1L;
+		    				} else {
+		    					count++;
+		    				}	    				
+		    				this.map.put(value, count);	    				
+		    			}
+		    			
+	    			} else {
+	    				LOGGER.debug(" this map is too large size ");
 	    			}
 	    		}
 			}	

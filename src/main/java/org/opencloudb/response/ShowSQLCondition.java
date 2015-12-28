@@ -83,11 +83,11 @@ public class ShowSQLCondition {
 	            buffer = row.write(buffer, c,true);
 	        }
 	        
-        	RowDataPacket vk_row = getRow(size + 1, "VALUE KEY", "size", size, c.getCharset());
+        	RowDataPacket vk_row = getRow(size + 1, key + ".valuekey", "size", size, c.getCharset());
         	vk_row.packetId = ++packetId;
             buffer = vk_row.write(buffer, c,true);
             
-        	RowDataPacket vc_row = getRow(size + 2, "VALUE COUNT", "total", total, c.getCharset());
+        	RowDataPacket vc_row = getRow(size + 2, key + ".valuecount", "total", total, c.getCharset());
         	vc_row.packetId = ++packetId;
             buffer = vc_row.write(buffer, c,true);
 	       
