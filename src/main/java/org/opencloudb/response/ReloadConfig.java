@@ -84,6 +84,8 @@ public final class ReloadConfig {
 
 		// 应用新配置
 		MycatConfig conf = MycatServer.getInstance().getConfig();
+		conf.setDataNodes(dataNodes);
+		
 		Map<String, PhysicalDBPool> cNodes = conf.getDataHosts();
 		boolean reloadStatus = true;
 		for (PhysicalDBPool dn : dataHosts.values()) {
