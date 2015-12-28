@@ -29,8 +29,7 @@ public class TableStat {
     private final AtomicLong wCount = new AtomicLong(0);
     
     // 关联表
-    private final ConcurrentHashMap<String, RelaTable> relaTableMap = new ConcurrentHashMap<String, RelaTable>();
-    
+    private final ConcurrentHashMap<String, RelaTable> relaTableMap = new ConcurrentHashMap<String, RelaTable>();    
     
     /**
      * 最后执行时间
@@ -75,8 +74,7 @@ public class TableStat {
 			}
 			this.relaTableMap.put(table, relaTable);
 		}
-		
-		
+	
 		this.lastExecuteTime = endTime;
 	}
 	
@@ -107,7 +105,6 @@ public class TableStat {
 	}
 
 
-
 	/**
      * 关联表
      * @author Ben
@@ -136,6 +133,5 @@ public class TableStat {
 			this.count++;
 		}    	
     }
-    
 	
 }
