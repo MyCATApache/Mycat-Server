@@ -94,16 +94,16 @@ public class QueryConditionAnalyzer implements QueryResultListener {
 		}  
 	}
 	
-	public boolean setTableColumnFilter(String filter) {
+	public boolean setCf(String cf) {
 		
 		boolean isOk = false;
 		
 		this.lock.lock();  
 		try {  
 			
-			if ( !"NULL".equalsIgnoreCase(filter) ) {
+			if ( !"NULL".equalsIgnoreCase(cf) ) {
 				
-				String[] table_column = filter.split("&");
+				String[] table_column = cf.split("&");
 				if ( table_column != null && table_column.length == 2 ) {					
 					this.tableName = table_column[0];
 					this.columnName = table_column[1];
