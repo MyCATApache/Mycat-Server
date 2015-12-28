@@ -136,6 +136,10 @@ public class MycatConfig {
 	public Map<String, PhysicalDBNode> getDataNodes() {
 		return dataNodes;
 	}
+	
+	public void setDataNodes( Map<String, PhysicalDBNode> map) {
+		this.dataNodes = map;
+	}
 
 	public String[] getDataNodeSchemasOfDataHost(String dataHost) {
 		ArrayList<String> schemas = new ArrayList<String>(30);
