@@ -166,6 +166,10 @@ public final class ShowHelp {
         helps.put("rollback @@route", "Rollback route config from memory");
         helps.put("rollback @@user", "Rollback user config from memory");
         
+        // open/close sql stat
+        helps.put("reload @@sqlstat=open", "Open real-time sql stat analyzer");
+        helps.put("reload @@sqlstat=close", "Close real-time sql stat analyzer");
+        
         // offline/online
         helps.put("offline", "Change MyCat status to OFF");
         helps.put("online", "Change MyCat status to ON");
