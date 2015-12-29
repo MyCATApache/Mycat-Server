@@ -55,7 +55,7 @@ public class XmlToYaml {
             properties.load(myidStream);
 
             serializeMap = new LinkedHashMap<>();
-            serializeMap.put(properties.getProperty("zkURL"), "127.0.0.1:2181");
+            serializeMap.put("zkURL", properties.getProperty("zkURL"));
 
             Server server = loadServer(serverStream);
             serializeMap.put("mycat-cluster",
