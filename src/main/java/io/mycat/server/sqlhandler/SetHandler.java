@@ -34,6 +34,11 @@ import org.slf4j.LoggerFactory;
 
 import static io.mycat.server.parser.ServerParseSet.*;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * SET 语句处理
  * 
@@ -41,10 +46,26 @@ import static io.mycat.server.parser.ServerParseSet.*;
  */
 public final class SetHandler {
 
-	private static final Logger logger = LoggerFactory
-			.getLogger(SetHandler.class);
-	private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0,
-			0, 0, 0 };
+	private static final Logger logger = LoggerFactory.getLogger(SetHandler.class);
+	
+	private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 };
+	
+	private static List<Pattern> ptrnIgnoreList = new ArrayList<Pattern>();
+	
+	static  {
+		
+		//TODO: 忽略部分 SET 指令, 避免WARN 不断的刷日志
+		String[] ignores = new String[] {
+			"(?i)set (sql_mode)",
+			"(?i)set (interactive_timeout|wait_timeout|net_read_timeout|net_write_timeout|lock_wait_timeout|slave_net_timeout)",
+			"(?i)set (connect_timeout|delayed_insert_timeout|innodb_lock_wait_timeout|innodb_rollback_on_timeout)",
+			"(?i)set (profiling|profiling_history_size)"
+		};
+		
+		for (int i = 0; i < ignores.length; ++i) {
+            ptrnIgnoreList.add(Pattern.compile(ignores[i]));
+        }
+	}	
 
 	public static void handle(String stmt, MySQLFrontConnection c, int offset) {
 		// System.out.println("SetHandler: "+stmt);
@@ -115,10 +136,21 @@ public final class SetHandler {
 			CharacterSet.response(stmt, c, rs);
 			break;
 		default:
-			StringBuilder s = new StringBuilder();
-			logger.warn(s.append(c).append(stmt)
-					.append(" is not recoginized and ignored").toString());
-			c.write(OkPacket.OK);
+			boolean ignore = false;
+	         Matcher matcherIgnore;
+	         for (Pattern ptrnIgnore : ptrnIgnoreList) {
+	             matcherIgnore = ptrnIgnore.matcher( stmt );
+	             if (matcherIgnore.find()) {
+	                 ignore = true;
+	                 break;
+	             }
+	         }
+			
+            if ( !ignore ) {        	 
+    			StringBuilder s = new StringBuilder();
+    			logger.warn(s.append(c).append(stmt).append(" is not recoginized and ignored").toString());
+            }
+            c.write(OkPacket.OK);
 		}
 	}
 
