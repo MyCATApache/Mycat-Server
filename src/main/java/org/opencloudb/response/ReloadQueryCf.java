@@ -10,12 +10,15 @@ public class ReloadQueryCf {
 	
 	private static final Logger logger = Logger.getLogger(ReloadSqlSlowTime.class);
 
-    public static void execute(ManagerConnection c, String filter) {
+    public static void execute(ManagerConnection c, String cf) {
     	
-    	QueryConditionAnalyzer.getInstance().setTableColumnFilter(filter);
+    	if ( cf == null ) 
+    		cf = "NULL";
+    	
+    	QueryConditionAnalyzer.getInstance().setCf(cf);
     	
         StringBuilder s = new StringBuilder();
-        s.append(c).append("Reset show  @@sql.condition="+ filter +" success by manager");
+        s.append(c).append("Reset show  @@sql.condition="+ cf +" success by manager");
         
         logger.warn(s.toString());
         

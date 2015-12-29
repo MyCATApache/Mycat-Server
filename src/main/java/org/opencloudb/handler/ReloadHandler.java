@@ -30,6 +30,7 @@ import org.opencloudb.parser.util.ParseUtil;
 import org.opencloudb.response.ReloadConfig;
 import org.opencloudb.response.ReloadQueryCf;
 import org.opencloudb.response.ReloadSqlSlowTime;
+import org.opencloudb.response.ReloadSqlStat;
 import org.opencloudb.response.ReloadUser;
 import org.opencloudb.response.ReloadUserStat;
 
@@ -60,15 +61,15 @@ public final class ReloadHandler
                 ReloadUserStat.execute(c);
                 break;
             case ManagerParseReload.SQL_SLOW:
-            	ReloadSqlSlowTime.execute(c,ParseUtil.getSQLId(stmt));
+            	ReloadSqlSlowTime.execute(c, ParseUtil.getSQLId(stmt));
                 break;           
-            case ManagerParseReload.QUERY_CF:
-            	String dhAfter = "NULL";
-           	 	int dhOffset = stmt.indexOf('=');
-                if (dhOffset != -1 && stmt.length() > ++dhOffset) {
-                	dhAfter = stmt.substring(dhOffset).trim();
-                }
-            	ReloadQueryCf.execute(c, dhAfter);
+            case ManagerParseReload.SQL_STAT:
+            	String stat = ParseUtil.parseString(stmt) ;
+            	ReloadSqlStat.execute(c, stat);
+            	break;
+            case ManagerParseReload.QUERY_CF:            	
+            	String filted = ParseUtil.parseString(stmt) ;
+            	ReloadQueryCf.execute(c, filted);
             	break;                
             default:
                 c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
