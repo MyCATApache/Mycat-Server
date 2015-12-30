@@ -146,11 +146,10 @@ public class CharsetUtil {
     			if(ds != null && ds.getConfig() != null 
     					&& "mysql".equalsIgnoreCase(ds.getConfig().getDbType())){
     				DBHostConfig config = ds.getConfig();
-    				while(!getCharsetCollationFromMysql(config)){
-    					getCharsetCollationFromMysql(config);
+    				if(getCharsetCollationFromMysql(config)){
+    					logger.debug(" init charset and collation success...");
+        				return;	// 结束外层 for 循环
     				}
-    				logger.debug(" init charset and collation success...");
-    				return;	// 结束外层 for 循环
     			}
     		}
     	}
