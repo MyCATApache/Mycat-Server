@@ -119,7 +119,7 @@ public class MycatConfig implements ConfigReLoader{
 		   || !this.hostIndexConfig.getProps().containsKey(hostName)){
 			return index;
 		}
-		return (String) hostIndexConfig.getProps().get(hostName);
+		return String.valueOf(hostIndexConfig.getProps().get(hostName));
 	}
 	public void setHostIndex(String hostName, int index) {
 		this.hostIndexConfig.getProps().put(hostName, index);

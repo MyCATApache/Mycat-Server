@@ -66,6 +66,9 @@ public final class SystemConfig {
 	private static final String DEFAULT_CLUSTER_HEARTBEAT_PASS = "_HEARTBEAT_PASS_";
 	private static final int DEFAULT_PARSER_COMMENT_VERSION = 50148;
 	private static final int DEFAULT_SQL_RECORD_COUNT = 10;
+	// 全局表一致性检测任务，默认24小时调度一次
+	private static final long DEFAULT_GLOBAL_TABLE_CHECK_PERIOD = 24 * 60 * 60 * 1000L;
+	private boolean globalTableCheckSwitchOn = true;	// 全局表一致性检查开关
 	private int maxStringLiteralLength = 65535;
 	private int frontWriteQueueSize = 2048;
 	private String bindIp = "0.0.0.0";
@@ -86,8 +89,10 @@ public final class SystemConfig {
 	private String clusterHeartbeatUser;
 	private String clusterHeartbeatPass;
 	private long clusterHeartbeatPeriod;
+	private long glableTableCheckPeriod;
 	private long clusterHeartbeatTimeout;
 	private int clusterHeartbeatRetry;
+	
 	private int txIsolation;
 	private int parserCommentVersion;
 	private int sqlRecordCount;
@@ -149,7 +154,16 @@ public final class SystemConfig {
 		this.txIsolation = Isolations.REPEATED_READ;
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
+		this.glableTableCheckPeriod = DEFAULT_GLOBAL_TABLE_CHECK_PERIOD;
 
+	}
+	
+	public long getGlableTableCheckPeriod() {
+		return glableTableCheckPeriod;
+	}
+
+	public void setGlableTableCheckPeriod(long glableTableCheckPeriod) {
+		this.glableTableCheckPeriod = glableTableCheckPeriod;
 	}
 
 	public String getSqlInterceptor() {
@@ -565,6 +579,14 @@ public final class SystemConfig {
 		this.mycatNodeId = mycatNodeId;
 	}
 
+	public boolean isGlobalTableCheckSwitchOn() {
+		return globalTableCheckSwitchOn;
+	}
+
+	public void setGlobalTableCheckSwitchOn(boolean globalTableCheckSwitchOn) {
+		this.globalTableCheckSwitchOn = globalTableCheckSwitchOn;
+	}
+
 	@Override
 	public String toString() {
 		return "SystemConfig [processorBufferLocalPercent="
@@ -590,6 +612,8 @@ public final class SystemConfig {
 				+ ", clusterHeartbeatUser=" + clusterHeartbeatUser
 				+ ", clusterHeartbeatPass=" + clusterHeartbeatPass
 				+ ", clusterHeartbeatPeriod=" + clusterHeartbeatPeriod
+				+ ", globalTableCheckSwitchOn=" + globalTableCheckSwitchOn
+				+ ", glableTableCheckPeriod=" + glableTableCheckPeriod
 				+ ", clusterHeartbeatTimeout=" + clusterHeartbeatTimeout
 				+ ", clusterHeartbeatRetry=" + clusterHeartbeatRetry
 				+ ", txIsolation=" + txIsolation + ", parserCommentVersion="

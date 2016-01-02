@@ -312,6 +312,7 @@ public class MySQLBackendConnectionHandler implements
 		if (charset != null) {
 			source.setCharset(charset);
 		} else {
+			LOGGER.warn("Unknown charsetIndex:" + charsetIndex);
 			throw new RuntimeException("Unknown charsetIndex:" + charsetIndex);
 		}
 	}
