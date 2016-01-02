@@ -120,7 +120,7 @@ public class ZookeeperSaver {
 
         //1 is global table
         if (tablesJson.has("type")) {
-            String talbeType = tablesJson.getInt("type") == 1 ? "global" : null;
+            String talbeType = tablesJson.get("type").toString().equals("1") ? "global" : null;
             table.setType(talbeType);
         }
 

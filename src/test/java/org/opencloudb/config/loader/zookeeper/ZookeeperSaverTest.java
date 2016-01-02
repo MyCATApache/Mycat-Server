@@ -4,6 +4,7 @@ import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opencloudb.config.ZkConfig;
 import org.opencloudb.config.ZookeeperTestServer;
 import org.opencloudb.config.loader.zookeeper.entitiy.Property;
 import org.opencloudb.config.loader.zookeeper.entitiy.Rules;
@@ -29,7 +30,7 @@ public class ZookeeperSaverTest extends ZookeeperTestServer {
     @Before public void setUp() throws Exception {
         ZookeeperLoader loader = new ZookeeperLoader();
         loader.setZkURl(testingServer.getConnectString());
-        config = loader.loadConfig();
+        config = loader.loadConfig(ZkConfig.instance().loadMyid());
     }
 
     private List<Property> getExpectSystemProperty() {
@@ -51,7 +52,7 @@ public class ZookeeperSaverTest extends ZookeeperTestServer {
         test.addProperty(new Property().setName("schemas").setValue("testdb,test"));
 
         Server.User mycat = new Server.User();
-        test.setName("mycat");
+        mycat.setName("mycat");
         mycat.addProperty(new Property().setName("readOnly").setValue("false"));
         mycat.addProperty(new Property().setName("password").setValue("admin"));
         mycat.addProperty(new Property().setName("schemas").setValue("testdb"));

@@ -32,6 +32,15 @@ public final class ParseUtil {
         return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == ';');
     }
 
+    public static String parseString(String stmt) {
+    	 int offset = stmt.indexOf('=');
+         if (offset != -1 && stmt.length() > ++offset) {
+             String txt = stmt.substring(offset).trim();
+             return txt;
+         }
+         return null;
+    }
+    
     public static long getSQLId(String stmt) {
         int offset = stmt.indexOf('=');
         if (offset != -1 && stmt.length() > ++offset) {
