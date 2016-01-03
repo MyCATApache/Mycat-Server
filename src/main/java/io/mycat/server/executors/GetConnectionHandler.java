@@ -73,7 +73,8 @@ public class GetConnectionHandler implements ResponseHandler {
 	public void connectionError(Throwable e, BackendConnection conn) {
 		finishedCount.addAndGet(1);
 		logger.warn("connect error " + conn + e);
-        conn.release();
+//		conn.release();	//此处登录DB失败的连接应该关闭，不能放入连接池
+		conn.close("connect DB error: " + conn.getSchema());
 	}
 
 	@Override
