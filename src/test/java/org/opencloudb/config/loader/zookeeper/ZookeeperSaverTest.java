@@ -4,13 +4,21 @@ import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opencloudb.config.ZkConfig;
 import org.opencloudb.config.ZookeeperTestServer;
 import org.opencloudb.config.loader.zookeeper.entitiy.Property;
+import org.opencloudb.config.loader.zookeeper.entitiy.Rules;
+import org.opencloudb.config.loader.zookeeper.entitiy.Schemas;
 import org.opencloudb.config.loader.zookeeper.entitiy.Server;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.matchers.IsCollectionContaining.hasItems;
 
 /**
  * Created by lion on 12/8/15.
@@ -22,50 +30,97 @@ public class ZookeeperSaverTest extends ZookeeperTestServer {
     @Before public void setUp() throws Exception {
         ZookeeperLoader loader = new ZookeeperLoader();
         loader.setZkURl(testingServer.getConnectString());
-        config = loader.loadConfig();
+        config = loader.loadConfig(ZkConfig.instance().loadMyid());
     }
 
+    private List<Property> getExpectSystemProperty() {
+        List<Property> system = new ArrayList<>();
+        system.add(new Property().setName("serverport").setValue("8066"));
+        system.add(new Property().setName("sequncehandlertype").setValue("1"));
+        system.add(new Property().setName("defaultsqlparser").setValue("druidparser"));
+        return system;
+    }
+
+
+    private Map<String, Server.User> getExpectUser() {
+        Map<String, Server.User> map = new HashMap<>();
+
+        Server.User test = new Server.User();
+        test.setName("test");
+        test.addProperty(new Property().setName("readOnly").setValue("true"));
+        test.addProperty(new Property().setName("password").setValue("admin"));
+        test.addProperty(new Property().setName("schemas").setValue("testdb,test"));
+
+        Server.User mycat = new Server.User();
+        mycat.setName("mycat");
+        mycat.addProperty(new Property().setName("readOnly").setValue("false"));
+        mycat.addProperty(new Property().setName("password").setValue("admin"));
+        mycat.addProperty(new Property().setName("schemas").setValue("testdb"));
+
+        map.put("test", test);
+        map.put("mycat", mycat);
+        return map;
+    }
+
+
     @Test public void testSaveServer() throws Exception {
+        List<Property> expectSystemProperty = getExpectSystemProperty();
+        Map<String, Server.User> expectUsers = getExpectUser();
 
         ZookeeperSaver saver = new ZookeeperSaver();
-        Server server = saver.saveServer(config,"server_zk");
+        Server server = saver.saveServer(config, "server_zk");
 
-        assertThat(server.getSystem().getProperty().size(), is(3));
-        assertThat(server.getSystem().getProperty().get(0),
-            is(new Property().setName("serverport").setValue("8066")));
-        assertThat(server.getSystem().getProperty().get(1),
-            is(new Property().setName("sequncehandlertype").setValue("1")));
-        assertThat(server.getSystem().getProperty().get(2),
-            is(new Property().setName("defaultsqlparser").setValue("druidparser")));
+        assertThat(server.getSystem().getProperty().containsAll(expectSystemProperty),
+            is(Boolean.TRUE));
 
         //users
         assertThat(server.getUser().size(), is(2));
+        for (Server.User user : server.getUser()) {
+            Server.User expectUser = expectUsers.get(user.getName());
 
-        Server.User expectTest = new Server.User();
-        Property expectTestP1 = new Property().setName("readOnly").setValue("true");
-        Property expectTestP3 = new Property().setName("password").setValue("admin");
-        Property expectTestP4 = new Property().setName("schemas").setValue("testdb,test");
-        expectTest.addProperty(expectTestP1);
-        expectTest.addProperty(expectTestP3);
-        expectTest.addProperty(expectTestP4);
-        expectTest.setName("test");
+            assertNotNull(expectUser);
+            assertThat(user.getName(), is(expectUser.getName()));
+            assertThat(user.getProperty().containsAll(expectUser.getProperty()), is(Boolean.TRUE));
+        }
+    }
 
-        assertThat(server.getUser().get(0).getName(),is(expectTest.getName()));
-        assertThat(server.getUser().get(0).getProperty(),
-            hasItems(expectTestP1, expectTestP3, expectTestP4));
+    private Map<String, Rules.TableRule> getExpectRule() {
+        Map<String, Rules.TableRule> map = new HashMap<>();
 
-        Server.User expectMycat = new Server.User();
-        Property expectMycatP1 = new Property().setName("readOnly").setValue("false");
-        Property expectMycatP3 = new Property().setName("password").setValue("admin");
-        Property expectMycatP4 = new Property().setName("schemas").setValue("testdb");
-        expectMycat.addProperty(expectMycatP1);
-        expectMycat.addProperty(expectMycatP3);
-        expectMycat.addProperty(expectMycatP4);
-        expectMycat.setName("mycat");
+        Rules.TableRule shardingByEnum = new Rules.TableRule();
+        shardingByEnum.setName("sharding-by-enum");
 
+        Rules.TableRule.Rule shardingByEnumRule = new Rules.TableRule.Rule();
+        shardingByEnumRule.setColumns("create_time");
+        shardingByEnumRule.setAlgorithm("io.mycat.route.function.PartitionByFileMap");
+        shardingByEnum.setRule(shardingByEnumRule);
 
-        assertThat(server.getUser().get(1).getName(),is(expectMycat.getName()));
-        assertThat(server.getUser().get(1).getProperty(),
-            hasItems(expectMycatP1, expectMycatP3, expectMycatP4));
+        map.put("sharding-by-enum", shardingByEnum);
+        return map;
+    }
+
+    private Map<String, Rules.Function> getExpectFunction() {
+        return null;
+    }
+
+    @Test public void testSaveRule() throws Exception {
+        Map<String, Rules.TableRule> expectRule = getExpectRule();
+
+        ZookeeperSaver saver = new ZookeeperSaver();
+        Rules rules = saver.saveRule(config, "rule_zk");
+
+        //        rules.getTableRule();
+
+    }
+
+    @Test public void testSaveSchema() throws Exception {
+        Map<String, Rules.TableRule> expectRule = getExpectRule();
+
+        ZookeeperSaver saver = new ZookeeperSaver();
+        Schemas schemas = saver.saveSchema(config, "schema_zk");
+
+        //        rules.getTableRule();
+
     }
 }
+

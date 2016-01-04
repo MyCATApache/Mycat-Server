@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.opencloudb.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.4.1-dev</version>
+	<version>1.5-alpha</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
@@ -420,6 +420,10 @@
 											<name>configuration.directory.in.classpath.first</name>
 											<value>conf</value>
 										</property>
+                                        <property>
+                                            <name>wrapper.ping.timeout</name>
+                                            <value>120</value>
+                                        </property>
 										<property>
 											<name>set.default.REPO_DIR</name>
 											<value>lib</value>

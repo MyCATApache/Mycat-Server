@@ -1,6 +1,5 @@
 package org.opencloudb.config.loader.zookeeper;
 
-import com.google.common.base.Strings;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -10,8 +9,6 @@ import org.opencloudb.config.loader.zookeeper.loader.MysqlGroupLoader;
 import org.opencloudb.config.loader.zookeeper.loader.MysqlsLoader;
 import org.opencloudb.config.loader.zookeeper.loader.NodesLoader;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -21,16 +18,17 @@ public class ZookeeperLoader {
     public static final String CLUSTER_KEY = "cluster";
     public static final String MYSQLGROUP_KEY = "mysqlGroup";
     public static final String MYSQLS_KEY = "mysqls";
-    private static final String ZK_CONFIG_FILE_NAME = "/myid.properties";
+
+    public static final String ZKURL_KEY = "zkURL";
+    public static final String MYID_KEY = "myid";
+
     protected String zkURl;
 
-    public JSONObject loadConfig() throws Exception {
-        Properties properties = loadZkConfig();
-
+    public JSONObject loadConfig(Properties properties) throws Exception {
         CuratorFramework curatorFramework =
-            buildConnection((zkURl == null) ? properties.getProperty("zkURL") : zkURl);
+            buildConnection((zkURl == null) ? properties.getProperty(ZKURL_KEY) : zkURl);
 
-        return takeConfig(properties.getProperty("myid"), curatorFramework);
+        return takeConfig(properties.getProperty(MYID_KEY), curatorFramework);
     }
 
     private JSONObject takeConfig(String myid, CuratorFramework curatorFramework) throws Exception {
@@ -65,27 +63,6 @@ public class ZookeeperLoader {
 
     public void setZkURl(String zkURl) {
         this.zkURl = zkURl;
-    }
-
-    private Properties loadZkConfig() {
-        Properties pros = new Properties();
-
-        try (InputStream configIS = ZookeeperLoader.class
-            .getResourceAsStream(ZK_CONFIG_FILE_NAME)) {
-            pros.load(configIS);
-        } catch (IOException e) {
-            throw new RuntimeException("can't find myid properties file : " + ZK_CONFIG_FILE_NAME);
-        }
-
-        //validate
-        String zkURL = pros.getProperty("zkURL");
-        String myid = pros.getProperty("myid");
-
-        if (Strings.isNullOrEmpty(zkURL) || Strings.isNullOrEmpty(myid)) {
-            throw new RuntimeException("zkURL and myid must be not null or empty!");
-        }
-
-        return pros;
     }
 
     private CuratorFramework buildConnection(String url) {

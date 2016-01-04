@@ -50,7 +50,7 @@ import java.util.List;
 
 
     @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "user") public static class User
-        implements Propertied {
+        implements Propertied, Named {
 
         @XmlAttribute(required = true) protected String name;
 
@@ -77,6 +77,13 @@ import java.util.List;
 
         @Override public void addProperty(Property property) {
             this.getProperty().add(property);
+        }
+
+        @Override public String toString() {
+            return "User{" +
+                "name='" + name + '\'' +
+                ", property=" + property +
+                '}';
         }
     }
 }

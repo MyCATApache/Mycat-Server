@@ -107,13 +107,13 @@ mycat-cluster:
           name :  company
           datanode :  dn1,dn2,dn3
           primaryKey : ID
-          type : 1  //全局表为 1
+          type : 1  #全局表为 1
 
         goods :
           name :  goods
           datanode :  dn1,dn2
           primaryKey : ID
-          type : 1  //全局表为 1
+          type : 1  #全局表为 1
 
         hotnews :
           name :  hotnews
@@ -135,19 +135,19 @@ mycat-cluster:
 
           orders :
             name :  orders
-            primarykey :  ID
-            joinkey : customer_id
-            parentkey : ID
+            primaryKey :  ID
+            joinKey : customer_id
+            parentKey : ID
 
             order_items :
               name :  order_items
-              joinkey : order_id
-              parentkey : ID
+              joinKey : order_id
+              parentKey : ID
 
           customer_addr :
             name :  customer_addr
-            joinkey : customer_id
-            parentkey : ID
+            joinKey : customer_id
+            parentKey : ID
 
         offer :
           name :  offer
@@ -224,7 +224,21 @@ mycat-nodes:
 mycat-mysqls:
   mysql_1:
     ip: 192.168.8.2
-    port: 3366
+    port: 3306
+    user: mysql
+    password: mysql
+    hostId: host
+    zone: bj
+  mysql_2:
+    ip: 192.168.8.3
+    port: 3307
+    user: mysql
+    password: mysql
+    hostId: host
+    zone: bj
+  mysql_3:
+    ip: 192.168.8.4
+    port: 3308
     user: mysql
     password: mysql
     hostId: host
@@ -236,9 +250,9 @@ mycat-mysqlgroup :
     repType: 0
     zone: bj
     servers:
-      - mysqlId1
-      - mysqlId2
-      - mysqlId3
-    cur-write-server: mysqlId2
+      - mysql_1
+      - mysql_2
+      - mysql_3
+    cur-write-server: mysql_1
     auto-write-switch: true
     heartbeatSQL : select user()

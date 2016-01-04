@@ -14,17 +14,17 @@ mycat-cluster:
         password : admin
         readOnly : true
         schemas  :
-          - testdb
+          - TESTDB
       mycat :
         name: mycat
         password: admin
         readOnly : false
         schemas:
-          - testdb
+          - TESTDB
     rule :
       sharding-by-enum :
         name : sharding-by-enum
-        functionName : io.mycat.route.function.PartitionByFileMap
+        functionName : org.opencloudb.route.function.PartitionByFileMap
         column : create_time
         defaultnode : 0
         type : 0
@@ -33,14 +33,14 @@ mycat-cluster:
           10010 : 1
       sharding-by-hour :
         name : sharding-by-hour
-        functionName : io.mycat.route.function.LatestMonthPartion
+        functionName : org.opencloudb.route.function.LatestMonthPartion
         column : createTime
         splitOneDay : 24
 
       auto-sharding-long :
        name : auto-sharding-long
        column : id
-       functionName : io.mycat.route.function.AutoPartitionByLong
+       functionName : org.opencloudb.route.function.AutoPartitionByLong
        defaultNode : 0
        config :
              0-2000000 : 0
@@ -50,13 +50,13 @@ mycat-cluster:
       sharding-by-mod :
        name : sharding-by-mod
        column : id
-       functionName : io.mycat.route.function.PartitionByMod
+       functionName : org.opencloudb.route.function.PartitionByMod
        count : 3
 
       auto-sharding-rang-mod :
        name : auto-sharding-rang-mod
        column : id
-       functionName : io.mycat.route.function.PartitionByRangeMod
+       functionName : org.opencloudb.route.function.PartitionByRangeMod
        defaultNode : 21
        config :
              0-200M : 5
@@ -65,10 +65,10 @@ mycat-cluster:
              600M1-800M : 4
              800M1-1000M : 6
 
-      auto-sharding-rang-mod :
+      sharding-by-RangeDateHash :
        name : sharding-by-RangeDateHash
        column : create_time
-       functionName : io.mycat.route.function.PartitionByRangeDateHash
+       functionName : org.opencloudb.route.function.PartitionByRangeDateHash
        sBeginDate : "2014-01-01 00:00:00"
        sPartionDay : 3
        dateFormat : yyyy-MM-dd HH:mm:ss
@@ -106,13 +106,13 @@ mycat-cluster:
           name :  company
           datanode :  dn1,dn2,dn3
           primaryKey : ID
-          type : 1  //全局表为 1
+          type : 1  #全局表为 1
 
         goods :
           name :  goods
           datanode :  dn1,dn2
           primaryKey : ID
-          type : 1  //全局表为 1
+          type : 1  #全局表为 1
 
         hotnews :
           name :  hotnews
@@ -134,19 +134,19 @@ mycat-cluster:
 
           orders :
             name :  orders
-            primarykey :  ID
-            joinkey : customer_id
-            parentkey : ID
+            primaryKey :  ID
+            joinKey : customer_id
+            parentKey : ID
 
             order_items :
               name :  order_items
-              joinkey : order_id
-              parentkey : ID
+              joinKey : order_id
+              parentKey : ID
 
           customer_addr :
             name :  customer_addr
-            joinkey : customer_id
-            parentkey : ID
+            joinKey : customer_id
+            parentKey : ID
 
         offer :
           name :  offer
@@ -222,10 +222,10 @@ mycat-nodes:
 
 mycat-mysqls:
   mysql_1:
-    ip: 192.168.8.2
-    port: 3366
-    user: mysql
-    password: mysql
+    ip: 127.0.0.1
+    port: 3306
+    user: root
+    password: admin
     hostId: host
     zone: bj
 
@@ -235,9 +235,16 @@ mycat-mysqlgroup :
     repType: 0
     zone: bj
     servers:
-      - mysqlId1
-      - mysqlId2
-      - mysqlId3
-    cur-write-server: mysqlId2
+      - mysql_1
+    cur-write-server: mysql_1
     auto-write-switch: true
     heartbeatSQL : select user()
+
+mycat-lbs:
+    lb_v1:
+      hostId: fz_vm1
+      name: yyyyy
+      ip: 192.168.10.2
+      port: 9999
+      zone: fz
+      cluster: mycat-cluster-1

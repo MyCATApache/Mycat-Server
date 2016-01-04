@@ -23,12 +23,6 @@
  */
 package org.opencloudb.mysql.nio;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.channels.NetworkChannel;
-import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.Capabilities;
@@ -38,15 +32,17 @@ import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.mysql.SecurityUtil;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.BackendAIOConnection;
-import org.opencloudb.net.mysql.AuthPacket;
-import org.opencloudb.net.mysql.CommandPacket;
-import org.opencloudb.net.mysql.HandshakePacket;
-import org.opencloudb.net.mysql.MySQLPacket;
-import org.opencloudb.net.mysql.QuitPacket;
+import org.opencloudb.net.mysql.*;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.util.TimeUtil;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.channels.NetworkChannel;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author mycat
@@ -410,7 +406,14 @@ public class MySQLConnection extends BackendAIOConnection {
 
 		}
 		int schemaSyn = conSchema.equals(oldSchema) ? 0 : 1;
-		int charsetSyn = (this.charsetIndex == clientCharSetIndex) ? 0 : 1;
+		int charsetSyn = 0;
+		if (this.charsetIndex != clientCharSetIndex) {
+			//need to syn the charset of connection.
+			//set current connection charset to client charset.
+			//otherwise while sending commend to server the charset will not coincidence.
+			setCharset(CharsetUtil.getCharset(clientCharSetIndex));
+			charsetSyn = 1;
+		}
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
 		int autoCommitSyn = (conAutoComit == expectAutocommit) ? 0 : 1;
 		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn;

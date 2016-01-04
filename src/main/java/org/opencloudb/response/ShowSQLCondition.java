@@ -11,20 +11,19 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.stat.HighFrequencySqlAnalyzer;
-import org.opencloudb.stat.HighFrequencySqlAnalyzer.SqlFrequency;
+import org.opencloudb.stat.QueryConditionAnalyzer;
 import org.opencloudb.util.LongUtil;
 import org.opencloudb.util.StringUtil;
 
 /**
- * 查询高频 SQL
+ * SQL 查询条件 值统计
  * 
  * @author zhuam
  *
  */
-public final class ShowSQLHigh {
+public class ShowSQLCondition {
 	
-	private static final int FIELD_COUNT = 8;
+	private static final int FIELD_COUNT = 4;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -34,25 +33,16 @@ public final class ShowSQLHigh {
         byte packetId = 0;
         header.packetId = ++packetId;
         
-        fields[i] = PacketUtil.getField("ID", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;
-
-        fields[i] = PacketUtil.getField("FREQUENCY", Fields.FIELD_TYPE_LONGLONG);
+        fields[i] = PacketUtil.getField("ID", Fields.FIELD_TYPE_LONGLONG);        
         fields[i++].packetId = ++packetId;
         
-        fields[i] = PacketUtil.getField("AVG_TIME", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;  
-        fields[i] = PacketUtil.getField("MAX_TIME", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;
-        fields[i] = PacketUtil.getField("MIN_TIME", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;
-        fields[i] = PacketUtil.getField("EXECUTE_TIME", Fields.FIELD_TYPE_LONGLONG);
+        fields[i] = PacketUtil.getField("KEY", Fields.FIELD_TYPE_VAR_STRING);        
         fields[i++].packetId = ++packetId;        
         
-        fields[i] = PacketUtil.getField("LAST_TIME", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;
+        fields[i] = PacketUtil.getField("VALUE", Fields.FIELD_TYPE_VAR_STRING);        
+        fields[i++].packetId = ++packetId;  
         
-        fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i] = PacketUtil.getField("COUNT", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
         
         eof.packetId = ++packetId;
@@ -74,14 +64,33 @@ public final class ShowSQLHigh {
 
         // write rows
         byte packetId = eof.packetId;        
-        List<Map.Entry<String, SqlFrequency>> list = HighFrequencySqlAnalyzer.getInstance().getSqlFrequency();
-        if ( list != null ) {        
-	        for (int i = 0; i < list.size(); i++) {
-	        	SqlFrequency sqlFrequency = list.get(i).getValue();
-	        	RowDataPacket row = getRow(i, sqlFrequency.getSql(), sqlFrequency.getCount(), sqlFrequency.getAvgTime(),sqlFrequency.getMaxTime(),sqlFrequency.getMinTime(),sqlFrequency.getExecuteTime(),sqlFrequency.getLastTime(), c.getCharset());
+        
+        String key = QueryConditionAnalyzer.getInstance().getKey();
+        List<Map.Entry<Object, Long>> list = QueryConditionAnalyzer.getInstance().getValues();
+        if ( list != null  ) {       
+        	
+        	int size = list.size();
+        	long total = 0L;
+        	
+	        for (int i = 0; i < size; i++) {
+	        	Map.Entry<Object, Long> entry = list.get(i);
+	        	Object value = entry.getKey();
+	        	Long count = entry.getValue();	        	
+	        	total += count;
+	        	
+	        	RowDataPacket row = getRow(i, key, value.toString(), count, c.getCharset());
 	            row.packetId = ++packetId;
 	            buffer = row.write(buffer, c,true);
 	        }
+	        
+        	RowDataPacket vk_row = getRow(size + 1, key + ".valuekey", "size", size, c.getCharset());
+        	vk_row.packetId = ++packetId;
+            buffer = vk_row.write(buffer, c,true);
+            
+        	RowDataPacket vc_row = getRow(size + 2, key + ".valuecount", "total", total, c.getCharset());
+        	vc_row.packetId = ++packetId;
+            buffer = vc_row.write(buffer, c,true);
+	       
         }
 
         // write last eof
@@ -93,16 +102,12 @@ public final class ShowSQLHigh {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(int i, String sql, int count, long avgTime,long maxTime,long minTime,long executTime,long lastTime, String charset) {
+    private static RowDataPacket getRow(int i, String key, String value, long count, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add( LongUtil.toBytes( i ) );
+        row.add( StringUtil.encode(key, charset) );
+        row.add( StringUtil.encode(value, charset) );
         row.add( LongUtil.toBytes( count ) );
-        row.add( LongUtil.toBytes( avgTime ) );
-        row.add( LongUtil.toBytes( maxTime ) );
-        row.add( LongUtil.toBytes( minTime ) );
-        row.add( LongUtil.toBytes( executTime ) );
-        row.add( LongUtil.toBytes( lastTime ) );
-        row.add( StringUtil.encode(sql, charset) );
         return row;
     }
 
