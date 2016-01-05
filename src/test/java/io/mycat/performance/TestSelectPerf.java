@@ -55,8 +55,7 @@ public class TestSelectPerf {
 
 	private static Connection getCon(String url, String user, String passwd)
 			throws SQLException {
-		Connection theCon = DriverManager.getConnection(url, user, passwd);
-		return theCon;
+		return DriverManager.getConnection(url, user, passwd);
 	}
 
 	private static SelectJob createQueryJob(Connection con) {

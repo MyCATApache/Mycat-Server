@@ -161,8 +161,7 @@ public abstract class Connection implements ClosableConnection{
 	}
 
 	private ByteBuffer allocate() {
-		ByteBuffer buffer = NetSystem.getInstance().getBufferPool().allocate();
-		return buffer;
+		return NetSystem.getInstance().getBufferPool().allocate();
 	}
 
 	private final void recycle(ByteBuffer buffer) {

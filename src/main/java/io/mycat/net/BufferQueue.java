@@ -56,8 +56,7 @@ public final class BufferQueue {
 	}
 
 	public ByteBuffer poll() {
-		ByteBuffer buf = items.poll();
-		return buf;
+		return items.poll();
 	}
 
 	public boolean isEmpty() {
