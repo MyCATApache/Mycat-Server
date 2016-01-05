@@ -1162,7 +1162,7 @@ public class RouterUtil {
                     String primaryKey = tc.getPrimaryKey();
                     processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
                 }
-                if(processedInsert==false){
+                if(!processedInsert){
                 	rrs.setFinishedRoute(true);
                     sc.getSession2().execute(rrs, ServerParse.INSERT);
                 }
@@ -1209,7 +1209,7 @@ public class RouterUtil {
 		                    sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
 						}
                     }
-                    if(processedInsert==false){
+                    if(!processedInsert){
                     	RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
                         sc.getSession2().execute(executeRrs, ServerParse.INSERT);
                     }

@@ -79,7 +79,7 @@ public final class ReloadUtil {
 		boolean reloadStatus = true;
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		reloadStatus = conf.reloadDatasource();
-		if(reloadStatus==false){
+		if(!reloadStatus){
 			return false;
 		}
 

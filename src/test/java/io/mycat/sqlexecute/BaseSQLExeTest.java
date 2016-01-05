@@ -176,7 +176,7 @@ public class BaseSQLExeTest {
 	}
 
 	public static Connection getCon(String[] args) throws Exception {
-		if (driverLoaded == false) {
+		if (!driverLoaded) {
 			Class.forName("com.mysql.jdbc.Driver");
 			driverLoaded = true;
 

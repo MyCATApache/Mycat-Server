@@ -524,7 +524,7 @@ public class PhysicalDBPool {
             PhysicalDatasource theSource = writeSources[i];
             if (isAlive(theSource)) {// write node is active
                 if (includeWriteNode) {
-	            	if (i == curActive && includeCurWriteNode == false) {
+	            	if (i == curActive && !includeCurWriteNode) {
 	                    // not include cur active source
 	                } else if (filterWithSlaveThreshold) {
 	                    if (canSelectAsReadNode(theSource)) {
