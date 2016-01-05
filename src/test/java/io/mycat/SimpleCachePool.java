@@ -75,4 +75,4 @@ public class SimpleCachePool implements LayerCachePool {
 	public long getMaxSize() {
 		return 100;
 	}
-};
+}

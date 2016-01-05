@@ -85,8 +85,9 @@ public class ConfigFactory {
         ZookeeperLoader zookeeperLoader = new ZookeeperLoader();
         zookeeperLoader.initConfig();
         return null;
-	};
+	}
+
 	private static ConfigLoader instanceLocalLoader(){
 		return new LocalLoader();
-	};
+	}
 }

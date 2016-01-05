@@ -106,7 +106,7 @@ public class LocalLoader implements ConfigLoader {
     private static Element loadRoot() {
         if(document == null){
         	try(InputStream dtd = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
-        		InputStream xml = ConfigFactory.class.getResourceAsStream("/mycat.xml");){
+        		InputStream xml = ConfigFactory.class.getResourceAsStream("/mycat.xml")){
                 document = ConfigUtil.getDocument(dtd, xml);
                 return document.getDocumentElement();
             } catch (Exception e) {
