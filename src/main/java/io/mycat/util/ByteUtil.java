@@ -42,7 +42,7 @@ public class ByteUtil {
 		else if(b2 == null || b2.length == 0)
 			return 1;
 		boolean isNegetive = b1[0] == 45 || b2[0] == 45;
-		if (isNegetive == false && b1.length != b2.length) {
+		if (!isNegetive && b1.length != b2.length) {
 			return b1.length - b2.length;
 		}
 		int len = b1.length > b2.length ? b2.length : b1.length;

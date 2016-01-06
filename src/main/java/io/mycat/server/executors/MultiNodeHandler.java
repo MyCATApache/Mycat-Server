@@ -215,7 +215,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		} finally {
 			lock.unlock();
 		}
-		if (finished == false) {
+		if (!finished) {
 			finished = this.decrementCountBy(1);
 		}
 		if (error == null) {

@@ -55,7 +55,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 			{
 				parseOrderAggGroupMysql(schema, selectStmt,rrs, mysqlSelectQuery);
 				//更改canRunInReadDB属性
-				if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
+				if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && !rrs.isAutocommit())
 				{
 					rrs.setCanRunInReadDB(false);
 				}

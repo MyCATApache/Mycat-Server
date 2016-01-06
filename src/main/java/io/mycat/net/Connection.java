@@ -666,7 +666,7 @@ public abstract class Connection implements ClosableConnection{
 			} catch (Throwable e) {
 			}
 			boolean closed = isSocketClosed && (!channel.isOpen());
-			if (closed == false) {
+			if (!closed) {
 				LOGGER.warn("close socket of connnection failed " + this);
 			}
 
