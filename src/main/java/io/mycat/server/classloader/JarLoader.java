@@ -112,8 +112,7 @@ public class JarLoader {
 		    ClassLoader loader =	 new URLClassLoader(classPath.toArray(new URL[0]));
 
 		    Thread.currentThread().setContextClassLoader(loader);
-		    Class<?> mainClass = Class.forName(mainClassName, true, loader);
-		    return mainClass;
+		    return Class.forName(mainClassName, true, loader);
 		  }
 	  
 	  public static boolean fullyDelete(File dir) throws IOException {

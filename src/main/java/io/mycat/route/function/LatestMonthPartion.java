@@ -38,8 +38,7 @@ public class LatestMonthPartion extends AbstractPartitionAlgorithm {
 		int day = Integer.valueOf(columnValue.substring(valueLen - 4,
 				valueLen - 2));
 		int hour = Integer.valueOf(columnValue.substring(valueLen - 2));
-		int dnIndex = (day - 1) * splitOneDay + hour / hourSpan;
-		return dnIndex;
+		return (day - 1) * splitOneDay + hour / hourSpan;
 
 	}
 

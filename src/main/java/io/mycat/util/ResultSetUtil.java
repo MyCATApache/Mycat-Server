@@ -86,8 +86,7 @@ public class ResultSetUtil {
 			int columnIndex) {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldValues.size());
 		rowDataPkg.read(row);
-		byte[] columnData = rowDataPkg.fieldValues.get(columnIndex);
-		return columnData;
+		return rowDataPkg.fieldValues.get(columnIndex);
 	}
 
 	public static byte[] fromHex(String hexString) {

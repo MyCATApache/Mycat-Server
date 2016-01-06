@@ -197,8 +197,7 @@ public final class ServerParseShow {
 		Pattern pattern = Pattern.compile(pat1, Pattern.CASE_INSENSITIVE);
 		Matcher ma = pattern.matcher(stmt);
 
-		boolean flag = ma.matches();
-		return flag;
+		return ma.matches();
 	}
 
 	// SHOW DATABASES
