@@ -217,7 +217,7 @@ public class DruidSelectParser extends DefaultDruidParser {
         SQLBinaryOperator operator = expr.getOperator();
         SQLExpr right = expr.getRight();
 
-        String leftValue = null;;
+        String leftValue = null;
         if (left instanceof SQLAggregateExpr) {
             leftValue = ((SQLAggregateExpr) left).getMethodName() + "("
                     + ((SQLAggregateExpr) left).getArguments().get(0) + ")";

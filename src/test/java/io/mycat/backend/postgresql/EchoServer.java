@@ -51,7 +51,6 @@ public class EchoServer {
 			for (;;) {
 				Socket socket = serverSocket.accept();
 				new EchoThor(socket).start();
-				;
 			}
 
 		} catch (IOException e) {

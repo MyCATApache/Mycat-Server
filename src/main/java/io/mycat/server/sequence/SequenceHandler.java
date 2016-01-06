@@ -36,6 +36,6 @@ public abstract class SequenceHandler {
 	public abstract long nextId(String prefixName);
 	public static SequenceConfig getConfig(){
 		return MycatServer.getInstance().getConfig().getSequenceConfig();
-	};
+	}
 
 }

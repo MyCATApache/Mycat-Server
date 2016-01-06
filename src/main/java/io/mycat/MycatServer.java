@@ -248,7 +248,7 @@ public class MycatServer {
 				} catch (Exception e) {
 					LOGGER.warn("catletClassClear err " + e);
 				}
-			};
+			}
 		};
 	}
 	
