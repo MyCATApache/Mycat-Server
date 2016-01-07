@@ -1,5 +1,7 @@
 package io.mycat.server.interceptor.impl;
 
+import io.mycat.MycatServer;
+import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.interceptor.SQLInterceptor;
 
 import java.util.regex.Matcher;
@@ -46,7 +48,9 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 	public String interceptSQL(String sql, int sqlType) {
 		String result = processEscape(sql);
 		// 全局表一致性 sql 改写拦截
-		result = GlobalTableUtil.interceptSQL(result, sqlType);
+		SystemConfig system = MycatServer.getInstance().getConfig().getSystem();
+		if(system != null && system.isGlobalTableCheckSwitchOn()) // 全局表一致性检测是否开启
+			result = GlobalTableUtil.interceptSQL(result, sqlType);
 		return result;
 	}
 
