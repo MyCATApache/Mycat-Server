@@ -121,11 +121,11 @@ public class RouterUtil {
 		String tablename = "";		
 		final String upStmt = stmt.toUpperCase();
 		if(upStmt.startsWith("CREATE")){
-			if (upStmt.contains("INDEX")){
+			if (upStmt.contains("CREATE INDEX ")){
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateIndexPos(upStmt, 0));
 			}else tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
 		}else if(upStmt.startsWith("DROP")){
-			if (upStmt.contains("INDEX")){
+			if (upStmt.contains("DROP INDEX ")){
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropIndexPos(upStmt, 0));
 			}else tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
 		}else if(upStmt.startsWith("ALTER")){
