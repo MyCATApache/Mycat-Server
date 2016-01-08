@@ -18,11 +18,16 @@ public class HintHandlerFactory {
         hintHandlerMap.put("schema",new HintSchemaHandler());
         hintHandlerMap.put("datanode",new HintDataNodeHandler());
         hintHandlerMap.put("catlet",new HintCatletHandler());
+        isInit = true;	// 修复多次初始化的bug
     }
     
+    // 双重校验锁 fix 线程安全问题
     public static HintHandler getHintHandler(String hintType) {
     	if(!isInit) {
-    		init();
+    		synchronized(HintHandlerFactory.class){
+    			if(!isInit)
+    				init();
+    		}
     	}
     	return hintHandlerMap.get(hintType);
     }
