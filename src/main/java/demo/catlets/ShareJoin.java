@@ -210,7 +210,6 @@ public class ShareJoin implements Catlet {
 				}else{ // 默认joinkey为int/long
 					sb.append(e.getValue()).append(','); // (1,2,3) 
 				}
-				EngineCtx.LOGGER.debug("sb::::::" + sb);
 			}
 			svalue=e.getValue();
 			if (count++ > batchSize) {
@@ -232,12 +231,10 @@ public class ShareJoin implements Catlet {
 		jointTableIsData=true;
 		sb.deleteCharAt(sb.length() - 1).append(')');
 		String sql = String.format(joinParser.getChildSQL(), sb);
-		EngineCtx.LOGGER.debug("sql::::::333" + sql); // select name, id from customer where name in (lexin3,b,yuanfang,digdeep,b,yuanfang)
 		//if (!childRoute){
 		  getRoute(sql);
 		 //childRoute=true;
 		//}
-		  EngineCtx.LOGGER.debug("sql::::::4444" + sql);
 		ctx.executeNativeSQLParallJob(getDataNodes(),sql, new ShareRowOutPutDataHandler(this,fields,joinindex,joinParser.getJoinRkey(), batchRows));
 		EngineCtx.LOGGER.info("SQLParallJob:"+getDataNode(getDataNodes())+" sql:" + sql);		
 	}  
@@ -275,9 +272,6 @@ public class ShareJoin implements Catlet {
 			  fieldPacket.read(field);	
 			  if (ByteUtil.getString(fieldPacket.name).equals(fkey)){
 				  joinKeyType = fieldPacket.type;
-				  EngineCtx.LOGGER.info("fieldPacket.type::::::::" + fieldPacket.type);
-				  EngineCtx.LOGGER.info("fieldPacket.type:::::fkey:::" + fkey);
-				  EngineCtx.LOGGER.info("fieldPacket.type:::::joinKeyType:::" + joinKeyType);
 				  return i;				  
 			  }
 			  i++;
