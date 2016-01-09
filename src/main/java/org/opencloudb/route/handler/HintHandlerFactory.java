@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class HintHandlerFactory {
 	
-	private static boolean isInit = false;
+	private static volatile boolean isInit = false;
 	
 	 //sql注释的类型处理handler 集合，现在支持两种类型的处理：sql,schema
     private static Map<String,HintHandler> hintHandlerMap = new HashMap<String,HintHandler>();
@@ -18,11 +18,16 @@ public class HintHandlerFactory {
         hintHandlerMap.put("schema",new HintSchemaHandler());
         hintHandlerMap.put("datanode",new HintDataNodeHandler());
         hintHandlerMap.put("catlet",new HintCatletHandler());
+        isInit = true;	// 修复多次初始化的bug
     }
     
+    // 双重校验锁 fix 线程安全问题
     public static HintHandler getHintHandler(String hintType) {
     	if(!isInit) {
-    		init();
+    		synchronized(HintHandlerFactory.class){
+    			if(!isInit)
+    				init();
+    		}
     	}
     	return hintHandlerMap.get(hintType);
     }
