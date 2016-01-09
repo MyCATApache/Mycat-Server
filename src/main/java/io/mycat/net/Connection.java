@@ -552,7 +552,7 @@ public abstract class Connection implements ClosableConnection{
 				if (written > 0) {
 					netOutBytes += written;
 					NetSystem.getInstance().addNetOutBytes(written);
-
+					lastWriteTime = TimeUtil.currentTimeMillis();
 				} else {
 					break;
 				}

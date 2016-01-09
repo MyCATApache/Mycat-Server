@@ -274,13 +274,21 @@ public class TableFilter {
 			else
 			  sql=unionsql(sql,getFieldfrom(key)+" as "+val,",");  
 		  }
-        if (parent==null){
+        if (parent==null){	// on/where 等于号左边的表
+        	String parentJoinKey = getJoinKey(true);
+        	// fix sharejoin bug： 
+        	// (AbstractConnection.java:458) -close connection,reason:program err:java.lang.IndexOutOfBoundsException:
+        	// 原因是左表的select列没有包含 join 列，在获取结果时报上面的错误
+        	if(sql != null && parentJoinKey != null &&  
+        			sql.toUpperCase().indexOf(parentJoinKey.trim().toUpperCase()) == -1){
+        		sql += ", " + parentJoinKey;
+        	}
 		   sql="select "+sql+" from "+tName;
 		   if (!(where.trim().equals(""))){
 				sql+=" where "+where.trim(); 	
 			}
         }
-        else {
+        else {	// on/where 等于号右边边的表
         	if (allField) {
         	   sql="select "+sql+" from "+tName;
         	}
