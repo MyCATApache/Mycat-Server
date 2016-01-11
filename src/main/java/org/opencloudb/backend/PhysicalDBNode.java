@@ -88,15 +88,50 @@ public class PhysicalDBNode {
 	}
 
 	public void getConnection(String schema,boolean autoCommit, RouteResultsetNode rrs,
-			ResponseHandler handler, Object attachment) throws Exception {
+							ResponseHandler handler, Object attachment) throws Exception {
 		checkRequest(schema);
 		if (dbPool.isInitSuccess()) {
-			if (rrs.canRunnINReadDB(autoCommit)) {
-				dbPool.getRWBanlanceCon(schema,autoCommit, handler, attachment,
-						this.database);
-			} else {
-				dbPool.getSource().getConnection(schema,autoCommit, handler, attachment);
+			LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
+			if(rrs.getRunOnSlave() != null){		// 带有 /*db_type=master/slave*/ 注解
+				if(rrs.getRunOnSlave()){			// 强制走 slave
+					LOGGER.debug("rrs.isHasBlanceFlag() " + rrs.isHasBlanceFlag());
+					if (rrs.isHasBlanceFlag()) {	// 带有 /*balance*/ 注解
+						dbPool.getReadBanlanceCon(schema,autoCommit, 
+									handler, attachment, this.database);
+					}else{	// 没有 /*balance*/ 注解
+						LOGGER.debug("rrs.isHasBlanceFlag()" + rrs.isHasBlanceFlag());
+						if(!dbPool.getReadCon(schema, autoCommit, handler, attachment, this.database)){
+							LOGGER.warn("Do not have slave connection to use, use master connection instead.");
+							dbPool.getSource().getConnection(schema, autoCommit, handler, attachment);
+							rrs.setRunOnSlave(false);
+							rrs.setCanRunInReadDB(false);
+						}
+					}
+				}else{	// 强制走 master
+					// 默认获得的是 writeSource，也就是 走master
+					LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
+					dbPool.getSource().getConnection(schema,
+								autoCommit, handler, attachment);
+					rrs.setCanRunInReadDB(false);
+				}
+				
+				
+			}else{	// 没有  /*db_type=master/slave*/ 注解，按照原来的处理方式
+				LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());	// null
+				if (rrs.canRunnINReadDB(autoCommit)) {
+					dbPool.getRWBanlanceCon(schema,autoCommit, handler, attachment,
+							this.database);
+				} else {
+					dbPool.getSource().getConnection(schema,autoCommit, handler, attachment);
+				}
 			}
+			
+//			if (rrs.canRunnINReadDB(autoCommit)) {
+//				dbPool.getRWBanlanceCon(schema,autoCommit, handler, attachment,
+//						this.database);
+//			} else {
+//				dbPool.getSource().getConnection(schema,autoCommit, handler, attachment);
+//			}
 
 		} else {
 			throw new IllegalArgumentException("Invalid DataSource:"

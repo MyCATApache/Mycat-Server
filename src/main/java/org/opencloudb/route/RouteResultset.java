@@ -23,8 +23,6 @@
  */
 package org.opencloudb.route;
 
-import org.opencloudb.MycatConfig;
-import org.opencloudb.MycatServer;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.mpp.HavingCols;
 import org.opencloudb.parser.util.PageSQLUtil;
@@ -39,7 +37,8 @@ import java.util.Map;
  * @author mycat
  */
 public final class RouteResultset implements Serializable {
-    private String statement; // 原始语句
+	private static final long serialVersionUID = 5619187116831694918L;
+	private String statement; // 原始语句
     private final int sqlType;
     private RouteResultsetNode[] nodes; // 路由结果节点
 
@@ -68,12 +67,24 @@ public final class RouteResultset implements Serializable {
     //是否可以在从库运行,此属性主要供RouteResultsetNode获取
     private Boolean canRunInReadDB;
 
+	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB
+	// 传给 RouteResultsetNode 来实现，但是 强制走 slave必须增加一个属性来实现:
+	private Boolean runOnSlave = null;	// 默认null表示不施加影响
+	
     public boolean isLoadData()
     {
         return isLoadData;
     }
 
-    public void setLoadData(boolean isLoadData)
+    public Boolean getRunOnSlave() {
+		return runOnSlave;
+	}
+
+	public void setRunOnSlave(Boolean runOnSlave) {
+		this.runOnSlave = runOnSlave;
+	}
+
+	public void setLoadData(boolean isLoadData)
     {
         this.isLoadData = isLoadData;
     }

@@ -122,16 +122,28 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		startTime = System.currentTimeMillis();
+		LOGGER.debug("rrs.getRunOnSlave()-" + rrs.getRunOnSlave());
 		for (final RouteResultsetNode node : rrs.getNodes()) {
 			BackendConnection conn = session.getTarget(node);
 			if (session.tryExistsCon(conn, node)) {
+				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
+				node.setRunOnSlave(rrs.getRunOnSlave());
+				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
 				_execute(conn, node);
 			} else {
-				// create new connection
+//				 create new connection
+				LOGGER.debug("node.getRunOnSlave()1-" + node.getRunOnSlave());
+				node.setRunOnSlave(rrs.getRunOnSlave());
+				LOGGER.debug("node.getRunOnSlave()2-" + node.getRunOnSlave());
 				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
+				
 				dn.getConnection(dn.getDatabase(), autocommit, node, this, node);
+				// 注意该方法不仅仅是获取连接，获取新连接成功之后，会通过层层回调，最后回调到本类 的connectionAcquired
+				// 这是通过 上面方法的 this 参数的层层传递完成的。
+				// connectionAcquired 进行执行操作:
+				// session.bindConnection(node, conn);
+				// _execute(conn, node);
 			}
-
 		}
 	}
 
