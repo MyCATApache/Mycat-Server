@@ -48,7 +48,7 @@ public class MySQLBackendConnection extends GenalMySQLConnection implements
 	private boolean fromSlaveDB;
 	private long threadId;
 	private final ResultStatus sqlResultStatus = new ResultStatus();
-	private Object attachment;
+	private Object attachment;	// RouteResultsetNode
 	private volatile ResponseHandler respHandler;
 
 	private final AtomicBoolean isQuit;

@@ -29,10 +29,12 @@ import io.mycat.cache.LayerCachePool;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.route.handler.HintHandler;
 import io.mycat.route.handler.HintHandlerFactory;
+import io.mycat.route.handler.HintMasterDBHandler;
 import io.mycat.server.MySQLFrontConnection;
 import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.parser.ServerParse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +67,7 @@ public class RouteService {
 			throws SQLNonTransientException {
 		RouteResultset rrs = null;
 		String cacheKey = null;
-
+		 
 		if (sqlType == ServerParse.SELECT) {
 			cacheKey = schema.getName() + stmt;			
 			rrs = (RouteResultset) sqlRouteCache.get(cacheKey);
@@ -73,7 +75,7 @@ public class RouteService {
 				return rrs;
 			}
 		}
-        
+		 
         /*!mycat: sql = select name from aa */
         /*!mycat: schema = test */
         boolean isMatchOldHint = stmt.startsWith(OLD_MYCAT_HINT);
@@ -89,6 +91,7 @@ public class RouteService {
                 
                 if(firstSplitPos > 0 ){
                     String hintType = hint.substring(0,firstSplitPos).trim().toLowerCase(Locale.US);
+                    
                     String hintValue = hint.substring(firstSplitPos + HINT_SPLIT.length()).trim();
                     if(hintValue.length()==0){
                     	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
@@ -97,6 +100,9 @@ public class RouteService {
                     String realSQL = stmt.substring(endPos + "*/".length()).trim();
 
                     HintHandler hintHandler = HintHandlerFactory.getHintHandler(hintType);
+                    if(hintType != null && hintType.equalsIgnoreCase("db_type"))
+                    	hintHandler = new HintMasterDBHandler();
+                    
                     if(hintHandler != null){
                         rrs = hintHandler.route(sysconf,schema,sqlType,realSQL,charset,sc,tableId2DataNodeCache,hintValue);
                     }else{

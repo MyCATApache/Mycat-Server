@@ -66,6 +66,10 @@ public final class RouteResultset implements Serializable {
     //是否可以在从库运行,此属性主要供RouteResultsetNode获取
     private Boolean canRunInReadDB;
 
+	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB
+	// 传给 RouteResultsetNode 来实现，但是 强制走 slave必须增加一个属性来实现:
+	private Boolean runOnSlave = null;	// 默认null表示不施加影响
+	
     public boolean isLoadData()
     {
         return isLoadData;
@@ -98,7 +102,15 @@ public final class RouteResultset implements Serializable {
         this.sqlType = sqlType;
     }
 
-    public void resetNodes() {
+    public Boolean getRunOnSlave() {
+		return runOnSlave;
+	}
+
+	public void setRunOnSlave(Boolean runOnSlave) {
+		this.runOnSlave = runOnSlave;
+	}
+
+	public void resetNodes() {
         if (nodes != null) {
             for (RouteResultsetNode node : nodes) {
                 node.resetStatement();

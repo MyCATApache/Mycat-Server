@@ -87,7 +87,7 @@ public class MycatServer {
 
 	private ClusterSync clusterSync;
 
-	public MycatServer() {
+	private MycatServer() {
 		this.config = new MycatConfig();
 		this.timer = new Timer(NAME + "Timer", true);
 		this.isOnline = new AtomicBoolean(true);
