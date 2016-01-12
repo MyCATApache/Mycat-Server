@@ -46,7 +46,7 @@ public class HintMasterDBHandler implements HintHandler {
 		LOGGER.debug("schema.rrs(): " + rrs); // master
 		Boolean isRouteToMaster = null;	// 默认不施加任何影响
 		
-		LOGGER.warn("hintSQLValue:::::::::" + hintSQLValue); // slave
+		LOGGER.debug("hintSQLValue:::::::::" + hintSQLValue); // slave
 		
 		if(hintSQLValue != null && !hintSQLValue.trim().equals("")){
 			if(hintSQLValue.trim().equalsIgnoreCase("master"))
@@ -75,7 +75,7 @@ public class HintMasterDBHandler implements HintHandler {
 		}
 		
 		if(isRouteToMaster)	// 强制走 master 
-			rrs.setCanRunInReadDB(false);
+			rrs.setRunOnSlave(false);
 		
 		if(!isRouteToMaster)// 强制走slave
 			rrs.setRunOnSlave(true);

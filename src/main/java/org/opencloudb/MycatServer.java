@@ -100,7 +100,7 @@ public class MycatServer {
 	private NameableExecutor timerExecutor;
 	private ListeningExecutorService listeningExecutorService;
 
-	public MycatServer() {
+	private MycatServer() {
 		this.config = new MycatConfig();
 		this.timer = new Timer(NAME + "Timer", true);
 		this.sqlRecorder = new SQLRecorder(config.getSystem()

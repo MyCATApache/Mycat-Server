@@ -120,20 +120,23 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		} finally {
 			lock.unlock();
 		}
+		
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		startTime = System.currentTimeMillis();
-		LOGGER.debug("rrs.getRunOnSlave()-" + rrs.getRunOnSlave());
+		
 		for (final RouteResultsetNode node : rrs.getNodes()) {
 			BackendConnection conn = session.getTarget(node);
+			
+			node.setRunOnSlave(rrs.getRunOnSlave());
+			
 			if (session.tryExistsCon(conn, node)) {
-				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
+				
 				node.setRunOnSlave(rrs.getRunOnSlave());
 				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
+				
 				_execute(conn, node);
 			} else {
 //				 create new connection
-				LOGGER.debug("node.getRunOnSlave()1-" + node.getRunOnSlave());
-				node.setRunOnSlave(rrs.getRunOnSlave());
 				LOGGER.debug("node.getRunOnSlave()2-" + node.getRunOnSlave());
 				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
 				

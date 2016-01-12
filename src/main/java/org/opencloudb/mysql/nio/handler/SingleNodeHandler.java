@@ -154,8 +154,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 			MycatConfig conf = MycatServer.getInstance().getConfig();
 			
-			LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
-			node.setRunOnSlave(rrs.getRunOnSlave());
+//			LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
+//			node.setRunOnSlave(rrs.getRunOnSlave());
 			LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
 			
 			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
