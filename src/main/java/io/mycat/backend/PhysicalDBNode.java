@@ -106,7 +106,6 @@ public class PhysicalDBNode {
 							LOGGER.warn("Do not have slave connection to use, use master connection instead.");
 							dbPool.getSource().getConnection(schema, autoCommit, handler, attachment);
 							rrs.setRunOnSlave(false);
-							rrs.setCanRunInReadDB(false);
 						}
 					}
 				}else{	// 强制走 master
@@ -114,7 +113,6 @@ public class PhysicalDBNode {
 					LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
 					dbPool.getSource().getConnection(schema,
 								autoCommit, handler, attachment);
-					rrs.setCanRunInReadDB(false);
 				}
 				
 				

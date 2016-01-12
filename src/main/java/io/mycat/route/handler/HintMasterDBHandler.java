@@ -38,19 +38,11 @@ public class HintMasterDBHandler implements HintHandler {
 								MySQLFrontConnection sc, LayerCachePool cachePool,
 								String hintSQLValue)throws SQLNonTransientException {
 		
-		System.out.println("realSQLrealSQLrealSQLrealSQLrealSQL: " + realSQL); // select * from travelrecord
-		System.out.println("sqlTypesqlTypesqlTypesqlTypesqlType: " + sqlType); // 7
-		System.out.println("schema.getName(): " + schema.getName()); // TESTDB
-		System.out.println("schema.getName(): " + schema.getDataNode()); // null
-		System.out.println("schema.hintSQLValuehintSQLValuehintSQLValue(): " + hintSQLValue); // slave/master
-		
 		RouteResultset rrs = RouteStrategyFactory.getRouteStrategy()
 									.route(sysConfig, schema, sqlType, 
 										realSQL, charset, sc, cachePool);
 		
 		Boolean isRouteToMaster = null;	// 默认不施加任何影响
-		
-		System.out.println("hintSQLValue:::::::::" + hintSQLValue); // slave
 		
 		if(StringUtils.isNotBlank(hintSQLValue)){
 			if(hintSQLValue.trim().equalsIgnoreCase("master"))
@@ -73,11 +65,12 @@ public class HintMasterDBHandler implements HintHandler {
 		}
 		
 		if(isRouteToMaster)	// 强制走 master 
-			rrs.setCanRunInReadDB(false);
+			rrs.setRunOnSlave(false);
 		
 		if(!isRouteToMaster)// 强制走slave
 			rrs.setRunOnSlave(true);
-		System.out.println("isRouteToMaster:::::::::" + isRouteToMaster); // false
+		
+		LOGGER.debug("isRouteToMaster:::::::::" + isRouteToMaster); // false
 		return rrs;
 	}
 
