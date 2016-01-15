@@ -141,6 +141,7 @@ public class MySQLDetector implements
 				}
 
 				heartbeat.getAsynRecorder().set(resultResult, switchType);
+				heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
             }
             else if(PhysicalDBPool.BALANCE_NONE!=balance && switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS 
             		&& source.getHostConfig().isShowClusterSql())
@@ -151,6 +152,7 @@ public class MySQLDetector implements
 				String wsrep_ready = resultResult!=null?resultResult.get("wsrep_ready"):null;//ON
 				if("ON".equals(wsrep_connected) && "ON".equals(wsrep_ready) && "Primary".equals(wsrep_cluster_status)){
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
+					heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
 				}else{
 					MySQLHeartbeat.LOGGER.warn("found MySQL  cluster status err !!! " + heartbeat.getSource().getConfig() 
 							+ " wsrep_cluster_status: "+ wsrep_cluster_status  
@@ -158,6 +160,7 @@ public class MySQLDetector implements
 							+ " wsrep_ready: "+ wsrep_ready
 					);
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
+					heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
 				}
     			heartbeat.getAsynRecorder().set(resultResult, switchType);
     		}else{

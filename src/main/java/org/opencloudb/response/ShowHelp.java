@@ -132,6 +132,7 @@ public final class ShowHelp {
         helps.put("show @@sql.detail where id = ?", "Report execute detail status");
         helps.put("show @@sql", "Report SQL list");
        // helps.put("show @@sql where id = ?", "Report  specify SQL");
+        helps.put("show @@sql.high", "Report Hight Frequency SQL");
         helps.put("show @@sql.slow", "Report slow SQL");
         helps.put("show @@sql.sum", "Report  User RW Stat ");
         helps.put("show @@sql.sum.user", "Report  User RW Stat ");
