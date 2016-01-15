@@ -63,7 +63,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		
 //		rrs.setStatement(druidParser.getCtx().getSql());
 		//没有from的的select语句或其他
-		if(druidParser.getCtx().getTables().size() == 0) {
+        DruidShardingParseInfo ctx=  druidParser.getCtx() ;
+        if((ctx.getTables() == null || ctx.getTables().size() == 0)&&(ctx.getTableAliasMap()==null||ctx.getTableAliasMap().isEmpty())) {
 			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(),druidParser.getCtx().getSql());
 		}
 
