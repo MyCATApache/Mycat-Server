@@ -364,7 +364,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 
 		//无表的select语句直接路由带任一节点
-		if(ctx.getTables() == null || ctx.getTables().size() == 0) {
+        if((ctx.getTables() == null || ctx.getTables().size() == 0)&&(ctx.getTableAliasMap()==null||ctx.getTableAliasMap().isEmpty())) {
 			rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
 			rrs.setFinishedRoute(true);
 			return;
