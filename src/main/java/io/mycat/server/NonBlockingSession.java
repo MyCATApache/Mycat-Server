@@ -281,14 +281,28 @@ public class NonBlockingSession{
 		return target.put(key, conn);
 	}
 
-	public boolean tryExistsCon(final BackendConnection conn,
-			RouteResultsetNode node) {
-
+	/**
+	 * 该连接是否符合 RouteResultsetNode node 的要求而能够被重用
+	 * @param conn
+	 * @param node
+	 * @return
+	 */
+	public boolean tryExistsCon(final BackendConnection conn, RouteResultsetNode node) {
 		if (conn == null) {
 			return false;
 		}
-		if (!conn.isFromSlaveDB()
-				|| node.canRunnINReadDB(getSource().isAutocommit())) {
+		
+		boolean canReUse = false;
+		// conn 是 slave db 的
+		if(conn.isFromSlaveDB() && ( node.canRunnINReadDB(getSource().isAutocommit())
+								     && (node.getRunOnSlave() == null || node.getRunOnSlave()) ) )
+			canReUse = true;
+		
+		// conn 是 master db 的
+		if(!conn.isFromSlaveDB() && (node.getRunOnSlave() == null || !node.getRunOnSlave()) )
+			canReUse = true;
+		
+		if (canReUse) {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("found connections in session to use " + conn
 						+ " for " + node);

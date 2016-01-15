@@ -80,8 +80,10 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("execute in datanode " + dn);
 				}
+				RouteResultsetNode node = new RouteResultsetNode(dn, ServerParse.SELECT, sql);
+				node.setRunOnSlave(false);
 				mysqlDN.getConnection(mysqlDN.getDatabase(), true,
-						new RouteResultsetNode(dn, ServerParse.SELECT, sql),
+						node,
 						this, dn);
 			} catch (Exception e) {
 				LOGGER.warn("get connection err " + e);

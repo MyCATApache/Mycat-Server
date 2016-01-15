@@ -194,15 +194,18 @@ public final class ParseUtil {
             if (len > ++n && stmt.charAt(n++) == '*' && len > n + 1) {
             	//对两种注解放过：/*!mycat:  和 /*#mycat:
             	if(stmt.charAt(n) == '!') {
-            		break;
+            		//fix bug: 此处不应该使用 break，而是直接运行到下面的for循环，直接找到注释之后的 index; 
+            		// 不然会导致所有带有注释的sql，解析得到的 sqlType=-1; by: digdeep@126.com
+            		//break; 
             	} else if (stmt.charAt(n) == '#') {
             		if(len > n + 5 && stmt.charAt(n + 1) == 'm'
             				&& stmt.charAt(n + 2) == 'y'
             				&& stmt.charAt(n + 3) == 'c'
             				&& stmt.charAt(n + 4) == 'a'
             				&& stmt.charAt(n + 5) == 't') {
-            			break;
-            			
+            			//fix bug: 此处不应该使用 break，而是直接运行到下面的for循环，直接找到注释之后的 index; 
+            			// 不然会导致所有带有注释的sql，解析得到的 sqlType=-1; by: digdeep@126.com
+            			//break;
             		}
             	}
                 for (int i = n; i < len; ++i) {
@@ -221,7 +224,7 @@ public final class ParseUtil {
         }
         return offset;
     }
-
+    
     public static boolean currentCharIsSep(String stmt, int offset) {
         if (stmt.length() > offset) {
             switch (stmt.charAt(offset)) {

@@ -28,13 +28,18 @@ import io.mycat.backend.PhysicalDBPool;
 import io.mycat.backend.PhysicalDatasource;
 import io.mycat.server.config.node.DBHostConfig;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.lang.StringUtils;
@@ -156,6 +161,12 @@ public class CharsetUtil {
     	logger.error(" init charset and collation from mysqld failed, please check datahost in mycat.xml."+
     				SystemUtils.LINE_SEPARATOR + 
     			" if your backend database is not mysqld, please ignore this message.");
+    	
+    	// 使用Mycat-server的环境中，其配置文件mycat.xml一台mysqld也没有配置，也就是后台数据库都是sqlserver或者oracle等
+    	// 所以无法从mysqld中读取字符映射信息，所以只有在此种情况下使用配置文件代替，
+    	// 注意配置文件因为存在时效性，可能存在兼容问题，这也是为什么从mysqld中读取，而不使用配置文件的原因；
+    	getCharsetInfoFromFile();
+    	logger.info(" backend database is not mysqld, read charset info from file.");
     }
     
     public static DBHostConfig getConfigByDataHostName(Map<String, PhysicalDBPool> dataHosts, String hostName){
@@ -296,6 +307,49 @@ public class CharsetUtil {
         logger.debug(" function getConnection cost milliseconds: " + (millisecondsEnd - millisecondsEnd2));
 		return connection;
 	}
+    
+    /**
+     * 从配置文件 index_to_charset.properties 读取 collationIndex 到 charsetName的映射关系，
+     * 文件中的内容来源于：SELECT ID,CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.COLLATIONS order by id;
+     * 
+     * 从配置文件charset_to_default_index.properties中读取charsetName到默认的collationIndex的映射关系，
+     * 文件内容来源于：SELECT CHARACTER_SET_NAME,ID FROM INFORMATION_SCHEMA.COLLATIONS where Default='Yes';
+     * 
+     * 如果存在兼容性问题，请按照上面给出的方式更新那两个文件即可。
+     * 
+     * 只有在所有数据库都是 非 mysql数据库时，才需要使用到该函数。
+     */
+    public static void getCharsetInfoFromFile(){
+    	Properties pros = new Properties();
+    	try {
+    		pros.load(CharsetUtil.class.getClassLoader().getResourceAsStream("index_to_charset.properties"));
+    		Iterator<Entry<Object, Object>> it = pros.entrySet().iterator();  
+            while (it.hasNext()) {  
+                Entry<Object, Object> entry = it.next();  
+                Object key = entry.getKey();
+                Object value = entry.getValue();  
+                INDEX_TO_CHARSET.put(Integer.parseInt(key.toString()), value.toString());
+            }  
+//            System.out.println(JSON.toJSONString(INDEX_TO_CHARSET));
+            
+            pros.clear();
+            pros.load(CharsetUtil.class.getClassLoader().getResourceAsStream("charset_to_default_index.properties"));
+            it = pros.entrySet().iterator();  
+            while (it.hasNext()) {  
+                Entry<Object, Object> entry = it.next();  
+                Object key = entry.getKey();
+                Object value = entry.getValue();  
+                CHARSET_TO_INDEX.put(key.toString(), Integer.parseInt(value.toString()));
+            }  
+//            System.out.println(JSON.toJSONString(CHARSET_TO_INDEX));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    }
+    
+    public static void main(String[] args){
+    	getCharsetInfoFromFile();
+    }
 }
 
 /**
