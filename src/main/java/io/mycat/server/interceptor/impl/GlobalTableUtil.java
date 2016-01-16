@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,11 +23,13 @@ import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelect;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
@@ -42,6 +45,7 @@ import io.mycat.backend.heartbeat.MySQLConsistencyChecker;
 import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.config.node.SchemaConfig;
 import io.mycat.server.config.node.TableConfig;
+import io.mycat.server.packet.util.CharsetUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.SQLQueryResult;
 import io.mycat.util.StringUtil;
@@ -62,6 +66,7 @@ public class GlobalTableUtil{
 	private static volatile int isInnerColumnCheckFinished = 0;
 	private static final ReentrantLock lock = new ReentrantLock(false);
 	private static List<SQLQueryResult<Map<String, String>>> innerColumnNotExist = new ArrayList<>();
+	private static Map<String, String> tableColumsMap = new ConcurrentHashMap<>();
 	
 	public static Map<String, TableConfig> getGlobalTableMap() {
 		return globalTableMap;
@@ -87,6 +92,10 @@ public class GlobalTableUtil{
 		if(sqlType == ServerParse.UPDATE){
 			sql = convertUpdateSQL(sql);
 		}
+		if(sqlType == ServerParse.DDL){
+			LOGGER.info(" DDL to modify global table.");
+			handleDDLSQL(sql);	
+		}
 		
 		LOGGER.debug("after intercept: " +  sql);
 		/*
@@ -99,6 +108,58 @@ public class GlobalTableUtil{
 		}
 		*/
 		return sql;
+	}
+	
+	/*
+	 * Name: 'ALTER TABLE'
+		Description:
+		Syntax:
+		ALTER [IGNORE] TABLE tbl_name
+		    [alter_specification [, alter_specification] ...]
+		    [partition_options]
+	       如果 DDL 修改了表结构，需要重新获得表的列list
+	 */
+	private static void handleDDLSQL(String sql){
+		try{
+			MySqlStatementParser parser = new MySqlStatementParser(sql);	 
+			SQLStatement statement = parser.parseStatement();
+			MySqlAlterTableStatement alter = (MySqlAlterTableStatement)statement; 
+			SQLExprTableSource source = alter.getTableSource();
+			String tableName = source.toString();
+	        tableName = StringUtil.removeBackquote(tableName);
+			
+			if(StringUtils.isNotBlank(tableName))
+				tableName = tableName.trim();
+			else
+				return;
+			
+			if(!isGlobalTable(tableName))
+				return;
+			
+			final String tn = tableName;
+			MycatServer.getInstance().getListeningExecutorService().execute(new Runnable() {
+				public void run() {
+					try {
+						TimeUnit.SECONDS.sleep(3);	// DDL发出之后，等待3秒让DDL分发完成
+					} catch (InterruptedException e) {
+					} 
+					reGetColumnsForTable(tn); // DDL 语句可能会增删 列，所以需要重新获取 全局表的 列list
+				}
+			});
+			
+			MycatServer.getInstance().getListeningExecutorService().execute(new Runnable() {
+				public void run() {
+					try {
+						TimeUnit.MINUTES.sleep(10);	// DDL发出之后，等待10分钟再次执行，全局表一般很小，DDL耗时不会超过10分钟
+					} catch (InterruptedException e) {
+					} 
+					reGetColumnsForTable(tn); // DDL 语句可能会增删 列，所以需要重新获取 全局表的 列list
+				}
+			});
+			
+		}catch(Exception e){
+			return;
+		}
 	}
 	
 	/**
@@ -151,42 +212,69 @@ public class GlobalTableUtil{
 	        if(!isInnerColExist(tableName))
 	        	return sql;
 	        	
-	        List<SQLExpr> columns = insert.getColumns();
-	        if(columns == null || columns.size() <= 0)
-	        	return sql;
-		
 	        if(insert.getQuery() != null)	// insert into tab select 
 	        	return sql;
-	        	
-	    	StringBuilder sb = new StringBuilder(200)	// 指定初始容量可以提高性能
-	    						.append("insert into ")
-								.append(tableName).append("(");
-			int idx = -1;
-			for(int i = 0; i < columns.size(); i++) {
-				if(i < columns.size() - 1)
-					sb.append(columns.get(i).toString()).append(",");
-				else
-					sb.append(columns.get(i).toString());
-				String column = StringUtil.removeBackquote(insert.getColumns().get(i).toString());
-				if(column.equalsIgnoreCase(GLOBAL_TABLE_MYCAT_COLUMN))
-					idx = i;
-			}
-			if(idx <= -1)
-			sb.append(",").append(GLOBAL_TABLE_MYCAT_COLUMN);
-			sb.append(")");
+	        
+	        StringBuilder sb = new StringBuilder(200)	// 指定初始容量可以提高性能
+			.append("insert into ").append(tableName);
+	        
+	        List<SQLExpr> columns = insert.getColumns();
+	        
+	        int idx = -1;	
+	        int colSize = -1;
+	        
+	        if(columns == null || columns.size() <= 0){ // insert 没有带列名：insert into t values(xxx,xxx)
+	        	String columnsList = tableColumsMap.get(tableName.toUpperCase());
+	        	if(StringUtils.isNotBlank(columnsList)){ //"id,name,_mycat_op_time"
+	        		//newSQL = "insert into t(id,name,_mycat_op_time)";
+	        		// 构建一个虚拟newSQL来寻找 内部列的索引位置
+	        		String newSQL = "insert into " + tableName + "(" + columnsList + ")";
+	        		MySqlStatementParser newParser = new MySqlStatementParser(newSQL);	 
+	        		SQLStatement newStatement = newParser.parseStatement();
+	        		MySqlInsertStatement newInsert = (MySqlInsertStatement)newStatement; 
+	        		List<SQLExpr> newColumns = newInsert.getColumns();
+	        		for(int i = 0; i < newColumns.size(); i++) {
+						String column = StringUtil.removeBackquote(newInsert.getColumns().get(i).toString());
+						if(column.equalsIgnoreCase(GLOBAL_TABLE_MYCAT_COLUMN))
+							idx = i;	// 找到 内部列的索引位置
+					}
+	        		colSize = newColumns.size();
+	        		sb.append("(").append(columnsList).append(")");
+	        	}else{	// tableName 是全局表，但是 tableColumsMap 没有其对应的列list，这种情况不应该存在
+		        	LOGGER.warn("you'd better do not use 'insert into t values(a,b)' Syntax (without column list) on global table, "
+    				+ "If you do. Then you must make sure inner column '_mycat_op_time' is last column of global table: " 
+    				+ tableName + " in all database. Good luck. ^_^");
+		        	// 我们假定 内部列位于表中所有列的最后，后面我们在values 子句的最后 给他附加上时间戳
+	        	}
+	        }else{	// insert 语句带有 列名
+	        	sb.append("(");
+				for(int i = 0; i < columns.size(); i++) {
+					if(i < columns.size() - 1)
+						sb.append(columns.get(i).toString()).append(",");
+					else
+						sb.append(columns.get(i).toString());
+					String column = StringUtil.removeBackquote(insert.getColumns().get(i).toString());
+					if(column.equalsIgnoreCase(GLOBAL_TABLE_MYCAT_COLUMN))
+						idx = i;
+				}
+				if(idx <= -1)
+					sb.append(",").append(GLOBAL_TABLE_MYCAT_COLUMN);
+				sb.append(")");
+				colSize = columns.size();
+	        }
 			
 			sb.append(" values");
 			List<ValuesClause> vcl = insert.getValuesList();
 			if(vcl != null && vcl.size() > 1){	// 批量insert
 				for(int j=0; j<vcl.size(); j++){
 				   if(j != vcl.size() - 1)
-					   appendValues(vcl.get(j).getValues(), sb, idx).append(",");
+					   appendValues(vcl.get(j).getValues(), sb, idx, colSize).append(",");
 				   else
-					   appendValues(vcl.get(j).getValues(), sb, idx);
+					   appendValues(vcl.get(j).getValues(), sb, idx, colSize);
 				}
 			}else{	// 非批量 insert
 				List<SQLExpr> valuse = insert.getValues().getValues();
-				appendValues(valuse, sb, idx);
+				appendValues(valuse, sb, idx, colSize);
 			}
 			
 			List<SQLExpr> dku = insert.getDuplicateKeyUpdate();
@@ -210,6 +298,18 @@ public class GlobalTableUtil{
 		}
 	}
 	
+	public static void main(String[] args){
+		String newSQL = "insert into t(id,name,_mycat_op_time)";// + columnsList + ")";
+		MySqlStatementParser parser = new MySqlStatementParser(newSQL);	 
+		SQLStatement statement = parser.parseStatement();
+		MySqlInsertStatement insert = (MySqlInsertStatement)statement; 
+		List<SQLExpr> columns = insert.getColumns();
+		System.out.println(columns.size());
+		
+		String sql = "alter table t add colomn name varchar(30)";
+		handleDDLSQL(sql);
+	}
+	
 	private static boolean isInnerColExist(String tableName){
 		if(innerColumnNotExist.size() > 0){
 			for(SQLQueryResult<Map<String, String>> map : innerColumnNotExist){
@@ -226,19 +326,24 @@ public class GlobalTableUtil{
 		return true;	// tableName 有内部列
 	}
 	
-	private static StringBuilder appendValues(List<SQLExpr> valuse, StringBuilder sb, int idx){
+	private static StringBuilder appendValues(List<SQLExpr> valuse, StringBuilder sb, int idx, int colSize){
+		int size = valuse.size();
+		if(size < colSize)
+			size = colSize;
+		
 		sb.append("(");
-		for(int i = 0; i < valuse.size(); i++) {
-    		if(i < valuse.size() - 1){
+		for(int i = 0; i < size; i++) {
+    		if(i < size - 1){
     			if(i != idx)
     				sb.append(valuse.get(i).toString()).append(",");
     			else
     				sb.append(operationTimestamp).append(",");
     		}else{
-    			if(i != idx)
+    			if(i != idx){
     				sb.append(valuse.get(i).toString());
-    			else
+    			}else{
     				sb.append(operationTimestamp);
+    			}
     		}
 		}
 		if(idx <= -1)
@@ -385,6 +490,41 @@ public class GlobalTableUtil{
 		}
 	}
 	
+	/**
+	 * 重新获得table 的列list
+	 * @param tableName
+	 */
+	private static void reGetColumnsForTable(String tableName){
+		MycatConfig config = MycatServer.getInstance().getConfig();
+		if(globalTableMap != null 
+						&& globalTableMap.get(tableName.toUpperCase()) != null){
+			
+			TableConfig tableConfig = globalTableMap.get(tableName.toUpperCase());
+			if(tableConfig == null || isInnerColumnCheckFinished != 1)	// consistencyCheck 在运行中
+				return;
+			
+			String nodeName = tableConfig.getDataNodes().get(0);
+			
+			Map<String, PhysicalDBNode> map = config.getDataNodes();
+			for(String k2 : map.keySet()){
+				PhysicalDBNode dBnode = map.get(k2);
+				if(nodeName.equals(dBnode.getName())){
+					PhysicalDBPool pool = dBnode.getDbPool();
+					List<PhysicalDatasource> dsList = (List<PhysicalDatasource>)pool.genAllDataSources();
+					for(PhysicalDatasource ds : dsList){
+						if(ds instanceof MySQLDataSource){
+							MySQLDataSource mds = (MySQLDataSource)dsList.get(0);
+							MySQLConsistencyChecker checker = 
+									new MySQLConsistencyChecker(mds, tableConfig.getName());
+							checker.checkInnerColumnExist();
+							return; // 运行一次就行了，不需要像consistencyCheck那样每个db都运行一次
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	public static void consistencyCheck() {
 		MycatConfig config = MycatServer.getInstance().getConfig();
 		for(String key : globalTableMap.keySet()){
@@ -461,15 +601,44 @@ public class GlobalTableUtil{
 								+ "." + GlobalTableUtil.COUNT_COLUMN
 								+ ": "+ map.getResult().get(GlobalTableUtil.COUNT_COLUMN));
 					}
+//					if(row.containsKey(GlobalTableUtil.INNER_COLUMN)){
+//						int count = 0;
+//						try{
+//							if(StringUtils.isNotBlank(row.get(GlobalTableUtil.INNER_COLUMN)))
+//								count = Integer.parseInt(row.get(GlobalTableUtil.INNER_COLUMN).trim());
+//						}catch(NumberFormatException e){
+//							LOGGER.warn(row.get(GlobalTableUtil.INNER_COLUMN) + ", " + e.getMessage());
+//						}finally{
+//							if(count <= 0){
+//								LOGGER.warn(map.getDataNode() + "." + map.getTableName() 
+//										+ " inner column: " 
+//										+ GlobalTableUtil.GLOBAL_TABLE_MYCAT_COLUMN
+//										+ " is not exist.");
+//								if(StringUtils.isNotBlank(map.getTableName())){
+//									for(SQLQueryResult<Map<String, String>> sqr : innerColumnNotExist){
+//										String name = map.getTableName();
+//										String node = map.getDataNode();
+//										if(name != null && !name.equalsIgnoreCase(sqr.getTableName())
+//												|| node != null && !node.equalsIgnoreCase(sqr.getDataNode())){
+//											innerColumnNotExist.add(map);
+//										}
+//									}
+//								}
+//							}
+//							isInnerColumnCheckFinished = 1;
+//						}
+//					}
 					if(row.containsKey(GlobalTableUtil.INNER_COLUMN)){
-						int count = 0;
+						String columnsList = null;
 						try{
 							if(StringUtils.isNotBlank(row.get(GlobalTableUtil.INNER_COLUMN)))
-								count = Integer.parseInt(row.get(GlobalTableUtil.INNER_COLUMN).trim());
-						}catch(NumberFormatException e){
+								columnsList = row.get(GlobalTableUtil.INNER_COLUMN); // id,name,_mycat_op_time
+							LOGGER.debug("columnsList: " + columnsList);
+						}catch(Exception e){
 							LOGGER.warn(row.get(GlobalTableUtil.INNER_COLUMN) + ", " + e.getMessage());
 						}finally{
-							if(count <= 0){
+							if(columnsList == null 
+									|| columnsList.indexOf(GlobalTableUtil.GLOBAL_TABLE_MYCAT_COLUMN) == -1){
 								LOGGER.warn(map.getDataNode() + "." + map.getTableName() 
 										+ " inner column: " 
 										+ GlobalTableUtil.GLOBAL_TABLE_MYCAT_COLUMN
@@ -484,6 +653,11 @@ public class GlobalTableUtil{
 										}
 									}
 								}
+							}else{
+								LOGGER.debug("columnsList: " + columnsList);
+								// COMPANY -> "id,name,_mycat_op_time"，获得了全局表的所有列，并且知道了全局表是否有内部列
+								// 所有列，在 insert into t values(xx,yy) 语法中需要用到
+								tableColumsMap.put(map.getTableName().toUpperCase(), columnsList);
 							}
 							isInnerColumnCheckFinished = 1;
 						}
@@ -502,4 +676,10 @@ public class GlobalTableUtil{
 		}
 		return false;
 	}
+
+	public static Map<String, String> getTableColumsMap() {
+		return tableColumsMap;
+	}
+	
+	
 }

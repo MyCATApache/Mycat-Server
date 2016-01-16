@@ -40,8 +40,7 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private volatile boolean canRunInReadDB;
 	private final boolean hasBlanceFlag;
 	
-	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB
-	// 传给 RouteResultsetNode 来实现，但是 强制走 slave必须增加一个属性来实现:
+	// 强制走 master，强制走 slave统一使用该属性来标志，true走slave，false走master
 	private Boolean runOnSlave = null;	// 默认null表示不施加影响
 
 	private int limitStart;
