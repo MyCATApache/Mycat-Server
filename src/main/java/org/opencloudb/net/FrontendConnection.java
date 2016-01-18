@@ -35,6 +35,7 @@ import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.HandshakePacket;
 import org.opencloudb.net.mysql.MySQLPacket;
 import org.opencloudb.net.mysql.OkPacket;
+import org.opencloudb.util.ByteUtil;
 import org.opencloudb.util.CompressUtil;
 import org.opencloudb.util.RandomUtil;
 
@@ -432,6 +433,15 @@ public abstract class FrontendConnection extends AbstractConnection {
 			this.close("quit cmd");
 			return;
 		}
+		
+		//TODO: 增加一个 byte dump 供调试使用
+		/*
+		if ( LOGGER.isDebugEnabled() ) {
+			String dumpTxt = ByteUtil.dump(data, 0, data.length);
+			LOGGER.debug( dumpTxt );
+		}
+		*/
+		
 		handler.handle(data);
 	}
 
