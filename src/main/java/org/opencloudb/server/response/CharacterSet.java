@@ -109,7 +109,7 @@ public class CharacterSet {
             case CHARACTER_SET_CLIENT:
                 break;
             default:
-            	 boolean ignore = SetIgnoreUtil.isIgnoreStmt(stmt);
+            	 boolean ignore = SetIgnoreUtil.isIgnoreStmt( sql );
                  if ( !ignore ) {
                      StringBuilder s = new StringBuilder();
                      logger.warn(s.append(c).append(sql).append(" is not executed").toString());
