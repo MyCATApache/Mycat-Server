@@ -31,9 +31,8 @@ public interface Versions {
     /**协议版本**/
     public static final byte PROTOCOL_VERSION = 10;
 
-    //5.5.8-mycat-1.5-alpha-20160118235658
     
     /**服务器版、由于 MySQL的JDBC驱动会根据server的版本做不同操作， 所以此处模拟了一个 MySQL 5.5.8 的 version **/
-    public static final byte[] SERVER_VERSION = "5.5.8-mycat-1.5-dev".getBytes();
+    public static final byte[] SERVER_VERSION = "5.5.8-mycat-1.4-alpha-20150520235658".getBytes();
 
 }
