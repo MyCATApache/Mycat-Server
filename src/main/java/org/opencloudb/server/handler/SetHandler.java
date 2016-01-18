@@ -35,11 +35,6 @@ import static org.opencloudb.server.parser.ServerParseSet.TX_REPEATED_READ;
 import static org.opencloudb.server.parser.ServerParseSet.TX_SERIALIZABLE;
 import static org.opencloudb.server.parser.ServerParseSet.XA_FLAG_ON;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import static org.opencloudb.server.parser.ServerParseSet.XA_FLAG_OFF;
 import org.apache.log4j.Logger;
 import org.opencloudb.config.ErrorCode;
@@ -48,6 +43,7 @@ import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParseSet;
 import org.opencloudb.server.response.CharacterSet;
+import org.opencloudb.util.SetIgnoreUtil;
 
 /**
  * SET 语句处理
@@ -60,24 +56,7 @@ public final class SetHandler {
 	private static final Logger logger = Logger.getLogger(SetHandler.class);
 	
 	private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 };
-	
-	private static List<Pattern> ptrnIgnoreList = new ArrayList<Pattern>();
-	
-	static  {
 		
-		//TODO: 忽略部分 SET 指令, 避免WARN 不断的刷日志
-		String[] ignores = new String[] {
-			"(?i)set (sql_mode)",
-			"(?i)set (interactive_timeout|wait_timeout|net_read_timeout|net_write_timeout|lock_wait_timeout|slave_net_timeout)",
-			"(?i)set (connect_timeout|delayed_insert_timeout|innodb_lock_wait_timeout|innodb_rollback_on_timeout)",
-			"(?i)set (profiling|profiling_history_size)"
-		};
-		
-		for (int i = 0; i < ignores.length; ++i) {
-            ptrnIgnoreList.add(Pattern.compile(ignores[i]));
-        }
-	}	
-
 	public static void handle(String stmt, ServerConnection c, int offset) {
 		// System.out.println("SetHandler: "+stmt);
 		int rs = ServerParseSet.parse(stmt, offset);
@@ -147,20 +126,10 @@ public final class SetHandler {
 			CharacterSet.response(stmt, c, rs);
 			break;
 		default:			
-			 boolean ignore = false;
-	         Matcher matcherIgnore;
-	         for (Pattern ptrnIgnore : ptrnIgnoreList) {
-	             matcherIgnore = ptrnIgnore.matcher( stmt );
-	             if (matcherIgnore.find()) {
-	                 ignore = true;
-	                 break;
-	             }
-	         }
-			
+			 boolean ignore = SetIgnoreUtil.isIgnoreStmt(stmt);
              if ( !ignore ) {        	 
      			StringBuilder s = new StringBuilder();
-    			logger.warn(s.append(c).append(stmt)
-    					.append(" is not recoginized and ignored").toString());
+    			logger.warn(s.append(c).append(stmt).append(" is not recoginized and ignored").toString());
              }
 			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 		}
