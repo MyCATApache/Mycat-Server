@@ -192,7 +192,9 @@ public class ByteUtil {
 	public static String getTimestmap(byte[] bytes) {
 		return new String(bytes);
 	}
-
+	
+	// 支持 byte dump
+	//---------------------------------------------------------------------
 	public static String dump(byte[] data, int offset, int length) {
 		
 		StringBuilder sb = new StringBuilder();
@@ -220,5 +222,5 @@ public class ByteUtil {
 	public static char print(byte b) {
 		return (b < 32 || b > 127) ? '.' : (char) b;
 	}
-	
+
 }
