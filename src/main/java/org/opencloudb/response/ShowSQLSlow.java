@@ -102,6 +102,7 @@ public final class ShowSQLSlow {
                     buffer = row.write(buffer, c,true);
                 }
             }
+            userStat.getSqlRecorder().clear();//读取慢SQL后，清理 
         }
 
         // write last eof

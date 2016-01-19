@@ -97,9 +97,12 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
         } finally {
             lock.readLock().unlock();
         }
+        ClearSqlFrequency();  // 获取 高频SQL后清理
         return list;
 	}	
-	
+	public void ClearSqlFrequency() {
+		sqlFrequencyMap.clear();
+	}
 	/**
 	 * 排序
 	 */
