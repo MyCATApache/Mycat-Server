@@ -123,7 +123,8 @@ public class TableStatAnalyzer implements QueryResultListener {
         } finally {
             lock.readLock().unlock();
         }
-        ClearTable();//获取 table 访问排序统计后清理
+        //先不清理
+        //ClearTable();//获取 table 访问排序统计后清理
         return list;
 	}	
 	
