@@ -72,7 +72,8 @@ public final class ManagerParseShow {
     public static final int DATASOURCE_SYNC_DETAIL = 40;
     public static final int DATASOURCE_CLUSTER = 41;
 
-    
+    public static final int WHITE_HOST=42;
+    public static final int WHITE_HOST_SET=43;
     public static int parse(String stmt, int offset) {
         int i = offset;
         for (; i < stmt.length(); i++) {
@@ -133,6 +134,9 @@ public final class ManagerParseShow {
                 case 'V':
                 case 'v':
                     return show2VCheck(stmt, offset);
+                case 'W':
+                case 'w':
+                    return show2WCheck(stmt, offset);                    
                 default:
                     return OTHER;
                 }
@@ -696,7 +700,38 @@ public final class ManagerParseShow {
         }
         return OTHER;
     }
+    // SHOW @@White  ip白名单
+    static int show2WCheck(String stmt, int offset) {
+        if (stmt.length() > offset + "HITE".length()) {
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            if ((c1 == 'H' || c1 == 'h') && (c2 == 'I' || c2 == 'i') && (c3 == 'T' || c3 == 't')
+                    && (c4 == 'E' || c4 == 'e') ) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) == '.') {
+                    return show2WhiteCheck(stmt, offset);
+                }
+                return WHITE_HOST;
+            }
+        }
+        return OTHER;
+    }
+    static int show2WhiteCheck(String stmt, int offset) {
+        if (stmt.length() > offset + "set".length()) {
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
 
+            if ((c1 == 'S' || c1 == 's') && (c2 == 'E' || c2 == 'e') && (c3 == 'T' || c3 == 't')) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) == '=') {
+                    return WHITE_HOST_SET;
+                }
+                return OTHER;
+            }
+        }
+        return OTHER;
+    }
     // SHOW @@CO
     static int show2CoCheck(String stmt, int offset) {
         if (stmt.length() > ++offset) {
