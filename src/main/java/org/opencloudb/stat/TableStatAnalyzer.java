@@ -123,8 +123,14 @@ public class TableStatAnalyzer implements QueryResultListener {
         } finally {
             lock.readLock().unlock();
         }
+        //先不清理
+        //ClearTable();//获取 table 访问排序统计后清理
         return list;
 	}	
+	
+	public void ClearTable() {
+		tableStatMap.clear();
+	}
 	/**
 	 * 排序
 	 */

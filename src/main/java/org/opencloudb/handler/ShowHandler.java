@@ -60,6 +60,7 @@ import org.opencloudb.response.ShowThreadPool;
 import org.opencloudb.response.ShowTime;
 import org.opencloudb.response.ShowVariables;
 import org.opencloudb.response.ShowVersion;
+import org.opencloudb.response.ShowWhiteHost;
 import org.opencloudb.util.StringUtil;
 
 /**
@@ -137,6 +138,12 @@ public final class ShowHandler {
 		case ManagerParseShow.SERVER:
 			ShowServer.execute(c);
 			break;
+		case ManagerParseShow.WHITE_HOST:
+			ShowWhiteHost.execute(c);
+			break;
+		case ManagerParseShow.WHITE_HOST_SET:
+			ShowWhiteHost.setHost(c,ParseUtil.parseString(stmt));
+			break;					
 		case ManagerParseShow.SQL:
 			ShowSQL.execute(c, ParseUtil.getSQLId(stmt));
 			break;

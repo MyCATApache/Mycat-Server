@@ -60,6 +60,14 @@ public class UserStat {
 		this.sqlRecorder.clear();
 	}
 	
+	public void clearSql() {
+		this.sqlStat.reset();
+	}
+	
+	public void clearSqlslow() {
+		this.sqlRecorder.clear();
+	}
+	
 	public void reset() {		
 		this.sqlRecorder.clear();
 		this.rwStat.reset();

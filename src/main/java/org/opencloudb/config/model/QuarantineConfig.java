@@ -68,6 +68,17 @@ public final class QuarantineConfig {
 	public void setWhitehost(Map<String, List<UserConfig>> whitehost) {
 		this.whitehost = whitehost;
 	}
+	
+	public boolean addWhitehost(String host, List<UserConfig> Users) {
+		if (existsHost(host)){
+			return false;	
+		}
+		else {
+		 this.whitehost.put(host, Users);
+		 return true;
+		}
+	}
+	
 	public List<String> getBlacklist() {
 		return this.blacklist;
 	}

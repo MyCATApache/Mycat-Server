@@ -103,6 +103,7 @@ public final class ShowSQL {
                     buffer = row.write(buffer, c,true);
                 }
             }
+            userStat.getSqlStat().clear();//读取SQL监控后清理
         }
 
         
