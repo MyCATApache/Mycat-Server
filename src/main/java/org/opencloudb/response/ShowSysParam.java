@@ -72,7 +72,7 @@ public class ShowSysParam {
         paramValues.add(sysConfig.getSequnceHandlerType() == 1 ? "数据库方式" : "本地文件方式");
         paramValues.add(sysConfig.getPacketHeaderSize() + "B");
         paramValues.add(sysConfig.getMaxPacketSize()/1024/1024 + "M");
-        paramValues.add(sysConfig.getIdleTimeout()/1000/60 + "分钟");
+        paramValues.add(sysConfig.getIdleTimeout() + "毫秒");
         paramValues.add(sysConfig.getCharset() + "");
         paramValues.add(ISOLATIONS[sysConfig.getTxIsolation()]);
         paramValues.add(sysConfig.getSqlExecuteTimeout() + "秒");

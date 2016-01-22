@@ -258,6 +258,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 					rrs.getSqlType(), rrs.getStatement(), startTime);
+			
+			//added by shenhai.yan  2016-01-22
+			//放入结果时间
+			long now = System.currentTimeMillis();
+			queryResult.setEndTime( now );	
+			
 			QueryResultDispatcher.dispatchQuery( queryResult );
  
 		}
@@ -302,6 +308,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 					rrs.getSqlType(), rrs.getStatement(), startTime);
+			
+			//added by shenhai.yan  2016-01-22
+			//放入结果时间
+			long now = System.currentTimeMillis();
+			queryResult.setEndTime( now );	
+			
 			QueryResultDispatcher.dispatchQuery( queryResult );
 
             header[3] = ++packetId;

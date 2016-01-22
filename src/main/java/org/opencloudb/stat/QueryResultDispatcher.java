@@ -69,10 +69,11 @@ public class QueryResultDispatcher {
 		MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
 			
 			public void run() {
-					
+				
+				//commented by shenhai.yan  2016-01-22 
 				//注入 结束时间
-				long now = System.currentTimeMillis();
-				query.setEndTime( now );				
+				//long now = System.currentTimeMillis();
+				//query.setEndTime( now );				
 				
 				for(QueryResultListener listener: listeners) {
 					try {
