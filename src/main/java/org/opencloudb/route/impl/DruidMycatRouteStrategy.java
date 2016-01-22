@@ -1,14 +1,23 @@
 package org.opencloudb.route.impl;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.statement.SQLTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.base.Strings;
 import org.apache.log4j.Logger;
 import org.opencloudb.cache.LayerCachePool;
 import org.opencloudb.config.model.SchemaConfig;
+import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.parser.druid.*;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
@@ -18,6 +27,7 @@ import org.opencloudb.server.parser.ServerParse;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -101,7 +111,59 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			i++;
 		}		
 		rrs.setNodes(nodes);		
-
+		
+		//分表
+		if(rrs.isDistTable()){
+			return this.routeDisTable(statement,rrs);
+		}
+		
+		return rrs;
+	}
+	
+	private SQLExprTableSource getDisTable(SQLTableSource tableSource,RouteResultsetNode node) throws SQLSyntaxErrorException{
+		if(node.getSubTableName()==null){
+			String msg = " sub table not exists for " + node.getName() + " on " + tableSource;
+			LOGGER.error("DruidMycatRouteStrategyError " + msg);
+			throw new SQLSyntaxErrorException(msg);
+		}
+		
+		SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
+		sqlIdentifierExpr.setParent(tableSource.getParent());
+		sqlIdentifierExpr.setName(node.getSubTableName());
+		SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+		return from2;
+	}
+	
+	private RouteResultset routeDisTable(SQLStatement statement, RouteResultset rrs) throws SQLSyntaxErrorException{
+		SQLTableSource tableSource = null;
+		if(statement instanceof SQLInsertStatement) {
+			SQLInsertStatement insertStatement = (SQLInsertStatement) statement;
+			tableSource = insertStatement.getTableSource();
+			for (RouteResultsetNode node : rrs.getNodes()) {
+				SQLExprTableSource from2 = getDisTable(tableSource, node);
+				insertStatement.setTableSource(from2);
+				node.setStatement(insertStatement.toString());
+	        }
+		}
+		if(statement instanceof SQLDeleteStatement) {
+			SQLDeleteStatement deleteStatement = (SQLDeleteStatement) statement;
+			tableSource = deleteStatement.getTableSource();
+			for (RouteResultsetNode node : rrs.getNodes()) {
+				SQLExprTableSource from2 = getDisTable(tableSource, node);
+				deleteStatement.setTableSource(from2);
+				node.setStatement(deleteStatement.toString());
+	        }
+		}
+		if(statement instanceof SQLUpdateStatement) {
+			SQLUpdateStatement updateStatement = (SQLUpdateStatement) statement;
+			tableSource = updateStatement.getTableSource();
+			for (RouteResultsetNode node : rrs.getNodes()) {
+				SQLExprTableSource from2 = getDisTable(tableSource, node);
+				updateStatement.setTableSource(from2);
+				node.setStatement(updateStatement.toString());
+	        }
+		}
+		
 		return rrs;
 	}
 
