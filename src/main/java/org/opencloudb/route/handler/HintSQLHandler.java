@@ -16,6 +16,7 @@ import org.opencloudb.server.parser.ServerParse;
  * 处理注释中 类型为sql的情况 （按照 注释中的sql做路由解析，而不是实际的sql）
  */
 public class HintSQLHandler implements HintHandler {
+	
 	private RouteStrategy routeStrategy;
 	
 	public HintSQLHandler() {
@@ -27,9 +28,10 @@ public class HintSQLHandler implements HintHandler {
 			int sqlType, String realSQL, String charset, ServerConnection sc,
 			LayerCachePool cachePool, String hintSQLValue)
 			throws SQLNonTransientException {
-
+		
 		RouteResultset rrs = routeStrategy.route(sysConfig, schema, sqlType,
 				hintSQLValue, charset, sc, cachePool);
+		
 		// 替换RRS中的SQL执行
 		RouteResultsetNode[] oldRsNodes = rrs.getNodes();
 		RouteResultsetNode[] newRrsNodes = new RouteResultsetNode[oldRsNodes.length];
