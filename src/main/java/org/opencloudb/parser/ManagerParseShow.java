@@ -74,6 +74,7 @@ public final class ManagerParseShow {
 
     public static final int WHITE_HOST=42;
     public static final int WHITE_HOST_SET=43;
+    
     public static int parse(String stmt, int offset) {
         int i = offset;
         for (; i < stmt.length(); i++) {
@@ -1183,13 +1184,12 @@ public final class ManagerParseShow {
                 return show2SqlDotCheck(stmt, offset);
             case ' ':
                 return show2SqlBlankCheck(stmt, offset);
-            default:
-                return OTHER;
+            default:            	          	
+            	return SQL;
             }
-        }
-        else
+        } else {
         	return SQL;
-
+        }
     }
 
     // SHOW @@SQL.
@@ -1240,7 +1240,7 @@ public final class ManagerParseShow {
                     return OTHER;
                 }
             default:
-                return OTHER;
+            	return (offset << 8) | SQL;
             }
         }
 
@@ -1303,9 +1303,16 @@ public final class ManagerParseShow {
             char c1 = stmt.charAt(++offset);
             char c2 = stmt.charAt(++offset);
             if ((c1 == 'O' || c1 == 'o') && (c2 == 'W' || c2 == 'w')) {
-                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
-                    return OTHER;
-                }
+            	
+            	while (stmt.length() > ++offset) {
+	           		 switch (stmt.charAt(offset)) {
+	           		 case ' ':
+	                     continue;
+	                 default:
+	                   	 return (offset << 8) | SQL_SLOW;	 
+	           		 }
+	           	}
+            	
                 return SQL_SLOW;
             }
         }
@@ -1320,9 +1327,16 @@ public final class ManagerParseShow {
             char c2 = stmt.charAt(++offset);
             char c3 = stmt.charAt(++offset);
             if ((c1 == 'I' || c1 == 'i') && (c2 == 'G' || c2 == 'g') && (c3 == 'H' || c3 == 'h') ) {
-                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
-                    return OTHER;
-                }
+            	
+            	while (stmt.length() > ++offset) {
+            		 switch (stmt.charAt(offset)) {
+            		 case ' ':
+                         continue;
+                     default:
+                    	 return (offset << 8) | SQL_HIGH;	 
+            		 }
+            	}
+            	
                 return SQL_HIGH;
             }
         }
@@ -1382,7 +1396,17 @@ public final class ManagerParseShow {
 	                		 if ( stmt.length() > (offset+1) ) {	                			 
 	                			 char c6 = stmt.charAt(++offset);
 	                			 if ( c6 == 'E' || c6 == 'e') {
-	                				 return SQL_SUM_TABLE;
+	                				 
+                	            	while (stmt.length() > ++offset) {
+                		           		 switch (stmt.charAt(offset)) {
+                		           		 case ' ':
+                		                     continue;
+                		                 default:
+                		                   	 return (offset << 8) | SQL_SUM_TABLE;	 
+                		           		 }
+                		           	}
+	 
+	                				return SQL_SUM_TABLE;
 	                			 }
 	                		 }
 	                	}

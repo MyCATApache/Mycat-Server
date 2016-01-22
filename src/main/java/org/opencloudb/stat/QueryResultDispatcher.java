@@ -59,7 +59,7 @@ public class QueryResultDispatcher {
 		listeners.clear();
 	}
 	
-	public static void dispatchQuery(final QueryResult query) {
+	public static void dispatchQuery(final QueryResult queryResult) {
 		
 		if ( isClosed.get() ) {
 			return;
@@ -68,15 +68,11 @@ public class QueryResultDispatcher {
 		//TODO：异步分发，待进一步调优 
 		MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
 			
-			public void run() {
-					
-				//注入 结束时间
-				long now = System.currentTimeMillis();
-				query.setEndTime( now );				
+			public void run() {		
 				
 				for(QueryResultListener listener: listeners) {
 					try {
-						listener.onQuery( query );
+						listener.onQueryResult( queryResult );
 					} catch(Exception e) {
 						LOGGER.error(e);
 					}

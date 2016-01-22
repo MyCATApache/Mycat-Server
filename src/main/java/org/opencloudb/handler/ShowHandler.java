@@ -145,7 +145,8 @@ public final class ShowHandler {
 			ShowWhiteHost.setHost(c,ParseUtil.parseString(stmt));
 			break;					
 		case ManagerParseShow.SQL:
-			ShowSQL.execute(c, ParseUtil.getSQLId(stmt));
+			boolean isClearSql = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
+			ShowSQL.execute(c, isClearSql);
 			break;
 		case ManagerParseShow.SQL_DETAIL:
 			ShowSQLDetail.execute(c, ParseUtil.getSQLId(stmt));
@@ -154,10 +155,12 @@ public final class ShowHandler {
 			ShowSQLExecute.execute(c);
 			break;
 		case ManagerParseShow.SQL_SLOW:
-			ShowSQLSlow.execute(c);
+			boolean isClearSlow = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
+			ShowSQLSlow.execute(c, isClearSlow);
 			break;
 		case ManagerParseShow.SQL_HIGH:
-			ShowSQLHigh.execute(c);
+			boolean isClearHigh = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
+			ShowSQLHigh.execute(c, isClearHigh);
 			break;
 		case ManagerParseShow.SQL_CONDITION:
 			ShowSQLCondition.execute(c);
@@ -166,7 +169,8 @@ public final class ShowHandler {
 			ShowSQLSumUser.execute(c);
 			break;
 		case ManagerParseShow.SQL_SUM_TABLE:
-			ShowSQLSumTable.execute(c);
+			boolean isClearTable = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
+			ShowSQLSumTable.execute(c, isClearTable);
 			break;
 		case ManagerParseShow.SLOW_DATANODE: {
 			String name = stmt.substring(rs >>> 8).trim();

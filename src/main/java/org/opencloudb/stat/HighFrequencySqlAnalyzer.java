@@ -39,12 +39,12 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
     }  
 
 	@Override
-	public void onQuery(QueryResult query) {
+	public void onQueryResult(QueryResult queryResult) {
 		
-		int sqlType = query.getSqlType();
-		String sql = query.getSql();		
+		int sqlType = queryResult.getSqlType();
+		String sql = queryResult.getSql();		
 		String newSql = this.sqlParser.mergeSql(sql);
-		long executeTime = query.getEndTime() - query.getStartTime();
+		long executeTime = queryResult.getEndTime() - queryResult.getStartTime();
 		this.lock.writeLock().lock();
         try {
         	
@@ -72,7 +72,7 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 	            	frequency = new SqlFrequency();
 	            	frequency.setSql( newSql );
 	            } 
-	            frequency.setLastTime( query.getEndTime() );
+	            frequency.setLastTime( queryResult.getEndTime() );
 	            frequency.incCount();
 	            frequency.setExecuteTime(executeTime);
 	            this.sqlFrequencyMap.put(newSql, frequency);
@@ -87,7 +87,7 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 	/**
 	 * 获取 SQL 访问频率
 	 */
-	public List<Map.Entry<String, SqlFrequency>> getSqlFrequency() {
+	public List<Map.Entry<String, SqlFrequency>> getSqlFrequency(boolean isClear) {
 		
 		List<Map.Entry<String, SqlFrequency>> list = null;
 		
@@ -97,12 +97,25 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
         } finally {
             lock.readLock().unlock();
         }
-        ClearSqlFrequency();  // 获取 高频SQL后清理
+        
+        if ( isClear ) {
+        	clearSqlFrequency();  // 获取 高频SQL后清理
+        }
+        
         return list;
 	}	
-	public void ClearSqlFrequency() {
-		sqlFrequencyMap.clear();
+	
+	
+	private void clearSqlFrequency() {
+		
+		lock.readLock().lock();
+		try {
+			sqlFrequencyMap.clear();
+		} finally {
+            lock.readLock().unlock();
+        }
 	}
+	
 	/**
 	 * 排序
 	 */

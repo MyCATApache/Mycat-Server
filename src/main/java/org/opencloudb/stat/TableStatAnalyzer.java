@@ -51,10 +51,10 @@ public class TableStatAnalyzer implements QueryResultListener {
     }  
     
 	@Override
-	public void onQuery(QueryResult query) {
+	public void onQueryResult(QueryResult queryResult) {
 		
-		int sqlType = query.getSqlType();
-		String sql = query.getSql();
+		int sqlType = queryResult.getSqlType();
+		String sql = queryResult.getSql();
 
 		switch(sqlType) {
     	case ServerParse.SELECT:		
@@ -79,7 +79,7 @@ public class TableStatAnalyzer implements QueryResultListener {
     		
     		if ( masterTable != null ) {
     			TableStat tableStat = getTableStat( masterTable );
-    			tableStat.update(sqlType, sql, query.getStartTime(), query.getEndTime(), relaTables);		
+    			tableStat.update(sqlType, sql, queryResult.getStartTime(), queryResult.getEndTime(), relaTables);		
     		}    		
     		break;
     	}		
@@ -113,7 +113,7 @@ public class TableStatAnalyzer implements QueryResultListener {
 	/**
 	 * 获取 table 访问排序统计
 	 */
-	public List<Map.Entry<String, TableStat>> getTableStats() {
+	public List<Map.Entry<String, TableStat>> getTableStats(boolean isClear) {
 		
 		List<Map.Entry<String, TableStat>> list = null;
 		
@@ -123,8 +123,10 @@ public class TableStatAnalyzer implements QueryResultListener {
         } finally {
             lock.readLock().unlock();
         }
+        
         //先不清理
         //ClearTable();//获取 table 访问排序统计后清理
+        
         return list;
 	}	
 	
