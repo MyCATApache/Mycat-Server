@@ -87,7 +87,7 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 	/**
 	 * 获取 SQL 访问频率
 	 */
-	public List<Map.Entry<String, SqlFrequency>> getSqlFrequency() {
+	public List<Map.Entry<String, SqlFrequency>> getSqlFrequency(boolean isClear) {
 		
 		List<Map.Entry<String, SqlFrequency>> list = null;
 		
@@ -97,12 +97,25 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
         } finally {
             lock.readLock().unlock();
         }
-        ClearSqlFrequency();  // 获取 高频SQL后清理
+        
+        if ( isClear ) {
+        	clearSqlFrequency();  // 获取 高频SQL后清理
+        }
+        
         return list;
 	}	
-	public void ClearSqlFrequency() {
-		sqlFrequencyMap.clear();
+	
+	
+	private void clearSqlFrequency() {
+		
+		lock.readLock().lock();
+		try {
+			sqlFrequencyMap.clear();
+		} finally {
+            lock.readLock().unlock();
+        }
 	}
+	
 	/**
 	 * 排序
 	 */

@@ -58,7 +58,7 @@ public final class ShowSQLHigh {
         eof.packetId = ++packetId;
     }
 
-    public static void execute(ManagerConnection c) {
+    public static void execute(ManagerConnection c, boolean isClear) {
         ByteBuffer buffer = c.allocate();
 
         // write header
@@ -74,7 +74,7 @@ public final class ShowSQLHigh {
 
         // write rows
         byte packetId = eof.packetId;        
-        List<Map.Entry<String, SqlFrequency>> list = HighFrequencySqlAnalyzer.getInstance().getSqlFrequency();
+        List<Map.Entry<String, SqlFrequency>> list = HighFrequencySqlAnalyzer.getInstance().getSqlFrequency( isClear );
         if ( list != null ) {        
 	        for (int i = 0; i < list.size(); i++) {
 	        	SqlFrequency sqlFrequency = list.get(i).getValue();

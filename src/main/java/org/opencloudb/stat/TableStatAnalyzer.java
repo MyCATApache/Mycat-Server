@@ -113,7 +113,7 @@ public class TableStatAnalyzer implements QueryResultListener {
 	/**
 	 * 获取 table 访问排序统计
 	 */
-	public List<Map.Entry<String, TableStat>> getTableStats() {
+	public List<Map.Entry<String, TableStat>> getTableStats(boolean isClear) {
 		
 		List<Map.Entry<String, TableStat>> list = null;
 		
@@ -123,8 +123,10 @@ public class TableStatAnalyzer implements QueryResultListener {
         } finally {
             lock.readLock().unlock();
         }
+        
         //先不清理
         //ClearTable();//获取 table 访问排序统计后清理
+        
         return list;
 	}	
 	

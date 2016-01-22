@@ -57,7 +57,7 @@ public class ShowSQLSumTable {
         eof.packetId = ++packetId;
     }
 
-    public static void execute(ManagerConnection c) {
+    public static void execute(ManagerConnection c, boolean isClear) {
         ByteBuffer buffer = c.allocate();
 
         // write header
@@ -84,7 +84,7 @@ public class ShowSQLSumTable {
            buffer = row.write(buffer, c,true);
         }
         */
-        List<Map.Entry<String, TableStat>> list =TableStatAnalyzer.getInstance().getTableStats();
+        List<Map.Entry<String, TableStat>> list = TableStatAnalyzer.getInstance().getTableStats(isClear);
         if ( list != null ) {        
 	        for (int i = 0; i < list.size(); i++) {
 	        	TableStat tableStat=list.get(i).getValue();

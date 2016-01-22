@@ -75,7 +75,7 @@ public final class ShowSQLSlow {
         eof.packetId = ++packetId;
     }
 
-    public static void execute(ManagerConnection c) {
+    public static void execute(ManagerConnection c, boolean isClear) {
         ByteBuffer buffer = c.allocate();
 
         // write header
@@ -102,7 +102,10 @@ public final class ShowSQLSlow {
                     buffer = row.write(buffer, c,true);
                 }
             }
-            userStat.getSqlRecorder().clear();//读取慢SQL后，清理 
+            
+            if ( isClear ) {
+            	userStat.getSqlRecorder().clear();//读取慢SQL后，清理
+            }
         }
 
         // write last eof
