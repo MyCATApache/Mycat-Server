@@ -14,12 +14,13 @@ public class QueryResult {
 	private long startTime;
 	private long endTime;
 	
-	public QueryResult(String user, int sqlType, String sql, long startTime) {
+	public QueryResult(String user, int sqlType, String sql, long startTime, long endTime) {
 		super();
 		this.user = user;
 		this.sqlType = sqlType;
 		this.sql = sql;
 		this.startTime = startTime;
+		this.endTime = endTime;
 	}
 
 	public String getUser() {
@@ -41,9 +42,4 @@ public class QueryResult {
 	public long getEndTime() {
 		return endTime;
 	}
-
-	public void setEndTime(long endTime) {
-		this.endTime = endTime;
-	}
-
 }

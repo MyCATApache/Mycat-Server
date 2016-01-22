@@ -58,13 +58,13 @@ public class QueryConditionAnalyzer implements QueryResultListener {
     
 	
 	@Override
-	public void onQuery(QueryResult query) {
+	public void onQueryResult(QueryResult queryResult) {
 		
 		this.lock.lock();  
 		try { 
 			
-			int sqlType = query.getSqlType();
-			String sql = query.getSql();
+			int sqlType = queryResult.getSqlType();
+			String sql = queryResult.getSql();
 	
 			switch(sqlType) {
 	    	case ServerParse.SELECT:		

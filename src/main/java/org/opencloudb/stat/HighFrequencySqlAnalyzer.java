@@ -39,12 +39,12 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
     }  
 
 	@Override
-	public void onQuery(QueryResult query) {
+	public void onQueryResult(QueryResult queryResult) {
 		
-		int sqlType = query.getSqlType();
-		String sql = query.getSql();		
+		int sqlType = queryResult.getSqlType();
+		String sql = queryResult.getSql();		
 		String newSql = this.sqlParser.mergeSql(sql);
-		long executeTime = query.getEndTime() - query.getStartTime();
+		long executeTime = queryResult.getEndTime() - queryResult.getStartTime();
 		this.lock.writeLock().lock();
         try {
         	
@@ -72,7 +72,7 @@ public class HighFrequencySqlAnalyzer implements QueryResultListener {
 	            	frequency = new SqlFrequency();
 	            	frequency.setSql( newSql );
 	            } 
-	            frequency.setLastTime( query.getEndTime() );
+	            frequency.setLastTime( queryResult.getEndTime() );
 	            frequency.incCount();
 	            frequency.setExecuteTime(executeTime);
 	            this.sqlFrequencyMap.put(newSql, frequency);
