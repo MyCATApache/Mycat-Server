@@ -343,6 +343,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 					rrs.getSqlType(), rrs.getStatement(), startTime);
+			
+			//added by shenhai.yan  2016-01-22 
+			//放入结果时间
+			long now = System.currentTimeMillis();
+			queryResult.setEndTime( now );	
 			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 		if (fieldsReturned) {
