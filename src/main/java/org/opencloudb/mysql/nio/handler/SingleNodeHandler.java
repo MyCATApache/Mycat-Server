@@ -259,9 +259,10 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 					rrs.getSqlType(), rrs.getStatement(), startTime);
 			
-			long period  = queryResult.getEndTime()-startTime;
-			
-			LOGGER.warn("SQL:"+ queryResult.getSql() + "执行时间**************+" +period);
+			//added by shenhai.yan  2016-01-22
+			//放入结果时间
+			long now = System.currentTimeMillis();
+			queryResult.setEndTime( now );	
 			
 			QueryResultDispatcher.dispatchQuery( queryResult );
  
