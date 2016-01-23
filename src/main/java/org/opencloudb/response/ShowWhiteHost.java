@@ -21,8 +21,6 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.StringUtil;
 
 public final class ShowWhiteHost {
-	private static String xmlPath = "E:\\Eclipse(Plugin)\\workspace\\xmlManger\\src\\family.xml";
-
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
