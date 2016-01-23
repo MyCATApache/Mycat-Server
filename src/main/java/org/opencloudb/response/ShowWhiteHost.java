@@ -29,7 +29,7 @@ public final class ShowWhiteHost {
         byte packetId = 0;
         header.packetId = ++packetId;
         
-        fields[i] = PacketUtil.getField("IP", Fields.FIELD_TYPE_LONGLONG);
+        fields[i] = PacketUtil.getField("IP", Fields.FIELD_TYPE_VARCHAR);
         fields[i++].packetId = ++packetId;
 
         fields[i] = PacketUtil.getField("USER", Fields.FIELD_TYPE_VARCHAR);
