@@ -145,6 +145,9 @@ public final class ShowHelp {
         helps.put("show @@slow where datanode = ?", "Report datanode slow sql");
         helps.put("show @@sysparam", "Report system param");
         helps.put("show @@syslog limit=?", "Report system mycat.log");
+        helps.put("show @@white", "show mycat white host ");
+        helps.put("show @@white.set=?,?", "set mycat white host,[ip,user]");
+        
         // switch
         helps.put("switch @@datasource name:index", "Switch dataSource");
 
