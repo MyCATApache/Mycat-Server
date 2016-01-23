@@ -8,6 +8,7 @@ import java.util.Map;
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.Fields;
+import org.opencloudb.config.model.QuarantineConfig;
 import org.opencloudb.config.model.UserConfig;
 import org.opencloudb.config.util.ConfigException;
 import org.opencloudb.manager.ManagerConnection;
@@ -20,6 +21,8 @@ import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.StringUtil;
 
 public final class ShowWhiteHost {
+	private static String xmlPath = "E:\\Eclipse(Plugin)\\workspace\\xmlManger\\src\\family.xml";
+
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
@@ -92,7 +95,7 @@ public final class ShowWhiteHost {
         }
         return null;
    }    
-	public static void setHost(ManagerConnection c,String ips) {
+	public static synchronized void setHost(ManagerConnection c,String ips) {
         OkPacket ok = new OkPacket();		
 		String []users = ips.split(",");		
         if (users.length<2){
@@ -122,15 +125,24 @@ public final class ShowWhiteHost {
           }   
         }  
        if (MycatServer.getInstance().getConfig().getQuarantine().addWhitehost(host, userConfigs)) {
+    	   try{
+               QuarantineConfig.updateToFile(host, userConfigs);
+           }catch(Exception e){
+        	   c.writeErrMessage(ErrorCode.ER_YES, "white host set success ,but write to file failed :" + e.getMessage());
+           }
+    	   
            ok.packetId = 1;
            ok.affectedRows = 1;
            ok.serverStatus = 2;        
     	   ok.message = "white host set to succeed.".getBytes();	
-           ok.write(c);  	   
+           ok.write(c);  	 
+           
        }
        else {
-     	   
            c.writeErrMessage(ErrorCode.ER_YES, "host duplicated.");
        }
 	}	
+	
+	
+	
 }
