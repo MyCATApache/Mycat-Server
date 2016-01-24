@@ -5,6 +5,7 @@ public class SqlFrequency {
 	private int count = 0;
 	private long lastTime = 0;
 	private long executeTime = 0;
+	private long allExecuteTime = 0;
 	private long maxTime = 0;
 	private long avgTime = 0;
 	private long minTime = 0;
@@ -60,10 +61,11 @@ public class SqlFrequency {
 			if (execTime < this.minTime) {
 				this.minTime = execTime;
 			}
-			if (this.executeTime + execTime > 0) {
-				this.avgTime = (this.executeTime + execTime) / 2;
-			}
 		}
+		this.allExecuteTime+=execTime;
+		if (count > 0) {
+			this.avgTime = this.allExecuteTime / 2;
+		}		
 		this.executeTime = execTime;
 	}		
 }
