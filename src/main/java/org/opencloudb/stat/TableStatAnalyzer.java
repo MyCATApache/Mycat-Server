@@ -124,9 +124,9 @@ public class TableStatAnalyzer implements QueryResultListener {
             lock.readLock().unlock();
         }
         
-        //先不清理
-        //ClearTable();//获取 table 访问排序统计后清理
-        
+        if ( isClear ) {
+          ClearTable();//获取 table 访问排序统计后清理
+        }
         return list;
 	}	
 	
