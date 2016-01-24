@@ -36,6 +36,7 @@ import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.route.factory.RouteStrategyFactory;
 import org.opencloudb.route.handler.HintHandler;
 import org.opencloudb.route.handler.HintHandlerFactory;
+import org.opencloudb.route.handler.HintSQLHandler;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 
@@ -101,14 +102,19 @@ public class RouteService {
 
                     HintHandler hintHandler = HintHandlerFactory.getHintHandler(hintType);
                     if( hintHandler != null ) {    
-                    	
-                    	/**
-                    	 * 修复 注解SQL的 sqlType 与 实际SQL的 sqlType 不一致问题， 如： hint=SELECT，real=INSERT
-                    	 * fixed by zhuam
-                    	 */
-                		int hintSqlType = ServerParse.parse( hintSql ) & 0xff;                		
-                        rrs = hintHandler.route(sysconf, schema, hintSqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql);
-                        
+
+                    	if ( hintHandler instanceof  HintSQLHandler) {                    		
+                          	/**
+                        	 * 修复 注解SQL的 sqlType 与 实际SQL的 sqlType 不一致问题， 如： hint=SELECT，real=INSERT
+                        	 * fixed by zhuam
+                        	 */
+                    		int hintSqlType = ServerParse.parse( hintSql ) & 0xff;     
+                    		rrs = hintHandler.route(sysconf, schema, hintSqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql);
+                    		
+                    	} else {                    		
+                    		rrs = hintHandler.route(sysconf, schema, sqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql);
+                    	}
+ 
                     }else{
                         LOGGER.warn("TODO , support hint sql type : " + hintType);
                     }
