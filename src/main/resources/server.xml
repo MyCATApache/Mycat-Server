@@ -41,9 +41,14 @@
 		<property name="schemas">TESTDB</property>
 		<property name="readOnly">true</property>
 	</user>
-	<!-- <cluster> <node name="cobar1"> <property name="host">127.0.0.1</property> 
-		<property name="weight">1</property> </node> </cluster> -->
-	<!-- <quarantine> <host name="1.2.3.4"> <property name="user">test</property> 
-		</host> </quarantine> -->
+	<!-- 
+	<quarantine> 
+	   <whitehost>
+	      <host host="127.0.0.1" user="mycat"/>
+	      <host host="127.0.0.2" user="mycat"/>
+	   </whitehost>
+       <blacklist check="false"></blacklist>
+	</quarantine>
+	-->
 
 </mycat:server>

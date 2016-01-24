@@ -24,7 +24,6 @@
 package org.opencloudb.config.model;
 
 import java.io.File;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,22 +34,16 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
 
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.alibaba.druid.wall.WallConfig;
 import com.alibaba.druid.wall.WallProvider;
 import com.alibaba.druid.wall.spi.MySqlWallProvider;
-
-import demo.catlets.ZkCreate;
 
 /**
  * 隔离区配置定义
@@ -152,8 +145,11 @@ public final class QuarantineConfig {
 	
 	public synchronized static void updateToFile(String host, List<UserConfig> userConfigs) throws Exception{
 		String filename = SystemConfig.getHomePath()+ File.separator +"conf"+ File.separator +"server.xml";
+		//String filename = "E:\\MyProject\\Mycat-Server\\src\\main\\resources\\server.xml";
+
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(false);
+        factory.setValidating(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document xmldoc = builder.parse(filename);
         NodeList whitehosts = xmldoc.getElementsByTagName("whitehost");
@@ -171,6 +167,15 @@ public final class QuarantineConfig {
              
         TransformerFactory factory2 = TransformerFactory.newInstance();
         Transformer former = factory2.newTransformer();
+        String publicId = xmldoc.getDoctype().getPublicId();
+        String systemId = xmldoc.getDoctype().getSystemId();
+        if(publicId!=null){
+            former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_PUBLIC, publicId);    
+        }
+        if(systemId!=null){
+            former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_PUBLIC, systemId);    
+        }
+        former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_SYSTEM, xmldoc.getDoctype().getSystemId());  
         former.transform(new DOMSource(xmldoc), new StreamResult(new File(filename)));
 
 	}
