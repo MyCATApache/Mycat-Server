@@ -255,7 +255,6 @@ public class DruidInsertParser extends DefaultDruidParser {
 						nodeValuesMap.put(nodeIndex, new ArrayList<ValuesClause>());
 					}
 					nodeValuesMap.get(nodeIndex).add(valueClause);
-					System.out.println();
 				}
 				
 				RouteResultsetNode[] nodes = new RouteResultsetNode[nodeValuesMap.size()];
