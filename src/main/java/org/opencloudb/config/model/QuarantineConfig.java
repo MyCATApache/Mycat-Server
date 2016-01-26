@@ -23,12 +23,23 @@
  */
 package org.opencloudb.config.model;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
-import org.opencloudb.util.ObjectUtil;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 import com.alibaba.druid.wall.WallConfig;
 import com.alibaba.druid.wall.WallProvider;
@@ -40,7 +51,6 @@ import com.alibaba.druid.wall.spi.MySqlWallProvider;
  * @author songwie
  */
 public final class QuarantineConfig {
-
     private Map<String, List<UserConfig>> whitehost;
     private List<String> blacklist;
     private boolean check = false;
@@ -68,6 +78,17 @@ public final class QuarantineConfig {
 	public void setWhitehost(Map<String, List<UserConfig>> whitehost) {
 		this.whitehost = whitehost;
 	}
+	
+	public boolean addWhitehost(String host, List<UserConfig> Users) {
+		if (existsHost(host)){
+			return false;	
+		}
+		else {
+		 this.whitehost.put(host, Users);
+		 return true;
+		}
+	}
+	
 	public List<String> getBlacklist() {
 		return this.blacklist;
 	}
@@ -122,7 +143,50 @@ public final class QuarantineConfig {
 		return this.wallConfig;
 	}
 	
+	public synchronized static void updateToFile(String host, List<UserConfig> userConfigs) throws Exception{
+		String filename = SystemConfig.getHomePath()+ File.separator +"conf"+ File.separator +"server.xml";
+		//String filename = "E:\\MyProject\\Mycat-Server\\src\\main\\resources\\server.xml";
+
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(false);
+        factory.setValidating(true);
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document xmldoc = builder.parse(filename);
+        NodeList whitehosts = xmldoc.getElementsByTagName("whitehost");
+        Element whitehost = (Element) whitehosts.item(0);
+        
+        for(UserConfig userConfig : userConfigs){
+        	String user = userConfig.getName();
+        	Element hostEle = xmldoc.createElement("host");
+        	hostEle.setAttribute("host", host);
+        	hostEle.setAttribute("user", user);
+
+        	whitehost.appendChild(hostEle);
+        }
+        
+             
+        TransformerFactory factory2 = TransformerFactory.newInstance();
+        Transformer former = factory2.newTransformer();
+        String publicId = xmldoc.getDoctype().getPublicId();
+        String systemId = xmldoc.getDoctype().getSystemId();
+        if(publicId!=null){
+            former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_PUBLIC, publicId);    
+        }
+        if(systemId!=null){
+            former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_PUBLIC, systemId);    
+        }
+        former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_SYSTEM, xmldoc.getDoctype().getSystemId());  
+        former.transform(new DOMSource(xmldoc), new StreamResult(new File(filename)));
+
+	}
 	
+	public static void main(String[] args) throws Exception {
+        List<UserConfig> userConfigs = new ArrayList<UserConfig>();
+        UserConfig user = new UserConfig();
+        user.setName("mycat");
+        userConfigs.add(user);
+		updateToFile("127.0.0.6",userConfigs);
+	}
 	
 	
 }

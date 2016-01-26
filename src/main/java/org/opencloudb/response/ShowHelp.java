@@ -145,6 +145,9 @@ public final class ShowHelp {
         helps.put("show @@slow where datanode = ?", "Report datanode slow sql");
         helps.put("show @@sysparam", "Report system param");
         helps.put("show @@syslog limit=?", "Report system mycat.log");
+        helps.put("show @@white", "show mycat white host ");
+        helps.put("show @@white.set=?,?", "set mycat white host,[ip,user]");
+        
         // switch
         helps.put("switch @@datasource name:index", "Switch dataSource");
 
@@ -165,6 +168,10 @@ public final class ShowHelp {
         helps.put("rollback @@config", "Rollback all config from memory");
         helps.put("rollback @@route", "Rollback route config from memory");
         helps.put("rollback @@user", "Rollback user config from memory");
+        
+        // open/close sql stat
+        helps.put("reload @@sqlstat=open", "Open real-time sql stat analyzer");
+        helps.put("reload @@sqlstat=close", "Close real-time sql stat analyzer");
         
         // offline/online
         helps.put("offline", "Change MyCat status to OFF");

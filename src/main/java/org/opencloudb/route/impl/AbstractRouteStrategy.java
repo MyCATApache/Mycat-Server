@@ -20,7 +20,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	private static final Logger LOGGER = Logger.getLogger(AbstractRouteStrategy.class);
 
 	@Override
-	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String origSQL,
+	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, String origSQL,
 			String charset, ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
 
 		/**

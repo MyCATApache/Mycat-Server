@@ -76,7 +76,7 @@ public final class ShowSQL {
         eof.packetId = ++packetId;
     }
 
-    public static void execute(ManagerConnection c, long sql) {
+    public static void execute(ManagerConnection c, boolean isClear) {
         ByteBuffer buffer = c.allocate();
 
         // write header
@@ -102,6 +102,11 @@ public final class ShowSQL {
                     row.packetId = ++packetId;
                     buffer = row.write(buffer, c,true);
                 }
+            }
+            
+            //读取SQL监控后清理
+            if ( isClear ) {
+            	userStat.getSqlStat().clear();
             }
         }
 

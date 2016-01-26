@@ -27,7 +27,7 @@ public class UserStatAnalyzer implements QueryResultListener {
     }  
 	
 	@Override
-	public void onQuery(QueryResult query) {
+	public void onQueryResult(QueryResult query) {
 		
 		int sqlType = query.getSqlType();
 		String sql = query.getSql();

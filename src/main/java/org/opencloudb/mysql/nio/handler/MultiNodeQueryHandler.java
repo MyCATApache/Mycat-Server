@@ -342,7 +342,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), startTime);
+					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
 			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 		if (fieldsReturned) {

@@ -9,7 +9,7 @@ package org.opencloudb.stat;
 public class HostStatAnalyzer implements QueryResultListener {
 
 	@Override
-	public void onQuery(QueryResult query) {
+	public void onQueryResult(QueryResult query) {
 		
 	}
 

@@ -36,6 +36,7 @@ import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.route.factory.RouteStrategyFactory;
 import org.opencloudb.route.handler.HintHandler;
 import org.opencloudb.route.handler.HintHandlerFactory;
+import org.opencloudb.route.handler.HintSQLHandler;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 
@@ -92,16 +93,28 @@ public class RouteService {
                 if(firstSplitPos > 0 ){
                     
                 	String hintType = hint.substring(0,firstSplitPos).trim().toLowerCase(Locale.US);
-                    String hintValue = hint.substring(firstSplitPos + HINT_SPLIT.length()).trim();
-                    if(hintValue.length()==0){
+                    String hintSql = hint.substring(firstSplitPos + HINT_SPLIT.length()).trim();
+                    if( hintSql.length() == 0 ) {
                     	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
                     	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
                     }
                     String realSQL = stmt.substring(endPos + "*/".length()).trim();
 
                     HintHandler hintHandler = HintHandlerFactory.getHintHandler(hintType);
-                    if(hintHandler != null){
-                        rrs = hintHandler.route(sysconf,schema,sqlType,realSQL,charset,sc,tableId2DataNodeCache,hintValue);
+                    if( hintHandler != null ) {    
+
+                    	if ( hintHandler instanceof  HintSQLHandler) {                    		
+                          	/**
+                        	 * 修复 注解SQL的 sqlType 与 实际SQL的 sqlType 不一致问题， 如： hint=SELECT，real=INSERT
+                        	 * fixed by zhuam
+                        	 */
+                    		int hintSqlType = ServerParse.parse( hintSql ) & 0xff;     
+                    		rrs = hintHandler.route(sysconf, schema, hintSqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql);
+                    		
+                    	} else {                    		
+                    		rrs = hintHandler.route(sysconf, schema, sqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql);
+                    	}
+ 
                     }else{
                         LOGGER.warn("TODO , support hint sql type : " + hintType);
                     }
@@ -117,7 +130,7 @@ public class RouteService {
 					charset, sc, tableId2DataNodeCache);
 		}
 
-		if (rrs!=null && sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
+		if (rrs != null && sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
 			sqlRouteCache.putIfAbsent(cacheKey, rrs);
 		}
 		return rrs;
