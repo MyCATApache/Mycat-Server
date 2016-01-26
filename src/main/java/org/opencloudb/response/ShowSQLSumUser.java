@@ -71,7 +71,7 @@ public class ShowSQLSumUser {
         eof.packetId = ++packetId;
     }
 
-    public static void execute(ManagerConnection c) {
+    public static void execute(ManagerConnection c, boolean isClear) {
         ByteBuffer buffer = c.allocate();
 
         // write header
@@ -95,6 +95,9 @@ public class ShowSQLSumUser {
            RowDataPacket row = getRow(userStat,i, c.getCharset());//getRow(sqlStat,sql, c.getCharset());
            row.packetId = ++packetId;
            buffer = row.write(buffer, c,true);
+           if ( isClear ) {
+        	   userStat.clearRwStat(); 
+           }
         }
         // write last eof
         EOFPacket lastEof = new EOFPacket();
