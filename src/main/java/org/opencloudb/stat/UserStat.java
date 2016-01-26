@@ -75,7 +75,9 @@ public class UserStat {
 		this.rwStat.reset();
 		this.sqlStat.reset();
 	}
-
+	public void clearRwStat() {
+		this.rwStat.reset();
+	}
 	/**
 	 * 更新状态
 	 * 

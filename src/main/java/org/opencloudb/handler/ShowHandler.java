@@ -166,7 +166,8 @@ public final class ShowHandler {
 			ShowSQLCondition.execute(c);
 			break;			
 		case ManagerParseShow.SQL_SUM_USER:
-			ShowSQLSumUser.execute(c);
+			boolean isClearSum = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
+			ShowSQLSumUser.execute(c,isClearSum);
 			break;
 		case ManagerParseShow.SQL_SUM_TABLE:
 			boolean isClearTable = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
