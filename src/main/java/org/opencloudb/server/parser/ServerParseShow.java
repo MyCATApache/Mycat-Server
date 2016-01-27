@@ -163,7 +163,7 @@ public final class ServerParseShow {
 		return OTHER;
 	}
 
-    private  static     Pattern fullpattern = Pattern.compile("^\\s*(SHOW)\\s+(FULL)+\\s+(TABLES)\\s+(FROM)\\s+([a-zA-Z_0-9]+)\\s*([a-zA-Z_0-9\\s]*)", Pattern.CASE_INSENSITIVE);
+    private  static     Pattern fullpattern = Pattern.compile("^\\s*(SHOW)\\s+(FULL)+\\s+(TABLES)\\s+\\s*([\\!\\'\\=a-zA-Z_0-9\\s]*)", Pattern.CASE_INSENSITIVE);
     public static int fullTableCheck(String  stmt,int offset )
     {
         if(fullpattern.matcher(stmt).matches())
@@ -178,10 +178,10 @@ public final class ServerParseShow {
 public 	static int tableCheck(String stmt, int offset) {
 
 		// strict match
-		String pat1 = "^\\s*(SHOW)\\s+(FULL)*\\s*(TABLES)\\s*";
-		String pat2 = "^\\s*(SHOW)\\s+(FULL)*\\s*(TABLES)\\s+(LIKE\\s+'(.*)')\\s*";
-		String pat3 = "^\\s*(SHOW)\\s+(FULL)*\\s*(TABLES)\\s+(FROM)\\s+([a-zA-Z_0-9]+)\\s*";
-		String pat4 = "^\\s*(SHOW)\\s+(FULL)*\\s*(TABLES)\\s+(FROM)\\s+([a-zA-Z_0-9]+)\\s+(LIKE\\s+'(.*)')\\s*";
+		String pat1 = "^\\s*(SHOW)\\s+(TABLES)\\s*";
+		String pat2 = "^\\s*(SHOW)\\s+(TABLES)\\s+(LIKE\\s+'(.*)')\\s*";
+		String pat3 = "^\\s*(SHOW)\\s+(TABLES)\\s+(FROM)\\s+([a-zA-Z_0-9]+)\\s*";
+		String pat4 = "^\\s*(SHOW)\\s+(TABLES)\\s+(FROM)\\s+([a-zA-Z_0-9]+)\\s+(LIKE\\s+'(.*)')\\s*";
 
 		boolean flag = isShowTableMatched(stmt, pat1);
 		if (flag) {
