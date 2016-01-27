@@ -96,4 +96,13 @@ public class UserConfig {
         this.schemas = schemas;
     }
 
+	@Override
+	public String toString() {
+		return "UserConfig [name=" + this.name + ", password=" + this.password + ", encryptPassword="
+				+ this.encryptPassword + ", benchmark=" + this.benchmark + ", benchmarkSmsTel=" + this.benchmarkSmsTel
+				+ ", readOnly=" + this.readOnly + ", schemas=" + this.schemas + "]";
+	}
+	
+	
+
 }

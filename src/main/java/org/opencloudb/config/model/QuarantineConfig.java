@@ -23,7 +23,9 @@
  */
 package org.opencloudb.config.model;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,9 +39,14 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
+import org.opencloudb.config.loader.xml.XMLServerLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import com.alibaba.druid.wall.WallConfig;
 import com.alibaba.druid.wall.WallProvider;
@@ -51,6 +58,8 @@ import com.alibaba.druid.wall.spi.MySqlWallProvider;
  * @author songwie
  */
 public final class QuarantineConfig {
+	private static final Logger LOGGER = LoggerFactory.getLogger(QuarantineConfig.class);
+	
     private Map<String, List<UserConfig>> whitehost;
     private List<String> blacklist;
     private boolean check = false;
@@ -144,17 +153,29 @@ public final class QuarantineConfig {
 	}
 	
 	public synchronized static void updateToFile(String host, List<UserConfig> userConfigs) throws Exception{
+		LOGGER.debug("set white host:" + host + "user:" + userConfigs);
 		String filename = SystemConfig.getHomePath()+ File.separator +"conf"+ File.separator +"server.xml";
 		//String filename = "E:\\MyProject\\Mycat-Server\\src\\main\\resources\\server.xml";
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(false);
-        factory.setValidating(true);
+        factory.setValidating(false);
         DocumentBuilder builder = factory.newDocumentBuilder();
+        builder.setEntityResolver(new IgnoreDTDEntityResolver());
         Document xmldoc = builder.parse(filename);
-        NodeList whitehosts = xmldoc.getElementsByTagName("whitehost");
-        Element whitehost = (Element) whitehosts.item(0);
+        Element whitehost = (Element) xmldoc.getElementsByTagName("whitehost").item(0);
+        Element quarantine = (Element) xmldoc.getElementsByTagName("quarantine").item(0);
         
+        if(quarantine==null){
+        	quarantine = xmldoc.createElement("quarantine");
+            Element root = xmldoc.getDocumentElement();
+            root.appendChild(quarantine);
+            if(whitehost==null){
+            	whitehost = xmldoc.createElement("whitehost");
+            	quarantine.appendChild(whitehost);
+            }
+        }
+
         for(UserConfig userConfig : userConfigs){
         	String user = userConfig.getName();
         	Element hostEle = xmldoc.createElement("host");
@@ -167,25 +188,30 @@ public final class QuarantineConfig {
              
         TransformerFactory factory2 = TransformerFactory.newInstance();
         Transformer former = factory2.newTransformer();
-        String publicId = xmldoc.getDoctype().getPublicId();
         String systemId = xmldoc.getDoctype().getSystemId();
-        if(publicId!=null){
-            former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_PUBLIC, publicId);    
-        }
         if(systemId!=null){
-            former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_PUBLIC, systemId);    
+            former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_SYSTEM, systemId);    
         }
-        former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_SYSTEM, xmldoc.getDoctype().getSystemId());  
         former.transform(new DOMSource(xmldoc), new StreamResult(new File(filename)));
 
 	}
-	
+	static class IgnoreDTDEntityResolver implements EntityResolver{
+		public InputSource resolveEntity(java.lang.String publicId, java.lang.String systemId) throws SAXException, java.io.IOException{
+			if (systemId.contains("server.dtd")){ 
+				//InputSource is = new InputSource(new ByteArrayInputStream("<?xml version=\"1.0\" encoding=\"UTF-8\"?>".getBytes()));
+				InputStream dtd = XMLServerLoader.class.getResourceAsStream("/server.dtd");
+				InputSource is = new InputSource(dtd);
+				return is; 
+		    } else 
+		    	return null; 
+			} 
+	}
 	public static void main(String[] args) throws Exception {
         List<UserConfig> userConfigs = new ArrayList<UserConfig>();
         UserConfig user = new UserConfig();
         user.setName("mycat");
         userConfigs.add(user);
-		updateToFile("127.0.0.6",userConfigs);
+		updateToFile("127.0.0.1",userConfigs);
 	}
 	
 	

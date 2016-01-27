@@ -19,8 +19,12 @@ import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ShowWhiteHost {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ShowWhiteHost.class);
+
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
@@ -126,6 +130,7 @@ public final class ShowWhiteHost {
     	   try{
                QuarantineConfig.updateToFile(host, userConfigs);
            }catch(Exception e){
+        	   LOGGER.warn("set while host error : " + e.getMessage());
         	   c.writeErrMessage(ErrorCode.ER_YES, "white host set success ,but write to file failed :" + e.getMessage());
            }
     	   
