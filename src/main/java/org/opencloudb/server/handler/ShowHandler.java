@@ -26,10 +26,7 @@ package org.opencloudb.server.handler;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.server.parser.ServerParseShow;
-import org.opencloudb.server.response.ShowDatabases;
-import org.opencloudb.server.response.ShowMyCATCluster;
-import org.opencloudb.server.response.ShowMyCatStatus;
-import org.opencloudb.server.response.ShowTables;
+import org.opencloudb.server.response.*;
 import org.opencloudb.util.StringUtil;
 
 /**
@@ -50,6 +47,9 @@ public final class ShowHandler {
 		case ServerParseShow.TABLES:
 			ShowTables.response(c, stmt,type);
 			break;
+            case ServerParseShow.FULLTABLES:
+                ShowFullTables.response(c, stmt,type);
+                break;
 		case ServerParseShow.MYCAT_STATUS:
 			ShowMyCatStatus.response(c);
 			break;

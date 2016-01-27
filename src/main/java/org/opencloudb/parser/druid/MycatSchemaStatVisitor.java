@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import org.opencloudb.route.util.RouterUtil;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
@@ -520,7 +521,14 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 
         return false;
     }
-	
+    public boolean visit(MySqlInsertStatement x) {
+        SQLName sqlName=  x.getTableName();
+        if(sqlName!=null)
+        {
+            setCurrentTable(sqlName.toString());
+        }
+        return false;
+    }
 	// DUAL
     public boolean visit(MySqlDeleteStatement x) {
         setAliasMap();

@@ -49,6 +49,7 @@ import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.server.util.SchemaUtil;
 import org.opencloudb.util.StringUtil;
 
 /**
@@ -121,9 +122,15 @@ public class ExplainHandler {
 	private static RouteResultset getRouteResultset(ServerConnection c,
 			String stmt) {
 		String db = c.getSchema();
+        int sqlType = ServerParse.parse(stmt) & 0xff;
 		if (db == null) {
-			c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR, "No database selected");
-			return null;
+            db = SchemaUtil.detectDefaultDb(stmt, sqlType);
+
+            if(db==null)
+            {
+                c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR, "No database selected");
+                return null;
+            }
 		}
 		SchemaConfig schema = MycatServer.getInstance().getConfig()
 				.getSchemas().get(db);
@@ -133,7 +140,7 @@ public class ExplainHandler {
 			return null;
 		}
 		try {
-			int sqlType = ServerParse.parse(stmt) & 0xff;
+
             if(ServerParse.INSERT==sqlType&&isMycatSeq(stmt, schema))
             {
                 c.writeErrMessage(ErrorCode.ER_PARSE_ERROR, "insert sql using mycat seq,you must provide primaryKey value for explain");

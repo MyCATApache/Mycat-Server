@@ -25,6 +25,7 @@ package org.opencloudb.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
@@ -32,8 +33,11 @@ import org.opencloudb.config.ErrorCode;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.route.RouteResultset;
+import org.opencloudb.server.handler.MysqlProcHandler;
+import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.server.response.Heartbeat;
 import org.opencloudb.server.response.Ping;
+import org.opencloudb.server.util.SchemaUtil;
 import org.opencloudb.util.TimeUtil;
 
 /**
@@ -139,10 +143,27 @@ public class ServerConnection extends FrontendConnection {
 		// 检查当前使用的DB
 		String db = this.schema;
 		if (db == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
-					"No MyCAT Database selected");
-			return;
+
+            db = SchemaUtil.detectDefaultDb(sql, type);
+
+            if(db==null)
+            {
+                writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
+                        "No MyCAT Database selected");
+                return;
+            }
 		}
+
+        if(ServerParse.SELECT==type&&sql.contains("mysql")&&sql.contains("proc"))
+        {
+            SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
+            if(schemaInfo!=null&&"mysql".equalsIgnoreCase(schemaInfo.schema)&&"proc".equalsIgnoreCase(schemaInfo.table))
+            {
+                //兼容MySQLWorkbench
+                MysqlProcHandler.handle(sql,this);
+                return;
+            }
+        }
 		SchemaConfig schema = MycatServer.getInstance().getConfig()
 				.getSchemas().get(db);
 		if (schema == null) {
@@ -155,7 +176,9 @@ public class ServerConnection extends FrontendConnection {
 
 	}
 
-	public RouteResultset routeSQL(String sql, int type) {
+
+
+    public RouteResultset routeSQL(String sql, int type) {
 
 		// 检查当前使用的DB
 		String db = this.schema;
