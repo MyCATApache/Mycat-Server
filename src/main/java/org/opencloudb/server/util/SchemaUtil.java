@@ -10,6 +10,8 @@ import org.opencloudb.parser.druid.MycatSchemaStatVisitor;
 import org.opencloudb.server.parser.ServerParse;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by magicdoom on 2016/1/26.
@@ -54,6 +56,17 @@ public class SchemaUtil
             }
         }
         return db;
+    }
+
+
+    public static String parseShowTableSchema(String sql)
+    {
+        Matcher ma = pattern.matcher(sql);
+        if(ma.matches()&&ma.groupCount()>=5)
+        {
+          return  ma.group(5);
+        }
+        return null;
     }
 
     private static SchemaInfo parseTables(SQLStatement stmt, SchemaStatVisitor schemaStatVisitor)
@@ -101,7 +114,7 @@ public class SchemaUtil
         }
     }
 
-
+private  static     Pattern pattern = Pattern.compile("^\\s*(SHOW)\\s+(FULL)*\\s*(TABLES)\\s+(FROM)\\s+([a-zA-Z_0-9]+)\\s*([a-zA-Z_0-9\\s]*)", Pattern.CASE_INSENSITIVE);
 
     public static void main(String[] args)
     {
@@ -111,8 +124,16 @@ public class SchemaUtil
        // System.out.println(parseSchema(sql));
         sql="update updatebase.test set xx=1 " ;
         //System.out.println(parseSchema(sql));
-        sql="delete test where xx=1 " ;
-        System.out.println(parseSchema(sql));
+
+        String pat3 = "show  full  tables from  base like ";
+        Matcher ma = pattern.matcher(pat3);
+        if(ma.matches())
+        {
+            System.out.println(ma.groupCount());
+            System.out.println(ma.group(5));
+        }
+
+
 
     }
 }

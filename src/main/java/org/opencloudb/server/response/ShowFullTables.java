@@ -1,13 +1,5 @@
 package org.opencloudb.server.response;
 
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.google.common.base.Strings;
 import org.opencloudb.MycatConfig;
 import org.opencloudb.MycatServer;
@@ -25,28 +17,37 @@ import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.server.util.SchemaUtil;
 import org.opencloudb.util.StringUtil;
 
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * show tables impl
  * @author yanglixue
  *
  */
-public class ShowTables { 
+public class ShowFullTables
+{
 
-    private static final int FIELD_COUNT = 1;
+    private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
-    
+
     private static final String SCHEMA_KEY = "schemaName";
     private static final String LIKE_KEY = "like";
-    private static final   Pattern pattern = Pattern.compile("^\\s*(SHOW)\\s+(TABLES)(\\s+(FROM)\\s+([a-zA-Z_0-9]+))?(\\s+(LIKE\\s+'(.*)'))?\\s*",Pattern.CASE_INSENSITIVE);
-	
+    private static final   Pattern pattern = Pattern.compile("^\\s*(SHOW)\\s++(FULL)*\\s*(TABLES)(\\s+(FROM)\\s+([a-zA-Z_0-9]+))?(\\s+(LIKE\\s+'(.*)'))?\\s*",Pattern.CASE_INSENSITIVE);
+
 	/**
 	 * response method.
 	 * @param c
 	 */
 	public static void response(ServerConnection c,String stmt,int type) {
-        String showSchemal= SchemaUtil.parseShowTableSchema(stmt) ;
+       String showSchemal= SchemaUtil.parseShowTableSchema(stmt) ;
         String cSchema =showSchemal==null? c.getSchema():showSchemal;
         SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(cSchema);
         if(schema != null) {
@@ -62,14 +63,16 @@ public class ShowTables {
 
         //分库的schema，直接从SchemaConfig中获取所有表名
         Map<String,String> parm = buildFields(c,stmt);
-        java.util.Set<String> tableSet = getTableSet(c, parm);
+        Set<String> tableSet = getTableSet(c, parm);
 
 
         int i = 0;
         byte packetId = 0;
         header.packetId = ++packetId;
         fields[i] = PacketUtil.getField("Tables in " + parm.get(SCHEMA_KEY), Fields.FIELD_TYPE_VAR_STRING);
-        fields[i++].packetId = ++packetId;
+        fields[i].packetId = ++packetId;
+        fields[i+1] = PacketUtil.getField("Table_type  " , Fields.FIELD_TYPE_VAR_STRING);
+        fields[i+1].packetId = ++packetId;
         eof.packetId = ++packetId;
         ByteBuffer buffer = c.allocate();
 
@@ -90,6 +93,7 @@ public class ShowTables {
         for (String name : tableSet) {
             RowDataPacket row = new RowDataPacket(FIELD_COUNT);
             row.add(StringUtil.encode(name.toLowerCase(), c.getCharset()));
+            row.add(StringUtil.encode("BASE TABLE", c.getCharset()));
             row.packetId = ++packetId;
             buffer = row.write(buffer, c,true);
         }
@@ -163,12 +167,12 @@ public class ShowTables {
 		Matcher ma = pattern.matcher(stmt);
 
 		if(ma.find()){
-			  String schemaName=ma.group(5);
+			  String schemaName=ma.group(6);
 			  if (null !=schemaName && (!"".equals(schemaName)) && (!"null".equals(schemaName))){
 				  map.put(SCHEMA_KEY, schemaName);
 			  }
 			  
-			 String like = ma.group(8);
+			 String like = ma.group(9);
 			 if (null !=like && (!"".equals(like)) && (!"null".equals(like))){
 				  map.put("LIKE_KEY", like);
 			  }
