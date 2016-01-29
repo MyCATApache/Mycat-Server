@@ -1,14 +1,7 @@
 package org.opencloudb.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 import com.alibaba.druid.sql.ast.expr.*;
 import org.opencloudb.MycatServer;
@@ -374,7 +367,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		boolean isAllGlobalTable = RouterUtil.isAllGlobalTable(ctx, schema);
 		for (RouteCalculateUnit unit : ctx.getRouteCalculateUnits()) {
 			RouteResultset rrsTmp = RouterUtil.tryRouteForTables(schema, ctx, unit, rrs, true, cachePool);
-			if (rrsTmp != null) {
+			if (rrsTmp != null&&rrsTmp.getNodes()!=null) {
 				for (RouteResultsetNode node : rrsTmp.getNodes()) {
 					nodeSet.add(node);
 				}
@@ -385,6 +378,17 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 		
 		if(nodeSet.size() == 0) {
+
+            Collection<String> stringCollection= ctx.getTableAliasMap().values() ;
+            for (String table : stringCollection)
+            {
+                if(table!=null&&table.toLowerCase().contains("information_schema."))
+                {
+                    rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
+                    rrs.setFinishedRoute(true);
+                    return;
+                }
+            }
 			String msg = " find no Route:" + ctx.getSql();
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);

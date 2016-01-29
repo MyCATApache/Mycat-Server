@@ -1387,8 +1387,8 @@ public final class ManagerParseShow {
 	                	char c5 = stmt.charAt(++offset);	                	
 	                	
 	                	if ( (c2 == 'U' || c2 == 'u') && (c3 == 'S' || c3 == 's')
-	                	  && (c4 == 'E' || c4 == 'e') && (c5 == 'R' || c5 == 'r') ) {		                		
-	                		 return SQL_SUM_USER;
+	                	  && (c4 == 'E' || c4 == 'e') && (c5 == 'R' || c5 == 'r') ) {	
+	                		return SQL_SUM_USER;
 	                		
 	                	} else if ( (c2 == 'T' || c2 == 't') && (c3 == 'A' || c3 == 'a')
 				             	 && (c4 == 'B' || c4 == 'b') && (c5 == 'L' || c5 == 'l') ) {
@@ -1415,6 +1415,15 @@ public final class ManagerParseShow {
                 	
                     return OTHER;
                 }
+                
+            	while (stmt.length() > ++offset) {
+              		 switch (stmt.charAt(offset)) {
+              		 case ' ':
+                           continue;
+                       default:
+                      	 return (offset << 8) | SQL_SUM_USER;	 
+              		 }
+                 	}
                 return SQL_SUM_USER;
             }
         }
