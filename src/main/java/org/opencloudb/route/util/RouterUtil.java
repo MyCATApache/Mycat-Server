@@ -173,8 +173,6 @@ public class RouterUtil {
 	 * @author AStoneGod
 	 */
 	public static String getFixedSql(String stmt){
-		if (stmt.endsWith(";"))
-			stmt = stmt.substring(0,stmt.length()-2);
 		stmt = stmt.replaceAll("\r\n", " "); //对于\r\n的字符 用 空格处理 rainbow
 		return stmt = stmt.trim(); //.toUpperCase();    
 	}
