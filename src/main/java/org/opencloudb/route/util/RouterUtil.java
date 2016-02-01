@@ -1101,7 +1101,8 @@ public class RouterUtil {
 	 * @return
 	 */
 	public static boolean isNoSharding(SchemaConfig schemaConfig, String tableName) {
-		
+		// Table名字被转化为大写的，存储在schema
+		tableName = tableName.toUpperCase();
 		if (schemaConfig.isNoSharding()) {
 			return true;
 		}
