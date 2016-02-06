@@ -46,6 +46,7 @@ import org.opencloudb.server.ServerConnection;
 
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.server.parser.ServerParseShow;
+import org.opencloudb.server.response.ShowFullTables;
 import org.opencloudb.server.response.ShowTables;
 
 import org.opencloudb.stat.QueryResult;
@@ -71,6 +72,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private long startTime;
 
     private volatile boolean isDefaultNodeShowTable;
+    private volatile boolean isDefaultNodeShowFullTable;
     private  Set<String> shardingTablesSet;
 	
 	public SingleNodeHandler(RouteResultset rrs, NonBlockingSession session) {
@@ -90,10 +92,15 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
             SchemaConfig schemaConfig= MycatServer.getInstance().getConfig().getSchemas().get(schema);
            int type= ServerParseShow.tableCheck(rrs.getStatement(),0) ;
             isDefaultNodeShowTable=(ServerParseShow.TABLES==type &&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+            isDefaultNodeShowFullTable=(ServerParseShow.FULLTABLES==type &&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
 
             if(isDefaultNodeShowTable)
             {
                 shardingTablesSet = ShowTables.getTableSet(source, rrs.getStatement());
+            } else
+            if(isDefaultNodeShowFullTable)
+            {
+                shardingTablesSet = ShowFullTables.getTableSet(source, rrs.getStatement());
             }
         }
 	}
@@ -323,12 +330,21 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 					row.packetId = ++packetId;
 					buffer = row.write(buffer, source, true);
 				}
-			}
+			}  else
+            if (isDefaultNodeShowFullTable) {
+                for (String name : shardingTablesSet) {
+                    RowDataPacket row = new RowDataPacket(1);
+                    row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
+                    row.add(StringUtil.encode("BASE TABLE", source.getCharset()));
+                    row.packetId = ++packetId;
+                    buffer = row.write(buffer, source, true);
+                }
+            }
 	}
 
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
-        if(isDefaultNodeShowTable)
+        if(isDefaultNodeShowTable||isDefaultNodeShowFullTable)
         {
             RowDataPacket rowDataPacket =new RowDataPacket(1);
             rowDataPacket.read(row);
