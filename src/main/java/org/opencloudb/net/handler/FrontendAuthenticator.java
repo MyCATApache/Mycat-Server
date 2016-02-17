@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.Capabilities;
 import org.opencloudb.config.ErrorCode;
+import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.mysql.SecurityUtil;
 import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.NIOHandler;
@@ -180,7 +181,14 @@ public class FrontendAuthenticator implements NIOHandler {
         source.setAuthenticated(true);
         source.setUser(auth.user);
         source.setSchema(auth.database);
-        source.setCharsetIndex(auth.charsetIndex);
+        String authCharset = CharsetUtil.getCharset(auth.charsetIndex);
+        String serverCharset = CharsetUtil.getCharset(source.getCharsetIndex());
+        // mysql/jdbc 好像总是使用字符集默认的 collation 去发送 authPacket，而不使用在my.cnf中配置的server_collation
+        // 所以只好使用collation对应的字符集名称来判断，不然如果my.cnf中不是默认的collation的话会导致每次执行sql都去同步字符集信息，其实没有必要
+        // 因为它们的字符集是一样的，只是collation不一样，而且my.cnf中server_collation是应该正确的值
+        if(!serverCharset.equalsIgnoreCase(authCharset)){
+        	source.setCharsetIndex(auth.charsetIndex);
+        }
         source.setHandler(new FrontendCommandHandler(source));
 
         if (LOGGER.isInfoEnabled()) {

@@ -39,6 +39,7 @@ public final class SystemConfig {
 	private static final int DEFAULT_PORT = 8066;
 	private static final int DEFAULT_MANAGER_PORT = 9066;
 	private static final String DEFAULT_CHARSET = "utf8";
+	private static final int DEFAULT_COLLATION_INDEX = 33;
 
 	private static final String DEFAULT_SQL_PARSER = "fdbparser";// druidparser
 	private static final int DEFAULT_BUFFER_CHUNK_SIZE = 4096;
@@ -71,7 +72,8 @@ public final class SystemConfig {
 	private String bindIp = "0.0.0.0";
 	private int serverPort;
 	private int managerPort;
-	private String charset;
+	private static String charset;		// 记录handshake时mysqld后端的字符编码信息: collation对应的charset(初始默认值utf8)
+	private static int collationIndex;	// 记录handshake时mysqld后端的字符编码信息: collation(初始默认值值33->utf8_general_ci)
 	private int processors;
 	private int processorExecutor;
 	private int timerExecutor;
@@ -126,7 +128,8 @@ public final class SystemConfig {
 	public SystemConfig() {
 		this.serverPort = DEFAULT_PORT;
 		this.managerPort = DEFAULT_MANAGER_PORT;
-		this.charset = DEFAULT_CHARSET;
+		charset = DEFAULT_CHARSET;
+		collationIndex = DEFAULT_COLLATION_INDEX;
 		this.processors = DEFAULT_PROCESSORS;
 
 		processorBufferChunk = DEFAULT_BUFFER_CHUNK_SIZE;
@@ -260,12 +263,12 @@ public final class SystemConfig {
 		this.useCompression = useCompression;
 	}
 
-	public String getCharset() {
+	public static String getCharset() {
 		return charset;
 	}
 
-	public void setCharset(String charset) {
-		this.charset = charset;
+	public static void setCharset(String cs) {
+		charset = cs;
 	}
 
 	public int getServerPort() {
@@ -564,6 +567,14 @@ public final class SystemConfig {
 		this.mycatNodeId = mycatNodeId;
 	}
 
+	public static int getCollationIndex() {
+		return collationIndex;
+	}
+
+	public static void setCollationIndex(int ci) {
+		collationIndex = ci;
+	}
+
 	@Override
 	public String toString() {
 		return "SystemConfig [processorBufferLocalPercent="
@@ -577,7 +588,8 @@ public final class SystemConfig {
 				+ maxStringLiteralLength + ", frontWriteQueueSize="
 				+ frontWriteQueueSize + ", bindIp=" + bindIp + ", serverPort="
 				+ serverPort + ", managerPort=" + managerPort + ", charset="
-				+ charset + ", processors=" + processors
+				+ charset + ", collation="  + collationIndex +
+				", processors=" + processors
 				+ ", processorExecutor=" + processorExecutor
 				+ ", timerExecutor=" + timerExecutor + ", managerExecutor="
 				+ managerExecutor + ", idleTimeout=" + idleTimeout

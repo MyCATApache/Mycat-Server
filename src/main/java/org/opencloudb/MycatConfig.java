@@ -36,13 +36,17 @@ import org.opencloudb.config.model.QuarantineConfig;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.config.model.UserConfig;
+import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.net.AbstractConnection;
 import org.opencloudb.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public class MycatConfig {
+	public static final Logger logger = LoggerFactory.getLogger(MycatConfig.class);
 	private static final int RELOAD = 1;
 	private static final int ROLLBACK = 2;
     private static final int RELOAD_ALL = 3;
@@ -113,8 +117,13 @@ public class MycatConfig {
 		con.setMaxPacketSize(system.getMaxPacketSize());
 		con.setPacketHeaderSize(system.getPacketHeaderSize());
 		con.setIdleTimeout(system.getIdleTimeout());
-		con.setCharset(system.getCharset());
-
+		logger.debug("SystemConfig.getCharset():" + SystemConfig.getCharset());
+		logger.debug("SystemConfig.getCollationIndex():" + SystemConfig.getCollationIndex());
+//		con.setCharset(system.getCharset());
+		// charset 到 collation 是一对多的关系，而 collation 到 charset是一对一的关系
+		// 所以最好使用 collationIndex 来设置字符集
+		con.setCharsetByCollationIndex(SystemConfig.getCollationIndex());
+		
 	}
 
 	public Map<String, UserConfig> getUsers() {
