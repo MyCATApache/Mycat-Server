@@ -65,7 +65,7 @@ public class CharsetUtil {
         // charset --> index
         for(Integer key : INDEX_TO_CHARSET.keySet()){
         	String charset = INDEX_TO_CHARSET.get(key);
-        	if(charset != null && CHARSET_TO_INDEX.get(key) != null){
+        	if(charset != null && CHARSET_TO_INDEX.get(key) == null){
         		CHARSET_TO_INDEX.put(charset, key);
         	}
         }
