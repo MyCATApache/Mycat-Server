@@ -78,14 +78,15 @@ public class RouteService {
         
 		/*!mycat: sql = select name from aa */
         /*!mycat: schema = test */
-        boolean isMatchOldHint = stmt.startsWith(OLD_MYCAT_HINT);
-        boolean isMatchNewHint = stmt.startsWith(NEW_MYCAT_HINT);
-		if (isMatchOldHint || isMatchNewHint ) {
-			
+//      boolean isMatchOldHint = stmt.startsWith(OLD_MYCAT_HINT);
+//      boolean isMatchNewHint = stmt.startsWith(NEW_MYCAT_HINT);
+//		if (isMatchOldHint || isMatchNewHint ) {
+		int hintLength = RouteService.isHintSql(stmt);
+		if(hintLength != -1){
 			int endPos = stmt.indexOf("*/");
 			if (endPos > 0) {				
 				// 用!mycat:内部的语句来做路由分析
-				int hintLength = isMatchOldHint ? OLD_MYCAT_HINT.length() : NEW_MYCAT_HINT.length();				
+//				int hintLength = isMatchOldHint ? OLD_MYCAT_HINT.length() : NEW_MYCAT_HINT.length();
 				String hint = stmt.substring(hintLength, endPos).trim();	
 				
                 int firstSplitPos = hint.indexOf(HINT_SPLIT);                
@@ -121,6 +122,25 @@ public class RouteService {
 			sqlRouteCache.putIfAbsent(cacheKey, rrs);
 		}
 		return rrs;
+	}
+	
+	public static int isHintSql(String sql){
+		int j = 0;
+		int len = sql.length();
+		if(sql.charAt(j++) == '/' && sql.charAt(j++) == '*'){
+			char c = sql.charAt(j);
+			// 过滤掉 空格 和 * 两种字符, 支持： "/** !mycat: */" 和 "/** #mycat: */" 形式的注解
+			while(j < len && c != '!' && c != '#' && (c == ' ' || c == '*')){
+				j++;
+				c = sql.charAt(j);
+			}
+			if(j >= len)
+				return -1;	// false
+			if(sql.charAt(++j) == 'm' && sql.charAt(++j) == 'y' && sql.charAt(++j) == 'c'
+				&& sql.charAt(++j) == 'a' && sql.charAt(++j) == 't' && sql.charAt(++j) == ':')
+				return j+1;	// true，返回注解部分的长度
+		}
+		return -1;	// false
 	}
 
 }
