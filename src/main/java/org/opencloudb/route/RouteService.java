@@ -131,14 +131,13 @@ public class RouteService {
 			char c = sql.charAt(j);
 			// 过滤掉 空格 和 * 两种字符, 支持： "/** !mycat: */" 和 "/** #mycat: */" 形式的注解
 			while(j < len && c != '!' && c != '#' && (c == ' ' || c == '*')){
-				j++;
-				c = sql.charAt(j);
+				c = sql.charAt(++j);
 			}
-			if(j >= len)
-				return -1;	// false
+			if(j + 6 >= len)	// prevent the following sql.charAt overflow
+				return -1;		// false
 			if(sql.charAt(++j) == 'm' && sql.charAt(++j) == 'y' && sql.charAt(++j) == 'c'
 				&& sql.charAt(++j) == 'a' && sql.charAt(++j) == 't' && sql.charAt(++j) == ':')
-				return j+1;	// true，返回注解部分的长度
+				return j+1;	// true，同时返回注解部分的长度
 		}
 		return -1;	// false
 	}
