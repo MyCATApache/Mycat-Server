@@ -69,7 +69,7 @@ public class RouteService {
 		String cacheKey = null;
 		 
 		if (sqlType == ServerParse.SELECT) {
-			cacheKey = schema.getName() + stmt;			
+			cacheKey = schema.getName() + stmt;
 			rrs = (RouteResultset) sqlRouteCache.get(cacheKey);
 			if (rrs != null) {
 				return rrs;
@@ -78,15 +78,16 @@ public class RouteService {
 		 
         /*!mycat: sql = select name from aa */
         /*!mycat: schema = test */
-        boolean isMatchOldHint = stmt.startsWith(OLD_MYCAT_HINT);
-        boolean isMatchNewHint = stmt.startsWith(NEW_MYCAT_HINT);
-		if (isMatchOldHint || isMatchNewHint) {
+//        boolean isMatchOldHint = stmt.startsWith(OLD_MYCAT_HINT);
+//        boolean isMatchNewHint = stmt.startsWith(NEW_MYCAT_HINT);
+//		if (isMatchOldHint || isMatchNewHint) {
+		int hintLength = RouteService.isHintSql(stmt);
+		if(hintLength != -1){
 			int endPos = stmt.indexOf("*/");
-			if (endPos > 0) {
-				int hintLength = isMatchOldHint ? OLD_MYCAT_HINT.length() : NEW_MYCAT_HINT.length();
-				
+			if (endPos > 0) {				
 				// 用!mycat:内部的语句来做路由分析
-				String hint = stmt.substring(hintLength, endPos).trim();
+//				int hintLength = isMatchOldHint ? OLD_MYCAT_HINT.length() : NEW_MYCAT_HINT.length();
+				String hint = stmt.substring(hintLength, endPos).trim();	
                 int firstSplitPos = hint.indexOf(HINT_SPLIT);
                 
                 if(firstSplitPos > 0 ){
@@ -125,4 +126,22 @@ public class RouteService {
 		return rrs;
 	}
 
+	public static int isHintSql(String sql){
+		int j = 0;
+		int len = sql.length();
+		if(sql.charAt(j++) == '/' && sql.charAt(j++) == '*'){
+			char c = sql.charAt(j);
+			// 过滤掉 空格 和 * 两种字符。
+			// 支持： "/** !mycat: */" 和 "/** #mycat: */" 形式的注解. by: digdeep@126.com
+			while(j < len && c != '!' && c != '#' && (c == ' ' || c == '*')){
+				c = sql.charAt(++j);
+			}
+			if(j + 6 >= len)	// prevent the following sql.charAt overflow
+				return -1;		// false
+			if(sql.charAt(++j) == 'm' && sql.charAt(++j) == 'y' && sql.charAt(++j) == 'c'
+				&& sql.charAt(++j) == 'a' && sql.charAt(++j) == 't' && sql.charAt(++j) == ':')
+				return j+1;	// true，同时返回注解部分的长度
+		}
+		return -1;	// false
+	}
 }
