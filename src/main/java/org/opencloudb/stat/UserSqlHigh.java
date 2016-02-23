@@ -8,9 +8,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class UserSqlHigh {
+	
 	private static final int CAPACITY_SIZE = 100;
 	private static final int DELETE_SIZE = 10;
 	
@@ -19,7 +19,6 @@ public class UserSqlHigh {
 	
 	private SQLParserHigh sqlParser = new SQLParserHigh();
 	
-
 	public void addSql(String sql,long executeTime,long startTime, long endTime ){
     	if ( this.sqlFrequencyMap.size() >= CAPACITY_SIZE ) {
     		
@@ -50,15 +49,7 @@ public class UserSqlHigh {
 	 */
 	public List<Map.Entry<String, SqlFrequency>> getSqlFrequency(boolean isClear) {
 		
-		List<Map.Entry<String, SqlFrequency>> list = null;
-		
-  //      lock.readLock().lock();
-  //      try {
-        	list = this.sortFrequency( sqlFrequencyMap, false );
-//        } finally {
-    //        lock.readLock().unlock();
-  //      }
-        
+		List<Map.Entry<String, SqlFrequency>> list = this.sortFrequency( sqlFrequencyMap, false );
         if ( isClear ) {
         	clearSqlFrequency();  // 获取 高频SQL后清理
         }
@@ -68,12 +59,7 @@ public class UserSqlHigh {
 	
 	
 	private void clearSqlFrequency() {		
-	//	lock.readLock().lock();
-	//	try {
-			sqlFrequencyMap.clear();
-//		} finally {
-   //         lock.readLock().unlock();
-//        }
+		sqlFrequencyMap.clear();
 	}
 	
 	/**
@@ -96,6 +82,5 @@ public class UserSqlHigh {
 		});
 
 		return list;
-
 	}
 }

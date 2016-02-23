@@ -11,7 +11,6 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.stat.HighFrequencySqlAnalyzer;
 import org.opencloudb.stat.SqlFrequency;
 import org.opencloudb.stat.UserStat;
 import org.opencloudb.stat.UserStatAnalyzer;
