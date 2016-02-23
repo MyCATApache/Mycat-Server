@@ -156,11 +156,9 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 					}
 					
 				} else if( source.isSalveOrRead() ) {					
-					String Last_IO_Error = resultResult != null ? resultResult.get("Last_IO_Error") : null;
-					
+					//String Last_IO_Error = resultResult != null ? resultResult.get("Last_IO_Error") : null;					
 					MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication err !!! " 
-								+ heartbeat.getSource().getConfig() + Last_IO_Error);
-					
+								+ heartbeat.getSource().getConfig() + resultResult);
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
 				}
 
