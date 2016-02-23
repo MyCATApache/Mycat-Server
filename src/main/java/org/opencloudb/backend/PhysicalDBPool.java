@@ -520,11 +520,11 @@ public class PhysicalDBPool {
 
 	private boolean canSelectAsReadNode(PhysicalDatasource theSource) {
 		
-        if(theSource.getHeartbeat().getSlaveBehindMaster() == null
-                			||theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_ERROR){
-            return false;
-        }
-        
+		if (theSource.getHeartbeat().getSlaveBehindMaster() == null
+				|| theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_ERROR) {
+			return false;
+		}
+		
 		return (theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_NORMAL)
 				&& (theSource.getHeartbeat().getSlaveBehindMaster() < this.dataHostConfig.getSlaveThreshold());
 	}
@@ -548,15 +548,19 @@ public class PhysicalDBPool {
 			PhysicalDatasource theSource = writeSources[i];
 			if (isAlive(theSource)) {// write node is active
                 
-				if (includeWriteNode) {
-					if (i == curActive && includeCurWriteNode == false) {
-						// not include cur active source
+				if (includeWriteNode) {					
 					/**
-					 * modify by zhuam
+					 * fixed by zhuam
+					 * 
+					 * 问题描述：
+					 * -------------------------------------------------------------------------------
 					 * 在 balance="2", switchType="2" 基于主从同步切换 show slave status  的情况下,
 					 * 此处调用 canSelectAsReadNode 方法会永远返回 false , 
 					 * 后续执行continue 会跳出 for循环, 造成后续对正常 readSources 处的代码执行不下去  
-					 */
+					 */		
+					boolean isCurWriteNode = ( i == curActive );
+					if ( isCurWriteNode && includeCurWriteNode == false) {
+						// not include cur active source
 					} else if (filterWithSlaveThreshold && theSource.isSalveOrRead() ) {	
 						if (canSelectAsReadNode(theSource)) {
 							okSources.add(theSource);
