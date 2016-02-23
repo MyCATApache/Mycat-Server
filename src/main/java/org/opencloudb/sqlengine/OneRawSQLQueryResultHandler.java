@@ -13,10 +13,10 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	private final SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callback;
 	private final String[] fetchCols;
 	private int fieldCount = 0;
-	private Map<String, String> result = new HashMap<String, String>();;
+	private Map<String, String> result = new HashMap<String, String>();
+	
 	public OneRawSQLQueryResultHandler(String[] fetchCols,
 			SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callBack) {
-
 		this.fetchCols = fetchCols;
 		this.callback = callBack;
 	}
@@ -35,36 +35,40 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 				}
 			}
 		}
-
 	}
 
 	@Override
 	public boolean onRowData(String dataNode, byte[] rowData) {
+		
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 		rowDataPkg.read(rowData);
+		
 		String variableName = "";
 		String variableValue = "";
 		
-		if(fieldCount==2){
+		if (fieldCount == 2) {			
 			Integer ind = fetchColPosMap.get("Variable_name");
 			if (ind != null) {
 				byte[] columnData = rowDataPkg.fieldValues.get(ind);
-                String columnVal = columnData!=null?new String(columnData):null;
+				String columnVal = columnData != null ? new String(columnData) : null;
                 variableName = columnVal;
             }
+			
 			ind = fetchColPosMap.get("Value");
 			if (ind != null) {
 				byte[] columnData = rowDataPkg.fieldValues.get(ind);
-                String columnVal = columnData!=null?new String(columnData):null;
+				String columnVal = columnData != null ? new String(columnData) : null;
                 variableValue = columnVal;
             }
             result.put(variableName, variableValue);
-		}else{
+            
+		} else {
+			
 			for (String fetchCol : fetchCols) {
 				Integer ind = fetchColPosMap.get(fetchCol);
 				if (ind != null) {
 					byte[] columnData = rowDataPkg.fieldValues.get(ind);
-	                String columnVal = columnData!=null?new String(columnData):null;
+					String columnVal = columnData != null ? new String(columnData) : null;
 	                result.put(fetchCol, columnVal);
 				} else {
 					LOGGER.warn("cant't find column in sql query result " + fetchCol);
@@ -72,14 +76,16 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 			}
 		}
 		
+		// 返回false，表示还有数据要处理，数据处理没有结束;
+		// 如果返回true，连接会被SQLJob关闭：conn.close("not needed by user proc")
+		// 对应的各种资源：socketchannel,read buffer,write buffer等都会被回收，连接会被从连接池中删除
 		return false;
 	}
 
 	@Override
 	public void finished(String dataNode, boolean failed) {
-		SQLQueryResult<Map<String, String>> queryRestl=new SQLQueryResult<Map<String, String>>(this.result,!failed);
-	     this.callback.onResult(queryRestl);
-
+		SQLQueryResult<Map<String, String>> queryRestl = new SQLQueryResult<Map<String, String>>(this.result, !failed);
+	    this.callback.onResult(queryRestl);
 	}
 
 }
