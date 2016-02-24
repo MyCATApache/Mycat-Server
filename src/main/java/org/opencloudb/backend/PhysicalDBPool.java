@@ -526,15 +526,14 @@ public class PhysicalDBPool {
 		}
 		
 		boolean isSync = theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_NORMAL;
-		boolean isNotTimeout = theSource.getHeartbeat().getSlaveBehindMaster() < this.dataHostConfig.getSlaveThreshold();
+		boolean isNotDelay = theSource.getHeartbeat().getSlaveBehindMaster() < this.dataHostConfig.getSlaveThreshold();
 		
-		// 如果超时、记录从服务器延时信息
-		if ( !isNotTimeout ) {
+		if ( !isNotDelay ) {
 			LOGGER.warn( "host:" + theSource.getConfig().getIp() + 
 					     ", binlog sync delay: " + theSource.getHeartbeat().getSlaveBehindMaster() + "s" );
 		}
 		
-		return isSync && isNotTimeout;
+		return isSync && isNotDelay;
 	}
 
 	/**
