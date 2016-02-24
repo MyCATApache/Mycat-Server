@@ -531,8 +531,8 @@ public class PhysicalDBPool {
 		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();
 		
 		if ( !isNotDelay ) {
-			LOGGER.warn( "host:" + theSource.getConfig().getIp() + 
-					     ", binlog sync delay: " + theSource.getHeartbeat().getSlaveBehindMaster() + "s" );
+			LOGGER.warn( "host:" + theSource.getConfig().getUrl()
+					     + ", binlog sync time delay: " + theSource.getHeartbeat().getSlaveBehindMaster() + "s" );
 		}
 		
 		return isSync && isNotDelay;
