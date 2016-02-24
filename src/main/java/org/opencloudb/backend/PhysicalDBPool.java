@@ -562,7 +562,8 @@ public class PhysicalDBPool {
 					if ( isCurWriteNode && includeCurWriteNode == false) {
 						// not include cur active source
 					} else if (filterWithSlaveThreshold && theSource.isSalveOrRead() ) {	
-						if (canSelectAsReadNode(theSource)) {
+						boolean selected = canSelectAsReadNode(theSource);
+						if ( selected ) {
 							okSources.add(theSource);
 						} else {
 							continue;
@@ -578,15 +579,14 @@ public class PhysicalDBPool {
 					PhysicalDatasource[] allSlaves = this.readSources.get(i);
 					if (allSlaves != null) {
 						for (PhysicalDatasource slave : allSlaves) {
-							if (isAlive(slave)) {
-								
-								if (filterWithSlaveThreshold) {									
-									if (canSelectAsReadNode(slave)) {
+							if (isAlive(slave)) {								
+								if (filterWithSlaveThreshold) {
+									boolean selected = canSelectAsReadNode(slave);
+									if ( selected ) {
 										okSources.add(slave);
 									} else {
 										continue;
-									}
-									
+									}									
 								} else {
 									okSources.add(slave);
 								}
@@ -606,10 +606,10 @@ public class PhysicalDBPool {
 						PhysicalDatasource[] allSlaves = this.readSources.get(i);
 						if (allSlaves != null) {
 							for (PhysicalDatasource slave : allSlaves) {
-								if (isAlive(slave)) {
-									
-									if (filterWithSlaveThreshold) {									
-										if (canSelectAsReadNode(slave)) {
+								if (isAlive(slave)) {									
+									if (filterWithSlaveThreshold) {		
+										boolean selected = canSelectAsReadNode(slave);
+										if ( selected ) {
 											okSources.add(slave);
 										} else {
 											continue;

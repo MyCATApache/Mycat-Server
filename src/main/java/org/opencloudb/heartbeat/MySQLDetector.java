@@ -151,6 +151,7 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 					
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
 					String Seconds_Behind_Master = resultResult.get( "Seconds_Behind_Master");
+					
 					if (null != Seconds_Behind_Master && !"".equals(Seconds_Behind_Master)) {
 						heartbeat.setSlaveBehindMaster(Integer.valueOf(Seconds_Behind_Master));
 					}
@@ -169,7 +170,7 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
             		&& switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS 
             		&& source.getHostConfig().isShowClusterSql() ) {
             	
-				String Variable_name = resultResult != null ? resultResult.get("Variable_name") : null;
+				//String Variable_name = resultResult != null ? resultResult.get("Variable_name") : null;
 				String wsrep_cluster_status = resultResult != null ? resultResult.get("wsrep_cluster_status") : null;// Primary
 				String wsrep_connected = resultResult != null ? resultResult.get("wsrep_connected") : null;// ON
 				String wsrep_ready = resultResult != null ? resultResult.get("wsrep_ready") : null;// ON
