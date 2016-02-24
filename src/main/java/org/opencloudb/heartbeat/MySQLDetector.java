@@ -152,13 +152,19 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
 					String Seconds_Behind_Master = resultResult.get( "Seconds_Behind_Master");					
 					if (null != Seconds_Behind_Master && !"".equals(Seconds_Behind_Master)) {
-						heartbeat.setSlaveBehindMaster(Integer.valueOf(Seconds_Behind_Master));
+						
+						int Behind_Master = Integer.valueOf(Seconds_Behind_Master);
+						if ( Behind_Master > 60 ) {
+							MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication delay !!! "
+									+ heartbeat.getSource().getConfig() + ", binlog sync timeout: " + Behind_Master + "s" );
+						}						
+						heartbeat.setSlaveBehindMaster( Behind_Master );
 					}
 					
 				} else if( source.isSalveOrRead() ) {					
 					//String Last_IO_Error = resultResult != null ? resultResult.get("Last_IO_Error") : null;					
 					MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication err !!! " 
-								+ heartbeat.getSource().getConfig() + resultResult);
+								+ heartbeat.getSource().getConfig() + ", " + resultResult);
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
 				}
 
