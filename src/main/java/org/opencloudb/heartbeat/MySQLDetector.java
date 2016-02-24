@@ -156,7 +156,7 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 						int Behind_Master = Integer.valueOf(Seconds_Behind_Master);
 						if ( Behind_Master > 60 ) {
 							MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication delay !!! "
-									+ heartbeat.getSource().getConfig() + ", binlog sync timeout: " + Behind_Master + "s" );
+									+ heartbeat.getSource().getConfig() + ", binlog sync time delay: " + Behind_Master + "s" );
 						}						
 						heartbeat.setSlaveBehindMaster( Behind_Master );
 					}
