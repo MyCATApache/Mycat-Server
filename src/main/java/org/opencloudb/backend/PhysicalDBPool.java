@@ -520,13 +520,15 @@ public class PhysicalDBPool {
 
 	private boolean canSelectAsReadNode(PhysicalDatasource theSource) {
 		
-		if (theSource.getHeartbeat().getSlaveBehindMaster() == null
-				|| theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_ERROR) {
+		Integer slaveBehindMaster = theSource.getHeartbeat().getSlaveBehindMaster();
+		int dbSynStatus = theSource.getHeartbeat().getDbSynStatus();
+		
+		if ( slaveBehindMaster == null || dbSynStatus == DBHeartbeat.DB_SYN_ERROR) {
 			return false;
 		}
 		
-		boolean isSync = theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_NORMAL;
-		boolean isNotDelay = theSource.getHeartbeat().getSlaveBehindMaster() < this.dataHostConfig.getSlaveThreshold();
+		boolean isSync = dbSynStatus == DBHeartbeat.DB_SYN_NORMAL;
+		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();
 		
 		if ( !isNotDelay ) {
 			LOGGER.warn( "host:" + theSource.getConfig().getIp() + 
