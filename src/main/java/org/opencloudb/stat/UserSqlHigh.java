@@ -74,9 +74,9 @@ public class UserSqlHigh {
 			public int compare(Map.Entry<String, SqlFrequency> o1, Map.Entry<String, SqlFrequency> o2) {
 
 				if (!bAsc) {
-					return o2.getValue().getCount() - o1.getValue().getCount(); // 降序
+					return (int)(o2.getValue().getCount() - o1.getValue().getCount()); // 降序
 				} else {
-					return o1.getValue().getCount() - o2.getValue().getCount(); // 升序
+					return (int)(o1.getValue().getCount() - o2.getValue().getCount()); // 升序
 				}
 			}
 		});

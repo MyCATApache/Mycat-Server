@@ -78,22 +78,12 @@ public final class ShowSQLHigh {
 
         // write rows
         byte packetId = eof.packetId;     
-        /*
-        List<Map.Entry<String, SqlFrequency>> list = HighFrequencySqlAnalyzer.getInstance().getSqlFrequency( isClear );
-        if ( list != null ) {        
-	        for (int i = 0; i < list.size(); i++) {
-	        	SqlFrequency sqlFrequency = list.get(i).getValue();
-	        	RowDataPacket row = getRow(i, sqlFrequency.getSql(), sqlFrequency.getCount(), sqlFrequency.getAvgTime(),sqlFrequency.getMaxTime(),sqlFrequency.getMinTime(),sqlFrequency.getExecuteTime(),sqlFrequency.getLastTime(), c.getCharset());
-	            row.packetId = ++packetId;
-	            buffer = row.write(buffer, c,true);
-	        }
-        }
-        */
+    
         Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
     	for (UserStat userStat : statMap.values()) {
         	String user = userStat.getUser();        
         	 List<Map.Entry<String, SqlFrequency>> list=userStat.getSqlHigh().getSqlFrequency( isClear );
-             if ( list != null ) {        
+             if ( list != null ) { 
      	        for (int i = 0; i < list.size(); i++) {
      	        	SqlFrequency sqlFrequency = list.get(i).getValue();
      	        	RowDataPacket row = getRow(i, user,sqlFrequency.getSql(), sqlFrequency.getCount(), sqlFrequency.getAvgTime(),sqlFrequency.getMaxTime(),sqlFrequency.getMinTime(),sqlFrequency.getExecuteTime(),sqlFrequency.getLastTime(), c.getCharset());
@@ -111,7 +101,7 @@ public final class ShowSQLHigh {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(int i, String user,String sql, int count, long avgTime,long maxTime,long minTime,long executTime,long lastTime, String charset) {
+    private static RowDataPacket getRow(int i, String user,String sql, long count, long avgTime,long maxTime,long minTime,long executTime,long lastTime, String charset) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add( LongUtil.toBytes( i ) );
         row.add( StringUtil.encode( user, charset) );
