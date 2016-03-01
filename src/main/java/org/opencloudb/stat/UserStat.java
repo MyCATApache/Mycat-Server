@@ -12,6 +12,9 @@ import org.opencloudb.statistic.SQLRecorder;
 public class UserStat {
 	
 	private  long SQL_SLOW_TIME = 1000;
+	
+	private String user;
+	
 	/**
 	 * SQL 执行记录
 	 */
@@ -23,15 +26,15 @@ public class UserStat {
 	private UserRWStat rwStat = null;
 	
 	/**
+	 * 用户高频SQL分析
+	 */
+	private UserSqlHigh sqlHighStat = null;
+	
+	/**
 	 * 慢查询记录器  TOP 10
 	 */
 	private SQLRecorder sqlRecorder;
 
-	private String user;
-	
-
-	private UserSqlHigh sqlHighStat = null;
-	
 	public UserStat(String user) {
 		super();
 		this.user = user;		
@@ -57,6 +60,10 @@ public class UserStat {
 		return sqlStat;
 	}
 	
+	public UserSqlHigh getSqlHigh(){
+		return this.sqlHighStat;
+	}
+	
 	public void setSlowTime(long time) {
 		this.SQL_SLOW_TIME = time;
 		this.sqlRecorder.clear();
@@ -70,14 +77,16 @@ public class UserStat {
 		this.sqlRecorder.clear();
 	}
 	
+	public void clearRwStat() {
+		this.rwStat.reset();
+	}
+	
 	public void reset() {		
 		this.sqlRecorder.clear();
 		this.rwStat.reset();
 		this.sqlStat.reset();
 	}
-	public void clearRwStat() {
-		this.rwStat.reset();
-	}
+	
 	/**
 	 * 更新状态
 	 * 
@@ -106,8 +115,5 @@ public class UserStat {
 		
 		//记录高频SQL
 		this.sqlHighStat.addSql(sql, executeTime, startTime, endTime);
-	}
-	public  UserSqlHigh getSqlHigh(){
-		return this.sqlHighStat;
 	}
 }

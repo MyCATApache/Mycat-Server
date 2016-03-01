@@ -46,6 +46,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	private final ReentrantLock lock;
 	private final int maxRetryCount;
 
+	// MYSQL 活跃性探测
 	private MySQLDetector detector;
 
 	public MySQLHeartbeat(MySQLDataSource source) {
@@ -121,6 +122,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		lock.lock();
 		try {
 			if (isChecking.compareAndSet(false, true)) {
+				
 				MySQLDetector detector = this.detector;
 				if (detector == null || detector.isQuit()) {
 					try {
@@ -135,7 +137,9 @@ public class MySQLHeartbeat extends DBHeartbeat {
 				} else {
 					detector.heartbeat();
 				}
+				
 			} else {
+				
 				MySQLDetector detector = this.detector;
 				if (detector != null) {
 					if (detector.isQuit()) {
@@ -144,6 +148,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 						setResult(TIMEOUT_STATUS, detector, null);
 					}
 				}
+				
 			}
 		} finally {
 			lock.unlock();
@@ -163,6 +168,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			setTimeout(detector);
 			break;
 		}
+		
 		if (this.status != OK_STATUS) {
 			switchSourceIfNeed("heartbeat error");
 		}
@@ -185,6 +191,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			this.status = OK_STATUS;
 			this.errorCount = 0;
 		}
+		
 		if (isStop.get()) {
 			detector.quit();
 		}
@@ -193,13 +200,10 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	private void setError(MySQLDetector detector) {
 		// should continues check error status
 		if (++errorCount < maxRetryCount) {
-
             if (detector != null && !detector.isQuit()) {
                 heartbeat(); // error count not enough, heart beat again
             }
-
-		}else
-        {
+		} else {
             if (detector != null ) {
                 detector.quit();
             }
@@ -213,42 +217,50 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		status = DBHeartbeat.TIMEOUT_STATUS;
 	}
 
+	
 	/**
 	 * switch data source
 	 */
 	private void switchSourceIfNeed(String reason) {
+		
 		int switchType = source.getHostConfig().getSwitchType();
 		if (switchType == DataHostConfig.NOT_SWITCH_DS) {
 			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("not switch datasource ,for switchType is "
-						+ DataHostConfig.NOT_SWITCH_DS);
+				LOGGER.debug("not switch datasource ,for switchType is " + DataHostConfig.NOT_SWITCH_DS);
 				return;
 			}
 			return;
 		}
+		
 		PhysicalDBPool pool = this.source.getDbPool();
 		int curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
+		
 		// read node can't switch ,only write node can switch
-		if (pool.getWriteType() == PhysicalDBPool.WRITE_ONLYONE_NODE
+		if ( pool.getWriteType() == PhysicalDBPool.WRITE_ONLYONE_NODE
 				&& !source.isReadNode()
 				&& curDatasourceHB != DBHeartbeat.OK_STATUS
 				&& pool.getSources().length > 1) {
-			synchronized (pool) {
+			
+			synchronized ( pool ) {
+				
 				// try to see if need switch datasource
 				curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
 				if (curDatasourceHB != DBHeartbeat.INIT_STATUS && curDatasourceHB != DBHeartbeat.OK_STATUS) {
+					
 					int curIndex = pool.getActivedIndex();
-					int nextId = pool.next(curIndex);
+					int nextId = pool.next(curIndex);					
 					PhysicalDatasource[] allWriteNodes = pool.getSources();
-					while (true) {
+					
+					while (true) {						
 						if (nextId == curIndex) {
 							break;
 						}
+						
 						PhysicalDatasource theSource = allWriteNodes[nextId];
 						DBHeartbeat theSourceHB = theSource.getHeartbeat();
 						int theSourceHBStatus = theSourceHB.getStatus();
-						if (theSourceHBStatus == DBHeartbeat.OK_STATUS) {
-							if (switchType == DataHostConfig.SYN_STATUS_SWITCH_DS) {
+						if ( theSourceHBStatus == DBHeartbeat.OK_STATUS ) {
+							if ( switchType == DataHostConfig.SYN_STATUS_SWITCH_DS ) {
 								if (Integer.valueOf(0).equals( theSourceHB.getSlaveBehindMaster())) {
 									LOGGER.info("try to switch datasource ,slave is synchronized to master " + theSource.getConfig());
 									pool.switchSource(nextId, true, reason);
@@ -264,11 +276,9 @@ public class MySQLHeartbeat extends DBHeartbeat {
 								pool.switchSource(nextId, true, reason);
                                 break;
 							}
-
 						}
 						nextId = pool.next(nextId);
 					}
-
 				}
 			}
 		}

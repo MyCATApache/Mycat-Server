@@ -29,6 +29,7 @@ import org.opencloudb.statistic.DataSourceSyncRecorder;
 import org.opencloudb.statistic.HeartbeatRecorder;
 
 public abstract class DBHeartbeat {
+	
 	public static final int DB_SYN_ERROR = -1;
 	public static final int DB_SYN_NORMAL = 1;
 
@@ -38,14 +39,17 @@ public abstract class DBHeartbeat {
 	public static final int INIT_STATUS = 0;
 	private static final long DEFAULT_HEARTBEAT_TIMEOUT = 30 * 1000L;
 	private static final int DEFAULT_HEARTBEAT_RETRY = 10;
+	
 	// heartbeat config
-	protected long heartbeatTimeout = DEFAULT_HEARTBEAT_TIMEOUT; // 心跳超时时间
-	protected int heartbeatRetry = DEFAULT_HEARTBEAT_RETRY; // 检查连接发生异常到切换，重试次数
-	protected String heartbeatSQL;// 静态心跳语句
+	protected long heartbeatTimeout = DEFAULT_HEARTBEAT_TIMEOUT; 	// 心跳超时时间
+	protected int heartbeatRetry = DEFAULT_HEARTBEAT_RETRY;			// 检查连接发生异常到切换，重试次数
+	protected String heartbeatSQL;									// 静态心跳语句
+	
 	protected final AtomicBoolean isStop = new AtomicBoolean(true);
 	protected final AtomicBoolean isChecking = new AtomicBoolean(false);
 	protected int errorCount;
 	protected volatile int status;
+	
 	protected final HeartbeatRecorder recorder = new HeartbeatRecorder();
 	protected final DataSourceSyncRecorder asynRecorder = new DataSourceSyncRecorder();
 

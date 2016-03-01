@@ -520,13 +520,22 @@ public class PhysicalDBPool {
 
 	private boolean canSelectAsReadNode(PhysicalDatasource theSource) {
 		
-        if(theSource.getHeartbeat().getSlaveBehindMaster() == null
-                			||theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_ERROR){
-            return false;
-        }
-        
-		return (theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_NORMAL)
-				&& (theSource.getHeartbeat().getSlaveBehindMaster() < this.dataHostConfig.getSlaveThreshold());
+		Integer slaveBehindMaster = theSource.getHeartbeat().getSlaveBehindMaster();
+		int dbSynStatus = theSource.getHeartbeat().getDbSynStatus();
+		
+		if ( slaveBehindMaster == null || dbSynStatus == DBHeartbeat.DB_SYN_ERROR) {
+			return false;
+		}
+		
+		boolean isSync = dbSynStatus == DBHeartbeat.DB_SYN_NORMAL;
+		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();
+		
+		if ( !isNotDelay ) {
+			LOGGER.warn( "host:" + theSource.getConfig().getUrl()
+					     + ", binlog sync time delay: " + theSource.getHeartbeat().getSlaveBehindMaster() + "s" );
+		}
+		
+		return isSync && isNotDelay;
 	}
 
 	/**
@@ -548,17 +557,26 @@ public class PhysicalDBPool {
 			PhysicalDatasource theSource = writeSources[i];
 			if (isAlive(theSource)) {// write node is active
                 
-				if (includeWriteNode) {
-					if (i == curActive && includeCurWriteNode == false) {
+				if (includeWriteNode) {					
+					/**
+					 * fixed by zhuam
+					 * 
+					 * 问题描述：
+					 * -------------------------------------------------------------------------------
+					 * 在 balance="2", switchType="2" 基于主从同步切换 show slave status  的情况下,
+					 * 此处调用 canSelectAsReadNode 方法会永远返回 false , 
+					 * 后续执行continue 会跳出 for循环, 造成后续对正常 readSources 处的代码执行不下去  
+					 */		
+					boolean isCurWriteNode = ( i == curActive );
+					if ( isCurWriteNode && includeCurWriteNode == false) {
 						// not include cur active source
-					} else if (filterWithSlaveThreshold) {
-						
-						if (canSelectAsReadNode(theSource)) {
+					} else if (filterWithSlaveThreshold && theSource.isSalveOrRead() ) {	
+						boolean selected = canSelectAsReadNode(theSource);
+						if ( selected ) {
 							okSources.add(theSource);
 						} else {
 							continue;
-						}
-						
+						}							
 					} else {
 						okSources.add(theSource);
 					}
@@ -570,15 +588,14 @@ public class PhysicalDBPool {
 					PhysicalDatasource[] allSlaves = this.readSources.get(i);
 					if (allSlaves != null) {
 						for (PhysicalDatasource slave : allSlaves) {
-							if (isAlive(slave)) {
-								
-								if (filterWithSlaveThreshold) {									
-									if (canSelectAsReadNode(slave)) {
+							if (isAlive(slave)) {								
+								if (filterWithSlaveThreshold) {
+									boolean selected = canSelectAsReadNode(slave);
+									if ( selected ) {
 										okSources.add(slave);
 									} else {
 										continue;
-									}
-									
+									}									
 								} else {
 									okSources.add(slave);
 								}
@@ -598,10 +615,10 @@ public class PhysicalDBPool {
 						PhysicalDatasource[] allSlaves = this.readSources.get(i);
 						if (allSlaves != null) {
 							for (PhysicalDatasource slave : allSlaves) {
-								if (isAlive(slave)) {
-									
-									if (filterWithSlaveThreshold) {									
-										if (canSelectAsReadNode(slave)) {
+								if (isAlive(slave)) {									
+									if (filterWithSlaveThreshold) {		
+										boolean selected = canSelectAsReadNode(slave);
+										if ( selected ) {
 											okSources.add(slave);
 										} else {
 											continue;

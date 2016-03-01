@@ -20,7 +20,9 @@ import org.opencloudb.server.parser.ServerParse;
  * 
  */
 public class SQLJob implements ResponseHandler, Runnable {
+	
 	public static final Logger LOGGER = Logger.getLogger(SQLJob.class);
+	
 	private final String sql;
 	private final String dataNodeOrDatabase;
 	private BackendConnection connection;
@@ -99,7 +101,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 	}
 
 	private void doFinished(boolean failed) {
-		finished=true;
+		finished = true;
 		jobHandler.finished(dataNodeOrDatabase, failed);
 		if (ctx != null) {
 			ctx.onJobFinished(this);
@@ -110,18 +112,28 @@ public class SQLJob implements ResponseHandler, Runnable {
 	public void connectionError(Throwable e, BackendConnection conn) {
 		LOGGER.info("can't get connection for sql :" + sql);
 		doFinished(true);
-
 	}
 
 	@Override
 	public void errorResponse(byte[] err, BackendConnection conn) {
 		ErrorPacket errPg = new ErrorPacket();
 		errPg.read(err);
-		LOGGER.info("error response " + new String(errPg.message)
-				+ " from of sql :" + sql + " at con:" + conn);
+		
+		String errMsg = "error response errno:" + errPg.errno + ", " + new String(errPg.message)
+				+ " from of sql :" + sql + " at con:" + conn;
+		
+		// @see https://dev.mysql.com/doc/refman/5.6/en/error-messages-server.html
+		// ER_SPECIFIC_ACCESS_DENIED_ERROR
+		if ( errPg.errno == 1227  ) {
+			LOGGER.warn( errMsg );	
+			
+		}  else {
+			LOGGER.info( errMsg );
+		}
+		
+		
 		conn.release();
 		doFinished(true);
-
 	}
 
 	@Override
