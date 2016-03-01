@@ -27,6 +27,7 @@ import org.opencloudb.mpp.LoadData;
 import org.opencloudb.server.parser.ServerParse;
 
 import java.io.Serializable;
+import java.util.Set;
 
 /**
  * @author mycat
@@ -48,7 +49,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
 
 	private LoadData loadData;
-
+	
+	private String subTableName; // 分表的表名
+	
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
 		this.name = name;
 		limitStart=0;
@@ -145,8 +148,14 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			return true;
 		if (obj instanceof RouteResultsetNode) {
 			RouteResultsetNode rrn = (RouteResultsetNode) obj;
-			if (equals(name, rrn.getName())) {
-				return true;
+			if(subTableName!=null){
+				if (equals(name, rrn.getName()) && equals(subTableName, rrn.getSubTableName())) {
+					return true;
+				}
+			}else{
+				if (equals(name, rrn.getName())) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -167,9 +176,24 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		return str1.equals(str2);
 	}
 
+	public String getSubTableName() {
+		return this.subTableName;
+	}
+
+	public void setSubTableName(String subTableName) {
+		this.subTableName = subTableName;
+	}
+
 	public boolean isModifySQL() {
 		return !canRunInReadDB;
 	}
+	public boolean isDisctTable() {
+		if(subTableName!=null && !subTableName.equals("")){
+			return true;
+		};
+		return false;
+	}
+	
 
 	@Override
 	public int compareTo(RouteResultsetNode obj) {
@@ -182,6 +206,14 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		if(obj.name == null) {
 			return 1;
 		}
-		return this.name.compareTo(obj.name);
+		int c = this.name.compareTo(obj.name);
+		if(!this.isDisctTable()){
+			return c;
+		}else{
+			if(c==0){
+				return this.subTableName.compareTo(obj.subTableName);
+			}
+			return c;
+		}
 	}
 }

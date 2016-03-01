@@ -30,10 +30,13 @@ import org.opencloudb.mpp.HavingCols;
 import org.opencloudb.parser.util.PageSQLUtil;
 import org.opencloudb.util.FormatUtil;
 
+import com.alibaba.druid.sql.ast.SQLStatement;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author mycat
@@ -42,6 +45,9 @@ public final class RouteResultset implements Serializable {
     private String statement; // 原始语句
     private final int sqlType;
     private RouteResultsetNode[] nodes; // 路由结果节点
+    private Set<String> subTables;
+    private SQLStatement sqlStatement; 
+    
 
     private int limitStart;
     private boolean cacheAble;
@@ -323,13 +329,36 @@ public final class RouteResultset implements Serializable {
 		return (sqlMerge != null) ? sqlMerge.getHavingCols() : null;
 	}
 
+	public void setSubTables(Set<String> subTables) {
+		this.subTables = subTables;
+	}
+
 	public void setHavings(HavingCols havings) {
 		if (havings != null) {
 			createSQLMergeIfNull().setHavingCols(havings);
 		}
 	}
 
-    @Override
+    public SQLStatement getSqlStatement() {
+		return this.sqlStatement;
+	}
+
+	public void setSqlStatement(SQLStatement sqlStatement) {
+		this.sqlStatement = sqlStatement;
+	}
+
+	public Set<String> getSubTables() {
+		return this.subTables;
+	}
+	
+	public boolean isDistTable(){
+		if(this.getSubTables()!=null && !this.getSubTables().isEmpty() ){
+			return true;
+		}
+		return false;
+	}
+
+	@Override
     public String toString() {
         StringBuilder s = new StringBuilder();
         s.append(statement).append(", route={");

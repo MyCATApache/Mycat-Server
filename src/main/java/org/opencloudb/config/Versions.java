@@ -32,6 +32,6 @@ public interface Versions {
     public static final byte PROTOCOL_VERSION = 10;
 
     /**服务器版**/
-    public static final byte[] SERVER_VERSION = "5.6.29-mycat-1.5-GA-20160201172658".getBytes();
+    public static final byte[] SERVER_VERSION = "5.6.29-mycat-1.6-DEV-20160301111300".getBytes();
 
 }

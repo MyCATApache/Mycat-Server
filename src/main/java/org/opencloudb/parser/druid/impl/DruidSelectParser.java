@@ -22,14 +22,17 @@ import org.opencloudb.util.StringUtil;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
+import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
@@ -270,7 +273,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			if(groupByClause != null && groupByClause.getHaving() != null){
 				groupByClause.setHaving(null);
 			}
-
+			
 			Map<String, Map<String, Set<ColumnRoutePair>>> allConditions = getAllConditions();
 			boolean isNeedAddLimit = isNeedAddLimit(schema, rrs, mysqlSelectQuery, allConditions);
 			if(isNeedAddLimit) {
@@ -327,6 +330,19 @@ public class DruidSelectParser extends DefaultDruidParser {
 				}
 				
 
+			}
+			
+			if(rrs.isDistTable()){
+				SQLTableSource from = mysqlSelectQuery.getFrom();
+
+				for (RouteResultsetNode node : rrs.getNodes()) {
+					SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
+					sqlIdentifierExpr.setParent(from);
+					sqlIdentifierExpr.setName(node.getSubTableName());
+					SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+					mysqlSelectQuery.setFrom(from2);
+					node.setStatement(stmt.toString());
+	            }
 			}
 			
 			rrs.setCacheAble(isNeedCache(schema, rrs, mysqlSelectQuery, allConditions));
