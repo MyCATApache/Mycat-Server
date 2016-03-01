@@ -2,10 +2,12 @@ package demo.catlets;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ObjectArrays;
-import org.opencloudb.config.loader.zookeeper.entitiy.Property;
-import org.opencloudb.config.loader.zookeeper.entitiy.Rules;
-import org.opencloudb.config.loader.zookeeper.entitiy.Schemas;
-import org.opencloudb.config.loader.zookeeper.entitiy.Server;
+
+import io.mycat.config.loader.zookeeper.entitiy.Property;
+import io.mycat.config.loader.zookeeper.entitiy.Rules;
+import io.mycat.config.loader.zookeeper.entitiy.Schemas;
+import io.mycat.config.loader.zookeeper.entitiy.Server;
+
 import org.yaml.snakeyaml.Yaml;
 
 import javax.xml.bind.JAXBContext;
@@ -32,9 +34,9 @@ public class XmlToYaml {
 
     public static void main(String[] args) throws JAXBException, IOException, XMLStreamException {
         jaxbContext = JAXBContext
-            .newInstance(org.opencloudb.config.loader.zookeeper.entitiy.Server.class,
-                org.opencloudb.config.loader.zookeeper.entitiy.Rules.class,
-                org.opencloudb.config.loader.zookeeper.entitiy.Schemas.class);
+            .newInstance(io.mycat.config.loader.zookeeper.entitiy.Server.class,
+                io.mycat.config.loader.zookeeper.entitiy.Rules.class,
+                io.mycat.config.loader.zookeeper.entitiy.Schemas.class);
         unmarshaller = jaxbContext.createUnmarshaller();
 
         if (args.length > 0) {

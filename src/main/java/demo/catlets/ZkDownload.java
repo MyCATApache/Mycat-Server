@@ -27,13 +27,14 @@ import org.dom4j.Element;
 import org.dom4j.QName;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
-import org.opencloudb.config.model.SystemConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+
+import io.mycat.config.model.SystemConfig;
 
 /**
  * aStoneGod 2015.11
@@ -459,7 +460,7 @@ public class ZkDownload {
         Document document = DocumentHelper.createDocument();
         document.addDocType("mycat:server","","server.dtd");
         /** 建立serverElement根节点 */
-        Element serverElement = document.addElement(QName.get("mycat:server ", "http://org.opencloudb/"));
+        Element serverElement = document.addElement(QName.get("mycat:server ", "http://io.mycat/"));
         for (int i=0;i<mapList.size();i++){
             if (mapList.get(i).keySet().toString().contains("system")){
                 String key = mapList.get(i).keySet().toString().replace("[","").replace("]","").trim();
@@ -572,7 +573,7 @@ public class ZkDownload {
         Document document = DocumentHelper.createDocument();
         /** 建立serverElement根节点 */
         document.addDocType("mycat:rule","","rule.dtd");
-        Element serverElement = document.addElement(QName.get("mycat:rule ", "http://org.opencloudb/"));
+        Element serverElement = document.addElement(QName.get("mycat:rule ", "http://io.mycat/"));
         for (int i=0;i<mapList.size();i++){
             String key = mapList.get(i).keySet().toString().replace("[","").replace("]","").trim();
             JSONObject jsonObject = mapList.get(i).get(key);
@@ -600,7 +601,7 @@ public class ZkDownload {
             }
             if (jsonObject.containsKey("functionName")) {
                 //1.4 class
-                String pathFor14 = "org.opencloudb.route.function";
+                String pathFor14 = "io.mycat.route.function"; 
                 String func = jsonObject.getString("functionName");
                 String className = pathFor14 + func.substring(func.lastIndexOf("."), func.length());
                 system.addAttribute("class", className);
@@ -669,7 +670,7 @@ public class ZkDownload {
         Document document = DocumentHelper.createDocument();
         document.addDocType("mycat:schema","","schema.dtd");
         /** 建立serverElement根节点 */
-        Element serverElement = document.addElement(QName.get("mycat:schema ", "http://org.opencloudb/"));
+        Element serverElement = document.addElement(QName.get("mycat:schema ", "http://io.mycat/"));
         for (int i=0;i<mapList.size();i++){
             int subLength = CLU_PARENT_PATH.length()+SCHEMA_CONFIG_DIRECTORY.length()+2;
             String SchemaPath = mapList.get(i).keySet().toString().replace("[", "").replace("]", "").trim();
