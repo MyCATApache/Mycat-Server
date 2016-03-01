@@ -29,6 +29,7 @@
 <!ATTLIST table rule NMTOKEN #IMPLIED>
 <!ATTLIST table ruleRequired NMTOKEN #IMPLIED>
 <!ATTLIST table primaryKey NMTOKEN #IMPLIED>
+<!ATTLIST table subTables CDATA #IMPLIED>
 <!ATTLIST table autoIncrement NMTOKEN #IMPLIED>
 <!ATTLIST table needAddLimit NMTOKEN #IMPLIED>
 <!ATTLIST table type NMTOKEN #IMPLIED>

@@ -337,13 +337,15 @@ public class XMLSchemaLoader implements SchemaLoader {
 			if (distTableDns) {
 				dataNode = dataNode.substring(distPrex.length(), dataNode.length() - 1);
 			}
+			String subTables = tableElement.getAttribute("subTables");
+			
 			for (int j = 0; j < tableNames.length; j++) {
 				String tableName = tableNames[j];
 				TableConfig table = new TableConfig(tableName, primaryKey,
 						autoIncrement, needAddLimit, tableType, dataNode,
 						getDbType(dataNode),
 						(tableRule != null) ? tableRule.getRule() : null,
-						ruleRequired, null, false, null, null);
+						ruleRequired, null, false, null, null,subTables);
 				
 				checkDataNodeExists(table.getDataNodes());
 				
@@ -455,13 +457,15 @@ public class XMLSchemaLoader implements SchemaLoader {
 			if (childTbElement.hasAttribute("needAddLimit")) {
 				needAddLimit = Boolean.parseBoolean(childTbElement.getAttribute("needAddLimit"));
 			}
+			String subTables = childTbElement.getAttribute("subTables");
+
 			String joinKey = childTbElement.getAttribute("joinKey").toUpperCase();
 			String parentKey = childTbElement.getAttribute("parentKey").toUpperCase();
 			TableConfig table = new TableConfig(cdTbName, primaryKey,
 					autoIncrement, needAddLimit,
 					TableConfig.TYPE_GLOBAL_DEFAULT, dataNodes,
 					getDbType(dataNodes), null, false, parentTable, true,
-					joinKey, parentKey);
+					joinKey, parentKey, subTables);
 			
 			if (tables.containsKey(table.getName())) {
 				throw new ConfigException("table " + table.getName() + " duplicated!");
