@@ -104,6 +104,9 @@ public class RouterUtil {
 		if (rrs.getCanRunInReadDB() != null) {
 			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
 		}
+		if(rrs.getRunOnSlave() != null){
+			nodes[0].setRunOnSlave(rrs.getRunOnSlave());
+		}
 		return rrs;
 	}
 
@@ -555,6 +558,9 @@ public class RouterUtil {
 			if (rrs.getCanRunInReadDB() != null) {
 				node.setCanRunInReadDB(rrs.getCanRunInReadDB());
 			}
+			if(rrs.getRunOnSlave() != null){
+				nodes[0].setRunOnSlave(rrs.getRunOnSlave());
+			}
 			nodes[i++] = node;
 		}
 		rrs.setCacheAble(cache);
@@ -583,6 +589,9 @@ public class RouterUtil {
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), sql);
 		if (rrs.getCanRunInReadDB() != null) {
 			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
+		}
+		if(rrs.getRunOnSlave() != null){
+			nodes[0].setRunOnSlave(rrs.getRunOnSlave());
 		}
 		rrs.setNodes(nodes);
 	}

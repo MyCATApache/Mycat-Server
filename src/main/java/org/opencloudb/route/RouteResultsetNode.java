@@ -32,9 +32,6 @@ import java.io.Serializable;
  * @author mycat
  */
 public final class RouteResultsetNode implements Serializable , Comparable<RouteResultsetNode> {
-	/**
-	 *
-	 */
 	private static final long serialVersionUID = 1L;
 	private final String name; // 数据节点名称
 	private String statement; // 执行的语句
@@ -48,7 +45,11 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
 
 	private LoadData loadData;
-
+	
+	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB(false)
+	// 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
+	private Boolean runOnSlave = null;	// 默认null表示不施加影响, true走slave,false走master
+	
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
 		this.name = name;
 		limitStart=0;
@@ -77,9 +78,19 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		this.statement = srcStatement;
 	}
 
+	/**
+	 * 这里的逻辑是为了优化，实现：非业务sql可以在负载均衡走slave的效果。因为业务sql一般是非自动提交，
+	 * 而非业务sql一般默认是自动提交，比如mysql client，还有SQLJob, heartbeat都可以使用
+	 * 了Leader-us优化的query函数，该函数实现为自动提交；
+	 * 
+	 * 在非自动提交的情况下，除非使用了  balance 注解的情况下，才可以走slave.
+	 * 
+	 * 当然还有一个大前提，必须是 select 或者 show 语句
+	 * @param autocommit
+	 * @return
+	 */
 	public boolean canRunnINReadDB(boolean autocommit) {
-		return canRunInReadDB && autocommit && !hasBlanceFlag
-			|| canRunInReadDB && !autocommit && hasBlanceFlag;
+		return canRunInReadDB && ( autocommit || (!autocommit && hasBlanceFlag) );
 	}
 
 	public String getName() {
@@ -183,5 +194,17 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			return 1;
 		}
 		return this.name.compareTo(obj.name);
+	}
+	
+	public Boolean getRunOnSlave() {
+		return runOnSlave;
+	}
+
+	public void setRunOnSlave(Boolean runOnSlave) {
+		this.runOnSlave = runOnSlave;
+	}
+	
+	public boolean isHasBlanceFlag() {
+		return hasBlanceFlag;
 	}
 }

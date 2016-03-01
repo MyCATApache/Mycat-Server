@@ -186,12 +186,15 @@ public abstract class FrontendConnection extends AbstractConnection {
 	}
 
 	public boolean setCharsetIndex(int ci) {
-		String charset = CharsetUtil.getCharset(ci);
-		if (charset != null) {
-			return setCharset(charset);
-		} else {
-			return false;
-		}
+		return this.setCharsetByCollationIndex(ci);
+		// setCharset(charset) 函数会将 collation 设置成默认的，如果mysqld不是默认的collation的话，
+		// 将会导致每次执行sql都去同步一下，其实没有必要去同步。使用 setCharsetByCollationIndex 函数没有改问题
+//		String charset = CharsetUtil.getCharset(ci);
+//		if (charset != null) {
+//			return setCharset(charset);
+//		} else {
+//			return false;
+//		}
 	}
 
 	public void writeErrMessage(int errno, String msg) {
@@ -405,7 +408,6 @@ public abstract class FrontendConnection extends AbstractConnection {
 
 	@Override
 	public void handle(final byte[] data) {
-
 		if (isSupportCompress()) {			
 			List<byte[]> packs = CompressUtil.decompressMysqlPacket(data, decompressUnfinishedDataQueue);
 			for (byte[] pack : packs) {

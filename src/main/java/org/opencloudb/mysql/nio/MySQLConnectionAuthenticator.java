@@ -26,6 +26,7 @@ package org.opencloudb.mysql.nio;
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.Capabilities;
+import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.mysql.SecurityUtil;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
@@ -123,11 +124,20 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 		source.setHandshake(packet);
 		source.setThreadId(packet.threadId);
 
-		// 设置字符集编码
+		// mysql server 发来的字符信息，设置字符集编码
 		int charsetIndex = (packet.serverCharsetIndex & 0xff);
-		String charset = CharsetUtil.getCharset(charsetIndex);
-		if (charset != null) {
-			source.setCharset(charset);
+		
+		String serverCharset = CharsetUtil.getCharset(charsetIndex);
+		serverCharset = serverCharset.equalsIgnoreCase("utf8mb4")?"utf8":serverCharset;
+		
+		// 利用 mysqld 发来的字符编码信息，初始化系统的字符编码信息
+		// 该字符集会被用于前后端连接的默认字符集. 参见MycatConfig的setSocketParams函数
+		// 这样可以避免很多字符集同步操作的麻烦
+		SystemConfig.setCollationIndex(charsetIndex);
+		SystemConfig.setCharset(serverCharset);
+		
+		if (serverCharset != null && charsetIndex > 0) {
+			source.setCharsetByCollationIndex(charsetIndex);
 		} else {
 			throw new RuntimeException("Unknown charsetIndex:" + charsetIndex);
 		}

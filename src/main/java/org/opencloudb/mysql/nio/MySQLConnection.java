@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
 import org.opencloudb.config.Capabilities;
 import org.opencloudb.config.Isolations;
+import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.exception.UnknownTxIsolationException;
 import org.opencloudb.mysql.CharsetUtil;
 import org.opencloudb.mysql.SecurityUtil;
@@ -129,7 +130,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	private boolean fromSlaveDB;
 	private long threadId;
 	private HandshakePacket handshake;
-	private volatile int txIsolation;
+	private volatile int txIsolation; 
 	private volatile boolean autocommit;
 	private long clientFlags;
 	private boolean isAuthenticated;
@@ -150,6 +151,8 @@ public class MySQLConnection extends BackendAIOConnection {
 		this.isQuit = new AtomicBoolean(false);
 		this.autocommit = true;
 		this.fromSlaveDB = fromSlaveDB;
+		// 设为默认值，免得每个初始化好的连接都要去同步一下
+		this.txIsolation = MycatServer.getInstance().getConfig().getSystem().getTxIsolation();
 	}
 
 	public int getXaStatus() {
@@ -350,7 +353,8 @@ public class MySQLConnection extends BackendAIOConnection {
 				conn.oldSchema = conn.schema;
 			}
 			if (charsetIndex != null) {
-				conn.setCharset(CharsetUtil.getCharset(charsetIndex));
+//				conn.setCharset(CharsetUtil.getCharset(charsetIndex));
+				conn.setCharsetByCollationIndex(charsetIndex);
 			}
 			if (txtIsolation != null) {
 				conn.txIsolation = txtIsolation;
@@ -407,11 +411,24 @@ public class MySQLConnection extends BackendAIOConnection {
 		}
 		int schemaSyn = conSchema.equals(oldSchema) ? 0 : 1;
 		int charsetSyn = 0;
-		if (this.charsetIndex != clientCharSetIndex) {
+		// 此处如果仅仅使用 charsetIndex 来比较的话，将可能会导致频繁的字符集同步操作
+		// 因为 JDBC 驱动只能设置 characterEncoding=utf8, 不能设置 characterEncoding=utf8mb4
+		// 而 utf8 连接过来的 clientCharSetIndex=33，所以会执行：set names utf8 (如果this.charsetIndex=45/46/83(utf8,utf8mb4))
+		// 从而修改mysqld的4个系统变量：
+		//	character_set_client     | utf8
+		//	character_set_connection | utf8m
+		//	character_set_database   | utf8
+		//	character_set_results    | utf8
+		// 所以当 clientCharSetIndex=33(utf8) 而 this.charsetIndex=33/45/46/83(utf8,utf8mb4)时，都不应该去同步字符集
+		String clientCharset = CharsetUtil.getCharset(clientCharSetIndex);	// utf8
+		String serverCharset = CharsetUtil.getCharset(this.charsetIndex);	// utf8, utf8mb4
+		if (this.charsetIndex != clientCharSetIndex &&
+				!("utf8".equalsIgnoreCase(clientCharset) && serverCharset.toLowerCase().startsWith("utf8")) ) {
 			//need to syn the charset of connection.
 			//set current connection charset to client charset.
 			//otherwise while sending commend to server the charset will not coincidence.
-			setCharset(CharsetUtil.getCharset(clientCharSetIndex));
+//			setCharset(CharsetUtil.getCharset(clientCharSetIndex));
+			setCharsetByCollationIndex(clientCharSetIndex);
 			charsetSyn = 1;
 		}
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
@@ -434,6 +451,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		}
 		if (txIsoLationSyn == 1) {
 			getTxIsolationCommand(sb, clientTxIsoLation);
+			this.txIsolation = clientTxIsoLation;	// 防止每次都去重新同步
 		}
 		if (autoCommitSyn == 1) {
 			getAutocommitCommand(sb, expectAutocommit);

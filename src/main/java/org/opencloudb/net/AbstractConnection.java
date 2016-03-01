@@ -94,17 +94,51 @@ public abstract class AbstractConnection implements NIOConnection {
 		return charset;
 	}
 
+	/**
+	 * 该函数应该仅仅用于:
+	 *  set names 'utf8'
+	 *  set CHARACTER_SET_CLIENT 'utf8'
+		set CHARACTER_SET_CONNECTION 'utf8'
+		set CHARACTER_SET_RESULTS 'utf8'
+		
+		因为 charset 到 collationIndex是一对多的关系，所以只能设置 charset 对应的默认的 那个 collationIndex，
+		但是 mysql server 不一定设置的是默认的 collationIndex!!! 所以应该能不用就不要用。
+		尽量使用 setCharsetByCollationIndex 来代替。
+		
+		而 collationIndex 到 charset 是一对一的关系，
+		所以其它情况都应该使用 setCharsetByCollationIndex函数，特别是从mysql server获得字符信息时！！！
+	 * @param charset
+	 * @return
+	 */
 	public boolean setCharset(String charset) {
 		
 		//修复PHP字符集设置错误, 如： set names 'utf8'
 		if ( charset != null ) {			
 			charset = charset.replace("'", "");
 		}
-		
 		int ci = CharsetUtil.getIndex(charset);
 		if (ci > 0) {
 			this.charset = charset.equalsIgnoreCase("utf8mb4")?"utf8":charset;
 			this.charsetIndex = ci;
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	/**
+	 * 从mysql server 发来的握手数据包中，获取 collationIndex，设置响应包的字符编码信息
+	 * @param collationIndex
+	 * @return
+	 */
+	public boolean setCharsetByCollationIndex(Integer collationIndex) {
+	
+		String charset = CharsetUtil.getCharset(collationIndex);
+		// collationIndex 其实是 INFORMATION_SCHEMA.COLLATIONS 的 ID 列，其值大于0
+		if (collationIndex > 0 
+				&& charset != null && !charset.trim().equals("")) {
+			this.charset = charset.equalsIgnoreCase("utf8mb4")?"utf8":charset;
+			this.charsetIndex = collationIndex;
 			return true;
 		} else {
 			return false;
@@ -295,7 +329,6 @@ public abstract class AbstractConnection implements NIOConnection {
 		}
 		netInBytes += got;
 		processor.addNetInBytes(got);
-
 		// 循环处理字节信息
 		int offset = readBufferOffset, length = 0, position = buffer.position();
 		for (;;) {
@@ -311,7 +344,6 @@ public abstract class AbstractConnection implements NIOConnection {
 				byte[] data = new byte[length];
 				buffer.get(data, 0, length);
 				handle(data);
-
 				offset += length;
 				if (position == offset) {
 					if (readBufferOffset != 0) {

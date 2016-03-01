@@ -281,14 +281,22 @@ public class NonBlockingSession implements Session {
 		return target.put(key, conn);
 	}
 
-	public boolean tryExistsCon(final BackendConnection conn,
-			RouteResultsetNode node) {
-
+	public boolean tryExistsCon(final BackendConnection conn, RouteResultsetNode node) {
 		if (conn == null) {
 			return false;
 		}
-		if (!conn.isFromSlaveDB()
-				|| node.canRunnINReadDB(getSource().isAutocommit())) {
+		
+		boolean canReUse = false;
+		// conn 是 slave db 的
+		if(conn.isFromSlaveDB() && ( node.canRunnINReadDB(getSource().isAutocommit())
+								     && (node.getRunOnSlave() == null || node.getRunOnSlave()) ) )
+			canReUse = true;
+		
+		// conn 是 master db 的
+		if(!conn.isFromSlaveDB() && (node.getRunOnSlave() == null || !node.getRunOnSlave()) )
+			canReUse = true;
+		
+		if (canReUse) {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("found connections in session to use " + conn
 						+ " for " + node);
