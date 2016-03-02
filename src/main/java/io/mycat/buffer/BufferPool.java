@@ -59,7 +59,7 @@ public final class BufferPool {
 		size = (bufferSize % chunkSize == 0) ? size : size + 1;
 		this.capactiy = size;
 		threadLocalCount = threadLocalPercent * capactiy / 100;
-		for (int i = 0; i < capactiy; i++) {
+		for (long i = 0; i < capactiy; i++) {
 			items.offer(createDirectBuffer(chunkSize));
 		}
 		localBufferPool = new ThreadLocalBufferPool(threadLocalCount);
@@ -201,7 +201,7 @@ public final class BufferPool {
 		BufferPool pool = new BufferPool(1024 * 5, 1024, 1024 * 3, 2);
 		long i = pool.capacity();
 		ArrayList<ByteBuffer> all = new ArrayList<ByteBuffer>();
-		for (int j = 0; j <= i; j++) {
+		for (long j = 0; j <= i; j++) {
 			all.add(pool.allocate());
 		}
 		for (ByteBuffer buf : all) {
