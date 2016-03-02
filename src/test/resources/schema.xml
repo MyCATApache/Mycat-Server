@@ -14,7 +14,7 @@
  - limitations under the License.
 -->
 <!DOCTYPE mycat:schema SYSTEM "schema.dtd">
-<mycat:schema xmlns:mycat="http://org.opencloudb/">
+<mycat:schema xmlns:mycat="http://io.mycat/">
 
   <!-- schema定义 -->
   <schema name="dbtest">

@@ -14,7 +14,7 @@
  - limitations under the License.
 -->
 <!DOCTYPE mycat:rule SYSTEM "rule.dtd">
-<mycat:rule xmlns:mycat="http://org.opencloudb/">
+<mycat:rule xmlns:mycat="http://io.mycat/">
 
   <!-- 路由规则定义，定义什么表，什么字段，采用什么路由算法 -->
   <tableRule name="rule1">
@@ -26,7 +26,7 @@
 
   <!-- 路由函数定义 -->
   <function name="func1"
-    class="org.opencloudb.route.function.PartitionByLong">
+    class="io.mycat.route.function.PartitionByLong">
     <property name="partitionCount">2</property>
     <property name="partitionLength">512</property>
   </function>

@@ -2,13 +2,13 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.opencloudb.mycat</groupId>
+	<groupId>io.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
 	<version>1.6-DEV</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
-	<url>http://org.opencloudb</url>
+	<url>http://io.mycat</url>
 
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
@@ -169,7 +169,7 @@
 
 	<issueManagement>
 		<system>JIRA</system>
-		<url>http://org.opencloudb</url>
+		<url>http://io.mycat</url>
 	</issueManagement>
 
 	<build>
@@ -275,8 +275,8 @@
 							<goal>replace</goal>
 						</goals>
 						<configuration>
-							<file>${project.basedir}/src/main/java/org/opencloudb/config/Versions.template</file>
-							<outputFile>${project.basedir}/src/main/java/org/opencloudb/config/Versions.java</outputFile>
+							<file>${project.basedir}/src/main/java/io/mycat/config/Versions.template</file>
+							<outputFile>${project.basedir}/src/main/java/io/mycat/config/Versions.java</outputFile>
 							<replacements>
 								<replacement>
 									<token>@server-version@</token>
@@ -367,7 +367,7 @@
 					<daemons>
 						<daemon>
 							<id>mycat</id>
-							<mainClass>org.opencloudb.MycatStartup</mainClass>
+							<mainClass>io.mycat.MycatStartup</mainClass>
 							<commandLineArguments>
 								<commandLineArgument>start</commandLineArgument>
 							</commandLineArguments>
