@@ -46,7 +46,7 @@ import io.mycat.util.TimeUtil;
  */
 public final class ShowServer {
 
-	private static final int FIELD_COUNT = 9;
+	private static final int FIELD_COUNT = 8;
 	private static final ResultSetHeaderPacket header = PacketUtil
 			.getHeader(FIELD_COUNT);
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
@@ -84,10 +84,6 @@ public final class ShowServer {
 		fields[i++].packetId = ++packetId;
 
 		fields[i] = PacketUtil.getField("STATUS", Fields.FIELD_TYPE_VAR_STRING);
-		fields[i++].packetId = ++packetId;
-
-		fields[i] = PacketUtil.getField("AVG_BUFPOOL_ITEM_SIZE",
-				Fields.FIELD_TYPE_LONG);
 		fields[i++].packetId = ++packetId;
 
 		eof.packetId = ++packetId;
@@ -141,7 +137,6 @@ public final class ShowServer {
 		row.add(StringUtil.encode(charset, charset));
 		row.add(StringUtil.encode(MycatServer.getInstance().isOnline() ? "ON"
 				: "OFF", charset));
-		row.add(LongUtil.toBytes(server.getBufferPool().getAvgBufSize()));
 		return row;
 	}
 
