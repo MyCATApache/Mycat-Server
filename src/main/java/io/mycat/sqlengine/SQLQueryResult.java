@@ -1,21 +1,21 @@
 package io.mycat.sqlengine;
 
 public class SQLQueryResult<T> {
-private final T result;
-private final boolean success;
+	private final T result;
+	private final boolean success;
 
-public SQLQueryResult(T result, boolean success) {
-	super();
-	this.result = result;
-	this.success = success;
-}
-public T getResult() {
-	return result;
-}
+	public SQLQueryResult(T result, boolean success) {
+		super();
+		this.result = result;
+		this.success = success;
+	}
 
-public boolean isSuccess() {
-	return success;
-}
+	public T getResult() {
+		return result;
+	}
 
+	public boolean isSuccess() {
+		return success;
+	}
 
 }

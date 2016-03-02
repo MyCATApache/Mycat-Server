@@ -11,7 +11,6 @@ import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.statistic.stat.HighFrequencySqlAnalyzer;
 import io.mycat.statistic.stat.SqlFrequency;
 import io.mycat.statistic.stat.UserStat;
 import io.mycat.statistic.stat.UserStatAnalyzer;
@@ -79,17 +78,7 @@ public final class ShowSQLHigh {
 
         // write rows
         byte packetId = eof.packetId;     
-        /*
-        List<Map.Entry<String, SqlFrequency>> list = HighFrequencySqlAnalyzer.getInstance().getSqlFrequency( isClear );
-        if ( list != null ) {        
-	        for (int i = 0; i < list.size(); i++) {
-	        	SqlFrequency sqlFrequency = list.get(i).getValue();
-	        	RowDataPacket row = getRow(i, sqlFrequency.getSql(), sqlFrequency.getCount(), sqlFrequency.getAvgTime(),sqlFrequency.getMaxTime(),sqlFrequency.getMinTime(),sqlFrequency.getExecuteTime(),sqlFrequency.getLastTime(), c.getCharset());
-	            row.packetId = ++packetId;
-	            buffer = row.write(buffer, c,true);
-	        }
-        }
-        */
+
         Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
     	for (UserStat userStat : statMap.values()) {
         	String user = userStat.getUser();        
@@ -97,12 +86,15 @@ public final class ShowSQLHigh {
              if ( list != null ) {        
      	        for (int i = 0; i < list.size(); i++) {
      	        	SqlFrequency sqlFrequency = list.get(i).getValue();
-     	        	RowDataPacket row = getRow(i, user,sqlFrequency.getSql(), sqlFrequency.getCount(), sqlFrequency.getAvgTime(),sqlFrequency.getMaxTime(),sqlFrequency.getMinTime(),sqlFrequency.getExecuteTime(),sqlFrequency.getLastTime(), c.getCharset());
+					RowDataPacket row = getRow(i, user, sqlFrequency.getSql(), sqlFrequency.getCount(),
+							sqlFrequency.getAvgTime(), sqlFrequency.getMaxTime(), sqlFrequency.getMinTime(),
+							sqlFrequency.getExecuteTime(), sqlFrequency.getLastTime(), c.getCharset());
      	            row.packetId = ++packetId;
      	            buffer = row.write(buffer, c,true);
      	        }
              }
     	}    
+    	
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
@@ -112,19 +104,20 @@ public final class ShowSQLHigh {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(int i, String user,String sql, int count, long avgTime,long maxTime,long minTime,long executTime,long lastTime, String charset) {
-        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-        row.add( LongUtil.toBytes( i ) );
-        row.add( StringUtil.encode( user, charset) );
-        row.add( LongUtil.toBytes( count ) );
-        row.add( LongUtil.toBytes( avgTime ) );
-        row.add( LongUtil.toBytes( maxTime ) );
-        row.add( LongUtil.toBytes( minTime ) );
-        row.add( LongUtil.toBytes( executTime ) );
-        row.add( LongUtil.toBytes( lastTime ) );
-        row.add( StringUtil.encode(sql, charset) );
-        return row;
-    }
+	private static RowDataPacket getRow(int i, String user, String sql, long count, long avgTime, long maxTime,
+			long minTime, long executTime, long lastTime, String charset) {
+		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
+		row.add(LongUtil.toBytes(i));
+		row.add(StringUtil.encode(user, charset));
+		row.add(LongUtil.toBytes(count));
+		row.add(LongUtil.toBytes(avgTime));
+		row.add(LongUtil.toBytes(maxTime));
+		row.add(LongUtil.toBytes(minTime));
+		row.add(LongUtil.toBytes(executTime));
+		row.add(LongUtil.toBytes(lastTime));
+		row.add(StringUtil.encode(sql, charset));
+		return row;
+	}
 
 
 }

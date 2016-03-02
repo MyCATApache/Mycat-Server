@@ -39,23 +39,30 @@ import io.mycat.util.TimeUtil;
 /**
  * @author mycat
  */
-public class MySQLDetector implements
-		SQLQueryResultListener<SQLQueryResult<Map<String, String>>> {
+public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<String, String>>> {
+	
 	private MySQLHeartbeat heartbeat;
+	
 	private long heartbeatTimeout;
 	private final AtomicBoolean isQuit;
 	private volatile long lastSendQryTime;
 	private volatile long lasstReveivedQryTime;
 	private volatile SQLJob sqlJob;
+	
 	private static final String[] MYSQL_SLAVE_STAUTS_COLMS = new String[] {
-			"Seconds_Behind_Master", "Slave_IO_Running", "Slave_SQL_Running","Slave_IO_State","Master_Host","Master_User","Master_Port", 
-			"Connect_Retry","Last_IO_Error"};
+			"Seconds_Behind_Master", 
+			"Slave_IO_Running", 
+			"Slave_SQL_Running",
+			"Slave_IO_State",
+			"Master_Host",
+			"Master_User",
+			"Master_Port", 
+			"Connect_Retry",
+			"Last_IO_Error"};
 
-	private static final String[] MYSQL_CLUSTER_STAUTS_COLMS = new String[] {"Variable_name","Value"};
-	/*private static final String[] MYSQL_CLUSTER_STAUTS_COLMS = new String[] {
-			"wsrep_incoming_addresses","wsrep_cluster_size","wsrep_cluster_status", "wsrep_connected", "wsrep_flow_control_paused",
-			"wsrep_local_state_comment","wsrep_ready","wsrep_flow_control_paused_ns","wsrep_flow_control_recv","wsrep_local_bf_aborts", 
-			"wsrep_local_recv_queue_avg","wsrep_local_send_queue_avg","wsrep_apply_oool","wsrep_apply_oooe"};*/
+	private static final String[] MYSQL_CLUSTER_STAUTS_COLMS = new String[] {
+			"Variable_name",
+			"Value"};
 	
 	public MySQLDetector(MySQLHeartbeat heartbeat) {
 		this.heartbeat = heartbeat;
@@ -116,59 +123,85 @@ public class MySQLDetector implements
 
 	@Override
 	public void onResult(SQLQueryResult<Map<String, String>> result) {
+		
 		if (result.isSuccess()) {
-            int balance = heartbeat.getSource().getDbPool().getBalance();
-            PhysicalDatasource source = heartbeat.getSource();
+            
+			int balance = heartbeat.getSource().getDbPool().getBalance();
+            
+			PhysicalDatasource source = heartbeat.getSource();
             int switchType = source.getHostConfig().getSwitchType();
             Map<String, String> resultResult = result.getResult();
-            
-            //if (source.getHostConfig().isShowSlaveSql()  &&(switchType == DataHostConfig.SYN_STATUS_SWITCH_DS  || PhysicalDBPool.BALANCE_NONE!=balance  ) )
-            if(PhysicalDBPool.BALANCE_NONE!=balance && switchType==DataHostConfig.SYN_STATUS_SWITCH_DS 
-            		&& source.getHostConfig().isShowSlaveSql())
-            {
-                String Slave_IO_Running =resultResult!=null? resultResult.get("Slave_IO_Running"):null;
-				String Slave_SQL_Running = resultResult!=null?resultResult.get("Slave_SQL_Running"):null;
-				if (Slave_IO_Running != null && Slave_IO_Running.equals(Slave_SQL_Running) && Slave_SQL_Running.equals("Yes")) {
+          
+			if ( PhysicalDBPool.BALANCE_NONE != balance 
+					&& switchType == DataHostConfig.SYN_STATUS_SWITCH_DS
+					&& source.getHostConfig().isShowSlaveSql()) {
+				
+				String Slave_IO_Running  = resultResult != null ? resultResult.get("Slave_IO_Running") : null;
+				String Slave_SQL_Running = resultResult != null ? resultResult.get("Slave_SQL_Running") : null;
+
+				if (Slave_IO_Running != null 
+						&& Slave_IO_Running.equals(Slave_SQL_Running) 
+						&& Slave_SQL_Running.equals("Yes")) {
+					
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
-					String Seconds_Behind_Master = resultResult.get( "Seconds_Behind_Master");
+					String Seconds_Behind_Master = resultResult.get( "Seconds_Behind_Master");					
 					if (null != Seconds_Behind_Master && !"".equals(Seconds_Behind_Master)) {
-						heartbeat.setSlaveBehindMaster(Integer.valueOf(Seconds_Behind_Master));
+						
+						int Behind_Master = Integer.valueOf(Seconds_Behind_Master);
+						if ( Behind_Master > 60 ) {
+							MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication delay !!! "
+									+ heartbeat.getSource().getConfig() + ", binlog sync time delay: " + Behind_Master + "s" );
+						}						
+						heartbeat.setSlaveBehindMaster( Behind_Master );
 					}
-				} else  if(source.isSalveOrRead()){
-					String Last_IO_Error = resultResult!=null?resultResult.get("Last_IO_Error"):null;
-					MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication err !!! " + heartbeat.getSource().getConfig() + Last_IO_Error);
+					
+				} else if( source.isSalveOrRead() ) {					
+					//String Last_IO_Error = resultResult != null ? resultResult.get("Last_IO_Error") : null;					
+					MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication err !!! " 
+								+ heartbeat.getSource().getConfig() + ", " + resultResult);
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
 				}
 
 				heartbeat.getAsynRecorder().set(resultResult, switchType);
 				heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
-            }
-            else if(PhysicalDBPool.BALANCE_NONE!=balance && switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS 
-            		&& source.getHostConfig().isShowClusterSql())
-            {
-            	String Variable_name = resultResult!=null? resultResult.get("Variable_name"):null;
-            	String wsrep_cluster_status = resultResult!=null? resultResult.get("wsrep_cluster_status"):null;//Primary
-				String wsrep_connected = resultResult!=null?resultResult.get("wsrep_connected"):null;//ON
-				String wsrep_ready = resultResult!=null?resultResult.get("wsrep_ready"):null;//ON
-				if("ON".equals(wsrep_connected) && "ON".equals(wsrep_ready) && "Primary".equals(wsrep_cluster_status)){
+				
+            } else if ( PhysicalDBPool.BALANCE_NONE != balance 
+            		&& switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS 
+            		&& source.getHostConfig().isShowClusterSql() ) {
+            	
+				//String Variable_name = resultResult != null ? resultResult.get("Variable_name") : null;
+				String wsrep_cluster_status = resultResult != null ? resultResult.get("wsrep_cluster_status") : null;// Primary
+				String wsrep_connected = resultResult != null ? resultResult.get("wsrep_connected") : null;// ON
+				String wsrep_ready = resultResult != null ? resultResult.get("wsrep_ready") : null;// ON
+				
+				if ("ON".equals(wsrep_connected) 
+						&& "ON".equals(wsrep_ready)
+						&& "Primary".equals(wsrep_cluster_status)) {
+					
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
-					heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
-				}else{
-					MySQLHeartbeat.LOGGER.warn("found MySQL  cluster status err !!! " + heartbeat.getSource().getConfig() 
+					heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this, null);
+					
+				} else {					
+					MySQLHeartbeat.LOGGER.warn("found MySQL  cluster status err !!! " 
+							+ heartbeat.getSource().getConfig() 
 							+ " wsrep_cluster_status: "+ wsrep_cluster_status  
 							+ " wsrep_connected: "+ wsrep_connected
 							+ " wsrep_ready: "+ wsrep_ready
 					);
+					
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
 					heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
-				}
-    			heartbeat.getAsynRecorder().set(resultResult, switchType);
-    		}else{
+				}				
+				heartbeat.getAsynRecorder().set(resultResult, switchType);
+    			
+			} else {				
     			heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
     		}
+            
 		} else {
 			heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
 		}
+		
 		lasstReveivedQryTime = System.currentTimeMillis();
 		heartbeat.getRecorder().set((lasstReveivedQryTime - lastSendQryTime));
 	}

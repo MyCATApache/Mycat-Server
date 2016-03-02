@@ -2,7 +2,7 @@ package io.mycat.statistic.stat;
 
 public class SqlFrequency {
 	private String sql;
-	private int count = 0;
+	private long count = 0;
 	private long lastTime = 0;
 	private long executeTime = 0;
 	private long allExecuteTime = 0;
@@ -18,7 +18,7 @@ public class SqlFrequency {
 		this.sql = sql;
 	}
 
-	public int getCount() {
+	public long getCount() {
 		return count;
 	}
 
@@ -64,7 +64,7 @@ public class SqlFrequency {
 		}
 		this.allExecuteTime+=execTime;
 		if (count > 0) {
-			this.avgTime = this.allExecuteTime / 2;
+			this.avgTime = this.allExecuteTime / this.count;
 		}		
 		this.executeTime = execTime;
 	}		
