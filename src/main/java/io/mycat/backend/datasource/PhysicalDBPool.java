@@ -522,13 +522,15 @@ public class PhysicalDBPool {
 
 	private boolean canSelectAsReadNode(PhysicalDatasource theSource) {
 		
-        if(theSource.getHeartbeat().getSlaveBehindMaster() == null
-                			||theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_ERROR){
-            return false;
-        }
-        
-		return (theSource.getHeartbeat().getDbSynStatus() == DBHeartbeat.DB_SYN_NORMAL)
-				&& (theSource.getHeartbeat().getSlaveBehindMaster() < this.dataHostConfig.getSlaveThreshold());
+		Integer slaveBehindMaster = theSource.getHeartbeat().getSlaveBehindMaster();
+		int dbSynStatus = theSource.getHeartbeat().getDbSynStatus();
+		
+		if ( slaveBehindMaster == null || dbSynStatus == DBHeartbeat.DB_SYN_ERROR) {
+			return false;
+		}		
+		boolean isSync = dbSynStatus == DBHeartbeat.DB_SYN_NORMAL;
+		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();		
+		return isSync && isNotDelay;
 	}
 
 	/**
@@ -550,37 +552,35 @@ public class PhysicalDBPool {
 			PhysicalDatasource theSource = writeSources[i];
 			if (isAlive(theSource)) {// write node is active
                 
-				if (includeWriteNode) {
-					if (i == curActive && includeCurWriteNode == false) {
+				if (includeWriteNode) {					
+					boolean isCurWriteNode = ( i == curActive );
+					if ( isCurWriteNode && includeCurWriteNode == false) {
 						// not include cur active source
-					} else if (filterWithSlaveThreshold) {
-						
-						if (canSelectAsReadNode(theSource)) {
+					} else if (filterWithSlaveThreshold && theSource.isSalveOrRead() ) {	
+						boolean selected = canSelectAsReadNode(theSource);
+						if ( selected ) {
 							okSources.add(theSource);
 						} else {
 							continue;
-						}
-						
+						}							
 					} else {
 						okSources.add(theSource);
 					}
                 }
                 
-				if (!readSources.isEmpty()) {
-					
+				if (!readSources.isEmpty()) {					
 					// check all slave nodes
 					PhysicalDatasource[] allSlaves = this.readSources.get(i);
 					if (allSlaves != null) {
 						for (PhysicalDatasource slave : allSlaves) {
-							if (isAlive(slave)) {
-								
-								if (filterWithSlaveThreshold) {									
-									if (canSelectAsReadNode(slave)) {
+							if (isAlive(slave)) {								
+								if (filterWithSlaveThreshold) {
+									boolean selected = canSelectAsReadNode(slave);
+									if ( selected ) {
 										okSources.add(slave);
 									} else {
 										continue;
-									}
-									
+									}									
 								} else {
 									okSources.add(slave);
 								}
