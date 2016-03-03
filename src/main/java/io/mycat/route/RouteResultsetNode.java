@@ -80,9 +80,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		this.statement = statement;
 	}
 
-//	public void setCanRunInReadDB(boolean canRunInReadDB) {
-//		this.canRunInReadDB = canRunInReadDB;
-//	}
+	public void setCanRunInReadDB(boolean canRunInReadDB) {
+		this.canRunInReadDB = canRunInReadDB;
+	}
 
 	public boolean getCanRunInReadDB() {
 		return this.canRunInReadDB;
@@ -242,5 +242,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			}
 			return c;
 		}
+	}
+	
+	public boolean isHasBlanceFlag() {
+		return hasBlanceFlag;
 	}
 }
