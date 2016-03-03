@@ -34,7 +34,7 @@
  
   
   <root>
-    <level value="warn" />
+    <level value="debug" />
     <appender-ref ref="ConsoleAppender" />
      <!--<appender-ref ref="FILE" />-->
   </root>
