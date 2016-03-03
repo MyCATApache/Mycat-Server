@@ -19,6 +19,9 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 	 * 
 	 * @param stmt
 	 * @return
+	 * @note: 该函数会导致无法正确的插入 \ 字符的问题：
+	 * update travelrecord set name='test\\' where id=1;
+	 * 插入的name的值会变成：test' 而不是我们期望的 test\
 	 */
 	public static String processEscape(String sql) {
 		int firstIndex = -1;
@@ -44,7 +47,8 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 	 */
 	@Override
 	public String interceptSQL(String sql, int sqlType) {
-		return processEscape(sql);
+//		sql = processEscape(sql);
+		return sql;
 	}
 
 }
