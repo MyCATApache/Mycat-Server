@@ -284,14 +284,22 @@ public class NonBlockingSession implements Session {
 		return target.put(key, conn);
 	}
 
-	public boolean tryExistsCon(final BackendConnection conn,
-			RouteResultsetNode node) {
-
+	public boolean tryExistsCon(final BackendConnection conn, RouteResultsetNode node) {
 		if (conn == null) {
 			return false;
 		}
-		if (!conn.isFromSlaveDB()
-				|| node.canRunnINReadDB(getSource().isAutocommit())) {
+		
+		boolean canReUse = false;
+		// conn 是 slave db 的，并且 路由结果显示，本次sql可以重用该 conn
+		if(conn.isFromSlaveDB() && ( node.canRunnINReadDB(getSource().isAutocommit())
+								     && (node.getRunOnSlave() == null || node.getRunOnSlave()) ) )
+			canReUse = true;
+		
+		// conn 是 master db 的，并且路由结果显示，本次sql可以重用该conn
+		if(!conn.isFromSlaveDB() && (node.getRunOnSlave() == null || !node.getRunOnSlave()) )
+			canReUse = true;
+		
+		if (canReUse) {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("found connections in session to use " + conn
 						+ " for " + node);
@@ -308,6 +316,31 @@ public class NonBlockingSession implements Session {
 		}
 		return false;
 	}
+	
+//	public boolean tryExistsCon(final BackendConnection conn,
+//			RouteResultsetNode node) {
+//
+//		if (conn == null) {
+//			return false;
+//		}
+//		if (!conn.isFromSlaveDB()
+//				|| node.canRunnINReadDB(getSource().isAutocommit())) {
+//			if (LOGGER.isDebugEnabled()) {
+//				LOGGER.debug("found connections in session to use " + conn
+//						+ " for " + node);
+//			}
+//			conn.setAttachment(node);
+//			return true;
+//		} else {
+//			// slavedb connection and can't use anymore ,release it
+//			if (LOGGER.isDebugEnabled()) {
+//				LOGGER.debug("release slave connection,can't be used in trasaction  "
+//						+ conn + " for " + node);
+//			}
+//			releaseConnection(node, LOGGER.isDebugEnabled(), false);
+//		}
+//		return false;
+//	}
 
 	protected void kill() {
 		boolean hooked = false;
