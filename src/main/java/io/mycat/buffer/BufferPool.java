@@ -25,32 +25,36 @@ package io.mycat.buffer;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
 /**
- * @author mycat
+ * @author wuzh
  */
 public final class BufferPool {
 	// this value not changed ,isLocalCacheThread use it
 	public static final String LOCAL_BUF_THREAD_PREX = "$_";
-	private  final ThreadLocalBufferPool localBufferPool;
+	private final ThreadLocalBufferPool localBufferPool;
 	private static final Logger LOGGER = Logger.getLogger(BufferPool.class);
 	private final int chunkSize;
+	private final int conReadBuferChunk;
 	private final ConcurrentLinkedQueue<ByteBuffer> items = new ConcurrentLinkedQueue<ByteBuffer>();
+	/**
+	 * 只用于Connection读取Socket事件，每个Connection一个ByteBuffer（Direct），
+	 * 此ByteBufer通常应该能容纳2-N个 应用消息的报文长度，
+	 * 对于超出的报文长度，则由BufferPool单独份分配临时的堆内ByteBuffer
+	 */
+	private final ConcurrentLinkedQueue<ByteBuffer> conReadBuferQueue = new ConcurrentLinkedQueue<ByteBuffer>();
 	private long sharedOptsCount;
-	//private volatile int newCreated;
-        private AtomicInteger newCreated = new AtomicInteger(0);
+	private int newCreated;
 	private final long threadLocalCount;
 	private final long capactiy;
-	private long totalBytes = 0;
-	private long totalCounts = 0;
 
-	public BufferPool(long bufferSize, int chunkSize, int threadLocalPercent) {
+	public BufferPool(long bufferSize, int chunkSize, int conReadBuferChunk,
+			int threadLocalPercent) {
 		this.chunkSize = chunkSize;
+		this.conReadBuferChunk = conReadBuferChunk;
 		long size = bufferSize / chunkSize;
 		size = (bufferSize % chunkSize == 0) ? size : size + 1;
 		this.capactiy = size;
@@ -58,8 +62,7 @@ public final class BufferPool {
 		for (long i = 0; i < capactiy; i++) {
 			items.offer(createDirectBuffer(chunkSize));
 		}
-		localBufferPool = new ThreadLocalBufferPool(
-				threadLocalCount);
+		localBufferPool = new ThreadLocalBufferPool(threadLocalCount);
 	}
 
 	private static final boolean isLocalCacheThread() {
@@ -67,6 +70,10 @@ public final class BufferPool {
 		return (thname.length() < LOCAL_BUF_THREAD_PREX.length()) ? false
 				: (thname.charAt(0) == '$' && thname.charAt(1) == '_');
 
+	}
+
+	public int getConReadBuferChunk() {
+		return conReadBuferChunk;
 	}
 
 	public int getChunkSize() {
@@ -82,7 +89,21 @@ public final class BufferPool {
 	}
 
 	public long capacity() {
-		return capactiy + newCreated.get();
+		return capactiy + newCreated;
+	}
+
+	public ByteBuffer allocateConReadBuffer() {
+		ByteBuffer result = conReadBuferQueue.poll();
+		if (result != null) {
+			return result;
+		} else {
+			return createDirectBuffer(conReadBuferChunk);
+		}
+
+	}
+
+	public BufferArray allocateArray() {
+		return new BufferArray(this);
 	}
 
 	public ByteBuffer allocate() {
@@ -96,8 +117,7 @@ public final class BufferPool {
 		}
 		node = items.poll();
 		if (node == null) {
-			//newCreated++;
-			newCreated.incrementAndGet();
+			newCreated++;
 			node = this.createDirectBuffer(chunkSize);
 		}
 		return node;
@@ -107,15 +127,27 @@ public final class BufferPool {
 		// 拒绝回收null和容量大于chunkSize的缓存
 		if (buffer == null || !buffer.isDirect()) {
 			return false;
-		} else if (buffer.capacity() > chunkSize) {
-			LOGGER.warn("cant' recycle  a buffer large than my pool chunksize "
-					+ buffer.capacity());
-			return false;
+		} else if (buffer.capacity() != chunkSize) {
+			LOGGER.warn("cant' recycle  a buffer not equals my pool chunksize "
+					+ chunkSize + "  he is " + buffer.capacity());
+			throw new RuntimeException("bad size");
+
+			// return false;
 		}
-		totalCounts++;
-		totalBytes += buffer.limit();
 		buffer.clear();
 		return true;
+	}
+
+	public void recycleConReadBuffer(ByteBuffer buffer) {
+		if (buffer == null || !buffer.isDirect()) {
+			return;
+		} else if (buffer.capacity() != conReadBuferChunk) {
+			LOGGER.warn("cant' recycle  a buffer not equals my pool con read chunksize "
+					+ buffer.capacity());
+		} else {
+			buffer.clear();
+			this.conReadBuferQueue.add(buffer);
+		}
 	}
 
 	public void recycle(ByteBuffer buffer) {
@@ -139,16 +171,6 @@ public final class BufferPool {
 
 	}
 
-	public int getAvgBufSize() {
-		if (this.totalBytes < 0) {
-			totalBytes = 0;
-			this.totalCounts = 0;
-			return 0;
-		} else {
-			return (int) (totalBytes / totalCounts);
-		}
-	}
-
 	public boolean testIfDuplicate(ByteBuffer buffer) {
 		for (ByteBuffer exists : items) {
 			if (exists == buffer) {
@@ -157,10 +179,6 @@ public final class BufferPool {
 		}
 		return false;
 
-	}
-
-	private ByteBuffer createTempBuffer(int size) {
-		return ByteBuffer.allocate(size);
 	}
 
 	private ByteBuffer createDirectBuffer(int size) {
@@ -174,20 +192,21 @@ public final class BufferPool {
 		} else {
 			LOGGER.warn("allocate buffer size large than default chunksize:"
 					+ this.chunkSize + " he want " + size);
-			return createTempBuffer(size);
+			throw new RuntimeException("execuddd");
+			// return createTempBuffer(size);
 		}
 	}
 
 	public static void main(String[] args) {
-		BufferPool pool = new BufferPool(3276800000L, 1024, 2);
+		BufferPool pool = new BufferPool(1024 * 5, 1024, 1024 * 3, 2);
 		long i = pool.capacity();
-		List<ByteBuffer> all = new ArrayList<ByteBuffer>();
-		for (int j = 0; j <= i; j++) {
+		ArrayList<ByteBuffer> all = new ArrayList<ByteBuffer>();
+		for (long j = 0; j <= i; j++) {
 			all.add(pool.allocate());
 		}
 		for (ByteBuffer buf : all) {
 			pool.recycle(buf);
 		}
-		LOGGER.info(pool.size());
+		System.out.println(pool.size());
 	}
 }

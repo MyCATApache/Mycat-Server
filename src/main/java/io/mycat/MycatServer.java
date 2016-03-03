@@ -225,7 +225,7 @@ public class MycatServer {
 		long processBuferPool = system.getProcessorBufferPool();
 		int processBufferChunk = system.getProcessorBufferChunk();
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
-		bufferPool = new BufferPool(processBuferPool, processBufferChunk,
+		bufferPool = new BufferPool(processBuferPool, processBufferChunk, system.getFrontSocketSoRcvbuf(),
 				socketBufferLocalPercent / processorCount);
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
