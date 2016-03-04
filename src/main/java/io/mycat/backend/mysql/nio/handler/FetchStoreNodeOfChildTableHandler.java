@@ -81,9 +81,15 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("execute in datanode " + dn);
 				}
-				mysqlDN.getConnection(mysqlDN.getDatabase(), true,
-						new RouteResultsetNode(dn, ServerParse.SELECT, sql),
-						this, dn);
+				RouteResultsetNode node = new RouteResultsetNode(dn, ServerParse.SELECT, sql);
+				new RouteResultsetNode(dn, ServerParse.SELECT, sql);
+				node.setRunOnSlave(false);	// 获取 子表节点，最好走master为好
+
+				mysqlDN.getConnection(mysqlDN.getDatabase(), true, node, this, dn);
+				 
+//				mysqlDN.getConnection(mysqlDN.getDatabase(), true,
+//						new RouteResultsetNode(dn, ServerParse.SELECT, sql),
+//						this, dn);
 			} catch (Exception e) {
 				LOGGER.warn("get connection err " + e);
 			}

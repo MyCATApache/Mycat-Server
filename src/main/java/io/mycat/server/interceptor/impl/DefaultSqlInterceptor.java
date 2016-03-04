@@ -3,10 +3,13 @@ package io.mycat.server.interceptor.impl;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.mycat.MycatServer;
 import io.mycat.server.interceptor.SQLInterceptor;
 
 public class DefaultSqlInterceptor implements SQLInterceptor {
-	private static final Pattern p = Pattern.compile("\\'", Pattern.LITERAL);
+	//private static final Pattern p = Pattern.compile("\\'", Pattern.LITERAL);
+	// fix bug: 无法在字符串的末尾插入 \ 字符的问题. by: digdeep@126.com
+	private static final Pattern p = Pattern.compile("[^\\]\\'", Pattern.LITERAL);
 
 	private static final String TARGET_STRING = "''";
 
@@ -19,6 +22,9 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 	 * 
 	 * @param stmt
 	 * @return
+	 * @note: 该函数会导致无法正确的插入 \ 字符的问题：
+	 * update travelrecord set name='test\\' where id=1;
+	 * 插入的name的值会变成：test' 而不是我们期望的 test\
 	 */
 	public static String processEscape(String sql) {
 		int firstIndex = -1;
@@ -44,7 +50,12 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 	 */
 	@Override
 	public String interceptSQL(String sql, int sqlType) {
-		return processEscape(sql);
+		if("fdbparser".equals(MycatServer.getInstance().getConfig().getSystem().getDefaultSqlParser()))
+			sql = processEscape(sql);
+		
+		// other interceptors put in here ....
+		
+		return sql;
 	}
 
 }

@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import io.mycat.MycatServer;
+import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.impl.DruidMycatRouteStrategy;
 
@@ -16,7 +17,7 @@ import io.mycat.route.impl.DruidMycatRouteStrategy;
  */
 public class RouteStrategyFactory {
 	private static RouteStrategy defaultStrategy = null;
-	private static boolean isInit = false;
+	private static volatile boolean isInit = false;
 	private static ConcurrentMap<String,RouteStrategy> strategyMap = new ConcurrentHashMap<String,RouteStrategy>();
 	
 	private RouteStrategyFactory() {
@@ -24,7 +25,9 @@ public class RouteStrategyFactory {
 	}
 	
 	private static void init() {
-		String defaultSqlParser = MycatServer.getInstance().getConfig().getSystem().getDefaultSqlParser();
+		SystemConfig config = MycatServer.getInstance().getConfig().getSystem();
+		
+		String defaultSqlParser = config.getDefaultSqlParser();
 		defaultSqlParser = defaultSqlParser == null ? "" : defaultSqlParser;
 		//修改为ConcurrentHashMap，避免并发问题
 		strategyMap.putIfAbsent("druidparser", new DruidMycatRouteStrategy());
@@ -32,20 +35,30 @@ public class RouteStrategyFactory {
 		defaultStrategy = strategyMap.get(defaultSqlParser);
 		if(defaultStrategy == null) {
 			defaultStrategy = strategyMap.get("druidparser");
+			defaultSqlParser = "druidparser";
 		}
+		config.setDefaultSqlParser(defaultSqlParser);
+		isInit = true;
 	}
+	
 	public static RouteStrategy getRouteStrategy() {
 		if(!isInit) {
-			init();
-			isInit = true;
+			synchronized(RouteStrategyFactory.class){
+				if(!isInit){
+					init();
+				}
+			}
 		}
 		return defaultStrategy;
 	}
 	
 	public static RouteStrategy getRouteStrategy(String parserType) {
 		if(!isInit) {
-			init();
-			isInit = true;
+			synchronized(RouteStrategyFactory.class){
+				if(!isInit){
+					init();
+				}
+			}
 		}
 		return strategyMap.get(parserType);
 	}

@@ -31,8 +31,8 @@
 			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property> 
 			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property> -->
 	</system>
-	<user name="test">
-		<property name="password">test</property>
+	<user name="root">
+		<property name="password">lexin112358</property>
 		<property name="schemas">TESTDB</property>
 	</user>
 
