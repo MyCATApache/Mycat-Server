@@ -64,7 +64,7 @@ public class SqlFrequency {
 		}
 		this.allExecuteTime+=execTime;
 		if (count > 0) {
-			this.avgTime = this.allExecuteTime / 2;
+			this.avgTime = this.allExecuteTime / count;
 		}		
 		this.executeTime = execTime;
 	}		
