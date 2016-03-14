@@ -32,6 +32,7 @@ import java.util.List;
 
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.util.ByteUtil;
+import io.mycat.util.CompareUtil;
 import io.mycat.util.LongUtil;
 
 /**
@@ -80,36 +81,43 @@ public class RowDataPacketGrouper {
 		byte[] right = havingCols.getRight().getBytes(
 				StandardCharsets.UTF_8);
 		int index = havingCols.getColMeta().getColIndex();
+		int colType = havingCols.getColMeta().getColType();	// Added by winbill. 20160312.
 		while (it.hasNext()){
 			RowDataPacket rowDataPacket = it.next();
 			switch (havingCols.getOperator()) {
 			case "=":
-				if (eq(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (eq(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case ">":
-				if (gt(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (gt(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case "<":
-				if (lt(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (lt(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case ">=":
-				if (gt(rowDataPacket.fieldValues.get(index),right) && eq(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (gt(rowDataPacket.fieldValues.get(index),right,colType) && eq(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case "<=":
-				if (lt(rowDataPacket.fieldValues.get(index),right) && eq(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (lt(rowDataPacket.fieldValues.get(index),right,colType) && eq(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case "!=":
-				if (neq(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (neq(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
@@ -118,21 +126,65 @@ public class RowDataPacketGrouper {
 
 	}
 
-	private boolean lt(byte[] l, byte[] r) {
-		return -1 != ByteUtil.compareNumberByte(l, r);
+	/* 
+	 * Using new compare function instead of compareNumberByte 
+	 * Modified by winbill. 20160312.
+	 */
+	private boolean lt(byte[] l, byte[] r, final int colType) {
+//		return -1 != ByteUtil.compareNumberByte(l, r);
+		return -1 != RowDataPacketGrouper.compareObject(l, r, colType);
 	}
 
-	private boolean gt(byte[] l, byte[] r) {
-		return 1 != ByteUtil.compareNumberByte(l, r);
+	private boolean gt(byte[] l, byte[] r, final int colType) {
+//		return 1 != ByteUtil.compareNumberByte(l, r, havingCol);
+		return 1 != RowDataPacketGrouper.compareObject(l, r, colType);
 	}
 
-	private boolean eq(byte[] l, byte[] r) {
-		return 0 != ByteUtil.compareNumberByte(l, r);
+	private boolean eq(byte[] l, byte[] r, final int colType) {
+//		return 0 != ByteUtil.compareNumberByte(l, r, havingCol);
+		return 0 != RowDataPacketGrouper.compareObject(l, r, colType);
 	}
 
-	private boolean neq(byte[] l, byte[] r) {
-		return 0 == ByteUtil.compareNumberByte(l, r);
+	private boolean neq(byte[] l, byte[] r, final int colType) {
+//		return 0 == ByteUtil.compareNumberByte(l, r, havingCol);
+		return 0 == RowDataPacketGrouper.compareObject(l, r, colType);
 	}
+
+	/*
+	 * Compare with the value of having column
+	 * winbill. 20160312.
+	 */
+    public static final int compareObject(byte[] left,byte[] right, final int colType) {
+        switch (colType) {
+        case ColMeta.COL_TYPE_SHORT:
+        case ColMeta.COL_TYPE_INT:
+        case ColMeta.COL_TYPE_INT24:
+            return CompareUtil.compareInt(ByteUtil.getInt(left), ByteUtil.getInt(right));
+        case ColMeta.COL_TYPE_LONG:
+        case ColMeta.COL_TYPE_LONGLONG:
+            return CompareUtil.compareLong(ByteUtil.getLong(left), ByteUtil.getLong(right));
+        case ColMeta.COL_TYPE_FLOAT:
+        case ColMeta.COL_TYPE_DOUBLE:
+        case ColMeta.COL_TYPE_DECIMAL:
+        case ColMeta.COL_TYPE_NEWDECIMAL:
+            return CompareUtil.compareDouble(ByteUtil.getDouble(left), ByteUtil.getDouble(right));
+        case ColMeta.COL_TYPE_DATE:
+        case ColMeta.COL_TYPE_TIMSTAMP:
+        case ColMeta.COL_TYPE_TIME:
+        case ColMeta.COL_TYPE_YEAR:
+        case ColMeta.COL_TYPE_DATETIME:
+        case ColMeta.COL_TYPE_NEWDATE:
+        case ColMeta.COL_TYPE_BIT:
+        case ColMeta.COL_TYPE_VAR_STRING:
+        case ColMeta.COL_TYPE_STRING:
+        // ENUM和SET类型都是字符串，按字符串处理
+        case ColMeta.COL_TYPE_ENUM:
+        case ColMeta.COL_TYPE_SET:
+            return ByteUtil.compareNumberByte(left, right);
+        // BLOB相关类型和GEOMETRY类型不支持排序，略掉
+        }
+        return 0;
+    }
 
 	public void addRow(RowDataPacket rowDataPkg) {
 		for (RowDataPacket row : result) {

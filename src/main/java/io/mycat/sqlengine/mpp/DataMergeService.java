@@ -101,8 +101,30 @@ public class DataMergeService implements Runnable {
 		}
 
 		if (rrs.getHavingCols() != null) {
-			ColMeta colMeta = columToIndx.get(rrs.getHavingCols().getLeft()
-					.toUpperCase());
+			// Modified by winbill, 20160314, for having clause, Begin ==>
+//			ColMeta colMeta = columToIndx.get(rrs.getHavingCols().getLeft()
+//					.toUpperCase());
+			ColMeta colMeta = null;
+			Object[] havingColsName = rrs.getSqlMerge().getHavingColsName();
+			if (havingColsName != null) {
+				String havingLeft = rrs.getHavingCols().getLeft().toUpperCase();
+				// There are 2 aliases for AVG function
+				for (int i = 0; i < havingColsName.length; i += 3) {
+					String colName = havingColsName[i].toString().toUpperCase();
+					String colAlias1 = havingColsName[i + 1].toString().toUpperCase();
+					String colAlias2 = havingColsName[i + 2].toString().toUpperCase();
+					if (havingLeft.equals(colName) || havingLeft.equals(colAlias1) || havingLeft.equals(colAlias2)) {
+						colMeta = columToIndx.get(colName);
+						colMeta = (colMeta == null) ? columToIndx.get(colAlias1) : colMeta;
+						colMeta = (colMeta == null) ? columToIndx.get(colAlias2) : colMeta;
+						break;
+					}
+				}
+			} else {
+				colMeta = columToIndx.get(rrs.getHavingCols().getLeft().toUpperCase());
+			}
+			// Modified by winbill, 20160314, for having clause, End <==
+
 			if (colMeta != null) {
 				rrs.getHavingCols().setColMeta(colMeta);
 			}
