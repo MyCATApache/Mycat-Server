@@ -1,7 +1,6 @@
 package io.mycat.backend.postgresql.packet;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 public class NoticeResponse extends PostgreSQLPacket {
 	/**

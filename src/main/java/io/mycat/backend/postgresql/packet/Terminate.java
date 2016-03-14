@@ -1,7 +1,5 @@
 package io.mycat.backend.postgresql.packet;
 
-import io.mycat.backend.postgresql.utils.PIOUtils;
-
 import java.nio.ByteBuffer;
 //	
 //	Terminate (F)
@@ -10,6 +8,8 @@ import java.nio.ByteBuffer;
 //	
 //	Int32(4)
 //	以字节记的消息内容的长度，包括长度自身。
+
+import io.mycat.backend.postgresql.utils.PIOUtils;
 
 /***
  * 终止命令
