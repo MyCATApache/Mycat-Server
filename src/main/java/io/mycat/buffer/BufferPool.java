@@ -40,6 +40,7 @@ public final class BufferPool {
 	private final int chunkSize;
 	private final int conReadBuferChunk;
 	private final ConcurrentLinkedQueue<ByteBuffer> items = new ConcurrentLinkedQueue<ByteBuffer>();
+	
 	/**
 	 * 只用于Connection读取Socket事件，每个Connection一个ByteBuffer（Direct），
 	 * 此ByteBufer通常应该能容纳2-N个 应用消息的报文长度，
@@ -130,9 +131,7 @@ public final class BufferPool {
 		} else if (buffer.capacity() != chunkSize) {
 			LOGGER.warn("cant' recycle  a buffer not equals my pool chunksize "
 					+ chunkSize + "  he is " + buffer.capacity());
-			throw new RuntimeException("bad size");
-
-			// return false;
+			return false;
 		}
 		buffer.clear();
 		return true;
@@ -178,7 +177,10 @@ public final class BufferPool {
 			}
 		}
 		return false;
-
+	}
+	
+	private ByteBuffer createTempBuffer(int size) {
+		return ByteBuffer.allocate(size);
 	}
 
 	private ByteBuffer createDirectBuffer(int size) {
@@ -192,8 +194,7 @@ public final class BufferPool {
 		} else {
 			LOGGER.warn("allocate buffer size large than default chunksize:"
 					+ this.chunkSize + " he want " + size);
-			throw new RuntimeException("execuddd");
-			// return createTempBuffer(size);
+			return createTempBuffer(size);
 		}
 	}
 

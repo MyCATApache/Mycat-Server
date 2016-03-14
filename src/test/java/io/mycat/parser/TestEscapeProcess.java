@@ -17,13 +17,10 @@
 package io.mycat.parser;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
-import java.sql.SQLSyntaxErrorException;
+import io.mycat.MycatServer;
+import io.mycat.server.interceptor.impl.DefaultSqlInterceptor;
 
 import org.junit.Test;
-
-import io.mycat.server.interceptor.impl.DefaultSqlInterceptor;
 
 public class TestEscapeProcess {
 
@@ -42,6 +39,7 @@ public class TestEscapeProcess {
 	
 	@Test
 	public void testEscapeProcess() {
+		MycatServer.getInstance().getConfig().getSystem().setDefaultSqlParser("fdbparser");
 		String sqlProcessed = DefaultSqlInterceptor.processEscape(sql);
 		assertEquals(sqlProcessed, sqlret);
 		String sqlProcessed1 = DefaultSqlInterceptor
