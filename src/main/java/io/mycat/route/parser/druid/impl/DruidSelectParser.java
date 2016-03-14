@@ -297,7 +297,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 			//clear group having
 			SQLSelectGroupByClause groupByClause = mysqlSelectQuery.getGroupBy();
-			if(groupByClause != null && groupByClause.getHaving() != null){
+			// Modified by winbill, 20160614, do NOT include having clause when routing to multiple nodes
+			if(groupByClause != null && groupByClause.getHaving() != null && isRoutMultiNode(schema,rrs)){
 				groupByClause.setHaving(null);
 			}
 			
