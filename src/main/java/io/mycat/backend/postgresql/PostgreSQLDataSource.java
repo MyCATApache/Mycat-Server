@@ -9,10 +9,16 @@ import io.mycat.backend.postgresql.heartbeat.PostgreSQLHeartbeat;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 
+/*******************
+ * PostgreSQL 后端数据源实现
+ * @author Coollf
+ *
+ */
 public class PostgreSQLDataSource extends PhysicalDatasource {
 	private final PostgreSQLBackendConnectionFactory factory;
 
-	public PostgreSQLDataSource(DBHostConfig config, DataHostConfig hostConfig, boolean isReadNode) {
+	public PostgreSQLDataSource(DBHostConfig config, DataHostConfig hostConfig,
+			boolean isReadNode) {
 		super(config, hostConfig, isReadNode);
 		this.factory = new PostgreSQLBackendConnectionFactory();
 	}
@@ -23,8 +29,9 @@ public class PostgreSQLDataSource extends PhysicalDatasource {
 	}
 
 	@Override
-	public void createNewConnection(ResponseHandler handler, String schema) throws IOException {
-
+	public void createNewConnection(ResponseHandler handler, String schema)
+			throws IOException {
+		factory.make(this, handler, schema);
 	}
 
 }

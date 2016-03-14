@@ -1,12 +1,5 @@
 package io.mycat.backend.postgresql;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.CharsetUtil;
@@ -21,6 +14,13 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.TimeUtil;
 import io.mycat.util.exception.UnknownTxIsolationException;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.channels.NetworkChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /*************************************************************
  * PostgreSQL Native Connection impl
@@ -100,7 +100,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	private volatile String currentXaTxId;
 	private long currentTimeMillis;
 
-	public PostgreSQLBackendConnection(SocketChannel channel, boolean fromSlaveDB) {
+	public PostgreSQLBackendConnection(NetworkChannel channel, boolean fromSlaveDB) {
 		super(channel);
 		this.fromSlaveDB = fromSlaveDB;
 		this.lastTime = TimeUtil.currentTimeMillis();
@@ -406,7 +406,6 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		this.write(buf);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void onReadData(int got) throws IOException {
 		ByteBuffer buf = getReadBuffer();
