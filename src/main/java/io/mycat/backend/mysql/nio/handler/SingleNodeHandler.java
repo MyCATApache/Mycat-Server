@@ -71,7 +71,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private long startTime;
 	private long netInBytes;
 	private long netOutBytes;
-	private int rLine = 0;
 
     private volatile boolean isDefaultNodeShowTable;
     private volatile boolean isDefaultNodeShowFullTable;
@@ -371,10 +370,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
-		
-		this.rLine++;
-		System.out.println(rLine);
-		System.out.println( new String(row));
 		
 		this.netOutBytes += row.length;
 
