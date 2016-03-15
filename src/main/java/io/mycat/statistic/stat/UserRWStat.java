@@ -21,6 +21,12 @@ public class UserRWStat {
     private final AtomicLong wCount = new AtomicLong(0);
     
     /**
+     * Net In/Out 字节数
+     */
+    private final AtomicLong netInBytes = new AtomicLong(0);
+    private final AtomicLong netOutBytes = new AtomicLong(0);
+    
+    /**
      * 最后执行时间
      */
     private long lastExecuteTime;
@@ -59,11 +65,14 @@ public class UserRWStat {
 		this.concurrentMax.set(0);
 		this.lastExecuteTime = 0;
 		
+		this.netInBytes.set(0);
+		this.netOutBytes.set(0);
+		
 		this.timeHistogram.reset();
 		this.executeHistogram.reset();
 	}
 	
-	public void add(int sqlType, long executeTime, long startTime, long endTime) {
+	public void add(int sqlType, long executeTime, long netInBytes, long netOutBytes, long startTime, long endTime) {
 		
 		//before 计算最大并发数
 		//-----------------------------------------------------
@@ -83,7 +92,7 @@ public class UserRWStat {
 		switch(sqlType) {
     	case ServerParse.SELECT:
     	case ServerParse.SHOW:
-    		this.rCount.incrementAndGet();
+    		this.rCount.incrementAndGet(); 
     		break;
     	case ServerParse.UPDATE:
     	case ServerParse.INSERT:
@@ -129,6 +138,9 @@ public class UserRWStat {
 		
 		this.lastExecuteTime = endTime;
 		
+		this.netInBytes.addAndGet( netInBytes );
+		this.netOutBytes.addAndGet( netOutBytes );
+		
 		//after
 		//-----------------------------------------------------
 		runningCount.decrementAndGet();		
@@ -141,6 +153,14 @@ public class UserRWStat {
     public AtomicInteger getRunningCount() {
 		return runningCount;
 	}
+    
+    public long getNetInBytes() {
+    	return netInBytes.get();
+    }
+    
+    public long getNetOutBytes() {
+    	return netOutBytes.get();
+    }
 
 	public int getConcurrentMax() {
         return concurrentMax.get();

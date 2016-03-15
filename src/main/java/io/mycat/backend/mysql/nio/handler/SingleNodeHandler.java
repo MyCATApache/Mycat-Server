@@ -69,6 +69,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private volatile boolean isRunning;
 	private Runnable terminateCallBack;
 	private long startTime;
+	private long netInBytes;
+	private long netOutBytes;
+	private int rLine = 0;
 
     private volatile boolean isDefaultNodeShowTable;
     private volatile boolean isDefaultNodeShowFullTable;
@@ -77,31 +80,34 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public SingleNodeHandler(RouteResultset rrs, NonBlockingSession session) {
 		this.rrs = rrs;
 		this.node = rrs.getNodes()[0];
+		
 		if (node == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
+		
 		if (session == null) {
 			throw new IllegalArgumentException("session is null!");
 		}
+		
 		this.session = session;
-        ServerConnection source = session.getSource();
-        String schema=source.getSchema();
-        if(schema!=null&&ServerParse.SHOW==rrs.getSqlType())
-        {
-            SchemaConfig schemaConfig= MycatServer.getInstance().getConfig().getSchemas().get(schema);
-           int type= ServerParseShow.tableCheck(rrs.getStatement(),0) ;
-            isDefaultNodeShowTable=(ServerParseShow.TABLES==type &&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
-            isDefaultNodeShowFullTable=(ServerParseShow.FULLTABLES==type &&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
-
-            if(isDefaultNodeShowTable)
-            {
-                shardingTablesSet = ShowTables.getTableSet(source, rrs.getStatement());
-            } else
-            if(isDefaultNodeShowFullTable)
-            {
-                shardingTablesSet = ShowFullTables.getTableSet(source, rrs.getStatement());
-            }
-        }
+		ServerConnection source = session.getSource();
+		String schema = source.getSchema();
+		if (schema != null && ServerParse.SHOW == rrs.getSqlType()) {
+			SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(schema);
+			int type = ServerParseShow.tableCheck(rrs.getStatement(), 0);
+			isDefaultNodeShowTable = (ServerParseShow.TABLES == type && !Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+			isDefaultNodeShowFullTable = (ServerParseShow.FULLTABLES == type && !Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+			if (isDefaultNodeShowTable) {
+				shardingTablesSet = ShowTables.getTableSet(source, rrs.getStatement());
+				
+			} else if (isDefaultNodeShowFullTable) {
+				shardingTablesSet = ShowFullTables.getTableSet(source, rrs.getStatement());
+			}
+		}
+        
+		if ( rrs != null && rrs.getStatement() != null)
+			netInBytes += rrs.getStatement().getBytes().length;
+        
 	}
 
 	@Override
@@ -246,7 +252,10 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 
 	@Override
-	public void okResponse(byte[] data, BackendConnection conn) {        
+	public void okResponse(byte[] data, BackendConnection conn) {      
+		//
+		this.netOutBytes += data.length;
+		
 		boolean executeResponse = conn.syncAndExcute();		
 		if (executeResponse) {			
 			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
@@ -272,7 +281,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
+					rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
 			QueryResultDispatcher.dispatchQuery( queryResult );
  
 		}
@@ -280,6 +289,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
+		
+		this.netOutBytes += eof.length;
+		
 		ServerConnection source = session.getSource();
 		conn.recordSql(source.getHost(), source.getSchema(),
                 node.getStatement());
@@ -312,56 +324,69 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
 		
-		
-			//TODO: add by zhuam
-			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
-			QueryResultDispatcher.dispatchQuery( queryResult );
+		this.netOutBytes += header.length;
+		for (int i = 0, len = fields.size(); i < len; ++i) {
+			byte[] field = fields.get(i);
+			this.netOutBytes += field.length;
+		}
+	
+	
+		//TODO: add by zhuam
+		//查询结果派发
+		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+				rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
+		QueryResultDispatcher.dispatchQuery( queryResult );
 
-            header[3] = ++packetId;
-            ServerConnection source = session.getSource();
-            buffer = source.writeToBuffer(header, allocBuffer());
-            for (int i = 0, len = fields.size(); i < len; ++i)
-            {
-                byte[] field = fields.get(i);
-                field[3] = ++packetId;
-                buffer = source.writeToBuffer(field, buffer);
-            }
-            eof[3] = ++packetId;
-            buffer = source.writeToBuffer(eof, buffer);
-            
-			if (isDefaultNodeShowTable) {
-				for (String name : shardingTablesSet) {
-					RowDataPacket row = new RowDataPacket(1);
-					row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
-					row.packetId = ++packetId;
-					buffer = row.write(buffer, source, true);
-				}
-			}  else
-            if (isDefaultNodeShowFullTable) {
-                for (String name : shardingTablesSet) {
-                    RowDataPacket row = new RowDataPacket(1);
-                    row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
-                    row.add(StringUtil.encode("BASE TABLE", source.getCharset()));
-                    row.packetId = ++packetId;
-                    buffer = row.write(buffer, source, true);
-                }
-            }
+		header[3] = ++packetId;
+		ServerConnection source = session.getSource();
+		buffer = source.writeToBuffer(header, allocBuffer());
+		for (int i = 0, len = fields.size(); i < len; ++i) {
+			byte[] field = fields.get(i);
+			field[3] = ++packetId;
+			buffer = source.writeToBuffer(field, buffer);
+		}
+		eof[3] = ++packetId;
+		buffer = source.writeToBuffer(eof, buffer);
+
+		if (isDefaultNodeShowTable) {
+			
+			for (String name : shardingTablesSet) {
+				RowDataPacket row = new RowDataPacket(1);
+				row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
+				row.packetId = ++packetId;
+				buffer = row.write(buffer, source, true);
+			}
+			
+		} else if (isDefaultNodeShowFullTable) {
+			
+			for (String name : shardingTablesSet) {
+				RowDataPacket row = new RowDataPacket(1);
+				row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
+				row.add(StringUtil.encode("BASE TABLE", source.getCharset()));
+				row.packetId = ++packetId;
+				buffer = row.write(buffer, source, true);
+			}
+		}
 	}
 
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
-        if(isDefaultNodeShowTable||isDefaultNodeShowFullTable)
-        {
-            RowDataPacket rowDataPacket =new RowDataPacket(1);
-            rowDataPacket.read(row);
-            String table=  StringUtil.decode(rowDataPacket.fieldValues.get(0),conn.getCharset());
-            if(shardingTablesSet.contains(table.toUpperCase())) return;
-        }
+		
+		this.rLine++;
+		System.out.println(rLine);
+		System.out.println( new String(row));
+		
+		this.netOutBytes += row.length;
 
-            row[3] = ++packetId;
-            buffer = session.getSource().writeToBuffer(row, allocBuffer());
+		if (isDefaultNodeShowTable || isDefaultNodeShowFullTable) {
+			RowDataPacket rowDataPacket = new RowDataPacket(1);
+			rowDataPacket.read(row);
+			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), conn.getCharset());
+			if (shardingTablesSet.contains(table.toUpperCase()))
+				return;
+		}
+		row[3] = ++packetId;
+		buffer = session.getSource().writeToBuffer(row, allocBuffer());
 
 	}
 

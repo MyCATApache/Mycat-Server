@@ -71,23 +71,31 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private int okCount;
 	private final boolean isCallProcedure;
 	private long startTime;
+	private long netInBytes;
+	private long netOutBytes;
 	private int execCount = 0;
 
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
+		
 		super(session);
+		
 		if (rrs.getNodes() == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
+		
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("execute mutinode query " + rrs.getStatement());
 		}
+		
 		this.rrs = rrs;
 		if (ServerParse.SELECT == sqlType && rrs.needMerge()) {
 			dataMergeSvr = new DataMergeService(this, rrs);
+			
 		} else {
 			dataMergeSvr = null;
 		}
+		
 		isCallProcedure = rrs.isCallStatement();
 		this.autocommit = session.getSource().isAutocommit();
 		this.session = session;
@@ -98,12 +106,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				LOGGER.debug("has data merge logic ");
 			}
 		}
+		
+		if ( rrs != null && rrs.getStatement() != null)
+			netInBytes += rrs.getStatement().getBytes().length;
 	}
 
 	protected void reset(int initCount) {
 		super.reset(initCount);
 		this.okCount = initCount;
 		this.execCount = 0;
+		this.netInBytes = 0;
+		this.netOutBytes = 0;
 	}
 
 	public NonBlockingSession getSession() {
@@ -179,6 +192,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 
 	@Override
 	public void okResponse(byte[] data, BackendConnection conn) {
+		
+		this.netOutBytes += data.length;
+		
 		boolean executeResponse = conn.syncAndExcute();
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("received ok response ,executeResponse:"
@@ -253,6 +269,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("on row end reseponse " + conn);
 		}
+		
+		this.netOutBytes += eof.length;
+		
 		if (errorRepsponsed.get()) {
 			conn.close(this.error);
 			return;
@@ -349,13 +368,22 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
+		
+		
+		this.netOutBytes += header.length;
+		this.netOutBytes += eof.length;
+		for (int i = 0, len = fields.size(); i < len; ++i) {
+			byte[] field = fields.get(i);
+			this.netOutBytes += field.length;
+		}
+		
 		ServerConnection source = null;
 		execCount++;
 		if (execCount == rrs.getNodes().length) {			
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
+					rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
 			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 		if (fieldsReturned) {
