@@ -305,6 +305,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, allocBuffer());
 		source.write(buffer);
+		
+		//TODO: add by zhuam
+		//查询结果派发
+		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+				rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
+		QueryResultDispatcher.dispatchQuery( queryResult );
 	}
 
 	/**
@@ -328,13 +334,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			byte[] field = fields.get(i);
 			this.netOutBytes += field.length;
 		}
-	
-	
-		//TODO: add by zhuam
-		//查询结果派发
-		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-				rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
-		QueryResultDispatcher.dispatchQuery( queryResult );
 
 		header[3] = ++packetId;
 		ServerConnection source = session.getSource();
