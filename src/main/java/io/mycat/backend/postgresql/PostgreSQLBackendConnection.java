@@ -1,8 +1,9 @@
 package io.mycat.backend.postgresql;
 
 import io.mycat.backend.BackendConnection;
-import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.CharsetUtil;
+import io.mycat.backend.mysql.nio.MySQLConnectionAuthenticator;
+import io.mycat.backend.mysql.nio.MySQLConnectionHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.backend.postgresql.packet.Query;
 import io.mycat.backend.postgresql.packet.Terminate;
@@ -12,7 +13,6 @@ import io.mycat.net.BackendAIOConnection;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
-import io.mycat.util.TimeUtil;
 import io.mycat.util.exception.UnknownTxIsolationException;
 
 import java.io.IOException;
@@ -28,7 +28,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Coollf
  *
  */
-public class PostgreSQLBackendConnection extends BackendAIOConnection implements BackendConnection {
+public class PostgreSQLBackendConnection extends BackendAIOConnection implements
+		BackendConnection {
+
 	private static final Query _COMMIT = new Query("commit");
 	private static final Query _ROLLBACK = new Query("rollback");
 
@@ -42,10 +44,26 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	 */
 	private String user;
 
+	public String getUser() {
+		return user;
+	}
+
+	public void setUser(String user) {
+		this.user = user;
+	}
+
 	/**
 	 * 密码
 	 */
 	private String password;
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
 
 	/***
 	 * 对应数据库空间
@@ -56,6 +74,15 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	 * 数据源配置
 	 */
 	private PostgreSQLDataSource pool;
+
+	public PostgreSQLDataSource getPool() {
+		return pool;
+	}
+
+	public void setPool(PostgreSQLDataSource pool) {
+		this.pool = pool;
+	}
+
 	private Object attachment;
 	protected volatile String charset = "utf8";
 	private volatile boolean autocommit;
@@ -69,6 +96,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	 * 响应handler
 	 */
 	private volatile ResponseHandler responseHandler;
+
 	private boolean borrowed;
 	private volatile int txIsolation;
 	private volatile boolean modifiedSQLExecuted = false;
@@ -100,12 +128,15 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	private volatile String currentXaTxId;
 	private long currentTimeMillis;
 
-	public PostgreSQLBackendConnection(NetworkChannel channel, boolean fromSlaveDB) {
+	public PostgreSQLBackendConnection(NetworkChannel channel,
+			boolean fromSlaveDB) {
 		super(channel);
 		this.fromSlaveDB = fromSlaveDB;
-		this.lastTime = TimeUtil.currentTimeMillis();
-		this.isQuit = new AtomicBoolean(false);
-		this.autocommit = true;
+	}
+
+	@Override
+	public boolean isModifiedSQLExecuted() {
+		return modifiedSQLExecuted;
 	}
 
 	@Override
@@ -115,7 +146,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 
 	@Override
 	public String getSchema() {
-		return schema;
+		return this.schema;
 	}
 
 	@Override
@@ -131,108 +162,6 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	}
 
 	@Override
-	public void setAttachment(Object attachment) {
-		this.attachment = attachment;
-	}
-
-	@Override
-	public void setLastTime(long currentTimeMillis) {
-		this.currentTimeMillis = currentTimeMillis;
-	}
-
-	@Override
-	public boolean setResponseHandler(ResponseHandler queryHandler) {
-		this.responseHandler = queryHandler;
-		return true;
-	}
-
-	@Override
-	public Object getAttachment() {
-		return attachment;
-	}
-
-	@Override
-	public boolean isBorrowed() {
-		return borrowed;
-	}
-
-	@Override
-	public void setBorrowed(boolean borrowed) {
-		this.lastTime = TimeUtil.currentTimeMillis();
-		this.borrowed = borrowed;
-	}
-
-	@Override
-	public int getTxIsolation() {
-		return txIsolation;
-	}
-
-	@Override
-	public boolean isAutocommit() {
-		return autocommit;
-	}
-
-	@Override
-	public String getCharset() {
-		return charset;
-	}
-
-	public PhysicalDatasource getPool() {
-		return pool;
-	}
-
-	/**
-	 * @return the user
-	 */
-	public String getUser() {
-		return user;
-	}
-
-	/**
-	 * @param user
-	 *            the user to set
-	 */
-	public void setUser(String user) {
-		this.user = user;
-	}
-
-	/**
-	 * @return the password
-	 */
-	public String getPassword() {
-		return password;
-	}
-
-	/**
-	 * @param password
-	 *            the password to set
-	 */
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	/**
-	 * @param fromSlaveDB
-	 *            the fromSlaveDB to set
-	 */
-	public void setFromSlaveDB(boolean fromSlaveDB) {
-		this.fromSlaveDB = fromSlaveDB;
-	}
-
-	/**
-	 * @param pool
-	 *            the pool to set
-	 */
-	public void setPool(PostgreSQLDataSource pool) {
-		this.pool = pool;
-	}
-
-	@Override
-	public boolean isModifiedSQLExecuted() {
-		return modifiedSQLExecuted;
-	}
-
-	@Override
 	public long getLastTime() {
 		return lastTime;
 	}
@@ -240,6 +169,11 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	@Override
 	public boolean isClosedOrQuit() {
 		return isClosed() || isQuit.get();
+	}
+
+	@Override
+	public void setAttachment(Object attachment) {
+		this.attachment = attachment;
 	}
 
 	@Override
@@ -257,12 +191,17 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	}
 
 	@Override
+	public void setLastTime(long currentTimeMillis) {
+		this.currentTimeMillis = currentTimeMillis;
+	}
+
+	@Override
 	public void release() {
-		if (!metaDataSyned) {// indicate connection not normalfinished
-								// ,and
-								// we can't know it's syn status ,so
-								// close
-								// it
+		if (!metaDataSyned) {/*
+							 * indicate connection not normalfinished ,and we
+							 * can't know it's syn status ,so close it
+							 */
+
 			LOGGER.warn("can't sure connection syn result,so close it " + this);
 			this.responseHandler = null;
 			this.close("syn status unkown ");
@@ -277,19 +216,62 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	}
 
 	@Override
+	public boolean setResponseHandler(ResponseHandler commandHandler) {
+		this.responseHandler = commandHandler;
+		return true;
+	}
+
+	@Override
+	public void commit() {
+		ByteBuffer buf = this.allocate();
+		_COMMIT.write(buf);
+		this.write(buf);
+	}
+
+	/**********
+	 * 此查询用于心跳检查和获取连接后的健康检查
+	 */
+	@Override
 	public void query(String query) throws UnsupportedEncodingException {
-		RouteResultsetNode rrn = new RouteResultsetNode("default", ServerParse.SELECT, query);
+		RouteResultsetNode rrn = new RouteResultsetNode("default",
+				ServerParse.SELECT, query);
 		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
 	}
 
-	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn, int clientCharSetIndex, int clientTxIsoLation,
+	@Override
+	public void execute(RouteResultsetNode node, ServerConnection source,
+			boolean autocommit) throws IOException {
+		// TODO Auto-generated method stub
+
+	}
+
+	/*******
+	 * 记录sql执行信息
+	 */
+	@Override
+	public void recordSql(String host, String schema, String statement) {
+		LOGGER.debug(String.format(
+				"executed sql: host=%s,schema=%s,statement=%s", host, schema,
+				statement));
+	}
+
+	@Override
+	public void onConnectFailed(Throwable t) {
+		if (handler instanceof MySQLConnectionHandler) {
+			
+		}
+	}
+
+	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn,
+			int clientCharSetIndex, int clientTxIsoLation,
 			boolean clientAutoCommit) {
 		String xaCmd = null;
 
 		boolean conAutoComit = this.autocommit;
 		String conSchema = this.schema;
 		// never executed modify sql,so auto commit
-		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB() || clientAutoCommit;
+		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB()
+				|| clientAutoCommit;
 		if (!expectAutocommit && xaTxID != null && xaStatus == 0) {
 			clientTxIsoLation = Isolations.SERIALIZABLE;
 			xaCmd = "XA START " + xaTxID + ';';
@@ -325,14 +307,17 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 			sb.append(xaCmd);
 		}
 		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("con need syn ,total syn cmd " + synCount + " commands " + sb.toString() + "schema change:"
+			LOGGER.debug("con need syn ,total syn cmd " + synCount
+					+ " commands " + sb.toString() + "schema change:"
 					+ ("" != null) + " con:" + this);
 		}
 
 		metaDataSyned = false;
-		statusSync = new StatusSync(xaCmd != null, conSchema, clientCharSetIndex, clientTxIsoLation, expectAutocommit,
+		statusSync = new StatusSync(xaCmd != null, conSchema,
+				clientCharSetIndex, clientTxIsoLation, expectAutocommit,
 				synCount);
-		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement())).toString();
+		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement()))
+				.toString();
 		System.err.println("con=" + this.hashCode() + ":SQL:" + sql);
 		Query query = new Query(sql);
 		ByteBuffer buf = this.allocate();// XXX 此处需要处理
@@ -375,14 +360,14 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	}
 
 	private static void getCharsetCommand(StringBuilder sb, int clientCharIndex) {
-		sb.append("SET names '").append(CharsetUtil.getCharset(clientCharIndex).toUpperCase()).append("';");
+		sb.append("SET names '")
+				.append(CharsetUtil.getCharset(clientCharIndex).toUpperCase())
+				.append("';");
 	}
 
 	@Override
-	public void commit() {
-		ByteBuffer buf = this.allocate();
-		_COMMIT.write(buf);
-		this.write(buf);
+	public Object getAttachment() {
+		return attachment;
 	}
 
 	@Override
@@ -407,32 +392,23 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	}
 
 	@Override
-	public void onReadData(int got) throws IOException {
-		ByteBuffer buf = getReadBuffer();
-		if (buf != null) {
-			this.handler.handle(buf.array());// 把数据传过去
-			buf.clear();// 使用完成后清理
-		} else {
-			System.err.println("getReadBuffer()为空");
-		}
+	public boolean isBorrowed() {
+		return borrowed;
 	}
 
-	public void setServerSecretKey(int serverSecretKey) {
-		this.serverSecretKey = serverSecretKey;
+	@Override
+	public void setBorrowed(boolean borrowed) {
+		this.borrowed = borrowed;
 	}
 
-	/**
-	 * @return the serverSecretKey
-	 */
-	public int getServerSecretKey() {
-		return serverSecretKey;
+	@Override
+	public int getTxIsolation() {
+		return txIsolation;
 	}
 
-	/**
-	 * @return the responseHandler
-	 */
-	public ResponseHandler getResponseHandler() {
-		return responseHandler;
+	@Override
+	public boolean isAutocommit() {
+		return autocommit;
 	}
 
 	private static class StatusSync {
@@ -443,8 +419,9 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		private final AtomicInteger synCmdCount;
 		private final boolean xaStarted;
 
-		public StatusSync(boolean xaStarted, String schema, Integer charsetIndex, Integer txtIsolation,
-				Boolean autocommit, int synCount) {
+		public StatusSync(boolean xaStarted, String schema,
+				Integer charsetIndex, Integer txtIsolation, Boolean autocommit,
+				int synCount) {
 			super();
 			this.xaStarted = xaStarted;
 			this.schema = schema;
@@ -484,52 +461,6 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 				conn.autocommit = autocommit;
 			}
 		}
-
-	}
-
-	public boolean setCharset(String charset) {
-		if (charset != null) {
-			charset = charset.replace("'", "");
-		}
-
-		int ci = CharsetUtil.getIndex(charset);
-		if (ci > 0) {
-			this.charset = charset.equalsIgnoreCase("utf8mb4") ? "utf8" : charset;
-			this.charsetIndex = ci;
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	/**
-	 * @return the inTransaction
-	 */
-	public boolean isInTransaction() {
-		return inTransaction;
-	}
-
-	/**
-	 * @param inTransaction
-	 *            the inTransaction to set
-	 */
-	public void setInTransaction(boolean inTransaction) {
-
-		this.inTransaction = inTransaction;
-	}
-
-	@Override
-	public void execute(RouteResultsetNode node, ServerConnection source, boolean autocommit) throws IOException {
-
-	}
-
-	@Override
-	public void recordSql(String host, String schema, String statement) {
-
-	}
-
-	@Override
-	public void onConnectFailed(Throwable e) {
 
 	}
 

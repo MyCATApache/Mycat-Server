@@ -14,7 +14,6 @@ import java.nio.channels.NetworkChannel;
 
 public class PostgreSQLBackendConnectionFactory extends
 		BackendConnectionFactory {
-	PostgreSQLBackendConnectionHandler nioHandler = new PostgreSQLBackendConnectionHandler();
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public PostgreSQLBackendConnection make(PostgreSQLDataSource pool,
@@ -28,7 +27,7 @@ public class PostgreSQLBackendConnectionFactory extends
 				channel, pool.isReadNode());
 		MycatServer.getInstance().getConfig().setSocketParams(c, false);
 		// 设置NIOHandler
-		c.setHandler(nioHandler);
+		c.setHandler(new PostgreSQLBackendConnectionHandler(c));
 		c.setHost(dsc.getIp());
 		c.setPort(dsc.getPort());
 		c.setUser(dsc.getUser());
