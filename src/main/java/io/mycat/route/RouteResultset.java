@@ -341,7 +341,7 @@ public final class RouteResultset implements Serializable {
 
 	// Added by winbill, 20160314, for having clause, Begin ==>
 	public void setHavingColsName(Object[] names) {
-		if (names != null) {
+		if (names != null && names.length > 0) {
 			createSQLMergeIfNull().setHavingColsName(names);
 		}
 	}
