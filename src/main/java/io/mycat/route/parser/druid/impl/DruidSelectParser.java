@@ -1,6 +1,7 @@
 package io.mycat.route.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -101,6 +102,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 	{
 		Map<String, String> aliaColumns = new HashMap<String, String>();
 		Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
+		// Added by winbill, 20160314, for having clause, Begin ==>
+		List<String> havingColsName = new ArrayList<String>();
+		// Added by winbill, 20160314, for having clause, End  <==
 		List<SQLSelectItem> selectList = mysqlSelectQuery.getSelectList();
         boolean isNeedChangeSql=false;
         int size = selectList.size();
@@ -114,6 +118,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 				SQLAggregateExpr expr = (SQLAggregateExpr) item.getExpr();
 				String method = expr.getMethodName();
 
+				String aggrColName = method + "(" + expr.getArguments().get(0) + ")";   // Added by winbill, 20160314, for having clause
+				havingColsName.add(aggrColName);       // Added by winbill, 20160314, for having clause
 				//只处理有别名的情况，无别名添加别名，否则某些数据库会得不到正确结果处理
 				int mergeType = MergeCol.getMergeType(method);
                 if (MergeCol.MERGE_AVG == mergeType&&isRoutMultiNode(schema,rrs))
@@ -129,6 +135,8 @@ public class DruidSelectParser extends DefaultDruidParser {
                     sum.setExpr(sumExp);
                     selectList.set(i, sum);
                     aggrColumns.put(sumColName, MergeCol.MERGE_SUM);
+                    havingColsName.add(sumColName);    // Added by winbill, 20160314, for having clause
+                    havingColsName.add(item.getAlias() != null ? item.getAlias() : "");    // Added by winbill, 20160314, two aliases for AVG
 
                     SQLSelectItem count =new SQLSelectItem();
                     String countColName = colName + "COUNT";
@@ -157,6 +165,8 @@ public class DruidSelectParser extends DefaultDruidParser {
                             isNeedChangeSql=true;
 					}
 					rrs.setHasAggrColumn(true);
+					havingColsName.add(item.getAlias());   // Added by winbill, 20160314, for having clause
+					havingColsName.add("");                // Added by winbill, 20160314, one alias for non-AVG
 				}
 			} else
 			{
@@ -198,6 +208,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			rrs.setGroupByCols(groupByCols);
 			rrs.setHavings(buildGroupByHaving(mysqlSelectQuery.getGroupBy().getHaving()));
 			rrs.setHasAggrColumn(true);
+			rrs.setHavingColsName(havingColsName.toArray()); // Added by winbill, 20160314, for having clause
 		}
 
 
@@ -286,7 +297,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 			//clear group having
 			SQLSelectGroupByClause groupByClause = mysqlSelectQuery.getGroupBy();
-			if(groupByClause != null && groupByClause.getHaving() != null){
+			// Modified by winbill, 20160614, do NOT include having clause when routing to multiple nodes
+			if(groupByClause != null && groupByClause.getHaving() != null && isRoutMultiNode(schema,rrs)){
 				groupByClause.setHaving(null);
 			}
 			
