@@ -151,6 +151,8 @@ public class MySQLConnection extends BackendAIOConnection {
 		this.isQuit = new AtomicBoolean(false);
 		this.autocommit = true;
 		this.fromSlaveDB = fromSlaveDB;
+		// 设为默认值，免得每个初始化好的连接都要去同步一下
+		this.txIsolation = MycatServer.getInstance().getConfig().getSystem().getTxIsolation();
 	}
 
 	public int getXaStatus() {
