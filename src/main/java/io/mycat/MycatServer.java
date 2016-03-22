@@ -57,7 +57,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class MycatServer {
 	public static final String NAME = "MyCat";
-	private static final long LOG_WATCH_DELAY = 60000L;
 	private static final long TIME_UPDATE_PERIOD = 20L;
 	private static final MycatServer INSTANCE = new MycatServer();
 	private static final Logger LOGGER = LoggerFactory.getLogger("MycatServer");
@@ -160,9 +159,9 @@ public class MycatServer {
 		int processorCount = system.getProcessors();
 
 		// server startup
-		LOGGER.info("===============================================");
-		LOGGER.info(NAME + " is ready to startup ...");
-		String inf = "Startup processors ...,total processors:"
+		LOGGER.info("=====================================================================");
+		LOGGER.info(NAME + " server is ready to startup ...");
+		/*String inf = "Startup processors ...,total processors:"
 				+ system.getProcessors() + ",aio thread pool size:"
 				+ system.getProcessorExecutor()
 				+ "    \r\n each process allocated socket buffer pool "
@@ -171,7 +170,7 @@ public class MycatServer {
 				+ "  buffer pool's capacity(buferPool/bufferChunk) is:"
 				+ system.getProcessorBufferPool()
 				/ system.getProcessorBufferChunk();
-		LOGGER.info(inf);
+		LOGGER.info(inf);*/
 		LOGGER.info("sysconfig params:" + system.toString());
 
 		int threadPoolSize = system.getProcessorExecutor();

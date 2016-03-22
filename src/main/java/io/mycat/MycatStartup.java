@@ -36,30 +36,25 @@ import java.util.Date;
 public final class MycatStartup {
 	private static final String dateFormat = "yyyy-MM-dd HH:mm:ss";
 
-	private static final class Holder {
-		private static final Logger LOGGER = LoggerFactory
-				.getLogger(MycatStartup.class);
-	}
+	private static final Logger LOGGER = LoggerFactory.getLogger(MycatStartup.class);
 
 	public static void main(String[] args) {
 		try {
 			String home = SystemConfig.getHomePath();
 			if (home == null) {
-				System.out.println(SystemConfig.SYS_HOME + "  is not set.");
+				LOGGER.info(SystemConfig.SYS_HOME + "  is not set.");
 				System.exit(-1);
 			}
-			// init
-			MycatServer server = MycatServer.getInstance();
-
-			// startup
-			server.startup();
-			System.out.println("MyCAT Server startup successfully. see logs in logs/mycat.log");
+			LOGGER.info("home value is : "+home);
+			// start mycat server
+			MycatServer.getInstance().startup();
+			LOGGER.info("MyCAT Server startup successfully. see logs in logs/mycat.log");
 			while (true) {
 				Thread.sleep(300 * 1000);
 			}
 		} catch (Exception e) {
 			SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
-			Holder.LOGGER.error(sdf.format(new Date()) + " startup error", e);
+			LOGGER.error(sdf.format(new Date()) + " startup error", e);
 			System.exit(-1);
 		}
 	}

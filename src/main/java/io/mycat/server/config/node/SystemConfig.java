@@ -43,8 +43,7 @@ public final class SystemConfig {
 	private static final String DEFAULT_SQL_PARSER = "fdbparser";// druidparser
 	private static final int DEFAULT_BUFFER_CHUNK_SIZE = 4096;
 	private int processorBufferLocalPercent;
-	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime()
-			.availableProcessors();
+	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime().availableProcessors();
 	private int frontSocketSoRcvbuf = 1024 * 1024;
 	private int frontSocketSoSndbuf = 4 * 1024 * 1024;
 	private int backSocketSoRcvbuf = 4 * 1024 * 1024;// mysql 5.6
@@ -100,8 +99,7 @@ public final class SystemConfig {
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "io.mycat.server.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";
-	private String sqlInterceptorFile = System.getProperty("user.dir")
-			+ "/logs/sql.txt";
+	private String sqlInterceptorFile = System.getProperty("user.dir") + "/logs/sql.txt";
 	public static final int MUTINODELIMIT_SMALL_DATA = 0;
 	public static final int MUTINODELIMIT_LAR_DATA = 1;
 	private int mutiNodeLimitType = MUTINODELIMIT_SMALL_DATA;
@@ -131,8 +129,7 @@ public final class SystemConfig {
 		this.processors = DEFAULT_PROCESSORS;
 
 		processorBufferChunk = DEFAULT_BUFFER_CHUNK_SIZE;
-		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2
-				: 4;
+		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2 : 4;
 		this.managerExecutor = 2;
 		processorBufferPool = DEFAULT_BUFFER_CHUNK_SIZE * processors * 1000;
 		this.processorBufferLocalPercent = 100;
@@ -218,24 +215,19 @@ public final class SystemConfig {
 
 	public static String getHomePath() {
 		String home = System.getProperty(SystemConfig.SYS_HOME);
-		if (home != null) {
-			if (home.endsWith(File.pathSeparator)) {
-				home = home.substring(0, home.length() - 1);
-				System.setProperty(SystemConfig.SYS_HOME, home);
-			}
+		if (home != null && File.pathSeparator.equals(home)) {
+			home = home.substring(0, home.length() - 1);
+			System.setProperty(SystemConfig.SYS_HOME, home);
 		}
-
 		// MYCAT_HOME为空，默认尝试设置为当前目录或上级目录。BEN
 		if (home == null) {
 			try {
-				String path = new File("..").getCanonicalPath().replaceAll(
-						"\\\\", "/");
+				String path = new File("..").getCanonicalPath().replaceAll("\\\\", "/");
 				File conf = new File(path + "/conf");
 				if (conf.exists() && conf.isDirectory()) {
 					home = path;
 				} else {
-					path = new File(".").getCanonicalPath().replaceAll("\\\\",
-							"/");
+					path = new File(".").getCanonicalPath().replaceAll("\\\\", "/");
 					conf = new File(path + "/conf");
 					if (conf.exists() && conf.isDirectory()) {
 						home = path;
@@ -246,7 +238,7 @@ public final class SystemConfig {
 					System.setProperty(SystemConfig.SYS_HOME, home);
 				}
 			} catch (IOException e) {
-				// 如出错，则忽略。
+				e.printStackTrace();
 			}
 		}
 
@@ -567,46 +559,28 @@ public final class SystemConfig {
 
 	@Override
 	public String toString() {
-		return "SystemConfig [processorBufferLocalPercent="
-				+ processorBufferLocalPercent + ", frontSocketSoRcvbuf="
-				+ frontSocketSoRcvbuf + ", frontSocketSoSndbuf="
-				+ frontSocketSoSndbuf + ", backSocketSoRcvbuf="
-				+ backSocketSoRcvbuf + ", backSocketSoSndbuf="
-				+ backSocketSoSndbuf + ", frontSocketNoDelay="
-				+ frontSocketNoDelay + ", backSocketNoDelay="
-				+ backSocketNoDelay + ", maxStringLiteralLength="
-				+ maxStringLiteralLength + ", frontWriteQueueSize="
-				+ frontWriteQueueSize + ", bindIp=" + bindIp + ", serverPort="
-				+ serverPort + ", managerPort=" + managerPort + ", charset="
-				+ charset + ", processors=" + processors
-				+ ", processorExecutor=" + processorExecutor
-				+ ", timerExecutor=" + timerExecutor + ", managerExecutor="
-				+ managerExecutor + ", idleTimeout=" + idleTimeout
-				+ ", catletClassCheckSeconds=" + catletClassCheckSeconds
-				+ ", sqlExecuteTimeout=" + sqlExecuteTimeout
-				+ ", processorCheckPeriod=" + processorCheckPeriod
-				+ ", dataNodeIdleCheckPeriod=" + dataNodeIdleCheckPeriod
-				+ ", dataNodeHeartbeatPeriod=" + dataNodeHeartbeatPeriod
-				+ ", clusterHeartbeatUser=" + clusterHeartbeatUser
-				+ ", clusterHeartbeatPass=" + clusterHeartbeatPass
-				+ ", clusterHeartbeatPeriod=" + clusterHeartbeatPeriod
-				+ ", clusterHeartbeatTimeout=" + clusterHeartbeatTimeout
-				+ ", clusterHeartbeatRetry=" + clusterHeartbeatRetry
-				+ ", txIsolation=" + txIsolation + ", parserCommentVersion="
-				+ parserCommentVersion + ", sqlRecordCount=" + sqlRecordCount
-				+ ", processorBufferPool=" + processorBufferPool
-				+ ", processorBufferChunk=" + processorBufferChunk
-				+ ", defaultMaxLimit=" + defaultMaxLimit
-				+ ", sequnceHandlerType=" + sequnceHandlerType
-				+ ", sqlInterceptor=" + sqlInterceptor
-				+ ", sqlInterceptorType=" + sqlInterceptorType
-				+ ", sqlInterceptorFile=" + sqlInterceptorFile
-				+ ", mutiNodeLimitType=" + mutiNodeLimitType
-				+ ", mutiNodePatchSize=" + mutiNodePatchSize
-				+ ", defaultSqlParser=" + defaultSqlParser + ", usingAIO="
-				+ usingAIO + ", packetHeaderSize=" + packetHeaderSize
-				+ ", maxPacketSize=" + maxPacketSize + ", mycatNodeId="
-				+ mycatNodeId + "]";
+		return "SystemConfig [processorBufferLocalPercent=" + processorBufferLocalPercent + ", frontSocketSoRcvbuf="
+				+ frontSocketSoRcvbuf + ", frontSocketSoSndbuf=" + frontSocketSoSndbuf + ", backSocketSoRcvbuf="
+				+ backSocketSoRcvbuf + ", backSocketSoSndbuf=" + backSocketSoSndbuf + ", frontSocketNoDelay="
+				+ frontSocketNoDelay + ", backSocketNoDelay=" + backSocketNoDelay + ", maxStringLiteralLength="
+				+ maxStringLiteralLength + ", frontWriteQueueSize=" + frontWriteQueueSize + ", bindIp=" + bindIp
+				+ ", serverPort=" + serverPort + ", managerPort=" + managerPort + ", charset=" + charset
+				+ ", processors=" + processors + ", processorExecutor=" + processorExecutor + ", timerExecutor="
+				+ timerExecutor + ", managerExecutor=" + managerExecutor + ", idleTimeout=" + idleTimeout
+				+ ", catletClassCheckSeconds=" + catletClassCheckSeconds + ", sqlExecuteTimeout=" + sqlExecuteTimeout
+				+ ", processorCheckPeriod=" + processorCheckPeriod + ", dataNodeIdleCheckPeriod="
+				+ dataNodeIdleCheckPeriod + ", dataNodeHeartbeatPeriod=" + dataNodeHeartbeatPeriod
+				+ ", clusterHeartbeatUser=" + clusterHeartbeatUser + ", clusterHeartbeatPass=" + clusterHeartbeatPass
+				+ ", clusterHeartbeatPeriod=" + clusterHeartbeatPeriod + ", clusterHeartbeatTimeout="
+				+ clusterHeartbeatTimeout + ", clusterHeartbeatRetry=" + clusterHeartbeatRetry + ", txIsolation="
+				+ txIsolation + ", parserCommentVersion=" + parserCommentVersion + ", sqlRecordCount=" + sqlRecordCount
+				+ ", processorBufferPool=" + processorBufferPool + ", processorBufferChunk=" + processorBufferChunk
+				+ ", defaultMaxLimit=" + defaultMaxLimit + ", sequnceHandlerType=" + sequnceHandlerType
+				+ ", sqlInterceptor=" + sqlInterceptor + ", sqlInterceptorType=" + sqlInterceptorType
+				+ ", sqlInterceptorFile=" + sqlInterceptorFile + ", mutiNodeLimitType=" + mutiNodeLimitType
+				+ ", mutiNodePatchSize=" + mutiNodePatchSize + ", defaultSqlParser=" + defaultSqlParser + ", usingAIO="
+				+ usingAIO + ", packetHeaderSize=" + packetHeaderSize + ", maxPacketSize=" + maxPacketSize
+				+ ", mycatNodeId=" + mycatNodeId + "]";
 	}
 
 }
