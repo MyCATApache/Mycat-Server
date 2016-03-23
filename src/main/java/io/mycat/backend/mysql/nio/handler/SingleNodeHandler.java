@@ -24,6 +24,7 @@
 package io.mycat.backend.mysql.nio.handler;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -36,7 +37,9 @@ import io.mycat.backend.mysql.LoadDataUtil;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
+import io.mycat.net.mysql.BinaryRowDataPacket;
 import io.mycat.net.mysql.ErrorPacket;
+import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultset;
@@ -52,7 +55,6 @@ import io.mycat.statistic.stat.QueryResultDispatcher;
 import io.mycat.util.StringUtil;
 
 import org.apache.log4j.Logger;
-
 /**
  * @author mycat
  */
@@ -71,6 +73,10 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private long startTime;
 	private long netInBytes;
 	private long netOutBytes;
+	
+	private boolean prepared;
+	private int fieldCount;
+	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
 
     private volatile boolean isDefaultNodeShowTable;
     private volatile boolean isDefaultNodeShowFullTable;
@@ -341,6 +347,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		for (int i = 0, len = fields.size(); i < len; ++i) {
 			byte[] field = fields.get(i);
 			field[3] = ++packetId;
+			
+			 // 保存field信息
+ 			FieldPacket fieldPk = new FieldPacket();
+ 			fieldPk.read(field);
+ 			fieldPackets.add(fieldPk);
+			
 			buffer = source.writeToBuffer(field, buffer);
 		}
 		eof[3] = ++packetId;
@@ -371,7 +383,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public void rowResponse(byte[] row, BackendConnection conn) {
 		
 		this.netOutBytes += row.length;
-
+		
 		if (isDefaultNodeShowTable || isDefaultNodeShowFullTable) {
 			RowDataPacket rowDataPacket = new RowDataPacket(1);
 			rowDataPacket.read(row);
@@ -380,7 +392,18 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 				return;
 		}
 		row[3] = ++packetId;
-		buffer = session.getSource().writeToBuffer(row, allocBuffer());
+		
+		if ( prepared ) {			
+			RowDataPacket rowDataPk = new RowDataPacket(fieldCount);
+			rowDataPk.read(row);			
+			BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+			binRowDataPk.read(fieldPackets, rowDataPk);
+			binRowDataPk.packetId = rowDataPk.packetId;
+			binRowDataPk.write(session.getSource());
+		} else {
+			buffer = session.getSource().writeToBuffer(row, allocBuffer());
+			//session.getSource().write(row);
+		}
 
 	}
 
@@ -408,11 +431,18 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
 		LoadDataUtil.requestFileDataResponse(data, conn);
 	}
+	
+	public boolean isPrepared() {
+		return prepared;
+	}
+
+	public void setPrepared(boolean prepared) {
+		this.prepared = prepared;
+	}
 
 	@Override
 	public String toString() {
-		return "SingleNodeHandler [node=" + node + ", packetId=" + packetId
-				+ "]";
+		return "SingleNodeHandler [node=" + node + ", packetId=" + packetId + "]";
 	}
 
 }

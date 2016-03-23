@@ -46,7 +46,6 @@ import io.mycat.backend.mysql.nio.handler.RollbackReleaseHandler;
 import io.mycat.backend.mysql.nio.handler.SingleNodeHandler;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.route.RouteResultset;
@@ -58,11 +57,12 @@ import io.mycat.server.sqlcmd.SQLCmdConstant;
  * @author mycat
  */
 public class NonBlockingSession implements Session {
-	public static final Logger LOGGER = Logger
-			.getLogger(NonBlockingSession.class);
+	
+	public static final Logger LOGGER = Logger.getLogger(NonBlockingSession.class);
 
 	private final ServerConnection source;
 	private final ConcurrentHashMap<RouteResultsetNode, BackendConnection> target;
+	
 	// life-cycle: each sql execution
 	private volatile SingleNodeHandler singleNodeHandler;
 	private volatile MultiNodeQueryHandler multiNodeHandler;
@@ -70,11 +70,12 @@ public class NonBlockingSession implements Session {
 	private final MultiNodeCoordinator multiNodeCoordinator;
 	private final CommitNodeHandler commitHandler;
 	private volatile String xaTXID;
+	
+	private boolean prepared;
 
 	public NonBlockingSession(ServerConnection source) {
 		this.source = source;
-		this.target = new ConcurrentHashMap<RouteResultsetNode, BackendConnection>(
-				2, 0.75f);
+		this.target = new ConcurrentHashMap<RouteResultsetNode, BackendConnection>(2, 0.75f);
 		multiNodeCoordinator = new MultiNodeCoordinator(this);
 		commitHandler = new CommitNodeHandler(this);
 	}
@@ -107,6 +108,7 @@ public class NonBlockingSession implements Session {
 
 	@Override
 	public void execute(RouteResultset rrs, int type) {
+		
 		// clear prev execute resources
 		clearHandlesResources();
 		if (LOGGER.isDebugEnabled()) {
@@ -116,35 +118,41 @@ public class NonBlockingSession implements Session {
 
 		// 检查路由结果是否为空
 		RouteResultsetNode[] nodes = rrs.getNodes();
-		if (nodes == null || nodes.length == 0 || nodes[0].getName() == null
-				|| nodes[0].getName().equals("")) {
+		if (nodes == null || nodes.length == 0 || nodes[0].getName() == null || nodes[0].getName().equals("")) {
 			source.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
-					"No dataNode found ,please check tables defined in schema:"
-							+ source.getSchema());
+					"No dataNode found ,please check tables defined in schema:" + source.getSchema());
 			return;
 		}
 		if (nodes.length == 1) {
 			singleNodeHandler = new SingleNodeHandler(rrs, this);
+			if( this.isPrepared() ) {
+				singleNodeHandler.setPrepared(true);
+			}
+			
 			try {
 				singleNodeHandler.execute();
 			} catch (Exception e) {
 				LOGGER.warn(new StringBuilder().append(source).append(rrs), e);
 				source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
 			}
+			
 		} else {
 			boolean autocommit = source.isAutocommit();
-			SystemConfig sysConfig = MycatServer.getInstance().getConfig()
-					.getSystem();
-			int mutiNodeLimitType = sysConfig.getMutiNodeLimitType();
-			multiNodeHandler = new MultiNodeQueryHandler(type, rrs, autocommit,
-					this);
-
+			multiNodeHandler = new MultiNodeQueryHandler(type, rrs, autocommit, this);
+			if(this.isPrepared()) {
+				multiNodeHandler.setPrepared(true);
+			}
+			
 			try {
 				multiNodeHandler.execute();
 			} catch (Exception e) {
 				LOGGER.warn(new StringBuilder().append(source).append(rrs), e);
 				source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
 			}
+		}
+		
+		if(this.isPrepared()) {
+			this.setPrepared(false);
 		}
 	}
 
@@ -415,11 +423,18 @@ public class NonBlockingSession implements Session {
 			xaTXID = genXATXID();
 
 		}
-
 	}
 
 	public String getXaTXID() {
 		return xaTXID;
+	}
+	
+	public boolean isPrepared() {
+		return prepared;
+	}
+
+	public void setPrepared(boolean prepared) {
+		this.prepared = prepared;
 	}
 
 }

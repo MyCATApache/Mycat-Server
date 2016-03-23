@@ -74,6 +74,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private long netInBytes;
 	private long netOutBytes;
 	private int execCount = 0;
+	
+	private boolean prepared;
+	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
 
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
@@ -347,8 +350,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 
 			for (int i = start; i < end; i++) {
 				RowDataPacket row = results.get(i);
-				row.packetId = ++packetId;
-				buffer = row.write(buffer, source, true);
+				if( prepared ) {
+					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+					binRowDataPk.read(fieldPackets, row);
+					binRowDataPk.packetId = ++packetId;
+					binRowDataPk.write(source);
+				} else {
+					row.packetId = ++packetId;
+					buffer = row.write(buffer, source, true);
+				}
 			}
 
 			eof[3] = ++packetId;
@@ -450,6 +460,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				if (needMerg) {
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
+					fieldPackets.add(fieldPkg);
 					String fieldName = new String(fieldPkg.name).toUpperCase();
 					if (columToIndx != null
 							&& !columToIndx.containsKey(fieldName)) {
@@ -473,6 +484,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 					// find primary key index
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
+					fieldPackets.add(fieldPkg);
 					String fieldName = new String(fieldPkg.name);
 					if (primaryKey.equalsIgnoreCase(fieldName)) {
 						primaryKeyIndex = i;
@@ -515,8 +527,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 		lock.lock();
 		try {
-			RouteResultsetNode rNode = (RouteResultsetNode) conn
-					.getAttachment();
+			RouteResultsetNode rNode = (RouteResultsetNode) conn.getAttachment();
 			String dataNode = rNode.getName();
 			if (dataMergeSvr != null) {
 				if (dataMergeSvr.onNewRecord(dataNode, row)) {
@@ -556,12 +567,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 
 	@Override
 	public void writeQueueAvailable() {
-
 	}
 
 	@Override
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
 		LoadDataUtil.requestFileDataResponse(data, conn);
+	}
+	
+	public boolean isPrepared() {
+		return prepared;
+	}
+
+	public void setPrepared(boolean prepared) {
+		this.prepared = prepared;
 	}
 
 }
