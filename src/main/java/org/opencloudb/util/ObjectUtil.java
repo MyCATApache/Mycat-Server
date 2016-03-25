@@ -32,6 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
@@ -44,6 +45,29 @@ import org.slf4j.LoggerFactory;
  */
 public final class ObjectUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectUtil.class);
+
+
+    public static Object getStaticFieldValue(String className,String fieldName)
+    {
+        Class clazz = null;
+        try
+        {
+            clazz = Class.forName(className);
+           Field field = clazz.getField(fieldName);
+             if(field!=null)return field.get(null);
+        } catch (ClassNotFoundException e)
+        {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e)
+        {
+            e.printStackTrace();
+        } catch (IllegalAccessException e)
+        {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     
 	public static Object copyObject(Object object) {
 		ByteArrayOutputStream b = new ByteArrayOutputStream();

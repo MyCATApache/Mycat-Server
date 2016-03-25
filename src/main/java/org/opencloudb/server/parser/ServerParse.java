@@ -59,6 +59,7 @@ public final class ServerParse {
     public static final int LOAD_DATA_INFILE_SQL = 99;
     public static final int DDL = 100;
     private static final  Pattern pattern = Pattern.compile("(load)+\\s+(data)+\\s+\\w*\\s*(infile)+",Pattern.CASE_INSENSITIVE);
+    private static final  Pattern callPattern = Pattern.compile("\\w*\\s*\\s+(call)+\\s+\\w*\\s*",Pattern.CASE_INSENSITIVE);
 
 	public static int parse(String stmt) {
 		int lenth = stmt.length();
@@ -653,6 +654,16 @@ public final class ServerParse {
 			case 'T':
 			case 't':
 				if (stmt.length() > ++offset) {
+//支持一下语句
+//  /*!mycat: sql=SELECT * FROM test where id=99 */set @pin=1;
+//                    call p_test(@pin,@pout);
+//                    select @pout;
+                    if(stmt.startsWith("/*!mycat:")||stmt.startsWith("/*#mycat:"))
+                    {
+                        Matcher matcher = callPattern.matcher(stmt);
+                        if (matcher.find()) return CALL;
+                    }
+
 					char c = stmt.charAt(offset);
 					if (c == ' ' || c == '\r' || c == '\n' || c == '\t'
 							|| c == '/' || c == '#') {
