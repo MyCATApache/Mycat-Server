@@ -113,7 +113,15 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 	}
 
 	public void connectionError(Throwable e, BackendConnection conn) {
-		boolean canClose = decrementCountBy(1);
+		final boolean canClose = decrementCountBy(1);
+		// 需要把Throwable e的错误信息保存下来（setFail()）， 否则会导致响应 
+		//null信息，结果mysql命令行等客户端查询结果是"Query OK"！！
+		// @author Uncle-pan
+		// @since 2016-03-26
+		if(canClose){
+			setFail("backend connect: "+e);
+		}
+		LOGGER.warn("backend connect", e);
 		this.tryErrorFinished(canClose);
 	}
 
