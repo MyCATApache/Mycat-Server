@@ -457,6 +457,8 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_TRANSACTIONS;
 		// flag |= ServerDefs.CLIENT_RESERVED;
 		flag |= Capabilities.CLIENT_SECURE_CONNECTION;
+        flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
+        flag |= Capabilities.CLIENT_MULTI_RESULTS;
 		return flag;
 	}
 

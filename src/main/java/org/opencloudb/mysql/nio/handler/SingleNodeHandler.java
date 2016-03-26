@@ -240,27 +240,36 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	@Override
 	public void okResponse(byte[] data, BackendConnection conn) {        
 		boolean executeResponse = conn.syncAndExcute();		
-		if (executeResponse) {			
-			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
-					false);
-			endRunning();
+		if (executeResponse) {
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
+            boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());
 			if (rrs.isLoadData()) {
 				byte lastPackId = source.getLoadDataInfileHandler()
 						.getLastPackId();
 				ok.packetId = ++lastPackId;// OK_PACKET
 				source.getLoadDataInfileHandler().clear();
-			} else {
+			} else if(isCanClose2Client)
+            {
 				ok.packetId = ++packetId;// OK_PACKET
 			}
+
+
+            if(isCanClose2Client)   {
+            session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
+                    false);
+            endRunning();
+            }
+
 			ok.serverStatus = source.isAutocommit() ? 2 : 1;
 
 			recycleResources();
-			source.setLastInsertId(ok.insertId);
-			ok.write(source);
-			
+
+            if(isCanClose2Client)
+            {  source.setLastInsertId(ok.insertId);
+                ok.write(source);
+            }
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
@@ -270,14 +279,15 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		}
 	}
 
+
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		ServerConnection source = session.getSource();
 		conn.recordSql(source.getHost(), source.getSchema(),
                 node.getStatement());
-
-		// 判断是调用存储过程的话不能在这里释放链接
-		if (!rrs.isCallStatement()) {
+        // 判断是调用存储过程的话不能在这里释放链接
+		if (!rrs.isCallStatement()||(rrs.isCallStatement()&&rrs.getProcedure().isResultSimpleValue()))
+        {
 			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
 					false);
 			endRunning();
@@ -286,6 +296,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, allocBuffer());
 		source.write(buffer);
+
 	}
 
 	/**
@@ -351,7 +362,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
             String table=  StringUtil.decode(rowDataPacket.fieldValues.get(0),conn.getCharset());
             if(shardingTablesSet.contains(table.toUpperCase())) return;
         }
-
+        RowDataPacket rowDataPacket =new RowDataPacket(1);
+        rowDataPacket.read(row);
             row[3] = ++packetId;
             buffer = session.getSource().writeToBuffer(row, allocBuffer());
 

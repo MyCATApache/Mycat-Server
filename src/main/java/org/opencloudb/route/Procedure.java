@@ -4,6 +4,30 @@ import java.util.*;
 
 /**
  * Created by magicdoom on 2016/3/24.
+ *
+ *
+ * 1.no return
+
+ ok
+
+
+ 2.simple
+
+ ok
+ row
+ eof
+
+
+ 3.list
+
+
+ row
+ row
+ row
+ row
+ eof
+ ok
+
  */
 public class Procedure
 {
@@ -19,7 +43,14 @@ public class Procedure
     {
         return isResultList;
     }
-
+    public boolean isResultSimpleValue()
+    {
+        return selectSql!=null&&!isResultList;
+    }
+    public boolean isResultNothing()
+    {
+        return selectSql==null&&!isResultList;
+    }
     public void setResultList(boolean resultList)
     {
         isResultList = resultList;

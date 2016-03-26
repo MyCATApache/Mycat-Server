@@ -303,8 +303,9 @@ public class JDBCConnection implements BackendConnection {
 				con.setAutoCommit(autocommit);
 			}
 			int sqlType = rrn.getSqlType();
-             if(rrn.isCallStatement())
+             if(rrn.isCallStatement()&&"oracle".equalsIgnoreCase(getDbType()))
              {
+                 //存储过程暂时只支持oracle
                  ouputCallStatement(rrn,sc,orgin);
              }  else
 			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
@@ -406,10 +407,11 @@ public class JDBCConnection implements BackendConnection {
 
             for (ProcedureParameter paramter : paramters)
             {
-                if(paramter.getValue()!=null&&(ProcedureParameter.IN.equalsIgnoreCase(paramter.getParameterType())
+                if((ProcedureParameter.IN.equalsIgnoreCase(paramter.getParameterType())
                         ||ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType())))
                 {
-                    stmt.setObject(paramter.getIndex(),paramter.getValue());
+                  Object value=  paramter.getValue()!=null ?paramter.getValue():paramter.getName();
+                    stmt.setObject(paramter.getIndex(),value);
                 }
 
                 if(ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())
@@ -525,12 +527,25 @@ public class JDBCConnection implements BackendConnection {
 			// end row
 			eofPckg = new EOFPacket();
 			eofPckg.packetId = ++packetId;
+            if(procedure.isResultList())
+            {
+                eofPckg.status = 42;
+            }
 			byteBuf = eofPckg.write(byteBuf, sc, false);
 			byteBuf.flip();
 			eof = new byte[byteBuf.limit()];
 			byteBuf.get(eof);
-			sc.recycle(byteBuf);
+            byteBuf.clear();
 			this.respHandler.rowEofResponse(eof, this);
+
+            if(procedure.isResultList())
+            {
+                byte[] OK = new byte[] { 7, 0, 0, 1, 0, 0, 0, 2, 0, 0,
+                        0 };
+                OK[3]=++packetId;
+                this.respHandler.okResponse(OK,this);
+            }
+            sc.recycle(byteBuf);
 		} finally {
             if (rs != null) {
                 try {
@@ -549,108 +564,7 @@ public class JDBCConnection implements BackendConnection {
 		}
 	}
 
-    private void ouputCallStatementResltSet(RouteResultsetNode rrn,ServerConnection sc, String sql)
-            throws SQLException {
 
-        CallableStatement stmt = null;
-        ResultSet rs = null;
-        try {
-            Procedure procedure = rrn.getProcedure();
-            StringBuilder sb=new StringBuilder();
-            sb.append("{")  ;
-            sb.append(procedure.getName()).append("(") ;
-
-            for (int i = 0; i< procedure.getParamterMap().size(); i++)
-            {
-                String joinStr=  i==procedure.getParamterMap().size()-1?"?":"?," ;
-                sb.append(joinStr);
-            }
-            sb.append(")}")  ;
-            stmt = con.prepareCall(sb.toString());
-            stmt.execute();
-
-            List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-
-            ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
-                    this.isSpark);
-            int colunmCount = fieldPks.size();
-            ByteBuffer byteBuf = sc.allocate();
-            ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-            headerPkg.fieldCount = fieldPks.size();
-            headerPkg.packetId = ++packetId;
-
-            byteBuf = headerPkg.write(byteBuf, sc, true);
-            byteBuf.flip();
-            byte[] header = new byte[byteBuf.limit()];
-            byteBuf.get(header);
-            byteBuf.clear();
-
-
-            List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
-            Iterator<FieldPacket> itor = fieldPks.iterator();
-            while (itor.hasNext()) {
-                FieldPacket curField = itor.next();
-                curField.packetId = ++packetId;
-                byteBuf = curField.write(byteBuf, sc, false);
-                byteBuf.flip();
-                byte[] field = new byte[byteBuf.limit()];
-                byteBuf.get(field);
-                byteBuf.clear();
-                fields.add(field);
-                itor.remove();
-            }
-            EOFPacket eofPckg = new EOFPacket();
-            eofPckg.packetId = ++packetId;
-            byteBuf = eofPckg.write(byteBuf, sc, false);
-            byteBuf.flip();
-            byte[] eof = new byte[byteBuf.limit()];
-            byteBuf.get(eof);
-            byteBuf.clear();
-            this.respHandler.fieldEofResponse(header, fields, eof, this);
-
-            // output row
-            while (rs.next()) {
-                RowDataPacket curRow = new RowDataPacket(colunmCount);
-                for (int i = 0; i < colunmCount; i++) {
-                    int j = i + 1;
-                    curRow.add(StringUtil.encode(rs.getString(j),
-                            sc.getCharset()));
-                }
-                curRow.packetId = ++packetId;
-                byteBuf = curRow.write(byteBuf, sc, false);
-                byteBuf.flip();
-                byte[] row = new byte[byteBuf.limit()];
-                byteBuf.get(row);
-                byteBuf.clear();
-                this.respHandler.rowResponse(row, this);
-            }
-
-            // end row
-            eofPckg = new EOFPacket();
-            eofPckg.packetId = ++packetId;
-            byteBuf = eofPckg.write(byteBuf, sc, false);
-            byteBuf.flip();
-            eof = new byte[byteBuf.limit()];
-            byteBuf.get(eof);
-            sc.recycle(byteBuf);
-            this.respHandler.rowEofResponse(eof, this);
-        } finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException e) {
-
-                }
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException e) {
-
-                }
-            }
-        }
-    }
     private void ouputResultSet(ServerConnection sc, String sql)
             throws SQLException {
         ResultSet rs = null;

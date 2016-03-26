@@ -60,10 +60,13 @@ public class HintSQLHandler implements HintHandler {
 			rrs.setCallStatement(true);
 
              Procedure procedure=parseProcedure(realSQL,hintMap);
+            rrs.setProcedure(procedure);
+            String sql=procedure.isResultList()?procedure.getCallSql():realSQL;
             for (RouteResultsetNode node : rrs.getNodes())
             {
                 node.setProcedure(procedure);
                 node.setHintMap(hintMap);
+                node.setStatement(sql);
             }
 
 		}
