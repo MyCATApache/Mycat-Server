@@ -128,7 +128,7 @@ public class Procedure
         this.selectSql = selectSql;
     }
 
-    private Map<String,ProcedureParameter> paramterMap=new HashMap<>();
+    private Map<String,ProcedureParameter> paramterMap=new LinkedHashMap<>();
 
     public String getOriginSql()
     {
