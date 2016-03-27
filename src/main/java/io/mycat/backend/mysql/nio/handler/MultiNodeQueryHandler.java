@@ -276,7 +276,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		this.netOutBytes += eof.length;
 		
 		if (errorRepsponsed.get()) {
-			conn.close(this.error);
+			// the connection has been closed or set to "txInterrupt" properly
+			//in tryErrorFinished() method! If we close it here, it can
+			// lead to tx error such as blocking rollback tx for ever.
+			// @author Uncle-pan
+			// @since 2016-03-25
+			// conn.close(this.error);
 			return;
 		}
 
@@ -522,7 +527,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
 		if (errorRepsponsed.get()) {
-			conn.close(error);
+			// the connection has been closed or set to "txInterrupt" properly
+			//in tryErrorFinished() method! If we close it here, it can
+			// lead to tx error such as blocking rollback tx for ever.
+			// @author Uncle-pan
+			// @since 2016-03-25
+			//conn.close(error);
 			return;
 		}
 		lock.lock();
@@ -530,12 +540,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			RouteResultsetNode rNode = (RouteResultsetNode) conn.getAttachment();
 			String dataNode = rNode.getName();
 			if (dataMergeSvr != null) {
-				if (dataMergeSvr.onNewRecord(dataNode, row)) {
-					isClosedByDiscard.set(true);
-					// canClose(conn, false);
-					// conn.discardClose("discard data");
-					// LOGGER.warn(conn);
-				}
+				// even through discarding the all rest data, we can't
+				//close the connection for tx control such as rollback or commit.
+				// So the "isClosedByDiscard" variable is unnecessary.
+				// @author Uncle-pan
+				// @since 2016-03-25
+				dataMergeSvr.onNewRecord(dataNode, row);
 			} else {
 				// cache primaryKey-> dataNode
 				if (primaryKeyIndex != -1) {
