@@ -1,5 +1,8 @@
 package org.opencloudb.route;
 
+import com.google.common.base.*;
+
+import java.sql.Types;
 import java.util.*;
 
 /**
@@ -65,7 +68,7 @@ public class Procedure
         int j=0;
         for (ProcedureParameter paramter : paramters)
         {
-           // String name=ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())?paramter.getName():"?";
+
             String name="?";
             String joinStr=  j==this.getParamterMap().size()-1?name:name+"," ;
             sb.append(joinStr);
@@ -74,6 +77,31 @@ public class Procedure
         sb.append(")}")  ;
         return sb.toString();
     }
+
+    public String toChangeCallSql(String dbType)
+    {
+        StringBuilder sb=new StringBuilder();
+        sb.append("call ")  ;
+        sb.append(this.getName()).append("(") ;
+        Collection<ProcedureParameter> paramters=    this.getParamterMap().values();
+        int j=0;
+        for (ProcedureParameter paramter : paramters)
+        {
+            Object value=paramter.getValue()!=null&& Types.VARCHAR==paramter.getJdbcType() ?"'"+paramter.getValue()+"'":paramter.getValue();
+             String name=paramter.getValue()==null?paramter.getName():String.valueOf(value);
+            String joinStr=  j==this.getParamterMap().size()-1?name:name+"," ;
+            sb.append(joinStr);
+            j++;
+        }
+        sb.append(")")  ;
+        if(isResultSimpleValue())
+        {
+            sb.append(";select ");
+          sb.append(  Joiner.on(",").join(selectColumns)  );
+        }
+        return sb.toString();
+    }
+
 
     public Set<String> getSelectColumns()
     {

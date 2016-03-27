@@ -59,7 +59,7 @@ public final class ServerParse {
     public static final int LOAD_DATA_INFILE_SQL = 99;
     public static final int DDL = 100;
     private static final  Pattern pattern = Pattern.compile("(load)+\\s+(data)+\\s+\\w*\\s*(infile)+",Pattern.CASE_INSENSITIVE);
-    private static final  Pattern callPattern = Pattern.compile("\\w*\\s*\\s+(call)+\\s+\\w*\\s*",Pattern.CASE_INSENSITIVE);
+    private static final  Pattern callPattern = Pattern.compile("\\w*\\;\\s*\\s*(call)+\\s+\\w*\\s*",Pattern.CASE_INSENSITIVE);
 
 	public static int parse(String stmt) {
 		int lenth = stmt.length();

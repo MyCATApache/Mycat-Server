@@ -61,7 +61,7 @@ public class HintSQLHandler implements HintHandler {
 
              Procedure procedure=parseProcedure(realSQL,hintMap);
             rrs.setProcedure(procedure);
-            String sql=procedure.isResultList()?procedure.getCallSql():realSQL;
+            String sql=procedure.toChangeCallSql(null);
             for (RouteResultsetNode node : rrs.getNodes())
             {
                 node.setProcedure(procedure);
@@ -75,17 +75,8 @@ public class HintSQLHandler implements HintHandler {
 	}
 
 
-    public static void main(String[] args)
-    {
 
-        String sql=" \n  set @pin=1,testin=123.005,teststr='11111aaaa',datestr='2016-01-02 10:03:23' ;\ncall p_test(123,'abc',@pin,@pout,out2);\nselect @pout,out2,xxx";
-        Procedure procedure=     parseProcedure(sql,new HashMap());
-
-        System.out.println();
-
-    }
-
-    private  static Procedure parseProcedure(String sql,Map hintMap)
+    private   Procedure parseProcedure(String sql,Map hintMap)
     {
         boolean isResultList= hintMap != null && "list".equals(hintMap.get("result_type"));
         Procedure procedure=new Procedure();
