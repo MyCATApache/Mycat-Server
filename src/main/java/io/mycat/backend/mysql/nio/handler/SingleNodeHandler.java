@@ -24,6 +24,7 @@
 package io.mycat.backend.mysql.nio.handler;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -36,7 +37,9 @@ import io.mycat.backend.mysql.LoadDataUtil;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
+import io.mycat.net.mysql.BinaryRowDataPacket;
 import io.mycat.net.mysql.ErrorPacket;
+import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultset;
@@ -52,7 +55,6 @@ import io.mycat.statistic.stat.QueryResultDispatcher;
 import io.mycat.util.StringUtil;
 
 import org.apache.log4j.Logger;
-
 /**
  * @author mycat
  */
@@ -69,6 +71,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private volatile boolean isRunning;
 	private Runnable terminateCallBack;
 	private long startTime;
+	private long netInBytes;
+	private long netOutBytes;
+	
+	private boolean prepared;
+	private int fieldCount;
+	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
 
     private volatile boolean isDefaultNodeShowTable;
     private volatile boolean isDefaultNodeShowFullTable;
@@ -77,31 +85,34 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public SingleNodeHandler(RouteResultset rrs, NonBlockingSession session) {
 		this.rrs = rrs;
 		this.node = rrs.getNodes()[0];
+		
 		if (node == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
+		
 		if (session == null) {
 			throw new IllegalArgumentException("session is null!");
 		}
+		
 		this.session = session;
-        ServerConnection source = session.getSource();
-        String schema=source.getSchema();
-        if(schema!=null&&ServerParse.SHOW==rrs.getSqlType())
-        {
-            SchemaConfig schemaConfig= MycatServer.getInstance().getConfig().getSchemas().get(schema);
-           int type= ServerParseShow.tableCheck(rrs.getStatement(),0) ;
-            isDefaultNodeShowTable=(ServerParseShow.TABLES==type &&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
-            isDefaultNodeShowFullTable=(ServerParseShow.FULLTABLES==type &&!Strings.isNullOrEmpty(schemaConfig.getDataNode()));
-
-            if(isDefaultNodeShowTable)
-            {
-                shardingTablesSet = ShowTables.getTableSet(source, rrs.getStatement());
-            } else
-            if(isDefaultNodeShowFullTable)
-            {
-                shardingTablesSet = ShowFullTables.getTableSet(source, rrs.getStatement());
-            }
-        }
+		ServerConnection source = session.getSource();
+		String schema = source.getSchema();
+		if (schema != null && ServerParse.SHOW == rrs.getSqlType()) {
+			SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(schema);
+			int type = ServerParseShow.tableCheck(rrs.getStatement(), 0);
+			isDefaultNodeShowTable = (ServerParseShow.TABLES == type && !Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+			isDefaultNodeShowFullTable = (ServerParseShow.FULLTABLES == type && !Strings.isNullOrEmpty(schemaConfig.getDataNode()));
+			if (isDefaultNodeShowTable) {
+				shardingTablesSet = ShowTables.getTableSet(source, rrs.getStatement());
+				
+			} else if (isDefaultNodeShowFullTable) {
+				shardingTablesSet = ShowFullTables.getTableSet(source, rrs.getStatement());
+			}
+		}
+        
+		if ( rrs != null && rrs.getStatement() != null)
+			netInBytes += rrs.getStatement().getBytes().length;
+        
 	}
 
 	@Override
@@ -246,7 +257,10 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 
 	@Override
-	public void okResponse(byte[] data, BackendConnection conn) {        
+	public void okResponse(byte[] data, BackendConnection conn) {      
+		//
+		this.netOutBytes += data.length;
+		
 		boolean executeResponse = conn.syncAndExcute();		
 		if (executeResponse) {			
 			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
@@ -272,7 +286,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
+					rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
 			QueryResultDispatcher.dispatchQuery( queryResult );
  
 		}
@@ -280,6 +294,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
+		
+		this.netOutBytes += eof.length;
+		
 		ServerConnection source = session.getSource();
 		conn.recordSql(source.getHost(), source.getSchema(),
                 node.getStatement());
@@ -294,6 +311,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, allocBuffer());
 		source.write(buffer);
+		
+		//TODO: add by zhuam
+		//查询结果派发
+		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+				rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
+		QueryResultDispatcher.dispatchQuery( queryResult );
 	}
 
 	/**
@@ -312,56 +335,75 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
 		
-		
-			//TODO: add by zhuam
-			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
-			QueryResultDispatcher.dispatchQuery( queryResult );
+		this.netOutBytes += header.length;
+		for (int i = 0, len = fields.size(); i < len; ++i) {
+			byte[] field = fields.get(i);
+			this.netOutBytes += field.length;
+		}
 
-            header[3] = ++packetId;
-            ServerConnection source = session.getSource();
-            buffer = source.writeToBuffer(header, allocBuffer());
-            for (int i = 0, len = fields.size(); i < len; ++i)
-            {
-                byte[] field = fields.get(i);
-                field[3] = ++packetId;
-                buffer = source.writeToBuffer(field, buffer);
-            }
-            eof[3] = ++packetId;
-            buffer = source.writeToBuffer(eof, buffer);
-            
-			if (isDefaultNodeShowTable) {
-				for (String name : shardingTablesSet) {
-					RowDataPacket row = new RowDataPacket(1);
-					row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
-					row.packetId = ++packetId;
-					buffer = row.write(buffer, source, true);
-				}
-			}  else
-            if (isDefaultNodeShowFullTable) {
-                for (String name : shardingTablesSet) {
-                    RowDataPacket row = new RowDataPacket(1);
-                    row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
-                    row.add(StringUtil.encode("BASE TABLE", source.getCharset()));
-                    row.packetId = ++packetId;
-                    buffer = row.write(buffer, source, true);
-                }
-            }
+		header[3] = ++packetId;
+		ServerConnection source = session.getSource();
+		buffer = source.writeToBuffer(header, allocBuffer());
+		for (int i = 0, len = fields.size(); i < len; ++i) {
+			byte[] field = fields.get(i);
+			field[3] = ++packetId;
+			
+			 // 保存field信息
+ 			FieldPacket fieldPk = new FieldPacket();
+ 			fieldPk.read(field);
+ 			fieldPackets.add(fieldPk);
+			
+			buffer = source.writeToBuffer(field, buffer);
+		}
+		eof[3] = ++packetId;
+		buffer = source.writeToBuffer(eof, buffer);
+
+		if (isDefaultNodeShowTable) {
+			
+			for (String name : shardingTablesSet) {
+				RowDataPacket row = new RowDataPacket(1);
+				row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
+				row.packetId = ++packetId;
+				buffer = row.write(buffer, source, true);
+			}
+			
+		} else if (isDefaultNodeShowFullTable) {
+			
+			for (String name : shardingTablesSet) {
+				RowDataPacket row = new RowDataPacket(1);
+				row.add(StringUtil.encode(name.toLowerCase(), source.getCharset()));
+				row.add(StringUtil.encode("BASE TABLE", source.getCharset()));
+				row.packetId = ++packetId;
+				buffer = row.write(buffer, source, true);
+			}
+		}
 	}
 
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
-        if(isDefaultNodeShowTable||isDefaultNodeShowFullTable)
-        {
-            RowDataPacket rowDataPacket =new RowDataPacket(1);
-            rowDataPacket.read(row);
-            String table=  StringUtil.decode(rowDataPacket.fieldValues.get(0),conn.getCharset());
-            if(shardingTablesSet.contains(table.toUpperCase())) return;
-        }
-
-            row[3] = ++packetId;
-            buffer = session.getSource().writeToBuffer(row, allocBuffer());
+		
+		this.netOutBytes += row.length;
+		
+		if (isDefaultNodeShowTable || isDefaultNodeShowFullTable) {
+			RowDataPacket rowDataPacket = new RowDataPacket(1);
+			rowDataPacket.read(row);
+			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), conn.getCharset());
+			if (shardingTablesSet.contains(table.toUpperCase()))
+				return;
+		}
+		row[3] = ++packetId;
+		
+		if ( prepared ) {			
+			RowDataPacket rowDataPk = new RowDataPacket(fieldCount);
+			rowDataPk.read(row);			
+			BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+			binRowDataPk.read(fieldPackets, rowDataPk);
+			binRowDataPk.packetId = rowDataPk.packetId;
+			binRowDataPk.write(session.getSource());
+		} else {
+			buffer = session.getSource().writeToBuffer(row, allocBuffer());
+			//session.getSource().write(row);
+		}
 
 	}
 
@@ -389,11 +431,18 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
 		LoadDataUtil.requestFileDataResponse(data, conn);
 	}
+	
+	public boolean isPrepared() {
+		return prepared;
+	}
+
+	public void setPrepared(boolean prepared) {
+		this.prepared = prepared;
+	}
 
 	@Override
 	public String toString() {
-		return "SingleNodeHandler [node=" + node + ", packetId=" + packetId
-				+ "]";
+		return "SingleNodeHandler [node=" + node + ", packetId=" + packetId + "]";
 	}
 
 }
