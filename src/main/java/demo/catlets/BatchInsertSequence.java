@@ -1,6 +1,6 @@
 package demo.catlets;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
@@ -34,7 +34,7 @@ import io.mycat.util.StringUtil;
  * @date 2015/03/20
  */
 public class BatchInsertSequence implements Catlet {
-	private static final Logger LOGGER = Logger.getLogger(BatchInsertSequence.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(BatchInsertSequence.class);
 	
 	private RouteResultset rrs;//路由结果集
 	private String executeSql;//接收执行处理任务的sql

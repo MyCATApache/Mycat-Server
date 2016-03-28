@@ -22,8 +22,8 @@
  *
  */
 package io.mycat.manager;
-
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.handler.ClearHandler;
@@ -46,7 +46,7 @@ import io.mycat.route.parser.ManagerParse;
  * @author mycat
  */
 public class ManagerQueryHandler implements FrontendQueryHandler {
-    private static final Logger     LOGGER = Logger.getLogger(ManagerQueryHandler.class);
+    private static final Logger     LOGGER = LoggerFactory.getLogger(ManagerQueryHandler.class);
     private static final int        SHIFT  = 8;
     private final ManagerConnection source;
     protected Boolean               readOnly;

@@ -221,11 +221,17 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         } else if(tableStats.size() == 0) {//一个表都没有，返回空串
             return "";
         } else {//多个表名
-            for(Column col : columns) {//从columns中找表名
+            for (Column col : columns.keySet())
+            {
                 if(col.getName().equals(column)) {
                     return col.getTable();
                 }
             }
+//            for(Column col : columns) {//从columns中找表名
+//                if(col.getName().equals(column)) {
+//                    return col.getTable();
+//                }
+//            }
 
             //前面没找到表名的，自己从parent中解析
 

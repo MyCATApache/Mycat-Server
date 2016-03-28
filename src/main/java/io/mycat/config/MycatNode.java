@@ -23,7 +23,7 @@
  */
 package io.mycat.config;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.model.MycatNodeConfig;
 
@@ -31,7 +31,7 @@ import io.mycat.config.model.MycatNodeConfig;
  * @author mycat
  */
 public class MycatNode {
-	private static final Logger LOGGER = Logger.getLogger(MycatNode.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(MycatNode.class);
 
 	private final String name;
 	private final MycatNodeConfig config;

@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 /**
  * cache service for other component default using memory cache encache
@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class CacheService {
-	private static final Logger logger = Logger.getLogger(CacheService.class);
+	private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
 	private final Map<String, CachePoolFactory> poolFactorys = new HashMap<String, CachePoolFactory>();
 	private final Map<String, CachePool> allPools = new HashMap<String, CachePool>();

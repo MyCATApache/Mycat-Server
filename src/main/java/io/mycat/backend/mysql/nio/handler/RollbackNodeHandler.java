@@ -25,7 +25,7 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.route.RouteResultsetNode;
@@ -35,7 +35,7 @@ import io.mycat.server.NonBlockingSession;
  * @author mycat
  */
 public class RollbackNodeHandler extends MultiNodeHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(RollbackNodeHandler.class);
 
 	public RollbackNodeHandler(NonBlockingSession session) {

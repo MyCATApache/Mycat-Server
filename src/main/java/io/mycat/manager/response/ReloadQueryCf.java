@@ -1,7 +1,7 @@
 package io.mycat.manager.response;
 
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.mysql.OkPacket;
@@ -9,7 +9,7 @@ import io.mycat.statistic.stat.QueryConditionAnalyzer;
 
 public class ReloadQueryCf {
 	
-	private static final Logger logger = Logger.getLogger(ReloadSqlSlowTime.class);
+	private static final Logger logger = LoggerFactory.getLogger(ReloadSqlSlowTime.class);
 
     public static void execute(ManagerConnection c, String cf) {
     	

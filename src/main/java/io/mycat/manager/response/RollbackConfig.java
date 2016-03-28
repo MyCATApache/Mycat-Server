@@ -26,7 +26,7 @@ package io.mycat.manager.response;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
@@ -44,7 +44,7 @@ import io.mycat.net.mysql.OkPacket;
  * @author mycat
  */
 public final class RollbackConfig {
-	private static final Logger LOGGER = Logger.getLogger(RollbackConfig.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(RollbackConfig.class);
 
 	public static void execute(ManagerConnection c) {
 		final ReentrantLock lock = MycatServer.getInstance().getConfig()

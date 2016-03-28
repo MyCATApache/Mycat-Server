@@ -32,7 +32,7 @@ import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -44,7 +44,7 @@ import io.mycat.config.model.DataHostConfig;
 
 public class PhysicalDBPool {
 	
-	protected static final Logger LOGGER = Logger.getLogger(PhysicalDBPool.class);
+	protected static final Logger LOGGER = LoggerFactory.getLogger(PhysicalDBPool.class);
 	
 	public static final int BALANCE_NONE = 0;
 	public static final int BALANCE_ALL_BACK = 1;

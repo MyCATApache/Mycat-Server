@@ -2,7 +2,7 @@ package io.mycat.sqlengine;
 
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -22,7 +22,7 @@ import io.mycat.server.parser.ServerParse;
  */
 public class SQLJob implements ResponseHandler, Runnable {
 	
-	public static final Logger LOGGER = Logger.getLogger(SQLJob.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(SQLJob.class);
 	
 	private final String sql;
 	private final String dataNodeOrDatabase;

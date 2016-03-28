@@ -25,7 +25,7 @@ package io.mycat.manager.response;
 
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -43,7 +43,7 @@ import io.mycat.util.TimeUtil;
  */
 public final class StopHeartbeat {
 
-    private static final Logger logger = Logger.getLogger(StopHeartbeat.class);
+    private static final Logger logger = LoggerFactory.getLogger(StopHeartbeat.class);
 
     public static void execute(String stmt, ManagerConnection c) {
         int count = 0;
@@ -58,7 +58,7 @@ public final class StopHeartbeat {
                     ++count;
                     StringBuilder s = new StringBuilder();
                     s.append(dn.getHostName()).append(" stop heartbeat '");
-                    logger.warn(s.append(FormatUtil.formatTime(time, 3)).append("' by manager."));
+                    logger.warn(s.append(FormatUtil.formatTime(time, 3)).append("' by manager.").toString());
                 }
             }
         }

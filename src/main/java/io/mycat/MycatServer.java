@@ -42,7 +42,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.buffer.BufferPool;
 import io.mycat.cache.CacheService;
-import io.mycat.config.Log4jInitializer;
+
 import io.mycat.config.MycatConfig;
 import io.mycat.config.ZkConfig;
 import io.mycat.config.classloader.DynaClassLoader;
@@ -65,7 +65,7 @@ import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
@@ -75,7 +75,7 @@ public class MycatServer {
 	private static final long LOG_WATCH_DELAY = 60000L;
 	private static final long TIME_UPDATE_PERIOD = 20L;
 	private static final MycatServer INSTANCE = new MycatServer();
-	private static final Logger LOGGER = Logger.getLogger("MycatServer");
+	private static final Logger LOGGER = LoggerFactory.getLogger("MycatServer");
 	private final RouteService routerService;
 	private final CacheService cacheService;
 	private Properties dnIndexProperties;
@@ -187,7 +187,7 @@ public class MycatServer {
 
 	public void beforeStart() {
 		String home = SystemConfig.getHomePath();
-		Log4jInitializer.configureAndWatch(home + "/conf/log4j.xml", LOG_WATCH_DELAY);
+
 		
 		//ZkConfig.instance().initZk();
 	}
@@ -358,7 +358,7 @@ public class MycatServer {
 	/**
 	 * save cur datanode index to properties file
 	 * 
-	 * @param dataNode
+	 * @param
 	 * @param curIndex
 	 */
 	public synchronized void saveDataHostIndex(String dataHost, int curIndex) {

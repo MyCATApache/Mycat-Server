@@ -27,7 +27,7 @@ import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.SecurityUtil;
@@ -47,7 +47,7 @@ import io.mycat.net.mysql.QuitPacket;
  */
 public class FrontendAuthenticator implements NIOHandler {
 	
-    private static final Logger LOGGER = Logger.getLogger(FrontendAuthenticator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FrontendAuthenticator.class);
     private static final byte[] AUTH_OK = new byte[] { 7, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0 };
     
     protected final FrontendConnection source;

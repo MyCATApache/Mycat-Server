@@ -25,7 +25,7 @@ package io.mycat.config;
 
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.config.model.UserConfig;
@@ -40,7 +40,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 	 */
 	private static MycatPrivileges instance = new MycatPrivileges();
 	
-    private static final Logger ALARM = Logger.getLogger("alarm");
+    private static final Logger ALARM = LoggerFactory.getLogger("alarm");
 
     public static MycatPrivileges instance() {
     	return instance;

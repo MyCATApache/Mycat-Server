@@ -29,7 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.TimeUtil;
@@ -43,7 +43,7 @@ public class DataSourceSyncRecorder {
 
     private Map<String, String> records;
     private final List<Record> asynRecords;//value,time
-	private static final Logger LOGGER = Logger.getLogger("DataSourceSyncRecorder");
+	private static final Logger LOGGER = LoggerFactory.getLogger("DataSourceSyncRecorder");
 
     
     private static final long SWAP_TIME = 24 * 60 * 60 * 1000L;

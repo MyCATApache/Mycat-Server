@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
@@ -31,7 +31,7 @@ import io.mycat.util.StringUtil;
  *
  */
 public class DefaultDruidParser implements DruidParser {
-	protected static final Logger LOGGER = Logger.getLogger(DefaultDruidParser.class);
+	protected static final Logger LOGGER = LoggerFactory.getLogger(DefaultDruidParser.class);
 	/**
 	 * 解析得到的结果
 	 */
@@ -122,7 +122,7 @@ public class DefaultDruidParser implements DruidParser {
 					}
 				}
 				
-				if(key.equals(value)) {
+				if(key.equalsIgnoreCase(value)) {
 					ctx.addTable(key.toUpperCase());
 				} 
 //				else {

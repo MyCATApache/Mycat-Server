@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.BufferUtil;
@@ -81,7 +81,7 @@ public class DataMergeService implements Runnable {
 	private MultiNodeQueryHandler multiQueryHandler;
 	public PackWraper END_FLAG_PACK = new PackWraper();
 	private List<RowDataPacket> result = new Vector<RowDataPacket>();
-	private static Logger LOGGER = Logger.getLogger(DataMergeService.class);
+	private static Logger LOGGER = LoggerFactory.getLogger(DataMergeService.class);
 	private BlockingQueue<PackWraper> packs = new LinkedBlockingQueue<PackWraper>();
 	private ConcurrentHashMap<String, Boolean> canDiscard = new ConcurrentHashMap<String, Boolean>();
 

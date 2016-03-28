@@ -36,7 +36,7 @@ import static io.mycat.server.parser.ServerParseSet.TX_SERIALIZABLE;
 import static io.mycat.server.parser.ServerParseSet.XA_FLAG_OFF;
 import static io.mycat.server.parser.ServerParseSet.XA_FLAG_ON;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Isolations;
@@ -54,7 +54,7 @@ import io.mycat.util.SetIgnoreUtil;
  */
 public final class SetHandler {
 	
-	private static final Logger logger = Logger.getLogger(SetHandler.class);
+	private static final Logger logger = LoggerFactory.getLogger(SetHandler.class);
 	
 	private static final byte[] AC_OFF = new byte[] { 7, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 };
 		
