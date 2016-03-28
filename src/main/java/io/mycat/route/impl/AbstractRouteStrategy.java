@@ -3,7 +3,7 @@ package io.mycat.route.impl;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
@@ -18,7 +18,7 @@ import io.mycat.sqlengine.mpp.LoadData;
 
 public abstract class AbstractRouteStrategy implements RouteStrategy {
 	
-	private static final Logger LOGGER = Logger.getLogger(AbstractRouteStrategy.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRouteStrategy.class);
 
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, String origSQL,

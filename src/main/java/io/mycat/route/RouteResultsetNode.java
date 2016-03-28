@@ -24,6 +24,7 @@
 package io.mycat.route;
 
 import java.io.Serializable;
+import java.util.Map;
 import java.util.Set;
 
 import io.mycat.server.parser.ServerParse;
@@ -43,11 +44,11 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private final int sqlType;
 	private volatile boolean canRunInReadDB;
 	private final boolean hasBlanceFlag;
-
+    private boolean callStatement = false; // 处理call关键字
 	private int limitStart;
 	private int limitSize;
 	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
-
+   private Procedure procedure;
 	private LoadData loadData;
 	
 	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB(false)
@@ -75,6 +76,17 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	public void setRunOnSlave(Boolean runOnSlave) {
 		this.runOnSlave = runOnSlave;
 	}
+	  private Map hintMap;
+
+    public Map getHintMap()
+    {
+        return hintMap;
+    }
+
+    public void setHintMap(Map hintMap)
+    {
+        this.hintMap = hintMap;
+    }
 
 	public void setStatement(String statement) {
 		this.statement = statement;
@@ -111,7 +123,25 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 //		return canRunInReadDB && autocommit && !hasBlanceFlag
 //			|| canRunInReadDB && !autocommit && hasBlanceFlag;
 //	}
+  public Procedure getProcedure()
+    {
+        return procedure;
+    }
 
+    public void setProcedure(Procedure procedure)
+    {
+        this.procedure = procedure;
+    }
+
+    public boolean isCallStatement()
+    {
+        return callStatement;
+    }
+
+    public void setCallStatement(boolean callStatement)
+    {
+        this.callStatement = callStatement;
+    }
 	public String getName() {
 		return name;
 	}

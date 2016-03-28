@@ -23,7 +23,7 @@
  */
 package io.mycat.net;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.CharsetUtil;
@@ -53,7 +53,7 @@ import java.util.Set;
  */
 public abstract class FrontendConnection extends AbstractConnection {
 	
-	private static final Logger LOGGER = Logger.getLogger(FrontendConnection.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(FrontendConnection.class);
 
 	protected long id;
 	protected String host;
@@ -468,6 +468,8 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_TRANSACTIONS;
 		// flag |= ServerDefs.CLIENT_RESERVED;
 		flag |= Capabilities.CLIENT_SECURE_CONNECTION;
+        flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
+        flag |= Capabilities.CLIENT_MULTI_RESULTS;
 		return flag;
 	}
 

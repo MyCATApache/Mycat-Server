@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.PacketUtil;
@@ -49,7 +49,7 @@ import io.mycat.util.StringUtil;
  */
 public final class ShowVariables
 {
-    private static final Logger LOGGER = Logger.getLogger(ShowVariables.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShowVariables.class);
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];

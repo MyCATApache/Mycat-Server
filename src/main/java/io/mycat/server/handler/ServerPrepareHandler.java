@@ -27,7 +27,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.mysql.BindValue;
 import io.mycat.backend.mysql.ByteUtil;
@@ -44,7 +44,7 @@ import io.mycat.server.response.PreparedStmtResponse;
  */
 public class ServerPrepareHandler implements FrontendPrepareHandler {
 	
-	private static final Logger LOGGER = Logger.getLogger(ServerPrepareHandler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ServerPrepareHandler.class);
 	
     private ServerConnection source;
     private volatile long pstmtId;

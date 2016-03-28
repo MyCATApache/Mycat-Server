@@ -26,7 +26,7 @@ package io.mycat.backend.mysql.nio.handler;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.nio.MySQLConnection;
@@ -39,7 +39,7 @@ import io.mycat.server.NonBlockingSession;
  * @author mycat
  */
 public class KillConnectionHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(KillConnectionHandler.class);
 
 	private final MySQLConnection killee;

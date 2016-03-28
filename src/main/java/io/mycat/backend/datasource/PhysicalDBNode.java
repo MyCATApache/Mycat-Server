@@ -23,14 +23,14 @@
  */
 package io.mycat.backend.datasource;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.route.RouteResultsetNode;
 
 public class PhysicalDBNode {
-	protected static final Logger LOGGER = Logger
+	protected static final Logger LOGGER = LoggerFactory
 			.getLogger(PhysicalDBNode.class);
 
 	protected final String name;

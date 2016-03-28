@@ -7,12 +7,10 @@ import java.util.Map;
 import java.util.Set;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
+
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.*;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 
 import io.mycat.config.model.SchemaConfig;
@@ -64,7 +62,7 @@ public class DruidParserFactory
         } else if (statement instanceof MySqlUpdateStatement)
         {
             parser = new DruidUpdateParser();
-        } else if (statement instanceof MySqlAlterTableStatement)
+        } else if (statement instanceof SQLAlterTableStatement)
         {
             parser = new DruidAlterTableParser();
         } else

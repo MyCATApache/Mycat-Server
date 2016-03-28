@@ -23,7 +23,7 @@
  */
 package io.mycat.backend.mysql.nio;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.CharsetUtil;
@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author mycat
  */
 public class MySQLConnection extends BackendAIOConnection {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(MySQLConnection.class);
 	private static final long CLIENT_FLAGS = initClientFlags();
 	private volatile long lastTime; 

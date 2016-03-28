@@ -23,7 +23,7 @@
  */
 package io.mycat.server;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.net.handler.FrontendQueryHandler;
@@ -35,7 +35,7 @@ import io.mycat.server.parser.ServerParse;
  * @author mycat
  */
 public class ServerQueryHandler implements FrontendQueryHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(ServerQueryHandler.class);
 
 	private final ServerConnection source;

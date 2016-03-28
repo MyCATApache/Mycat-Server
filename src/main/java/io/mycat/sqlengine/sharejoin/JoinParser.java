@@ -4,7 +4,7 @@ package io.mycat.sqlengine.sharejoin;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
@@ -35,7 +35,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 
 public class JoinParser {
 	
-	protected static final Logger LOGGER = Logger.getLogger(JoinParser.class);
+	protected static final Logger LOGGER = LoggerFactory.getLogger(JoinParser.class);
 	
     private MySqlSelectQueryBlock mysqlQuery;
     private String stmt="";

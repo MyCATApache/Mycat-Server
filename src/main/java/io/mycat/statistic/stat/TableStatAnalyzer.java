@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
@@ -35,7 +35,7 @@ import io.mycat.util.StringUtil;
  */
 public class TableStatAnalyzer implements QueryResultListener {
 	
-	private static final Logger LOGGER = Logger.getLogger(TableStatAnalyzer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TableStatAnalyzer.class);
 	
 	private LinkedHashMap<String, TableStat> tableStatMap = new LinkedHashMap<String, TableStat>();	
 	private ReentrantReadWriteLock  lock  = new ReentrantReadWriteLock();

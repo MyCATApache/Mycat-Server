@@ -23,7 +23,7 @@
  */
 package io.mycat.server.response;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
@@ -38,7 +38,7 @@ import io.mycat.util.TimeUtil;
  */
 public class Heartbeat {
 
-    private static final Logger HEARTBEAT = Logger.getLogger("heartbeat");
+    private static final Logger HEARTBEAT = LoggerFactory.getLogger("heartbeat");
 
     public static void response(ServerConnection c, byte[] data) {
         HeartbeatPacket hp = new HeartbeatPacket();

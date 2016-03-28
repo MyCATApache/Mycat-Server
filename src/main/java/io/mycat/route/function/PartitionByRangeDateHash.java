@@ -4,7 +4,7 @@ import com.google.common.hash.Hashing;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -18,7 +18,7 @@ import java.text.SimpleDateFormat;
  */
 public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm implements RuleAlgorithm
 {
-    private static final Logger LOGGER = Logger
+    private static final Logger LOGGER = LoggerFactory
             .getLogger(PartitionByRangeDateHash.class);
 
     private String sBeginDate;

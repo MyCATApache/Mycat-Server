@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.route.RouteResultsetNode;
@@ -12,7 +12,7 @@ import io.mycat.server.NonBlockingSession;
 import io.mycat.server.sqlcmd.SQLCtrlCommand;
 
 public class MultiNodeCoordinator implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(MultiNodeCoordinator.class);
 	private final AtomicInteger runningCount = new AtomicInteger(0);
 	private final AtomicInteger faileCount = new AtomicInteger(0);

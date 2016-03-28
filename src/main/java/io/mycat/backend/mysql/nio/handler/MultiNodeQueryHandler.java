@@ -23,7 +23,7 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -53,7 +53,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		LoadDataResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(MultiNodeQueryHandler.class);
 
 	private final RouteResultset rrs;
@@ -204,14 +204,22 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 					+ executeResponse + " from " + conn);
 		}
 		if (executeResponse) {
-			if (clearIfSessionClosed(session)) {
-				return;
-			} else if (canClose(conn, false)) {
-				return;
-			}
+
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
+            //存储过程
+            boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());;
+             if(!isCallProcedure)
+             {
+                 if (clearIfSessionClosed(session))
+                 {
+                     return;
+                 } else if (canClose(conn, false))
+                 {
+                     return;
+                 }
+             }
 			lock.lock();
 			try {
 				// 判断是否是全局表，如果是，执行行数不做累加，以最后一次执行的为准。
@@ -230,7 +238,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			// 对于存储过程，其比较特殊，查询结果返回EndRow报文以后，还会再返回一个OK报文，才算结束
 			boolean isEndPacket = isCallProcedure ? decrementOkCountBy(1)
 					: decrementCountBy(1);
-			if (isEndPacket) {
+			if (isEndPacket&&isCanClose2Client) {
 				if (this.autocommit) {// clear all connections
 					session.releaseConnections(false);
 				}
@@ -295,7 +303,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 
 		if (decrementCountBy(1)) {
-			if (!this.isCallProcedure) {
+            if (!rrs.isCallStatement()||(rrs.isCallStatement()&&rrs.getProcedure().isResultSimpleValue())) {
 				if (this.autocommit) {// clear all connections
 					session.releaseConnections(false);
 				}

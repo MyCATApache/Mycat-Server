@@ -23,10 +23,12 @@
  */
 package io.mycat;
 
-import org.apache.log4j.helpers.LogLog;
+
 
 import io.mycat.config.ZkConfig;
 import io.mycat.config.model.SystemConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -36,7 +38,7 @@ import java.util.Date;
  */
 public final class MycatStartup {
     private static final String dateFormat = "yyyy-MM-dd HH:mm:ss";
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(MycatStartup.class);
     public static void main(String[] args) {
         //use zk ?
         ZkConfig.instance().initZk();
@@ -59,7 +61,7 @@ public final class MycatStartup {
             }
         } catch (Exception e) {
             SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
-            LogLog.error(sdf.format(new Date()) + " startup error", e);
+            LOGGER.error(sdf.format(new Date()) + " startup error", e);
             System.exit(-1);
         }
     }

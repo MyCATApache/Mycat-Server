@@ -26,7 +26,7 @@ package io.mycat.backend.mysql.nio.handler;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.config.ErrorCode;
@@ -38,7 +38,7 @@ import io.mycat.util.StringUtil;
  * @author mycat
  */
 abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(MultiNodeHandler.class);
 	protected final ReentrantLock lock = new ReentrantLock();
 	protected final NonBlockingSession session;

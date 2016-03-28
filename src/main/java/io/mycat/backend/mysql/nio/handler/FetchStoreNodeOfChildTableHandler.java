@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -49,7 +49,7 @@ import io.mycat.server.parser.ServerParse;
  * 
  */
 public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(FetchStoreNodeOfChildTableHandler.class);
 	private String sql;
 	private volatile String result;

@@ -54,13 +54,13 @@ import io.mycat.statistic.stat.QueryResult;
 import io.mycat.statistic.stat.QueryResultDispatcher;
 import io.mycat.util.StringUtil;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 /**
  * @author mycat
  */
 public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		LoadDataResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(SingleNodeHandler.class);
 	private final RouteResultsetNode node;
 	private final RouteResultset rrs;
@@ -262,27 +262,36 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		this.netOutBytes += data.length;
 		
 		boolean executeResponse = conn.syncAndExcute();		
-		if (executeResponse) {			
-			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
-					false);
-			endRunning();
+		if (executeResponse) {
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
+            boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());
 			if (rrs.isLoadData()) {
 				byte lastPackId = source.getLoadDataInfileHandler()
 						.getLastPackId();
 				ok.packetId = ++lastPackId;// OK_PACKET
 				source.getLoadDataInfileHandler().clear();
-			} else {
+			} else if(isCanClose2Client)
+            {
 				ok.packetId = ++packetId;// OK_PACKET
 			}
+
+
+            if(isCanClose2Client)   {
+            session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
+                    false);
+            endRunning();
+            }
+
 			ok.serverStatus = source.isAutocommit() ? 2 : 1;
 
 			recycleResources();
-			source.setLastInsertId(ok.insertId);
-			ok.write(source);
-			
+
+            if(isCanClose2Client)
+            {  source.setLastInsertId(ok.insertId);
+                ok.write(source);
+            }
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
@@ -300,9 +309,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		ServerConnection source = session.getSource();
 		conn.recordSql(source.getHost(), source.getSchema(),
                 node.getStatement());
-
-		// 判断是调用存储过程的话不能在这里释放链接
-		if (!rrs.isCallStatement()) {
+        // 判断是调用存储过程的话不能在这里释放链接
+		if (!rrs.isCallStatement()||(rrs.isCallStatement()&&rrs.getProcedure().isResultSimpleValue()))
+        {
 			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
 					false);
 			endRunning();

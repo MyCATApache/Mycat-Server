@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -58,7 +58,7 @@ import io.mycat.server.sqlcmd.SQLCmdConstant;
  */
 public class NonBlockingSession implements Session {
 	
-	public static final Logger LOGGER = Logger.getLogger(NonBlockingSession.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(NonBlockingSession.class);
 
 	private final ServerConnection source;
 	private final ConcurrentHashMap<RouteResultsetNode, BackendConnection> target;
@@ -132,7 +132,7 @@ public class NonBlockingSession implements Session {
 			try {
 				singleNodeHandler.execute();
 			} catch (Exception e) {
-				LOGGER.warn(new StringBuilder().append(source).append(rrs), e);
+				LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
 				source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
 			}
 			
@@ -146,7 +146,7 @@ public class NonBlockingSession implements Session {
 			try {
 				multiNodeHandler.execute();
 			} catch (Exception e) {
-				LOGGER.warn(new StringBuilder().append(source).append(rrs), e);
+				LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
 				source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
 			}
 		}

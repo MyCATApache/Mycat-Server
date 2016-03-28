@@ -23,7 +23,7 @@
  */
 package io.mycat.backend.mysql.nio;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.CharsetUtil;
@@ -44,7 +44,7 @@ import io.mycat.net.mysql.Reply323Packet;
  * @author mycat
  */
 public class MySQLConnectionAuthenticator implements NIOHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(MySQLConnectionAuthenticator.class);
 	private final MySQLConnection source;
 	private final ResponseHandler listener;

@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 
@@ -40,7 +40,7 @@ import io.mycat.MycatServer;
  * @author mycat
  */
 public final class NIOConnector extends Thread implements SocketConnector {
-	private static final Logger LOGGER = Logger.getLogger(NIOConnector.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(NIOConnector.class);
 	public static final ConnectIdGenerator ID_GENERATOR = new ConnectIdGenerator();
 
 	private final String name;

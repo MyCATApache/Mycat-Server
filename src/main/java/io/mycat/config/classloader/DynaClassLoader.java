@@ -9,7 +9,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 /**
  * used for mycat's catlet class loader ,catlet's class file is stored in
@@ -19,7 +19,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class DynaClassLoader {
-	private static final Logger LOGGER = Logger.getLogger("DynaClassLoader");
+	private static final Logger LOGGER = LoggerFactory.getLogger("DynaClassLoader");
 	/** key- class full name */
 	private static Map<String, DynaClass> loadedDynaClassMap = new ConcurrentHashMap<String, DynaClass>();
 	private final String extClassHome;

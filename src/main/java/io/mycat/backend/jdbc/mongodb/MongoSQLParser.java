@@ -5,6 +5,7 @@ package io.mycat.backend.jdbc.mongodb;
 import java.sql.Types;
 import java.util.List;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +18,7 @@ import com.mongodb.DBObject;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
+
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.ast.statement.*;
@@ -109,9 +110,9 @@ public class MongoSQLParser {
 			BasicDBObject gbkey = new BasicDBObject();
 			if (groupby!=null) {
 			  for (SQLExpr gbexpr:groupby.getItems()){
-				if (gbexpr instanceof MySqlSelectGroupByExpr) {
-					SQLExpr gbyexpr=((MySqlSelectGroupByExpr) gbexpr).getExpr();		
-					gbkey.put(getFieldName2(gbyexpr), Integer.valueOf(1));
+				if (gbexpr instanceof SQLIdentifierExpr) {
+					String name=((SQLIdentifierExpr) gbexpr).getName();
+					gbkey.put(name, Integer.valueOf(1));
 				}
 			  }
 			  icount=2;
