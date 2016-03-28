@@ -27,6 +27,7 @@ import org.opencloudb.mpp.LoadData;
 import org.opencloudb.server.parser.ServerParse;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * @author mycat
@@ -42,11 +43,11 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private final int sqlType;
 	private volatile boolean canRunInReadDB;
 	private final boolean hasBlanceFlag;
-
+    private boolean callStatement = false; // 处理call关键字
 	private int limitStart;
 	private int limitSize;
 	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
-
+   private Procedure procedure;
 	private LoadData loadData;
 
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
@@ -60,6 +61,17 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		hasBlanceFlag = (statement != null)
 				&& statement.startsWith("/*balance*/");
 	}
+    private Map hintMap;
+
+    public Map getHintMap()
+    {
+        return hintMap;
+    }
+
+    public void setHintMap(Map hintMap)
+    {
+        this.hintMap = hintMap;
+    }
 
 	public void setStatement(String statement) {
 		this.statement = statement;
@@ -82,7 +94,27 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			|| canRunInReadDB && !autocommit && hasBlanceFlag;
 	}
 
-	public String getName() {
+    public Procedure getProcedure()
+    {
+        return procedure;
+    }
+
+    public void setProcedure(Procedure procedure)
+    {
+        this.procedure = procedure;
+    }
+
+    public boolean isCallStatement()
+    {
+        return callStatement;
+    }
+
+    public void setCallStatement(boolean callStatement)
+    {
+        this.callStatement = callStatement;
+    }
+
+    public String getName() {
 		return name;
 	}
 
