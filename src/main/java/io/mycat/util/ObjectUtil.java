@@ -57,13 +57,13 @@ public final class ObjectUtil {
              if(field!=null)return field.get(null);
         } catch (ClassNotFoundException e)
         {
-            e.printStackTrace();
+            LOGGER.error("getStaticFieldValue", e);
         } catch (NoSuchFieldException e)
         {
-            e.printStackTrace();
+            LOGGER.error("getStaticFieldValue", e);
         } catch (IllegalAccessException e)
         {
-            e.printStackTrace();
+            LOGGER.error("getStaticFieldValue", e);
         }
         return null;
     }
