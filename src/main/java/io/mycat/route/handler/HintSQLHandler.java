@@ -122,7 +122,13 @@ public class HintSQLHandler implements HintHandler {
                     parameter.setIndex(i1+1);
                     parameter.setName(pName);
                     parameter.setParameterType(pType);
-                    procedure.getParamterMap().put(pName,parameter);
+                    if(pName.startsWith("@"))
+                    {
+                        procedure.getParamterMap().put(pName, parameter);
+                    }   else
+                    {
+                        procedure.getParamterMap().put(String.valueOf(i1+1), parameter);
+                    }
 
 
                 }

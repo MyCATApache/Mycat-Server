@@ -588,7 +588,7 @@ public class JDBCConnection implements BackendConnection {
 
 
 
-            if(procedure.isResultList())
+            if(!procedure.isResultSimpleValue())
             {
                 byte[] OK = new byte[] { 7, 0, 0, 1, 0, 0, 0, 2, 0, 0,
                         0 };
