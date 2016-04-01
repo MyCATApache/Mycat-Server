@@ -1,6 +1,7 @@
 package io.mycat.route.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -11,20 +12,12 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNumericLiteralExpr;
-import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
-import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
+import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
@@ -33,7 +26,7 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
-import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
@@ -101,6 +94,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 	{
 		Map<String, String> aliaColumns = new HashMap<String, String>();
 		Map<String, Integer> aggrColumns = new HashMap<String, Integer>();
+		// Added by winbill, 20160314, for having clause, Begin ==>
+		List<String> havingColsName = new ArrayList<String>();
+		// Added by winbill, 20160314, for having clause, End  <==
 		List<SQLSelectItem> selectList = mysqlSelectQuery.getSelectList();
         boolean isNeedChangeSql=false;
         int size = selectList.size();
@@ -113,7 +109,12 @@ public class DruidSelectParser extends DefaultDruidParser {
 			{
 				SQLAggregateExpr expr = (SQLAggregateExpr) item.getExpr();
 				String method = expr.getMethodName();
-
+                boolean isHasArgument=!expr.getArguments().isEmpty();
+                if(isHasArgument)
+                {
+                    String aggrColName = method + "(" + expr.getArguments().get(0) + ")";   // Added by winbill, 20160314, for having clause
+                    havingColsName.add(aggrColName);       // Added by winbill, 20160314, for having clause
+                }
 				//只处理有别名的情况，无别名添加别名，否则某些数据库会得不到正确结果处理
 				int mergeType = MergeCol.getMergeType(method);
                 if (MergeCol.MERGE_AVG == mergeType&&isRoutMultiNode(schema,rrs))
@@ -129,6 +130,8 @@ public class DruidSelectParser extends DefaultDruidParser {
                     sum.setExpr(sumExp);
                     selectList.set(i, sum);
                     aggrColumns.put(sumColName, MergeCol.MERGE_SUM);
+                    havingColsName.add(sumColName);    // Added by winbill, 20160314, for having clause
+                    havingColsName.add(item.getAlias() != null ? item.getAlias() : "");    // Added by winbill, 20160314, two aliases for AVG
 
                     SQLSelectItem count =new SQLSelectItem();
                     String countColName = colName + "COUNT";
@@ -157,6 +160,8 @@ public class DruidSelectParser extends DefaultDruidParser {
                             isNeedChangeSql=true;
 					}
 					rrs.setHasAggrColumn(true);
+					havingColsName.add(item.getAlias());   // Added by winbill, 20160314, for having clause
+					havingColsName.add("");                // Added by winbill, 20160314, one alias for non-AVG
 				}
 			} else
 			{
@@ -198,6 +203,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			rrs.setGroupByCols(groupByCols);
 			rrs.setHavings(buildGroupByHaving(mysqlSelectQuery.getGroupBy().getHaving()));
 			rrs.setHasAggrColumn(true);
+			rrs.setHavingColsName(havingColsName.toArray()); // Added by winbill, 20160314, for having clause
 		}
 
 
@@ -286,7 +292,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 			//clear group having
 			SQLSelectGroupByClause groupByClause = mysqlSelectQuery.getGroupBy();
-			if(groupByClause != null && groupByClause.getHaving() != null){
+			// Modified by winbill, 20160614, do NOT include having clause when routing to multiple nodes
+			if(groupByClause != null && groupByClause.getHaving() != null && isRoutMultiNode(schema,rrs)){
 				groupByClause.setHaving(null);
 			}
 			
@@ -588,7 +595,8 @@ public class DruidSelectParser extends DefaultDruidParser {
                 column=((SQLIdentifierExpr) sqlExpr).getName();
             } else
             {
-                SQLExpr expr = ((MySqlSelectGroupByExpr) sqlExpr).getExpr();
+                //todo czn
+                SQLExpr expr = ((MySqlOrderingExpr) sqlExpr).getExpr();
 
                 if (expr instanceof SQLName)
                 {
@@ -664,7 +672,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if (isNeedChangeLimit(rrs))
 		{
 			one.setRight(new SQLIntegerExpr(0));
-			String sql = stmt.toString();
+            String curentDbType ="db2".equalsIgnoreCase(this.getCurentDbType())?"oracle":getCurentDbType();
+            String sql =   SQLUtils.toSQLString(stmt, curentDbType);;
 			rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(), sql,0,lastrownum, false);
 			//设置改写后的sql
 			getCtx().setSql(sql);

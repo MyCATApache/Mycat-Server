@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.iq80.leveldb.DB;
 
 import io.mycat.cache.CachePool;
@@ -15,7 +15,7 @@ import io.mycat.cache.CacheStatic;
 
 
 public class LevelDBPool implements CachePool {
-	private static final Logger LOGGER = Logger.getLogger(LevelDBPool.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(LevelDBPool.class);
 	private final DB cache;
 	private final CacheStatic cacheStati = new CacheStatic();
     private final String name;

@@ -26,7 +26,7 @@ package io.mycat.backend.mysql.nio;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.mysql.ByteUtil;
 import io.mycat.backend.mysql.nio.handler.LoadDataResponseHandler;
@@ -43,7 +43,7 @@ import io.mycat.net.mysql.RequestFilePacket;
  * @author mycat
  */
 public class MySQLConnectionHandler extends BackendAsyncHandler {
-	private static final Logger logger = Logger
+	private static final Logger logger = LoggerFactory
 			.getLogger(MySQLConnectionHandler.class);
 	private static final int RESULT_STATUS_INIT = 0;
 	private static final int RESULT_STATUS_HEADER = 1;

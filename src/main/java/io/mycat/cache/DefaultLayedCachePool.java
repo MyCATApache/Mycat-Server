@@ -27,10 +27,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 public class DefaultLayedCachePool implements LayerCachePool {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(DefaultLayedCachePool.class);
 	protected Map<String, CachePool> allCaches = new HashMap<String, CachePool>();
 	protected final ReentrantLock lock = new ReentrantLock();

@@ -31,7 +31,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 /**
  * 网络事件反应器
@@ -39,7 +39,7 @@ import org.apache.log4j.Logger;
  * @author mycat
  */
 public final class NIOReactor {
-	private static final Logger LOGGER = Logger.getLogger(NIOReactor.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(NIOReactor.class);
 	private final String name;
 	private final RW reactorR;
 

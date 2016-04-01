@@ -27,7 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 /**
  * @author wuzh
@@ -36,7 +36,7 @@ public final class BufferPool {
 	// this value not changed ,isLocalCacheThread use it
 	public static final String LOCAL_BUF_THREAD_PREX = "$_";
 	private final ThreadLocalBufferPool localBufferPool;
-	private static final Logger LOGGER = Logger.getLogger(BufferPool.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(BufferPool.class);
 	private final int chunkSize;
 	private final int conReadBuferChunk;
 	private final ConcurrentLinkedQueue<ByteBuffer> items = new ConcurrentLinkedQueue<ByteBuffer>();

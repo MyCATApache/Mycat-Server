@@ -31,7 +31,6 @@ public class PageSQLUtil
         {
             OracleStatementParser oracleParser = new OracleStatementParser(sql);
             SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
-
             return PagerUtils.limit(oracleStmt.getSelect(), JdbcConstants.ORACLE, offset, count);
         } else if (JdbcConstants.SQL_SERVER.equalsIgnoreCase(dbType))
         {
@@ -73,8 +72,9 @@ public class PageSQLUtil
             if(query instanceof PGSelectQueryBlock)
             {
                 PGSelectQueryBlock pgSelectQueryBlock= (PGSelectQueryBlock) query;
-                pgSelectQueryBlock.setLimit(null);
                 pgSelectQueryBlock.setOffset(null);
+                pgSelectQueryBlock.setLimit(null);
+
             }
             return PagerUtils.limit(select, JdbcConstants.POSTGRESQL, offset, count);
 

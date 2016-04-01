@@ -27,7 +27,7 @@ import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CLIENT;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CONNECTION;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_RESULTS;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.net.mysql.OkPacket;
@@ -44,7 +44,7 @@ import io.mycat.util.SplitUtil;
  */
 public class CharacterSet {
 
-    private static final Logger logger = Logger.getLogger(CharacterSet.class);
+    private static final Logger logger = LoggerFactory.getLogger(CharacterSet.class);
 
     public static void response(String stmt, ServerConnection c, int rs) {
         if (-1 == stmt.indexOf(',')) {

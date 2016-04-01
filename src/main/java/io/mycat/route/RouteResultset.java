@@ -85,6 +85,17 @@ public final class RouteResultset implements Serializable {
 	public void setRunOnSlave(Boolean runOnSlave) {
 		this.runOnSlave = runOnSlave;
 	}
+	  private Procedure procedure;
+
+    public Procedure getProcedure()
+    {
+        return procedure;
+    }
+
+    public void setProcedure(Procedure procedure)
+    {
+        this.procedure = procedure;
+    }
 
 	public boolean isLoadData()
     {
@@ -287,6 +298,14 @@ public final class RouteResultset implements Serializable {
 
     public void setCallStatement(boolean callStatement) {
         this.callStatement = callStatement;
+        if(nodes!=null)
+        {
+            for (RouteResultsetNode node : nodes)
+            {
+                node.setCallStatement(callStatement);
+            }
+
+        }
     }
 
     public void changeNodeSqlAfterAddLimit(SchemaConfig schemaConfig, String sourceDbType, String sql, int offset, int count, boolean isNeedConvert) {
@@ -350,6 +369,14 @@ public final class RouteResultset implements Serializable {
 			createSQLMergeIfNull().setHavingCols(havings);
 		}
 	}
+
+	// Added by winbill, 20160314, for having clause, Begin ==>
+	public void setHavingColsName(Object[] names) {
+		if (names != null && names.length > 0) {
+			createSQLMergeIfNull().setHavingColsName(names);
+		}
+	}
+	// Added by winbill, 20160314, for having clause, End  <==
 
     public SQLStatement getSqlStatement() {
 		return this.sqlStatement;

@@ -29,11 +29,13 @@ package io.mycat.net.handler;
  * @author mycat
  */
 public interface FrontendPrepareHandler {
-
+    
     void prepare(String sql);
 
     void execute(byte[] data);
 
-    void close();
+    void close(byte[] data);
+
+    void clear();
 
 }

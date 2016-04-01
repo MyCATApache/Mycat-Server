@@ -37,7 +37,7 @@ import io.mycat.server.ServerConnection;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -52,7 +52,7 @@ import java.util.regex.Pattern;
  */
 public final class SelectVariables
 {
-    private static final Logger LOGGER = Logger.getLogger(SelectVariables.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SelectVariables.class);
 
 
     public static void execute(ServerConnection c, String sql) {

@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 public class IncrSequenceTimeHandler implements SequenceHandler {
-    protected static final Logger LOGGER = Logger.getLogger(IncrSequenceTimeHandler.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(IncrSequenceTimeHandler.class);
 
 	private static final String SEQUENCE_DB_PROPS = "sequence_time_conf.properties";
 	private static final IncrSequenceTimeHandler instance = new IncrSequenceTimeHandler();

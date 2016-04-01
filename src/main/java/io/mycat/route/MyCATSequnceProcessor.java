@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
@@ -17,7 +17,7 @@ import io.mycat.server.ServerConnection;
 import io.mycat.util.StringUtil;
 
 public class MyCATSequnceProcessor {
-	private static final Logger LOGGER = Logger.getLogger(MyCATSequnceProcessor.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(MyCATSequnceProcessor.class);
 	private LinkedBlockingQueue<SessionSQLPair> seqSQLQueue = new LinkedBlockingQueue<SessionSQLPair>();
 	private volatile boolean running=true;
 	

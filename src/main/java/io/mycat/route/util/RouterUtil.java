@@ -32,7 +32,7 @@ import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
 
 import java.sql.SQLNonTransientException;
@@ -47,7 +47,7 @@ import java.util.concurrent.Callable;
  */
 public class RouterUtil {
 	
-	private static final Logger LOGGER = Logger.getLogger(RouterUtil.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(RouterUtil.class);
 	
 	
 	/**

@@ -3,7 +3,7 @@ package io.mycat.route.function;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
@@ -14,7 +14,7 @@ import io.mycat.config.model.rule.RuleAlgorithm;
  * 
  */
 public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleAlgorithm {
-	private static final Logger LOGGER = Logger.getLogger(PartitionByDate.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(PartitionByDate.class);
 
 	private String sBeginDate;
 	private String sEndDate;

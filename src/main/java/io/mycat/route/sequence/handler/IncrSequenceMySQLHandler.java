@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -25,7 +25,7 @@ import io.mycat.server.parser.ServerParse;
 
 public class IncrSequenceMySQLHandler implements SequenceHandler {
 
-	protected static final Logger LOGGER = Logger
+	protected static final Logger LOGGER = LoggerFactory
 			.getLogger(IncrSequenceMySQLHandler.class);
 
 	private static final String SEQUENCE_DB_PROPS = "sequence_db_conf.properties";
@@ -158,7 +158,7 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 }
 
 class FetchMySQLSequnceHandler implements ResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(FetchMySQLSequnceHandler.class);
 
 	public void execute(SequenceVal seqVal) {

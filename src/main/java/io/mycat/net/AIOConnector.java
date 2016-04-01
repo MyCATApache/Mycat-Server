@@ -25,7 +25,7 @@ package io.mycat.net;
 
 import java.nio.channels.CompletionHandler;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 
@@ -34,7 +34,7 @@ import io.mycat.MycatServer;
  */
 public final class AIOConnector implements SocketConnector,
 		CompletionHandler<Void, BackendAIOConnection> {
-	private static final Logger LOGGER = Logger.getLogger(AIOConnector.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AIOConnector.class);
 	private static final ConnectIdGenerator ID_GENERATOR = new ConnectIdGenerator();
 
 	public AIOConnector() {

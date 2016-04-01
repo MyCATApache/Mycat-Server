@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
@@ -36,7 +36,7 @@ import io.mycat.server.parser.ServerParse;
 
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	
-	public static final Logger LOGGER = Logger.getLogger(DruidMycatRouteStrategy.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(DruidMycatRouteStrategy.class);
 	
 	@Override
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,

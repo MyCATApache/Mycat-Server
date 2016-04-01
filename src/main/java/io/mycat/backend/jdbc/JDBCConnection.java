@@ -3,13 +3,14 @@ package io.mycat.backend.jdbc;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
-import org.apache.log4j.Logger;
+import io.mycat.backend.mysql.PacketUtil;
+import io.mycat.route.Procedure;
+import io.mycat.route.ProcedureParameter;
+import io.mycat.util.*;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -27,13 +28,9 @@ import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
-import io.mycat.util.MysqlDefs;
-import io.mycat.util.ResultSetUtil;
-import io.mycat.util.StringUtil;
-import io.mycat.util.TimeUtil;
 
 public class JDBCConnection implements BackendConnection {
-	protected static final Logger LOGGER = Logger
+	protected static final Logger LOGGER = LoggerFactory
 			.getLogger(JDBCConnection.class);
 	private JDBCDatasource pool;
 	private volatile String schema;
@@ -306,7 +303,11 @@ public class JDBCConnection implements BackendConnection {
 				con.setAutoCommit(autocommit);
 			}
 			int sqlType = rrn.getSqlType();
-
+             if(rrn.isCallStatement()&&"oracle".equalsIgnoreCase(getDbType()))
+             {
+                 //存储过程暂时只支持oracle
+                 ouputCallStatement(rrn,sc,orgin);
+             }  else
 			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
 				if ((sqlType == ServerParse.SHOW) && (!dbType.equals("MYSQL"))) {
 					// showCMD(sc, orgin);
@@ -385,10 +386,189 @@ public class JDBCConnection implements BackendConnection {
 		}
 	}
 
-	private void ouputResultSet(ServerConnection sc, String sql)
+
+    private static int oracleCURSORTypeValue=-10;
+    static
+    {
+        Object cursor = ObjectUtil.getStaticFieldValue("oracle.jdbc.OracleTypes", "CURSOR");
+        if(cursor!=null)
+            oracleCURSORTypeValue= (int) cursor  ;
+    }
+	private void ouputCallStatement(RouteResultsetNode rrn,ServerConnection sc, String sql)
 			throws SQLException {
-		ResultSet rs = null;
-		Statement stmt = null;
+
+        CallableStatement stmt = null;
+        ResultSet rs = null;
+		try {
+            Procedure procedure = rrn.getProcedure();
+            Collection<ProcedureParameter> paramters=    procedure.getParamterMap().values();
+            String callSql = procedure.toPreCallSql(null);
+            stmt = con.prepareCall(callSql);
+
+            for (ProcedureParameter paramter : paramters)
+            {
+                if((ProcedureParameter.IN.equalsIgnoreCase(paramter.getParameterType())
+                        ||ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType())))
+                {
+                  Object value=  paramter.getValue()!=null ?paramter.getValue():paramter.getName();
+                    stmt.setObject(paramter.getIndex(),value);
+                }
+
+                if(ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())
+                        ||ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType())  )
+                {
+                    int jdbcType ="oracle".equalsIgnoreCase(getDbType())&& procedure.isResultList()?oracleCURSORTypeValue: paramter.getJdbcType();
+                    stmt.registerOutParameter(paramter.getIndex(), jdbcType);
+                }
+            }
+
+			 stmt.execute();
+
+
+            List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
+            if(procedure.isResultList())
+            {
+                for (ProcedureParameter paramter : paramters)
+                {
+                    if (ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())
+                            || ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType()))
+                    {
+                      rs= (ResultSet) stmt.getObject(paramter.getIndex());
+                    }
+                }
+                ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
+                        this.isSpark);
+            }    else
+            {
+                for (ProcedureParameter paramter : paramters)
+                {
+                    if (ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())
+                            || ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType()))
+                    {
+                        FieldPacket packet = PacketUtil.getField(paramter.getName(), MysqlDefs.javaTypeMysql(paramter.getJdbcType()));
+                        fieldPks.add(packet);
+                    }
+                }
+            }
+            int colunmCount = fieldPks.size();
+			ByteBuffer byteBuf = sc.allocate();
+			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+			headerPkg.fieldCount = fieldPks.size();
+			headerPkg.packetId = ++packetId;
+
+			byteBuf = headerPkg.write(byteBuf, sc, true);
+			byteBuf.flip();
+			byte[] header = new byte[byteBuf.limit()];
+			byteBuf.get(header);
+			byteBuf.clear();
+
+
+			List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
+			Iterator<FieldPacket> itor = fieldPks.iterator();
+			while (itor.hasNext()) {
+				FieldPacket curField = itor.next();
+				curField.packetId = ++packetId;
+				byteBuf = curField.write(byteBuf, sc, false);
+				byteBuf.flip();
+				byte[] field = new byte[byteBuf.limit()];
+				byteBuf.get(field);
+				byteBuf.clear();
+				fields.add(field);
+				itor.remove();
+			}
+			EOFPacket eofPckg = new EOFPacket();
+			eofPckg.packetId = ++packetId;
+			byteBuf = eofPckg.write(byteBuf, sc, false);
+			byteBuf.flip();
+			byte[] eof = new byte[byteBuf.limit()];
+			byteBuf.get(eof);
+			byteBuf.clear();
+			this.respHandler.fieldEofResponse(header, fields, eof, this);
+
+			// output row
+            if(procedure.isResultList())
+            {
+                // output row
+                while (rs.next()) {
+                    RowDataPacket curRow = new RowDataPacket(colunmCount);
+                    for (int i = 0; i < colunmCount; i++) {
+                        int j = i + 1;
+                        curRow.add(StringUtil.encode(rs.getString(j),
+                                sc.getCharset()));
+                    }
+                    curRow.packetId = ++packetId;
+                    byteBuf = curRow.write(byteBuf, sc, false);
+                    byteBuf.flip();
+                    byte[] row = new byte[byteBuf.limit()];
+                    byteBuf.get(row);
+                    byteBuf.clear();
+                    this.respHandler.rowResponse(row, this);
+                }
+            }   else
+			if(procedure.getSelectColumns().size()>0)
+            {
+				RowDataPacket curRow = new RowDataPacket(colunmCount);
+                for (String name : procedure.getSelectColumns())
+                {
+                    ProcedureParameter procedureParameter=   procedure.getParamterMap().get(name);
+                    curRow.add(StringUtil.encode(String.valueOf(stmt.getObject(procedureParameter.getIndex())),
+                            sc.getCharset()));
+                }
+
+				curRow.packetId = ++packetId;
+				byteBuf = curRow.write(byteBuf, sc, false);
+				byteBuf.flip();
+				byte[] row = new byte[byteBuf.limit()];
+				byteBuf.get(row);
+				byteBuf.clear();
+				this.respHandler.rowResponse(row, this);
+			}
+
+			// end row
+			eofPckg = new EOFPacket();
+			eofPckg.packetId = ++packetId;
+            if(procedure.isResultList())
+            {
+                eofPckg.status = 42;
+            }
+			byteBuf = eofPckg.write(byteBuf, sc, false);
+			byteBuf.flip();
+			eof = new byte[byteBuf.limit()];
+			byteBuf.get(eof);
+            byteBuf.clear();
+			this.respHandler.rowEofResponse(eof, this);
+
+            if(procedure.isResultList())
+            {
+                byte[] OK = new byte[] { 7, 0, 0, 1, 0, 0, 0, 2, 0, 0,
+                        0 };
+                OK[3]=++packetId;
+                this.respHandler.okResponse(OK,this);
+            }
+            sc.recycle(byteBuf);
+		} finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+
+                }
+            }
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
+		}
+	}
+
+
+    private void ouputResultSet(ServerConnection sc, String sql)
+            throws SQLException {
+        ResultSet rs = null;
+        Statement stmt = null;
 
 		try {
 			stmt = con.createStatement();

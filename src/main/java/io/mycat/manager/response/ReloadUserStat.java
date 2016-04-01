@@ -2,7 +2,7 @@ package io.mycat.manager.response;
 
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.mysql.OkPacket;
@@ -11,7 +11,7 @@ import io.mycat.statistic.stat.UserStatAnalyzer;
 
 public final class ReloadUserStat {
 	
-	private static final Logger logger = Logger.getLogger(ReloadUserStat.class);
+	private static final Logger logger = LoggerFactory.getLogger(ReloadUserStat.class);
 
     public static void execute(ManagerConnection c) {
     	

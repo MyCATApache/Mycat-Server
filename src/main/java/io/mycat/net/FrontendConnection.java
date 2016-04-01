@@ -23,7 +23,7 @@
  */
 package io.mycat.net;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.CharsetUtil;
@@ -53,7 +53,7 @@ import java.util.Set;
  */
 public abstract class FrontendConnection extends AbstractConnection {
 	
-	private static final Logger LOGGER = Logger.getLogger(FrontendConnection.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(FrontendConnection.class);
 
 	protected long id;
 	protected String host;
@@ -274,42 +274,52 @@ public abstract class FrontendConnection extends AbstractConnection {
 		} else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "load data infile end is not  unsupported!");
 		}
-
 	}
 	
-	public void query(byte[] data) {
+	
+	public void query(String sql) {
+		
+		if (sql == null || sql.length() == 0) {
+			writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Empty SQL");
+			return;
+		}
+		
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug(new StringBuilder().append(this).append(" ").append(sql).toString());
+		}
+		
+		// remove last ';'
+		if (sql.endsWith(";")) {
+			sql = sql.substring(0, sql.length() - 1);
+		}
+		
+		// 记录SQL
+		this.setExecuteSql(sql);
+		
 		if (queryHandler != null) {
-			// 取得语句
-			MySQLMessage mm = new MySQLMessage(data);
-			mm.position(5);
-			String sql = null;
-			try {
-				sql = mm.readString(charset);
-			} catch (UnsupportedEncodingException e) {
-				writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
-				return;
-			}
-			if (sql == null || sql.length() == 0) {
-				writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Empty SQL");
-				return;
-			}
-
-			// sql = StringUtil.replace(sql, "`", "");
-
-			// remove last ';'
-			if (sql.endsWith(";")) {
-				sql = sql.substring(0, sql.length() - 1);
-			}
-			
-			// 记录SQL
-			this.setExecuteSql(sql);
-
 			// 执行查询
 			queryHandler.setReadOnly(privileges.isReadOnly(user));
 			queryHandler.query(sql);
+			
 		} else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Query unsupported!");
-		}
+		}		
+	}
+	
+	public void query(byte[] data) {
+		
+		// 取得语句
+		String sql = null;		
+		try {
+			MySQLMessage mm = new MySQLMessage(data);
+			mm.position(5);
+			sql = mm.readString(charset);
+		} catch (UnsupportedEncodingException e) {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
+			return;
+		}		
+		
+		this.query( sql );
 	}
 
 	public void stmtPrepare(byte[] data) {
@@ -350,7 +360,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 
 	public void stmtClose(byte[] data) {
 		if (prepareHandler != null) {
-			prepareHandler.close();
+			prepareHandler.close( data );
 		} else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
 		}
@@ -458,6 +468,8 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_TRANSACTIONS;
 		// flag |= ServerDefs.CLIENT_RESERVED;
 		flag |= Capabilities.CLIENT_SECURE_CONNECTION;
+        flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
+        flag |= Capabilities.CLIENT_MULTI_RESULTS;
 		return flag;
 	}
 

@@ -26,7 +26,7 @@ package io.mycat.statistic;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.util.TimeUtil;
 
@@ -49,7 +49,7 @@ public class HeartbeatRecorder {
     private final List<Record> records;
     private final List<Record> recordsAll;
     
-	private static final Logger LOGGER = Logger.getLogger("DataSourceSyncRecorder");
+	private static final Logger LOGGER = LoggerFactory.getLogger("DataSourceSyncRecorder");
 
     public HeartbeatRecorder() {
         this.records = new LinkedList<Record>();

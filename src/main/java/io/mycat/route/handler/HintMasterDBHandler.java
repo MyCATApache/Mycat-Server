@@ -2,8 +2,9 @@ package io.mycat.route.handler;
 
 
 import java.sql.SQLNonTransientException;
+import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
@@ -25,12 +26,12 @@ import com.alibaba.fastjson.JSON;
 // 强制走 master 和 强制走 slave
 public class HintMasterDBHandler implements HintHandler {
 	
-	private static final Logger LOGGER = Logger.getLogger(HintMasterDBHandler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(HintMasterDBHandler.class);
 
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, 
 			String realSQL, String charset,
-			ServerConnection sc, LayerCachePool cachePool, String hintSQLValue) 
+			ServerConnection sc, LayerCachePool cachePool, String hintSQLValue, int hintSqlType, Map hintMap)
 					throws SQLNonTransientException {
 		
 //		LOGGER.debug("realSQL: " + realSQL); // select * from travelrecord limit 1
