@@ -23,7 +23,7 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -53,7 +53,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		LoadDataResponseHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(MultiNodeQueryHandler.class);
 
 	private final RouteResultset rrs;
@@ -71,23 +71,34 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private int okCount;
 	private final boolean isCallProcedure;
 	private long startTime;
+	private long netInBytes;
+	private long netOutBytes;
 	private int execCount = 0;
+	
+	private boolean prepared;
+	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
 
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
+		
 		super(session);
+		
 		if (rrs.getNodes() == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
+		
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("execute mutinode query " + rrs.getStatement());
 		}
+		
 		this.rrs = rrs;
 		if (ServerParse.SELECT == sqlType && rrs.needMerge()) {
 			dataMergeSvr = new DataMergeService(this, rrs);
+			
 		} else {
 			dataMergeSvr = null;
 		}
+		
 		isCallProcedure = rrs.isCallStatement();
 		this.autocommit = session.getSource().isAutocommit();
 		this.session = session;
@@ -98,12 +109,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				LOGGER.debug("has data merge logic ");
 			}
 		}
+		
+		if ( rrs != null && rrs.getStatement() != null)
+			netInBytes += rrs.getStatement().getBytes().length;
 	}
 
 	protected void reset(int initCount) {
 		super.reset(initCount);
 		this.okCount = initCount;
 		this.execCount = 0;
+		this.netInBytes = 0;
+		this.netOutBytes = 0;
 	}
 
 	public NonBlockingSession getSession() {
@@ -179,20 +195,31 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 
 	@Override
 	public void okResponse(byte[] data, BackendConnection conn) {
+		
+		this.netOutBytes += data.length;
+		
 		boolean executeResponse = conn.syncAndExcute();
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("received ok response ,executeResponse:"
 					+ executeResponse + " from " + conn);
 		}
 		if (executeResponse) {
-			if (clearIfSessionClosed(session)) {
-				return;
-			} else if (canClose(conn, false)) {
-				return;
-			}
+
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
+            //存储过程
+            boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());;
+             if(!isCallProcedure)
+             {
+                 if (clearIfSessionClosed(session))
+                 {
+                     return;
+                 } else if (canClose(conn, false))
+                 {
+                     return;
+                 }
+             }
 			lock.lock();
 			try {
 				// 判断是否是全局表，如果是，执行行数不做累加，以最后一次执行的为准。
@@ -211,7 +238,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			// 对于存储过程，其比较特殊，查询结果返回EndRow报文以后，还会再返回一个OK报文，才算结束
 			boolean isEndPacket = isCallProcedure ? decrementOkCountBy(1)
 					: decrementCountBy(1);
-			if (isEndPacket) {
+			if (isEndPacket&&isCanClose2Client) {
 				if (this.autocommit) {// clear all connections
 					session.releaseConnections(false);
 				}
@@ -253,8 +280,16 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("on row end reseponse " + conn);
 		}
+		
+		this.netOutBytes += eof.length;
+		
 		if (errorRepsponsed.get()) {
-			conn.close(this.error);
+			// the connection has been closed or set to "txInterrupt" properly
+			//in tryErrorFinished() method! If we close it here, it can
+			// lead to tx error such as blocking rollback tx for ever.
+			// @author Uncle-pan
+			// @since 2016-03-25
+			// conn.close(this.error);
 			return;
 		}
 
@@ -268,7 +303,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 
 		if (decrementCountBy(1)) {
-			if (!this.isCallProcedure) {
+            if (!rrs.isCallStatement()||(rrs.isCallStatement()&&rrs.getProcedure().isResultSimpleValue())) {
 				if (this.autocommit) {// clear all connections
 					session.releaseConnections(false);
 				}
@@ -328,8 +363,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 
 			for (int i = start; i < end; i++) {
 				RowDataPacket row = results.get(i);
-				row.packetId = ++packetId;
-				buffer = row.write(buffer, source, true);
+				if( prepared ) {
+					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+					binRowDataPk.read(fieldPackets, row);
+					binRowDataPk.packetId = ++packetId;
+					binRowDataPk.write(source);
+				} else {
+					row.packetId = ++packetId;
+					buffer = row.write(buffer, source, true);
+				}
 			}
 
 			eof[3] = ++packetId;
@@ -349,13 +391,22 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
+		
+		
+		this.netOutBytes += header.length;
+		this.netOutBytes += eof.length;
+		for (int i = 0, len = fields.size(); i < len; ++i) {
+			byte[] field = fields.get(i);
+			this.netOutBytes += field.length;
+		}
+		
 		ServerConnection source = null;
 		execCount++;
 		if (execCount == rrs.getNodes().length) {			
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
+					rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
 			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 		if (fieldsReturned) {
@@ -422,6 +473,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				if (needMerg) {
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
+					fieldPackets.add(fieldPkg);
 					String fieldName = new String(fieldPkg.name).toUpperCase();
 					if (columToIndx != null
 							&& !columToIndx.containsKey(fieldName)) {
@@ -445,6 +497,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 					// find primary key index
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
+					fieldPackets.add(fieldPkg);
 					String fieldName = new String(fieldPkg.name);
 					if (primaryKey.equalsIgnoreCase(fieldName)) {
 						primaryKeyIndex = i;
@@ -482,21 +535,25 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
 		if (errorRepsponsed.get()) {
-			conn.close(error);
+			// the connection has been closed or set to "txInterrupt" properly
+			//in tryErrorFinished() method! If we close it here, it can
+			// lead to tx error such as blocking rollback tx for ever.
+			// @author Uncle-pan
+			// @since 2016-03-25
+			//conn.close(error);
 			return;
 		}
 		lock.lock();
 		try {
-			RouteResultsetNode rNode = (RouteResultsetNode) conn
-					.getAttachment();
+			RouteResultsetNode rNode = (RouteResultsetNode) conn.getAttachment();
 			String dataNode = rNode.getName();
 			if (dataMergeSvr != null) {
-				if (dataMergeSvr.onNewRecord(dataNode, row)) {
-					isClosedByDiscard.set(true);
-					// canClose(conn, false);
-					// conn.discardClose("discard data");
-					// LOGGER.warn(conn);
-				}
+				// even through discarding the all rest data, we can't
+				//close the connection for tx control such as rollback or commit.
+				// So the "isClosedByDiscard" variable is unnecessary.
+				// @author Uncle-pan
+				// @since 2016-03-25
+				dataMergeSvr.onNewRecord(dataNode, row);
 			} else {
 				// cache primaryKey-> dataNode
 				if (primaryKeyIndex != -1) {
@@ -528,12 +585,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 
 	@Override
 	public void writeQueueAvailable() {
-
 	}
 
 	@Override
 	public void requestDataResponse(byte[] data, BackendConnection conn) {
 		LoadDataUtil.requestFileDataResponse(data, conn);
+	}
+	
+	public boolean isPrepared() {
+		return prepared;
+	}
+
+	public void setPrepared(boolean prepared) {
+		this.prepared = prepared;
 	}
 
 }

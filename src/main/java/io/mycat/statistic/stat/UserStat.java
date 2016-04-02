@@ -94,7 +94,7 @@ public class UserStat {
 	 * @param sql
 	 * @param startTime
 	 */
-	public void update(int sqlType, String sql, long startTime, long endTime) {	
+	public void update(int sqlType, String sql, long netInBytes, long netOutBytes, long startTime, long endTime) {	
 		
 		//慢查询记录
 		long executeTime = endTime - startTime;		
@@ -108,7 +108,7 @@ public class UserStat {
 		}
 		
 		//执行状态记录
-		this.rwStat.add(sqlType, executeTime, startTime, endTime);
+		this.rwStat.add(sqlType, executeTime, netInBytes, netOutBytes, startTime, endTime);
 		
 		//记录SQL
 		this.sqlStat.add(sql, executeTime, startTime, endTime );

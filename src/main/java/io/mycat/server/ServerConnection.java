@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.nio.channels.NetworkChannel;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
@@ -45,7 +45,7 @@ import io.mycat.util.TimeUtil;
  * @author mycat
  */
 public class ServerConnection extends FrontendConnection {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(ServerConnection.class);
 	private static final long AUTH_TIMEOUT = 15 * 1000L;
 

@@ -34,9 +34,9 @@ import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.BufferUtil;
@@ -54,6 +54,10 @@ import io.mycat.util.StringUtil;
  * 
  * @author wuzhih /modify by coder_czp/2015/11/2
  * 
+ * Fixbug: mycat sql timeout and hang problem.
+ * @author Uncle-pan
+ * @since 2016-03-23
+ * 
  */
 public class DataMergeService implements Runnable {
 
@@ -64,16 +68,20 @@ public class DataMergeService implements Runnable {
 
 	}
 
+	// A flag that represents whether the service running in a business thread,
+	// should not a volatile variable!!
+	// @author Uncle-pan
+	// @since 2016-03-23
+	private final AtomicBoolean running = new AtomicBoolean(false);
+	// props
 	private int fieldCount;
 	private RouteResultset rrs;
 	private RowDataSorter sorter;
 	private RowDataPacketGrouper grouper;
-	private volatile boolean hasOrderBy = false;
 	private MultiNodeQueryHandler multiQueryHandler;
 	public PackWraper END_FLAG_PACK = new PackWraper();
-	private AtomicInteger areadyAdd = new AtomicInteger();
 	private List<RowDataPacket> result = new Vector<RowDataPacket>();
-	private static Logger LOGGER = Logger.getLogger(DataMergeService.class);
+	private static Logger LOGGER = LoggerFactory.getLogger(DataMergeService.class);
 	private BlockingQueue<PackWraper> packs = new LinkedBlockingQueue<PackWraper>();
 	private ConcurrentHashMap<String, Boolean> canDiscard = new ConcurrentHashMap<String, Boolean>();
 
@@ -87,7 +95,7 @@ public class DataMergeService implements Runnable {
 	}
 
 	public void outputMergeResult(NonBlockingSession session, byte[] eof) {
-		packs.add(END_FLAG_PACK);
+		addPack(END_FLAG_PACK);
 	}
 
 	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
@@ -101,8 +109,30 @@ public class DataMergeService implements Runnable {
 		}
 
 		if (rrs.getHavingCols() != null) {
-			ColMeta colMeta = columToIndx.get(rrs.getHavingCols().getLeft()
-					.toUpperCase());
+			// Modified by winbill, 20160314, for having clause, Begin ==>
+//			ColMeta colMeta = columToIndx.get(rrs.getHavingCols().getLeft()
+//					.toUpperCase());
+			ColMeta colMeta = null;
+			Object[] havingColsName = rrs.getSqlMerge().getHavingColsName();
+			if (havingColsName != null) {
+				String havingLeft = rrs.getHavingCols().getLeft().toUpperCase();
+				// There are 2 aliases for AVG function
+				for (int i = 0; i < havingColsName.length; i += 3) {
+					String colName = havingColsName[i].toString().toUpperCase();
+					String colAlias1 = havingColsName[i + 1].toString().toUpperCase();
+					String colAlias2 = havingColsName[i + 2].toString().toUpperCase();
+					if (havingLeft.equals(colName) || havingLeft.equals(colAlias1) || havingLeft.equals(colAlias2)) {
+						colMeta = columToIndx.get(colName);
+						colMeta = (colMeta == null) ? columToIndx.get(colAlias1) : colMeta;
+						colMeta = (colMeta == null) ? columToIndx.get(colAlias2) : colMeta;
+						break;
+					}
+				}
+			} else {
+				colMeta = columToIndx.get(rrs.getHavingCols().getLeft().toUpperCase());
+			}
+			// Modified by winbill, 20160314, for having clause, End <==
+
 			if (colMeta != null) {
 				rrs.getHavingCols().setColMeta(colMeta);
 			}
@@ -164,12 +194,8 @@ public class DataMergeService implements Runnable {
 			// sorter = new RowDataPacketSorter(orderCols);
 			RowDataSorter tmp = new RowDataSorter(orderCols);
 			tmp.setLimit(rrs.getLimitStart(), rrs.getLimitSize());
-			hasOrderBy = true;
 			sorter = tmp;
-		} else {
-			hasOrderBy = false;
 		}
-		MycatServer.getInstance().getBusinessExecutor().execute(this);
 	}
 
 	/**
@@ -183,26 +209,23 @@ public class DataMergeService implements Runnable {
 	 * @param conn
 	 */
 	public boolean onNewRecord(String dataNode, byte[] rowData) {
-		// 对于无需排序的SQL,取前getLimitSize条就足够
-        //可能有聚合函数等场景会误判，所有先注释
-//		if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()&& rrs.getLimitSize()!=-1) {
-//			return true;
-//		}
 		// 对于需要排序的数据,由于mysql传递过来的数据是有序的,
 		// 如果某个节点的当前数据已经不会进入,后续的数据也不会入堆
 		if (canDiscard.size() == rrs.getNodes().length) {
-			LOGGER.error("now we output to client");
-			packs.add(END_FLAG_PACK);
+			// "END_FLAG" only should be added by MultiNodeHandler.rowEofResponse()
+			// @author Uncle-pan
+			// @since 2016-03-23
+			//LOGGER.info("now we output to client");
+			//addPack(END_FLAG_PACK);
 			return true;
 		}
 		if (canDiscard.get(dataNode) != null) {
 			return true;
 		}
-		PackWraper data = new PackWraper();
+		final PackWraper data = new PackWraper();
 		data.node = dataNode;
 		data.data = rowData;
-		packs.add(data);
-		areadyAdd.getAndIncrement();
+		addPack(data);
 		return false;
 	}
 
@@ -227,31 +250,51 @@ public class DataMergeService implements Runnable {
 	 */
 	public void clear() {
 		result.clear();
-		hasOrderBy = false;
 		grouper = null;
 		sorter = null;
 	}
 
 	@Override
 	public void run() {
-
-		int warningCount = 0;
-		EOFPacket eofp = new EOFPacket();
-		ByteBuffer eof = ByteBuffer.allocate(9);
-		BufferUtil.writeUB3(eof, eofp.calcPacketSize());
-		eof.put(eofp.packetId);
-		eof.put(eofp.fieldCount);
-		BufferUtil.writeUB2(eof, warningCount);
-		BufferUtil.writeUB2(eof, eofp.status);
-		ServerConnection source = multiQueryHandler.getSession().getSource();
-
-		while (!Thread.interrupted()) {
-			try {
-				PackWraper pack = packs.take();
-				if (pack == END_FLAG_PACK) {
+		// sort-or-group: no need for us to using multi-threads, because
+		//both sorter and grouper are synchronized!!
+		// @author Uncle-pan
+		// @since 2016-03-23
+		if(!running.compareAndSet(false, true)){
+			return;
+		}
+		// eof handler has been placed to "if (pack == END_FLAG_PACK){}" in for-statement
+		// @author Uncle-pan
+		// @since 2016-03-23
+		boolean nulpack = false;
+		try{
+			// loop-on-packs
+			for (; ; ) {
+				final PackWraper pack = packs.poll();
+				// async: handling row pack queue, this business thread should exit when no pack
+				// @author Uncle-pan
+				// @since 2016-03-23
+				if(pack == null){
+					nulpack = true;
 					break;
 				}
-				RowDataPacket row = new RowDataPacket(fieldCount);
+				// eof: handling eof pack and exit
+				if (pack == END_FLAG_PACK) {
+					final int warningCount = 0;
+					final EOFPacket eofp   = new EOFPacket();
+					final ByteBuffer eof   = ByteBuffer.allocate(9);
+					BufferUtil.writeUB3(eof, eofp.calcPacketSize());
+					eof.put(eofp.packetId);
+					eof.put(eofp.fieldCount);
+					BufferUtil.writeUB2(eof, warningCount);
+					BufferUtil.writeUB2(eof, eofp.status);
+					final ServerConnection source = multiQueryHandler.getSession().getSource();
+					final byte[] array = eof.array();
+					multiQueryHandler.outputMergeResult(source, array, getResults(array));
+					break;
+				}
+				// merge: sort-or-group, or simple add
+				final RowDataPacket row = new RowDataPacket(fieldCount);
 				row.read(pack.data);
 				if (grouper != null) {
 					grouper.addRow(row);
@@ -262,12 +305,37 @@ public class DataMergeService implements Runnable {
 				} else {
 					result.add(row);
 				}
-			} catch (Exception e) {
-				LOGGER.error("Merge multi data error", e);
-			}
+			}// rof
+		}catch(final Exception e){
+			multiQueryHandler.handleDataProcessException(e);
+		}finally{
+			running.set(false);
 		}
-		byte[] array = eof.array();
-		multiQueryHandler.outputMergeResult(source, array, getResults(array));
+		// try to check packs, it's possible that adding a pack after polling a null pack
+		//and before this time pointer!!
+		// @author Uncle-pan
+		// @since 2016-03-23
+		if(nulpack && !packs.isEmpty()){
+			this.run();
+		}
+	}
+	
+	/**
+	 * Add a row pack, and may be wake up a business thread to work if not running.
+	 * @param pack row pack
+	 * @return true wake up a business thread, otherwise false
+	 * 
+	 * @author Uncle-pan
+	 * @since 2016-03-23
+	 */
+	private final boolean addPack(final PackWraper pack){
+		packs.add(pack);
+		if(running.get()){
+			return false;
+		}
+		final MycatServer server = MycatServer.getInstance();
+		server.getBusinessExecutor().execute(this);
+		return true;
 	}
 
 	/**

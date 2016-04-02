@@ -8,7 +8,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.config.model.SystemConfig;
@@ -67,7 +67,7 @@ private final class StatisticsSqlRunner implements Runnable {
         }
     }
     
-    private static final Logger         LOGGER  = Logger.getLogger(StatisticsSqlInterceptor.class);
+    private static final Logger         LOGGER  = LoggerFactory.getLogger(StatisticsSqlInterceptor.class);
     
     private static Map<String, Integer> typeMap = new HashMap<String, Integer>();
     static {

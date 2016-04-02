@@ -30,7 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -48,7 +48,7 @@ import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.TimeUtil;
 
 public abstract class PhysicalDatasource {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(PhysicalDatasource.class);
 
 	private final String name;

@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.manager.handler.ConfFileHandler;
 import io.mycat.net.mysql.EOFPacket;
@@ -17,7 +17,7 @@ import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 
 public class EngineCtx {
-	public static final Logger LOGGER = Logger.getLogger(ConfFileHandler.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(ConfFileHandler.class);
 	private final BatchSQLJob bachJob;
 	private AtomicInteger jobId = new AtomicInteger(0);
 	AtomicInteger packetId = new AtomicInteger(0);

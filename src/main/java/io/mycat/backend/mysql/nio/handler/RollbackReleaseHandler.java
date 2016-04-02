@@ -25,7 +25,7 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
 
@@ -33,7 +33,7 @@ import io.mycat.backend.BackendConnection;
  * @author mycat
  */
 public class RollbackReleaseHandler implements ResponseHandler {
-	private static final Logger logger = Logger
+	private static final Logger logger = LoggerFactory
 			.getLogger(RollbackReleaseHandler.class);
 
 	public RollbackReleaseHandler() {

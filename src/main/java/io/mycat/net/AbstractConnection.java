@@ -37,14 +37,14 @@ import io.mycat.backend.mysql.CharsetUtil;
 import io.mycat.util.CompressUtil;
 import io.mycat.util.TimeUtil;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public abstract class AbstractConnection implements NIOConnection {
 	
-	protected static final Logger LOGGER = Logger.getLogger(AbstractConnection.class);
+	protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractConnection.class);
 	
 	protected String host;
 	protected int localPort;

@@ -39,7 +39,7 @@ import java.util.Date;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import io.mycat.MycatServer;
@@ -60,7 +60,7 @@ import io.mycat.util.StringUtil;
  * @author wuzh
  */
 public final class ConfFileHandler {
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LoggerFactory
 			.getLogger(ConfFileHandler.class);
 	private static final int FIELD_COUNT = 1;
 	private static final ResultSetHeaderPacket header = PacketUtil

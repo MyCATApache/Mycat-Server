@@ -27,7 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
@@ -57,7 +57,7 @@ import io.mycat.util.StringUtil;
  */
 public class ExplainHandler {
 
-	private static final Logger logger = Logger.getLogger(ExplainHandler.class);
+	private static final Logger logger = LoggerFactory.getLogger(ExplainHandler.class);
     private final static Pattern pattern = Pattern.compile("(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+", Pattern.CASE_INSENSITIVE);
 	private static final RouteResultsetNode[] EMPTY_ARRAY = new RouteResultsetNode[0];
 	private static final int FIELD_COUNT = 2;

@@ -5,7 +5,7 @@ import com.google.common.base.Strings;
 import io.mycat.config.loader.zookeeper.ZookeeperLoader;
 import io.mycat.config.loader.zookeeper.ZookeeperSaver;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -13,7 +13,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 public class ZkConfig {
-    private static final Logger LOGGER = Logger.getLogger(ZkConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ZkConfig.class);
     private static final String ZK_CONFIG_FILE_NAME = "/myid.properties";
 
     private ZkConfig() {

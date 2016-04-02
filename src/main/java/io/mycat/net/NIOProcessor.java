@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -43,7 +43,7 @@ import io.mycat.util.TimeUtil;
  * @author mycat
  */
 public final class NIOProcessor {
-	private static final Logger LOGGER = Logger.getLogger("NIOProcessor");
+	private static final Logger LOGGER = LoggerFactory.getLogger("NIOProcessor");
 	private final String name;
 	private final BufferPool bufferPool;
 	private final NameableExecutor executor;

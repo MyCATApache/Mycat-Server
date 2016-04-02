@@ -23,6 +23,7 @@ import io.mycat.util.StringUtil;
  * 1、用户 R/W数、读占比、并发数
  * 2、请求时间范围
  * 3、请求的耗时范围
+ * 4、Net 进/出 字节数
  * 
  * @author zhuam
  */
@@ -30,7 +31,7 @@ public class ShowSQLSumUser {
 	
 	private static DecimalFormat decimalFormat = new DecimalFormat("0.00");
 
-    private static final int FIELD_COUNT = 9;
+	private static final int FIELD_COUNT = 11;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -56,6 +57,12 @@ public class ShowSQLSumUser {
         fields[i++].packetId = ++packetId;
         
         fields[i] = PacketUtil.getField("MAX", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i++].packetId = ++packetId;
+        
+        fields[i] = PacketUtil.getField("NET_IN", Fields.FIELD_TYPE_LONGLONG);
+        fields[i++].packetId = ++packetId;
+        
+        fields[i] = PacketUtil.getField("NET_OUT", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
 
         //22-06h, 06-13h, 13-18h, 18-22h
@@ -128,6 +135,8 @@ public class ShowSQLSumUser {
         row.add( LongUtil.toBytes( W ) );
         row.add( StringUtil.encode( String.valueOf( __R ), charset) );
         row.add( StringUtil.encode( String.valueOf( MAX ), charset) );
+        row.add( LongUtil.toBytes( rwStat.getNetInBytes() ) );
+        row.add( LongUtil.toBytes( rwStat.getNetOutBytes() ) );
         row.add( StringUtil.encode( rwStat.getExecuteHistogram().toString(), charset) );
         row.add( StringUtil.encode( rwStat.getTimeHistogram().toString(), charset) );
         row.add( LongUtil.toBytes( rwStat.getLastExecuteTime() ) );

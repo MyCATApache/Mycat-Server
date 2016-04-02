@@ -33,7 +33,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.net.factory.FrontendConnectionFactory;
@@ -42,7 +42,7 @@ import io.mycat.net.factory.FrontendConnectionFactory;
  * @author mycat
  */
 public final class NIOAcceptor extends Thread  implements SocketAcceptor{
-	private static final Logger LOGGER = Logger.getLogger(NIOAcceptor.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(NIOAcceptor.class);
 	private static final AcceptIdGenerator ID_GENERATOR = new AcceptIdGenerator();
 
 	private final int port;

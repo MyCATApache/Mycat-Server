@@ -23,7 +23,7 @@
  */
 package io.mycat.manager.response;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.ManagerConnection;
@@ -34,7 +34,7 @@ import io.mycat.net.mysql.OkPacket;
  */
 public final class ReloadUser {
 
-    private static final Logger logger = Logger.getLogger(ReloadUser.class);
+    private static final Logger logger = LoggerFactory.getLogger(ReloadUser.class);
 
     public static void execute(ManagerConnection c) {
         boolean status = false;

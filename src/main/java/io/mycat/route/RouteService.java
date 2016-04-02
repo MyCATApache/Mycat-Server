@@ -25,9 +25,11 @@ package io.mycat.route;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheService;
@@ -42,9 +44,10 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 
 public class RouteService {
-    private static final Logger LOGGER = Logger
+    private static final Logger LOGGER = LoggerFactory
             .getLogger(RouteService.class);
-	private final CachePool sqlRouteCache;
+    public static final String MYCAT_HINT_TYPE = "_mycatHintType";
+    private final CachePool sqlRouteCache;
 	private final LayerCachePool tableId2DataNodeCache;	
 
 	private final String OLD_MYCAT_HINT = "/*!mycat:"; 	// 处理自定义分片注解, 注解格式：/*!mycat: type = value */ sql
@@ -93,9 +96,9 @@ public class RouteService {
 				
                 int firstSplitPos = hint.indexOf(HINT_SPLIT);                
                 if(firstSplitPos > 0 ){
-                    
-                	String hintType = hint.substring(0,firstSplitPos).trim().toLowerCase(Locale.US);
-                    String hintSql = hint.substring(firstSplitPos + HINT_SPLIT.length()).trim();
+                    Map hintMap=    parseHint(hint);
+                	String hintType = (String) hintMap.get(MYCAT_HINT_TYPE);
+                    String hintSql = (String) hintMap.get(hintType);
                     if( hintSql.length() == 0 ) {
                     	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
                     	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
@@ -111,10 +114,10 @@ public class RouteService {
                         	 * fixed by zhuam
                         	 */
                     		int hintSqlType = ServerParse.parse( hintSql ) & 0xff;     
-                    		rrs = hintHandler.route(sysconf, schema, hintSqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql);
+                    		rrs = hintHandler.route(sysconf, schema, sqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql,hintSqlType,hintMap);
                     		
                     	} else {                    		
-                    		rrs = hintHandler.route(sysconf, schema, sqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql);
+                    		rrs = hintHandler.route(sysconf, schema, sqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql,sqlType,hintMap);
                     	}
  
                     }else{
@@ -155,4 +158,51 @@ public class RouteService {
 		}
 		return -1;	// false
 	}
+	
+	 private   Map parseHint( String sql)
+    {
+        Map map=new HashMap();
+        int y=0;
+        int begin=0;
+        for(int i=0;i<sql.length();i++)
+        {
+            char cur=sql.charAt(i);
+            if(cur==','&& y%2==0)
+            {
+                String substring = sql.substring(begin, i);
+
+                parseKeyValue(map, substring);
+                begin=i+1;
+            }
+            else
+            if(cur=='\'')
+            {
+                y++;
+            } if(i==sql.length()-1)
+        {
+            parseKeyValue(map, sql.substring(begin));
+
+        }
+
+
+        }
+        return map;
+    }
+
+    private  void parseKeyValue(Map map, String substring)
+    {
+        int indexOf = substring.indexOf('=');
+        if(indexOf!=-1)
+        {
+
+            String key=substring.substring(0,indexOf).trim().toLowerCase();
+            String value=substring.substring(indexOf+1,substring.length());
+            if(map.isEmpty())
+            {
+              map.put(MYCAT_HINT_TYPE,key)  ;
+            }
+            map.put(key,value.trim());
+
+        }
+    }
 }

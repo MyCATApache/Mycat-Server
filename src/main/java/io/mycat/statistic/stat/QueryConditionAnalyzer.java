@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
@@ -37,7 +37,7 @@ import io.mycat.server.parser.ServerParse;
  */
 public class QueryConditionAnalyzer implements QueryResultListener {
 	
-	private static final Logger LOGGER = Logger.getLogger(QueryConditionAnalyzer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(QueryConditionAnalyzer.class);
 	
 	private String tableName = null;
 	private String columnName = null;

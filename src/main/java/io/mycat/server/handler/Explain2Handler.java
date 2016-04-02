@@ -25,7 +25,7 @@ package io.mycat.server.handler;
 
 import java.nio.ByteBuffer;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.backend.mysql.nio.handler.SingleNodeHandler;
@@ -45,7 +45,7 @@ import io.mycat.util.StringUtil;
  */
 public class Explain2Handler {
 
-	private static final Logger logger = Logger.getLogger(Explain2Handler.class);
+	private static final Logger logger = LoggerFactory.getLogger(Explain2Handler.class);
 	private static final RouteResultsetNode[] EMPTY_ARRAY = new RouteResultsetNode[1];
 	private static final int FIELD_COUNT = 2;
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];

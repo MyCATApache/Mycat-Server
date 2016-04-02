@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 
@@ -19,7 +19,7 @@ public class QueryResultDispatcher {
 	// 是否派发 QueryResult 事件
 	private final static AtomicBoolean isClosed = new AtomicBoolean(false);
 	
-	private static final Logger LOGGER = Logger.getLogger(QueryResultDispatcher.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(QueryResultDispatcher.class);
 	
 	private static List<QueryResultListener> listeners = new CopyOnWriteArrayList<QueryResultListener>();
 
@@ -27,7 +27,6 @@ public class QueryResultDispatcher {
 	static {
 		listeners.add( UserStatAnalyzer.getInstance() );
 		listeners.add( TableStatAnalyzer.getInstance() );
-		//listeners.add( HighFrequencySqlAnalyzer.getInstance() );
 		listeners.add( QueryConditionAnalyzer.getInstance() );
 	}
 	
@@ -75,7 +74,7 @@ public class QueryResultDispatcher {
 					try {
 						listener.onQueryResult( queryResult );
 					} catch(Exception e) {
-						LOGGER.error(e);
+						LOGGER.error("error:",e);
 					}
 				}					
 			}

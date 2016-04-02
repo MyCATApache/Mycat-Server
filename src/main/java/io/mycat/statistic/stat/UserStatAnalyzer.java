@@ -40,6 +40,8 @@ public class UserStatAnalyzer implements QueryResultListener {
     	case ServerParse.REPLACE:  	
     		
     		String user = query.getUser();
+    		long netInBytes = query.getNetInBytes();
+    		long netOutBytes = query.getNetOutBytes();
     		long startTime = query.getStartTime();
     		long endTime = query.getEndTime();
     		
@@ -50,7 +52,7 @@ public class UserStatAnalyzer implements QueryResultListener {
                     userStat = new UserStat(user);
                     userStatMap.put(user, userStat);
                 }                
-                userStat.update(sqlType, sql, startTime, endTime);	
+                userStat.update(sqlType, sql, netInBytes, netOutBytes, startTime, endTime);	
                 
             } finally {
             	this.lock.writeLock().unlock();
