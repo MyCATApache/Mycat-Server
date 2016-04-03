@@ -17,13 +17,13 @@ public class PostgreSQLBackendConnectionFactory extends
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public PostgreSQLBackendConnection make(PostgreSQLDataSource pool,
-			ResponseHandler handler, String schema) throws IOException {
+			ResponseHandler handler, final String schema) throws IOException {
 
-		DBHostConfig dsc = pool.getConfig();
+		final DBHostConfig dsc = pool.getConfig();
 		NetworkChannel channel = this.openSocketChannel(MycatServer
 				.getInstance().isAIO());
 
-		PostgreSQLBackendConnection c = new PostgreSQLBackendConnection(
+		final PostgreSQLBackendConnection c = new PostgreSQLBackendConnection(
 				channel, pool.isReadNode());
 		MycatServer.getInstance().getConfig().setSocketParams(c, false);
 		// 设置NIOHandler
@@ -46,7 +46,29 @@ public class PostgreSQLBackendConnectionFactory extends
 					.postConnect(c);
 
 		}
+//		SocketChannel chan = (SocketChannel)c.getChannel();
+//		chan.write(PacketUtils.makeStartUpPacket(dsc.getUser(), schema));
+//		
+		//  发送启动包。		
+//		new java.lang.Thread(new Runnable() {
+//			
+//			@Override
+//			public void run() {
+//				try {
+//					Thread.sleep(100);
+//				} catch (InterruptedException e) {
+//					e.printStackTrace();
+//				}
+//				try {
+//					c.write(PacketUtils.makeStartUpPacket(dsc.getUser(), schema));
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}).start();
+		
 		return c;
 	}
-
+	
+	
 }

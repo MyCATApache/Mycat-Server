@@ -215,7 +215,7 @@ public class PacketUtils {
 			PIOUtils.Send(encodedParam, buffer);
 			PIOUtils.SendChar(0, buffer);
 		}
-		PIOUtils.Send(new byte[] { 0 }, buffer);
+		PIOUtils.Send(new byte[] { 0 }, buffer);		
 		return buffer;
 	}
 

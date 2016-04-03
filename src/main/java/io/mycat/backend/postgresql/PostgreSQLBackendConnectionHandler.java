@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import com.alibaba.fastjson.JSON;
+
 public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	private static final int RESULT_STATUS_INIT = 0;
 	private static final int RESULT_STATUS_HEADER = 1;
@@ -18,20 +20,20 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	/**
 	 * life cycle: one SQL execution
 	 */
-	private volatile ResponseHandler responseHandler;
-	
+	private transient volatile ResponseHandler responseHandler;
+
 	/*****
 	 * 每个后台响应有唯一的连接
 	 */
-	private final PostgreSQLBackendConnection conn;
-	
-	public PostgreSQLBackendConnectionHandler(PostgreSQLBackendConnection conn) {
-		this.conn = conn;
+	private final PostgreSQLBackendConnection source;
+
+	public PostgreSQLBackendConnectionHandler(PostgreSQLBackendConnection source) {
+		this.source = source;
 	}
-	
+
 	@Override
 	public void handle(byte[] data) {
-		offerData(data, null);// XXX 此处需要重新考虑
+		offerData(data, source.getProcessor().getExecutor());
 	}
 
 	@Override
@@ -44,10 +46,9 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	protected void handleData(byte[] data) {
 		try {
 			List<PostgreSQLPacket> pgs = PacketUtils.parsePacket(ByteBuffer.wrap(data), 0, data.length);
-			
-			//responseHandler.okResponse(ok, conn);
+			System.out.println(JSON.toJSONString(pgs));
 		} catch (IOException e) {
-			
+
 		}
 	}
 }

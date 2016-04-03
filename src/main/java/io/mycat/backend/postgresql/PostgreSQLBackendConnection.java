@@ -2,11 +2,11 @@ package io.mycat.backend.postgresql;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.CharsetUtil;
-import io.mycat.backend.mysql.nio.MySQLConnectionAuthenticator;
 import io.mycat.backend.mysql.nio.MySQLConnectionHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.backend.postgresql.packet.Query;
 import io.mycat.backend.postgresql.packet.Terminate;
+import io.mycat.backend.postgresql.utils.PacketUtils;
 import io.mycat.backend.postgresql.utils.PgSqlApaterUtils;
 import io.mycat.config.Isolations;
 import io.mycat.net.BackendAIOConnection;
@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.NetworkChannel;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -258,7 +259,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	@Override
 	public void onConnectFailed(Throwable t) {
 		if (handler instanceof MySQLConnectionHandler) {
-			
+
 		}
 	}
 
@@ -463,5 +464,29 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		}
 
 	}
-
+	
+	@Override
+	public void onConnectfinish() {
+		LOGGER.debug("连接后台真正完成");
+		try {
+			SocketChannel chan = (SocketChannel)this.channel;
+			ByteBuffer buf = PacketUtils.makeStartUpPacket(user, schema);
+			buf.flip();
+			chan.write(buf);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}	
+	
+	/**
+	 * 读取可能的Socket字节流
+	 */
+	public void onReadData(int got) throws IOException {
+		int offset = readBufferOffset;
+		readBufferOffset  = readBufferOffset +got;
+		readBuffer.position(offset);				
+		byte[] data = new byte[got];
+		readBuffer.get(data, 0, got);
+		handle(data);
+	}
 }
