@@ -81,6 +81,4 @@ public abstract class BackendAIOConnection extends AbstractConnection implements
 		return "BackendConnection [id=" + id + ", host=" + host + ", port="
 				+ port + ", localPort=" + localPort + "]";
 	}
-
-	
 }

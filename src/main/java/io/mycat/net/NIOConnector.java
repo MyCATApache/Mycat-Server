@@ -101,6 +101,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				SocketChannel channel = (SocketChannel) c.getChannel();
 				channel.register(selector, SelectionKey.OP_CONNECT, c);
 				channel.connect(new InetSocketAddress(c.host, c.port));
+				
 			} catch (Exception e) {
 				c.close(e.toString());
 			}
@@ -118,7 +119,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				c.setProcessor(processor);
 				NIOReactor reactor = reactorPool.getNextReactor();
 				reactor.postRegister(c);
-
+				c.onConnectfinish();
 			}
 		} catch (Exception e) {
 			clearSelectionKey(key);

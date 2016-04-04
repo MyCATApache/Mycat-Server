@@ -29,6 +29,7 @@ import java.util.List;
 
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.MySQLMessage;
+import io.mycat.buffer.BufferArray;
 import io.mycat.net.FrontendConnection;
 
 /**
@@ -123,6 +124,29 @@ public class RowDataPacket extends MySQLPacket {
 	@Override
 	protected String getPacketInfo() {
 		return "MySQL RowData Packet";
+	}
+
+	public void write(BufferArray bufferArray) {
+		int size = calcPacketSize();
+		ByteBuffer buffer = bufferArray.checkWriteBuffer(packetHeaderSize
+				+ size);
+		BufferUtil.writeUB3(buffer, size);
+		buffer.put(packetId);
+		for (int i = 0; i < fieldCount; i++) {
+			byte[] fv = fieldValues.get(i);
+			if (fv == null) {
+				buffer = bufferArray.checkWriteBuffer(1);
+				buffer.put(RowDataPacket.NULL_MARK);
+			} else if (fv.length == 0) {
+				buffer = bufferArray.checkWriteBuffer(1);
+				buffer.put(RowDataPacket.EMPTY_MARK);
+			} else {
+				buffer = bufferArray.checkWriteBuffer(BufferUtil
+						.getLength(fv.length));
+				BufferUtil.writeLength(buffer, fv.length);
+				bufferArray.write(fv);
+			}
+		}
 	}
 
 }

@@ -30,7 +30,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -164,42 +165,44 @@ public abstract class PhysicalDatasource {
 				checkListItor.remove();
 				continue;
 			}
-            if (validSchema(con.getSchema())) {
-                if (con.getLastTime() < hearBeatTime && heartBeatCons.size() < maxConsInOneCheck) {
-                    checkListItor.remove();
-                    // Heart beat check
-                    con.setBorrowed(true);
-                    heartBeatCons.add(con);
-                }
-            } else if (con.getLastTime() < hearBeatTime2) {
-				    // not valid schema conntion should close for idle
-					// exceed 2*conHeartBeatPeriod
+			if (validSchema(con.getSchema())) {
+				if (con.getLastTime() < hearBeatTime
+						&& heartBeatCons.size() < maxConsInOneCheck) {
 					checkListItor.remove();
-					con.close(" heart beate idle ");
+					// Heart beat check
+					con.setBorrowed(true);
+					heartBeatCons.add(con);
+				}
+			} else if (con.getLastTime() < hearBeatTime2) {
+				// not valid schema conntion should close for idle
+				// exceed 2*conHeartBeatPeriod
+				checkListItor.remove();
+				con.close(" heart beate idle ");
 			}
 
 		}
 
 	}
 
-    public int getIndex(){
-        		int currentIndex = 0;
-        		for(int i=0;i<dbPool.getSources().length;i++){
-            			PhysicalDatasource writeHostDatasource = dbPool.getSources()[i];
-            			if(writeHostDatasource.getName().equals(getName())){
-                				currentIndex = i;
-                				break;
-                			}
-            		}
-        		return currentIndex;
-        	}
-    	public boolean isSalveOrRead(){
-        		int currentIndex = getIndex();
-                if(currentIndex!=dbPool.activedIndex ||this.readNode ){
-                    	return true;
-                    }
-                return false;
-        	}
+	public int getIndex() {
+		int currentIndex = 0;
+		for (int i = 0; i < dbPool.getSources().length; i++) {
+			PhysicalDatasource writeHostDatasource = dbPool.getSources()[i];
+			if (writeHostDatasource.getName().equals(getName())) {
+				currentIndex = i;
+				break;
+			}
+		}
+		return currentIndex;
+	}
+
+	public boolean isSalveOrRead() {
+		int currentIndex = getIndex();
+		if (currentIndex != dbPool.activedIndex || this.readNode) {
+			return true;
+		}
+		return false;
+	}
 
 	public void heatBeatCheck(long timeout, long conHeartBeatPeriod) {
 		int ildeCloseCount = hostConfig.getMinCon() * 3;
@@ -235,10 +238,10 @@ public abstract class PhysicalDatasource {
 		// create if idle too little
 		if ((createCount > 0) && (idleCons + activeCons < size)
 				&& (idleCons < hostConfig.getMinCon())) {
-            createByIdleLitte(idleCons, createCount);
-        } else if (idleCons > hostConfig.getMinCon()) {
-            closeByIdleMany(idleCons-hostConfig.getMinCon());
-        } else {
+			createByIdleLitte(idleCons, createCount);
+		} else if (idleCons > hostConfig.getMinCon()) {
+			closeByIdleMany(idleCons - hostConfig.getMinCon());
+		} else {
 			int activeCount = this.getActiveCount();
 			if (activeCount > size) {
 				StringBuilder s = new StringBuilder();
@@ -250,45 +253,49 @@ public abstract class PhysicalDatasource {
 		}
 	}
 
-    private void closeByIdleMany(int ildeCloseCount) {
-        LOGGER.info("too many ilde cons ,close some for datasouce  " + name);
-        List<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(
-        		ildeCloseCount);
-        for (ConQueue queue : conMap.getAllConQueue()) {
-        	readyCloseCons.addAll(queue.getIdleConsToClose(ildeCloseCount));
-        	if (readyCloseCons.size() >= ildeCloseCount) {
-        		break;
-        	}
-        }
+	private void closeByIdleMany(int ildeCloseCount) {
+		LOGGER.info("too many ilde cons ,close some for datasouce  " + name);
+		List<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(
+				ildeCloseCount);
+		for (ConQueue queue : conMap.getAllConQueue()) {
+			readyCloseCons.addAll(queue.getIdleConsToClose(ildeCloseCount));
+			if (readyCloseCons.size() >= ildeCloseCount) {
+				break;
+			}
+		}
 
-        for (BackendConnection idleCon : readyCloseCons) {
-        	if (idleCon.isBorrowed()) {
-        		LOGGER.warn("find idle con is using " + idleCon);
-        	}
-        	idleCon.close("too many idle con");
-        }
-    }
+		for (BackendConnection idleCon : readyCloseCons) {
+			if (idleCon.isBorrowed()) {
+				LOGGER.warn("find idle con is using " + idleCon);
+			}
+			idleCon.close("too many idle con");
+		}
+	}
 
-    private void createByIdleLitte(int idleCons, int createCount) {
-        LOGGER.info("create connections ,because idle connection not enough ,cur is "
-            + idleCons + ", minCon is " + hostConfig.getMinCon() + " for " + name);
-        NewConnectionRespHandler simpleHandler = new NewConnectionRespHandler();
+	private void createByIdleLitte(int idleCons, int createCount) {
+		LOGGER.info("create connections ,because idle connection not enough ,cur is "
+				+ idleCons
+				+ ", minCon is "
+				+ hostConfig.getMinCon()
+				+ " for "
+				+ name);
+		NewConnectionRespHandler simpleHandler = new NewConnectionRespHandler();
 
-        final String[] schemas = dbPool.getSchemas();
-        for (int i = 0; i < createCount; i++) {
-        	if (this.getActiveCount() + this.getIdleCount() >= size) {
-        		break;
-        	}
-        	try {
-        		// creat new connection
-        		this.createNewConnection(simpleHandler, null, schemas[i
-        				% schemas.length]);
-        	} catch (IOException e) {
-        		LOGGER.warn("create connection err " + e);
-        	}
+		final String[] schemas = dbPool.getSchemas();
+		for (int i = 0; i < createCount; i++) {
+			if (this.getActiveCount() + this.getIdleCount() >= size) {
+				break;
+			}
+			try {
+				// creat new connection
+				this.createNewConnection(simpleHandler, null, schemas[i
+						% schemas.length]);
+			} catch (IOException e) {
+				LOGGER.warn("create connection err " + e);
+			}
 
-        }
-    }
+		}
+	}
 
 	public int getActiveCount() {
 		return this.conMap.getActiveCountForDs(this);
@@ -332,14 +339,14 @@ public abstract class PhysicalDatasource {
 		ConQueue queue = conMap.getSchemaConQueue(schema);
 		queue.incExecuteCount();
 		conn.setAttachment(attachment);
-		conn.setLastTime(System.currentTimeMillis());  //每次取连接的时候，更新下lasttime，防止在前端连接检查的时候，关闭连接，导致sql执行失败
+		conn.setLastTime(System.currentTimeMillis()); // 每次取连接的时候，更新下lasttime，防止在前端连接检查的时候，关闭连接，导致sql执行失败
 		handler.connectionAcquired(conn);
 		return conn;
 	}
 
 	private void createNewConnection(final ResponseHandler handler,
 			final Object attachment, final String schema) throws IOException {
-		//aysn create connection
+		// aysn create connection
 		MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
 			public void run() {
 				try {
@@ -362,26 +369,28 @@ public abstract class PhysicalDatasource {
 		});
 	}
 
-    public void getConnection(String schema,boolean autocommit, final ResponseHandler handler,
-        final Object attachment) throws IOException {
-        BackendConnection con = this.conMap.tryTakeCon(schema,autocommit);
-        if (con != null) {
-            takeCon(con, handler, attachment, schema);
-            return;
-        } else {
-            int activeCons = this.getActiveCount();//当前最大活动连接
-            if(activeCons+1>size){//下一个连接大于最大连接数
-                LOGGER.error("the max activeConnnections size can not be max than maxconnections");
-                throw new IOException("the max activeConnnections size can not be max than maxconnections");
-            }else{            // create connection
-                LOGGER.info("no ilde connection in pool,create new connection for " + this.name
-                        + " of schema "+schema);
-                createNewConnection(handler, attachment, schema);
-            }
-            
-        }
-        
-    }
+	public void getConnection(String schema, boolean autocommit,
+			final ResponseHandler handler, final Object attachment)
+			throws IOException {
+		BackendConnection con = this.conMap.tryTakeCon(schema, autocommit);
+		if (con != null) {
+			takeCon(con, handler, attachment, schema);
+			return;
+		} else {
+			int activeCons = this.getActiveCount();// 当前最大活动连接
+			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
+				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
+				throw new IOException(
+						"the max activeConnnections size can not be max than maxconnections");
+			} else { // create connection
+				LOGGER.info("no ilde connection in pool,create new connection for "
+						+ this.name + " of schema " + schema);
+				createNewConnection(handler, attachment, schema);
+			}
+
+		}
+
+	}
 
 	private void returnCon(BackendConnection c) {
 		c.setAttachment(null);
