@@ -30,7 +30,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.log4j.Logger;
 
 /**
- * @author wuzh
+ * <p>
+ * Allocate from heap if direct buffer OOM occurs.
+ * </p>
+ * @since 2016-03-30
+ * 
+ * @author wuzh, Uncle-pan
  */
 public final class BufferPool {
 	// this value not changed ,isLocalCacheThread use it
@@ -118,8 +123,16 @@ public final class BufferPool {
 		}
 		node = items.poll();
 		if (node == null) {
-			newCreated++;
-			node = this.createDirectBuffer(chunkSize);
+			// Allocate from heap if direct buffer OOM occurs
+			// @author Uncle-pan
+			// @since 2016-03-30
+			try{
+				node = this.createDirectBuffer(chunkSize);
+				++newCreated;
+			}catch(final OutOfMemoryError oom){
+				LOGGER.warn("Direct buffer OOM occurs: so allocate from heap", oom);
+				node = this.createTempBuffer(chunkSize);
+			}
 		}
 		return node;
 	}
