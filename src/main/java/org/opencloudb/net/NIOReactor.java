@@ -37,6 +37,10 @@ import org.apache.log4j.Logger;
  * 网络事件反应器
  * 
  * @author mycat
+ * 
+ * Catch exceptions such as OOM so that the reactor can keep running for response client!
+ * @author Uncle-pan
+ * @since 2016-03-30
  */
 public final class NIOReactor {
 	private static final Logger LOGGER = Logger.getLogger(NIOReactor.class);
@@ -98,7 +102,7 @@ public final class NIOReactor {
                                         con.close("program err:" + e.toString());
 										continue;
 									} catch (Exception e) {
-										LOGGER.debug("caught err:", e);
+										LOGGER.warn("caught err: ", e);
 										con.close("program err:" + e.toString());
 										continue;
 									}
@@ -115,15 +119,29 @@ public final class NIOReactor {
                             }
                         } catch (Exception e) {
                             LOGGER.warn(con + " " + e);
+                        } catch (final Throwable e){
+                        	// Catch exceptions such as OOM and close connection if exists
+                        	//so that the reactor can keep running!
+                        	// @author Uncle-pan
+                        	// @since 2016-03-30
+                        	if(con != null){
+                        		con.close("Bad: "+e);
+                        	}
+                        	LOGGER.error("caught err: ", e);
+                        	continue;
                         }
 					}
 				} catch (Exception e) {
 					LOGGER.warn(name, e);
+				} catch (final Throwable e){
+					// Catch exceptions such as OOM so that the reactor can keep running!
+                	// @author Uncle-pan
+                	// @since 2016-03-30
+					LOGGER.error("caught err: ", e);
 				} finally {
 					if (keys != null) {
 						keys.clear();
 					}
-
 				}
 			}
 		}
