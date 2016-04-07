@@ -184,7 +184,6 @@ public class NIOSocketWR extends SocketWR {
 		}
 		int got = channel.read(theBuffer);
 		con.onReadData(got);
-
 	}
 
 }

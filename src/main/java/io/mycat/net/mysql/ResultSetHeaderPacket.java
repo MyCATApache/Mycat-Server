@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.MySQLMessage;
+import io.mycat.buffer.BufferArray;
 import io.mycat.net.FrontendConnection;
 
 /**
@@ -79,6 +80,18 @@ public class ResultSetHeaderPacket extends MySQLPacket {
         }
         return buffer;
     }
+    
+    public void write(BufferArray bufferArray) {
+		int size = calcPacketSize();
+		ByteBuffer buffer = bufferArray
+				.checkWriteBuffer(packetHeaderSize + size);
+		BufferUtil.writeUB3(buffer, size);
+		buffer.put(packetId);
+		BufferUtil.writeLength(buffer, fieldCount);
+		if (extra > 0) {
+			BufferUtil.writeLength(buffer, extra);
+		}
+	}
 
     @Override
     public int calcPacketSize() {
@@ -93,5 +106,7 @@ public class ResultSetHeaderPacket extends MySQLPacket {
     protected String getPacketInfo() {
         return "MySQL ResultSetHeader Packet";
     }
+
+	
 
 }
