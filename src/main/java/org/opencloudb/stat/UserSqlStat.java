@@ -45,12 +45,12 @@ public class UserSqlStat {
         }
 	}
 
-    public void add(String sql,  long executeTime, long startTime, long endTime ) {
+    public void add(String sql, String ip,  long executeTime, long startTime, long endTime ) {
     	
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
-        	Sql newSql = new Sql(sql, executeTime, startTime, endTime);        	
+        	Sql newSql = new Sql(sql,ip, executeTime, startTime, endTime);        	
             if (index < count) {
                 sqls[index++] = newSql;
             } else {
@@ -81,13 +81,15 @@ public class UserSqlStat {
     public class Sql {
     	
     	private String sql;
+    	private String ip;
     	private long executeTime;
     	private long startTime;
     	private long endTime;
     	
-		public Sql(String sql, long executeTime, long startTime, long endTime) {
+		public Sql(String sql,String ip, long executeTime, long startTime, long endTime) {
 			super();
 			this.sql = sql;
+			this.ip = ip;
 			this.executeTime = executeTime;
 			this.startTime = startTime;
 			this.endTime = endTime;
@@ -96,7 +98,11 @@ public class UserSqlStat {
 		public String getSql() {
 			return sql;
 		}
-
+		
+		public String getIp() {
+			return ip;
+		}
+		
 		public long getStartTime() {
 			return startTime;
 		}
