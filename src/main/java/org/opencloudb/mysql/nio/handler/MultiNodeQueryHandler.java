@@ -355,7 +355,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		if (execCount == rrs.getNodes().length) {			
 			//TODO: add by zhuam
 			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), session.getSource().getHost(),
 					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
 			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
