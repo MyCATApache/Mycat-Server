@@ -30,11 +30,15 @@ import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -42,9 +46,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.buffer.BufferPool;
 import io.mycat.cache.CacheService;
-
 import io.mycat.config.MycatConfig;
-import io.mycat.config.ZkConfig;
 import io.mycat.config.classloader.DynaClassLoader;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.manager.ManagerConnectionFactory;
@@ -64,8 +66,6 @@ import io.mycat.statistic.SQLRecorder;
 import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
@@ -94,7 +94,7 @@ public class MycatServer {
 	}
 
 	private final MycatConfig config;
-	private final Timer timer;
+	private final ScheduledExecutorService scheduler;
 	private final SQLRecorder sqlRecorder;
 	private final AtomicBoolean isOnline;
 	private final long startupTime;
@@ -106,7 +106,7 @@ public class MycatServer {
 
 	private MycatServer() {
 		this.config = new MycatConfig();
-		this.timer = new Timer(NAME + "Timer", true);
+		scheduler = Executors.newSingleThreadScheduledExecutor();
 		this.sqlRecorder = new SQLRecorder(config.getSystem()
 				.getSqlRecordCount());
 		this.isOnline = new AtomicBoolean(true);
@@ -308,18 +308,21 @@ public class MycatServer {
 			node.startHeartbeat();
 		}
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
-		timer.schedule(updateTime(), 0L, TIME_UPDATE_PERIOD);
-		timer.schedule(processorCheck(), 0L, system.getProcessorCheckPeriod());
-		timer.schedule(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L,
-				dataNodeIldeCheckPeriod);
-		timer.schedule(dataNodeHeartbeat(), 0L,
-				system.getDataNodeHeartbeatPeriod());
-		timer.schedule(catletClassClear(), 30000);
+		
+		
+		scheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MICROSECONDS);
+		scheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MICROSECONDS);
+		scheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L,
+				dataNodeIldeCheckPeriod,TimeUnit.MICROSECONDS);
+		scheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L,
+				system.getDataNodeHeartbeatPeriod(),TimeUnit.MICROSECONDS);
+		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MICROSECONDS);
+		
 
 	}
 
-	private TimerTask catletClassClear() {
-		return new TimerTask() {
+	private Runnable catletClassClear() {
+		return new Runnable() {
 			@Override
 			public void run() {
 				try {
@@ -449,8 +452,8 @@ public class MycatServer {
 	}
 
 	// 系统时间定时更新任务
-	private TimerTask updateTime() {
-		return new TimerTask() {
+	private Runnable updateTime() {
+		return new Runnable() {
 			@Override
 			public void run() {
 				TimeUtil.update();
@@ -459,8 +462,8 @@ public class MycatServer {
 	}
 
 	// 处理器定时检查任务
-	private TimerTask processorCheck() {
-		return new TimerTask() {
+	private Runnable processorCheck() {
+		return new Runnable() {
 			@Override
 			public void run() {
 				timerExecutor.execute(new Runnable() {
@@ -493,8 +496,8 @@ public class MycatServer {
 	}
 
 	// 数据节点定时连接空闲超时检查任务
-	private TimerTask dataNodeConHeartBeatCheck(final long heartPeriod) {
-		return new TimerTask() {
+	private Runnable dataNodeConHeartBeatCheck(final long heartPeriod) {
+		return new Runnable() {
 			@Override
 			public void run() {
 				timerExecutor.execute(new Runnable() {
@@ -519,8 +522,8 @@ public class MycatServer {
 	}
 
 	// 数据节点定时心跳任务
-	private TimerTask dataNodeHeartbeat() {
-		return new TimerTask() {
+	private Runnable dataNodeHeartbeat() {
+		return new Runnable() {
 			@Override
 			public void run() {
 				timerExecutor.execute(new Runnable() {
