@@ -179,6 +179,10 @@ public class RouteService {
 
             String key=substring.substring(0,indexOf).trim().toLowerCase();
             String value=substring.substring(indexOf+1,substring.length());
+            if(value.endsWith("'")&&value.startsWith("'"))
+            {
+                value=value.substring(1,value.length()-1);
+            }
             if(map.isEmpty())
             {
               map.put(MYCAT_HINT_TYPE,key)  ;
