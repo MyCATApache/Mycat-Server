@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -41,8 +40,6 @@ import org.w3c.dom.NodeList;
 
 import com.alibaba.druid.wall.WallConfig;
 
-import io.mycat.MycatServer;
-import io.mycat.config.MycatConfig;
 import io.mycat.config.model.ClusterConfig;
 import io.mycat.config.model.QuarantineConfig;
 import io.mycat.config.model.SystemConfig;
