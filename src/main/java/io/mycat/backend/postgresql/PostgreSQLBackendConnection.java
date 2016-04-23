@@ -123,9 +123,6 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 
 	private String oldSchema;
 
-	// 已经认证通过
-	private boolean isAuthenticated;
-
 	/**
 	 * 元数据同步
 	 */
@@ -190,7 +187,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	@Override
 	public void quit() {
 		if (isQuit.compareAndSet(false, true) && !isClosed()) {
-			if (isAuthenticated) {// 断开 与PostgreSQL连接
+			if (state == BackendConnectionState.connected) {// 断开 与PostgreSQL连接
 				Terminate terminate = new Terminate();
 				ByteBuffer buf = this.allocate();
 				terminate.write(buf);
@@ -257,7 +254,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	public void execute(RouteResultsetNode rrn, ServerConnection sc,
 			boolean autocommit) throws IOException {
 
-		LOGGER.warn("{}查询任务。。。。", id);
+		LOGGER.warn("{}查询任务。。。。{}", id,rrn.getStatement());
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
@@ -341,7 +338,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 				.toString();
 		System.err.println("con=" + this.hashCode() + ":SQL:" + sql);
 		Query query = new Query(sql);
-		ByteBuffer buf = this.allocate();// XXX 此处需要处理
+		ByteBuffer buf = allocate();// 申请ByetBuffer
 		query.write(buf);
 		this.write(buf);
 		metaDataSyned = true;
@@ -394,15 +391,14 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	@Override
 	public boolean syncAndExcute() {
 		StatusSync sync = this.statusSync;
-		if (sync == null) {
-			return true;
-		} else {
+		if(sync !=null){
 			boolean executed = sync.synAndExecuted(this);
 			if (executed) {
 				statusSync = null;
 			}
 			return executed;
 		}
+		return true;
 	}
 
 	@Override
@@ -458,7 +454,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 				this.updateConnectionInfo(conn);
 				conn.metaDataSyned = true;
 				return false;
-			} else if (remains < 0) {
+			} else if (remains > 0) {
 				return true;
 			}
 			return false;
@@ -493,8 +489,9 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 			ByteBuffer buf = PacketUtils.makeStartUpPacket(user, schema);
 			buf.flip();
 			chan.write(buf);
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (Exception e) {
+			LOGGER.error("Connected PostgreSQL Send StartUpPacket ERROR" ,e);
+			throw new RuntimeException(e);
 		}
 	}
 
