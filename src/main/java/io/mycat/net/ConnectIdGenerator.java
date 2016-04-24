@@ -13,15 +13,10 @@ public class ConnectIdGenerator {
     {
     	return instance;
     }
-	private long connectId = 0L;
+	private volatile long connectId = 0L;
 	private final Object lock = new Object();
 
-	public long getId() {
-		synchronized (lock) {
-			if (connectId >= MAX_VALUE) {
-				connectId = 0L;
-			}
-			return ++connectId;
-		}
+	public synchronized long getId() {
+		return ++connectId;
 	}
 }
