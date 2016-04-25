@@ -114,7 +114,8 @@ public final class SystemConfig {
 	private int maxPacketSize = 16 * 1024 * 1024;
 	private int mycatNodeId=1;
 	private int useCompression =0;
-
+    //慢SQL的时间阀值
+	private  long SQL_SLOW_TIME = 1000;
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
 	}
@@ -148,9 +149,18 @@ public final class SystemConfig {
 		this.txIsolation = Isolations.REPEATED_READ;
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
+		this.SQL_SLOW_TIME=1000;
 
 	}
-
+	
+	public void setSlowTime(long time) {
+		this.SQL_SLOW_TIME = time;
+	}
+	
+	public long getSlowTime(){
+		return this.SQL_SLOW_TIME;
+	}
+	
 	public String getSqlInterceptor() {
 		return sqlInterceptor;
 	}
