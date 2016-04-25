@@ -514,6 +514,18 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		this.write(buf);
 		metaDataSyned = true;
 	}
+	
+	public void close(String reason) {		
+		if (!isClosed.get()) {
+			isQuit.set(true);
+			super.close(reason);
+			pool.connectionClosed(this);
+			if (this.responseHandler != null) {
+				this.responseHandler.connectionClose(this, reason);
+				responseHandler = null;
+			}
+		}
+	}
 
 	@Override
 	public boolean syncAndExcute() {
