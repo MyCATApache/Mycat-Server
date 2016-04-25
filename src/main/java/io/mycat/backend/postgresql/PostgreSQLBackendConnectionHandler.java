@@ -103,6 +103,7 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 		try {
 			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(buf, 0,
 					readedLength);
+			LOGGER.debug(JSON.toJSONString(packets));
 			if (!packets.isEmpty()) {
 				if (packets.get(0) instanceof AuthenticationPacket) {// pg认证信息
 					AuthenticationPacket packet = (AuthenticationPacket) packets
@@ -126,10 +127,12 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 										.getSecretKey());
 							}
 						}
+						LOGGER.debug("SUCCESS Connected TO PostgreSQL , con id is {}",con.getId());
 						con.setState(BackendConnectionState.connected);
 						con.getResponseHandler().connectionAcquired(con);// 连接已经可以用来
+
 					}
-					LOGGER.debug(JSON.toJSONString(packets));
+
 				}
 			}
 

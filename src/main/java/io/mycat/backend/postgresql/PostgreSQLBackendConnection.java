@@ -32,109 +32,164 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		BackendConnection {
 
+	public static enum BackendConnectionState {
+		closed, connected, connecting
+	}
+	private static class StatusSync {
+		private final Boolean autocommit;
+		private final Integer charsetIndex;
+		private final String schema;
+		private final AtomicInteger synCmdCount;
+		private final Integer txtIsolation;
+		private final boolean xaStarted;
+
+		public StatusSync(boolean xaStarted, String schema,
+				Integer charsetIndex, Integer txtIsolation, Boolean autocommit,
+				int synCount) {
+			super();
+			this.xaStarted = xaStarted;
+			this.schema = schema;
+			this.charsetIndex = charsetIndex;
+			this.txtIsolation = txtIsolation;
+			this.autocommit = autocommit;
+			this.synCmdCount = new AtomicInteger(synCount);
+		}
+
+		public boolean synAndExecuted(PostgreSQLBackendConnection conn) {
+			int remains = synCmdCount.decrementAndGet();
+			if (remains == 0) {// syn command finished
+				this.updateConnectionInfo(conn);
+				conn.metaDataSyned = true;
+				return false;
+			} else if (remains < 0) {
+				return true;
+			}
+			return false;
+		}
+
+		private void updateConnectionInfo(PostgreSQLBackendConnection conn)
+
+		{
+			conn.xaStatus = (xaStarted) ? 1 : 0;
+			if (schema != null) {
+				conn.schema = schema;
+				conn.oldSchema = conn.schema;
+			}
+			if (charsetIndex != null) {
+				conn.setCharset(CharsetUtil.getCharset(charsetIndex));
+			}
+			if (txtIsolation != null) {
+				conn.txIsolation = txtIsolation;
+			}
+			if (autocommit != null) {
+				conn.autocommit = autocommit;
+			}
+		}
+
+	}
+
 	private static final Query _COMMIT = new Query("commit");
+
 	private static final Query _ROLLBACK = new Query("rollback");
+
+	private static void getCharsetCommand(StringBuilder sb, int clientCharIndex) {
+		sb.append("SET names '")
+				.append(CharsetUtil.getCharset(clientCharIndex).toUpperCase())
+				.append("';");
+	}
+
+	/**
+	 * 获取 更改事物级别sql
+	 * 
+	 * @param
+	 * @param txIsolation
+	 */
+	private static void getTxIsolationCommand(StringBuilder sb, int txIsolation) {
+		switch (txIsolation) {
+		case Isolations.READ_UNCOMMITTED:
+			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");
+			return;
+		case Isolations.READ_COMMITTED:
+			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;");
+			return;
+		case Isolations.REPEATED_READ:
+			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
+			return;
+		case Isolations.SERIALIZABLE:
+			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE;");
+			return;
+		default:
+			throw new UnknownTxIsolationException("txIsolation:" + txIsolation);
+		}
+	}
+
+	private Object attachment;
+
+	private volatile boolean autocommit;
+
+	private volatile boolean borrowed;
+
+	protected volatile String charset = "utf8";
+
+	protected volatile int charsetIndex;
+
+	/***
+	 * 当前事物ID
+	 */
+	private volatile String currentXaTxId;
 
 	/**
 	 * 来自子接口
 	 */
-	private boolean fromSlaveDB;
-
-	/***
-	 * 用户名
-	 */
-	private String user;
-
-	public String getUser() {
-		return user;
-	}
-
-	public void setUser(String user) {
-		this.user = user;
-	}
-
-	/**
-	 * 密码
-	 */
-	private String password;
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	/***
-	 * 对应数据库空间
-	 */
-	private String schema;
-
-	private volatile BackendConnectionState state = BackendConnectionState.connecting;
-
-	public int getServerSecretKey() {
-		return serverSecretKey;
-	}
-
-	public void setServerSecretKey(int serverSecretKey) {
-		this.serverSecretKey = serverSecretKey;
-	}
-
-	/**
-	 * 数据源配置
-	 */
-	private PostgreSQLDataSource pool;
-
-	public PostgreSQLDataSource getPool() {
-		return pool;
-	}
-
-	public void setPool(PostgreSQLDataSource pool) {
-		this.pool = pool;
-	}
-
-	private Object attachment;
-	protected volatile String charset = "utf8";
-	private volatile boolean autocommit;
+	private volatile boolean fromSlaveDB;
 
 	/****
 	 * PG是否在事物中
 	 */
 	private volatile boolean inTransaction = false;
 
-	/***
-	 * 响应handler
-	 */
-	private volatile ResponseHandler responseHandler;
-
-	private boolean borrowed;
-	private volatile int txIsolation;
-	private volatile boolean modifiedSQLExecuted = false;
-	private long lastTime;
 	private AtomicBoolean isQuit = new AtomicBoolean(false);
 
-	// PostgreSQL服务端密码
-	private int serverSecretKey;
-
-	protected volatile int charsetIndex;
-
-	private int xaStatus;
-
-	private String oldSchema;
+	private volatile long lastTime;
 
 	/**
 	 * 元数据同步
 	 */
 	private volatile boolean metaDataSyned = true;
+	private volatile boolean modifiedSQLExecuted = false;
+	private volatile String oldSchema;
 
-	private volatile StatusSync statusSync;
+	/**
+	 * 密码
+	 */
+	private volatile String password;
+
+	/**
+	 * 数据源配置
+	 */
+	private PostgreSQLDataSource pool;
 
 	/***
-	 * 当前事物ID
+	 * 响应handler
 	 */
-	private volatile String currentXaTxId;
-	private long currentTimeMillis;
+	private volatile ResponseHandler responseHandler;
+	/***
+	 * 对应数据库空间
+	 */
+	private volatile String schema;
+	// PostgreSQL服务端密码
+	private volatile int serverSecretKey;
+	private volatile BackendConnectionState state = BackendConnectionState.connecting;
+	private volatile StatusSync statusSync;
+
+	private volatile int txIsolation;
+
+	/***
+	 * 用户名
+	 */
+	private volatile String user;
+
+	private volatile int xaStatus;
 
 	public PostgreSQLBackendConnection(NetworkChannel channel,
 			boolean fromSlaveDB) {
@@ -143,29 +198,35 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	}
 
 	@Override
-	public boolean isModifiedSQLExecuted() {
-		return modifiedSQLExecuted;
+	public void commit() {
+		ByteBuffer buf = this.allocate();
+		_COMMIT.write(buf);
+		this.write(buf);
 	}
 
 	@Override
-	public boolean isFromSlaveDB() {
-		return fromSlaveDB;
+	public void execute(RouteResultsetNode rrn, ServerConnection sc,
+			boolean autocommit) throws IOException {
+
+		LOGGER.warn("{}查询任务。。。。{}", id,rrn.getStatement());
+		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
+			modifiedSQLExecuted = true;
+		}
+		String xaTXID = sc.getSession2().getXaTXID();
+		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(),
+				autocommit);
 	}
 
 	@Override
-	public String getSchema() {
-		return this.schema;
+	public Object getAttachment() {
+		return attachment;
 	}
 
-	@Override
-	public void setSchema(String newSchema) {
-		String curSchema = schema;
-		if (curSchema == null) {
-			this.schema = newSchema;
-			this.oldSchema = newSchema;
+	private void getAutocommitCommand(StringBuilder sb, boolean autoCommit) {
+		if (autoCommit) {
+			sb.append("SET autocommit=1;");
 		} else {
-			this.oldSchema = curSchema;
-			this.schema = newSchema;
+			sb.append("begin transaction;");
 		}
 	}
 
@@ -174,14 +235,112 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		return lastTime;
 	}
 
+	public String getPassword() {
+		return password;
+	}
+
+	public PostgreSQLDataSource getPool() {
+		return pool;
+	}
+
+	public ResponseHandler getResponseHandler() {
+		return responseHandler;
+	}
+
+	@Override
+	public String getSchema() {
+		return this.schema;
+	}
+
+	public int getServerSecretKey() {
+		return serverSecretKey;
+	}
+
+	public BackendConnectionState getState() {
+		return state;
+	}
+
+	@Override
+	public int getTxIsolation() {
+		return txIsolation;
+	}
+
+	public String getUser() {
+		return user;
+	}
+
+	@Override
+	public boolean isAutocommit() {
+		return autocommit;
+	}
+
+	@Override
+	public boolean isBorrowed() {
+		return borrowed;
+	}
+
 	@Override
 	public boolean isClosedOrQuit() {
 		return isClosed() || isQuit.get();
 	}
 
 	@Override
-	public void setAttachment(Object attachment) {
-		this.attachment = attachment;
+	public boolean isFromSlaveDB() {
+		return fromSlaveDB;
+	}
+
+	public boolean isInTransaction() {
+		return inTransaction;
+	}
+
+	@Override
+	public boolean isModifiedSQLExecuted() {
+		return modifiedSQLExecuted;
+	}
+
+	@Override
+	public void onConnectFailed(Throwable t) {
+		if (handler instanceof MySQLConnectionHandler) {
+
+		}
+	}
+
+	@Override
+	public void onConnectfinish() {
+		LOGGER.debug("连接后台真正完成");
+		try {
+			SocketChannel chan = (SocketChannel) this.channel;
+			ByteBuffer buf = PacketUtils.makeStartUpPacket(user, schema);
+			buf.flip();
+			chan.write(buf);
+		} catch (Exception e) {
+			LOGGER.error("Connected PostgreSQL Send StartUpPacket ERROR" ,e);
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * 读取可能的Socket字节流
+	 */
+	public void onReadData(int got) throws IOException {
+		int offset = readBufferOffset + 0;
+		readBufferOffset = readBufferOffset + got;
+		readBuffer.position(offset);
+		byte[] data = new byte[got];
+		readBuffer.get(data, 0, got);
+		readBuffer.clear();
+		readBufferOffset = 0;
+		handle(data);
+	}
+
+	/**********
+	 * 此查询用于心跳检查和获取连接后的健康检查
+	 */
+	@Override
+	public void query(String query) throws UnsupportedEncodingException {
+		RouteResultsetNode rrn = new RouteResultsetNode("default",
+				ServerParse.SELECT, query);
+		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
 	}
 
 	@Override
@@ -198,9 +357,14 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		}
 	}
 
+	/*******
+	 * 记录sql执行信息
+	 */
 	@Override
-	public void setLastTime(long currentTimeMillis) {
-		this.currentTimeMillis = currentTimeMillis;
+	public void recordSql(String host, String schema, String statement) {
+		LOGGER.debug(String.format(
+				"executed sql: host=%s,schema=%s,statement=%s", host, schema,
+				statement));
 	}
 
 	@Override
@@ -224,60 +388,67 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	}
 
 	@Override
+	public void rollback() {
+		ByteBuffer buf = this.allocate();
+		_ROLLBACK.write(buf);
+		this.write(buf);
+	}
+
+	@Override
+	public void setAttachment(Object attachment) {
+		this.attachment = attachment;
+	}
+
+	@Override
+	public void setBorrowed(boolean borrowed) {
+		this.borrowed = borrowed;
+	}
+
+	public void setInTransaction(boolean inTransaction) {
+		this.inTransaction = inTransaction;
+	}
+
+	@Override
+	public void setLastTime(long currentTimeMillis) {
+		this.lastTime = currentTimeMillis;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public void setPool(PostgreSQLDataSource pool) {
+		this.pool = pool;
+	}
+
+	@Override
 	public boolean setResponseHandler(ResponseHandler commandHandler) {
 		this.responseHandler = commandHandler;
 		return true;
 	}
 
-	public ResponseHandler getResponseHandler() {
-		return responseHandler;
-	}
-
 	@Override
-	public void commit() {
-		ByteBuffer buf = this.allocate();
-		_COMMIT.write(buf);
-		this.write(buf);
-	}
-
-	/**********
-	 * 此查询用于心跳检查和获取连接后的健康检查
-	 */
-	@Override
-	public void query(String query) throws UnsupportedEncodingException {
-		RouteResultsetNode rrn = new RouteResultsetNode("default",
-				ServerParse.SELECT, query);
-		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
-	}
-
-	@Override
-	public void execute(RouteResultsetNode rrn, ServerConnection sc,
-			boolean autocommit) throws IOException {
-
-		LOGGER.warn("{}查询任务。。。。{}", id,rrn.getStatement());
-		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
-			modifiedSQLExecuted = true;
+	public void setSchema(String newSchema) {
+		String curSchema = schema;
+		if (curSchema == null) {
+			this.schema = newSchema;
+			this.oldSchema = newSchema;
+		} else {
+			this.oldSchema = curSchema;
+			this.schema = newSchema;
 		}
-		String xaTXID = sc.getSession2().getXaTXID();
-		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(),
-				autocommit);
 	}
 
-	/*******
-	 * 记录sql执行信息
-	 */
-	@Override
-	public void recordSql(String host, String schema, String statement) {
-		LOGGER.debug(String.format(
-				"executed sql: host=%s,schema=%s,statement=%s", host, schema,
-				statement));
+	public void setServerSecretKey(int serverSecretKey) {
+		this.serverSecretKey = serverSecretKey;
 	}
 
-	@Override
-	public void onConnectFailed(Throwable t) {
-		if (handler instanceof MySQLConnectionHandler) {
+	public void setState(BackendConnectionState state) {
+		this.state = state;
+	}
 
-		}
+	public void setUser(String user) {
+		this.user = user;
 	}
 
 	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn,
@@ -344,50 +515,6 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		metaDataSyned = true;
 	}
 
-	/**
-	 * 获取 更改事物级别sql
-	 * 
-	 * @param
-	 * @param txIsolation
-	 */
-	private static void getTxIsolationCommand(StringBuilder sb, int txIsolation) {
-		switch (txIsolation) {
-		case Isolations.READ_UNCOMMITTED:
-			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");
-			return;
-		case Isolations.READ_COMMITTED:
-			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;");
-			return;
-		case Isolations.REPEATED_READ:
-			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
-			return;
-		case Isolations.SERIALIZABLE:
-			sb.append("SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE;");
-			return;
-		default:
-			throw new UnknownTxIsolationException("txIsolation:" + txIsolation);
-		}
-	}
-
-	private void getAutocommitCommand(StringBuilder sb, boolean autoCommit) {
-		if (autoCommit) {
-			sb.append("SET autocommit=1;");
-		} else {
-			sb.append("begin transaction;");
-		}
-	}
-
-	private static void getCharsetCommand(StringBuilder sb, int clientCharIndex) {
-		sb.append("SET names '")
-				.append(CharsetUtil.getCharset(clientCharIndex).toUpperCase())
-				.append("';");
-	}
-
-	@Override
-	public Object getAttachment() {
-		return attachment;
-	}
-
 	@Override
 	public boolean syncAndExcute() {
 		StatusSync sync = this.statusSync;
@@ -399,134 +526,6 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 			return executed;
 		}
 		return true;
-	}
-
-	@Override
-	public void rollback() {
-		ByteBuffer buf = this.allocate();
-		_ROLLBACK.write(buf);
-		this.write(buf);
-	}
-
-	@Override
-	public boolean isBorrowed() {
-		return borrowed;
-	}
-
-	@Override
-	public void setBorrowed(boolean borrowed) {
-		this.borrowed = borrowed;
-	}
-
-	@Override
-	public int getTxIsolation() {
-		return txIsolation;
-	}
-
-	@Override
-	public boolean isAutocommit() {
-		return autocommit;
-	}
-
-	private static class StatusSync {
-		private final String schema;
-		private final Integer charsetIndex;
-		private final Integer txtIsolation;
-		private final Boolean autocommit;
-		private final AtomicInteger synCmdCount;
-		private final boolean xaStarted;
-
-		public StatusSync(boolean xaStarted, String schema,
-				Integer charsetIndex, Integer txtIsolation, Boolean autocommit,
-				int synCount) {
-			super();
-			this.xaStarted = xaStarted;
-			this.schema = schema;
-			this.charsetIndex = charsetIndex;
-			this.txtIsolation = txtIsolation;
-			this.autocommit = autocommit;
-			this.synCmdCount = new AtomicInteger(synCount);
-		}
-
-		public boolean synAndExecuted(PostgreSQLBackendConnection conn) {
-			int remains = synCmdCount.decrementAndGet();
-			if (remains == 0) {// syn command finished
-				this.updateConnectionInfo(conn);
-				conn.metaDataSyned = true;
-				return false;
-			} else if (remains > 0) {
-				return true;
-			}
-			return false;
-		}
-
-		private void updateConnectionInfo(PostgreSQLBackendConnection conn)
-
-		{
-			conn.xaStatus = (xaStarted) ? 1 : 0;
-			if (schema != null) {
-				conn.schema = schema;
-				conn.oldSchema = conn.schema;
-			}
-			if (charsetIndex != null) {
-				conn.setCharset(CharsetUtil.getCharset(charsetIndex));
-			}
-			if (txtIsolation != null) {
-				conn.txIsolation = txtIsolation;
-			}
-			if (autocommit != null) {
-				conn.autocommit = autocommit;
-			}
-		}
-
-	}
-
-	@Override
-	public void onConnectfinish() {
-		LOGGER.debug("连接后台真正完成");
-		try {
-			SocketChannel chan = (SocketChannel) this.channel;
-			ByteBuffer buf = PacketUtils.makeStartUpPacket(user, schema);
-			buf.flip();
-			chan.write(buf);
-		} catch (Exception e) {
-			LOGGER.error("Connected PostgreSQL Send StartUpPacket ERROR" ,e);
-			throw new RuntimeException(e);
-		}
-	}
-
-	/**
-	 * 读取可能的Socket字节流
-	 */
-	public void onReadData(int got) throws IOException {
-		int offset = readBufferOffset + 0;
-		readBufferOffset = readBufferOffset + got;
-		readBuffer.position(offset);
-		byte[] data = new byte[got];
-		readBuffer.get(data, 0, got);
-		readBuffer.clear();
-		readBufferOffset = 0;
-		handle(data);
-	}
-
-	public static enum BackendConnectionState {
-		connecting, connected, closed
-	}
-
-	public BackendConnectionState getState() {
-		return state;
-	}
-
-	public void setState(BackendConnectionState state) {
-		this.state = state;
-	}
-
-	public boolean isInTransaction() {
-		return inTransaction;
-	}
-
-	public void setInTransaction(boolean inTransaction) {
-		this.inTransaction = inTransaction;
 	}
 
 }
