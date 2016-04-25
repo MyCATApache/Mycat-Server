@@ -13,10 +13,11 @@ public class ReloadSqlSlowTime {
 
     public static void execute(ManagerConnection c,long time) {
     	
-    	Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
-        for (UserStat userStat : statMap.values()) {
-        	userStat.setSlowTime(time);
-        }
+    	//Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
+    	UserStatAnalyzer.getInstance().setSlowTime(time);
+       // for (UserStat userStat : statMap.values()) {
+       // 	userStat.setSlowTime(time);
+       // }
     	
         StringBuilder s = new StringBuilder();
         s.append(c).append("Reset show  @@sql.slow="+time+" time success by manager");
