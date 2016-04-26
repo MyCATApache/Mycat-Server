@@ -35,6 +35,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	public static enum BackendConnectionState {
 		closed, connected, connecting
 	}
+
 	private static class StatusSync {
 		private final Boolean autocommit;
 		private final Integer charsetIndex;
@@ -208,7 +209,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	public void execute(RouteResultsetNode rrn, ServerConnection sc,
 			boolean autocommit) throws IOException {
 
-		LOGGER.warn("{}查询任务。。。。{}", id,rrn.getStatement());
+		LOGGER.warn("{}查询任务。。。。{}", id, rrn.getStatement());
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
@@ -314,7 +315,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 			buf.flip();
 			chan.write(buf);
 		} catch (Exception e) {
-			LOGGER.error("Connected PostgreSQL Send StartUpPacket ERROR" ,e);
+			LOGGER.error("Connected PostgreSQL Send StartUpPacket ERROR", e);
 			throw new RuntimeException(e);
 		}
 	}
@@ -507,15 +508,17 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 				synCount);
 		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement()))
 				.toString();
-		System.err.println("con=" + this.hashCode() + ":SQL:" + sql);
+		LOGGER.debug("con={}, SQL:{}", this, sql);
 		Query query = new Query(sql);
 		ByteBuffer buf = allocate();// 申请ByetBuffer
 		query.write(buf);
 		this.write(buf);
 		metaDataSyned = true;
 	}
+
 	
-	public void close(String reason) {		
+
+	public void close(String reason) {
 		if (!isClosed.get()) {
 			isQuit.set(true);
 			super.close(reason);
@@ -530,7 +533,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	@Override
 	public boolean syncAndExcute() {
 		StatusSync sync = this.statusSync;
-		if(sync !=null){
+		if (sync != null) {
 			boolean executed = sync.synAndExecuted(this);
 			if (executed) {
 				statusSync = null;

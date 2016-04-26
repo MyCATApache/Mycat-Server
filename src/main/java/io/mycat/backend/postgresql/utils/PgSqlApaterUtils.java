@@ -1,6 +1,8 @@
 package io.mycat.backend.postgresql.utils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -42,7 +44,7 @@ public class PgSqlApaterUtils {
 			return doApaterColumnsSql(SQL);
 		}
 
-		if(SQL.indexOf("LIMIT")!=-1){
+		if(SQL.indexOf("LIMIT")!=-1 && SQL.indexOf("OFFSET") == -1){//非pgsql 分页语句
 			return  doApaterPagingSql(SQL,sql);
 		}
 
@@ -60,15 +62,30 @@ public class PgSqlApaterUtils {
 	}
 
 
-	private static String doApaterPagingSql(final  String SQL,String sql) {
+	private static String doApaterPagingSql(final String SQL, String sql) {
 		int index = SQL.indexOf("LIMIT");
 		String pagingPart = sql.substring(index);
+		String selectPart = sql.substring(0, index);
+		String[] pk = pagingPart.split("(\\s+)|(,)");
+		List<String> slices = new ArrayList<String>();
+		for (String token : pk) {
+			if (token.trim().length() > 0) {
+				slices.add(token);
+			}
+		}
 
-		String selectPart = sql.substring(0,index);
+		if (slices.size() == 3) {
+			return selectPart
+					+ String.format("%s  %s  offset %s", slices.get(0),
+							slices.get(2), slices.get(1));
+		}
+		if (slices.size() == 2) {
+			return selectPart
+					+ String.format(" %s %s offset 0 ", slices.get(0),
+							slices.get(1));
+		}
 
-		System.out.println(pagingPart);
-		System.out.print(selectPart);
-		return selectPart;
+		return sql;// 无法处理分页sql原样返回
 	}
 
 	private static String doApaterCreateTabelSql(String sql) {
@@ -129,6 +146,5 @@ public class PgSqlApaterUtils {
 		stream.put("SHOW STATUS", "SELECT 'Aborted_clients' as \"Variable\" , 0 as \"Value\" where 1=2 ");
 		stream.put("SHOW FULL TABLES WHERE Table_type != 'VIEW'".toUpperCase(), "select tablename as \"Tables_In_\",'BASE TABLE' as \"Table_Type\" from pg_tables where schemaname ='public'");
 		stream.put("SHOW ENGINES","SELECT DISTINCT 'InnoDB' as Engine ,\t'DEFAULT' as Support , \t'Supports transactions,row-level locking and foreign keys' as \"Comment\"\t,'YES' as \"Transactions\" ,\t'YES' as \"XA\",'YES' as \"Savepoints\" from  pg_tablespace\n");
-		//	stream.put("SHOW TABLE STATUS LIKE 'company'".toUpperCase(), "select 1 where 1=2");
 	}
 }

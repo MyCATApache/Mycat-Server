@@ -196,7 +196,7 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			if (respHand != null) {
 				respHand.errorResponse(err.writeToBytes(), con);
 			} else {
-				System.err.println("respHand 为空");
+			 LOGGER.error("{},respHand 为空",this);
 			}
 		}
 	}
