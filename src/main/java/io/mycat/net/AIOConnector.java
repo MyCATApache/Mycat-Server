@@ -76,14 +76,10 @@ public final class AIOConnector implements SocketConnector,
 
 		private static final long MAX_VALUE = Long.MAX_VALUE;
 
-		private volatile long connectId = 0L;
-		private final Object lock = new Object();
+		private AtomicLong connectId = new AtomicLong(0);
 
 		private long getId() {
-			synchronized (lock) {
-				return ++connectId;
-			}
+			return connectId.getAndIncrement();
 		}
 	}
-
 }
