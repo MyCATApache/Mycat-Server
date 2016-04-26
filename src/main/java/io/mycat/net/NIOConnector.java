@@ -156,14 +156,10 @@ public final class NIOConnector extends Thread implements SocketConnector {
 	public static class ConnectIdGenerator {
 
 		private static final long MAX_VALUE = Long.MAX_VALUE;
+		private AtomicLong connectId = new AtomicLong(0);
 
-		private volatile long connectId = 0L;
-		private final Object lock = new Object();
-
-		public long getId() {
-			synchronized (lock) {
-				return ++connectId;
-			}
+		private long getId() {
+			return connectId.getAndIncrement();
 		}
 	}
 
