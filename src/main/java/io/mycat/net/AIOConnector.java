@@ -79,7 +79,7 @@ public final class AIOConnector implements SocketConnector,
 		private AtomicLong connectId = new AtomicLong(0);
 
 		private long getId() {
-			return connectId.getAndIncrement();
+			return connectId.incrementAndGet();
 		}
 	}
 }
