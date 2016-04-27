@@ -159,7 +159,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 		private AtomicLong connectId = new AtomicLong(0);
 
 		private long getId() {
-			return connectId.getAndIncrement();
+			return connectId.incrementAndGet();
 		}
 	}
 
