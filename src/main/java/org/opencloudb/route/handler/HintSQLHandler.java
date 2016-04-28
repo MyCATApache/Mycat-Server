@@ -61,7 +61,8 @@ public class HintSQLHandler implements HintHandler {
 
              Procedure procedure=parseProcedure(realSQL,hintMap);
             rrs.setProcedure(procedure);
-            String sql=procedure.toChangeCallSql(null);
+        //    String sql=procedure.toChangeCallSql(null);
+            String sql=realSQL;
             for (RouteResultsetNode node : rrs.getNodes())
             {
                 node.setProcedure(procedure);
@@ -78,10 +79,12 @@ public class HintSQLHandler implements HintHandler {
 
     private   Procedure parseProcedure(String sql,Map hintMap)
     {
-        boolean isResultList= hintMap != null && "list".equals(hintMap.get("result_type"));
+        boolean fields = hintMap.containsKey("list_fields");
+        boolean isResultList= hintMap != null && ("list".equals(hintMap.get("result_type"))|| fields);
         Procedure procedure=new Procedure();
         procedure.setOriginSql(sql);
         procedure.setResultList(isResultList);
+
         List<String> sqls= Splitter.on(";").trimResults().splitToList(sql)    ;
         Set<String> outSet=new HashSet<>();
         for (int i = sqls.size() - 1; i >= 0; i--)
@@ -118,8 +121,13 @@ public class HintSQLHandler implements HintHandler {
                     parameter.setIndex(i1+1);
                     parameter.setName(pName);
                     parameter.setParameterType(pType);
-                    procedure.getParamterMap().put(pName,parameter);
-
+                    if(pName.startsWith("@"))
+                    {
+                        procedure.getParamterMap().put(pName, parameter);
+                    }   else
+                    {
+                        procedure.getParamterMap().put(String.valueOf(i1+1), parameter);
+                    }
 
                 }
                 procedure.setCallSql(s);
@@ -159,6 +167,24 @@ public class HintSQLHandler implements HintHandler {
                 }
             }
 
+        }
+        if(fields)
+        {
+            String list_fields =(String) hintMap.get("list_fields");
+            List<String> listFields = Splitter.on(",").trimResults().splitToList( list_fields);
+            for (String field : listFields)
+            {
+                if(!procedure.getParamterMap().containsKey(field))
+                {
+                    ProcedureParameter parameter=new ProcedureParameter();
+                    parameter.setParameterType(ProcedureParameter.OUT);
+                    parameter.setName(field);
+                    parameter.setJdbcType(-10);
+                    parameter.setIndex(procedure.getParamterMap().size()+1);
+                    procedure.getParamterMap().put(field,parameter);
+                }
+            }
+            procedure.getListFields().addAll(listFields);
         }
         return procedure;
     }
