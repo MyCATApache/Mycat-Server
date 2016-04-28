@@ -101,7 +101,6 @@ public class PIOUtils {
 		for(int i=offset ;i< buffer.limit();i++){
 			out.write(new byte[]{buffer.get(i)});
 			if(((char)buffer.get(i)) == '\0'){
-				//System.out.println(i - offset);
 				break;
 			}			
 		}

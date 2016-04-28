@@ -46,27 +46,6 @@ public class PostgreSQLBackendConnectionFactory extends
 					.postConnect(c);
 
 		}
-//		SocketChannel chan = (SocketChannel)c.getChannel();
-//		chan.write(PacketUtils.makeStartUpPacket(dsc.getUser(), schema));
-//		
-		//  发送启动包。		
-//		new java.lang.Thread(new Runnable() {
-//			
-//			@Override
-//			public void run() {
-//				try {
-//					Thread.sleep(100);
-//				} catch (InterruptedException e) {
-//					e.printStackTrace();
-//				}
-//				try {
-//					c.write(PacketUtils.makeStartUpPacket(dsc.getUser(), schema));
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		}).start();
-		
 		return c;
 	}
 	
