@@ -2,9 +2,9 @@ package io.mycat.statistic.stat;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger; 
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 
@@ -16,9 +16,6 @@ import io.mycat.MycatServer;
  */
 public class QueryResultDispatcher {
 	
-	// 是否派发 QueryResult 事件
-	private final static AtomicBoolean isClosed = new AtomicBoolean(false);
-	
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueryResultDispatcher.class);
 	
 	private static List<QueryResultListener> listeners = new CopyOnWriteArrayList<QueryResultListener>();
@@ -28,20 +25,6 @@ public class QueryResultDispatcher {
 		listeners.add( UserStatAnalyzer.getInstance() );
 		listeners.add( TableStatAnalyzer.getInstance() );
 		listeners.add( QueryConditionAnalyzer.getInstance() );
-	}
-	
-	public static boolean close() {
-		if (isClosed.compareAndSet(false, true)) {
-			return true;
-		}
-		return false;
-	}
-	
-	public static boolean open() {
-		if (isClosed.compareAndSet(true, false)) {
-			return true;
-		}
-		return false;
 	}
 	
 	public static void addListener(QueryResultListener listener) {
@@ -61,7 +44,10 @@ public class QueryResultDispatcher {
 	
 	public static void dispatchQuery(final QueryResult queryResult) {
 		
-		if ( isClosed.get() ) {
+		
+		// 是否派发 QueryResult 事件
+		int useSqlStat = MycatServer.getInstance().getConfig().getSystem().getUseSqlStat();
+		if ( useSqlStat == 0 ) {
 			return;
 		}
 		

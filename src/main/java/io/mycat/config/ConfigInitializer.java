@@ -32,6 +32,7 @@ import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.jdbc.JDBCDatasource;
 import io.mycat.backend.mysql.nio.MySQLDataSource;
+import io.mycat.backend.postgresql.PostgreSQLDataSource;
 import io.mycat.config.loader.ConfigLoader;
 import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLConfigLoader;
@@ -66,19 +67,18 @@ public class ConfigInitializer {
 		this.system = configLoader.getSystemConfig();
 		this.users = configLoader.getUserConfigs();
 		this.schemas = configLoader.getSchemaConfigs();
-        if(loadDataHost)
-        {
-            this.dataHosts = initDataHosts(configLoader);
-            this.dataNodes = initDataNodes(configLoader);
-        }
+		if (loadDataHost) {
+			this.dataHosts = initDataHosts(configLoader);
+			this.dataNodes = initDataNodes(configLoader);
+		}
 		this.quarantine = configLoader.getQuarantineConfig();
 		this.cluster = initCobarCluster(configLoader);
-		if(system.getSequnceHandlerType()==SystemConfig.SEQUENCEHANDLER_MYSQLDB){
-        	IncrSequenceMySQLHandler.getInstance().load();
-        }
-		if(system.getSequnceHandlerType()==SystemConfig.SEQUENCEHANDLER_LOCAL_TIME){
+		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_MYSQLDB) {
+			IncrSequenceMySQLHandler.getInstance().load();
+		}
+		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_LOCAL_TIME) {
 			IncrSequenceTimeHandler.getInstance().load();
-        }
+		}
 
 		this.checkConfig();
 	}
@@ -164,15 +164,19 @@ public class ConfigInitializer {
 				dataSources[i] = ds;
 			}
 
-		} else if(dbDriver.equals("jdbc"))
-			{
+		} else if (dbDriver.equals("jdbc")) {
 			for (int i = 0; i < nodes.length; i++) {
 				nodes[i].setIdleTimeout(system.getIdleTimeout());
 				JDBCDatasource ds = new JDBCDatasource(nodes[i], conf, isRead);
 				dataSources[i] = ds;
 			}
+		} else if ("postgresql".equalsIgnoreCase(dbType) && dbDriver.equalsIgnoreCase("native")){
+			for (int i = 0; i < nodes.length; i++) {
+				nodes[i].setIdleTimeout(system.getIdleTimeout());
+				PostgreSQLDataSource ds = new PostgreSQLDataSource(nodes[i], conf, isRead);
+				dataSources[i] = ds;
 			}
-		else {
+		} else{
 			throw new ConfigException("not supported yet !" + hostName);
 		}
 		return dataSources;
@@ -193,8 +197,9 @@ public class ConfigInitializer {
 					dbType, dbDriver, entry.getValue(), true);
 			readSourcesMap.put(entry.getKey(), readSources);
 		}
-		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(),conf, writeSources,
-				readSourcesMap, conf.getBalance(), conf.getWriteType());
+		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(), conf,
+				writeSources, readSourcesMap, conf.getBalance(),
+				conf.getWriteType());
 		return pool;
 	}
 
