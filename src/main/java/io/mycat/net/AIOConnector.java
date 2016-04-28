@@ -24,6 +24,7 @@
 package io.mycat.net;
 
 import java.nio.channels.CompletionHandler;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
