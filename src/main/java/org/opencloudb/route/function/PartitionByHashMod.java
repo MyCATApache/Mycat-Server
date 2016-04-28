@@ -6,6 +6,8 @@ import java.math.BigInteger;
 
 /**
  * 哈希值取模
+ * 根据分片列的哈希值对分片个数取模，哈希算法为Wang/Jenkins
+ * 用法和简单取模相似，规定分片个数和分片列即可。
  *
  * @author Hash Zhang
  */
