@@ -28,6 +28,7 @@ import java.nio.channels.CompletionHandler;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author mycat
