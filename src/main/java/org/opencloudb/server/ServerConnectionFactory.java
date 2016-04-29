@@ -48,6 +48,7 @@ public class ServerConnectionFactory extends FrontendConnectionFactory {
         c.setLoadDataInfileHandler(new ServerLoadDataInfileHandler(c));
         // c.setPrepareHandler(new ServerPrepareHandler(c));
         c.setTxIsolation(sys.getTxIsolation());
+        //创建绑定唯一Session
         c.setSession2(new NonBlockingSession(c));
         return c;
     }

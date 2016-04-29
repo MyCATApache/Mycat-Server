@@ -72,6 +72,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 		for (;;) {
 			++connectCount;
 			try {
+				//查看有无连接就绪
 			    tSelector.select(1000L);
 				connect(tSelector);
 				Set<SelectionKey> keys = tSelector.selectedKeys();
@@ -98,7 +99,9 @@ public final class NIOConnector extends Thread implements SocketConnector {
 		while ((c = connectQueue.poll()) != null) {
 			try {
 				SocketChannel channel = (SocketChannel) c.getChannel();
+				//注册OP_CONNECT监听与后端连接是否真正建立
 				channel.register(selector, SelectionKey.OP_CONNECT, c);
+                //主动连接
 				channel.connect(new InetSocketAddress(c.host, c.port));
 			} catch (Exception e) {
 				c.close(e.toString());
@@ -109,21 +112,22 @@ public final class NIOConnector extends Thread implements SocketConnector {
 	private void finishConnect(SelectionKey key, Object att) {
 		BackendAIOConnection c = (BackendAIOConnection) att;
 		try {
-			if (finishConnect(c, (SocketChannel) c.channel)) {
+			if (finishConnect(c, (SocketChannel) c.channel)) { //做原生NIO连接是否完成的判断和操作
 				clearSelectionKey(key);
 				c.setId(ID_GENERATOR.getId());
+                //绑定特定的NIOProcessor以作idle清理
 				NIOProcessor processor = MycatServer.getInstance()
 						.nextProcessor();
 				c.setProcessor(processor);
+                //与特定NIOReactor绑定监听读写
 				NIOReactor reactor = reactorPool.getNextReactor();
 				reactor.postRegister(c);
-
 			}
 		} catch (Exception e) {
-			clearSelectionKey(key);
+			//如有异常，将key清空
+            clearSelectionKey(key);
             c.close(e.toString());
 			c.onConnectFailed(e);
-
 		}
 	}
 
@@ -131,7 +135,6 @@ public final class NIOConnector extends Thread implements SocketConnector {
 			throws IOException {
 		if (channel.isConnectionPending()) {
 			channel.finishConnect();
-
 			c.setLocalPort(channel.socket().getLocalPort());
 			return true;
 		} else {
