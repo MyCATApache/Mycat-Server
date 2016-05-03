@@ -51,10 +51,9 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * @author mycat
  */
-public class MultiNodeQueryHandler extends MultiNodeHandler implements
-		LoadDataResponseHandler {
-	private static final Logger LOGGER = LoggerFactory
-			.getLogger(MultiNodeQueryHandler.class);
+public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataResponseHandler {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(MultiNodeQueryHandler.class);
 
 	private final RouteResultset rrs;
 	private final NonBlockingSession session;
@@ -66,6 +65,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 	private int fieldCount = 0;
 	private final ReentrantLock lock;
 	private long affectedRows;
+	private long selectRows;
 	private long insertId;
 	private volatile boolean fieldsReturned;
 	private int okCount;
@@ -236,16 +236,18 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				lock.unlock();
 			}
 			// 对于存储过程，其比较特殊，查询结果返回EndRow报文以后，还会再返回一个OK报文，才算结束
-			boolean isEndPacket = isCallProcedure ? decrementOkCountBy(1)
-					: decrementCountBy(1);
-			if (isEndPacket&&isCanClose2Client) {
+			boolean isEndPacket = isCallProcedure ? decrementOkCountBy(1): decrementCountBy(1);
+			if (isEndPacket && isCanClose2Client) {
+				
 				if (this.autocommit) {// clear all connections
 					session.releaseConnections(false);
 				}
+				
 				if (this.isFail() || session.closed()) {
 					tryErrorFinished(true);
 					return;
 				}
+				
 				lock.lock();
 				try {
 					if (rrs.isLoadData()) {
@@ -271,6 +273,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				} finally {
 					lock.unlock();
 				}
+				
+				//TODO: add by zhuam
+				//查询结果派发
+				QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+						rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis());
+				QueryResultDispatcher.dispatchQuery( queryResult );
 			}
 		}
 	}
@@ -282,6 +290,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 		
 		this.netOutBytes += eof.length;
+		
+		execCount++;
+		if (execCount == rrs.getNodes().length) {			
+			//TODO: add by zhuam
+			//查询结果派发
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+					rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis());
+			QueryResultDispatcher.dispatchQuery( queryResult );
+		}
 		
 		if (errorRepsponsed.get()) {
 			// the connection has been closed or set to "txInterrupt" properly
@@ -401,14 +418,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 		}
 		
 		ServerConnection source = null;
-		execCount++;
-		if (execCount == rrs.getNodes().length) {			
-			//TODO: add by zhuam
-			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
-			QueryResultDispatcher.dispatchQuery( queryResult );
-		}
+
 		if (fieldsReturned) {
 			return;
 		}
@@ -534,6 +544,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
+		
 		if (errorRepsponsed.get()) {
 			// the connection has been closed or set to "txInterrupt" properly
 			//in tryErrorFinished() method! If we close it here, it can
@@ -543,8 +554,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 			//conn.close(error);
 			return;
 		}
+		
+		
 		lock.lock();
 		try {
+			
+			this.selectRows++;
+			
 			RouteResultsetNode rNode = (RouteResultsetNode) conn.getAttachment();
 			String dataNode = rNode.getName();
 			if (dataMergeSvr != null) {
@@ -559,10 +575,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements
 				if (primaryKeyIndex != -1) {
 					RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 					rowDataPkg.read(row);
-					String primaryKey = new String(
-							rowDataPkg.fieldValues.get(primaryKeyIndex));
-					LayerCachePool pool = MycatServer.getInstance()
-							.getRouterservice().getTableId2DataNodeCache();
+					String primaryKey = new String(rowDataPkg.fieldValues.get(primaryKeyIndex));
+					LayerCachePool pool = MycatServer.getInstance().getRouterservice().getTableId2DataNodeCache();
 					pool.putIfAbsent(priamaryKeyTable, primaryKey, dataNode);
 				}
 				row[3] = ++packetId;
