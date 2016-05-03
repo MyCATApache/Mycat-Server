@@ -79,14 +79,19 @@ public class MycatServer {
 	private final RouteService routerService;
 	private final CacheService cacheService;
 	private Properties dnIndexProperties;
+	//AIO连接群组
 	private AsynchronousChannelGroup[] asyncChannelGroups;
 	private volatile int channelIndex = 0;
+
+	//全局序列号
 	private final MyCATSequnceProcessor sequnceProcessor = new MyCATSequnceProcessor();
 	private final DynaClassLoader catletClassLoader;
 	private final SQLInterceptor sqlInterceptor;
 	private volatile int nextProcessor;
 	private BufferPool bufferPool;
 	private boolean aio = false;
+
+	//XA事务全局ID生成
 	private final AtomicLong xaIDInc = new AtomicLong();
 
 	public static final MycatServer getInstance() {
@@ -105,24 +110,37 @@ public class MycatServer {
 	private ListeningExecutorService listeningExecutorService;
 
 	private MycatServer() {
+		//读取文件配置
 		this.config = new MycatConfig();
+		//定时线程池，单线程线程池
 		scheduler = Executors.newSingleThreadScheduledExecutor();
+		//SQL记录器
 		this.sqlRecorder = new SQLRecorder(config.getSystem()
 				.getSqlRecordCount());
+		/**
+		 * 是否在线，MyCat manager中有命令控制
+		 * | offline | Change MyCat status to OFF |
+		 * | online | Change MyCat status to ON |
+		 */
 		this.isOnline = new AtomicBoolean(true);
+		//缓存服务初始化
 		cacheService = new CacheService();
+		//路由计算初始化
 		routerService = new RouteService(cacheService);
 		// load datanode active index from properties
 		dnIndexProperties = loadDnIndexProps();
 		try {
+			//SQL解析器
 			sqlInterceptor = (SQLInterceptor) Class.forName(
 					config.getSystem().getSqlInterceptor()).newInstance();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+		//catlet加载器
 		catletClassLoader = new DynaClassLoader(SystemConfig.getHomePath()
 				+ File.separator + "catlet", config.getSystem()
 				.getCatletClassCheckSeconds());
+		//记录启动时间
 		this.startupTime = TimeUtil.currentTimeMillis();
 	}
 
