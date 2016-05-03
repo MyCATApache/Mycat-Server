@@ -28,6 +28,7 @@ import java.nio.channels.CompletionHandler;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author mycat
@@ -76,17 +77,10 @@ public final class AIOConnector implements SocketConnector,
 
 		private static final long MAX_VALUE = Long.MAX_VALUE;
 
-		private long connectId = 0L;
-		private final Object lock = new Object();
+		private AtomicLong connectId = new AtomicLong(0);
 
 		private long getId() {
-			synchronized (lock) {
-				if (connectId >= MAX_VALUE) {
-					connectId = 0L;
-				}
-				return ++connectId;
-			}
+			return connectId.incrementAndGet();
 		}
 	}
-
 }

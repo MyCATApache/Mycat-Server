@@ -315,7 +315,7 @@ public class MycatServer {
 		scheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L,
 				dataNodeIldeCheckPeriod,TimeUnit.MICROSECONDS);
 		scheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L,
-				system.getDataNodeHeartbeatPeriod(),TimeUnit.MICROSECONDS);
+				system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
 		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MICROSECONDS);
 		
 

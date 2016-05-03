@@ -103,6 +103,7 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 		try {
 			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(buf, 0,
 					readedLength);
+			LOGGER.debug(JSON.toJSONString(packets));
 			if (!packets.isEmpty()) {
 				if (packets.get(0) instanceof AuthenticationPacket) {// pg认证信息
 					AuthenticationPacket packet = (AuthenticationPacket) packets
@@ -126,10 +127,12 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 										.getSecretKey());
 							}
 						}
+						LOGGER.debug("SUCCESS Connected TO PostgreSQL , con id is {}",con.getId());
 						con.setState(BackendConnectionState.connected);
 						con.getResponseHandler().connectionAcquired(con);// 连接已经可以用来
+
 					}
-					LOGGER.debug(JSON.toJSONString(packets));
+
 				}
 			}
 
@@ -193,17 +196,18 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			if (respHand != null) {
 				respHand.errorResponse(err.writeToBytes(), con);
 			} else {
-				System.err.println("respHand 为空");
+			 LOGGER.error("{},respHand 为空",this);
 			}
 		}
 	}
 
-	/*****
-	 * 处理简单查询
-	 * 
-	 * @param con
-	 * @param packets
-	 */
+
+	/***************
+	 *  处理简单查询结果 ,每一个查询都是一件 CommandComplete 为结束
+	 * @param con PostgreSQL 后端连接
+	 * @param response
+	 * @param commandComplete
+     */
 	private void doProcessBusinessQuery(PostgreSQLBackendConnection con,
 			SelectResponse response, CommandComplete commandComplete) {
 		RowDescription rowHd = response.getDescription();
@@ -343,12 +347,12 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 		// TODO(设置参数响应)
 	}
 
-	/**
-	 * 后台已经完成了.
-	 * 
+
+	/****
+	 * PostgreSQL 已经处理完成一个任务等等下一个任务
 	 * @param con
-	 * @param packet
-	 */
+	 * @param readyForQuery
+     */
 	private void doProcessReadyForQuery(PostgreSQLBackendConnection con,
 			ReadyForQuery readyForQuery) {
 		if (con.isInTransaction() != (readyForQuery.getState() == TransactionState.IN)) {// 设置连接的后台事物状态

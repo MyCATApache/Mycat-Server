@@ -1,9 +1,5 @@
 package io.mycat.backend.postgresql.utils;
 
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-
 import io.mycat.backend.postgresql.packet.DataRow;
 import io.mycat.backend.postgresql.packet.DataRow.DataColumn;
 import io.mycat.backend.postgresql.packet.PostgreSQLPacket.DateType;
@@ -12,6 +8,10 @@ import io.mycat.backend.postgresql.packet.RowDescription.ColumnDescription;
 import io.mycat.config.Fields;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.RowDataPacket;
+
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /*********

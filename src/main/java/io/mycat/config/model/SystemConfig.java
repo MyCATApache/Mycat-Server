@@ -43,8 +43,7 @@ public final class SystemConfig {
 	private static final String DEFAULT_SQL_PARSER = "druidparser";// fdbparser, druidparser
 	private static final int DEFAULT_BUFFER_CHUNK_SIZE = 4096;
 	private int processorBufferLocalPercent;
-	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime()
-			.availableProcessors();
+	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime().availableProcessors();
 	private int frontSocketSoRcvbuf = 1024 * 1024;
 	private int frontSocketSoSndbuf = 4 * 1024 * 1024;
 	private int backSocketSoRcvbuf = 4 * 1024 * 1024;// mysql 5.6
@@ -113,7 +112,8 @@ public final class SystemConfig {
 	private int packetHeaderSize = 4;
 	private int maxPacketSize = 16 * 1024 * 1024;
 	private int mycatNodeId=1;
-	private int useCompression =0;
+	private int useCompression =0;	
+	private int useSqlStat = 1;
 
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
@@ -128,12 +128,10 @@ public final class SystemConfig {
 		this.managerPort = DEFAULT_MANAGER_PORT;
 		this.charset = DEFAULT_CHARSET;
 		this.processors = DEFAULT_PROCESSORS;
-
-		processorBufferChunk = DEFAULT_BUFFER_CHUNK_SIZE;
-		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2
-				: 4;
+		this.processorBufferChunk = DEFAULT_BUFFER_CHUNK_SIZE;
+		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2 : 4;
 		this.managerExecutor = 2;
-		processorBufferPool = DEFAULT_BUFFER_CHUNK_SIZE * processors * 1000;
+		this.processorBufferPool = DEFAULT_BUFFER_CHUNK_SIZE * processors * 1000;
 		this.processorBufferLocalPercent = 100;
 		this.timerExecutor = 2;
 		this.idleTimeout = DEFAULT_IDLE_TIMEOUT;
@@ -248,6 +246,17 @@ public final class SystemConfig {
 		}
 
 		return home;
+	}
+	
+	// 是否使用SQL统计
+	public int getUseSqlStat() 
+	{
+		return useSqlStat;
+	}
+	
+	public void setUseSqlStat(int useSqlStat) 
+	{
+		this.useSqlStat = useSqlStat;
 	}
 
 	public int getUseCompression()
