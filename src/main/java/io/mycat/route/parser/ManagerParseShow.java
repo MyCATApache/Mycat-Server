@@ -49,6 +49,7 @@ public final class ManagerParseShow {
     public static final int SQL_SUM_TABLE = 16;
     public static final int SQL_HIGH = 17;
     public static final int SQL_CONDITION = 18;
+    public static final int SQL_LARGE = 19;
     
     public static final int THREADPOOL = 21;
     public static final int TIME_CURRENT = 22;
@@ -1216,6 +1217,9 @@ public final class ManagerParseShow {
             case 'H':
             case 'h':
             	return show2SqlHCheck(stmt, offset);
+            case 'L':
+            case 'l':
+            	return show2SqlLCheck(stmt, offset);
             case 'C':
             case 'c':
             	return show2SqlCCheck(stmt, offset);
@@ -1338,6 +1342,31 @@ public final class ManagerParseShow {
             	}
             	
                 return SQL_HIGH;
+            }
+        }
+        return OTHER;
+    }
+    
+    // SHOW @@SQL.LARGE
+    static int show2SqlLCheck(String stmt, int offset) {
+    	
+    	if (stmt.length() > offset + "ARGE".length()) {
+    		char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            if ((c1 == 'A' || c1 == 'a') && (c2 == 'R' || c2 == 'r') && (c3 == 'G' || c3 == 'g') && (c4 == 'E' || c4 == 'e') ) {
+            	
+            	while (stmt.length() > ++offset) {
+            		 switch (stmt.charAt(offset)) {
+            		 case ' ':
+                         continue;
+                     default:
+                    	 return (offset << 8) | SQL_LARGE;	 
+            		 }
+            	}
+            	
+                return SQL_LARGE;
             }
         }
         return OTHER;
