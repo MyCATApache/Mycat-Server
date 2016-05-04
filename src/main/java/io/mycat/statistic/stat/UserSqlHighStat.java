@@ -9,16 +9,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class UserSqlHigh {
+import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
+
+public class UserSqlHighStat {
 	
 	private static final int CAPACITY_SIZE = 100;
 	private static final int DELETE_SIZE = 10;
 	
 	private LinkedHashMap<String, SqlFrequency> sqlFrequencyMap = new LinkedHashMap<String, SqlFrequency>();	
 	
-	private SQLParserHigh sqlParser = new SQLParserHigh();
 	
-	public void addSql(String sql,long executeTime,long startTime, long endTime ){
+	private SqlParser sqlParser = new SqlParser();
+	
+	public void addSql(String sql, long executeTime,long startTime, long endTime ){
     	if ( this.sqlFrequencyMap.size() >= CAPACITY_SIZE ) {
     		
     		// 删除频率次数排名靠后的SQL
@@ -79,6 +82,24 @@ public class UserSqlHigh {
 				}
 			}
 		});
+
 		return list;
 	}
+	
+	class SqlParser {
+		
+		public String fixSql(String sql) {
+			if ( sql != null)
+				return sql.replace("\n", " ");
+			return sql;
+	    }
+		
+		public String mergeSql(String sql) {
+			
+			String newSql = ParameterizedOutputVisitorUtils.parameterize(sql, "mysql");
+			return fixSql( newSql );
+	    }
+
+	}
+	
 }
