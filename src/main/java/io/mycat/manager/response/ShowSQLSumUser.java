@@ -11,7 +11,7 @@ import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.statistic.stat.UserRWStat;
+import io.mycat.statistic.stat.UserSqlRWStat;
 import io.mycat.statistic.stat.UserStat;
 import io.mycat.statistic.stat.UserStatAnalyzer;
 import io.mycat.util.LongUtil;
@@ -124,7 +124,7 @@ public class ShowSQLSumUser {
         }
         
         String user = userStat.getUser();
-        UserRWStat rwStat = userStat.getRWStat();
+        UserSqlRWStat rwStat = userStat.getRWStat();
         long R = rwStat.getRCount();
         long W = rwStat.getWCount();
         String __R = decimalFormat.format( 1.0D * R / (R + W) );

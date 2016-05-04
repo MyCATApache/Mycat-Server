@@ -1,8 +1,6 @@
 package io.mycat.statistic.stat;
 
 import java.util.TimeZone;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import io.mycat.server.parser.ServerParse;
 
@@ -12,30 +10,30 @@ import io.mycat.server.parser.ServerParse;
  * @author zhuam
  *
  */
-public class UserRWStat {
+public class UserSqlRWStat {
 	
+
 	/**
 	 * R/W 次数
 	 */
-	private final AtomicLong rCount = new AtomicLong(0);
-    private final AtomicLong wCount = new AtomicLong(0);
+	private long rCount = 0L;
+    private long wCount = 0L;
+    
+    /**
+     * 每秒QPS
+     */
+    private int qps = 0;
     
     /**
      * Net In/Out 字节数
      */
-    private final AtomicLong netInBytes = new AtomicLong(0);
-    private final AtomicLong netOutBytes = new AtomicLong(0);
-    
-    /**
-     * 最后执行时间
-     */
-    private long lastExecuteTime;
+    private long netInBytes = 0L;
+    private long netOutBytes = 0L;
     
 	/**
 	 * 最大的并发
 	 */
-    private final AtomicInteger runningCount  = new AtomicInteger();
-	private final AtomicInteger concurrentMax = new AtomicInteger();
+    private int concurrentMax = 1;
 	
     /**
      * 执行耗时
@@ -50,55 +48,45 @@ public class UserRWStat {
 	 * 22-06 夜间、 06-13 上午、 13-18下午、 18-22 晚间
 	 */
 	private final Histogram executeHistogram = new Histogram(new long[] { 6, 13, 18, 22 });
+
+    /**
+     * 最后执行时间
+     */
+    private long lastExecuteTime;
+    
 	
 	private int time_zone_offset = 0;
 	private int one_hour = 3600 * 1000;
 	
-	public UserRWStat() {
+	public UserSqlRWStat() {
 		this.time_zone_offset = TimeZone.getDefault().getRawOffset();
 	}
 	
 	public void reset() {
-		this.rCount.set(0);
-		this.wCount.set(0);
-		this.runningCount.set(0);
-		this.concurrentMax.set(0);
+		this.rCount = 0L;
+		this.wCount = 0L;		
+		this.concurrentMax = 1;		
 		this.lastExecuteTime = 0;
-		
-		this.netInBytes.set(0);
-		this.netOutBytes.set(0);
+		this.netInBytes = 0L;
+		this.netOutBytes = 0L;
 		
 		this.timeHistogram.reset();
 		this.executeHistogram.reset();
 	}
 	
-	public void add(int sqlType, long executeTime, long netInBytes, long netOutBytes, long startTime, long endTime) {
+	public void add(int sqlType, String sql, long executeTime, long netInBytes, long netOutBytes, long startTime, long endTime) {
 		
-		//before 计算最大并发数
-		//-----------------------------------------------------
-		int invoking = runningCount.incrementAndGet();
-        for (;;) {
-            int max = concurrentMax.get();
-            if (invoking > max) {
-                if (concurrentMax.compareAndSet(max, invoking)) {
-                    break;
-                }
-            } else {
-                break;
-            }
-        }
-        //-----------------------------------------------------
 	
 		switch(sqlType) {
     	case ServerParse.SELECT:
     	case ServerParse.SHOW:
-    		this.rCount.incrementAndGet(); 
+    		this.rCount++;  		
     		break;
     	case ServerParse.UPDATE:
     	case ServerParse.INSERT:
     	case ServerParse.DELETE:
     	case ServerParse.REPLACE:
-    		this.wCount.incrementAndGet();
+    		this.wCount++;  	
     		break;
     	}
     	
@@ -138,40 +126,44 @@ public class UserRWStat {
 		
 		this.lastExecuteTime = endTime;
 		
-		this.netInBytes.addAndGet( netInBytes );
-		this.netOutBytes.addAndGet( netOutBytes );
-		
-		//after
-		//-----------------------------------------------------
-		runningCount.decrementAndGet();		
+		this.netInBytes += netInBytes;
+		this.netOutBytes += netOutBytes;
 	}
 	
     public long getLastExecuteTime() {
         return lastExecuteTime;
     }	
     
-    public AtomicInteger getRunningCount() {
-		return runningCount;
-	}
-    
     public long getNetInBytes() {
-    	return netInBytes.get();
+    	return netInBytes;
     }
     
     public long getNetOutBytes() {
-    	return netOutBytes.get();
+    	return netOutBytes;
     }
 
 	public int getConcurrentMax() {
-        return concurrentMax.get();
+        return concurrentMax;
     }
-    
-    public long getRCount() {
-        return this.rCount.get();
+	
+	public void setConcurrentMax(int concurrentMax) {
+		this.concurrentMax = concurrentMax;
+	}
+	
+    public int getQps() {
+		return qps;
+	}
+
+	public void setQps(int qps) {
+		this.qps = qps;
+	}
+
+	public long getRCount() {
+        return this.rCount;
     }
     
     public long getWCount() {
-        return this.wCount.get();
+        return this.wCount;
     }
 	
 	public Histogram getTimeHistogram() {
