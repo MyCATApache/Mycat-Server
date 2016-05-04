@@ -310,7 +310,7 @@
 							<replacements>
 								<replacement>
 									<token>@server-version@</token>
-									<value>5.5.8-mycat-${project.version}-${timestamp}</value>
+									<value>5.6.29-mycat-${project.version}-${timestamp}</value>
 								</replacement>
 							</replacements>
 						</configuration>
