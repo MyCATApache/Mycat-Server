@@ -61,25 +61,31 @@ public class ConfigInitializer {
 	private volatile Map<String, PhysicalDBPool> dataHosts;
 
 	public ConfigInitializer(boolean loadDataHost) {
+		//读取rule.xml和schema.xml
 		SchemaLoader schemaLoader = new XMLSchemaLoader();
+		//读取server.xml
 		XMLConfigLoader configLoader = new XMLConfigLoader(schemaLoader);
 		schemaLoader = null;
+		//加载配置
 		this.system = configLoader.getSystemConfig();
 		this.users = configLoader.getUserConfigs();
 		this.schemas = configLoader.getSchemaConfigs();
+		//是否重新加载DataHost和对应的DataNode
 		if (loadDataHost) {
 			this.dataHosts = initDataHosts(configLoader);
 			this.dataNodes = initDataNodes(configLoader);
 		}
+		//权限管理
 		this.quarantine = configLoader.getQuarantineConfig();
 		this.cluster = initCobarCluster(configLoader);
+		//不同类型的全局序列处理器的配置加载
 		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_MYSQLDB) {
 			IncrSequenceMySQLHandler.getInstance().load();
 		}
 		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_LOCAL_TIME) {
 			IncrSequenceTimeHandler.getInstance().load();
 		}
-
+		//检查user与schema配置对应以及schema配置不为空
 		this.checkConfig();
 	}
 
