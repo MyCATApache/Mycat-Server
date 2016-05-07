@@ -72,7 +72,7 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
         try {
             initializeZK(props, zkAddress);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Error caught while initializing ZK:"+e.getCause());
         }
     }
 
@@ -138,7 +138,7 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
             try {
                 threadLocalLoad();
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("Error caught while loding configuration within current thread:"+e.getCause());
             }
             tableParaValMap = tableParaValMapThreadLocal.get();
         }
@@ -180,12 +180,12 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
             paraValMap.put(prefixName + KEY_CUR_NAME, (now) + "");
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Error caught while updating period from ZK:"+e.getCause());
         } finally {
             try {
                 interProcessSemaphoreMutex.release();
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("Error caught while realeasing distributed lock"+e.getCause());
             }
         }
         return true;
