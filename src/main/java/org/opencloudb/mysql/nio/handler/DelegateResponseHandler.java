@@ -42,6 +42,7 @@ public class DelegateResponseHandler implements ResponseHandler {
 
     @Override
     public void connectionAcquired(BackendConnection conn) {
+        //将后端连接的ResponseHandler设置为target
         target.connectionAcquired(conn);
     }
 

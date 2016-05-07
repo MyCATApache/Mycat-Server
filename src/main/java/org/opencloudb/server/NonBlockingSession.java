@@ -287,12 +287,14 @@ public class NonBlockingSession implements Session {
 		if (conn == null) {
 			return false;
 		}
+		//检查是否为Slave读节点并且有效
 		if (!conn.isFromSlaveDB()
 				|| node.canRunnINReadDB(getSource().isAutocommit())) {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("found connections in session to use " + conn
 						+ " for " + node);
 			}
+
 			conn.setAttachment(node);
 			return true;
 		} else {

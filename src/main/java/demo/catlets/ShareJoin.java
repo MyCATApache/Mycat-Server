@@ -364,25 +364,45 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 		  ctx.writeHeader(dataNode,afields, bfields);
 	}
 	
+
+
 	//不是主键，获取join左边的的记录
-	private byte[] getRow(String value,int index){
-		for(Map.Entry<String,byte[]> e: arows.entrySet() ){
-	        String key=e.getKey();
-	        RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(e.getValue(), afields);
-	        String id = ByteUtil.getString(rowDataPkg.fieldValues.get(index));
-	        if (id.equals(value)){
-	        	return arows.remove(key);	
-	        }
-	     }
-		return null;		
+//	private byte[] getRow(String value,int index){
+//		for(Map.Entry<String,byte[]> e: arows.entrySet() ){
+//			String key=e.getKey();
+//			RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(e.getValue(), afields);
+//			String id = ByteUtil.getString(rowDataPkg.fieldValues.get(index));
+//			if (id.equals(value)){
+//				return arows.remove(key);
+//			}
+//		}
+//		return null;
+//	}
+
+	//不是主键，获取join左边的的记录
+	private byte[] getRow(Map<String, byte[]> batchRowsCopy,String value,int index){
+		for(Map.Entry<String,byte[]> e: batchRowsCopy.entrySet() ){
+			String key=e.getKey();
+			RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(e.getValue(), afields);
+			String id = ByteUtil.getString(rowDataPkg.fieldValues.get(index));
+			if (id.equals(value)){
+				return batchRowsCopy.remove(key);
+			}
+		}
+		return null;
 	}
+
 	@Override
 	public boolean onRowData(String dataNode, byte[] rowData) {
 		RowDataPacket rowDataPkgold = ResultSetUtil.parseRowData(rowData, bfields);
+		//拷贝一份batchRows
+		Map<String, byte[]> batchRowsCopy = new ConcurrentHashMap<String, byte[]>();
+		batchRowsCopy.putAll(arows);
 		// 获取Id字段，
 		String id = ByteUtil.getString(rowDataPkgold.fieldValues.get(joinR));		
 		// 查找ID对应的A表的记录
-		byte[] arow = getRow(id,joinL);//arows.remove(id);
+		byte[] arow = getRow(batchRowsCopy,id,joinL);//arows.remove(id);
+//		byte[] arow = getRow(id,joinL);//arows.remove(id);
 		while (arow!=null) {
 		  RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(arow,afields );//ctx.getAllFields());
 		  for (int i=1;i<rowDataPkgold.fieldCount;i++){
@@ -393,7 +413,8 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 		  }
 		//RowData(rowDataPkg);
 		  ctx.writeRow(rowDataPkg);
-		   arow = getRow(id,joinL);
+		   arow = getRow(batchRowsCopy,id,joinL);
+//		   arow = getRow(id,joinL);
 		}
 		return false;
 	}
