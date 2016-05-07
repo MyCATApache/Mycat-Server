@@ -39,6 +39,7 @@ public class DistributedSequenceHandlerTest {
 
     /**
      * 测试获取的唯一InstanceId
+     *
      * @throws Exception
      */
     @Test
@@ -49,8 +50,10 @@ public class DistributedSequenceHandlerTest {
         }
         Assert.assertEquals(idSet.size(), 16);
     }
+
     /**
      * 测试获取的唯一id
+     *
      * @throws Exception
      */
     @Test
@@ -73,75 +76,75 @@ public class DistributedSequenceHandlerTest {
             };
             thread[i].start();
         }
-        int lasta = 0, count = 0;
-        while (count < 10) {
-            Thread.sleep(10);
-            if (lasta == idSet.size()) {
-                count++;
-            } else {
-                lasta = idSet.size();
-                count = 0;
-            }
+        for (int i = 0; i < 100 ; i++) {
+            thread[i].join();
         }
-        System.out.println(lasta);
         long end = System.currentTimeMillis();
-        System.out.println("Time elapsed:"+(double)(end-start)/1000.0+"s");
-        System.out.println("ID/s:"+(((double)idSet.size())/((double)(end-start)/1000.0)));
-        Assert.assertEquals(idSet.size(),160000);
+        System.out.println("Time elapsed:" + (double) (end - start) / 1000.0 + "s");
+        System.out.println("ID/s:" + (((double) idSet.size()) / ((double) (end - start) / 1000.0)));
+        Assert.assertEquals(idSet.size(), 160000);
     }
+
     /**
      * 测试ZK容灾
+     *
      * @throws Exception
      */
     @Test
-    public void testFailOver() throws Exception {
+    public void testFailOver() {
         Set<Long> idSet = new HashSet<>();
-        int leader = failLeader(17);
-        System.out.println("断掉一个leader节点后");
-        for (int i = 0; i < 16; i++) {
-            if (i == leader) {
-                System.out.println(i + " used to be leader");
-                continue;
+        try {
+            int leader = failLeader(17);
+            System.out.println("断掉一个leader节点后");
+            for (int i = 0; i < 16; i++) {
+                if (i == leader) {
+                    System.out.println(i + " used to be leader");
+                    continue;
+                }
+                distributedSequenceHandler[i].nextId("");
+                System.out.println(i + "[is leader:" + distributedSequenceHandler[i].getLeaderSelector().hasLeadership() + "]");
+                System.out.println(" InstanceID:" + distributedSequenceHandler[i].getInstanceId());
+                idSet.add(distributedSequenceHandler[i].getInstanceId());
             }
-            distributedSequenceHandler[i].nextId("");
-            System.out.println(i + "[is leader:" + distributedSequenceHandler[i].getLeaderSelector().hasLeadership() + "]");
-            System.out.println(" InstanceID:" + distributedSequenceHandler[i].getInstanceId());
-            idSet.add(distributedSequenceHandler[i].getInstanceId());
-        }
-        Assert.assertEquals(idSet.size(), 15);
-        idSet = new HashSet<>();
-        int leader2 = failLeader(leader);
-        System.out.println("断掉两个leader节点后");
-        for (int i = 0; i < 16; i++) {
-            if (i == leader || i == leader2) {
-                System.out.println(i + " used to be leader");
-                continue;
+            Assert.assertEquals(idSet.size(), 15);
+            idSet = new HashSet<>();
+            int leader2 = failLeader(leader);
+            System.out.println("断掉两个leader节点后");
+            for (int i = 0; i < 16; i++) {
+                if (i == leader || i == leader2) {
+                    System.out.println(i + " used to be leader");
+                    continue;
+                }
+                distributedSequenceHandler[i].nextId("");
+                System.out.println(i + "[is leader:" + distributedSequenceHandler[i].getLeaderSelector().hasLeadership() + "]");
+                System.out.println(" InstanceID:" + distributedSequenceHandler[i].getInstanceId());
+                idSet.add(distributedSequenceHandler[i].getInstanceId());
             }
-            distributedSequenceHandler[i].nextId("");
-            System.out.println(i + "[is leader:" + distributedSequenceHandler[i].getLeaderSelector().hasLeadership() + "]");
-            System.out.println(" InstanceID:" + distributedSequenceHandler[i].getInstanceId());
-            idSet.add(distributedSequenceHandler[i].getInstanceId());
-        }
-        Assert.assertEquals(idSet.size(), 14);
+            Assert.assertEquals(idSet.size(), 14);
 
-        idSet = new HashSet<>();
-        MycatConfig mycatConfig = new MycatConfig();
-        distributedSequenceHandler[leader] = new DistributedSequenceHandler(mycatConfig);
-        distributedSequenceHandler[leader].initializeZK(testingServer.getConnectString());
-        distributedSequenceHandler[leader].nextId("");
-        distributedSequenceHandler[leader2] = new DistributedSequenceHandler(mycatConfig);
-        distributedSequenceHandler[leader2].initializeZK(testingServer.getConnectString());
-        distributedSequenceHandler[leader2].nextId("");
-        System.out.println("新加入两个节点后");
-        for (int i = 0; i < 16; i++) {
-            System.out.println(i + "[is leader:" + distributedSequenceHandler[i].getLeaderSelector().hasLeadership() + "]");
-            System.out.println(" InstanceID:" + distributedSequenceHandler[i].getInstanceId());
-            idSet.add(distributedSequenceHandler[i].getInstanceId());
+            idSet = new HashSet<>();
+            MycatConfig mycatConfig = new MycatConfig();
+            distributedSequenceHandler[leader] = new DistributedSequenceHandler(mycatConfig);
+            distributedSequenceHandler[leader].initializeZK(testingServer.getConnectString());
+            distributedSequenceHandler[leader].nextId("");
+            distributedSequenceHandler[leader2] = new DistributedSequenceHandler(mycatConfig);
+            distributedSequenceHandler[leader2].initializeZK(testingServer.getConnectString());
+            distributedSequenceHandler[leader2].nextId("");
+            System.out.println("新加入两个节点后");
+            for (int i = 0; i < 16; i++) {
+                System.out.println(i + "[is leader:" + distributedSequenceHandler[i].getLeaderSelector().hasLeadership() + "]");
+                System.out.println(" InstanceID:" + distributedSequenceHandler[i].getInstanceId());
+                idSet.add(distributedSequenceHandler[i].getInstanceId());
+            }
+        } catch (Exception e) {
+
+        } finally {
+            Assert.assertEquals(idSet.size(), 16);
         }
-        Assert.assertEquals(idSet.size(), 16);
+
     }
 
-    private int failLeader(int p) throws IOException {
+    private int failLeader(int p){
         int leader = 0, follower = 0;
         for (int i = 0; i < 16; i++) {
             if (i == p) continue;
@@ -153,7 +156,10 @@ public class DistributedSequenceHandlerTest {
             System.out.println(i + "[is leader:" + distributedSequenceHandler[i].getLeaderSelector().hasLeadership() + "]");
             System.out.println(" InstanceID:" + distributedSequenceHandler[i].getInstanceId());
         }
-        distributedSequenceHandler[leader].close();
+        try {
+            distributedSequenceHandler[leader].close();
+        } catch (IOException e) {
+        }
 
         while (true) {
             follower++;
