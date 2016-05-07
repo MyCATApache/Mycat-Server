@@ -66,6 +66,7 @@ public class MycatConfig {
 	private final ReentrantLock lock;
 
 	public MycatConfig() {
+		//读取schema.xml，rule.xml和server.xml
 		ConfigInitializer confInit = new ConfigInitializer(true);
 		this.system = confInit.getSystem();
 		this.users = confInit.getUsers();
@@ -78,10 +79,11 @@ public class MycatConfig {
 		}
 		this.quarantine = confInit.getQuarantine();
 		this.cluster = confInit.getCluster();
-
+		//初始化重加载配置时间
 		this.reloadTime = TimeUtil.currentTimeMillis();
 		this.rollbackTime = -1L;
 		this.status = RELOAD;
+		//配置加载锁
 		this.lock = new ReentrantLock();
 	}
 
