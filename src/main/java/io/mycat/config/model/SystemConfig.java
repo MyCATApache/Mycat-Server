@@ -96,6 +96,8 @@ public final class SystemConfig {
 	public static final int SEQUENCEHANDLER_LOCALFILE = 0;
 	public static final int SEQUENCEHANDLER_MYSQLDB = 1;
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
+	public static final int SEQUENCEHANDLER_ZK_DISTRIBUTED = 3;
+	public static final int SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT = 4;
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "io.mycat.server.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";

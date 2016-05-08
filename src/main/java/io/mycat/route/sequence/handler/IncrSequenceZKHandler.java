@@ -59,6 +59,11 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
     private final static String PATH = "/mycat/incr_sequence";
     private final static String LOCK = "/lock";
     private final static String SEQ = "/seq";
+    private final static IncrSequenceZKHandler instance = new IncrSequenceZKHandler();
+
+    public static IncrSequenceZKHandler getInstance(){
+        return instance;
+    }
 
     private ThreadLocal<Map<String, Map<String, String>>> tableParaValMapThreadLocal = new ThreadLocal<>();
 
@@ -124,7 +129,7 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
                     String val = props.getProperty(table + KEY_MIN_NAME);
                     client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(PATH + "/" + table + SEQ, val.getBytes());
                 } catch (Exception e) {
-                    LOGGER.info("Node exists! Maybe other instance is initializing!");
+                    LOGGER.debug("Node exists! Maybe other instance is initializing!");
                 }
             }
             fetchNextPeriod(table);

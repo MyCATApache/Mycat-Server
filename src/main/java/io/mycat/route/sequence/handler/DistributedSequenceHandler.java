@@ -1,6 +1,6 @@
 package io.mycat.route.sequence.handler;
 
-import io.mycat.config.MycatConfig;
+import io.mycat.config.model.SystemConfig;
 import io.mycat.route.util.PropertiesUtil;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -33,9 +33,10 @@ import java.util.concurrent.ConcurrentMap;
  * |current time millis(微秒时间戳41位)|clusterId（机房或者ZKid，通过配置文件配置4位）|instanceId（实例ID，可以通过ZK或者配置文件获取，4位）|threadId（线程ID，7位）|increment(自增,7位)
  * 一共63位，可以承受单机房单机器单线程1000*(2^7)=1280000的并发。
  * 无悲观锁，无强竞争，吞吐量更高
- *
+ * <p/>
  * 配置文件：sequence_distributed_conf.properties
  * 只要配置里面：INSTANCEID=ZK就是从ZK上获取InstanceID
+ *
  * @author Hash Zhang
  * @version 1.0
  * @time 00:08:03 2016/5/3
@@ -43,6 +44,14 @@ import java.util.concurrent.ConcurrentMap;
 public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter implements Closeable, SequenceHandler {
     protected static final Logger LOGGER = LoggerFactory.getLogger(DistributedSequenceHandler.class);
     private static final String SEQUENCE_DB_PROPS = "sequence_distributed_conf.properties";
+    private static DistributedSequenceHandler instance;
+
+    public static DistributedSequenceHandler getInstance(SystemConfig systemConfig) {
+        if (instance == null) {
+            instance = new DistributedSequenceHandler(systemConfig);
+        }
+        return instance;
+    }
 
     private long timestampBits = 41L;
     private long clusterIdBits = 4L;
@@ -81,7 +90,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     }
 
     private final static String PATH = "/mycat/sequence";
-    private MycatConfig mycatConfig;
+    private SystemConfig mycatConfig;
     private String ID;
 
     private int mark[];
@@ -111,16 +120,16 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
 
     private ConcurrentMap<Thread, Integer> threadInc = new ConcurrentHashMap<Thread, Integer>((int) maxIncrement);
 
-    public DistributedSequenceHandler(MycatConfig mycatConfig) {
+    public DistributedSequenceHandler(SystemConfig mycatConfig) {
         this.mycatConfig = mycatConfig;
-        ID = mycatConfig.getSystem().getBindIp() + mycatConfig.getSystem().getServerPort();
+        ID = mycatConfig.getBindIp() + mycatConfig.getServerPort();
     }
 
     public void load() {
         // load sequnce properties
         Properties props = PropertiesUtil.loadProps(SEQUENCE_DB_PROPS);
         if ("ZK".equals(props.getProperty("INSTANCEID"))) {
-           initializeZK(props.getProperty("ZK"));
+            initializeZK(props.getProperty("ZK"));
         } else {
             this.instanceId = Long.valueOf(props.getProperty("INSTANCEID"));
             this.ready = true;
@@ -130,7 +139,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
 
     }
 
-    public void initializeZK(String zkAddress){
+    public void initializeZK(String zkAddress) {
         this.client = CuratorFrameworkFactory.newClient(zkAddress, new ExponentialBackoffRetry(1000, 3));
         this.client.start();
         this.leaderSelector = new LeaderSelector(client, PATH + "/leader", this);
@@ -206,7 +215,9 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             return false;
         }
     }
-    private Set<Long> isSet  = new HashSet<>();
+
+    private Set<Long> isSet = new HashSet<>();
+
     @Override
     public long nextId(String prefixName) {
         while (!ready) {
@@ -228,7 +239,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             }
         }
         int a = threadInc.get(thread);
-        return (System.currentTimeMillis() << timestampShift) | (((thread.getId()%maxThreadId) << threadIdShift)) | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
+        return (System.currentTimeMillis() << timestampShift) | (((thread.getId() % maxThreadId) << threadIdShift)) | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
     }
 
     @Override
