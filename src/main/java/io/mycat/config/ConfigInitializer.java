@@ -45,8 +45,10 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.util.ConfigException;
+import io.mycat.route.sequence.handler.DistributedSequenceHandler;
 import io.mycat.route.sequence.handler.IncrSequenceMySQLHandler;
 import io.mycat.route.sequence.handler.IncrSequenceTimeHandler;
+import io.mycat.route.sequence.handler.IncrSequenceZKHandler;
 
 /**
  * @author mycat
@@ -84,6 +86,12 @@ public class ConfigInitializer {
 		}
 		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_LOCAL_TIME) {
 			IncrSequenceTimeHandler.getInstance().load();
+		}
+		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_DISTRIBUTED) {
+			DistributedSequenceHandler.getInstance(system).load();
+		}
+		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT) {
+			IncrSequenceZKHandler.getInstance().load();
 		}
 		//检查user与schema配置对应以及schema配置不为空
 		this.checkConfig();
