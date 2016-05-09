@@ -185,7 +185,10 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             byte[] data = this.client.getData().forPath(PATH + "/next");
             String nextCounter = new String(data);
             this.instanceId = Integer.parseInt(nextCounter);
-            this.client.create().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/instance/" + this.instanceId, ID.getBytes());
+            if (this.client.checkExists().forPath(PATH + "/instance/" + this.instanceId) == null)
+                this.client.create().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/instance/" + this.instanceId, ID.getBytes());
+            else
+                return false;
             this.ready = true;
             return true;
         } catch (Exception e) {
@@ -194,7 +197,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             } catch (InterruptedException e1) {
                 LOGGER.warn("Unexpected thread interruption!");
             }
-            LOGGER.warn("Exception caught while trying to get InstanceID from ZK!If this exception frequently happens, please check your network connection!" + e.getCause());
+            LOGGER.warn("Exception caught while trying to get InstanceID from ZK!If this exception frequently happens, please check your network connection! Cause:" + e.getCause() + " Message:" + e.getMessage());
             return false;
         }
     }
@@ -274,15 +277,15 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
 
                         case CHILD_UPDATED: {
                             LOGGER.debug("Node changed: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
-                            client.setData().forPath(PATH + "/next", ("" + nextFree()).getBytes());
                             reloadChild();
+                            client.setData().forPath(PATH + "/next", ("" + nextFree()).getBytes());
                             break;
                         }
 
                         case CHILD_REMOVED: {
                             LOGGER.debug("Node removed: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
-                            client.setData().forPath(PATH + "/next", ("" + nextFree()).getBytes());
                             reloadChild();
+                            client.setData().forPath(PATH + "/next", ("" + nextFree()).getBytes());
                             break;
                         }
                     }
@@ -291,13 +294,14 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             cache.getListenable().addListener(listener);
             cache.start();
             reloadChild();
-            this.client.create().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/next", ("" + nextFree()).getBytes());
+            if (this.client.checkExists().forPath(PATH + "/next") == null)
+                this.client.create().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/next", ("" + nextFree()).getBytes());
             this.ready = true;
             Thread.currentThread().join();
         } catch (InterruptedException e) {
             LOGGER.warn("Unexpected thread interruption!");
         } catch (Exception e) {
-            LOGGER.warn("Exception caught:" + e.getCause());
+            LOGGER.warn("Exception caught:" + e.getMessage() + "Cause:" + e.getCause() + e.getStackTrace().toString());
         } finally {
             CloseableUtils.closeQuietly(cache);
         }
