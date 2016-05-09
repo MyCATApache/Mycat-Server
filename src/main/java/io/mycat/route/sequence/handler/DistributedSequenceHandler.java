@@ -59,7 +59,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     private long threadIdBits = 9L;
     private long incrementBits = 8L;
 
-    private long timestampMask = 1 << timestampBits;
+    private long timestampMask = 1 << timestampBits - 1 ;
 
     private long incrementShift = 0L;
     private long threadIdShift = incrementShift + incrementBits;
