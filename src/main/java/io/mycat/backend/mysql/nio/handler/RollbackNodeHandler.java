@@ -74,9 +74,8 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 				    if(isClosed)
 					{
 						session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
-								"recieve rollback,but fond backend con is closed or quit");
-						session.closeAndClearResources("recieve rollback,but fond backend con is closed or quit");
-						LOGGER.error( conn+"recieve rollback,but fond backend con is closed or quit");
+								"receive rollback,but find backend con is closed or quit");
+						LOGGER.error( conn+"receive rollback,but fond backend con is closed or quit");
 					}
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("rollback job run for " + conn);
