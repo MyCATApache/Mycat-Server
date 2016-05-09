@@ -30,8 +30,8 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * 基于ZK与本地配置的分布式ID生成器(可以通过ZK获取集群（机房）唯一InstanceID，也可以通过配置文件配置InstanceID)
  * ID结构：long 64位，ID最大可占63位
- * |current time millis(微秒时间戳41位)|clusterId（机房或者ZKid，通过配置文件配置4位）|instanceId（实例ID，可以通过ZK或者配置文件获取，4位）|threadId（线程ID，7位）|increment(自增,7位)
- * 一共63位，可以承受单机房单机器单线程1000*(2^7)=1280000的并发。
+ * |current time millis(微秒时间戳38位,可以使用17年)|clusterId（机房或者ZKid，通过配置文件配置4位）|instanceId（实例ID，可以通过ZK或者配置文件获取，4位）|threadId（线程ID，9位）|increment(自增,8位)
+ * 一共63位，可以承受单机房单机器单线程1000*(2^8)=2560000的并发。
  * 无悲观锁，无强竞争，吞吐量更高
  * <p/>
  * 配置文件：sequence_distributed_conf.properties
@@ -53,11 +53,13 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         return instance;
     }
 
-    private long timestampBits = 41L;
+    private long timestampBits = 38L;
     private long clusterIdBits = 4L;
     private long instanceIdBits = 4L;
-    private long threadIdBits = 7L;
-    private long incrementBits = 7L;
+    private long threadIdBits = 9L;
+    private long incrementBits = 8L;
+
+    private long timestampMask = 1 << timestampBits;
 
     private long incrementShift = 0L;
     private long threadIdShift = incrementShift + incrementBits;
@@ -242,7 +244,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             }
         }
         int a = threadInc.get(thread);
-        return (System.currentTimeMillis() << timestampShift) | (((thread.getId() % maxThreadId) << threadIdShift)) | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
+        return ((System.currentTimeMillis() & timestampMask) << timestampShift) | (((thread.getId() % maxThreadId) << threadIdShift)) | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
     }
 
     @Override
@@ -331,4 +333,11 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         CloseableUtils.closeQuietly(this.client);
     }
 
+    public static void main(String[] args) throws InterruptedException {
+        for (int i = 0; i < 10000; i++) {
+            System.out.println(System.currentTimeMillis() & 274877906943L);
+            Thread.sleep(1L);
+        }
+
+    }
 }
