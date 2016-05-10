@@ -117,6 +117,18 @@ public final class SystemConfig {
 	private int useCompression =0;	
 	private int useSqlStat = 1;
 
+	private boolean enableDistributedTransactions = true;
+
+	public boolean isEnableDistributedTransactions() {
+		return enableDistributedTransactions;
+	}
+
+	public void setEnableDistributedTransactions(boolean enableDistributedTransactions) {
+		this.enableDistributedTransactions = enableDistributedTransactions;
+	}
+
+
+
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
 	}
