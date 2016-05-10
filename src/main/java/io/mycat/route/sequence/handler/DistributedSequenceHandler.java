@@ -53,24 +53,24 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         return instance;
     }
 
-    private long timestampBits = 38L;
-    private long clusterIdBits = 4L;
-    private long instanceIdBits = 4L;
-    private long threadIdBits = 9L;
-    private long incrementBits = 8L;
+    private final long timestampBits = 38L;
+    private final long clusterIdBits = 4L;
+    private final long instanceIdBits = 4L;
+    private final long threadIdBits = 9L;
+    private final long incrementBits = 8L;
 
-    private long timestampMask = 1 << timestampBits - 1 ;
+    private final long timestampMask = (1L << timestampBits) - 1L ;
 
-    private long incrementShift = 0L;
-    private long threadIdShift = incrementShift + incrementBits;
-    private long instanceIdShift = threadIdShift + threadIdBits;
-    private long clusterIdShift = instanceIdShift + instanceIdBits;
-    private long timestampShift = clusterIdShift + clusterIdBits;
+    private final long incrementShift = 0L;
+    private final long threadIdShift = incrementShift + incrementBits;
+    private final long instanceIdShift = threadIdShift + threadIdBits;
+    private final long clusterIdShift = instanceIdShift + instanceIdBits;
+    private final long timestampShift = clusterIdShift + clusterIdBits;
 
-    private long maxIncrement = 1 << incrementBits;
-    private long maxThreadId = 1 << threadIdBits;
-    private long maxinstanceId = 1 << instanceIdBits;
-    private long maxclusterId = 1 << instanceIdBits;
+    private final long maxIncrement = 1L << incrementBits;
+    private final long maxThreadId = 1L << threadIdBits;
+    private final long maxinstanceId = 1L << instanceIdBits;
+    private final long maxclusterId = 1L << instanceIdBits;
 
     private volatile long instanceId;
     private long clusterId;
@@ -244,6 +244,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             }
         }
         int a = threadInc.get(thread);
+        System.out.println((thread.getId() % maxThreadId) + "|" + (timestampMask)+":"+(System.currentTimeMillis() & timestampMask));
         return ((System.currentTimeMillis() & timestampMask) << timestampShift) | (((thread.getId() % maxThreadId) << threadIdShift)) | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
     }
 
@@ -334,10 +335,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     }
 
     public static void main(String[] args) throws InterruptedException {
-        for (int i = 0; i < 10000; i++) {
-            System.out.println(System.currentTimeMillis() & 274877906943L);
-            Thread.sleep(1L);
-        }
+        System.out.println((1L << 38L) - 1L);
 
     }
 }
