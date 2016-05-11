@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.mycat.buffer.DirectByteBufferPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import io.mycat.backend.datasource.PhysicalDBPool;
-import io.mycat.buffer.BufferPool;
 import io.mycat.cache.CacheService;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.classloader.DynaClassLoader;
@@ -88,7 +88,8 @@ public class MycatServer {
 	private final DynaClassLoader catletClassLoader;
 	private final SQLInterceptor sqlInterceptor;
 	private volatile int nextProcessor;
-	private BufferPool bufferPool;
+	// System Buffer Pool Instance
+	private DirectByteBufferPool bufferPool;
 	private boolean aio = false;
 
 	//XA事务全局ID生成
@@ -144,7 +145,7 @@ public class MycatServer {
 		this.startupTime = TimeUtil.currentTimeMillis();
 	}
 
-	public BufferPool getBufferPool() {
+	public DirectByteBufferPool getBufferPool() {
 		return bufferPool;
 	}
 
@@ -222,11 +223,14 @@ public class MycatServer {
 				+ system.getProcessors() + ",aio thread pool size:"
 				+ system.getProcessorExecutor()
 				+ "    \r\n each process allocated socket buffer pool "
-				+ " bytes ,buffer chunk size:"
-				+ system.getProcessorBufferChunk()
-				+ "  buffer pool's capacity(buferPool/bufferChunk) is:"
-				+ system.getProcessorBufferPool()
-				/ system.getProcessorBufferChunk();
+				+ " bytes ,a page size:"
+				+ system.getBufferPoolPageSize()
+				+ "  a page's chunk number(PageSize/ChunkSize) is:"
+				+ (system.getBufferPoolPageSize()
+				  /system.getBufferPoolChunkSize())
+				+ "  buffer page's number is:"
+				+ system.getBufferPoolPageNumber();
+
 		LOGGER.info(inf);
 		LOGGER.info("sysconfig params:" + system.toString());
 
@@ -240,11 +244,16 @@ public class MycatServer {
 		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
 		processors = new NIOProcessor[processorCount];
-		long processBuferPool = system.getProcessorBufferPool();
-		int processBufferChunk = system.getProcessorBufferChunk();
+		// a page size
+		int bufferPoolPageSize = system.getBufferPoolPageSize();
+		// total page number 
+		short bufferPoolPageNumber = system.getBufferPoolPageNumber();
+		//minimum allocation unit
+		short bufferPoolChunkSize = system.getBufferPoolChunkSize();
+		
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
-		bufferPool = new BufferPool(processBuferPool, processBufferChunk, system.getFrontSocketSoRcvbuf(),
-				socketBufferLocalPercent / processorCount);
+		bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
+				bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
 		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
@@ -269,7 +278,8 @@ public class MycatServer {
 									@Override
 									public Thread newThread(Runnable r) {
 										Thread th = new Thread(r);
-										th.setName(BufferPool.LOCAL_BUF_THREAD_PREX
+										//TODO
+										th.setName(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX
 												+ "AIO" + (inx++));
 										LOGGER.info("created new AIO thread "
 												+ th.getName());
@@ -288,18 +298,19 @@ public class MycatServer {
 
 		} else {
 			LOGGER.info("using nio network handler ");
+			
 			NIOReactorPool reactorPool = new NIOReactorPool(
-					BufferPool.LOCAL_BUF_THREAD_PREX + "NIOREACTOR",
+					DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + "NIOREACTOR",
 					processors.length);
-			connector = new NIOConnector(BufferPool.LOCAL_BUF_THREAD_PREX
+			connector = new NIOConnector(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX
 					+ "NIOConnector", reactorPool);
 			((NIOConnector) connector).start();
 
-			manager = new NIOAcceptor(BufferPool.LOCAL_BUF_THREAD_PREX + NAME
+			manager = new NIOAcceptor(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + NAME
 					+ "Manager", system.getBindIp(), system.getManagerPort(),
 					mf, reactorPool);
 
-			server = new NIOAcceptor(BufferPool.LOCAL_BUF_THREAD_PREX + NAME
+			server = new NIOAcceptor(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + NAME
 					+ "Server", system.getBindIp(), system.getServerPort(), sf,
 					reactorPool);
 		}

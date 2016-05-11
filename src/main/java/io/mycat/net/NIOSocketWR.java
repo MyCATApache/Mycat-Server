@@ -179,10 +179,14 @@ public class NIOSocketWR extends SocketWR {
 	public void asynRead() throws IOException {
 		ByteBuffer theBuffer = con.readBuffer;
 		if (theBuffer == null) {
-			theBuffer = con.processor.getBufferPool().allocate();
+
+			theBuffer = con.processor.getBufferPool().allocate(con.processor.getBufferPool().getChunkSize()*8);
+
 			con.readBuffer = theBuffer;
 		}
+
 		int got = channel.read(theBuffer);
+
 		con.onReadData(got);
 	}
 

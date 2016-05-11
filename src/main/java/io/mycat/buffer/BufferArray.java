@@ -10,20 +10,20 @@ import java.util.List;
 /**
  * used for large data write ,composed by buffer array, when a large MySQL
  * package write ,shoud use this object to write data
- * 
+ *
+ *  use DirectByteBuffer for alloc buffer
  * @author wuzhih
- * 
+ * @author zagnix
  */
 public class BufferArray {
-
-	private final BufferPool bufferPool;
+	private final DirectByteBufferPool bufferPool;
 	private ByteBuffer curWritingBlock;
 	private List<ByteBuffer> writedBlockLst = Collections.emptyList();
 
-	public BufferArray(BufferPool bufferPool) {
+	public BufferArray(DirectByteBufferPool bufferPool) {
 		super();
 		this.bufferPool = bufferPool;
-		curWritingBlock = bufferPool.allocate();
+		curWritingBlock = bufferPool.allocate(bufferPool.getChunkSize()*8);
 	}
 
 	public ByteBuffer checkWriteBuffer(int capacity) {
@@ -76,10 +76,9 @@ public class BufferArray {
 				offset += writeable;
 				remains -= writeable;
 				addtoBlock(curWritingBlock);
-				curWritingBlock = bufferPool.allocate();
+				curWritingBlock = bufferPool.allocate(bufferPool.getChunkSize()*8);
 				continue;
 			}
-
 		}
 		return curWritingBlock;
 	}
