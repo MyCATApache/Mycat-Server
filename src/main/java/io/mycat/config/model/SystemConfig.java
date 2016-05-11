@@ -119,6 +119,10 @@ public final class SystemConfig {
 
 	private boolean enableDistributedTransactions = true;
 
+	private int checkTableConsistency = 0;
+	private long checkTableConsistencyPeriod = CHECKTABLECONSISTENCYPERIOD;
+	private final static long CHECKTABLECONSISTENCYPERIOD = 1 * 60 * 1000;
+
 	public boolean isEnableDistributedTransactions() {
 		return enableDistributedTransactions;
 	}
@@ -633,5 +637,19 @@ public final class SystemConfig {
 	}
 
 
+	public int getCheckTableConsistency() {
+		return checkTableConsistency;
+	}
 
+	public void setCheckTableConsistency(int checkTableConsistency) {
+		this.checkTableConsistency = checkTableConsistency;
+	}
+
+	public long getCheckTableConsistencyPeriod() {
+		return checkTableConsistencyPeriod;
+	}
+
+	public void setCheckTableConsistencyPeriod(long checkTableConsistencyPeriod) {
+		this.checkTableConsistencyPeriod = checkTableConsistencyPeriod;
+	}
 }

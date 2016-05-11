@@ -37,6 +37,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.TableConfig;
+import io.mycat.config.table.structure.MySQLTableStructureDetector;
+import io.mycat.sqlengine.SQLJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,7 +185,7 @@ public class MycatServer {
 	/**
 	 * get next AsynchronousChannel ,first is exclude if multi
 	 * AsynchronousChannelGroups
-	 * 
+	 *
 	 * @return
 	 */
 	public AsynchronousChannelGroup getNextAsyncChannelGroup() {
@@ -206,7 +210,7 @@ public class MycatServer {
 	public void beforeStart() {
 		String home = SystemConfig.getHomePath();
 
-		
+
 		//ZkConfig.instance().initZk();
 	}
 
@@ -326,8 +330,8 @@ public class MycatServer {
 			node.startHeartbeat();
 		}
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
-		
-		
+
+
 		scheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MICROSECONDS);
 		scheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MICROSECONDS);
 		scheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L,
@@ -335,8 +339,10 @@ public class MycatServer {
 		scheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L,
 				system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
 		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MICROSECONDS);
-		
-
+        if(system.getCheckTableConsistency()==1) {
+            scheduler.scheduleAtFixedRate(tableStructureCheck(), 0L, system.getCheckTableConsistencyPeriod(), TimeUnit.MILLISECONDS);
+        }
+//        new Thread(tableStructureCheck()).start();
 	}
 
 	private Runnable catletClassClear() {
@@ -378,7 +384,7 @@ public class MycatServer {
 
 	/**
 	 * save cur datanode index to properties file
-	 * 
+	 *
 	 * @param
 	 * @param curIndex
 	 */
@@ -556,6 +562,10 @@ public class MycatServer {
 				});
 			}
 		};
+	}
+
+	private Runnable tableStructureCheck(){
+		return new MySQLTableStructureDetector();
 	}
 
 	public boolean isAIO() {

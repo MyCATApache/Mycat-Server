@@ -117,6 +117,8 @@ public class NonBlockingSession implements Session {
                     "No dataNode found ,please check tables defined in schema:" + source.getSchema());
             return;
         }
+        
+
         if (nodes.length == 1) {
             singleNodeHandler = new SingleNodeHandler(rrs, this);
             if (this.isPrepared()) {
