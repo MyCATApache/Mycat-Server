@@ -94,7 +94,10 @@ public class PhysicalDBNode {
 		if (dbPool.isInitSuccess()) {
 			LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
 			if (rrs.getRunOnSlave() != null) { // 带有 /*db_type=master/slave*/ 注解
-				if (rrs.getRunOnSlave()) { // 强制走 slave
+				// 强制走 slave
+                // 当autoCommit=false场景下，有可能一个查询需要依赖同一个事物内
+                //之前的插入操作，此时即使用户指定db_type=slave,也要强制查询走主节点，保证数据准确性
+				if (rrs.getRunOnSlave()&&autoCommit) { 
 					LOGGER.debug("rrs.isHasBlanceFlag() "
 							+ rrs.isHasBlanceFlag());
 					if (rrs.isHasBlanceFlag()) { // 带有 /*balance*/
