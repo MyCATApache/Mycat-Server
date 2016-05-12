@@ -150,6 +150,12 @@ public class RouteService {
 			while(j < len && c != '!' && c != '#' && (c == ' ' || c == '*')){
 				c = sql.charAt(++j);
 			}
+			//注解支持的'!'不被mysql单库兼容，
+			//注解支持的'#'不被mybatis兼容
+			//考虑用mycat字符前缀标志Hintsql:"/** mycat: */"
+			if(sql.charAt(j)=='m'){
+				j--;
+			}
 			if(j + 6 >= len)	// prevent the following sql.charAt overflow
 				return -1;		// false
 			if(sql.charAt(++j) == 'm' && sql.charAt(++j) == 'y' && sql.charAt(++j) == 'c'
