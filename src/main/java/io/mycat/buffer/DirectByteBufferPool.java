@@ -1,5 +1,7 @@
 package io.mycat.buffer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sun.nio.ch.DirectBuffer;
 
 import java.nio.ByteBuffer;
@@ -12,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @SuppressWarnings("restriction")
 public class DirectByteBufferPool {
+    private static final Logger LOGGER = LoggerFactory.getLogger("DirectByteBufferPool");
     public static final String LOCAL_BUF_THREAD_PREX = "$_";
     private ByteBufferPage[] allPages;
     private final int chunkSize;
@@ -19,8 +22,6 @@ public class DirectByteBufferPool {
     private AtomicInteger prevAllocatedPage;
     private final  int pageSize;
     private final short pageCount;
-
-
     private final int conReadBuferChunk ;
 
     public DirectByteBufferPool(int pageSize, short chunkSize, short pageCount,int conReadBuferChunk) {
@@ -80,7 +81,7 @@ public class DirectByteBufferPool {
             }
         }
         if (recycled == false) {
-            System.out.println("warning ,not recycled buffer " + theBuf);
+            LOGGER.warn("warning ,not recycled buffer " + theBuf);
         }
     }
 
