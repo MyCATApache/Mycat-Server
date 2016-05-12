@@ -199,7 +199,6 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             } catch (InterruptedException e1) {
                 LOGGER.warn("Unexpected thread interruption!");
             }
-            LOGGER.warn("Exception caught while trying to get InstanceID from ZK!If this exception frequently happens, please check your network connection! Cause:" + e.getCause() + " Message:" + e.getMessage());
             return false;
         }
     }
@@ -244,7 +243,6 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             }
         }
         int a = threadInc.get(thread);
-        System.out.println((thread.getId() % maxThreadId) + "|" + (timestampMask)+":"+(System.currentTimeMillis() & timestampMask));
         return ((System.currentTimeMillis() & timestampMask) << timestampShift) | (((thread.getId() % maxThreadId) << threadIdShift)) | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
     }
 
