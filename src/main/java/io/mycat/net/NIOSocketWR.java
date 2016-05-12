@@ -180,7 +180,7 @@ public class NIOSocketWR extends SocketWR {
 		ByteBuffer theBuffer = con.readBuffer;
 		if (theBuffer == null) {
 
-			theBuffer = con.processor.getBufferPool().allocate(con.processor.getBufferPool().getChunkSize()*8);
+			theBuffer = con.processor.getBufferPool().allocate(con.processor.getBufferPool().getChunkSize());
 
 			con.readBuffer = theBuffer;
 		}

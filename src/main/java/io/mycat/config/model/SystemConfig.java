@@ -41,7 +41,7 @@ public final class SystemConfig {
 	private static final String DEFAULT_CHARSET = "utf8";
 
 	private static final String DEFAULT_SQL_PARSER = "druidparser";// fdbparser, druidparser
-	private static final short DEFAULT_BUFFER_CHUNK_SIZE = 512;
+	private static final short DEFAULT_BUFFER_CHUNK_SIZE = 4096;
 	private static final int DEFAULT_BUFFER_POOL_PAGE_SIZE = 512*1024*10;
 	private static final short DEFAULT_BUFFER_POOL_PAGE_NUMBER = 8;
 	private int processorBufferLocalPercent;

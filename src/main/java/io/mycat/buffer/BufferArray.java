@@ -23,7 +23,7 @@ public class BufferArray {
 	public BufferArray(DirectByteBufferPool bufferPool) {
 		super();
 		this.bufferPool = bufferPool;
-		curWritingBlock = bufferPool.allocate(bufferPool.getChunkSize()*8);
+		curWritingBlock = bufferPool.allocate(bufferPool.getChunkSize());
 	}
 
 	public ByteBuffer checkWriteBuffer(int capacity) {
@@ -76,7 +76,7 @@ public class BufferArray {
 				offset += writeable;
 				remains -= writeable;
 				addtoBlock(curWritingBlock);
-				curWritingBlock = bufferPool.allocate(bufferPool.getChunkSize()*8);
+				curWritingBlock = bufferPool.allocate(bufferPool.getChunkSize());
 				continue;
 			}
 		}

@@ -208,7 +208,7 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	public void setProcessor(NIOProcessor processor) {
 		this.processor = processor;
-		int size = processor.getBufferPool().getChunkSize()*8;
+		int size = processor.getBufferPool().getChunkSize();
 		this.readBuffer = processor.getBufferPool().allocate(size);
 	}
 
@@ -237,7 +237,7 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	public ByteBuffer allocate() {
-		int size = this.processor.getBufferPool().getChunkSize()*8;
+		int size = this.processor.getBufferPool().getChunkSize();
 		ByteBuffer buffer = this.processor.getBufferPool().allocate(size);
 		return buffer;
 	}
