@@ -59,7 +59,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     private final long threadIdBits = 9L;
     private final long incrementBits = 8L;
 
-    private final long timestampMask = (1L << timestampBits) - 1L ;
+    private final long timestampMask = (1L << timestampBits) - 1L;
 
     private final long incrementShift = 0L;
     private final long threadIdShift = incrementShift + incrementBits;
@@ -120,7 +120,8 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         this.leaderSelector = leaderSelector;
     }
 
-    private ConcurrentMap<Thread, Integer> threadInc = new ConcurrentHashMap<Thread, Integer>((int) maxIncrement);
+    private ConcurrentMap<Thread, Integer> threadInc = new ConcurrentHashMap<Thread, Integer>((int) maxThreadId);
+    private ConcurrentMap<Thread, Long> threadLastTime = new ConcurrentHashMap<Thread, Long>((int) maxThreadId);
 
     public DistributedSequenceHandler(SystemConfig mycatConfig) {
         this.mycatConfig = mycatConfig;
@@ -232,18 +233,32 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             }
         }
         final Thread thread = Thread.currentThread();
+        long time = System.currentTimeMillis();
         if (threadInc.get(thread) == null) {
             threadInc.put(thread, 0);
+            threadLastTime.putIfAbsent(thread, time);
         } else {
             int a = threadInc.get(thread);
             if (a >= maxIncrement) {
+                if (threadLastTime.get(thread) == time) {
+                    time = blockUntilNextMillis(time);
+                }
                 threadInc.put(thread, 0);
             } else {
                 threadInc.put(thread, a + 1);
             }
         }
         int a = threadInc.get(thread);
-        return ((System.currentTimeMillis() & timestampMask) << timestampShift) | (((thread.getId() % maxThreadId) << threadIdShift)) | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
+        return ((time & timestampMask) << timestampShift) | (((thread.getId() % maxThreadId) << threadIdShift)) | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
+    }
+
+    private long blockUntilNextMillis(long time) {
+        try {
+            Thread.sleep(1L);
+        } catch (InterruptedException e) {
+            LOGGER.warn("Unexpected thread interruption!");
+        }
+        return time + 1L;
     }
 
     @Override
