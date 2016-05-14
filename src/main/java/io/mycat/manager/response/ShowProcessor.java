@@ -27,7 +27,7 @@ import java.nio.ByteBuffer;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
-import io.mycat.buffer.BufferPool;
+import io.mycat.buffer.DirectByteBufferPool;
 import io.mycat.config.Fields;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.NIOProcessor;
@@ -126,7 +126,7 @@ public final class ShowProcessor {
     }
 
     private static RowDataPacket getRow(NIOProcessor processor, String charset) {
-    	BufferPool bufferPool=processor.getBufferPool();
+    	DirectByteBufferPool bufferPool=processor.getBufferPool();
     	long bufferSize=bufferPool.size();
     	long bufferCapacity=bufferPool.capacity();
     	long bufferSharedOpts=bufferPool.getSharedOptsCount();
