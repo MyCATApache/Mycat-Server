@@ -141,7 +141,9 @@ public class OkPacket extends MySQLPacket {
 	}
 
 	 public byte[] writeToBytes() {
-        ByteBuffer buffer=MycatServer.getInstance().getBufferPool().allocate();
+	
+	   int totalSize = calcPacketSize() + packetHeaderSize;
+        ByteBuffer buffer=MycatServer.getInstance().getBufferPool().allocate(totalSize);
         BufferUtil.writeUB3(buffer, calcPacketSize());
         buffer.put(packetId);
         buffer.put(fieldCount);
@@ -155,8 +157,8 @@ public class OkPacket extends MySQLPacket {
         buffer.flip();
         byte[] data = new byte[buffer.limit()];
         buffer.get(data);
-
-        return data;
+		 MycatServer.getInstance().getBufferPool().recycle(buffer);
+		 return data;
     }
 
 }

@@ -128,8 +128,7 @@ public class RowDataPacket extends MySQLPacket {
 
 	public void write(BufferArray bufferArray) {
 		int size = calcPacketSize();
-		ByteBuffer buffer = bufferArray.checkWriteBuffer(packetHeaderSize
-				+ size);
+		ByteBuffer buffer = bufferArray.checkWriteBuffer(packetHeaderSize + size);
 		BufferUtil.writeUB3(buffer, size);
 		buffer.put(packetId);
 		for (int i = 0; i < fieldCount; i++) {
