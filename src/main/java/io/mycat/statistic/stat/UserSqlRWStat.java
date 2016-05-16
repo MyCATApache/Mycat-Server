@@ -1,11 +1,15 @@
 package io.mycat.statistic.stat;
 
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicLong;
 
 import io.mycat.server.parser.ServerParse;
 
 /**
  * SQL R/W 执行状态
+ * 因为这里的所有元素都近似为非必须原子更新的，即：
+ * 例如：rCount和netInBytes没有必要非得保持同步更新，在同一个事务内
+ * 只要最后更新了即可，所以将其中的元素拆成一个一个原子类，没必要保证精确的保持原样不加任何锁
  * 
  * @author zhuam
  *
@@ -16,8 +20,8 @@ public class UserSqlRWStat {
 	/**
 	 * R/W 次数
 	 */
-	private long rCount = 0L;
-    private long wCount = 0L;
+	private AtomicLong rCount = new AtomicLong(0L);
+    private AtomicLong wCount = new AtomicLong(0L);
     
     /**
      * 每秒QPS
@@ -27,8 +31,8 @@ public class UserSqlRWStat {
     /**
      * Net In/Out 字节数
      */
-    private long netInBytes = 0L;
-    private long netOutBytes = 0L;
+    private AtomicLong netInBytes = new AtomicLong(0L);
+    private AtomicLong netOutBytes = new AtomicLong(0L);
     
 	/**
 	 * 最大的并发
@@ -51,6 +55,7 @@ public class UserSqlRWStat {
 
     /**
      * 最后执行时间
+	 * 不用很精确，所以不加任何锁
      */
     private long lastExecuteTime;
     
@@ -63,12 +68,12 @@ public class UserSqlRWStat {
 	}
 	
 	public void reset() {
-		this.rCount = 0L;
-		this.wCount = 0L;		
+		this.rCount = new AtomicLong(0L);
+		this.wCount = new AtomicLong(0L);
 		this.concurrentMax = 1;		
 		this.lastExecuteTime = 0;
-		this.netInBytes = 0L;
-		this.netOutBytes = 0L;
+		this.netInBytes = new AtomicLong(0L);
+		this.netOutBytes = new AtomicLong(0L);
 		
 		this.timeHistogram.reset();
 		this.executeHistogram.reset();
@@ -80,13 +85,13 @@ public class UserSqlRWStat {
 		switch(sqlType) {
     	case ServerParse.SELECT:
     	case ServerParse.SHOW:
-    		this.rCount++;  		
+    		this.rCount.incrementAndGet();
     		break;
     	case ServerParse.UPDATE:
     	case ServerParse.INSERT:
     	case ServerParse.DELETE:
     	case ServerParse.REPLACE:
-    		this.wCount++;  	
+    		this.wCount.incrementAndGet();
     		break;
     	}
     	
@@ -126,8 +131,8 @@ public class UserSqlRWStat {
 		
 		this.lastExecuteTime = endTime;
 		
-		this.netInBytes += netInBytes;
-		this.netOutBytes += netOutBytes;
+		this.netInBytes.addAndGet(netInBytes);
+		this.netOutBytes.addAndGet(netOutBytes);
 	}
 	
     public long getLastExecuteTime() {
@@ -135,11 +140,11 @@ public class UserSqlRWStat {
     }	
     
     public long getNetInBytes() {
-    	return netInBytes;
+    	return netInBytes.get();
     }
     
     public long getNetOutBytes() {
-    	return netOutBytes;
+    	return netOutBytes.get();
     }
 
 	public int getConcurrentMax() {
@@ -159,11 +164,11 @@ public class UserSqlRWStat {
 	}
 
 	public long getRCount() {
-        return this.rCount;
+        return this.rCount.get();
     }
     
     public long getWCount() {
-        return this.wCount;
+        return this.wCount.get();
     }
 	
 	public Histogram getTimeHistogram() {

@@ -24,6 +24,7 @@
 package io.mycat.manager.response;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 
 import io.mycat.backend.mysql.PacketUtil;
@@ -96,11 +97,13 @@ public final class ShowSQL {
         Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
     	for (UserStat userStat : statMap.values()) {
         	String user = userStat.getUser();
-        	UserSqlLastStat.SqlLast[] sqls = userStat.getSqlLastStat().getSqls();
-            for (int i = sqls.length - 1; i >= 0; i--) {
-                if (sqls[i] != null) {
-                    RowDataPacket row = getRow(user, sqls[i], i, c.getCharset());
+            List<UserSqlLastStat.SqlLast> sqls = userStat.getSqlLastStat().getSqls();
+            int i = 1;
+            for (UserSqlLastStat.SqlLast sqlLast : sqls) {
+                if (sqlLast != null) {
+                    RowDataPacket row = getRow(user, sqlLast, i, c.getCharset());
                     row.packetId = ++packetId;
+                    i++;
                     buffer = row.write(buffer, c,true);
                 }
             }

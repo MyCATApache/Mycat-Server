@@ -41,6 +41,8 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.table.structure.MySQLTableStructureDetector;
 import io.mycat.sqlengine.SQLJob;
+import io.mycat.statistic.stat.UserStat;
+import io.mycat.statistic.stat.UserStatAnalyzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +80,7 @@ public class MycatServer {
 	public static final String NAME = "MyCat";
 	private static final long LOG_WATCH_DELAY = 60000L;
 	private static final long TIME_UPDATE_PERIOD = 20L;
+	private static final long DEFAULT_SQL_STAT_RECYCLE_PERIOD = 5*1000L;
 	private static final MycatServer INSTANCE = new MycatServer();
 	private static final Logger LOGGER = LoggerFactory.getLogger("MycatServer");
 	private final RouteService routerService;
@@ -352,6 +355,9 @@ public class MycatServer {
         if(system.getCheckTableConsistency()==1) {
             scheduler.scheduleAtFixedRate(tableStructureCheck(), 0L, system.getCheckTableConsistencyPeriod(), TimeUnit.MILLISECONDS);
         }
+		if(system.getUseSqlStat()==1) {
+			scheduler.scheduleAtFixedRate(recycleSqlStat(), 0L, DEFAULT_SQL_STAT_RECYCLE_PERIOD, TimeUnit.MILLISECONDS);
+		}
 //        new Thread(tableStructureCheck()).start();
 	}
 
@@ -574,6 +580,23 @@ public class MycatServer {
 		};
 	}
 
+	//定时清理保存SqlStat中的数据
+	private Runnable recycleSqlStat(){
+		return new Runnable() {
+			@Override
+			public void run() {
+				Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
+				for (UserStat userStat : statMap.values()) {
+					userStat.getSqlLastStat().recycle();
+					userStat.getSqlRecorder().recycle();
+					userStat.getSqlHigh().recycle();
+					userStat.getSqlLargeRowStat().recycle();
+				}
+			}
+		};
+	}
+
+	//定时检查不同分片表结构一致性
 	private Runnable tableStructureCheck(){
 		return new MySQLTableStructureDetector();
 	}

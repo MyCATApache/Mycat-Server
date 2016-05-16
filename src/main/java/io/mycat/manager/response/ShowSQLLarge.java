@@ -1,6 +1,7 @@
 package io.mycat.manager.response;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 
 import io.mycat.backend.mysql.PacketUtil;
@@ -10,6 +11,7 @@ import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.statistic.stat.UserSqlLargeStat;
 import io.mycat.statistic.stat.UserStat;
 import io.mycat.statistic.stat.UserStatAnalyzer;
 import io.mycat.util.LongUtil;
@@ -71,11 +73,11 @@ public class ShowSQLLarge {
         Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
         for (UserStat userStat : statMap.values()) {
         	String user = userStat.getUser();
-        	
-        	io.mycat.statistic.stat.UserSqlLargeStat.SqlLarge[] sqls = userStat.getSqlLargeRowStat().getSqls();
-            for (int i = sqls.length - 1; i >= 0; i--) {
-                if (sqls[i] != null) {
-                    RowDataPacket row = getRow(user, sqls[i], c.getCharset());
+
+            List<UserSqlLargeStat.SqlLarge> sqls = userStat.getSqlLargeRowStat().getSqls();
+            for (UserSqlLargeStat.SqlLarge sql : sqls) {
+                if (sql != null) {
+                    RowDataPacket row = getRow(user, sql, c.getCharset());
                     row.packetId = ++packetId;
                     buffer = row.write(buffer, c,true);
                 }
