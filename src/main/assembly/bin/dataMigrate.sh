@@ -67,11 +67,11 @@ RUN_CMD="$RUN_CMD $JAVA_OPTS"
 RUN_CMD="$RUN_CMD io.mycat.util.dataMigrator.DataMigrator "
 #to specify the following main args
 #临时文件路径,目录不存在将自动创建，不指定此目录则默认为mycat根下的temp目录
-RUN_CMD="$RUN_CMD -tempFileDir=/chunk1/haonan/temp"
+RUN_CMD="$RUN_CMD -tempFileDir="
 #默认true：不论是否发生主备切换，都使用主数据源数据，false：使用当前数据源                  
 RUN_CMD="$RUN_CMD -isAwaysUseMaster=true"
 #mysql bin路径
-RUN_CMD="$RUN_CMD -mysqlBin=/home/iddbs/mysql5.6/bin"
+RUN_CMD="$RUN_CMD -mysqlBin="
 #mysqldump命令行长度限制字节数 默认110k
 RUN_CMD="$RUN_CMD -cmdLength=110*1024"
 #导入导出数据所用字符集 默认utf8
