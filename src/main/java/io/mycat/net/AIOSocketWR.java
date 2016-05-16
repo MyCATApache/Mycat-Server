@@ -30,7 +30,7 @@ public class AIOSocketWR extends SocketWR
         ByteBuffer theBuffer = con.readBuffer;
         if (theBuffer == null)
         {
-            theBuffer = con.processor.getBufferPool().allocate();
+            theBuffer = con.processor.getBufferPool().allocate(con.processor.getBufferPool().getChunkSize());
             con.readBuffer = theBuffer;
             channel.read(theBuffer, this, aioReadHandler);
 
