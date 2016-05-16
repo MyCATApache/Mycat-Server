@@ -24,33 +24,29 @@ public class MigratorConditonFilesMaker implements Runnable{
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MigratorConditonFilesMaker.class);
 	private DataNode srcDn;
-	private List<DataNode> newDn;
+	private List<DataNode> newDnList;
 	private String column;
 	private String tableName;
 	private AbstractPartitionAlgorithm alg;
-	private int index;
 	private String tempFileDir;
 	private TableMigrateInfo tableInfo;
 	private int newDnSize;
 	private int pageSize;
-	private boolean isExpantion;
 	
 	private Map<DataNode,File> files = new HashMap<>();
 	
-	Map<Integer,StringBuilder> map = new HashMap<>();//存放节点发生变化的拆分字段字符串数据 key:dn索引 value 拆分字段值,以逗号分隔
+	Map<DataNode,StringBuilder> map = new HashMap<>();//存放节点发生变化的拆分字段字符串数据 key:dn索引 value 拆分字段值,以逗号分隔
 	
 	public MigratorConditonFilesMaker(TableMigrateInfo tableInfo,DataNode srcDn,String tempFileDir, int pageSize){
 		this.tableInfo = tableInfo;
 		this.tempFileDir = tempFileDir;
 		this.srcDn = srcDn;
-		this.newDn = tableInfo.getNewDataNodes();
+		this.newDnList = tableInfo.getNewDataNodes();
 		this.column = tableInfo.getColumn();
 		this.tableName = tableInfo.getTableName();
 		this.alg = tableInfo.getNewRuleAlgorithm();
-		this.newDnSize = newDn.size();
+		this.newDnSize = newDnList.size();
 		this.pageSize = pageSize;
-		this.isExpantion = tableInfo.isExpantion();
-		this.index = srcDn.getIndex();
 	}
 	
 	@Override
@@ -75,22 +71,23 @@ public class MigratorConditonFilesMaker implements Runnable{
 			
 			while (!CollectionUtil.isEmpty(list)) {
 				if(tableInfo.isError()) return;
-				flushData(map,false);
+				flushData(false);
     			for(int i=0,l=list.size();i<l;i++){
     				Map<String, Object> sf=list.get(i);
     				String filedVal = sf.get(column).toString();
     				Integer newIndex=alg.calculate(filedVal);
     				total++;
-    				if(!srcDn.equals(newDn.get(newIndex))){
+    				DataNode newDn = newDnList.get(newIndex);
+    				if(!srcDn.equals(newDn)){
     					count[newIndex]++;
-    					map.get(newIndex).append(filedVal+",");
+    					map.get(newDn).append(filedVal+",");
     				}
     			}
     			list = DataMigratorUtil.executeQuery(con, "select "
                         + column + " from " + tableName + " limit ?,?", page++ * pageSize,
                         pageSize);
     		}
-			flushData(map,true);
+			flushData(true);
 			statisticalData(total,count);
 		} catch (Exception e) {
 			//发生错误，终止此拆分表所有节点线程任务，记录错误信息，退出此拆分表迁移任务
@@ -108,22 +105,23 @@ public class MigratorConditonFilesMaker implements Runnable{
 	//创建中间临时文件
 	private void createTempFiles() throws IOException{
 		File parentFile = createDirIfNotExist();
-		for(int i= 0;i<newDnSize;i++){
-			if(i == index && isExpantion) continue;
-			map.put(i, new StringBuilder());
-			createTempFile(parentFile,i);
+		for(DataNode dn:newDnList){
+			if(!srcDn.equals(dn)){
+				map.put(dn, new StringBuilder());
+				createTempFile(parentFile,dn);
+			}
 		}
 	}
 	
 	
 	//中间临时文件 格式: srcDnName-targetDnName.txt   中间文件存在的话会被清除
-	private void createTempFile(File parentFile, int i) throws IOException {
-		File f = new File(parentFile,srcDn.getName()+"(old)"+"-"+newDn.get(i).getName()+"(new).txt");
+	private void createTempFile(File parentFile, DataNode dn) throws IOException {
+		File f = new File(parentFile,srcDn.getName()+"(old)"+"-"+dn.getName()+"(new).txt");
 		if(f.exists()){
 			f.delete();
 		}
 		f.createNewFile();
-		files.put(newDn.get(i), f);
+		files.put(dn, f);
 	}
 	
 	//统计各节点数据迁移信息,并移除空文件
@@ -134,7 +132,7 @@ public class MigratorConditonFilesMaker implements Runnable{
 		for(int i=0;i<count.length;i++){
 			long c = count[i];
 			sizeList.add(c);
-			DataNode targetDn = newDn.get(i);
+			DataNode targetDn = newDnList.get(i);
 			if(count[i]>0){
 				DataNodeMigrateInfo info  =new DataNodeMigrateInfo(tableInfo,srcDn, targetDn, files.get(targetDn), c);
 				list.add(info);
@@ -151,18 +149,18 @@ public class MigratorConditonFilesMaker implements Runnable{
 	}
 	
 	//将迁移字段值写入中间文件,数据超过1024或者要求强制才写入，避免重复打开关闭写入文件
-	private void flushData(Map<Integer, StringBuilder> map,boolean isForce) throws IOException {
-		for(int i= 0;i<newDnSize;i++){
-			if(i == index && isExpantion) continue;  //扩容的话不需要考虑当前节点
-			StringBuilder sb = map.get(i);
+	private void flushData(boolean isForce) throws IOException {
+		for(DataNode dn:newDnList){
+			StringBuilder sb = map.get(dn);
+			if(sb == null) continue;
 			if((isForce || sb.toString().getBytes().length>1024) && sb.length()>0){
 				String s = sb.toString();
 				if(isForce){//最后一次将末尾的','截掉
 					s = s.substring(0, s.length()-1);
 				}
-				DataMigratorUtil.appendDataToFile(files.get(newDn.get(i)),s);
+				DataMigratorUtil.appendDataToFile(files.get(dn),s);
 				sb = new StringBuilder();
-				map.put(i, sb);
+				map.put(dn, sb);
 			}
 		}
 	}

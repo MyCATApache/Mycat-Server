@@ -65,7 +65,7 @@ public class DataMigratorUtil {
 		}  
 	}
 	
-	public static String readDataFromFile(File file,int offset,int length) throws IOException{
+	public static String readDataFromFile(File file,long offset,int length) throws IOException{
 		RandomAccessFile randomFile = null;  
 		try {     
 			// 打开一个随机访问文件流，按读写方式     
@@ -95,7 +95,7 @@ public class DataMigratorUtil {
 	 * @return
 	 * @throws IOException
 	 */
-	public static  String readData(File file,int start,int length) throws IOException{
+	public static  String readData(File file,long start,int length) throws IOException{
 		String data = readDataFromFile(file, start, length);
 		if((start+length)<=file.length()){
 			data = data.substring(0, data.lastIndexOf(","));
