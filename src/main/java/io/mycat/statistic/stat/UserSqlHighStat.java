@@ -15,7 +15,6 @@ public class UserSqlHighStat {
 	private static final int CAPACITY_SIZE = 1024;
 
 	private Map<String,SqlFrequency> sqlFrequencyMap = new ConcurrentHashMap<>();
-	private SortedMap<SqlFrequency,String> frequencySqlMap = new ConcurrentSkipListMap<>();
 
 	private ReentrantLock lock = new ReentrantLock();
 
@@ -45,7 +44,6 @@ public class UserSqlHighStat {
 		//TODO 目前setExecuteTime方法由于弃用锁，所以某些参数不准确，为了性能，放弃这些参数的准确性。下一步期待更多优化
         frequency.setExecuteTime(executeTime);
         this.sqlFrequencyMap.put(newSql, frequency);        
-        this.frequencySqlMap.put(frequency, newSql);
 	}
 
 	
@@ -68,19 +66,17 @@ public class UserSqlHighStat {
 	public void recycle() {
 		if(sqlFrequencyMap.size() > CAPACITY_SIZE){
 			Map<String,SqlFrequency> sqlFrequencyMap2 = new ConcurrentHashMap<>();
-			SortedMap<SqlFrequency,String>  frequencySqlMap2 = new ConcurrentSkipListMap<>();
-			List<SqlFrequency> keyList = new ArrayList<SqlFrequency>(this.frequencySqlMap.keySet());
+			SortedSet<SqlFrequency> sqlFrequencySortedSet = new TreeSet<>(this.sqlFrequencyMap.values());
+			List<SqlFrequency> keyList = new ArrayList<SqlFrequency>(sqlFrequencySortedSet);
 			int i = 0;
 			for(SqlFrequency key : keyList){
 				if(i == CAPACITY_SIZE) {
 					break;
 				}
-				frequencySqlMap2.put(key,key.getSql());
 				sqlFrequencyMap2.put(key.getSql(),key);
 				i++;
 			}
 			sqlFrequencyMap = sqlFrequencyMap2;
-			frequencySqlMap = frequencySqlMap2;
 		}
 	}
 	

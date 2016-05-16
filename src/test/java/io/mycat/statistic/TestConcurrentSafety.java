@@ -163,8 +163,10 @@ public class TestConcurrentSafety {
 
         List<SqlFrequency> sqlFrequency = userSqlHighStat.getSqlFrequency(true);
         Assert.assertTrue(sqlFrequency.size() == 2);
-        Assert.assertTrue(sqlFrequency.get(0).getCount() == 200000L);
-        Assert.assertTrue(sqlFrequency.get(1).getCount() == 100000L);
+        Assert.assertTrue(sqlFrequency.get(0).getCount() == 2 * THREAD_COUNT *LOOP_COUNT);
+        Assert.assertTrue(sqlFrequency.get(1).getCount() == THREAD_COUNT *LOOP_COUNT);
     }
+
+
 
 }

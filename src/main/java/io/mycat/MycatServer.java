@@ -590,6 +590,7 @@ public class MycatServer {
 					userStat.getSqlLastStat().recycle();
 					userStat.getSqlRecorder().recycle();
 					userStat.getSqlHigh().recycle();
+					userStat.getSqlLargeRowStat().recycle();
 				}
 			}
 		};
