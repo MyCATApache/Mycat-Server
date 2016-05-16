@@ -95,7 +95,8 @@ public class PhysicalDBNode {
 		if (dbPool.isInitSuccess()) {
 			LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
 			if(rrs.getRunOnSlave() != null){		// 带有 /*db_type=master/slave*/ 注解
-				if(rrs.getRunOnSlave()){			// 强制走 slave
+				// 强制走 slave
+				if(rrs.getRunOnSlave()){			
 					LOGGER.debug("rrs.isHasBlanceFlag() " + rrs.isHasBlanceFlag());
 					if (rrs.isHasBlanceFlag()) {		// 带有 /*balance*/ 注解(目前好像只支持一个注解...)
 						dbPool.getReadBanlanceCon(schema,autoCommit,handler, attachment, this.database);

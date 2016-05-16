@@ -266,17 +266,9 @@ public class DataMigrator {
 	
 	private void createTableTempFiles(TableMigrateInfo table) {
 		List<DataNode> oldDn = table.getOldDataNodes();
-		if(table.isExpantion()){ //扩容
-			//生成迁移中间文件，并生成迁移执行计划
-			for(DataNode dn:oldDn){
-				executor.execute(new MigratorConditonFilesMaker(table,dn,margs.getTempFileDir(),margs.getQueryPageSize()));
-			}
-		}else{//缩容
-			//找出移除的节点
-			List<DataNode> migrateDn = table.getRemovedDataNodes();
-			for(DataNode dn:migrateDn){
-				executor.execute(new MigratorConditonFilesMaker(table,dn,margs.getTempFileDir(),margs.getQueryPageSize()));
-			}
+		//生成迁移中间文件，并生成迁移执行计划
+		for(DataNode dn:oldDn){
+			executor.execute(new MigratorConditonFilesMaker(table,dn,margs.getTempFileDir(),margs.getQueryPageSize()));
 		}
 	}
 }

@@ -109,7 +109,7 @@ public class DataNode{
 		
 		if(o instanceof DataNode){
 			DataNode other = (DataNode)o;
-			if (other.toString().equals(this.toString())){
+			if (other.getUrl().equals(this.getUrl())){
 				return true;
 			}
 		}
@@ -118,7 +118,7 @@ public class DataNode{
 	
 	@Override
 	public int hashCode(){
-		return this.toString().hashCode();
+		return this.getUrl().hashCode();
 	}
 	
 }
