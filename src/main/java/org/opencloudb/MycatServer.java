@@ -101,6 +101,7 @@ public class MycatServer {
 	private ListeningExecutorService listeningExecutorService;
 
 	public MycatServer() {
+		//载入配置文件
 		this.config = new MycatConfig();
 		this.timer = new Timer(NAME + "Timer", true);
 		this.sqlRecorder = new SQLRecorder(config.getSystem()

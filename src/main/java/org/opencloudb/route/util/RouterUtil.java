@@ -991,7 +991,19 @@ public class RouterUtil {
 									LOGGER.warn(msg);
 									throw new SQLNonTransientException(msg);
 								}
-								String node = tableConfig.getDataNodes().get(nodeIndex);
+
+								ArrayList<String> dataNodes = tableConfig.getDataNodes();
+								String node;
+								if (nodeIndex >=0 && nodeIndex < dataNodes.size()) {
+									node = dataNodes.get(nodeIndex);
+								} else {
+									node = null;
+									String msg = "Can't find a valid data node for specified node index :"
+											+ tableConfig.getName() + " -> " + tableConfig.getPartitionColumn()
+											+ " -> " + pair.colValue + " -> " + "Index : " + nodeIndex;
+									LOGGER.warn(msg);
+									throw new SQLNonTransientException(msg);
+								}
 								if(node != null) {
 									if(tablesRouteMap.get(tableName) == null) {
 										tablesRouteMap.put(tableName, new HashSet<String>());
@@ -1002,8 +1014,17 @@ public class RouterUtil {
 							if(pair.rangeValue != null) {
 								Integer[] nodeIndexs = tableConfig.getRule().getRuleAlgorithm()
 										.calculateRange(pair.rangeValue.beginValue.toString(), pair.rangeValue.endValue.toString());
+								ArrayList<String> dataNodes = tableConfig.getDataNodes();
+								String node;
 								for(Integer idx : nodeIndexs) {
-									String node = tableConfig.getDataNodes().get(idx);
+									if (idx >= 0 && idx < dataNodes.size()) {
+										node = dataNodes.get(idx);
+									} else {
+										String msg = "Can't find valid data node(s) for some of specified node indexes :"
+												+ tableConfig.getName() + " -> " + tableConfig.getPartitionColumn();
+										LOGGER.warn(msg);
+										throw new SQLNonTransientException(msg);
+									}
 									if(node != null) {
 										if(tablesRouteMap.get(tableName) == null) {
 											tablesRouteMap.put(tableName, new HashSet<String>());

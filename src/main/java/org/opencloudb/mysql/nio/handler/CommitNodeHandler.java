@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;
+import org.opencloudb.config.ErrorCode;
 import org.opencloudb.mysql.nio.MySQLConnection;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.server.NonBlockingSession;
@@ -46,6 +47,13 @@ public class CommitNodeHandler implements ResponseHandler {
 
 	public void commit(BackendConnection conn) {
 		conn.setResponseHandler(CommitNodeHandler.this);
+		boolean isClosed=conn.isClosedOrQuit();
+		if(isClosed)
+		{
+			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
+					"receive commit,but find backend con is closed or quit");
+			LOGGER.error( conn+"receive commit,but fond backend con is closed or quit");
+		}
 	   if(conn instanceof MySQLConnection)
 	   {
 		   MySQLConnection mysqlCon = (MySQLConnection) conn;

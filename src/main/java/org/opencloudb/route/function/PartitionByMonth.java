@@ -16,7 +16,10 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 		RuleAlgorithm {
 	private String sBeginDate;
 	private String dateFormat;
+	private String sEndDate;
 	private Calendar beginDate;
+	private Calendar endDate;
+	private int nPartition;
 
 	@Override
 	public void init() {
@@ -24,6 +27,19 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 			beginDate = Calendar.getInstance();
 			beginDate.setTime(new SimpleDateFormat(dateFormat)
 					.parse(sBeginDate));
+
+			if(sEndDate!=null&&!sEndDate.equals("")) {
+				endDate = Calendar.getInstance();
+				endDate.setTime(new SimpleDateFormat(dateFormat).parse(sEndDate));
+				nPartition = ((endDate.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR)) * 12
+								+ endDate.get(Calendar.MONTH) - beginDate.get(Calendar.MONTH)) + 1;
+
+				if (nPartition <= 0) {
+					throw new java.lang.IllegalArgumentException("Incorrect time range for month partitioning!");
+				}
+			} else {
+				nPartition = -1;
+			}
 		} catch (ParseException e) {
 			throw new java.lang.IllegalArgumentException(e);
 		}
@@ -32,11 +48,31 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 	@Override
 	public Integer calculate(String columnValue) {
 		try {
+			int targetPartition;
 			Calendar curTime = Calendar.getInstance();
 			curTime.setTime(new SimpleDateFormat(dateFormat).parse(columnValue));
-			return (curTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
+			targetPartition = ((curTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
 					* 12 + curTime.get(Calendar.MONTH)
-					- beginDate.get(Calendar.MONTH);
+					- beginDate.get(Calendar.MONTH));
+
+			/**
+			 * For circulatory partition, calculated value of target partition needs to be
+			 * rotated to fit the partition range
+ 			 */
+			if (nPartition > 0) {
+				/**
+				 * If target date is previous of start time of partition setting, shift
+				 * the delta range between target and start date to be positive value
+				 */
+				if (targetPartition < 0) {
+					targetPartition = nPartition - (-targetPartition) % nPartition;
+				}
+
+				if (targetPartition >= nPartition) {
+					targetPartition = targetPartition % nPartition;
+				}
+			}
+			return targetPartition;
 
 		} catch (ParseException e) {
 			throw new java.lang.IllegalArgumentException(e);
@@ -55,6 +91,10 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 
 	public void setDateFormat(String dateFormat) {
 		this.dateFormat = dateFormat;
+	}
+
+	public void setsEndDate(String sEndDate) {
+		this.sEndDate = sEndDate;
 	}
 
 }
