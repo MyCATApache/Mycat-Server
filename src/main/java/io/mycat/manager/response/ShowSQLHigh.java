@@ -81,17 +81,20 @@ public final class ShowSQLHigh {
 
         Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
     	for (UserStat userStat : statMap.values()) {
-        	String user = userStat.getUser();        
-        	 List<Map.Entry<String, SqlFrequency>> list=userStat.getSqlHigh().getSqlFrequency( isClear );
-             if ( list != null ) {        
-     	        for (int i = 0; i < list.size(); i++) {
-     	        	SqlFrequency sqlFrequency = list.get(i).getValue();
-					RowDataPacket row = getRow(i, user, sqlFrequency.getSql(), sqlFrequency.getCount(),
+        	String user = userStat.getUser();
+            List<SqlFrequency> list=userStat.getSqlHigh().getSqlFrequency( isClear );
+             if ( list != null ) {
+                int i = 1;
+     	        for (SqlFrequency sqlFrequency : list) {
+					if(sqlFrequency != null){
+                        RowDataPacket row = getRow(i, user, sqlFrequency.getSql(), sqlFrequency.getCount(),
 							sqlFrequency.getAvgTime(), sqlFrequency.getMaxTime(), sqlFrequency.getMinTime(),
 							sqlFrequency.getExecuteTime(), sqlFrequency.getLastTime(), c.getCharset());
-     	            row.packetId = ++packetId;
-     	            buffer = row.write(buffer, c,true);
-     	        }
+     	                row.packetId = ++packetId;
+     	                buffer = row.write(buffer, c,true);
+     	                i++;
+                    }
+                }
              }
     	}    
     	

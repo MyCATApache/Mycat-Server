@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -101,4 +102,7 @@ public class MySQLTableStructureDetector implements Runnable {
         }
     }
 
+    public static void main(String[] args) {
+        System.out.println(UUID.randomUUID());
+    }
 }

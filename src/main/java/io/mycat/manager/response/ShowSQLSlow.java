@@ -24,6 +24,8 @@
 package io.mycat.manager.response;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import io.mycat.backend.mysql.PacketUtil;
@@ -94,10 +96,10 @@ public final class ShowSQLSlow {
         Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
         for (UserStat userStat : statMap.values()) {
         	String user = userStat.getUser();
-            SQLRecord[] records = userStat.getSqlRecorder().getRecords();
-            for (int i = records.length - 1; i >= 0; i--) {
-                if (records[i] != null) {
-                    RowDataPacket row = getRow(user, records[i], c.getCharset());
+            List<SQLRecord> keyList = userStat.getSqlRecorder().getRecords();
+            for (SQLRecord key : keyList) {
+                if (key != null) {
+                    RowDataPacket row = getRow(user, key, c.getCharset());
                     row.packetId = ++packetId;
                     buffer = row.write(buffer, c,true);
                 }

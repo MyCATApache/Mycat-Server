@@ -15,7 +15,7 @@ import io.mycat.statistic.SQLRecorder;
  */
 public class UserStat {
 	
-	private long SQL_SLOW_TIME = 1000;
+	private long SQL_SLOW_TIME = 100;
 	
 	private String user;
 	
