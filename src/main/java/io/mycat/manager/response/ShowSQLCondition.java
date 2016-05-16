@@ -3,6 +3,7 @@ package io.mycat.manager.response;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
@@ -66,16 +67,16 @@ public class ShowSQLCondition {
         byte packetId = eof.packetId;        
         
         String key = QueryConditionAnalyzer.getInstance().getKey();
-        List<Map.Entry<Object, Long>> list = QueryConditionAnalyzer.getInstance().getValues();
+        List<Map.Entry<Object, AtomicLong>> list = QueryConditionAnalyzer.getInstance().getValues();
         if ( list != null  ) {       
         	
         	int size = list.size();
         	long total = 0L;
         	
 	        for (int i = 0; i < size; i++) {
-	        	Map.Entry<Object, Long> entry = list.get(i);
+	        	Map.Entry<Object, AtomicLong> entry = list.get(i);
 	        	Object value = entry.getKey();
-	        	Long count = entry.getValue();	        	
+	        	Long count = entry.getValue().get();
 	        	total += count;
 	        	
 	        	RowDataPacket row = getRow(i, key, value.toString(), count, c.getCharset());
