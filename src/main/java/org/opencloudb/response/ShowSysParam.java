@@ -79,6 +79,7 @@ public class ShowSysParam {
         paramValues.add(sysConfig.getProcessorCheckPeriod()/1000 + "秒");
         paramValues.add(sysConfig.getDataNodeIdleCheckPeriod()/1000 + "秒");
         paramValues.add(sysConfig.getDataNodeHeartbeatPeriod()/1000 + "秒");
+        paramValues.add(sysConfig.getSlowTime() + "毫秒");
         paramValues.add(sysConfig.getBindIp() + "");
         paramValues.add(sysConfig.getServerPort()+ "");
         paramValues.add(sysConfig.getManagerPort() + "");
@@ -117,6 +118,7 @@ public class ShowSysParam {
 		"Mycat_processorCheckPeriod",
 		"Mycat_dataNodeIdleCheckPeriod",
 		"Mycat_dataNodeHeartbeatPeriod",
+		"Mycat_slowTime",
 		"Mycat_bindIp",
 		"Mycat_serverPort",
 		"Mycat_managerPort"};
@@ -137,6 +139,7 @@ public class ShowSysParam {
 		"清理NIOProcessor上前后端空闲、超时和关闭连接的间隔时间。默认是1秒",
 		"对后端连接进行空闲、超时检查的时间间隔，默认是300秒",
 		"对后端所有读、写库发起心跳的间隔时间，默认是10秒",
+		"慢SQL的时间阀值，默认是1000毫秒",
 		"mycat服务监听的IP地址，默认值为0.0.0.0",
 		"mycat的使用端口，默认值为8066",
 		"mycat的管理端口，默认值为9066"};

@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;
+import org.opencloudb.config.ErrorCode;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 
@@ -67,6 +68,13 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			}
 			final BackendConnection conn = session.getTarget(node);
 			if (conn != null) {
+				boolean isClosed=conn.isClosedOrQuit();
+				if(isClosed)
+				{
+					session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
+							"receive rollback,but find backend con is closed or quit");
+					LOGGER.error( conn+"receive rollback,but fond backend con is closed or quit");
+				}
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("rollback job run for " + conn);
 				}
