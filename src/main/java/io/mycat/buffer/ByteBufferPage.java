@@ -54,8 +54,9 @@ public class ByteBufferPage {
             if (contiueCount == theChunkCount) {
                 int offStart = startChunk * chunkSize;
                 int offEnd = offStart + theChunkCount * chunkSize;
-                buf.position(offStart);
                 buf.limit(offEnd);
+                buf.position(offStart);
+
                 ByteBuffer newBuf = buf.slice();
                 //sun.nio.ch.DirectBuffer theBuf = (DirectBuffer) newBuf;
                 //System.out.println("offAddress " + (theBuf.address() - startAddress));
