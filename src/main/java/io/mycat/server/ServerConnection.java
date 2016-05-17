@@ -25,15 +25,16 @@ package io.mycat.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
-import java.util.Map;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger; 
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
+import io.mycat.server.handler.MysqlInformationSchemaHandler;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.response.Heartbeat;
@@ -144,29 +145,36 @@ public class ServerConnection extends FrontendConnection {
 		// 检查当前使用的DB
 		String db = this.schema;
 		if (db == null) {
-
-            db = SchemaUtil.detectDefaultDb(sql, type);
-
-            if(db==null)
-            {
-                writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
-                        "No MyCAT Database selected");
-                return;
-            }
+			db = SchemaUtil.detectDefaultDb(sql, type);
+			if (db == null) {
+				writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
+				return;
+			}
+		}
+		
+		// 兼容PhpAdmin's, 支持对MySQL元数据的模拟返回
+		if (ServerParse.SELECT == type 
+				&& db.equalsIgnoreCase("information_schema") ) {
+			MysqlInformationSchemaHandler.handle(sql, this);
+			return;
 		}
 
-        if(ServerParse.SELECT==type&&sql.contains("mysql")&&sql.contains("proc"))
-        {
-            SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
-            if(schemaInfo!=null&&"mysql".equalsIgnoreCase(schemaInfo.schema)&&"proc".equalsIgnoreCase(schemaInfo.table))
-            {
-                //兼容MySQLWorkbench
-                MysqlProcHandler.handle(sql,this);
-                return;
-            }
-        }
-		SchemaConfig schema = MycatServer.getInstance().getConfig()
-				.getSchemas().get(db);
+		if (ServerParse.SELECT == type 
+				&& sql.contains("mysql") 
+				&& sql.contains("proc")) {
+			
+			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
+			if (schemaInfo != null 
+					&& "mysql".equalsIgnoreCase(schemaInfo.schema)
+					&& "proc".equalsIgnoreCase(schemaInfo.table)) {
+				
+				// 兼容MySQLWorkbench
+				MysqlProcHandler.handle(sql, this);
+				return;
+			}
+		}
+		
+		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(db);
 		if (schema == null) {
 			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
 					"Unknown MyCAT Database '" + db + "'");

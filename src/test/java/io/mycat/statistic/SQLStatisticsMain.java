@@ -31,20 +31,7 @@ import io.mycat.statistic.SQLRecorder;
  */
 public class SQLStatisticsMain {
 
-    public void performanc() {
-        SQLRecorder sqlStatistics = new SQLRecorder(10);
-        for (int i = 0; i < 1000000; i++) {
-            if (sqlStatistics.check(i)) {
-                SQLRecord recorder = new SQLRecord();
-                recorder.executeTime = i;
-                sqlStatistics.add(recorder);
-            }
-        }
-    }
 
-    public static void main(String[] args) {
-        SQLStatisticsMain test = new SQLStatisticsMain();
-        test.performanc();
-    }
+
 
 }

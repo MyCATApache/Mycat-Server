@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
@@ -36,15 +38,16 @@ import io.mycat.server.parser.ServerParse;
  *
  */
 public class QueryConditionAnalyzer implements QueryResultListener {
-	
+	private final static long MAX_QUERY_MAP_SIZE = 100000;
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueryConditionAnalyzer.class);
 	
 	private String tableName = null;
 	private String columnName = null;
 	
 	// column value -> count
-	private final HashMap<Object, Long> map = new HashMap<Object, Long>();  
-	
+//	private final HashMap<Object, Long> map = new HashMap<Object, Long>();
+	private final Map<Object, AtomicLong> map = new ConcurrentHashMap<>();
+
 	private ReentrantLock lock = new ReentrantLock();
 	
 	private SQLParser sqlParser = new SQLParser();
@@ -61,8 +64,8 @@ public class QueryConditionAnalyzer implements QueryResultListener {
 	@Override
 	public void onQueryResult(QueryResult queryResult) {
 		
-		this.lock.lock();  
-		try { 
+//		this.lock.lock();
+//		try {
 			
 			int sqlType = queryResult.getSqlType();
 			String sql = queryResult.getSql();
@@ -72,14 +75,14 @@ public class QueryConditionAnalyzer implements QueryResultListener {
     			List<Object> values = sqlParser.parseConditionValues(sql, this.tableName, this.columnName);
 	    		if ( values != null ) {
 	    			
-	    			if ( this.map.size() < 100000 ) {
+	    			if ( this.map.size() < MAX_QUERY_MAP_SIZE ) {
 	    				
 		    			for(Object value : values) {
-		    				Long count = this.map.get(value);
+							AtomicLong count = this.map.get(value);
 		    				if (count == null) {
-		    					count = 1L;
+		    					count = new AtomicLong(1L);
 		    				} else {
-		    					count++;
+		    					count.getAndIncrement();
 		    				}	    				
 		    				this.map.put(value, count);	    				
 		    			}
@@ -90,9 +93,9 @@ public class QueryConditionAnalyzer implements QueryResultListener {
 	    		}
 			}	
 			
-		} finally {  
-			this.lock.unlock();   
-		}  
+//		} finally {
+//			this.lock.unlock();
+//		}
 	}
 	
 	public boolean setCf(String cf) {
@@ -133,8 +136,8 @@ public class QueryConditionAnalyzer implements QueryResultListener {
 		return this.tableName + "." + this.columnName;
 	}
 	
-	public List<Map.Entry<Object, Long>> getValues() {		
-		List<Map.Entry<Object, Long>> list = new ArrayList<Map.Entry<Object, Long>>(map.entrySet());
+	public List<Map.Entry<Object, AtomicLong>> getValues() {
+		List<Map.Entry<Object, AtomicLong>> list = new ArrayList<Map.Entry<Object, AtomicLong>>(map.entrySet());
 		return list;
 	}
 	

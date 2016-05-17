@@ -117,8 +117,25 @@ public final class SetHandler {
 			if (c.setCharset(charset)) {
 				c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			} else {
-				c.writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET,
-						"Unknown charset '" + charset + "'");
+				
+				/**
+				 * TODO：修复 phpAyAdmin's 的发包问题
+				 * 如： SET NAMES 'utf8' COLLATE 'utf8_general_ci' 错误
+				 */	
+				int beginIndex = stmt.toLowerCase().indexOf("names");
+				int endIndex = stmt.toLowerCase().indexOf("collate");
+				if ( beginIndex > -1 && endIndex > -1 ) {					
+					charset = stmt.substring(beginIndex + "names".length(), endIndex);					
+					//重试一次
+					if (c.setCharset( charset.trim() )) {
+						c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+					} else {
+						c.writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
+					}	
+					
+				} else {				
+					c.writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
+				}
 			}
 			break;
 		case CHARACTER_SET_CLIENT:

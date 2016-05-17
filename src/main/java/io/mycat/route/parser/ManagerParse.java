@@ -46,6 +46,8 @@ public final class ManagerParse {
 	public static final int CONFIGFILE = 12;
 	public static final int LOGFILE = 13;
 
+	public static final int ZK = 14;
+
 	public static int parse(String stmt) {
 		for (int i = 0; i < stmt.length(); i++) {
 			switch (stmt.charAt(i)) {
@@ -76,11 +78,23 @@ public final class ManagerParse {
 			case 'R':
 			case 'r':
 				return rCheck(stmt, i);
+			case 'Z':
+			case 'z':
+				return zCheck(stmt,i);
 			default:
 				return OTHER;
 			}
 		}
 		return OTHER;
+	}
+
+	private static int zCheck(String stmt, int offset) {
+		String thePart = stmt.substring(offset).toUpperCase();
+		if(thePart.startsWith("ZK")){
+			return ZK;
+		}else {
+			return OTHER;
+		}
 	}
 
 	// show LOG check

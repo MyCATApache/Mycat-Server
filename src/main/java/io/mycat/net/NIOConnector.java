@@ -35,7 +35,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
-
+import java.util.concurrent.atomic.AtomicLong;
 /**
  * @author mycat
  */
@@ -156,17 +156,10 @@ public final class NIOConnector extends Thread implements SocketConnector {
 	public static class ConnectIdGenerator {
 
 		private static final long MAX_VALUE = Long.MAX_VALUE;
-
-		private long connectId = 0L;
-		private final Object lock = new Object();
+		private AtomicLong connectId = new AtomicLong(0);
 
 		public long getId() {
-			synchronized (lock) {
-				if (connectId >= MAX_VALUE) {
-					connectId = 0L;
-				}
-				return ++connectId;
-			}
+			return connectId.incrementAndGet();
 		}
 	}
 

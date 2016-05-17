@@ -84,13 +84,16 @@ public class ShowSQLSumTable {
            buffer = row.write(buffer, c,true);
         }
         */
-        List<Map.Entry<String, TableStat>> list = TableStatAnalyzer.getInstance().getTableStats(isClear);
-        if ( list != null ) {        
-	        for (int i = 0; i < list.size(); i++) {
-	        	TableStat tableStat=list.get(i).getValue();
-	            RowDataPacket row = getRow(tableStat,i, c.getCharset());
-	            row.packetId = ++packetId;
-	            buffer = row.write(buffer, c,true);	        	
+        List<TableStat> list = TableStatAnalyzer.getInstance().getTableStats(isClear);
+        if ( list != null ) {
+            int i = 1;
+	        for (TableStat tableStat : list) {
+                if(tableStat!=null){
+	                RowDataPacket row = getRow(tableStat,i, c.getCharset());
+                    i++;
+	                row.packetId = ++packetId;
+	                buffer = row.write(buffer, c,true);
+                }
 	        }
         }
         // write last eof

@@ -84,15 +84,20 @@ public class XMLServerLoader {
     }
 
     private void load() {
+        //读取server.xml配置
         InputStream dtd = null;
         InputStream xml = null;
         try {
             dtd = XMLServerLoader.class.getResourceAsStream("/server.dtd");
             xml = XMLServerLoader.class.getResourceAsStream("/server.xml");
             Element root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
+            //加载System标签
             loadSystem(root);
+            //加载User标签
             loadUsers(root);
+            //加载集群配置
             this.cluster = new ClusterConfig(root, system.getServerPort());
+            //加载权限和黑白名单
             loadQuarantine(root);
         } catch (ConfigException e) {
             throw e;

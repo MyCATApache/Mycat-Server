@@ -65,8 +65,8 @@ public class ShowSysParam {
         
         List<String> paramValues = new ArrayList<String>();
         paramValues.add(sysConfig.getProcessors() + "");
-        paramValues.add(sysConfig.getProcessorBufferChunk() + "B");
-        paramValues.add(sysConfig.getProcessorBufferPool() + "B");
+        paramValues.add(sysConfig.getBufferPoolChunkSize() + "B");
+        paramValues.add(sysConfig.getBufferPoolPageSize() + "B");
         paramValues.add(sysConfig.getProcessorBufferLocalPercent() + "");
         paramValues.add(sysConfig.getProcessorExecutor() + "");
         paramValues.add(sysConfig.getSequnceHandlerType() == 1 ? "数据库方式" : "本地文件方式");

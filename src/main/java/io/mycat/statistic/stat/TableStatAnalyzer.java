@@ -1,12 +1,9 @@
 package io.mycat.statistic.stat;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
@@ -37,8 +34,8 @@ public class TableStatAnalyzer implements QueryResultListener {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(TableStatAnalyzer.class);
 	
-	private LinkedHashMap<String, TableStat> tableStatMap = new LinkedHashMap<String, TableStat>();	
-	private ReentrantReadWriteLock  lock  = new ReentrantReadWriteLock();
+	private Map<String, TableStat> tableStatMap = new ConcurrentHashMap<>();
+	private ReentrantLock lock  = new ReentrantLock();
 	
 	//解析SQL 提取表名
 	private SQLParser sqlParser = new SQLParser();
@@ -56,7 +53,6 @@ public class TableStatAnalyzer implements QueryResultListener {
 		
 		int sqlType = queryResult.getSqlType();
 		String sql = queryResult.getSql();
-
 		switch(sqlType) {
     	case ServerParse.SELECT:		
     	case ServerParse.UPDATE:			
@@ -87,75 +83,43 @@ public class TableStatAnalyzer implements QueryResultListener {
 	}	
 	
 	private TableStat getTableStat(String tableName) {
-        lock.writeLock().lock();
-        try {
-        	TableStat userStat = tableStatMap.get(tableName);
-            if (userStat == null) {
-                userStat = new TableStat(tableName);
-                tableStatMap.put(tableName, userStat);
-            }
-            return userStat;
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }	
+		TableStat userStat = tableStatMap.get(tableName);
+		if (userStat == null) {
+			if(lock.tryLock()){
+				try{
+					userStat = new TableStat(tableName);
+					tableStatMap.put(tableName, userStat);
+				} finally {
+					lock.unlock();
+				}
+			}else{
+				while(userStat == null){
+					userStat = tableStatMap.get(tableName);
+				}
+			}
+		}
+		return userStat;
+    }
 	
 	public Map<String, TableStat> getTableStatMap() {
 		Map<String, TableStat> map = new LinkedHashMap<String, TableStat>(tableStatMap.size());
-        lock.readLock().lock();
-        try {
-            map.putAll(tableStatMap);
-        } finally {
-            lock.readLock().unlock();
-        }
+		map.putAll(tableStatMap);
         return map;
 	}
 	
 	/**
 	 * 获取 table 访问排序统计
 	 */
-	public List<Map.Entry<String, TableStat>> getTableStats(boolean isClear) {
-		
-		List<Map.Entry<String, TableStat>> list = null;
-		
-        lock.readLock().lock();
-        try {
-        	list = this.sortTableStats(tableStatMap , false );
-        } finally {
-            lock.readLock().unlock();
-        }
-        
-        if ( isClear ) {
-          ClearTable();//获取 table 访问排序统计后清理
-        }
+	public List<TableStat> getTableStats(boolean isClear) {
+		SortedSet<TableStat> tableStatSortedSet = new TreeSet<>(tableStatMap.values());
+		List<TableStat> list =  new ArrayList<>(tableStatSortedSet);
         return list;
 	}	
 	
 	public void ClearTable() {
 		tableStatMap.clear();
 	}
-	/**
-	 * 排序
-	 */
-	private List<Map.Entry<String, TableStat>> sortTableStats(HashMap<String, TableStat> map,
-			final boolean bAsc) {
 
-		List<Map.Entry<String, TableStat>> list = new ArrayList<Map.Entry<String, TableStat>>(map.entrySet());
-
-		Collections.sort(list, new Comparator<Map.Entry<String, TableStat>>() {
-			public int compare(Map.Entry<String, TableStat> o1, Map.Entry<String, TableStat> o2) {
-
-				if (!bAsc) {
-					return o2.getValue().getCount() - o1.getValue().getCount(); // 降序
-				} else {
-					return o1.getValue().getCount() - o2.getValue().getCount(); // 升序
-				}
-			}
-		});
-
-		return list;
-
-	}
 	
 	/**
 	 * 解析 table name

@@ -208,7 +208,8 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	public void setProcessor(NIOProcessor processor) {
 		this.processor = processor;
-		this.readBuffer = processor.getBufferPool().allocate();
+		int size = processor.getBufferPool().getChunkSize();
+		this.readBuffer = processor.getBufferPool().allocate(size);
 	}
 
 	public long getLastWriteTime() {
@@ -236,7 +237,8 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	public ByteBuffer allocate() {
-		ByteBuffer buffer = this.processor.getBufferPool().allocate();
+		int size = this.processor.getBufferPool().getChunkSize();
+		ByteBuffer buffer = this.processor.getBufferPool().allocate(size);
 		return buffer;
 	}
 
@@ -337,7 +339,7 @@ public abstract class AbstractConnection implements NIOConnection {
 							LOGGER.debug("change to direct con read buffer ,cur temp buf size :" + readBuffer.capacity());
 						}
 						recycle(readBuffer);
-						readBuffer = processor.getBufferPool().allocateConReadBuffer();
+						readBuffer = processor.getBufferPool().allocate(processor.getBufferPool().getConReadBuferChunk());
 					} else {
 						if (readBuffer != null)
 							readBuffer.clear();
@@ -376,16 +378,14 @@ public abstract class AbstractConnection implements NIOConnection {
 		if (pkgLength > maxPacketSize) {
 			throw new IllegalArgumentException("Packet size over the limit.");
 		} else if (buffer.capacity() < pkgLength) {
+		
 			ByteBuffer newBuffer = processor.getBufferPool().allocate(pkgLength);
 			lastLargeMessageTime = TimeUtil.currentTimeMillis();
 			buffer.position(offset);
 			newBuffer.put(buffer);
 			readBuffer = newBuffer;
-			if (isConReadBuffer(buffer)) {
-				processor.getBufferPool().recycleConReadBuffer(buffer);
-			} else {
-				recycle(buffer);
-			}
+
+			recycle(buffer);
 			readBufferOffset = 0;
 			return newBuffer;
 
@@ -447,6 +447,7 @@ public abstract class AbstractConnection implements NIOConnection {
 		}
 	}
 
+	
 	public ByteBuffer checkWriteBuffer(ByteBuffer buffer, int capacity, boolean writeSocketIfFull) {
 		if (capacity > buffer.remaining()) {
 			if (writeSocketIfFull) {
@@ -525,11 +526,7 @@ public abstract class AbstractConnection implements NIOConnection {
 		
 		// 清理资源占用
 		if (readBuffer != null) {
-			if (isConReadBuffer(readBuffer)) {
-				this.processor.getBufferPool().recycleConReadBuffer(readBuffer);
-			} else {
-				this.recycle(readBuffer);
-			}
+			this.recycle(readBuffer);
 			this.readBuffer = null;
 			this.readBufferOffset = 0;
 		}

@@ -23,10 +23,12 @@
  */
 package io.mycat.config.model;
 
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.alibaba.druid.sql.ast.SQLDataType;
+import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.util.SplitUtil;
 
@@ -56,6 +58,12 @@ public class TableConfig {
 	private final boolean secondLevel;
 	private final boolean partionKeyIsPrimaryKey;
 	private final Random rand = new Random();
+
+	private volatile List<SQLTableElement> tableElementList;
+	private volatile String tableStructureSQL;
+	private volatile Map<String,List<String>> dataNodeTableStructureSQLMap;
+	private ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock(false);
+
 
 	public TableConfig(String name, String primaryKey, boolean autoIncrement,boolean needAddLimit, int tableType,
 			String dataNode,Set<String> dbType, RuleConfig rule, boolean ruleRequired,
@@ -265,4 +273,36 @@ public class TableConfig {
 		return false;
 	}
 
+	public List<SQLTableElement> getTableElementList() {
+		return tableElementList;
+	}
+
+	public void setTableElementList(List<SQLTableElement> tableElementList) {
+		this.tableElementList = tableElementList;
+	}
+
+	public ReentrantReadWriteLock getReentrantReadWriteLock() {
+		return reentrantReadWriteLock;
+	}
+
+	public void setReentrantReadWriteLock(ReentrantReadWriteLock reentrantReadWriteLock) {
+		this.reentrantReadWriteLock = reentrantReadWriteLock;
+	}
+
+	public String getTableStructureSQL() {
+		return tableStructureSQL;
+	}
+
+	public void setTableStructureSQL(String tableStructureSQL) {
+		this.tableStructureSQL = tableStructureSQL;
+	}
+
+
+	public Map<String, List<String>> getDataNodeTableStructureSQLMap() {
+		return dataNodeTableStructureSQLMap;
+	}
+
+	public void setDataNodeTableStructureSQLMap(Map<String, List<String>> dataNodeTableStructureSQLMap) {
+		this.dataNodeTableStructureSQLMap = dataNodeTableStructureSQLMap;
+	}
 }

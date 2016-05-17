@@ -38,7 +38,7 @@
 			<outputDirectory>mycat/conf</outputDirectory>
 			<excludes>
 				<exclude>*.dtd</exclude>
-				<exclude>log4j.*</exclude>
+				<exclude>log4j*</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
