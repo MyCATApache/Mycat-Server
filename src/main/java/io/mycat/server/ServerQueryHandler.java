@@ -61,9 +61,11 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		int sqlType = rs & 0xff;
 		
 		switch (sqlType) {
+		//explain sql
 		case ServerParse.EXPLAIN:
 			ExplainHandler.handle(sql, c, rs >>> 8);
 			break;
+		//explain2 datanode=? sql=?
 		case ServerParse.EXPLAIN2:
 			Explain2Handler.handle(sql, c, rs >>> 8);
 			break;
@@ -84,12 +86,14 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		case ServerParse.BEGIN:
 			BeginHandler.handle(sql, c);
 			break;
+		//不支持oracle的savepoint事务回退点
 		case ServerParse.SAVEPOINT:
 			SavepointHandler.handle(sql, c);
 			break;
 		case ServerParse.KILL:
 			KillHandler.handle(sql, rs >>> 8, c);
 			break;
+		//不支持KILL_Query
 		case ServerParse.KILL_QUERY:
 			LOGGER.warn(new StringBuilder().append("Unsupported command:").append(sql).toString());
 			c.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,"Unsupported command");
