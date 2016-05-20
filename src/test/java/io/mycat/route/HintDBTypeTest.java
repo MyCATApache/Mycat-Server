@@ -52,9 +52,9 @@ public class HintDBTypeTest {
         rrs = routerService.route(new SystemConfig(), schema, ServerParse.SELECT, sql, "UTF-8", null);
         Assert.assertTrue(!rrs.getRunOnSlave());
         
-        //不使用注解，runOnSlave=true 根据读写分离策略走从库
+        //不使用注解，runOnSlave=null, 根据读写分离策略走主从库
         sql = "select * from employee where sharding_id=1";
         rrs = routerService.route(new SystemConfig(), schema, ServerParse.SELECT, sql, "UTF-8", null);
-        Assert.assertTrue(rrs.getRunOnSlave());
+        Assert.assertTrue(rrs.getRunOnSlave()==null);
     }
 }
