@@ -102,11 +102,16 @@ public class PhysicalDBNode {
 						dbPool.getReadBanlanceCon(schema,autoCommit,handler, attachment, this.database);
 					}else{	// 没有 /*balance*/ 注解
 						LOGGER.debug("rrs.isHasBlanceFlag()" + rrs.isHasBlanceFlag());
-						if(!dbPool.getReadCon(schema, autoCommit, handler, attachment, this.database)){
+						boolean isreadCon = dbPool.getReadCon(schema, autoCommit, handler,
+								attachment, this.database);
+						if (!isreadCon&&!rrs.getIsForce()) {
 							LOGGER.warn("Do not have slave connection to use, use master connection instead.");
 							dbPool.getSource().getConnection(schema, autoCommit, handler, attachment);
 							rrs.setRunOnSlave(false);
 							rrs.setCanRunInReadDB(false);
+						}else if(!isreadCon&&rrs.getIsForce()){
+							throw new RuntimeException(
+									"Annotation mode , isForce is true ,can't find Meet the conditions and effective");
 						}
 					}
 				}else{	// 强制走 master
