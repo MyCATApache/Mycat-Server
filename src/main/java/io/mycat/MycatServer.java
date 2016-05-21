@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.table.structure.MySQLTableStructureDetector;
+import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.sqlengine.SQLJob;
 import io.mycat.statistic.stat.UserStat;
 import io.mycat.statistic.stat.UserStatAnalyzer;
@@ -358,6 +359,7 @@ public class MycatServer {
 		if(system.getUseSqlStat()==1) {
 			scheduler.scheduleAtFixedRate(recycleSqlStat(), 0L, DEFAULT_SQL_STAT_RECYCLE_PERIOD, TimeUnit.MILLISECONDS);
 		}
+		RouteStrategyFactory.init();
 //        new Thread(tableStructureCheck()).start();
 	}
 

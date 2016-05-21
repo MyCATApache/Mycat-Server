@@ -131,11 +131,12 @@ public class ServerConnection extends FrontendConnection {
 	}
 
 	public void execute(String sql, int type) {
+		//连接状态检查
 		if (this.isClosed()) {
 			LOGGER.warn("ignore execute ,server connection is closed " + this);
 			return;
 		}
-		// 状态检查
+		// 事务状态检查
 		if (txInterrupted) {
 			writeErrMessage(ErrorCode.ER_YES,
 					"Transaction error, need to rollback." + txInterrputMsg);
@@ -153,6 +154,7 @@ public class ServerConnection extends FrontendConnection {
 		}
 		
 		// 兼容PhpAdmin's, 支持对MySQL元数据的模拟返回
+		//// TODO: 2016/5/20 支持更多information_schema特性
 		if (ServerParse.SELECT == type 
 				&& db.equalsIgnoreCase("information_schema") ) {
 			MysqlInformationSchemaHandler.handle(sql, this);

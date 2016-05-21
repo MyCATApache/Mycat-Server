@@ -24,7 +24,7 @@ public class RouteStrategyFactory {
 	    
 	}
 	
-	private static void init() {
+	public static void init() {
 		SystemConfig config = MycatServer.getInstance().getConfig().getSystem();
 		
 		String defaultSqlParser = config.getDefaultSqlParser();
@@ -42,24 +42,24 @@ public class RouteStrategyFactory {
 	}
 	
 	public static RouteStrategy getRouteStrategy() {
-		if(!isInit) {
-			synchronized(RouteStrategyFactory.class){
-				if(!isInit){
-					init();
-				}
-			}
-		}
+//		if(!isInit) {
+//			synchronized(RouteStrategyFactory.class){
+//				if(!isInit){
+//					init();
+//				}
+//			}
+//		}
 		return defaultStrategy;
 	}
 	
 	public static RouteStrategy getRouteStrategy(String parserType) {
-		if(!isInit) {
-			synchronized(RouteStrategyFactory.class){
-				if(!isInit){
-					init();
-				}
-			}
-		}
+//		if(!isInit) {
+//			synchronized(RouteStrategyFactory.class){
+//				if(!isInit){
+//					init();
+//				}
+//			}
+//		}
 		return strategyMap.get(parserType);
 	}
 }
