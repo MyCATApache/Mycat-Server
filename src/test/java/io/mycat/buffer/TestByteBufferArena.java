@@ -25,7 +25,7 @@ public class TestByteBufferArena {
     int chunkCount = 8*1024;
     @Test
     public void testAllocate() {
-        int allocTimes =  1024*100 ;
+        int allocTimes =  1024 ;
         ByteBufferArena byteBufferArena = new ByteBufferArena(chunkSize,pageSize,chunkCount,8);
         long start = System.currentTimeMillis();
         for (int i = 0; i < allocTimes; i++) {
@@ -48,7 +48,7 @@ public class TestByteBufferArena {
     @Test
     public void testAllocateDirect() {
         int pageSize = 1024 * 1024 * 100;
-        int allocTimes = 1024*100;
+        int allocTimes = 1024;
         DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 8,0);
         long start = System.currentTimeMillis();
         for (int i = 0; i < allocTimes; i++) {
