@@ -26,7 +26,7 @@ public class TestByteBufferArena {
     @Test
     public void testAllocate() {
         int allocTimes =  1024*100 ;
-        ByteBufferArena byteBufferArena = new ByteBufferArena(chunkSize,pageSize,chunkCount);
+        ByteBufferArena byteBufferArena = new ByteBufferArena(chunkSize,pageSize,chunkCount,8);
         long start = System.currentTimeMillis();
         for (int i = 0; i < allocTimes; i++) {
 //            System.out.println("allocate "+i);
@@ -70,7 +70,7 @@ public class TestByteBufferArena {
 
     @Test
     public void testExpansion(){
-        ByteBufferArena byteBufferArena = new ByteBufferArena(1024,8,1);
+        ByteBufferArena byteBufferArena = new ByteBufferArena(1024,8,1,8);
         for (int i = 0; i < 1 ; i++) {
             ByteBuffer byteBufer = byteBufferArena.allocate(256);
             ByteBuffer byteBufer2 = byteBufferArena.allocate(256);
@@ -85,7 +85,7 @@ public class TestByteBufferArena {
         int size = 256;
         int pageSize = size * 4;
         int allocTimes = 8;
-        ByteBufferArena byteBufferArena = new ByteBufferArena(256*4,256,2);
+        ByteBufferArena byteBufferArena = new ByteBufferArena(256*4,256,2,8);
         Map<Long, ByteBuffer> buffs = new HashMap<Long, ByteBuffer>(8);
         ByteBuffer byteBuffer = null;
         DirectBuffer directBuffer = null;
@@ -122,7 +122,7 @@ public class TestByteBufferArena {
         int size = 256;
         int pageSize = size * 4;
         int allocTimes = 9;
-        ByteBufferArena pool = new ByteBufferArena(256*4,256,2);;
+        ByteBufferArena pool = new ByteBufferArena(256*4,256,2,8);;
         long start = System.currentTimeMillis();
         ByteBuffer byteBuffer = null;
         List<ByteBuffer> buffs = new ArrayList<ByteBuffer>();
