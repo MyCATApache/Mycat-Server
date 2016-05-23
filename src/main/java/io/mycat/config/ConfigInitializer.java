@@ -45,8 +45,10 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.util.ConfigException;
+import io.mycat.route.sequence.handler.DistributedSequenceHandler;
 import io.mycat.route.sequence.handler.IncrSequenceMySQLHandler;
 import io.mycat.route.sequence.handler.IncrSequenceTimeHandler;
+import io.mycat.route.sequence.handler.IncrSequenceZKHandler;
 
 /**
  * @author mycat
@@ -84,6 +86,12 @@ public class ConfigInitializer {
 		}
 		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_LOCAL_TIME) {
 			IncrSequenceTimeHandler.getInstance().load();
+		}
+		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_DISTRIBUTED) {
+			DistributedSequenceHandler.getInstance(system).load();
+		}
+		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT) {
+			IncrSequenceZKHandler.getInstance().load();
 		}
 		//检查user与schema配置对应以及schema配置不为空
 		this.checkConfig();
@@ -150,9 +158,11 @@ public class ConfigInitializer {
 
 	private Map<String, PhysicalDBPool> initDataHosts(ConfigLoader configLoader) {
 		Map<String, DataHostConfig> nodeConfs = configLoader.getDataHosts();
+		//根据DataHost建立PhysicalDBPool，其实就是实际数据库连接池，每个DataHost对应一个PhysicalDBPool
 		Map<String, PhysicalDBPool> nodes = new HashMap<String, PhysicalDBPool>(
 				nodeConfs.size());
 		for (DataHostConfig conf : nodeConfs.values()) {
+			//建立PhysicalDBPool
 			PhysicalDBPool pool = getPhysicalDBPool(conf, configLoader);
 			nodes.put(pool.getHostName(), pool);
 		}
@@ -165,6 +175,7 @@ public class ConfigInitializer {
 		PhysicalDatasource[] dataSources = new PhysicalDatasource[nodes.length];
 		if (dbType.equals("mysql") && dbDriver.equals("native")) {
 			for (int i = 0; i < nodes.length; i++) {
+				//设置最大idle时间，默认为30分钟
 				nodes[i].setIdleTimeout(system.getIdleTimeout());
 				MySQLDataSource ds = new MySQLDataSource(nodes[i], conf, isRead);
 				dataSources[i] = ds;
@@ -191,13 +202,17 @@ public class ConfigInitializer {
 	private PhysicalDBPool getPhysicalDBPool(DataHostConfig conf,
 			ConfigLoader configLoader) {
 		String name = conf.getName();
+		//数据库类型，我们这里只讨论MySQL
 		String dbType = conf.getDbType();
+		//连接数据库驱动，我们这里只讨论MyCat自己实现的native
 		String dbDriver = conf.getDbDriver();
+		//针对所有写节点创建PhysicalDatasource
 		PhysicalDatasource[] writeSources = createDataSource(conf, name,
 				dbType, dbDriver, conf.getWriteHosts(), false);
 		Map<Integer, DBHostConfig[]> readHostsMap = conf.getReadHosts();
 		Map<Integer, PhysicalDatasource[]> readSourcesMap = new HashMap<Integer, PhysicalDatasource[]>(
 				readHostsMap.size());
+		//对于每个读节点建立key为writeHost下标value为readHost的PhysicalDatasource[]的哈希表
 		for (Map.Entry<Integer, DBHostConfig[]> entry : readHostsMap.entrySet()) {
 			PhysicalDatasource[] readSources = createDataSource(conf, name,
 					dbType, dbDriver, entry.getValue(), true);

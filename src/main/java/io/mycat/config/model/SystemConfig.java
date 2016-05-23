@@ -41,7 +41,9 @@ public final class SystemConfig {
 	private static final String DEFAULT_CHARSET = "utf8";
 
 	private static final String DEFAULT_SQL_PARSER = "druidparser";// fdbparser, druidparser
-	private static final int DEFAULT_BUFFER_CHUNK_SIZE = 4096;
+	private static final short DEFAULT_BUFFER_CHUNK_SIZE = 4096;
+	private static final int DEFAULT_BUFFER_POOL_PAGE_SIZE = 512*1024*4;
+	private static final short DEFAULT_BUFFER_POOL_PAGE_NUMBER = 64;
 	private int processorBufferLocalPercent;
 	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime().availableProcessors();
 	private int frontSocketSoRcvbuf = 1024 * 1024;
@@ -90,12 +92,22 @@ public final class SystemConfig {
 	private int txIsolation;
 	private int parserCommentVersion;
 	private int sqlRecordCount;
-	private long processorBufferPool;
-	private int processorBufferChunk;
+
+	// a page size
+	private int bufferPoolPageSize;
+
+	//minimum allocation unit
+	private short bufferPoolChunkSize;
+	
+	// buffer pool page number 
+	private short bufferPoolPageNumber;
+
 	private int defaultMaxLimit = DEFAULT_MAX_LIMIT;
 	public static final int SEQUENCEHANDLER_LOCALFILE = 0;
 	public static final int SEQUENCEHANDLER_MYSQLDB = 1;
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
+	public static final int SEQUENCEHANDLER_ZK_DISTRIBUTED = 3;
+	public static final int SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT = 4;
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "io.mycat.server.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";
@@ -115,6 +127,22 @@ public final class SystemConfig {
 	private int useCompression =0;	
 	private int useSqlStat = 1;
 
+	private boolean enableDistributedTransactions = true;
+
+	private int checkTableConsistency = 0;
+	private long checkTableConsistencyPeriod = CHECKTABLECONSISTENCYPERIOD;
+	private final static long CHECKTABLECONSISTENCYPERIOD = 1 * 60 * 1000;
+
+	public boolean isEnableDistributedTransactions() {
+		return enableDistributedTransactions;
+	}
+
+	public void setEnableDistributedTransactions(boolean enableDistributedTransactions) {
+		this.enableDistributedTransactions = enableDistributedTransactions;
+	}
+
+
+
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
 	}
@@ -128,10 +156,14 @@ public final class SystemConfig {
 		this.managerPort = DEFAULT_MANAGER_PORT;
 		this.charset = DEFAULT_CHARSET;
 		this.processors = DEFAULT_PROCESSORS;
-		this.processorBufferChunk = DEFAULT_BUFFER_CHUNK_SIZE;
+		this.bufferPoolPageSize = DEFAULT_BUFFER_POOL_PAGE_SIZE;
+		this.bufferPoolChunkSize = DEFAULT_BUFFER_CHUNK_SIZE;
+//		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*2);
+		this.bufferPoolPageNumber = (short) (DEFAULT_BUFFER_POOL_PAGE_NUMBER);
+
 		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2 : 4;
 		this.managerExecutor = 2;
-		this.processorBufferPool = DEFAULT_BUFFER_CHUNK_SIZE * processors * 1000;
+
 		this.processorBufferLocalPercent = 100;
 		this.timerExecutor = 2;
 		this.idleTimeout = DEFAULT_IDLE_TIMEOUT;
@@ -445,20 +477,29 @@ public final class SystemConfig {
 		this.sqlRecordCount = sqlRecordCount;
 	}
 
-	public long getProcessorBufferPool() {
-		return processorBufferPool;
+
+	public short getBufferPoolChunkSize() {
+		return bufferPoolChunkSize;
 	}
 
-	public void setProcessorBufferPool(long processorBufferPool) {
-		this.processorBufferPool = processorBufferPool;
+	public void setBufferPoolChunkSize(short bufferPoolChunkSize) {
+		this.bufferPoolChunkSize = bufferPoolChunkSize;
 	}
 
-	public int getProcessorBufferChunk() {
-		return processorBufferChunk;
+	public int getBufferPoolPageSize() {
+		return bufferPoolPageSize;
 	}
 
-	public void setProcessorBufferChunk(int processorBufferChunk) {
-		this.processorBufferChunk = processorBufferChunk;
+	public void setBufferPoolPageSize(int bufferPoolPageSize) {
+		this.bufferPoolPageSize = bufferPoolPageSize;
+	}
+
+	public short getBufferPoolPageNumber() {
+		return bufferPoolPageNumber;
+	}
+
+	public void setBufferPoolPageNumber(short bufferPoolPageNumber) {
+		this.bufferPoolPageNumber = bufferPoolPageNumber;
 	}
 
 	public int getFrontSocketSoRcvbuf() {
@@ -602,8 +643,9 @@ public final class SystemConfig {
 				+ ", clusterHeartbeatRetry=" + clusterHeartbeatRetry
 				+ ", txIsolation=" + txIsolation + ", parserCommentVersion="
 				+ parserCommentVersion + ", sqlRecordCount=" + sqlRecordCount
-				+ ", processorBufferPool=" + processorBufferPool
-				+ ", processorBufferChunk=" + processorBufferChunk
+				+ ", bufferPoolPageSize=" + bufferPoolPageSize
+				+ ", bufferPoolChunkSize=" + bufferPoolChunkSize
+				+ ", bufferPoolPageNumber=" + bufferPoolPageNumber
 				+ ", defaultMaxLimit=" + defaultMaxLimit
 				+ ", sequnceHandlerType=" + sequnceHandlerType
 				+ ", sqlInterceptor=" + sqlInterceptor
@@ -619,5 +661,19 @@ public final class SystemConfig {
 	}
 
 
+	public int getCheckTableConsistency() {
+		return checkTableConsistency;
+	}
 
+	public void setCheckTableConsistency(int checkTableConsistency) {
+		this.checkTableConsistency = checkTableConsistency;
+	}
+
+	public long getCheckTableConsistencyPeriod() {
+		return checkTableConsistencyPeriod;
+	}
+
+	public void setCheckTableConsistencyPeriod(long checkTableConsistencyPeriod) {
+		this.checkTableConsistencyPeriod = checkTableConsistencyPeriod;
+	}
 }

@@ -30,11 +30,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.mycat.buffer.BufferPool;
+import io.mycat.buffer.DirectByteBufferPool;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
-import io.mycat.buffer.BufferPool;
 import io.mycat.statistic.CommandCount;
 import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;

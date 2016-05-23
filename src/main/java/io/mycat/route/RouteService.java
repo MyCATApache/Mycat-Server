@@ -100,8 +100,8 @@ public class RouteService {
                 	String hintType = (String) hintMap.get(MYCAT_HINT_TYPE);
                     String hintSql = (String) hintMap.get(hintType);
                     if( hintSql.length() == 0 ) {
-                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
-                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
+                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
+                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
                     }
                     String realSQL = stmt.substring(endPos + "*/".length()).trim();
 
@@ -125,8 +125,8 @@ public class RouteService {
                     }
                     
                 }else{//fixed by runfriends@126.com
-                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
-                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/ or /*#mycat:type=value*/: "+stmt);
+                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
+                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
                 }
 			}
 		} else {
@@ -149,6 +149,12 @@ public class RouteService {
 			// 过滤掉 空格 和 * 两种字符, 支持： "/** !mycat: */" 和 "/** #mycat: */" 形式的注解
 			while(j < len && c != '!' && c != '#' && (c == ' ' || c == '*')){
 				c = sql.charAt(++j);
+			}
+			//注解支持的'!'不被mysql单库兼容，
+			//注解支持的'#'不被mybatis兼容
+			//考虑用mycat字符前缀标志Hintsql:"/** mycat: */"
+			if(sql.charAt(j)=='m'){
+				j--;
 			}
 			if(j + 6 >= len)	// prevent the following sql.charAt overflow
 				return -1;		// false

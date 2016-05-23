@@ -197,6 +197,8 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 			} else {				
     			heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
     		}
+			//监测数据库同步状态，在 switchType=-1或者1的情况下，也需要收集主从同步状态
+			heartbeat.getAsynRecorder().set(resultResult, switchType);
             
 		} else {
 			heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);

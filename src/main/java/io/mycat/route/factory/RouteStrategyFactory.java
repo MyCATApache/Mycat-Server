@@ -19,19 +19,14 @@ public class RouteStrategyFactory {
 	private static RouteStrategy defaultStrategy = null;
 	private static volatile boolean isInit = false;
 	private static ConcurrentMap<String,RouteStrategy> strategyMap = new ConcurrentHashMap<String,RouteStrategy>();
-	
-	private RouteStrategyFactory() {
-	    
-	}
-	
-	private static void init() {
+	public static void init() {
 		SystemConfig config = MycatServer.getInstance().getConfig().getSystem();
-		
+
 		String defaultSqlParser = config.getDefaultSqlParser();
 		defaultSqlParser = defaultSqlParser == null ? "" : defaultSqlParser;
 		//修改为ConcurrentHashMap，避免并发问题
 		strategyMap.putIfAbsent("druidparser", new DruidMycatRouteStrategy());
-		
+
 		defaultStrategy = strategyMap.get(defaultSqlParser);
 		if(defaultStrategy == null) {
 			defaultStrategy = strategyMap.get("druidparser");
@@ -40,26 +35,30 @@ public class RouteStrategyFactory {
 		config.setDefaultSqlParser(defaultSqlParser);
 		isInit = true;
 	}
+	private RouteStrategyFactory() {
+	    
+	}
+
 	
 	public static RouteStrategy getRouteStrategy() {
-		if(!isInit) {
-			synchronized(RouteStrategyFactory.class){
-				if(!isInit){
-					init();
-				}
-			}
-		}
+//		if(!isInit) {
+//			synchronized(RouteStrategyFactory.class){
+//				if(!isInit){
+//					init();
+//				}
+//			}
+//		}
 		return defaultStrategy;
 	}
 	
 	public static RouteStrategy getRouteStrategy(String parserType) {
-		if(!isInit) {
-			synchronized(RouteStrategyFactory.class){
-				if(!isInit){
-					init();
-				}
-			}
-		}
+//		if(!isInit) {
+//			synchronized(RouteStrategyFactory.class){
+//				if(!isInit){
+//					init();
+//				}
+//			}
+//		}
 		return strategyMap.get(parserType);
 	}
 }

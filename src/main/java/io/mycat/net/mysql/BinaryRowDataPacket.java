@@ -205,12 +205,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 		int totalSize = size + packetHeaderSize;
 		ByteBuffer bb = null;
 		
-		int chunkSize = conn.getProcessor().getBufferPool().getChunkSize();
-		if( totalSize <=  chunkSize ) {
-			bb = conn.getProcessor().getBufferPool().allocate();			
-		} else {
-			bb = conn.getProcessor().getBufferPool().allocate(totalSize);
-		}
+		bb = conn.getProcessor().getBufferPool().allocate(totalSize);
 
 		BufferUtil.writeUB3(bb, calcPacketSize());
 		bb.put(packetId);

@@ -1,61 +1,60 @@
 package io.mycat.statistic.stat;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
+import io.mycat.statistic.SQLRecord;
 
 public class UserSqlHighStat {
 	
-	private static final int CAPACITY_SIZE = 100;
-	private static final int DELETE_SIZE = 10;
-	
-	private LinkedHashMap<String, SqlFrequency> sqlFrequencyMap = new LinkedHashMap<String, SqlFrequency>();	
-	
+	private static final int CAPACITY_SIZE = 1024;
+
+	private Map<String,SqlFrequency> sqlFrequencyMap = new ConcurrentHashMap<>();
+
+	private ReentrantLock lock = new ReentrantLock();
+
 	
 	private SqlParser sqlParser = new SqlParser();
 	
 	public void addSql(String sql, long executeTime,long startTime, long endTime ){
-    	if ( this.sqlFrequencyMap.size() >= CAPACITY_SIZE ) {
-    		
-    		// 删除频率次数排名靠后的SQL
-    		List<Map.Entry<String, SqlFrequency>> list = this.sortFrequency( sqlFrequencyMap, true );
-    		for (int i = 0; i < DELETE_SIZE; i++) {
-    			
-    			Entry<String, SqlFrequency> entry = list.get(i);
-    			String key = entry.getKey();
-    			this.sqlFrequencyMap.remove( key );
-    		}
-    	}
     	String newSql = this.sqlParser.mergeSql(sql);
-    	SqlFrequency frequency = this.sqlFrequencyMap.get( newSql );
+    	SqlFrequency frequency = this.sqlFrequencyMap.get(newSql);
         if ( frequency == null) {
-        	frequency = new SqlFrequency();
-        	frequency.setSql( newSql );
+			//防止新建的时候的并发问题，只有新建的时候有锁
+			if(lock.tryLock()){
+        		try{
+					frequency = new SqlFrequency();
+        			frequency.setSql( newSql );
+				} finally {
+					lock.unlock();
+				}
+			} else{
+				while(frequency == null){
+					frequency = this.sqlFrequencyMap.get(newSql);
+				}
+			}
         } 
         frequency.setLastTime( endTime );
         frequency.incCount();
+		//TODO 目前setExecuteTime方法由于弃用锁，所以某些参数不准确，为了性能，放弃这些参数的准确性。下一步期待更多优化
         frequency.setExecuteTime(executeTime);
         this.sqlFrequencyMap.put(newSql, frequency);        
-	}		
+	}
 
 	
 	/**
 	 * 获取 SQL 访问频率
 	 */
-	public List<Map.Entry<String, SqlFrequency>> getSqlFrequency(boolean isClear) {
-		
-		List<Map.Entry<String, SqlFrequency>> list = this.sortFrequency( sqlFrequencyMap, false );
-        if ( isClear ) {
-        	clearSqlFrequency();  // 获取 高频SQL后清理
-        }
-        
+	public List<SqlFrequency> getSqlFrequency(boolean isClear) {
+		List<SqlFrequency> list = new ArrayList<>(this.sqlFrequencyMap.values());
+		if(isClear){
+			clearSqlFrequency();
+		}
         return list;
 	}	
 	
@@ -63,28 +62,25 @@ public class UserSqlHighStat {
 	private void clearSqlFrequency() {		
 		sqlFrequencyMap.clear();
 	}
-	
-	/**
-	 * 排序
-	 */
-	private List<Map.Entry<String, SqlFrequency>> sortFrequency(HashMap<String, SqlFrequency> map,
-			final boolean bAsc) {
 
-		List<Map.Entry<String, SqlFrequency>> list = new ArrayList<Map.Entry<String, SqlFrequency>>(map.entrySet());
-
-		Collections.sort(list, new Comparator<Map.Entry<String, SqlFrequency>>() {
-			public int compare(Map.Entry<String, SqlFrequency> o1, Map.Entry<String, SqlFrequency> o2) {
-
-				if (!bAsc) {
-					return (int)(o2.getValue().getCount() - o1.getValue().getCount()); // 降序
-				} else {
-					return (int)(o1.getValue().getCount() - o2.getValue().getCount()); // 升序
+	public void recycle() {
+		if(sqlFrequencyMap.size() > CAPACITY_SIZE){
+			Map<String,SqlFrequency> sqlFrequencyMap2 = new ConcurrentHashMap<>();
+			SortedSet<SqlFrequency> sqlFrequencySortedSet = new TreeSet<>(this.sqlFrequencyMap.values());
+			List<SqlFrequency> keyList = new ArrayList<SqlFrequency>(sqlFrequencySortedSet);
+			int i = 0;
+			for(SqlFrequency key : keyList){
+				if(i == CAPACITY_SIZE) {
+					break;
 				}
+				sqlFrequencyMap2.put(key.getSql(),key);
+				i++;
 			}
-		});
-
-		return list;
+			sqlFrequencyMap = sqlFrequencyMap2;
+		}
 	}
+	
+
 	
 	class SqlParser {
 		

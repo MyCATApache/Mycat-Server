@@ -1,5 +1,6 @@
 package demo.catlets;
 
+import io.mycat.route.sequence.handler.*;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -18,10 +19,6 @@ import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.route.sequence.handler.IncrSequenceMySQLHandler;
-import io.mycat.route.sequence.handler.IncrSequencePropHandler;
-import io.mycat.route.sequence.handler.IncrSequenceTimeHandler;
-import io.mycat.route.sequence.handler.SequenceHandler;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.Catlet;
@@ -104,6 +101,12 @@ public class BatchInsertSequence implements Catlet {
 							break;
 						case SystemConfig.SEQUENCEHANDLER_LOCAL_TIME:
 							sequenceHandler = IncrSequenceTimeHandler.getInstance();
+							break;
+						case SystemConfig.SEQUENCEHANDLER_ZK_DISTRIBUTED:
+							sequenceHandler = DistributedSequenceHandler.getInstance(MycatServer.getInstance().getConfig().getSystem());
+							break;
+						case SystemConfig.SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT:
+							sequenceHandler = IncrSequenceZKHandler.getInstance();
 							break;
 						default:
 							throw new java.lang.IllegalArgumentException("Invalid sequnce handler type "+seqHandlerType);

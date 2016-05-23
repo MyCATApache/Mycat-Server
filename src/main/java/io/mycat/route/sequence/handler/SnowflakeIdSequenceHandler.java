@@ -119,7 +119,7 @@ public class SnowflakeIdSequenceHandler implements SequenceHandler {
 				| this.workerId << this.workerIdShift | this.sequence;
 	}
 
-	private long tilNextMillis(long lastTimestamp) {
+	private synchronized long tilNextMillis(long lastTimestamp) {
 		long timestamp = this.timeGen();
 		while (timestamp <= lastTimestamp) {
 			timestamp = this.timeGen();

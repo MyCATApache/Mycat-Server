@@ -1,32 +1,23 @@
 package io.mycat.statistic.stat;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 public class UserSqlLargeStat {
 	
-	private int index;
-    private long minValue;
     private final int count;
-    private final int lastIndex;
-    private final SqlLarge[] sqls;
+    private SortedSet<SqlLarge> sqls;
 
     public UserSqlLargeStat(int count) {
         this.count = count;
-        this.lastIndex = count - 1;
-        this.sqls = new SqlLarge[count];
+        this.sqls = new ConcurrentSkipListSet<>();
     }
 
-    public SqlLarge[] getSqls() {    	
-    	SqlLarge[] sqls2 = Arrays.copyOf(sqls, index);
-    	Arrays.sort(sqls2);
-        return sqls2;
-    }
-
-    /**
-     * 检查当前的值能否进入排名
-     */
-    public boolean check(long value) {
-        return (index < count) || (value > minValue);
+    public List<SqlLarge> getSqls() {
+        List<SqlLarge> list = new ArrayList<>(sqls);
+        return list;
     }
 
     public void add(String sql, long sqlRows, long executeTime, long startTime, long endTime) {
@@ -35,15 +26,7 @@ public class UserSqlLargeStat {
     }
     
     public void add(SqlLarge sql) {
-		 if (index < count) {
-	         sqls[index++] = sql;
-	         if (index == count) {
-	             Arrays.sort(sqls);
-	             minValue = sqls[0].sqlRows;
-	         }
-	     } else {
-	         swap(sql);
-	     }
+        sqls.add(sql);
     }
     
     public void reset() {
@@ -51,58 +34,24 @@ public class UserSqlLargeStat {
     }
 
     public void clear() {
-    	 for (int i = 0; i < count; i++) {
-             sqls[i] = null;
-         }
-         index = 0;
-         minValue = 0;
+        sqls.clear();
     }
 
-    /**
-     * 交换元素位置并重新定义最小值
-     */
-    private void swap(SqlLarge sql) {
-        int x = find(sql.sqlRows, 0, lastIndex);
-        switch (x) {
-        case 0:
-            break;
-        case 1:
-            minValue = sql.sqlRows;
-            sqls[0] = sql;
-            break;
-        default:
-            --x;// 向左移动一格
-            final SqlLarge[] sqls = this.sqls;
-            for (int i = 0; i < x; i++) {
-                sqls[i] = sqls[i + 1];
+    public void recycle() {
+        if(sqls.size() > count){
+            SortedSet<SqlLarge> sqls2 = new ConcurrentSkipListSet<>();
+            List<SqlLarge> keyList = new ArrayList<SqlLarge>(sqls);
+            int i = 0;
+            for(SqlLarge key : keyList){
+                if(i == count) {
+                    break;
+                }
+                sqls2.add(key);
+                i++;
             }
-            sqls[x] = sql;
-            minValue = sqls[0].sqlRows;
+            sqls = sqls2;
         }
     }
-
-    /**
-     * 定位v在当前范围内的排名
-     */
-    private int find(long v, int from, int to) {
-        int x = from + ((to - from + 1) >> 1);
-        if (v <= sqls[x].sqlRows) {
-            --x;// 向左移动一格
-            if (from >= x) {
-                return v <= sqls[from].sqlRows ? from : from + 1;
-            } else {
-                return find(v, from, x);
-            }
-        } else {
-            ++x;// 向右移动一格
-            if (x >= to) {
-                return v <= sqls[to].sqlRows ? to : to + 1;
-            } else {
-                return find(v, x, to);
-            }
-        }
-    }
-	
     
     /**
      * 记录 SQL 及返回行数
@@ -146,7 +95,8 @@ public class UserSqlLargeStat {
 		
 		@Override
 	    public int compareTo(SqlLarge o) {
-	        return (int) (sqlRows - o.sqlRows);
+            long para = o.sqlRows - sqlRows;
+	        return para == 0 ? (o.sql.hashCode() - sql.hashCode()) :(int) (para);
 	    }
 
 	    @Override

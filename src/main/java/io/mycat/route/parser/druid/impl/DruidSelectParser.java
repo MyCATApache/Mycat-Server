@@ -30,6 +30,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
@@ -77,7 +78,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 	protected void parseOrderAggGroupMysql(SchemaConfig schema, SQLStatement stmt, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery)
 	{
-        if(!isNeedParseOrderAgg)
+		MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
+		stmt.accept(visitor);
+//		rrs.setGroupByCols((String[])visitor.getGroupByColumns().toArray());
+		if(!isNeedParseOrderAgg)
         {
             return;
         }
@@ -593,8 +597,9 @@ public class DruidSelectParser extends DefaultDruidParser {
             if(sqlExpr instanceof SQLIdentifierExpr )
             {
                 column=((SQLIdentifierExpr) sqlExpr).getName();
-            } else
-            {
+            } else if(sqlExpr instanceof SQLMethodInvokeExpr){
+				column = ((SQLMethodInvokeExpr) sqlExpr).toString();
+			} else {
                 //todo czn
                 SQLExpr expr = ((MySqlOrderingExpr) sqlExpr).getExpr();
 
@@ -607,12 +612,6 @@ public class DruidSelectParser extends DefaultDruidParser {
                 }
             }
 			int dotIndex=column.indexOf(".") ;
-			/**
-			 * @// TODO: 2016/4/28 优化druid解析出函数列
-			 * 对于含有函数的列，不能简单地取.之后的；
-			 * 例SQL：select h.id,DATE_FORMAT(h.times,'%b %d %Y %h:%i %p') from hotnews h GROUP BY DATE_FORMAT(h.times,'%b %d %Y %h:%i %p');
-			 * 注意：这是一个临时方案，最好还是优化下druid parser解析出函数列
-			 */
 			int bracketIndex=column.indexOf("(") ;
 			//通过判断含有括号来决定是否为函数列
 			if(dotIndex!=-1&&bracketIndex==-1)

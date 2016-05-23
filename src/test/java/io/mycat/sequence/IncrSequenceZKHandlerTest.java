@@ -22,8 +22,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
  * @time 23:35 2016/5/6
  */
 public class IncrSequenceZKHandlerTest {
-    private final static int MAX_CONNECTION = 60;
-    private final static int threadCount = 20;
+    private final static int MAX_CONNECTION = 10;
+    private final static int threadCount = 10;
     private final static int LOOP = 50;
     TestingServer testingServer = null;
     IncrSequenceZKHandler incrSequenceZKHandler[];

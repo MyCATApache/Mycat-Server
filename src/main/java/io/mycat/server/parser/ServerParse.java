@@ -658,7 +658,7 @@ public final class ServerParse {
 //  /*!mycat: sql=SELECT * FROM test where id=99 */set @pin=1;
 //                    call p_test(@pin,@pout);
 //                    select @pout;
-                    if(stmt.startsWith("/*!mycat:")||stmt.startsWith("/*#mycat:"))
+                    if(stmt.startsWith("/*!mycat:")||stmt.startsWith("/*#mycat:")||stmt.startsWith("/*mycat:"))
                     {
                         Matcher matcher = callPattern.matcher(stmt);
                         if (matcher.find()) return CALL;

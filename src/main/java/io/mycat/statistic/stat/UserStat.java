@@ -15,7 +15,7 @@ import io.mycat.statistic.SQLRecorder;
  */
 public class UserStat {
 	
-	private long SQL_SLOW_TIME = 1000;
+	private long SQL_SLOW_TIME = 100;
 	
 	private String user;
 	
@@ -143,8 +143,8 @@ public class UserStat {
         }
         //-----------------------------------------------------
 		
-		this.lock.writeLock().lock();
-        try {
+//		this.lock.writeLock().lock();
+//        try {
         	
 			//慢查询记录
 			long executeTime = endTime - startTime;		
@@ -171,9 +171,9 @@ public class UserStat {
 				this.sqlLargeStat.add(sql, sqlRows, executeTime, startTime, endTime);
 			}
 			
-        } finally {
-        	this.lock.writeLock().unlock();
-        }
+//        } finally {
+//        	this.lock.writeLock().unlock();
+//        }
         
 		//after
 		//-----------------------------------------------------

@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.buffer.BufferPool;
+import io.mycat.buffer.DirectByteBufferPool;
 import io.mycat.config.Fields;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.NIOProcessor;

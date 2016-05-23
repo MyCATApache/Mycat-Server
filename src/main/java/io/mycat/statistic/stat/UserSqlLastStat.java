@@ -1,7 +1,9 @@
 package io.mycat.statistic.stat;
 
-import java.util.Arrays;
-import java.util.Comparator;
+import java.util.*;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 最后执行的 Sql
@@ -10,31 +12,21 @@ import java.util.Comparator;
  *
  */
 public class UserSqlLastStat {
-	
-	private int index;
-	private final int count;
-	private final SqlLast[] sqls;
+	private final int MAX_RECORDS = 1024;
+	private SortedSet<SqlLast> sqls;
 	 
 	public UserSqlLastStat(int count) {		
-		this.index = 0;
-        this.count = count;        
-        this.sqls = new SqlLast[count];
+        this.sqls = new ConcurrentSkipListSet<>();
 	}
 
-	public SqlLast[] getSqls() {		
-		SqlLast[] sql2 = Arrays.copyOf(sqls, index);
-		Arrays.sort(sql2, new SqlComparator());
-		return sql2;
+	public List<SqlLast> getSqls() {
+		List<SqlLast> keyList = new ArrayList<SqlLast>(sqls);
+		return keyList;
 	}
 
     public void add(String sql,  long executeTime, long startTime, long endTime ) {    	
     	SqlLast sqlLast = new SqlLast(sql, executeTime, startTime, endTime);        	
-        if (index < count) {
-            sqls[index++] = sqlLast;
-        } else {
-        	index = 0;
-        	sqls[index++] = sqlLast;
-        }
+        sqls.add(sqlLast);
     }
 
     public void reset() {
@@ -42,16 +34,28 @@ public class UserSqlLastStat {
     }
     
     public void clear() {
-    	for (int i = 0; i < count; i++) {
-            sqls[i] = null;
-        }
-        index = 0;
-    }
-    
+		sqls.clear();
+	}
+
+	public void recycle(){
+		if(sqls.size() > MAX_RECORDS){
+			SortedSet<SqlLast> sqls2 = new ConcurrentSkipListSet<>();
+			List<SqlLast> keyList = new ArrayList<SqlLast>(sqls);
+			int i = 0;
+			for(SqlLast key : keyList){
+				if(i == MAX_RECORDS) {
+					break;
+				}
+				sqls2.add(key);
+				i++;
+			}
+			sqls = sqls2;
+		}
+	}
     /**
      * 记录SQL
      */
-    public class SqlLast {
+    public class SqlLast implements Comparable<SqlLast>{
     	
     	private String sql;
     	private long executeTime;
@@ -82,16 +86,11 @@ public class UserSqlLastStat {
 			return endTime;
 		}
 
-    }
-    
-    public class SqlComparator implements Comparator<SqlLast> {
 		@Override
-		public int compare(SqlLast t1, SqlLast t2) {			
-			long st1 = t1 == null ? 0 : t1.getStartTime();
-			long st2 = t2 == null ? 0 : t2.getStartTime();
-			
-			return (int) (st1 - st2);
+		public int compareTo(SqlLast o) {
+			long st1 = o == null ? 0 : o.getStartTime();
+			return (int) ( st1 - this.getStartTime());
 		}
-    }
-
+	}
+    
 }

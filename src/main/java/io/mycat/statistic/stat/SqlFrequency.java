@@ -1,8 +1,10 @@
 package io.mycat.statistic.stat;
 
-public class SqlFrequency {
+import java.util.concurrent.atomic.AtomicLong;
+
+public class SqlFrequency implements Comparable<SqlFrequency>{
 	private String sql;
-	private long count = 0;
+	private AtomicLong count = new AtomicLong(0);
 	private long lastTime = 0;
 	private long executeTime = 0;
 	private long allExecuteTime = 0;
@@ -19,11 +21,11 @@ public class SqlFrequency {
 	}
 
 	public long getCount() {
-		return count;
+		return this.count.get();
 	}
 
 	public void incCount() {
-		this.count++;
+		this.count.getAndIncrement();
 	}
 
 	public long getLastTime() {
@@ -63,9 +65,16 @@ public class SqlFrequency {
 			}
 		}
 		this.allExecuteTime+=execTime;
-		if (count > 0) {
-			this.avgTime = this.allExecuteTime / this.count;
+		if (count.get() > 0) {
+			this.avgTime = this.allExecuteTime / this.count.get();
 		}		
 		this.executeTime = execTime;
-	}		
+	}
+
+	@Override
+	public int compareTo(SqlFrequency o) {
+		long para = o.count.get() - count.get();
+		long para2 = o.lastTime - lastTime;
+		return  para == 0L ? (int)(para2 == 0L ? o.allExecuteTime - allExecuteTime : para2) : (int)para ;
+	}
 }

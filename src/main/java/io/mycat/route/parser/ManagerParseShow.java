@@ -75,7 +75,8 @@ public final class ManagerParseShow {
 
     public static final int WHITE_HOST=42;
     public static final int WHITE_HOST_SET=43;
-    
+
+
     public static int parse(String stmt, int offset) {
         int i = offset;
         for (; i < stmt.length(); i++) {
