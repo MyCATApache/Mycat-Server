@@ -362,7 +362,7 @@ public class MycatServer {
 		if(system.getUseSqlStat()==1) {
 			scheduler.scheduleAtFixedRate(recycleSqlStat(), 0L, DEFAULT_SQL_STAT_RECYCLE_PERIOD, TimeUnit.MILLISECONDS);
 		}
-		RouteStrategyFactory.init();
+//		RouteStrategyFactory.init();
 //        new Thread(tableStructureCheck()).start();
 	}
 
