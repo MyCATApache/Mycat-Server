@@ -178,7 +178,7 @@
 		<dependency>
 			<groupId>org.yaml</groupId>
 			<artifactId>snakeyaml</artifactId>
-			<version>1.16</version>
+			<version>1.17</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba</groupId>
@@ -188,7 +188,7 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20151123</version>
+			<version>20160212</version>
 		</dependency>
 		
 		<!-- joda日期处理工具 -->
