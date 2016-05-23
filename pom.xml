@@ -13,7 +13,7 @@
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
 		<!-- maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format> 
-			<buildNumber>${maven.build.timestamp}</buildNumber -->
+			<buildNumber>${maven.build.timestamp}</buildNumber      -->
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
 		<version.template.file>version.txt.template</version.template.file>
 		<version.file>version.txt</version.file>
