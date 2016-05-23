@@ -24,6 +24,7 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.SessionSQLPair;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
+import io.mycat.route.parser.druid.DruidSequenceHandler;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.server.ServerConnection;
@@ -35,6 +36,7 @@ import io.mycat.util.StringUtil;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.*;
@@ -127,7 +129,6 @@ public class RouterUtil {
 	 * @author aStoneGod
 	 */
 	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
-		//检查表是否在配置文件中
 		stmt = getFixedSql(stmt);
 		String tablename = "";		
 		final String upStmt = stmt.toUpperCase();
@@ -429,7 +430,7 @@ public class RouterUtil {
 	 * 获取开始位置后的 LIKE、WHERE 位置 如果不含 LIKE、WHERE 则返回执行语句的长度
 	 *
 	 * @param upStmt   执行sql
-	 * @param start    开发位置
+	 * @param start    开始位置
 	 * @return int
 	 * @author mycat
 	 */
@@ -448,6 +449,7 @@ public class RouterUtil {
 	                                          String origSQL, ServerConnection sc) {
 		// check if origSQL is with global sequence
 		// @micmiu it is just a simple judgement
+		//对应本地文件配置方式：insert into table1(id,name) values(next value for MYCATSEQ_GLOBAL,‘test’);
 		if (origSQL.indexOf(" MYCATSEQ_") != -1) {
 			processSQL(sc,schema,origSQL,sqlType);
 			return true;
@@ -456,7 +458,22 @@ public class RouterUtil {
 	}
 
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
-		MycatServer.getInstance().getSequnceProcessor().addNewSql(new SessionSQLPair(sc.getSession2(), schema, sql, sqlType));
+		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
+		SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
+//		if(sequenceHandlerType == 3 || sequenceHandlerType == 4){
+//			DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
+//					.getInstance().getConfig().getSystem().getSequnceHandlerType());
+//			String charset = sessionSQLPair.session.getSource().getCharset();
+//			String executeSql = null;
+//			try {
+//				executeSql = sequenceHandler.getExecuteSql(sessionSQLPair.sql,charset == null ? "utf-8":charset);
+//			} catch (UnsupportedEncodingException e) {
+//				LOGGER.error("UnsupportedEncodingException!");
+//			}
+//			sessionSQLPair.session.getSource().routeEndExecuteSQL(executeSql, sessionSQLPair.type,sessionSQLPair.schema);
+//		} else {
+			MycatServer.getInstance().getSequnceProcessor().addNewSql(sessionSQLPair);
+//		}
 	}
 
 	public static boolean processInsert(SchemaConfig schema, int sqlType,
@@ -464,6 +481,7 @@ public class RouterUtil {
 		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
 		TableConfig tableConfig = schema.getTables().get(tableName);
 		boolean processedInsert=false;
+		//判断是有自增字段
 		if (null != tableConfig && tableConfig.isAutoIncrement()) {
 			String primaryKey = tableConfig.getPrimaryKey();
 			processedInsert=processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey);
@@ -507,22 +525,23 @@ public class RouterUtil {
 		int valuesIndex = upperSql.indexOf("VALUES");
 		int selectIndex = upperSql.indexOf("SELECT");
 		int fromIndex = upperSql.indexOf("FROM");
-		if(firstLeftBracketIndex < 0) {//insert into table1 select * from table2
+		//屏蔽insert into table1 select * from table2语句
+		if(firstLeftBracketIndex < 0) {
 			String msg = "invalid sql:" + origSQL;
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
-
+		//屏蔽批量插入
 		if(selectIndex > 0 &&fromIndex>0&&selectIndex>firstRightBracketIndex&&valuesIndex<0) {
 			String msg = "multi insert not provided" ;
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
-
+		//插入语句必须提供列结构，因为MyCat默认对于表结构无感知
 		if(valuesIndex + "VALUES".length() <= firstLeftBracketIndex) {
 			throw new SQLSyntaxErrorException("insert must provide ColumnList");
 		}
-
+		//如果主键不在插入语句的fields中，则需要进一步处理
 		boolean processedInsert=!isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
 		if(processedInsert){
 			processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey,firstLeftBracketIndex+1,origSQL.indexOf('(',firstRightBracketIndex)+1);
@@ -532,7 +551,12 @@ public class RouterUtil {
 
 	private static void processInsert(ServerConnection sc, SchemaConfig schema, int sqlType, String origSQL,
 			String tableName, String primaryKey, int afterFirstLeftBracketIndex, int afterLastLeftBracketIndex) {
-		
+		/**
+		 * 对于主键不在插入语句的fields中的SQL，需要改写。比如hotnews主键为id，插入语句为：
+		 * insert into hotnews(title) values('aaa');
+		 * 需要改写成：
+		 * insert into hotnews(id, title) values(next value for MYCATSEQ_hotnews,'aaa');
+ 		 */
 		int primaryKeyLength = primaryKey.length();
 		int insertSegOffset = afterFirstLeftBracketIndex;
 		String mycatSeqPrefix = "next value for MYCATSEQ_";
@@ -645,6 +669,7 @@ public class RouterUtil {
 		// only has one parent level and ER parent key is parent
 		// table's partition key
 		if (tc.isSecondLevel()
+				//判断是否为二级子表（父表不再有父表）
 				&& tc.getParentTC().getPartitionColumn()
 						.equals(tc.getParentKey())) { // using
 														// parent
@@ -1290,33 +1315,36 @@ public class RouterUtil {
 	                                          final ServerConnection sc) throws SQLNonTransientException {
 		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
 		final TableConfig tc = schema.getTables().get(tableName);
-
+		//判断是否为子表，如果不是，只会返回false
 		if (null != tc && tc.isChildTable()) {
 			final RouteResultset rrs = new RouteResultset(origSQL, ServerParse.INSERT);
 			String joinKey = tc.getJoinKey();
+			//因为是Insert语句，用MySqlInsertStatement进行parse
 			MySqlInsertStatement insertStmt = (MySqlInsertStatement) (new MySqlStatementParser(origSQL)).parseInsert();
+			//判断条件完整性，取得解析后语句列中的joinkey列的index
 			int joinKeyIndex = getJoinKeyIndex(insertStmt.getColumns(), joinKey);
-
 			if (joinKeyIndex == -1) {
 				String inf = "joinKey not provided :" + tc.getJoinKey() + "," + insertStmt;
 				LOGGER.warn(inf);
 				throw new SQLNonTransientException(inf);
 			}
+			//子表不支持批量插入
 			if (isMultiInsert(insertStmt)) {
 				String msg = "ChildTable multi insert not provided";
 				LOGGER.warn(msg);
 				throw new SQLNonTransientException(msg);
 			}
-
+			//取得joinkey的值
 			String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
 
 			String sql = insertStmt.toString();
 
 			// try to route by ER parent partion key
+			//如果是二级子表（父表不再有父表）,并且分片字段正好是joinkey字段，调用routeByERParentKey
 			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, joinKeyVal);
-
 			if (theRrs != null) {
 				boolean processedInsert=false;
+				//判断是否需要全局序列号
                 if ( sc!=null && tc.isAutoIncrement()) {
                     String primaryKey = tc.getPrimaryKey();
                     processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
@@ -1329,6 +1357,8 @@ public class RouterUtil {
 			}
 
 			// route by sql query root parent's datanode
+			//如果不是二级子表或者分片字段不是joinKey字段结果为空，则启动异步线程去后台分片查询出datanode
+			//只要查询出上一级表的parentkey字段的对应值在哪个分片即可
 			final String findRootTBSql = tc.getLocateRTableKeySql().toLowerCase() + joinKeyVal;
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("find root parent's node sql " + findRootTBSql);
@@ -1347,6 +1377,7 @@ public class RouterUtil {
 			Futures.addCallback(listenableFuture, new FutureCallback<String>() {
 				@Override
 				public void onSuccess(String result) {
+					//结果为空，证明上一级表中不存在那条记录，失败
 					if (Strings.isNullOrEmpty(result)) {
 						StringBuilder s = new StringBuilder();
 						LOGGER.warn(s.append(sc.getSession2()).append(origSQL).toString() +
@@ -1358,7 +1389,7 @@ public class RouterUtil {
 					if (LOGGER.isDebugEnabled()) {
 						LOGGER.debug("found partion node for child table to insert " + result + " sql :" + origSQL);
 					}
-
+					//找到分片，进行插入（和其他的一样，需要判断是否需要全局自增ID）
 					boolean processedInsert=false;
                     if ( sc!=null && tc.isAutoIncrement()) {
                         try {

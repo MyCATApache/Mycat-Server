@@ -1,20 +1,52 @@
 package io.mycat.buffer;
 
+import junit.framework.Assert;
+import org.junit.Test;
+import sun.nio.ch.DirectBuffer;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import junit.framework.Assert;
-import org.junit.Test;
-
-import sun.nio.ch.DirectBuffer;
-
-public class TestDirectByteBufferPool {
-
+/**
+ * 仿照Netty的思路，针对MyCat内存缓冲策略优化
+ * 测试ByteBufferArena
+ *
+ * @author Hash Zhang
+ * @version 1.0
+ * @time 17:19 2016/5/17
+ * @see @https://github.com/netty/netty
+ */
+public class TestByteBufferArena {
+    int pageSize = 256;
+    int chunkSize = 1024 * 64;
+    int chunkCount = 8*1024;
     @Test
     public void testAllocate() {
+        int allocTimes =  1024*100 ;
+        ByteBufferArena byteBufferArena = new ByteBufferArena(chunkSize,pageSize,chunkCount,8);
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < allocTimes; i++) {
+//            System.out.println("allocate "+i);
+//            long start=System.nanoTime();
+            int size = (i % 1024) + 1 ;
+            ByteBuffer byteBufer = byteBufferArena.allocate(size);
+            ByteBuffer byteBufer2 = byteBufferArena.allocate(size);
+            ByteBuffer byteBufer3 = byteBufferArena.allocate(size);
+//            System.out.println("alloc "+size+" usage "+(System.nanoTime()-start));
+//            start=System.nanoTime();
+            byteBufferArena.recycle(byteBufer);
+            byteBufferArena.recycle(byteBufer3);
+//            System.out.println("recycle usage "+(System.nanoTime()-start));
+        }
+        long used = (System.currentTimeMillis() - start);
+        System.out.println("ByteBufferArena total used time  " + used + " avg speed " + allocTimes / used);
+    }
+
+    @Test
+    public void testAllocateDirect() {
         int pageSize = 1024 * 1024 * 100;
         int allocTimes = 1024*100;
         DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 8,0);
@@ -33,7 +65,19 @@ public class TestDirectByteBufferPool {
             //System.out.println("recycle usage "+(System.nanoTime()-start));
         }
         long used = (System.currentTimeMillis() - start);
-        System.out.println("total used time  " + used + " avg speed " + allocTimes / used);
+        System.out.println("DirectByteBufferPool total used time  " + used + " avg speed " + allocTimes / used);
+    }
+
+    @Test
+    public void testExpansion(){
+        ByteBufferArena byteBufferArena = new ByteBufferArena(1024,8,1,8);
+        for (int i = 0; i < 1 ; i++) {
+            ByteBuffer byteBufer = byteBufferArena.allocate(256);
+            ByteBuffer byteBufer2 = byteBufferArena.allocate(256);
+            ByteBuffer byteBufer3 = byteBufferArena.allocate(256);
+
+            byteBufferArena.recycle(byteBufer);
+        }
     }
 
     @Test
@@ -41,8 +85,7 @@ public class TestDirectByteBufferPool {
         int size = 256;
         int pageSize = size * 4;
         int allocTimes = 8;
-        DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 2,0);
-
+        ByteBufferArena byteBufferArena = new ByteBufferArena(256*4,256,2,8);
         Map<Long, ByteBuffer> buffs = new HashMap<Long, ByteBuffer>(8);
         ByteBuffer byteBuffer = null;
         DirectBuffer directBuffer = null;
@@ -50,7 +93,7 @@ public class TestDirectByteBufferPool {
         long address;
         boolean failure = false;
         for (int i = 0; i < allocTimes; i++) {
-            byteBuffer = pool.allocate(size);
+            byteBuffer = byteBufferArena.allocate(size);
             if (byteBuffer == null) {
                 Assert.fail("Should have enough memory");
             }
@@ -66,7 +109,7 @@ public class TestDirectByteBufferPool {
         }
 
         for (ByteBuffer buff : buffs.values()) {
-            pool.recycle(buff);
+            byteBufferArena.recycle(buff);
         }
 
         if (failure == true) {
@@ -79,7 +122,7 @@ public class TestDirectByteBufferPool {
         int size = 256;
         int pageSize = size * 4;
         int allocTimes = 9;
-        DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 2,0);
+        ByteBufferArena pool = new ByteBufferArena(256*4,256,2,8);;
         long start = System.currentTimeMillis();
         ByteBuffer byteBuffer = null;
         List<ByteBuffer> buffs = new ArrayList<ByteBuffer>();
@@ -94,71 +137,5 @@ public class TestDirectByteBufferPool {
         for (ByteBuffer buff : buffs) {
             pool.recycle(buff);
         }
-
-        Assert.assertEquals("Should out of memory when i = " + 8, i, 8);
     }
-
-    @Test
-    public void testAllocateSign() {
-        int size = 256;
-        int pageSize = size * 4;
-        int allocTimes = 9;
-        DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 2,0);
-        long start = System.currentTimeMillis();
-        ByteBuffer byteBuffer = null;
-        List<ByteBuffer> buffs = new ArrayList<ByteBuffer>();
-        int i = 0;
-        for (; i < allocTimes; i++) {
-            byteBuffer = pool.allocate(size);
-            if (byteBuffer == null) {
-                break;
-            }
-            buffs.add(byteBuffer);
-        }
-        for (ByteBuffer buff : buffs) {
-            pool.recycle(buff);
-        }
-
-        Assert.assertEquals("Should out of memory when i = " + 8, i, 8);
-    }
-
-    @Test
-    public  void testExpandBuffer(){
-        int size = 512;
-        int pageSize = 1024*1024;
-        int allocTimes = 9;
-        DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 512, (short) 64,0);
-        ByteBuffer byteBuffer = pool.allocate(1024);
-        String str = "DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 8)";
-        ByteBuffer newByteBuffer = null;
-        int i = 0;
-        while (i<10){
-            if(byteBuffer.remaining()<str.length()){
-                newByteBuffer = pool.expandBuffer(byteBuffer);
-                byteBuffer = newByteBuffer;
-                i++;
-            }else {
-                byteBuffer.put(str.getBytes());
-            }
-            System.out.println("remaining: " +  byteBuffer.remaining() + "capacity: " + byteBuffer.capacity());
-        }
-
-        System.out.println("capacity : " + byteBuffer.capacity());
-        System.out.println("capacity : " + byteBuffer.position());
-
-        byte [] bytes = new byte[byteBuffer.position()];
-        byteBuffer.flip();
-        byteBuffer.get(bytes);
-        String body = new String(bytes);
-
-        System.out.println(byteBuffer.position());
-
-        System.out.println(body);
-
-        System.out.println("size :" + body.length());
-        pool.recycle(byteBuffer);
-    }
-
-
-
 }
