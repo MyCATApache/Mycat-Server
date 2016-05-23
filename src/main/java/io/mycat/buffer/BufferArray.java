@@ -16,11 +16,11 @@ import java.util.List;
  * @author zagnix
  */
 public class BufferArray {
-	private final DirectByteBufferPool bufferPool;
+	private final BufferPool bufferPool;
 	private ByteBuffer curWritingBlock;
 	private List<ByteBuffer> writedBlockLst = Collections.emptyList();
 
-	public BufferArray(DirectByteBufferPool bufferPool) {
+	public BufferArray(BufferPool bufferPool) {
 		super();
 		this.bufferPool = bufferPool;
 		curWritingBlock = bufferPool.allocate(bufferPool.getChunkSize());

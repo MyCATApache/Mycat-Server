@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author zagnix
  */
 @SuppressWarnings("restriction")
-public class DirectByteBufferPool {
+public class DirectByteBufferPool implements BufferPool{
     private static final Logger LOGGER = LoggerFactory.getLogger("DirectByteBufferPool");
     public static final String LOCAL_BUF_THREAD_PREX = "$_";
     private ByteBufferPage[] allPages;

@@ -430,7 +430,7 @@ public class RouterUtil {
 	 * 获取开始位置后的 LIKE、WHERE 位置 如果不含 LIKE、WHERE 则返回执行语句的长度
 	 *
 	 * @param upStmt   执行sql
-	 * @param start    开发位置
+	 * @param start    开始位置
 	 * @return int
 	 * @author mycat
 	 */

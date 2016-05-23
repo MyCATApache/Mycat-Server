@@ -37,6 +37,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.mycat.buffer.BufferPool;
+import io.mycat.buffer.ByteBufferArena;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.table.structure.MySQLTableStructureDetector;
@@ -97,7 +99,7 @@ public class MycatServer {
 	private final SQLInterceptor sqlInterceptor;
 	private volatile int nextProcessor;
 	// System Buffer Pool Instance
-	private DirectByteBufferPool bufferPool;
+	private BufferPool bufferPool;
 	private boolean aio = false;
 
 	//XA事务全局ID生成
@@ -153,7 +155,7 @@ public class MycatServer {
 		this.startupTime = TimeUtil.currentTimeMillis();
 	}
 
-	public DirectByteBufferPool getBufferPool() {
+	public BufferPool getBufferPool() {
 		return bufferPool;
 	}
 
@@ -261,6 +263,7 @@ public class MycatServer {
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
 		bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
 				bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
+//		bufferPool = new ByteBufferArena(bufferPoolPageSize,bufferPoolChunkSize,bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
 		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());

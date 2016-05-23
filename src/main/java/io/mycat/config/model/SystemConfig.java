@@ -42,8 +42,8 @@ public final class SystemConfig {
 
 	private static final String DEFAULT_SQL_PARSER = "druidparser";// fdbparser, druidparser
 	private static final short DEFAULT_BUFFER_CHUNK_SIZE = 4096;
-	private static final int DEFAULT_BUFFER_POOL_PAGE_SIZE = 512*1024*10;
-	private static final short DEFAULT_BUFFER_POOL_PAGE_NUMBER = 8;
+	private static final int DEFAULT_BUFFER_POOL_PAGE_SIZE = 512*1024*4;
+	private static final short DEFAULT_BUFFER_POOL_PAGE_NUMBER = 64;
 	private int processorBufferLocalPercent;
 	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime().availableProcessors();
 	private int frontSocketSoRcvbuf = 1024 * 1024;
@@ -158,7 +158,9 @@ public final class SystemConfig {
 		this.processors = DEFAULT_PROCESSORS;
 		this.bufferPoolPageSize = DEFAULT_BUFFER_POOL_PAGE_SIZE;
 		this.bufferPoolChunkSize = DEFAULT_BUFFER_CHUNK_SIZE;
-		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*2);
+//		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*2);
+		this.bufferPoolPageNumber = (short) (DEFAULT_BUFFER_POOL_PAGE_NUMBER);
+
 		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2 : 4;
 		this.managerExecutor = 2;
 
