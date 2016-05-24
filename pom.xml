@@ -13,7 +13,7 @@
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
 		<!-- maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format> 
-			<buildNumber>${maven.build.timestamp}</buildNumber -->
+			<buildNumber>${maven.build.timestamp}</buildNumber      -->
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
 		<version.template.file>version.txt.template</version.template.file>
 		<version.file>version.txt</version.file>
@@ -68,7 +68,7 @@
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>druid</artifactId>
-			<version>1.0.18</version>
+			<version>1.0.20</version>
 		</dependency>
 		<dependency>
 			<groupId>mysql</groupId>
@@ -127,7 +127,7 @@
 		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
-			<version>2.0.0</version>
+			<version>2.1.1</version>
 			<type>jar</type>
 		</dependency>
 
@@ -178,24 +178,24 @@
 		<dependency>
 			<groupId>org.yaml</groupId>
 			<artifactId>snakeyaml</artifactId>
-			<version>1.16</version>
+			<version>1.17</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>fastjson</artifactId>
-			<version>1.2.8</version>
+			<version>1.2.12</version>
 		</dependency>
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20151123</version>
+			<version>20160212</version>
 		</dependency>
 		
 		<!-- joda日期处理工具 -->
         <dependency>
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
-			<version>2.9.2</version>
+			<version>2.9.3</version>
 		</dependency>
 
 
