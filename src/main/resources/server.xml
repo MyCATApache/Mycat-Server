@@ -19,6 +19,8 @@
 	<property name="processors">1</property> 
 	<property name="processorExecutor">32</property> 
 	 -->
+		<!--默认为type 0: DirectByteBufferPool | type 1 ByteBufferArena-->
+		<property name="processorBufferPoolType">0</property>
 		<!--默认是65535 64K 用于sql解析时最大文本长度 -->
 		<!--<property name="maxStringLiteralLength">65535</property>-->
 		<!--<property name="sequnceHandlerType">0</property>-->

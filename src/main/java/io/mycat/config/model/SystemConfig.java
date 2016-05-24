@@ -133,6 +133,8 @@ public final class SystemConfig {
 	private long checkTableConsistencyPeriod = CHECKTABLECONSISTENCYPERIOD;
 	private final static long CHECKTABLECONSISTENCYPERIOD = 1 * 60 * 1000;
 
+	private int processorBufferPoolType = 1;
+
 	public boolean isEnableDistributedTransactions() {
 		return enableDistributedTransactions;
 	}
@@ -158,8 +160,7 @@ public final class SystemConfig {
 		this.processors = DEFAULT_PROCESSORS;
 		this.bufferPoolPageSize = DEFAULT_BUFFER_POOL_PAGE_SIZE;
 		this.bufferPoolChunkSize = DEFAULT_BUFFER_CHUNK_SIZE;
-//		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*2);
-		this.bufferPoolPageNumber = (short) (DEFAULT_BUFFER_POOL_PAGE_NUMBER);
+		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*2);
 
 		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2 : 4;
 		this.managerExecutor = 2;
@@ -675,5 +676,13 @@ public final class SystemConfig {
 
 	public void setCheckTableConsistencyPeriod(long checkTableConsistencyPeriod) {
 		this.checkTableConsistencyPeriod = checkTableConsistencyPeriod;
+	}
+
+	public int getProcessorBufferPoolType() {
+		return processorBufferPoolType;
+	}
+
+	public void setProcessorBufferPoolType(int processorBufferPoolType) {
+		this.processorBufferPoolType = processorBufferPoolType;
 	}
 }
