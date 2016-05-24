@@ -133,7 +133,7 @@ public final class SystemConfig {
 	private long checkTableConsistencyPeriod = CHECKTABLECONSISTENCYPERIOD;
 	private final static long CHECKTABLECONSISTENCYPERIOD = 1 * 60 * 1000;
 
-	private int processorBufferPoolType = 1;
+	private int processorBufferPoolType = 0;
 
 	public boolean isEnableDistributedTransactions() {
 		return enableDistributedTransactions;
