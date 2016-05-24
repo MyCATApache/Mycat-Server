@@ -129,7 +129,7 @@ public final class ShowProcessor {
     	BufferPool bufferPool=processor.getBufferPool();
     	long bufferSize=bufferPool.size();
     	long bufferCapacity=bufferPool.capacity();
-    	long bufferSharedOpts=bufferPool.getSharedOptsCount();
+    	long newCreated = bufferPool.getNewCreated();
     	long bufferUsagePercent=(bufferCapacity-bufferSize)*100/bufferCapacity;
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(processor.getName().getBytes());
@@ -141,7 +141,7 @@ public final class ShowProcessor {
         row.add(LongUtil.toBytes(bufferSize));
         row.add(LongUtil.toBytes(bufferCapacity));
         row.add(LongUtil.toBytes(bufferUsagePercent));
-        row.add(LongUtil.toBytes(bufferSharedOpts));
+        row.add(LongUtil.toBytes(newCreated));
         row.add(IntegerUtil.toBytes(processor.getFrontends().size()));
         row.add(IntegerUtil.toBytes(processor.getBackends().size()));
         return row;
