@@ -19,13 +19,15 @@ import org.junit.Test;
 public class HintDBTypeTest {
 	protected Map<String, SchemaConfig> schemaMap;
 	protected LayerCachePool cachePool = new SimpleCachePool();
-	protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
+	protected RouteStrategy routeStrategy;
 
 	public HintDBTypeTest() {
 		String schemaFile = "/route/schema.xml";
 		String ruleFile = "/route/rule.xml";
 		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
 		schemaMap = schemaLoader.getSchemas();
+        RouteStrategyFactory.init();
+        routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 	}
 	/**
      * 测试注解

@@ -16,7 +16,7 @@ public class TestDirectByteBufferPool {
     @Test
     public void testAllocate() {
         int pageSize = 1024 * 1024 * 100;
-        int allocTimes = 1024*100;
+        int allocTimes = 1024;
         DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 8,0);
         long start = System.currentTimeMillis();
         for (int i = 0; i < allocTimes; i++) {
