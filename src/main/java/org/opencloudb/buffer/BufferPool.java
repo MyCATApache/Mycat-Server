@@ -179,7 +179,7 @@ public final class BufferPool {
 	}
 
 	public static void main(String[] args) {
-		BufferPool pool = new BufferPool(3276800000L, 1024, 2);
+		BufferPool pool = new BufferPool(327680L, 1024, 2);
 		long i = pool.capacity();
 		List<ByteBuffer> all = new ArrayList<ByteBuffer>();
 		for (int j = 0; j <= i; j++) {
@@ -189,5 +189,9 @@ public final class BufferPool {
 			pool.recycle(buf);
 		}
 		LOGGER.info(pool.size());
+	}
+	
+	public int getNewCreated(){
+		return this.newCreated.get();
 	}
 }
