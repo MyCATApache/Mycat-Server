@@ -73,7 +73,7 @@ public final class ShowVersion {
         // write rows
         byte packetId = eof.packetId;
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-        row.add(Versions.SERVER_VERSION);
+        row.add(Versions.getInstance().getServerVersion());
         row.packetId = ++packetId;
         buffer = row.write(buffer, c,true);
 
