@@ -27,7 +27,6 @@ import com.alibaba.fastjson.JSON;
 public class HintMasterDBHandler implements HintHandler {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(HintMasterDBHandler.class);
-	private final String IS_FORCE = "is_force";
 
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, 
@@ -79,17 +78,9 @@ public class HintMasterDBHandler implements HintHandler {
 		if(isRouteToMaster)	// 强制走 master 
 			rrs.setRunOnSlave(false);
 		
-		if(!isRouteToMaster){// 强制走slave
-			//走从库的情况下，检查是否配置slave_threshold属性，配合读节点负载均衡操作
-			String isForceString = (String) hintMap.get(IS_FORCE);
-			if(isForceString!=null&&isForceString!=""){
-			boolean isForce = Boolean.valueOf(isForceString) ;
-			if(isForce){
-				rrs.setForce(isForce);;
-			}
-		  }
+		if(!isRouteToMaster)// 强制走slave
 			rrs.setRunOnSlave(true);
-		}
+		
 		LOGGER.debug("rrs.getRunOnSlave():" + rrs.getRunOnSlave());
 		return rrs;
 	}

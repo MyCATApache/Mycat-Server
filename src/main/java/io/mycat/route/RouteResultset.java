@@ -78,20 +78,6 @@ public final class RouteResultset implements Serializable {
     // 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
     private Boolean runOnSlave = null;	// 默认null表示不施加影响
     
-   //标志是否强制走从节点，适应当采用注解形式指向从节点时，从节点全部不满足规则，根据isForce的值
-    //当isForce为true时，此时不走从节点，返回找不到满足条件的从节点异常
-    //当isForce为false时，此时走主节点，保证读操作可以正常运行
-    private boolean isForce;
-    
-    
-	public boolean isForce() {
-		return isForce;
-	}
-
-	public void setForce(boolean isForce) {
-		this.isForce = isForce;
-	}
-
     public Boolean getRunOnSlave() {
 		return runOnSlave;
 	}

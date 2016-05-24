@@ -55,8 +55,6 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	// 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
 	private Boolean runOnSlave = null;	// 默认null表示不施加影响, true走slave,false走master
 	
-	private Boolean isForce = null;	// 默认null表示不施加影响, true强制走slave,false走master
-
 	private String subTableName; // 分表的表名
 	
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
@@ -69,14 +67,6 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		canRunInReadDB = (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW);
 		hasBlanceFlag = (statement != null)
 				&& statement.startsWith("/*balance*/");
-	}
-	
-	public Boolean getIsForce() {
-		return isForce;
-	}
-
-	public void setIsForce(Boolean isForce) {
-		this.isForce = isForce;
 	}
 
 	public Boolean getRunOnSlave() {

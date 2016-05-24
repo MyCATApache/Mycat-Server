@@ -52,7 +52,7 @@ import io.mycat.util.StringUtil;
  */
 public final class ShowDataSource {
 
-	private static final int FIELD_COUNT = 10;
+	private static final int FIELD_COUNT = 12;
 	private static final ResultSetHeaderPacket header = PacketUtil
 			.getHeader(FIELD_COUNT);
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
@@ -91,6 +91,12 @@ public final class ShowDataSource {
 		fields[i++].packetId = ++packetId;
 
 		fields[i] = PacketUtil.getField("EXECUTE", Fields.FIELD_TYPE_LONGLONG);
+		fields[i++].packetId = ++packetId;
+		
+		fields[i] = PacketUtil.getField("READ_LOAD", Fields.FIELD_TYPE_LONG);
+		fields[i++].packetId = ++packetId;
+		
+		fields[i] = PacketUtil.getField("WRITE_LOAD", Fields.FIELD_TYPE_LONG);
 		fields[i++].packetId = ++packetId;
 
 		eof.packetId = ++packetId;
@@ -165,6 +171,8 @@ public final class ShowDataSource {
 		row.add(IntegerUtil.toBytes(ds.getIdleCount()));
 		row.add(IntegerUtil.toBytes(ds.getSize()));
 		row.add(LongUtil.toBytes(ds.getExecuteCount()));
+		row.add(LongUtil.toBytes(ds.getReadCount()));
+		row.add(LongUtil.toBytes(ds.getWriteCount()));
 		return row;
 	}
 
