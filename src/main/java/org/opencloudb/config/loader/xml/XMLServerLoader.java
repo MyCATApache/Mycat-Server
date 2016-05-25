@@ -236,7 +236,7 @@ public class XMLServerLoader {
             }
 
             if (validVersion) {
-                Versions.getInstance().setServerVersion(system.getFakeMySQLVersion());
+                Versions.setServerVersion(system.getFakeMySQLVersion());
             } else {
                 throw new ConfigException("The specified MySQL Version (" + system.getFakeMySQLVersion()
                         + ") is not valid.");
