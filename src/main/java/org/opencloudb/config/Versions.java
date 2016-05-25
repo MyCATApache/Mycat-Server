@@ -26,19 +26,15 @@ package org.opencloudb.config;
 /**
  * @author mycat
  */
-public final class Versions {
+public abstract class Versions {
 
     /**协议版本**/
     public static final byte PROTOCOL_VERSION = 10;
 
-    /**服务器版**/
-    private static byte[] SERVER_VERSION = "5.5.8-mycat-1.5.1-RELEASE-20160524231026".getBytes();
+    /**服务器版本**/
+    public static byte[] SERVER_VERSION = "5.5.8-mycat-1.5.1-RELEASE-20160525102622".getBytes();
 
-    private static Versions instance = new Versions();
-
-    private Versions() {}
-
-    public void setServerVersion(String version) {
+    public static void setServerVersion(String version) {
         byte[] mysqlVersionPart = version.getBytes();
         int startIndex;
         for (startIndex = 0; startIndex < SERVER_VERSION.length; startIndex++) {
@@ -53,8 +49,4 @@ public final class Versions {
                 SERVER_VERSION.length - startIndex);
         SERVER_VERSION = newMycatVersion;
     }
-
-    public byte[] getServerVersion() { return SERVER_VERSION; }
-
-    public static Versions getInstance() { return instance; }
 }
