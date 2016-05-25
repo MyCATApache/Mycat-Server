@@ -40,9 +40,7 @@ public class DruidSelectParserTest {
     }
 
     /**
-     * 此方法检测DruidSelectParser的buildGroupByCols方法是否修改了函数列
-     * 因为select的函数列并不做alias处理，
-     * 所以在groupby也对函数列不做修改
+     * 此方法检测DruidSelectParser对于子查询别名的全局解析
      *
      * @throws NoSuchMethodException
      * @throws InvocationTargetException
