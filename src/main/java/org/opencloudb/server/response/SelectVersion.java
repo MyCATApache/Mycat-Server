@@ -61,7 +61,7 @@ public class SelectVersion {
         buffer = eof.write(buffer, c,true);
         byte packetId = eof.packetId;
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-        row.add(Versions.getInstance().getServerVersion());
+        row.add(Versions.SERVER_VERSION);
         row.packetId = ++packetId;
         buffer = row.write(buffer, c,true);
         EOFPacket lastEof = new EOFPacket();

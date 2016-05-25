@@ -389,7 +389,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 			HandshakePacket hs = new HandshakePacket();
 			hs.packetId = 0;
 			hs.protocolVersion = Versions.PROTOCOL_VERSION;
-			hs.serverVersion = Versions.getInstance().getServerVersion();
+			hs.serverVersion = Versions.SERVER_VERSION;
 			hs.threadId = id;
 			hs.seed = rand1;
 			hs.serverCapabilities = getServerCapabilities();
