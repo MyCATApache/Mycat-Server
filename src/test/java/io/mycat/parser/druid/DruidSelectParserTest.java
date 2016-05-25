@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Created by Hash Zhang on 2016/4/29.
+ * Modified by Hash Zhang on 2016/5/25 add testGroupByWithViewAlias.
  */
 public class DruidSelectParserTest {
     DruidSelectParser druidSelectParser = new DruidSelectParser();
@@ -34,6 +35,25 @@ public class DruidSelectParserTest {
     @Test
     public void testGroupByWithAlias() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         String functionColumn = "DATE_FORMAT(h.times,'%b %d %Y %h:%i %p')";
+        Object result = invoke(functionColumn);
+        Assert.assertEquals(functionColumn, ((String[]) result)[0]);
+    }
+
+    /**
+     * 此方法检测DruidSelectParser对于子查询别名的全局解析
+     *
+     * @throws NoSuchMethodException
+     * @throws InvocationTargetException
+     * @throws IllegalAccessException
+     */
+    @Test
+    public void testGroupByWithViewAlias() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        String functionColumn = "select id from (select h.id from hotnews h  union select h.title from hotnews h ) as t1 group by t1.id;";
+        Object result = invoke(functionColumn);
+        Assert.assertEquals(functionColumn, ((String[]) result)[0]);
+    }
+
+    public Object invoke(String functionColumn) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Map<String, String> aliaColumns = new TreeMap<>();
         SQLIdentifierExpr sqlExpr = mock(SQLIdentifierExpr.class);
         SQLIdentifierExpr expr = mock(SQLIdentifierExpr.class);
@@ -43,7 +63,7 @@ public class DruidSelectParserTest {
         Class c = DruidSelectParser.class;
         Method method = c.getDeclaredMethod("buildGroupByCols", new Class[]{List.class, Map.class});
         method.setAccessible(true);
-        Object result = method.invoke(druidSelectParser, groupByItems, aliaColumns);
-        Assert.assertEquals(functionColumn, ((String[]) result)[0]);
+        return  method.invoke(druidSelectParser, groupByItems, aliaColumns);
     }
+
 }

@@ -21,8 +21,8 @@ import java.util.Map;
  */
 public class TestByteBufferArena {
     int pageSize = 256;
-    int chunkSize = 1024 * 64;
-    int chunkCount = 8*1024;
+    int chunkSize = 1024 * 8;
+    int chunkCount = 8*128;
     @Test
     public void testAllocate() {
         int allocTimes =  1024 ;

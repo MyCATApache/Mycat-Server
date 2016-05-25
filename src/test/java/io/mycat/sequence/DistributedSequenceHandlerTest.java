@@ -59,10 +59,10 @@ public class DistributedSequenceHandlerTest {
     @Test
     public void testUniqueID() throws Exception {
         final ConcurrentHashMap<Long, String> idSet = new ConcurrentHashMap<>();
-        Thread thread[] = new Thread[100];
+        Thread thread[] = new Thread[10];
         long start = System.currentTimeMillis();
         //多少线程，注意线程数不能超过最大线程数（1<<threadBits）
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             thread[i] = new Thread() {
                 @Override
                 public void run() {
@@ -76,13 +76,13 @@ public class DistributedSequenceHandlerTest {
             };
             thread[i].start();
         }
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             thread[i].join();
         }
         long end = System.currentTimeMillis();
         System.out.println("Time elapsed:" + (double) (end - start) / 1000.0 + "s");
         System.out.println("ID/s:" + (((double) idSet.size()) / ((double) (end - start) / 1000.0)));
-        Assert.assertEquals(idSet.size(), 160000);
+        Assert.assertEquals(idSet.size(), 16000);
     }
 
     /**

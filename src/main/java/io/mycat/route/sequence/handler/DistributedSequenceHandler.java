@@ -218,8 +218,6 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         }
     }
 
-    private Set<Long> isSet = new HashSet<>();
-
     @Override
     public long nextId(String prefixName) {
         while (!ready) {
