@@ -20,7 +20,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 基于ZK与本地配置的分布式ID生成器(可以通过ZK获取集群（机房）唯一InstanceID，也可以通过配置文件配置InstanceID)
@@ -139,13 +144,16 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
 
     }
 
+    private final ScheduledExecutorService timerExecutor = Executors.newSingleThreadScheduledExecutor();
+    private final long SELF_CHECK_PERIOD = 10L;
+
     public void initializeZK(String zkAddress) {
         this.client = CuratorFrameworkFactory.newClient(zkAddress, new ExponentialBackoffRetry(1000, 3));
         this.client.start();
         this.leaderSelector = new LeaderSelector(client, PATH + "/leader", this);
         this.leaderSelector.autoRequeue();
         this.leaderSelector.start();
-        new Thread() {
+        this.timerExecutor.scheduleAtFixedRate( new Runnable() {
             @Override
             public void run() {
                 while (!leaderExists()) {
@@ -157,26 +165,25 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                 }
                 while (true) {
                     if (isLeader) {
-                        continue;
+                        return;
                     }
                     while (!tryGetInstanceID()) ;
                     //心跳，需要考虑网络不通畅时，别人抢占了自己的节点，需要重新获取
-                    while (true) {
-                        try {
-                            if (isLeader) break;
-                            byte[] data = client.getData().forPath(PATH + "/instance/" + instanceId);
-                            if (data == null || !new String(data).equals(ID)) {
-                                while (!tryGetInstanceID()) ;
-                            }
-                            //每隔10秒一次心跳
-                            Thread.sleep(10000);
-                        } catch (Exception e) {
-                            LOGGER.warn("Exception caught:" + e.getCause());
+
+                    try {
+                        if (isLeader) break;
+                        byte[] data = client.getData().forPath(PATH + "/instance/" + instanceId);
+                        if (data == null || !new String(data).equals(ID)) {
+                            while (!tryGetInstanceID()) ;
+                        } else{
+                            return;
                         }
+                    } catch (Exception e) {
+                        LOGGER.warn("Exception caught:" + e.getCause());
                     }
                 }
             }
-        }.start();
+        },0L,SELF_CHECK_PERIOD,TimeUnit.SECONDS);
     }
 
     private boolean tryGetInstanceID() {
@@ -234,7 +241,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         if (threadInc.get() == null) {
             threadInc.set(0L);
         }
-        if(threadID.get()==null){
+        if (threadID.get() == null) {
             threadID.set(getNextThreadID());
         }
         long a = threadInc.get();
