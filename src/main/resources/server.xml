@@ -14,6 +14,7 @@
 	<property name="defaultSqlParser">druidparser</property>
 		<property name="sequnceHandlerType">3</property>
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
+        <!--  <property name="fakeMySQLVersion">5.6.20</property>--> <!--设置模拟的MySQL版本号-->
 	<!-- <property name="processorBufferChunk">40960</property> -->
 	<!-- 
 	<property name="processors">1</property> 
