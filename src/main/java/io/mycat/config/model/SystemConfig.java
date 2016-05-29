@@ -133,6 +133,12 @@ public final class SystemConfig {
 	private long checkTableConsistencyPeriod = CHECKTABLECONSISTENCYPERIOD;
 	private final static long CHECKTABLECONSISTENCYPERIOD = 1 * 60 * 1000;
 
+	// 全局表一致性检测任务，默认24小时调度一次
+	private static final long DEFAULT_GLOBAL_TABLE_CHECK_PERIOD = 24 * 60 * 60 * 1000L;
+	private int useGlobleTableCheck = 1;	// 全局表一致性检查开关
+	
+	private long glableTableCheckPeriod;
+	
 	private int processorBufferPoolType = 0;
 
 	public boolean isEnableDistributedTransactions() {
@@ -179,7 +185,15 @@ public final class SystemConfig {
 		this.txIsolation = Isolations.REPEATED_READ;
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
+		this.glableTableCheckPeriod = DEFAULT_GLOBAL_TABLE_CHECK_PERIOD;
+	}
+	
+	public long getGlableTableCheckPeriod() {
+		return glableTableCheckPeriod;
+	}
 
+	public void setGlableTableCheckPeriod(long glableTableCheckPeriod) {
+		this.glableTableCheckPeriod = glableTableCheckPeriod;
 	}
 
 	public String getSqlInterceptor() {
@@ -613,6 +627,14 @@ public final class SystemConfig {
 
 	public void setMycatNodeId(int mycatNodeId) {
 		this.mycatNodeId = mycatNodeId;
+	}
+	
+	public int getUseGlobleTableCheck() {
+		return useGlobleTableCheck;
+	}
+
+	public void setUseGlobleTableCheck(int useGlobleTableCheck) {
+		this.useGlobleTableCheck = useGlobleTableCheck;
 	}
 
 	@Override
