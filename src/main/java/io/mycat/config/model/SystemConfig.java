@@ -141,6 +141,12 @@ public final class SystemConfig {
 
 	private int processorBufferPoolType = 0;
 
+	// 全局表一致性检测任务，默认24小时调度一次
+	private static final long DEFAULT_GLOBAL_TABLE_CHECK_PERIOD = 24 * 60 * 60 * 1000L;
+	private int useGlobleTableCheck = 1;	// 全局表一致性检查开关
+	
+	private long glableTableCheckPeriod;
+	
 	public boolean isEnableDistributedTransactions() {
 		return enableDistributedTransactions;
 	}
@@ -185,7 +191,23 @@ public final class SystemConfig {
 		this.txIsolation = Isolations.REPEATED_READ;
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
+		this.glableTableCheckPeriod = DEFAULT_GLOBAL_TABLE_CHECK_PERIOD;
+	}
 
+	public int getUseGlobleTableCheck() {
+		return useGlobleTableCheck;
+	}
+
+	public void setUseGlobleTableCheck(int useGlobleTableCheck) {
+		this.useGlobleTableCheck = useGlobleTableCheck;
+	}
+
+	public long getGlableTableCheckPeriod() {
+		return glableTableCheckPeriod;
+	}
+
+	public void setGlableTableCheckPeriod(long glableTableCheckPeriod) {
+		this.glableTableCheckPeriod = glableTableCheckPeriod;
 	}
 
 	public String getSqlInterceptor() {
