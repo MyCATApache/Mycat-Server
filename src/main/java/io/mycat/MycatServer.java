@@ -71,6 +71,7 @@ import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.server.ServerConnectionFactory;
 import io.mycat.server.interceptor.SQLInterceptor;
+import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.statistic.SQLRecorder;
 import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
@@ -381,6 +382,10 @@ public class MycatServer {
 		if(system.getUseSqlStat()==1) {
 			scheduler.scheduleAtFixedRate(recycleSqlStat(), 0L, DEFAULT_SQL_STAT_RECYCLE_PERIOD, TimeUnit.MILLISECONDS);
 		}
+		if(system.getUseGlobleTableCheck() == 1){	// 全局表一致性检测是否开启
+			scheduler.scheduleAtFixedRate(glableTableConsistencyCheck(), 0L, system.getGlableTableCheckPeriod(), TimeUnit.MILLISECONDS);
+		}
+		
 		RouteStrategyFactory.init();
 //        new Thread(tableStructureCheck()).start();
 	}
@@ -623,6 +628,21 @@ public class MycatServer {
 	//定时检查不同分片表结构一致性
 	private Runnable tableStructureCheck(){
 		return new MySQLTableStructureDetector();
+	}
+	
+	//  全局表一致性检查任务
+	private Runnable glableTableConsistencyCheck() {
+		return new Runnable() {
+			@Override
+			public void run() {
+				timerExecutor.execute(new Runnable() {
+					@Override
+					public void run() {
+						GlobalTableUtil.consistencyCheck();
+					}
+				});
+			}
+		};
 	}
 
 	public boolean isAIO() {
