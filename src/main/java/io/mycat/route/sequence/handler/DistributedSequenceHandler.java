@@ -163,7 +163,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                         LOGGER.warn("Unexpected thread interruption!");
                     }
                 }
-                while (true) {
+//                while (true) {
                     if (isLeader) {
                         return;
                     }
@@ -171,7 +171,8 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                     //心跳，需要考虑网络不通畅时，别人抢占了自己的节点，需要重新获取
 
                     try {
-                        if (isLeader) break;
+                        if (isLeader)
+                            return;
                         byte[] data = client.getData().forPath(PATH + "/instance/" + instanceId);
                         if (data == null || !new String(data).equals(ID)) {
                             while (!tryGetInstanceID()) ;
@@ -181,7 +182,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                     } catch (Exception e) {
                         LOGGER.warn("Exception caught:" + e.getCause());
                     }
-                }
+//                }
             }
         },0L,SELF_CHECK_PERIOD,TimeUnit.SECONDS);
     }

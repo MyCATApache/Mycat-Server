@@ -32,7 +32,7 @@ import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheStatic;
 
 /**
- * encache based cache pool
+ * ehcache based cache pool
  * 
  * @author wuzhih
  * 
