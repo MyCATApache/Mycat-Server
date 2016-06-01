@@ -453,6 +453,8 @@ public class PhysicalDBPool {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("select read source " + theNode.getName() + " for dataHost:" + this.getHostName());
 		}
+		//统计节点读操作次数
+		theNode.setReadCount();
 		theNode.getConnection(schema, autocommit, handler, attachment);
 	}
 
@@ -471,6 +473,8 @@ public class PhysicalDBPool {
 		ArrayList<PhysicalDatasource> okSources = null;
 		okSources = getAllActiveRWSources(false, false, checkSlaveSynStatus());
 		theNode = randomSelect(okSources);
+		//统计节点读操作次数
+		theNode.setReadCount();
 		theNode.getConnection(schema, autocommit, handler, attachment);
 	}
     
@@ -515,6 +519,8 @@ public class PhysicalDBPool {
 					index = Math.abs(random.nextInt()) % readSources.size();
 				}
 			}
+			//统计节点读操作次数
+			theNode.setReadCount();
 			theNode.getConnection(schema, autocommit, handler, attachment);
 			return true;
 		}else{

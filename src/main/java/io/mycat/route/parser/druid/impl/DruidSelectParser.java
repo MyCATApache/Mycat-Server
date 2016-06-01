@@ -593,13 +593,13 @@ public class DruidSelectParser extends DefaultDruidParser {
 		String[] groupByCols = new String[groupByItems.size()]; 
 		for(int i= 0; i < groupByItems.size(); i++) {
             SQLExpr sqlExpr = groupByItems.get(i);
-            String column;
+            String column = null;
             if(sqlExpr instanceof SQLIdentifierExpr )
             {
                 column=((SQLIdentifierExpr) sqlExpr).getName();
             } else if(sqlExpr instanceof SQLMethodInvokeExpr){
 				column = ((SQLMethodInvokeExpr) sqlExpr).toString();
-			} else {
+			} else if(sqlExpr instanceof MySqlOrderingExpr){
                 //todo czn
                 SQLExpr expr = ((MySqlOrderingExpr) sqlExpr).getExpr();
 
@@ -610,7 +610,15 @@ public class DruidSelectParser extends DefaultDruidParser {
                 {
                     column = StringUtil.removeBackquote(expr.toString());
                 }
-            }
+            } else if(sqlExpr instanceof SQLPropertyExpr){
+				/**
+				 * 针对子查询别名，例如select id from (select h.id from hotnews h  union select h.title from hotnews h ) as t1 group by t1.id;
+				 */
+				column = sqlExpr.toString();
+			}
+			if(column == null){
+				column = sqlExpr.toString();
+			}
 			int dotIndex=column.indexOf(".") ;
 			int bracketIndex=column.indexOf("(") ;
 			//通过判断含有括号来决定是否为函数列

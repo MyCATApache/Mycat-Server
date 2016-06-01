@@ -37,7 +37,7 @@ public class SequenceTest {
     @Test
     public void testUUID(){
         System.out.print("UUID ");
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 100; i++) {
             sequenceSet.add(UUID.randomUUID().toString());
         }
     }
@@ -51,7 +51,7 @@ public class SequenceTest {
     @Test
     public void testRandom2(){
         System.out.print("UUID ");
-        for (int i = 0; i < 10000000; i++) {
+        for (int i = 0; i < 100; i++) {
             sequenceSet.add("aaassscccddd"+i);
         }
     }

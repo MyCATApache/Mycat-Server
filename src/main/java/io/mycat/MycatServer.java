@@ -71,6 +71,7 @@ import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.server.ServerConnectionFactory;
 import io.mycat.server.interceptor.SQLInterceptor;
+import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.statistic.SQLRecorder;
 import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
@@ -261,9 +262,28 @@ public class MycatServer {
 		short bufferPoolChunkSize = system.getBufferPoolChunkSize();
 		
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
+		int bufferPoolType = system.getProcessorBufferPoolType();
+		switch (bufferPoolType){
+			case 0:
+				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
+					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
+				break;
+			case 1:
+				/**
+				 * todo 对应权威指南修改：
+				 *
+				 * bytebufferarena由6个bytebufferlist组成，这六个list有减少内存碎片的机制
+				 * 每个bytebufferlist由多个bytebufferchunk组成，每个list也有减少内存碎片的机制
+				 * 每个bytebufferchunk由多个page组成，平衡二叉树管理内存使用状态，计算灵活
+				 * 设置的pagesize对应bytebufferarena里面的每个bytebufferlist的每个bytebufferchunk的buffer长度
+				 * bufferPoolChunkSize对应每个bytebufferchunk的每个page的长度
+				 * bufferPoolPageNumber对应每个bytebufferlist有多少个bytebufferchunk
+				 */
+				bufferPool = new ByteBufferArena(bufferPoolPageSize,bufferPoolChunkSize,bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
+				break;
+		}
 		bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
 				bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
-//		bufferPool = new ByteBufferArena(bufferPoolPageSize,bufferPoolChunkSize,bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
 		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
@@ -362,6 +382,10 @@ public class MycatServer {
 		if(system.getUseSqlStat()==1) {
 			scheduler.scheduleAtFixedRate(recycleSqlStat(), 0L, DEFAULT_SQL_STAT_RECYCLE_PERIOD, TimeUnit.MILLISECONDS);
 		}
+		if(system.getUseGlobleTableCheck() == 1){	// 全局表一致性检测是否开启
+			scheduler.scheduleAtFixedRate(glableTableConsistencyCheck(), 0L, system.getGlableTableCheckPeriod(), TimeUnit.MILLISECONDS);
+		}
+		
 		RouteStrategyFactory.init();
 //        new Thread(tableStructureCheck()).start();
 	}
@@ -604,6 +628,21 @@ public class MycatServer {
 	//定时检查不同分片表结构一致性
 	private Runnable tableStructureCheck(){
 		return new MySQLTableStructureDetector();
+	}
+	
+	//  全局表一致性检查任务
+	private Runnable glableTableConsistencyCheck() {
+		return new Runnable() {
+			@Override
+			public void run() {
+				timerExecutor.execute(new Runnable() {
+					@Override
+					public void run() {
+						GlobalTableUtil.consistencyCheck();
+					}
+				});
+			}
+		};
 	}
 
 	public boolean isAIO() {

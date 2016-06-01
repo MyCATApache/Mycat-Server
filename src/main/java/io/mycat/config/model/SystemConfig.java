@@ -70,6 +70,7 @@ public final class SystemConfig {
 	private int maxStringLiteralLength = 65535;
 	private int frontWriteQueueSize = 2048;
 	private String bindIp = "0.0.0.0";
+	private String fakeMySQLVersion = null;
 	private int serverPort;
 	private int managerPort;
 	private String charset;
@@ -108,6 +109,11 @@ public final class SystemConfig {
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
 	public static final int SEQUENCEHANDLER_ZK_DISTRIBUTED = 3;
 	public static final int SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT = 4;
+	/*
+	 * 注意！！！ 目前mycat支持的MySQL版本，如果后续有新的MySQL版本,请添加到此数组， 对于MySQL的其他分支，
+	 * 比如MariaDB目前版本号已经到10.1.x，但是其驱动程序仍然兼容官方的MySQL,因此这里版本号只需要MySQL官方的版本号即可。
+	 */
+	public static final String[] MySQLVersions = { "5.5", "5.6", "5.7" };
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "io.mycat.server.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";
@@ -133,6 +139,14 @@ public final class SystemConfig {
 	private long checkTableConsistencyPeriod = CHECKTABLECONSISTENCYPERIOD;
 	private final static long CHECKTABLECONSISTENCYPERIOD = 1 * 60 * 1000;
 
+	private int processorBufferPoolType = 0;
+
+	// 全局表一致性检测任务，默认24小时调度一次
+	private static final long DEFAULT_GLOBAL_TABLE_CHECK_PERIOD = 24 * 60 * 60 * 1000L;
+	private int useGlobleTableCheck = 1;	// 全局表一致性检查开关
+	
+	private long glableTableCheckPeriod;
+	
 	public boolean isEnableDistributedTransactions() {
 		return enableDistributedTransactions;
 	}
@@ -158,8 +172,7 @@ public final class SystemConfig {
 		this.processors = DEFAULT_PROCESSORS;
 		this.bufferPoolPageSize = DEFAULT_BUFFER_POOL_PAGE_SIZE;
 		this.bufferPoolChunkSize = DEFAULT_BUFFER_CHUNK_SIZE;
-//		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*2);
-		this.bufferPoolPageNumber = (short) (DEFAULT_BUFFER_POOL_PAGE_NUMBER);
+		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*2);
 
 		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2 : 4;
 		this.managerExecutor = 2;
@@ -178,7 +191,23 @@ public final class SystemConfig {
 		this.txIsolation = Isolations.REPEATED_READ;
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
+		this.glableTableCheckPeriod = DEFAULT_GLOBAL_TABLE_CHECK_PERIOD;
+	}
 
+	public int getUseGlobleTableCheck() {
+		return useGlobleTableCheck;
+	}
+
+	public void setUseGlobleTableCheck(int useGlobleTableCheck) {
+		this.useGlobleTableCheck = useGlobleTableCheck;
+	}
+
+	public long getGlableTableCheckPeriod() {
+		return glableTableCheckPeriod;
+	}
+
+	public void setGlableTableCheckPeriod(long glableTableCheckPeriod) {
+		this.glableTableCheckPeriod = glableTableCheckPeriod;
 	}
 
 	public String getSqlInterceptor() {
@@ -307,6 +336,14 @@ public final class SystemConfig {
 
 	public void setCharset(String charset) {
 		this.charset = charset;
+	}
+
+	public String getFakeMySQLVersion() {
+		return fakeMySQLVersion;
+	}
+
+	public void setFakeMySQLVersion(String mysqlVersion) {
+		this.fakeMySQLVersion = mysqlVersion;
 	}
 
 	public int getServerPort() {
@@ -675,5 +712,13 @@ public final class SystemConfig {
 
 	public void setCheckTableConsistencyPeriod(long checkTableConsistencyPeriod) {
 		this.checkTableConsistencyPeriod = checkTableConsistencyPeriod;
+	}
+
+	public int getProcessorBufferPoolType() {
+		return processorBufferPoolType;
+	}
+
+	public void setProcessorBufferPoolType(int processorBufferPoolType) {
+		this.processorBufferPoolType = processorBufferPoolType;
 	}
 }

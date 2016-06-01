@@ -22,9 +22,9 @@ import java.util.concurrent.ConcurrentSkipListSet;
  * @time 23:35 2016/5/6
  */
 public class IncrSequenceZKHandlerTest {
-    private final static int MAX_CONNECTION = 10;
-    private final static int threadCount = 10;
-    private final static int LOOP = 50;
+    private final static int MAX_CONNECTION = 5;
+    private final static int threadCount = 5;
+    private final static int LOOP = 5;
     TestingServer testingServer = null;
     IncrSequenceZKHandler incrSequenceZKHandler[];
     ConcurrentSkipListSet<Long> results;

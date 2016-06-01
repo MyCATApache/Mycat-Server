@@ -23,16 +23,6 @@
  */
 package io.mycat.backend.datasource;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.ConMap;
@@ -48,6 +38,17 @@ import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.TimeUtil;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class PhysicalDatasource {
 	private static final Logger LOGGER = LoggerFactory
 			.getLogger(PhysicalDatasource.class);
@@ -62,6 +63,10 @@ public abstract class PhysicalDatasource {
 	private final DataHostConfig hostConfig;
 	private final ConnectionHeartBeatHandler conHeartBeatHanler = new ConnectionHeartBeatHandler();
 	private PhysicalDBPool dbPool;
+	// 添加DataSource读计数
+	private AtomicLong readCount = new AtomicLong(0);
+	// 添加DataSource写计数
+	private AtomicLong writeCount = new AtomicLong(0);
 
 	public PhysicalDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
@@ -80,6 +85,22 @@ public abstract class PhysicalDatasource {
 			return false;
 		}
 
+	}
+
+	public long getReadCount() {
+		return readCount.get();
+	}
+
+	public void setReadCount() {
+		readCount.addAndGet(1);
+	}
+
+	public long getWriteCount() {
+		return writeCount.get();
+	}
+
+	public void setWriteCount() {
+		writeCount.addAndGet(1);
 	}
 
 	public DataHostConfig getHostConfig() {
