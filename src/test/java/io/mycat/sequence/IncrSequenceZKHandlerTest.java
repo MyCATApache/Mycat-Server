@@ -57,7 +57,7 @@ public class IncrSequenceZKHandlerTest {
                         threads[j] = new Thread() {
                             @Override
                             public void run() {
-                                for (int i = 0; i < LOOP; i++) {
+                                for (int k = 0; k < LOOP; k++) {
                                     long key = incrSequenceZKHandler[a].nextId("GLOBAL");
                                     results.add(key);
                                 }
