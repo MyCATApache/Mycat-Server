@@ -70,8 +70,8 @@ public final class ManagerParseStop {
 
     // HEARTBEAT
     static int stop2Check(String stmt, int offset) {
-        if (stmt.length() > ++offset && stmt.charAt(offset) == '@') {
-            if (stmt.length() > offset + 9) {
+        if (stmt.length() > ++offset && stmt.charAt(offset) == '@'
+                && stmt.length() > offset + 9) {
                 char c1 = stmt.charAt(++offset);
                 char c2 = stmt.charAt(++offset);
                 char c3 = stmt.charAt(++offset);
@@ -89,7 +89,6 @@ public final class ManagerParseStop {
                     }
                     return HEARTBEAT;
                 }
-            }
         }
         return OTHER;
     }

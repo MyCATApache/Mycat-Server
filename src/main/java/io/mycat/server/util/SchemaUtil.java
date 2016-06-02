@@ -57,14 +57,12 @@ public class SchemaUtil
             if(schemaInfo!=null&&schemaInfo.schema!=null&&schemaConfigMap.containsKey(schemaInfo.schema)  )
                 db= schemaInfo.schema;
         }   else
-        if(ServerParse.SHOW==type||ServerParse.USE==type||ServerParse.EXPLAIN==type||ServerParse.SET==type
+        if((ServerParse.SHOW==type||ServerParse.USE==type||ServerParse.EXPLAIN==type||ServerParse.SET==type
                 ||ServerParse.HELP==type||ServerParse.DESCRIBE==type)
+                && !schemaConfigMap.isEmpty())
         {
             //兼容mysql gui  不填默认database
-            if (!schemaConfigMap.isEmpty())
-            {
                 db = schemaConfigMap.entrySet().iterator().next().getKey();
-            }
         }
         return db;
     }

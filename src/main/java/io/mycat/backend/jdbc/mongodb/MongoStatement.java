@@ -54,12 +54,11 @@ public class MongoStatement implements Statement
 	public ResultSet executeQuery(String sql) throws SQLException {
 		  
 		MongoData mongo= new MongoSQLParser(this._conn.getDB(), sql).query();		
-        if (this._fetchSize > 0) {
+        if ((this._fetchSize > 0)
+				&& (mongo.getCursor()!=null)) {
         	//设置每次网络请求的最大记录数
-        	if (mongo.getCursor()!=null) {
         	mongo.getCursor().batchSize(this._fetchSize);
-        	}
-        }	
+        }
         /* 
         if (this._maxRows > 0)
         {

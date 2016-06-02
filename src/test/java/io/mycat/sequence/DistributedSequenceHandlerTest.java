@@ -67,8 +67,8 @@ public class DistributedSequenceHandlerTest {
                 @Override
                 public void run() {
                     for (int j = 0; j < 100; j++) {
-                        for (int i = 0; i < 16; i++) {
-                            idSet.put(distributedSequenceHandler[i].nextId(""), "");
+                        for (int k = 0; k < 16; k++) {
+                            idSet.put(distributedSequenceHandler[k].nextId(""), "");
                         }
                     }
 

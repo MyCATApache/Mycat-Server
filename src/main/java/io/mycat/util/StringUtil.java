@@ -334,8 +334,8 @@ public class StringUtil {
 						if (hiByte == 0x5C)
 							out.write(hiByte);// escape 0x5c if necessary
 					}
-				} else if (loByte == 0x5c) {
-					if (bufIndex < (bytesLen - 1)) {
+				} else if (loByte == 0x5c
+						&& bufIndex < (bytesLen - 1)) {
 						int hiByte = src[bufIndex + 1];
 						if (hiByte < 0)
 							hiByte += 256; // adjust for signedness/wrap-around
@@ -344,7 +344,6 @@ public class StringUtil {
 							out.write(0x62);
 							bufIndex++;
 						}
-					}
 				}
 				bufIndex++;
 			}
@@ -460,7 +459,7 @@ public class StringUtil {
 	/**
 	 * insert into tablexxx
 	 * 
-	 * @param sql
+	 * @param oriSql
 	 * @return
 	 */
 	public static String getTableName(String oriSql) {

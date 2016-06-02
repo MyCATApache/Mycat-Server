@@ -12,7 +12,7 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 	/**
 	 * mysql driver对'转义与\',解析前改为foundationdb parser支持的'' add by sky
 	 * 
-	 * @param stmt
+	 * @param sql
 	 * @update by jason@dayima.com replace regex with general string walking
 	 * avoid sql being destroyed in case of some mismatch
 	 * maybe some performance enchanced
@@ -27,11 +27,10 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 			StringBuilder sb = new StringBuilder(sql);
 			for (int i = firstIndex; i < lastIndex; i ++) {
 				if (sb.charAt(i) == '\\') {
-					if (i + 1 < lastIndex) {
-						if (sb.charAt(i + 1) == '\'') {
+					if (i + 1 < lastIndex
+							&& sb.charAt(i + 1) == '\'') {
 							//replace
 							sb.setCharAt(i, '\'');
-						}
 					}
 					//roll over
 					i ++;

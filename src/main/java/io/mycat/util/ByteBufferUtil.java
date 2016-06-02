@@ -408,10 +408,11 @@ public class ByteBufferUtil
         {
             byte byte1 = bytes1.get(offset1 + i);
             byte byte2 = bytes2.get(offset2 + i);
-            if (byte1 == byte2)
-                continue;
+//            if (byte1 == byte2)
+//                continue;
             // compare non-equal bytes as unsigned
-            return (byte1 & 0xFF) < (byte2 & 0xFF) ? -1 : 1;
+            if( byte1 != byte2 )
+                return (byte1 & 0xFF) < (byte2 & 0xFF) ? -1 : 1;
         }
         return 0;
     }
