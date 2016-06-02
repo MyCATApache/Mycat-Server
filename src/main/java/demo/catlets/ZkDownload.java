@@ -704,8 +704,8 @@ public class ZkDownload {
                                 tableEl.addAttribute("primaryschema", tableJsonObject.get("primaryschema").toString());
                             if (tableJsonObject.containsKey("datanode"))
                                 tableEl.addAttribute("dataNode", tableJsonObject.get("datanode").toString());
-                            if (tableJsonObject.containsKey("type"))
-                                if (tableJsonObject.get("type").toString().startsWith("1")) //目前只有1 全局表
+                            if (tableJsonObject.containsKey("type") && (tableJsonObject.get("type").toString().startsWith("1")))
+                                //目前只有1 全局表
                                 tableEl.addAttribute("type", "global");
                             if (tableJsonObject.containsKey("ruleName"))
                                 tableEl.addAttribute("rule", tableJsonObject.get("ruleName").toString());

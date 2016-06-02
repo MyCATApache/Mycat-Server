@@ -82,13 +82,12 @@ public class ParameterMapping {
                 value = list.toArray();
             }
             //赋值
-            if (cls != null) {
-                if (value != null) {
+            if (cls != null
+                    && value != null) {
                     Method method = pd.getWriteMethod();
                     if (method != null) {
                         method.invoke(object, new Object[] { value });
                     }
-                }
             }
         }
     }

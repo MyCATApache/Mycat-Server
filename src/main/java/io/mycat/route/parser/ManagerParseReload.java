@@ -59,8 +59,8 @@ public final class ManagerParseReload {
     }
 
     static int reload2Check(String stmt, int offset) {
-        if (stmt.length() > ++offset && stmt.charAt(offset) == '@') {
-            if (stmt.length() > ++offset) {
+        if (stmt.length() > ++offset && stmt.charAt(offset) == '@'
+                && stmt.length() > ++offset) {
                 switch (stmt.charAt(offset)) {
                 case 'C':
                 case 'c':
@@ -80,7 +80,6 @@ public final class ManagerParseReload {
                 default:
                     return OTHER;
                 }
-            }
         }
         return OTHER;
     }
@@ -178,10 +177,9 @@ public final class ManagerParseReload {
             
             // reload @@sqlslow
             if ((c1 == 'Q' || c1 == 'q') && (c2 == 'L' || c2 == 'l') && (c3 == 's' || c3 == 'S')
-                    && (c4 == 'L' || c4 == 'l') && (c5 == 'O' || c5 == 'o') && (c6 == 'W' || c6 == 'w') ) {
-                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    && (c4 == 'L' || c4 == 'l') && (c5 == 'O' || c5 == 'o') && (c6 == 'W' || c6 == 'w')
+                    && stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
                     return SQL_SLOW ;
-                }
             }
 
             return OTHER;

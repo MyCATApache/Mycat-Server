@@ -276,11 +276,10 @@ public final class SystemConfig {
 
 	public static String getHomePath() {
 		String home = System.getProperty(SystemConfig.SYS_HOME);
-		if (home != null) {
-			if (home.endsWith(File.pathSeparator)) {
+		if (home != null
+				&& home.endsWith(File.pathSeparator)) {
 				home = home.substring(0, home.length() - 1);
 				System.setProperty(SystemConfig.SYS_HOME, home);
-			}
 		}
 
 		// MYCAT_HOME为空，默认尝试设置为当前目录或上级目录。BEN

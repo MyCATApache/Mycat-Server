@@ -1085,11 +1085,10 @@ public class RouterUtil {
 				String primaryKey = tableConfig.getPrimaryKey();
 				boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
                 boolean isLoadData=false;
-                if (LOGGER.isDebugEnabled()) {
-                    if(sql.startsWith(LoadData.loadDataHint)||rrs.isLoadData())
-                    { //由于load data一次会计算很多路由数据，如果输出此日志会极大降低load data的性能
+                if (LOGGER.isDebugEnabled()
+						&& sql.startsWith(LoadData.loadDataHint)||rrs.isLoadData()) {
+                     //由于load data一次会计算很多路由数据，如果输出此日志会极大降低load data的性能
                          isLoadData=true;
-                    }
                 }
 				if(entry.getValue().get(primaryKey) != null && entry.getValue().size() == 1&&!isLoadData)
                 {//主键查找

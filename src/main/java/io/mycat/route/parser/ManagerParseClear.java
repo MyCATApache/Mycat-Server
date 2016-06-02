@@ -55,8 +55,8 @@ public class ManagerParseClear {
 
     // CLEAR @@SLOW
     static int clear2Check(String stmt, int offset) {
-        if (stmt.length() > ++offset && stmt.charAt(offset) == '@') {
-            if (stmt.length() > offset + "SLOW ".length()) {
+        if (stmt.length() > ++offset && stmt.charAt(offset) == '@'
+                &&stmt.length() > offset + "SLOW ".length()) {
                 char c1 = stmt.charAt(++offset);
                 char c2 = stmt.charAt(++offset);
                 char c3 = stmt.charAt(++offset);
@@ -76,7 +76,6 @@ public class ManagerParseClear {
                         }
                     }
                 }
-            }
         }
         return OTHER;
     }

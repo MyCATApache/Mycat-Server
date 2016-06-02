@@ -149,13 +149,10 @@ public class AIOSocketWR extends SocketWR
 
         boolean noMoreData = false;
         noMoreData = this.write0();
-        if (noMoreData)
+        if (noMoreData
+                && !con.writeQueue.isEmpty())
         {
-            if (!con.writeQueue.isEmpty())
-            {
                 this.write0();
-            }
-
         }
 
 

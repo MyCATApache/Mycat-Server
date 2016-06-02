@@ -674,7 +674,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			
 			//如果 tempReadHostAvailable 设置大于 0 则表示写主机如果挂掉， 临时的读服务依然可用
 			String tempReadHostAvailableStr = element.getAttribute("tempReadHostAvailable");
-			boolean tempReadHostAvailable = tempReadHostAvailableStr.equals("") ? false : Integer.valueOf(tempReadHostAvailableStr) > 0;
+			boolean tempReadHostAvailable = !tempReadHostAvailableStr.equals("") && Integer.valueOf(tempReadHostAvailableStr) > 0;
 			/**
 			 * 读取 写类型
 			 * 这里只支持 0 - 所有写操作仅配置的第一个 writeHost

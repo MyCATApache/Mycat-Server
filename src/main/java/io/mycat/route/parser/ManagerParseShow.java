@@ -107,8 +107,8 @@ public final class ManagerParseShow {
 
     // SHOW @
     static int show2Check(String stmt, int offset) {
-        if (stmt.length() > ++offset && stmt.charAt(offset) == '@') {
-            if (stmt.length() > ++offset) {
+        if (stmt.length() > ++offset && stmt.charAt(offset) == '@'
+                && stmt.length() > ++offset) {
                 switch (stmt.charAt(offset)) {
                 case 'B':
                 case 'b':
@@ -143,7 +143,6 @@ public final class ManagerParseShow {
                 default:
                     return OTHER;
                 }
-            }
         }
         return OTHER;
     }
@@ -244,8 +243,8 @@ public final class ManagerParseShow {
             char c1 = stmt.charAt(++offset);
             char c2 = stmt.charAt(++offset);
             char c3 = stmt.charAt(++offset);
-            if ((c1 == 'A' || c1 == 'a') && (c2 == 'T' || c2 == 't') && (c3 == 'A' || c3 == 'a')) {
-                if (stmt.length() > ++offset) {
+            if ((c1 == 'A' || c1 == 'a') && (c2 == 'T' || c2 == 't') && (c3 == 'A' || c3 == 'a')
+                    && stmt.length() > ++offset) {
                     switch (stmt.charAt(offset)) {
                     case 'B':
                     case 'b':
@@ -259,7 +258,6 @@ public final class ManagerParseShow {
                     default:
                         return OTHER;
                     }
-                }
             }
         }
         return OTHER;
@@ -1043,8 +1041,8 @@ public final class ManagerParseShow {
             char c1 = stmt.charAt(++offset);
             char c2 = stmt.charAt(++offset);
             char c3 = stmt.charAt(++offset);
-            if ((c1 == 'M' || c1 == 'm') && (c2 == 'E' || c2 == 'e') && (c3 == '.')) {
-                if (stmt.length() > ++offset) {
+            if ((c1 == 'M' || c1 == 'm') && (c2 == 'E' || c2 == 'e') && (c3 == '.')
+                    && (stmt.length() > ++offset)) {
                     switch (stmt.charAt(offset)) {
                     case 'C':
                     case 'c':
@@ -1055,7 +1053,6 @@ public final class ManagerParseShow {
                     default:
                         return OTHER;
                     }
-                }
             }
         }
         return OTHER;
@@ -1421,9 +1418,9 @@ public final class ManagerParseShow {
 	                		return SQL_SUM_USER;
 	                		
 	                	} else if ( (c2 == 'T' || c2 == 't') && (c3 == 'A' || c3 == 'a')
-				             	 && (c4 == 'B' || c4 == 'b') && (c5 == 'L' || c5 == 'l') ) {
+				             	 && (c4 == 'B' || c4 == 'b') && (c5 == 'L' || c5 == 'l')
+                                && stmt.length() > (offset+1)) {
 
-	                		 if ( stmt.length() > (offset+1) ) {	                			 
 	                			 char c6 = stmt.charAt(++offset);
 	                			 if ( c6 == 'E' || c6 == 'e') {
 	                				 
@@ -1438,7 +1435,6 @@ public final class ManagerParseShow {
 	 
 	                				return SQL_SUM_TABLE;
 	                			 }
-	                		 }
 	                	}
 	                	
                 	} 

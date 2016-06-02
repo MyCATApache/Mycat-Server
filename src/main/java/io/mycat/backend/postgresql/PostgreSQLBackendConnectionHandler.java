@@ -104,8 +104,9 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(buf, 0,
 					readedLength);
 			LOGGER.debug(JSON.toJSONString(packets));
-			if (!packets.isEmpty()) {
-				if (packets.get(0) instanceof AuthenticationPacket) {// pg认证信息
+			if (!packets.isEmpty()
+					&& packets.get(0) instanceof AuthenticationPacket) {
+				// pg认证信息
 					AuthenticationPacket packet = (AuthenticationPacket) packets
 							.get(0);
 					AuthType aut = packet.getAuthType();
@@ -133,7 +134,7 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 
 					}
 
-				}
+
 			}
 
 		} catch (IOException e) {
@@ -312,7 +313,7 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	 * 处理查询出错数据包
 	 * 
 	 * @param con
-	 * @param errMg
+	 * @param errorResponse
 	 */
 	private void doProcessErrorResponse(PostgreSQLBackendConnection con,
 			ErrorResponse errorResponse) {
@@ -330,7 +331,7 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	 * 执行成功但是又警告信息
 	 * 
 	 * @param con
-	 * @param packet
+	 * @param noticeResponse
 	 */
 	private void doProcessNoticeResponse(PostgreSQLBackendConnection con,
 			NoticeResponse noticeResponse) {

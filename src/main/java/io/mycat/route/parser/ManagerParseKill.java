@@ -54,8 +54,8 @@ public final class ManagerParseKill {
 
     // KILL @@CONNECTION
     static int kill2Check(String stmt, int offset) {
-        if (stmt.length() > ++offset && stmt.charAt(offset) == '@') {
-            if (stmt.length() > offset + 10) {
+        if (stmt.length() > ++offset && stmt.charAt(offset) == '@'
+                && stmt.length() > offset + 10) {
                 char c1 = stmt.charAt(++offset);
                 char c2 = stmt.charAt(++offset);
                 char c3 = stmt.charAt(++offset);
@@ -75,7 +75,6 @@ public final class ManagerParseKill {
                     }
                     return CONNECTION;
                 }
-            }
         }
         return OTHER;
     }

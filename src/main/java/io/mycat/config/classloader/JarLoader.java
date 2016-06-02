@@ -20,11 +20,11 @@ public class JarLoader {
 	          InputStream in = jar.getInputStream(entry);
 	          try {
 	            File file = new File(toDir, entry.getName());
-	            if (!file.getParentFile().mkdirs()) {
-	              if (!file.getParentFile().isDirectory()) {
+	            if (!file.getParentFile().mkdirs() && !file.getParentFile().isDirectory()) {
+
 	                throw new IOException("Mkdirs failed to create " + 
 	                                      file.getParentFile().toString());
-	              }
+
 	            }
 	            OutputStream out = new FileOutputStream(file);
 	            try {
