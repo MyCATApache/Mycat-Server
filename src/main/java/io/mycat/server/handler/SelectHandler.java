@@ -98,6 +98,9 @@ public final class SelectHandler {
             case ServerParseSelect.SELECT_VAR_ALL:
                 SelectVariables.execute(c,stmt);
                 break;
+			case ServerParseSelect.SESSION_TX_READ_ONLY:
+				SelectTxReadOnly.response(c);
+				break;
 		default:
 			c.execute(stmt, ServerParse.SELECT);
 		}
