@@ -55,8 +55,8 @@ public final class ManagerParseRollback {
     }
 
     static int rollback2Check(String stmt, int offset) {
-        if (stmt.length() > ++offset && stmt.charAt(offset) == '@') {
-            if (stmt.length() > ++offset) {
+        if (stmt.length() > ++offset && stmt.charAt(offset) == '@'
+                && stmt.length() > ++offset) {
                 switch (stmt.charAt(offset)) {
                 case 'C':
                 case 'c':
@@ -70,7 +70,6 @@ public final class ManagerParseRollback {
                 default:
                     return OTHER;
                 }
-            }
         }
         return OTHER;
     }

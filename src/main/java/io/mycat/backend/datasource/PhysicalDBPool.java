@@ -114,10 +114,9 @@ public class PhysicalDBPool {
 
 	public PhysicalDatasource findDatasouce(BackendConnection exitsCon) {
 		for (PhysicalDatasource ds : this.allDs) {
-			if (ds.isReadNode() == exitsCon.isFromSlaveDB()) {
-				if (ds.isMyConnection(exitsCon)) {
+			if ((ds.isReadNode() == exitsCon.isFromSlaveDB())
+					&& ds.isMyConnection(exitsCon)) {
 					return ds;
-				}
 			}
 		}
 		
@@ -152,10 +151,9 @@ public class PhysicalDBPool {
 					// find all live nodes
 					ArrayList<Integer> alives = new ArrayList<Integer>(writeSources.length - 1);
 					for (int i = 0; i < writeSources.length; i++) {
-						if (i != index) {
-							if (this.isAlive(writeSources[i])) {
+						if (i != index
+								&& this.isAlive(writeSources[i])) {
 								alives.add(i);
-							}
 						}
 					}
 					
@@ -666,9 +664,9 @@ public class PhysicalDBPool {
 				
 				// TODO : add by zhuam	
 			    // 如果写节点不OK, 也要保证临时的读服务正常
-				if ( this.dataHostConfig.isTempReadHostAvailable() ) {
+				if ( this.dataHostConfig.isTempReadHostAvailable()
+						&& !readSources.isEmpty()) {
 				
-					if (!readSources.isEmpty()) {
 						// check all slave nodes
 						PhysicalDatasource[] allSlaves = this.readSources.get(i);
 						if (allSlaves != null) {
@@ -688,8 +686,7 @@ public class PhysicalDBPool {
 								}
 							}
 						}
-					}
-				}				
+				}
 			}
 
 		}

@@ -104,10 +104,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		this.session = session;
 		this.lock = new ReentrantLock();
 		// this.icHandler = new CommitNodeHandler(session);
-		if (dataMergeSvr != null) {
-			if (LOGGER.isDebugEnabled()) {
+		if ((dataMergeSvr != null)
+				&& LOGGER.isDebugEnabled()) {
 				LOGGER.debug("has data merge logic ");
-			}
 		}
 		
 		if ( rrs != null && rrs.getStatement() != null)
