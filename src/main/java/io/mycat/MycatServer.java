@@ -281,9 +281,10 @@ public class MycatServer {
 				 */
 				bufferPool = new ByteBufferArena(bufferPoolPageSize,bufferPoolChunkSize,bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
 				break;
+			default:
+				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
+					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());;
 		}
-		bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
-				bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
 		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
