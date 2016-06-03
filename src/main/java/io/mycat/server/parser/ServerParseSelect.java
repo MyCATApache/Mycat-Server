@@ -176,8 +176,9 @@ public final class ServerParseSelect {
 	 */
 	private static int skipAlias(String stmt, int offset) {
 		offset = ParseUtil.move(stmt, offset, 0);
-		if (offset >= stmt.length())
+		if (offset >= stmt.length()) {
 			return offset;
+		}
 		switch (stmt.charAt(offset)) {
 		case '\'':
 			return skipString(stmt, offset);
@@ -188,8 +189,8 @@ public final class ServerParseSelect {
 		default:
 			if (CharTypes.isIdentifierChar(stmt.charAt(offset))) {
 				for (; offset < stmt.length()
-						&& CharTypes.isIdentifierChar(stmt.charAt(offset)); ++offset)
-					;
+						&& CharTypes.isIdentifierChar(stmt.charAt(offset)); ++offset) {
+				}
 				return offset;
 			}
 		}

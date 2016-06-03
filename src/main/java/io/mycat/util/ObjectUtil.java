@@ -54,7 +54,9 @@ public final class ObjectUtil {
         {
             clazz = Class.forName(className);
            Field field = clazz.getField(fieldName);
-             if(field!=null)return field.get(null);
+             if(field!=null) {
+                 return field.get(null);
+             }
         } catch (ClassNotFoundException e)
         {
             LOGGER.error("getStaticFieldValue", e);

@@ -74,15 +74,23 @@ public final class Pair<K, V> {
     @SuppressWarnings("rawtypes")
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof Pair)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof Pair)) {
+            return false;
+        }
         Pair that = (Pair) obj;
         return isEquals(this.key, that.key) && isEquals(this.value, that.value);
     }
 
     private boolean isEquals(Object o1, Object o2) {
-        if (o1 == o2) return true;
-        if (o1 == null) return o2 == null;
+        if (o1 == o2) {
+            return true;
+        }
+        if (o1 == null) {
+            return o2 == null;
+        }
         return o1.equals(o2);
     }
 

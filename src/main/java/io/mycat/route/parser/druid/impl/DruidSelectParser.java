@@ -274,8 +274,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 				|| (item.getExpr() instanceof SQLIdentifierExpr) || item.getExpr() instanceof SQLBinaryOpExpr) {			
 			return item.getExpr().toString();//字段别名
 		}
-		else
-		  return item.toString();
+		else {
+			return item.toString();
+		}
 	}
 	/**
 	 * 改写sql：需要加limit的加上

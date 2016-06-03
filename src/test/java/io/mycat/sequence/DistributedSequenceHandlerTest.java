@@ -147,7 +147,9 @@ public class DistributedSequenceHandlerTest {
     private int failLeader(int p) {
         int leader = 0, follower = 0;
         for (int i = 0; i < 16; i++) {
-            if (i == p) continue;
+            if (i == p) {
+                continue;
+            }
             if (distributedSequenceHandler[i].getLeaderSelector().hasLeadership()) {
                 leader = i;
             } else {
@@ -163,8 +165,12 @@ public class DistributedSequenceHandlerTest {
 
         while (true) {
             follower++;
-            if (follower >= 16) follower = 0;
-            if (follower == leader || follower == p) continue;
+            if (follower >= 16) {
+                follower = 0;
+            }
+            if (follower == leader || follower == p) {
+                continue;
+            }
             if (distributedSequenceHandler[follower].getLeaderSelector().hasLeadership()) {
                 break;
             }

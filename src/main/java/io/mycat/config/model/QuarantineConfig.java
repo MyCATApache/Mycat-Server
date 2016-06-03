@@ -203,8 +203,9 @@ public final class QuarantineConfig {
 				InputStream dtd = XMLServerLoader.class.getResourceAsStream("/server.dtd");
 				InputSource is = new InputSource(dtd);
 				return is; 
-		    } else 
-		    	return null; 
+		    } else {
+				return null;
+			}
 			} 
 	}
 //	public static void main(String[] args) throws Exception {

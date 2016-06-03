@@ -292,8 +292,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             {
                 try
                 {
-                    if (channel != null)
+                    if (channel != null) {
                         channel.close();
+                    }
 
                 } catch (IOException ignored)
                 {

@@ -109,8 +109,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				LOGGER.debug("has data merge logic ");
 		}
 		
-		if ( rrs != null && rrs.getStatement() != null)
+		if ( rrs != null && rrs.getStatement() != null) {
 			netInBytes += rrs.getStatement().getBytes().length;
+		}
 	}
 
 	protected void reset(int initCount) {
@@ -363,19 +364,22 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			int start = rrs.getLimitStart();
 			int end = start + rrs.getLimitSize();
 
-                        if (start < 0)
+			if (start < 0) {
 				start = 0;
+			}
 
-			if (rrs.getLimitSize() < 0)
+			if (rrs.getLimitSize() < 0) {
 				end = results.size();
+			}
 				
 //			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
 //			if (rrs.getOrderByCols() == null) {
 //				end = results.size();
 //				start = 0;
 //			}
-			if (end > results.size())
+			if (end > results.size()) {
 				end = results.size();
+			}
 
 			for (int i = start; i < end; i++) {
 				RowDataPacket row = results.get(i);

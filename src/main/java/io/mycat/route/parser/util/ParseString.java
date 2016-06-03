@@ -31,8 +31,12 @@ public final class ParseString {
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     public static byte[] hexString2Bytes(char[] hexString, int offset, int length) {
-        if (hexString == null) return null;
-        if (length == 0) return EMPTY_BYTE_ARRAY;
+        if (hexString == null) {
+            return null;
+        }
+        if (length == 0) {
+            return EMPTY_BYTE_ARRAY;
+        }
         boolean odd = length << 31 == Integer.MIN_VALUE;
         byte[] bs = new byte[odd ? (length + 1) >> 1 : length >> 1];
         for (int i = offset, limit = offset + length; i < limit; ++i) {

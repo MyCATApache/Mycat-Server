@@ -39,8 +39,9 @@ public class ByteBufferChunkList {
 
     public ByteBufferChunk getIndex(ByteBuffer buffer) {
         for(ByteBufferChunk byteBufferChunk : byteBufferChunks){
-            if (byteBufferChunk.isInThisChunk(buffer))
+            if (byteBufferChunk.isInThisChunk(buffer)) {
                 return byteBufferChunk;
+            }
         }
         return null;
     }
