@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @time 08:54 2016/5/16
  */
 public class TestConcurrentSafety {
-    private static final int THREAD_COUNT = 5;
+    private static final int THREAD_COUNT = 2;
     private static final int LOOP_COUNT = 1000;
 
     String sql = "SELECT `fnum`, `forg`, `fdst`, `airline`, `ftype` , `ports_of_call`, " +
