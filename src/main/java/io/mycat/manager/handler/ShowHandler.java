@@ -53,6 +53,7 @@ import io.mycat.manager.response.ShowSQLSumTable;
 import io.mycat.manager.response.ShowSQLSumUser;
 import io.mycat.manager.response.ShowServer;
 import io.mycat.manager.response.ShowSession;
+import io.mycat.manager.response.ShowSqlResultSet;
 import io.mycat.manager.response.ShowSysLog;
 import io.mycat.manager.response.ShowSysParam;
 import io.mycat.manager.response.ShowThreadPool;
@@ -170,7 +171,10 @@ public final class ShowHandler {
 			break;
 		case ManagerParseShow.SQL_CONDITION:
 			ShowSQLCondition.execute(c);
-			break;			
+			break;
+		case ManagerParseShow.SQL_RESULTSET:
+			ShowSqlResultSet.execute(c);
+			break;	
 		case ManagerParseShow.SQL_SUM_USER:
 			boolean isClearSum = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
 			ShowSQLSumUser.execute(c,isClearSum);
