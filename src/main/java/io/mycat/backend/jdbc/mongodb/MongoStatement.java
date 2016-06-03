@@ -30,12 +30,15 @@ public class MongoStatement implements Statement
         this._concurrency = concurrency;
         this._holdability = holdability;
 
-        if (this._type != 0)
-          throw new UnsupportedOperationException("type not supported yet");
-        if (this._concurrency != 0)
-           throw new UnsupportedOperationException("concurrency not supported yet");
-        if (this._holdability != 0)
-           throw new UnsupportedOperationException("holdability not supported yet");
+        if (this._type != 0) {
+			throw new UnsupportedOperationException("type not supported yet");
+		}
+        if (this._concurrency != 0) {
+			throw new UnsupportedOperationException("concurrency not supported yet");
+		}
+        if (this._holdability != 0) {
+			throw new UnsupportedOperationException("holdability not supported yet");
+		}
     }
 
 	@Override

@@ -301,12 +301,14 @@ public class NonBlockingSession implements Session {
         boolean canReUse = false;
         // conn 是 slave db 的，并且 路由结果显示，本次sql可以重用该 conn
         if (conn.isFromSlaveDB() && (node.canRunnINReadDB(getSource().isAutocommit())
-                && (node.getRunOnSlave() == null || node.getRunOnSlave())))
+                && (node.getRunOnSlave() == null || node.getRunOnSlave()))) {
             canReUse = true;
+        }
 
         // conn 是 master db 的，并且路由结果显示，本次sql可以重用该conn
-        if (!conn.isFromSlaveDB() && (node.getRunOnSlave() == null || !node.getRunOnSlave()))
+        if (!conn.isFromSlaveDB() && (node.getRunOnSlave() == null || !node.getRunOnSlave())) {
             canReUse = true;
+        }
 
         if (canReUse) {
             if (LOGGER.isDebugEnabled()) {

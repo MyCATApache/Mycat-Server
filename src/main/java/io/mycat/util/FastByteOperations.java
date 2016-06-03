@@ -106,8 +106,9 @@ public class FastByteOperations
             String arch = System.getProperty("os.arch");
             boolean unaligned = arch.equals("i386") || arch.equals("x86")
                                 || arch.equals("amd64") || arch.equals("x86_64");
-            if (!unaligned)
+            if (!unaligned) {
                 return new PureJavaOperations();
+            }
             try
             {
                 Class<?> theClass = Class.forName(UNSAFE_COMPARER_NAME);
@@ -220,10 +221,12 @@ public class FastByteOperations
 
         public void copy(ByteBuffer src, int srcPosition, byte[] trg, int trgPosition, int length)
         {
-            if (src.hasArray())
+            if (src.hasArray()) {
                 System.arraycopy(src.array(), src.arrayOffset() + srcPosition, trg, trgPosition, length);
-            else
+            }
+            else {
                 copy(null, srcPosition + theUnsafe.getLong(src, DIRECT_BUFFER_ADDRESS_OFFSET), trg, trgPosition, length);
+            }
         }
 
         public void copy(ByteBuffer srcBuf, int srcPosition, ByteBuffer trgBuf, int trgPosition, int length)
@@ -245,18 +248,21 @@ public class FastByteOperations
 
         public static void copy(Object src, long srcOffset, ByteBuffer trgBuf, int trgPosition, int length)
         {
-            if (trgBuf.hasArray())
+            if (trgBuf.hasArray()) {
                 copy(src, srcOffset, trgBuf.array(), trgBuf.arrayOffset() + trgPosition, length);
-            else
+            }
+            else {
                 copy(src, srcOffset, null, trgPosition + theUnsafe.getLong(trgBuf, DIRECT_BUFFER_ADDRESS_OFFSET), length);
+            }
         }
 
         public static void copy(Object src, long srcOffset, byte[] trg, int trgPosition, int length)
         {
             if (length <= MIN_COPY_THRESHOLD)
             {
-                for (int i = 0 ; i < length ; i++)
+                for (int i = 0 ; i < length ; i++) {
                     trg[trgPosition + i] = theUnsafe.getByte(src, srcOffset + i);
+                }
             }
             else
             {
@@ -355,8 +361,9 @@ public class FastByteOperations
 
                 if (lw != rw)
                 {
-                    if (BIG_ENDIAN)
+                    if (BIG_ENDIAN) {
                         return UnsignedLongs.compare(lw, rw);
+                    }
 
                     return UnsignedLongs.compare(Long.reverseBytes(lw), Long.reverseBytes(rw));
                 }
@@ -366,8 +373,9 @@ public class FastByteOperations
             {
                 int b1 = theUnsafe.getByte(buffer1, memoryOffset1 + i) & 0xFF;
                 int b2 = theUnsafe.getByte(buffer2, memoryOffset2 + i) & 0xFF;
-                if (b1 != b2)
+                if (b1 != b2) {
                     return b1 - b2;
+                }
             }
 
             return length1 - length2;
@@ -383,8 +391,9 @@ public class FastByteOperations
                            byte[] buffer2, int offset2, int length2)
         {
             // Short circuit equal case
-            if (buffer1 == buffer2 && offset1 == offset2 && length1 == length2)
+            if (buffer1 == buffer2 && offset1 == offset2 && length1 == length2) {
                 return 0;
+            }
 
             int end1 = offset1 + length1;
             int end2 = offset2 + length2;
@@ -402,9 +411,10 @@ public class FastByteOperations
 
         public int compare(ByteBuffer buffer1, byte[] buffer2, int offset2, int length2)
         {
-            if (buffer1.hasArray())
+            if (buffer1.hasArray()) {
                 return compare(buffer1.array(), buffer1.arrayOffset() + buffer1.position(), buffer1.remaining(),
-                               buffer2, offset2, length2);
+                        buffer2, offset2, length2);
+            }
             return compare(buffer1, ByteBuffer.wrap(buffer2, offset2, length2));
         }
 

@@ -144,7 +144,7 @@ public class PhysicalDBPool {
 			}
 			case WRITE_RANDOM_NODE: {
 	
-				int index = Math.abs(wnrandom.nextInt()) % writeSources.length;
+				int index = Math.abs(wnrandom.nextInt(Integer.MAX_VALUE)) % writeSources.length;
 				PhysicalDatasource result = writeSources[index];
 				if (!this.isAlive(result)) {
 					
@@ -161,7 +161,7 @@ public class PhysicalDBPool {
 						result = writeSources[0];
 					} else {						
 						// random select one
-						index = Math.abs(wnrandom.nextInt()) % alives.size();
+						index = Math.abs(wnrandom.nextInt(Integer.MAX_VALUE)) % alives.size();
 						result = writeSources[alives.get(index)];
 	
 					}
@@ -492,11 +492,11 @@ public class PhysicalDBPool {
 		
 		LOGGER.debug("!readSources.isEmpty() " + !readSources.isEmpty());
 		if (!readSources.isEmpty()) {
-			int index = Math.abs(random.nextInt()) % readSources.size();
+			int index = Math.abs(random.nextInt(Integer.MAX_VALUE)) % readSources.size();
 			PhysicalDatasource[] allSlaves = this.readSources.get(index);
-			System.out.println("allSlaves.length " + allSlaves.length);
+//			System.out.println("allSlaves.length " + allSlaves.length);
 			if (allSlaves != null) {
-				index = Math.abs(random.nextInt()) % readSources.size();
+				index = Math.abs(random.nextInt(Integer.MAX_VALUE)) % readSources.size();
 				PhysicalDatasource slave = allSlaves[index];
 				
 				for (int i=0; i<allSlaves.length; i++) {
@@ -514,13 +514,18 @@ public class PhysicalDBPool {
 							break;
 						}
 					}
-					index = Math.abs(random.nextInt()) % readSources.size();
+//					index = Math.abs(random.nextInt()) % readSources.size();
 				}
 			}
 			//统计节点读操作次数
-			theNode.setReadCount();
-			theNode.getConnection(schema, autocommit, handler, attachment);
-			return true;
+			if(theNode != null) {
+				theNode.setReadCount();
+				theNode.getConnection(schema, autocommit, handler, attachment);
+				return true;
+			} else {
+				LOGGER.warn("readhost is notavailable.");
+				return false;
+			}
 		}else{
 			LOGGER.warn("readhost is empty, readSources is empty.");
 			return false;

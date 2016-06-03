@@ -54,8 +54,9 @@ public class SchemaUtil
         if(ServerParse.INSERT==type||ServerParse.UPDATE==type||ServerParse.DELETE==type||ServerParse.DDL==type)
         {
             SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
-            if(schemaInfo!=null&&schemaInfo.schema!=null&&schemaConfigMap.containsKey(schemaInfo.schema)  )
-                db= schemaInfo.schema;
+            if(schemaInfo!=null&&schemaInfo.schema!=null&&schemaConfigMap.containsKey(schemaInfo.schema)  ) {
+                db = schemaInfo.schema;
+            }
         }   else
         if((ServerParse.SHOW==type||ServerParse.USE==type||ServerParse.EXPLAIN==type||ServerParse.SET==type
                 ||ServerParse.HELP==type||ServerParse.DESCRIBE==type)

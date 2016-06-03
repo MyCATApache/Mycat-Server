@@ -31,8 +31,9 @@ public final class LongUtil {
     private static final byte[] minValue = "-9223372036854775808".getBytes();
 
     public static byte[] toBytes(long i) {
-        if (i == Long.MIN_VALUE)
+        if (i == Long.MIN_VALUE) {
             return minValue;
+        }
         int size = (i < 0) ? stringSize(-i) + 1 : stringSize(i);
         byte[] buf = new byte[size];
         getBytes(i, size, buf);
@@ -42,8 +43,9 @@ public final class LongUtil {
     static int stringSize(long x) {
         long p = 10;
         for (int i = 1; i < 19; i++) {
-            if (x < p)
+            if (x < p) {
                 return i;
+            }
             p = 10 * p;
         }
         return 19;
@@ -89,8 +91,9 @@ public final class LongUtil {
             r = i2 - ((q2 << 3) + (q2 << 1)); // r = i2-(q2*10) ...
             buf[--charPos] = IntegerUtil.digits[r];
             i2 = q2;
-            if (i2 == 0)
+            if (i2 == 0) {
                 break;
+            }
         }
         if (sign != 0) {
             buf[--charPos] = sign;

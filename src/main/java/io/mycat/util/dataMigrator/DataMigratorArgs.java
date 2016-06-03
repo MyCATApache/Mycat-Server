@@ -59,7 +59,9 @@ public class DataMigratorArgs {
 	
 	public String getMysqlBin(){
 		String result = getString(MYSQL_BIN);
-		if(result ==null) return "";
+		if(result ==null) {
+			return "";
+		}
 		if(!result.isEmpty() &&!result.endsWith("/")){
 			result +="/";
 		}

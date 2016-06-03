@@ -37,12 +37,13 @@ public class LockPerfMain {
 
         long t1 = System.currentTimeMillis();
         for (int i = 0; i < 10000000; i++) {
-            if (lock.tryLock())
+            if (lock.tryLock()) {
                 try {
                     // ...
                 } finally {
                     lock.unlock();
                 }
+            }
         }
         long t2 = System.currentTimeMillis();
 

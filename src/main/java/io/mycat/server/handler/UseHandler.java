@@ -41,7 +41,9 @@ public final class UseHandler {
         String schema = sql.substring(offset).trim();
         int length = schema.length();
         if (length > 0) {
-        	if(schema.endsWith(";")) schema=schema.substring(0,schema.length()-1);
+        	if(schema.endsWith(";")) {
+                schema = schema.substring(0, schema.length() - 1);
+            }
         	schema = StringUtil.replaceChars(schema, "`", null);
         	length=schema.length();
             if (schema.charAt(0) == '\'' && schema.charAt(length - 1) == '\'') {

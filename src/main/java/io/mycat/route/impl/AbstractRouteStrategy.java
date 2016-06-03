@@ -28,8 +28,9 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		 * 处理一些路由之前的逻辑
 		 * 全局序列号，父子表插入
 		 */
-		if ( beforeRouteProcess(schema, sqlType, origSQL, sc) )
+		if ( beforeRouteProcess(schema, sqlType, origSQL, sc) ) {
 			return null;
+		}
 
 		/**
 		 * SQL 语句拦截

@@ -182,8 +182,9 @@ public class PacketUtils {
 		String[][] params = paramList.toArray(new String[0][]);
 		StringBuilder details = new StringBuilder();
 		for (int i = 0; i < params.length; ++i) {
-			if (i != 0)
+			if (i != 0) {
 				details.append(", ");
+			}
 			details.append(params[i][0]);
 			details.append("=");
 			details.append(params[i][1]);

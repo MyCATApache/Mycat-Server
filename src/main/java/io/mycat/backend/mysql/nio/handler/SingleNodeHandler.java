@@ -113,8 +113,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			}
 		}
         
-		if ( rrs != null && rrs.getStatement() != null)
+		if ( rrs != null && rrs.getStatement() != null) {
 			netInBytes += rrs.getStatement().getBytes().length;
+		}
         
 	}
 
@@ -414,8 +415,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			RowDataPacket rowDataPacket = new RowDataPacket(1);
 			rowDataPacket.read(row);
 			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), conn.getCharset());
-			if (shardingTablesSet.contains(table.toUpperCase()))
+			if (shardingTablesSet.contains(table.toUpperCase())) {
 				return;
+			}
 		}
 		row[3] = ++packetId;
 		

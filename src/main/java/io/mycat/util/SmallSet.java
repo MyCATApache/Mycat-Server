@@ -60,8 +60,9 @@ public final class SmallSet<E> extends AbstractSet<E> implements Set<E>, Cloneab
             single = e;
             return true;
         case 1:
-            if (isEquals(e, single))
+            if (isEquals(e, single)) {
                 return false;
+            }
             list = new ArrayList<E>(initSize);
             list.add(single);
             list.add(e);
@@ -70,8 +71,9 @@ public final class SmallSet<E> extends AbstractSet<E> implements Set<E>, Cloneab
         default:
             for (int i = 0; i < list.size(); ++i) {
                 E e1 = list.get(i);
-                if (isEquals(e1, e))
+                if (isEquals(e1, e)) {
                     return false;
+                }
             }
             list.add(e);
             ++size;
@@ -80,8 +82,9 @@ public final class SmallSet<E> extends AbstractSet<E> implements Set<E>, Cloneab
     }
 
     private boolean isEquals(E e1, E e2) {
-        if (e1 == null)
+        if (e1 == null) {
             return e2 == null;
+        }
         return e1.equals(e2);
     }
 
@@ -128,21 +131,24 @@ public final class SmallSet<E> extends AbstractSet<E> implements Set<E>, Cloneab
 
             @Override
             public void remove() {
-                if (!next)
+                if (!next) {
                     throw new IllegalStateException();
+                }
                 switch (size) {
                 case 0:
                     throw new IllegalStateException();
                 case 1:
                     size = i = 0;
                     single = null;
-                    if (list != null && !list.isEmpty())
+                    if (list != null && !list.isEmpty()) {
                         list.remove(0);
+                    }
                     break;
                 default:
                     list.remove(--i);
-                    if (--size == 1)
+                    if (--size == 1) {
                         single = list.get(0);
+                    }
                     break;
                 }
                 next = false;

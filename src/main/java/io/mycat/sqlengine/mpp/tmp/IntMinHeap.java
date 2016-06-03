@@ -31,12 +31,15 @@ public class IntMinHeap {
         int r = right(i);
         int max = i;
         int len = data.length;
-        if (l < len && data[l] < data[i])
+        if (l < len && data[l] < data[i]) {
             max = l;
-        if (r < len && data[r] < data[max])
+        }
+        if (r < len && data[r] < data[max]) {
             max = r;
-        if (i == max)
+        }
+        if (i == max) {
             return;
+        }
         swap(i, max);
         heapify(max);
     }
@@ -98,8 +101,9 @@ public class IntMinHeap {
         System.out.println(set);
         IntMinHeap heap = new IntMinHeap(data);
         heap.buildMinHeap();
-        while (it.hasNext())
+        while (it.hasNext()) {
             heap.addIfRequired(it.next());
+        }
         System.out.println(Arrays.toString(data));
     }
 }

@@ -104,8 +104,12 @@ public class DataNode{
 
 	@Override
 	public boolean equals(Object o){
-		if(o == null) return false;
-		if (this == o) return true;
+		if(o == null) {
+			return false;
+		}
+		if (this == o) {
+			return true;
+		}
 		
 		if(o instanceof DataNode){
 			DataNode other = (DataNode)o;

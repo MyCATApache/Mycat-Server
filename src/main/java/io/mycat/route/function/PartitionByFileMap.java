@@ -109,11 +109,13 @@ public class PartitionByFileMap extends AbstractPartitionAlgorithm implements Ru
 			
 			for (String line = null; (line = in.readLine()) != null;) {
 				line = line.trim();
-				if (line.startsWith("#") || line.startsWith("//"))
+				if (line.startsWith("#") || line.startsWith("//")) {
 					continue;
+				}
 				int ind = line.indexOf('=');
-				if (ind < 0)
+				if (ind < 0) {
 					continue;
+				}
 				try {
 					String key = line.substring(0, ind).trim();
 					int pid = Integer.parseInt(line.substring(ind + 1).trim());

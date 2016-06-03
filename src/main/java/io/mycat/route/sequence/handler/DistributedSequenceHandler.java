@@ -167,15 +167,18 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                     if (isLeader) {
                         return;
                     }
-                    while (!tryGetInstanceID()) ;
+                    while (!tryGetInstanceID()) {
+                    }
                     //心跳，需要考虑网络不通畅时，别人抢占了自己的节点，需要重新获取
 
                     try {
-                        if (isLeader)
+                        if (isLeader) {
                             return;
+                        }
                         byte[] data = client.getData().forPath(PATH + "/instance/" + instanceId);
                         if (data == null || !new String(data).equals(ID)) {
-                            while (!tryGetInstanceID()) ;
+                            while (!tryGetInstanceID()) {
+                            }
                         } else{
                             return;
                         }
@@ -193,10 +196,12 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             byte[] data = this.client.getData().forPath(PATH + "/next");
             String nextCounter = new String(data);
             this.instanceId = Integer.parseInt(nextCounter);
-            if (this.client.checkExists().forPath(PATH + "/instance/" + this.instanceId) == null)
+            if (this.client.checkExists().forPath(PATH + "/instance/" + this.instanceId) == null) {
                 this.client.create().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/instance/" + this.instanceId, ID.getBytes());
-            else
+            }
+            else {
                 return false;
+            }
             this.ready = true;
             return true;
         } catch (Exception e) {
@@ -265,7 +270,8 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     }
 
     private long blockUntilNextMillis(long time) {
-        while (System.currentTimeMillis() == time) ;
+        while (System.currentTimeMillis() == time) {
+        }
         return System.currentTimeMillis();
     }
 
@@ -283,8 +289,9 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         try {
             this.isLeader = true;
 
-            if (this.client.checkExists().forPath(PATH + "/instance/" + instanceId) == null)
+            if (this.client.checkExists().forPath(PATH + "/instance/" + instanceId) == null) {
                 this.client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/instance/" + instanceId, ID.getBytes());
+            }
 
             cache = new PathChildrenCache(client, PATH + "/instance", true);
             this.mark = new int[(int) maxinstanceId];
@@ -318,8 +325,9 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             cache.getListenable().addListener(listener);
             cache.start();
             reloadChild();
-            if (this.client.checkExists().forPath(PATH + "/next") == null)
+            if (this.client.checkExists().forPath(PATH + "/next") == null) {
                 this.client.create().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/next", ("" + nextFree()).getBytes());
+            }
             this.ready = true;
             Thread.currentThread().join();
         } catch (InterruptedException e) {
@@ -342,8 +350,9 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
 
     private int nextFree() {
         for (int i = 0; i < mark.length; i++) {
-            if (mark[i] != 1)
+            if (mark[i] != 1) {
                 return i;
+            }
         }
         return -1;
     }
