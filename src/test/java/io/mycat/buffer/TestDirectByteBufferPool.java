@@ -16,17 +16,20 @@ public class TestDirectByteBufferPool {
     @Test
     public void testAllocate() {
         int pageSize = 1024 * 1024 * 100;
-        int allocTimes = 1024 * 1024 * 100;
+        int allocTimes = 1024;
         DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 8,0);
         long start = System.currentTimeMillis();
         for (int i = 0; i < allocTimes; i++) {
             //System.out.println("allocate "+i);
             //long start=System.nanoTime();
-            int size = i % (1024 * 8) + 1;
+            int size = (i % 1024) + 1 ;
             ByteBuffer byteBufer = pool.allocate(size);
+            ByteBuffer byteBufer2 = pool.allocate(size);
+            ByteBuffer byteBufer3 = pool.allocate(size);
             //System.out.println("alloc "+size+" usage "+(System.nanoTime()-start));
             //start=System.nanoTime();
             pool.recycle(byteBufer);
+            pool.recycle(byteBufer3);
             //System.out.println("recycle usage "+(System.nanoTime()-start));
         }
         long used = (System.currentTimeMillis() - start);

@@ -27,6 +27,7 @@ package io.mycat;
 
 import io.mycat.config.ZkConfig;
 import io.mycat.config.model.SystemConfig;
+import io.mycat.route.factory.RouteStrategyFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

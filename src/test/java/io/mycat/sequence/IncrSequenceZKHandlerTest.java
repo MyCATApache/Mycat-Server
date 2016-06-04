@@ -22,9 +22,9 @@ import java.util.concurrent.ConcurrentSkipListSet;
  * @time 23:35 2016/5/6
  */
 public class IncrSequenceZKHandlerTest {
-    private final static int MAX_CONNECTION = 10;
-    private final static int threadCount = 10;
-    private final static int LOOP = 50;
+    private final static int MAX_CONNECTION = 5;
+    private final static int threadCount = 5;
+    private final static int LOOP = 5;
     TestingServer testingServer = null;
     IncrSequenceZKHandler incrSequenceZKHandler[];
     ConcurrentSkipListSet<Long> results;
@@ -57,7 +57,7 @@ public class IncrSequenceZKHandlerTest {
                         threads[j] = new Thread() {
                             @Override
                             public void run() {
-                                for (int i = 0; i < LOOP; i++) {
+                                for (int k = 0; k < LOOP; k++) {
                                     long key = incrSequenceZKHandler[a].nextId("GLOBAL");
                                     results.add(key);
                                 }
@@ -87,6 +87,6 @@ public class IncrSequenceZKHandlerTest {
         Assert.assertEquals(MAX_CONNECTION * LOOP * threadCount, results.size());
 //        Assert.assertTrue(results.pollLast().equals(MAX_CONNECTION * LOOP * threadCount + 1L));
 //        Assert.assertTrue(results.pollFirst().equals(2L));
-        System.out.println("Time elapsed:" + ((end - start) / 1000) + "s\n TPS:" + (MAX_CONNECTION * LOOP * threadCount / ((end - start) / 1000)) + "/s");
+        System.out.println("Time elapsed:" + ((double) (end - start + 1) / 1000.0) + "s\n TPS:" + ((double) (MAX_CONNECTION * LOOP * threadCount) / (double) (end - start + 1) * 1000.0) + "/s");
     }
 }

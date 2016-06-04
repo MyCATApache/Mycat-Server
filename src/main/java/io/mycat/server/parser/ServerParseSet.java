@@ -422,8 +422,8 @@ public final class ServerParseSet {
 					&& (c3 == 'S' || c3 == 's') && (c4 == 'I' || c4 == 'i')
 					&& (c5 == 'O' || c5 == 'o') && (c6 == 'N' || c6 == 'n')
 					&& stmt.charAt(++offset) == ' ') {
-				for (;;) {
-					if (stmt.length() > ++offset) {
+//				for (;;) {
+					while (stmt.length() > ++offset) {
 						switch (stmt.charAt(offset)) {
 						case ' ':
 						case '\r':
@@ -437,8 +437,8 @@ public final class ServerParseSet {
 							return OTHER;
 						}
 					}
-					return OTHER;
-				}
+//					return OTHER;
+//				}
 			}
 		}
 		return OTHER;
@@ -463,8 +463,8 @@ public final class ServerParseSet {
 					&& (c7 == 'T' || c7 == 't') && (c8 == 'I' || c8 == 'i')
 					&& (c9 == 'O' || c9 == 'o') && (c10 == 'N' || c10 == 'n')
 					&& stmt.charAt(++offset) == ' ') {
-				for (;;) {
-					if (stmt.length() > ++offset) {
+//				for (;;) {
+					while (stmt.length() > ++offset) {
 						switch (stmt.charAt(offset)) {
 						case ' ':
 						case '\r':
@@ -478,8 +478,8 @@ public final class ServerParseSet {
 							return OTHER;
 						}
 					}
-					return OTHER;
-				}
+//					return OTHER;
+//				}
 			}
 		}
 		return OTHER;
@@ -501,8 +501,8 @@ public final class ServerParseSet {
 					&& (c5 == 'T' || c5 == 't') && (c6 == 'I' || c6 == 'i')
 					&& (c7 == 'O' || c7 == 'o') && (c8 == 'N' || c8 == 'n')
 					&& stmt.charAt(++offset) == ' ') {
-				for (;;) {
-					if (stmt.length() > ++offset) {
+//				for (;;) {
+					while (stmt.length() > ++offset) {
 						switch (stmt.charAt(offset)) {
 						case ' ':
 						case '\r':
@@ -516,8 +516,8 @@ public final class ServerParseSet {
 							return OTHER;
 						}
 					}
-					return OTHER;
-				}
+//					return OTHER;
+//				}
 			}
 		}
 		return OTHER;
@@ -533,8 +533,8 @@ public final class ServerParseSet {
 			if ((c1 == 'E' || c1 == 'e') && (c2 == 'V' || c2 == 'v')
 					&& (c3 == 'E' || c3 == 'e') && (c4 == 'L' || c4 == 'l')
 					&& stmt.charAt(++offset) == ' ') {
-				for (;;) {
-					if (stmt.length() > ++offset) {
+//				for (;;) {
+					while (stmt.length() > ++offset) {
 						switch (stmt.charAt(offset)) {
 						case ' ':
 						case '\r':
@@ -551,8 +551,8 @@ public final class ServerParseSet {
 							return OTHER;
 						}
 					}
-					return OTHER;
-				}
+//					return OTHER;
+//				}
 			}
 		}
 		return OTHER;
@@ -627,8 +627,8 @@ public final class ServerParseSet {
 		if (stmt.length() > offset + 2) {
 			char c1 = stmt.charAt(++offset);
 			if ((c1 == 'D' || c1 == 'd') && stmt.charAt(++offset) == ' ') {
-				for (;;) {
-					if (stmt.length() > ++offset) {
+//				for (;;) {
+					while (stmt.length() > ++offset) {
 						switch (stmt.charAt(offset)) {
 						case ' ':
 						case '\r':
@@ -645,8 +645,8 @@ public final class ServerParseSet {
 							return OTHER;
 						}
 					}
-					return OTHER;
-				}
+//					return OTHER;
+//				}
 			}
 		}
 		return OTHER;
@@ -724,8 +724,8 @@ public final class ServerParseSet {
 					&& (c3 == 'T' || c3 == 't') && (c4 == 'A' || c4 == 'a')
 					&& (c5 == 'B' || c5 == 'b') && (c6 == 'L' || c6 == 'l')
 					&& (c7 == 'E' || c7 == 'e') && stmt.charAt(++offset) == ' ') {
-				for (;;) {
-					if (stmt.length() > ++offset) {
+//				for (;;) {
+					while (stmt.length() > ++offset) {
 						switch (stmt.charAt(offset)) {
 						case ' ':
 						case '\r':
@@ -739,8 +739,8 @@ public final class ServerParseSet {
 							return OTHER;
 						}
 					}
-					return OTHER;
-				}
+//					return OTHER;
+//				}
 			}
 		}
 		return OTHER;

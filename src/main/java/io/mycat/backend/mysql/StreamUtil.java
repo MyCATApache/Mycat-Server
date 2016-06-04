@@ -183,8 +183,9 @@ public class StreamUtil {
 
     public static final long readLength(InputStream in) throws IOException {
         int length = in.read();
-        if (length < 0)
+        if (length < 0) {
             throw new EOFException();
+        }
         switch (length) {
         case 251:
             return NULL_LENGTH;

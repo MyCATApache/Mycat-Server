@@ -661,7 +661,9 @@ public final class ServerParse {
                     if(stmt.startsWith("/*!mycat:")||stmt.startsWith("/*#mycat:")||stmt.startsWith("/*mycat:"))
                     {
                         Matcher matcher = callPattern.matcher(stmt);
-                        if (matcher.find()) return CALL;
+                        if (matcher.find()) {
+							return CALL;
+						}
                     }
 
 					char c = stmt.charAt(offset);

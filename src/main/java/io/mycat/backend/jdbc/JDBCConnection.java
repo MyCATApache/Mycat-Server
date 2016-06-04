@@ -268,15 +268,12 @@ public class JDBCConnection implements BackendConnection {
     {
         int jdbcIsolation=convertNativeIsolationToJDBC(nativeIsolation);
         int srcJdbcIsolation=   getTxIsolation();
-        if(jdbcIsolation==srcJdbcIsolation)return;
-        if("oracle".equalsIgnoreCase(getDbType())
-                &&jdbcIsolation!=Connection.TRANSACTION_READ_COMMITTED
-                &&jdbcIsolation!=Connection.TRANSACTION_SERIALIZABLE)
-        {
-            //oracle 只支持2个级别        ,且只能更改一次隔离级别，否则会报 ORA-01453
-            return;
-        }
-        try
+		if (jdbcIsolation == srcJdbcIsolation || "oracle".equalsIgnoreCase(getDbType())
+				&& jdbcIsolation != Connection.TRANSACTION_READ_COMMITTED
+				&& jdbcIsolation != Connection.TRANSACTION_SERIALIZABLE) {
+			return;
+		}
+		try
         {
             con.setTransactionIsolation(jdbcIsolation);
         } catch (SQLException e)
@@ -391,8 +388,9 @@ public class JDBCConnection implements BackendConnection {
     static
     {
         Object cursor = ObjectUtil.getStaticFieldValue("oracle.jdbc.OracleTypes", "CURSOR");
-        if(cursor!=null)
-            oracleCURSORTypeValue= (int) cursor  ;
+        if(cursor!=null) {
+			oracleCURSORTypeValue = (int) cursor;
+		}
     }
 	private void ouputCallStatement(RouteResultsetNode rrn,ServerConnection sc, String sql)
 			throws SQLException {
@@ -515,7 +513,9 @@ public class JDBCConnection implements BackendConnection {
 
                         Object object = stmt.getObject(paramter.getIndex());
                         rs= (ResultSet) object;
-                        if(rs==null)continue;
+                        if(rs==null) {
+							continue;
+						}
                         ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
                                 this.isSpark);
 

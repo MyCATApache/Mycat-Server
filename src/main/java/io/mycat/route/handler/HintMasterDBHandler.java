@@ -50,8 +50,9 @@ public class HintMasterDBHandler implements HintHandler {
 		LOGGER.debug("hintSQLValue:::::::::" + hintSQLValue); // slave
 		
 		if(hintSQLValue != null && !hintSQLValue.trim().equals("")){
-			if(hintSQLValue.trim().equalsIgnoreCase("master"))
+			if(hintSQLValue.trim().equalsIgnoreCase("master")) {
 				isRouteToMaster = true;
+			}
 			if(hintSQLValue.trim().equalsIgnoreCase("slave")){
 //				if(rrs.getCanRunInReadDB() != null && !rrs.getCanRunInReadDB()){
 //					isRouteToMaster = null;
@@ -75,11 +76,13 @@ public class HintMasterDBHandler implements HintHandler {
 			return rrs;
 		}
 		
-		if(isRouteToMaster)	// 强制走 master 
+		if(isRouteToMaster)	 {// 强制走 master
 			rrs.setRunOnSlave(false);
+		}
 		
-		if(!isRouteToMaster)// 强制走slave
+		if(!isRouteToMaster) {// 强制走slave
 			rrs.setRunOnSlave(true);
+		}
 		
 		LOGGER.debug("rrs.getRunOnSlave():" + rrs.getRunOnSlave());
 		return rrs;

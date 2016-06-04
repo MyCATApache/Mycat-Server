@@ -243,7 +243,9 @@ public class MongoSQLParser {
 		return 0;		
 	}
 	private int getSQLExprToAsc(SQLOrderingSpecification ASC){
-		if (ASC==null ) return 1;
+		if (ASC==null ) {
+			return 1;
+		}
 		if (ASC==SQLOrderingSpecification.DESC){
 			return -1;
 		}
@@ -260,7 +262,9 @@ public class MongoSQLParser {
         while(position<resource.length())   
         {   
             currentChar=resource.charAt(position++);   
-            if(currentChar!=ch) buffer.append(currentChar); 
+            if(currentChar!=ch) {
+				buffer.append(currentChar);
+			}
         } 
         return buffer.toString();   
     }  
@@ -346,13 +350,25 @@ public class MongoSQLParser {
 			  else {
 				  //BasicDBObject xo = new BasicDBObject();
 				  String op="";
-				  if (expr.getOperator().getName().equals("<"))   op="$lt";
-				  if (expr.getOperator().getName().equals("<="))  op="$lte";
-				  if (expr.getOperator().getName().equals(">"))   op="$gt";
-				  if (expr.getOperator().getName().equals(">="))  op="$gte";
+				  if (expr.getOperator().getName().equals("<")) {
+					  op = "$lt";
+				  }
+				  if (expr.getOperator().getName().equals("<=")) {
+					  op = "$lte";
+				  }
+				  if (expr.getOperator().getName().equals(">")) {
+					  op = "$gt";
+				  }
+				  if (expr.getOperator().getName().equals(">=")) {
+					  op = "$gte";
+				  }
 				  
-				  if (expr.getOperator().getName().equals("!="))  op="$ne";
-				  if (expr.getOperator().getName().equals("<>"))  op="$ne";
+				  if (expr.getOperator().getName().equals("!=")) {
+					  op = "$ne";
+				  }
+				  if (expr.getOperator().getName().equals("<>")) {
+					  op = "$ne";
+				  }
 				  //xo.put(op, getExpValue(expr.getRight()));
 				 // o.put(exprL.toString(),xo);
 				  parserDBObject(o,exprL.toString(),op, getExpValue(expr.getRight()));
@@ -371,13 +387,25 @@ public class MongoSQLParser {
 			  }
 			  else {
 				  String op="";
-				  if (expr.getOperator().getName().equals("<"))   op="$lt";
-				  if (expr.getOperator().getName().equals("<="))  op="$lte";
-				  if (expr.getOperator().getName().equals(">"))   op="$gt";
-				  if (expr.getOperator().getName().equals(">="))  op="$gte";
+				  if (expr.getOperator().getName().equals("<")) {
+					  op = "$lt";
+				  }
+				  if (expr.getOperator().getName().equals("<=")) {
+					  op = "$lte";
+				  }
+				  if (expr.getOperator().getName().equals(">")) {
+					  op = "$gt";
+				  }
+				  if (expr.getOperator().getName().equals(">=")) {
+					  op = "$gte";
+				  }
 				  
-				  if (expr.getOperator().getName().equals("!="))  op="$ne";
-				  if (expr.getOperator().getName().equals("<>"))  op="$ne";
+				  if (expr.getOperator().getName().equals("!=")) {
+					  op = "$ne";
+				  }
+				  if (expr.getOperator().getName().equals("<>")) {
+					  op = "$ne";
+				  }
 
 				  parserDBObject(o,exprL.toString(),op, getExpValue(expr.getRight()));
 			  }

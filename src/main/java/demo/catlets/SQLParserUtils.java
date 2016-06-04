@@ -46,8 +46,9 @@ public class SQLParserUtils {
 				}else if (value.indexOf("'")!=-1){
 					value = value.substring(value.indexOf("'")+1);
 					sFlag = false;
-				}else
+				}else {
 					continue;
+				}
 			}
 			//前面已经出现双引号，在再次出现双引号之前不做任何处理
 			if (dFlag){
@@ -57,8 +58,9 @@ public class SQLParserUtils {
 				}else if (value.indexOf("\"")!=-1){
 					value = value.substring(value.indexOf("\"")+1);
 					dFlag = false;
-				}else
+				}else {
 					continue;
+				}
 			}
 			//单引号在select，where部分不做处理
 			if (state != null && state.state !=1 && getCount(value,"'")%2==1){
@@ -143,8 +145,9 @@ public class SQLParserUtils {
 				tables.put(t[i].substring(0,t[i].length()-1), "");
 				stateStack.pop();
 				state = stateStack.peek();
-				if (state.state != 1)
+				if (state.state != 1){
 					break;
+				}
 			}else if (t[i].equals("(select")){
 				
 				state = new State();
@@ -152,11 +155,14 @@ public class SQLParserUtils {
 				stateStack.push(state);
 				break;
 			}else{
-				if (t[i].trim().length()>0 && !t[i].trim().equals("("))
+				if (t[i].trim().length()>0 && !t[i].trim().equals("(")) {
 					tables.put(t[i], "");
+				}
 			}
 		}
-		if (!str.endsWith(",")) tableFlag = false;
+		if (!str.endsWith(",")) {
+			tableFlag = false;
+		}
 	}
 	
 	
@@ -176,11 +182,13 @@ public class SQLParserUtils {
 		
 
 		Map<String,String> result = parse(sql);
-		if (result.size() != tables.length)
+		if (result.size() != tables.length) {
 			return false;
+		}
 		for (String tmp : tables){
-			if (result.get(tmp.toLowerCase())==null)
+			if (result.get(tmp.toLowerCase())==null) {
 				return false;
+			}
 		}
 		return true;
 			
@@ -284,9 +292,9 @@ public class SQLParserUtils {
 				System.out.println(tmp[0]+"--->"+tmp[1]);
 				Map<String,String> tables = parser.parse(tmp[0]);
 				System.out.print("表名：");
-				for (String key :tables.keySet())
-				  System.out.println(key);
-
+				for (String key :tables.keySet()) {
+					System.out.println(key);
+				}
 			}
 		}
 		// TODO Auto-generated method stub

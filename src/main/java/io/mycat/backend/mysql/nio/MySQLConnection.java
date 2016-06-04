@@ -347,7 +347,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		private void updateConnectionInfo(MySQLConnection conn)
 
 		{
-			conn.xaStatus = (xaStarted == true) ? 1 : 0;
+			conn.xaStatus = (xaStarted) ? 1 : 0;
 			if (schema != null) {
 				conn.schema = schema;
 				conn.oldSchema = conn.schema;

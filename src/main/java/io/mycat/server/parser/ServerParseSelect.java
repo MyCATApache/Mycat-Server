@@ -43,6 +43,8 @@ public final class ServerParseSelect {
 
     public static final int SELECT_VAR_ALL = 9;
 
+	public static final int SESSION_TX_READ_ONLY = 10;
+
 	private static final char[] _VERSION_COMMENT = "VERSION_COMMENT"
 			.toCharArray();
 	private static final char[] _IDENTITY = "IDENTITY".toCharArray();
@@ -103,7 +105,12 @@ public final class ServerParseSelect {
 		} else if (s
 				.startsWith("session.tx_isolation")) {
 			return SESSION_ISOLATION;
-		} else {
+		}
+		else if (s
+				.startsWith("session.tx_read_only")) {
+			return SESSION_TX_READ_ONLY;
+		}
+		else {
 			return OTHER;
 		}
 	}
@@ -176,8 +183,9 @@ public final class ServerParseSelect {
 	 */
 	private static int skipAlias(String stmt, int offset) {
 		offset = ParseUtil.move(stmt, offset, 0);
-		if (offset >= stmt.length())
+		if (offset >= stmt.length()) {
 			return offset;
+		}
 		switch (stmt.charAt(offset)) {
 		case '\'':
 			return skipString(stmt, offset);
@@ -188,8 +196,8 @@ public final class ServerParseSelect {
 		default:
 			if (CharTypes.isIdentifierChar(stmt.charAt(offset))) {
 				for (; offset < stmt.length()
-						&& CharTypes.isIdentifierChar(stmt.charAt(offset)); ++offset)
-					;
+						&& CharTypes.isIdentifierChar(stmt.charAt(offset)); ++offset) {
+				}
 				return offset;
 			}
 		}
@@ -206,10 +214,9 @@ public final class ServerParseSelect {
 	 */
 	private static int skipIdentifierEscape(String stmt, int offset) {
 		for (++offset; offset < stmt.length(); ++offset) {
-			if (stmt.charAt(offset) == '`') {
-				if (++offset >= stmt.length() || stmt.charAt(offset) != '`') {
+			if (stmt.charAt(offset) == '`'
+					&& (++offset >= stmt.length() || stmt.charAt(offset) != '`')) {
 					return offset;
-				}
 			}
 		}
 		return -1;
@@ -332,8 +339,8 @@ public final class ServerParseSelect {
 	 *         LAST_INSERT_ID
 	 */
 	public static int indexAfterLastInsertIdFunc(String stmt, int offset) {
-		if (stmt.length() >= offset + "LAST_INSERT_ID()".length()) {
-			if (ParseUtil.compare(stmt, offset, _LAST_INSERT_ID)) {
+		if (stmt.length() >= offset + "LAST_INSERT_ID()".length()
+				&& ParseUtil.compare(stmt, offset, _LAST_INSERT_ID)) {
 				offset = ParseUtil.move(stmt, offset + _LAST_INSERT_ID.length,
 						0);
 				if (offset + 1 < stmt.length() && stmt.charAt(offset) == '(') {
@@ -342,7 +349,6 @@ public final class ServerParseSelect {
 						return ++offset;
 					}
 				}
-			}
 		}
 		return -1;
 	}
@@ -432,8 +438,8 @@ public final class ServerParseSelect {
 	}
 
 	static int select2Check(String stmt, int offset) {
-		if (stmt.length() > ++offset && stmt.charAt(offset) == '@') {
-			if (stmt.length() > ++offset) {
+		if (stmt.length() > ++offset && stmt.charAt(offset) == '@'
+				&& stmt.length() > ++offset) {
 				switch (stmt.charAt(offset)) {
 				case 'V':
 				case 'v':
@@ -447,7 +453,6 @@ public final class ServerParseSelect {
 				default:
 					return OTHER;
 				}
-			}
 		}
 		return OTHER;
 	}
@@ -496,13 +501,12 @@ public final class ServerParseSelect {
 	 */
 	static int currentUserCheck(String stmt, int offset) {
 		int length = offset + _CURRENT_USER.length;
-		if (stmt.length() >= length) {
-			if (ParseUtil.compare(stmt, offset, _CURRENT_USER)) {
+		if (stmt.length() >= length
+				&& ParseUtil.compare(stmt, offset, _CURRENT_USER)) {
 				if (stmt.length() > length && stmt.charAt(length) != ' ') {
 					return OTHER;
 				}
 				return USER;
-			}
 		}
 		return OTHER;
 	}

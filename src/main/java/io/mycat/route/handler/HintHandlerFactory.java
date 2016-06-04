@@ -30,8 +30,9 @@ public class HintHandlerFactory {
     public static HintHandler getHintHandler(String hintType) {
     	if(!isInit) {
     		synchronized(HintHandlerFactory.class){
-    			if(!isInit)
-    				init();
+    			if(!isInit) {
+                    init();
+                }
     		}
     	}
     	return hintHandlerMap.get(hintType);

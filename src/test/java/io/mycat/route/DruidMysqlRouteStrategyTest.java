@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -30,18 +31,21 @@ import junit.framework.TestCase;
 public class DruidMysqlRouteStrategyTest extends TestCase {
     protected Map<String, SchemaConfig> schemaMap;
     protected LayerCachePool cachePool = new SimpleCachePool();
-    protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
+    protected RouteStrategy routeStrategy ;
 
     public DruidMysqlRouteStrategyTest() {
         String schemaFile = "/route/schema.xml";
         String ruleFile = "/route/rule.xml";
         SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
         schemaMap = schemaLoader.getSchemas();
+        RouteStrategyFactory.init();
+        routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
     }
 
     protected void setUp() throws Exception {
         // super.setUp();
         // schemaMap = CobarServer.getInstance().getConfig().getSchemas();
+
     }
 
 //	public void testAlias() throws Exception {
@@ -50,6 +54,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 //		RouteResultset rrs = routeStrategy.route(new SystemConfig(),schema, -1, sql, null,
 //				null, cachePool);
 //	}
+
 
     public void testRouteInsertShort() throws Exception {
         String sql = "inSErt into offer_detail (`offer_id`, gmt) values (123,now())";
@@ -335,7 +340,6 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SchemaConfig schema = schemaMap.get("cndb");
 
         String sql = "select * from independent where member='abc'";
-
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
                 cachePool);
         Assert.assertEquals(true, rrs.isCacheAble());

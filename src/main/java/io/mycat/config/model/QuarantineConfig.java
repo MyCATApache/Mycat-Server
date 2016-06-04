@@ -111,7 +111,7 @@ public final class QuarantineConfig {
 	}
 
 	public boolean existsHost(String host) {
-		return this.whitehost==null ? false : whitehost.get(host)!=null ;
+		return this.whitehost!=null && whitehost.get(host)!=null ;
 	}
 	public boolean canConnect(String host,String user) {
 		if(whitehost==null || whitehost.size()==0){
@@ -203,17 +203,18 @@ public final class QuarantineConfig {
 				InputStream dtd = XMLServerLoader.class.getResourceAsStream("/server.dtd");
 				InputSource is = new InputSource(dtd);
 				return is; 
-		    } else 
-		    	return null; 
+		    } else {
+				return null;
+			}
 			} 
 	}
-	public static void main(String[] args) throws Exception {
-        List<UserConfig> userConfigs = new ArrayList<UserConfig>();
-        UserConfig user = new UserConfig();
-        user.setName("mycat");
-        userConfigs.add(user);
-		updateToFile("127.0.0.1",userConfigs);
-	}
+//	public static void main(String[] args) throws Exception {
+//        List<UserConfig> userConfigs = new ArrayList<UserConfig>();
+//        UserConfig user = new UserConfig();
+//        user.setName("mycat");
+//        userConfigs.add(user);
+//		updateToFile("127.0.0.1",userConfigs);
+//	}
 	
 	
 }

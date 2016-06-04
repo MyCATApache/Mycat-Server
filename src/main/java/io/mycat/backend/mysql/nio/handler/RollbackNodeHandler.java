@@ -60,11 +60,8 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 		int started = 0;
 		for (final RouteResultsetNode node : session.getTargetKeys()) {
 			if (node == null) {
-				try {
 					LOGGER.error("null is contained in RoutResultsetNodes, source = "
 							+ session.getSource());
-				} catch (Exception e) {
-				}
 				continue;
 			}
 			final BackendConnection conn = session.getTarget(node);

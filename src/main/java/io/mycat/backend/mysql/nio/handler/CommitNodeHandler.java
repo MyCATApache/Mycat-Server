@@ -100,6 +100,8 @@ public class CommitNodeHandler implements ResponseHandler {
 					mysqlCon.setXaStatus(0);
 					break;
 				}
+				default:
+					LOGGER.error("Wrong XA status flag!");
 			}
 		}
 		session.clearResources(false);

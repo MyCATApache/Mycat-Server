@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.DirectByteBufferPool;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,7 @@ import io.mycat.util.TimeUtil;
 public final class NIOProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger("NIOProcessor");
 	private final String name;
-	private final DirectByteBufferPool bufferPool;
+	private final BufferPool bufferPool;
 	private final NameableExecutor executor;
 	private final ConcurrentMap<Long, FrontendConnection> frontends;
 	private final ConcurrentMap<Long, BackendConnection> backends;
@@ -56,7 +57,7 @@ public final class NIOProcessor {
 	//前端已连接数
 	private AtomicInteger frontendsLength = new AtomicInteger(0);
 
-	public NIOProcessor(String name, DirectByteBufferPool bufferPool,
+	public NIOProcessor(String name, BufferPool bufferPool,
 			NameableExecutor executor) throws IOException {
 		this.name = name;
 		this.bufferPool = bufferPool;
@@ -70,7 +71,7 @@ public final class NIOProcessor {
 		return name;
 	}
 
-	public DirectByteBufferPool getBufferPool() {
+	public BufferPool getBufferPool() {
 		return bufferPool;
 	}
 

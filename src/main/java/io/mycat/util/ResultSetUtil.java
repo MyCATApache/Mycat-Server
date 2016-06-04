@@ -21,15 +21,15 @@ public class ResultSetUtil {
 
 		int flags = 0;
 		if (metaData.isNullable(column) == 1) {
-			flags |= 0001;
+			flags |= 1;
 		}
 
 		if (metaData.isSigned(column)) {
-			flags |= 0020;
+			flags |= 16;
 		}
 
 		if (metaData.isAutoIncrement(column)) {
-			flags |= 0200;
+			flags |= 128;
 		}
 
 		return flags;

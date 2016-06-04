@@ -85,8 +85,9 @@ public class UserSqlHighStat {
 	class SqlParser {
 		
 		public String fixSql(String sql) {
-			if ( sql != null)
+			if ( sql != null) {
 				return sql.replace("\n", " ");
+			}
 			return sql;
 	    }
 		

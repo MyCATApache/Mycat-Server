@@ -122,7 +122,7 @@ public abstract class AbstractMultiTreadBatchTester {
 			String sqlTemplate = pros.getProperty("sql");
 			String batchSizeStr=pros.getProperty("batch");
 			String autocommitStr=pros.getProperty("autocommit");
-			boolean autocommit=autocommitStr==null?false:Boolean.valueOf(autocommitStr);
+			boolean autocommit= autocommitStr!=null && Boolean.valueOf(autocommitStr);
 			int batchSize=batchSizeStr==null?100:Integer.parseInt(batchSizeStr);
 			System.out.println("total record "+total+ " batch size:"+batchSize+" autocomit "+autocommit);
 			return createSQLTemplateJobs(total, sqlTemplate,batchSize,autocommit);

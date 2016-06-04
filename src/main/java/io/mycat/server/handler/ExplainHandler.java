@@ -72,8 +72,9 @@ public class ExplainHandler {
 		stmt = stmt.substring(offset);
 
 		RouteResultset rrs = getRouteResultset(c, stmt);
-		if (rrs == null)
+		if (rrs == null) {
 			return;
+		}
 
 		ByteBuffer buffer = c.allocate();
 
@@ -161,12 +162,16 @@ public class ExplainHandler {
 
     private static boolean isMycatSeq(String stmt, SchemaConfig schema)
     {
-        if(pattern.matcher(stmt).find())  return true;
+        if(pattern.matcher(stmt).find()) {
+			return true;
+		}
         SQLStatementParser parser =new MySqlStatementParser(stmt);
         MySqlInsertStatement statement = (MySqlInsertStatement) parser.parseStatement();
         String tableName=   statement.getTableName().getSimpleName();
         TableConfig tableConfig= schema.getTables().get(tableName.toUpperCase());
-        if(tableConfig==null) return false;
+        if(tableConfig==null) {
+			return false;
+		}
         if(tableConfig.isAutoIncrement())
         {
             boolean isHasIdInSql=false;
@@ -181,7 +186,9 @@ public class ExplainHandler {
                     break;
                 }
             }
-            if(!isHasIdInSql) return true;
+            if(!isHasIdInSql) {
+				return true;
+			}
         }
 
 

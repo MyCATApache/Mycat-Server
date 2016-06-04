@@ -60,11 +60,13 @@ public class RowDataSorter extends RowDataPacketSorter {
 	@Override
 	public List<RowDataPacket> getSortedResult() {
 		final List<RowDataPacket> data = heap.getData();
-		if (data.size() < 2)
+		if (data.size() < 2) {
 			return data;
+		}
 		
-		if (total - size > data.size())
+		if (total - size > data.size()) {
 			return Collections.emptyList();
+		}
 
 		// 构建最大堆并排序
 		if (!hasBuild) {

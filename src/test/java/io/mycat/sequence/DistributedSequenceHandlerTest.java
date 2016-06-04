@@ -59,16 +59,16 @@ public class DistributedSequenceHandlerTest {
     @Test
     public void testUniqueID() throws Exception {
         final ConcurrentHashMap<Long, String> idSet = new ConcurrentHashMap<>();
-        Thread thread[] = new Thread[100];
+        Thread thread[] = new Thread[10];
         long start = System.currentTimeMillis();
         //多少线程，注意线程数不能超过最大线程数（1<<threadBits）
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             thread[i] = new Thread() {
                 @Override
                 public void run() {
                     for (int j = 0; j < 100; j++) {
-                        for (int i = 0; i < 16; i++) {
-                            idSet.put(distributedSequenceHandler[i].nextId(""), "");
+                        for (int k = 0; k < 16; k++) {
+                            idSet.put(distributedSequenceHandler[k].nextId(""), "");
                         }
                     }
 
@@ -76,13 +76,13 @@ public class DistributedSequenceHandlerTest {
             };
             thread[i].start();
         }
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             thread[i].join();
         }
         long end = System.currentTimeMillis();
         System.out.println("Time elapsed:" + (double) (end - start) / 1000.0 + "s");
         System.out.println("ID/s:" + (((double) idSet.size()) / ((double) (end - start) / 1000.0)));
-        Assert.assertEquals(idSet.size(), 160000);
+        Assert.assertEquals(idSet.size(), 16000);
     }
 
     /**
@@ -147,7 +147,9 @@ public class DistributedSequenceHandlerTest {
     private int failLeader(int p) {
         int leader = 0, follower = 0;
         for (int i = 0; i < 16; i++) {
-            if (i == p) continue;
+            if (i == p) {
+                continue;
+            }
             if (distributedSequenceHandler[i].getLeaderSelector().hasLeadership()) {
                 leader = i;
             } else {
@@ -163,8 +165,12 @@ public class DistributedSequenceHandlerTest {
 
         while (true) {
             follower++;
-            if (follower >= 16) follower = 0;
-            if (follower == leader || follower == p) continue;
+            if (follower >= 16) {
+                follower = 0;
+            }
+            if (follower == leader || follower == p) {
+                continue;
+            }
             if (distributedSequenceHandler[follower].getLeaderSelector().hasLeadership()) {
                 break;
             }

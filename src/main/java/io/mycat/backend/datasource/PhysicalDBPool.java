@@ -114,10 +114,9 @@ public class PhysicalDBPool {
 
 	public PhysicalDatasource findDatasouce(BackendConnection exitsCon) {
 		for (PhysicalDatasource ds : this.allDs) {
-			if (ds.isReadNode() == exitsCon.isFromSlaveDB()) {
-				if (ds.isMyConnection(exitsCon)) {
+			if ((ds.isReadNode() == exitsCon.isFromSlaveDB())
+					&& ds.isMyConnection(exitsCon)) {
 					return ds;
-				}
 			}
 		}
 		
@@ -145,17 +144,16 @@ public class PhysicalDBPool {
 			}
 			case WRITE_RANDOM_NODE: {
 	
-				int index = Math.abs(wnrandom.nextInt()) % writeSources.length;
+				int index = Math.abs(wnrandom.nextInt(Integer.MAX_VALUE)) % writeSources.length;
 				PhysicalDatasource result = writeSources[index];
 				if (!this.isAlive(result)) {
 					
 					// find all live nodes
 					ArrayList<Integer> alives = new ArrayList<Integer>(writeSources.length - 1);
 					for (int i = 0; i < writeSources.length; i++) {
-						if (i != index) {
-							if (this.isAlive(writeSources[i])) {
+						if (i != index
+								&& this.isAlive(writeSources[i])) {
 								alives.add(i);
-							}
 						}
 					}
 					
@@ -163,7 +161,7 @@ public class PhysicalDBPool {
 						result = writeSources[0];
 					} else {						
 						// random select one
-						index = Math.abs(wnrandom.nextInt()) % alives.size();
+						index = Math.abs(wnrandom.nextInt(Integer.MAX_VALUE)) % alives.size();
 						result = writeSources[alives.get(index)];
 	
 					}
@@ -453,6 +451,8 @@ public class PhysicalDBPool {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("select read source " + theNode.getName() + " for dataHost:" + this.getHostName());
 		}
+		//统计节点读操作次数
+		theNode.setReadCount();
 		theNode.getConnection(schema, autocommit, handler, attachment);
 	}
 
@@ -471,6 +471,8 @@ public class PhysicalDBPool {
 		ArrayList<PhysicalDatasource> okSources = null;
 		okSources = getAllActiveRWSources(false, false, checkSlaveSynStatus());
 		theNode = randomSelect(okSources);
+		//统计节点读操作次数
+		theNode.setReadCount();
 		theNode.getConnection(schema, autocommit, handler, attachment);
 	}
     
@@ -490,11 +492,11 @@ public class PhysicalDBPool {
 		
 		LOGGER.debug("!readSources.isEmpty() " + !readSources.isEmpty());
 		if (!readSources.isEmpty()) {
-			int index = Math.abs(random.nextInt()) % readSources.size();
+			int index = Math.abs(random.nextInt(Integer.MAX_VALUE)) % readSources.size();
 			PhysicalDatasource[] allSlaves = this.readSources.get(index);
-			System.out.println("allSlaves.length " + allSlaves.length);
+//			System.out.println("allSlaves.length " + allSlaves.length);
 			if (allSlaves != null) {
-				index = Math.abs(random.nextInt()) % readSources.size();
+				index = Math.abs(random.nextInt(Integer.MAX_VALUE)) % readSources.size();
 				PhysicalDatasource slave = allSlaves[index];
 				
 				for (int i=0; i<allSlaves.length; i++) {
@@ -512,11 +514,18 @@ public class PhysicalDBPool {
 							break;
 						}
 					}
-					index = Math.abs(random.nextInt()) % readSources.size();
+//					index = Math.abs(random.nextInt()) % readSources.size();
 				}
 			}
-			theNode.getConnection(schema, autocommit, handler, attachment);
-			return true;
+			//统计节点读操作次数
+			if(theNode != null) {
+				theNode.setReadCount();
+				theNode.getConnection(schema, autocommit, handler, attachment);
+				return true;
+			} else {
+				LOGGER.warn("readhost is notavailable.");
+				return false;
+			}
 		}else{
 			LOGGER.warn("readhost is empty, readSources is empty.");
 			return false;
@@ -660,9 +669,9 @@ public class PhysicalDBPool {
 				
 				// TODO : add by zhuam	
 			    // 如果写节点不OK, 也要保证临时的读服务正常
-				if ( this.dataHostConfig.isTempReadHostAvailable() ) {
+				if ( this.dataHostConfig.isTempReadHostAvailable()
+						&& !readSources.isEmpty()) {
 				
-					if (!readSources.isEmpty()) {
 						// check all slave nodes
 						PhysicalDatasource[] allSlaves = this.readSources.get(i);
 						if (allSlaves != null) {
@@ -682,8 +691,7 @@ public class PhysicalDBPool {
 								}
 							}
 						}
-					}
-				}				
+				}
 			}
 
 		}

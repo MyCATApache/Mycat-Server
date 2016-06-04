@@ -168,7 +168,9 @@ public class DataMigrator {
 	//校验迁移计划中数据迁移情况同数据实际落盘是否一致
 	private void validate() throws SQLException {
 		for(TableMigrateInfo table:migrateTables){
-			if (table.isError()) continue;
+			if (table.isError()) {
+				continue;
+			}
 			long size = table.getSize().get();
 			long factSize = 0L;
 			for(DataNode dn:table.getNewDataNodes()){
@@ -231,7 +233,9 @@ public class DataMigrator {
 	}
 	
 	private void clearData(Map<File,DataNode> map,TableMigrateInfo table){
-		if(table.isError()) return;
+		if(table.isError()) {
+			return;
+		}
 		ExecutorService executor  =  new ThreadPoolExecutor(margs.getThreadCount(), margs.getThreadCount(),
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(),new ThreadPoolExecutor.CallerRunsPolicy());

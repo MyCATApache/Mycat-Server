@@ -98,8 +98,9 @@ public class ConfigInitializer {
 	}
 
 	private void checkConfig() throws ConfigException {
-		if (users == null || users.isEmpty())
+		if (users == null || users.isEmpty()) {
 			return;
+		}
 		for (UserConfig uc : users.values()) {
 			if (uc == null) {
 				continue;

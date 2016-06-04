@@ -148,16 +148,17 @@ public final class ShowServerLog {
 			String line = null;
 			while ((line = br.readLine()) != null) {
 				curLine++;
-				if (curLine >= start && curLine <= end) {
-					if ((pattern != null && pattern.matcher(line).find())
-							|| (pattern == null && key == null)
-							|| (key != null && line.toLowerCase().contains(key))) {
+				if (curLine >= start && curLine <= end
+						&& (
+						(pattern != null && pattern.matcher(line).find())
+								|| (pattern == null && key == null)
+								|| (key != null && line.toLowerCase().contains(key))
+						)) {
 						RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 						row.add(StringUtil.encode(curLine + "->" + line,
 								c.getCharset()));
 						row.packetId = ++packetId;
 						buffer = row.write(buffer, c,true);
-					}
 				}
 			}
 			bufINf.buffer = buffer;

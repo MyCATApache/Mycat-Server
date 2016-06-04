@@ -57,8 +57,8 @@ public final class ManagerParseSelect {
     }
 
     static int select2Check(String stmt, int offset) {
-        if (stmt.length() > ++offset && stmt.charAt(offset) == '@') {
-            if (stmt.length() > ++offset) {
+        if (stmt.length() > ++offset && stmt.charAt(offset) == '@'
+                && stmt.length() > ++offset) {
                 switch (stmt.charAt(offset)) {
                 case 'S':
                 case 's':
@@ -69,7 +69,6 @@ public final class ManagerParseSelect {
                 default:
                     return OTHER;
                 }
-            }
         }
         return OTHER;
     }
@@ -77,13 +76,12 @@ public final class ManagerParseSelect {
     // VERSION_COMMENT
     static int select2VCheck(String stmt, int offset) {
         int length = offset + _VERSION_COMMENT.length;
-        if (stmt.length() >= length) {
-            if (ParseUtil.compare(stmt, offset, _VERSION_COMMENT)) {
+        if (stmt.length() >= length
+                && ParseUtil.compare(stmt, offset, _VERSION_COMMENT)) {
                 if (stmt.length() > length && stmt.charAt(length) != ' ') {
                     return OTHER;
                 }
                 return VERSION_COMMENT;
-            }
         }
         return OTHER;
     }
@@ -91,13 +89,12 @@ public final class ManagerParseSelect {
     // SESSION.AUTO_INCREMENT_INCREMENT
     static int select2SCheck(String stmt, int offset) {
         int length = offset + _SESSION_AUTO_INCREMENT.length;
-        if (stmt.length() >= length) {
-            if (ParseUtil.compare(stmt, offset, _SESSION_AUTO_INCREMENT)) {
+        if (stmt.length() >= length
+                && ParseUtil.compare(stmt, offset, _SESSION_AUTO_INCREMENT)) {
                 if (stmt.length() > length && stmt.charAt(length) != ' ') {
                     return OTHER;
                 }
                 return SESSION_AUTO_INCREMENT;
-            }
         }
         return OTHER;
     }
