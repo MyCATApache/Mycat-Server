@@ -40,13 +40,13 @@ public class UserStatAnalyzer implements QueryResultListener {
     		long netOutBytes = query.getNetOutBytes();
     		long startTime = query.getStartTime();
     		long endTime = query.getEndTime();
-    		
+    		int resultSetSize=query.getResultSize();
         	UserStat userStat = userStatMap.get(user);
             if (userStat == null) {
                 userStat = new UserStat(user);
                 userStatMap.put(user, userStat);
             }                
-            userStat.update(sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime);	
+            userStat.update(sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime,resultSetSize);	
             break;
 		}
 	}

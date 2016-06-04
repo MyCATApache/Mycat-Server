@@ -273,12 +273,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				} finally {
 					lock.unlock();
 				}
-				
-				//TODO: add by zhuam
-				//查询结果派发
-				QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-						rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis());
-				QueryResultDispatcher.dispatchQuery( queryResult );
 			}
 		}
 	}
@@ -290,15 +284,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
 		
 		this.netOutBytes += eof.length;
-		
-		execCount++;
-		if (execCount == rrs.getNodes().length) {			
-			//TODO: add by zhuam
-			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis());
-			QueryResultDispatcher.dispatchQuery( queryResult );
-		}
 		
 		if (errorRepsponsed.get()) {
 			// the connection has been closed or set to "txInterrupt" properly
@@ -351,6 +336,16 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				}
 			}
 		}
+		execCount++;
+		if (execCount == rrs.getNodes().length) {
+			int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
+			//TODO: add by zhuam
+			//查询结果派发
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+					rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize);
+			QueryResultDispatcher.dispatchQuery( queryResult );
+		}
+
 	}
 
 	public void outputMergeResult(final ServerConnection source,
