@@ -462,7 +462,7 @@ public class RouterUtil {
 	}
 
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
-		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
+//		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
 		SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
 //		if(sequenceHandlerType == 3 || sequenceHandlerType == 4){
 //			DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
@@ -981,7 +981,7 @@ public class RouterUtil {
 			throw new SQLNonTransientException(msg);
 		} 
 		String partionCol = tableConfig.getPartitionColumn();
-		String primaryKey = tableConfig.getPrimaryKey();
+//		String primaryKey = tableConfig.getPrimaryKey();
         boolean isLoadData=false;
         
         Set<String> tablesRouteSet = new HashSet<String>();
