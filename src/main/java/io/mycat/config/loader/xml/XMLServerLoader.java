@@ -156,7 +156,7 @@ public class XMLServerLoader {
             	Element e = (Element) node;
              	String check = e.getAttribute("check");
              	if (null != check) {
-             		quarantine.setCheck(Boolean.valueOf(check));
+             		quarantine.setCheck(Boolean.parseBoolean(check));
 				}
 
                 Map<String, Object> props = ConfigUtil.loadElements((Element) node);
@@ -196,7 +196,7 @@ public class XMLServerLoader {
 				
 				String readOnly = (String) props.get("readOnly");
 				if (null != readOnly) {
-					user.setReadOnly(Boolean.valueOf(readOnly));
+					user.setReadOnly(Boolean.parseBoolean(readOnly));
 				}
 				
 				String schemas = (String) props.get("schemas");

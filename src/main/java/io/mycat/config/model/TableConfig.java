@@ -95,16 +95,13 @@ public class TableConfig {
 		}
 		
 		if(subTables!=null && !subTables.equals("")){
-			String sTables[] = null;
-			sTables = SplitUtil.split(subTables, ',', '$', '-');
-			
+			String sTables[] = SplitUtil.split(subTables, ',', '$', '-');
+			if (sTables == null || sTables.length <= 0) {
+				throw new IllegalArgumentException("invalid table subTables");
+			}
 			this.distTables = new ArrayList<String>(sTables.length);
 			for (String table : sTables) {
 				distTables.add(table);
-			}
-			
-			if (sTables == null || sTables.length <= 0) {
-				throw new IllegalArgumentException("invalid table subTables: " + sTables);
 			}
 		}else{
 			this.distTables = new ArrayList<String>();
@@ -246,7 +243,7 @@ public class TableConfig {
 	}
 
 	public String getRandomDataNode() {
-		int index = Math.abs(rand.nextInt()) % dataNodes.size();
+		int index = Math.abs(rand.nextInt(Integer.MAX_VALUE)) % dataNodes.size();
 		return dataNodes.get(index);
 	}
 

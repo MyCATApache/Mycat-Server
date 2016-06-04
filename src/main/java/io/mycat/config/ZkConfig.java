@@ -56,7 +56,7 @@ public class ZkConfig {
             throw new RuntimeException("can't find myid properties file : " + ZK_CONFIG_FILE_NAME);
         }
 
-        if (Boolean.valueOf(pros.getProperty("loadZk"))) {
+        if (Boolean.parseBoolean(pros.getProperty("loadZk"))) {
             //validate
             String zkURL = pros.getProperty("zkURL");
             String myid = pros.getProperty("myid");

@@ -362,7 +362,7 @@ public class MycatServer {
 				LOGGER.info("init datahost: " + node.getHostName()
 						+ "  to use datasource index:" + index);
 			}
-			node.init(Integer.valueOf(index));
+			node.init(Integer.parseInt(index));
 			node.startHeartbeat();
 		}
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
