@@ -95,8 +95,7 @@ public class ExplainHandler {
 		buffer = eof.write(buffer, c,true);
 
 		// write rows
-		RouteResultsetNode[] rrsn = (rrs != null) ? rrs.getNodes()
-				: EMPTY_ARRAY;
+		RouteResultsetNode[] rrsn =  rrs.getNodes();
 		for (RouteResultsetNode node : rrsn) {
 			RowDataPacket row = getRow(node, c.getCharset());
 			row.packetId = ++packetId;
