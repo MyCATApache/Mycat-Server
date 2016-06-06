@@ -608,7 +608,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					{
 						column = StringUtil.removeBackquote(expr.toString());
 					}
-				}catch (Exception e){
+				}catch (ClassCastException e){
 					if (sqlExpr instanceof SQLPropertyExpr){
 						column = ((SQLPropertyExpr) sqlExpr).toString();
 					}else {
