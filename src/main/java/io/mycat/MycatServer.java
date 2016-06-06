@@ -412,7 +412,7 @@ public class MycatServer {
 	 * 
 	 */
 	private Runnable resultSetMapClear() {
-		return new TimerTask() {
+		return new Runnable() {
 			@Override
 			public void run() {
 				try {
