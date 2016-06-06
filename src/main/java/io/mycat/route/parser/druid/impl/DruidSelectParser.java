@@ -598,18 +598,23 @@ public class DruidSelectParser extends DefaultDruidParser {
             {
                 column=((SQLIdentifierExpr) sqlExpr).getName();
             } else if(sqlExpr instanceof SQLMethodInvokeExpr){
-				column = ((SQLMethodInvokeExpr) sqlExpr).toString();
-			} else {
-                //todo czn
-                SQLExpr expr = ((MySqlOrderingExpr) sqlExpr).getExpr();
-
-                if (expr instanceof SQLName)
-                {
-                    column = StringUtil.removeBackquote(((SQLName) expr).getSimpleName());//不要转大写 2015-2-10 sohudo StringUtil.removeBackquote(expr.getSimpleName().toUpperCase());
-                } else
-                {
-                    column = StringUtil.removeBackquote(expr.toString());
-                }
+				SQLExpr sqlExprTmp=sqlExpr;
+				try {
+					SQLExpr expr = ((MySqlOrderingExpr) sqlExprTmp).getExpr();
+					if (expr instanceof SQLName)
+					{
+						column = StringUtil.removeBackquote(((SQLName) expr).getSimpleName());//不要转大写 2015-2-10 sohudo StringUtil.removeBackquote(expr.getSimpleName().toUpperCase());
+					} else
+					{
+						column = StringUtil.removeBackquote(expr.toString());
+					}
+				}catch (Exception e){
+					if (sqlExpr instanceof SQLPropertyExpr){
+						column = ((SQLPropertyExpr) sqlExpr).toString();
+					}else {
+						throw new ClassCastException(e.getMessage());
+					}
+				}
             }
 			int dotIndex=column.indexOf(".") ;
 			int bracketIndex=column.indexOf("(") ;
