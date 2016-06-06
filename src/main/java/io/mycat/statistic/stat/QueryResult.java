@@ -16,9 +16,11 @@ public class QueryResult {
 	private long netOutBytes;	//NET OUT 字节数
 	private long startTime;		//开始时间
 	private long endTime;		//结束时间
+	private int resultSize;     //结果集大小
 	
 	public QueryResult(String user, int sqlType, String sql, long sqlRows, 
-			long netInBytes, long netOutBytes, long startTime, long endTime) {
+			long netInBytes, long netOutBytes, long startTime, long endTime
+			,int resultSize) {
 		super();
 		this.user = user;
 		this.sqlType = sqlType;
@@ -28,6 +30,7 @@ public class QueryResult {
 		this.netOutBytes = netOutBytes;
 		this.startTime = startTime;
 		this.endTime = endTime;
+		this.resultSize=resultSize;
 	}
 
 	public String getUser() {
@@ -60,5 +63,9 @@ public class QueryResult {
 
 	public long getEndTime() {
 		return endTime;
+	}
+	
+	public int getResultSize() {
+		return resultSize;
 	}
 }

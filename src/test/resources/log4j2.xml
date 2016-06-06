@@ -5,7 +5,7 @@
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] (%l) - %m%n"/>
         </Console>
 
-        <RollingFile name="RollingFile" fileName="/logs/mycat.log"
+        <RollingFile name="RollingFile" fileName="logs/mycat.log"
                      filePattern="logs/$${date:yyyy-MM}/mycat-%d{MM-dd}-%i.log.gz">
             <PatternLayout>
                 <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] (%l) - %m%n</Pattern>

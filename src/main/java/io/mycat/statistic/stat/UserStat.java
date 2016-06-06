@@ -51,6 +51,11 @@ public class UserStat {
 	private SQLRecorder sqlRecorder;
 	
 	/**
+	 * 大结果集记录
+	 */
+	private SqlResultSizeRecorder sqlResultSizeRecorder = null;
+	
+	/**
 	 * 读写锁
 	 */
 //	private ReentrantReadWriteLock lock  = new ReentrantReadWriteLock();
@@ -66,6 +71,7 @@ public class UserStat {
 		this.sqlLargeStat = new UserSqlLargeStat(10);
 		this.sqlHighStat = new UserSqlHighStat();		
 		this.sqlRecorder = new SQLRecorder( size );
+		this.sqlResultSizeRecorder =  new SqlResultSizeRecorder();
 	}
 
 	public String getUser() {
@@ -92,6 +98,11 @@ public class UserStat {
 		return this.sqlHighStat;
 	}
 	
+	public SqlResultSizeRecorder getSqlResultSizeRecorder() {
+		return this.sqlResultSizeRecorder;
+	}
+	
+	
 	public void setSlowTime(long time) {
 		this.SQL_SLOW_TIME = time;
 		this.sqlRecorder.clear();
@@ -111,6 +122,7 @@ public class UserStat {
 	
 	public void reset() {		
 		this.sqlRecorder.clear();
+		this.sqlResultSizeRecorder.clearSqlResultSet();
 		this.sqlRwStat.reset();
 		this.sqlLastStat.reset();
 		
@@ -126,7 +138,7 @@ public class UserStat {
 	 * @param startTime
 	 */
 	public void update(int sqlType, String sql, long sqlRows, 
-			long netInBytes, long netOutBytes, long startTime, long endTime) {	
+			long netInBytes, long netOutBytes, long startTime, long endTime ,int rseultSetSize) {	
 		
 		//before 计算最大并发数
 		//-----------------------------------------------------
@@ -169,6 +181,11 @@ public class UserStat {
 			//记录SQL Select 返回超过 10000 行的 大结果集
 			if ( sqlType == ServerParse.SELECT && sqlRows > 10000 ) {
 				this.sqlLargeStat.add(sql, sqlRows, executeTime, startTime, endTime);
+			}
+			
+			//记录超过阈值的大结果集sql
+			if(rseultSetSize>=MycatServer.getInstance().getConfig().getSystem().getMaxResultSet()){
+			    this.sqlResultSizeRecorder.addSql(sql, rseultSetSize);
 			}
 			
 //        } finally {

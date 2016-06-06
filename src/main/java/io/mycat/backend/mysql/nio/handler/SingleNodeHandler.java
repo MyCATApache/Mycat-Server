@@ -299,11 +299,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
             
 			this.affectedRows = ok.affectedRows;
 			
-			//TODO: add by zhuam
-			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis());
-			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 	}
 
@@ -329,13 +324,15 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, allocBuffer());
+		int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
+		resultSize=resultSize+buffer.position();
 		source.write(buffer);
-		
 		//TODO: add by zhuam
 		//查询结果派发
 		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-				rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis());
+				rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize);
 		QueryResultDispatcher.dispatchQuery( queryResult );
+		
 	}
 
 	/**
