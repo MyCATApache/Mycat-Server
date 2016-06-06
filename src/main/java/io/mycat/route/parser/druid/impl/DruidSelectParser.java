@@ -593,7 +593,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		String[] groupByCols = new String[groupByItems.size()]; 
 		for(int i= 0; i < groupByItems.size(); i++) {
             SQLExpr sqlExpr = groupByItems.get(i);
-            String column;
+            String column=null;
             if(sqlExpr instanceof SQLIdentifierExpr )
             {
                 column=((SQLIdentifierExpr) sqlExpr).getName();
