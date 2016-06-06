@@ -23,7 +23,9 @@
  */
 package io.mycat.sqlengine.mpp;
 
-public class ColMeta {
+import java.io.Serializable;
+
+public class ColMeta implements Serializable{
 	public static final int COL_TYPE_DECIMAL = 0;
 	public static final int COL_TYPE_INT = 1;
 	public static final int COL_TYPE_SHORT = 2;

@@ -82,7 +82,7 @@ public class UserSqlHighStat {
 	
 
 	
-	class SqlParser {
+	private static class SqlParser {
 		
 		public String fixSql(String sql) {
 			if ( sql != null) {

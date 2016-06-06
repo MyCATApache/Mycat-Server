@@ -67,7 +67,7 @@ public class PartitionByPattern extends AbstractPartitionAlgorithm implements Ru
 		if (!isNumeric(columnValue)) {
 			return defaultNode;
 		}
-		long value = Long.valueOf(columnValue);
+		long value = Long.parseLong(columnValue);
 		Integer rst = null;
 		for (LongRange longRang : this.longRongs) {
 			long hash = value % patternValue;
@@ -106,7 +106,6 @@ public class PartitionByPattern extends AbstractPartitionAlgorithm implements Ru
 							+ line);
 					continue;
 				}
-				try {
 					String pairs[] = line.substring(0, ind).trim().split("-");
 					long longStart = Long.parseLong(pairs[0].trim());
 					long longEnd = Long.parseLong(pairs[1].trim());
@@ -115,8 +114,6 @@ public class PartitionByPattern extends AbstractPartitionAlgorithm implements Ru
 					longRangeList
 							.add(new LongRange(nodeId, longStart, longEnd));
 
-				} catch (Exception e) {
-				}
 			}
 			longRongs = longRangeList.toArray(new LongRange[longRangeList
 					.size()]);

@@ -33,12 +33,12 @@ public class DruidAlterTableParser extends DefaultDruidParser {
 		
 	}
 
-    public static void main(String[] args)
-    {
-        String s="SELECT Customer,SUM(OrderPrice) FROM Orders\n" +
-                "GROUP BY Customer";
-        SQLStatementParser parser = new MySqlStatementParser(s);
-        SQLStatement statement = parser.parseStatement();
-        System.out.println();
-    }
+//    public static void main(String[] args)
+//    {
+//        String s="SELECT Customer,SUM(OrderPrice) FROM Orders\n" +
+//                "GROUP BY Customer";
+//        SQLStatementParser parser = new MySqlStatementParser(s);
+//        SQLStatement statement = parser.parseStatement();
+//        System.out.println();
+//    }
 }

@@ -136,7 +136,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         if ("ZK".equals(props.getProperty("INSTANCEID"))) {
             initializeZK(props.getProperty("ZK"));
         } else {
-            this.instanceId = Long.valueOf(props.getProperty("INSTANCEID"));
+            this.instanceId = Long.parseLong(props.getProperty("INSTANCEID"));
             this.ready = true;
         }
         this.clusterId = Long.valueOf(props.getProperty("CLUSTERID"));
@@ -319,6 +319,10 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                             client.setData().forPath(PATH + "/next", ("" + nextFree()).getBytes());
                             break;
                         }
+
+                        default:
+                            LOGGER.warn("Unhanlded ZK nodes cache exception");
+                            break;
                     }
                 }
             };

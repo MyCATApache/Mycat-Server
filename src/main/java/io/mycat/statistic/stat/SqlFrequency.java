@@ -76,4 +76,13 @@ public class SqlFrequency implements Comparable<SqlFrequency>{
 		long para2 = o.lastTime - lastTime;
 		return  para == 0L ? (int)(para2 == 0L ? o.allExecuteTime - allExecuteTime : para2) : (int)para ;
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof SqlFrequency) {
+			return this.compareTo((SqlFrequency)obj) == 0;
+		} else {
+			return super.equals(obj);
+		}
+	}
 }

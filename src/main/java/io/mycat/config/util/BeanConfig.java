@@ -79,6 +79,11 @@ public class BeanConfig implements Cloneable {
 
     @Override
     public Object clone() {
+        try {
+            super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new ConfigException(e);
+        }
         BeanConfig bc = null;
         try {
             bc = getClass().newInstance();
@@ -87,13 +92,13 @@ public class BeanConfig implements Cloneable {
         } catch (IllegalAccessException e) {
             throw new ConfigException(e);
         }
-        if (bc == null) {
-            return null;
-        }
+//        if (bc == null) {
+//            return null;
+//        }
         bc.className = className;
         bc.name = name;
-        Map<String, Object> params = new HashMap<String, Object>();
-        params.putAll(params);
+//        Map<String, Object> params = new HashMap<String, Object>();
+//        params.putAll(params);
         return bc;
     }
 
