@@ -3,7 +3,8 @@ package io.mycat.config.loader.zookeeper;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
-import org.json.JSONObject;
+
+import com.alibaba.fastjson.JSONObject;
 
 import io.mycat.config.loader.zookeeper.loader.ClusterLoader;
 import io.mycat.config.loader.zookeeper.loader.MysqlGroupLoader;
