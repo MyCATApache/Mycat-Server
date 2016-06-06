@@ -124,7 +124,7 @@ public class TableStatAnalyzer implements QueryResultListener {
 	/**
 	 * 解析 table name
 	 */
-	class SQLParser {
+	private static class SQLParser {
 		
 		private SQLStatement parseStmt(String sql) {
 			SQLStatementParser statParser = SQLParserUtils.createSQLStatementParser(sql, "mysql");
