@@ -238,7 +238,7 @@ public class ZookeeperSaver {
             .setUrl(currentWriteJson.getString("ip") + ":" + currentWriteJson.getInteger("port"));
         currentWrite.setUser(currentWriteJson.getString("user"));
 
-        if (StringUtils.isNotEmpty(dataHostJson.getString("usingDecrypt"))) {
+        if (StringUtils.isNotEmpty(currentWriteJson.getString("usingDecrypt"))) {
             currentWrite.setUsingDecrypt(currentWriteJson.getBoolean("usingDecrypt"));
         }
 
@@ -260,7 +260,7 @@ public class ZookeeperSaver {
                 readHost.setUser(currentWriteJson.getString("user"));
                 readHost.setWeight(readHostJson.getString("weight"));
 
-                if (StringUtils.isNotEmpty(dataHostJson.getString("usingDecrypt"))) {
+                if (StringUtils.isNotEmpty(readHostJson.getString("usingDecrypt"))) {
                     readHost.setUsingDecrypt(readHostJson.getBoolean("usingDecrypt"));
                 }
                 readHosts.add(readHost);
