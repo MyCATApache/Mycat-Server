@@ -1339,12 +1339,16 @@ public class RouterUtil {
 			}
 			//取得joinkey的值
 			String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
+			String realVal = joinKeyVal;
+			if (joinKeyVal.startsWith("'") && joinKeyVal.endsWith("'")) {
+				realVal = joinKeyVal.substring(1, joinKeyVal.length() - 1);
+			}
 
 			String sql = insertStmt.toString();
 
 			// try to route by ER parent partion key
 			//如果是二级子表（父表不再有父表）,并且分片字段正好是joinkey字段，调用routeByERParentKey
-			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, joinKeyVal);
+			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, realVal);
 			if (theRrs != null) {
 				boolean processedInsert=false;
 				//判断是否需要全局序列号
