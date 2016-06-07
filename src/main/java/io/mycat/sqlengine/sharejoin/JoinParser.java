@@ -87,10 +87,10 @@ public class JoinParser {
 			SQLExpr expr=table1.getCondition();//SQLBinaryOpExpr
 			parserJoinKey(expr);
 		}
-		else {
-			tFilter=setTableFilter(tFilter,getTableFilter(table,isOutJoin));
+//		else {
+//			tFilter=setTableFilter(tFilter,getTableFilter(table,isOutJoin));
 		//	LOGGER.info("table "+table.toString() +" Alias:"+table.getAlias()+" Hints:"+table.getHints());
-		}		
+//		}
 	}
 	private TableFilter setTableFilter(TableFilter tFilter,TableFilter newFilter){
 		if (tFilter==null) {
@@ -122,11 +122,11 @@ public class JoinParser {
 	}
 	
 	private String getExprFieldName(SQLAggregateExpr expr){
-		String field="";
+		StringBuilder field = new StringBuilder();
 		for (SQLExpr item :expr.getArguments()){
-			field+=item.toString();
+			field.append(item.toString());
 		}		
-		return expr.getMethodName()+"("+field+")";		
+		return expr.getMethodName()+"("+field.toString()+")";
 	}
 	
 	private String getFieldName(SQLSelectItem item){

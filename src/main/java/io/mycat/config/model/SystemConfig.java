@@ -115,7 +115,7 @@ public final class SystemConfig {
 	//默认值0
 	private int  flowControlRejectStrategy=0;
 	//清理大结果集记录周期
-	private long clearBigSqLResultSetMapMs=10*601000;
+	private long clearBigSqLResultSetMapMs=10*60*1000;
 
 	private int defaultMaxLimit = DEFAULT_MAX_LIMIT;
 	public static final int SEQUENCEHANDLER_LOCALFILE = 0;
@@ -736,6 +736,11 @@ public final class SystemConfig {
 				+ ", bufferPoolPageSize=" + bufferPoolPageSize
 				+ ", bufferPoolChunkSize=" + bufferPoolChunkSize
 				+ ", bufferPoolPageNumber=" + bufferPoolPageNumber
+				+ ", maxResultSet=" +maxResultSet
+				+ ", bigResultSizeSqlCount="+bigResultSizeSqlCount
+				+ ", bufferUsagePercent="+bufferUsagePercent
+				+ ", flowControlRejectStrategy="+flowControlRejectStrategy
+				+ ", clearBigSqLResultSetMapMs="+clearBigSqLResultSetMapMs
 				+ ", defaultMaxLimit=" + defaultMaxLimit
 				+ ", sequnceHandlerType=" + sequnceHandlerType
 				+ ", sqlInterceptor=" + sqlInterceptor

@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  */
 public class UserSqlLastStat {
-	private final int MAX_RECORDS = 1024;
+	private static final int MAX_RECORDS = 1024;
 	private SortedSet<SqlLast> sqls;
 	 
 	public UserSqlLastStat(int count) {		
@@ -55,7 +55,7 @@ public class UserSqlLastStat {
     /**
      * 记录SQL
      */
-    public class SqlLast implements Comparable<SqlLast>{
+    public static class SqlLast implements Comparable<SqlLast>{
     	
     	private String sql;
     	private long executeTime;
@@ -90,6 +90,15 @@ public class UserSqlLastStat {
 		public int compareTo(SqlLast o) {
 			long st1 = o == null ? 0 : o.getStartTime();
 			return (int) ( st1 - this.getStartTime());
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if(obj instanceof SqlLast) {
+				return this.compareTo((SqlLast)obj) == 0;
+			} else {
+				return super.equals(obj);
+			}
 		}
 	}
     

@@ -300,8 +300,8 @@ class SequenceVal {
 						"sequnce not found in db table ");
 			} else if (dbretVal != null) {
 				String[] items = dbretVal.split(",");
-				Long curVal = Long.valueOf(items[0]);
-				int span = Integer.valueOf(items[1]);
+				Long curVal = Long.parseLong(items[0]);
+				int span = Integer.parseInt(items[1]);
 				return new Long[] { curVal, curVal + span };
 			} else {
 				try {

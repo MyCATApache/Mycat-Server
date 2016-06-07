@@ -53,7 +53,7 @@ public class MySQLTableStructureDetector implements Runnable {
         }
     }
 
-    private class MySQLTableStructureListener implements SQLQueryResultListener<SQLQueryResult<Map<String, String>>> {
+    private static class MySQLTableStructureListener implements SQLQueryResultListener<SQLQueryResult<Map<String, String>>> {
         private String dataNode;
         private TableConfig table;
 
@@ -102,7 +102,7 @@ public class MySQLTableStructureDetector implements Runnable {
         }
     }
 
-    public static void main(String[] args) {
-        System.out.println(UUID.randomUUID());
-    }
+//    public static void main(String[] args) {
+//        System.out.println(UUID.randomUUID());
+//    }
 }

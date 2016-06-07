@@ -86,7 +86,7 @@ public class ClusterConfig {
                 if (null == wei || "".equals(wei)) {
                     throw new ConfigException("weight should not be null in host:" + host);
                 }
-                int weight = Integer.valueOf(wei);
+                int weight = Integer.parseInt(wei);
                 if (weight <= 0) {
                     throw new ConfigException("weight should be > 0 in host:" + host + " weight:" + weight);
                 }

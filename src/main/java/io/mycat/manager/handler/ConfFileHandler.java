@@ -71,7 +71,7 @@ public final class ConfFileHandler {
 	static {
 		int i = 0;
 		byte packetId = 0;
-		header.packetId = ++packetId;
+		header.packetId = 1;
 
 		fields[i] = PacketUtil.getField("DATA", Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;

@@ -215,7 +215,7 @@ public final class ServerParse {
 					&& (c3 == 'N' || c3 == 'n')
 					&& (c4 == 'C' || c4 == 'c')
 					&& (c5 == 'A' || c5 == 'a')
-					&& (c6 == 't' || c6 == 't')
+					&& (c6 == 'T' || c6 == 't')
 					&& (c7 == 'E' || c7 == 'e')
 					&& (c8 == ' ' || c8 == '\t' || c8 == '\r' || c8 == '\n')) {
 				return DDL;

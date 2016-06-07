@@ -91,7 +91,7 @@ public class TableStat implements Comparable<TableStat> {
     }
     
 	public int getCount() {
-		return new Long(getRCount()+getWCount()).intValue();
+		return (int)(getRCount()+getWCount());
 	}    
 	
     public List<RelaTable> getRelaTables() {    	
@@ -111,6 +111,14 @@ public class TableStat implements Comparable<TableStat> {
 		return para == 0? (para2 == 0? o.getTable().hashCode() - getTable().hashCode() :(int) para2) : (int)para ;
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof TableStat) {
+			return this.compareTo((TableStat)obj) == 0;
+		} else {
+			return super.equals(obj);
+		}
+	}
 
 	/**
      * 关联表
