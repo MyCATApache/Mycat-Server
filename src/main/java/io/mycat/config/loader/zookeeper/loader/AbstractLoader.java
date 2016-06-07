@@ -2,7 +2,9 @@ package io.mycat.config.loader.zookeeper.loader;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.ZKPaths;
-import org.json.JSONObject;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -27,9 +29,9 @@ public abstract class AbstractLoader {
 
         //terminal condition,have not child node.
         if (childNames.isEmpty()) {
-            return new JSONObject(getDataToString(path));
+            return JSON.parseObject(getDataToString(path));
         } else {
-            JSONObject jsonObject = new JSONObject(getDataToString(path));
+            JSONObject jsonObject = JSON.parseObject((getDataToString(path)));
             for (String childName : childNames) {
                 final String childPath = ZKPaths.makePath(path, childName);
                 jsonObject.put(childName, takeData(childPath));

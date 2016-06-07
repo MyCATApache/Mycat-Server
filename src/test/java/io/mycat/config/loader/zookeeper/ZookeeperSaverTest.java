@@ -9,10 +9,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import com.alibaba.fastjson.JSONObject;
 
 import io.mycat.config.ZkConfig;
 import io.mycat.config.ZookeeperTestServer;

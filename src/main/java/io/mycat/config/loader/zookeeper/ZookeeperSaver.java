@@ -1,5 +1,7 @@
 package io.mycat.config.loader.zookeeper;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 
@@ -7,11 +9,11 @@ import io.mycat.config.loader.zookeeper.entitiy.*;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.util.ConfigException;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
+
+import org.apache.commons.lang.StringUtils;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -71,11 +73,16 @@ public class ZookeeperSaver {
 
             Schemas.Schema schema = new Schemas.Schema();
             schema.setName(schemaJson.getString("name"));
-            schema.setDataNode(schemaJson.optString("dataNode", null));
-            schema.setSqlMaxLimit(schemaJson.optInt("defaultMaxLimit", 100));
+            schema.setDataNode(schemaJson.getString("dataNode"));
+            Integer defaultMaxLimit = schemaJson.getInteger("defaultMaxLimit");
+            if(null!=defaultMaxLimit){
+               schema.setSqlMaxLimit(defaultMaxLimit);
+            }else{
+               schema.setSqlMaxLimit(100);	
+            }
 
-            if (schemaJson.has("checkSQLSchema")) {
-                schema.setCheckSQLschema(schemaJson.optBoolean("checkSQLSchema"));
+            if (StringUtils.isNotEmpty(schemaJson.getString("checkSQLSchema"))) {
+                schema.setCheckSQLschema(schemaJson.getBoolean("checkSQLSchema"));
             }
 
             schema.setTable(createSchemaTables(schemaJson));
@@ -104,24 +111,24 @@ public class ZookeeperSaver {
         Schemas.Schema.Table table = new Schemas.Schema.Table();
 
         table.setName(tablesJson.getString("name"));
-        table.setDataNode(tablesJson.optString("datanode", null));
+        table.setDataNode(tablesJson.getString("datanode"));
 
-        if (tablesJson.has("autoIncrement")) {
-            table.setAutoIncrement(tablesJson.optBoolean("autoIncrement"));
+        if (StringUtils.isNotEmpty(tablesJson.getString("autoIncrement"))) {
+            table.setAutoIncrement(tablesJson.getBoolean("autoIncrement"));
         }
-        if (tablesJson.has("needAddLimit")) {
-            table.setNeedAddLimit(tablesJson.optBoolean("needAddLimit"));
+        if (StringUtils.isNotEmpty(tablesJson.getString("needAddLimit"))) {
+            table.setNeedAddLimit(tablesJson.getBoolean("needAddLimit"));
         }
-        if (tablesJson.has("ruleRequired")) {
-            table.setRuleRequired(tablesJson.optBoolean("ruleRequired"));
+        if (StringUtils.isNotEmpty(tablesJson.getString("ruleRequired"))) {
+            table.setRuleRequired(tablesJson.getBoolean("ruleRequired"));
         }
 
-        table.setNameSuffix(tablesJson.optString("nameSuffix", null));
-        table.setPrimaryKey(tablesJson.optString("primaryKey", null));
-        table.setRule(tablesJson.optString("ruleName", null));
+        table.setNameSuffix(tablesJson.getString("nameSuffix"));
+        table.setPrimaryKey(tablesJson.getString("primaryKey"));
+        table.setRule(tablesJson.getString("ruleName"));
 
         //1 is global table
-        if (tablesJson.has("type")) {
+        if (StringUtils.isNotEmpty(tablesJson.getString("type"))) {
             String talbeType = tablesJson.get("type").toString().equals("1") ? "global" : null;
             table.setType(talbeType);
         }
@@ -142,12 +149,12 @@ public class ZookeeperSaver {
 
                 childTable.setName(childTableJson.getString("name"));
 
-                if (tablesJson.has("autoIncrement")) {
-                    childTable.setAutoIncrement(childTableJson.optBoolean("autoIncrement"));
+                if (StringUtils.isNotEmpty(tablesJson.getString("autoIncrement"))) {
+                    childTable.setAutoIncrement(childTableJson.getBoolean("autoIncrement"));
                 }
-                childTable.setPrimaryKey(childTableJson.optString("primaryKey", null));
-                childTable.setJoinKey(childTableJson.optString("joinKey", null));
-                childTable.setParentKey(childTableJson.optString("parentKey", null));
+                childTable.setPrimaryKey(childTableJson.getString("primaryKey"));
+                childTable.setJoinKey(childTableJson.getString("joinKey"));
+                childTable.setParentKey(childTableJson.getString("parentKey"));
 
                 childTable.setChildTable(createChildTable(childTableJson));
 
@@ -184,26 +191,26 @@ public class ZookeeperSaver {
             JSONObject dataHostJson = dataHostsJson.getJSONObject(key);
 
             Schemas.DataHost dataHost = new Schemas.DataHost();
-            dataHost.setName(dataHostJson.optString("name", null));
-            dataHost.setConnectionInitSql(dataHostJson.optString("connectionInitSql", null));
-            dataHost.setDbDriver(dataHostJson.optString("dbDriver", null));
-            dataHost.setDbType((dataHostJson.optString("dbtype", null)));
-            dataHost.setHeartbeat((dataHostJson.optString("heartbeatSQL", null)));
+            dataHost.setName(dataHostJson.getString("name"));
+            dataHost.setConnectionInitSql(dataHostJson.getString("connectionInitSql"));
+            dataHost.setDbDriver(dataHostJson.getString("dbDriver"));
+            dataHost.setDbType((dataHostJson.getString("dbtype")));
+            dataHost.setHeartbeat((dataHostJson.getString("heartbeatSQL")));
 
-            if (dataHostJson.has("maxcon")) {
-                dataHost.setMaxCon(dataHostJson.getInt("maxcon"));
+            if (StringUtils.isNotEmpty(dataHostJson.getString("maxcon"))) {
+                dataHost.setMaxCon(dataHostJson.getInteger("maxcon"));
             }
-            if (dataHostJson.has("mincon")) {
-                dataHost.setMinCon(dataHostJson.getInt("mincon"));
+            if (StringUtils.isNotEmpty(dataHostJson.getString("mincon"))) {
+                dataHost.setMinCon(dataHostJson.getInteger("mincon"));
             }
-            if (dataHostJson.has("balance")) {
-                dataHost.setBalance(dataHostJson.optInt("balance"));
+            if (StringUtils.isNotEmpty(dataHostJson.getString("balance"))) {
+                dataHost.setBalance(dataHostJson.getInteger("balance"));
             }
-            if (dataHostJson.has("writetype")) {
-                dataHost.setWriteType(dataHostJson.optInt("writetype"));
+            if (StringUtils.isNotEmpty(dataHostJson.getString("writetype"))) {
+                dataHost.setWriteType(dataHostJson.getInteger("writetype"));
             }
-            if (dataHostJson.has("slaveThreshold")) {
-                dataHost.setSlaveThreshold(dataHostJson.optInt("slaveThreshold"));
+            if (StringUtils.isNotEmpty(dataHostJson.getString("slaveThreshold"))) {
+                dataHost.setSlaveThreshold(dataHostJson.getInteger("slaveThreshold"));
             }
 
             dataHost.setWriteHost(createWriteHost(jsonObject, dataHostJson));
@@ -228,18 +235,18 @@ public class ZookeeperSaver {
         currentWrite.setHost(dataHostName);
         currentWrite.setPassword(currentWriteJson.getString("password"));
         currentWrite
-            .setUrl(currentWriteJson.getString("ip") + ":" + currentWriteJson.getInt("port"));
+            .setUrl(currentWriteJson.getString("ip") + ":" + currentWriteJson.getInteger("port"));
         currentWrite.setUser(currentWriteJson.getString("user"));
 
-        if (currentWriteJson.has("usingDecrypt")) {
-            currentWrite.setUsingDecrypt(currentWriteJson.optBoolean("usingDecrypt"));
+        if (StringUtils.isNotEmpty(currentWriteJson.getString("usingDecrypt"))) {
+            currentWrite.setUsingDecrypt(currentWriteJson.getBoolean("usingDecrypt"));
         }
 
         //read host
         JSONArray allHosts = myGroupJson.getJSONArray("servers");
         List<Schemas.DataHost.WriteHost.ReadHost> readHosts = new ArrayList<>();
 
-        for (int i = 0; i < allHosts.length(); i++) {
+        for (int i = 0; i < allHosts.size(); i++) {
             String readHostName = allHosts.getString(i);
             //skip current write host.
             if (!readHostName.equals(currentWriteName)) {
@@ -249,12 +256,12 @@ public class ZookeeperSaver {
 
                 readHost.setHost(readHostName);
                 readHost.setPassword(readHostJson.getString("password"));
-                readHost.setUrl(readHostJson.getString("ip") + ":" + readHostJson.getInt("port"));
+                readHost.setUrl(readHostJson.getString("ip") + ":" + readHostJson.getInteger("port"));
                 readHost.setUser(currentWriteJson.getString("user"));
-                readHost.setWeight(readHostJson.optString("weight", null));
+                readHost.setWeight(readHostJson.getString("weight"));
 
-                if (readHostJson.has("usingDecrypt")) {
-                    readHost.setUsingDecrypt(readHostJson.optBoolean("usingDecrypt"));
+                if (StringUtils.isNotEmpty(readHostJson.getString("usingDecrypt"))) {
+                    readHost.setUsingDecrypt(readHostJson.getBoolean("usingDecrypt"));
                 }
                 readHosts.add(readHost);
             }
@@ -298,7 +305,7 @@ public class ZookeeperSaver {
         tableRuleJson.remove("functionName");
 
         //json have config key,so to save it to file and set property mapFile
-        if (tableRuleJson.has("config")) {
+        if (StringUtils.isNotEmpty(tableRuleJson.getString("config"))) {
             JSONObject config = tableRuleJson.getJSONObject("config");
 
             //save config to file. /conf/${name}.txt
@@ -361,7 +368,7 @@ public class ZookeeperSaver {
 
         //user
         ArrayList<Server.User> userList = new ArrayList<>();
-        if (user != null && user.length() > 0) {
+        if (user != null && user.size() > 0) {
             for (String key : user.keySet()) {
                 Server.User serverUser = new Server.User();
                 JSONObject userObject = user.getJSONObject(key);
@@ -412,7 +419,7 @@ public class ZookeeperSaver {
     }
 
     private void putProperty(JSONObject json, Propertied propertied) {
-        if (json != null && json.length() > 0) {
+        if (json != null && json.size() > 0) {
             for (String key : json.keySet()) {
                 Object obj = json.get(key);
                 if (obj instanceof JSONArray) {
