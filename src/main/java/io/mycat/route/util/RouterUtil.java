@@ -1339,11 +1339,12 @@ public class RouterUtil {
 			}
 			//取得joinkey的值
 			String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
+			//解决bug #938，当关联字段的值为char类型时，去掉前后"'"
 			String realVal = joinKeyVal;
-			if (joinKeyVal.startsWith("'") && joinKeyVal.endsWith("'")) {
+			if (joinKeyVal.startsWith("'") && joinKeyVal.endsWith("'") && joinKeyVal.length() > 2) {
 				realVal = joinKeyVal.substring(1, joinKeyVal.length() - 1);
 			}
-
+			
 			String sql = insertStmt.toString();
 
 			// try to route by ER parent partion key
