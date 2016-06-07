@@ -110,11 +110,11 @@ public class UserSqlRWStat {
     	}
     	
     	//SQL执行所在的时间区间	
-		long hour0 = endTime / ( 24 * one_hour ) * ( 24 * one_hour )- time_zone_offset;
-		long hour06 = hour0 + 6 * one_hour - 1; 
-		long hour13 = hour0 + 13 * one_hour - 1; 
-		long hour18 = hour0 + 18 * one_hour - 1;
-		long hour22 = hour0 + 22 * one_hour - 1; 
+		long hour0 = endTime / ( 24L * (long)one_hour ) * ( 24L * (long)one_hour )- (long)time_zone_offset;
+		long hour06 = hour0 + 6L * (long)one_hour - 1L;
+		long hour13 = hour0 + 13L * (long)one_hour - 1L;
+		long hour18 = hour0 + 18L * (long)one_hour - 1L;
+		long hour22 = hour0 + 22L * (long)one_hour - 1L;
 		
 		if ( endTime <= hour06 || endTime > hour22 ) {
 			this.executeHistogram.record(6);

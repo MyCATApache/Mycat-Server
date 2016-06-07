@@ -77,10 +77,12 @@ public class CompareUtil {
 	  
 	  public static int compareString(String l,String r){
 //		  return compareStringForChinese(l,r);
-		  if(l == null)
+		  if(l == null) {
 			  return -1;
-		   else if(r == null)
+		  }
+		   else if(r == null) {
 			  return 1;
+		  }
 		  return l.compareTo(r); 
 	  }
 	  
@@ -133,7 +135,9 @@ public class CompareUtil {
  
 	//获取一个汉字/字母的Char值
 	private static int getCharCode(String s){
-          if (s==null || s.length()==0) return -1;//保护代码
+          if (s==null || s.length()==0) {
+			  return -1;//保护代码
+		  }
           byte [] b = s.getBytes();
           int value = 0;
           //保证取第一个字符（汉字或者英文）

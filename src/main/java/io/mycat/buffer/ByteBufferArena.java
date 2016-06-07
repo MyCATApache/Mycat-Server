@@ -24,7 +24,7 @@ public class ByteBufferArena implements BufferPool {
     private final AtomicInteger chunkCount = new AtomicInteger(0);
     private final AtomicInteger failCount = new AtomicInteger(0);
 
-    private final int FAIL_THRESHOLD = 1000;
+    private static final int FAIL_THRESHOLD = 1000;
     private final int pageSize;
     private final int chunkSize;
 

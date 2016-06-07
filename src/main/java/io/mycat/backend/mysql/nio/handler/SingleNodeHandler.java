@@ -113,8 +113,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			}
 		}
         
-		if ( rrs != null && rrs.getStatement() != null)
+		if ( rrs != null && rrs.getStatement() != null) {
 			netInBytes += rrs.getStatement().getBytes().length;
+		}
         
 	}
 
@@ -298,11 +299,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
             
 			this.affectedRows = ok.affectedRows;
 			
-			//TODO: add by zhuam
-			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis());
-			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 	}
 
@@ -328,13 +324,15 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, allocBuffer());
+		int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
+		resultSize=resultSize+buffer.position();
 		source.write(buffer);
-		
 		//TODO: add by zhuam
 		//查询结果派发
 		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-				rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis());
+				rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize);
 		QueryResultDispatcher.dispatchQuery( queryResult );
+		
 	}
 
 	/**
@@ -417,8 +415,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			RowDataPacket rowDataPacket = new RowDataPacket(1);
 			rowDataPacket.read(row);
 			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), conn.getCharset());
-			if (shardingTablesSet.contains(table.toUpperCase()))
+			if (shardingTablesSet.contains(table.toUpperCase())) {
 				return;
+			}
 		}
 		row[3] = ++packetId;
 		

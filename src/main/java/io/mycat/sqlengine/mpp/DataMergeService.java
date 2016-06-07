@@ -62,7 +62,7 @@ import io.mycat.util.StringUtil;
 public class DataMergeService implements Runnable {
 
 	// 保存包和节点的关系
-	class PackWraper {
+	private static class PackWraper {
 		public byte[] data;
 		public String node;
 

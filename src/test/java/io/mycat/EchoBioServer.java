@@ -84,13 +84,14 @@ public class EchoBioServer implements Runnable {
             } catch (IOException e) {
                 
                 e.printStackTrace();
-                if (socket != null)
+                if (socket != null) {
                     try {
                         socket.close();
                     } catch (IOException e1) {
-                        
+
                         e1.printStackTrace();
                     }
+                }
             }
         }
     }

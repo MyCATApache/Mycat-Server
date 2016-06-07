@@ -91,7 +91,9 @@ public class HintSQLHandler implements HintHandler {
         for (int i = sqls.size() - 1; i >= 0; i--)
         {
             String s = sqls.get(i);
-            if(Strings.isNullOrEmpty(s))continue;
+            if(Strings.isNullOrEmpty(s)) {
+                continue;
+            }
             SQLStatementParser parser = new MySqlStatementParser(s);
             SQLStatement statement = parser.parseStatement();
             if(statement instanceof SQLSelectStatement)

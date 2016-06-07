@@ -23,41 +23,15 @@
  */
 package io.mycat;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-
+import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.ByteBufferArena;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.TableConfig;
-import io.mycat.config.table.structure.MySQLTableStructureDetector;
-import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.sqlengine.SQLJob;
-import io.mycat.statistic.stat.UserStat;
-import io.mycat.statistic.stat.UserStatAnalyzer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-
-import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.buffer.DirectByteBufferPool;
 import io.mycat.cache.CacheService;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.classloader.DynaClassLoader;
 import io.mycat.config.model.SystemConfig;
+import io.mycat.config.table.structure.MySQLTableStructureDetector;
 import io.mycat.manager.ManagerConnectionFactory;
 import io.mycat.net.AIOAcceptor;
 import io.mycat.net.AIOConnector;
@@ -69,13 +43,39 @@ import io.mycat.net.SocketAcceptor;
 import io.mycat.net.SocketConnector;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
+import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnectionFactory;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.statistic.SQLRecorder;
+import io.mycat.statistic.stat.SqlResultSizeRecorder;
+import io.mycat.statistic.stat.UserStat;
+import io.mycat.statistic.stat.UserStatAnalyzer;
 import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * @author mycat
@@ -281,9 +281,10 @@ public class MycatServer {
 				 */
 				bufferPool = new ByteBufferArena(bufferPoolPageSize,bufferPoolChunkSize,bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
 				break;
+			default:
+				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
+					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());;
 		}
-		bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
-				bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
 		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
@@ -363,7 +364,7 @@ public class MycatServer {
 				LOGGER.info("init datahost: " + node.getHostName()
 						+ "  to use datasource index:" + index);
 			}
-			node.init(Integer.valueOf(index));
+			node.init(Integer.parseInt(index));
 			node.startHeartbeat();
 		}
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
@@ -385,6 +386,8 @@ public class MycatServer {
 		if(system.getUseGlobleTableCheck() == 1){	// 全局表一致性检测是否开启
 			scheduler.scheduleAtFixedRate(glableTableConsistencyCheck(), 0L, system.getGlableTableCheckPeriod(), TimeUnit.MILLISECONDS);
 		}
+		//定期清理结果集排行榜，控制拒绝策略
+		scheduler.scheduleAtFixedRate(resultSetMapClear(),0L,  system.getClearBigSqLResultSetMapMs(),TimeUnit.MILLISECONDS);
 		
 		RouteStrategyFactory.init();
 //        new Thread(tableStructureCheck()).start();
@@ -398,6 +401,39 @@ public class MycatServer {
 					catletClassLoader.clearUnUsedClass();
 				} catch (Exception e) {
 					LOGGER.warn("catletClassClear err " + e);
+				}
+			};
+		};
+	}
+	
+	/**
+	 * 在bufferpool使用率大于使用率阈值时不清理
+	 * 在bufferpool使用率小于使用率阈值时清理大结果集清单内容
+	 * 
+	 */
+	private Runnable resultSetMapClear() {
+		return new Runnable() {
+			@Override
+			public void run() {
+				try {
+					BufferPool bufferPool=getBufferPool();
+				    long bufferSize=bufferPool.size();
+				    long bufferCapacity=bufferPool.capacity();
+					long bufferUsagePercent=(bufferCapacity-bufferSize)*100/bufferCapacity;
+					if(bufferUsagePercent<config.getSystem().getBufferUsagePercent()){
+						Map<String, UserStat> map =UserStatAnalyzer.getInstance().getUserStatMap();
+						Set<String> userSet=config.getUsers().keySet();
+					for (String user : userSet) {
+						UserStat userStat = map.get(user);
+						if(userStat!=null){
+							SqlResultSizeRecorder recorder=userStat.getSqlResultSizeRecorder();
+							System.out.println(recorder.getSqlResultSet().size());
+							recorder.clearSqlResultSet();
+						}
+					}
+					}
+				} catch (Exception e) {
+					LOGGER.warn("resultSetMapClear err " + e);
 				}
 			};
 		};

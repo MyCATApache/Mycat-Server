@@ -46,13 +46,14 @@ public final class KillConnection {
     public static void response(String stmt, int offset, ManagerConnection mc) {
         int count = 0;
         List<FrontendConnection> list = getList(stmt, offset, mc);
-        if (list != null)
+        if (list != null) {
             for (NIOConnection c : list) {
                 StringBuilder s = new StringBuilder();
                 logger.warn(s.append(c).append("killed by manager").toString());
                 c.close("kill by manager");
                 count++;
             }
+        }
         OkPacket packet = new OkPacket();
         packet.packetId = 1;
         packet.affectedRows = count;

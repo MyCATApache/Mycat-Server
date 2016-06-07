@@ -44,8 +44,9 @@ public final class IntegerUtil {
             'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
 
     public static byte[] toBytes(int i) {
-        if (i == Integer.MIN_VALUE)
+        if (i == Integer.MIN_VALUE) {
             return minValue;
+        }
         int size = (i < 0) ? stringSize(-i) + 1 : stringSize(i);
         byte[] buf = new byte[size];
         getBytes(i, size, buf);
@@ -54,8 +55,9 @@ public final class IntegerUtil {
 
     static int stringSize(int x) {
         for (int i = 0;; i++) {
-            if (x <= sizeTable[i])
+            if (x <= sizeTable[i]) {
                 return i + 1;
+            }
         }
     }
 
@@ -86,8 +88,9 @@ public final class IntegerUtil {
             r = i - ((q << 3) + (q << 1)); // r = i-(q*10) ...
             buf[--charPos] = digits[r];
             i = q;
-            if (i == 0)
+            if (i == 0) {
                 break;
+            }
         }
         if (sign != 0) {
             buf[--charPos] = sign;

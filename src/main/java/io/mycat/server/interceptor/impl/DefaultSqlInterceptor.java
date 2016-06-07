@@ -46,8 +46,9 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 	 */
 	@Override
 	public String interceptSQL(String sql, int sqlType) {
-		if("fdbparser".equals(MycatServer.getInstance().getConfig().getSystem().getDefaultSqlParser()))
+		if("fdbparser".equals(MycatServer.getInstance().getConfig().getSystem().getDefaultSqlParser())) {
 			sql = processEscape(sql);
+		}
 		
 		// 全局表一致性 sql 改写拦截
 		SystemConfig system = MycatServer.getInstance().getConfig().getSystem();

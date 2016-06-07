@@ -56,8 +56,9 @@ public class MongoPreparedStatement extends MongoStatement implements
 	}
 	
 	public  void setValue(int idx, Object o) {	  
-	    while (this._params.size() <= idx)
-	      this._params.add(null);
+	    while (this._params.size() <= idx) {
+			this._params.add(null);
+		}
 	    this._params.set(idx, o);
 	 }
 	  

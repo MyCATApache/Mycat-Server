@@ -135,11 +135,15 @@ public class RouterUtil {
 		if(upStmt.startsWith("CREATE")){
 			if (upStmt.contains("CREATE INDEX ")){
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateIndexPos(upStmt, 0));
-			}else tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
+			}else {
+				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
+			}
 		}else if(upStmt.startsWith("DROP")){
 			if (upStmt.contains("DROP INDEX ")){
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropIndexPos(upStmt, 0));
-			}else tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
+			}else {
+				tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
+			}
 		}else if(upStmt.startsWith("ALTER")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(upStmt, 0));
 		}else if (upStmt.startsWith("TRUNCATE")){
@@ -458,7 +462,7 @@ public class RouterUtil {
 	}
 
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
-		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
+//		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
 		SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
 //		if(sequenceHandlerType == 3 || sequenceHandlerType == 4){
 //			DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
@@ -977,7 +981,7 @@ public class RouterUtil {
 			throw new SQLNonTransientException(msg);
 		} 
 		String partionCol = tableConfig.getPartitionColumn();
-		String primaryKey = tableConfig.getPrimaryKey();
+//		String primaryKey = tableConfig.getPrimaryKey();
         boolean isLoadData=false;
         
         Set<String> tablesRouteSet = new HashSet<String>();

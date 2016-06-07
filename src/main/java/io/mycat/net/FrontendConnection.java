@@ -420,8 +420,9 @@ public abstract class FrontendConnection extends AbstractConnection {
 		if (isSupportCompress()) {			
 			List<byte[]> packs = CompressUtil.decompressMysqlPacket(data, decompressUnfinishedDataQueue);
 			for (byte[] pack : packs) {
-				if (pack.length != 0)
+				if (pack.length != 0) {
 					rawHandle(pack);
+				}
 			}
 			
 		} else {

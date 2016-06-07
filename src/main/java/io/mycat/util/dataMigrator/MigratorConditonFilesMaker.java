@@ -51,7 +51,9 @@ public class MigratorConditonFilesMaker implements Runnable{
 	
 	@Override
 	public void run() {
-		if(tableInfo.isError()) return;
+		if(tableInfo.isError()) {
+			return;
+		}
 		
 		long[] count = new long[newDnSize];
     	int page=0;
@@ -70,7 +72,9 @@ public class MigratorConditonFilesMaker implements Runnable{
 			int total = 0; //该节点表总数据量
 			
 			while (!CollectionUtil.isEmpty(list)) {
-				if(tableInfo.isError()) return;
+				if(tableInfo.isError()) {
+					return;
+				}
 				flushData(false);
     			for(int i=0,l=list.size();i<l;i++){
     				Map<String, Object> sf=list.get(i);
@@ -152,7 +156,9 @@ public class MigratorConditonFilesMaker implements Runnable{
 	private void flushData(boolean isForce) throws IOException {
 		for(DataNode dn:newDnList){
 			StringBuilder sb = map.get(dn);
-			if(sb == null) continue;
+			if(sb == null) {
+				continue;
+			}
 			if((isForce || sb.toString().getBytes().length>1024) && sb.length()>0){
 				String s = sb.toString();
 				if(isForce){//最后一次将末尾的','截掉

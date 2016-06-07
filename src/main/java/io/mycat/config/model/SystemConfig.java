@@ -102,6 +102,20 @@ public final class SystemConfig {
 	
 	// buffer pool page number 
 	private short bufferPoolPageNumber;
+	
+	//大结果集阈值，默认512kb
+	private int maxResultSet=512*1024;
+	//大结果集拒绝策略次数过滤限制,默认10次
+	private int bigResultSizeSqlCount=10;
+	//大结果集拒绝策咯，bufferpool使用率阈值(0-100)，默认80%
+	private int  bufferUsagePercent=80;
+	//大结果集保护策咯，0:不开启,1:级别1为在当前mucat bufferpool
+	//使用率大于bufferUsagePercent阈值时，拒绝超过defaultBigResultSizeSqlCount
+	//sql次数阈值并且符合超过大结果集阈值maxResultSet的所有sql
+	//默认值0
+	private int  flowControlRejectStrategy=0;
+	//清理大结果集记录周期
+	private long clearBigSqLResultSetMapMs=10*60*1000;
 
 	private int defaultMaxLimit = DEFAULT_MAX_LIMIT;
 	public static final int SEQUENCEHANDLER_LOCALFILE = 0;
@@ -521,6 +535,46 @@ public final class SystemConfig {
 	public void setBufferPoolChunkSize(short bufferPoolChunkSize) {
 		this.bufferPoolChunkSize = bufferPoolChunkSize;
 	}
+	
+	public int getMaxResultSet() {
+		return maxResultSet;
+	}
+
+	public void setMaxResultSet(int maxResultSet) {
+		this.maxResultSet = maxResultSet;
+	}
+
+	public int getBigResultSizeSqlCount() {
+		return bigResultSizeSqlCount;
+	}
+
+	public void setBigResultSizeSqlCount(int bigResultSizeSqlCount) {
+		this.bigResultSizeSqlCount = bigResultSizeSqlCount;
+	}
+
+	public int getBufferUsagePercent() {
+		return bufferUsagePercent;
+	}
+
+	public void setBufferUsagePercent(int bufferUsagePercent) {
+		this.bufferUsagePercent = bufferUsagePercent;
+	}
+
+	public int getFlowControlRejectStrategy() {
+		return flowControlRejectStrategy;
+	}
+
+	public void setFlowControlRejectStrategy(int flowControlRejectStrategy) {
+		this.flowControlRejectStrategy = flowControlRejectStrategy;
+	}
+
+	public long getClearBigSqLResultSetMapMs() {
+		return clearBigSqLResultSetMapMs;
+	}
+
+	public void setClearBigSqLResultSetMapMs(long clearBigSqLResultSetMapMs) {
+		this.clearBigSqLResultSetMapMs = clearBigSqLResultSetMapMs;
+	}
 
 	public int getBufferPoolPageSize() {
 		return bufferPoolPageSize;
@@ -682,6 +736,11 @@ public final class SystemConfig {
 				+ ", bufferPoolPageSize=" + bufferPoolPageSize
 				+ ", bufferPoolChunkSize=" + bufferPoolChunkSize
 				+ ", bufferPoolPageNumber=" + bufferPoolPageNumber
+				+ ", maxResultSet=" +maxResultSet
+				+ ", bigResultSizeSqlCount="+bigResultSizeSqlCount
+				+ ", bufferUsagePercent="+bufferUsagePercent
+				+ ", flowControlRejectStrategy="+flowControlRejectStrategy
+				+ ", clearBigSqLResultSetMapMs="+clearBigSqLResultSetMapMs
 				+ ", defaultMaxLimit=" + defaultMaxLimit
 				+ ", sequnceHandlerType=" + sequnceHandlerType
 				+ ", sqlInterceptor=" + sqlInterceptor

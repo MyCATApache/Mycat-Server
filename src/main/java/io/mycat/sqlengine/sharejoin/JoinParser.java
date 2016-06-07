@@ -87,10 +87,10 @@ public class JoinParser {
 			SQLExpr expr=table1.getCondition();//SQLBinaryOpExpr
 			parserJoinKey(expr);
 		}
-		else {
-			tFilter=setTableFilter(tFilter,getTableFilter(table,isOutJoin));
+//		else {
+//			tFilter=setTableFilter(tFilter,getTableFilter(table,isOutJoin));
 		//	LOGGER.info("table "+table.toString() +" Alias:"+table.getAlias()+" Hints:"+table.getHints());
-		}		
+//		}
 	}
 	private TableFilter setTableFilter(TableFilter tFilter,TableFilter newFilter){
 		if (tFilter==null) {
@@ -115,24 +115,27 @@ public class JoinParser {
 	}
 	
 	private void parserJoinKey(SQLExpr expr){		
-		if (expr==null) return;
+		if (expr==null) {
+			return;
+		}
 		 parserWhere(expr,"");
 	}
 	
 	private String getExprFieldName(SQLAggregateExpr expr){
-		String field="";
+		StringBuilder field = new StringBuilder();
 		for (SQLExpr item :expr.getArguments()){
-			field+=item.toString();
+			field.append(item.toString());
 		}		
-		return expr.getMethodName()+"("+field+")";		
+		return expr.getMethodName()+"("+field.toString()+")";
 	}
 	
 	private String getFieldName(SQLSelectItem item){
 		if (item.getExpr() instanceof SQLPropertyExpr) {			
 			return item.getExpr().toString();//字段别名
 		}
-		else
-		  return item.toString();
+		else {
+			return item.toString();
+		}
 	}
 	
 	private void parserFields(List<SQLSelectItem> mysqlSelectList){
@@ -184,7 +187,9 @@ public class JoinParser {
 
 	
 	private void parserWhere(SQLExpr aexpr,String Operator){
-		 if (aexpr==null) return;
+		 if (aexpr==null) {
+			 return;
+		 }
 	     if (aexpr instanceof SQLBinaryOpExpr){
 		   SQLBinaryOpExpr expr=(SQLBinaryOpExpr)aexpr;  
 		   SQLExpr exprL=expr.getLeft();
@@ -215,7 +220,9 @@ public class JoinParser {
 	}	
 	   
     private void opSQLExpr(SQLBinaryOpExpr expr,String Operator) {
-		   if (expr==null) return;
+		   if (expr==null) {
+			   return;
+		   }
 		   SQLExpr exprL=expr.getLeft();
 		   if (!(exprL instanceof SQLBinaryOpExpr))
 		   {
@@ -227,11 +234,13 @@ public class JoinParser {
 					//joinRkey=value; 
 					tableFilter.setJoinKey(field,value);
 				 }
-				 else 
-					 tableFilter.addWhere(field, value, expr.getOperator().getName(),Operator);
+				 else {
+					 tableFilter.addWhere(field, value, expr.getOperator().getName(), Operator);
+				 }
 			   }
-			   else 
-				   tableFilter.addWhere(field, value, expr.getOperator().getName(),Operator); 
+			   else {
+				   tableFilter.addWhere(field, value, expr.getOperator().getName(), Operator);
+			   }
 		   }		
 	}
 
@@ -284,7 +293,9 @@ public class JoinParser {
 	}
 	
 	private String getSQLExprToAsc(SQLOrderingSpecification ASC){
-		if (ASC==null ) return " ASC ";
+		if (ASC==null ) {
+			return " ASC ";
+		}
 		if (ASC==SQLOrderingSpecification.DESC){
 			return " DESC ";
 		}

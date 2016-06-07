@@ -274,8 +274,9 @@ public class SplitUtil {
          return    new String[]{string};
         }
         byte[] bytes = string.getBytes();
-        if (bytes.length <= size)
-            return new String[] { string };
+        if (bytes.length <= size) {
+            return new String[]{string};
+        }
         // 分成的条数不确定(整除的情况下也许会多出一条),所以先用list再转化为array
         List list = new ArrayList();
         int offset = 0;// 偏移量,也就是截取的字符串的首字节的位置
@@ -290,19 +291,21 @@ public class SplitUtil {
                 break;
             }
             if (bytes[position - 1] > 0
-                    || (bytes[position - 1] < 0 && bytes[position - 2] < 0))
+                    || (bytes[position - 1] < 0 && bytes[position - 2] < 0)){
                 // 截断点是字母,或者是汉字
                 length = size;
-            else
+            } else {
                 // 截断点在汉字中间
                 length = size - 1;
+            }
             String s = new String(bytes, offset, length);
             list.add(s);
             offset += length;
         }
         String[] array = new String[list.size()];
-        for (int i = 0; i < array.length; i++)
+        for (int i = 0; i < array.length; i++) {
             array[i] = (String) list.get(i);
+        }
         return array;
     }
 

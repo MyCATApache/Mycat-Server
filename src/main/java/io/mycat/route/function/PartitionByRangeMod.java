@@ -55,7 +55,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 
 	@Override
 	public Integer calculate(String columnValue) {
-		long value = Long.valueOf(columnValue);
+		long value = Long.parseLong(columnValue);
 		Integer rst = null;
         int nodeIndex=0;
 		for (LongRange longRang : this.longRanges) {
@@ -76,7 +76,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 	}
 
     public Integer calculateStart(String columnValue) {
-        long value = Long.valueOf(columnValue);
+        long value = Long.parseLong(columnValue);
         Integer rst = null;
         int nodeIndex=0;
         for (LongRange longRang : this.longRanges) {
@@ -95,7 +95,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
         return rst;
     }
     public Integer calculateEnd(String columnValue) {
-        long value = Long.valueOf(columnValue);
+        long value = Long.parseLong(columnValue);
         Integer rst = null;
         int nodeIndex=0;
         for (LongRange longRang : this.longRanges) {
@@ -154,15 +154,15 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 
 			for (String line = null; (line = in.readLine()) != null;) {
 				line = line.trim();
-				if (line.startsWith("#") || line.startsWith("//"))
+				if (line.startsWith("#") || line.startsWith("//")) {
 					continue;
+				}
 				int ind = line.indexOf('=');
 				if (ind < 0) {
 					System.out.println(" warn: bad line int " + mapFile + " :"
 							+ line);
 					continue;
 				}
-				try {
 					String pairs[] = line.substring(0, ind).trim().split("-");
 					long longStart = NumberParseUtil.parseLong(pairs[0].trim());
 					long longEnd = NumberParseUtil.parseLong(pairs[1].trim());
@@ -171,8 +171,6 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 					longRangeList
 							.add(new LongRange(nodeId, longStart, longEnd));
 
-				} catch (Exception e) {
-				}
 			}
 			longRanges = longRangeList.toArray(new LongRange[longRangeList.size()]);
 		} catch (Exception e) {

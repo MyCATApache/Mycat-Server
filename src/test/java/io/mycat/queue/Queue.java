@@ -197,8 +197,9 @@ public final class Queue<T> {
         buf.append(", elements={");
         for (int i = 0; i < count; i++) {
             int pos = (i + start) % size;
-            if (i > 0)
+            if (i > 0) {
                 buf.append(", ");
+            }
             buf.append(items[pos]);
         }
         buf.append("}]");

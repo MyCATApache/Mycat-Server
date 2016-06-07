@@ -183,7 +183,7 @@ public abstract class MySQLPacket {
     public static final byte COM_HEARTBEAT = 64;
     
     //包头大小
-    public static int packetHeaderSize = 4;
+    public static final int packetHeaderSize = 4;
 
 
     public int packetLength;

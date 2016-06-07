@@ -88,8 +88,9 @@ public class JDBCHeartbeat extends DBHeartbeat{
 	public void heartbeat()
 	{
 	    
-		if (isStop.get())
+		if (isStop.get()) {
 			return;
+		}
 		lastSendTime = System.currentTimeMillis();
 		lock.lock();
 		try
