@@ -11,7 +11,7 @@ import org.opencloudb.statistic.SQLRecorder;
  */
 public class UserStat {
 	
-	private  long SQL_SLOW_TIME = 1000;
+	
 	/**
 	 * SQL 执行记录
 	 */
@@ -57,10 +57,6 @@ public class UserStat {
 		return sqlStat;
 	}
 	
-	public void setSlowTime(long time) {
-		this.SQL_SLOW_TIME = time;
-		this.sqlRecorder.clear();
-	}
 	
 	public void clearSql() {
 		this.sqlStat.reset();
@@ -85,16 +81,16 @@ public class UserStat {
 	 * @param sql
 	 * @param startTime
 	 */
-	public void update(int sqlType, String sql, long startTime, long endTime) {	
+	public void update(int sqlType, String sql, String ip,long startTime, long endTime) {	
 		
 		//慢查询记录
 		long executeTime = endTime - startTime;		
-		if ( executeTime >= SQL_SLOW_TIME ){			
+		if ( executeTime >= MycatServer.getInstance().getConfig().getSystem().getSlowTime() ){		//SQL_SLOW_TIME	
 			SQLRecord record = new SQLRecord();
 			record.executeTime = executeTime;
 			record.statement = sql;
 			record.startTime = startTime;
-			
+			record.host =ip;
 			this.sqlRecorder.add(record);
 		}
 		
@@ -102,7 +98,7 @@ public class UserStat {
 		this.rwStat.add(sqlType, executeTime, startTime, endTime);
 		
 		//记录SQL
-		this.sqlStat.add(sql, executeTime, startTime, endTime );
+		this.sqlStat.add(sql, ip,executeTime, startTime, endTime );
 		
 		//记录高频SQL
 		this.sqlHighStat.addSql(sql, executeTime, startTime, endTime);

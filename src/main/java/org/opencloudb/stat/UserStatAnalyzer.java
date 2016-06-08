@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.opencloudb.MycatServer;
 import org.opencloudb.server.parser.ServerParse;
 
 /**
@@ -26,6 +27,11 @@ public class UserStatAnalyzer implements QueryResultListener {
         return instance;
     }  
 	
+	public void setSlowTime(long time) {
+		//this.SQL_SLOW_TIME = time;
+		MycatServer.getInstance().getConfig().getSystem().setSlowTime(time);
+	}
+	
 	@Override
 	public void onQueryResult(QueryResult query) {
 		
@@ -42,6 +48,7 @@ public class UserStatAnalyzer implements QueryResultListener {
     		String user = query.getUser();
     		long startTime = query.getStartTime();
     		long endTime = query.getEndTime();
+    		String ip=query.getIp();
     		
     		this.lock.writeLock().lock();
             try {
@@ -50,7 +57,7 @@ public class UserStatAnalyzer implements QueryResultListener {
                     userStat = new UserStat(user);
                     userStatMap.put(user, userStat);
                 }                
-                userStat.update(sqlType, sql, startTime, endTime);	
+                userStat.update(sqlType, sql, ip,startTime, endTime);	
                 
             } finally {
             	this.lock.writeLock().unlock();

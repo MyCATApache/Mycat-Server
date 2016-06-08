@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE mycat:schema SYSTEM "schema.dtd">
-<mycat:schema xmlns:mycat="http://org.opencloudb/">
+<mycat:schema xmlns:mycat="http://org.opencloudb/" >
 
 	<schema name="TESTDB" checkSQLschema="false" sqlMaxLimit="100">
 		<!-- auto sharding by id (long) -->
@@ -8,7 +8,7 @@
 
 		<!-- global table is auto cloned to all defined data nodes ,so can join 
 			with any table whose sharding node is in the same data node -->
-		<table name="company" primaryKey="ID" type="global" dataNode="dn1,dn2,dn3" />
+		<table name="company" primaryKey="ID" dataNode="dn3,dn2,dn1" rule="mod-long"/>
 		<table name="goods" primaryKey="ID" type="global" dataNode="dn1,dn2" />
 		<!-- random sharding using mod sharind rule -->
 		<table name="hotnews" primaryKey="ID" dataNode="dn1,dn2,dn3"
@@ -44,13 +44,13 @@
 		writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
 		<heartbeat>select user()</heartbeat>
 		<!-- can have multi write hosts -->
-		<writeHost host="hostM1" url="localhost:3306" user="root"
-			password="123456">
+		<writeHost host="hostM1" url="10.202.4.39:3306" user="root"
+			password="sf123456">
 			<!-- can have multi read hosts -->
-
+			<!--<readHost host="hostS2" url="192.168.1.200:3306" user="root" password="xxx" />-->
 		</writeHost>
-		<writeHost host="hostS1" url="localhost:3316" user="root"
-			password="123456" />
+		<!--<writeHost host="hostS1" url="localhost:3316" user="root"-->
+			<!--password="123456" />-->
 		<!-- <writeHost host="hostM2" url="localhost:3316" user="root" password="123456"/> -->
 	</dataHost>
 	<!--

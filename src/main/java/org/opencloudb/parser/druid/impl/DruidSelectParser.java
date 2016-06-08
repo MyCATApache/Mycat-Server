@@ -267,7 +267,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 			//clear group having
 			SQLSelectGroupByClause groupByClause = mysqlSelectQuery.getGroupBy();
-			if(groupByClause != null && groupByClause.getHaving() != null){
+			if(groupByClause != null && groupByClause.getHaving() != null && isRoutMultiNode(schema,rrs)){
 				groupByClause.setHaving(null);
 			}
 
@@ -567,7 +567,15 @@ public class DruidSelectParser extends DefaultDruidParser {
                 }
             }
 			int dotIndex=column.indexOf(".") ;
-			if(dotIndex!=-1)
+			/**
+			 * @// TODO: 2016/4/28 优化druid解析出函数列
+			 * 对于含有函数的列，不能简单地取.之后的；
+			 * 例SQL：select h.id,DATE_FORMAT(h.times,'%b %d %Y %h:%i %p') from hotnews h GROUP BY DATE_FORMAT(h.times,'%b %d %Y %h:%i %p');
+			 * 注意：这是一个临时方案，最好还是优化下druid parser解析出函数列
+			 */
+			int bracketIndex=column.indexOf("(") ;
+			//通过判断含有括号来决定是否为函数列
+			if(dotIndex!=-1&&bracketIndex==-1)
 			{
 				//此步骤得到的column必须是不带.的，有别名的用别名，无别名的用字段名
 				column=column.substring(dotIndex+1) ;

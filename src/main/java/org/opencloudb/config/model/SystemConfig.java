@@ -69,6 +69,7 @@ public final class SystemConfig {
 	private int maxStringLiteralLength = 65535;
 	private int frontWriteQueueSize = 2048;
 	private String bindIp = "0.0.0.0";
+	private String fakeMySQLVersion = null;
 	private int serverPort;
 	private int managerPort;
 	private String charset;
@@ -97,6 +98,11 @@ public final class SystemConfig {
 	public static final int SEQUENCEHANDLER_LOCALFILE = 0;
 	public static final int SEQUENCEHANDLER_MYSQLDB = 1;
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
+	/*
+	 * 注意！！！ 目前mycat支持的MySQL版本，如果后续有新的MySQL版本,请添加到此数组， 对于MySQL的其他分支，
+	 * 比如MariaDB目前版本号已经到10.1.x，但是其驱动程序仍然兼容官方的MySQL,因此这里版本号只需要MySQL官方的版本号即可。
+	 */
+	public static final String[] MySQLVersions = { "5.5", "5.6", "5.7" };
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "org.opencloudb.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";
@@ -114,7 +120,8 @@ public final class SystemConfig {
 	private int maxPacketSize = 16 * 1024 * 1024;
 	private int mycatNodeId=1;
 	private int useCompression =0;
-
+    //慢SQL的时间阀值
+	private  long SQL_SLOW_TIME = 1000;
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
 	}
@@ -148,9 +155,18 @@ public final class SystemConfig {
 		this.txIsolation = Isolations.REPEATED_READ;
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
+		this.SQL_SLOW_TIME=1000;
 
 	}
-
+	
+	public void setSlowTime(long time) {
+		this.SQL_SLOW_TIME = time;
+	}
+	
+	public long getSlowTime(){
+		return this.SQL_SLOW_TIME;
+	}
+	
 	public String getSqlInterceptor() {
 		return sqlInterceptor;
 	}
@@ -266,6 +282,14 @@ public final class SystemConfig {
 
 	public void setCharset(String charset) {
 		this.charset = charset;
+	}
+
+	public String getFakeMySQLVersion() {
+		return fakeMySQLVersion;
+	}
+
+	public void setFakeMySQLVersion(String mysqlVersion) {
+		this.fakeMySQLVersion = mysqlVersion;
 	}
 
 	public int getServerPort() {

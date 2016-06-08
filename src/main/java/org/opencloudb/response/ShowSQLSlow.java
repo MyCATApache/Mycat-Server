@@ -47,7 +47,7 @@ import org.opencloudb.util.StringUtil;
  */
 public final class ShowSQLSlow {
 
-    private static final int FIELD_COUNT = 5;
+    private static final int FIELD_COUNT = 6;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -71,7 +71,10 @@ public final class ShowSQLSlow {
 
         fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
-
+        
+        fields[i] = PacketUtil.getField("IP", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i++].packetId = ++packetId;  
+        
         eof.packetId = ++packetId;
     }
 
@@ -124,6 +127,7 @@ public final class ShowSQLSlow {
         row.add( LongUtil.toBytes(sql.startTime) );
         row.add( LongUtil.toBytes(sql.executeTime) );
         row.add( StringUtil.encode(sql.statement, charset) );
+        row.add( StringUtil.encode(sql.host, charset) );
         return row;
     }
 

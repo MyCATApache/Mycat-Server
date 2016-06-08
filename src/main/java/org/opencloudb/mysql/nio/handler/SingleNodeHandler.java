@@ -144,18 +144,21 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	}
 
 	public void execute() throws Exception {
+		//从这里开始计算处理时间
 		startTime=System.currentTimeMillis();
 		ServerConnection sc = session.getSource();
 		this.isRunning = true;
 		this.packetId = 0;
 		final BackendConnection conn = session.getTarget(node);
+		//之前是否获取过Connection并且Connection有效
 		if (session.tryExistsCon(conn, node)) {
 			_execute(conn);
 		} else {
 			// create new connection
-
 			MycatConfig conf = MycatServer.getInstance().getConfig();
+			//从config中获取DataNode
 			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
+			//获取对应的数据库连接
 			dn.getConnection(dn.getDatabase(), sc.isAutocommit(), node, this,
                     node);
 		}
@@ -272,7 +275,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
             }
 			//TODO: add by zhuam
 			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), session.getSource().getHost(),
 					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
 			QueryResultDispatcher.dispatchQuery( queryResult );
  
@@ -318,7 +321,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		
 			//TODO: add by zhuam
 			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), session.getSource().getHost(),
 					rrs.getSqlType(), rrs.getStatement(), startTime, System.currentTimeMillis());
 			QueryResultDispatcher.dispatchQuery( queryResult );
 
