@@ -194,8 +194,9 @@ public class ByteBufferUtil
 
         for (int i = startIndex; i >= buffer.position(); i--)
         {
-            if (valueToFind == buffer.get(i))
+            if (valueToFind == buffer.get(i)) {
                 return i;
+            }
         }
 
         return -1;
@@ -233,8 +234,9 @@ public class ByteBufferUtil
     {
         assert buffer != null;
 
-        if (buffer.remaining() == 0)
+        if (buffer.remaining() == 0) {
             return EMPTY_BYTE_BUFFER;
+        }
 
         ByteBuffer clone = ByteBuffer.allocate(buffer.remaining());
 
@@ -357,8 +359,9 @@ public class ByteBufferUtil
         {
             public int read()
             {
-                if (!copy.hasRemaining())
+                if (!copy.hasRemaining()) {
                     return -1;
+                }
 
                 return copy.get() & 0xFF;
             }
@@ -366,8 +369,9 @@ public class ByteBufferUtil
             @Override
             public int read(byte[] bytes, int off, int len)
             {
-                if (!copy.hasRemaining())
+                if (!copy.hasRemaining()) {
                     return -1;
+                }
 
                 len = Math.min(len, copy.remaining());
                 copy.get(bytes, off, len);
@@ -398,9 +402,12 @@ public class ByteBufferUtil
      */
     public static int compareSubArrays(ByteBuffer bytes1, int offset1, ByteBuffer bytes2, int offset2, int length)
     {
-        if (bytes1 == null)
+        if (bytes1 == null) {
             return bytes2 == null ? 0 : -1;
-        if (bytes2 == null) return 1;
+        }
+        if (bytes2 == null) {
+            return 1;
+        }
 
         assert bytes1.limit() >= offset1 + length : "The first byte array isn't long enough for the specified offset and length.";
         assert bytes2.limit() >= offset2 + length : "The second byte array isn't long enough for the specified offset and length.";
@@ -408,10 +415,12 @@ public class ByteBufferUtil
         {
             byte byte1 = bytes1.get(offset1 + i);
             byte byte2 = bytes2.get(offset2 + i);
-            if (byte1 == byte2)
-                continue;
+//            if (byte1 == byte2)
+//                continue;
             // compare non-equal bytes as unsigned
-            return (byte1 & 0xFF) < (byte2 & 0xFF) ? -1 : 1;
+            if( byte1 != byte2 ) {
+                return (byte1 & 0xFF) < (byte2 & 0xFF) ? -1 : 1;
+            }
         }
         return 0;
     }
@@ -426,8 +435,9 @@ public class ByteBufferUtil
     // Returns whether {@code prefix} is a prefix of {@code value}.
     public static boolean isPrefix(ByteBuffer prefix, ByteBuffer value)
     {
-        if (prefix.remaining() > value.remaining())
+        if (prefix.remaining() > value.remaining()) {
             return false;
+        }
 
         int diff = value.remaining() - prefix.remaining();
         return prefix.equals(value.duplicate().limit(value.remaining() - diff));

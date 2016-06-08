@@ -201,8 +201,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
+		}
 		if (obj instanceof RouteResultsetNode) {
 			RouteResultsetNode rrn = (RouteResultsetNode) obj;
 			if(subTableName!=null){

@@ -98,7 +98,9 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 			{
 				SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
 				int firstrownum = right.getNumber().intValue();
-				if (operator == SQLBinaryOperator.LessThan&&firstrownum!=0) firstrownum = firstrownum - 1;
+				if (operator == SQLBinaryOperator.LessThan&&firstrownum!=0) {
+					firstrownum = firstrownum - 1;
+				}
 				SQLSelectQuery subSelect = ((SQLSubqueryTableSource) from).getSelect().getQuery();
 				if (subSelect instanceof OracleSelectQueryBlock)
 				{
@@ -146,7 +148,9 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 							{
 								SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
 								int firstrownum = right.getNumber().intValue();
-								if (operator == SQLBinaryOperator.LessThan&&firstrownum!=0) firstrownum = firstrownum - 1;
+								if (operator == SQLBinaryOperator.LessThan&&firstrownum!=0) {
+									firstrownum = firstrownum - 1;
+								}
 								if (subSelect instanceof OracleSelectQueryBlock)
 								{
 									rrs.setLimitStart(0);
@@ -174,26 +178,34 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 							{
 								small=leftE;
 								firstrownum=((SQLIntegerExpr) leftE.getRight()).getNumber().intValue();
-								if(leftE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual &&firstrownum!=0) firstrownum = firstrownum - 1;
+								if(leftE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual &&firstrownum!=0) {
+									firstrownum = firstrownum - 1;
+								}
 							} else
 							if(leftE.getRight() instanceof SQLIntegerExpr&&(leftE.getOperator()==SQLBinaryOperator.LessThan||leftE.getOperator()==SQLBinaryOperator.LessThanOrEqual))
 							{
 								larger=leftE;
 								lastrownum=((SQLIntegerExpr) leftE.getRight()).getNumber().intValue();
-								if(leftE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+								if(leftE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) {
+									lastrownum = lastrownum - 1;
+								}
 							}
 
 							if(rightE.getRight() instanceof SQLIntegerExpr&&(rightE.getOperator()==SQLBinaryOperator.GreaterThan||rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual))
 							{
 								small=rightE;
 								firstrownum=((SQLIntegerExpr) rightE.getRight()).getNumber().intValue();
-								if(rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) firstrownum = firstrownum - 1;
+								if(rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) {
+									firstrownum = firstrownum - 1;
+								}
 							} else
 							if(rightE.getRight() instanceof SQLIntegerExpr&&(rightE.getOperator()==SQLBinaryOperator.LessThan||rightE.getOperator()==SQLBinaryOperator.LessThanOrEqual))
 							{
 								larger=rightE;
 								lastrownum=((SQLIntegerExpr) rightE.getRight()).getNumber().intValue();
-								if(rightE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+								if(rightE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) {
+									lastrownum = lastrownum - 1;
+								}
 							}
 							if(small!=null&&larger!=null)
 							{
@@ -245,7 +257,9 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 	{
         SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
 		int firstrownum = right.getNumber().intValue();
-		if (operator == SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) firstrownum = firstrownum - 1;
+		if (operator == SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) {
+			firstrownum = firstrownum - 1;
+		}
 		SQLSelectQuery subSelect = from.getSelect().getQuery();
 		if (subSelect instanceof OracleSelectQueryBlock)
         {  //第二层子查询
@@ -258,7 +272,9 @@ public class DruidSelectOracleParser extends DruidSelectParser {
                 if (isRowNum && twoWhere.getRight() instanceof SQLIntegerExpr && isLess)
                 {
                     int lastrownum = ((SQLIntegerExpr) twoWhere.getRight()).getNumber().intValue();
-                    if (operator == SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+                    if (operator == SQLBinaryOperator.LessThan&&lastrownum!=0) {
+						lastrownum = lastrownum - 1;
+					}
                     SQLSelectQuery finalQuery = ((SQLSubqueryTableSource) twoSubSelect.getFrom()).getSelect().getQuery();
                     if (finalQuery instanceof OracleSelectQueryBlock)
                     {

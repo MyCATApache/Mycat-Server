@@ -28,12 +28,15 @@ public class SequoiaStatement implements Statement
         this._concurrency = concurrency;
         this._holdability = holdability;
 
-        if (this._type != 0)
-          throw new UnsupportedOperationException("type not supported yet");
-        if (this._concurrency != 0)
-           throw new UnsupportedOperationException("concurrency not supported yet");
-        if (this._holdability != 0)
-           throw new UnsupportedOperationException("holdability not supported yet");
+        if (this._type != 0) {
+			throw new UnsupportedOperationException("type not supported yet");
+		}
+        if (this._concurrency != 0) {
+			throw new UnsupportedOperationException("concurrency not supported yet");
+		}
+        if (this._holdability != 0) {
+			throw new UnsupportedOperationException("holdability not supported yet");
+		}
     }
 
 	@Override
@@ -52,12 +55,12 @@ public class SequoiaStatement implements Statement
 	public ResultSet executeQuery(String sql) throws SQLException {
 		  
 		SequoiaData mongo= new SequoiaSQLParser(this._conn.getDB(), sql).query();		
-        if (this._fetchSize > 0) {
-        	//设置每次网络请求的最大记录数
-        	if (mongo.getCursor()!=null) {
-        	//mongo.getCursor().batchSize(this._fetchSize);
-        	}
-        }	
+//        if (this._fetchSize > 0) {
+//        	//设置每次网络请求的最大记录数
+//        	if (mongo.getCursor()!=null) {
+//        	//mongo.getCursor().batchSize(this._fetchSize);
+//        	}
+//        }
         /* 
         if (this._maxRows > 0)
         {

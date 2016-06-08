@@ -49,8 +49,9 @@ public class TableFilter {
 			if (i==-1){
 				return key;
 			}
-			else
-			  return key.substring(0, i);
+			else {
+				return key.substring(0, i);
+			}
 		}
 		
 	}
@@ -63,8 +64,9 @@ public class TableFilter {
 			if (i==-1){
 				return key;
 			}
-			else		  
-		       return key.substring(i+1);
+			else {
+				return key.substring(i + 1);
+			}
 		}
 	}
 	
@@ -267,8 +269,9 @@ public class TableFilter {
 			if (val==null) {
 			  sql=unionsql(sql,getFieldfrom(key),",");
 			}
-			else
-			  sql=unionsql(sql,getFieldfrom(key)+" as "+val,",");  
+			else {
+				sql = unionsql(sql, getFieldfrom(key) + " as " + val, ",");
+			}
 		  }
         if (parent==null){	// on/where 等于号左边的表
         	String parentJoinKey = getJoinKey(true);

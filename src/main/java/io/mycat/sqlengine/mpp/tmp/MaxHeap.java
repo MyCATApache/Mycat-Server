@@ -41,8 +41,9 @@ public class MaxHeap implements HeapItf {
             if (right < size && cmp.compare(data.get(right), data.get(max)) > 0) {
                 max = right;
             }
-            if (i == max)
-                break;
+            if (i == max) {
+				break;
+			}
             if (i != max) {
                 RowDataPacket tmp = data.get(i);
                 data.set(i, data.get(max));
@@ -58,12 +59,15 @@ public class MaxHeap implements HeapItf {
         int l = left(i);
         int r = right(i);
         int max = i;
-        if (l < size && cmp.compare(data.get(l), data.get(i)) > 0)
-            max = l;
-        if (r < size && cmp.compare(data.get(r), data.get(max)) > 0)
-            max = r;
-        if (i == max)
-            return;
+        if (l < size && cmp.compare(data.get(l), data.get(i)) > 0) {
+			max = l;
+		}
+        if (r < size && cmp.compare(data.get(r), data.get(max)) > 0) {
+			max = r;
+		}
+        if (i == max) {
+			return;
+		}
         swap(i, max);
         heapifyRecursive(max, size);
     }

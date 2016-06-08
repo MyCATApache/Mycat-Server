@@ -292,8 +292,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             {
                 try
                 {
-                    if (channel != null)
+                    if (channel != null) {
                         channel.close();
+                    }
 
                 } catch (IOException ignored)
                 {
@@ -424,13 +425,11 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
                     }
 
-                if (toFile)
+                if (toFile
+                        //避免当导入数据跨多分片时内存溢出的情况
+                        && data.getData().size()>10000)
                 {
-                    //避免当导入数据跨多分片时内存溢出的情况
-                    if(data.getData().size()>10000)
-                    {
                         saveDataToFile(data,name);
-                    }
                 }
 
             }

@@ -135,11 +135,15 @@ public class RouterUtil {
 		if(upStmt.startsWith("CREATE")){
 			if (upStmt.contains("CREATE INDEX ")){
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateIndexPos(upStmt, 0));
-			}else tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
+			}else {
+				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
+			}
 		}else if(upStmt.startsWith("DROP")){
 			if (upStmt.contains("DROP INDEX ")){
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropIndexPos(upStmt, 0));
-			}else tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
+			}else {
+				tablename = RouterUtil.getTableName(stmt, RouterUtil.getDropTablePos(upStmt, 0));
+			}
 		}else if(upStmt.startsWith("ALTER")){
 			tablename = RouterUtil.getTableName(stmt, RouterUtil.getAlterTablePos(upStmt, 0));
 		}else if (upStmt.startsWith("TRUNCATE")){
@@ -458,7 +462,7 @@ public class RouterUtil {
 	}
 
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
-		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
+//		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
 		SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
 //		if(sequenceHandlerType == 3 || sequenceHandlerType == 4){
 //			DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
@@ -977,7 +981,7 @@ public class RouterUtil {
 			throw new SQLNonTransientException(msg);
 		} 
 		String partionCol = tableConfig.getPartitionColumn();
-		String primaryKey = tableConfig.getPrimaryKey();
+//		String primaryKey = tableConfig.getPrimaryKey();
         boolean isLoadData=false;
         
         Set<String> tablesRouteSet = new HashSet<String>();
@@ -1085,11 +1089,10 @@ public class RouterUtil {
 				String primaryKey = tableConfig.getPrimaryKey();
 				boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
                 boolean isLoadData=false;
-                if (LOGGER.isDebugEnabled()) {
-                    if(sql.startsWith(LoadData.loadDataHint)||rrs.isLoadData())
-                    { //由于load data一次会计算很多路由数据，如果输出此日志会极大降低load data的性能
+                if (LOGGER.isDebugEnabled()
+						&& sql.startsWith(LoadData.loadDataHint)||rrs.isLoadData()) {
+                     //由于load data一次会计算很多路由数据，如果输出此日志会极大降低load data的性能
                          isLoadData=true;
-                    }
                 }
 				if(entry.getValue().get(primaryKey) != null && entry.getValue().size() == 1&&!isLoadData)
                 {//主键查找
@@ -1336,12 +1339,17 @@ public class RouterUtil {
 			}
 			//取得joinkey的值
 			String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
-
+			//解决bug #938，当关联字段的值为char类型时，去掉前后"'"
+			String realVal = joinKeyVal;
+			if (joinKeyVal.startsWith("'") && joinKeyVal.endsWith("'") && joinKeyVal.length() > 2) {
+				realVal = joinKeyVal.substring(1, joinKeyVal.length() - 1);
+			}
+			
 			String sql = insertStmt.toString();
 
 			// try to route by ER parent partion key
 			//如果是二级子表（父表不再有父表）,并且分片字段正好是joinkey字段，调用routeByERParentKey
-			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, joinKeyVal);
+			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, realVal);
 			if (theRrs != null) {
 				boolean processedInsert=false;
 				//判断是否需要全局序列号

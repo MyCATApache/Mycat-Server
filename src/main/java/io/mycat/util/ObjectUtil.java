@@ -54,7 +54,9 @@ public final class ObjectUtil {
         {
             clazz = Class.forName(className);
            Field field = clazz.getField(fieldName);
-             if(field!=null)return field.get(null);
+             if(field!=null) {
+                 return field.get(null);
+             }
         } catch (ClassNotFoundException e)
         {
             LOGGER.error("getStaticFieldValue", e);
@@ -274,8 +276,8 @@ public final class ObjectUtil {
                         .indexOf(propertyDescriptor));
                 if (pd.getDisplayName().equals(
                         propertyDescriptor.getDisplayName())
-                        && !pd.getDisplayName().equals("class")) {
-                    if(propertyDescriptor.getWriteMethod() != null)
+                        && !pd.getDisplayName().equals("class")
+                        && propertyDescriptor.getWriteMethod() != null) {
                         propertyDescriptor.getWriteMethod().invoke(toObj, pd.getReadMethod().invoke(fromObj, null));
                 }
 

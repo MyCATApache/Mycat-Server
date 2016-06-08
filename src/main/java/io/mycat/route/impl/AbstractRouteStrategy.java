@@ -28,14 +28,15 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		 * 处理一些路由之前的逻辑
 		 * 全局序列号，父子表插入
 		 */
-		if ( beforeRouteProcess(schema, sqlType, origSQL, sc) )
+		if ( beforeRouteProcess(schema, sqlType, origSQL, sc) ) {
 			return null;
+		}
 
 		/**
 		 * SQL 语句拦截
 		 */
 		String stmt = MycatServer.getInstance().getSqlInterceptor().interceptSQL(origSQL, sqlType);
-		if (origSQL != stmt && LOGGER.isDebugEnabled()) {
+		if (!origSQL.equals(stmt) && LOGGER.isDebugEnabled()) {
 			LOGGER.debug("sql intercepted to " + stmt + " from " + origSQL);
 		}
 

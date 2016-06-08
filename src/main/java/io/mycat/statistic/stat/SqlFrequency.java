@@ -59,10 +59,9 @@ public class SqlFrequency implements Comparable<SqlFrequency>{
 		if (this.minTime == 0) {
 			this.minTime = execTime;
 		}
-		if (execTime > 0) {
-			if (execTime < this.minTime) {
+		if (execTime > 0
+				&& execTime < this.minTime) {
 				this.minTime = execTime;
-			}
 		}
 		this.allExecuteTime+=execTime;
 		if (count.get() > 0) {
@@ -76,5 +75,14 @@ public class SqlFrequency implements Comparable<SqlFrequency>{
 		long para = o.count.get() - count.get();
 		long para2 = o.lastTime - lastTime;
 		return  para == 0L ? (int)(para2 == 0L ? o.allExecuteTime - allExecuteTime : para2) : (int)para ;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof SqlFrequency) {
+			return this.compareTo((SqlFrequency)obj) == 0;
+		} else {
+			return super.equals(obj);
+		}
 	}
 }

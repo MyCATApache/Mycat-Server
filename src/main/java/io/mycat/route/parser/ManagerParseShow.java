@@ -50,6 +50,7 @@ public final class ManagerParseShow {
     public static final int SQL_HIGH = 17;
     public static final int SQL_CONDITION = 18;
     public static final int SQL_LARGE = 19;
+    public static final int SQL_RESULTSET = 20;
     
     public static final int THREADPOOL = 21;
     public static final int TIME_CURRENT = 22;
@@ -107,8 +108,8 @@ public final class ManagerParseShow {
 
     // SHOW @
     static int show2Check(String stmt, int offset) {
-        if (stmt.length() > ++offset && stmt.charAt(offset) == '@') {
-            if (stmt.length() > ++offset) {
+        if (stmt.length() > ++offset && stmt.charAt(offset) == '@'
+                && stmt.length() > ++offset) {
                 switch (stmt.charAt(offset)) {
                 case 'B':
                 case 'b':
@@ -143,7 +144,6 @@ public final class ManagerParseShow {
                 default:
                     return OTHER;
                 }
-            }
         }
         return OTHER;
     }
@@ -244,8 +244,8 @@ public final class ManagerParseShow {
             char c1 = stmt.charAt(++offset);
             char c2 = stmt.charAt(++offset);
             char c3 = stmt.charAt(++offset);
-            if ((c1 == 'A' || c1 == 'a') && (c2 == 'T' || c2 == 't') && (c3 == 'A' || c3 == 'a')) {
-                if (stmt.length() > ++offset) {
+            if ((c1 == 'A' || c1 == 'a') && (c2 == 'T' || c2 == 't') && (c3 == 'A' || c3 == 'a')
+                    && stmt.length() > ++offset) {
                     switch (stmt.charAt(offset)) {
                     case 'B':
                     case 'b':
@@ -259,7 +259,6 @@ public final class ManagerParseShow {
                     default:
                         return OTHER;
                     }
-                }
             }
         }
         return OTHER;
@@ -1043,8 +1042,8 @@ public final class ManagerParseShow {
             char c1 = stmt.charAt(++offset);
             char c2 = stmt.charAt(++offset);
             char c3 = stmt.charAt(++offset);
-            if ((c1 == 'M' || c1 == 'm') && (c2 == 'E' || c2 == 'e') && (c3 == '.')) {
-                if (stmt.length() > ++offset) {
+            if ((c1 == 'M' || c1 == 'm') && (c2 == 'E' || c2 == 'e') && (c3 == '.')
+                    && (stmt.length() > ++offset)) {
                     switch (stmt.charAt(offset)) {
                     case 'C':
                     case 'c':
@@ -1055,7 +1054,6 @@ public final class ManagerParseShow {
                     default:
                         return OTHER;
                     }
-                }
             }
         }
         return OTHER;
@@ -1224,6 +1222,9 @@ public final class ManagerParseShow {
             case 'C':
             case 'c':
             	return show2SqlCCheck(stmt, offset);
+            case 'R':
+            case 'r':
+            	return show2SqlRCheck(stmt, offset);
             default:
                 return OTHER;
             }
@@ -1348,6 +1349,37 @@ public final class ManagerParseShow {
         return OTHER;
     }
     
+    // SHOW @@SQL.RESULTSET
+    static int show2SqlRCheck(String stmt, int offset) {
+    	
+    	if (stmt.length() > offset + "ESULTSET".length()) {
+    		char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+            char c6 = stmt.charAt(++offset);
+            char c7 = stmt.charAt(++offset);
+            char c8 = stmt.charAt(++offset);
+            if ((c1 == 'E' || c1 == 'e') && (c2 == 'S' || c2 == 's') && (c3 == 'U' || c3 == 'u')&&
+            		(c4 == 'l' || c4 == 'i') && (c5 == 'T' || c5 == 't') && (c6 == 'S' || c6 == 's')&&
+            		(c7 == 'E' || c7 == 'e') && (c8 == 'T' || c8 == 't') ) {
+            	
+            	while (stmt.length() > ++offset) {
+            		 switch (stmt.charAt(offset)) {
+            		 case ' ':
+                         continue;
+                     default:
+                    	 return (offset << 8) | SQL_RESULTSET;	 
+            		 }
+            	}
+            	
+                return SQL_RESULTSET;
+            }
+        }
+        return OTHER;
+    }
+    
     // SHOW @@SQL.LARGE
     static int show2SqlLCheck(String stmt, int offset) {
     	
@@ -1421,9 +1453,9 @@ public final class ManagerParseShow {
 	                		return SQL_SUM_USER;
 	                		
 	                	} else if ( (c2 == 'T' || c2 == 't') && (c3 == 'A' || c3 == 'a')
-				             	 && (c4 == 'B' || c4 == 'b') && (c5 == 'L' || c5 == 'l') ) {
+				             	 && (c4 == 'B' || c4 == 'b') && (c5 == 'L' || c5 == 'l')
+                                && stmt.length() > (offset+1)) {
 
-	                		 if ( stmt.length() > (offset+1) ) {	                			 
 	                			 char c6 = stmt.charAt(++offset);
 	                			 if ( c6 == 'E' || c6 == 'e') {
 	                				 
@@ -1438,7 +1470,6 @@ public final class ManagerParseShow {
 	 
 	                				return SQL_SUM_TABLE;
 	                			 }
-	                		 }
 	                	}
 	                	
                 	} 

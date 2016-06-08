@@ -34,8 +34,9 @@ public class RowDataCmp implements Comparator<RowDataPacket> {
 			} else {
 				cmp = RowDataPacketSorter.compareObject(right, left, tmp[i]);
 			}
-			if (cmp != 0)
+			if (cmp != 0) {
 				return cmp;
+			}
 		}
 		return cmp;
 	}

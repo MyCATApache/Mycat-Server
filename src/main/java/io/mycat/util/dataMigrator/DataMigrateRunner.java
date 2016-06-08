@@ -34,7 +34,9 @@ public  class DataMigrateRunner implements Runnable{
 
 	@Override
 	public void run() {
-		if(table.isError()) return;
+		if(table.isError()) {
+			return;
+		}
 		try {
 			long start = System.currentTimeMillis();
 			File loadFile = dataIO.exportData(table,src, tableName, conditionFile.getParentFile(), conditionFile);

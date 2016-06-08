@@ -170,7 +170,7 @@ public abstract class PhysicalDatasource {
 
 	private boolean validSchema(String schema) {
 		String theSchema = schema;
-		return theSchema != null & !"".equals(theSchema)
+		return theSchema != null && !"".equals(theSchema)
 				&& !"snyn...".equals(theSchema);
 	}
 
@@ -226,7 +226,7 @@ public abstract class PhysicalDatasource {
 	}
 
 	public void heatBeatCheck(long timeout, long conHeartBeatPeriod) {
-		int ildeCloseCount = hostConfig.getMinCon() * 3;
+//		int ildeCloseCount = hostConfig.getMinCon() * 3;
 		int maxConsInOneCheck = 5;
 		LinkedList<BackendConnection> heartBeatCons = new LinkedList<BackendConnection>();
 

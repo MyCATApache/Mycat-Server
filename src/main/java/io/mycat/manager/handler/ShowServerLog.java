@@ -71,7 +71,6 @@ public final class ShowServerLog {
 
 	private static File getLogFile(String logFile) {
 
-		MycatServer.getInstance().getConfig().getSystem();
 		String daasHome = SystemConfig.getHomePath();
 		File file = new File(daasHome, "logs" + File.separator + logFile);
 		return file;
@@ -108,8 +107,8 @@ public final class ShowServerLog {
 			String limitStr = condPairMap.get("limit");
 			limitStr = (limitStr != null) ? limitStr : "0," + 100000;
 			String[] limtArry = limitStr.split("\\s|,");
-			int start = Integer.valueOf(limtArry[0]);
-			int page = Integer.valueOf(limtArry[1]);
+			int start = Integer.parseInt(limtArry[0]);
+			int page = Integer.parseInt(limtArry[1]);
 			int end = Integer.valueOf(start + page);
 			String key = condPairMap.get("key");
 			String regex = condPairMap.get("regex");
@@ -148,16 +147,17 @@ public final class ShowServerLog {
 			String line = null;
 			while ((line = br.readLine()) != null) {
 				curLine++;
-				if (curLine >= start && curLine <= end) {
-					if ((pattern != null && pattern.matcher(line).find())
-							|| (pattern == null && key == null)
-							|| (key != null && line.toLowerCase().contains(key))) {
+				if (curLine >= start && curLine <= end
+						&& (
+						(pattern != null && pattern.matcher(line).find())
+								|| (pattern == null && key == null)
+								|| (key != null && line.toLowerCase().contains(key))
+						)) {
 						RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 						row.add(StringUtil.encode(curLine + "->" + line,
 								c.getCharset()));
 						row.packetId = ++packetId;
 						buffer = row.write(buffer, c,true);
-					}
 				}
 			}
 			bufINf.buffer = buffer;

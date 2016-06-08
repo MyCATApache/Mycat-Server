@@ -5,10 +5,11 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.data.Stat;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
+
+import com.alibaba.fastjson.JSON;
 
 import java.io.InputStream;
 import java.util.HashMap;
@@ -75,7 +76,7 @@ public class ZkCreate {
 
             if (mapObject != null) {
                 framework.setData()
-                    .forPath(childPath, new JSONObject(mapObject).toString().getBytes());
+                    .forPath(childPath, JSON.toJSONString(mapObject).getBytes());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -115,10 +116,10 @@ public class ZkCreate {
                 }
 
                 framework.setData()
-                    .forPath(childPath, new JSONObject(filtered).toString().getBytes());
+                    .forPath(childPath, JSON.toJSONString(filtered).getBytes());
             } else {
                 framework.setData()
-                    .forPath(childPath, new JSONObject(innerMap).toString().getBytes());
+                    .forPath(childPath, JSON.toJSONString(innerMap).toString().getBytes());
             }
         } catch (Exception e) {
             LOGGER.error("create node error: {} ", e.getMessage(), e);

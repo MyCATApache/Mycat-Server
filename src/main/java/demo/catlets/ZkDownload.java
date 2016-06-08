@@ -124,8 +124,9 @@ public class ZkDownload {
         for (String repid : repids){
             for (int i=0; i<listMysqlRep.size();i++){
                 String datahostName = listMysqlRep.get(i).keySet().toString().replace("[", "").replace("]", "").trim();
-                if (datahostName.contains(repid))
+                if (datahostName.contains(repid)) {
                     set.add(listMysqlRep.get(i));
+                }
             }
         }
         return set;
@@ -143,22 +144,30 @@ public class ZkDownload {
                 Element dataHost = serverElement.addElement("dataHost");
                 if (!key.isEmpty()){
                     Element datahost = dataHost.addAttribute("name", key);
-                    if (jsonObject.containsKey("writetype"))
-                        datahost.addAttribute("writeType",jsonObject.get("writetype").toString());
-                    if (jsonObject.containsKey("switchType"))
-                        datahost.addAttribute("switchType",jsonObject.get("switchType").toString());
-                    if (jsonObject.containsKey("slaveThreshold"))
-                        datahost.addAttribute("slaveThreshold",jsonObject.get("slaveThreshold").toString());
-                    if (jsonObject.containsKey("balance"))
-                        datahost.addAttribute("balance",jsonObject.get("balance").toString());
-                    if (jsonObject.containsKey("dbtype"))
-                        datahost.addAttribute("dbType",jsonObject.get("dbtype").toString());
-                    if (jsonObject.containsKey("maxcon"))
-                        datahost.addAttribute("maxCon",jsonObject.get("maxcon").toString());
-                    if (jsonObject.containsKey("mincon"))
-                        datahost.addAttribute("minCon",jsonObject.get("mincon").toString());
-                    if (jsonObject.containsKey("dbDriver"))
-                        datahost.addAttribute("dbDriver",jsonObject.get("dbDriver").toString());
+                    if (jsonObject.containsKey("writetype")) {
+                        datahost.addAttribute("writeType", jsonObject.get("writetype").toString());
+                    }
+                    if (jsonObject.containsKey("switchType")) {
+                        datahost.addAttribute("switchType", jsonObject.get("switchType").toString());
+                    }
+                    if (jsonObject.containsKey("slaveThreshold")) {
+                        datahost.addAttribute("slaveThreshold", jsonObject.get("slaveThreshold").toString());
+                    }
+                    if (jsonObject.containsKey("balance")) {
+                        datahost.addAttribute("balance", jsonObject.get("balance").toString());
+                    }
+                    if (jsonObject.containsKey("dbtype")) {
+                        datahost.addAttribute("dbType", jsonObject.get("dbtype").toString());
+                    }
+                    if (jsonObject.containsKey("maxcon")) {
+                        datahost.addAttribute("maxCon", jsonObject.get("maxcon").toString());
+                    }
+                    if (jsonObject.containsKey("mincon")) {
+                        datahost.addAttribute("minCon", jsonObject.get("mincon").toString());
+                    }
+                    if (jsonObject.containsKey("dbDriver")) {
+                        datahost.addAttribute("dbDriver", jsonObject.get("dbDriver").toString());
+                    }
                     if (jsonObject.containsKey("heartbeatSQL")){
                         Element  heartbeatSQL = dataHost.addElement("heartbeat");
                         heartbeatSQL.setText(jsonObject.get("heartbeatSQL").toString());
@@ -177,33 +186,42 @@ public class ZkDownload {
                             String childHost = temp.substring(temp.indexOf("/")+1, temp.length());
                             JSONObject childJsonObject = wdh.get(host);
                             Element writeHost = dataHost.addElement("writeHost");
-                            if (childJsonObject.containsKey("host"))
+                            if (childJsonObject.containsKey("host")) {
                                 writeHost.addAttribute("host", childJsonObject.get("host").toString());
-                            if (childJsonObject.containsKey("url"))
+                            }
+                            if (childJsonObject.containsKey("url")) {
                                 writeHost.addAttribute("url", childJsonObject.get("url").toString());
-                            if (childJsonObject.containsKey("user"))
+                            }
+                            if (childJsonObject.containsKey("user")) {
                                 writeHost.addAttribute("user", childJsonObject.get("user").toString());
-                            if (childJsonObject.containsKey("password"))
+                            }
+                            if (childJsonObject.containsKey("password")) {
                                 writeHost.addAttribute("password", childJsonObject.get("password").toString());
+                            }
                             //处理readHost
                             for (Map<String,JSONObject> rdh : datahostSet) {
                                 String readhost = rdh.keySet().toString().replace("[", "").replace("]", "").trim();
-                                if (readhost.equals(host)||readhost.compareTo(host)<=0||!readhost.contains(currepid))
+                                if (readhost.equals(host)||readhost.compareTo(host)<=0||!readhost.contains(currepid)) {
                                     continue;
+                                }
                                 String tempread = readhost.substring(host.length()-childHost.length(), readhost.length());
                                 if (tempread.contains("/") && tempread.contains(childHost)) {
                                     String readHost = tempread.substring(childHost.length() + 1, tempread.length());
                                     //System.out.println("readHost:" + readHost);
                                     JSONObject readJsonObject = rdh.get(readhost);
                                     Element readHostEl = writeHost.addElement("readHost");
-                                    if (readJsonObject.containsKey("host"))
+                                    if (readJsonObject.containsKey("host")) {
                                         readHostEl.addAttribute("host", readJsonObject.get("host").toString());
-                                    if (readJsonObject.containsKey("url"))
+                                    }
+                                    if (readJsonObject.containsKey("url")) {
                                         readHostEl.addAttribute("url", readJsonObject.get("url").toString());
-                                    if (readJsonObject.containsKey("user"))
+                                    }
+                                    if (readJsonObject.containsKey("user")) {
                                         readHostEl.addAttribute("user", readJsonObject.get("user").toString());
-                                    if (readJsonObject.containsKey("password"))
+                                    }
+                                    if (readJsonObject.containsKey("password")) {
                                         readHostEl.addAttribute("password", readJsonObject.get("password").toString());
+                                    }
                                 }
                             }
                         }
@@ -680,12 +698,15 @@ public class ZkDownload {
                 Element schemaEl = serverElement.addElement("schema");
                 if (!schema.isEmpty()){
                     Element schemaElCon = schemaEl.addAttribute("name", schema);
-                    if (jsonObject.containsKey("checkSQLSchema"))
-                        schemaElCon.addAttribute("checkSQLschema",jsonObject.get("checkSQLSchema").toString());
-                    if (jsonObject.containsKey("defaultMaxLimit"))
-                        schemaElCon.addAttribute("sqlMaxLimit",jsonObject.get("defaultMaxLimit").toString());
-                    if (jsonObject.containsKey("dataNode"))
-                        schemaElCon.addAttribute("dataNode",jsonObject.get("dataNode").toString());
+                    if (jsonObject.containsKey("checkSQLSchema")) {
+                        schemaElCon.addAttribute("checkSQLschema", jsonObject.get("checkSQLSchema").toString());
+                    }
+                    if (jsonObject.containsKey("defaultMaxLimit")) {
+                        schemaElCon.addAttribute("sqlMaxLimit", jsonObject.get("defaultMaxLimit").toString());
+                    }
+                    if (jsonObject.containsKey("dataNode")) {
+                        schemaElCon.addAttribute("dataNode", jsonObject.get("dataNode").toString());
+                    }
                     //处理 table
                     for (int j=0;j<mapList.size();j++) {
                         String tablePath = mapList.get(j).keySet().toString().replace("[", "").replace("]", "").trim();
@@ -698,25 +719,30 @@ public class ZkDownload {
 //                            System.out.println("table:" + tableName);
                             JSONObject tableJsonObject = mapList.get(j).get(tablePath);
                             Element tableEl = schemaEl.addElement("table");
-                            if (tableJsonObject.containsKey("name"))
+                            if (tableJsonObject.containsKey("name")) {
                                 tableEl.addAttribute("name", tableJsonObject.get("name").toString());
-                            if (tableJsonObject.containsKey("primaryschema"))
+                            }
+                            if (tableJsonObject.containsKey("primaryschema")) {
                                 tableEl.addAttribute("primaryschema", tableJsonObject.get("primaryschema").toString());
-                            if (tableJsonObject.containsKey("datanode"))
+                            }
+                            if (tableJsonObject.containsKey("datanode")) {
                                 tableEl.addAttribute("dataNode", tableJsonObject.get("datanode").toString());
-                            if (tableJsonObject.containsKey("type"))
-                                if (tableJsonObject.get("type").toString().startsWith("1")) //目前只有1 全局表
+                            }
+                            if (tableJsonObject.containsKey("type") && (tableJsonObject.get("type").toString().startsWith("1"))) {    //目前只有1 全局表
                                 tableEl.addAttribute("type", "global");
-                            if (tableJsonObject.containsKey("ruleName"))
+                            }
+                            if (tableJsonObject.containsKey("ruleName")) {
                                 tableEl.addAttribute("rule", tableJsonObject.get("ruleName").toString());
+                            }
                             //处理childTable
                             for (int k=0;k<mapList.size();k++) {
                                 String childTablePath = mapList.get(k).keySet().toString().replace("[", "").replace("]", "").trim();
                                 if (!childTablePath.contains(schema)){
                                     continue;
                                 }
-                                if (childTablePath.equals(tablePath)||childTablePath.compareTo(tablePath)<=0)
+                                if (childTablePath.equals(tablePath)||childTablePath.compareTo(tablePath)<=0) {
                                     continue;
+                                }
                                 String tempChildTableName = childTablePath.substring(tablePath.length()-tableName.length(), childTablePath.length());
                                 if (tempChildTableName.contains("/") && tempChildTableName.contains(tableName)) {
                                     String childTable = tempChildTableName.substring(tableName.length() + 1, tempChildTableName.length());
@@ -724,22 +750,27 @@ public class ZkDownload {
 //                                        System.out.println("childTable:" + childTable);
                                         JSONObject childTableJsonObject = mapList.get(k).get(childTablePath);
                                         Element childTableEl = tableEl.addElement("childTable");
-                                        if (childTableJsonObject.containsKey("name"))
+                                        if (childTableJsonObject.containsKey("name")) {
                                             childTableEl.addAttribute("name", childTableJsonObject.get("name").toString());
-                                        if (childTableJsonObject.containsKey("primarykey"))
+                                        }
+                                        if (childTableJsonObject.containsKey("primarykey")) {
                                             childTableEl.addAttribute("primaryKey", childTableJsonObject.get("primarykey").toString());
-                                        if (childTableJsonObject.containsKey("parentkey"))
+                                        }
+                                        if (childTableJsonObject.containsKey("parentkey")) {
                                             childTableEl.addAttribute("parentKey", childTableJsonObject.get("parentkey").toString());
-                                        if (childTableJsonObject.containsKey("joinkey"))
+                                        }
+                                        if (childTableJsonObject.containsKey("joinkey")) {
                                             childTableEl.addAttribute("joinKey", childTableJsonObject.get("joinkey").toString());
+                                        }
                                         //处理 child-childTable
                                         for (int l=0;l<mapList.size();l++) {
                                             String child_childTablePath = mapList.get(l).keySet().toString().replace("[", "").replace("]", "").trim();
                                             if (!child_childTablePath.contains(schema)){
                                                 continue;
                                             }
-                                            if (child_childTablePath.equals(childTablePath)||child_childTablePath.compareTo(childTablePath)<=0||!child_childTablePath.contains(childTable))
+                                            if (child_childTablePath.equals(childTablePath)||child_childTablePath.compareTo(childTablePath)<=0||!child_childTablePath.contains(childTable)) {
                                                 continue;
+                                            }
                                             String tempchild_childTablePath = child_childTablePath.substring(subLength+schema.length()+tableName.length()+2, child_childTablePath.length());
                                             if (tempchild_childTablePath.contains("/") && tempchild_childTablePath.contains(childTable)) {
                                                 String child_childTablePathName = tempchild_childTablePath.substring(childTable.length() + 1, tempchild_childTablePath.length());
@@ -747,14 +778,18 @@ public class ZkDownload {
                                                     //System.out.println("child-childTable:" + child_childTablePathName);
                                                     JSONObject child_childTableJsonObject = mapList.get(l).get(child_childTablePath);
                                                     Element child_childTablePathEl = childTableEl.addElement("childTable");
-                                                    if (child_childTableJsonObject.containsKey("name"))
+                                                    if (child_childTableJsonObject.containsKey("name")) {
                                                         child_childTablePathEl.addAttribute("name", child_childTableJsonObject.get("name").toString());
-                                                    if (child_childTableJsonObject.containsKey("primarykey"))
+                                                    }
+                                                    if (child_childTableJsonObject.containsKey("primarykey")) {
                                                         child_childTablePathEl.addAttribute("primaryKey", child_childTableJsonObject.get("primarykey").toString());
-                                                    if (child_childTableJsonObject.containsKey("parentkey"))
+                                                    }
+                                                    if (child_childTableJsonObject.containsKey("parentkey")) {
                                                         child_childTablePathEl.addAttribute("parentKey", child_childTableJsonObject.get("parentkey").toString());
-                                                    if (child_childTableJsonObject.containsKey("joinkey"))
+                                                    }
+                                                    if (child_childTableJsonObject.containsKey("joinkey")) {
                                                         child_childTablePathEl.addAttribute("joinKey", child_childTableJsonObject.get("joinkey").toString());
+                                                    }
                                                 }
                                             }
                                         }
@@ -786,22 +821,30 @@ public class ZkDownload {
             Element dataHost = serverElement.addElement("dataHost");
             if (!key.isEmpty()){
                 Element datahost = dataHost.addAttribute("name", key);
-                if (jsonObject.containsKey("writetype"))
-                datahost.addAttribute("writeType",jsonObject.get("writetype").toString());
-                if (jsonObject.containsKey("switchType"))
-                    datahost.addAttribute("switchType",jsonObject.get("switchType").toString());
-                if (jsonObject.containsKey("slaveThreshold"))
-                    datahost.addAttribute("slaveThreshold",jsonObject.get("slaveThreshold").toString());
-                if (jsonObject.containsKey("balance"))
-                    datahost.addAttribute("balance",jsonObject.get("balance").toString());
-                if (jsonObject.containsKey("dbtype"))
-                    datahost.addAttribute("dbType",jsonObject.get("dbtype").toString());
-                if (jsonObject.containsKey("maxcon"))
-                    datahost.addAttribute("maxCon",jsonObject.get("maxcon").toString());
-                if (jsonObject.containsKey("mincon"))
-                    datahost.addAttribute("minCon",jsonObject.get("mincon").toString());
-                if (jsonObject.containsKey("dbDriver"))
-                    datahost.addAttribute("dbDriver",jsonObject.get("dbDriver").toString());
+                if (jsonObject.containsKey("writetype")) {
+                    datahost.addAttribute("writeType", jsonObject.get("writetype").toString());
+                }
+                if (jsonObject.containsKey("switchType")) {
+                    datahost.addAttribute("switchType", jsonObject.get("switchType").toString());
+                }
+                if (jsonObject.containsKey("slaveThreshold")) {
+                    datahost.addAttribute("slaveThreshold", jsonObject.get("slaveThreshold").toString());
+                }
+                if (jsonObject.containsKey("balance")) {
+                    datahost.addAttribute("balance", jsonObject.get("balance").toString());
+                }
+                if (jsonObject.containsKey("dbtype")) {
+                    datahost.addAttribute("dbType", jsonObject.get("dbtype").toString());
+                }
+                if (jsonObject.containsKey("maxcon")) {
+                    datahost.addAttribute("maxCon", jsonObject.get("maxcon").toString());
+                }
+                if (jsonObject.containsKey("mincon")) {
+                    datahost.addAttribute("minCon", jsonObject.get("mincon").toString());
+                }
+                if (jsonObject.containsKey("dbDriver")) {
+                    datahost.addAttribute("dbDriver", jsonObject.get("dbDriver").toString());
+                }
                 if (jsonObject.containsKey("heartbeatSQL")){
                     Element  heartbeatSQL = dataHost.addElement("heartbeat");
                     heartbeatSQL.setText(jsonObject.get("heartbeatSQL").toString());
@@ -815,33 +858,42 @@ public class ZkDownload {
                         //System.out.println("childHost:" + childHost);
                         JSONObject childJsonObject = mapList.get(j).get(host);
                         Element writeHost = dataHost.addElement("writeHost");
-                        if (childJsonObject.containsKey("host"))
+                        if (childJsonObject.containsKey("host")) {
                             writeHost.addAttribute("host", childJsonObject.get("host").toString());
-                        if (childJsonObject.containsKey("url"))
+                        }
+                        if (childJsonObject.containsKey("url")) {
                             writeHost.addAttribute("url", childJsonObject.get("url").toString());
-                        if (childJsonObject.containsKey("user"))
+                        }
+                        if (childJsonObject.containsKey("user")) {
                             writeHost.addAttribute("user", childJsonObject.get("user").toString());
-                        if (childJsonObject.containsKey("password"))
+                        }
+                        if (childJsonObject.containsKey("password")) {
                             writeHost.addAttribute("password", childJsonObject.get("password").toString());
+                        }
                         //处理readHost
                         for (int k=0;k<mapList.size();k++) {
                             String readhost = mapList.get(k).keySet().toString().replace("[", "").replace("]", "").trim();
-                            if (readhost.equals(host)||readhost.compareTo(host)<=0)
+                            if (readhost.equals(host)||readhost.compareTo(host)<=0) {
                                 continue;
+                            }
                             String tempread = readhost.substring(host.length()-childHost.length(), readhost.length());
                             if (tempread.contains("/") && tempread.contains(childHost)) {
                                 String readHost = tempread.substring(childHost.length() + 1, tempread.length());
                                 //System.out.println("readHost:" + readHost);
                                 JSONObject readJsonObject = mapList.get(k).get(readhost);
                                 Element readHostEl = writeHost.addElement("readHost");
-                                if (readJsonObject.containsKey("host"))
+                                if (readJsonObject.containsKey("host")) {
                                     readHostEl.addAttribute("host", readJsonObject.get("host").toString());
-                                if (readJsonObject.containsKey("url"))
+                                }
+                                if (readJsonObject.containsKey("url")) {
                                     readHostEl.addAttribute("url", readJsonObject.get("url").toString());
-                                if (readJsonObject.containsKey("user"))
+                                }
+                                if (readJsonObject.containsKey("user")) {
                                     readHostEl.addAttribute("user", readJsonObject.get("user").toString());
-                                if (readJsonObject.containsKey("password"))
+                                }
+                                if (readJsonObject.containsKey("password")) {
                                     readHostEl.addAttribute("password", readJsonObject.get("password").toString());
+                                }
                             }
                         }
                     }
@@ -858,12 +910,15 @@ public class ZkDownload {
             String dataNode = mapList.get(i).keySet().toString().replace("[", "").replace("]", "").trim();
             JSONObject jsonObject = mapList.get(i).get(dataNode);
             Element dataNodeEl = serverElement.addElement("dataNode");
-            if (jsonObject.containsKey("name"))
+            if (jsonObject.containsKey("name")) {
                 dataNodeEl.addAttribute("name", jsonObject.get("name").toString());
-            if (jsonObject.containsKey("dataHost"))
+            }
+            if (jsonObject.containsKey("dataHost")) {
                 dataNodeEl.addAttribute("dataHost", jsonObject.get("dataHost").toString());
-            if (jsonObject.containsKey("database"))
+            }
+            if (jsonObject.containsKey("database")) {
                 dataNodeEl.addAttribute("database", jsonObject.get("database").toString());
+            }
             }
         //json2XmlFile(document,"D:/dataNode.xml");
     }

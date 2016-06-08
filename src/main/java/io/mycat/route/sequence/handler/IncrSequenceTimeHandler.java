@@ -27,8 +27,8 @@ public class IncrSequenceTimeHandler implements SequenceHandler {
 		// load sequnce properties
 		Properties props = loadProps(SEQUENCE_DB_PROPS);
 
-		long workid = Long.valueOf(props.getProperty("WORKID"));
-		long dataCenterId = Long.valueOf(props.getProperty("DATAACENTERID"));
+		long workid = Long.parseLong(props.getProperty("WORKID"));
+		long dataCenterId = Long.parseLong(props.getProperty("DATAACENTERID"));
 
 		workey = new IdWorker(workid,dataCenterId);
 	}

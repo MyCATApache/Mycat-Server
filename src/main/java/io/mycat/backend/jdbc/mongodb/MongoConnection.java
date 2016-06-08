@@ -48,7 +48,9 @@ public class MongoConnection implements Connection {
 		if (this._schema!=null) {
 	      return this.mc.getDB(this._schema);
 		}
-		else return null;
+		else {
+			return null;
+		}
 	}
 	   
 	@Override

@@ -15,7 +15,9 @@ public class TableConfigMap extends HashMap<String, TableConfig> {
 	public TableConfig get(Object key) {
 		String tableName = key.toString();
 		// 忽略表名中的引号。
-		if(tableName.contains("`"))  tableName = tableName.replaceAll("`", "");
+		if(tableName.contains("`")) {
+			tableName = tableName.replaceAll("`", "");
+		}
 		
 		return super.get(tableName);
 	}
@@ -24,7 +26,9 @@ public class TableConfigMap extends HashMap<String, TableConfig> {
 	public boolean containsKey(Object key) {
 		String tableName = key.toString();
 		// 忽略表名中的引号。
-		if(tableName.contains("`"))  tableName = tableName.replaceAll("`", "");
+		if(tableName.contains("`")) {
+			tableName = tableName.replaceAll("`", "");
+		}
 		
 		return super.containsKey(tableName);
 	}
