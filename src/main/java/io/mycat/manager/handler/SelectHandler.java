@@ -25,10 +25,12 @@ package io.mycat.manager.handler;
 
 import static io.mycat.route.parser.ManagerParseSelect.SESSION_AUTO_INCREMENT;
 import static io.mycat.route.parser.ManagerParseSelect.VERSION_COMMENT;
+import static io.mycat.route.parser.ManagerParseSelect.SESSION_TX_READ_ONLY;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.manager.response.SelectSessionAutoIncrement;
+import io.mycat.manager.response.SelectSessionTxReadOnly;
 import io.mycat.manager.response.SelectVersionComment;
 import io.mycat.route.parser.ManagerParseSelect;
 
@@ -45,6 +47,9 @@ public final class SelectHandler {
         case SESSION_AUTO_INCREMENT:
             SelectSessionAutoIncrement.execute(c);
             break;
+        case SESSION_TX_READ_ONLY:
+        	SelectSessionTxReadOnly.execute(c);
+        	break;
         default:
             c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
         }
