@@ -333,7 +333,9 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                 this.client.create().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/next", ("" + nextFree()).getBytes());
             }
             this.ready = true;
-            Thread.currentThread().join();
+            while(true) {
+                TimeUnit.SECONDS.sleep(3600);
+            }
         } catch (InterruptedException e) {
             LOGGER.warn("Unexpected thread interruption!");
         } catch (Exception e) {
