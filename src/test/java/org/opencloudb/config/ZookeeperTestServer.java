@@ -4,12 +4,14 @@ import demo.catlets.ZkCreate;
 import org.apache.curator.test.TestingServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import java.io.IOException;
 
 /**
  * Created by lion on 12/8/15.
  */
+@Ignore
 public class ZookeeperTestServer {
 
 //    protected static TestingServer testingServer;

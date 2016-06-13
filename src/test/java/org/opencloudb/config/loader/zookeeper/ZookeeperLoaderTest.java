@@ -1,6 +1,7 @@
 package org.opencloudb.config.loader.zookeeper;
 
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opencloudb.config.ZookeeperTestServer;
 
@@ -10,6 +11,7 @@ import static org.junit.Assert.assertThat;
 /**
  * Created by lion on 12/6/15.
  */
+@Ignore
 public class ZookeeperLoaderTest extends ZookeeperTestServer {
 //    @Test public void testBuildConfig() throws Exception {
 //

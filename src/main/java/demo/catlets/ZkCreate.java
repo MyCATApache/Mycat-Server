@@ -29,21 +29,22 @@ public class ZkCreate {
     private static final String MYCAT_MYSQL_GROUP_KEY = "mycat-mysqlgroup";
     private static String ZK_CONFIG_FILE_NAME = "/zk-create.yaml";
     private static CuratorFramework framework;
-    private static Map<String, Object> zkConfig;
+    //private static Map<String, Object> zkConfig;
+    private static Map<String, Object> zkConfig = new HashMap<String, Object>(); //initialized by shenhai.yan for line 40 NullPointerException
 
     public static void main(String[] args) {
          String url;
         if (args != null && args.length > 0) {
             ZK_CONFIG_FILE_NAME = args[0];
             url = args[1];
+        } else {
+            url = zkConfig.containsKey(CONFIG_URL_KEY) ?
+                (String) zkConfig.get(CONFIG_URL_KEY) :
+                "127.0.0.1:2181";
         }
-
-
+        
         zkConfig = loadZkConfig();
-         url = zkConfig.containsKey(CONFIG_URL_KEY)? (String) zkConfig.get(CONFIG_URL_KEY) : "127.0.0.1:2181";
-        framework =
-            createConnection(url)
-                .usingNamespace("mycat");
+        framework = createConnection(url).usingNamespace("mycat");
 
         createConfig(MYCAT_HOST_KEY, false, MYCAT_HOST_KEY);
         createConfig(MYCAT_ZONE_KEY, false, MYCAT_ZONE_KEY);
