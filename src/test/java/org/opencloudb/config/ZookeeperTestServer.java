@@ -14,14 +14,14 @@ import java.io.IOException;
 @Ignore
 public class ZookeeperTestServer {
 
-//    protected static TestingServer testingServer;
-//
-//    @BeforeClass public static void setUpZookeeper() throws Exception {
-//        testingServer = new TestingServer(true);
-//        ZkCreate.main(new String[] {"/zk-create-test.yaml", testingServer.getConnectString()});
-//    }
-//
-//    @AfterClass public static void tearDown() throws IOException {
-//        testingServer.close();
-//    }
+    protected static TestingServer testingServer;
+
+    @BeforeClass public static void setUpZookeeper() throws Exception {
+        testingServer = new TestingServer(true);
+        ZkCreate.main(new String[] {"/zk-create-test.yaml", testingServer.getConnectString()});
+    }
+
+    @AfterClass public static void tearDown() throws IOException {
+        testingServer.close();
+    }
 }
