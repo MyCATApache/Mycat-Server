@@ -174,7 +174,7 @@ public class SchemaConfig {
 		if (this.allDataNodeStrArr == null) {
 			return null;
 		}
-		int index = Math.abs(random.nextInt()) % allDataNodeStrArr.length;
+		int index = Math.abs(random.nextInt(Integer.MAX_VALUE)) % allDataNodeStrArr.length;
 		return this.allDataNodeStrArr[index];
 	}
 

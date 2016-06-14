@@ -3,7 +3,8 @@ package io.mycat.config.loader.zookeeper.loader;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.ZKPaths;
-import org.json.JSONObject;
+
+import com.alibaba.fastjson.JSONObject;
 
 
 public class MysqlGroupLoader extends AbstractLoader {

@@ -185,12 +185,6 @@
 			<artifactId>fastjson</artifactId>
 			<version>1.2.12</version>
 		</dependency>
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20160212</version>
-		</dependency>
-		
 		<!-- joda日期处理工具 -->
         <dependency>
 			<groupId>joda-time</groupId>

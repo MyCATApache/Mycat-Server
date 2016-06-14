@@ -123,10 +123,6 @@ public class DruidParserFactory
             {
                 String key = entry.getKey();
                 String value = entry.getValue();
-                if (key != null && key.indexOf("`") >= 0)
-                {
-                    key = key.replaceAll("`", "");
-                }
                 if (value != null && value.indexOf("`") >= 0)
                 {
                     value = value.replaceAll("`", "");
@@ -134,16 +130,21 @@ public class DruidParserFactory
                 //表名前面带database的，去掉
                 if (key != null)
                 {
-                    int pos = key.indexOf(".");
+                    int pos = key.indexOf("`");
+                    if (pos > 0)
+                    {
+                        key = key.replaceAll("`", "");
+                    }
+                    pos = key.indexOf(".");
                     if (pos > 0)
                     {
                         key = key.substring(pos + 1);
                     }
-                }
 
-                if (key.equals(value))
-                {
-                    tables.add(key.toUpperCase());
+                    if (key.equals(value))
+                    {
+                        tables.add(key.toUpperCase());
+                    }
                 }
             }
 

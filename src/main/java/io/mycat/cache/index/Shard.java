@@ -18,7 +18,7 @@ public class Shard<S> { // S类封装了机器节点的信息 ，如name、passw
 
     private TreeMap<Long, S> nodes; // 虚拟节点
     private List<S> shards; // 真实机器节点
-    private final int NODE_NUM = 100; // 每个机器节点关联的虚拟节点个数
+    private static final int NODE_NUM = 100; // 每个机器节点关联的虚拟节点个数
 
     public Shard(List<S> shards) {
         super();

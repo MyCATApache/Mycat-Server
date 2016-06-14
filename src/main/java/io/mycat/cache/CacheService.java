@@ -85,8 +85,8 @@ public class CacheService {
 									+ value);
 				}
 				String type = valueItems[0];
-				int size = Integer.valueOf(valueItems[1]);
-				int timeOut = Integer.valueOf(valueItems[2]);
+				int size = Integer.parseInt(valueItems[1]);
+				int timeOut = Integer.parseInt(valueItems[2]);
 				createPool(cacheName, type, size, timeOut);
 			} else if (key.startsWith(layedPoolKeyPref)) {
 				String cacheName = key.substring(layedPoolKeyPref.length());

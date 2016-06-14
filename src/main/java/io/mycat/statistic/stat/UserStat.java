@@ -58,7 +58,7 @@ public class UserStat {
 	/**
 	 * 读写锁
 	 */
-	private ReentrantReadWriteLock lock  = new ReentrantReadWriteLock();
+//	private ReentrantReadWriteLock lock  = new ReentrantReadWriteLock();
 
 	public UserStat(String user) {
 		super();
