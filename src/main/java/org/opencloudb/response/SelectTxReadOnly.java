@@ -27,6 +27,7 @@ package org.opencloudb.response;
 
 import org.opencloudb.config.Fields;
 import org.opencloudb.mysql.PacketUtil;
+import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
@@ -55,7 +56,7 @@ public class SelectTxReadOnly {
 
     }
 
-    public static void response(ServerConnection c) {
+    public static void response(FrontendConnection c) {
         ByteBuffer buffer = c.allocate();
         buffer = header.write(buffer, c,true);
         for (FieldPacket field : fields) {
