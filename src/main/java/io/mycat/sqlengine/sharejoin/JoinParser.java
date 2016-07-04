@@ -57,7 +57,7 @@ public class JoinParser {
 	   parserTable(table,tableFilter,false);
 	   
 	   parserFields(mysqlQuery.getSelectList()); 
-	   parserMaserTable();	   
+	   parserMasterTable();	   
 	   
 	   parserWhere(mysqlQuery.getWhere(),"");	   
 	 // getJoinField();
@@ -169,7 +169,7 @@ public class JoinParser {
 	}
 	
 	//判断并获得主表
-	private void parserMaserTable(){ 
+	private void parserMasterTable(){ 
 		if (tableFilter!=null){
 		   masterTable=tableFilter.getTableAlia();
 		}

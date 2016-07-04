@@ -69,7 +69,7 @@
   url CDATA #REQUIRED
   host NMTOKEN #REQUIRED
   password CDATA #REQUIRED
-  user NMTOKEN #REQUIRED
+  user CDATA #REQUIRED
   usingDecrypt CDATA #IMPLIED>
 
 <!ELEMENT heartbeat (#PCDATA)>
