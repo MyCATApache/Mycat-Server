@@ -1,12 +1,12 @@
 package io.mycat.config;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Strings;
 
 import io.mycat.config.loader.zookeeper.ZookeeperLoader;
 import io.mycat.config.loader.zookeeper.ZookeeperSaver;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;

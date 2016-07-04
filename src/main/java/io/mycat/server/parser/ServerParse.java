@@ -62,10 +62,10 @@ public final class ServerParse {
     private static final  Pattern callPattern = Pattern.compile("\\w*\\;\\s*\\s*(call)+\\s+\\w*\\s*",Pattern.CASE_INSENSITIVE);
 
     public static int parse(String stmt) {
-		int lenth = stmt.length();
+		int length = stmt.length();
 		//FIX BUG FOR SQL SUCH AS /XXXX/SQL
 		int rt = -1;
-		for (int i = 0; i < lenth; ++i) {
+		for (int i = 0; i < length; ++i) {
 			switch (stmt.charAt(i)) {
 			case ' ':
 			case '\t':
@@ -75,13 +75,13 @@ public final class ServerParse {
 			case '/':
 				// such as /*!40101 SET character_set_client = @saved_cs_client
 				// */;
-				if (i == 0 && stmt.charAt(1) == '*' && stmt.charAt(2) == '!' && stmt.charAt(lenth - 2) == '*'
-						&& stmt.charAt(lenth - 1) == '/') {
+				if (i == 0 && stmt.charAt(1) == '*' && stmt.charAt(2) == '!' && stmt.charAt(length - 2) == '*'
+						&& stmt.charAt(length - 1) == '/') {
 					return MYSQL_CMD_COMMENT;
 				}
 			case '#':
 				i = ParseUtil.comment(stmt, i);
-				if (i + 1 == lenth) {
+				if (i + 1 == length) {
 					return MYSQL_COMMENT;
 				}
 				continue;
