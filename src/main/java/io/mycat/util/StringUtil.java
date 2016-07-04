@@ -50,7 +50,7 @@ public class StringUtil {
 	 * 字符串hash算法：s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1] <br>
 	 * 其中s[]为字符串的字符数组，换算成程序的表达式为：<br>
 	 * h = 31*h + s.charAt(i); => h = (h << 5) - h + s.charAt(i); <br>
-	 * 
+	 *
 	 * @param start
 	 *            hash for s.substring(start, end)
 	 * @param end
@@ -469,7 +469,7 @@ public class StringUtil {
 
 	/**
 	 * insert into tablexxx
-	 * 
+	 *
 	 * @param oriSql
 	 * @return
 	 */
@@ -541,7 +541,7 @@ public class StringUtil {
 		}
 		return sql.substring(tableStartIndx, tableEndIndex);
 	}
-	
+
 	/**
 	 * 移除`符号
 	 * @param str
@@ -569,7 +569,7 @@ public class StringUtil {
 		System.out.println(getTableName("  insert  into    isd(id) values (s)"));
 		System.out.println(getTableName("INSERT INTO test_activity_input  (id,vip_no"));
 		System.out.println(getTableName("/* ApplicationName=DBeaver 3.3.1 - Main connection */ insert into employee(id,name,sharding_id) values(4,’myhome’,10011)"));
-		
-	}
+        System.out.println(countChar("insert into ssd  (id) values (s) ,(s),(7);",'('));
+    }
 
 }
