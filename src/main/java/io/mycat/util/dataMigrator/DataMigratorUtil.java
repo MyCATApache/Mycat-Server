@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -195,10 +196,10 @@ public class DataMigratorUtil {
     }
     
     //将命令行中的？替换为具体参数
-    public static  String paramsAssignment(String cmd,Object... params){
+    public static  String paramsAssignment(String cmd,String mark,Object... params){
 		List<Object> paramList= Arrays.asList(params);
 		for(Object param:paramList){
-			cmd = cmd.replaceFirst("\\?", param.toString());
+			cmd = cmd.replaceFirst("\\"+mark, Matcher.quoteReplacement(param.toString()));
 		}
 		return cmd;
 	}
@@ -365,6 +366,21 @@ public class DataMigratorUtil {
 		T result = map.get(key.toLowerCase());
 		return  result==null?map.get(key.toUpperCase()):result;
 	}
+	
+	public static Process exeCmdByOs(String cmd) throws IOException{
+		Process process = null;
+		
+		Runtime runtime = Runtime.getRuntime();
+		
+		String osName = System.getProperty("os.name");
+		
+		if(osName.toLowerCase().startsWith("win")){
+			process = runtime.exec((new String[]{"cmd","/C",cmd}));
+		}else{
+			process = runtime.exec((new String[]{"sh","-c",cmd}));
+		}
+		return process;
+	}
   	
   	private static String[] getValues(String value, int maxValueLength) {
   		int length = value.length()/maxValueLength;
@@ -380,5 +396,5 @@ public class DataMigratorUtil {
   		result[length-1] = str;
 		return result;
 	}
-
+  	
 }

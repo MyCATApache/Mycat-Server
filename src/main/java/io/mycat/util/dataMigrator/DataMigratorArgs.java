@@ -1,7 +1,12 @@
 package io.mycat.util.dataMigrator;
 
+import java.io.File;
+
 import io.mycat.config.model.SystemConfig;
 import io.mycat.util.cmd.CmdArgs;
+
+
+
 
 /**
  * 数据迁移工具依赖参数
@@ -71,7 +76,7 @@ public class DataMigratorArgs {
 	public String getTempFileDir(){
 		String path = getString(TEMP_FILE_DIR);
 		if(null == path || path.trim().isEmpty()){
-			return SystemConfig.getHomePath()+"/temp";
+			return SystemConfig.getHomePath()+File.separator+"temp";
 		}
 		return path;
 	}
