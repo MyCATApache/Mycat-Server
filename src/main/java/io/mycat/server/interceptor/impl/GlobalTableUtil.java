@@ -18,16 +18,22 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
+import com.alibaba.druid.sql.ast.statement.SQLCharacterDataType;
+import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
+import com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
+import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
-import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.fastjson.JSON;
 
@@ -89,7 +95,7 @@ public class GlobalTableUtil{
 		}
 		if(sqlType == ServerParse.DDL){
 			LOGGER.info(" DDL to modify global table.");
-			handleDDLSQL(sql);	
+			sql = handleDDLSQL(sql);	
 		}
 		
 		LOGGER.debug("after intercept: " +  sql);
@@ -114,49 +120,81 @@ public class GlobalTableUtil{
 		    [partition_options]
 	       如果 DDL 修改了表结构，需要重新获得表的列list
 	 */
-	private static void handleDDLSQL(String sql){
-		try{
-			MySqlStatementParser parser = new MySqlStatementParser(sql);	 
-			SQLStatement statement = parser.parseStatement();
-			// druid高版本去掉了 MySqlAlterTableStatement，在其父类 SQLAlterTableStatement 直接支持 mysql alter table 语句
-//			MySqlAlterTableStatement alter = (MySqlAlterTableStatement)statement;	
-			SQLAlterTableStatement alter = (SQLAlterTableStatement)statement;
-			SQLExprTableSource source = alter.getTableSource();
-			String tableName = source.toString();
-	        tableName = StringUtil.removeBackquote(tableName);
-			
-			if(StringUtils.isNotBlank(tableName))
-				tableName = tableName.trim();
-			else
-				return;
-			
-			if(!isGlobalTable(tableName))
-				return;
-			
-			final String tn = tableName;
-			MycatServer.getInstance().getListeningExecutorService().execute(new Runnable() {
-				public void run() {
-					try {
-						TimeUnit.SECONDS.sleep(3);	// DDL发出之后，等待3秒让DDL分发完成
-					} catch (InterruptedException e) {
-					} 
-					reGetColumnsForTable(tn); // DDL 语句可能会增删 列，所以需要重新获取 全局表的 列list
-				}
-			});
-			
-			MycatServer.getInstance().getListeningExecutorService().execute(new Runnable() {
-				public void run() {
-					try {
-						TimeUnit.MINUTES.sleep(10);	// DDL发出之后，等待10分钟再次执行，全局表一般很小，DDL耗时不会超过10分钟
-					} catch (InterruptedException e) {
-					} 
-					reGetColumnsForTable(tn); // DDL 语句可能会增删 列，所以需要重新获取 全局表的 列list
-				}
-			});
-			
-		}catch(Exception e){
-			return;
+	private static String handleDDLSQL(String sql){
+		MySqlStatementParser parser = new MySqlStatementParser(sql);	 
+		SQLStatement statement = parser.parseStatement();
+		// druid高版本去掉了 MySqlAlterTableStatement，在其父类 SQLAlterTableStatement 直接支持 mysql alter table 语句
+//			MySqlAlterTableStatement alter = (MySqlAlterTableStatement)statement;
+		SQLExprTableSource source = getDDLTableSource(statement);
+		if (source == null)
+			return sql;
+		String tableName = StringUtil.removeBackquote(source.toString());
+		if(StringUtils.isNotBlank(tableName))
+			tableName = tableName.trim();
+		else
+			return sql;
+		
+		if(!isGlobalTable(tableName))
+			return sql;
+		
+		//增加对全局表create语句的解析，如果是建表语句创建的是全局表，且表中不含"_mycat_op_time"列
+		//则为其增加"_mycat_op_time"列，方便导入数据。
+		if (isCreate(statement) && sql.contains("CREATE TABLE ") && !hasGlobalColumn(statement)) {
+			SQLColumnDefinition column = new SQLColumnDefinition();
+			column.setDataType(new SQLCharacterDataType("int"));
+			column.setName(new SQLIdentifierExpr(GLOBAL_TABLE_MYCAT_COLUMN));
+			column.setComment(new SQLCharExpr("全局表保存修改时间戳的字段名"));
+			((SQLCreateTableStatement)statement).getTableElementList().add(column);
+			sql = statement.toString();
 		}
+		
+		final String tn = tableName;
+		MycatServer.getInstance().getListeningExecutorService().execute(new Runnable() {
+			public void run() {
+				try {
+					TimeUnit.SECONDS.sleep(3);	// DDL发出之后，等待3秒让DDL分发完成
+				} catch (InterruptedException e) {
+				} 
+				reGetColumnsForTable(tn); // DDL 语句可能会增删 列，所以需要重新获取 全局表的 列list
+			}
+		});
+		
+		MycatServer.getInstance().getListeningExecutorService().execute(new Runnable() {
+			public void run() {
+				try {
+					TimeUnit.MINUTES.sleep(10);	// DDL发出之后，等待10分钟再次执行，全局表一般很小，DDL耗时不会超过10分钟
+				} catch (InterruptedException e) {
+				} 
+				reGetColumnsForTable(tn); // DDL 语句可能会增删 列，所以需要重新获取 全局表的 列list
+			}
+		});
+		return sql;
+	}
+	
+	private static boolean hasGlobalColumn(SQLStatement statement){
+		for (SQLTableElement tableElement : ((SQLCreateTableStatement)statement).getTableElementList()) {
+			String simpleName = ((SQLColumnDefinition)tableElement).getName().getSimpleName();
+			simpleName = StringUtil.removeBackquote(simpleName);
+			if (tableElement instanceof SQLColumnDefinition && GLOBAL_TABLE_MYCAT_COLUMN.equals(simpleName)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static SQLExprTableSource getDDLTableSource(SQLStatement statement) {
+		SQLExprTableSource source = null;
+		if (statement instanceof SQLAlterTableStatement) {
+			source = ((SQLAlterTableStatement)statement).getTableSource();
+			
+		} else if (isCreate(statement)) {
+			source = ((SQLCreateTableStatement)statement).getTableSource();
+		}
+		return source;
+	}
+
+	private static boolean isCreate(SQLStatement statement) {
+		return statement instanceof SQLCreateTableStatement;
 	}
 	
 	/**
@@ -296,15 +334,15 @@ public class GlobalTableUtil{
 	}
 	
 	public static void main(String[] args){
-		String newSQL = "insert into t(id,name,_mycat_op_time)";// + columnsList + ")";
-		MySqlStatementParser parser = new MySqlStatementParser(newSQL);	 
-		SQLStatement statement = parser.parseStatement();
-		MySqlInsertStatement insert = (MySqlInsertStatement)statement; 
-		List<SQLExpr> columns = insert.getColumns();
-		System.out.println(columns.size());
+//		String newSQL = "insert into t(id,name,_mycat_op_time)";// + columnsList + ")";
+//		MySqlStatementParser parser = new MySqlStatementParser(newSQL);	 
+//		SQLStatement statement = parser.parseStatement();
+//		MySqlInsertStatement insert = (MySqlInsertStatement)statement; 
+//		List<SQLExpr> columns = insert.getColumns();
+//		System.out.println(columns.size());
 		
 		String sql = "alter table t add colomn name varchar(30)";
-		handleDDLSQL(sql);
+		System.out.println(handleDDLSQL(sql));
 	}
 	
 	private static boolean isInnerColExist(String tableName){
