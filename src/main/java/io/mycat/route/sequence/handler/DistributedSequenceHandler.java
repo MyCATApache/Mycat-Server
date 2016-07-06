@@ -5,15 +5,12 @@ import io.mycat.route.util.PropertiesUtil;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.leader.CancelLeadershipException;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.CloseableUtils;
-import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +94,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
 
     private int mark[];
     private volatile boolean isLeader = false;
+    private String slavePath;
     //配置是否载入好
     private volatile boolean ready = false;
 
@@ -145,91 +143,49 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     }
 
     private final ScheduledExecutorService timerExecutor = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService leaderExecutor;
     private final long SELF_CHECK_PERIOD = 10L;
 
     public void initializeZK(String zkAddress) {
         this.client = CuratorFrameworkFactory.newClient(zkAddress, new ExponentialBackoffRetry(1000, 3));
         this.client.start();
-        this.leaderSelector = new LeaderSelector(client, PATH + "/leader", this);
+        try {
+            if (client.checkExists().forPath(PATH.concat("/instance")) == null) {
+                client.create().forPath(PATH.concat("/instance"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        this.leaderSelector = new LeaderSelector(client, PATH.concat("/leader"), this);
         this.leaderSelector.autoRequeue();
         this.leaderSelector.start();
-        this.timerExecutor.scheduleAtFixedRate( new Runnable() {
+        Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                while (!leaderExists()) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        LOGGER.warn("Unexpected thread interruption!");
+                try {
+                    while (leaderSelector.getLeader() == null) {
+                        Thread.currentThread().yield();
                     }
-                }
-//                while (true) {
-                    if (isLeader) {
-                        return;
-                    }
-                    while (!tryGetInstanceID()) {
-                    }
-                    //心跳，需要考虑网络不通畅时，别人抢占了自己的节点，需要重新获取
-
-                    try {
-                        if (isLeader) {
+                    if (!leaderSelector.hasLeadership()) {
+                        isLeader = false;
+                        if (slavePath != null && client.checkExists().forPath(slavePath) != null) {
                             return;
                         }
-                        byte[] data = client.getData().forPath(PATH + "/instance/" + instanceId);
-                        if (data == null || !new String(data).equals(ID)) {
-                            while (!tryGetInstanceID()) {
-                            }
-                        } else{
-                            return;
+                        slavePath = client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL_SEQUENTIAL).forPath(PATH.concat("/instance/node"), "ready".getBytes());
+                        while ("ready".equals(new String(client.getData().forPath(slavePath)))) {
+                            Thread.currentThread().yield();
                         }
-                    } catch (Exception e) {
-                        LOGGER.warn("Exception caught:" + e.getCause());
+                        instanceId = Long.parseLong(new String(client.getData().forPath(slavePath)));
+                        ready = true;
                     }
-//                }
-            }
-        },0L,SELF_CHECK_PERIOD,TimeUnit.SECONDS);
-    }
-
-    private boolean tryGetInstanceID() {
-        try {
-            this.ready = false;
-            byte[] data = this.client.getData().forPath(PATH + "/next");
-            String nextCounter = new String(data);
-            this.instanceId = Integer.parseInt(nextCounter);
-            if (this.client.checkExists().forPath(PATH + "/instance/" + this.instanceId) == null) {
-                this.client.create().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/instance/" + this.instanceId, ID.getBytes());
-            }
-            else {
-                return false;
-            }
-            this.ready = true;
-            return true;
-        } catch (Exception e) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e1) {
-                LOGGER.warn("Unexpected thread interruption!");
-            }
-            return false;
-        }
-    }
-
-    private boolean leaderExists() {
-        try {
-            List<String> children = this.client.getChildren().forPath(PATH + "/leader");
-            if (children.size() <= 0) {
-                return false;
-            } else {
-                if (this.leaderSelector.getLeader() == null) {
-                    return false;
-                } else {
-                    return true;
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-        } catch (Exception e) {
-            return false;
-        }
+        };
+        timerExecutor.scheduleAtFixedRate(runnable, 0L, 10L, TimeUnit.SECONDS);
     }
+
 
     @Override
     public long nextId(String prefixName) {
@@ -279,75 +235,65 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     public void stateChanged(CuratorFramework client, ConnectionState newState) {
         if (newState == ConnectionState.SUSPENDED || newState == ConnectionState.LOST) {
             this.isLeader = false;
+            leaderExecutor.shutdownNow();
             throw new CancelLeadershipException();
         }
     }
 
     @Override
-    public void takeLeadership(CuratorFramework curatorFramework) {
-        cache = null;
+    public void takeLeadership(final CuratorFramework curatorFramework) {
+        this.isLeader = true;
+        this.instanceId = 1;
+        this.ready = true;
+        this.mark = new int[(int) maxinstanceId];
+        List<String> children = null;
         try {
-            this.isLeader = true;
-
-            if (this.client.checkExists().forPath(PATH + "/instance/" + instanceId) == null) {
-                this.client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/instance/" + instanceId, ID.getBytes());
+            if (this.slavePath != null) {
+                client.delete().forPath(slavePath);
             }
-
-            cache = new PathChildrenCache(client, PATH + "/instance", true);
-            this.mark = new int[(int) maxinstanceId];
-            PathChildrenCacheListener listener = new PathChildrenCacheListener() {
-                @Override
-                public void childEvent(CuratorFramework c, PathChildrenCacheEvent event) throws Exception {
-                    switch (event.getType()) {
-                        case CHILD_ADDED: {
-                            LOGGER.debug("Node added: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
-                            reloadChild();
-                            client.setData().forPath(PATH + "/next", ("" + nextFree()).getBytes());
-                            break;
-                        }
-
-                        case CHILD_UPDATED: {
-                            LOGGER.debug("Node changed: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
-                            reloadChild();
-                            client.setData().forPath(PATH + "/next", ("" + nextFree()).getBytes());
-                            break;
-                        }
-
-                        case CHILD_REMOVED: {
-                            LOGGER.debug("Node removed: " + ZKPaths.getNodeFromPath(event.getData().getPath()));
-                            reloadChild();
-                            client.setData().forPath(PATH + "/next", ("" + nextFree()).getBytes());
-                            break;
-                        }
-
-                        default:
-                            LOGGER.warn("Unhanlded ZK nodes cache exception");
-                            break;
-                    }
+            children = curatorFramework.getChildren().forPath(PATH.concat("/instance"));
+            for (String child : children) {
+                String data = new String(client.getData().forPath(PATH.concat("/instance/" + child)));
+                if (!"ready".equals(data)) {
+                    mark[Integer.parseInt(data)] = 1;
                 }
-            };
-            cache.getListenable().addListener(listener);
-            cache.start();
-            reloadChild();
-            if (this.client.checkExists().forPath(PATH + "/next") == null) {
-                this.client.create().withMode(CreateMode.EPHEMERAL).forPath(PATH + "/next", ("" + nextFree()).getBytes());
             }
-            this.ready = true;
-            while(true) {
-                TimeUnit.SECONDS.sleep(3600);
-            }
-        } catch (InterruptedException e) {
-            LOGGER.warn("Unexpected thread interruption!");
         } catch (Exception e) {
-            LOGGER.warn("Exception caught:" + e.getMessage() + "Cause:" + e.getCause() + e.getStackTrace().toString());
-        } finally {
-            CloseableUtils.closeQuietly(cache);
+            e.printStackTrace();
+        }
+
+        leaderExecutor = Executors.newSingleThreadScheduledExecutor();
+        leaderExecutor.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    List<String> children = client.getChildren().forPath(PATH.concat("/instance"));
+                    int mark2[] = new int[(int) maxinstanceId];
+                    for (String child : children) {
+                        String data = new String(client.getData().forPath(PATH.concat("/instance/" + child)));
+                        if ("ready".equals(data)) {
+                            int i = nextFree();
+                            client.setData().forPath(PATH.concat("/instance/" + child), ("" + i).getBytes());
+                            mark2[i] = 1;
+                        } else {
+                            mark2[Integer.parseInt(data)] = 1;
+                        }
+                    }
+                    mark = mark2;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 0L, 3L, TimeUnit.SECONDS);
+        while (true) {
+            Thread.currentThread().yield();
         }
     }
 
     private void reloadChild() throws Exception {
         mark = new int[(int) maxinstanceId];
         List<String> list = client.getChildren().forPath(PATH + "/instance");
+        System.out.println(list);
         for (String child : list) {
             mark[Integer.parseInt(child)] = 1;
         }
@@ -356,7 +302,11 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
 
     private int nextFree() {
         for (int i = 0; i < mark.length; i++) {
+            if (i == 1) {
+                continue;
+            }
             if (mark[i] != 1) {
+                mark[i] = 1;
                 return i;
             }
         }
