@@ -4,7 +4,6 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.route.util.PropertiesUtil;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.CancelLeadershipException;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
@@ -17,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -43,13 +41,6 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     private static final String SEQUENCE_DB_PROPS = "sequence_distributed_conf.properties";
     private static DistributedSequenceHandler instance;
 
-    public static DistributedSequenceHandler getInstance(SystemConfig systemConfig) {
-        if (instance == null) {
-            instance = new DistributedSequenceHandler(systemConfig);
-        }
-        return instance;
-    }
-
     private final long timestampBits = 38L;
     private final long clusterIdBits = 5L;
     private final long instanceIdBits = 5L;
@@ -72,12 +63,49 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     private volatile long instanceId;
     private long clusterId;
 
+    private ThreadLocal<Long> threadInc = new ThreadLocal<>();
+    private ThreadLocal<Long> threadLastTime = new ThreadLocal<>();
+    private ThreadLocal<Long> threadID = new ThreadLocal<>();
+    private long nextID = 0L;
+
+    private final static String PATH = "/mycat/sequence";
+    private final static String INSTANCE_PATH = "/instance";
+    private final static String LEADER_PATH = "/leader";
+    private SystemConfig mycatConfig;
+    private String ID;
+
+    private int mark[];
+    private volatile boolean isLeader = false;
+    private volatile String slavePath;
+    //配置是否载入好
+    private volatile boolean ready = false;
+
+    private CuratorFramework client;
+
+
+    private LeaderSelector leaderSelector;
+
+    private final ScheduledExecutorService timerExecutor = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService leaderExecutor;
+    private final long SELF_CHECK_PERIOD = 10L;
+
+    public static DistributedSequenceHandler getInstance(SystemConfig systemConfig) {
+        if (instance == null) {
+            instance = new DistributedSequenceHandler(systemConfig);
+        }
+        return instance;
+    }
+
     public long getClusterId() {
         return clusterId;
     }
 
     public void setClusterId(long clusterId) {
         this.clusterId = clusterId;
+    }
+
+    public LeaderSelector getLeaderSelector() {
+        return leaderSelector;
     }
 
     public long getInstanceId() {
@@ -88,20 +116,6 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         this.instanceId = instanceId;
     }
 
-    private final static String PATH = "/mycat/sequence";
-    private SystemConfig mycatConfig;
-    private String ID;
-
-    private int mark[];
-    private volatile boolean isLeader = false;
-    private String slavePath;
-    //配置是否载入好
-    private volatile boolean ready = false;
-
-    private CuratorFramework client;
-    private PathChildrenCache cache;
-    private LeaderSelector leaderSelector;
-
     public CuratorFramework getClient() {
         return client;
     }
@@ -109,19 +123,6 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     public void setClient(CuratorFramework client) {
         this.client = client;
     }
-
-    public LeaderSelector getLeaderSelector() {
-        return leaderSelector;
-    }
-
-    public void setLeaderSelector(LeaderSelector leaderSelector) {
-        this.leaderSelector = leaderSelector;
-    }
-
-    private ThreadLocal<Long> threadInc = new ThreadLocal<>();
-    private ThreadLocal<Long> threadLastTime = new ThreadLocal<>();
-    private ThreadLocal<Long> threadID = new ThreadLocal<>();
-    private long nextID = 0L;
 
     public DistributedSequenceHandler(SystemConfig mycatConfig) {
         this.mycatConfig = mycatConfig;
@@ -142,21 +143,18 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
 
     }
 
-    private final ScheduledExecutorService timerExecutor = Executors.newSingleThreadScheduledExecutor();
-    private ScheduledExecutorService leaderExecutor;
-    private final long SELF_CHECK_PERIOD = 10L;
 
     public void initializeZK(String zkAddress) {
         this.client = CuratorFrameworkFactory.newClient(zkAddress, new ExponentialBackoffRetry(1000, 3));
         this.client.start();
         try {
-            if (client.checkExists().forPath(PATH.concat("/instance")) == null) {
-                client.create().forPath(PATH.concat("/instance"));
+            if (client.checkExists().forPath(PATH.concat(INSTANCE_PATH)) == null) {
+                client.create().creatingParentContainersIfNeeded().forPath(PATH.concat(INSTANCE_PATH));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //do nothing
         }
-        this.leaderSelector = new LeaderSelector(client, PATH.concat("/leader"), this);
+        this.leaderSelector = new LeaderSelector(client, PATH.concat(LEADER_PATH), this);
         this.leaderSelector.autoRequeue();
         this.leaderSelector.start();
         Runnable runnable = new Runnable() {
@@ -179,21 +177,23 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                         ready = true;
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.warn("Caught exception while handling zk!", e);
                 }
             }
         };
-        timerExecutor.scheduleAtFixedRate(runnable, 0L, 10L, TimeUnit.SECONDS);
+        timerExecutor.scheduleAtFixedRate(runnable, 1L, 10L, TimeUnit.SECONDS);
     }
 
 
     @Override
     public long nextId(String prefixName) {
+//        System.out.println(instanceId);
         while (!ready) {
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
                 LOGGER.warn("Unexpected thread interruption!");
+                Thread.currentThread().interrupt();
             }
         }
         long time = System.currentTimeMillis();
@@ -251,15 +251,19 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             if (this.slavePath != null) {
                 client.delete().forPath(slavePath);
             }
-            children = curatorFramework.getChildren().forPath(PATH.concat("/instance"));
-            for (String child : children) {
-                String data = new String(client.getData().forPath(PATH.concat("/instance/" + child)));
-                if (!"ready".equals(data)) {
-                    mark[Integer.parseInt(data)] = 1;
+            if (client.checkExists().forPath(PATH.concat(INSTANCE_PATH)) != null) {
+                children = client.getChildren().forPath(PATH.concat(INSTANCE_PATH));
+            }
+            if (children != null) {
+                for (String child : children) {
+                    String data = new String(client.getData().forPath(PATH.concat(INSTANCE_PATH.concat("/").concat(child))));
+                    if (!"ready".equals(data)) {
+                        mark[Integer.parseInt(data)] = 1;
+                    }
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.warn("Caught exception while handling zk!", e);
         }
 
         leaderExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -267,13 +271,16 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             @Override
             public void run() {
                 try {
-                    List<String> children = client.getChildren().forPath(PATH.concat("/instance"));
+                    while (!client.isStarted()) {
+                        Thread.currentThread().yield();
+                    }
+                    List<String> children = client.getChildren().forPath(PATH.concat(INSTANCE_PATH));
                     int mark2[] = new int[(int) maxinstanceId];
                     for (String child : children) {
                         String data = new String(client.getData().forPath(PATH.concat("/instance/" + child)));
                         if ("ready".equals(data)) {
                             int i = nextFree();
-                            client.setData().forPath(PATH.concat("/instance/" + child), ("" + i).getBytes());
+                            client.setData().forPath(PATH.concat(INSTANCE_PATH.concat("/").concat(child)), ("" + i).getBytes());
                             mark2[i] = 1;
                         } else {
                             mark2[Integer.parseInt(data)] = 1;
@@ -281,23 +288,13 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                     }
                     mark = mark2;
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.warn("Caught exception while handling zk!", e);
                 }
             }
         }, 0L, 3L, TimeUnit.SECONDS);
         while (true) {
             Thread.currentThread().yield();
         }
-    }
-
-    private void reloadChild() throws Exception {
-        mark = new int[(int) maxinstanceId];
-        List<String> list = client.getChildren().forPath(PATH + "/instance");
-        System.out.println(list);
-        for (String child : list) {
-            mark[Integer.parseInt(child)] = 1;
-        }
-
     }
 
     private int nextFree() {
@@ -316,12 +313,6 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     @Override
     public void close() throws IOException {
         CloseableUtils.closeQuietly(this.leaderSelector);
-        CloseableUtils.closeQuietly(this.cache);
         CloseableUtils.closeQuietly(this.client);
-    }
-
-    public static void main(String[] args) throws InterruptedException {
-        System.out.println((1L << 38L) - 1L);
-        System.out.println(new Date(System.currentTimeMillis() + (1L << 39L) - 1L));
     }
 }
