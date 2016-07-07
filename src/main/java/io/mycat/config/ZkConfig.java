@@ -62,7 +62,7 @@ public class ZkConfig {
             String myid = pros.getProperty("myid");
 
             if (Strings.isNullOrEmpty(zkURL) || Strings.isNullOrEmpty(myid)) {
-                throw new RuntimeException("zkURL and myid must be not null or empty!");
+                throw new RuntimeException("zkURL and myid must not be null or empty!");
             }
             return pros;
         }

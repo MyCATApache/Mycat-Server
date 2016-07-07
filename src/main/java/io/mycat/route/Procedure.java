@@ -2,6 +2,7 @@ package io.mycat.route;
 
 import com.google.common.base.*;
 
+import java.io.Serializable;
 import java.sql.Types;
 import java.util.*;
 
@@ -32,7 +33,7 @@ import java.util.*;
  ok
 
  */
-public class Procedure
+public class Procedure implements Serializable
 {
     private String originSql;
     private String name;
