@@ -36,6 +36,8 @@ import java.util.Random;
  * @author mycat
  */
 public class StringUtil {
+	public static final String TABLE_COLUMN_SEPARATOR = ".";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(StringUtil.class);
 	private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 	private static final Random RANDOM = new Random();
