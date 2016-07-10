@@ -37,6 +37,28 @@
 			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property> 
 			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property> -->
 		<property name="enableDistributedTransactions">false</property>
+		
+			<!--
+			off heap for merge/order/group/limit
+		-->
+		<property name="useOffHeapForMerge">1</property>
+
+		<!--
+			单位为m
+		-->
+		<property name="memoryPageSize">1m</property>
+
+		<!--
+			单位为k
+		-->
+		<property name="spillsFileBufferSize">1k</property>
+
+		<property name="useStreamOutput">0</property>
+
+		<!--
+			单位为m
+		-->
+		<property name="systemReserveMemorySize">384m</property>
 	</system>
 	<user name="root">
 		<property name="password">digdeep</property>

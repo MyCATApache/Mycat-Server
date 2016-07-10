@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import io.mycat.memory.unsafe.utils.BytesTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -182,14 +183,13 @@ public class RowDataPacketSorter {
         case ColMeta.COL_TYPE_DATETIME:
         case ColMeta.COL_TYPE_NEWDATE:
         case ColMeta.COL_TYPE_BIT:
-            return ByteUtil.compareNumberByte(left, right);
+            return BytesTools.compareTo(left,right);
         case ColMeta.COL_TYPE_VAR_STRING:
         case ColMeta.COL_TYPE_STRING:
             // ENUM和SET类型都是字符串，按字符串处理
         case ColMeta.COL_TYPE_ENUM:
         case ColMeta.COL_TYPE_SET:
-            return CompareUtil.compareString(ByteUtil.getString(left), ByteUtil.getString(right));
-
+            return BytesTools.compareTo(left,right);
             // BLOB相关类型和GEOMETRY类型不支持排序，略掉
         }
         return 0;

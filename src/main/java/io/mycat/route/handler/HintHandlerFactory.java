@@ -2,6 +2,7 @@ package io.mycat.route.handler;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.FutureTask;
 
 public class HintHandlerFactory {
 	

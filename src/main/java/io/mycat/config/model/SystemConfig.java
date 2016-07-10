@@ -51,6 +51,11 @@ public final class SystemConfig {
 	private int backSocketSoRcvbuf = 4 * 1024 * 1024;// mysql 5.6
 														// net_buffer_length
 														// defaut 4M
+    
+	private final  static String RESERVED_SYSTEM_MEMORY_BYTES = "384m";
+	private final static String MEMORY_PAGE_SIZE = "1m";
+	private final static String SPILLS_FILE_BUFFER_SIZE = "2K";
+	private final static String DATANODE_SORTED_TEMP_DIR = "datanode";
 	private int backSocketSoSndbuf = 1024 * 1024;
 	private int frontSocketNoDelay = 1; // 0=false
 	private int backSocketNoDelay = 1; // 1=true
@@ -160,7 +165,51 @@ public final class SystemConfig {
 	private int useGlobleTableCheck = 1;	// 全局表一致性检查开关
 	
 	private long glableTableCheckPeriod;
-	
+
+	/**
+	 * Mycat 使用 Off Heap For Merge/Order/Group/Limit计算相关参数
+	 */
+
+
+	/**
+	 * 是否启用Off Heap for Merge  1-启用，0-不启用
+	 */
+	private int useOffHeapForMerge;
+
+	/**
+	 *页大小,对应MemoryBlock的大小，单位为M
+	 */
+	private String memoryPageSize;
+
+
+	/**
+	 * DiskRowWriter写磁盘是临时写Buffer，单位为K
+	 */
+	private String spillsFileBufferSize;
+
+	/**
+	 * 启用结果集流输出，不经过merge模块,
+	 */
+	private int useStreamOutput;
+
+	/**
+	 * 该变量仅在Merge使用On Heap
+	 * 内存方式时起作用，如果使用Off Heap内存方式
+	 * 那么可以认为-Xmx就是系统预留内存。
+	 * 在On Heap上给系统预留的内存，
+	 * 主要供新小对象创建，JAVA简单数据结构使用
+	 * 以保证在On Heap上大结果集计算时情况，能快速响应其他
+	 * 连接操作。
+	 */
+	private String systemReserveMemorySize;
+
+
+
+	/**
+	 * 排序时，内存不够时，将已经排序的结果集
+	 * 写入到临时目录
+	 */
+	private String dataNodeSortedTempDir;
 	public boolean isEnableDistributedTransactions() {
 		return enableDistributedTransactions;
 	}
@@ -186,7 +235,11 @@ public final class SystemConfig {
 		this.processors = DEFAULT_PROCESSORS;
 		this.bufferPoolPageSize = DEFAULT_BUFFER_POOL_PAGE_SIZE;
 		this.bufferPoolChunkSize = DEFAULT_BUFFER_CHUNK_SIZE;
-		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*2);
+		
+		/**
+		 * 大结果集时 需增大 network buffer pool pages.
+		 */
+		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*20);
 
 		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2 : 4;
 		this.managerExecutor = 2;
@@ -206,6 +259,56 @@ public final class SystemConfig {
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
 		this.glableTableCheckPeriod = DEFAULT_GLOBAL_TABLE_CHECK_PERIOD;
+		this.useOffHeapForMerge = 1;
+		this.memoryPageSize = MEMORY_PAGE_SIZE;
+		this.spillsFileBufferSize = SPILLS_FILE_BUFFER_SIZE;
+		this.useStreamOutput = 0;
+		this.systemReserveMemorySize = RESERVED_SYSTEM_MEMORY_BYTES;
+		this.dataNodeSortedTempDir = System.getProperty("user.dir");
+	}
+
+	public String getDataNodeSortedTempDir() {
+		return dataNodeSortedTempDir;
+	}
+
+	public int getUseOffHeapForMerge() {
+		return useOffHeapForMerge;
+	}
+
+	public void setUseOffHeapForMerge(int useOffHeapForMerge) {
+		this.useOffHeapForMerge = useOffHeapForMerge;
+	}
+
+	public String getMemoryPageSize() {
+		return memoryPageSize;
+	}
+
+	public void setMemoryPageSize(String memoryPageSize) {
+		this.memoryPageSize = memoryPageSize;
+	}
+
+	public String getSpillsFileBufferSize() {
+		return spillsFileBufferSize;
+	}
+
+	public void setSpillsFileBufferSize(String spillsFileBufferSize) {
+		this.spillsFileBufferSize = spillsFileBufferSize;
+	}
+
+	public int getUseStreamOutput() {
+		return useStreamOutput;
+	}
+
+	public void setUseStreamOutput(int useStreamOutput) {
+		this.useStreamOutput = useStreamOutput;
+	}
+
+	public String getSystemReserveMemorySize() {
+		return systemReserveMemorySize;
+	}
+
+	public void setSystemReserveMemorySize(String systemReserveMemorySize) {
+		this.systemReserveMemorySize = systemReserveMemorySize;
 	}
 
 	public int getUseGlobleTableCheck() {
