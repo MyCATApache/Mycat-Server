@@ -18,6 +18,8 @@
 package io.mycat.memory.unsafe;
 
 import io.mycat.memory.unsafe.utils.BytesTools;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sun.misc.Cleaner;
 import sun.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;
@@ -34,6 +36,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class Platform {
+
+  private final static  Logger logger = LoggerFactory.getLogger(Platform.class);
   private static final Pattern MAX_DIRECT_MEMORY_SIZE_ARG_PATTERN =
           Pattern.compile("\\s*-XX:MaxDirectMemorySize\\s*=\\s*([0-9]+)\\s*([kKmMgG]?)\\s*$");
   private static final Unsafe _UNSAFE;
@@ -132,7 +136,7 @@ public final class Platform {
           }
         }
       } catch (Throwable var9) {
-        var9.printStackTrace();
+        logger.error(var9.getMessage());
       }
 
       if(maxDirectMemory <= 0L) {

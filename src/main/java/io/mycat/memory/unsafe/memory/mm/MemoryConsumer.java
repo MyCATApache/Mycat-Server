@@ -21,6 +21,8 @@ package io.mycat.memory.unsafe.memory.mm;
 
 import io.mycat.memory.unsafe.array.LongArray;
 import io.mycat.memory.unsafe.memory.MemoryBlock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -29,6 +31,7 @@ import java.io.IOException;
  * Note: this only supports allocation / spilling of Tungsten memory.
  */
 public abstract class MemoryConsumer {
+  private final Logger logger = LoggerFactory.getLogger(MemoryConsumer.class);
 
   protected final DataNodeMemoryManager dataNodeMemoryManager;
   private final long pageSize;
@@ -140,7 +143,7 @@ public abstract class MemoryConsumer {
     try {
       granted = dataNodeMemoryManager.acquireExecutionMemory(size, MemoryMode.ON_HEAP, this);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      logger.error(e.getMessage());
     }
     used += granted;
     return granted;

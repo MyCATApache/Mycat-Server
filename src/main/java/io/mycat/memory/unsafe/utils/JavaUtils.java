@@ -19,7 +19,6 @@ package io.mycat.memory.unsafe.utils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import io.netty.buffer.Unpooled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,22 +58,6 @@ public class JavaUtils {
     }
   }
 
-
-  /**
-   * Convert the given string to a byte buffer. The resulting buffer can be
-   * converted back to the same string through {@link #bytesToString(ByteBuffer)}.
-   */
-  public static ByteBuffer stringToBytes(String s) {
-    return Unpooled.wrappedBuffer(s.getBytes(StandardCharsets.UTF_8)).nioBuffer();
-  }
-
-  /**
-   * Convert the given byte buffer to a string. The resulting string can be
-   * converted back to the same byte buffer through {@link #stringToBytes(String)}.
-   */
-  public static String bytesToString(ByteBuffer b) {
-    return Unpooled.wrappedBuffer(b).toString(StandardCharsets.UTF_8);
-  }
 
   /*
    * Delete a file or directory and its contents recursively.
@@ -281,22 +264,6 @@ public class JavaUtils {
     return byteStringAs(str, ByteUnit.GiB);
   }
 
-  /**
-   * Returns a byte array with the buffer's contents, trying to avoid copying the data if
-   * possible.
-   */
-  public static byte[] bufferToArray(ByteBuffer buffer) {
-    if (buffer.hasArray() && buffer.arrayOffset() == 0 &&
-        buffer.array().length == buffer.remaining()) {
-      return buffer.array();
-    } else {
-      byte[] bytes = new byte[buffer.remaining()];
-      buffer.get(bytes);
-      return bytes;
-    }
-  }
-
-
 
   public static String bytesToString(long size) {
     long TB = 1L << 40;
@@ -374,7 +341,7 @@ public class JavaUtils {
           dir = null;
         }
       } catch (Exception e) {
-        e.printStackTrace();
+        logger.error(e.getMessage());
       }
     }
 

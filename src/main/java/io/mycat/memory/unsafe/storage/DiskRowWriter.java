@@ -17,6 +17,9 @@
 
 package io.mycat.memory.unsafe.storage;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.nio.channels.FileChannel;
 
@@ -30,6 +33,8 @@ import java.nio.channels.FileChannel;
  */
 public  class DiskRowWriter extends OutputStream {
   /** The file channel, used for repositioning / truncating the file. */
+  private static final Logger LOG = LoggerFactory.getLogger(DiskRowWriter.class);
+
   private FileChannel channel = null;
   private OutputStream bs = null;
   private FileOutputStream fos  = null;
@@ -124,7 +129,7 @@ public  class DiskRowWriter extends OutputStream {
           // writeMetrics.incWriteTime(System.nanoTime() - start);
         }
       } catch (IOException e) {
-        e.printStackTrace();
+        LOG.error(e.getMessage());
       }finally {
         objOut.close();
       }
@@ -189,7 +194,7 @@ public  class DiskRowWriter extends OutputStream {
         truncateStream.close();
       }
     } catch(Exception e) {
-      e.printStackTrace();
+      LOG.error(e.getMessage());
       return file;
     }
   }

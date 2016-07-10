@@ -30,6 +30,8 @@ import io.mycat.memory.unsafe.utils.sort.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 import java.io.File;
@@ -42,6 +44,7 @@ import static org.junit.Assert.*;
 
 
 public class UnsafeExternalSorterSuite {
+  private static final Logger logger = LoggerFactory.getLogger(UnsafeExternalSorterSuite.class);
 
   static final TestMemoryManager memoryManager =
     new TestMemoryManager(new MycatPropertyConf().
@@ -73,7 +76,8 @@ public class UnsafeExternalSorterSuite {
     try {
           diskBlockManager = blockManager.diskBlockManager();
     } catch (IOException e) {
-      e.printStackTrace();
+
+      logger.error(e.getMessage());
     }
   }
 

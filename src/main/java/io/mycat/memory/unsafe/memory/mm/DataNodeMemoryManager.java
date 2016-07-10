@@ -165,6 +165,7 @@ public class DataNodeMemoryManager {
           logger.error("error while calling spill() on " + consumer, e);
           throw new OutOfMemoryError("error while calling spill() on " + consumer + " : "
             + e.getMessage());
+
         }
       }
 
@@ -237,7 +238,7 @@ public class DataNodeMemoryManager {
     try {
       acquired = acquireExecutionMemory(size,tungstenMemoryMode, consumer);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      logger.error(e.getMessage());
     }
 
     if (acquired <= 0) {

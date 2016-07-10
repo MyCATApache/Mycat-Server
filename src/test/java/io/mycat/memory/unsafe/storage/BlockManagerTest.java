@@ -4,6 +4,8 @@ import com.google.common.io.Closeables;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 
@@ -11,6 +13,8 @@ import java.io.*;
  * Created by zagnix on 2016/6/4.
  */
 public class BlockManagerTest {
+    private static final Logger logger = LoggerFactory.getLogger(BlockManagerTest.class);
+
     @Test
     public  void testNewDiskBlockManager() throws IOException {
         MycatPropertyConf conf = new MycatPropertyConf();
@@ -74,7 +78,7 @@ public class BlockManagerTest {
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
         assert (file2.length() > 0);

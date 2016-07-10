@@ -10,6 +10,9 @@ import io.mycat.memory.unsafe.row.UnsafeRowWriter;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import io.mycat.sqlengine.mpp.ColMeta;
 import io.mycat.sqlengine.mpp.OrderCol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -18,6 +21,8 @@ import java.util.concurrent.CountDownLatch;
  * Created by zagnix on 16-7-9.
  */
 public class TestSorter implements Runnable {
+    private static final Logger logger = LoggerFactory.getLogger(TestSorter.class);
+
     private static  final  int TEST_SIZE = 1000000;
     private static  int TASK_SIZE = 100;
     private static  CountDownLatch countDownLatch = new CountDownLatch(100);
@@ -129,11 +134,11 @@ public class TestSorter implements Runnable {
             try {
                 runSorter(myCatMemory,memoryManager,conf);
             } catch (NoSuchFieldException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage());
             } catch (IllegalAccessException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage());
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage());
             }
         }
 

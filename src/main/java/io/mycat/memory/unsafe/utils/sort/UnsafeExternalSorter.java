@@ -312,7 +312,7 @@ public final class UnsafeExternalSorter extends MemoryConsumer {
       try {
         JavaUtils.deleteRecursively(file.getParentFile().getParentFile());
       } catch (IOException e) {
-        e.printStackTrace();
+        logger.error(e.getMessage());
       }
 
       if (file != null && file.exists()) {

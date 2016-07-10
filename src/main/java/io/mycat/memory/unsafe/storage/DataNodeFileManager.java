@@ -145,8 +145,7 @@ public class DataNodeFileManager {
         File localDir = JavaUtils.createDirectory(rdir[i],"datenode");
         dirs.add(localDir);
       } catch(Exception e) {
-        e.printStackTrace();
-        System.err.println("Failed to create local dir in "+ rdir[i] + ". Ignoring this directory.");
+        LOG.error("Failed to create local dir in "+ rdir[i] + ". Ignoring this directory.");
       }
     }
 
@@ -165,12 +164,12 @@ public class DataNodeFileManager {
       System.out.println(localDirs.size());
       while (i<localDirs.size()&&localDirs.size()>0){
         localDir = localDirs.get(i);
-        System.out.println(localDir);
+        //System.out.println(localDir);
         if (localDir.isDirectory() && localDir.exists()) {
           try {
             JavaUtils.deleteRecursively(localDir);
           } catch(Exception e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
           }
         }
         i++;

@@ -38,8 +38,8 @@ import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import io.mycat.memory.unsafe.utils.sort.UnsafeExternalRowSorter;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.LongUtil;
-import org.apache.log4j.Logger;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -55,7 +55,8 @@ import java.util.*;
  *
  */
 public class UnsafeRowGrouper {
-	private static Logger LOGGER = Logger.getLogger(UnsafeRowGrouper.class);
+	private static final Logger logger = LoggerFactory.getLogger(UnsafeRowGrouper.class);
+
 	private UnsafeFixedWidthAggregationMap aggregationMap = null;
 	private final Map<String, ColMeta> columToIndx;
 	private final MergeCol[] mergCols;
@@ -92,7 +93,7 @@ public class UnsafeRowGrouper {
 		this.memoryManager = myCatMemory.getResultMergeMemoryManager();
 		this.conf = myCatMemory.getConf();
 
-		LOGGER.debug("columToIndx :" + (columToIndx != null ? columToIndx.toString():"null"));
+		logger.debug("columToIndx :" + (columToIndx != null ? columToIndx.toString():"null"));
 
 		initGroupKey();
 		initEmptyValueKey();
@@ -263,7 +264,7 @@ public class UnsafeRowGrouper {
 					mergAvg(iter.getValue());
 				}
 			} catch (IOException e) {
-				e.printStackTrace();
+				logger.error(e.getMessage());
 			}
 			isMergAvg = true;
 		}
@@ -305,13 +306,13 @@ public class UnsafeRowGrouper {
                     unsafeRowWriter.write(curColMeta.colIndex,
                             BytesTools.toBytes(row.getInt(curColMeta.colIndex)));
 
-                    LOGGER.error("int " + row.getInt(curColMeta.colIndex));
+					//logger.debug("int " + row.getInt(curColMeta.colIndex));
                     break;
                 case ColMeta.COL_TYPE_SHORT:
                     unsafeRowWriter.write(curColMeta.colIndex,
                             BytesTools.toBytes(row.getShort(curColMeta.colIndex)));
 
-                    LOGGER.error("short " + row.getShort(curColMeta.colIndex));
+					//logger.debug("short " + row.getShort(curColMeta.colIndex));
                     break;
                 case ColMeta.COL_TYPE_LONG:
                 case ColMeta.COL_TYPE_LONGLONG:
@@ -324,7 +325,7 @@ public class UnsafeRowGrouper {
                     unsafeRowWriter.write(curColMeta.colIndex,
                             BytesTools.toBytes(row.getFloat(curColMeta.colIndex)),0,8);
 
-                    LOGGER.error("float " + row.getFloat(curColMeta.colIndex));
+					//logger.debug("float " + row.getFloat(curColMeta.colIndex));
                     break;
                 case ColMeta.COL_TYPE_DOUBLE:
                 case ColMeta.COL_TYPE_NEWDECIMAL:
@@ -355,7 +356,7 @@ public class UnsafeRowGrouper {
                     sorter.insertRow(row);
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+               logger.error(e.getMessage());
             }
     }
 
@@ -407,7 +408,7 @@ public class UnsafeRowGrouper {
                 }
             }
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		}
 
 	}
