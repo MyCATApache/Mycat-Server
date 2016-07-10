@@ -717,7 +717,7 @@ public class RouterUtil {
 
 		Set<String> retNodeSet = new LinkedHashSet<String>();
 
-		Set<String> nodeSet = new LinkedHashSet<String>();
+		Set<String> nodeSet;
 		if (tc.isSecondLevel()
 				&& tc.getParentTC().getPartitionColumn()
 						.equals(tc.getParentKey())) { // using

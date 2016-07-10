@@ -23,6 +23,8 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
+import io.mycat.memory.unsafe.row.UnsafeRow;
+import io.mycat.sqlengine.mpp.*;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -37,9 +39,6 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
-import io.mycat.sqlengine.mpp.ColMeta;
-import io.mycat.sqlengine.mpp.DataMergeService;
-import io.mycat.sqlengine.mpp.MergeCol;
 import io.mycat.statistic.stat.QueryResult;
 import io.mycat.statistic.stat.QueryResultDispatcher;
 
@@ -58,7 +57,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private final RouteResultset rrs;
 	private final NonBlockingSession session;
 	// private final CommitNodeHandler icHandler;
-	private final DataMergeService dataMergeSvr;
+	private final AbstractDataNodeMerge dataMergeSvr;
 	private final boolean autocommit;
 	private String priamaryKeyTable = null;
 	private int primaryKeyIndex = -1;
@@ -77,6 +76,16 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	
 	private boolean prepared;
 	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
+	private int isOffHeapuseOffHeapForMerge = 1;
+	/**
+	 * Limit N，M
+	 */
+	private   int limitStart;
+	private   int limitSize;
+
+	private int index = 0;
+
+	private int end = 0;
 
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
@@ -92,9 +101,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
 		
 		this.rrs = rrs;
+		isOffHeapuseOffHeapForMerge = MycatServer.getInstance().
+				getConfig().getSystem().getUseOffHeapForMerge();
 		if (ServerParse.SELECT == sqlType && rrs.needMerge()) {
-			dataMergeSvr = new DataMergeService(this, rrs);
-			
+			/**
+			 * 使用Off Heap
+			 */
+			if(isOffHeapuseOffHeapForMerge == 1){
+				dataMergeSvr = new DataNodeMergeManager(this,rrs);
+			}else {
+				dataMergeSvr = new DataMergeService(this,rrs);
+			}
 		} else {
 			dataMergeSvr = null;
 		}
@@ -104,6 +121,16 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		this.session = session;
 		this.lock = new ReentrantLock();
 		// this.icHandler = new CommitNodeHandler(session);
+
+		this.limitStart = rrs.getLimitStart();
+		this.limitSize = rrs.getLimitSize();
+		this.end = limitStart + rrs.getLimitSize();
+
+		if (this.limitStart < 0)
+			this.limitStart = 0;
+
+		if (rrs.getLimitSize() < 0)
+			end = Integer.MAX_VALUE;
 		if ((dataMergeSvr != null)
 				&& LOGGER.isDebugEnabled()) {
 				LOGGER.debug("has data merge logic ");
@@ -348,6 +375,66 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 	}
 
+	/**
+	 * 将汇聚结果集数据真正的发送给Mycat客户端
+	 * @param source
+	 * @param eof
+	 * @param
+	 */
+	public void outputMergeResult(final ServerConnection source, final byte[] eof, Iterator<UnsafeRow> iter) {
+		try {
+			lock.lock();
+			ByteBuffer buffer = session.getSource().allocate();
+			final RouteResultset rrs = this.dataMergeSvr.getRrs();
+
+			/**
+			 * 处理limit语句的start 和 end位置，将正确的结果发送给
+			 * Mycat 客户端
+			 */
+			int start = rrs.getLimitStart();
+			int end = start + rrs.getLimitSize();
+			int index = 0;
+
+			if (start < 0)
+				start = 0;
+
+			if (rrs.getLimitSize() < 0)
+				end = Integer.MAX_VALUE;
+
+			while (iter.hasNext()){
+
+				UnsafeRow row = iter.next();
+
+				if(index >= start){
+					row.packetId = ++packetId;
+					buffer = row.write(buffer,source,true);
+				}
+
+				index++;
+
+				if(index == end){
+					break;
+				}
+			}
+
+			eof[3] = ++packetId;
+
+
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("last packet id:" + packetId);
+			}
+
+			/**
+			 * 真正的开始把Writer Buffer的数据写入到channel 中
+			 */
+			source.write(source.writeToBuffer(eof, buffer));
+		} catch (Exception e) {
+			handleDataProcessException(e);
+		} finally {
+			lock.unlock();
+			dataMergeSvr.clear();
+		}
+	}
 	public void outputMergeResult(final ServerConnection source,
 			final byte[] eof, List<RowDataPacket> results) {
 		try {

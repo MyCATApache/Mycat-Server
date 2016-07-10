@@ -58,7 +58,6 @@ public class ShowDatasourceSynDetail {
 	private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
 	private static final EOFPacket eof = new EOFPacket();
-	private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
 	
 	static {
@@ -146,6 +145,8 @@ public class ShowDatasourceSynDetail {
 						row.add(StringUtil.encode(states.get("Master_Host"),charset));
 						row.add(LongUtil.toBytes(Long.valueOf(states.get("Master_Port"))));
 						row.add(StringUtil.encode(states.get("Master_Use"),charset));
+						//DateFormat非线程安全
+						SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 						String time = sdf.format(new Date(r.getTime()));
 						row.add(StringUtil.encode(time,charset));
 						row.add(LongUtil.toBytes((Long)r.getValue()));
