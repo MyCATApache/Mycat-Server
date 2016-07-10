@@ -43,8 +43,8 @@ public class DDLRouteTest {
 			CacheService cacheService = new CacheService();
 	        RouteService routerService = new RouteService(cacheService);
 	        
-	        // drop table test
-	        String  sql = " ALTER TABLE COMPANY\r\nADD COLUMN TEST  VARCHAR(255) NULL AFTER CREATE_DATE,\r\nDEFAULT CHARACTER SET DEFAULT";
+	        // alter table test
+	        String  sql = " ALTER TABLE COMPANY\r\nADD COLUMN TEST  VARCHAR(255) NULL AFTER CREATE_DATE,\r\n CHARACTER SET = UTF8";
 	        sql = RouterUtil.getFixedSql(sql);
 	        List<String> dataNodes = new ArrayList<>();
 	        String  tablename =  RouterUtil.getTableName(sql, RouterUtil.getAlterTablePos(sql, 0));
