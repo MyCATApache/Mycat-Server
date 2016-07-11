@@ -33,6 +33,7 @@ import io.mycat.config.classloader.DynaClassLoader;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.table.structure.MySQLTableStructureDetector;
 import io.mycat.manager.ManagerConnectionFactory;
+import io.mycat.memory.MyCatMemory;
 import io.mycat.net.AIOAcceptor;
 import io.mycat.net.AIOConnector;
 import io.mycat.net.NIOAcceptor;
@@ -105,6 +106,12 @@ public class MycatServer {
 
 	//XA事务全局ID生成
 	private final AtomicLong xaIDInc = new AtomicLong();
+
+
+	/**
+	 * Mycat 内存管理类
+	 */
+	private MyCatMemory myCatMemory = null;
 
 	public static final MycatServer getInstance() {
 		return INSTANCE;
@@ -190,6 +197,11 @@ public class MycatServer {
 				+ seq+"'";
 	}
 
+	public MyCatMemory getMyCatMemory() {
+		return myCatMemory;
+	}
+
+
 	/**
 	 * get next AsynchronousChannel ,first is exclude if multi
 	 * AsynchronousChannelGroups
@@ -263,10 +275,14 @@ public class MycatServer {
 		
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
 		int bufferPoolType = system.getProcessorBufferPoolType();
+		long totalNetWorkBufferSize = 0;
 		switch (bufferPoolType){
 			case 0:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
 					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
+			
+
+				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
 				break;
 			case 1:
 				/**
@@ -279,11 +295,26 @@ public class MycatServer {
 				 * bufferPoolChunkSize对应每个bytebufferchunk的每个page的长度
 				 * bufferPoolPageNumber对应每个bytebufferlist有多少个bytebufferchunk
 				 */
-				bufferPool = new ByteBufferArena(bufferPoolPageSize,bufferPoolChunkSize,bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
+
+				totalNetWorkBufferSize = 6*bufferPoolPageSize * bufferPoolPageNumber;
 				break;
 			default:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
 					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());;
+				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
+		}
+		
+			/**
+		 * Off Heap For Merge/Order/Group/Limit 初始化
+		 */
+		if(system.getUseOffHeapForMerge() == 1){
+			try {
+				myCatMemory = new MyCatMemory(system,totalNetWorkBufferSize);
+			} catch (NoSuchFieldException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
 		}
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
