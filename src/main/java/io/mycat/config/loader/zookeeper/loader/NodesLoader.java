@@ -16,7 +16,8 @@ public class NodesLoader extends AbstractLoader {
     }
 
     //scan the path under /mycat/mycat-nodes/${myid}
-    @Override public JSONObject takeConfig(String myid) throws Exception {
+    @Override
+    public JSONObject takeConfig(String myid) throws Exception {
         String nodesRootPath = ZKPaths.makePath("/", NODES_PATH, myid);
         return JSON.parseObject(getDataToString(nodesRootPath));
 
