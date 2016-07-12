@@ -284,7 +284,7 @@ class SequenceVal {
 		}
 	}
 
-	FetchMySQLSequnceHandler seqHandler;
+//	FetchMySQLSequnceHandler seqHandler;
 
 	public void setCurValue(long newValue) {
 		curVal.set(newValue);
