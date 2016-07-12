@@ -26,9 +26,26 @@ import static org.mockito.Mockito.when;
  */
 
 public class DruidUpdateParserTest {
+    /**
+     * 测试单表更新分片字段
+     * @throws NoSuchMethodException
+     */
     @Test
-    public void testAliasUpdate() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
-        MySqlStatementParser parser = new MySqlStatementParser("update hotnews h set h.id = 1 where h.name = 234;");
+    public void testUpdateShardColumn() throws NoSuchMethodException{
+        throwExceptionParse("update hotnews set id = 1 where name = 234;");
+    }
+
+    /**
+     * 测试单表别名更新分片字段
+     * @throws NoSuchMethodException
+     */
+    @Test
+    public void testAliasUpdateShardColumn() throws NoSuchMethodException{
+        throwExceptionParse("update hotnews h set h.id = 1 where h.name = 234;");
+    }
+
+    public void throwExceptionParse(String sql) throws NoSuchMethodException {
+        MySqlStatementParser parser = new MySqlStatementParser(sql);
         List<SQLStatement> statementList = parser.parseStatementList();
         SQLStatement sqlStatement = statementList.get(0);
         MySqlUpdateStatement update = (MySqlUpdateStatement) sqlStatement;
@@ -39,7 +56,7 @@ public class DruidUpdateParserTest {
         when((schemaConfig).getTables()).thenReturn(tables);
         when(tables.get(tableName)).thenReturn(tableConfig);
         when(tableConfig.getParentTC()).thenReturn(null);
-        RouteResultset routeResultset = new RouteResultset("update hotnews h set h.id = 1 where h.name = 234;", 11);
+        RouteResultset routeResultset = new RouteResultset(sql, 11);
         Class c = DruidUpdateParser.class;
         Method method = c.getDeclaredMethod("confirmShardColumnNotUpdated", new Class[]{List.class, SchemaConfig.class, String.class, String.class, String.class, RouteResultset.class});
         method.setAccessible(true);
@@ -47,7 +64,7 @@ public class DruidUpdateParserTest {
             method.invoke(c.newInstance(), update.getItems(), schemaConfig, tableName, "ID", "", routeResultset);
             System.out.println("未抛异常，解析通过则不对！");
             Assert.assertTrue(false);
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println("抛异常原因为SQLNonTransientException则正确");
             Assert.assertTrue(e.getCause() instanceof SQLNonTransientException);
         }

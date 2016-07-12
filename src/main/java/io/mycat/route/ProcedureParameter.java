@@ -1,11 +1,12 @@
 package io.mycat.route;
 
+import java.io.Serializable;
 import java.sql.Types;
 
 /**
  * Created by magicdoom on 2016/3/24.
  */
-public class ProcedureParameter
+public class ProcedureParameter implements Serializable
 {
     public static final String IN="in";
     public static final String OUT="out";
