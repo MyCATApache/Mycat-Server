@@ -120,15 +120,17 @@ public class DefaultDruidParser implements DruidParser {
 					if(pos> 0) {
 						key = key.substring(pos + 1);
 					}
+					if(key.equalsIgnoreCase(value)) {
+						ctx.addTable(key.toUpperCase());
+					}
+					tableAliasMap.put(key.toUpperCase(), value);
 				}
 				
-				if(key.equalsIgnoreCase(value)) {
-					ctx.addTable(key.toUpperCase());
-				} 
+
 //				else {
 //					tableAliasMap.put(key, value);
 //				}
-				tableAliasMap.put(key.toUpperCase(), value);
+
 			}
 			visitor.getAliasMap().putAll(tableAliasMap);
 			ctx.setTableAliasMap(tableAliasMap);
