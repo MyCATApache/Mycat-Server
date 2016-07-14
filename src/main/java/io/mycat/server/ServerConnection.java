@@ -192,7 +192,9 @@ public class ServerConnection extends FrontendConnection {
 		if (isDefault && schema.isCheckSQLSchema() && isNormalSql(type)) {
 			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
 			if (schemaInfo != null && schemaInfo.schema != null && !schemaInfo.schema.equals(db)) {
-				schema = MycatServer.getInstance().getConfig().getSchemas().get(schemaInfo.schema);
+				SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(schemaInfo.schema);
+				if (schemaConfig != null)
+					schema = schemaConfig;
 			}
 		}
 
