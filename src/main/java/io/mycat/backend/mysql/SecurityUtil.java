@@ -25,10 +25,9 @@ package io.mycat.backend.mysql;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-
 /**
  * 加密解密工具类
- * 
+ *
  * @author mycat
  */
 public class SecurityUtil {
@@ -45,6 +44,53 @@ public class SecurityUtil {
             pass3[i] = (byte) (pass3[i] ^ pass1[i]);
         }
         return pass3;
+    }
+
+    public static final byte[] scramble411Password(byte[] pass) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        byte[] pass1 = md.digest(pass);
+        md.reset();
+        byte[] pass2 = md.digest(pass1);
+        return pass2;
+    }
+
+    public static final String bytesToString(byte[] bytes){
+        StringBuilder sb=new StringBuilder(40);
+        for (byte b :bytes){
+            int i_tmp=(int) b&0xff;
+
+            if (i_tmp<16&i_tmp>-1){
+                sb.append(0);
+            }
+            sb.append(Integer.toHexString(i_tmp));
+        }
+        return sb.toString().toUpperCase();
+    }
+
+
+    public static final byte[] StringToBytes(String s){
+        byte[] bytes=new byte[20];
+        for (int i = 0; i < 20; i++) {
+            int pos=i*2;
+            int i_tmp=Integer.parseInt(s.substring(pos,pos+2),16);
+            i_tmp=i_tmp>127?i_tmp-256:i_tmp;
+            byte b=(byte) i_tmp;
+            bytes[i] = b;
+        }
+        return bytes;
+    }
+
+    public static final byte[] scramble411AuthByPassword(byte[] pass,byte[] message, byte[] scramble_arg) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        md.reset();
+        md.update(scramble_arg);
+        md.update(pass);
+        byte[] pass3=md.digest();
+        md.reset();
+        for (int i = 0; i < 20; i++) {
+            pass3[i] = (byte) (pass3[i] ^ message[i]);
+        }
+        return md.digest(pass3);
     }
 
     public static final String scramble323(String pass, String seed) {
@@ -83,14 +129,14 @@ public class SecurityUtil {
         long tmp;
         for (int i = 0; i < src.length(); ++i) {
             switch (src.charAt(i)) {
-            case ' ':
-            case '\t':
-                continue;
-            default:
-                tmp = (0xff & src.charAt(i));
-                nr ^= ((((nr & 63) + add) * tmp) + (nr << 8));
-                nr2 += ((nr2 << 8) ^ nr);
-                add += tmp;
+                case ' ':
+                case '\t':
+                    continue;
+                default:
+                    tmp = (0xff & src.charAt(i));
+                    nr ^= ((((nr & 63) + add) * tmp) + (nr << 8));
+                    nr2 += ((nr2 << 8) ^ nr);
+                    add += tmp;
             }
         }
         long[] result = new long[2];

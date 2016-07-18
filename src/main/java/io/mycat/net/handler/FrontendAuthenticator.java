@@ -27,7 +27,8 @@ import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.Set;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.SecurityUtil;
@@ -42,14 +43,14 @@ import io.mycat.net.mysql.QuitPacket;
 
 /**
  * 前端认证处理器
- * 
+ *
  * @author mycat
  */
 public class FrontendAuthenticator implements NIOHandler {
-	
+
     private static final Logger LOGGER = LoggerFactory.getLogger(FrontendAuthenticator.class);
-    private static final byte[] AUTH_OK = new byte[] { 7, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0 };
-    
+    private static final byte[] AUTH_OK = new byte[]{7, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0};
+
     protected final FrontendConnection source;
 
     public FrontendAuthenticator(FrontendConnection source) {
@@ -69,7 +70,7 @@ public class FrontendAuthenticator implements NIOHandler {
 
         // check user
         if (!checkUser(auth.user, source.getHost())) {
-            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "' with host '" + source.getHost()+ "'");
+            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "' with host '" + source.getHost() + "'");
             return;
         }
 
@@ -78,48 +79,48 @@ public class FrontendAuthenticator implements NIOHandler {
             failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because password is error ");
             return;
         }
-        
+
         // check degrade
-        if ( isDegrade( auth.user ) ) {
-        	 failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because service be degraded ");
-             return;
+        if (isDegrade(auth.user)) {
+            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because service be degraded ");
+            return;
         }
-        
+
         // check schema
         switch (checkSchema(auth.database, auth.user)) {
-        case ErrorCode.ER_BAD_DB_ERROR:
-            failure(ErrorCode.ER_BAD_DB_ERROR, "Unknown database '" + auth.database + "'");
-            break;
-        case ErrorCode.ER_DBACCESS_DENIED_ERROR:
-            String s = "Access denied for user '" + auth.user + "' to database '" + auth.database + "'";
-            failure(ErrorCode.ER_DBACCESS_DENIED_ERROR, s);
-            break;
-        default:
-            success(auth);
+            case ErrorCode.ER_BAD_DB_ERROR:
+                failure(ErrorCode.ER_BAD_DB_ERROR, "Unknown database '" + auth.database + "'");
+                break;
+            case ErrorCode.ER_DBACCESS_DENIED_ERROR:
+                String s = "Access denied for user '" + auth.user + "' to database '" + auth.database + "'";
+                failure(ErrorCode.ER_DBACCESS_DENIED_ERROR, s);
+                break;
+            default:
+                success(auth);
         }
     }
-    
+
     //TODO: add by zhuam
     //前端 connection 达到该用户设定的阀值后, 立马降级拒绝连接
     protected boolean isDegrade(String user) {
-    	
-    	int benchmark = source.getPrivileges().getBenchmark(user);
-    	if ( benchmark > 0 ) {
-    	
-	    	int forntedsLength = 0;
-	    	NIOProcessor[] processors = MycatServer.getInstance().getProcessors();
-			for (NIOProcessor p : processors) {
-				forntedsLength += p.getForntedsLength();
-			}
-		
-			if ( forntedsLength >= benchmark ) {							
-				return true;
-			}			
-    	}
-		
-		return false;
+
+        int benchmark = source.getPrivileges().getBenchmark(user);
+        if (benchmark > 0) {
+
+            int forntedsLength = 0;
+            NIOProcessor[] processors = MycatServer.getInstance().getProcessors();
+            for (NIOProcessor p : processors) {
+                forntedsLength += p.getForntedsLength();
+            }
+
+            if (forntedsLength >= benchmark) {
+                return true;
+            }
+        }
+
+        return false;
     }
-    
+
     protected boolean checkUser(String user, String host) {
         return source.getPrivileges().userExists(user, host);
     }
@@ -142,7 +143,7 @@ public class FrontendAuthenticator implements NIOHandler {
         // encrypt
         byte[] encryptPass = null;
         try {
-            encryptPass = SecurityUtil.scramble411(pass.getBytes(), source.getSeed());
+            encryptPass = SecurityUtil.scramble411AuthByPassword(SecurityUtil.StringToBytes(pass), password, source.getSeed());
         } catch (NoSuchAlgorithmException e) {
             LOGGER.warn(source.toString(), e);
             return false;
@@ -196,10 +197,9 @@ public class FrontendAuthenticator implements NIOHandler {
 
         ByteBuffer buffer = source.allocate();
         source.write(source.writeToBuffer(AUTH_OK, buffer));
-        boolean clientCompress = Capabilities.CLIENT_COMPRESS==(Capabilities.CLIENT_COMPRESS & auth.clientFlags);
-        boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUseCompression()==1 ;
-        if(clientCompress&&usingCompress)
-        {
+        boolean clientCompress = Capabilities.CLIENT_COMPRESS == (Capabilities.CLIENT_COMPRESS & auth.clientFlags);
+        boolean usingCompress = MycatServer.getInstance().getConfig().getSystem().getUseCompression() == 1;
+        if (clientCompress && usingCompress) {
             source.setSupportCompress(true);
         }
     }
