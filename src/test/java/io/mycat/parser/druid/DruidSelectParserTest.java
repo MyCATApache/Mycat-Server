@@ -35,7 +35,7 @@ public class DruidSelectParserTest {
     @Test
     public void testGroupByWithAlias() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         String functionColumn = "DATE_FORMAT(h.times,'%b %d %Y %h:%i %p')";
-        Object result = invoke(functionColumn);
+        Object result = invokeGroupBy(functionColumn);
         Assert.assertEquals(functionColumn, ((String[]) result)[0]);
     }
 
@@ -49,11 +49,11 @@ public class DruidSelectParserTest {
     @Test
     public void testGroupByWithViewAlias() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         String functionColumn = "select id from (select h.id from hotnews h  union select h.title from hotnews h ) as t1 group by t1.id;";
-        Object result = invoke(functionColumn);
+        Object result = invokeGroupBy(functionColumn);
         Assert.assertEquals(functionColumn, ((String[]) result)[0]);
     }
 
-    public Object invoke(String functionColumn) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public Object invokeGroupBy(String functionColumn) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Map<String, String> aliaColumns = new TreeMap<>();
         SQLIdentifierExpr sqlExpr = mock(SQLIdentifierExpr.class);
         SQLIdentifierExpr expr = mock(SQLIdentifierExpr.class);
@@ -65,5 +65,6 @@ public class DruidSelectParserTest {
         method.setAccessible(true);
         return  method.invoke(druidSelectParser, groupByItems, aliaColumns);
     }
+
 
 }
