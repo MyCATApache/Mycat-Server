@@ -548,10 +548,59 @@ public class RouterUtil {
 		//如果主键不在插入语句的fields中，则需要进一步处理
 		boolean processedInsert=!isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
 		if(processedInsert){
-			processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey,firstLeftBracketIndex+1,origSQL.indexOf('(',firstRightBracketIndex)+1);
+			List<String> insertSQLs = handleBatchInsert(origSQL, valuesIndex);
+			for(String insertSQL:insertSQLs) {
+				processInsert(sc, schema, sqlType, insertSQL, tableName, primaryKey, firstLeftBracketIndex + 1, insertSQL.indexOf('(', firstRightBracketIndex) + 1);
+			}
 		}
 		return processedInsert;
 	}
+
+	public static List<String> handleBatchInsert(String origSQL, int valuesIndex){
+		List<String> handledSQLs = new LinkedList<>();
+		String prefix = origSQL.substring(0,valuesIndex + "VALUES".length());
+		String values = origSQL.substring(valuesIndex + "VALUES".length());
+		int flag = 0;
+		StringBuilder currentValue = new StringBuilder();
+		currentValue.append(prefix);
+		for (int i = 0; i < values.length(); i++) {
+			char j = values.charAt(i);
+			if(j=='(' && flag == 0){
+				flag = 1;
+				currentValue.append(j);
+			}else if(j=='\"' && flag == 1){
+				flag = 2;
+				currentValue.append(j);
+			} else if(j=='\'' && flag == 1){
+				flag = 2;
+				currentValue.append(j);
+			} else if(j=='\\' && flag == 2){
+				flag = 3;
+				currentValue.append(j);
+			} else if (flag == 3){
+				flag = 2;
+				currentValue.append(j);
+			}else if(j=='\"' && flag == 2){
+				flag = 1;
+				currentValue.append(j);
+			} else if(j=='\'' && flag == 2){
+				flag = 1;
+				currentValue.append(j);
+			} else if (j==')' && flag == 1){
+				flag = 0;
+				currentValue.append(j);
+				handledSQLs.add(currentValue.toString());
+				currentValue = new StringBuilder();
+				currentValue.append(prefix);
+			} else if(j == ',' && flag == 0){
+				continue;
+			} else {
+				currentValue.append(j);
+			}
+		}
+		return handledSQLs;
+	}
+
 
 	private static void processInsert(ServerConnection sc, SchemaConfig schema, int sqlType, String origSQL,
 			String tableName, String primaryKey, int afterFirstLeftBracketIndex, int afterLastLeftBracketIndex) {
