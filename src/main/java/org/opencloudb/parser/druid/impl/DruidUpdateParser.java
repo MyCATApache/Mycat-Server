@@ -41,27 +41,8 @@ public class DruidUpdateParser extends DefaultDruidParser {
 			rrs.setFinishedRoute(true);
 			return;
 		}
-		
-		if(updateSetItem != null && updateSetItem.size() > 0) {
-			boolean hasParent = (schema.getTables().get(tableName).getParentTC() != null);
-			for(SQLUpdateSetItem item : updateSetItem) {
-				String column = StringUtil.removeBackquote(item.getColumn().toString().toUpperCase());
-				if(partitionColumn != null && partitionColumn.equals(column)) {
-					String msg = "partion key can't be updated " + tableName + "->" + partitionColumn;
-					LOGGER.warn(msg);
-					throw new SQLNonTransientException(msg);
-				}
-				if(hasParent) {
-					if(column.equals(joinKey)) {
-						String msg = "parent relation column can't be updated " + tableName + "->" + joinKey;
-						LOGGER.warn(msg);
-						throw new SQLNonTransientException(msg);
-					}
-					rrs.setCacheAble(true);
-				}
-			}
-		}
-		
+
+		confirmShardColumnNotUpdated(updateSetItem, schema, tableName, partitionColumn, joinKey, rrs);
 //		if(ctx.getTablesAndConditions().size() > 0) {
 //			Map<String, Set<ColumnRoutePair>> map = ctx.getTablesAndConditions().get(tableName);
 //			if(map != null) {
@@ -77,6 +58,32 @@ public class DruidUpdateParser extends DefaultDruidParser {
 		
 		if(schema.getTables().get(tableName).isGlobalTable() && ctx.getRouteCalculateUnit().getTablesAndConditions().size() > 1) {
 			throw new SQLNonTransientException("global table not supported multi table related update "+ tableName);
+		}
+	}
+
+	private void confirmShardColumnNotUpdated(List<SQLUpdateSetItem> updateSetItem,SchemaConfig schema,String tableName,String partitionColumn,String joinKey,RouteResultset rrs) throws SQLNonTransientException {
+		if (updateSetItem != null && updateSetItem.size() > 0) {
+			boolean hasParent = (schema.getTables().get(tableName).getParentTC() != null);
+			for (SQLUpdateSetItem item : updateSetItem) {
+				String column = StringUtil.removeBackquote(item.getColumn().toString().toUpperCase());
+				//考虑别名，前面已经限制了update分片表的个数只能有一个，所以这里别名只能是分片表的
+				if (column.contains(StringUtil.TABLE_COLUMN_SEPARATOR)) {
+					column = column.substring(column.indexOf(".") + 1).trim().toUpperCase();
+				}
+				if (partitionColumn != null && partitionColumn.equals(column)) {
+					String msg = "partion key can't be updated " + tableName + "->" + partitionColumn;
+					LOGGER.warn(msg);
+					throw new SQLNonTransientException(msg);
+				}
+				if (hasParent) {
+					if (column.equals(joinKey)) {
+						String msg = "parent relation column can't be updated " + tableName + "->" + joinKey;
+						LOGGER.warn(msg);
+						throw new SQLNonTransientException(msg);
+					}
+					rrs.setCacheAble(true);
+				}
+			}
 		}
 	}
 }
