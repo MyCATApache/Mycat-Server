@@ -42,7 +42,7 @@ public final class ServerParseSelect {
 	public static final int SESSION_ISOLATION = 8;
 
     public static final int SELECT_VAR_ALL = 9;
-
+	public static final int SESSION_TX_READ_ONLY = 10;
 	private static final char[] _VERSION_COMMENT = "VERSION_COMMENT"
 			.toCharArray();
 	private static final char[] _IDENTITY = "IDENTITY".toCharArray();
@@ -100,7 +100,12 @@ public final class ServerParseSelect {
              return    SELECT_VAR_ALL;
             }
 			return SESSION_INCREMENT;
-		} else if (s
+		}
+		else if (s
+				.startsWith("session.tx_read_only")) {
+			return SESSION_TX_READ_ONLY;
+		}
+		else if (s
 				.startsWith("session.tx_isolation")) {
 			return SESSION_ISOLATION;
 		} else {
