@@ -123,7 +123,7 @@ public class MySQLDetector implements
             Map<String, String> resultResult = result.getResult();
             
             //if (source.getHostConfig().isShowSlaveSql()  &&(switchType == DataHostConfig.SYN_STATUS_SWITCH_DS  || PhysicalDBPool.BALANCE_NONE!=balance  ) )
-            if(PhysicalDBPool.BALANCE_NONE!=balance && switchType==DataHostConfig.SYN_STATUS_SWITCH_DS 
+            if( switchType==DataHostConfig.SYN_STATUS_SWITCH_DS
             		&& source.getHostConfig().isShowSlaveSql())
             {
                 String Slave_IO_Running =resultResult!=null? resultResult.get("Slave_IO_Running"):null;
@@ -143,7 +143,7 @@ public class MySQLDetector implements
 				heartbeat.getAsynRecorder().set(resultResult, switchType);
 				heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
             }
-            else if(PhysicalDBPool.BALANCE_NONE!=balance && switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS 
+            else if( switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS
             		&& source.getHostConfig().isShowClusterSql())
             {
             	String Variable_name = resultResult!=null? resultResult.get("Variable_name"):null;

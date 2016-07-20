@@ -21,38 +21,42 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package org.opencloudb.server.response;
+package org.opencloudb.response;
 
-import java.nio.ByteBuffer;
+
 
 import org.opencloudb.config.Fields;
-import org.opencloudb.config.Versions;
 import org.opencloudb.mysql.PacketUtil;
+import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.FieldPacket;
 import org.opencloudb.net.mysql.ResultSetHeaderPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.server.ServerConnection;
+import org.opencloudb.util.LongUtil;
+
+import java.nio.ByteBuffer;
 
 /**
  * @author mycat
  */
-public class SelectVersion {
-
+public class SelectTxReadOnly {
     private static final int FIELD_COUNT = 1;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
+    private static byte[] longbt= LongUtil.toBytes(0)     ;
     static {
         int i = 0;
         byte packetId = 0;
         header.packetId = ++packetId;
-        fields[i] = PacketUtil.getField("VERSION()", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i] = PacketUtil.getField("@@session.tx_read_only", Fields.FIELD_TYPE_LONG);
         fields[i++].packetId = ++packetId;
         eof.packetId = ++packetId;
+
     }
 
-    public static void response(ServerConnection c) {
+    public static void response(FrontendConnection c) {
         ByteBuffer buffer = c.allocate();
         buffer = header.write(buffer, c,true);
         for (FieldPacket field : fields) {
@@ -61,7 +65,7 @@ public class SelectVersion {
         buffer = eof.write(buffer, c,true);
         byte packetId = eof.packetId;
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-        row.add(Versions.SERVER_VERSION);
+        row.add(longbt);
         row.packetId = ++packetId;
         buffer = row.write(buffer, c,true);
         EOFPacket lastEof = new EOFPacket();

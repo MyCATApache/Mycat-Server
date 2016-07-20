@@ -25,11 +25,13 @@ package org.opencloudb.handler;
 
 import static org.opencloudb.parser.ManagerParseSelect.SESSION_AUTO_INCREMENT;
 import static org.opencloudb.parser.ManagerParseSelect.VERSION_COMMENT;
+import static org.opencloudb.parser.ManagerParseSelect.SESSION_TX_READ_ONLY;
 
 import org.opencloudb.config.ErrorCode;
 import org.opencloudb.manager.ManagerConnection;
 import org.opencloudb.parser.ManagerParseSelect;
 import org.opencloudb.response.SelectSessionAutoIncrement;
+import org.opencloudb.response.SelectTxReadOnly;
 import org.opencloudb.response.SelectVersionComment;
 
 /**
@@ -44,6 +46,9 @@ public final class SelectHandler {
             break;
         case SESSION_AUTO_INCREMENT:
             SelectSessionAutoIncrement.execute(c);
+            break;
+        case SESSION_TX_READ_ONLY:
+            SelectTxReadOnly.response(c);
             break;
         default:
             c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
