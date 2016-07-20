@@ -57,7 +57,7 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 
 	@Override
 	public Integer calculate(String columnValue) {
-
+		columnValue = NumberParseUtil.eliminateQoute(columnValue);
 	BigInteger bigNum = new BigInteger(columnValue).abs();
 	 return (bigNum.mod(BigInteger.valueOf(count))).intValue();
 	}

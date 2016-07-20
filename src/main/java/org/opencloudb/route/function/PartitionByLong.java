@@ -56,6 +56,7 @@ public final class PartitionByLong extends AbstractPartitionAlgorithm implements
 
 	@Override
 	public Integer calculate(String columnValue) {
+		columnValue = NumberParseUtil.eliminateQoute(columnValue);
 		long key = Long.parseLong(columnValue);
 		return partitionUtil.partition(key);
 	}
