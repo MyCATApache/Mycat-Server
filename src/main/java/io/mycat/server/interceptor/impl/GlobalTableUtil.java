@@ -169,7 +169,7 @@ public class GlobalTableUtil{
 	static String addColumnIfCreate(String sql, SQLStatement statement) {
 		if (isCreate(statement) && sql.trim().toUpperCase().startsWith("CREATE TABLE ") && !hasGlobalColumn(statement)) {
 			SQLColumnDefinition column = new SQLColumnDefinition();
-			column.setDataType(new SQLCharacterDataType("int"));
+			column.setDataType(new SQLCharacterDataType("bigint"));
 			column.setName(new SQLIdentifierExpr(GLOBAL_TABLE_MYCAT_COLUMN));
 			column.setComment(new SQLCharExpr("全局表保存修改时间戳的字段名"));
 			((SQLCreateTableStatement)statement).getTableElementList().add(column);
