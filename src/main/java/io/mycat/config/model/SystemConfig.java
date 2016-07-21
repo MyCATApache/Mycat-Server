@@ -152,7 +152,8 @@ public final class SystemConfig {
 	private int useCompression =0;	
 	private int useSqlStat = 1;
 
-	private boolean enableDistributedTransactions = true;
+	//处理分布式事务开关，默认为不过滤分布式事务
+	private int handleDistributedTransactions = 0;
 
 	private int checkTableConsistency = 0;
 	private long checkTableConsistencyPeriod = CHECKTABLECONSISTENCYPERIOD;
@@ -210,13 +211,7 @@ public final class SystemConfig {
 	 * 写入到临时目录
 	 */
 	private String dataNodeSortedTempDir;
-	public boolean isEnableDistributedTransactions() {
-		return enableDistributedTransactions;
-	}
 
-	public void setEnableDistributedTransactions(boolean enableDistributedTransactions) {
-		this.enableDistributedTransactions = enableDistributedTransactions;
-	}
 
 
 
@@ -881,5 +876,13 @@ public final class SystemConfig {
 
 	public void setProcessorBufferPoolType(int processorBufferPoolType) {
 		this.processorBufferPoolType = processorBufferPoolType;
+	}
+
+	public int getHandleDistributedTransactions() {
+		return handleDistributedTransactions;
+	}
+
+	public void setHandleDistributedTransactions(int handleDistributedTransactions) {
+		this.handleDistributedTransactions = handleDistributedTransactions;
 	}
 }

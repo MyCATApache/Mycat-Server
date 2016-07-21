@@ -33,6 +33,7 @@ import io.mycat.net.FrontendConnection;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.parser.ServerParse;
 import io.mycat.server.sqlcmd.SQLCmdConstant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,7 +141,22 @@ public class NonBlockingSession implements Session {
             }
 
             try {
-                multiNodeHandler.execute();
+                if(autocommit && (type == ServerParse.DELETE || type == ServerParse.INSERT || type == ServerParse.UPDATE) && !rrs.isGlobalTable() && nodes.length > 1) {
+                    switch(MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
+                        case 1:
+                            source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!");
+                            break;
+                        case 2:
+                            LOGGER.warn("Distributed transaction detected! RRS:" + rrs);
+                            multiNodeHandler.execute();
+                            break;
+                        default:
+                            multiNodeHandler.execute();
+                    }
+                } else {
+                    multiNodeHandler.execute();
+                }
+
             } catch (Exception e) {
                 LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
                 source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
@@ -168,14 +184,36 @@ public class NonBlockingSession implements Session {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("multi node commit to send ,total " + initCount);
             }
-            if (MycatServer.getInstance().getConfig().getSystem().isEnableDistributedTransactions()) {
-                multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
+            if(!isALLGlobal()){
+                switch(MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
+                    case 1:
+                        rollback();
+                        source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!");
+                        break;
+                    case 2:
+                        multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
+                        LOGGER.warn("Distributed transaction detected! Targets:" + target);
+                        break;
+                    default:
+                        multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
+                }
             } else {
-                rollback();
-                source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!");
+                multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
             }
         }
 
+    }
+
+    private boolean isALLGlobal(){
+        for(RouteResultsetNode routeResultsetNode:target.keySet()){
+            if(routeResultsetNode.getSource()==null){
+                return false;
+            }
+            else if(!routeResultsetNode.getSource().isGlobalTable()){
+                return false;
+            }
+        }
+        return true;
     }
 
     public void rollback() {
