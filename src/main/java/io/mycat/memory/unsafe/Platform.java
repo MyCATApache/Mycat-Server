@@ -767,4 +767,20 @@ public final class Platform {
       DOUBLE_ARRAY_OFFSET = 0;
     }
   }
+
+  public static long objectFieldOffset(Field field) {
+    return _UNSAFE.objectFieldOffset(field);
+  }
+
+  public static void putOrderedLong(Object object, long valueOffset, long initialValue) {
+    _UNSAFE.putOrderedLong(object,valueOffset,initialValue);
+  }
+
+  public static void putLongVolatile(Object object, long valueOffset, long value) {
+    _UNSAFE.putLongVolatile(object,valueOffset,value);
+  }
+
+  public static boolean compareAndSwapLong(Object object, long valueOffset, long expectedValue, long newValue) {
+    return _UNSAFE.compareAndSwapLong(object, valueOffset, expectedValue, newValue);
+  }
 }
