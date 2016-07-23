@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -24,6 +25,7 @@ import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLCharacterDataType;
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
+import com.alibaba.druid.sql.ast.statement.SQLConstraint;
 import com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
@@ -139,14 +141,7 @@ public class GlobalTableUtil{
 		
 		//增加对全局表create语句的解析，如果是建表语句创建的是全局表，且表中不含"_mycat_op_time"列
 		//则为其增加"_mycat_op_time"列，方便导入数据。
-		if (isCreate(statement) && sql.contains("CREATE TABLE ") && !hasGlobalColumn(statement)) {
-			SQLColumnDefinition column = new SQLColumnDefinition();
-			column.setDataType(new SQLCharacterDataType("int"));
-			column.setName(new SQLIdentifierExpr(GLOBAL_TABLE_MYCAT_COLUMN));
-			column.setComment(new SQLCharExpr("全局表保存修改时间戳的字段名"));
-			((SQLCreateTableStatement)statement).getTableElementList().add(column);
-			sql = statement.toString();
-		}
+		sql = addColumnIfCreate(sql, statement);
 		
 		final String tn = tableName;
 		MycatServer.getInstance().getListeningExecutorService().execute(new Runnable() {
@@ -170,13 +165,30 @@ public class GlobalTableUtil{
 		});
 		return sql;
 	}
+
+	static String addColumnIfCreate(String sql, SQLStatement statement) {
+		if (isCreate(statement) && sql.trim().toUpperCase().startsWith("CREATE TABLE ") && !hasGlobalColumn(statement)) {
+			SQLColumnDefinition column = new SQLColumnDefinition();
+			column.setDataType(new SQLCharacterDataType("bigint"));
+			column.setName(new SQLIdentifierExpr(GLOBAL_TABLE_MYCAT_COLUMN));
+			column.setComment(new SQLCharExpr("全局表保存修改时间戳的字段名"));
+			((SQLCreateTableStatement)statement).getTableElementList().add(column);
+		}
+		return statement.toString();
+	}
 	
 	private static boolean hasGlobalColumn(SQLStatement statement){
 		for (SQLTableElement tableElement : ((SQLCreateTableStatement)statement).getTableElementList()) {
-			String simpleName = ((SQLColumnDefinition)tableElement).getName().getSimpleName();
-			simpleName = StringUtil.removeBackquote(simpleName);
-			if (tableElement instanceof SQLColumnDefinition && GLOBAL_TABLE_MYCAT_COLUMN.equals(simpleName)) {
-				return true;
+			SQLName sqlName = null;
+			if (tableElement instanceof SQLColumnDefinition) {
+				sqlName = ((SQLColumnDefinition)tableElement).getName();
+			}
+			if (sqlName != null) {
+				String simpleName = sqlName.getSimpleName();
+				simpleName = StringUtil.removeBackquote(simpleName);
+				if (tableElement instanceof SQLColumnDefinition && GLOBAL_TABLE_MYCAT_COLUMN.equalsIgnoreCase(simpleName)) {
+					return true;
+				}
 			}
 		}
 		return false;

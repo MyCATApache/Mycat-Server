@@ -10,7 +10,7 @@ import com.alibaba.druid.sql.parser.Token;
  */
 public class MycatExprParser extends MySqlExprParser
 {
-    public static String[] max_agg_functions = {"AVG", "COUNT", "GROUP_CONCAT", "MAX", "MIN", "STDDEV", "SUM", "ROW_NUMBER"};
+    public static final String[] max_agg_functions = {"AVG", "COUNT", "GROUP_CONCAT", "MAX", "MIN", "STDDEV", "SUM", "ROW_NUMBER"};
 
     public MycatExprParser(Lexer lexer)
     {

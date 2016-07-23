@@ -28,8 +28,10 @@ import io.mycat.route.RouteResultset;
 
 public class DruidSelectSqlServerParser extends DruidSelectParser {
 
-
-	protected boolean isNeedParseOrderAgg=true;
+	public DruidSelectSqlServerParser(){
+		super();
+		isNeedParseOrderAgg=true;
+	}
 
 	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) {

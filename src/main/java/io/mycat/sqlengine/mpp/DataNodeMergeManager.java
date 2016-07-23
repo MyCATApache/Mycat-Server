@@ -362,7 +362,8 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
                 for (int i = 0; i < fieldCount; i++) {
                     byte[] colValue = mm.readBytesWithLength();
-                    unsafeRowWriter.write(i,colValue);
+                    if (colValue != null)
+                    	unsafeRowWriter.write(i,colValue);
                 }
 
                 unsafeRow.setTotalSize(bufferHolder.totalSize());

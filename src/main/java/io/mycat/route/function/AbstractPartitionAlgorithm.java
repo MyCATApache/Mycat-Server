@@ -51,7 +51,7 @@ public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm {
 			
 			return re;
 		}else{
-			return null;
+			return new Integer[0];
 		}
 	}
 	

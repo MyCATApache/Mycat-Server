@@ -57,9 +57,9 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 
 	@Override
 	public Integer calculate(String columnValue) {
-
-	BigInteger bigNum = new BigInteger(columnValue).abs();
-	 return (bigNum.mod(BigInteger.valueOf(count))).intValue();
+		columnValue = NumberParseUtil.eliminateQoute(columnValue);
+		BigInteger bigNum = new BigInteger(columnValue).abs();
+	 	return (bigNum.mod(BigInteger.valueOf(count))).intValue();
 	}
 
 	private static void hashTest(){
@@ -123,6 +123,10 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 		}
 	}
 	public static void main(String[] args) {
-		hashTest();
+//		hashTest();
+		PartitionByMod partitionByMod = new PartitionByMod();
+		partitionByMod.count=8;
+		partitionByMod.calculate("\"6\"");
+		partitionByMod.calculate("\'6\'");
 	}
 }

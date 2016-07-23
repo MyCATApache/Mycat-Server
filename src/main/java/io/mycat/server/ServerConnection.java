@@ -145,12 +145,14 @@ public class ServerConnection extends FrontendConnection {
 
 		// 检查当前使用的DB
 		String db = this.schema;
+		boolean isDefault = true;
 		if (db == null) {
 			db = SchemaUtil.detectDefaultDb(sql, type);
 			if (db == null) {
 				writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
 				return;
 			}
+			isDefault = false;
 		}
 		
 		// 兼容PhpAdmin's, 支持对MySQL元数据的模拟返回
@@ -182,12 +184,27 @@ public class ServerConnection extends FrontendConnection {
 					"Unknown MyCAT Database '" + db + "'");
 			return;
 		}
+		
+		/* 当已经设置默认schema时，可以通过在sql中指定其它schema的方式执行
+		 * 相关sql，已经在mysql客户端中验证。
+		 * 所以在此处增加关于sql中指定Schema方式的支持。
+		 */
+		if (isDefault && schema.isCheckSQLSchema() && isNormalSql(type)) {
+			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
+			if (schemaInfo != null && schemaInfo.schema != null && !schemaInfo.schema.equals(db)) {
+				SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(schemaInfo.schema);
+				if (schemaConfig != null)
+					schema = schemaConfig;
+			}
+		}
 
 		routeEndExecuteSQL(sql, type, schema);
 
 	}
-
-
+	
+	private boolean isNormalSql(int type) {
+		return ServerParse.SELECT==type||ServerParse.INSERT==type||ServerParse.UPDATE==type||ServerParse.DELETE==type||ServerParse.DDL==type;
+	}
 
     public RouteResultset routeSQL(String sql, int type) {
 
