@@ -332,8 +332,8 @@ public final class BytesToBytesMap extends MemoryConsumer {
 
 
         assert(reader != null);
-        if(reader == null)
-          return null;
+//        if(reader == null)
+//          return null;
 
         if (!reader.hasNext()) {
           advanceToNextPage();

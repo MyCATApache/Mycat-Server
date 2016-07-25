@@ -118,8 +118,8 @@ public class NonBlockingSession implements Session {
                     "No dataNode found ,please check tables defined in schema:" + source.getSchema());
             return;
         }
-        
 
+        final int initCount = target.size();
         if (nodes.length == 1) {
             singleNodeHandler = new SingleNodeHandler(rrs, this);
             if (this.isPrepared()) {
@@ -127,7 +127,11 @@ public class NonBlockingSession implements Session {
             }
 
             try {
-                singleNodeHandler.execute();
+                if(initCount > 1){
+                    checkDistriTransaxAndExecute(rrs,1);
+                }else{
+                    singleNodeHandler.execute();
+                }
             } catch (Exception e) {
                 LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
                 source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
@@ -139,20 +143,9 @@ public class NonBlockingSession implements Session {
             if (this.isPrepared()) {
                 multiNodeHandler.setPrepared(true);
             }
-
             try {
-                if(autocommit && (type == ServerParse.DELETE || type == ServerParse.INSERT || type == ServerParse.UPDATE) && !rrs.isGlobalTable() && nodes.length > 1) {
-                    switch(MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
-                        case 1:
-                            source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!");
-                            break;
-                        case 2:
-                            LOGGER.warn("Distributed transaction detected! RRS:" + rrs);
-                            multiNodeHandler.execute();
-                            break;
-                        default:
-                            multiNodeHandler.execute();
-                    }
+                if(((type == ServerParse.DELETE || type == ServerParse.INSERT || type == ServerParse.UPDATE) && !rrs.isGlobalTable() && nodes.length > 1)||initCount > 1) {
+                    checkDistriTransaxAndExecute(rrs,2);
                 } else {
                     multiNodeHandler.execute();
                 }
@@ -165,6 +158,50 @@ public class NonBlockingSession implements Session {
 
         if (this.isPrepared()) {
             this.setPrepared(false);
+        }
+    }
+
+    private void checkDistriTransaxAndExecute(RouteResultset rrs, int type) throws Exception {
+        switch(MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
+            case 1:
+                source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!");
+                break;
+            case 2:
+                LOGGER.warn("Distributed transaction detected! RRS:" + rrs);
+                if(type == 1){
+                    singleNodeHandler.execute();
+                }
+                else{
+                    multiNodeHandler.execute();
+                }
+                break;
+            default:
+                if(type == 1){
+                    singleNodeHandler.execute();
+                }
+                else{
+                    multiNodeHandler.execute();
+                }
+        }
+    }
+
+    private void checkDistriTransaxAndExecute() {
+        if(!isALLGlobal()){
+            switch(MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
+                case 1:
+//                        rollback();
+                    source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!Please rollback!");
+                    source.setTxInterrupt("Distributed transaction is disabled!");
+                    break;
+                case 2:
+                    multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
+                    LOGGER.warn("Distributed transaction detected! Targets:" + target);
+                    break;
+                default:
+                    multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
+            }
+        } else {
+            multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
         }
     }
 
@@ -184,22 +221,7 @@ public class NonBlockingSession implements Session {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("multi node commit to send ,total " + initCount);
             }
-            if(!isALLGlobal()){
-                switch(MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
-                    case 1:
-                        rollback();
-                        source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!");
-                        break;
-                    case 2:
-                        multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
-                        LOGGER.warn("Distributed transaction detected! Targets:" + target);
-                        break;
-                    default:
-                        multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
-                }
-            } else {
-                multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
-            }
+            checkDistriTransaxAndExecute();
         }
 
     }
@@ -227,6 +249,7 @@ public class NonBlockingSession implements Session {
             source.write(buffer);
             return;
         }
+
         rollbackHandler = new RollbackNodeHandler(this);
         rollbackHandler.rollback();
     }

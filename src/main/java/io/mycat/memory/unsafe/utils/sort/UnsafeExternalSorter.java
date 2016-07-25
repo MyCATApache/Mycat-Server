@@ -309,13 +309,15 @@ public final class UnsafeExternalSorter extends MemoryConsumer {
   private void deleteSpillFiles() {
     for (UnsafeSorterSpillWriter spill : spillWriters) {
       File file = spill.getFile();
+      if(file == null)
+        continue;
       try {
         JavaUtils.deleteRecursively(file.getParentFile().getParentFile());
       } catch (IOException e) {
         logger.error(e.getMessage());
       }
 
-      if (file != null && file.exists()) {
+      if (file.exists()) {
         if (!file.delete()) {
           logger.error("Was unable to delete spill file {}", file.getAbsolutePath());
         }
