@@ -1,4 +1,4 @@
-package io.mycat.memory.unsafe.ringbuffer.common;
+package io.mycat.memory.unsafe.ringbuffer.common.sequence;
 
 
 import io.mycat.memory.unsafe.Platform;
