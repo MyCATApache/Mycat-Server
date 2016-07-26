@@ -33,7 +33,7 @@ class RhsPadding extends Value
  */
 public class Sequence extends RhsPadding
 {
-    static final long INITIAL_VALUE = -1L;
+    public static final long INITIAL_VALUE = -1L;
     private static final long VALUE_OFFSET;
 
     static
