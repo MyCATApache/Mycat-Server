@@ -32,6 +32,7 @@ import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.factory.RouteStrategyFactory;
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * @author mycat
@@ -52,7 +53,7 @@ public class ShardingMultiTableSpace {
      * 
      * @throws SQLNonTransientException
      */
-    public void testTableSpace() throws SQLNonTransientException {
+    public void testTableSpace() throws SQLNonTransientException, IllegalShardingColumnValueException {
         SchemaConfig schema = getSchema();
         String sql = "select id,member_id,gmt_create from offer where member_id in ('1','22','333','1124','4525')";
         for (int i = 0; i < total; i++) {

@@ -13,6 +13,7 @@ import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.route.function.PartitionByRangeDateHash;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -28,8 +29,7 @@ public class PartitionByRangeDateHashTest
 {
 
     @Test
-    public void test() throws ParseException
-    {
+    public void test() throws ParseException, IllegalShardingColumnValueException {
         PartitionByRangeDateHash partition = new PartitionByRangeDateHash();
 
         partition.setDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -81,8 +81,7 @@ public class PartitionByRangeDateHashTest
     }
 
     @Test
-    public void testRange() throws SQLNonTransientException
-    {
+    public void testRange() throws SQLNonTransientException, IllegalShardingColumnValueException {
         String sql = "select * from offer1  where col_date between '2014-01-01 00:00:00'  and '2014-01-03 23:59:59'     order by id desc limit 100";
         SchemaConfig schema = schemaMap.get("TESTDB");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,

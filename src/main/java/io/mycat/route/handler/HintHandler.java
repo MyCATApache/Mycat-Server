@@ -8,6 +8,7 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.ServerConnection;
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * 按照注释中包含指定类型的内容做路由解析
@@ -18,5 +19,5 @@ public interface HintHandler {
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
                                 int sqlType, String realSQL, String charset, ServerConnection sc,
                                 LayerCachePool cachePool, String hintSQLValue, int hintSqlType, Map hintMap)
-			throws SQLNonTransientException;
+			throws SQLNonTransientException, IllegalShardingColumnValueException;
 }

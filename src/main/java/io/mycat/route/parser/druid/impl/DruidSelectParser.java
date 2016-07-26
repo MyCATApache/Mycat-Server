@@ -49,6 +49,7 @@ import io.mycat.sqlengine.mpp.MergeCol;
 import io.mycat.sqlengine.mpp.OrderCol;
 import io.mycat.util.ObjectUtil;
 import io.mycat.util.StringUtil;
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 public class DruidSelectParser extends DefaultDruidParser {
 
@@ -262,7 +263,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		  {
 			  return true;
 		  }
-	  } catch (SQLNonTransientException e)
+	  } catch (SQLNonTransientException|IllegalShardingColumnValueException e)
 	  {
 		  throw new RuntimeException(e);
 	  }
@@ -282,7 +283,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 	 * 改写sql：需要加limit的加上
 	 */
 	@Override
-	public void changeSql(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException {
+	public void changeSql(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException, IllegalShardingColumnValueException {
 
 		tryRoute(schema, rrs, cachePool);
 
@@ -393,8 +394,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		return map;
 	}
 
-	private void tryRoute(SchemaConfig schema, RouteResultset rrs, LayerCachePool cachePool) throws SQLNonTransientException
-	{
+	private void tryRoute(SchemaConfig schema, RouteResultset rrs, LayerCachePool cachePool) throws SQLNonTransientException, IllegalShardingColumnValueException {
 		if(rrs.isFinishedRoute())
 		{
 			return;//避免重复路由
@@ -681,7 +681,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		try
 		{
 			tryRoute(schema, rrs, tableId2DataNodeCache);
-		} catch (SQLNonTransientException e)
+		} catch (SQLNonTransientException|IllegalShardingColumnValueException e)
 		{
 			throw new RuntimeException(e);
 		}

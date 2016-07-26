@@ -54,6 +54,7 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.ObjectUtil;
 import io.mycat.util.StringUtil;
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -371,7 +372,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             		
             		rrs.setNodes(nodes);
                     return rrs;
-                } catch (SQLNonTransientException e)
+                } catch (SQLNonTransientException|IllegalShardingColumnValueException e)
                 {
                     throw new RuntimeException(e);
                 }

@@ -1,5 +1,7 @@
 package io.mycat.route.function;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
+
 /**
  * Latest one month data partions ,only reserve data of latest 31 days and one
  * day is partioned into N slide (splitOneDay), so total datanode is M*N table's
@@ -33,17 +35,20 @@ public class LatestMonthPartion extends AbstractPartitionAlgorithm {
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		int valueLen = columnValue.length();
-		int day = Integer.parseInt(columnValue.substring(valueLen - 4,
-				valueLen - 2));
-		int hour = Integer.parseInt(columnValue.substring(valueLen - 2));
-		int dnIndex = (day - 1) * splitOneDay + hour / hourSpan;
-		return dnIndex;
-
+	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+		try {
+			int valueLen = columnValue.length();
+			int day = Integer.parseInt(columnValue.substring(valueLen - 4,
+					valueLen - 2));
+			int hour = Integer.parseInt(columnValue.substring(valueLen - 2));
+			int dnIndex = (day - 1) * splitOneDay + hour / hourSpan;
+			return dnIndex;
+		}catch (NumberFormatException e){
+			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
+		}
 	}
 
-	public Integer[] calculateRange(String beginValue, String endValue) {
+	public Integer[] calculateRange(String beginValue, String endValue) throws IllegalShardingColumnValueException {
 		return calculateSequenceRange(this,beginValue, endValue);
 	}
 

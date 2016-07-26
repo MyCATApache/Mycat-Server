@@ -25,6 +25,7 @@ package io.mycat.route.function;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 import io.mycat.route.util.PartitionUtil;
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 public final class PartitionByLong extends AbstractPartitionAlgorithm implements RuleAlgorithm {
 	protected int[] count;
@@ -55,14 +56,18 @@ public final class PartitionByLong extends AbstractPartitionAlgorithm implements
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		columnValue = NumberParseUtil.eliminateQoute(columnValue);
-		long key = Long.parseLong(columnValue);
-		return partitionUtil.partition(key);
+	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+//		columnValue = NumberParseUtil.eliminateQoute(columnValue);
+		try {
+			long key = Long.parseLong(columnValue);
+			return partitionUtil.partition(key);
+		} catch (NumberFormatException e){
+			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
+		}
 	}
 	
 	@Override
-	public Integer[] calculateRange(String beginValue, String endValue) {
+	public Integer[] calculateRange(String beginValue, String endValue) throws IllegalShardingColumnValueException {
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 

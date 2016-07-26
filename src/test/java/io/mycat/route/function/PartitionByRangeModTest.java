@@ -23,6 +23,7 @@
  */
 package io.mycat.route.function;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import junit.framework.Assert;
 import org.junit.Test;
 
@@ -45,8 +46,7 @@ public class PartitionByRangeModTest
 {
 
     @Test
-    public void test()
-    {
+    public void test() throws IllegalShardingColumnValueException {
         PartitionByRangeMod autoPartition = new PartitionByRangeMod();
         autoPartition.setMapFile("partition-range-mod.txt");
         autoPartition.init();
@@ -95,8 +95,7 @@ public class PartitionByRangeModTest
     }
 
     @Test
-    public void testRange() throws SQLNonTransientException
-    {
+    public void testRange() throws SQLNonTransientException, IllegalShardingColumnValueException {
         String sql = "select * from offer  where id between 2000000  and 4000001     order by id desc limit 100";
         SchemaConfig schema = schemaMap.get("TESTDB");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,

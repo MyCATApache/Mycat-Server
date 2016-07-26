@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.cache.CachePool;
@@ -66,7 +67,7 @@ public class RouteService {
 
 	public RouteResultset route(SystemConfig sysconf, SchemaConfig schema,
 			int sqlType, String stmt, String charset, ServerConnection sc)
-			throws SQLNonTransientException {
+			throws SQLNonTransientException, IllegalShardingColumnValueException {
 		RouteResultset rrs = null;
 		String cacheKey = null;
 

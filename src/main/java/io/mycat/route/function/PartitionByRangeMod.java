@@ -30,6 +30,7 @@ import java.math.BigInteger;
 import java.util.LinkedList;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * 先进行范围分片计算出分片组，组内再取模
@@ -54,26 +55,29 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		columnValue = NumberParseUtil.eliminateQoute(columnValue);
-		long value = Long.parseLong(columnValue);
-		Integer rst = null;
-        int nodeIndex=0;
-		for (LongRange longRang : this.longRanges) {
-			if (value <= longRang.valueEnd && value >= longRang.valueStart) {
-                BigInteger bigNum = new BigInteger(columnValue).abs();
-                int innerIndex= (bigNum.mod(BigInteger.valueOf(longRang.groupSize))).intValue();
-				return nodeIndex+innerIndex;
-			}    else
-            {
-                nodeIndex+= longRang.groupSize;
-            }
+	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+//		columnValue = NumberParseUtil.eliminateQoute(columnValue);
+		try {
+			long value = Long.parseLong(columnValue);
+			Integer rst = null;
+			int nodeIndex = 0;
+			for (LongRange longRang : this.longRanges) {
+				if (value <= longRang.valueEnd && value >= longRang.valueStart) {
+					BigInteger bigNum = new BigInteger(columnValue).abs();
+					int innerIndex = (bigNum.mod(BigInteger.valueOf(longRang.groupSize))).intValue();
+					return nodeIndex + innerIndex;
+				} else {
+					nodeIndex += longRang.groupSize;
+				}
+			}
+			//数据超过范围，暂时使用配置的默认节点
+			if (rst == null && defaultNode >= 0) {
+				return defaultNode;
+			}
+			return rst;
+		} catch (NumberFormatException e) {
+			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(), e);
 		}
-		//数据超过范围，暂时使用配置的默认节点
-		if(rst ==null && defaultNode>=0){
-			return defaultNode ;
-		}
-		return rst;
 	}
 
     public Integer calculateStart(String columnValue) {

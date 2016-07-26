@@ -3,6 +3,7 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.junit.Test;
 
 import io.mycat.SimpleCachePool;
@@ -61,7 +62,7 @@ public class DruidOracleSqlParserTest
 
 
     @Test
-	public void testLimitToOraclePage() throws SQLNonTransientException {
+	public void testLimitToOraclePage() throws SQLNonTransientException, IllegalShardingColumnValueException {
 		String sql = "select * from offer order by id desc limit 5,10";
 		SchemaConfig schema = schemaMap.get("oracledb");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
@@ -96,7 +97,7 @@ public class DruidOracleSqlParserTest
 
 
     @Test
-    public void testOraclePageSQL() throws SQLNonTransientException {
+    public void testOraclePageSQL() throws SQLNonTransientException, IllegalShardingColumnValueException {
         String sql = "SELECT *\n" +
                 "FROM (SELECT XX.*, ROWNUM AS RN \n" +
                 " FROM (\n" +

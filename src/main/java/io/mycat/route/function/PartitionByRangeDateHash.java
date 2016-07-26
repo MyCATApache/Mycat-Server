@@ -4,6 +4,7 @@ import com.google.common.hash.Hashing;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
@@ -33,6 +34,8 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
     private String groupPartionSize;
     private int intGroupPartionSize;
 
+    private ThreadLocal<SimpleDateFormat> formatter;
+
     @Override
     public void init()
     {
@@ -41,6 +44,12 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
             beginDate = new SimpleDateFormat(dateFormat).parse(sBeginDate)
                     .getTime();
             intGroupPartionSize = Integer.parseInt(groupPartionSize);
+            formatter = new ThreadLocal<SimpleDateFormat>() {
+                @Override
+                protected SimpleDateFormat initialValue() {
+                    return new SimpleDateFormat(dateFormat);
+                }
+            };
             if (intGroupPartionSize <= 0)
             {
                 throw new RuntimeException("groupPartionSize must >0,but cur is " + intGroupPartionSize);
@@ -53,11 +62,10 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
     }
 
     @Override
-    public Integer calculate(String columnValue)
-    {
+    public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
         try
         {
-            long targetTime = new SimpleDateFormat(dateFormat).parse(
+            long targetTime = formatter.get().parse(
                     columnValue).getTime();
             int targetPartition = (int) ((targetTime - beginDate) / partionTime);
             int innerIndex =  Hashing.consistentHash(targetTime,intGroupPartionSize);
@@ -65,8 +73,7 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
 
         } catch (ParseException e)
         {
-            throw new IllegalArgumentException(e);
-
+            throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
         }
     }
 

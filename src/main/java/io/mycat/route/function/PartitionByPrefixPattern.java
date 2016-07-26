@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.util.LinkedList;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * partition by Prefix length ,can be used in String partition
@@ -61,22 +62,26 @@ public class PartitionByPrefixPattern extends AbstractPartitionAlgorithm impleme
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		int Length = Integer.valueOf(prefixLength);
+	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+		try {
+			int Length = Integer.valueOf(prefixLength);
 
-		Length = columnValue.length() < Length ? columnValue.length() : Length;
-		int sum = 0;
-		for (int i = 0; i < Length; i++) {
-			sum = sum + columnValue.charAt(i);
-		}
-		Integer rst = null;
-		for (LongRange longRang : this.longRongs) {
-			long hash = sum % patternValue;
-			if (hash <= longRang.valueEnd && hash >= longRang.valueStart) {
-				return longRang.nodeIndx;
+			Length = columnValue.length() < Length ? columnValue.length() : Length;
+			int sum = 0;
+			for (int i = 0; i < Length; i++) {
+				sum = sum + columnValue.charAt(i);
 			}
+			Integer rst = null;
+			for (LongRange longRang : this.longRongs) {
+				long hash = sum % patternValue;
+				if (hash <= longRang.valueEnd && hash >= longRang.valueStart) {
+					return longRang.nodeIndx;
+				}
+			}
+			return rst;
+		} catch (NumberFormatException e){
+			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
 		}
-		return rst;
 	}
 
 	private void initialize() {

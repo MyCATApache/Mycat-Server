@@ -3,6 +3,7 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.junit.Test;
 
 import io.mycat.SimpleCachePool;
@@ -31,7 +32,7 @@ public class DruidDb2SqlParserTest
 	}
 
 	@Test
-	public void testLimitToDb2Page() throws SQLNonTransientException {
+	public void testLimitToDb2Page() throws SQLNonTransientException, IllegalShardingColumnValueException {
 		String sql = "select * from offer order by id desc limit 5,10";
 		SchemaConfig schema = schemaMap.get("db2db");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
@@ -67,7 +68,7 @@ public class DruidDb2SqlParserTest
 
 
     @Test
-    public void testDb2PageSQL() throws SQLNonTransientException {
+    public void testDb2PageSQL() throws SQLNonTransientException, IllegalShardingColumnValueException {
         String sql = "SELECT *\n" +
                 "FROM (SELECT sid, ROW_NUMBER() OVER (ORDER BY sid DESC) AS ROWNUM\n" +
                 "\tFROM offer \n" +

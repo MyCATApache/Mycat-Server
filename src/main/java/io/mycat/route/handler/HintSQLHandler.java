@@ -27,6 +27,7 @@ import io.mycat.route.*;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * 处理注释中 类型为sql的情况 （按照 注释中的sql做路由解析，而不是实际的sql）
@@ -43,7 +44,7 @@ public class HintSQLHandler implements HintHandler {
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
 			int sqlType, String realSQL, String charset, ServerConnection sc,
 			LayerCachePool cachePool, String hintSQLValue,int hintSqlType, Map hintMap)
-			throws SQLNonTransientException {
+            throws SQLNonTransientException, IllegalShardingColumnValueException {
 		
 		RouteResultset rrs = routeStrategy.route(sysConfig, schema, hintSqlType,
 				hintSQLValue, charset, sc, cachePool);

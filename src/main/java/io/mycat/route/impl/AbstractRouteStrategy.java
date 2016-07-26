@@ -3,6 +3,7 @@ package io.mycat.route.impl;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -22,7 +23,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, String origSQL,
-			String charset, ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
+			String charset, ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException, IllegalShardingColumnValueException {
 
 		/**
 		 * 处理一些路由之前的逻辑
@@ -89,7 +90,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	 * 主要是全局序列号插入，还有子表插入
 	 */
 	private boolean beforeRouteProcess(SchemaConfig schema, int sqlType, String origSQL, ServerConnection sc)
-			throws SQLNonTransientException {
+			throws SQLNonTransientException, IllegalShardingColumnValueException {
 		
 		return RouterUtil.processWithMycatSeq(schema, sqlType, origSQL, sc)
 				|| (sqlType == ServerParse.INSERT && RouterUtil.processERChildTable(schema, origSQL, sc))
@@ -100,7 +101,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	 * 通过解析AST语法树类来寻找路由
 	 */
 	public abstract RouteResultset routeNormalSqlWithAST(SchemaConfig schema, String stmt, RouteResultset rrs,
-			String charset, LayerCachePool cachePool) throws SQLNonTransientException;
+			String charset, LayerCachePool cachePool) throws SQLNonTransientException, IllegalShardingColumnValueException;
 
 	/**
 	 * 路由信息指令, 如 SHOW、SELECT@@、DESCRIBE

@@ -3,6 +3,7 @@ package io.mycat.route.function;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
@@ -26,6 +27,7 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 	private long endDate;
 	private int nCount;
 
+	private ThreadLocal<SimpleDateFormat> formatter;
 	
 	private static final long oneDay = 86400000;
 
@@ -40,15 +42,21 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 			    endDate = new SimpleDateFormat(dateFormat).parse(sEndDate).getTime();
 			    nCount = (int) ((endDate - beginDate) / partionTime) + 1;
 			}
+			formatter = new ThreadLocal<SimpleDateFormat>() {
+				@Override
+				protected SimpleDateFormat initialValue() {
+					return new SimpleDateFormat(dateFormat);
+				}
+			};
 		} catch (ParseException e) {
 			throw new java.lang.IllegalArgumentException(e);
 		}
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
+	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
 		try {
-			long targetTime = new SimpleDateFormat(dateFormat).parse(columnValue).getTime();
+			long targetTime = formatter.get().parse(columnValue).getTime();
 			int targetPartition = (int) ((targetTime - beginDate) / partionTime);
 
 			if(targetTime>endDate && nCount!=0){
@@ -57,13 +65,12 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 			return targetPartition;
 
 		} catch (ParseException e) {
-			throw new java.lang.IllegalArgumentException(e);
-			
+			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
 		}
 	}
 
 	@Override
-	public Integer[] calculateRange(String beginValue, String endValue) {
+	public Integer[] calculateRange(String beginValue, String endValue) throws IllegalShardingColumnValueException {
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 

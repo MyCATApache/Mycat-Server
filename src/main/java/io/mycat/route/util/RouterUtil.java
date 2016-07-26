@@ -33,6 +33,7 @@ import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
 
@@ -715,14 +716,14 @@ public class RouterUtil {
 	 * @param tc	      	     表实体
 	 * @param joinKeyVal      连接属性
 	 * @return RouteResultset(数据路由集合)	 * 
-	 * @throws java.sql.SQLNonTransientException
+	 * @throws SQLNonTransientException，IllegalShardingColumnValueException
 	 * @author mycat
 	 */
 
 	public static RouteResultset routeByERParentKey(ServerConnection sc,SchemaConfig schema,
                                                     int sqlType,String stmt,
 			RouteResultset rrs, TableConfig tc, String joinKeyVal)
-			throws SQLNonTransientException {
+			throws SQLNonTransientException, IllegalShardingColumnValueException {
 		
 		// only has one parent level and ER parent key is parent
 		// table's partition key
@@ -757,7 +758,7 @@ public class RouterUtil {
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleByJoinValueCalculate(RouteResultset rrs, TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet) throws SQLNonTransientException {
+			Set<ColumnRoutePair> colRoutePairSet) throws SQLNonTransientException, IllegalShardingColumnValueException {
 
 		String joinValue = "";
 
@@ -819,7 +820,7 @@ public class RouterUtil {
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleCalculate(TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet) {
+			Set<ColumnRoutePair> colRoutePairSet) throws IllegalShardingColumnValueException {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
 		String col = tc.getRule().getColumn();
 		RuleConfig rule = tc.getRule();
@@ -866,7 +867,7 @@ public class RouterUtil {
 	 */
 	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx,
 			RouteCalculateUnit routeUnit, RouteResultset rrs, boolean isSelect, LayerCachePool cachePool)
-					throws SQLNonTransientException {
+			throws SQLNonTransientException, IllegalShardingColumnValueException {
 		
 		List<String> tables = ctx.getTables();
 		
@@ -966,7 +967,7 @@ public class RouterUtil {
 	 */
 	public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx,
 			RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs, boolean isSelect,
-			LayerCachePool cachePool) throws SQLNonTransientException {
+			LayerCachePool cachePool) throws SQLNonTransientException, IllegalShardingColumnValueException {
 		
 		if (isNoSharding(schema, tableName)) {
 			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
@@ -1021,7 +1022,7 @@ public class RouterUtil {
 	
 	private static RouteResultset routeToDistTableNode(String tableName, SchemaConfig schema, RouteResultset rrs,
 			String orgSql, Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
-			LayerCachePool cachePool, boolean isSelect) throws SQLNonTransientException {
+			LayerCachePool cachePool, boolean isSelect) throws SQLNonTransientException, IllegalShardingColumnValueException {
 		
 		TableConfig tableConfig = schema.getTables().get(tableName);
 		if(tableConfig == null) {
@@ -1118,7 +1119,7 @@ public class RouterUtil {
 	public static void findRouteWithcConditionsForTables(SchemaConfig schema, RouteResultset rrs,
 			Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
 			Map<String, Set<String>> tablesRouteMap, String sql, LayerCachePool cachePool, boolean isSelect)
-			throws SQLNonTransientException {
+			throws SQLNonTransientException, IllegalShardingColumnValueException {
 		
 		//为分库表找路由
 		for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
@@ -1369,7 +1370,7 @@ public class RouterUtil {
 
 
 	public static boolean processERChildTable(final SchemaConfig schema, final String origSQL,
-	                                          final ServerConnection sc) throws SQLNonTransientException {
+	                                          final ServerConnection sc) throws SQLNonTransientException, IllegalShardingColumnValueException {
 		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
 		final TableConfig tc = schema.getTables().get(tableName);
 		//判断是否为子表，如果不是，只会返回false

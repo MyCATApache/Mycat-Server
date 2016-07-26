@@ -3,6 +3,7 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.junit.Test;
 
 import io.mycat.SimpleCachePool;
@@ -32,7 +33,7 @@ public class DruidPostgresqlSqlParserTest
 	}
 
 	@Test
-	public void testLimitToPgPage() throws SQLNonTransientException {
+	public void testLimitToPgPage() throws SQLNonTransientException, IllegalShardingColumnValueException {
 		String sql = "select * from offer order by id desc limit 5,10";
 		SchemaConfig schema = schemaMap.get("pgdb");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
@@ -64,7 +65,7 @@ public class DruidPostgresqlSqlParserTest
 
 
     @Test
-    public void testPGPageSQL() throws SQLNonTransientException {
+    public void testPGPageSQL() throws SQLNonTransientException, IllegalShardingColumnValueException {
         String sql = "select sid from offer order by sid limit 10 offset 5";
         SchemaConfig schema = schemaMap.get("pgdb");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,

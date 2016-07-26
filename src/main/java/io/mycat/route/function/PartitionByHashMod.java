@@ -41,8 +41,8 @@ public class PartitionByHashMod extends AbstractPartitionAlgorithm implements Ru
 
     @Override
     public Integer calculate(String columnValue) {
-        columnValue = columnValue.replace("\'", " ");
-        columnValue = columnValue.trim();
+//        columnValue = columnValue.replace("\'", " ");
+//        columnValue = columnValue.trim();
         BigInteger bigNum = new BigInteger(hash(columnValue.hashCode()) + "").abs();
         // if count==2^n, then m%count == m&(count-1)
         if (watch) {

@@ -1,6 +1,7 @@
 package io.mycat.route.function;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * 路由分片函数抽象类
@@ -21,7 +22,7 @@ public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm {
 	 * 返回null表示没有节点被路由到
 	 */
 	@Override
-	public Integer[] calculateRange(String beginValue, String endValue) {
+	public Integer[] calculateRange(String beginValue, String endValue) throws IllegalShardingColumnValueException {
 		return new Integer[0];
 	}
 	
@@ -32,7 +33,7 @@ public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm {
 	 * @param endValue
 	 * @return
 	 */
-	public static Integer[] calculateSequenceRange(AbstractPartitionAlgorithm algorithm, String beginValue, String endValue) {
+	public static Integer[] calculateSequenceRange(AbstractPartitionAlgorithm algorithm, String beginValue, String endValue) throws IllegalShardingColumnValueException {
 		Integer begin = 0, end = 0;
 		begin = algorithm.calculate(beginValue);
 		end = algorithm.calculate(endValue);

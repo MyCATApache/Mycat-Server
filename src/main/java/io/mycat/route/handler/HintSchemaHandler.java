@@ -3,6 +3,7 @@ package io.mycat.route.handler;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -39,13 +40,13 @@ public class HintSchemaHandler implements HintHandler {
 	 * @param cachePool
 	 * @param hintSQLValue
 	 * @return
-	 * @throws SQLNonTransientException
+	 * @throws SQLNonTransientException,IllegalShardingColumnValueException
 	 */
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
 			int sqlType, String realSQL, String charset, ServerConnection sc,
 			LayerCachePool cachePool, String hintSQLValue,int hintSqlType, Map hintMap)
-			throws SQLNonTransientException {
+			throws SQLNonTransientException, IllegalShardingColumnValueException {
 	    SchemaConfig tempSchema = MycatServer.getInstance().getConfig().getSchemas().get(hintSQLValue);
 		if (tempSchema != null) {
 			return routeStrategy.route(sysConfig, tempSchema, sqlType, realSQL, charset, sc, cachePool);

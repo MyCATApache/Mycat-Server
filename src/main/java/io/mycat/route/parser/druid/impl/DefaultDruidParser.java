@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -54,7 +55,7 @@ public class DefaultDruidParser implements DruidParser {
 	 * @param schema
 	 * @param stmt
 	 */
-	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool,MycatSchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException {
+	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool,MycatSchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException, IllegalShardingColumnValueException {
 		ctx = new DruidShardingParseInfo();
 		//设置为原始sql，如果有需要改写sql的，可以通过修改SQLStatement中的属性，然后调用SQLStatement.toString()得到改写的sql
 		ctx.setSql(originSql);
@@ -72,7 +73,7 @@ public class DefaultDruidParser implements DruidParser {
 	 * 子类覆盖该方法一般是将SQLStatement转型后再解析（如转型为MySqlInsertStatement）
 	 */
 	@Override
-	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
+	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException, IllegalShardingColumnValueException {
 		
 	}
 	
@@ -81,7 +82,7 @@ public class DefaultDruidParser implements DruidParser {
 	 */
 	@Override
 	public void changeSql(SchemaConfig schema, RouteResultset rrs,
-			SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException {
+			SQLStatement stmt,LayerCachePool cachePool) throws SQLNonTransientException, IllegalShardingColumnValueException {
 		
 	}
 

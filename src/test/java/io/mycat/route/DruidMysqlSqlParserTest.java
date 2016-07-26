@@ -3,6 +3,7 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.junit.Test;
 
 import io.mycat.SimpleCachePool;
@@ -32,7 +33,7 @@ public class DruidMysqlSqlParserTest
 	}
 
 	@Test
-	public void testLimitPage() throws SQLNonTransientException {
+	public void testLimitPage() throws SQLNonTransientException, IllegalShardingColumnValueException {
 		String sql = "select * from offer order by id desc limit 5,10";
 		SchemaConfig schema = schemaMap.get("mysqldb");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,

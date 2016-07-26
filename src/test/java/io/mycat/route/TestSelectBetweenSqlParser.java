@@ -3,6 +3,7 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
+import io.mycat.util.exception.IllegalShardingColumnValueException;
 import junit.framework.Assert;
 
 import org.junit.Test;
@@ -34,7 +35,7 @@ public class TestSelectBetweenSqlParser {
 	}
 
 	@Test
-	public void testBetweenSqlRoute() throws SQLNonTransientException {
+	public void testBetweenSqlRoute() throws SQLNonTransientException, IllegalShardingColumnValueException {
 		String sql = "select * from offer_detail where offer_id between 1 and 33";
 		SchemaConfig schema = schemaMap.get("cndb");
 		RouteResultset rrs = RouteStrategyFactory.getRouteStrategy().route(new SystemConfig(),schema, -1, sql, null,
