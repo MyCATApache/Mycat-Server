@@ -8,6 +8,8 @@ import io.mycat.memory.unsafe.ringbuffer.utils.Util;
 import java.util.concurrent.locks.LockSupport;
 
 /**
+ * 单一生产者相关类，非线程安全
+ *
  * @author lmax.Disruptor
  * @version 3.3.5
  * @date 2016/7/24

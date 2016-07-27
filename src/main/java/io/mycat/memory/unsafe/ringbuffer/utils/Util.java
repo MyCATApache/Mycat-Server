@@ -47,4 +47,14 @@ public class Util {
         return minimum;
     }
 
+    public static int log2(int i)
+    {
+        int r = 0;
+        while ((i >>= 1) != 0)
+        {
+            ++r;
+        }
+        return r;
+    }
+
 }
