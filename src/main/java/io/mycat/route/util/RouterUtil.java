@@ -1,10 +1,6 @@
 package io.mycat.route.util;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
@@ -24,7 +20,6 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.SessionSQLPair;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
-import io.mycat.route.parser.druid.DruidSequenceHandler;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.server.ServerConnection;
@@ -33,11 +28,8 @@ import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
 
-import java.io.UnsupportedEncodingException;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.*;
@@ -723,7 +715,7 @@ public class RouterUtil {
 	public static RouteResultset routeByERParentKey(ServerConnection sc,SchemaConfig schema,
                                                     int sqlType,String stmt,
 			RouteResultset rrs, TableConfig tc, String joinKeyVal)
-			throws SQLNonTransientException, IllegalShardingColumnValueException {
+			throws SQLNonTransientException {
 		
 		// only has one parent level and ER parent key is parent
 		// table's partition key
@@ -758,7 +750,7 @@ public class RouterUtil {
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleByJoinValueCalculate(RouteResultset rrs, TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet) throws SQLNonTransientException, IllegalShardingColumnValueException {
+			Set<ColumnRoutePair> colRoutePairSet) throws SQLNonTransientException {
 
 		String joinValue = "";
 
@@ -820,7 +812,7 @@ public class RouterUtil {
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleCalculate(TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet) throws IllegalShardingColumnValueException {
+			Set<ColumnRoutePair> colRoutePairSet)  {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
 		String col = tc.getRule().getColumn();
 		RuleConfig rule = tc.getRule();
@@ -867,7 +859,7 @@ public class RouterUtil {
 	 */
 	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx,
 			RouteCalculateUnit routeUnit, RouteResultset rrs, boolean isSelect, LayerCachePool cachePool)
-			throws SQLNonTransientException, IllegalShardingColumnValueException {
+			throws SQLNonTransientException {
 		
 		List<String> tables = ctx.getTables();
 		
@@ -967,7 +959,7 @@ public class RouterUtil {
 	 */
 	public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx,
 			RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs, boolean isSelect,
-			LayerCachePool cachePool) throws SQLNonTransientException, IllegalShardingColumnValueException {
+			LayerCachePool cachePool) throws SQLNonTransientException {
 		
 		if (isNoSharding(schema, tableName)) {
 			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
@@ -1022,7 +1014,7 @@ public class RouterUtil {
 	
 	private static RouteResultset routeToDistTableNode(String tableName, SchemaConfig schema, RouteResultset rrs,
 			String orgSql, Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
-			LayerCachePool cachePool, boolean isSelect) throws SQLNonTransientException, IllegalShardingColumnValueException {
+			LayerCachePool cachePool, boolean isSelect) throws SQLNonTransientException {
 		
 		TableConfig tableConfig = schema.getTables().get(tableName);
 		if(tableConfig == null) {
@@ -1119,7 +1111,7 @@ public class RouterUtil {
 	public static void findRouteWithcConditionsForTables(SchemaConfig schema, RouteResultset rrs,
 			Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
 			Map<String, Set<String>> tablesRouteMap, String sql, LayerCachePool cachePool, boolean isSelect)
-			throws SQLNonTransientException, IllegalShardingColumnValueException {
+			throws SQLNonTransientException {
 		
 		//为分库表找路由
 		for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
@@ -1370,7 +1362,7 @@ public class RouterUtil {
 
 
 	public static boolean processERChildTable(final SchemaConfig schema, final String origSQL,
-	                                          final ServerConnection sc) throws SQLNonTransientException, IllegalShardingColumnValueException {
+	                                          final ServerConnection sc) throws SQLNonTransientException {
 		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
 		final TableConfig tc = schema.getTables().get(tableName);
 		//判断是否为子表，如果不是，只会返回false

@@ -6,7 +6,6 @@ import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.server.ServerConnection;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * 路由策略接口
@@ -16,5 +15,5 @@ import io.mycat.util.exception.IllegalShardingColumnValueException;
 public interface RouteStrategy {
 	public RouteResultset route(SystemConfig sysConfig,
 			SchemaConfig schema,int sqlType, String origSQL, String charset, ServerConnection sc, LayerCachePool cachePool)
-			throws SQLNonTransientException, IllegalShardingColumnValueException;
+			throws SQLNonTransientException;
 }

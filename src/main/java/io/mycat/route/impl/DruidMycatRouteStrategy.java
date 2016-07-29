@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -42,7 +41,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	@Override
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
 			String stmt, RouteResultset rrs, String charset,
-			LayerCachePool cachePool) throws SQLNonTransientException, IllegalShardingColumnValueException {
+			LayerCachePool cachePool) throws SQLNonTransientException {
 		
 		/**
 		 *  只有mysql时只支持mysql语法

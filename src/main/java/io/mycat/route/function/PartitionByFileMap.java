@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * 
@@ -79,7 +78,7 @@ public class PartitionByFileMap extends AbstractPartitionAlgorithm implements Ru
 	}
 
 	@Override
-	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+	public Integer calculate(String columnValue)  {
 		try {
 			Object value = columnValue;
 			if (type == 0) {
@@ -94,7 +93,7 @@ public class PartitionByFileMap extends AbstractPartitionAlgorithm implements Ru
 			}
 			return rst;
 		} catch (NumberFormatException e){
-			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
 		}
 	}
 

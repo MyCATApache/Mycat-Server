@@ -4,7 +4,6 @@ package io.mycat.route.handler;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
@@ -13,8 +12,6 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
-
-import com.alibaba.fastjson.JSON;
 
 /**
  * 处理情况 sql hint: mycat:db_type=master/slave<br/>
@@ -33,7 +30,7 @@ public class HintMasterDBHandler implements HintHandler {
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, 
 			String realSQL, String charset,
 			ServerConnection sc, LayerCachePool cachePool, String hintSQLValue, int hintSqlType, Map hintMap)
-			throws SQLNonTransientException, IllegalShardingColumnValueException {
+			throws SQLNonTransientException {
 		
 //		LOGGER.debug("realSQL: " + realSQL); // select * from travelrecord limit 1
 //		LOGGER.debug("sqlType: " + sqlType); // 7

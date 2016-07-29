@@ -23,16 +23,13 @@
  */
 package io.mycat.route.function;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.junit.Assert;
 import org.junit.Test;
-
-import io.mycat.route.function.PartitionByMonth;
 
 public class PartitionByMonthTest {
 
 	@Test
-	public void test() throws IllegalShardingColumnValueException {
+	public void test()  {
 		PartitionByMonth partition = new PartitionByMonth();
 
 		partition.setDateFormat("yyyy-MM-dd");

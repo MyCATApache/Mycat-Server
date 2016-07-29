@@ -23,17 +23,14 @@
  */
 package io.mycat.route.function;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import junit.framework.Assert;
 
 import org.junit.Test;
 
-import io.mycat.route.function.AutoPartitionByLong;
-
 public class AutoPartitionByLongTest {
 
 	@Test
-	public void test() throws IllegalShardingColumnValueException {
+	public void test()  {
 		AutoPartitionByLong autoPartition=new AutoPartitionByLong();
 		autoPartition.setMapFile("autopartition-long.txt");
 		autoPartition.init();

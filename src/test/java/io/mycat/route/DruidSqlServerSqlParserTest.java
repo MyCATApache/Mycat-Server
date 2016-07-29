@@ -3,7 +3,6 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.junit.Test;
 
 import io.mycat.SimpleCachePool;
@@ -12,8 +11,6 @@ import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
-import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import junit.framework.Assert;
 
@@ -33,7 +30,7 @@ public class DruidSqlServerSqlParserTest
 	}
 
 	@Test
-	public void testLimitToSqlServerPage() throws SQLNonTransientException, IllegalShardingColumnValueException {
+	public void testLimitToSqlServerPage() throws SQLNonTransientException {
 		String sql = "select * from offer order by id desc limit 5,10";
 		SchemaConfig schema = schemaMap.get("sqlserverdb");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
@@ -70,7 +67,7 @@ public class DruidSqlServerSqlParserTest
 
 
     @Test
-    public void testSqlServerPageSQL() throws SQLNonTransientException, IllegalShardingColumnValueException {
+    public void testSqlServerPageSQL() throws SQLNonTransientException {
         String sql = "SELECT *\n" +
                 "FROM (SELECT sid, ROW_NUMBER() OVER (ORDER BY sid DESC) AS ROWNUM\n" +
                 "\tFROM offer \n" +
@@ -158,7 +155,7 @@ public class DruidSqlServerSqlParserTest
 
 
     @Test
-    public void testTopPageSQL() throws SQLNonTransientException, IllegalShardingColumnValueException {
+    public void testTopPageSQL() throws SQLNonTransientException {
         SchemaConfig schema = schemaMap.get("sqlserverdb");
         RouteResultset rrs = null;
 

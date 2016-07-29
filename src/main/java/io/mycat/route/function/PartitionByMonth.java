@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * 例子 按月份列分区 ，每个自然月一个分片，格式 between操作解析的范例
@@ -54,7 +53,7 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 	}
 
 	@Override
-	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+	public Integer calculate(String columnValue)  {
 		try {
 			int targetPartition;
 			Calendar curTime = Calendar.getInstance();
@@ -83,12 +82,12 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 			return targetPartition;
 
 		} catch (ParseException e) {
-			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
 		}
 	}
 
 	@Override
-	public Integer[] calculateRange(String beginValue, String endValue) throws IllegalShardingColumnValueException {
+	public Integer[] calculateRange(String beginValue, String endValue)  {
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this,
 				beginValue, endValue);
 	}

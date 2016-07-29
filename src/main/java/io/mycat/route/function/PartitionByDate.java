@@ -3,7 +3,6 @@ package io.mycat.route.function;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
@@ -54,7 +53,7 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 	}
 
 	@Override
-	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+	public Integer calculate(String columnValue)  {
 		try {
 			long targetTime = formatter.get().parse(columnValue).getTime();
 			int targetPartition = (int) ((targetTime - beginDate) / partionTime);
@@ -65,12 +64,12 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 			return targetPartition;
 
 		} catch (ParseException e) {
-			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
 		}
 	}
 
 	@Override
-	public Integer[] calculateRange(String beginValue, String endValue) throws IllegalShardingColumnValueException {
+	public Integer[] calculateRange(String beginValue, String endValue)  {
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 

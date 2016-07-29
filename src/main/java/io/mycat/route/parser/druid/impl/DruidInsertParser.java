@@ -26,7 +26,6 @@ import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.StringUtil;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 public class DruidInsertParser extends DefaultDruidParser {
 	@Override
@@ -38,7 +37,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 	 * 考虑因素：isChildTable、批量、是否分片
 	 */
 	@Override
-	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException, IllegalShardingColumnValueException {
+	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
 		MySqlInsertStatement insert = (MySqlInsertStatement)stmt;
 		String tableName = StringUtil.removeBackquote(insert.getTableName().getSimpleName()).toUpperCase();
 
@@ -110,7 +109,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 	}
 	
 	private RouteResultset parserChildTable(SchemaConfig schema, RouteResultset rrs,
-			String tableName, MySqlInsertStatement insertStmt) throws SQLNonTransientException, IllegalShardingColumnValueException {
+			String tableName, MySqlInsertStatement insertStmt) throws SQLNonTransientException {
 		TableConfig tc = schema.getTables().get(tableName);
 		
 		String joinKey = tc.getJoinKey();
@@ -207,10 +206,10 @@ public class DruidInsertParser extends DefaultDruidParser {
 	 * @param schema
 	 * @param rrs
 	 * @param insertStmt
-	 * @throws SQLNonTransientException,IllegalShardingColumnValueException
+	 * @throws SQLNonTransientException
 	 */
 	private void parserBatchInsert(SchemaConfig schema, RouteResultset rrs, String partitionColumn, 
-			String tableName, MySqlInsertStatement insertStmt) throws SQLNonTransientException, IllegalShardingColumnValueException {
+			String tableName, MySqlInsertStatement insertStmt) throws SQLNonTransientException {
 		//insert into table() values (),(),....
 		if(insertStmt.getValuesList().size() > 1) {
 			//字段列数

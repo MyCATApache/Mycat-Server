@@ -29,7 +29,6 @@ import java.io.InputStreamReader;
 import java.util.LinkedList;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * auto partition by Long ,can be used in auto increment primary key partition
@@ -53,7 +52,7 @@ public class AutoPartitionByLong extends AbstractPartitionAlgorithm implements R
 	}
 
 	@Override
-	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+	public Integer calculate(String columnValue)  {
 //		columnValue = NumberParseUtil.eliminateQoute(columnValue);
 		try {
 			long value = Long.parseLong(columnValue);
@@ -69,12 +68,12 @@ public class AutoPartitionByLong extends AbstractPartitionAlgorithm implements R
 			}
 			return rst;
 		} catch (NumberFormatException e){
-			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
 		}
 	}
 	
 	@Override
-	public Integer[] calculateRange(String beginValue, String endValue) throws IllegalShardingColumnValueException {
+	public Integer[] calculateRange(String beginValue, String endValue)  {
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 

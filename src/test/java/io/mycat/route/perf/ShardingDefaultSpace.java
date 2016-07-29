@@ -32,7 +32,6 @@ import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * @author mycat
@@ -51,7 +50,7 @@ public class ShardingDefaultSpace {
     /**
      * 路由到defaultSpace的性能测试
      */
-    public void testDefaultSpace() throws SQLNonTransientException, IllegalShardingColumnValueException {
+    public void testDefaultSpace() throws SQLNonTransientException {
         SchemaConfig schema = this.getSchema();
         String sql = "insert into offer (member_id, gmt_create) values ('1','2001-09-13 20:20:33')";
         for (int i = 0; i < total; i++) {

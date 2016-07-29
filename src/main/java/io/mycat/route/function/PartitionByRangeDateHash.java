@@ -4,7 +4,6 @@ import com.google.common.hash.Hashing;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
@@ -62,7 +61,7 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
     }
 
     @Override
-    public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+    public Integer calculate(String columnValue)  {
         try
         {
             long targetTime = formatter.get().parse(
@@ -73,7 +72,7 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
 
         } catch (ParseException e)
         {
-            throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
+            throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
         }
     }
 

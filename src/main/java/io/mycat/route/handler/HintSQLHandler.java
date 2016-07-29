@@ -17,7 +17,6 @@ import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import io.mycat.cache.LayerCachePool;
@@ -27,7 +26,6 @@ import io.mycat.route.*;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * 处理注释中 类型为sql的情况 （按照 注释中的sql做路由解析，而不是实际的sql）
@@ -44,7 +42,7 @@ public class HintSQLHandler implements HintHandler {
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
 			int sqlType, String realSQL, String charset, ServerConnection sc,
 			LayerCachePool cachePool, String hintSQLValue,int hintSqlType, Map hintMap)
-            throws SQLNonTransientException, IllegalShardingColumnValueException {
+            throws SQLNonTransientException {
 		
 		RouteResultset rrs = routeStrategy.route(sysConfig, schema, hintSqlType,
 				hintSQLValue, charset, sc, cachePool);

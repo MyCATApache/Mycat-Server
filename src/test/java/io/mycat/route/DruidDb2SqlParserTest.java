@@ -3,7 +3,6 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.junit.Test;
 
 import io.mycat.SimpleCachePool;
@@ -12,8 +11,6 @@ import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
-import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import junit.framework.Assert;
 
@@ -32,7 +29,7 @@ public class DruidDb2SqlParserTest
 	}
 
 	@Test
-	public void testLimitToDb2Page() throws SQLNonTransientException, IllegalShardingColumnValueException {
+	public void testLimitToDb2Page() throws SQLNonTransientException {
 		String sql = "select * from offer order by id desc limit 5,10";
 		SchemaConfig schema = schemaMap.get("db2db");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
@@ -68,7 +65,7 @@ public class DruidDb2SqlParserTest
 
 
     @Test
-    public void testDb2PageSQL() throws SQLNonTransientException, IllegalShardingColumnValueException {
+    public void testDb2PageSQL() throws SQLNonTransientException {
         String sql = "SELECT *\n" +
                 "FROM (SELECT sid, ROW_NUMBER() OVER (ORDER BY sid DESC) AS ROWNUM\n" +
                 "\tFROM offer \n" +

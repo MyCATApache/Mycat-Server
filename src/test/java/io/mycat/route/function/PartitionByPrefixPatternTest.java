@@ -23,17 +23,14 @@
  */
 package io.mycat.route.function;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import junit.framework.Assert;
 
 import org.junit.Test;
 
-import io.mycat.route.function.PartitionByPrefixPattern;
-
 public class PartitionByPrefixPatternTest {
 
 	@Test
-	public void test() throws IllegalShardingColumnValueException {
+	public void test()  {
 		/**
 		 * ASCII编码：
 		 * 48-57=0-9阿拉伯数字

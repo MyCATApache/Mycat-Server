@@ -23,8 +23,6 @@
  */
 package io.mycat.config.model.rule;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
-
 /**
  * @author mycat
  */
@@ -43,7 +41,7 @@ public interface RuleAlgorithm {
 	 * columnValue is column's value
 	 * @return never null
 	 */
-	Integer calculate(String columnValue) throws IllegalShardingColumnValueException;
+	Integer calculate(String columnValue) ;
 	
-	Integer[] calculateRange(String beginValue,String endValue) throws IllegalShardingColumnValueException;
+	Integer[] calculateRange(String beginValue,String endValue) ;
 }

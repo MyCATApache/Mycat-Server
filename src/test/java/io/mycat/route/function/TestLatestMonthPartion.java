@@ -2,15 +2,12 @@ package io.mycat.route.function;
 
 import static org.junit.Assert.assertTrue;
 
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 import org.junit.Test;
-
-import io.mycat.route.function.LatestMonthPartion;
 
 public class TestLatestMonthPartion {
 
 	@Test
-	public void testSetDataNodes() throws IllegalShardingColumnValueException {
+	public void testSetDataNodes()  {
 		LatestMonthPartion partion = new LatestMonthPartion();
 		partion.setSplitOneDay(24);
 		Integer val = partion.calculate("2015020100");

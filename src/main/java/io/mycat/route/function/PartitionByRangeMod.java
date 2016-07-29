@@ -30,7 +30,6 @@ import java.math.BigInteger;
 import java.util.LinkedList;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * 先进行范围分片计算出分片组，组内再取模
@@ -55,7 +54,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 	}
 
 	@Override
-	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+	public Integer calculate(String columnValue)  {
 //		columnValue = NumberParseUtil.eliminateQoute(columnValue);
 		try {
 			long value = Long.parseLong(columnValue);
@@ -76,7 +75,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 			}
 			return rst;
 		} catch (NumberFormatException e) {
-			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(), e);
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(), e);
 		}
 	}
 

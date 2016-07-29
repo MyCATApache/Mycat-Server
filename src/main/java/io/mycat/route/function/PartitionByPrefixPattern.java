@@ -29,7 +29,6 @@ import java.io.InputStreamReader;
 import java.util.LinkedList;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * partition by Prefix length ,can be used in String partition
@@ -62,7 +61,7 @@ public class PartitionByPrefixPattern extends AbstractPartitionAlgorithm impleme
 	}
 
 	@Override
-	public Integer calculate(String columnValue) throws IllegalShardingColumnValueException {
+	public Integer calculate(String columnValue)  {
 		try {
 			int Length = Integer.valueOf(prefixLength);
 
@@ -80,7 +79,7 @@ public class PartitionByPrefixPattern extends AbstractPartitionAlgorithm impleme
 			}
 			return rst;
 		} catch (NumberFormatException e){
-			throw new IllegalShardingColumnValueException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
 		}
 	}
 

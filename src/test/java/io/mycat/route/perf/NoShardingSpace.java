@@ -32,7 +32,6 @@ import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.util.exception.IllegalShardingColumnValueException;
 
 /**
  * @author mycat
@@ -48,7 +47,7 @@ public class NoShardingSpace {
 		schema = schemaLoader.getSchemas().get("dubbo");
     }
 
-    public void testDefaultSpace() throws SQLNonTransientException, IllegalShardingColumnValueException {
+    public void testDefaultSpace() throws SQLNonTransientException {
         SchemaConfig schema = this.schema;
         String stmt = "insert into offer (member_id, gmt_create) values ('1','2001-09-13 20:20:33')";
         for (int i = 0; i < total; i++) {
@@ -56,7 +55,7 @@ public class NoShardingSpace {
         }
     }
 
-    public static void main(String[] args) throws SQLNonTransientException, IllegalShardingColumnValueException {
+    public static void main(String[] args) throws SQLNonTransientException {
         NoShardingSpace test = new NoShardingSpace();
         System.currentTimeMillis();
 
