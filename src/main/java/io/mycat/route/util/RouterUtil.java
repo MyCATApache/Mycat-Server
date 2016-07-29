@@ -1,10 +1,6 @@
 package io.mycat.route.util;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
@@ -24,7 +20,6 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.SessionSQLPair;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
-import io.mycat.route.parser.druid.DruidSequenceHandler;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.server.ServerConnection;
@@ -34,9 +29,7 @@ import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
 
-import java.io.UnsupportedEncodingException;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.*;
@@ -715,7 +708,7 @@ public class RouterUtil {
 	 * @param tc	      	     表实体
 	 * @param joinKeyVal      连接属性
 	 * @return RouteResultset(数据路由集合)	 * 
-	 * @throws java.sql.SQLNonTransientException
+	 * @throws SQLNonTransientException，IllegalShardingColumnValueException
 	 * @author mycat
 	 */
 
@@ -819,7 +812,7 @@ public class RouterUtil {
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleCalculate(TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet) {
+			Set<ColumnRoutePair> colRoutePairSet)  {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
 		String col = tc.getRule().getColumn();
 		RuleConfig rule = tc.getRule();
@@ -866,7 +859,7 @@ public class RouterUtil {
 	 */
 	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx,
 			RouteCalculateUnit routeUnit, RouteResultset rrs, boolean isSelect, LayerCachePool cachePool)
-					throws SQLNonTransientException {
+			throws SQLNonTransientException {
 		
 		List<String> tables = ctx.getTables();
 		

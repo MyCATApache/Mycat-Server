@@ -783,4 +783,20 @@ public final class Platform {
   public static boolean compareAndSwapLong(Object object, long valueOffset, long expectedValue, long newValue) {
     return _UNSAFE.compareAndSwapLong(object, valueOffset, expectedValue, newValue);
   }
+
+  public static int arrayBaseOffset(Class aClass) {
+    return _UNSAFE.arrayBaseOffset(aClass);
+  }
+
+  public static int arrayIndexScale(Class aClass) {
+    return _UNSAFE.arrayIndexScale(aClass);
+  }
+
+  public static void putOrderedInt(Object availableBuffer, long bufferAddress, int flag) {
+    _UNSAFE.putOrderedInt(availableBuffer,bufferAddress,flag);
+  }
+
+  public static int getIntVolatile(Object availableBuffer, long bufferAddress) {
+    return _UNSAFE.getIntVolatile(availableBuffer, bufferAddress);
+  }
 }

@@ -21,13 +21,20 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 	private Calendar endDate;
 	private int nPartition;
 
+	private ThreadLocal<SimpleDateFormat> formatter;
+
 	@Override
 	public void init() {
 		try {
 			beginDate = Calendar.getInstance();
 			beginDate.setTime(new SimpleDateFormat(dateFormat)
 					.parse(sBeginDate));
-
+			formatter = new ThreadLocal<SimpleDateFormat>() {
+				@Override
+				protected SimpleDateFormat initialValue() {
+					return new SimpleDateFormat(dateFormat);
+				}
+			};
 			if(sEndDate!=null&&!sEndDate.equals("")) {
 				endDate = Calendar.getInstance();
 				endDate.setTime(new SimpleDateFormat(dateFormat).parse(sEndDate));
@@ -46,11 +53,11 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
+	public Integer calculate(String columnValue)  {
 		try {
 			int targetPartition;
 			Calendar curTime = Calendar.getInstance();
-			curTime.setTime(new SimpleDateFormat(dateFormat).parse(columnValue));
+			curTime.setTime(formatter.get().parse(columnValue));
 			targetPartition = ((curTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
 					* 12 + curTime.get(Calendar.MONTH)
 					- beginDate.get(Calendar.MONTH));
@@ -75,12 +82,12 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 			return targetPartition;
 
 		} catch (ParseException e) {
-			throw new java.lang.IllegalArgumentException(e);
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
 		}
 	}
 
 	@Override
-	public Integer[] calculateRange(String beginValue, String endValue) {
+	public Integer[] calculateRange(String beginValue, String endValue)  {
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this,
 				beginValue, endValue);
 	}

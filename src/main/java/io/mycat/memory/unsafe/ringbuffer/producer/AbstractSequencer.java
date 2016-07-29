@@ -5,6 +5,7 @@ import io.mycat.memory.unsafe.ringbuffer.common.barrier.SequenceBarrier;
 import io.mycat.memory.unsafe.ringbuffer.common.sequence.SequenceGroups;
 import io.mycat.memory.unsafe.ringbuffer.common.waitStrategy.WaitStrategy;
 import io.mycat.memory.unsafe.ringbuffer.exception.InsufficientCapacityException;
+import io.mycat.memory.unsafe.ringbuffer.utils.Util;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
@@ -37,14 +38,18 @@ public abstract class AbstractSequencer implements Sequencer {
         this.bufferSize = bufferSize;
         this.waitStrategy = waitStrategy;
     }
-    @Override
-    public void claim(long sequence) {
 
+    @Override
+    public final long getCursor()
+    {
+        return cursor.get();
     }
 
+
     @Override
-    public boolean isAvailable(long sequence) {
-        return false;
+    public final int getBufferSize()
+    {
+        return bufferSize;
     }
 
     @Override
@@ -57,6 +62,15 @@ public abstract class AbstractSequencer implements Sequencer {
         return SequenceGroups.removeSequence(this, SEQUENCE_UPDATER, sequence);
     }
 
+    @Override
+    public long getMinimumSequence() {
+        return Util.getMinimumSequence(gatingSequences, cursor.get());
+    }
 
-
+    public SequenceBarrier newBarrier(Sequence... sequencesToTrack)
+    {
+        return null;
+        //TODO 完成SequenceBarrier
+//        return new ProcessingSequenceBarrier(this, waitStrategy, cursor, sequencesToTrack);
+    }
 }

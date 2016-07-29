@@ -17,7 +17,6 @@ import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import io.mycat.cache.LayerCachePool;
@@ -43,7 +42,7 @@ public class HintSQLHandler implements HintHandler {
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
 			int sqlType, String realSQL, String charset, ServerConnection sc,
 			LayerCachePool cachePool, String hintSQLValue,int hintSqlType, Map hintMap)
-			throws SQLNonTransientException {
+            throws SQLNonTransientException {
 		
 		RouteResultset rrs = routeStrategy.route(sysConfig, schema, hintSqlType,
 				hintSQLValue, charset, sc, cachePool);

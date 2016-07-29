@@ -26,7 +26,6 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
