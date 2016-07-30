@@ -30,7 +30,8 @@ public class GlobalTableUtilTest {
 	public void addColumnIfCreate() {
 		String sql = parseSql(originSql1);
 		System.out.println(sql);
-		Assert.assertTrue(sql.contains("_mycat_op_time int COMMENT '全局表保存修改时间戳的字段名'"));
+		boolean contains = sql.contains("_mycat_op_time ");
+		Assert.assertTrue(contains);
 		sql = parseSql(originSql2);
 		System.out.println(sql);
 		Assert.assertFalse(sql.contains("_mycat_op_time int COMMENT '全局表保存修改时间戳的字段名'"));
