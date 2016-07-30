@@ -1,18 +1,15 @@
 package io.mycat.memory.unsafe.ringbuffer;
 
 
-import com.lmax.disruptor.EventSequencer;
-import com.lmax.disruptor.InsufficientCapacityException;
 import io.mycat.memory.unsafe.Platform;
-import io.mycat.memory.unsafe.array.LongArray;
 import io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager;
 import io.mycat.memory.unsafe.memory.mm.MemoryConsumer;
 import io.mycat.memory.unsafe.ringbuffer.common.Cursored;
 import io.mycat.memory.unsafe.ringbuffer.common.event.*;
+import io.mycat.memory.unsafe.ringbuffer.exception.InsufficientCapacityException;
 import io.mycat.memory.unsafe.ringbuffer.producer.Sequencer;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 /**
  * 环形buffer 待实现，
@@ -82,6 +79,16 @@ public class RingBuffer<E> extends MemoryConsumer implements Cursored, EventSequ
         }
     }
 
+    /**
+     * 根据地址取出一个元素的引用
+     *
+     * @param sequence
+     * @return
+     */
+    private E elementAt(long sequence) {
+        return (E) Platform.getObject(entries, REF_ARRAY_BASE + ((sequence & indexMask) << REF_ELEMENT_SHIFT));
+    }
+
     @Override
     public long spill(long size, MemoryConsumer trigger) throws IOException {
         return 0;
@@ -89,159 +96,495 @@ public class RingBuffer<E> extends MemoryConsumer implements Cursored, EventSequ
 
     @Override
     public long getCursor() {
-        return 0;
+        return sequencer.getCursor();
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.DataProvider#get(long)
+     */
     @Override
     public E get(long sequence) {
-        return null;
+        return elementAt(sequence);
     }
 
+    private void translateAndPublish(EventTranslator<E> translator, long sequence) {
+        try {
+            translator.translateTo(get(sequence), sequence);
+        } finally {
+            sequencer.publish(sequence);
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public void publishEvent(EventTranslator<E> translator) {
-
+        final long sequence = sequencer.next();
+        translateAndPublish(translator, sequence);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#tryPublishEvent(EventTranslator)
+     */
     @Override
     public boolean tryPublishEvent(EventTranslator<E> translator) {
-        return false;
+        try {
+            final long sequence = sequencer.tryNext();
+            translateAndPublish(translator, sequence);
+            return true;
+        } catch (InsufficientCapacityException e) {
+            return false;
+        }
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
+    private <A> void translateAndPublish(EventTranslatorOneArg<E, A> translator, long sequence, A arg0) {
+        try {
+            translator.translateTo(get(sequence), sequence, arg0);
+        } finally {
+            sequencer.publish(sequence);
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A> void publishEvent(EventTranslatorOneArg<E, A> translator, A arg0) {
-
+        final long sequence = sequencer.next();
+        translateAndPublish(translator, sequence, arg0);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A> boolean tryPublishEvent(EventTranslatorOneArg<E, A> translator, A arg0) {
-        return false;
+        try {
+            final long sequence = sequencer.tryNext();
+            translateAndPublish(translator, sequence, arg0);
+            return true;
+        } catch (InsufficientCapacityException e) {
+            return false;
+        }
     }
 
+    private <A, B> void translateAndPublish(EventTranslatorTwoArg<E, A, B> translator, long sequence, A arg0, B arg1) {
+        try {
+            translator.translateTo(get(sequence), sequence, arg0, arg1);
+        } finally {
+            sequencer.publish(sequence);
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B> void publishEvent(EventTranslatorTwoArg<E, A, B> translator, A arg0, B arg1) {
-
+        final long sequence = sequencer.next();
+        translateAndPublish(translator, sequence, arg0, arg1);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B> boolean tryPublishEvent(EventTranslatorTwoArg<E, A, B> translator, A arg0, B arg1) {
-        return false;
+        try {
+            final long sequence = sequencer.tryNext();
+            translateAndPublish(translator, sequence, arg0, arg1);
+            return true;
+        } catch (InsufficientCapacityException e) {
+            return false;
+        }
     }
 
+    private <A, B, C> void translateAndPublish(
+            EventTranslatorThreeArg<E, A, B, C> translator, long sequence,
+            A arg0, B arg1, C arg2) {
+        try {
+            translator.translateTo(get(sequence), sequence, arg0, arg1, arg2);
+        } finally {
+            sequencer.publish(sequence);
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B, C> void publishEvent(EventTranslatorThreeArg<E, A, B, C> translator, A arg0, B arg1, C arg2) {
-
+        final long sequence = sequencer.next();
+        translateAndPublish(translator, sequence, arg0, arg1, arg2);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B, C> boolean tryPublishEvent(EventTranslatorThreeArg<E, A, B, C> translator, A arg0, B arg1, C arg2) {
-        return false;
+        try {
+            final long sequence = sequencer.tryNext();
+            translateAndPublish(translator, sequence, arg0, arg1, arg2);
+            return true;
+        } catch (InsufficientCapacityException e) {
+            return false;
+        }
     }
 
+    private void translateAndPublish(EventTranslatorVararg<E> translator, long sequence, Object... args) {
+        try {
+            translator.translateTo(get(sequence), sequence, args);
+        } finally {
+            sequencer.publish(sequence);
+        }
+    }
+
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public void publishEvent(EventTranslatorVararg<E> translator, Object... args) {
-
+        final long sequence = sequencer.next();
+        translateAndPublish(translator, sequence, args);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public boolean tryPublishEvent(EventTranslatorVararg<E> translator, Object... args) {
-        return false;
+        try {
+            final long sequence = sequencer.tryNext();
+            translateAndPublish(translator, sequence, args);
+            return true;
+        } catch (InsufficientCapacityException e) {
+            return false;
+        }
     }
 
+    private void checkBounds(final EventTranslator<E>[] translators, final int batchStartsAt, final int batchSize) {
+        checkBatchSizing(batchStartsAt, batchSize);
+        batchOverRuns(translators, batchStartsAt, batchSize);
+    }
+
+    private <A> void batchOverRuns(final A[] arg0, final int batchStartsAt, final int batchSize) {
+        if (batchStartsAt + batchSize > arg0.length) {
+            throw new IllegalArgumentException(
+                    "A batchSize of: " + batchSize +
+                            " with batchStatsAt of: " + batchStartsAt +
+                            " will overrun the available number of arguments: " + (arg0.length - batchStartsAt));
+        }
+    }
+
+    private void checkBatchSizing(int batchStartsAt, int batchSize) {
+        if (batchStartsAt < 0 || batchSize < 0) {
+            throw new IllegalArgumentException("Both batchStartsAt and batchSize must be positive but got: batchStartsAt " + batchStartsAt + " and batchSize " + batchSize);
+        } else if (batchSize > bufferSize) {
+            throw new IllegalArgumentException("The ring buffer cannot accommodate " + batchSize + " it only has space for " + bufferSize + " entities.");
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public void publishEvents(EventTranslator<E>[] translators) {
-
+        publishEvents(translators, 0, translators.length);
     }
 
+    private void translateAndPublishBatch(
+            final EventTranslator<E>[] translators, int batchStartsAt,
+            final int batchSize, final long finalSequence) {
+        final long initialSequence = finalSequence - (batchSize - 1);
+        try {
+            long sequence = initialSequence;
+            final int batchEndsAt = batchStartsAt + batchSize;
+            for (int i = batchStartsAt; i < batchEndsAt; i++) {
+                final EventTranslator<E> translator = translators[i];
+                translator.translateTo(get(sequence), sequence++);
+            }
+        } finally {
+            sequencer.publish(initialSequence, finalSequence);
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public void publishEvents(EventTranslator<E>[] translators, int batchStartsAt, int batchSize) {
-
+        checkBounds(translators, batchStartsAt, batchSize);
+        final long finalSequence = sequencer.next(batchSize);
+        translateAndPublishBatch(translators, batchStartsAt, batchSize, finalSequence);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public boolean tryPublishEvents(EventTranslator<E>[] translators) {
         return false;
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public boolean tryPublishEvents(EventTranslator<E>[] translators, int batchStartsAt, int batchSize) {
-        return false;
+        checkBounds(translators, batchStartsAt, batchSize);
+        try {
+            final long finalSequence = sequencer.tryNext(batchSize);
+            translateAndPublishBatch(translators, batchStartsAt, batchSize, finalSequence);
+            return true;
+        } catch (InsufficientCapacityException e) {
+            return false;
+        }
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A> void publishEvents(EventTranslatorOneArg<E, A> translator, A[] arg0) {
-
+        publishEvents(translator, 0, arg0.length, arg0);
     }
 
+    private <A> void checkBounds(final A[] arg0, final int batchStartsAt, final int batchSize) {
+        checkBatchSizing(batchStartsAt, batchSize);
+        batchOverRuns(arg0, batchStartsAt, batchSize);
+    }
+
+    private <A> void translateAndPublishBatch(
+            final EventTranslatorOneArg<E, A> translator, final A[] arg0,
+            int batchStartsAt, final int batchSize, final long finalSequence) {
+        final long initialSequence = finalSequence - (batchSize - 1);
+        try {
+            long sequence = initialSequence;
+            final int batchEndsAt = batchStartsAt + batchSize;
+            for (int i = batchStartsAt; i < batchEndsAt; i++) {
+                translator.translateTo(get(sequence), sequence++, arg0[i]);
+            }
+        } finally {
+            sequencer.publish(initialSequence, finalSequence);
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A> void publishEvents(EventTranslatorOneArg<E, A> translator, int batchStartsAt, int batchSize, A[] arg0) {
-
+        checkBounds(arg0, batchStartsAt, batchSize);
+        final long finalSequence = sequencer.next(batchSize);
+        translateAndPublishBatch(translator, arg0, batchStartsAt, batchSize, finalSequence);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A> boolean tryPublishEvents(EventTranslatorOneArg<E, A> translator, A[] arg0) {
-        return false;
+        return tryPublishEvents(translator, 0, arg0.length, arg0);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A> boolean tryPublishEvents(EventTranslatorOneArg<E, A> translator, int batchStartsAt, int batchSize, A[] arg0) {
-        return false;
+        checkBounds(arg0, batchStartsAt, batchSize);
+        try {
+            final long finalSequence = sequencer.tryNext(batchSize);
+            translateAndPublishBatch(translator, arg0, batchStartsAt, batchSize, finalSequence);
+            return true;
+        } catch (InsufficientCapacityException e) {
+            return false;
+        }
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B> void publishEvents(EventTranslatorTwoArg<E, A, B> translator, A[] arg0, B[] arg1) {
-
+        publishEvents(translator, 0, arg0.length, arg0, arg1);
     }
 
+    private <A, B> void checkBounds(final A[] arg0, final B[] arg1, final int batchStartsAt, final int batchSize) {
+        checkBatchSizing(batchStartsAt, batchSize);
+        batchOverRuns(arg0, batchStartsAt, batchSize);
+        batchOverRuns(arg1, batchStartsAt, batchSize);
+    }
+
+    private <A, B> void translateAndPublishBatch(
+            final EventTranslatorTwoArg<E, A, B> translator, final A[] arg0,
+            final B[] arg1, int batchStartsAt, int batchSize,
+            final long finalSequence) {
+        final long initialSequence = finalSequence - (batchSize - 1);
+        try {
+            long sequence = initialSequence;
+            final int batchEndsAt = batchStartsAt + batchSize;
+            for (int i = batchStartsAt; i < batchEndsAt; i++) {
+                translator.translateTo(get(sequence), sequence++, arg0[i], arg1[i]);
+            }
+        } finally {
+            sequencer.publish(initialSequence, finalSequence);
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B> void publishEvents(EventTranslatorTwoArg<E, A, B> translator, int batchStartsAt, int batchSize, A[] arg0, B[] arg1) {
-
+        checkBounds(arg0, arg1, batchStartsAt, batchSize);
+        final long finalSequence = sequencer.next(batchSize);
+        translateAndPublishBatch(translator, arg0, arg1, batchStartsAt, batchSize, finalSequence);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B> boolean tryPublishEvents(EventTranslatorTwoArg<E, A, B> translator, A[] arg0, B[] arg1) {
-        return false;
+        return tryPublishEvents(translator, 0, arg0.length, arg0, arg1);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B> boolean tryPublishEvents(EventTranslatorTwoArg<E, A, B> translator, int batchStartsAt, int batchSize, A[] arg0, B[] arg1) {
-        return false;
+        checkBounds(arg0, arg1, batchStartsAt, batchSize);
+        try {
+            final long finalSequence = sequencer.tryNext(batchSize);
+            translateAndPublishBatch(translator, arg0, arg1, batchStartsAt, batchSize, finalSequence);
+            return true;
+        } catch (InsufficientCapacityException e) {
+            return false;
+        }
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B, C> void publishEvents(EventTranslatorThreeArg<E, A, B, C> translator, A[] arg0, B[] arg1, C[] arg2) {
-
+        publishEvents(translator, 0, arg0.length, arg0, arg1, arg2);
     }
 
+    private <A, B, C> void checkBounds(
+            final A[] arg0, final B[] arg1, final C[] arg2, final int batchStartsAt, final int batchSize) {
+        checkBatchSizing(batchStartsAt, batchSize);
+        batchOverRuns(arg0, batchStartsAt, batchSize);
+        batchOverRuns(arg1, batchStartsAt, batchSize);
+        batchOverRuns(arg2, batchStartsAt, batchSize);
+    }
+
+    private <A, B, C> void translateAndPublishBatch(
+            final EventTranslatorThreeArg<E, A, B, C> translator,
+            final A[] arg0, final B[] arg1, final C[] arg2, int batchStartsAt,
+            final int batchSize, final long finalSequence) {
+        final long initialSequence = finalSequence - (batchSize - 1);
+        try {
+            long sequence = initialSequence;
+            final int batchEndsAt = batchStartsAt + batchSize;
+            for (int i = batchStartsAt; i < batchEndsAt; i++) {
+                translator.translateTo(get(sequence), sequence++, arg0[i], arg1[i], arg2[i]);
+            }
+        } finally {
+            sequencer.publish(initialSequence, finalSequence);
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B, C> void publishEvents(EventTranslatorThreeArg<E, A, B, C> translator, int batchStartsAt, int batchSize, A[] arg0, B[] arg1, C[] arg2) {
-
+        checkBounds(arg0, arg1, arg2, batchStartsAt, batchSize);
+        final long finalSequence = sequencer.next(batchSize);
+        translateAndPublishBatch(translator, arg0, arg1, arg2, batchStartsAt, batchSize, finalSequence);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B, C> boolean tryPublishEvents(EventTranslatorThreeArg<E, A, B, C> translator, A[] arg0, B[] arg1, C[] arg2) {
-        return false;
+        return tryPublishEvents(translator, 0, arg0.length, arg0, arg1, arg2);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public <A, B, C> boolean tryPublishEvents(EventTranslatorThreeArg<E, A, B, C> translator, int batchStartsAt, int batchSize, A[] arg0, B[] arg1, C[] arg2) {
-        return false;
+        checkBounds(arg0, arg1, arg2, batchStartsAt, batchSize);
+        try {
+            final long finalSequence = sequencer.tryNext(batchSize);
+            translateAndPublishBatch(translator, arg0, arg1, arg2, batchStartsAt, batchSize, finalSequence);
+            return true;
+        } catch (InsufficientCapacityException e) {
+            return false;
+        }
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public void publishEvents(EventTranslatorVararg<E> translator, Object[]... args) {
-
+        publishEvents(translator, 0, args.length, args);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public void publishEvents(EventTranslatorVararg<E> translator, int batchStartsAt, int batchSize, Object[]... args) {
-
+        checkBounds(batchStartsAt, batchSize, args);
+        final long finalSequence = sequencer.next(batchSize);
+        translateAndPublishBatch(translator, batchStartsAt, batchSize, finalSequence, args);
     }
 
+    private void checkBounds(final int batchStartsAt, final int batchSize, final Object[][] args) {
+        checkBatchSizing(batchStartsAt, batchSize);
+        batchOverRuns(args, batchStartsAt, batchSize);
+    }
+
+    private void translateAndPublishBatch(
+            final EventTranslatorVararg<E> translator, int batchStartsAt,
+            final int batchSize, final long finalSequence, final Object[][] args) {
+        final long initialSequence = finalSequence - (batchSize - 1);
+        try {
+            long sequence = initialSequence;
+            final int batchEndsAt = batchStartsAt + batchSize;
+            for (int i = batchStartsAt; i < batchEndsAt; i++) {
+                translator.translateTo(get(sequence), sequence++, args[i]);
+            }
+        } finally {
+            sequencer.publish(initialSequence, finalSequence);
+        }
+    }
+
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public boolean tryPublishEvents(EventTranslatorVararg<E> translator, Object[]... args) {
-        return false;
+        return tryPublishEvents(translator, 0, args.length, args);
     }
 
+    /**
+     * @see io.mycat.memory.unsafe.ringbuffer.common.event.EventSink#publishEvent(EventTranslator)
+     */
     @Override
     public boolean tryPublishEvents(EventTranslatorVararg<E> translator, int batchStartsAt, int batchSize, Object[]... args) {
         return false;
@@ -249,46 +592,46 @@ public class RingBuffer<E> extends MemoryConsumer implements Cursored, EventSequ
 
     @Override
     public int getBufferSize() {
-        return 0;
+        return bufferSize;
     }
 
     @Override
     public boolean hasAvailableCapacity(int requiredCapacity) {
-        return false;
+        return sequencer.hasAvailableCapacity(requiredCapacity);
     }
 
     @Override
     public long remainingCapacity() {
-        return 0;
+        return sequencer.remainingCapacity();
     }
 
     @Override
     public long next() {
-        return 0;
+        return sequencer.next();
     }
 
     @Override
     public long next(int n) {
-        return 0;
+        return sequencer.next(n);
     }
 
     @Override
     public long tryNext() throws InsufficientCapacityException {
-        return 0;
+        return sequencer.tryNext();
     }
 
     @Override
     public long tryNext(int n) throws InsufficientCapacityException {
-        return 0;
+        return sequencer.tryNext(n);
     }
 
     @Override
     public void publish(long sequence) {
-
+        sequencer.publish(sequence);
     }
 
     @Override
     public void publish(long lo, long hi) {
-
+        sequencer.publish(lo, hi);
     }
 }
