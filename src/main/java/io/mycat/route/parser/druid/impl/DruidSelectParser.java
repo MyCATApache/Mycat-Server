@@ -393,8 +393,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		return map;
 	}
 
-	private void tryRoute(SchemaConfig schema, RouteResultset rrs, LayerCachePool cachePool) throws SQLNonTransientException
-	{
+	private void tryRoute(SchemaConfig schema, RouteResultset rrs, LayerCachePool cachePool) throws SQLNonTransientException {
 		if(rrs.isFinishedRoute())
 		{
 			return;//避免重复路由

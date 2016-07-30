@@ -263,8 +263,9 @@ public class DruidInsertParser extends DefaultDruidParser {
 					Integer nodeIndex = node.getKey();
 					List<ValuesClause> valuesList = node.getValue();
 					insertStmt.setValuesList(valuesList);
-					nodes[count++] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
+					nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
 							rrs.getSqlType(),insertStmt.toString());
+					nodes[count++].setSource(rrs);
 				}
 				rrs.setNodes(nodes);
 				rrs.setFinishedRoute(true);

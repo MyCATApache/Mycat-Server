@@ -1,10 +1,6 @@
 package io.mycat.route.util;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
@@ -24,7 +20,6 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.SessionSQLPair;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
-import io.mycat.route.parser.druid.DruidSequenceHandler;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.server.ServerConnection;
@@ -34,9 +29,7 @@ import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
 
-import java.io.UnsupportedEncodingException;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.*;
@@ -108,6 +101,7 @@ public class RouterUtil {
 		}
 		RouteResultsetNode[] nodes = new RouteResultsetNode[1];
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), stmt);//rrs.getStatement()
+		nodes[0].setSource(rrs);
 		rrs.setNodes(nodes);
 		rrs.setFinishedRoute(true);
 		if (rrs.getCanRunInReadDB() != null) {
@@ -166,6 +160,7 @@ public class RouterUtil {
 				for(int i=0;i<nodeSize;i++){
 					String name = iterator1.next();
 					nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
+					nodes[i].setSource(rrs);
 				}
 				rrs.setNodes(nodes);
 			}
@@ -173,6 +168,7 @@ public class RouterUtil {
 		}else if(schema.getDataNode()!=null){		//默认节点ddl
 			RouteResultsetNode[] nodes = new RouteResultsetNode[1];
 			nodes[0] = new RouteResultsetNode(schema.getDataNode(), sqlType, stmt);
+			nodes[0].setSource(rrs);
 			rrs.setNodes(nodes);
 			return rrs;
 		}
@@ -548,10 +544,59 @@ public class RouterUtil {
 		//如果主键不在插入语句的fields中，则需要进一步处理
 		boolean processedInsert=!isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
 		if(processedInsert){
-			processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey,firstLeftBracketIndex+1,origSQL.indexOf('(',firstRightBracketIndex)+1);
+			List<String> insertSQLs = handleBatchInsert(origSQL, valuesIndex);
+			for(String insertSQL:insertSQLs) {
+				processInsert(sc, schema, sqlType, insertSQL, tableName, primaryKey, firstLeftBracketIndex + 1, insertSQL.indexOf('(', firstRightBracketIndex) + 1);
+			}
 		}
 		return processedInsert;
 	}
+
+	public static List<String> handleBatchInsert(String origSQL, int valuesIndex){
+		List<String> handledSQLs = new LinkedList<>();
+		String prefix = origSQL.substring(0,valuesIndex + "VALUES".length());
+		String values = origSQL.substring(valuesIndex + "VALUES".length());
+		int flag = 0;
+		StringBuilder currentValue = new StringBuilder();
+		currentValue.append(prefix);
+		for (int i = 0; i < values.length(); i++) {
+			char j = values.charAt(i);
+			if(j=='(' && flag == 0){
+				flag = 1;
+				currentValue.append(j);
+			}else if(j=='\"' && flag == 1){
+				flag = 2;
+				currentValue.append(j);
+			} else if(j=='\'' && flag == 1){
+				flag = 2;
+				currentValue.append(j);
+			} else if(j=='\\' && flag == 2){
+				flag = 3;
+				currentValue.append(j);
+			} else if (flag == 3){
+				flag = 2;
+				currentValue.append(j);
+			}else if(j=='\"' && flag == 2){
+				flag = 1;
+				currentValue.append(j);
+			} else if(j=='\'' && flag == 2){
+				flag = 1;
+				currentValue.append(j);
+			} else if (j==')' && flag == 1){
+				flag = 0;
+				currentValue.append(j);
+				handledSQLs.add(currentValue.toString());
+				currentValue = new StringBuilder();
+				currentValue.append(prefix);
+			} else if(j == ',' && flag == 0){
+				continue;
+			} else {
+				currentValue.append(j);
+			}
+		}
+		return handledSQLs;
+	}
+
 
 	private static void processInsert(ServerConnection sc, SchemaConfig schema, int sqlType, String origSQL,
 			String tableName, String primaryKey, int afterFirstLeftBracketIndex, int afterLastLeftBracketIndex) {
@@ -591,6 +636,7 @@ public class RouterUtil {
 		RouteResultsetNode node;
 		for (String dataNode : dataNodes) {
 			node = new RouteResultsetNode(dataNode, rrs.getSqlType(), stmt);
+			node.setSource(rrs);
 			if (rrs.getCanRunInReadDB() != null) {
 				node.setCanRunInReadDB(rrs.getCanRunInReadDB());
 			}
@@ -623,6 +669,7 @@ public class RouterUtil {
 
 		RouteResultsetNode[] nodes = new RouteResultsetNode[1];
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), sql);
+		nodes[0].setSource(rrs);
 		if (rrs.getCanRunInReadDB() != null) {
 			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
 		}
@@ -661,7 +708,7 @@ public class RouterUtil {
 	 * @param tc	      	     表实体
 	 * @param joinKeyVal      连接属性
 	 * @return RouteResultset(数据路由集合)	 * 
-	 * @throws java.sql.SQLNonTransientException
+	 * @throws SQLNonTransientException，IllegalShardingColumnValueException
 	 * @author mycat
 	 */
 
@@ -765,7 +812,7 @@ public class RouterUtil {
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleCalculate(TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet) {
+			Set<ColumnRoutePair> colRoutePairSet)  {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
 		String col = tc.getRule().getColumn();
 		RuleConfig rule = tc.getRule();
@@ -812,7 +859,7 @@ public class RouterUtil {
 	 */
 	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx,
 			RouteCalculateUnit routeUnit, RouteResultset rrs, boolean isSelect, LayerCachePool cachePool)
-					throws SQLNonTransientException {
+			throws SQLNonTransientException {
 		
 		List<String> tables = ctx.getTables();
 		
@@ -1043,7 +1090,7 @@ public class RouterUtil {
 			String changeSql = orgSql;
 			nodes[i] = new RouteResultsetNode(dataNode, rrs.getSqlType(), changeSql);//rrs.getStatement()
 			nodes[i].setSubTableName(String.valueOf(subTables[i]));
-			
+			nodes[i].setSource(rrs);
 			if (rrs.getCanRunInReadDB() != null) {
 				nodes[i].setCanRunInReadDB(rrs.getCanRunInReadDB());
 			}

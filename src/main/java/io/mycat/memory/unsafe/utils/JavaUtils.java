@@ -371,7 +371,7 @@ public class JavaUtils {
     // math.abs fails for Int.MinValue
     int hashAbs = 0;
 
-    if (Integer.MAX_VALUE!= hash)
+    if (Integer.MAX_VALUE!= hash && Integer.MIN_VALUE != hash)
       hashAbs =  Math.abs(hash);
     else
       hashAbs = 0;

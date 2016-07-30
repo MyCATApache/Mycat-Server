@@ -11,7 +11,6 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.route.function.PartitionByRangeDateHash;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -28,8 +27,7 @@ public class PartitionByRangeDateHashTest
 {
 
     @Test
-    public void test() throws ParseException
-    {
+    public void test() throws ParseException {
         PartitionByRangeDateHash partition = new PartitionByRangeDateHash();
 
         partition.setDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -81,8 +79,7 @@ public class PartitionByRangeDateHashTest
     }
 
     @Test
-    public void testRange() throws SQLNonTransientException
-    {
+    public void testRange() throws SQLNonTransientException {
         String sql = "select * from offer1  where col_date between '2014-01-01 00:00:00'  and '2014-01-03 23:59:59'     order by id desc limit 100";
         SchemaConfig schema = schemaMap.get("TESTDB");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,

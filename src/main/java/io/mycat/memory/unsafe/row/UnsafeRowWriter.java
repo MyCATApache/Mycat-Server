@@ -167,6 +167,9 @@ public class UnsafeRowWriter {
   }
 
   public void write(int ordinal, byte[] input) {
+    if(input == null){
+      return;
+    }
     write(ordinal, input, 0, input.length);
   }
 
