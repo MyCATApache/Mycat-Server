@@ -2,19 +2,16 @@ package io.mycat.memory.unsafe.ringbuffer;
 
 
 import io.mycat.memory.unsafe.Platform;
-import io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager;
 import io.mycat.memory.unsafe.memory.mm.MemoryConsumer;
 import io.mycat.memory.unsafe.ringbuffer.common.Cursored;
 import io.mycat.memory.unsafe.ringbuffer.common.event.*;
 import io.mycat.memory.unsafe.ringbuffer.exception.InsufficientCapacityException;
 import io.mycat.memory.unsafe.ringbuffer.producer.Sequencer;
 
-import java.io.IOException;
-
 /**
  * 环形buffer 待实现，
  */
-public class RingBuffer<E> extends MemoryConsumer implements Cursored, EventSequencer<E>, EventSink<E> {
+public class RingBuffer<E extends MemoryConsumer> implements Cursored, EventSequencer<E>, EventSink<E> {
     //Buffer数组填充
     private static final int BUFFER_PAD;
     //Buffer数组起始基址
@@ -42,8 +39,7 @@ public class RingBuffer<E> extends MemoryConsumer implements Cursored, EventSequ
     protected final int bufferSize;
     protected final Sequencer sequencer;
 
-    public RingBuffer(DataNodeMemoryManager dataNodeMemoryManager, EventFactory<E> eventFactory, Sequencer sequencer) {
-        super(dataNodeMemoryManager);
+    public RingBuffer(EventFactory<E> eventFactory, Sequencer sequencer) {
         this.sequencer = sequencer;
         this.bufferSize = sequencer.getBufferSize();
         //保证buffer大小不小于1
@@ -89,10 +85,6 @@ public class RingBuffer<E> extends MemoryConsumer implements Cursored, EventSequ
         return (E) Platform.getObject(entries, REF_ARRAY_BASE + ((sequence & indexMask) << REF_ELEMENT_SHIFT));
     }
 
-    @Override
-    public long spill(long size, MemoryConsumer trigger) throws IOException {
-        return 0;
-    }
 
     @Override
     public long getCursor() {
