@@ -24,5 +24,8 @@ public interface WaitStrategy {
     long waitFor(long sequence, Sequence cursor, Sequence dependentSequence, SequenceBarrier barrier)
             throws AlertException, InterruptedException, TimeoutException;
 
+    /**
+     * 唤醒所有等待的消费者
+     */
     void signalAllWhenBlocking();
 }
