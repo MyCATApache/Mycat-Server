@@ -25,6 +25,8 @@ package org.opencloudb.config.model;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.opencloudb.config.Isolations;
 
@@ -55,6 +57,14 @@ public final class SystemConfig {
 	private int backSocketNoDelay = 1; // 1=true
 	public static final int DEFAULT_POOL_SIZE = 128;// 保持后端数据通道的默认最大值
 	public static final long DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000L;
+	public static final int DEFAULT_MAX_PACKET_SIZE = 16 * 1024 * 1024 - 1;
+	/*
+	* MySQL目前单个包大小限制是（2**24-1，16M-1）见MySQL代码中的定义MAX_PACKET_LENGTH，超过这个限制的包，
+	* 会被拆分成两个或多个包发送，在目标端MySQL会负责拼装这些包（比如my_net_write()/my_net_read()）。
+	* 目前MyCAT尚不支持对这类拆分包的拼装，因此目前MyCAT对通信包的限制为MAX_PACKET_LENGTH，16M-1
+	 */
+	public static final int MYCAT_MAX_PACKET_SIZE = 16 * 1024 * 1024 - 1;
+	public static final int DEFAULT_ISOLATION_LEVEL = Isolations.REPEATED_READ;
 	private static final long DEFAULT_PROCESSOR_CHECK_PERIOD = 1 * 1000L;
 	private static final long DEFAULT_DATANODE_IDLE_CHECK_PERIOD = 5 * 60 * 1000L;
 	private static final long DEFAULT_DATANODE_HEARTBEAT_PERIOD = 10 * 1000L;
@@ -89,7 +99,7 @@ public final class SystemConfig {
 	private long clusterHeartbeatPeriod;
 	private long clusterHeartbeatTimeout;
 	private int clusterHeartbeatRetry;
-	private int txIsolation;
+	private int txIsolation = DEFAULT_ISOLATION_LEVEL;
 	private int parserCommentVersion;
 	private int sqlRecordCount;
 	private long processorBufferPool;
@@ -117,9 +127,54 @@ public final class SystemConfig {
 	private String defaultSqlParser = DEFAULT_SQL_PARSER;
 	private int usingAIO = 0;
 	private int packetHeaderSize = 4;
-	private int maxPacketSize = 16 * 1024 * 1024;
+	private int maxPacketSize = DEFAULT_MAX_PACKET_SIZE;
 	private int mycatNodeId=1;
 	private int useCompression =0;
+	// 一个HashMap用来保存一些MySQL建立连接时用到的系统变量
+	private static HashMap<String, String> mysqlVariables = new HashMap<String, String>();
+	// 初始化MySQL JDBC驱动建立连接时需要的一些变量值
+	static {
+		mysqlVariables.put("@@character_set_client", "utf8");
+		mysqlVariables.put("@@character_set_connection", "utf8");
+		mysqlVariables.put("@@character_set_results", "utf8");
+		mysqlVariables.put("@@character_set_server", "utf8");
+		mysqlVariables.put("@@init_connect", "");
+		mysqlVariables.put("@@interactive_timeout", "172800");
+		mysqlVariables.put("@@license", "GPL");
+		mysqlVariables.put("@@lower_case_table_names", "1");
+		mysqlVariables.put("@@max_allowed_packet", "16777216");
+		mysqlVariables.put("@@net_buffer_length", "16384");
+		mysqlVariables.put("@@net_write_timeout", "60");
+		mysqlVariables.put("@@query_cache_size", "0");
+		mysqlVariables.put("@@query_cache_type", "OFF");
+		mysqlVariables.put("@@sql_mode", "STRICT_TRANS_TABLES");
+		mysqlVariables.put("@@system_time_zone", "CST");
+		mysqlVariables.put("@@time_zone", "SYSTEM");
+		mysqlVariables.put("@@tx_isolation", "REPEATABLE-READ");
+		mysqlVariables.put("@@wait_timeout", "172800");
+		mysqlVariables.put("@@session.auto_increment_increment", "1");
+
+		mysqlVariables.put("character_set_client", "utf8");
+		mysqlVariables.put("character_set_connection", "utf8");
+		mysqlVariables.put("character_set_results", "utf8");
+		mysqlVariables.put("character_set_server", "utf8");
+		mysqlVariables.put("init_connect", "");
+		mysqlVariables.put("interactive_timeout", "172800");
+		mysqlVariables.put("license", "GPL");
+		mysqlVariables.put("lower_case_table_names", "1");
+		mysqlVariables.put("max_allowed_packet", "16777216");
+		mysqlVariables.put("net_buffer_length", "16384");
+		mysqlVariables.put("net_write_timeout", "60");
+		mysqlVariables.put("query_cache_size", "0");
+		mysqlVariables.put("query_cache_type", "OFF");
+		mysqlVariables.put("sql_mode", "STRICT_TRANS_TABLES");
+		mysqlVariables.put("system_time_zone", "CST");
+		mysqlVariables.put("time_zone", "SYSTEM");
+		mysqlVariables.put("tx_isolation", "REPEATABLE-READ");
+		mysqlVariables.put("wait_timeout", "172800");
+		mysqlVariables.put("auto_increment_increment", "1");
+	}
+
     //慢SQL的时间阀值
 	private  long SQL_SLOW_TIME = 1000;
 	public String getDefaultSqlParser() {
@@ -586,6 +641,61 @@ public final class SystemConfig {
 
 	public void setMycatNodeId(int mycatNodeId) {
 		this.mycatNodeId = mycatNodeId;
+	}
+
+	public HashMap<String, String> getMysqlVariables() { return mysqlVariables; }
+	/*
+	* 根据相关的配置选项，修改HashMap mysqlVariables中对应的mysql系统变量。
+	* 目前涉及到的变量说明如下
+	* SystemConfig.charset
+	* 对应character_set_client，character_set_connection，character_set_results，
+	* character_set_server四个变量，目前mycat内部对各连接之间转码的支持不是很好，因此这里保持一致的编码
+	* SystemConfig.idleTimeout
+	* 对应interactive_timeout，连接空闲等待时间
+	* SystemConfig.maxPacketSize
+	* 对应max_allowed_packet，mysql交互的packet大小的最大值
+	* SystemConfig.txIsolation
+	* 对应tx_isolation， mysql事务隔离级别
+	*
+	* 注意： 此方法不是线程安全的，但是它应该只会被XMLServerLoader之类修改系统配置的类或方法调用
+	 */
+	public void setMysqlVariables() {
+		if (this.charset.equals(DEFAULT_CHARSET)) {
+			mysqlVariables.put("@@character_set_client", this.charset);
+			mysqlVariables.put("@@character_set_connection", this.charset);
+			mysqlVariables.put("@@character_set_results", this.charset);
+			mysqlVariables.put("@@character_set_server", this.charset);
+
+			mysqlVariables.put("character_set_client", this.charset);
+			mysqlVariables.put("character_set_connection", this.charset);
+			mysqlVariables.put("character_set_results", this.charset);
+			mysqlVariables.put("character_set_server", this.charset);
+		}
+
+		/**
+		 * MySQL中interactive_timeout/wait_timeout的时间单位为秒，mycat的idleTimeout单位为毫秒
+		 * MySQL中，（交互式，非交互式）连接分别由interactive_timeout和wait_timeout两个
+		 * 参数决定，而wait_timeout的值又和interactive_timeout有一定的关系，在这里，为了
+		 * 简单起见，同时设置这两个值。
+		 */
+		if (this.idleTimeout != DEFAULT_IDLE_TIMEOUT) {
+			String idleTimeout = String.valueOf((int)(this.idleTimeout / 1000));
+			mysqlVariables.put("@@interactive_timeout", idleTimeout);
+			mysqlVariables.put("@@wait_timeout", idleTimeout);
+			mysqlVariables.put("interactive_timeout", idleTimeout);
+			mysqlVariables.put("wait_timeout", idleTimeout);
+		}
+
+		if (this.maxPacketSize != DEFAULT_MAX_PACKET_SIZE) {
+			String maxPacketSize = String.valueOf(this.maxPacketSize);
+			mysqlVariables.put("@@max_allowed_packet", maxPacketSize);
+			mysqlVariables.put("max_allowed_packet", maxPacketSize);
+		}
+
+		if (this.txIsolation != DEFAULT_ISOLATION_LEVEL) {
+			mysqlVariables.put("@@tx_isolation", Isolations.IsolationLevel[this.txIsolation]);
+			mysqlVariables.put("tx_isolation", Isolations.IsolationLevel[this.txIsolation]);
+		}
 	}
 
 	@Override
