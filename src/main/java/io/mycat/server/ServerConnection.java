@@ -185,20 +185,19 @@ public class ServerConnection extends FrontendConnection {
 					"Unknown MyCAT Database '" + db + "'");
 			return;
 		}
+
+		//fix navicat   SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage` FROM INFORMATION_SCHEMA.PROFILING WHERE QUERY_ID= GROUP BY STATE ORDER BY SEQ
+		if(sql.contains(" INFORMATION_SCHEMA.PROFILING ")&&sql.contains("CONCAT(ROUND(SUM(DURATION)/*100,3)"))
+		{
+			InformationSchemaProfiling.response(this);
+			return;
+		}
 		
 		/* 当已经设置默认schema时，可以通过在sql中指定其它schema的方式执行
 		 * 相关sql，已经在mysql客户端中验证。
 		 * 所以在此处增加关于sql中指定Schema方式的支持。
 		 */
 		if (isDefault && schema.isCheckSQLSchema() && isNormalSql(type)) {
-
-			//fix navicat   SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage` FROM INFORMATION_SCHEMA.PROFILING WHERE QUERY_ID= GROUP BY STATE ORDER BY SEQ
-			if(sql.contains(" INFORMATION_SCHEMA.PROFILING ")&&sql.contains("CONCAT(ROUND(SUM(DURATION)/*100,3)"))
-			{
-				InformationSchemaProfiling.response(this);
-				return;
-			}
-
 			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
 			if (schemaInfo != null && schemaInfo.schema != null && !schemaInfo.schema.equals(db)) {
 				SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(schemaInfo.schema);
