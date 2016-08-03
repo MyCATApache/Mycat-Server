@@ -242,6 +242,13 @@ public class XMLServerLoader {
                         + ") is not valid.");
             }
         }
+
+        if (system.getMaxPacketSize() > SystemConfig.MYCAT_MAX_PACKET_SIZE) {
+            throw new ConfigException("The specified maxPacketSize (" + system.getMaxPacketSize()
+                    + ") is over limit, now the max supported value in MyCAT is "
+                    + SystemConfig.MYCAT_MAX_PACKET_SIZE);
+        }
+        system.setMysqlVariables();
     }
 
 }
