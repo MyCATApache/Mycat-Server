@@ -69,7 +69,7 @@ public class ExplainHandler {
 	}
 
 	public static void handle(String stmt, ServerConnection c, int offset) {
-		stmt = stmt.substring(offset);
+		stmt = stmt.substring(offset).trim();
 
 		RouteResultset rrs = getRouteResultset(c, stmt);
 		if (rrs == null) {
