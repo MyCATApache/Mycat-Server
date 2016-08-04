@@ -11,7 +11,7 @@
 <mycat:server xmlns:mycat="http://io.mycat/">
 	<system>
 	<property name="useSqlStat">1</property>  <!-- 1为开启实时统计、0为关闭 -->
-	<property name="useGlobleTableCheck">1</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
+	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
 	<property name="defaultSqlParser">druidparser</property>
 		<property name="sequnceHandlerType">2</property>
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
@@ -40,7 +40,7 @@
 		<property name="handleDistributedTransactions">0</property>
 		
 			<!--
-			off heap for merge/order/group/limit
+			off heap for merge/order/group/limit      1开启   0关闭
 		-->
 		<property name="useOffHeapForMerge">1</property>
 
