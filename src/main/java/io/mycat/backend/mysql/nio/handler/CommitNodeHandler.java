@@ -101,7 +101,7 @@ public class CommitNodeHandler implements ResponseHandler {
 					break;
 				}
 				default:
-					LOGGER.error("Wrong XA status flag!");
+				//	LOGGER.error("Wrong XA status flag!");
 			}
 		}
 		session.clearResources(false);
