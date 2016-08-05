@@ -3,6 +3,12 @@ package org.opencloudb.parser.druid.impl;
 import java.sql.SQLNonTransientException;
 import java.util.List;
 
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import org.opencloudb.config.model.SchemaConfig;
 import org.opencloudb.config.model.TableConfig;
 import org.opencloudb.route.RouteResultset;
@@ -23,8 +29,7 @@ public class DruidUpdateParser extends DefaultDruidParser {
 		}
 		MySqlUpdateStatement update = (MySqlUpdateStatement)stmt;
 		String tableName = StringUtil.removeBackquote(update.getTableName().getSimpleName().toUpperCase());
-		
-		List<SQLUpdateSetItem> updateSetItem = update.getItems();
+
 		TableConfig tc = schema.getTables().get(tableName);
 
 		if(RouterUtil.isNoSharding(schema,tableName)) {//整个schema都不分库或者该表不拆分
@@ -42,7 +47,7 @@ public class DruidUpdateParser extends DefaultDruidParser {
 			return;
 		}
 
-		confirmShardColumnNotUpdated(updateSetItem, schema, tableName, partitionColumn, joinKey, rrs);
+		confirmShardColumnNotUpdated(update, schema, tableName, partitionColumn, joinKey, rrs);
 //		if(ctx.getTablesAndConditions().size() > 0) {
 //			Map<String, Set<ColumnRoutePair>> map = ctx.getTablesAndConditions().get(tableName);
 //			if(map != null) {
@@ -57,11 +62,108 @@ public class DruidUpdateParser extends DefaultDruidParser {
 //		System.out.println();
 		
 		if(schema.getTables().get(tableName).isGlobalTable() && ctx.getRouteCalculateUnit().getTablesAndConditions().size() > 1) {
-			throw new SQLNonTransientException("global table not supported multi table related update "+ tableName);
+			throw new SQLNonTransientException("global table is not supported in multi table related update "+ tableName);
 		}
 	}
 
-	private void confirmShardColumnNotUpdated(List<SQLUpdateSetItem> updateSetItem,SchemaConfig schema,String tableName,String partitionColumn,String joinKey,RouteResultset rrs) throws SQLNonTransientException {
+	/*
+	* 判断字段是否在SQL AST的节点中，比如 col 在 col = 'A' 中，这里要注意，一些子句中可能会在字段前加上表的别名，
+	* 比如 t.col = 'A'，这两种情况， 操作符(=)左边被druid解析器解析成不同的对象SQLIdentifierExpr(无表别名)和
+	* SQLPropertyExpr(有表别名)
+	 */
+	public static boolean columnInExpr(SQLExpr sqlExpr, String colName) throws SQLNonTransientException {
+		String column;
+		if (sqlExpr instanceof SQLIdentifierExpr) {
+			column = StringUtil.removeBackquote(((SQLIdentifierExpr) sqlExpr).getName()).toUpperCase();
+		} else if (sqlExpr instanceof SQLPropertyExpr) {
+			column = StringUtil.removeBackquote(((SQLPropertyExpr) sqlExpr).getName()).toUpperCase();
+		} else {
+			throw new SQLNonTransientException("Unhandled SQL AST node type encountered: " + sqlExpr.getClass());
+		}
+
+		return column.equals(colName.toUpperCase());
+	}
+
+	/*
+    * 遍历where子句的AST，寻找是否有与update子句中更新分片字段相同的条件，
+    * o 如果发现有or或者xor，然后分片字段的条件在or或者xor中的，这种情况update也无法执行，比如
+    *   update mytab set ptn_col = val, col1 = val1 where col1 = val11 or ptn_col = val；
+    *   但是下面的这种update是可以执行的
+    *   update mytab set ptn_col = val, col1 = val1 where ptn_col = val and (col1 = val11 or col2 = val2);
+    * o 如果没有发现与update子句中更新分片字段相同的条件，则update也无法执行，比如
+    *   update mytab set ptn_col = val， col1 = val1 where col1 = val11 and col2 = val22;
+    * o 如果条件之间都是and，且有与更新分片字段相同的条件，这种情况是允许执行的。比如
+    *   update mytab set ptn_col = val, col1 = val1 where ptn_col = val and col1 = val11 and col2 = val2;
+    *
+    * @param whereClauseExpr   where子句的语法树AST
+    * @param column   分片字段的名字
+    * @param value    分片字段要被更新成的值
+    * @hasOR          遍历到whereClauseExpr这个节点的时候，其上层路径中是否有OR/XOR关系运算
+    *
+    * @return         true，表示update不能执行，false表示可以执行
+     */
+	public boolean shardColCanBeUpdated(SQLExpr whereClauseExpr, String column, SQLExpr value, boolean hasOR)
+			throws SQLNonTransientException {
+		boolean canUpdate = false;
+		boolean parentHasOR = false;
+
+		if (whereClauseExpr == null)
+			return false;
+
+		if (whereClauseExpr instanceof SQLBinaryOpExpr) {
+			SQLBinaryOpExpr nodeOpExpr = (SQLBinaryOpExpr) whereClauseExpr;
+            /*
+            * 条件中有or或者xor的，如果分片字段出现在or/xor的一个子句中，则此update
+            * 语句无法执行
+             */
+			if ((nodeOpExpr.getOperator() == SQLBinaryOperator.BooleanOr) ||
+					(nodeOpExpr.getOperator() == SQLBinaryOperator.BooleanXor)) {
+				parentHasOR = true;
+			}
+			// 发现类似 col = value 的子句
+			if (nodeOpExpr.getOperator() == SQLBinaryOperator.Equality) {
+				boolean foundCol;
+				SQLExpr leftExpr = nodeOpExpr.getLeft();
+				SQLExpr rightExpr = nodeOpExpr.getRight();
+
+				foundCol = columnInExpr(leftExpr, column);
+
+				// 发现col = value子句，col刚好是分片字段，比较value与update要更新的值是否一样，并且是否在or/xor子句中
+				if (foundCol) {
+					if (rightExpr.getClass() != value.getClass()) {
+						throw new RuntimeException("SQL AST nodes type mismatch!");
+					}
+
+					canUpdate = rightExpr.toString().equals(value.toString()) && (!hasOR) && (!parentHasOR);
+				}
+			} else if (nodeOpExpr.getOperator().isLogical()) {
+				if (nodeOpExpr.getLeft() != null) {
+					if (nodeOpExpr.getLeft() instanceof SQLBinaryOpExpr) {
+						canUpdate = shardColCanBeUpdated(nodeOpExpr.getLeft(), column, value, parentHasOR);
+					} else {
+						throw new RuntimeException("Unhandled SQL AST node type encountered: " +
+								nodeOpExpr.getLeft().getClass());
+					}
+				}
+				if ((!canUpdate) && nodeOpExpr.getRight() != null) {
+					if (nodeOpExpr.getRight() instanceof SQLBinaryOpExpr) {
+						canUpdate = shardColCanBeUpdated(nodeOpExpr.getRight(), column, value, parentHasOR);
+					} else {
+						throw new SQLNonTransientException("Unhandled SQL AST node type encountered: " +
+								nodeOpExpr.getRight().getClass());
+					}
+				}
+			} else { } // 其他类型的子句，忽略
+		} else {
+			throw new SQLNonTransientException("Unhandled SQL AST node type encountered: "
+					+ whereClauseExpr.getClass());
+		}
+
+		return canUpdate;
+	}
+
+	private void confirmShardColumnNotUpdated(SQLUpdateStatement update,SchemaConfig schema,String tableName,String partitionColumn,String joinKey,RouteResultset rrs) throws SQLNonTransientException {
+		List<SQLUpdateSetItem> updateSetItem = update.getItems();
 		if (updateSetItem != null && updateSetItem.size() > 0) {
 			boolean hasParent = (schema.getTables().get(tableName).getParentTC() != null);
 			for (SQLUpdateSetItem item : updateSetItem) {
@@ -71,13 +173,19 @@ public class DruidUpdateParser extends DefaultDruidParser {
 					column = column.substring(column.indexOf(".") + 1).trim().toUpperCase();
 				}
 				if (partitionColumn != null && partitionColumn.equals(column)) {
-					String msg = "partion key can't be updated " + tableName + "->" + partitionColumn;
-					LOGGER.warn(msg);
-					throw new SQLNonTransientException(msg);
+					boolean canUpdate;
+					canUpdate = ((update.getWhere() != null) && shardColCanBeUpdated(update.getWhere(),
+							partitionColumn, item.getValue(), false));
+
+					if (!canUpdate) {
+						String msg = "Sharding column can't be updated " + tableName + "->" + partitionColumn;
+						LOGGER.warn(msg);
+						throw new SQLNonTransientException(msg);
+					}
 				}
 				if (hasParent) {
 					if (column.equals(joinKey)) {
-						String msg = "parent relation column can't be updated " + tableName + "->" + joinKey;
+						String msg = "Parent relevant column can't be updated " + tableName + "->" + joinKey;
 						LOGGER.warn(msg);
 						throw new SQLNonTransientException(msg);
 					}
