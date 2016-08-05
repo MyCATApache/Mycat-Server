@@ -74,7 +74,7 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 			Date endDate = format.parse(endValue);
 			Calendar cal = Calendar.getInstance();
 			List<Integer> list = new ArrayList<Integer>();
-			while(beginDate.getTime() < endDate.getTime()){
+			while(beginDate.getTime() <= endDate.getTime()){
 				Integer nodeValue = this.calculate(format.format(beginDate));
 				if(Collections.frequency(list, nodeValue) < 1) list.add(nodeValue);
 				cal.setTime(beginDate);
