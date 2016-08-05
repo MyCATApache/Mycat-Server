@@ -53,6 +53,7 @@ public class AutoPartitionByLong extends AbstractPartitionAlgorithm implements R
 
 	@Override
 	public Integer calculate(String columnValue) {
+		columnValue = NumberParseUtil.eliminateQoute(columnValue);
 		long value = Long.valueOf(columnValue);
 		Integer rst = null;
 		for (LongRange longRang : this.longRongs) {
