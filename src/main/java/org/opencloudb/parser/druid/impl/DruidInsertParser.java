@@ -193,7 +193,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 				SQLBinaryOpExpr opExpr = (SQLBinaryOpExpr)expr;
 				String column = StringUtil.removeBackquote(opExpr.getLeft().toString().toUpperCase());
 				if(column.equals(partitionColumn)) {
-					String msg = "partion key can't be updated: " + tableName + " -> " + partitionColumn;
+					String msg = "Sharding column can't be updated: " + tableName + " -> " + partitionColumn;
 					LOGGER.warn(msg);
 					throw new SQLNonTransientException(msg);
 				}

@@ -391,7 +391,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         }
         Assert.assertEquals(
                 true,
-                err.startsWith("parent relation column can't be updated ORDERS->CUSTOMER_ID"));
+                err.startsWith("Parent relevant column can't be updated ORDERS->CUSTOMER_ID"));
 
         // route by parent rule ,update sql
         sql = "update orders set id=1 ,name='aaa' where customer_id=2000001";
@@ -923,7 +923,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(1, rrs.getNodes().length);
         Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
 
-        //insert ... on duplicate key ,partion key can't be updated
+        //insert ... on duplicate key ,sharding key can't be updated
         sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000) " +
                 "on duplicate key update name=VALUES(name),id = VALUES(id),sharding_id = VALUES(sharding_id)";
 
@@ -931,7 +931,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
             rrs = routeStrategy.route(new SystemConfig(), schema,
                     ServerParse.SELECT, sql, null, null, cachePool);
         } catch (Exception e) {
-            Assert.assertEquals("partion key can't be updated: EMPLOYEE -> SHARDING_ID", e.getMessage());
+            Assert.assertEquals("Sharding column can't be updated: EMPLOYEE -> SHARDING_ID", e.getMessage());
         }
 
 
