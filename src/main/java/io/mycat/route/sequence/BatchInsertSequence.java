@@ -1,4 +1,4 @@
-package demo.catlets;
+package io.mycat.route.sequence;
 
 import io.mycat.route.sequence.handler.*;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
@@ -12,6 +12,7 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
+import io.mycat.catlets.Catlet;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
@@ -21,7 +22,6 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
-import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;
 import io.mycat.util.StringUtil;
 

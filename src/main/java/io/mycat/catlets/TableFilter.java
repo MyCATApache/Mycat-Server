@@ -1,4 +1,4 @@
-package io.mycat.sqlengine.sharejoin;
+package io.mycat.catlets;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;

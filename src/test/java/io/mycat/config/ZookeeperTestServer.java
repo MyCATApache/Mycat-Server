@@ -1,10 +1,11 @@
 package io.mycat.config;
 
-import demo.catlets.ZkCreate;
 import org.apache.curator.test.TestingServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+
+import io.mycat.config.loader.zookeeper.ZkCreate;
 
 import java.io.IOException;
 
