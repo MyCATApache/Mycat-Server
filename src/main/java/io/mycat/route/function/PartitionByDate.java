@@ -7,6 +7,12 @@ import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
 /**
  * 例子 按日期列分区  格式 between操作解析的范例
  * 
@@ -64,7 +70,30 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 
 	@Override
 	public Integer[] calculateRange(String beginValue, String endValue) {
-		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
+		SimpleDateFormat format = new SimpleDateFormat(this.dateFormat);
+		try {
+			Date beginDate = format.parse(beginValue);
+			Date endDate = format.parse(endValue);
+			Calendar cal = Calendar.getInstance();
+			List<Integer> list = new ArrayList<Integer>();
+			while(beginDate.getTime() <= endDate.getTime()){
+				Integer nodeValue = this.calculate(format.format(beginDate));
+				if(Collections.frequency(list, nodeValue) < 1) list.add(nodeValue);
+				cal.setTime(beginDate);
+				cal.add(Calendar.DATE, 1);
+				beginDate = cal.getTime();
+			}
+			
+			Integer[] nodeArray = new Integer[list.size()];
+			for (int i=0;i<list.size();i++) {
+				nodeArray[i] = list.get(i);
+			}
+			
+			return nodeArray;
+		} catch (ParseException e) {
+			LOGGER.error(e);
+			return new Integer[0];
+		}
 	}
 
 	public void setsBeginDate(String sBeginDate) {
