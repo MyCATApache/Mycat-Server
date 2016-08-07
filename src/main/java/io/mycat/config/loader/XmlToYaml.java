@@ -1,4 +1,4 @@
-package demo.catlets;
+package io.mycat.config.loader;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ObjectArrays;
