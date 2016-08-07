@@ -458,7 +458,7 @@ public class MycatServer {
 						UserStat userStat = map.get(user);
 						if(userStat!=null){
 							SqlResultSizeRecorder recorder=userStat.getSqlResultSizeRecorder();
-							System.out.println(recorder.getSqlResultSet().size());
+							//System.out.println(recorder.getSqlResultSet().size());
 							recorder.clearSqlResultSet();
 						}
 					}

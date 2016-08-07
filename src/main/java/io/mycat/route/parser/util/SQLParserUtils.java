@@ -1,4 +1,4 @@
-package demo.catlets;
+package io.mycat.route.parser.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;

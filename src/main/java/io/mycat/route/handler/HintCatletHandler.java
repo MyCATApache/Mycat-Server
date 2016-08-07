@@ -7,11 +7,11 @@ import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
+import io.mycat.catlets.Catlet;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.ServerConnection;
-import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;
 
 /**
