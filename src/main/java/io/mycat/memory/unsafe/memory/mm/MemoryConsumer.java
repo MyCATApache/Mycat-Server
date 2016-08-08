@@ -19,6 +19,7 @@ package io.mycat.memory.unsafe.memory.mm;
 
 
 
+import io.mycat.memory.unsafe.array.CharArray;
 import io.mycat.memory.unsafe.array.LongArray;
 import io.mycat.memory.unsafe.memory.MemoryBlock;
 import org.slf4j.Logger;
@@ -82,7 +83,7 @@ public abstract class MemoryConsumer {
   /**
    * Allocates a LongArray of `size`.
    */
-  public LongArray allocateArray(long size) {
+  public LongArray allocateLongArray(long size) {
     long required = size * 8L;
     MemoryBlock page = dataNodeMemoryManager.allocatePage(required,this);
     if (page == null || page.size() < required) {
@@ -102,6 +103,29 @@ public abstract class MemoryConsumer {
    * Frees a LongArray.
    */
   public void freeArray(LongArray array) {
+    freePage(array.memoryBlock());
+  }
+
+  public CharArray allocateCharArray(long size) {
+    long required = size * 2L;
+    MemoryBlock page = dataNodeMemoryManager.allocatePage(required,this);
+    if (page == null || page.size() < required) {
+      long got = 0;
+      if (page != null) {
+        got = page.size();
+        dataNodeMemoryManager.freePage(page, this);
+      }
+      dataNodeMemoryManager.showMemoryUsage();
+      throw new OutOfMemoryError("Unable to acquire " + required + " bytes of memory, got " + got);
+    }
+    used += required;
+    return new CharArray(page,this);
+  }
+
+  /**
+   * Frees a CharArray.
+   */
+  public void freeCharArray(CharArray array) {
     freePage(array.memoryBlock());
   }
 
