@@ -102,7 +102,7 @@ public abstract class MemoryConsumer {
   /**
    * Frees a LongArray.
    */
-  public void freeArray(LongArray array) {
+  public void freeLongArray(LongArray array) {
     freePage(array.memoryBlock());
   }
 
