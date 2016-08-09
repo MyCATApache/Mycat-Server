@@ -26,12 +26,10 @@ package io.mycat.route.function;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.mycat.route.function.PartitionByMonth;
-
 public class PartitionByMonthTest {
 
 	@Test
-	public void test() {
+	public void test()  {
 		PartitionByMonth partition = new PartitionByMonth();
 
 		partition.setDateFormat("yyyy-MM-dd");

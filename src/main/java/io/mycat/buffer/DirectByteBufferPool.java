@@ -108,13 +108,13 @@ public class DirectByteBufferPool implements BufferPool{
         return pageCount;
     }
 
-    //TODO
-    public int capacity(){
-        return 0;
+    //TODO   should  fix it
+    public long capacity(){
+        return size();
     }
 
-    public int size(){
-        return pageSize*chunkSize*pageCount;
+    public long size(){
+        return  (long) pageSize * chunkSize * pageCount;
     }
 
     //TODO

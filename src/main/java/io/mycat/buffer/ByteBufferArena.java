@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 仿照Netty的思路，针对MyCat内存缓冲策略优化
@@ -28,8 +29,8 @@ public class ByteBufferArena implements BufferPool {
     private final int pageSize;
     private final int chunkSize;
 
-    private final AtomicInteger capacity;
-    private final AtomicInteger size;
+    private final AtomicLong capacity;
+    private final AtomicLong size;
 
     private final ConcurrentHashMap<Thread, Integer> sharedOptsCount;
 
@@ -64,8 +65,8 @@ public class ByteBufferArena implements BufferPool {
             q[1].prevList = q[0];
             q[0].prevList = null;
 
-            capacity = new AtomicInteger(6 * chunkCount * chunkSize);
-            size = new AtomicInteger(6 * chunkCount * chunkSize);
+            capacity = new AtomicLong(6 * chunkCount * chunkSize);
+            size = new AtomicLong(6 * chunkCount * chunkSize);
             sharedOptsCount = new ConcurrentHashMap<>();
         } finally {
         }
@@ -150,12 +151,12 @@ public class ByteBufferArena implements BufferPool {
     }
 
     @Override
-    public int capacity() {
+    public long capacity() {
         return capacity.get();
     }
 
     @Override
-    public int size() {
+    public long size() {
         return size.get();
     }
 

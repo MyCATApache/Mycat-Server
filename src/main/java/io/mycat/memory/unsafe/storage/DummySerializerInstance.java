@@ -56,9 +56,9 @@ public final class DummySerializerInstance extends SerializerInstance {
           Platform.throwException(e);
         }
       }
-      public <T> SerializationStream writeObject(T t, T ev1) {
-        throw new UnsupportedOperationException();
-      }
+//      public <T> SerializationStream writeObject(T t, T ev1) {
+//        throw new UnsupportedOperationException();
+//      }
 
       @Override
       public void close() {

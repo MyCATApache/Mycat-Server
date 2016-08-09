@@ -13,8 +13,6 @@ import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 
-import com.alibaba.fastjson.JSON;
-
 /**
  * 处理情况 sql hint: mycat:db_type=master/slave<br/>
  * 后期可能会考虑增加 mycat:db_type=slave_newest，实现走延迟最小的slave
@@ -32,7 +30,7 @@ public class HintMasterDBHandler implements HintHandler {
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, 
 			String realSQL, String charset,
 			ServerConnection sc, LayerCachePool cachePool, String hintSQLValue, int hintSqlType, Map hintMap)
-					throws SQLNonTransientException {
+			throws SQLNonTransientException {
 		
 //		LOGGER.debug("realSQL: " + realSQL); // select * from travelrecord limit 1
 //		LOGGER.debug("sqlType: " + sqlType); // 7
