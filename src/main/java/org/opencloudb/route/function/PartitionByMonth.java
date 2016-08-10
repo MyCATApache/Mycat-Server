@@ -2,8 +2,10 @@ package org.opencloudb.route.function;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.util.*;
 
+import org.apache.log4j.Logger;
+import org.apache.log4j.pattern.IntegerPatternConverter;
 import org.opencloudb.config.model.rule.RuleAlgorithm;
 
 /**
@@ -14,6 +16,7 @@ import org.opencloudb.config.model.rule.RuleAlgorithm;
  */
 public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 		RuleAlgorithm {
+	private static final Logger LOGGER = Logger.getLogger(PartitionByDate.class);
 	private String sBeginDate;
 	private String dateFormat;
 	private String sEndDate;
@@ -45,6 +48,26 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 		}
 	}
 
+	/**
+	 * For circulatory partition, calculated value of target partition needs to be
+	 * rotated to fit the partition range
+	 */
+	private int reCalculatePartition(int targetPartition) {
+		/**
+		 * If target date is previous of start time of partition setting, shift
+		 * the delta range between target and start date to be positive value
+		 */
+		if (targetPartition < 0) {
+			targetPartition = nPartition - (-targetPartition) % nPartition;
+		}
+
+		if (targetPartition >= nPartition) {
+			targetPartition =  targetPartition % nPartition;
+		}
+
+		return targetPartition;
+	}
+
 	@Override
 	public Integer calculate(String columnValue) {
 		try {
@@ -60,17 +83,7 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 			 * rotated to fit the partition range
  			 */
 			if (nPartition > 0) {
-				/**
-				 * If target date is previous of start time of partition setting, shift
-				 * the delta range between target and start date to be positive value
-				 */
-				if (targetPartition < 0) {
-					targetPartition = nPartition - (-targetPartition) % nPartition;
-				}
-
-				if (targetPartition >= nPartition) {
-					targetPartition = targetPartition % nPartition;
-				}
+				targetPartition = reCalculatePartition(targetPartition);
 			}
 			return targetPartition;
 
@@ -81,8 +94,33 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 
 	@Override
 	public Integer[] calculateRange(String beginValue, String endValue) {
-		return AbstractPartitionAlgorithm.calculateSequenceRange(this,
-				beginValue, endValue);
+		try {
+			int startPartition, endPartition;
+			Calendar partitionTime = Calendar.getInstance();
+			SimpleDateFormat format = new SimpleDateFormat(dateFormat);
+			partitionTime.setTime(format.parse(beginValue));
+			startPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
+					* 12 + partitionTime.get(Calendar.MONTH)
+					- beginDate.get(Calendar.MONTH));
+			partitionTime.setTime(format.parse(endValue));
+			endPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
+					* 12 + partitionTime.get(Calendar.MONTH)
+					- beginDate.get(Calendar.MONTH));
+
+			List<Integer> list = new ArrayList<>();
+
+			while (startPartition <= endPartition) {
+				Integer nodeValue = reCalculatePartition(startPartition);
+				if (Collections.frequency(list, nodeValue) < 1)
+					list.add(nodeValue);
+				startPartition++;
+			}
+			int size = list.size();
+			return (list.toArray(new Integer[size]));
+		} catch (ParseException e) {
+			LOGGER.error(e);
+			return new Integer[0];
+		}
 	}
 
 	public void setsBeginDate(String sBeginDate) {
