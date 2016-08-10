@@ -112,7 +112,7 @@ public final class UnsafeInMemorySorter {
     long initialSize,
     boolean canUseRadixSort,boolean enableSort) {
     this(consumer, memoryManager, recordComparator, prefixComparator,
-      consumer.allocateArray(initialSize * 2), canUseRadixSort,enableSort);
+      consumer.allocateLongArray(initialSize * 2), canUseRadixSort,enableSort);
   }
 
   public UnsafeInMemorySorter(
@@ -155,15 +155,15 @@ public final class UnsafeInMemorySorter {
    */
   public void free() {
     if (consumer != null) {
-      consumer.freeArray(array);
+      consumer.freeLongArray(array);
       array = null;
     }
   }
 
   public void reset() {
     if (consumer != null) {
-      consumer.freeArray(array);
-      this.array = consumer.allocateArray(initialSize);
+      consumer.freeLongArray(array);
+      this.array = consumer.allocateLongArray(initialSize);
     }
     pos = 0;
   }
@@ -200,7 +200,7 @@ public final class UnsafeInMemorySorter {
       newArray.getBaseObject(),
       newArray.getBaseOffset(),
       array.size() * (8 / memoryAllocationFactor));
-    consumer.freeArray(array);
+    consumer.freeLongArray(array);
     array = newArray;
   }
 
