@@ -34,7 +34,7 @@ public class PartitionByHotDateTest {
 
 	@Test
 	public void test()  {
-		PartitionByHotDate partition = new PartitionByHotDate();
+PartitionByHotDate partition = new PartitionByHotDate();
 		
 		partition.setDateFormat("yyyy-MM-dd");
 		partition.setsLastDay("10");
@@ -67,22 +67,23 @@ public class PartitionByHotDateTest {
 		cDate = Calendar.getInstance();
 		cDate.add(Calendar.DATE,-5);
 		System.err.println(dateFormat.format(cDate.getTime()));
-		Assert.assertEquals(true, 0 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(cDate.getTime()))[0]);
+		Assert.assertEquals(true, 0 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(Calendar.getInstance().getTime()))[0]);
 		
 		cDate = Calendar.getInstance();
 		cDate.add(Calendar.DATE,-11);
 		System.err.println(dateFormat.format(cDate.getTime()));
-		Assert.assertEquals(true, 0 == partition.calculateRange(dateFormat.format(Calendar.getInstance().getTime()),dateFormat.format(cDate.getTime()))[0]);
-		Assert.assertEquals(true, 1 == partition.calculateRange(dateFormat.format(Calendar.getInstance().getTime()),dateFormat.format(cDate.getTime()))[1]);
-		Assert.assertEquals(true, 2 == partition.calculateRange(dateFormat.format(Calendar.getInstance().getTime()),dateFormat.format(cDate.getTime()))[2]);
+		Assert.assertEquals(true, 0 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(Calendar.getInstance().getTime()))[0]);
+		Assert.assertEquals(true, 1 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(Calendar.getInstance().getTime()))[1]);
+		Assert.assertEquals(true, 2 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(Calendar.getInstance().getTime()))[2]);
 
 		cDate = Calendar.getInstance();
 		cDate.add(Calendar.DATE, -21);
 		System.err.println(dateFormat.format(cDate.getTime()));
-		Assert.assertEquals(true, 0 == partition.calculateRange(dateFormat.format(Calendar.getInstance().getTime()),dateFormat.format(cDate.getTime()))[0]);
-		Assert.assertEquals(true, 1 == partition.calculateRange(dateFormat.format(Calendar.getInstance().getTime()),dateFormat.format(cDate.getTime()))[1]);
-		Assert.assertEquals(true, 2 == partition.calculateRange(dateFormat.format(Calendar.getInstance().getTime()),dateFormat.format(cDate.getTime()))[2]);
-		Assert.assertEquals(true, 12 == partition.calculateRange(dateFormat.format(Calendar.getInstance().getTime()),dateFormat.format(cDate.getTime()))[12]);
+		Assert.assertEquals(true, 0 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(Calendar.getInstance().getTime()))[0]);
+		Assert.assertEquals(true, 1 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(Calendar.getInstance().getTime()))[1]);
+		Assert.assertEquals(true, 2 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(Calendar.getInstance().getTime()))[2]);
+		Assert.assertEquals(true, 12 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(Calendar.getInstance().getTime()))[12]);
+		Assert.assertEquals(true, 13 == partition.calculateRange(dateFormat.format(cDate.getTime()),dateFormat.format(Calendar.getInstance().getTime())).length);
 
 	}
 }
