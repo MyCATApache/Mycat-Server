@@ -68,7 +68,7 @@ public class PartitionByHotDate extends AbstractPartitionAlgorithm implements Ru
 			beginDate = nowTime - sLastTime * oneDay;
 			
 			long diffDays = (nowTime - targetTime) / (1000 * 60 * 60 * 24) + 1;
-			if(diffDays-sLastTime <= 0 | diffDays<0 ){
+			if(diffDays-sLastTime <= 0 || diffDays<0 ){
 				targetPartition = 0;
 			}else{
 				targetPartition = (int) ((beginDate - targetTime) / partionTime) + 1;
@@ -85,19 +85,48 @@ public class PartitionByHotDate extends AbstractPartitionAlgorithm implements Ru
 	public Integer[] calculateRange(String beginValue, String endValue)  {
 		Integer[] targetPartition = null;
 		try {
-			long targetTime = formatter.get().parse(endValue).getTime();
+			long startTime = formatter.get().parse(beginValue).getTime();
+			long endTime = formatter.get().parse(endValue).getTime();
 			Calendar now = Calendar.getInstance();
 			long nowTime = now.getTimeInMillis();
 			
-			beginDate = nowTime - sLastTime * oneDay;
-			
-			long diffDays = (nowTime - targetTime) / (1000 * 60 * 60 * 24) + 1;
-			if(diffDays-sLastTime <= 0 | diffDays<0 ){
+			long limitDate = nowTime - sLastTime * oneDay;
+			long diffDays = (nowTime - startTime) / (1000 * 60 * 60 * 24) + 1;
+			if(diffDays-sLastTime <= 0 || diffDays<0 ){
 				Integer [] re = new Integer[1];
 				re[0] = 0;
 				targetPartition = re ;
 			}else{
-				targetPartition = AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
+				Integer [] re = null;
+				Integer begin = 0, end = 0;
+				end = this.calculate(beginValue);
+				boolean hasLimit = false;
+				if(endTime-limitDate > 0){
+					endTime = limitDate;
+					hasLimit = true;
+				}
+				begin = this.calculate(formatter.get().format(endTime));
+				if(begin == null || end == null){
+					return re;
+				}
+				if (end >= begin) {
+					int len = end-begin+1;
+					if(hasLimit){
+						re = new Integer[len+1];
+						re[0] = 0;
+						for(int i =0;i<len;i++){
+							re[i+1]=begin+i;
+						}
+					}else{
+						re = new Integer[len];
+						for(int i=0;i<len;i++){
+							re[i]=begin+i;
+						}
+					}
+					return re;
+				}else{
+					return re;
+				}
 			}
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(new StringBuilder().append("endValue:").append(endValue).append(" Please check if the format satisfied.").toString(),e);
