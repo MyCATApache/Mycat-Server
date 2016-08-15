@@ -121,7 +121,7 @@ public class DataMigrator {
 			try {
 				Thread.sleep(200);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				LOGGER.error("error",e);
 			}
 		}
 	}
@@ -146,7 +146,7 @@ public class DataMigrator {
 			try {
 				Thread.sleep(200);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				LOGGER.error("error",e);
 			}
 		}
 	}
@@ -254,7 +254,7 @@ public class DataMigrator {
 			try {
 				Thread.sleep(200);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				LOGGER.error("error",e);
 			}
 		}
 	}

@@ -138,7 +138,7 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			}
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error("error",e);
 		}
 	}
 
