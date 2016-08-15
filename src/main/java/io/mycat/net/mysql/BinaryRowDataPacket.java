@@ -12,6 +12,8 @@ import io.mycat.config.Fields;
 import io.mycat.net.FrontendConnection;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.DateUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ProtocolBinary::ResultsetRow:
@@ -32,7 +34,7 @@ import io.mycat.util.DateUtil;
  * 
  */
 public class BinaryRowDataPacket extends MySQLPacket {
-	
+	private static final Logger LOGGER = LoggerFactory.getLogger(BinaryRowDataPacket.class);
 	public int fieldCount;
 	public List<byte[]> fieldValues;
 	public byte packetHeader = (byte) 0;
@@ -151,7 +153,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 								DateUtil.DATE_PATTERN_ONLY_DATE);
 						this.fieldValues.add(ByteUtil.getBytes(dateVar, false));
 					} catch (ParseException e) {
-						e.printStackTrace();
+						LOGGER.error("error",e);
 					}
 					break;
 				case Fields.FIELD_TYPE_DATETIME:
@@ -171,7 +173,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 									false));
 						}
 					} catch (ParseException e) {
-						e.printStackTrace();
+						LOGGER.error("error",e);
 					}
 					break;
 				case Fields.FIELD_TYPE_TIME:
@@ -190,7 +192,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 									true));
 						}
 					} catch (ParseException e) {
-						e.printStackTrace();
+						LOGGER.error("error",e);
 					}
 					break;
 				}

@@ -249,13 +249,13 @@ public class ZkDownload {
             }
             fw.flush(); // 全部写入缓存中的内容
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("error",e);
         } finally {
             if (fw != null) {
                 try {
                     fw.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.error("error",e);
                 }
             }
         }
@@ -467,7 +467,7 @@ public class ZkDownload {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("error",e);
         }
         return null;
     }
@@ -940,7 +940,7 @@ public class ZkDownload {
         }catch(Exception ex)
         {
             flag = false;
-            ex.printStackTrace();
+            LOGGER.error("error",ex);
         }
         return flag;
     }

@@ -8,6 +8,8 @@ import io.mycat.config.loader.zookeeper.entitiy.Rules;
 import io.mycat.config.loader.zookeeper.entitiy.Schemas;
 import io.mycat.config.loader.zookeeper.entitiy.Server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import javax.xml.bind.JAXBContext;
@@ -31,7 +33,8 @@ public class XmlToYaml {
     private static String MYCLUSTER_ID = "mycat-cluster-1";
 
     private static Map<Object, Object> serializeMap;
-
+    private static final Logger LOGGER = LoggerFactory
+            .getLogger(XmlToYaml.class);
     public static void main(String[] args) throws JAXBException, IOException, XMLStreamException {
         jaxbContext = JAXBContext
             .newInstance(io.mycat.config.loader.zookeeper.entitiy.Server.class,
@@ -332,7 +335,7 @@ public class XmlToYaml {
                         }
                         tableRuleMap.put("config", configMap);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        LOGGER.error("error",e);
                     }
                 }
             });
