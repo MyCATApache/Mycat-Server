@@ -805,4 +805,12 @@ public final class Platform {
     public static Object getObject(Object entries, long l) {
         return _UNSAFE.getObject(entries, l);
     }
+
+    public static char getChar(Object baseObj, long l) {
+        return _UNSAFE.getChar(baseObj, l);
+    }
+
+    public static void putChar(Object baseObj, long l, char value) {
+        _UNSAFE.putChar(baseObj, l, value);
+    }
 }

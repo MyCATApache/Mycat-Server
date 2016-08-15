@@ -55,4 +55,6 @@ public class MemoryBlock extends MemoryLocation {
   public static MemoryBlock fromLongArray(final long[] array) {
     return new MemoryBlock(array, Platform.LONG_ARRAY_OFFSET, array.length * 8);
   }
+
+
 }

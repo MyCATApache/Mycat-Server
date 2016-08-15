@@ -1,4 +1,4 @@
-package demo.catlets;
+package io.mycat.catlets;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,10 +24,8 @@ import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.AllJobFinishedListener;
-import io.mycat.sqlengine.Catlet;
 import io.mycat.sqlengine.EngineCtx;
 import io.mycat.sqlengine.SQLJobHandler;
-import io.mycat.sqlengine.sharejoin.JoinParser;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.ResultSetUtil;
 /**  

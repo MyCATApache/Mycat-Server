@@ -1,4 +1,4 @@
-package demo.catlets;
+package io.mycat.config.loader.zookeeper;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;

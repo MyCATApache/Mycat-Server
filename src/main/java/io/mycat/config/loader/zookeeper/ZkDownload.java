@@ -1,4 +1,4 @@
-package demo.catlets;
+package io.mycat.config.loader.zookeeper;
 
 import java.io.BufferedWriter;
 import java.io.File;

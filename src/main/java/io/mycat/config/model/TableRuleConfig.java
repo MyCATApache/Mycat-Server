@@ -21,7 +21,7 @@
  * https://code.google.com/p/opencloudb/.
  *
  */
-package io.mycat.route.config;
+package io.mycat.config.model;
 
 import java.beans.Expression;
 
