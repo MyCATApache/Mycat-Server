@@ -24,10 +24,15 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, String origSQL,
 			String charset, ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
 
+		//对应schema标签checkSQLschema属性，把表示schema的字符去掉
+		if (schema.isCheckSQLSchema()) {
+			origSQL = RouterUtil.removeSchema(origSQL, schema.getName());
+		}
+
 		/**
-		 * 处理一些路由之前的逻辑
-		 * 全局序列号，父子表插入
-		 */
+     * 处理一些路由之前的逻辑
+     * 全局序列号，父子表插入
+     */
 		if ( beforeRouteProcess(schema, sqlType, origSQL, sc) ) {
 			return null;
 		}
@@ -40,10 +45,6 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 			LOGGER.debug("sql intercepted to " + stmt + " from " + origSQL);
 		}
 
-		//对应schema标签checkSQLschema属性，把表示schema的字符去掉
-		if (schema.isCheckSQLSchema()) {
-			stmt = RouterUtil.removeSchema(stmt, schema.getName());
-		}
 
 		RouteResultset rrs = new RouteResultset(stmt, sqlType);
 
