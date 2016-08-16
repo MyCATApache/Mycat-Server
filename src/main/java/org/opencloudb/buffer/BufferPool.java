@@ -189,6 +189,10 @@ public final class BufferPool {
 			return createTempBuffer(size);
 		}
 	}
+	
+	public int getNewCreated(){
+		return this.newCreated.get();
+	}
 
 	public static void main(String[] args) {
 		BufferPool pool = new BufferPool(3276800000L, 1024, 2);

@@ -1182,7 +1182,8 @@ public class RouterUtil {
 				throw new SQLNonTransientException(msg);
 			}
 
-			String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
+			//String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
+			String joinKeyVal = StringUtil.removeBackquote(insertStmt.getValues().getValues().get(joinKeyIndex).toString());
 
 			String sql = insertStmt.toString();
 
