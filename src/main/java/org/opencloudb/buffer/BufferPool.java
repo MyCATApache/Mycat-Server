@@ -191,7 +191,7 @@ public final class BufferPool {
 	}
 	
 	public int getNewCreated(){
-		return this.newCreated.get();
+		return this.newCreated;
 	}
 
 	public static void main(String[] args) {
