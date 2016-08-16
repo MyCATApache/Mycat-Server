@@ -132,8 +132,7 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
             int switchType = source.getHostConfig().getSwitchType();
             Map<String, String> resultResult = result.getResult();
           
-			if ( PhysicalDBPool.BALANCE_NONE != balance 
-					&& switchType == DataHostConfig.SYN_STATUS_SWITCH_DS
+			if ( switchType == DataHostConfig.SYN_STATUS_SWITCH_DS
 					&& source.getHostConfig().isShowSlaveSql()) {
 				
 				String Slave_IO_Running  = resultResult != null ? resultResult.get("Slave_IO_Running") : null;
@@ -147,8 +146,8 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 					String Seconds_Behind_Master = resultResult.get( "Seconds_Behind_Master");					
 					if (null != Seconds_Behind_Master && !"".equals(Seconds_Behind_Master)) {
 						
-						int Behind_Master = Integer.valueOf(Seconds_Behind_Master);
-						if ( Behind_Master > 60 ) {
+						int Behind_Master = Integer.parseInt(Seconds_Behind_Master);
+						if ( Behind_Master >  source.getHostConfig().getSlaveThreshold() ) {
 							MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication delay !!! "
 									+ heartbeat.getSource().getConfig() + ", binlog sync time delay: " + Behind_Master + "s" );
 						}						
@@ -165,8 +164,7 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 				heartbeat.getAsynRecorder().set(resultResult, switchType);
 				heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
 				
-            } else if ( PhysicalDBPool.BALANCE_NONE != balance 
-            		&& switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS 
+            } else if ( switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS
             		&& source.getHostConfig().isShowClusterSql() ) {
             	
 				//String Variable_name = resultResult != null ? resultResult.get("Variable_name") : null;
@@ -197,6 +195,8 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 			} else {				
     			heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
     		}
+			//监测数据库同步状态，在 switchType=-1或者1的情况下，也需要收集主从同步状态
+			heartbeat.getAsynRecorder().set(resultResult, switchType);
             
 		} else {
 			heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);

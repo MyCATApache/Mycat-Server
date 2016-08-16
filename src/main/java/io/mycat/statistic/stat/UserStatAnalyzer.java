@@ -2,7 +2,6 @@ package io.mycat.statistic.stat;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import io.mycat.server.parser.ServerParse;
 
@@ -15,7 +14,6 @@ import io.mycat.server.parser.ServerParse;
 public class UserStatAnalyzer implements QueryResultListener {
 	
 	private LinkedHashMap<String, UserStat> userStatMap = new LinkedHashMap<String, UserStat>();	
-	private ReentrantReadWriteLock  lock  = new ReentrantReadWriteLock();
 	
     private final static UserStatAnalyzer instance  = new UserStatAnalyzer();
     
@@ -27,48 +25,35 @@ public class UserStatAnalyzer implements QueryResultListener {
     }  
 	
 	@Override
-	public void onQueryResult(QueryResult query) {
-		
-		int sqlType = query.getSqlType();
-		String sql = query.getSql();
-		
-		switch(sqlType) {
+	public void onQueryResult(QueryResult query) {		
+		switch( query.getSqlType() ) {
     	case ServerParse.SELECT:		
     	case ServerParse.UPDATE:			
     	case ServerParse.INSERT:		
     	case ServerParse.DELETE:
-    	case ServerParse.REPLACE:  	
-    		
+    	case ServerParse.REPLACE: 
     		String user = query.getUser();
+    		int sqlType = query.getSqlType();
+    		String sql = query.getSql();
+    		long sqlRows = query.getSqlRows();
     		long netInBytes = query.getNetInBytes();
     		long netOutBytes = query.getNetOutBytes();
     		long startTime = query.getStartTime();
     		long endTime = query.getEndTime();
-    		
-    		this.lock.writeLock().lock();
-            try {
-            	UserStat userStat = userStatMap.get(user);
-                if (userStat == null) {
-                    userStat = new UserStat(user);
-                    userStatMap.put(user, userStat);
-                }                
-                userStat.update(sqlType, sql, netInBytes, netOutBytes, startTime, endTime);	
-                
-            } finally {
-            	this.lock.writeLock().unlock();
-            }	
+    		int resultSetSize=query.getResultSize();
+        	UserStat userStat = userStatMap.get(user);
+            if (userStat == null) {
+                userStat = new UserStat(user);
+                userStatMap.put(user, userStat);
+            }                
+            userStat.update(sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime,resultSetSize);	
+            break;
 		}
-	}	
-
+	}
 	
-	public Map<String, UserStat> getUserStatMap() {
-		Map<String, UserStat> map = new LinkedHashMap<String, UserStat>(userStatMap.size());
-		this.lock.readLock().lock();
-        try {
-            map.putAll(userStatMap);
-        } finally {
-        	this.lock.readLock().unlock();
-        }
+	public Map<String, UserStat> getUserStatMap() {		
+		Map<String, UserStat> map = new LinkedHashMap<String, UserStat>(userStatMap.size());	
+		map.putAll(userStatMap);
         return map;
 	}
 }

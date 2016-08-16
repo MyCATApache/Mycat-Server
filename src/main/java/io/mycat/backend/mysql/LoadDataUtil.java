@@ -71,7 +71,7 @@ public class LoadDataUtil
     {
         try
         {
-            int packSize = MycatServer.getInstance().getConfig().getSystem().getProcessorBufferChunk() - 5;
+            int packSize = MycatServer.getInstance().getConfig().getSystem().getBufferPoolChunkSize() - 5;
             // int packSize = backendAIOConnection.getMaxPacketSize() / 32;
             //  int packSize=65530;
             byte[] buffer = new byte[packSize];

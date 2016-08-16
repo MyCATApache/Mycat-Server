@@ -45,8 +45,10 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.util.ConfigException;
+import io.mycat.route.sequence.handler.DistributedSequenceHandler;
 import io.mycat.route.sequence.handler.IncrSequenceMySQLHandler;
 import io.mycat.route.sequence.handler.IncrSequenceTimeHandler;
+import io.mycat.route.sequence.handler.IncrSequenceZKHandler;
 
 /**
  * @author mycat
@@ -61,31 +63,44 @@ public class ConfigInitializer {
 	private volatile Map<String, PhysicalDBPool> dataHosts;
 
 	public ConfigInitializer(boolean loadDataHost) {
+		//读取rule.xml和schema.xml
 		SchemaLoader schemaLoader = new XMLSchemaLoader();
+		//读取server.xml
 		XMLConfigLoader configLoader = new XMLConfigLoader(schemaLoader);
 		schemaLoader = null;
+		//加载配置
 		this.system = configLoader.getSystemConfig();
 		this.users = configLoader.getUserConfigs();
 		this.schemas = configLoader.getSchemaConfigs();
+		//是否重新加载DataHost和对应的DataNode
 		if (loadDataHost) {
 			this.dataHosts = initDataHosts(configLoader);
 			this.dataNodes = initDataNodes(configLoader);
 		}
+		//权限管理
 		this.quarantine = configLoader.getQuarantineConfig();
 		this.cluster = initCobarCluster(configLoader);
+		//不同类型的全局序列处理器的配置加载
 		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_MYSQLDB) {
 			IncrSequenceMySQLHandler.getInstance().load();
 		}
 		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_LOCAL_TIME) {
 			IncrSequenceTimeHandler.getInstance().load();
 		}
-
+		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_DISTRIBUTED) {
+			DistributedSequenceHandler.getInstance(system).load();
+		}
+		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT) {
+			IncrSequenceZKHandler.getInstance().load();
+		}
+		//检查user与schema配置对应以及schema配置不为空
 		this.checkConfig();
 	}
 
 	private void checkConfig() throws ConfigException {
-		if (users == null || users.isEmpty())
+		if (users == null || users.isEmpty()) {
 			return;
+		}
 		for (UserConfig uc : users.values()) {
 			if (uc == null) {
 				continue;
@@ -144,9 +159,11 @@ public class ConfigInitializer {
 
 	private Map<String, PhysicalDBPool> initDataHosts(ConfigLoader configLoader) {
 		Map<String, DataHostConfig> nodeConfs = configLoader.getDataHosts();
+		//根据DataHost建立PhysicalDBPool，其实就是实际数据库连接池，每个DataHost对应一个PhysicalDBPool
 		Map<String, PhysicalDBPool> nodes = new HashMap<String, PhysicalDBPool>(
 				nodeConfs.size());
 		for (DataHostConfig conf : nodeConfs.values()) {
+			//建立PhysicalDBPool
 			PhysicalDBPool pool = getPhysicalDBPool(conf, configLoader);
 			nodes.put(pool.getHostName(), pool);
 		}
@@ -159,6 +176,7 @@ public class ConfigInitializer {
 		PhysicalDatasource[] dataSources = new PhysicalDatasource[nodes.length];
 		if (dbType.equals("mysql") && dbDriver.equals("native")) {
 			for (int i = 0; i < nodes.length; i++) {
+				//设置最大idle时间，默认为30分钟
 				nodes[i].setIdleTimeout(system.getIdleTimeout());
 				MySQLDataSource ds = new MySQLDataSource(nodes[i], conf, isRead);
 				dataSources[i] = ds;
@@ -185,13 +203,17 @@ public class ConfigInitializer {
 	private PhysicalDBPool getPhysicalDBPool(DataHostConfig conf,
 			ConfigLoader configLoader) {
 		String name = conf.getName();
+		//数据库类型，我们这里只讨论MySQL
 		String dbType = conf.getDbType();
+		//连接数据库驱动，我们这里只讨论MyCat自己实现的native
 		String dbDriver = conf.getDbDriver();
+		//针对所有写节点创建PhysicalDatasource
 		PhysicalDatasource[] writeSources = createDataSource(conf, name,
 				dbType, dbDriver, conf.getWriteHosts(), false);
 		Map<Integer, DBHostConfig[]> readHostsMap = conf.getReadHosts();
 		Map<Integer, PhysicalDatasource[]> readSourcesMap = new HashMap<Integer, PhysicalDatasource[]>(
 				readHostsMap.size());
+		//对于每个读节点建立key为writeHost下标value为readHost的PhysicalDatasource[]的哈希表
 		for (Map.Entry<Integer, DBHostConfig[]> entry : readHostsMap.entrySet()) {
 			PhysicalDatasource[] readSources = createDataSource(conf, name,
 					dbType, dbDriver, entry.getValue(), true);

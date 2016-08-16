@@ -268,15 +268,12 @@ public class JDBCConnection implements BackendConnection {
     {
         int jdbcIsolation=convertNativeIsolationToJDBC(nativeIsolation);
         int srcJdbcIsolation=   getTxIsolation();
-        if(jdbcIsolation==srcJdbcIsolation)return;
-        if("oracle".equalsIgnoreCase(getDbType())
-                &&jdbcIsolation!=Connection.TRANSACTION_READ_COMMITTED
-                &&jdbcIsolation!=Connection.TRANSACTION_SERIALIZABLE)
-        {
-            //oracle 只支持2个级别        ,且只能更改一次隔离级别，否则会报 ORA-01453
-            return;
-        }
-        try
+		if (jdbcIsolation == srcJdbcIsolation || "oracle".equalsIgnoreCase(getDbType())
+				&& jdbcIsolation != Connection.TRANSACTION_READ_COMMITTED
+				&& jdbcIsolation != Connection.TRANSACTION_SERIALIZABLE) {
+			return;
+		}
+		try
         {
             con.setTransactionIsolation(jdbcIsolation);
         } catch (SQLException e)
@@ -391,8 +388,9 @@ public class JDBCConnection implements BackendConnection {
     static
     {
         Object cursor = ObjectUtil.getStaticFieldValue("oracle.jdbc.OracleTypes", "CURSOR");
-        if(cursor!=null)
-            oracleCURSORTypeValue= (int) cursor  ;
+        if(cursor!=null) {
+			oracleCURSORTypeValue = (int) cursor;
+		}
     }
 	private void ouputCallStatement(RouteResultsetNode rrn,ServerConnection sc, String sql)
 			throws SQLException {
@@ -417,97 +415,61 @@ public class JDBCConnection implements BackendConnection {
                 if(ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())
                         ||ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType())  )
                 {
-                    int jdbcType ="oracle".equalsIgnoreCase(getDbType())&& procedure.isResultList()?oracleCURSORTypeValue: paramter.getJdbcType();
+                    int jdbcType ="oracle".equalsIgnoreCase(getDbType())&& procedure.getListFields().contains(paramter.getName())?oracleCURSORTypeValue: paramter.getJdbcType();
                     stmt.registerOutParameter(paramter.getIndex(), jdbcType);
                 }
             }
 
-			 stmt.execute();
+            boolean hadResults= stmt.execute();
 
-
-            List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-            if(procedure.isResultList())
+            ByteBuffer byteBuf = sc.allocate();
+            if(procedure.getSelectColumns().size()>0)
             {
+                List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
                 for (ProcedureParameter paramter : paramters)
                 {
-                    if (ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())
-                            || ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType()))
-                    {
-                      rs= (ResultSet) stmt.getObject(paramter.getIndex());
-                    }
-                }
-                ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
-                        this.isSpark);
-            }    else
-            {
-                for (ProcedureParameter paramter : paramters)
-                {
-                    if (ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())
-                            || ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType()))
+                    if (!procedure.getListFields().contains(paramter.getName())&&(ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())
+                            || ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType()))   )
                     {
                         FieldPacket packet = PacketUtil.getField(paramter.getName(), MysqlDefs.javaTypeMysql(paramter.getJdbcType()));
                         fieldPks.add(packet);
                     }
                 }
-            }
-            int colunmCount = fieldPks.size();
-			ByteBuffer byteBuf = sc.allocate();
-			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-			headerPkg.fieldCount = fieldPks.size();
-			headerPkg.packetId = ++packetId;
+                int colunmCount = fieldPks.size();
 
-			byteBuf = headerPkg.write(byteBuf, sc, true);
-			byteBuf.flip();
-			byte[] header = new byte[byteBuf.limit()];
-			byteBuf.get(header);
-			byteBuf.clear();
+                ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+                headerPkg.fieldCount = fieldPks.size();
+                headerPkg.packetId = ++packetId;
+
+                byteBuf = headerPkg.write(byteBuf, sc, true);
+                byteBuf.flip();
+                byte[] header = new byte[byteBuf.limit()];
+                byteBuf.get(header);
+                byteBuf.clear();
 
 
-			List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
-			Iterator<FieldPacket> itor = fieldPks.iterator();
-			while (itor.hasNext()) {
-				FieldPacket curField = itor.next();
-				curField.packetId = ++packetId;
-				byteBuf = curField.write(byteBuf, sc, false);
-				byteBuf.flip();
-				byte[] field = new byte[byteBuf.limit()];
-				byteBuf.get(field);
-				byteBuf.clear();
-				fields.add(field);
-				itor.remove();
-			}
-			EOFPacket eofPckg = new EOFPacket();
-			eofPckg.packetId = ++packetId;
-			byteBuf = eofPckg.write(byteBuf, sc, false);
-			byteBuf.flip();
-			byte[] eof = new byte[byteBuf.limit()];
-			byteBuf.get(eof);
-			byteBuf.clear();
-			this.respHandler.fieldEofResponse(header, fields, eof, this);
-
-			// output row
-            if(procedure.isResultList())
-            {
-                // output row
-                while (rs.next()) {
-                    RowDataPacket curRow = new RowDataPacket(colunmCount);
-                    for (int i = 0; i < colunmCount; i++) {
-                        int j = i + 1;
-                        curRow.add(StringUtil.encode(rs.getString(j),
-                                sc.getCharset()));
-                    }
-                    curRow.packetId = ++packetId;
-                    byteBuf = curRow.write(byteBuf, sc, false);
+                List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
+                Iterator<FieldPacket> itor = fieldPks.iterator();
+                while (itor.hasNext()) {
+                    FieldPacket curField = itor.next();
+                    curField.packetId = ++packetId;
+                    byteBuf = curField.write(byteBuf, sc, false);
                     byteBuf.flip();
-                    byte[] row = new byte[byteBuf.limit()];
-                    byteBuf.get(row);
+                    byte[] field = new byte[byteBuf.limit()];
+                    byteBuf.get(field);
                     byteBuf.clear();
-                    this.respHandler.rowResponse(row, this);
+                    fields.add(field);
+                    itor.remove();
                 }
-            }   else
-			if(procedure.getSelectColumns().size()>0)
-            {
-				RowDataPacket curRow = new RowDataPacket(colunmCount);
+                EOFPacket eofPckg = new EOFPacket();
+                eofPckg.packetId = ++packetId;
+                byteBuf = eofPckg.write(byteBuf, sc, false);
+                byteBuf.flip();
+                byte[] eof = new byte[byteBuf.limit()];
+                byteBuf.get(eof);
+                byteBuf.clear();
+                this.respHandler.fieldEofResponse(header, fields, eof, this);
+                RowDataPacket curRow = new RowDataPacket(colunmCount);
                 for (String name : procedure.getSelectColumns())
                 {
                     ProcedureParameter procedureParameter=   procedure.getParamterMap().get(name);
@@ -515,30 +477,118 @@ public class JDBCConnection implements BackendConnection {
                             sc.getCharset()));
                 }
 
-				curRow.packetId = ++packetId;
-				byteBuf = curRow.write(byteBuf, sc, false);
-				byteBuf.flip();
-				byte[] row = new byte[byteBuf.limit()];
-				byteBuf.get(row);
-				byteBuf.clear();
-				this.respHandler.rowResponse(row, this);
-			}
+                curRow.packetId = ++packetId;
+                byteBuf = curRow.write(byteBuf, sc, false);
+                byteBuf.flip();
+                byte[] row = new byte[byteBuf.limit()];
+                byteBuf.get(row);
+                byteBuf.clear();
+                this.respHandler.rowResponse(row, this);
 
-			// end row
-			eofPckg = new EOFPacket();
-			eofPckg.packetId = ++packetId;
+                eofPckg = new EOFPacket();
+                eofPckg.packetId = ++packetId;
+                if(procedure.isResultList())
+                {
+                    eofPckg.status = 42;
+                }
+                byteBuf = eofPckg.write(byteBuf, sc, false);
+                byteBuf.flip();
+                eof = new byte[byteBuf.limit()];
+                byteBuf.get(eof);
+                byteBuf.clear();
+                this.respHandler.rowEofResponse(eof, this);
+            }
+
+
             if(procedure.isResultList())
             {
-                eofPckg.status = 42;
-            }
-			byteBuf = eofPckg.write(byteBuf, sc, false);
-			byteBuf.flip();
-			eof = new byte[byteBuf.limit()];
-			byteBuf.get(eof);
-            byteBuf.clear();
-			this.respHandler.rowEofResponse(eof, this);
+                List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
+                int listSize=procedure.getListFields().size();
+                for (ProcedureParameter paramter : paramters)
+                {
+                    if (procedure.getListFields().contains(paramter.getName())&&(ProcedureParameter.OUT.equalsIgnoreCase(paramter.getParameterType())
+                            || ProcedureParameter.INOUT.equalsIgnoreCase(paramter.getParameterType()))  )
+                    {
+                        listSize--;
 
-            if(procedure.isResultList())
+                        Object object = stmt.getObject(paramter.getIndex());
+                        rs= (ResultSet) object;
+                        if(rs==null) {
+							continue;
+						}
+                        ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
+                                this.isSpark);
+
+                        int colunmCount = fieldPks.size();
+                        ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+                        headerPkg.fieldCount = fieldPks.size();
+                        headerPkg.packetId = ++packetId;
+
+                        byteBuf = headerPkg.write(byteBuf, sc, true);
+                        byteBuf.flip();
+                        byte[] header = new byte[byteBuf.limit()];
+                        byteBuf.get(header);
+                        byteBuf.clear();
+
+
+                        List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
+                        Iterator<FieldPacket> itor = fieldPks.iterator();
+                        while (itor.hasNext()) {
+                            FieldPacket curField = itor.next();
+                            curField.packetId = ++packetId;
+                            byteBuf = curField.write(byteBuf, sc, false);
+                            byteBuf.flip();
+                            byte[] field = new byte[byteBuf.limit()];
+                            byteBuf.get(field);
+                            byteBuf.clear();
+                            fields.add(field);
+                            itor.remove();
+                        }
+                        EOFPacket eofPckg = new EOFPacket();
+                        eofPckg.packetId = ++packetId;
+                        byteBuf = eofPckg.write(byteBuf, sc, false);
+                        byteBuf.flip();
+                        byte[] eof = new byte[byteBuf.limit()];
+                        byteBuf.get(eof);
+                        byteBuf.clear();
+                        this.respHandler.fieldEofResponse(header, fields, eof, this);
+
+                        // output row
+                        while (rs.next()) {
+                            RowDataPacket curRow = new RowDataPacket(colunmCount);
+                            for (int i = 0; i < colunmCount; i++) {
+                                int j = i + 1;
+                                curRow.add(StringUtil.encode(rs.getString(j),
+                                        sc.getCharset()));
+                            }
+                            curRow.packetId = ++packetId;
+                            byteBuf = curRow.write(byteBuf, sc, false);
+                            byteBuf.flip();
+                            byte[] row = new byte[byteBuf.limit()];
+                            byteBuf.get(row);
+                            byteBuf.clear();
+                            this.respHandler.rowResponse(row, this);
+                        }
+                        eofPckg = new EOFPacket();
+                        eofPckg.packetId = ++packetId;
+                        if(listSize!=0)
+                        {
+                            eofPckg.status = 42;
+                        }
+                        byteBuf = eofPckg.write(byteBuf, sc, false);
+                        byteBuf.flip();
+                        eof = new byte[byteBuf.limit()];
+                        byteBuf.get(eof);
+                        byteBuf.clear();
+                        this.respHandler.rowEofResponse(eof, this);
+                    }
+                }
+
+            }
+
+
+
+            if(!procedure.isResultSimpleValue())
             {
                 byte[] OK = new byte[] { 7, 0, 0, 1, 0, 0, 0, 2, 0, 0,
                         0 };

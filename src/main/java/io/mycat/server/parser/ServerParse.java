@@ -62,10 +62,10 @@ public final class ServerParse {
     private static final  Pattern callPattern = Pattern.compile("\\w*\\;\\s*\\s*(call)+\\s+\\w*\\s*",Pattern.CASE_INSENSITIVE);
 
     public static int parse(String stmt) {
-		int lenth = stmt.length();
+		int length = stmt.length();
 		//FIX BUG FOR SQL SUCH AS /XXXX/SQL
 		int rt = -1;
-		for (int i = 0; i < lenth; ++i) {
+		for (int i = 0; i < length; ++i) {
 			switch (stmt.charAt(i)) {
 			case ' ':
 			case '\t':
@@ -75,13 +75,13 @@ public final class ServerParse {
 			case '/':
 				// such as /*!40101 SET character_set_client = @saved_cs_client
 				// */;
-				if (i == 0 && stmt.charAt(1) == '*' && stmt.charAt(2) == '!' && stmt.charAt(lenth - 2) == '*'
-						&& stmt.charAt(lenth - 1) == '/') {
+				if (i == 0 && stmt.charAt(1) == '*' && stmt.charAt(2) == '!' && stmt.charAt(length - 2) == '*'
+						&& stmt.charAt(length - 1) == '/') {
 					return MYSQL_CMD_COMMENT;
 				}
 			case '#':
 				i = ParseUtil.comment(stmt, i);
-				if (i + 1 == lenth) {
+				if (i + 1 == length) {
 					return MYSQL_COMMENT;
 				}
 				continue;
@@ -215,7 +215,7 @@ public final class ServerParse {
 					&& (c3 == 'N' || c3 == 'n')
 					&& (c4 == 'C' || c4 == 'c')
 					&& (c5 == 'A' || c5 == 'a')
-					&& (c6 == 't' || c6 == 't')
+					&& (c6 == 'T' || c6 == 't')
 					&& (c7 == 'E' || c7 == 'e')
 					&& (c8 == ' ' || c8 == '\t' || c8 == '\r' || c8 == '\n')) {
 				return DDL;
@@ -658,10 +658,12 @@ public final class ServerParse {
 //  /*!mycat: sql=SELECT * FROM test where id=99 */set @pin=1;
 //                    call p_test(@pin,@pout);
 //                    select @pout;
-                    if(stmt.startsWith("/*!mycat:")||stmt.startsWith("/*#mycat:"))
+                    if(stmt.startsWith("/*!mycat:")||stmt.startsWith("/*#mycat:")||stmt.startsWith("/*mycat:"))
                     {
                         Matcher matcher = callPattern.matcher(stmt);
-                        if (matcher.find()) return CALL;
+                        if (matcher.find()) {
+							return CALL;
+						}
                     }
 
 					char c = stmt.charAt(offset);

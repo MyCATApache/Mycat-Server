@@ -61,23 +61,26 @@ public class PartitionByPrefixPattern extends AbstractPartitionAlgorithm impleme
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		int pattern = Integer.valueOf(patternValue);
-		int Length = Integer.valueOf(prefixLength);
+	public Integer calculate(String columnValue)  {
+		try {
+			int Length = Integer.valueOf(prefixLength);
 
-		Length = columnValue.length() < Length ? columnValue.length() : Length;
-		int sum = 0;
-		for (int i = 0; i < Length; i++) {
-			sum = sum + columnValue.charAt(i);
-		}
-		Integer rst = null;
-		for (LongRange longRang : this.longRongs) {
-			long hash = sum % patternValue;
-			if (hash <= longRang.valueEnd && hash >= longRang.valueStart) {
-				return longRang.nodeIndx;
+			Length = columnValue.length() < Length ? columnValue.length() : Length;
+			int sum = 0;
+			for (int i = 0; i < Length; i++) {
+				sum = sum + columnValue.charAt(i);
 			}
+			Integer rst = null;
+			for (LongRange longRang : this.longRongs) {
+				long hash = sum % patternValue;
+				if (hash <= longRang.valueEnd && hash >= longRang.valueStart) {
+					return longRang.nodeIndx;
+				}
+			}
+			return rst;
+		} catch (NumberFormatException e){
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
 		}
-		return rst;
 	}
 
 	private void initialize() {
@@ -95,15 +98,15 @@ public class PartitionByPrefixPattern extends AbstractPartitionAlgorithm impleme
 
 			for (String line = null; (line = in.readLine()) != null;) {
 				line = line.trim();
-				if (line.startsWith("#") || line.startsWith("//"))
+				if (line.startsWith("#") || line.startsWith("//")) {
 					continue;
+				}
 				int ind = line.indexOf('=');
 				if (ind < 0) {
 					System.out.println(" warn: bad line int " + mapFile + " :"
 							+ line);
 					continue;
 				}
-				try {
 					String pairs[] = line.substring(0, ind).trim().split("-");
 					long longStart = NumberParseUtil.parseLong(pairs[0].trim());
 					long longEnd = NumberParseUtil.parseLong(pairs[1].trim());
@@ -112,8 +115,6 @@ public class PartitionByPrefixPattern extends AbstractPartitionAlgorithm impleme
 					longRangeList
 							.add(new LongRange(nodeId, longStart, longEnd));
 
-				} catch (Exception e) {
-				}
 			}
 			longRongs = longRangeList.toArray(new LongRange[longRangeList
 					.size()]);

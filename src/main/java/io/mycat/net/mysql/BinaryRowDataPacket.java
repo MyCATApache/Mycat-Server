@@ -12,6 +12,8 @@ import io.mycat.config.Fields;
 import io.mycat.net.FrontendConnection;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.DateUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ProtocolBinary::ResultsetRow:
@@ -26,13 +28,13 @@ import io.mycat.util.DateUtil;
  * containing as many bits as we have columns in the resultset + 2 
  * and the values for columns that are not NULL in the Binary Protocol Value format.
  * 
- * @see http://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html#packet-ProtocolBinary::ResultsetRow
- * @see http://dev.mysql.com/doc/internals/en/binary-protocol-value.html
+ * @see @http://dev.mysql.com/doc/internals/en/binary-protocol-resultset-row.html#packet-ProtocolBinary::ResultsetRow
+ * @see @http://dev.mysql.com/doc/internals/en/binary-protocol-value.html
  * @author CrazyPig
  * 
  */
 public class BinaryRowDataPacket extends MySQLPacket {
-	
+	private static final Logger LOGGER = LoggerFactory.getLogger(BinaryRowDataPacket.class);
 	public int fieldCount;
 	public List<byte[]> fieldValues;
 	public byte packetHeader = (byte) 0;
@@ -123,7 +125,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 					// 01 -- int8 = 1
 					int tinyVar = ByteUtil.getInt(_fieldValues.get(i));
 					byte[] bytes = new byte[1];
-					bytes[0] = new Integer(tinyVar).byteValue();
+					bytes[0] = (byte)tinyVar;
 					this.fieldValues.add(bytes);
 					break;
 				case Fields.FIELD_TYPE_DOUBLE:
@@ -151,7 +153,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 								DateUtil.DATE_PATTERN_ONLY_DATE);
 						this.fieldValues.add(ByteUtil.getBytes(dateVar, false));
 					} catch (ParseException e) {
-						e.printStackTrace();
+						LOGGER.error("error",e);
 					}
 					break;
 				case Fields.FIELD_TYPE_DATETIME:
@@ -171,7 +173,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 									false));
 						}
 					} catch (ParseException e) {
-						e.printStackTrace();
+						LOGGER.error("error",e);
 					}
 					break;
 				case Fields.FIELD_TYPE_TIME:
@@ -190,7 +192,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 									true));
 						}
 					} catch (ParseException e) {
-						e.printStackTrace();
+						LOGGER.error("error",e);
 					}
 					break;
 				}
@@ -205,12 +207,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 		int totalSize = size + packetHeaderSize;
 		ByteBuffer bb = null;
 		
-		int chunkSize = conn.getProcessor().getBufferPool().getChunkSize();
-		if( totalSize <=  chunkSize ) {
-			bb = conn.getProcessor().getBufferPool().allocate();			
-		} else {
-			bb = conn.getProcessor().getBufferPool().allocate(totalSize);
-		}
+		bb = conn.getProcessor().getBufferPool().allocate(totalSize);
 
 		BufferUtil.writeUB3(bb, calcPacketSize());
 		bb.put(packetId);

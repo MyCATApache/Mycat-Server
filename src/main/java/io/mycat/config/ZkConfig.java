@@ -1,12 +1,12 @@
 package io.mycat.config;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Strings;
 
 import io.mycat.config.loader.zookeeper.ZookeeperLoader;
 import io.mycat.config.loader.zookeeper.ZookeeperSaver;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,13 +56,13 @@ public class ZkConfig {
             throw new RuntimeException("can't find myid properties file : " + ZK_CONFIG_FILE_NAME);
         }
 
-        if (Boolean.valueOf(pros.getProperty("loadZk"))) {
+        if (Boolean.parseBoolean(pros.getProperty("loadZk"))) {
             //validate
             String zkURL = pros.getProperty("zkURL");
             String myid = pros.getProperty("myid");
 
             if (Strings.isNullOrEmpty(zkURL) || Strings.isNullOrEmpty(myid)) {
-                throw new RuntimeException("zkURL and myid must be not null or empty!");
+                throw new RuntimeException("zkURL and myid must not be null or empty!");
             }
             return pros;
         }

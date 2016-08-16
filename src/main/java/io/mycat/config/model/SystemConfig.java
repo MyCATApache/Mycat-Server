@@ -41,15 +41,21 @@ public final class SystemConfig {
 	private static final String DEFAULT_CHARSET = "utf8";
 
 	private static final String DEFAULT_SQL_PARSER = "druidparser";// fdbparser, druidparser
-	private static final int DEFAULT_BUFFER_CHUNK_SIZE = 4096;
+	private static final short DEFAULT_BUFFER_CHUNK_SIZE = 4096;
+	private static final int DEFAULT_BUFFER_POOL_PAGE_SIZE = 512*1024*4;
+	private static final short DEFAULT_BUFFER_POOL_PAGE_NUMBER = 64;
 	private int processorBufferLocalPercent;
-	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime()
-			.availableProcessors();
+	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime().availableProcessors();
 	private int frontSocketSoRcvbuf = 1024 * 1024;
 	private int frontSocketSoSndbuf = 4 * 1024 * 1024;
 	private int backSocketSoRcvbuf = 4 * 1024 * 1024;// mysql 5.6
 														// net_buffer_length
 														// defaut 4M
+    
+	private final  static String RESERVED_SYSTEM_MEMORY_BYTES = "384m";
+	private final static String MEMORY_PAGE_SIZE = "1m";
+	private final static String SPILLS_FILE_BUFFER_SIZE = "2K";
+	private final static String DATANODE_SORTED_TEMP_DIR = "datanode";
 	private int backSocketSoSndbuf = 1024 * 1024;
 	private int frontSocketNoDelay = 1; // 0=false
 	private int backSocketNoDelay = 1; // 1=true
@@ -69,6 +75,7 @@ public final class SystemConfig {
 	private int maxStringLiteralLength = 65535;
 	private int frontWriteQueueSize = 2048;
 	private String bindIp = "0.0.0.0";
+	private String fakeMySQLVersion = null;
 	private int serverPort;
 	private int managerPort;
 	private String charset;
@@ -91,12 +98,41 @@ public final class SystemConfig {
 	private int txIsolation;
 	private int parserCommentVersion;
 	private int sqlRecordCount;
-	private long processorBufferPool;
-	private int processorBufferChunk;
+
+	// a page size
+	private int bufferPoolPageSize;
+
+	//minimum allocation unit
+	private short bufferPoolChunkSize;
+	
+	// buffer pool page number 
+	private short bufferPoolPageNumber;
+	
+	//大结果集阈值，默认512kb
+	private int maxResultSet=512*1024;
+	//大结果集拒绝策略次数过滤限制,默认10次
+	private int bigResultSizeSqlCount=10;
+	//大结果集拒绝策咯，bufferpool使用率阈值(0-100)，默认80%
+	private int  bufferUsagePercent=80;
+	//大结果集保护策咯，0:不开启,1:级别1为在当前mucat bufferpool
+	//使用率大于bufferUsagePercent阈值时，拒绝超过defaultBigResultSizeSqlCount
+	//sql次数阈值并且符合超过大结果集阈值maxResultSet的所有sql
+	//默认值0
+	private int  flowControlRejectStrategy=0;
+	//清理大结果集记录周期
+	private long clearBigSqLResultSetMapMs=10*60*1000;
+
 	private int defaultMaxLimit = DEFAULT_MAX_LIMIT;
 	public static final int SEQUENCEHANDLER_LOCALFILE = 0;
 	public static final int SEQUENCEHANDLER_MYSQLDB = 1;
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
+	public static final int SEQUENCEHANDLER_ZK_DISTRIBUTED = 3;
+	public static final int SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT = 4;
+	/*
+	 * 注意！！！ 目前mycat支持的MySQL版本，如果后续有新的MySQL版本,请添加到此数组， 对于MySQL的其他分支，
+	 * 比如MariaDB目前版本号已经到10.1.x，但是其驱动程序仍然兼容官方的MySQL,因此这里版本号只需要MySQL官方的版本号即可。
+	 */
+	public static final String[] MySQLVersions = { "5.5", "5.6", "5.7" };
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "io.mycat.server.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";
@@ -113,7 +149,71 @@ public final class SystemConfig {
 	private int packetHeaderSize = 4;
 	private int maxPacketSize = 16 * 1024 * 1024;
 	private int mycatNodeId=1;
-	private int useCompression =0;
+	private int useCompression =0;	
+	private int useSqlStat = 1;
+
+	//处理分布式事务开关，默认为不过滤分布式事务
+	private int handleDistributedTransactions = 0;
+
+	private int checkTableConsistency = 0;
+	private long checkTableConsistencyPeriod = CHECKTABLECONSISTENCYPERIOD;
+	private final static long CHECKTABLECONSISTENCYPERIOD = 1 * 60 * 1000;
+
+	private int processorBufferPoolType = 0;
+
+	// 全局表一致性检测任务，默认24小时调度一次
+	private static final long DEFAULT_GLOBAL_TABLE_CHECK_PERIOD = 24 * 60 * 60 * 1000L;
+	private int useGlobleTableCheck = 1;	// 全局表一致性检查开关
+	
+	private long glableTableCheckPeriod;
+
+	/**
+	 * Mycat 使用 Off Heap For Merge/Order/Group/Limit计算相关参数
+	 */
+
+
+	/**
+	 * 是否启用Off Heap for Merge  1-启用，0-不启用
+	 */
+	private int useOffHeapForMerge;
+
+	/**
+	 *页大小,对应MemoryBlock的大小，单位为M
+	 */
+	private String memoryPageSize;
+
+
+	/**
+	 * DiskRowWriter写磁盘是临时写Buffer，单位为K
+	 */
+	private String spillsFileBufferSize;
+
+	/**
+	 * 启用结果集流输出，不经过merge模块,
+	 */
+	private int useStreamOutput;
+
+	/**
+	 * 该变量仅在Merge使用On Heap
+	 * 内存方式时起作用，如果使用Off Heap内存方式
+	 * 那么可以认为-Xmx就是系统预留内存。
+	 * 在On Heap上给系统预留的内存，
+	 * 主要供新小对象创建，JAVA简单数据结构使用
+	 * 以保证在On Heap上大结果集计算时情况，能快速响应其他
+	 * 连接操作。
+	 */
+	private String systemReserveMemorySize;
+
+
+
+	/**
+	 * 排序时，内存不够时，将已经排序的结果集
+	 * 写入到临时目录
+	 */
+	private String dataNodeSortedTempDir;
+
+
+
 
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
@@ -128,12 +228,17 @@ public final class SystemConfig {
 		this.managerPort = DEFAULT_MANAGER_PORT;
 		this.charset = DEFAULT_CHARSET;
 		this.processors = DEFAULT_PROCESSORS;
+		this.bufferPoolPageSize = DEFAULT_BUFFER_POOL_PAGE_SIZE;
+		this.bufferPoolChunkSize = DEFAULT_BUFFER_CHUNK_SIZE;
+		
+		/**
+		 * 大结果集时 需增大 network buffer pool pages.
+		 */
+		this.bufferPoolPageNumber = (short) (DEFAULT_PROCESSORS*20);
 
-		processorBufferChunk = DEFAULT_BUFFER_CHUNK_SIZE;
-		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2
-				: 4;
+		this.processorExecutor = (DEFAULT_PROCESSORS != 1) ? DEFAULT_PROCESSORS * 2 : 4;
 		this.managerExecutor = 2;
-		processorBufferPool = DEFAULT_BUFFER_CHUNK_SIZE * processors * 1000;
+
 		this.processorBufferLocalPercent = 100;
 		this.timerExecutor = 2;
 		this.idleTimeout = DEFAULT_IDLE_TIMEOUT;
@@ -148,7 +253,73 @@ public final class SystemConfig {
 		this.txIsolation = Isolations.REPEATED_READ;
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
+		this.glableTableCheckPeriod = DEFAULT_GLOBAL_TABLE_CHECK_PERIOD;
+		this.useOffHeapForMerge = 1;
+		this.memoryPageSize = MEMORY_PAGE_SIZE;
+		this.spillsFileBufferSize = SPILLS_FILE_BUFFER_SIZE;
+		this.useStreamOutput = 0;
+		this.systemReserveMemorySize = RESERVED_SYSTEM_MEMORY_BYTES;
+		this.dataNodeSortedTempDir = System.getProperty("user.dir");
+	}
 
+	public String getDataNodeSortedTempDir() {
+		return dataNodeSortedTempDir;
+	}
+
+	public int getUseOffHeapForMerge() {
+		return useOffHeapForMerge;
+	}
+
+	public void setUseOffHeapForMerge(int useOffHeapForMerge) {
+		this.useOffHeapForMerge = useOffHeapForMerge;
+	}
+
+	public String getMemoryPageSize() {
+		return memoryPageSize;
+	}
+
+	public void setMemoryPageSize(String memoryPageSize) {
+		this.memoryPageSize = memoryPageSize;
+	}
+
+	public String getSpillsFileBufferSize() {
+		return spillsFileBufferSize;
+	}
+
+	public void setSpillsFileBufferSize(String spillsFileBufferSize) {
+		this.spillsFileBufferSize = spillsFileBufferSize;
+	}
+
+	public int getUseStreamOutput() {
+		return useStreamOutput;
+	}
+
+	public void setUseStreamOutput(int useStreamOutput) {
+		this.useStreamOutput = useStreamOutput;
+	}
+
+	public String getSystemReserveMemorySize() {
+		return systemReserveMemorySize;
+	}
+
+	public void setSystemReserveMemorySize(String systemReserveMemorySize) {
+		this.systemReserveMemorySize = systemReserveMemorySize;
+	}
+
+	public int getUseGlobleTableCheck() {
+		return useGlobleTableCheck;
+	}
+
+	public void setUseGlobleTableCheck(int useGlobleTableCheck) {
+		this.useGlobleTableCheck = useGlobleTableCheck;
+	}
+
+	public long getGlableTableCheckPeriod() {
+		return glableTableCheckPeriod;
+	}
+
+	public void setGlableTableCheckPeriod(long glableTableCheckPeriod) {
+		this.glableTableCheckPeriod = glableTableCheckPeriod;
 	}
 
 	public String getSqlInterceptor() {
@@ -217,11 +388,10 @@ public final class SystemConfig {
 
 	public static String getHomePath() {
 		String home = System.getProperty(SystemConfig.SYS_HOME);
-		if (home != null) {
-			if (home.endsWith(File.pathSeparator)) {
+		if (home != null
+				&& home.endsWith(File.pathSeparator)) {
 				home = home.substring(0, home.length() - 1);
 				System.setProperty(SystemConfig.SYS_HOME, home);
-			}
 		}
 
 		// MYCAT_HOME为空，默认尝试设置为当前目录或上级目录。BEN
@@ -249,6 +419,17 @@ public final class SystemConfig {
 
 		return home;
 	}
+	
+	// 是否使用SQL统计
+	public int getUseSqlStat() 
+	{
+		return useSqlStat;
+	}
+	
+	public void setUseSqlStat(int useSqlStat) 
+	{
+		this.useSqlStat = useSqlStat;
+	}
 
 	public int getUseCompression()
 	{
@@ -266,6 +447,14 @@ public final class SystemConfig {
 
 	public void setCharset(String charset) {
 		this.charset = charset;
+	}
+
+	public String getFakeMySQLVersion() {
+		return fakeMySQLVersion;
+	}
+
+	public void setFakeMySQLVersion(String mysqlVersion) {
+		this.fakeMySQLVersion = mysqlVersion;
 	}
 
 	public int getServerPort() {
@@ -436,20 +625,69 @@ public final class SystemConfig {
 		this.sqlRecordCount = sqlRecordCount;
 	}
 
-	public long getProcessorBufferPool() {
-		return processorBufferPool;
+
+	public short getBufferPoolChunkSize() {
+		return bufferPoolChunkSize;
 	}
 
-	public void setProcessorBufferPool(long processorBufferPool) {
-		this.processorBufferPool = processorBufferPool;
+	public void setBufferPoolChunkSize(short bufferPoolChunkSize) {
+		this.bufferPoolChunkSize = bufferPoolChunkSize;
+	}
+	
+	public int getMaxResultSet() {
+		return maxResultSet;
 	}
 
-	public int getProcessorBufferChunk() {
-		return processorBufferChunk;
+	public void setMaxResultSet(int maxResultSet) {
+		this.maxResultSet = maxResultSet;
 	}
 
-	public void setProcessorBufferChunk(int processorBufferChunk) {
-		this.processorBufferChunk = processorBufferChunk;
+	public int getBigResultSizeSqlCount() {
+		return bigResultSizeSqlCount;
+	}
+
+	public void setBigResultSizeSqlCount(int bigResultSizeSqlCount) {
+		this.bigResultSizeSqlCount = bigResultSizeSqlCount;
+	}
+
+	public int getBufferUsagePercent() {
+		return bufferUsagePercent;
+	}
+
+	public void setBufferUsagePercent(int bufferUsagePercent) {
+		this.bufferUsagePercent = bufferUsagePercent;
+	}
+
+	public int getFlowControlRejectStrategy() {
+		return flowControlRejectStrategy;
+	}
+
+	public void setFlowControlRejectStrategy(int flowControlRejectStrategy) {
+		this.flowControlRejectStrategy = flowControlRejectStrategy;
+	}
+
+	public long getClearBigSqLResultSetMapMs() {
+		return clearBigSqLResultSetMapMs;
+	}
+
+	public void setClearBigSqLResultSetMapMs(long clearBigSqLResultSetMapMs) {
+		this.clearBigSqLResultSetMapMs = clearBigSqLResultSetMapMs;
+	}
+
+	public int getBufferPoolPageSize() {
+		return bufferPoolPageSize;
+	}
+
+	public void setBufferPoolPageSize(int bufferPoolPageSize) {
+		this.bufferPoolPageSize = bufferPoolPageSize;
+	}
+
+	public short getBufferPoolPageNumber() {
+		return bufferPoolPageNumber;
+	}
+
+	public void setBufferPoolPageNumber(short bufferPoolPageNumber) {
+		this.bufferPoolPageNumber = bufferPoolPageNumber;
 	}
 
 	public int getFrontSocketSoRcvbuf() {
@@ -593,8 +831,14 @@ public final class SystemConfig {
 				+ ", clusterHeartbeatRetry=" + clusterHeartbeatRetry
 				+ ", txIsolation=" + txIsolation + ", parserCommentVersion="
 				+ parserCommentVersion + ", sqlRecordCount=" + sqlRecordCount
-				+ ", processorBufferPool=" + processorBufferPool
-				+ ", processorBufferChunk=" + processorBufferChunk
+				+ ", bufferPoolPageSize=" + bufferPoolPageSize
+				+ ", bufferPoolChunkSize=" + bufferPoolChunkSize
+				+ ", bufferPoolPageNumber=" + bufferPoolPageNumber
+				+ ", maxResultSet=" +maxResultSet
+				+ ", bigResultSizeSqlCount="+bigResultSizeSqlCount
+				+ ", bufferUsagePercent="+bufferUsagePercent
+				+ ", flowControlRejectStrategy="+flowControlRejectStrategy
+				+ ", clearBigSqLResultSetMapMs="+clearBigSqLResultSetMapMs
 				+ ", defaultMaxLimit=" + defaultMaxLimit
 				+ ", sequnceHandlerType=" + sequnceHandlerType
 				+ ", sqlInterceptor=" + sqlInterceptor
@@ -610,5 +854,35 @@ public final class SystemConfig {
 	}
 
 
+	public int getCheckTableConsistency() {
+		return checkTableConsistency;
+	}
 
+	public void setCheckTableConsistency(int checkTableConsistency) {
+		this.checkTableConsistency = checkTableConsistency;
+	}
+
+	public long getCheckTableConsistencyPeriod() {
+		return checkTableConsistencyPeriod;
+	}
+
+	public void setCheckTableConsistencyPeriod(long checkTableConsistencyPeriod) {
+		this.checkTableConsistencyPeriod = checkTableConsistencyPeriod;
+	}
+
+	public int getProcessorBufferPoolType() {
+		return processorBufferPoolType;
+	}
+
+	public void setProcessorBufferPoolType(int processorBufferPoolType) {
+		this.processorBufferPoolType = processorBufferPoolType;
+	}
+
+	public int getHandleDistributedTransactions() {
+		return handleDistributedTransactions;
+	}
+
+	public void setHandleDistributedTransactions(int handleDistributedTransactions) {
+		this.handleDistributedTransactions = handleDistributedTransactions;
+	}
 }

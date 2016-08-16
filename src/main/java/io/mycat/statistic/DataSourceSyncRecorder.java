@@ -39,7 +39,7 @@ import io.mycat.util.TimeUtil;
  * 
  * @author songwie
  */
-public class DataSourceSyncRecorder {
+public class                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          DataSourceSyncRecorder {
 
     private Map<String, String> records;
     private final List<Record> asynRecords;//value,time
@@ -74,7 +74,7 @@ public class DataSourceSyncRecorder {
             		String sencords = resultResult.get("Seconds_Behind_Master");
             		long Seconds_Behind_Master = -1;
             		if(sencords!=null){
-                		Seconds_Behind_Master = Long.valueOf(sencords);
+                		Seconds_Behind_Master = Long.parseLong(sencords);
             		} 
             		this.asynRecords.add(new Record(TimeUtil.currentTimeMillis(),Seconds_Behind_Master));
             	}

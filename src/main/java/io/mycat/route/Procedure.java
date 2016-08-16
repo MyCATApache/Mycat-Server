@@ -2,6 +2,7 @@ package io.mycat.route;
 
 import com.google.common.base.*;
 
+import java.io.Serializable;
 import java.sql.Types;
 import java.util.*;
 
@@ -32,14 +33,15 @@ import java.util.*;
  ok
 
  */
-public class Procedure
+public class Procedure implements Serializable
 {
     private String originSql;
     private String name;
     private String callSql;
     private String setSql ;
     private String selectSql;
-    private Set<String> selectColumns=new TreeSet<>();
+    private Set<String> selectColumns=new LinkedHashSet<>();
+    private Set<String> listFields=new LinkedHashSet<>();
     private boolean isResultList=false;
 
     public boolean isResultList()
@@ -102,6 +104,15 @@ public class Procedure
         return sb.toString();
     }
 
+    public Set<String> getListFields()
+    {
+        return listFields;
+    }
+
+    public void setListFields(Set<String> listFields)
+    {
+        this.listFields = listFields;
+    }
 
     public Set<String> getSelectColumns()
     {

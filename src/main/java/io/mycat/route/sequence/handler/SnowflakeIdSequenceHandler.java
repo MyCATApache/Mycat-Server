@@ -41,19 +41,19 @@ public class SnowflakeIdSequenceHandler implements SequenceHandler {
 
 	private final long workerId;
 	private final long datacenterId;
-	private final long twepoch = 1355285532520L;
+	private static final long twepoch = 1355285532520L;
 
-	private final long workerIdBits = 5L;
-	private final long datacenterIdBits = 5L;
-	private final long maxWorkerId = -1L ^ -1L << this.workerIdBits;
-	private final long maxDatacenterId = -1L ^ -1L << datacenterIdBits;
-	private final long sequenceBits = 12L;
-	private final long workerIdShift = this.sequenceBits;
-	private final long datacenterIdShift = sequenceBits + workerIdBits;
+	private static final long workerIdBits = 5L;
+	private static final long datacenterIdBits = 5L;
+	private static final long maxWorkerId = -1L ^ -1L << workerIdBits;
+	private static final long maxDatacenterId = -1L ^ -1L << datacenterIdBits;
+	private static final long sequenceBits = 12L;
+	private static final long workerIdShift = sequenceBits;
+	private static final long datacenterIdShift = sequenceBits + workerIdBits;
 
-	private final long timestampLeftShift = this.sequenceBits
-			+ this.workerIdBits;
-	private final long sequenceMask = -1L ^ -1L << this.sequenceBits;
+	private static final long timestampLeftShift = sequenceBits
+			+ workerIdBits;
+	private static final long sequenceMask = -1L ^ -1L << sequenceBits;
 
 	private long sequence = 0L;
 	private long lastTimestamp = -1L;
@@ -119,7 +119,7 @@ public class SnowflakeIdSequenceHandler implements SequenceHandler {
 				| this.workerId << this.workerIdShift | this.sequence;
 	}
 
-	private long tilNextMillis(long lastTimestamp) {
+	private synchronized long tilNextMillis(long lastTimestamp) {
 		long timestamp = this.timeGen();
 		while (timestamp <= lastTimestamp) {
 			timestamp = this.timeGen();

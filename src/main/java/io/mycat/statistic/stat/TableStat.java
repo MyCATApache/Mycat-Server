@@ -16,7 +16,7 @@ import io.mycat.server.parser.ServerParse;
  * @author zhuam
  *
  */
-public class TableStat {
+public class TableStat implements Comparable<TableStat> {
 	
 	//1、读写
 	//2、主表
@@ -91,7 +91,7 @@ public class TableStat {
     }
     
 	public int getCount() {
-		return new Long(getRCount()+getWCount()).intValue();
+		return (int)(getRCount()+getWCount());
 	}    
 	
     public List<RelaTable> getRelaTables() {    	
@@ -104,6 +104,21 @@ public class TableStat {
 		return lastExecuteTime;
 	}
 
+	@Override
+	public int compareTo(TableStat o) {
+		long para = o.getCount() - getCount();
+		long para2 = o.getLastExecuteTime() - getLastExecuteTime();
+		return para == 0? (para2 == 0? o.getTable().hashCode() - getTable().hashCode() :(int) para2) : (int)para ;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof TableStat) {
+			return this.compareTo((TableStat)obj) == 0;
+		} else {
+			return super.equals(obj);
+		}
+	}
 
 	/**
      * 关联表

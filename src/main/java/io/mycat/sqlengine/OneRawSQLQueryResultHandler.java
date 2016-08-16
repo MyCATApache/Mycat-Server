@@ -13,7 +13,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	private final SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callback;
 	private final String[] fetchCols;
 	private int fieldCount = 0;
-	private Map<String, String> result = new HashMap<String, String>();;
+	private Map<String, String> result = new HashMap<String, String>();
 	public OneRawSQLQueryResultHandler(String[] fetchCols,
 			SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callBack) {
 
@@ -21,6 +21,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 		this.callback = callBack;
 	}
 
+	private String mark;
 	public void onHeader(String dataNode, byte[] header, List<byte[]> fields) {
 		fieldCount = fields.size();
 		fetchColPosMap = new HashMap<String, Integer>();
@@ -44,8 +45,8 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 		rowDataPkg.read(rowData);
 		String variableName = "";
 		String variableValue = "";
-		
-		if(fieldCount==2){
+		//fieldcount为2可能是select x也可能是show create table命令
+		if(fieldCount==2 && (fetchColPosMap.get("Variable_name")!=null || fetchColPosMap.get("Value")!=null)){
 			Integer ind = fetchColPosMap.get("Variable_name");
 			if (ind != null) {
 				byte[] columnData = rowDataPkg.fieldValues.get(ind);
@@ -71,15 +72,26 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 				}
 			}
 		}
-		
 		return false;
 	}
 
 	@Override
 	public void finished(String dataNode, boolean failed) {
-		SQLQueryResult<Map<String, String>> queryRestl=new SQLQueryResult<Map<String, String>>(this.result,!failed);
+		SQLQueryResult<Map<String, String>> queryRestl=new SQLQueryResult<Map<String, String>>(this.result,!failed, dataNode);
 	     this.callback.onResult(queryRestl);
 
 	}
 
+	public String getMark() {
+		return mark;
+	}
+
+	public void setMark(String mark) {
+		this.mark = mark;
+	}
+	
+	// 子类 MultiRowSQLQueryResultHandler 需要使用
+	protected Map<String, String> getResult() {
+		return result;
+	}
 }

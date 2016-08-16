@@ -25,6 +25,7 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
+import io.mycat.config.ErrorCode;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
@@ -47,6 +48,13 @@ public class CommitNodeHandler implements ResponseHandler {
 
 	public void commit(BackendConnection conn) {
 		conn.setResponseHandler(CommitNodeHandler.this);
+		boolean isClosed=conn.isClosedOrQuit();
+		if(isClosed)
+		{
+			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
+					"receive commit,but find backend con is closed or quit");
+			LOGGER.error( conn+"receive commit,but fond backend con is closed or quit");
+		}
 	   if(conn instanceof MySQLConnection)
 	   {
 		   MySQLConnection mysqlCon = (MySQLConnection) conn;
@@ -92,6 +100,8 @@ public class CommitNodeHandler implements ResponseHandler {
 					mysqlCon.setXaStatus(0);
 					break;
 				}
+				default:
+				//	LOGGER.error("Wrong XA status flag!");
 			}
 		}
 		session.clearResources(false);

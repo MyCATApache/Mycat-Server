@@ -32,12 +32,15 @@ public class MinHeap implements HeapItf {
         int l = left(i);
         int r = right(i);
         int smallest = i;
-        if (l < size && cmp.compare(data.get(l), data.get(i)) < 0)
+        if (l < size && cmp.compare(data.get(l), data.get(i)) < 0) {
             smallest = l;
-        if (r < size && cmp.compare(data.get(r), data.get(smallest)) < 0)
+        }
+        if (r < size && cmp.compare(data.get(r), data.get(smallest)) < 0) {
             smallest = r;
-        if (i == smallest)
+        }
+        if (i == smallest) {
             return;
+        }
         swap(i, smallest);
         heapify(smallest, size);
     }

@@ -69,11 +69,12 @@ public class ExplainHandler {
 	}
 
 	public static void handle(String stmt, ServerConnection c, int offset) {
-		stmt = stmt.substring(offset);
+		stmt = stmt.substring(offset).trim();
 
 		RouteResultset rrs = getRouteResultset(c, stmt);
-		if (rrs == null)
+		if (rrs == null) {
 			return;
+		}
 
 		ByteBuffer buffer = c.allocate();
 
@@ -94,8 +95,7 @@ public class ExplainHandler {
 		buffer = eof.write(buffer, c,true);
 
 		// write rows
-		RouteResultsetNode[] rrsn = (rrs != null) ? rrs.getNodes()
-				: EMPTY_ARRAY;
+		RouteResultsetNode[] rrsn =  rrs.getNodes();
 		for (RouteResultsetNode node : rrsn) {
 			RowDataPacket row = getRow(node, c.getCharset());
 			row.packetId = ++packetId;
@@ -161,12 +161,16 @@ public class ExplainHandler {
 
     private static boolean isMycatSeq(String stmt, SchemaConfig schema)
     {
-        if(pattern.matcher(stmt).find())  return true;
+        if(pattern.matcher(stmt).find()) {
+			return true;
+		}
         SQLStatementParser parser =new MySqlStatementParser(stmt);
         MySqlInsertStatement statement = (MySqlInsertStatement) parser.parseStatement();
         String tableName=   statement.getTableName().getSimpleName();
         TableConfig tableConfig= schema.getTables().get(tableName.toUpperCase());
-        if(tableConfig==null) return false;
+        if(tableConfig==null) {
+			return false;
+		}
         if(tableConfig.isAutoIncrement())
         {
             boolean isHasIdInSql=false;
@@ -181,7 +185,9 @@ public class ExplainHandler {
                     break;
                 }
             }
-            if(!isHasIdInSql) return true;
+            if(!isHasIdInSql) {
+				return true;
+			}
         }
 
 

@@ -57,10 +57,11 @@ public class PIOUtils {
 	 */
 	public static void SendInteger2(int val, ByteBuffer buffer)
 			throws IOException {
-		if (val < Short.MIN_VALUE || val > Short.MAX_VALUE)
+		if (val < Short.MIN_VALUE || val > Short.MAX_VALUE) {
 			throw new IOException(
 					"Tried to send an out-of-range integer as a 2-byte value: "
 							+ val);
+		}
 
 		byte[] _int2buf = new byte[2];
 		_int2buf[0] = (byte) (val >>> 8);
@@ -101,7 +102,6 @@ public class PIOUtils {
 		for(int i=offset ;i< buffer.limit();i++){
 			out.write(new byte[]{buffer.get(i)});
 			if(((char)buffer.get(i)) == '\0'){
-				//System.out.println(i - offset);
 				break;
 			}			
 		}

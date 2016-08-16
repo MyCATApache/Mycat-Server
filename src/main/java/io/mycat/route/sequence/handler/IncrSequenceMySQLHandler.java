@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.mycat.route.util.PropertiesUtil;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -48,30 +49,11 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 
 	public void load() {
 		// load sequnce properties
-		Properties props = loadProps(SEQUENCE_DB_PROPS);
+		Properties props = PropertiesUtil.loadProps(SEQUENCE_DB_PROPS);
 		removeDesertedSequenceVals(props);
 		putNewSequenceVals(props);
 	}
 
-	private Properties loadProps(String propsFile) {
-
-		Properties props = new Properties();
-		InputStream inp = Thread.currentThread().getContextClassLoader()
-				.getResourceAsStream(propsFile);
-
-		if (inp == null) {
-			throw new java.lang.RuntimeException(
-					"db sequnce properties not found " + propsFile);
-
-		}
-		try {
-			props.load(inp);
-		} catch (IOException e) {
-			throw new java.lang.RuntimeException(e);
-		}
-
-		return props;
-	}
 
 	private void removeDesertedSequenceVals(Properties props) {
 		Iterator<Map.Entry<String, SequenceVal>> i = seqValueMap.entrySet()
@@ -302,7 +284,7 @@ class SequenceVal {
 		}
 	}
 
-	FetchMySQLSequnceHandler seqHandler;
+//	FetchMySQLSequnceHandler seqHandler;
 
 	public void setCurValue(long newValue) {
 		curVal.set(newValue);
@@ -318,8 +300,8 @@ class SequenceVal {
 						"sequnce not found in db table ");
 			} else if (dbretVal != null) {
 				String[] items = dbretVal.split(",");
-				Long curVal = Long.valueOf(items[0]);
-				int span = Integer.valueOf(items[1]);
+				Long curVal = Long.parseLong(items[0]);
+				int span = Integer.parseInt(items[1]);
 				return new Long[] { curVal, curVal + span };
 			} else {
 				try {

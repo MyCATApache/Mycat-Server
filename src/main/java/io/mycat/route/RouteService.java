@@ -26,7 +26,6 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
@@ -100,8 +99,8 @@ public class RouteService {
                 	String hintType = (String) hintMap.get(MYCAT_HINT_TYPE);
                     String hintSql = (String) hintMap.get(hintType);
                     if( hintSql.length() == 0 ) {
-                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
-                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
+                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
+                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
                     }
                     String realSQL = stmt.substring(endPos + "*/".length()).trim();
 
@@ -125,8 +124,8 @@ public class RouteService {
                     }
                     
                 }else{//fixed by runfriends@126.com
-                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
-                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/ or /*#mycat:type=value*/: "+stmt);
+                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
+                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
                 }
 			}
 		} else {
@@ -150,11 +149,19 @@ public class RouteService {
 			while(j < len && c != '!' && c != '#' && (c == ' ' || c == '*')){
 				c = sql.charAt(++j);
 			}
-			if(j + 6 >= len)	// prevent the following sql.charAt overflow
-				return -1;		// false
+			//注解支持的'!'不被mysql单库兼容，
+			//注解支持的'#'不被mybatis兼容
+			//考虑用mycat字符前缀标志Hintsql:"/** mycat: */"
+			if(sql.charAt(j)=='m'){
+				j--;
+			}
+			if(j + 6 >= len)	{// prevent the following sql.charAt overflow
+				return -1;        // false
+			}
 			if(sql.charAt(++j) == 'm' && sql.charAt(++j) == 'y' && sql.charAt(++j) == 'c'
-				&& sql.charAt(++j) == 'a' && sql.charAt(++j) == 't' && sql.charAt(++j) == ':')
-				return j+1;	// true，同时返回注解部分的长度
+				&& sql.charAt(++j) == 'a' && sql.charAt(++j) == 't' && sql.charAt(++j) == ':') {
+				return j + 1;    // true，同时返回注解部分的长度
+			}
 		}
 		return -1;	// false
 	}
@@ -197,6 +204,10 @@ public class RouteService {
 
             String key=substring.substring(0,indexOf).trim().toLowerCase();
             String value=substring.substring(indexOf+1,substring.length());
+            if(value.endsWith("'")&&value.startsWith("'"))
+            {
+                value=value.substring(1,value.length()-1);
+            }
             if(map.isEmpty())
             {
               map.put(MYCAT_HINT_TYPE,key)  ;

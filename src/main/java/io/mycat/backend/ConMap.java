@@ -69,18 +69,16 @@ public class ConMap {
 					MySQLConnection mysqlCon = (MySQLConnection) con;
 
 					if (mysqlCon.getSchema().equals(schema)
-							&& mysqlCon.getPool() == dataSouce) {
-						if (mysqlCon.isBorrowed()) {
+							&& mysqlCon.getPool() == dataSouce
+							&& mysqlCon.isBorrowed()) {
 							total++;
-						}
 					}
 
                 }else if (con instanceof JDBCConnection) {
                     JDBCConnection jdbcCon = (JDBCConnection) con;
-                    if (jdbcCon.getSchema().equals(schema) && jdbcCon.getPool() == dataSouce) {
-                        if (jdbcCon.isBorrowed()) {
+                    if (jdbcCon.getSchema().equals(schema) && jdbcCon.getPool() == dataSouce
+							&& jdbcCon.isBorrowed()) {
                             total++;
-                        }
                     }
                 }
             }
@@ -95,18 +93,16 @@ public class ConMap {
 				if (con instanceof MySQLConnection) {
 					MySQLConnection mysqlCon = (MySQLConnection) con;
 
-					if (mysqlCon.getPool() == dataSouce) {
-						if (mysqlCon.isBorrowed() && !mysqlCon.isClosed()) {
+					if (mysqlCon.getPool() == dataSouce
+							&& mysqlCon.isBorrowed() && !mysqlCon.isClosed()) {
 							total++;
-						}
 					}
 
                 } else if (con instanceof JDBCConnection) {
                     JDBCConnection jdbcCon = (JDBCConnection) con;
-                    if (jdbcCon.getPool() == dataSouce) {
-                        if (jdbcCon.isBorrowed() && !jdbcCon.isClosed()) {
+                    if (jdbcCon.getPool() == dataSouce
+							&& jdbcCon.isBorrowed() && !jdbcCon.isClosed()) {
                             total++;
-                        }
                     }
                 }
             }
@@ -126,11 +122,10 @@ public class ConMap {
                         con.close(reason);
                         itor.remove();
                     }
-                }else if(con instanceof JDBCConnection){
-                    if(((JDBCConnection) con).getPool() == dataSouce){
+                }else if((con instanceof JDBCConnection)
+						&& (((JDBCConnection) con).getPool() == dataSouce)){
                         con.close(reason);
                         itor.remove();
-                    }
                 }
             }
 

@@ -47,11 +47,13 @@ import io.mycat.manager.response.ShowSQLCondition;
 import io.mycat.manager.response.ShowSQLDetail;
 import io.mycat.manager.response.ShowSQLExecute;
 import io.mycat.manager.response.ShowSQLHigh;
+import io.mycat.manager.response.ShowSQLLarge;
 import io.mycat.manager.response.ShowSQLSlow;
 import io.mycat.manager.response.ShowSQLSumTable;
 import io.mycat.manager.response.ShowSQLSumUser;
 import io.mycat.manager.response.ShowServer;
 import io.mycat.manager.response.ShowSession;
+import io.mycat.manager.response.ShowSqlResultSet;
 import io.mycat.manager.response.ShowSysLog;
 import io.mycat.manager.response.ShowSysParam;
 import io.mycat.manager.response.ShowThreadPool;
@@ -163,9 +165,16 @@ public final class ShowHandler {
 			boolean isClearHigh = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
 			ShowSQLHigh.execute(c, isClearHigh);
 			break;
+		case ManagerParseShow.SQL_LARGE:
+			boolean isClearLarge = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
+			ShowSQLLarge.execute(c, isClearLarge);
+			break;
 		case ManagerParseShow.SQL_CONDITION:
 			ShowSQLCondition.execute(c);
-			break;			
+			break;
+		case ManagerParseShow.SQL_RESULTSET:
+			ShowSqlResultSet.execute(c);
+			break;	
 		case ManagerParseShow.SQL_SUM_USER:
 			boolean isClearSum = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
 			ShowSQLSumUser.execute(c,isClearSum);

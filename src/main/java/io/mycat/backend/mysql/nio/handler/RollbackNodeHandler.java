@@ -25,6 +25,7 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
+import io.mycat.config.ErrorCode;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
@@ -59,15 +60,20 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 		int started = 0;
 		for (final RouteResultsetNode node : session.getTargetKeys()) {
 			if (node == null) {
-				try {
 					LOGGER.error("null is contained in RoutResultsetNodes, source = "
 							+ session.getSource());
-				} catch (Exception e) {
-				}
 				continue;
 			}
 			final BackendConnection conn = session.getTarget(node);
+
 			if (conn != null) {
+				boolean isClosed=conn.isClosedOrQuit();
+				    if(isClosed)
+					{
+						session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
+								"receive rollback,but find backend con is closed or quit");
+						LOGGER.error( conn+"receive rollback,but fond backend con is closed or quit");
+					}
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("rollback job run for " + conn);
 				}

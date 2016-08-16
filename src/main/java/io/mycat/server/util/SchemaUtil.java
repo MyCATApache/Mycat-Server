@@ -36,25 +36,34 @@ public class SchemaUtil
             {
                 db = schemaConfigMap.entrySet().iterator().next().getKey();
             }
-
-            if(schemaInfo!=null&&schemaInfo.schema!=null&&schemaConfigMap.containsKey(schemaInfo.schema)  )
-                db= schemaInfo.schema;
+            
+            if (schemaInfo != null && schemaInfo.schema != null ) {
+            	
+				if ( schemaConfigMap.containsKey(schemaInfo.schema) ) {
+					db = schemaInfo.schema;			
+					
+				/**
+				 * 对 MySQL 自带的元数据库 information_schema 进行返回
+				 */
+				} else if ( "information_schema".equalsIgnoreCase( schemaInfo.schema ) ) {
+					db = "information_schema";					
+				}
+			}
         }
         else
         if(ServerParse.INSERT==type||ServerParse.UPDATE==type||ServerParse.DELETE==type||ServerParse.DDL==type)
         {
             SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
-            if(schemaInfo!=null&&schemaInfo.schema!=null&&schemaConfigMap.containsKey(schemaInfo.schema)  )
-                db= schemaInfo.schema;
+            if(schemaInfo!=null&&schemaInfo.schema!=null&&schemaConfigMap.containsKey(schemaInfo.schema)  ) {
+                db = schemaInfo.schema;
+            }
         }   else
-        if(ServerParse.SHOW==type||ServerParse.USE==type||ServerParse.EXPLAIN==type||ServerParse.SET==type
+        if((ServerParse.SHOW==type||ServerParse.USE==type||ServerParse.EXPLAIN==type||ServerParse.SET==type
                 ||ServerParse.HELP==type||ServerParse.DESCRIBE==type)
+                && !schemaConfigMap.isEmpty())
         {
             //兼容mysql gui  不填默认database
-            if (!schemaConfigMap.isEmpty())
-            {
                 db = schemaConfigMap.entrySet().iterator().next().getKey();
-            }
         }
         return db;
     }

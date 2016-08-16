@@ -82,7 +82,6 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 					LOGGER.debug("execute in datanode " + dn);
 				}
 				RouteResultsetNode node = new RouteResultsetNode(dn, ServerParse.SELECT, sql);
-				new RouteResultsetNode(dn, ServerParse.SELECT, sql);
 				node.setRunOnSlave(false);	// 获取 子表节点，最好走master为好
 
 				mysqlDN.getConnection(mysqlDN.getDatabase(), true, node, this, dn);

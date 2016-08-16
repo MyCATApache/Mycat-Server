@@ -28,8 +28,10 @@ import io.mycat.route.RouteResultset;
 
 public class DruidSelectSqlServerParser extends DruidSelectParser {
 
-
-	protected boolean isNeedParseOrderAgg=true;
+	public DruidSelectSqlServerParser(){
+		super();
+		isNeedParseOrderAgg=true;
+	}
 
 	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) {
@@ -166,7 +168,9 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
                      {
                          SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
                          int firstrownum = right.getNumber().intValue();
-                         if (operator == SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) firstrownum = firstrownum - 1;
+                         if (operator == SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) {
+							 firstrownum = firstrownum - 1;
+						 }
                          int lastrownum =subTop;
                          setLimitIFChange(stmt, rrs, schema, one, firstrownum, lastrownum);
                          if(orderBy!=null)
@@ -184,7 +188,9 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 					{
 						SQLIntegerExpr right = (SQLIntegerExpr) one.getRight();
 						int firstrownum = right.getNumber().intValue();
-						if (operator == SQLBinaryOperator.LessThan&&firstrownum!=0) firstrownum = firstrownum - 1;
+						if (operator == SQLBinaryOperator.LessThan&&firstrownum!=0) {
+							firstrownum = firstrownum - 1;
+						}
 						if (subSelect instanceof SQLServerSelectQueryBlock)
 						{
 							rrs.setLimitStart(0);
@@ -212,26 +218,34 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 						{
 							small=leftE;
 							firstrownum=((SQLIntegerExpr) leftE.getRight()).getNumber().intValue();
-							if(leftE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual &&firstrownum!=0) firstrownum = firstrownum - 1;
+							if(leftE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual &&firstrownum!=0) {
+								firstrownum = firstrownum - 1;
+							}
 						} else
 						if(leftE.getRight() instanceof SQLIntegerExpr&&(leftE.getOperator()==SQLBinaryOperator.LessThan||leftE.getOperator()==SQLBinaryOperator.LessThanOrEqual))
 						{
 							larger=leftE;
 							lastrownum=((SQLIntegerExpr) leftE.getRight()).getNumber().intValue();
-							if(leftE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+							if(leftE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) {
+								lastrownum = lastrownum - 1;
+							}
 						}
 
 						if(rightE.getRight() instanceof SQLIntegerExpr&&(rightE.getOperator()==SQLBinaryOperator.GreaterThan||rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual))
 						{
 							small=rightE;
 							firstrownum=((SQLIntegerExpr) rightE.getRight()).getNumber().intValue();
-							if(rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) firstrownum = firstrownum - 1;
+							if(rightE.getOperator()==SQLBinaryOperator.GreaterThanOrEqual&&firstrownum!=0) {
+								firstrownum = firstrownum - 1;
+							}
 						} else
 						if(rightE.getRight() instanceof SQLIntegerExpr&&(rightE.getOperator()==SQLBinaryOperator.LessThan||rightE.getOperator()==SQLBinaryOperator.LessThanOrEqual))
 						{
 							larger=rightE;
 							lastrownum=((SQLIntegerExpr) rightE.getRight()).getNumber().intValue();
-							if(rightE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) lastrownum = lastrownum - 1;
+							if(rightE.getOperator()==SQLBinaryOperator.LessThan&&lastrownum!=0) {
+								lastrownum = lastrownum - 1;
+							}
 						}
 						if(small!=null&&larger!=null)
 						{

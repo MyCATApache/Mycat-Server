@@ -13,8 +13,9 @@ public class ReloadQueryCf {
 
     public static void execute(ManagerConnection c, String cf) {
     	
-    	if ( cf == null ) 
-    		cf = "NULL";
+    	if ( cf == null ) {
+            cf = "NULL";
+        }
     	
     	QueryConditionAnalyzer.getInstance().setCf(cf);
     	

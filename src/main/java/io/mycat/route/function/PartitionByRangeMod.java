@@ -54,29 +54,33 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		long value = Long.valueOf(columnValue);
-		Integer rst = null;
-        int nodeIndex=0;
-		for (LongRange longRang : this.longRanges) {
-			if (value <= longRang.valueEnd && value >= longRang.valueStart) {
-                BigInteger bigNum = new BigInteger(columnValue).abs();
-                int innerIndex= (bigNum.mod(BigInteger.valueOf(longRang.groupSize))).intValue();
-				return nodeIndex+innerIndex;
-			}    else
-            {
-                nodeIndex+= longRang.groupSize;
-            }
+	public Integer calculate(String columnValue)  {
+//		columnValue = NumberParseUtil.eliminateQoute(columnValue);
+		try {
+			long value = Long.parseLong(columnValue);
+			Integer rst = null;
+			int nodeIndex = 0;
+			for (LongRange longRang : this.longRanges) {
+				if (value <= longRang.valueEnd && value >= longRang.valueStart) {
+					BigInteger bigNum = new BigInteger(columnValue).abs();
+					int innerIndex = (bigNum.mod(BigInteger.valueOf(longRang.groupSize))).intValue();
+					return nodeIndex + innerIndex;
+				} else {
+					nodeIndex += longRang.groupSize;
+				}
+			}
+			//数据超过范围，暂时使用配置的默认节点
+			if (rst == null && defaultNode >= 0) {
+				return defaultNode;
+			}
+			return rst;
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(), e);
 		}
-		//数据超过范围，暂时使用配置的默认节点
-		if(rst ==null && defaultNode>=0){
-			return defaultNode ;
-		}
-		return rst;
 	}
 
     public Integer calculateStart(String columnValue) {
-        long value = Long.valueOf(columnValue);
+        long value = Long.parseLong(columnValue);
         Integer rst = null;
         int nodeIndex=0;
         for (LongRange longRang : this.longRanges) {
@@ -95,7 +99,7 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
         return rst;
     }
     public Integer calculateEnd(String columnValue) {
-        long value = Long.valueOf(columnValue);
+        long value = Long.parseLong(columnValue);
         Integer rst = null;
         int nodeIndex=0;
         for (LongRange longRang : this.longRanges) {
@@ -154,15 +158,15 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 
 			for (String line = null; (line = in.readLine()) != null;) {
 				line = line.trim();
-				if (line.startsWith("#") || line.startsWith("//"))
+				if (line.startsWith("#") || line.startsWith("//")) {
 					continue;
+				}
 				int ind = line.indexOf('=');
 				if (ind < 0) {
 					System.out.println(" warn: bad line int " + mapFile + " :"
 							+ line);
 					continue;
 				}
-				try {
 					String pairs[] = line.substring(0, ind).trim().split("-");
 					long longStart = NumberParseUtil.parseLong(pairs[0].trim());
 					long longEnd = NumberParseUtil.parseLong(pairs[1].trim());
@@ -171,8 +175,6 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 					longRangeList
 							.add(new LongRange(nodeId, longStart, longEnd));
 
-				} catch (Exception e) {
-				}
 			}
 			longRanges = longRangeList.toArray(new LongRange[longRangeList.size()]);
 		} catch (Exception e) {

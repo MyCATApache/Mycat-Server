@@ -27,8 +27,8 @@ public class IncrSequenceTimeHandler implements SequenceHandler {
 		// load sequnce properties
 		Properties props = loadProps(SEQUENCE_DB_PROPS);
 
-		long workid = Long.valueOf(props.getProperty("WORKID"));
-		long dataCenterId = Long.valueOf(props.getProperty("DATAACENTERID"));
+		long workid = Long.parseLong(props.getProperty("WORKID"));
+		long dataCenterId = Long.parseLong(props.getProperty("DATAACENTERID"));
 
 		workey = new IdWorker(workid,dataCenterId);
 	}
@@ -70,7 +70,6 @@ public class IncrSequenceTimeHandler implements SequenceHandler {
 		private final static long sequenceBits = 12L;
 		// 机器ID偏左移12位
 		private final static long workerIdShift = sequenceBits;
-		// 数据中心ID左移17位
 		private final static long datacenterIdShift = sequenceBits + workerIdBits;
 		// 时间毫秒左移22位
 		private final static long timestampLeftShift = sequenceBits + workerIdBits + datacenterIdBits;
@@ -100,7 +99,7 @@ public class IncrSequenceTimeHandler implements SequenceHandler {
 			try {
 				throw new Exception("Clock moved backwards.  Refusing to generate id for "+ (lastTimestamp - timestamp) + " milliseconds");
 			} catch (Exception e) {
-				e.printStackTrace();
+				LOGGER.error("error",e);
 			}
 			}
 

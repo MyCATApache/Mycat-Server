@@ -58,13 +58,14 @@ import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 /**
  * @author mycat
  */
-public class SingleNodeHandler implements ResponseHandler, Terminatable,
-		LoadDataResponseHandler {
-	private static final Logger LOGGER = LoggerFactory
-			.getLogger(SingleNodeHandler.class);
+public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDataResponseHandler {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(SingleNodeHandler.class);
+	
 	private final RouteResultsetNode node;
 	private final RouteResultset rrs;
 	private final NonBlockingSession session;
+	
 	// only one thread access at one time no need lock
 	private volatile byte packetId;
 	private volatile ByteBuffer buffer;
@@ -73,6 +74,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	private long startTime;
 	private long netInBytes;
 	private long netOutBytes;
+	private long selectRows;
+	private long affectedRows;
 	
 	private boolean prepared;
 	private int fieldCount;
@@ -110,8 +113,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			}
 		}
         
-		if ( rrs != null && rrs.getStatement() != null)
+		if ( rrs != null && rrs.getStatement() != null) {
 			netInBytes += rrs.getStatement().getBytes().length;
+		}
         
 	}
 
@@ -208,8 +212,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
 		err.errno = ErrorCode.ERR_FOUND_EXCEPION;
-		err.message = StringUtil.encode(e.toString(), session.getSource()
-				.getCharset());
+		err.message = StringUtil.encode(e.toString(), session.getSource().getCharset());
 
 		this.backConnectionErr(err, c);
 	}
@@ -221,8 +224,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
 		err.errno = ErrorCode.ER_NEW_ABORTING_CONNECTION;
-		err.message = StringUtil.encode(e.getMessage(), session.getSource()
-				.getCharset());
+		err.message = StringUtil.encode(e.getMessage(), session.getSource().getCharset());
+		
 		ServerConnection source = session.getSource();
 		source.write(err.write(allocBuffer(), source, true));
 	}
@@ -233,7 +236,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		err.read(data);
 		err.packetId = ++packetId;
 		backConnectionErr(err, conn);
-
 	}
 
 	private void backConnectionErr(ErrorPacket errPkg, BackendConnection conn) {
@@ -256,6 +258,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	}
 
 
+	/**
+	 * insert/update/delete
+	 * 
+	 * okResponse()：读取data字节数组，组成一个OKPacket，并调用ok.write(source)将结果写入前端连接FrontendConnection的写缓冲队列writeQueue中，
+	 * 真正发送给应用是由对应的NIOSocketWR从写队列中读取ByteBuffer并返回的
+	 */
 	@Override
 	public void okResponse(byte[] data, BackendConnection conn) {      
 		//
@@ -267,65 +275,64 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			OkPacket ok = new OkPacket();
 			ok.read(data);
             boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());
-			if (rrs.isLoadData()) {
-				byte lastPackId = source.getLoadDataInfileHandler()
-						.getLastPackId();
+			if (rrs.isLoadData()) {				
+				byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
 				ok.packetId = ++lastPackId;// OK_PACKET
 				source.getLoadDataInfileHandler().clear();
-			} else if(isCanClose2Client)
-            {
+				
+			} else if (isCanClose2Client) {
 				ok.packetId = ++packetId;// OK_PACKET
 			}
 
 
-            if(isCanClose2Client)   {
-            session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
-                    false);
-            endRunning();
-            }
-
+			if (isCanClose2Client) {
+				session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
+				endRunning();
+			}
 			ok.serverStatus = source.isAutocommit() ? 2 : 1;
-
 			recycleResources();
 
-            if(isCanClose2Client)
-            {  source.setLastInsertId(ok.insertId);
-                ok.write(source);
-            }
-			//TODO: add by zhuam
-			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
-			QueryResultDispatcher.dispatchQuery( queryResult );
- 
+			if (isCanClose2Client) {
+				source.setLastInsertId(ok.insertId);
+				ok.write(source);
+			}
+            
+			this.affectedRows = ok.affectedRows;
+			
 		}
 	}
 
+	
+	/**
+	 * select 
+	 * 
+	 * 行结束标志返回时触发，将EOF标志写入缓冲区，最后调用source.write(buffer)将缓冲区放入前端连接的写缓冲队列中，等待NIOSocketWR将其发送给应用
+	 */
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		
 		this.netOutBytes += eof.length;
 		
 		ServerConnection source = session.getSource();
-		conn.recordSql(source.getHost(), source.getSchema(),
-                node.getStatement());
+		conn.recordSql(source.getHost(), source.getSchema(), node.getStatement());
         // 判断是调用存储过程的话不能在这里释放链接
-		if (!rrs.isCallStatement()||(rrs.isCallStatement()&&rrs.getProcedure().isResultSimpleValue()))
-        {
-			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
-					false);
+		if (!rrs.isCallStatement()||(rrs.isCallStatement()&&rrs.getProcedure().isResultSimpleValue())) 
+		{
+			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
 			endRunning();
 		}
 
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, allocBuffer());
+		int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
+		resultSize=resultSize+buffer.position();
 		source.write(buffer);
-		
 		//TODO: add by zhuam
 		//查询结果派发
 		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-				rrs.getSqlType(), rrs.getStatement(), netInBytes, netOutBytes, startTime, System.currentTimeMillis());
+				rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize);
 		QueryResultDispatcher.dispatchQuery( queryResult );
+		
 	}
 
 	/**
@@ -340,6 +347,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		return buffer;
 	}
 
+	/**
+	 * select
+	 * 
+	 * 元数据返回时触发，将header和元数据内容依次写入缓冲区中
+	 */	
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
@@ -388,17 +400,24 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		}
 	}
 
+	/**
+	 * select 
+	 * 
+	 * 行数据返回时触发，将行数据写入缓冲区中
+	 */
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
 		
 		this.netOutBytes += row.length;
+		this.selectRows++;
 		
 		if (isDefaultNodeShowTable || isDefaultNodeShowFullTable) {
 			RowDataPacket rowDataPacket = new RowDataPacket(1);
 			rowDataPacket.read(row);
 			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), conn.getCharset());
-			if (shardingTablesSet.contains(table.toUpperCase()))
+			if (shardingTablesSet.contains(table.toUpperCase())) {
 				return;
+			}
 		}
 		row[3] = ++packetId;
 		

@@ -67,9 +67,12 @@ public final class ShowWhiteHost {
 			List<UserConfig> userConfigs=map.get(key);
 			String users="";
 			 for (int i = 0; i < userConfigs.size(); i++) {
-				 if(i>0) users+=","+userConfigs.get(i).getName();
-				 else
-					 users+=userConfigs.get(i).getName(); 
+				 if(i>0) {
+                     users += "," + userConfigs.get(i).getName();
+                 }
+				 else {
+                     users += userConfigs.get(i).getName();
+                 }
 			 }
             RowDataPacket row = getRow(key, users, c.getCharset());
             row.packetId = ++packetId;

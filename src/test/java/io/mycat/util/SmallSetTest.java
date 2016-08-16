@@ -36,8 +36,9 @@ import junit.framework.TestCase;
 public class SmallSetTest extends TestCase {
 
     public void assertListEquals(Collection<? extends Object> col, Object... objects) {
-        if (objects == null)
+        if (objects == null) {
             Assert.assertTrue(col.isEmpty());
+        }
         Assert.assertEquals(objects.length, col.size());
         int i = 0;
         for (Object o : col) {

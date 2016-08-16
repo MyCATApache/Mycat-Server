@@ -49,9 +49,12 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public int getColumnCount() throws SQLException {
-		if (keySet==null) return 0;
-		else
-		  return keySet.length;
+		if (keySet==null) {
+			return 0;
+		}
+		else {
+			return keySet.length;
+		}
 	}
 
 	@Override

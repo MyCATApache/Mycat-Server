@@ -31,18 +31,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import io.mycat.config.Versions;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.alibaba.druid.wall.WallConfig;
 
-import io.mycat.MycatServer;
-import io.mycat.config.MycatConfig;
 import io.mycat.config.model.ClusterConfig;
 import io.mycat.config.model.QuarantineConfig;
 import io.mycat.config.model.SystemConfig;
@@ -87,15 +85,20 @@ public class XMLServerLoader {
     }
 
     private void load() {
+        //读取server.xml配置
         InputStream dtd = null;
         InputStream xml = null;
         try {
             dtd = XMLServerLoader.class.getResourceAsStream("/server.dtd");
             xml = XMLServerLoader.class.getResourceAsStream("/server.xml");
             Element root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
+            //加载System标签
             loadSystem(root);
+            //加载User标签
             loadUsers(root);
+            //加载集群配置
             this.cluster = new ClusterConfig(root, system.getServerPort());
+            //加载权限和黑白名单
             loadQuarantine(root);
         } catch (ConfigException e) {
             throw e;
@@ -154,7 +157,7 @@ public class XMLServerLoader {
             	Element e = (Element) node;
              	String check = e.getAttribute("check");
              	if (null != check) {
-             		quarantine.setCheck(Boolean.valueOf(check));
+             		quarantine.setCheck(Boolean.parseBoolean(check));
 				}
 
                 Map<String, Object> props = ConfigUtil.loadElements((Element) node);
@@ -194,7 +197,7 @@ public class XMLServerLoader {
 				
 				String readOnly = (String) props.get("readOnly");
 				if (null != readOnly) {
-					user.setReadOnly(Boolean.valueOf(readOnly));
+					user.setReadOnly(Boolean.parseBoolean(readOnly));
 				}
 				
 				String schemas = (String) props.get("schemas");
@@ -217,6 +220,29 @@ public class XMLServerLoader {
             if (node instanceof Element) {
                 Map<String, Object> props = ConfigUtil.loadElements((Element) node);
                 ParameterMapping.mapping(system, props);
+            }
+        }
+
+        if (system.getFakeMySQLVersion() != null) {
+            boolean validVersion = false;
+            String majorMySQLVersion = system.getFakeMySQLVersion();
+            /*
+             * 注意！！！ 目前MySQL官方主版本号仍然是5.x, 以后万一前面的大版本号变成2位数字，
+             * 比如 10.x...,下面获取主版本的代码要做修改
+             */
+            majorMySQLVersion = majorMySQLVersion.substring(0, majorMySQLVersion.indexOf(".", 2));
+            for (String ver : SystemConfig.MySQLVersions) {
+                // 这里只是比较mysql前面的大版本号
+                if (majorMySQLVersion.equals(ver)) {
+                    validVersion = true;
+                }
+            }
+
+            if (validVersion) {
+                Versions.setServerVersion(system.getFakeMySQLVersion());
+            } else {
+                throw new ConfigException("The specified MySQL Version (" + system.getFakeMySQLVersion()
+                        + ") is not valid.");
             }
         }
     }

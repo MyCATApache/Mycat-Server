@@ -193,7 +193,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 				SQLBinaryOpExpr opExpr = (SQLBinaryOpExpr)expr;
 				String column = StringUtil.removeBackquote(opExpr.getLeft().toString().toUpperCase());
 				if(column.equals(partitionColumn)) {
-					String msg = "partion key can't be updated: " + tableName + " -> " + partitionColumn;
+					String msg = "Sharding column can't be updated: " + tableName + " -> " + partitionColumn;
 					LOGGER.warn(msg);
 					throw new SQLNonTransientException(msg);
 				}
@@ -214,7 +214,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 		if(insertStmt.getValuesList().size() > 1) {
 			//字段列数
 			int columnNum = insertStmt.getColumns().size();
-			int shardingColIndex = getSharingColIndex(insertStmt, partitionColumn);
+			int shardingColIndex = getShardingColIndex(insertStmt, partitionColumn);
 			if(shardingColIndex == -1) {
 				String msg = "bad insert sql (sharding column:"+ partitionColumn + " not provided," + insertStmt;
 				LOGGER.warn(msg);
@@ -263,8 +263,9 @@ public class DruidInsertParser extends DefaultDruidParser {
 					Integer nodeIndex = node.getKey();
 					List<ValuesClause> valuesList = node.getValue();
 					insertStmt.setValuesList(valuesList);
-					nodes[count++] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
+					nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
 							rrs.getSqlType(),insertStmt.toString());
+					nodes[count++].setSource(rrs);
 				}
 				rrs.setNodes(nodes);
 				rrs.setFinishedRoute(true);
@@ -282,7 +283,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 	 * @param partitionColumn
 	 * @return
 	 */
-	private int getSharingColIndex(MySqlInsertStatement insertStmt,String partitionColumn) {
+	private int getShardingColIndex(MySqlInsertStatement insertStmt,String partitionColumn) {
 		int shardingColIndex = -1;
 		for(int i = 0; i < insertStmt.getColumns().size(); i++) {
 			if(partitionColumn.equalsIgnoreCase(StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString()))) {//找到分片字段

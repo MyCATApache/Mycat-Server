@@ -30,6 +30,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
@@ -77,7 +78,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 	}
 	protected void parseOrderAggGroupMysql(SchemaConfig schema, SQLStatement stmt, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery)
 	{
-        if(!isNeedParseOrderAgg)
+		MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
+		stmt.accept(visitor);
+//		rrs.setGroupByCols((String[])visitor.getGroupByColumns().toArray());
+		if(!isNeedParseOrderAgg)
         {
             return;
         }
@@ -270,8 +274,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 				|| (item.getExpr() instanceof SQLIdentifierExpr) || item.getExpr() instanceof SQLBinaryOpExpr) {			
 			return item.getExpr().toString();//字段别名
 		}
-		else
-		  return item.toString();
+		else {
+			return item.toString();
+		}
 	}
 	/**
 	 * 改写sql：需要加limit的加上
@@ -388,8 +393,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		return map;
 	}
 
-	private void tryRoute(SchemaConfig schema, RouteResultset rrs, LayerCachePool cachePool) throws SQLNonTransientException
-	{
+	private void tryRoute(SchemaConfig schema, RouteResultset rrs, LayerCachePool cachePool) throws SQLNonTransientException {
 		if(rrs.isFinishedRoute())
 		{
 			return;//避免重复路由
@@ -589,12 +593,13 @@ public class DruidSelectParser extends DefaultDruidParser {
 		String[] groupByCols = new String[groupByItems.size()]; 
 		for(int i= 0; i < groupByItems.size(); i++) {
             SQLExpr sqlExpr = groupByItems.get(i);
-            String column;
+            String column = null;
             if(sqlExpr instanceof SQLIdentifierExpr )
             {
                 column=((SQLIdentifierExpr) sqlExpr).getName();
-            } else
-            {
+            } else if(sqlExpr instanceof SQLMethodInvokeExpr){
+				column = ((SQLMethodInvokeExpr) sqlExpr).toString();
+			} else if(sqlExpr instanceof MySqlOrderingExpr){
                 //todo czn
                 SQLExpr expr = ((MySqlOrderingExpr) sqlExpr).getExpr();
 
@@ -605,9 +610,19 @@ public class DruidSelectParser extends DefaultDruidParser {
                 {
                     column = StringUtil.removeBackquote(expr.toString());
                 }
-            }
+            } else if(sqlExpr instanceof SQLPropertyExpr){
+				/**
+				 * 针对子查询别名，例如select id from (select h.id from hotnews h  union select h.title from hotnews h ) as t1 group by t1.id;
+				 */
+				column = sqlExpr.toString();
+			}
+			if(column == null){
+				column = sqlExpr.toString();
+			}
 			int dotIndex=column.indexOf(".") ;
-			if(dotIndex!=-1)
+			int bracketIndex=column.indexOf("(") ;
+			//通过判断含有括号来决定是否为函数列
+			if(dotIndex!=-1&&bracketIndex==-1)
 			{
 				//此步骤得到的column必须是不带.的，有别名的用别名，无别名的用字段名
 				column=column.substring(dotIndex+1) ;

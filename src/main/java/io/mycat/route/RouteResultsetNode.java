@@ -50,6 +50,7 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
    private Procedure procedure;
 	private LoadData loadData;
+	private RouteResultset source;
 	
 	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB(false)
 	// 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
@@ -201,8 +202,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
+		}
 		if (obj instanceof RouteResultsetNode) {
 			RouteResultsetNode rrn = (RouteResultsetNode) obj;
 			if(subTableName!=null){
@@ -276,5 +278,13 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	
 	public boolean isHasBlanceFlag() {
 		return hasBlanceFlag;
+	}
+
+	public RouteResultset getSource() {
+		return source;
+	}
+
+	public void setSource(RouteResultset source) {
+		this.source = source;
 	}
 }

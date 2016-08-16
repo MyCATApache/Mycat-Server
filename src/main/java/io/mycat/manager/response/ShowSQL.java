@@ -24,6 +24,7 @@
 package io.mycat.manager.response;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 
 import io.mycat.backend.mysql.PacketUtil;
@@ -33,9 +34,10 @@ import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.statistic.stat.UserSqlStat;
+import io.mycat.statistic.stat.UserSqlLastStat;
 import io.mycat.statistic.stat.UserStat;
 import io.mycat.statistic.stat.UserStatAnalyzer;
+
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
 
@@ -52,6 +54,7 @@ public final class ShowSQL {
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
+    
     static {
         int i = 0;
         byte packetId = 0;
@@ -94,18 +97,20 @@ public final class ShowSQL {
         Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
     	for (UserStat userStat : statMap.values()) {
         	String user = userStat.getUser();
-            UserSqlStat.Sql[] sqls = userStat.getSqlStat().getSqls();
-            for (int i = sqls.length - 1; i >= 0; i--) {
-                if (sqls[i] != null) {
-                    RowDataPacket row = getRow(user, sqls[i], i, c.getCharset());
+            List<UserSqlLastStat.SqlLast> sqls = userStat.getSqlLastStat().getSqls();
+            int i = 1;
+            for (UserSqlLastStat.SqlLast sqlLast : sqls) {
+                if (sqlLast != null) {
+                    RowDataPacket row = getRow(user, sqlLast, i, c.getCharset());
                     row.packetId = ++packetId;
+                    i++;
                     buffer = row.write(buffer, c,true);
                 }
             }
             
             //读取SQL监控后清理
             if ( isClear ) {
-            	userStat.getSqlStat().clear();
+            	userStat.getSqlLastStat().clear();
             }
         }
 
@@ -119,7 +124,7 @@ public final class ShowSQL {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(String user, UserSqlStat.Sql sql, int idx, String charset) {
+    private static RowDataPacket getRow(String user, UserSqlLastStat.SqlLast sql, int idx, String charset) {
         
     	RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(LongUtil.toBytes(idx));          

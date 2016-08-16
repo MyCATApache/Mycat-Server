@@ -292,8 +292,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             {
                 try
                 {
-                    if (channel != null)
+                    if (channel != null) {
                         channel.close();
+                    }
 
                 } catch (IOException ignored)
                 {
@@ -315,6 +316,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         {
             //走默认节点
             RouteResultsetNode rrNode = new RouteResultsetNode(schema.getDataNode(), ServerParse.INSERT, sql);
+            rrNode.setSource(rrs);
             rrs.setNodes(new RouteResultsetNode[]{rrNode});
             return rrs;
         }
@@ -327,6 +329,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 String dataNode = dataNodes.get(i);
                 RouteResultsetNode rrNode = new RouteResultsetNode(dataNode, ServerParse.INSERT, sql);
                 rrsNodes[i]=rrNode;
+                rrsNodes[i].setSource(rrs);
             }
 
             rrs.setNodes(rrsNodes);
@@ -424,13 +427,11 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
                     }
 
-                if (toFile)
+                if (toFile
+                        //避免当导入数据跨多分片时内存溢出的情况
+                        && data.getData().size()>10000)
                 {
-                    //避免当导入数据跨多分片时内存溢出的情况
-                    if(data.getData().size()>10000)
-                    {
                         saveDataToFile(data,name);
-                    }
                 }
 
             }
@@ -531,6 +532,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         for (String dn : routeMap.keySet())
         {
             RouteResultsetNode rrNode = new RouteResultsetNode(dn, ServerParse.LOAD_DATA_INFILE_SQL, srcStatement);
+            rrNode.setSource(rrs);
             rrNode.setTotalNodeSize(size);
             rrNode.setStatement(srcStatement);
             LoadData newLoadData = new LoadData();

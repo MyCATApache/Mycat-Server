@@ -28,7 +28,6 @@ import io.mycat.manager.ManagerConnection;
 import io.mycat.manager.response.ReloadConfig;
 import io.mycat.manager.response.ReloadQueryCf;
 import io.mycat.manager.response.ReloadSqlSlowTime;
-import io.mycat.manager.response.ReloadSqlStat;
 import io.mycat.manager.response.ReloadUser;
 import io.mycat.manager.response.ReloadUserStat;
 import io.mycat.route.parser.ManagerParseReload;
@@ -63,10 +62,6 @@ public final class ReloadHandler
             case ManagerParseReload.SQL_SLOW:
             	ReloadSqlSlowTime.execute(c, ParseUtil.getSQLId(stmt));
                 break;           
-            case ManagerParseReload.SQL_STAT:
-            	String stat = ParseUtil.parseString(stmt) ;
-            	ReloadSqlStat.execute(c, stat);
-            	break;
             case ManagerParseReload.QUERY_CF:            	
             	String filted = ParseUtil.parseString(stmt) ;
             	ReloadQueryCf.execute(c, filted);

@@ -63,12 +63,16 @@ public class XMLSchemaLoader implements SchemaLoader {
 	private final Map<String, SchemaConfig> schemas;
 
 	public XMLSchemaLoader(String schemaFile, String ruleFile) {
+		//先读取rule.xml
 		XMLRuleLoader ruleLoader = new XMLRuleLoader(ruleFile);
+		//将tableRules拿出，用于这里加载Schema做rule有效判断，以及之后的分片路由计算
 		this.tableRules = ruleLoader.getTableRules();
+		//释放ruleLoader
 		ruleLoader = null;
 		this.dataHosts = new HashMap<String, DataHostConfig>();
 		this.dataNodes = new HashMap<String, DataNodeConfig>();
 		this.schemas = new HashMap<String, SchemaConfig>();
+		//读取加载schema配置
 		this.load(DEFAULT_DTD, schemaFile == null ? DEFAULT_XML : schemaFile);
 	}
 
@@ -103,8 +107,11 @@ public class XMLSchemaLoader implements SchemaLoader {
 			dtd = XMLSchemaLoader.class.getResourceAsStream(dtdFile);
 			xml = XMLSchemaLoader.class.getResourceAsStream(xmlFile);
 			Element root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
+			//先加载所有的DataHost
 			loadDataHosts(root);
+			//再加载所有的DataNode
 			loadDataNodes(root);
+			//最后加载所有的Schema
 			loadSchemas(root);
 		} catch (ConfigException e) {
 			throw e;
@@ -132,17 +139,20 @@ public class XMLSchemaLoader implements SchemaLoader {
 		NodeList list = root.getElementsByTagName("schema");
 		for (int i = 0, n = list.getLength(); i < n; i++) {
 			Element schemaElement = (Element) list.item(i);
+			//读取各个属性
 			String name = schemaElement.getAttribute("name");
 			String dataNode = schemaElement.getAttribute("dataNode");
 			String checkSQLSchemaStr = schemaElement.getAttribute("checkSQLschema");
 			String sqlMaxLimitStr = schemaElement.getAttribute("sqlMaxLimit");
 			int sqlMaxLimit = -1;
+			//读取sql返回结果集限制
 			if (sqlMaxLimitStr != null && !sqlMaxLimitStr.isEmpty()) {
-				sqlMaxLimit = Integer.valueOf(sqlMaxLimitStr);
+				sqlMaxLimit = Integer.parseInt(sqlMaxLimitStr);
 			}
 			
-			// check dataNode already exists or not
+			// check dataNode already exists or not,看schema标签中是否有datanode
 			String defaultDbType = null;
+			//校验检查并添加dataNode
 			if (dataNode != null && !dataNode.isEmpty()) {
 				List<String> dataNodeLst = new ArrayList<String>(1);
 				dataNodeLst.add(dataNode);
@@ -152,8 +162,9 @@ public class XMLSchemaLoader implements SchemaLoader {
 			} else {
 				dataNode = null;
 			}
-			
+			//加载schema下所有tables
 			Map<String, TableConfig> tables = loadTables(schemaElement);
+			//判断schema是否重复
 			if (schemas.containsKey(name)) {
 				throw new ConfigException("schema " + name + " duplicated!");
 			}
@@ -166,7 +177,8 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 			SchemaConfig schemaConfig = new SchemaConfig(name, dataNode,
 					tables, sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr));
-			
+
+			//设定DB类型，这对之后的sql语句路由解析有帮助
 			if (defaultDbType != null) {
 				schemaConfig.setDefaultDataNodeDbType(defaultDbType);
 				if (!"mysql".equalsIgnoreCase(defaultDbType)) {
@@ -175,13 +187,13 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 
 			// 判断是否有不是mysql的数据库类型，方便解析判断是否启用多数据库分页语法解析
-			for (String tableName : tables.keySet()) {
-				TableConfig tableConfig = tables.get(tableName);
+			for (TableConfig tableConfig : tables.values()) {
 				if (isHasMultiDbType(tableConfig)) {
 					schemaConfig.setNeedSupportMultiDBType(true);
 					break;
 				}
 			}
+			//记录每种dataNode的DB类型
 			Map<String, String> dataNodeDbTypeMap = new HashMap<>();
 			for (String dataNodeName : dataNodes.keySet()) {
 				DataNodeConfig dataNodeConfig = dataNodes.get(dataNodeName);
@@ -282,7 +294,6 @@ public class XMLSchemaLoader implements SchemaLoader {
 		
 		// 支持表名中包含引号[`] BEN GONG
 		Map<String, TableConfig> tables = new TableConfigMap();
-		
 		NodeList nodeList = node.getElementsByTagName("table");
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Element tableElement = (Element) nodeList.item(i);
@@ -295,25 +306,29 @@ public class XMLSchemaLoader implements SchemaLoader {
 				if( tableNameElement.split(",").length > 1 ) {
 					throw new ConfigException("nameSuffix " + tableNameSuffixElement + ", require name parameter cannot multiple breaks!");
 				}
-				
+				//前缀用来标明日期格式
 				tableNameElement = doTableNameSuffix(tableNameElement, tableNameSuffixElement);
 			}
-			
+			//记录主键，用于之后路由分析，以及启用自增长主键
 			String[] tableNames = tableNameElement.split(",");
 			String primaryKey = tableElement.hasAttribute("primaryKey") ? tableElement.getAttribute("primaryKey").toUpperCase() : null;
+			//记录是否主键自增，默认不是，（启用全局sequence handler）
 			boolean autoIncrement = false;
 			if (tableElement.hasAttribute("autoIncrement")) {
 				autoIncrement = Boolean.parseBoolean(tableElement.getAttribute("autoIncrement"));
 			}
+			//记录是否需要加返回结果集限制，默认需要加
 			boolean needAddLimit = true;
 			if (tableElement.hasAttribute("needAddLimit")) {
 				needAddLimit = Boolean.parseBoolean(tableElement.getAttribute("needAddLimit"));
 			}
+			//记录type，是否为global
 			String tableTypeStr = tableElement.hasAttribute("type") ? tableElement.getAttribute("type") : null;
 			int tableType = TableConfig.TYPE_GLOBAL_DEFAULT;
 			if ("global".equalsIgnoreCase(tableTypeStr)) {
 				tableType = TableConfig.TYPE_GLOBAL_TABLE;
 			}
+			//记录dataNode，就是分布在哪些dataNode上
 			String dataNode = tableElement.getAttribute("dataNode");
 			TableRuleConfig tableRule = null;
 			if (tableElement.hasAttribute("rule")) {
@@ -325,6 +340,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 			
 			boolean ruleRequired = false;
+			//记录是否绑定有分片规则
 			if (tableElement.hasAttribute("ruleRequired")) {
 				ruleRequired = Boolean.parseBoolean(tableElement.getAttribute("ruleRequired"));
 			}
@@ -332,12 +348,13 @@ public class XMLSchemaLoader implements SchemaLoader {
 			if (tableNames == null) {
 				throw new ConfigException("table name is not found!");
 			}
-			
+			//distribute函数，重新编排dataNode
 			String distPrex = "distribute(";
 			boolean distTableDns = dataNode.startsWith(distPrex);
 			if (distTableDns) {
 				dataNode = dataNode.substring(distPrex.length(), dataNode.length() - 1);
 			}
+			//分表功能
 			String subTables = tableElement.getAttribute("subTables");
 			
 			for (int j = 0; j < tableNames.length; j++) {
@@ -353,14 +370,14 @@ public class XMLSchemaLoader implements SchemaLoader {
 				if (distTableDns) {
 					distributeDataNodes(table.getDataNodes());
 				}
-				
+				//检查去重
 				if (tables.containsKey(table.getName())) {
 					throw new ConfigException("table " + tableName + " duplicated!");
 				}
-				
+				//放入map
 				tables.put(table.getName(), table);
 			}
-
+			//只有tableName配置的是单个表（没有逗号）的时候才能有子表
 			if (tableNames.length == 1) {
 				TableConfig table = tables.get(tableNames[0]);
 				// process child tables
@@ -373,8 +390,10 @@ public class XMLSchemaLoader implements SchemaLoader {
 	/**
 	 * distribute datanodes in multi hosts,means ,dn1 (host1),dn100
 	 * (host2),dn300(host3),dn2(host1),dn101(host2),dn301(host3)...etc
+	 *	将每个host上的datanode按照host重新排列。比如上面的例子host1拥有dn1,dn2，host2拥有dn100，dn101，host3拥有dn300，dn301,
+	 * 按照host重新排列： 0->dn1 (host1),1->dn100(host2),2->dn300(host3),3->dn2(host1),4->dn101(host2),5->dn301(host3)
 	 *
-	 * @param dataNodes
+	 * @param theDataNodes
 	 */
 	private void distributeDataNodes(ArrayList<String> theDataNodes) {
 		Map<String, ArrayList<String>> newDataNodeMap = new HashMap<String, ArrayList<String>>(dataHosts.size());
@@ -446,7 +465,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 				continue;
 			}
 			Element childTbElement = (Element) theNode;
-
+			//读取子表信息
 			String cdTbName = childTbElement.getAttribute("name").toUpperCase();
 			String primaryKey = childTbElement.hasAttribute("primaryKey") ? childTbElement.getAttribute("primaryKey").toUpperCase() : null;
 
@@ -459,7 +478,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 				needAddLimit = Boolean.parseBoolean(childTbElement.getAttribute("needAddLimit"));
 			}
 			String subTables = childTbElement.getAttribute("subTables");
-
+			//子表join键，和对应的parent的键，父子表通过这个关联
 			String joinKey = childTbElement.getAttribute("joinKey").toUpperCase();
 			String parentKey = childTbElement.getAttribute("parentKey").toUpperCase();
 			TableConfig table = new TableConfig(cdTbName, primaryKey,
@@ -472,6 +491,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 				throw new ConfigException("table " + table.getName() + " duplicated!");
 			}
 			tables.put(table.getName(), table);
+			//对于子表的子表，递归处理
 			processChildTables(tables, table, dataNodes, childTbElement);
 		}
 	}
@@ -488,6 +508,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 	}
 
 	private void loadDataNodes(Element root) {
+		//读取DataNode分支
 		NodeList list = root.getElementsByTagName("dataNode");
 		for (int i = 0, n = list.getLength(); i < n; i++) {
 			Element element = (Element) list.item(i);
@@ -495,9 +516,14 @@ public class XMLSchemaLoader implements SchemaLoader {
 
 			String databaseStr = element.getAttribute("database");
 			String host = element.getAttribute("dataHost");
+			//字符串不为空
 			if (empty(dnNamePre) || empty(databaseStr) || empty(host)) {
 				throw new ConfigException("dataNode " + dnNamePre + " define error ,attribute can't be empty");
 			}
+			//dnNames（name）,databases（database）,hostStrings（dataHost）都可以配置多个，以',', '$', '-'区分，但是需要保证database的个数*dataHost的个数=name的个数
+			//多个dataHost与多个database如果写在一个标签，则每个dataHost拥有所有database
+			//例如：<dataNode name="dn1$0-75" dataHost="localhost$1-10" database="db$0-759" />
+			//则为：localhost1拥有dn1$0-75,localhost2也拥有dn1$0-75（对应db$76-151）
 			String[] dnNames = io.mycat.util.SplitUtil.split(dnNamePre, ',', '$', '-');
 			String[] databases = io.mycat.util.SplitUtil.split(databaseStr, ',', '$', '-');
 			String[] hostStrings = io.mycat.util.SplitUtil.split(host, ',', '$', '-');
@@ -524,6 +550,12 @@ public class XMLSchemaLoader implements SchemaLoader {
 		}
 	}
 
+	/**
+	 * 匹配DataHost和Database，每个DataHost拥有每个Database名字
+	 * @param hostStrings
+	 * @param databases
+     * @return
+     */
 	private List<String[]> mergerHostDatabase(String[] hostStrings,	String[] databases) {
 		List<String[]> mhdList = new ArrayList<>();
 		for (int i = 0; i < hostStrings.length; i++) {
@@ -567,7 +599,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 		String passwordEncryty= DecryptUtil.DBHostDecrypt(usingDecrypt, nodeHost, user, password);
 		
 		String weightStr = node.getAttribute("weight");
-		int weight = "".equals(weightStr) ? PhysicalDBPool.WEIGHT : Integer.valueOf(weightStr) ;
+		int weight = "".equals(weightStr) ? PhysicalDBPool.WEIGHT : Integer.parseInt(weightStr) ;
 		
 		String ip = null;
 		int port = 0;
@@ -609,40 +641,61 @@ public class XMLSchemaLoader implements SchemaLoader {
 			
 			Element element = (Element) list.item(i);
 			String name = element.getAttribute("name");
-			
+			//判断是否重复
 			if (dataHosts.containsKey(name)) {
 				throw new ConfigException("dataHost name " + name + "duplicated!");
 			}
-			
-			int maxCon = Integer.valueOf(element.getAttribute("maxCon"));
-			int minCon = Integer.valueOf(element.getAttribute("minCon"));
-			int balance = Integer.valueOf(element.getAttribute("balance"));
-			
+			//读取最大连接数
+			int maxCon = Integer.parseInt(element.getAttribute("maxCon"));
+			//读取最小连接数
+			int minCon = Integer.parseInt(element.getAttribute("minCon"));
+			/**
+			 * 读取负载均衡配置
+			 * 1. balance="0", 不开启分离机制，所有读操作都发送到当前可用的 writeHost 上。
+			 * 2. balance="1"，全部的 readHost 和 stand by writeHost 参不 select 的负载均衡
+			 * 3. balance="2"，所有读操作都随机的在 writeHost、readhost 上分发。
+			 * 4. balance="3"，所有读请求随机的分发到 wiriterHost 对应的 readhost 执行，writerHost 不负担读压力
+			 */
+			int balance = Integer.parseInt(element.getAttribute("balance"));
+			/**
+			 * 读取切换类型
+			 * -1 表示不自动切换
+			 * 1 默认值，自动切换
+			 * 2 基于MySQL主从同步的状态决定是否切换
+			 * 心跳询句为 show slave status
+			 * 3 基于 MySQL galary cluster 的切换机制
+			 */
 			String switchTypeStr = element.getAttribute("switchType");
-			int switchType = switchTypeStr.equals("") ? -1 : Integer.valueOf(switchTypeStr);
-			
+			int switchType = switchTypeStr.equals("") ? -1 : Integer.parseInt(switchTypeStr);
+			//读取从延迟界限
 			String slaveThresholdStr = element.getAttribute("slaveThreshold");
-			int slaveThreshold = slaveThresholdStr.equals("") ? -1 : Integer.valueOf(slaveThresholdStr);
+			int slaveThreshold = slaveThresholdStr.equals("") ? -1 : Integer.parseInt(slaveThresholdStr);
 			
 			//如果 tempReadHostAvailable 设置大于 0 则表示写主机如果挂掉， 临时的读服务依然可用
 			String tempReadHostAvailableStr = element.getAttribute("tempReadHostAvailable");
-			boolean tempReadHostAvailable = tempReadHostAvailableStr.equals("") ? false : Integer.valueOf(tempReadHostAvailableStr) > 0;
-			
+			boolean tempReadHostAvailable = !tempReadHostAvailableStr.equals("") && Integer.parseInt(tempReadHostAvailableStr) > 0;
+			/**
+			 * 读取 写类型
+			 * 这里只支持 0 - 所有写操作仅配置的第一个 writeHost
+			 */
 			String writeTypStr = element.getAttribute("writeType");
-			int writeType = "".equals(writeTypStr) ? PhysicalDBPool.WRITE_ONLYONE_NODE : Integer.valueOf(writeTypStr);
+			int writeType = "".equals(writeTypStr) ? PhysicalDBPool.WRITE_ONLYONE_NODE : Integer.parseInt(writeTypStr);
+
 
 			String dbDriver = element.getAttribute("dbDriver");
 			String dbType = element.getAttribute("dbType");
 			String filters = element.getAttribute("filters");
 			String logTimeStr = element.getAttribute("logTime");
-			long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.valueOf(logTimeStr) ;
+			long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.parseLong(logTimeStr) ;
+			//读取心跳语句
 			String heartbeatSQL = element.getElementsByTagName("heartbeat").item(0).getTextContent();
+			//读取 初始化sql配置,用于oracle
 			NodeList connectionInitSqlList = element.getElementsByTagName("connectionInitSql");
 			String initConSQL = null;
 			if (connectionInitSqlList.getLength() > 0) {
 				initConSQL = connectionInitSqlList.item(0).getTextContent();
 			}
-			
+			//读取writeHost
 			NodeList writeNodes = element.getElementsByTagName("writeHost");
 			DBHostConfig[] writeDbConfs = new DBHostConfig[writeNodes.getLength()];
 			Map<Integer, DBHostConfig[]> readHostsMap = new HashMap<Integer, DBHostConfig[]>(2);
@@ -650,6 +703,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 				Element writeNode = (Element) writeNodes.item(w);
 				writeDbConfs[w] = createDBHostConf(name, writeNode, dbType, dbDriver, maxCon, minCon,filters,logTime);
 				NodeList readNodes = writeNode.getElementsByTagName("readHost");
+				//读取对应的每一个readHost
 				if (readNodes.getLength() != 0) {
 					DBHostConfig[] readDbConfs = new DBHostConfig[readNodes.getLength()];
 					for (int r = 0; r < readDbConfs.length; r++) {

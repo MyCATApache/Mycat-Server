@@ -47,14 +47,23 @@ public class ParameterMapping {
                                                                              .getLogger(ParameterMapping.class);
     private static final Map<Class<?>, PropertyDescriptor[]> descriptors = new HashMap<Class<?>, PropertyDescriptor[]>();
 
+    /**
+     * 将property键值对赋值组装到object中
+     * @param object 目标反射对象
+     * @param parameter property的键值对
+     * @throws IllegalAccessException
+     * @throws InvocationTargetException
+     */
     public static void mapping(Object object, Map<String, ? extends Object> parameter) throws IllegalAccessException,
             InvocationTargetException {
+        //获取用于导出clazz这个JavaBean的所有属性的PropertyDescriptor
         PropertyDescriptor[] pds = getDescriptors(object.getClass());
         for (int i = 0; i < pds.length; i++) {
             PropertyDescriptor pd = pds[i];
             Object obj = parameter.get(pd.getName());
             Object value = obj;
             Class<?> cls = pd.getPropertyType();
+            //类型转换
             if (obj instanceof String) {
                 String string = (String) obj;
                 if (!StringUtil.isEmpty(string)) {
@@ -72,13 +81,13 @@ public class ParameterMapping {
                 }
                 value = list.toArray();
             }
-            if (cls != null) {
-                if (value != null) {
+            //赋值
+            if (cls != null
+                    && value != null) {
                     Method method = pd.getWriteMethod();
                     if (method != null) {
                         method.invoke(object, new Object[] { value });
                     }
-                }
             }
         }
     }
@@ -105,15 +114,23 @@ public class ParameterMapping {
         return bean;
     }
 
+    /**
+     * 用于导出clazz这个JavaBean的所有属性的PropertyDescriptor
+     * @param clazz
+     * @return
+     */
     private static PropertyDescriptor[] getDescriptors(Class<?> clazz) {
+        //PropertyDescriptor类表示JavaBean类通过存储器导出一个属性
         PropertyDescriptor[] pds;
         List<PropertyDescriptor> list;
         PropertyDescriptor[] pds2 = descriptors.get(clazz);
+        //该clazz是否第一次加载
         if (null == pds2) {
             try {
                 BeanInfo beanInfo = Introspector.getBeanInfo(clazz);
                 pds = beanInfo.getPropertyDescriptors();
                 list = new ArrayList<PropertyDescriptor>();
+                //加载每一个类型不为空的property
                 for (int i = 0; i < pds.length; i++) {
                     if (null != pds[i].getPropertyType()) {
                         list.add(pds[i]);

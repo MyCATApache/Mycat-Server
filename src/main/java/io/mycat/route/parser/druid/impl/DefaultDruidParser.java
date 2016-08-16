@@ -120,15 +120,17 @@ public class DefaultDruidParser implements DruidParser {
 					if(pos> 0) {
 						key = key.substring(pos + 1);
 					}
+					if(key.equalsIgnoreCase(value)) {
+						ctx.addTable(key.toUpperCase());
+					}
+					tableAliasMap.put(key.toUpperCase(), value);
 				}
 				
-				if(key.equalsIgnoreCase(value)) {
-					ctx.addTable(key.toUpperCase());
-				} 
+
 //				else {
 //					tableAliasMap.put(key, value);
 //				}
-				tableAliasMap.put(key.toUpperCase(), value);
+
 			}
 			visitor.getAliasMap().putAll(tableAliasMap);
 			ctx.setTableAliasMap(tableAliasMap);
@@ -154,8 +156,8 @@ public class DefaultDruidParser implements DruidParser {
 							&& !visitor.getAliasMap().get(tableName).equals(tableName)) {
 						tableName = visitor.getAliasMap().get(tableName);
 					}
-					
-					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(condition.getColumn().getTable().toUpperCase()) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
+
+					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(StringUtil.removeBackquote(condition.getColumn().getTable().toUpperCase())) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
 						continue;
 					}
 					

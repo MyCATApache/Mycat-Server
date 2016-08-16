@@ -1,13 +1,13 @@
 package io.mycat.backend.postgresql;
 
-import java.io.IOException;
-
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.backend.postgresql.heartbeat.PostgreSQLHeartbeat;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
+
+import java.io.IOException;
 
 /*******************
  * PostgreSQL 后端数据源实现
