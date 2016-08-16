@@ -79,7 +79,7 @@ public class ZkCreate {
                     .forPath(childPath, JSON.toJSONString(mapObject).getBytes());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("error",e);
         }
     }
 
