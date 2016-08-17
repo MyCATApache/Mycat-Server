@@ -25,12 +25,12 @@ package org.opencloudb.mpp;
  */
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -44,6 +44,7 @@ import org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler;
 import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.RowDataPacket;
 import org.opencloudb.route.RouteResultset;
+import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.NonBlockingSession;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.util.StringUtil;
@@ -79,7 +80,7 @@ public class DataMergeService implements Runnable {
 	private RowDataPacketGrouper grouper;
 	private MultiNodeQueryHandler multiQueryHandler;
 	public PackWraper END_FLAG_PACK = new PackWraper();
-	private List<RowDataPacket> result = new Vector<RowDataPacket>();
+	private Map<String, LinkedList<RowDataPacket>> result = new HashMap<String, LinkedList<RowDataPacket>>();
 	private static Logger LOGGER = Logger.getLogger(DataMergeService.class);
 	private BlockingQueue<PackWraper> packs = new LinkedBlockingQueue<PackWraper>();
 	private ConcurrentHashMap<String, Boolean> canDiscard = new ConcurrentHashMap<String, Boolean>();
@@ -87,6 +88,10 @@ public class DataMergeService implements Runnable {
 	public DataMergeService(MultiNodeQueryHandler handler, RouteResultset rrs) {
 		this.rrs = rrs;
 		this.multiQueryHandler = handler;
+		
+		for (RouteResultsetNode node : rrs.getNodes()) {
+			result.put(node.getName(), new LinkedList<RowDataPacket>());
+		}
 	}
 
 	public RouteResultset getRrs() {
@@ -280,7 +285,7 @@ public class DataMergeService implements Runnable {
 						canDiscard.put(pack.node, true);
 					}
 				} else {
-					result.add(row);
+					result.get(pack.node).add(row);
 				}
 			}// rof
 		}catch(final Exception e){
@@ -321,7 +326,7 @@ public class DataMergeService implements Runnable {
 	 * @return (最多i*(offset+size)行数据)
 	 */
 	private List<RowDataPacket> getResults(byte[] eof) {
-		List<RowDataPacket> tmpResult = result;
+		List<RowDataPacket> tmpResult = null;
 		if (this.grouper != null) {
 			tmpResult = grouper.getResult();
 			grouper = null;
@@ -338,6 +343,15 @@ public class DataMergeService implements Runnable {
 			tmpResult = sorter.getSortedResult();
 			sorter = null;
 		}
+		
+		//no grouper and sorter
+		if(tmpResult == null){
+			tmpResult = new LinkedList<RowDataPacket>();
+			for (RouteResultsetNode node : rrs.getNodes()) {
+				tmpResult.addAll(result.get(node.getName()));
+			}
+		}
+		
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("prepare mpp merge result for " + rrs.getStatement());
 		}
@@ -345,3 +359,4 @@ public class DataMergeService implements Runnable {
 		return tmpResult;
 	}
 }
+
