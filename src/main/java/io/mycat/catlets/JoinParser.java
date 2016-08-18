@@ -1,4 +1,4 @@
-﻿package io.mycat.catlets;
+package io.mycat.catlets;
 
 
 import java.util.LinkedHashMap;

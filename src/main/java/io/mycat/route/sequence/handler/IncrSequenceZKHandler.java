@@ -23,6 +23,7 @@
  */
 package io.mycat.route.sequence.handler;
 
+import io.mycat.config.ZkConfig;
 import io.mycat.route.util.PropertiesUtil;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -73,7 +74,7 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
 
     public void load() {
         props = PropertiesUtil.loadProps(FILE_NAME);
-        String zkAddress = props.getProperty("ZK");
+        String zkAddress = ZkConfig.instance().getZkURL();
         try {
             initializeZK(props, zkAddress);
         } catch (Exception e) {
