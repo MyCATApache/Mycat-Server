@@ -114,8 +114,8 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 						PasswordMessage pak = new PasswordMessage(
 								con.getUser(), con.getPassword(), aut,
 								((AuthenticationPacket) packet).getSalt());
-						ByteBuffer buffer = ByteBuffer
-								.allocate(pak.getLength() + 1);
+						
+						ByteBuffer buffer = con.allocate(); //allocate(pak.getLength() + 1);
 						pak.write(buffer);
 						
 						con.write(buffer);
