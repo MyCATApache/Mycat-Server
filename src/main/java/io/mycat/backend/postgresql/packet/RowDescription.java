@@ -85,9 +85,7 @@ public class RowDescription extends PostgreSQLPacket {
 			col.coid = PIOUtils.redInteger2(buffer, _offset);
 			_offset += 2;
 			col.columnType = DateType.valueOf(PIOUtils.redInteger4(buffer,
-					_offset));
-			System.out.println(col.columnName +":"+PIOUtils.redInteger4(buffer,
-					_offset)+":"+ col.columnType);
+					_offset));			
 			_offset += 4;
 			col.typlen = PIOUtils.redInteger2(buffer, _offset);
 			_offset += 2;
