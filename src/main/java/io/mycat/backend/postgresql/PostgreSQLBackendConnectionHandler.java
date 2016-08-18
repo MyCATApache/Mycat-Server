@@ -375,7 +375,10 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	 */
 	@Override
 	protected void handleData(byte[] data) {
+		ByteBuffer theBuf = null;
 		try {
+			theBuf = source.allocate();
+			theBuf.put(data);
 			switch (source.getState()) {
 			case connecting: {
 				doConnecting(source, ByteBuffer.wrap(data), 0, data.length);
@@ -399,6 +402,10 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			}
 		} catch (Exception e) {
 			LOGGER.error("读取数据包出错",e);
+		}finally{
+			if(theBuf!=null){
+				source.recycle(theBuf);
+			}
 		}
 	}
 
