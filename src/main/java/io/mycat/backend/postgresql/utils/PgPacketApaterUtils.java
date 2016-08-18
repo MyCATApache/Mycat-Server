@@ -48,9 +48,18 @@ public class PgPacketApaterUtils {
 		if(columnType == DateType.timestamp_){
 			return Fields.FIELD_TYPE_TIMESTAMP;
 		}
+		if(columnType == DateType.int2_ || columnType == DateType.int4_ || columnType == DateType.int8_ ){
+			return Fields.FIELD_TYPE_INT24;
+		}
+		if(columnType == DateType.decimal_){
+			return Fields.FIELD_TYPE_NEW_DECIMAL;
+		}		
+		if(columnType == DateType.UNKNOWN){
 		
+		}
 		return Fields.FIELD_TYPE_VARCHAR;
 	}
+
 
 	/***
 	 * 行数据转换成mysql的数据
