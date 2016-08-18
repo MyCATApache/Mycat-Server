@@ -311,9 +311,9 @@ public class MycatServer {
 			try {
 				myCatMemory = new MyCatMemory(system,totalNetWorkBufferSize);
 			} catch (NoSuchFieldException e) {
-				e.printStackTrace();
+				LOGGER .error("NoSuchFieldException",e);
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				LOGGER.error("Error",e);
 			}
 		}
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",

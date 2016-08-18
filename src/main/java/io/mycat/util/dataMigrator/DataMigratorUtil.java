@@ -59,8 +59,8 @@ public class DataMigratorUtil {
 			if(randomFile != null){  
 				try {  
 					randomFile.close();  
-				} catch (IOException e) {  
-					e.printStackTrace();  
+				} catch (IOException e) {
+					LOGGER.error("error",e);
 				}  
 			}  
 		}  
@@ -81,8 +81,8 @@ public class DataMigratorUtil {
 			if(randomFile != null){  
 				try {  
 					randomFile.close();  
-				} catch (IOException e) {  
-					e.printStackTrace();  
+				} catch (IOException e) {
+					LOGGER.error("error",e);
 				}  
 			}  
 		}  
@@ -138,7 +138,7 @@ public class DataMigratorUtil {
             	}
             } 
             catch (IOException e) {
-            	e.printStackTrace();
+				LOGGER.error("error",e);
             }  
         }  
     }
@@ -165,8 +165,8 @@ public class DataMigratorUtil {
 			if(randomFile != null){  
 				try {  
 					randomFile.close();  
-				} catch (IOException e) {  
-					e.printStackTrace();  
+				} catch (IOException e) {
+					LOGGER.error("error",e);
 				}  
 			}  
 		}

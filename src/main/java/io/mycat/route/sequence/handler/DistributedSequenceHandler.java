@@ -1,5 +1,6 @@
 package io.mycat.route.sequence.handler;
 
+import io.mycat.config.ZkConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.util.PropertiesUtil;
 import org.apache.curator.framework.CuratorFramework;
@@ -133,7 +134,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         // load sequnce properties
         Properties props = PropertiesUtil.loadProps(SEQUENCE_DB_PROPS);
         if ("ZK".equals(props.getProperty("INSTANCEID"))) {
-            initializeZK(props.getProperty("ZK"));
+            initializeZK(ZkConfig.instance().getZkURL());
         } else {
             this.instanceId = Long.parseLong(props.getProperty("INSTANCEID"));
             this.ready = true;

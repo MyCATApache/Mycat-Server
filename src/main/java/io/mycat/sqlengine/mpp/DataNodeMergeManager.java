@@ -124,11 +124,10 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             List<MergeCol> mergCols = new LinkedList<MergeCol>();
             Map<String, Integer> mergeColsMap = rrs.getMergeCols();
 
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("isHasAggrColumn:" + rrs.getMergeCols().toString());
-            }
-
             if (mergeColsMap != null) {
+            	if (LOGGER.isDebugEnabled()) {
+                	LOGGER.debug("isHasAggrColumn:" + mergeColsMap.toString());
+            	}
                 for (Map.Entry<String, Integer> mergEntry : mergeColsMap
                         .entrySet()) {
                     String colName = mergEntry.getKey().toUpperCase();

@@ -34,7 +34,7 @@ public class ZookeeperSaverTest extends ZookeeperTestServer {
     @Before public void setUp() throws Exception {
         ZookeeperLoader loader = new ZookeeperLoader();
         loader.setZkURl(testingServer.getConnectString());
-        config = loader.loadConfig(ZkConfig.instance().loadMyid());
+        config = loader.loadConfig(ZkConfig.instance().getZkProperties());
     }
 
     private List<Property> getExpectSystemProperty() {

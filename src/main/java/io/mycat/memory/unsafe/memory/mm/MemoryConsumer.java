@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.mycat.memory.unsafe.memory.mm;
-
-
 
 import io.mycat.memory.unsafe.array.CharArray;
 import io.mycat.memory.unsafe.array.LongArray;
@@ -26,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-
 /**
  * An memory consumer of DataNodeMemoryManager, which support spilling.
  * Note: this only supports allocation / spilling of Tungsten memory.
