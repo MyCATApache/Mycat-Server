@@ -381,12 +381,12 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			theBuf.put(data);
 			switch (source.getState()) {
 			case connecting: {
-				doConnecting(source, ByteBuffer.wrap(data), 0, data.length);
+				doConnecting(source, theBuf, 0, data.length);
 				return;
 			}
 			case connected: {
 				try {
-					doHandleBusinessMsg(source, ByteBuffer.wrap(data), 0,
+					doHandleBusinessMsg(source, theBuf, 0,
 							data.length);
 				} catch (Exception e) {
 					LOGGER.warn("caught err of con " + source, e);
