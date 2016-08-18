@@ -208,8 +208,9 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	@Override
 	public void execute(RouteResultsetNode rrn, ServerConnection sc,
 			boolean autocommit) throws IOException {
-
-		LOGGER.warn("{}查询任务。。。。{}", id, rrn.getStatement());
+		if(LOGGER.isDebugEnabled()){
+			LOGGER.debug("{}查询任务。。。。{}", id, rrn.getStatement());
+		}
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}

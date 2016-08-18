@@ -31,7 +31,7 @@ public class PgPacketApaterUtils {
 		List<FieldPacket>  fieldPks = new ArrayList<FieldPacket>(description.getColumnNumber());
 		for(ColumnDescription c: description.getColumns()){
 			FieldPacket fieldPk = new FieldPacket();
-			fieldPk.name = c.getColumnName().getBytes(UTF8);
+			fieldPk.name = c.getColumnName().trim().getBytes(UTF8);
 			fieldPk.type = convertFieldType(c.getColumnType());
 			fieldPks.add(fieldPk);
 		}
