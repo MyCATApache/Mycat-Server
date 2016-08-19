@@ -246,6 +246,50 @@ public class BinaryRowDataPacket extends MySQLPacket {
 		conn.write(bb);
 		
 	}
+	
+	@Override
+	public ByteBuffer write(ByteBuffer bb, FrontendConnection c,
+			boolean writeSocketIfFull) {
+		int size = calcPacketSize();
+		int packetHeaderSize = c.getPacketHeaderSize();
+		int totalSize = size + packetHeaderSize;
+		bb = c.checkWriteBuffer(bb, totalSize, writeSocketIfFull);
+		BufferUtil.writeUB3(bb, size);
+		bb.put(packetId);
+		bb.put(packetHeader); // packet header [00]
+		bb.put(nullBitMap); // NULL-Bitmap
+		for(int i = 0; i < fieldCount; i++) { // values
+			byte[] fv = fieldValues.get(i);
+			if(fv != null) {
+				FieldPacket fieldPk = this.fieldPackets.get(i);
+				int fieldType = fieldPk.type;
+				switch(fieldType) {
+				case Fields.FIELD_TYPE_STRING:
+				case Fields.FIELD_TYPE_VARCHAR:
+				case Fields.FIELD_TYPE_VAR_STRING:
+				case Fields.FIELD_TYPE_ENUM:
+				case Fields.FIELD_TYPE_SET:
+				case Fields.FIELD_TYPE_LONG_BLOB:
+				case Fields.FIELD_TYPE_MEDIUM_BLOB:
+				case Fields.FIELD_TYPE_BLOB:
+				case Fields.FIELD_TYPE_TINY_BLOB:
+				case Fields.FIELD_TYPE_GEOMETRY:
+				case Fields.FIELD_TYPE_BIT:
+				case Fields.FIELD_TYPE_DECIMAL:
+				case Fields.FIELD_TYPE_NEW_DECIMAL:
+					// 长度编码的字符串需要一个字节来存储长度(0表示空字符串)
+					BufferUtil.writeLength(bb, fv.length);
+					break;
+					default:
+						break;
+				}
+				if(fv.length > 0) {
+					bb.put(fv);
+				} 
+			}
+		}
+		return bb;
+	}
 
 	@Override
 	public int calcPacketSize() {
