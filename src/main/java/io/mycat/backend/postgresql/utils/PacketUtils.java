@@ -84,7 +84,7 @@ public class PacketUtils {
 	}
 	
 	@Deprecated
-	public static List<PostgreSQLPacket> parsePacket(byte[] bytes, int offset,
+	private static List<PostgreSQLPacket> parsePacket(byte[] bytes, int offset,
 			int readLength) throws IOException {
 		List<PostgreSQLPacket> pgs = new ArrayList<>();
 		while (offset < readLength) {

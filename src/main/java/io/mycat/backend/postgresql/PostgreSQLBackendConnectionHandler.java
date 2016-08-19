@@ -114,8 +114,8 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 						PasswordMessage pak = new PasswordMessage(
 								con.getUser(), con.getPassword(), aut,
 								((AuthenticationPacket) packet).getSalt());
-						ByteBuffer buffer = ByteBuffer
-								.allocate(pak.getLength() + 1);
+						
+						ByteBuffer buffer = con.allocate(); //allocate(pak.getLength() + 1);
 						pak.write(buffer);
 						
 						con.write(buffer);
@@ -375,15 +375,18 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	 */
 	@Override
 	protected void handleData(byte[] data) {
+		ByteBuffer theBuf = null;
 		try {
+			theBuf = source.allocate();
+			theBuf.put(data);
 			switch (source.getState()) {
 			case connecting: {
-				doConnecting(source, ByteBuffer.wrap(data), 0, data.length);
+				doConnecting(source, theBuf, 0, data.length);
 				return;
 			}
 			case connected: {
 				try {
-					doHandleBusinessMsg(source, ByteBuffer.wrap(data), 0,
+					doHandleBusinessMsg(source, theBuf, 0,
 							data.length);
 				} catch (Exception e) {
 					LOGGER.warn("caught err of con " + source, e);
@@ -399,6 +402,10 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			}
 		} catch (Exception e) {
 			LOGGER.error("读取数据包出错",e);
+		}finally{
+			if(theBuf!=null){
+				source.recycle(theBuf);
+			}
 		}
 	}
 
