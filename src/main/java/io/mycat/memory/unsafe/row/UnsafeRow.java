@@ -395,22 +395,24 @@ public final class UnsafeRow extends MySQLPacket {
     BufferUtil.writeUB3(bb, calcPacketSize());
     bb.put(packetId);
     for (int i = 0; i < numFields; i++) {
-      byte[] fv = this.getBinary(i);
-      if (fv == null ) {
-        bb = c.checkWriteBuffer(bb, 1, writeSocketIfFull);
+      if (!isNullAt(i)) {
+        byte[] fv = this.getBinary(i);
+        if (fv.length == 0) {
+          bb = c.checkWriteBuffer(bb, 1, writeSocketIfFull);
+          bb.put(UnsafeRow.EMPTY_MARK);
+        } else {
+          bb = c.checkWriteBuffer(bb, BufferUtil.getLength(fv),
+                  writeSocketIfFull);
+          BufferUtil.writeLength(bb, fv.length);
+          /**
+           * 把数据写到Writer Buffer中
+           */
+          bb = c.writeToBuffer(fv, bb);
+        }
+      } else {
+        //Col null value
+        bb = c.checkWriteBuffer(bb,1,writeSocketIfFull);
         bb.put(UnsafeRow.NULL_MARK);
-      }else if (fv.length == 0) {
-        bb = c.checkWriteBuffer(bb, 1, writeSocketIfFull);
-        bb.put(UnsafeRow.EMPTY_MARK);
-      }
-      else {
-        bb = c.checkWriteBuffer(bb, BufferUtil.getLength(fv),
-                writeSocketIfFull);
-        BufferUtil.writeLength(bb, fv.length);
-        /**
-         * 把数据写到Writer Buffer中
-         */
-        bb = c.writeToBuffer(fv, bb);
       }
     }
     return bb;
