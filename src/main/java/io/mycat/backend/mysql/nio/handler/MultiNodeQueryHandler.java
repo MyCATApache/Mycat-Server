@@ -25,6 +25,7 @@ package io.mycat.backend.mysql.nio.handler;
 
 import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.sqlengine.mpp.*;
+
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -401,24 +402,35 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			if (rrs.getLimitSize() < 0)
 				end = Integer.MAX_VALUE;
 
-			while (iter.hasNext()){
-
-				UnsafeRow row = iter.next();
-
-				if(index >= start){
-					row.packetId = ++packetId;
-					buffer = row.write(buffer,source,true);
+			if(prepared) {
+				while (iter.hasNext()){
+					UnsafeRow row = iter.next();
+					if(index >= start){
+						row.packetId = ++packetId;
+						BinaryRowDataPacket binRowPacket = new BinaryRowDataPacket();
+						binRowPacket.read(fieldPackets, row);
+						buffer = binRowPacket.write(buffer, source, true);
+					}
+					index++;
+					if(index == end){
+						break;
+					}
 				}
-
-				index++;
-
-				if(index == end){
-					break;
+			} else {
+				while (iter.hasNext()){
+					UnsafeRow row = iter.next();
+					if(index >= start){
+						row.packetId = ++packetId;
+						buffer = row.write(buffer,source,true);
+					}
+					index++;
+					if(index == end){
+						break;
+					}
 				}
 			}
-
+			
 			eof[3] = ++packetId;
-
 
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("last packet id:" + packetId);
@@ -462,16 +474,33 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			if (end > results.size()) {
 				end = results.size();
 			}
-
-			for (int i = start; i < end; i++) {
-				RowDataPacket row = results.get(i);
-				if( prepared ) {
+			
+//			for (int i = start; i < end; i++) {
+//				RowDataPacket row = results.get(i);
+//				if( prepared ) {
+//					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+//					binRowDataPk.read(fieldPackets, row);
+//					binRowDataPk.packetId = ++packetId;
+//					//binRowDataPk.write(source);
+//					buffer = binRowDataPk.write(buffer, session.getSource(), true);
+//				} else {
+//					row.packetId = ++packetId;
+//					buffer = row.write(buffer, source, true);
+//				}
+//			}
+			
+			if(prepared) {
+				for (int i = start; i < end; i++) {
+					RowDataPacket row = results.get(i);
 					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
 					binRowDataPk.read(fieldPackets, row);
 					binRowDataPk.packetId = ++packetId;
 					//binRowDataPk.write(source);
 					buffer = binRowDataPk.write(buffer, session.getSource(), true);
-				} else {
+				}
+			} else {
+				for (int i = start; i < end; i++) {
+					RowDataPacket row = results.get(i);
 					row.packetId = ++packetId;
 					buffer = row.write(buffer, source, true);
 				}
