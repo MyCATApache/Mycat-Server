@@ -81,6 +81,12 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	 * 每个后台响应有唯一的连接
 	 */
 	private final PostgreSQLBackendConnection source;
+	
+	/**
+	 * 响应数据
+	 */
+	private volatile SelectResponse response = null;
+	
 	/**
 	 * 响应状态
 	 */
@@ -156,9 +162,10 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(buf, 0,
 					readedLength);
 			if (packets == null || packets.isEmpty()) {
-				throw new RuntimeException("数据包解析出错");
+				return ;
+				//throw new RuntimeException("数据包解析出错");
 			}
-			SelectResponse response = null;
+			
 			for (PostgreSQLPacket packet : packets) {
 				if (packet instanceof ErrorResponse) {
 					doProcessErrorResponse(con, (ErrorResponse) packet);
@@ -386,7 +393,7 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			}
 			case connected: {
 				try {
-					doHandleBusinessMsg(source, theBuf, 0,
+					doHandleBusinessMsg(source, theBuf , 0,
 							data.length);
 				} catch (Exception e) {
 					LOGGER.warn("caught err of con " + source, e);
