@@ -469,7 +469,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
 					binRowDataPk.read(fieldPackets, row);
 					binRowDataPk.packetId = ++packetId;
-					binRowDataPk.write(source);
+					//binRowDataPk.write(source);
+					buffer = binRowDataPk.write(buffer, session.getSource(), true);
 				} else {
 					row.packetId = ++packetId;
 					buffer = row.write(buffer, source, true);
@@ -588,17 +589,18 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 						columToIndx.put(fieldName,
 								new ColMeta(i, fieldPkg.type));
 					}
-				} else if (primaryKey != null && primaryKeyIndex == -1) {
-					// find primary key index
+				} else {
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
 					fieldPackets.add(fieldPkg);
+					fieldCount = fields.size();
+					if (primaryKey != null && primaryKeyIndex == -1) {
+					// find primary key index
 					String fieldName = new String(fieldPkg.name);
 					if (primaryKey.equalsIgnoreCase(fieldName)) {
 						primaryKeyIndex = i;
-						fieldCount = fields.size();
 					}
-				}
+				}   }
 				if (!shouldSkip) {
 					field[3] = ++packetId;
 					buffer = source.writeToBuffer(field, buffer);
@@ -656,16 +658,27 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				// @since 2016-03-25
 				dataMergeSvr.onNewRecord(dataNode, row);
 			} else {
+				RowDataPacket rowDataPkg =null;
 				// cache primaryKey-> dataNode
 				if (primaryKeyIndex != -1) {
-					RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
+					 rowDataPkg = new RowDataPacket(fieldCount);
 					rowDataPkg.read(row);
 					String primaryKey = new String(rowDataPkg.fieldValues.get(primaryKeyIndex));
 					LayerCachePool pool = MycatServer.getInstance().getRouterservice().getTableId2DataNodeCache();
 					pool.putIfAbsent(priamaryKeyTable, primaryKey, dataNode);
 				}
 				row[3] = ++packetId;
-				session.getSource().write(row);
+				if( prepared ) {
+					if(rowDataPkg==null) {
+						rowDataPkg = new RowDataPacket(fieldCount);
+						rowDataPkg.read(row);
+					}
+					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+					binRowDataPk.read(fieldPackets, rowDataPkg);
+					binRowDataPk.write(session.getSource());
+				} else {
+					session.getSource().write(row);
+				}
 			}
 
 		} catch (Exception e) {
