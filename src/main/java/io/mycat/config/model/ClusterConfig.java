@@ -44,6 +44,7 @@ import io.mycat.util.SplitUtil;
  * @author mycat
  */
 public class ClusterConfig {
+	
     private final Map<String, MycatNodeConfig> nodes;
     private final Map<String, List<String>> groups;
 
