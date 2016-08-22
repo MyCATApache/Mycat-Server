@@ -25,7 +25,6 @@ package io.mycat.config.model;
 
 import java.util.Set;
 
-
 /**
  * @author mycat
  */
@@ -34,8 +33,8 @@ public class UserConfig {
     private String name;
     private String password;						//明文
     private String encryptPassword; 				//密文
-    private int benchmark = 0;						//负载限制, 默认0表示不限制
-    private UserPrivilegesConfig privilegesConfig;	//SQL表级的增删改查权限控制   	 
+    private int benchmark = 0;						// 负载限制, 默认0表示不限制
+    private UserPrivilegesConfig privilegesConfig;	//SQL表级的增删改查权限控制
     
     private boolean readOnly = false;
     
@@ -72,7 +71,7 @@ public class UserConfig {
 	public void setBenchmark(int benchmark) {
 		this.benchmark = benchmark;
 	}
-	
+
 	public Set<String> getSchemas() {
         return schemas;
     }
@@ -92,7 +91,7 @@ public class UserConfig {
 	public UserPrivilegesConfig getPrivilegesConfig() {
 		return privilegesConfig;
 	}
-
+	
 	public void setPrivilegesConfig(UserPrivilegesConfig privilegesConfig) {
 		this.privilegesConfig = privilegesConfig;
 	}

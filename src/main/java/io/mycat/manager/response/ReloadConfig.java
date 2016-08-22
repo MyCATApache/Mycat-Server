@@ -117,7 +117,7 @@ public final class ReloadConfig {
 		}
 
 		// 应用重载
-		conf.reload(users, schemas, dataNodes, dataHosts, cluster, firewall,true);
+		conf.reload(users, schemas, dataNodes, dataHosts, cluster, firewall, true);
 
 		// 处理旧的资源
 		for (PhysicalDBPool dn : cNodes.values()) {
@@ -145,7 +145,7 @@ public final class ReloadConfig {
         MycatConfig conf = instance.getConfig();
 
         // 应用重载
-        conf.reload(users, schemas, dataNodes, dataHosts, cluster, firewall,false);
+        conf.reload(users, schemas, dataNodes, dataHosts, cluster, firewall, false);
 
 
         //清理缓存

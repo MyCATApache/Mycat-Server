@@ -40,8 +40,8 @@ public interface Alarms {
     
     /** 防火墙非法用户访问 **/
     public static final String FIREWALL_ATTACK = "#!QT_ATTACK#";
-    
-    /** 非法DML **/
+   
+    /** 非法DML **/ 
     public static final String DML_ATTACK = "#!DML_ATTACK#";
     
 }

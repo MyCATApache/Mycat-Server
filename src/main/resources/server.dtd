@@ -18,7 +18,7 @@
 
 <!ELEMENT system (property*) >
 
-<!ELEMENT user (property+,privileges*)>
+<!ELEMENT user (property+)>
 <!ATTLIST user name NMTOKEN #REQUIRED>
 
 <!ELEMENT privileges (schema)*>
@@ -33,9 +33,7 @@
 <!ATTLIST table
   name CDATA #REQUIRED
   dml CDATA #REQUIRED
-  ext CDATA #IMPLIED>  
-
-
+  ext CDATA #IMPLIED>
 
 <!ELEMENT cluster (node+,group*) >
 <!ELEMENT node (property+)>

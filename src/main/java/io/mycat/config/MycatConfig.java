@@ -197,8 +197,8 @@ public class MycatConfig {
 			Map<String, SchemaConfig> schemas,
 			Map<String, PhysicalDBNode> dataNodes,
 			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			FirewallConfig firewall,boolean reloadAll) {
-		apply(users, schemas, dataNodes, dataHosts, cluster, firewall,reloadAll);
+			FirewallConfig firewall, boolean reloadAll) {
+		apply(users, schemas, dataNodes, dataHosts, cluster, firewall, reloadAll);
 		this.reloadTime = TimeUtil.currentTimeMillis();
 		this.status = reloadAll?RELOAD_ALL:RELOAD;
 	}
@@ -218,7 +218,7 @@ public class MycatConfig {
 			Map<String, PhysicalDBNode> dataNodes,
 			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
 			FirewallConfig firewall) {
-		apply(users, schemas, dataNodes, dataHosts, cluster, firewall,status==RELOAD_ALL);
+		apply(users, schemas, dataNodes, dataHosts, cluster, firewall, status==RELOAD_ALL);
 		this.rollbackTime = TimeUtil.currentTimeMillis();
 		this.status = ROLLBACK;
 	}
@@ -227,7 +227,7 @@ public class MycatConfig {
 			Map<String, SchemaConfig> schemas,
 			Map<String, PhysicalDBNode> dataNodes,
 			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			FirewallConfig firewall,boolean isLoadAll) {
+			FirewallConfig firewall, boolean isLoadAll) {
 		final ReentrantLock lock = this.lock;
 		lock.lock();
 		try {

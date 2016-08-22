@@ -54,13 +54,13 @@
     </node>
   </cluster>
    
-  <!-- 全局SQL防火墙定义，可以限定某个主机上只允许某个用户登录。 -->
+  <!-- 隔离区定义，可以限定某个主机上只允许某个用户登录。 -->
   <!--
-  <firewall>
+  <quarantine>
     <host name="1.2.3.4">
       <property name="user">test</property>
     </host>
-  </firewall>
+  </quarantine>
   -->
 
 </mycat:server>

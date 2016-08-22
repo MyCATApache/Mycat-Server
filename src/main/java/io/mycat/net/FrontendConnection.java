@@ -312,7 +312,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 		
 		// 执行查询
-		if (queryHandler != null) {
+		if (queryHandler != null) {			
 			queryHandler.setReadOnly(privileges.isReadOnly(user));
 			queryHandler.query(sql);
 			

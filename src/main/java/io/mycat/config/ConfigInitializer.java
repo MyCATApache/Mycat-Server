@@ -77,7 +77,7 @@ public class ConfigInitializer {
 			this.dataHosts = initDataHosts(configLoader);
 			this.dataNodes = initDataNodes(configLoader);
 		}
-		//防火墙管理
+		//权限管理
 		this.firewall = configLoader.getFirewallConfig();
 		this.cluster = initCobarCluster(configLoader);
 		//不同类型的全局序列处理器的配置加载

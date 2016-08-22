@@ -74,7 +74,7 @@ public interface FrontendPrivileges {
      * @param host
      * @return
      */
-    public boolean checkFirewallWhiteHostPolicy(String user, String host);
+    boolean checkFirewallWhiteHostPolicy(String user, String host);
     
     /**
      * 检查防火墙策略
@@ -82,13 +82,13 @@ public interface FrontendPrivileges {
      * @param sql
      * @return
      */
-    public boolean checkFirewallSQLPolicy(String user, String sql);
+    boolean checkFirewallSQLPolicy(String user, String sql);
     
     
     /**
      * 检查 SQL 语句的 DML 权限
      * @return
      */
-    boolean checkDmlPrivilege(String user, String schema, String sql);    
+    boolean checkDmlPrivilege(String user, String schema, String sql);   
 
 }

@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.mycat.config.Versions;
-
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -106,7 +105,6 @@ public class XMLServerLoader {
             
             //加载全局SQL防火墙
             loadFirewall(root);
-            
         } catch (ConfigException e) {
             throw e;
         } catch (Exception e) {
@@ -211,12 +209,11 @@ public class XMLServerLoader {
                 }
                 
                 //加载用户 DML 权限
-                loadPrivileges(user, e);             
+                loadPrivileges(user, e);         
                 
                 if (users.containsKey(name)) {
                     throw new ConfigException("user " + name + " duplicated!");
                 }
-                
                 users.put(name, user);
             }
         }

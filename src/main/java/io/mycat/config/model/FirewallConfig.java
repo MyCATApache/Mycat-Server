@@ -47,6 +47,8 @@ import com.alibaba.druid.wall.WallConfig;
 import com.alibaba.druid.wall.WallProvider;
 import com.alibaba.druid.wall.spi.MySqlWallProvider;
 
+import io.mycat.MycatServer;
+import io.mycat.config.MycatConfig;
 import io.mycat.config.loader.xml.XMLServerLoader;
 
 /**
@@ -56,71 +58,87 @@ import io.mycat.config.loader.xml.XMLServerLoader;
  * @author zhuam
  */
 public final class FirewallConfig {
-
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(FirewallConfig.class);
-
-	private Map<String, List<UserConfig>> whitehost;
-	private List<String> blacklist;
-	private boolean check = false;
-
-	private WallConfig wallConfig = new WallConfig();
-
-	private static WallProvider provider;
-
-	public FirewallConfig() {
-	}
-
-	public void init() {
-		if (check) {
-			provider = new MySqlWallProvider(wallConfig);
-			provider.setBlackListEnable(true);
-		}
-	}
-
-	public WallProvider getWallProvider() {
-		return provider;
-	}
+	
+    private Map<String, List<UserConfig>> whitehost;
+    private List<String> blacklist;
+    private boolean check = false;
+    
+    private WallConfig wallConfig = new WallConfig();
+     
+    private static WallProvider provider ;
+    
+    public FirewallConfig() { }
+    
+    public void init(){
+    	if(check){
+    		provider = new MySqlWallProvider(wallConfig);
+    		provider.setBlackListEnable(true);
+    	}
+    }
+    
+    public WallProvider getWallProvider(){
+    	return provider;
+    }
 
 	public Map<String, List<UserConfig>> getWhitehost() {
 		return this.whitehost;
 	}
-
 	public void setWhitehost(Map<String, List<UserConfig>> whitehost) {
 		this.whitehost = whitehost;
 	}
-
+	
 	public boolean addWhitehost(String host, List<UserConfig> Users) {
-		if (existsHost(host)) {
-			return false;
-		} else {
-			this.whitehost.put(host, Users);
-			return true;
+		if (existsHost(host)){
+			return false;	
+		}
+		else {
+		 this.whitehost.put(host, Users);
+		 return true;
 		}
 	}
-
+	
 	public List<String> getBlacklist() {
 		return this.blacklist;
 	}
-
 	public void setBlacklist(List<String> blacklist) {
 		this.blacklist = blacklist;
 	}
-
+	
 	public WallProvider getProvider() {
 		return provider;
 	}
 
 	public boolean existsHost(String host) {
-		return this.whitehost != null && whitehost.get(host) != null;
+		return this.whitehost!=null && whitehost.get(host)!=null ;
 	}
-
+	public boolean canConnect(String host,String user) {
+		if(whitehost==null || whitehost.size()==0){
+			MycatConfig config = MycatServer.getInstance().getConfig();
+			Map<String, UserConfig> users = config.getUsers();
+			return users.containsKey(user);
+		}else{
+			List<UserConfig> list = whitehost.get(host);
+			if(list==null){
+				return false;
+			}
+			for(UserConfig userConfig : list){
+				if(userConfig.getName().equals(user)){
+					return true;
+				}
+			}
+		}
+		return false ;
+	}
+	
 	public static void setProvider(WallProvider provider) {
 		FirewallConfig.provider = provider;
 	}
 
 	public void setWallConfig(WallConfig wallConfig) {
 		this.wallConfig = wallConfig;
-
+		
 	}
 
 	public boolean isCheck() {
@@ -134,72 +152,69 @@ public final class FirewallConfig {
 	public WallConfig getWallConfig() {
 		return this.wallConfig;
 	}
-
-	public synchronized static void updateToFile(String host, List<UserConfig> userConfigs) throws Exception {
+	
+	public synchronized static void updateToFile(String host, List<UserConfig> userConfigs) throws Exception{
 		LOGGER.debug("set white host:" + host + "user:" + userConfigs);
-		String filename = SystemConfig.getHomePath() + File.separator + "conf" + File.separator + "server.xml";
-		// String filename =
-		// "E:\\MyProject\\Mycat-Server\\src\\main\\resources\\server.xml";
+		String filename = SystemConfig.getHomePath()+ File.separator +"conf"+ File.separator +"server.xml";
+		//String filename = "E:\\MyProject\\Mycat-Server\\src\\main\\resources\\server.xml";
 
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		factory.setNamespaceAware(false);
-		factory.setValidating(false);
-		DocumentBuilder builder = factory.newDocumentBuilder();
-		builder.setEntityResolver(new IgnoreDTDEntityResolver());
-		Document xmldoc = builder.parse(filename);
-		Element whitehost = (Element) xmldoc.getElementsByTagName("whitehost").item(0);
-		Element firewall = (Element) xmldoc.getElementsByTagName("firewall").item(0);
-
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(false);
+        factory.setValidating(false);
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        builder.setEntityResolver(new IgnoreDTDEntityResolver());
+        Document xmldoc = builder.parse(filename);
+        Element whitehost = (Element) xmldoc.getElementsByTagName("whitehost").item(0);
+        Element firewall = (Element) xmldoc.getElementsByTagName("firewall").item(0);
+        
 		if (firewall == null) {
 			firewall = xmldoc.createElement("firewall");
-			Element root = xmldoc.getDocumentElement();
-			root.appendChild(firewall);
-			if (whitehost == null) {
-				whitehost = xmldoc.createElement("whitehost");
-				firewall.appendChild(whitehost);
-			}
-		}
+            Element root = xmldoc.getDocumentElement();
+            root.appendChild(firewall);
+            if(whitehost==null){
+            	whitehost = xmldoc.createElement("whitehost");
+            	firewall.appendChild(whitehost);
+            }
+        }
 
-		for (UserConfig userConfig : userConfigs) {
-			String user = userConfig.getName();
-			Element hostEle = xmldoc.createElement("host");
-			hostEle.setAttribute("host", host);
-			hostEle.setAttribute("user", user);
+        for(UserConfig userConfig : userConfigs){
+        	String user = userConfig.getName();
+        	Element hostEle = xmldoc.createElement("host");
+        	hostEle.setAttribute("host", host);
+        	hostEle.setAttribute("user", user);
 
-			whitehost.appendChild(hostEle);
-		}
-
-		TransformerFactory factory2 = TransformerFactory.newInstance();
-		Transformer former = factory2.newTransformer();
-		String systemId = xmldoc.getDoctype().getSystemId();
-		if (systemId != null) {
-			former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_SYSTEM, systemId);
-		}
-		former.transform(new DOMSource(xmldoc), new StreamResult(new File(filename)));
+        	whitehost.appendChild(hostEle);
+        }
+        
+             
+        TransformerFactory factory2 = TransformerFactory.newInstance();
+        Transformer former = factory2.newTransformer();
+        String systemId = xmldoc.getDoctype().getSystemId();
+        if(systemId!=null){
+            former.setOutputProperty(javax.xml.transform.OutputKeys.DOCTYPE_SYSTEM, systemId);    
+        }
+        former.transform(new DOMSource(xmldoc), new StreamResult(new File(filename)));
 
 	}
-
-	static class IgnoreDTDEntityResolver implements EntityResolver {
-		public InputSource resolveEntity(java.lang.String publicId, java.lang.String systemId)
-				throws SAXException, java.io.IOException {
-			if (systemId.contains("server.dtd")) {
-				// InputSource is = new InputSource(new
-				// ByteArrayInputStream("<?xml version=\"1.0\"
-				// encoding=\"UTF-8\"?>".getBytes()));
+	static class IgnoreDTDEntityResolver implements EntityResolver{
+		public InputSource resolveEntity(java.lang.String publicId, java.lang.String systemId) throws SAXException, java.io.IOException{
+			if (systemId.contains("server.dtd")){ 
+				//InputSource is = new InputSource(new ByteArrayInputStream("<?xml version=\"1.0\" encoding=\"UTF-8\"?>".getBytes()));
 				InputStream dtd = XMLServerLoader.class.getResourceAsStream("/server.dtd");
 				InputSource is = new InputSource(dtd);
-				return is;
-			} else {
+				return is; 
+		    } else {
 				return null;
 			}
-		}
+			} 
 	}
-	// public static void main(String[] args) throws Exception {
-	// List<UserConfig> userConfigs = new ArrayList<UserConfig>();
-	// UserConfig user = new UserConfig();
-	// user.setName("mycat");
-	// userConfigs.add(user);
-	// updateToFile("127.0.0.1",userConfigs);
-	// }
-
+//	public static void main(String[] args) throws Exception {
+//        List<UserConfig> userConfigs = new ArrayList<UserConfig>();
+//        UserConfig user = new UserConfig();
+//        user.setName("mycat");
+//        userConfigs.add(user);
+//		updateToFile("127.0.0.1",userConfigs);
+//	}
+	
+	
 }

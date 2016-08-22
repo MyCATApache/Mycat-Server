@@ -61,7 +61,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 	
     private static final Logger ALARM = LoggerFactory.getLogger("alarm");
     
-	private static boolean check = false;	
+    private static boolean check = false;	
 	private final static ThreadLocal<WallProvider> contextLocal = new ThreadLocal<WallProvider>();
 
     public static MycatPrivileges instance() {
@@ -80,7 +80,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 
     @Override
     public boolean userExists(String user, String host) {
-    	//检查白名单
+    	//检查用户及白名单
     	return checkFirewallWhiteHostPolicy(user, host);
     }
 
@@ -297,7 +297,6 @@ public class MycatPrivileges implements FrontendPrivileges {
 		}
 		
 		return isPassed;
-	}
-	
+	}	
 	
 }
