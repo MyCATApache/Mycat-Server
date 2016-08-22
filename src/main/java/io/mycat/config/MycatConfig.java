@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
-import io.mycat.config.model.QuarantineConfig;
+import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
@@ -50,8 +50,8 @@ public class MycatConfig {
 	private volatile SystemConfig system;
 	private volatile MycatCluster cluster;
 	private volatile MycatCluster _cluster;
-	private volatile QuarantineConfig quarantine;
-	private volatile QuarantineConfig _quarantine;
+	private volatile FirewallConfig firewall;
+	private volatile FirewallConfig _firewall;
 	private volatile Map<String, UserConfig> users;
 	private volatile Map<String, UserConfig> _users;
 	private volatile Map<String, SchemaConfig> schemas;
@@ -77,7 +77,7 @@ public class MycatConfig {
 		for (PhysicalDBPool dbPool : dataHosts.values()) {
 			dbPool.setSchemas(getDataNodeSchemasOfDataHost(dbPool.getHostName()));
 		}
-		this.quarantine = confInit.getQuarantine();
+		this.firewall = confInit.getFirewall();
 		this.cluster = confInit.getCluster();
 		//初始化重加载配置时间
 		this.reloadTime = TimeUtil.currentTimeMillis();
@@ -173,12 +173,12 @@ public class MycatConfig {
 		return _cluster;
 	}
 
-	public QuarantineConfig getQuarantine() {
-		return quarantine;
+	public FirewallConfig getFirewall() {
+		return firewall;
 	}
 
-	public QuarantineConfig getBackupQuarantine() {
-		return _quarantine;
+	public FirewallConfig getBackupFirewall() {
+		return _firewall;
 	}
 
 	public ReentrantLock getLock() {
@@ -197,8 +197,8 @@ public class MycatConfig {
 			Map<String, SchemaConfig> schemas,
 			Map<String, PhysicalDBNode> dataNodes,
 			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			QuarantineConfig quarantine,boolean reloadAll) {
-		apply(users, schemas, dataNodes, dataHosts, cluster, quarantine,reloadAll);
+			FirewallConfig firewall,boolean reloadAll) {
+		apply(users, schemas, dataNodes, dataHosts, cluster, firewall,reloadAll);
 		this.reloadTime = TimeUtil.currentTimeMillis();
 		this.status = reloadAll?RELOAD_ALL:RELOAD;
 	}
@@ -206,7 +206,7 @@ public class MycatConfig {
 	public boolean canRollback() {
 		if (_users == null || _schemas == null || _dataNodes == null
 				|| _dataHosts == null || _cluster == null
-				|| _quarantine == null || status == ROLLBACK) {
+				|| _firewall == null || status == ROLLBACK) {
 			return false;
 		} else {
 			return true;
@@ -217,8 +217,8 @@ public class MycatConfig {
 			Map<String, SchemaConfig> schemas,
 			Map<String, PhysicalDBNode> dataNodes,
 			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			QuarantineConfig quarantine) {
-		apply(users, schemas, dataNodes, dataHosts, cluster, quarantine,status==RELOAD_ALL);
+			FirewallConfig firewall) {
+		apply(users, schemas, dataNodes, dataHosts, cluster, firewall,status==RELOAD_ALL);
 		this.rollbackTime = TimeUtil.currentTimeMillis();
 		this.status = ROLLBACK;
 	}
@@ -227,7 +227,7 @@ public class MycatConfig {
 			Map<String, SchemaConfig> schemas,
 			Map<String, PhysicalDBNode> dataNodes,
 			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			QuarantineConfig quarantine,boolean isLoadAll) {
+			FirewallConfig firewall,boolean isLoadAll) {
 		final ReentrantLock lock = this.lock;
 		lock.lock();
 		try {
@@ -252,7 +252,7 @@ public class MycatConfig {
 			this._schemas = this.schemas;
 
 			this._cluster = this.cluster;
-			this._quarantine = this.quarantine;
+			this._firewall = this.firewall;
 
             if(isLoadAll)
             {
@@ -273,7 +273,7 @@ public class MycatConfig {
 			this.users = users;
 			this.schemas = schemas;
 			this.cluster = cluster;
-			this.quarantine = quarantine;
+			this.firewall = firewall;
 		} finally {
 			lock.unlock();
 		}

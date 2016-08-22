@@ -40,7 +40,7 @@ import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.config.model.DataNodeConfig;
-import io.mycat.config.model.QuarantineConfig;
+import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
@@ -56,7 +56,7 @@ import io.mycat.route.sequence.handler.IncrSequenceZKHandler;
 public class ConfigInitializer {
 	private volatile SystemConfig system;
 	private volatile MycatCluster cluster;
-	private volatile QuarantineConfig quarantine;
+	private volatile FirewallConfig firewall;
 	private volatile Map<String, UserConfig> users;
 	private volatile Map<String, SchemaConfig> schemas;
 	private volatile Map<String, PhysicalDBNode> dataNodes;
@@ -77,8 +77,8 @@ public class ConfigInitializer {
 			this.dataHosts = initDataHosts(configLoader);
 			this.dataNodes = initDataNodes(configLoader);
 		}
-		//权限管理
-		this.quarantine = configLoader.getQuarantineConfig();
+		//防火墙管理
+		this.firewall = configLoader.getFirewallConfig();
 		this.cluster = initCobarCluster(configLoader);
 		//不同类型的全局序列处理器的配置加载
 		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_MYSQLDB) {
@@ -133,8 +133,8 @@ public class ConfigInitializer {
 		return cluster;
 	}
 
-	public QuarantineConfig getQuarantine() {
-		return quarantine;
+	public FirewallConfig getFirewall() {
+		return firewall;
 	}
 
 	public Map<String, UserConfig> getUsers() {
