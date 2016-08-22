@@ -12,7 +12,7 @@ import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Fields;
-import io.mycat.config.model.QuarantineConfig;
+import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.util.ConfigException;
 import io.mycat.manager.ManagerConnection;
@@ -62,7 +62,7 @@ public final class ShowWhiteHost {
         // write rows
         byte packetId = eof.packetId;  
         
-		Map<String, List<UserConfig>> map=MycatServer.getInstance().getConfig().getQuarantine().getWhitehost();
+		Map<String, List<UserConfig>> map=MycatServer.getInstance().getConfig().getFirewall().getWhitehost();
 		for (String key : map.keySet()) {  
 			List<UserConfig> userConfigs=map.get(key);
 			String users="";
@@ -130,9 +130,9 @@ public final class ShowWhiteHost {
             userConfigs.add(uc);
           }   
         }  
-       if (MycatServer.getInstance().getConfig().getQuarantine().addWhitehost(host, userConfigs)) {
+       if (MycatServer.getInstance().getConfig().getFirewall().addWhitehost(host, userConfigs)) {
     	   try{
-               QuarantineConfig.updateToFile(host, userConfigs);
+               FirewallConfig.updateToFile(host, userConfigs);
            }catch(Exception e){
         	   LOGGER.warn("set while host error : " + e.getMessage());
         	   c.writeErrMessage(ErrorCode.ER_YES, "white host set success ,but write to file failed :" + e.getMessage());

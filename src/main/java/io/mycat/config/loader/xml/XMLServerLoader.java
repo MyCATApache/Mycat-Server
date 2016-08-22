@@ -42,9 +42,10 @@ import org.w3c.dom.NodeList;
 import com.alibaba.druid.wall.WallConfig;
 
 import io.mycat.config.model.ClusterConfig;
-import io.mycat.config.model.QuarantineConfig;
+import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
+import io.mycat.config.model.UserPrivilegesConfig;
 import io.mycat.config.util.ConfigException;
 import io.mycat.config.util.ConfigUtil;
 import io.mycat.config.util.ParameterMapping;
@@ -58,13 +59,13 @@ import io.mycat.util.SplitUtil;
 public class XMLServerLoader {
     private final SystemConfig system;
     private final Map<String, UserConfig> users;
-    private final QuarantineConfig quarantine;
+    private final FirewallConfig firewall;
     private ClusterConfig cluster;
 
     public XMLServerLoader() {
         this.system = new SystemConfig();
         this.users = new HashMap<String, UserConfig>();
-        this.quarantine = new QuarantineConfig();
+        this.firewall = new FirewallConfig();
         this.load();
     }
 
@@ -76,8 +77,8 @@ public class XMLServerLoader {
         return (Map<String, UserConfig>) (users.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(users));
     }
 
-    public QuarantineConfig getQuarantine() {
-        return quarantine;
+    public FirewallConfig getFirewall() {
+        return firewall;
     }
 
     public ClusterConfig getCluster() {
@@ -92,14 +93,18 @@ public class XMLServerLoader {
             dtd = XMLServerLoader.class.getResourceAsStream("/server.dtd");
             xml = XMLServerLoader.class.getResourceAsStream("/server.xml");
             Element root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
+            
             //加载System标签
             loadSystem(root);
+            
             //加载User标签
             loadUsers(root);
+            
             //加载集群配置
             this.cluster = new ClusterConfig(root, system.getServerPort());
-            //加载权限和黑白名单
-            loadQuarantine(root);
+            
+            //加载全局SQL防火墙
+            loadFirewall(root);
         } catch (ConfigException e) {
             throw e;
         } catch (Exception e) {
@@ -120,7 +125,7 @@ public class XMLServerLoader {
         }
     }
 
-    private void loadQuarantine(Element root) throws IllegalAccessException, InvocationTargetException {
+    private void loadFirewall(Element root) throws IllegalAccessException, InvocationTargetException {
         NodeList list = root.getElementsByTagName("host");
         Map<String, List<UserConfig>> whitehost = new HashMap<String, List<UserConfig>>();
 
@@ -130,7 +135,7 @@ public class XMLServerLoader {
                 Element e = (Element) node;
                 String host = e.getAttribute("host").trim();
                 String userStr = e.getAttribute("user").trim();
-                if (this.quarantine.existsHost(host)) {
+                if (this.firewall.existsHost(host)) {
                     throw new ConfigException("host duplicated : " + host);
                 }
                 String []users = userStr.split(",");
@@ -148,7 +153,9 @@ public class XMLServerLoader {
                 whitehost.put(host, userConfigs);
             }
         }
-        quarantine.setWhitehost(whitehost);
+        
+        firewall.setWhitehost(whitehost);
+        
         WallConfig wallConfig = new WallConfig();
         NodeList blacklist = root.getElementsByTagName("blacklist");
         for (int i = 0, n = blacklist.getLength(); i < n; i++) {
@@ -157,15 +164,15 @@ public class XMLServerLoader {
             	Element e = (Element) node;
              	String check = e.getAttribute("check");
              	if (null != check) {
-             		quarantine.setCheck(Boolean.parseBoolean(check));
+             		firewall.setCheck(Boolean.parseBoolean(check));
 				}
 
                 Map<String, Object> props = ConfigUtil.loadElements((Element) node);
                 ParameterMapping.mapping(wallConfig, props);
             }
         }
-        quarantine.setWallConfig(wallConfig);
-        quarantine.init();
+        firewall.setWallConfig(wallConfig);
+        firewall.init();
         
     }
 
@@ -190,11 +197,6 @@ public class XMLServerLoader {
 					user.setBenchmark( Integer.parseInt(benchmark) );
 				}
 				
-				String benchmarkSmsTel = (String) props.get("benchmarkSmsTel");
-				if(null != benchmarkSmsTel) {
-					user.setBenchmarkSmsTel( benchmarkSmsTel );
-				}
-				
 				String readOnly = (String) props.get("readOnly");
 				if (null != readOnly) {
 					user.setReadOnly(Boolean.parseBoolean(readOnly));
@@ -205,12 +207,75 @@ public class XMLServerLoader {
                     String[] strArray = SplitUtil.split(schemas, ',', true);
                     user.setSchemas(new HashSet<String>(Arrays.asList(strArray)));
                 }
+                
+                //加载用户 DML 权限
+                loadPrivileges(user, e);         
+                
                 if (users.containsKey(name)) {
                     throw new ConfigException("user " + name + " duplicated!");
                 }
                 users.put(name, user);
             }
         }
+    }
+    
+    private void loadPrivileges(UserConfig userConfig, Element node) {
+    	
+    	UserPrivilegesConfig privilegesConfig = new UserPrivilegesConfig();
+    	
+    	NodeList privilegesNodes = node.getElementsByTagName("privileges");
+    	int privilegesNodesLength = privilegesNodes.getLength();		
+		for (int i = 0; i < privilegesNodesLength; ++i) {			
+			Element privilegesNode = (Element) privilegesNodes.item(i);
+			String check = privilegesNode.getAttribute("check");
+         	if (null != check) {
+         		privilegesConfig.setCheck(Boolean.valueOf(check));
+			}
+			
+			
+			NodeList schemaNodes = privilegesNode.getElementsByTagName("schema");
+			int schemaNodeLength = schemaNodes.getLength();		
+			
+			for (int j = 0; j < schemaNodeLength; j++ ) {
+				Element schemaNode = (Element) schemaNodes.item(j);
+				String name1 = schemaNode.getAttribute("name");
+				String dml1 = schemaNode.getAttribute("dml");
+				
+				int[] dml1Array = new int[ dml1.length() ];
+				for(int offset1 = 0; offset1 < dml1.length(); offset1++ ) {
+					dml1Array[offset1] =  Character.getNumericValue( dml1.charAt( offset1 ) );
+				}
+				
+				UserPrivilegesConfig.SchemaPrivilege schemaPrivilege = new UserPrivilegesConfig.SchemaPrivilege(); 
+				schemaPrivilege.setName( name1 );
+				schemaPrivilege.setDml( dml1Array );
+				
+				NodeList tableNodes = schemaNode.getElementsByTagName("table");
+				int tableNodeLength = tableNodes.getLength();
+				for (int z = 0; z < tableNodeLength; z++) {
+					
+					UserPrivilegesConfig.TablePrivilege tablePrivilege = new UserPrivilegesConfig.TablePrivilege();
+					
+					Element tableNode = (Element) tableNodes.item(z);
+					String name2 = tableNode.getAttribute("name");
+					String dml2 = tableNode.getAttribute("dml");
+					
+					int[] dml2Array = new int[ dml2.length() ];
+					for(int offset2 = 0; offset2 < dml2.length(); offset2++ ) {
+						dml2Array[offset2] =  Character.getNumericValue( dml2.charAt( offset2 ) );
+					}
+					
+					tablePrivilege.setName( name2 );
+					tablePrivilege.setDml( dml2Array );
+					
+					schemaPrivilege.addTablePrivilege(name2, tablePrivilege);
+				}		
+				
+				privilegesConfig.addSchemaPrivilege(name1, schemaPrivilege);
+			}
+		}
+		
+		userConfig.setPrivilegesConfig(privilegesConfig);
     }
 
     private void loadSystem(Element root) throws IllegalAccessException, InvocationTargetException {
