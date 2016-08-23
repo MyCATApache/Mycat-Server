@@ -311,9 +311,9 @@ public class MycatServer {
 			try {
 				myCatMemory = new MyCatMemory(system,totalNetWorkBufferSize);
 			} catch (NoSuchFieldException e) {
-				e.printStackTrace();
+				LOGGER .error("NoSuchFieldException",e);
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				LOGGER.error("Error",e);
 			}
 		}
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
@@ -401,13 +401,13 @@ public class MycatServer {
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
 
 
-		scheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MICROSECONDS);
-		scheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MICROSECONDS);
+		scheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MILLISECONDS);
+		scheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MILLISECONDS);
 		scheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L,
-				dataNodeIldeCheckPeriod,TimeUnit.MICROSECONDS);
+				dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
 		scheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L,
 				system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
-		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MICROSECONDS);
+		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MILLISECONDS);
         if(system.getCheckTableConsistency()==1) {
             scheduler.scheduleAtFixedRate(tableStructureCheck(), 0L, system.getCheckTableConsistencyPeriod(), TimeUnit.MILLISECONDS);
         }

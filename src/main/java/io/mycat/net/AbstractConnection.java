@@ -554,7 +554,7 @@ public abstract class AbstractConnection implements NIOConnection {
 		}
 	}
 	
-	protected final int getPacketLength(ByteBuffer buffer, int offset) {
+	protected int getPacketLength(ByteBuffer buffer, int offset) {
 		int headerSize = getPacketHeaderSize();
 		if ( isSupportCompress() ) {
 			headerSize = 7;

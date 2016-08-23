@@ -40,7 +40,7 @@ import io.mycat.config.ConfigInitializer;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatCluster;
 import io.mycat.config.MycatConfig;
-import io.mycat.config.model.QuarantineConfig;
+import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.util.DnPropertyUtil;
@@ -81,7 +81,7 @@ public final class ReloadConfig {
 		Map<String, PhysicalDBNode> dataNodes = loader.getDataNodes();
 		Map<String, PhysicalDBPool> dataHosts = loader.getDataHosts();
 		MycatCluster cluster = loader.getCluster();
-		QuarantineConfig quarantine = loader.getQuarantine();
+		FirewallConfig firewall = loader.getFirewall();
 
 		// 应用新配置
 		MycatConfig conf = MycatServer.getInstance().getConfig();
@@ -117,7 +117,7 @@ public final class ReloadConfig {
 		}
 
 		// 应用重载
-		conf.reload(users, schemas, dataNodes, dataHosts, cluster, quarantine,true);
+		conf.reload(users, schemas, dataNodes, dataHosts, cluster, firewall, true);
 
 		// 处理旧的资源
 		for (PhysicalDBPool dn : cNodes.values()) {
@@ -138,14 +138,14 @@ public final class ReloadConfig {
         Map<String, PhysicalDBNode> dataNodes = loader.getDataNodes();
         Map<String, PhysicalDBPool> dataHosts = loader.getDataHosts();
         MycatCluster cluster = loader.getCluster();
-        QuarantineConfig quarantine = loader.getQuarantine();
+        FirewallConfig firewall = loader.getFirewall();
 
         // 应用新配置
         MycatServer instance = MycatServer.getInstance();
         MycatConfig conf = instance.getConfig();
 
         // 应用重载
-        conf.reload(users, schemas, dataNodes, dataHosts, cluster, quarantine,false);
+        conf.reload(users, schemas, dataNodes, dataHosts, cluster, firewall, false);
 
 
         //清理缓存
