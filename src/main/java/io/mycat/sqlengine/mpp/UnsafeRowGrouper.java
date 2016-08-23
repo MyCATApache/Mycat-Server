@@ -173,14 +173,13 @@ public class UnsafeRowGrouper {
 			switch(curColMeta.colType){
 				case ColMeta.COL_TYPE_INT:
 				case ColMeta.COL_TYPE_INT24:
+				case ColMeta.COL_TYPE_LONG:
 					groupKey.setInt(i,0);
 					break;
 				case ColMeta.COL_TYPE_SHORT:
 					groupKey.setShort(i, (short) 0);
 					break;
-				case ColMeta.COL_TYPE_LONG:
-					groupKey.setLong(i,0);
-					break;
+
 				case ColMeta.COL_TYPE_FLOAT:
 					groupKey.setFloat(i,0);
 					break;
@@ -223,12 +222,13 @@ public class UnsafeRowGrouper {
 			switch(curColMeta.colType){
 				case ColMeta.COL_TYPE_INT:
 				case ColMeta.COL_TYPE_INT24:
+				case ColMeta.COL_TYPE_LONG:
 					emptyAggregationBuffer.setInt(curColMeta.colIndex,0);
 					break;
 				case ColMeta.COL_TYPE_SHORT:
 					emptyAggregationBuffer.setShort(curColMeta.colIndex, (short) 0);
 					break;
-				case ColMeta.COL_TYPE_LONG:
+
 				case ColMeta.COL_TYPE_LONGLONG:
 					emptyAggregationBuffer.setLong(curColMeta.colIndex,0);
 					break;
@@ -303,6 +303,8 @@ public class UnsafeRowGrouper {
 
             switch(curColMeta.colType){
                 case ColMeta.COL_TYPE_INT:
+				case ColMeta.COL_TYPE_LONG:
+				case ColMeta.COL_TYPE_INT24:
                     unsafeRowWriter.write(curColMeta.colIndex,
                             BytesTools.toBytes(row.getInt(curColMeta.colIndex)));
 
@@ -314,9 +316,9 @@ public class UnsafeRowGrouper {
 
 					//logger.debug("short " + row.getShort(curColMeta.colIndex));
                     break;
-                case ColMeta.COL_TYPE_LONG:
+
                 case ColMeta.COL_TYPE_LONGLONG:
-				case ColMeta.COL_TYPE_INT24:
+
                     long v = row.getLong(curColMeta.colIndex);
                     unsafeRowWriter.write(curColMeta.colIndex,
                             LongUtil.toBytes(v));
@@ -462,18 +464,16 @@ public class UnsafeRowGrouper {
 			curColMeta = this.columToIndx.get(sortColumnsByIndex[i].toUpperCase());
 			switch(curColMeta.colType){
 				case ColMeta.COL_TYPE_INT:
+				case ColMeta.COL_TYPE_LONG:
+				case ColMeta.COL_TYPE_INT24:
 					key.setInt(i,
                             BytesTools.toInt(row.getBinary(curColMeta.colIndex)));
 					break;
 				case ColMeta.COL_TYPE_SHORT:
-				case ColMeta.COL_TYPE_INT24:
 					key.setShort(i,
                             BytesTools.toShort(row.getBinary(curColMeta.colIndex)));
 					break;
-				case ColMeta.COL_TYPE_LONG:
-					key.setLong(i,
-                            BytesTools.toLong(row.getBinary(curColMeta.colIndex)));
-					break;
+
 				case ColMeta.COL_TYPE_FLOAT:
 					key.setFloat(i,
                              BytesTools.toFloat(row.getBinary(curColMeta.colIndex)));
@@ -515,6 +515,8 @@ public class UnsafeRowGrouper {
 			curColMeta = fieldEntry.getValue();
 			switch(curColMeta.colType){
 				case ColMeta.COL_TYPE_INT:
+				case ColMeta.COL_TYPE_LONG:
+				case ColMeta.COL_TYPE_INT24:
 					value.setInt(curColMeta.colIndex,
                             BytesTools.toInt(row.getBinary(curColMeta.colIndex)));
 					break;
@@ -522,8 +524,7 @@ public class UnsafeRowGrouper {
 					value.setShort(curColMeta.colIndex,
                             BytesTools.toShort(row.getBinary(curColMeta.colIndex)));
 					break;
-				case ColMeta.COL_TYPE_LONG:
-				case ColMeta.COL_TYPE_INT24:
+
 				case ColMeta.COL_TYPE_LONGLONG:
 
 					value.setLong(curColMeta.colIndex,
@@ -598,6 +599,8 @@ public class UnsafeRowGrouper {
 				 int index = merg.colMeta.colIndex;
 				 switch(type){
 					 case ColMeta.COL_TYPE_INT:
+					 case ColMeta.COL_TYPE_LONG:
+					 case ColMeta.COL_TYPE_INT24:
 						 left = BytesTools.toBytes(toRow.getInt(index));
 						 right = BytesTools.toBytes(newRow.getInt(index));
 						 break;
@@ -605,8 +608,7 @@ public class UnsafeRowGrouper {
 						 left = BytesTools.toBytes(toRow.getShort(index));
 						 right =BytesTools.toBytes(newRow.getShort(index));
 						 break;
-					 case ColMeta.COL_TYPE_LONG:
-					 case ColMeta.COL_TYPE_INT24:
+
 					 case ColMeta.COL_TYPE_LONGLONG:
 						 left = BytesTools.toBytes(toRow.getLong(index));
 						 right = BytesTools.toBytes(newRow.getLong(index));
@@ -635,13 +637,14 @@ public class UnsafeRowGrouper {
 
 					 switch(type){
 						 case ColMeta.COL_TYPE_INT:
+						 case ColMeta.COL_TYPE_LONG:
+						 case ColMeta.COL_TYPE_INT24:
 							toRow.setInt(index,BytesTools.toInt(result));
 							 break;
 						 case ColMeta.COL_TYPE_SHORT:
 							 toRow.setShort(index,BytesTools.toShort(result));
 							 break;
-						 case ColMeta.COL_TYPE_LONG:
-						 case ColMeta.COL_TYPE_INT24:
+
 						 case ColMeta.COL_TYPE_LONGLONG:
 							 toRow.setLong(index,BytesTools.toLong(result));
 							 break;
@@ -680,6 +683,8 @@ public class UnsafeRowGrouper {
 
 				switch(type){
 					case ColMeta.COL_TYPE_INT:
+					case ColMeta.COL_TYPE_LONG:
+					case ColMeta.COL_TYPE_INT24:
 						avgSum = BytesTools.toBytes(toRow.getInt(avgSumIndex));
 						avgCount = BytesTools.toBytes(toRow.getLong(avgCountIndex));
 						break;
@@ -687,8 +692,7 @@ public class UnsafeRowGrouper {
 						avgSum =BytesTools.toBytes(toRow.getShort(avgSumIndex));
 						avgCount = BytesTools.toBytes(toRow.getLong(avgCountIndex));
 						break;
-					case ColMeta.COL_TYPE_LONG:
-					case ColMeta.COL_TYPE_INT24:
+
 					case ColMeta.COL_TYPE_LONGLONG:
 						avgSum = BytesTools.toBytes(toRow.getLong(avgSumIndex));
 						avgCount = BytesTools.toBytes(toRow.getLong(avgCountIndex));
@@ -717,13 +721,14 @@ public class UnsafeRowGrouper {
 				if (result != null) {
                     switch(type){
                         case ColMeta.COL_TYPE_INT:
+						case ColMeta.COL_TYPE_LONG:
+						case ColMeta.COL_TYPE_INT24:
                             toRow.setInt(avgSumIndex,BytesTools.toInt(result));
                             break;
                         case ColMeta.COL_TYPE_SHORT:
                             toRow.setShort(avgSumIndex,BytesTools.toShort(result));
                             break;
-                        case ColMeta.COL_TYPE_LONG:
-						case ColMeta.COL_TYPE_INT24:
+
                         case ColMeta.COL_TYPE_LONGLONG:
                             toRow.setLong(avgSumIndex,BytesTools.toLong(result));
                             break;

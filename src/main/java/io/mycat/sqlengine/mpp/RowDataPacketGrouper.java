@@ -159,8 +159,8 @@ public class RowDataPacketGrouper {
         case ColMeta.COL_TYPE_SHORT:
         case ColMeta.COL_TYPE_INT:
         case ColMeta.COL_TYPE_INT24:
-            return CompareUtil.compareInt(ByteUtil.getInt(left), ByteUtil.getInt(right));
-        case ColMeta.COL_TYPE_LONG:
+		case ColMeta.COL_TYPE_LONG:
+			return CompareUtil.compareInt(ByteUtil.getInt(left), ByteUtil.getInt(right));
         case ColMeta.COL_TYPE_LONGLONG:
             return CompareUtil.compareLong(ByteUtil.getLong(left), ByteUtil.getLong(right));
         case ColMeta.COL_TYPE_FLOAT:

@@ -57,12 +57,13 @@ public class RowPrefixComputer extends UnsafeExternalRowSorter.PrefixComputer {
          */
         switch (orderIndexType) {
             case ColMeta.COL_TYPE_INT:
+            case ColMeta.COL_TYPE_LONG:
+            case ColMeta.COL_TYPE_INT24:
                 return BytesTools.toInt(rowIndexElem);
             case ColMeta.COL_TYPE_SHORT:
                 return BytesTools.toShort(rowIndexElem);
-            case ColMeta.COL_TYPE_LONG:
+
             case ColMeta.COL_TYPE_LONGLONG:
-            case ColMeta.COL_TYPE_INT24:
                 return BytesTools.toLong(rowIndexElem);
             case ColMeta.COL_TYPE_FLOAT:
                 return PrefixComparators.DoublePrefixComparator.
@@ -72,7 +73,6 @@ public class RowPrefixComputer extends UnsafeExternalRowSorter.PrefixComputer {
             case ColMeta.COL_TYPE_NEWDECIMAL:
                 return PrefixComparators.DoublePrefixComparator.
                         computePrefix(BytesTools.toDouble(rowIndexElem));
-
             case ColMeta.COL_TYPE_DATE:
             case ColMeta.COL_TYPE_TIMSTAMP:
             case ColMeta.COL_TYPE_TIME:

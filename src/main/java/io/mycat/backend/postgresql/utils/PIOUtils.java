@@ -100,10 +100,10 @@ public class PIOUtils {
 	public static String redString(ByteBuffer buffer, int offset, Charset charset) throws IOException {
 		ByteArrayOutputStream out  =new ByteArrayOutputStream();
 		for(int i=offset ;i< buffer.limit();i++){
-			out.write(new byte[]{buffer.get(i)});
 			if(((char)buffer.get(i)) == '\0'){
 				break;
 			}			
+			out.write(new byte[]{buffer.get(i)});
 		}
 		return new String(out.toByteArray(),charset);
 	}

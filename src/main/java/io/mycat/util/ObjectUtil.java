@@ -59,13 +59,13 @@ public final class ObjectUtil {
              }
         } catch (ClassNotFoundException e)
         {
-            LOGGER.error("getStaticFieldValue", e);
+            //LOGGER.error("getStaticFieldValue", e);
         } catch (NoSuchFieldException e)
         {
-            LOGGER.error("getStaticFieldValue", e);
+           // LOGGER.error("getStaticFieldValue", e);
         } catch (IllegalAccessException e)
         {
-            LOGGER.error("getStaticFieldValue", e);
+          //  LOGGER.error("getStaticFieldValue", e);
         }
         return null;
     }
