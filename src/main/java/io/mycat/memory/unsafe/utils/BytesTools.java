@@ -24,10 +24,14 @@ import com.google.common.annotations.VisibleForTesting;
 import io.mycat.memory.unsafe.Platform;
 import sun.misc.Unsafe;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility class that handles byte arrays, conversions to/from other types,
@@ -84,12 +88,303 @@ public class BytesTools {
     public static final int SIZEOF_SHORT = Short.SIZE / Byte.SIZE;
 
     /**
-     * Mask to apply to a long to reveal the lower int only. Use like this:
-     * int i = (int)(0xFFFFFFFF00000000L ^ some_long_value);
+     * Convert a byte array  to a int value
+     * @param buf
+     * @return int
+     * @throws NumberFormatException
      */
-    public static final long MASK_FOR_LOWER_INT_IN_LONG = 0xFFFFFFFF00000000L;
 
-    private static final boolean UNSAFE_UNALIGNED = Platform.unaligned();
+    public static int getInt(byte[] buf) throws NumberFormatException {
+        return getInt(buf, 0, buf.length);
+    }
+
+    public static int getInt(byte[] buf, int offset, int endPos) throws NumberFormatException {
+        byte base = 10;
+
+        int s;
+        for(s = offset; s < endPos && Character.isWhitespace((char)buf[s]); ++s) {
+            ;
+        }
+        if(s == endPos) {
+            throw new NumberFormatException(toString(buf));
+        } else {
+            boolean negative = false;
+            if((char)buf[s] == 45) {
+                negative = true;
+                ++s;
+            } else if((char)buf[s] == 43) {
+                ++s;
+            }
+
+            int save = s;
+            int cutoff = 2147483647 / base;
+            int cutlim = 2147483647 % base;
+            if(negative) {
+                ++cutlim;
+            }
+
+            boolean overflow = false;
+
+            int i;
+            for(i = 0; s < endPos; ++s) {
+                char c = (char)buf[s];
+                if(Character.isDigit(c)) {
+                    c = (char)(c - 48);
+                } else {
+                    if(!Character.isLetter(c)) {
+                        break;
+                    }
+
+                    c = (char)(Character.toUpperCase(c) - 65 + 10);
+                }
+
+                if(c >= base) {
+                    break;
+                }
+
+                if(i <= cutoff && (i != cutoff || c <= cutlim)) {
+                    i *= base;
+                    i += c;
+                } else {
+                    overflow = true;
+                }
+            }
+
+            if(s == save) {
+                throw new NumberFormatException(toString(buf));
+            } else if(overflow) {
+                throw new NumberFormatException(toString(buf));
+            } else {
+                return negative?-i:i;
+            }
+        }
+    }
+
+    /**
+     * Convert a byte array to a long value
+     * @param buf
+     * @return
+     * @throws NumberFormatException
+     */
+    public static long getLong(byte[] buf) throws NumberFormatException {
+        return getLong(buf, 0, buf.length);
+    }
+
+    public static long getLong(byte[] buf, int offset, int endpos) throws NumberFormatException {
+        byte base = 10;
+
+        int s;
+        for(s = offset; s < endpos && Character.isWhitespace((char)buf[s]); ++s) {
+            ;
+        }
+
+        if(s == endpos) {
+            throw new NumberFormatException(toString(buf));
+        } else {
+            boolean negative = false;
+            if((char)buf[s] == 45) {
+                negative = true;
+                ++s;
+            } else if((char)buf[s] == 43) {
+                ++s;
+            }
+
+            int save = s;
+            long cutoff = 9223372036854775807L / (long)base;
+            long cutlim = (long)((int)(9223372036854775807L % (long)base));
+            if(negative) {
+                ++cutlim;
+            }
+
+            boolean overflow = false;
+
+            long i;
+            for(i = 0L; s < endpos; ++s) {
+                char c = (char)buf[s];
+                if(Character.isDigit(c)) {
+                    c = (char)(c - 48);
+                } else {
+                    if(!Character.isLetter(c)) {
+                        break;
+                    }
+                    c = (char)(Character.toUpperCase(c) - 65 + 10);
+                }
+
+                if(c >= base) {
+                    break;
+                }
+
+                if(i <= cutoff && (i != cutoff || (long)c <= cutlim)) {
+                    i *= (long)base;
+                    i += (long)c;
+                } else {
+                    overflow = true;
+                }
+            }
+
+            if(s == save) {
+                throw new NumberFormatException(toString(buf));
+            } else if(overflow) {
+                throw new NumberFormatException(toString(buf));
+            } else {
+                return negative?-i:i;
+            }
+        }
+    }
+
+    /**
+     * Convert a byte array  to a short value
+     * @param buf
+     * @return
+     * @throws NumberFormatException
+     */
+    public static short getShort(byte[] buf) throws NumberFormatException {
+        return getShort(buf, 0, buf.length);
+    }
+
+    public static short getShort(byte[] buf, int offset, int endpos) throws NumberFormatException {
+        byte base = 10;
+
+        int s;
+        for(s = offset; s < endpos && Character.isWhitespace((char)buf[s]); ++s) {
+            ;
+        }
+
+        if(s == endpos) {
+            throw new NumberFormatException(toString(buf));
+        } else {
+            boolean negative = false;
+            if((char)buf[s] == 45) {
+                negative = true;
+                ++s;
+            } else if((char)buf[s] == 43) {
+                ++s;
+            }
+
+            int save = s;
+            short cutoff = (short)(32767 / base);
+            short cutlim = (short)(32767 % base);
+            if(negative) {
+                ++cutlim;
+            }
+
+            boolean overflow = false;
+
+            short i;
+            for(i = 0; s < endpos; ++s) {
+                char c = (char)buf[s];
+                if(Character.isDigit(c)) {
+                    c = (char)(c - 48);
+                } else {
+                    if(!Character.isLetter(c)) {
+                        break;
+                    }
+
+                    c = (char)(Character.toUpperCase(c) - 65 + 10);
+                }
+
+                if(c >= base) {
+                    break;
+                }
+
+                if(i <= cutoff && (i != cutoff || c <= cutlim)) {
+                    i = (short)(i * base);
+                    i = (short)(i + c);
+                } else {
+                    overflow = true;
+                }
+            }
+
+            if(s == save) {
+                throw new NumberFormatException(toString(buf));
+            } else if(overflow) {
+                throw new NumberFormatException(toString(buf));
+            } else {
+                return negative?(short)(-i):i;
+            }
+        }
+    }
+
+    /**
+     *  Convert a byte array  to a float value
+     * @param src
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    public static float getFloat(byte [] src) throws UnsupportedEncodingException {
+        return Float.parseFloat(new String(src,"US-ASCII"));
+    }
+
+    /**
+     * Convert a byte array  to a double value
+     * @param src
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+
+    public static double getDouble(byte [] src) throws UnsupportedEncodingException {
+        return  Double.parseDouble(new String(src,"US-ASCII"));
+    }
+
+    /**
+     * Convert a long value to a byte array
+     * @param l
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+
+
+    public static byte[] long2Bytes(long l) throws UnsupportedEncodingException {
+        String lstr = Long.toString(l);
+        return lstr.getBytes("US-ASCII");
+    }
+
+    /**
+     * Convert a int value to a byte array
+     * @param i
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+
+    public static byte[] int2Bytes(int i) throws UnsupportedEncodingException {
+        String istr = Integer.toString(i);
+        return istr.getBytes("US-ASCII");
+    }
+
+    /**
+     * Convert a short value to a byte array
+     * @param i
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+
+    public static byte[] short2Bytes(short i) throws UnsupportedEncodingException {
+        String sstr = Short.toString(i);
+        return sstr.getBytes("US-ASCII");
+    }
+
+    /**
+     * Convert a float value to a byte array
+     * @param f
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    public static byte[] float2Bytes(float f) throws UnsupportedEncodingException {
+        String fstr = Float.toString(f);
+        return fstr.getBytes("US-ASCII");
+    }
+
+    /**
+     * Convert a double value to a byte array
+     * @param d
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    public static byte[] double2Bytes(double d) throws UnsupportedEncodingException {
+        String dstr = Double.toString(d);
+        return dstr.getBytes("US-ASCII");
+    }
+
     /**
      * Returns a new byte array, copied from the given {@code buf},
      * from the index 0 (inclusive) to the limit (exclusive),
@@ -98,7 +393,6 @@ public class BytesTools {
      *
      * @param buf a byte buffer
      * @return the byte array
-     * @see #getBytes(ByteBuffer)
      */
     public static byte[] toBytes(ByteBuffer buf) {
         ByteBuffer dup = buf.duplicate();
@@ -195,7 +489,6 @@ public class BytesTools {
      * @param buf a byte buffer
      * @return a string representation of the buffer's binary contents
      * @see #toBytes(ByteBuffer)
-     * @see #getBytes(ByteBuffer)
      */
     public static String toStringBinary(ByteBuffer buf) {
         if (buf == null)
@@ -336,532 +629,6 @@ public class BytesTools {
         b[0] = (byte) val;
         return b;
     }
-
-    /**
-     * Converts a byte array to a long value. Reverses
-     * {@link #toBytes(long)}
-     * @param bytes array
-     * @return the long value
-     */
-    public static long toLong(byte[] bytes) {
-        return toLong(bytes, 0, SIZEOF_LONG);
-    }
-
-    /**
-     * Converts a byte array to a long value. Assumes there will be
-     * {@link #SIZEOF_LONG} bytes available.
-     *
-     * @param bytes bytes
-     * @param offset offset
-     * @return the long value
-     */
-    public static long toLong(byte[] bytes, int offset) {
-        return toLong(bytes, offset, SIZEOF_LONG);
-    }
-
-    /**
-     * Converts a byte array to a long value.
-     *
-     * @param bytes array of bytes
-     * @param offset offset into array
-     * @param length length of data (must be {@link #SIZEOF_LONG})
-     * @return the long value
-     * @throws IllegalArgumentException if length is not {@link #SIZEOF_LONG} or
-     * if there's not enough room in the array at the offset indicated.
-     */
-    public static long toLong(byte[] bytes, int offset, final int length) {
-        if (length != SIZEOF_LONG || offset + length > bytes.length) {
-            throw explainWrongLengthOrOffset(bytes, offset, length, SIZEOF_LONG);
-        }
-        if (UNSAFE_UNALIGNED) {
-            return Platform.toLong(bytes, offset);
-        } else {
-            long l = 0;
-            for(int i = offset; i < offset + length; i++) {
-                l <<= 8;
-                l ^= bytes[i] & 0xFF;
-            }
-            return l;
-        }
-    }
-
-    private static IllegalArgumentException
-    explainWrongLengthOrOffset(final byte[] bytes,
-                               final int offset,
-                               final int length,
-                               final int expectedLength) {
-        String reason;
-        if (length != expectedLength) {
-            reason = "Wrong length: " + length + ", expected " + expectedLength;
-        } else {
-            reason = "offset (" + offset + ") + length (" + length + ") exceed the"
-                    + " capacity of the array: " + bytes.length;
-        }
-        return new IllegalArgumentException(reason);
-    }
-
-    /**
-     * Put a long value out to the specified byte array position.
-     * @param bytes the byte array
-     * @param offset position in the array
-     * @param val long to write out
-     * @return incremented offset
-     * @throws IllegalArgumentException if the byte array given doesn't have
-     * enough room at the offset specified.
-     */
-    public static int putLong(byte[] bytes, int offset, long val) {
-        if (bytes.length - offset < SIZEOF_LONG) {
-            throw new IllegalArgumentException("Not enough room to put a long at"
-                    + " offset " + offset + " in a " + bytes.length + " byte array");
-        }
-        if (UNSAFE_UNALIGNED) {
-            return Platform.putLong(bytes, offset, val);
-        } else {
-            for(int i = offset + 7; i > offset; i--) {
-                bytes[i] = (byte) val;
-                val >>>= 8;
-            }
-            bytes[offset] = (byte) val;
-            return offset + SIZEOF_LONG;
-        }
-    }
-
-    /**
-     * Put a long value out to the specified byte array position (Unsafe).
-     * @param bytes the byte array
-     * @param offset position in the array
-     * @param val long to write out
-     * @return incremented offset
-     * @deprecated As of release 2.0.0, this will be removed in HBase 3.0.0.
-     */
-    @Deprecated
-    public static int putLongUnsafe(byte[] bytes, int offset, long val) {
-        return Platform.putLong(bytes, offset, val);
-    }
-
-    /**
-     * Presumes float encoded as IEEE 754 floating-point "single format"
-     * @param bytes byte array
-     * @return Float made from passed byte array.
-     */
-    public static float toFloat(byte [] bytes) {
-        return toFloat(bytes, 0);
-    }
-
-    /**
-     * Presumes float encoded as IEEE 754 floating-point "single format"
-     * @param bytes array to convert
-     * @param offset offset into array
-     * @return Float made from passed byte array.
-     */
-    public static float toFloat(byte [] bytes, int offset) {
-        return Float.intBitsToFloat(toInt(bytes, offset, SIZEOF_INT));
-    }
-
-    /**
-     * @param bytes byte array
-     * @param offset offset to write to
-     * @param f float value
-     * @return New offset in <code>bytes</code>
-     */
-    public static int putFloat(byte [] bytes, int offset, float f) {
-        return putInt(bytes, offset, Float.floatToRawIntBits(f));
-    }
-
-    /**
-     * @param f float value
-     * @return the float represented as byte []
-     */
-    public static byte [] toBytes(final float f) {
-        // Encode it as int
-        return BytesTools.toBytes(Float.floatToRawIntBits(f));
-    }
-
-    /**
-     * @param bytes byte array
-     * @return Return double made from passed bytes.
-     */
-    public static double toDouble(final byte [] bytes) {
-        return toDouble(bytes, 0);
-    }
-
-    /**
-     * @param bytes byte array
-     * @param offset offset where double is
-     * @return Return double made from passed bytes.
-     */
-    public static double toDouble(final byte [] bytes, final int offset) {
-        return Double.longBitsToDouble(toLong(bytes, offset, SIZEOF_LONG));
-    }
-
-    /**
-     * @param bytes byte array
-     * @param offset offset to write to
-     * @param d value
-     * @return New offset into array <code>bytes</code>
-     */
-    public static int putDouble(byte [] bytes, int offset, double d) {
-        return putLong(bytes, offset, Double.doubleToLongBits(d));
-    }
-
-    /**
-     * Serialize a double as the IEEE 754 double format output. The resultant
-     * array will be 8 bytes long.
-     *
-     * @param d value
-     * @return the double represented as byte []
-     */
-    public static byte [] toBytes(final double d) {
-        // Encode it as a long
-        return BytesTools.toBytes(Double.doubleToRawLongBits(d));
-    }
-
-    /**
-     * Convert an int value to a byte array.  Big-endian.  Same as what DataOutputStream.writeInt
-     * does.
-     *
-     * @param val value
-     * @return the byte array
-     */
-    public static byte[] toBytes(int val) {
-        byte [] b = new byte[4];
-        for(int i = 3; i > 0; i--) {
-            b[i] = (byte) val;
-            val >>>= 8;
-        }
-        b[0] = (byte) val;
-        return b;
-    }
-
-    /**
-     * Converts a byte array to an int value
-     * @param bytes byte array
-     * @return the int value
-     */
-    public static int toInt(byte[] bytes) {
-        return toInt(bytes, 0, SIZEOF_INT);
-    }
-
-    /**
-     * Converts a byte array to an int value
-     * @param bytes byte array
-     * @param offset offset into array
-     * @return the int value
-     */
-    public static int toInt(byte[] bytes, int offset) {
-        return toInt(bytes, offset, SIZEOF_INT);
-    }
-
-    /**
-     * Converts a byte array to an int value
-     * @param bytes byte array
-     * @param offset offset into array
-     * @param length length of int (has to be {@link #SIZEOF_INT})
-     * @return the int value
-     * @throws IllegalArgumentException if length is not {@link #SIZEOF_INT} or
-     * if there's not enough room in the array at the offset indicated.
-     */
-    public static int toInt(byte[] bytes, int offset, final int length) {
-        if (length != SIZEOF_INT || offset + length > bytes.length) {
-            throw explainWrongLengthOrOffset(bytes, offset, length, SIZEOF_INT);
-        }
-        if (UNSAFE_UNALIGNED) {
-            return Platform.toInt(bytes, offset);
-        } else {
-            int n = 0;
-            for(int i = offset; i < (offset + length); i++) {
-                n <<= 8;
-                n ^= bytes[i] & 0xFF;
-            }
-            return n;
-        }
-    }
-
-    /**
-     * Converts a byte array to an int value (Unsafe version)
-     * @param bytes byte array
-     * @param offset offset into array
-     * @return the int value
-     * @deprecated As of release 2.0.0, this will be removed in HBase 3.0.0.
-     */
-    @Deprecated
-    public static int toIntUnsafe(byte[] bytes, int offset) {
-        return Platform.toInt(bytes, offset);
-    }
-
-    /**
-     * Converts a byte array to an short value (Unsafe version)
-     * @param bytes byte array
-     * @param offset offset into array
-     * @return the short value
-     * @deprecated As of release 2.0.0, this will be removed in HBase 3.0.0.
-     */
-    @Deprecated
-    public static short toShortUnsafe(byte[] bytes, int offset) {
-        return Platform.toShort(bytes, offset);
-    }
-
-    /**
-     * Converts a byte array to an long value (Unsafe version)
-     * @param bytes byte array
-     * @param offset offset into array
-     * @return the long value
-     * @deprecated As of release 2.0.0, this will be removed in HBase 3.0.0.
-     */
-    @Deprecated
-    public static long toLongUnsafe(byte[] bytes, int offset) {
-        return Platform.toLong(bytes, offset);
-    }
-
-    /**
-     * Converts a byte array to an int value
-     * @param bytes byte array
-     * @param offset offset into array
-     * @param length how many bytes should be considered for creating int
-     * @return the int value
-     * @throws IllegalArgumentException if there's not enough room in the array at the offset
-     * indicated.
-     */
-    public static int readAsInt(byte[] bytes, int offset, final int length) {
-        if (offset + length > bytes.length) {
-            throw new IllegalArgumentException("offset (" + offset + ") + length (" + length
-                    + ") exceed the" + " capacity of the array: " + bytes.length);
-        }
-        int n = 0;
-        for(int i = offset; i < (offset + length); i++) {
-            n <<= 8;
-            n ^= bytes[i] & 0xFF;
-        }
-        return n;
-    }
-
-    /**
-     * Put an int value out to the specified byte array position.
-     * @param bytes the byte array
-     * @param offset position in the array
-     * @param val int to write out
-     * @return incremented offset
-     * @throws IllegalArgumentException if the byte array given doesn't have
-     * enough room at the offset specified.
-     */
-    public static int putInt(byte[] bytes, int offset, int val) {
-        if (bytes.length - offset < SIZEOF_INT) {
-            throw new IllegalArgumentException("Not enough room to put an int at"
-                    + " offset " + offset + " in a " + bytes.length + " byte array");
-        }
-        if (UNSAFE_UNALIGNED) {
-            return Platform.putInt(bytes, offset, val);
-        } else {
-            for(int i= offset + 3; i > offset; i--) {
-                bytes[i] = (byte) val;
-                val >>>= 8;
-            }
-            bytes[offset] = (byte) val;
-            return offset + SIZEOF_INT;
-        }
-    }
-
-    /**
-     * Put an int value out to the specified byte array position (Unsafe).
-     * @param bytes the byte array
-     * @param offset position in the array
-     * @param val int to write out
-     * @return incremented offset
-     * @deprecated As of release 2.0.0, this will be removed in HBase 3.0.0.
-     */
-    @Deprecated
-    public static int putIntUnsafe(byte[] bytes, int offset, int val) {
-        return Platform.putInt(bytes, offset, val);
-    }
-
-    /**
-     * Convert a short value to a byte array of {@link #SIZEOF_SHORT} bytes long.
-     * @param val value
-     * @return the byte array
-     */
-    public static byte[] toBytes(short val) {
-        byte[] b = new byte[SIZEOF_SHORT];
-        b[1] = (byte) val;
-        val >>= 8;
-        b[0] = (byte) val;
-        return b;
-    }
-
-    /**
-     * Converts a byte array to a short value
-     * @param bytes byte array
-     * @return the short value
-     */
-    public static short toShort(byte[] bytes) {
-        return toShort(bytes, 0, SIZEOF_SHORT);
-    }
-
-    /**
-     * Converts a byte array to a short value
-     * @param bytes byte array
-     * @param offset offset into array
-     * @return the short value
-     */
-    public static short toShort(byte[] bytes, int offset) {
-        return toShort(bytes, offset, SIZEOF_SHORT);
-    }
-
-    /**
-     * Converts a byte array to a short value
-     * @param bytes byte array
-     * @param offset offset into array
-     * @param length length, has to be {@link #SIZEOF_SHORT}
-     * @return the short value
-     * @throws IllegalArgumentException if length is not {@link #SIZEOF_SHORT}
-     * or if there's not enough room in the array at the offset indicated.
-     */
-    public static short toShort(byte[] bytes, int offset, final int length) {
-        if (length != SIZEOF_SHORT || offset + length > bytes.length) {
-            throw explainWrongLengthOrOffset(bytes, offset, length, SIZEOF_SHORT);
-        }
-        if (UNSAFE_UNALIGNED) {
-            return Platform.toShort(bytes, offset);
-        } else {
-            short n = 0;
-            n ^= bytes[offset] & 0xFF;
-            n <<= 8;
-            n ^= bytes[offset+1] & 0xFF;
-            return n;
-        }
-    }
-
-    /**
-     * Returns a new byte array, copied from the given {@code buf},
-     * from the position (inclusive) to the limit (exclusive).
-     * The position and the other index parameters are not changed.
-     *
-     * @param buf a byte buffer
-     * @return the byte array
-     * @see #toBytes(ByteBuffer)
-     */
-    public static byte[] getBytes(ByteBuffer buf) {
-        return readBytes(buf.duplicate());
-    }
-
-    /**
-     * Put a short value out to the specified byte array position.
-     * @param bytes the byte array
-     * @param offset position in the array
-     * @param val short to write out
-     * @return incremented offset
-     * @throws IllegalArgumentException if the byte array given doesn't have
-     * enough room at the offset specified.
-     */
-    public static int putShort(byte[] bytes, int offset, short val) {
-        if (bytes.length - offset < SIZEOF_SHORT) {
-            throw new IllegalArgumentException("Not enough room to put a short at"
-                    + " offset " + offset + " in a " + bytes.length + " byte array");
-        }
-        if (UNSAFE_UNALIGNED) {
-            return Platform.putShort(bytes, offset, val);
-        } else {
-            bytes[offset+1] = (byte) val;
-            val >>= 8;
-            bytes[offset] = (byte) val;
-            return offset + SIZEOF_SHORT;
-        }
-    }
-
-    /**
-     * Put a short value out to the specified byte array position (Unsafe).
-     * @param bytes the byte array
-     * @param offset position in the array
-     * @param val short to write out
-     * @return incremented offset
-     * @deprecated As of release 2.0.0, this will be removed in HBase 3.0.0.
-     */
-    @Deprecated
-    public static int putShortUnsafe(byte[] bytes, int offset, short val) {
-        return Platform.putShort(bytes, offset, val);
-    }
-
-    /**
-     * Put an int value as short out to the specified byte array position. Only the lower 2 bytes of
-     * the short will be put into the array. The caller of the API need to make sure they will not
-     * loose the value by doing so. This is useful to store an unsigned short which is represented as
-     * int in other parts.
-     * @param bytes the byte array
-     * @param offset position in the array
-     * @param val value to write out
-     * @return incremented offset
-     * @throws IllegalArgumentException if the byte array given doesn't have
-     * enough room at the offset specified.
-     */
-    public static int putAsShort(byte[] bytes, int offset, int val) {
-        if (bytes.length - offset < SIZEOF_SHORT) {
-            throw new IllegalArgumentException("Not enough room to put a short at"
-                    + " offset " + offset + " in a " + bytes.length + " byte array");
-        }
-        bytes[offset+1] = (byte) val;
-        val >>= 8;
-        bytes[offset] = (byte) val;
-        return offset + SIZEOF_SHORT;
-    }
-
-    /**
-     * Convert a BigDecimal value to a byte array
-     *
-     * @param val
-     * @return the byte array
-     */
-    public static byte[] toBytes(BigDecimal val) {
-        byte[] valueBytes = val.unscaledValue().toByteArray();
-        byte[] result = new byte[valueBytes.length + SIZEOF_INT];
-        int offset = putInt(result, 0, val.scale());
-        putBytes(result, offset, valueBytes, 0, valueBytes.length);
-        return result;
-    }
-
-    /**
-     * Put bytes at the specified byte array position.
-     * @param tgtBytes the byte array
-     * @param tgtOffset position in the array
-     * @param srcBytes array to write out
-     * @param srcOffset source offset
-     * @param srcLength source length
-     * @return incremented offset
-     * */
-
-  public static int putBytes(byte[] tgtBytes, int tgtOffset, byte[] srcBytes, int srcOffset, int srcLength) {
-      System.arraycopy(srcBytes, srcOffset, tgtBytes, tgtOffset, srcLength);
-      return tgtOffset + srcLength;
-  }
-
-    /**
-     * Converts a byte array to a BigDecimal
-     *
-     * @param bytes
-     * @return the char value
-     */
-    public static BigDecimal toBigDecimal(byte[] bytes) {
-        return toBigDecimal(bytes, 0, bytes.length);
-    }
-
-    /**
-     * Converts a byte array to a BigDecimal value
-     *
-     * @param bytes
-     * @param offset
-     * @param length
-     * @return the char value
-     */
-    public static BigDecimal toBigDecimal(byte[] bytes, int offset, final int length) {
-        if (bytes == null || length < SIZEOF_INT + 1 ||
-                (offset + length > bytes.length)) {
-            return null;
-        }
-
-        int scale = toInt(bytes, offset);
-        byte[] tcBytes = new byte[length - SIZEOF_INT];
-        System.arraycopy(bytes, offset + SIZEOF_INT, tcBytes, 0, length - SIZEOF_INT);
-        return new BigDecimal(new BigInteger(tcBytes), scale);
-    }
-
 
     /**
      * @param left left operand
@@ -1125,5 +892,79 @@ public class BytesTools {
         byte [][] result = new byte[1][];
         result[0] = column;
         return result;
+    }
+
+
+    public static byte [] paddingInt(byte [] a){
+
+        if(a == null){
+            return null;
+        }
+
+        if (a.length==SIZEOF_INT){
+            return  a;
+        }
+
+        byte [] b = new byte[SIZEOF_INT];
+        if (Platform.littleEndian){
+            for (int i = 0; i < SIZEOF_INT-a.length; i++) {
+                b[i] = 0x00;
+            }
+            System.arraycopy(a, 0, b,SIZEOF_INT-a.length, a.length);
+        }else {
+            System.arraycopy(a, 0, b, 0, a.length);
+            for (int i = a.length; i < SIZEOF_INT; i++) {
+                b[i] = 0x00;
+            }
+        }
+        return  b;
+    }
+
+    public static byte [] paddingLong(byte [] a){
+        if(a == null){
+            return null;
+        }
+
+        if (a.length==SIZEOF_LONG){
+            return  a;
+        }
+
+        byte [] b = new byte[SIZEOF_LONG];
+        if (Platform.littleEndian){
+            for (int i = 0; i < SIZEOF_LONG-a.length; i++) {
+                b[i] = 0x00;
+            }
+            System.arraycopy(a, 0, b,SIZEOF_LONG-a.length, a.length);
+        }else {
+            System.arraycopy(a, 0, b, 0, a.length);
+            for (int i = a.length; i < SIZEOF_LONG; i++) {
+                b[i] = 0x00;
+            }
+        }
+        return b;
+    }
+
+    public static byte [] paddingShort(byte [] a){
+
+        if(a == null){
+            return null;
+        }
+
+        if (a.length==SIZEOF_SHORT){
+            return  a;
+        }
+        byte [] b = new byte[SIZEOF_SHORT];
+        if (Platform.littleEndian){
+            for (int i = 0; i < SIZEOF_SHORT-a.length; i++) {
+                b[i] = 0x00;
+            }
+            System.arraycopy(a, 0, b, SIZEOF_SHORT-a.length, a.length);
+        }else {
+            System.arraycopy(a, 0, b, 0, a.length);
+            for (int i = a.length; i < SIZEOF_SHORT; i++) {
+                b[i] = 0x00;
+            }
+        }
+        return b;
     }
 }

@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -45,7 +46,7 @@ public final class UnsafeExternalRowSorter {
 
 
   public abstract static class PrefixComputer {
-    protected abstract long computePrefix(UnsafeRow row);
+    protected abstract long computePrefix(UnsafeRow row) throws UnsupportedEncodingException;
   }
 
   public UnsafeExternalRowSorter(DataNodeMemoryManager dataNodeMemoryManager,
@@ -273,8 +274,25 @@ public final class UnsafeExternalRowSorter {
       for (int i = 0; i < len; i++) {
         int colIndex = orderCols[i].colMeta.colIndex;
         /**取出一行数据中的列值，进行大小比对*/
-        byte[] left = row2.getBinary(colIndex);
-        byte[] right = row2.getBinary(colIndex);
+        byte[] left = null;
+        byte[] right = null;
+
+
+
+          if(!row1.isNullAt(colIndex)) {
+              left = row1.getBinary(colIndex);
+          }else {
+              left = new byte[1];
+              left[0] = UnsafeRow.NULL_MARK;
+          }
+
+
+          if(!row2.isNullAt(colIndex)) {
+              right = row2.getBinary(colIndex);
+          }else {
+              right = new byte[1];
+              right[0] = UnsafeRow.NULL_MARK;
+          }
 
         if (orderCols[i].orderType == type) {
           cmp = RowDataPacketSorter.compareObject(left, right, orderCols[i]);
