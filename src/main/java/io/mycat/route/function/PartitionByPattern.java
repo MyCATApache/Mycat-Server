@@ -77,6 +77,12 @@ public class PartitionByPattern extends AbstractPartitionAlgorithm implements Ru
 		}
 		return rst;
 	}
+	
+	@Override
+	public int getPartitionNum() {
+		int nPartition = this.longRongs.length;
+		return nPartition;
+	}
 
 	public static boolean isNumeric(String str) {
 		return pattern.matcher(str).matches();

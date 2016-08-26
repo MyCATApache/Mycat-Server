@@ -78,8 +78,17 @@ public class PartitionByRangeMod extends AbstractPartitionAlgorithm implements R
 			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(), e);
 		}
 	}
+    
+	@Override
+	public int getPartitionNum() {
+		int nPartition = 0;
+		for(LongRange longRange : this.longRanges) {
+			nPartition += longRange.groupSize;
+		}
+		return nPartition;
+	}
 
-    public Integer calculateStart(String columnValue) {
+	public Integer calculateStart(String columnValue) {
         long value = Long.parseLong(columnValue);
         Integer rst = null;
         int nodeIndex=0;

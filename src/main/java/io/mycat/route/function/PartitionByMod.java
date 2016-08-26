@@ -63,6 +63,13 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 		}
 
 	}
+	
+
+	@Override
+	public int getPartitionNum() {
+		int nPartition = this.count;
+		return nPartition;
+	}
 
 	private static void hashTest()  {
 		PartitionByMod hash=new PartitionByMod();

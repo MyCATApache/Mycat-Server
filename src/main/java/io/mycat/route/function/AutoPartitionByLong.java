@@ -77,6 +77,12 @@ public class AutoPartitionByLong extends AbstractPartitionAlgorithm implements R
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 
+	@Override
+	public int getPartitionNum() {
+		int nPartition = longRongs.length;
+		return nPartition;
+	}
+
 	private void initialize() {
 		BufferedReader in = null;
 		try {
