@@ -23,10 +23,8 @@
  */
 package io.mycat.config.model;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -54,12 +52,14 @@ import io.mycat.config.MycatConfig;
 import io.mycat.config.loader.xml.XMLServerLoader;
 
 /**
- * 隔离区配置定义
+ * 防火墙配置定义
  * 
  * @author songwie
+ * @author zhuam
  */
-public final class QuarantineConfig {
-	private static final Logger LOGGER = LoggerFactory.getLogger(QuarantineConfig.class);
+public final class FirewallConfig {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(FirewallConfig.class);
 	
     private Map<String, List<UserConfig>> whitehost;
     private List<String> blacklist;
@@ -69,7 +69,7 @@ public final class QuarantineConfig {
      
     private static WallProvider provider ;
     
-    public QuarantineConfig() { }
+    public FirewallConfig() { }
     
     public void init(){
     	if(check){
@@ -133,7 +133,7 @@ public final class QuarantineConfig {
 	}
 	
 	public static void setProvider(WallProvider provider) {
-		QuarantineConfig.provider = provider;
+		FirewallConfig.provider = provider;
 	}
 
 	public void setWallConfig(WallConfig wallConfig) {
@@ -165,15 +165,15 @@ public final class QuarantineConfig {
         builder.setEntityResolver(new IgnoreDTDEntityResolver());
         Document xmldoc = builder.parse(filename);
         Element whitehost = (Element) xmldoc.getElementsByTagName("whitehost").item(0);
-        Element quarantine = (Element) xmldoc.getElementsByTagName("quarantine").item(0);
+        Element firewall = (Element) xmldoc.getElementsByTagName("firewall").item(0);
         
-        if(quarantine==null){
-        	quarantine = xmldoc.createElement("quarantine");
+		if (firewall == null) {
+			firewall = xmldoc.createElement("firewall");
             Element root = xmldoc.getDocumentElement();
-            root.appendChild(quarantine);
+            root.appendChild(firewall);
             if(whitehost==null){
             	whitehost = xmldoc.createElement("whitehost");
-            	quarantine.appendChild(whitehost);
+            	firewall.appendChild(whitehost);
             }
         }
 

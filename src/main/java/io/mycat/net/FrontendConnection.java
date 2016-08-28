@@ -296,8 +296,23 @@ public abstract class FrontendConnection extends AbstractConnection {
 		// 记录SQL
 		this.setExecuteSql(sql);
 		
-		if (queryHandler != null) {
-			// 执行查询
+		// 防火墙策略( SQL 黑名单/ 注入攻击)
+		if ( !privileges.checkFirewallSQLPolicy( user, sql ) ) {
+			writeErrMessage(ErrorCode.ERR_WRONG_USED, 
+					"The statement is unsafe SQL, reject for user '" + user + "'");
+			return;
+		}		
+		
+		// DML 权限检查
+		boolean isPassed = privileges.checkDmlPrivilege(user, schema, sql);
+		if ( !isPassed ) {
+			writeErrMessage(ErrorCode.ERR_WRONG_USED, 
+					"The statement DML privilege check is not passed, reject for user '" + user + "'");
+			return;
+		}
+		
+		// 执行查询
+		if (queryHandler != null) {			
 			queryHandler.setReadOnly(privileges.isReadOnly(user));
 			queryHandler.query(sql);
 			

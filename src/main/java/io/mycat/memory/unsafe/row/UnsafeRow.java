@@ -385,8 +385,8 @@ public final class UnsafeRow extends MySQLPacket {
     }
   }
 
-  private static final byte NULL_MARK = (byte) 251;
-  private static final byte EMPTY_MARK = (byte) 0;
+  public static final byte NULL_MARK = (byte) 251;
+  public static final byte EMPTY_MARK = (byte) 0;
 
   @Override
   public ByteBuffer write(ByteBuffer bb, FrontendConnection c,

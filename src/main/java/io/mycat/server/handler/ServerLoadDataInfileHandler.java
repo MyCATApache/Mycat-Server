@@ -627,6 +627,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
             // List<String> lines = Splitter.on(loadData.getLineTerminatedBy()).omitEmptyStrings().splitToList(content);
             CsvParserSettings settings = new CsvParserSettings();
+            settings.setMaxColumns(65535);
+            settings.setMaxCharsPerColumn(65535);
             settings.getFormat().setLineSeparator(loadData.getLineTerminatedBy());
             settings.getFormat().setDelimiter(loadData.getFieldTerminatedBy().charAt(0));
             if(loadData.getEnclose()!=null)
@@ -674,6 +676,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     {
         List<SQLExpr> columns = statement.getColumns();
         CsvParserSettings settings = new CsvParserSettings();
+        settings.setMaxColumns(65535);
+        settings.setMaxCharsPerColumn(65535);
         settings.getFormat().setLineSeparator(loadData.getLineTerminatedBy());
         settings.getFormat().setDelimiter(loadData.getFieldTerminatedBy().charAt(0));
         if(loadData.getEnclose()!=null)
