@@ -189,6 +189,12 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		}
 		return tail.get(tail.firstKey());
 	}
+	
+	@Override
+	public int getPartitionNum() {
+		int nPartition = this.count;
+		return nPartition;
+	}
 
 	private static void hashTest() throws IOException{
 		PartitionByMurmurHash hash=new PartitionByMurmurHash();

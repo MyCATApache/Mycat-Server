@@ -115,4 +115,13 @@ public final class PartitionByString extends AbstractPartitionAlgorithm implemen
         return partitionUtil.partition(hash);
 	}
 
+	@Override
+	public int getPartitionNum() {
+		int nPartition = 0;
+		for(int i = 0; i < count.length; i++) {
+			nPartition += count[i];
+		}
+		return nPartition;
+	}
+	
 }
