@@ -638,6 +638,12 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             settings.getFormat().setQuoteEscape(loadData.getEscape().charAt(0));
             }
             settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
+            /*
+             *  fix bug #1074 : LOAD DATA local INFILE导入的所有Boolean类型全部变成了false
+             *  不可见字符将在CsvParser被当成whitespace过滤掉, 使用settings.trimValues(false)来避免被过滤掉
+             *  TODO : 设置trimValues(false)之后, 会引起字段值前后的空白字符无法被过滤!
+             */
+            settings.trimValues(false);
             CsvParser parser = new CsvParser(settings);
             try
             {
@@ -685,6 +691,12 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             settings.getFormat().setQuoteEscape(loadData.getEscape().charAt(0));
         }
         settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
+        /*
+         *  fix #1074 : LOAD DATA local INFILE导入的所有Boolean类型全部变成了false
+         *  不可见字符将在CsvParser被当成whitespace过滤掉, 使用settings.trimValues(false)来避免被过滤掉
+         *  TODO : 设置trimValues(false)之后, 会引起字段值前后的空白字符无法被过滤!
+         */
+        settings.trimValues(false);
         CsvParser parser = new CsvParser(settings);
         InputStreamReader reader = null;
         FileInputStream fileInputStream = null;
