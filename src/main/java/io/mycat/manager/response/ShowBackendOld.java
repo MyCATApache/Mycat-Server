@@ -24,7 +24,7 @@ import io.mycat.util.TimeUtil;
  */
 public class ShowBackendOld {
 	
-	private static final int FIELD_COUNT = 11;
+	private static final int FIELD_COUNT = 10;
 	private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
 	private static final EOFPacket eof = new EOFPacket();
@@ -49,9 +49,7 @@ public class ShowBackendOld {
 		fields[i++].packetId = ++packetId;
 		fields[i] = PacketUtil.getField("life", Fields.FIELD_TYPE_LONGLONG);
 		fields[i++].packetId = ++packetId;
-		fields[i] = PacketUtil.getField("lasttime_idle", Fields.FIELD_TYPE_LONGLONG);
-		fields[i++].packetId = ++packetId;
-		fields[i] = PacketUtil.getField("shifttime_idle", Fields.FIELD_TYPE_LONGLONG);
+		fields[i] = PacketUtil.getField("lasttime", Fields.FIELD_TYPE_LONGLONG);
 		fields[i++].packetId = ++packetId;
 		fields[i] = PacketUtil.getField("borrowed",Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
@@ -68,9 +66,9 @@ public class ShowBackendOld {
 		byte packetId = eof.packetId;
 		String charset = c.getCharset();
 		
-		for (PhysicalDBPool.OldConnection oc : PhysicalDBPool.oldCons) {
-			if ( oc != null) {
-				RowDataPacket row = getRow(oc.getCon(), oc.getShiftTime(), charset);
+		for (BackendConnection bc : PhysicalDBPool.oldCons) {
+			if ( bc != null) {
+				RowDataPacket row = getRow(bc, charset);
 				row.packetId = ++packetId;
 				buffer = row.write(buffer, c, true);
 			}
@@ -82,7 +80,7 @@ public class ShowBackendOld {
 		c.write(buffer);
 	}
 
-	private static RowDataPacket getRow(BackendConnection c, long shiftTime, String charset) {
+	private static RowDataPacket getRow(BackendConnection c, String charset) {
 		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 		row.add(LongUtil.toBytes(c.getId()));
 		long threadId = 0;
@@ -96,8 +94,7 @@ public class ShowBackendOld {
 		row.add(LongUtil.toBytes(c.getNetInBytes()));
 		row.add(LongUtil.toBytes(c.getNetOutBytes()));
 		row.add(LongUtil.toBytes((TimeUtil.currentTimeMillis() - c.getStartupTime()) / 1000L));
-		row.add(LongUtil.toBytes((TimeUtil.currentTimeMillis() - c.getLastTime()) / 1000L));
-		row.add(LongUtil.toBytes((TimeUtil.currentTimeMillis() - shiftTime) / 1000L));
+		row.add(LongUtil.toBytes( c.getLastTime() ));
 		boolean isBorrowed = c.isBorrowed();
 		row.add(isBorrowed ? "true".getBytes() : "false".getBytes());	
 		return row;

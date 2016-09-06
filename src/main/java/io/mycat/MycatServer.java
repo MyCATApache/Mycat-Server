@@ -23,6 +23,7 @@
  */
 package io.mycat;
 
+import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.DirectByteBufferPool;
@@ -455,19 +456,15 @@ public class MycatServer {
 					public void run() {		
 						
 						long sqlTimeout = MycatServer.getInstance().getConfig().getSystem().getSqlExecuteTimeout() * 1000L;
-						long maxTimeout = sqlTimeout * 2;
 						
 						//根据 lastTime 确认事务的执行， 超过 sqlExecuteTimeout 阀值 close connection 
 						long currentTime = TimeUtil.currentTimeMillis();
-						Iterator<PhysicalDBPool.OldConnection> iter = PhysicalDBPool.oldCons.iterator();
+						Iterator<BackendConnection> iter = PhysicalDBPool.oldCons.iterator();
 						while( iter.hasNext() ) {
-							PhysicalDBPool.OldConnection oldConnection = iter.next();
-							long shiftTime = oldConnection.getShiftTime();
-							long lastTime = oldConnection.getCon().getLastTime();							
-							
-							if ( currentTime - lastTime > sqlTimeout ||	
-									currentTime - shiftTime > maxTimeout ) {								
-								oldConnection.getCon().close("clear old backend connection ...");
+							BackendConnection con = iter.next();							
+							long lastTime = con.getLastTime();						
+							if ( currentTime - lastTime > sqlTimeout ) {								
+								con.close("clear old backend connection ...");
 								iter.remove();									
 							}
 						}

@@ -43,7 +43,6 @@ import io.mycat.backend.mysql.nio.handler.GetConnectionHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.config.Alarms;
 import io.mycat.config.model.DataHostConfig;
-import io.mycat.util.TimeUtil;
 
 public class PhysicalDBPool {
 	
@@ -51,7 +50,7 @@ public class PhysicalDBPool {
 	
 	// TODO: add by zhuam
 	// reload @@config_all 后, 老的后端connection  全部移往 oldCons, 待检测进程销毁
-	public final static ConcurrentLinkedQueue<OldConnection> oldCons = new ConcurrentLinkedQueue<OldConnection>();
+	public final static ConcurrentLinkedQueue<BackendConnection> oldCons = new ConcurrentLinkedQueue<BackendConnection>();
 	
 	public static final int BALANCE_NONE = 0;
 	public static final int BALANCE_ALL_BACK = 1;
@@ -383,25 +382,23 @@ public class PhysicalDBPool {
 	}
 
 	/**
-	 *  转移 dataSources 数据库连接到历史区
+	 *  转移 dataSources 数据库连接到回收区
 	 */
 	public void shiftDatasourcesOldCons() {	
 		
 		// 清除前一次 reload 转移出去的 old Cons, 避免后端太多的问题
 		//can't connect to mysql server ,errmsg:Too many connections
-		Iterator<OldConnection> iter = oldCons.iterator();
+		Iterator<BackendConnection> iter = oldCons.iterator();
 		while( iter.hasNext() ) {
-			OldConnection oldCon = iter.next();
-			oldCon.getCon().close("clear old datasources");
+			BackendConnection con = iter.next();
+			con.close("clear old datasources");
 			iter.remove();	
 		}
 		
 		// 转移本次 old Cons 进入回收区
 		for (PhysicalDatasource source : this.allDs) {
 			List<BackendConnection> shiftCons =  source.shiftCons();
-			for(BackendConnection con: shiftCons) {
-				oldCons.add( new OldConnection(con, TimeUtil.currentTimeMillis()) );
-			}
+			oldCons.addAll(shiftCons);
 		}		
 	}
 
@@ -739,27 +736,4 @@ public class PhysicalDBPool {
 	public void setSchemas(String[] mySchemas) {
 		this.schemas = mySchemas;
 	}
-	
-	/**
-	 * reload 转移的 BackendConnection
-	 *
-	 */
-	public static class OldConnection {
-		private BackendConnection con;
-		private long shiftTime;
-		
-		public OldConnection(BackendConnection con, long shiftTime) {
-			this.con = con;
-			this.shiftTime = shiftTime;
-		}
-
-		public BackendConnection getCon() {
-			return con;
-		}
-
-		public long getShiftTime() {
-			return shiftTime;
-		}
-	}
-
 }
