@@ -25,7 +25,6 @@ package io.mycat;
 
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.buffer.BufferPool;
-import io.mycat.buffer.ByteBufferArena;
 import io.mycat.buffer.DirectByteBufferPool;
 import io.mycat.cache.CacheService;
 import io.mycat.config.MycatConfig;
@@ -61,10 +60,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -82,15 +81,19 @@ import com.google.common.util.concurrent.MoreExecutors;
  * @author mycat
  */
 public class MycatServer {
+	
 	public static final String NAME = "MyCat";
 	private static final long LOG_WATCH_DELAY = 60000L;
 	private static final long TIME_UPDATE_PERIOD = 20L;
-	private static final long DEFAULT_SQL_STAT_RECYCLE_PERIOD = 5*1000L;
+	private static final long DEFAULT_SQL_STAT_RECYCLE_PERIOD = 5 * 1000L;
+	private static final long DEFAULT_OLD_CONNECTION_CLEAR_PERIOD = 5 * 1000L;
+	
 	private static final MycatServer INSTANCE = new MycatServer();
 	private static final Logger LOGGER = LoggerFactory.getLogger("MycatServer");
 	private final RouteService routerService;
 	private final CacheService cacheService;
 	private Properties dnIndexProperties;
+	
 	//AIO连接群组
 	private AsynchronousChannelGroup[] asyncChannelGroups;
 	private volatile int channelIndex = 0;
@@ -100,6 +103,7 @@ public class MycatServer {
 	private final DynaClassLoader catletClassLoader;
 	private final SQLInterceptor sqlInterceptor;
 	private volatile int nextProcessor;
+	
 	// System Buffer Pool Instance
 	private BufferPool bufferPool;
 	private boolean aio = false;
@@ -129,23 +133,29 @@ public class MycatServer {
 	private ListeningExecutorService listeningExecutorService;
 
 	private MycatServer() {
+		
 		//读取文件配置
 		this.config = new MycatConfig();
+		
 		//定时线程池，单线程线程池
 		scheduler = Executors.newSingleThreadScheduledExecutor();
+		
 		//SQL记录器
-		this.sqlRecorder = new SQLRecorder(config.getSystem()
-				.getSqlRecordCount());
+		this.sqlRecorder = new SQLRecorder(config.getSystem().getSqlRecordCount());
+		
 		/**
 		 * 是否在线，MyCat manager中有命令控制
 		 * | offline | Change MyCat status to OFF |
 		 * | online | Change MyCat status to ON |
 		 */
 		this.isOnline = new AtomicBoolean(true);
+		
 		//缓存服务初始化
 		cacheService = new CacheService();
+		
 		//路由计算初始化
 		routerService = new RouteService(cacheService);
+		
 		// load datanode active index from properties
 		dnIndexProperties = loadDnIndexProps();
 		try {
@@ -155,10 +165,11 @@ public class MycatServer {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+		
 		//catlet加载器
 		catletClassLoader = new DynaClassLoader(SystemConfig.getHomePath()
-				+ File.separator + "catlet", config.getSystem()
-				.getCatletClassCheckSeconds());
+				+ File.separator + "catlet", config.getSystem().getCatletClassCheckSeconds());
+		
 		//记录启动时间
 		this.startupTime = TimeUtil.currentTimeMillis();
 	}
@@ -332,23 +343,19 @@ public class MycatServer {
 			// startup connector
 			connector = new AIOConnector();
 			for (int i = 0; i < processors.length; i++) {
-				asyncChannelGroups[i] = AsynchronousChannelGroup
-						.withFixedThreadPool(processorCount,
-								new ThreadFactory() {
-									private int inx = 1;
-
-									@Override
-									public Thread newThread(Runnable r) {
-										Thread th = new Thread(r);
-										//TODO
-										th.setName(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX
-												+ "AIO" + (inx++));
-										LOGGER.info("created new AIO thread "
-												+ th.getName());
-										return th;
-									}
-								});
-
+				asyncChannelGroups[i] = AsynchronousChannelGroup.withFixedThreadPool(processorCount,
+					new ThreadFactory() {
+						private int inx = 1;
+						@Override
+						public Thread newThread(Runnable r) {
+							Thread th = new Thread(r);
+							//TODO
+							th.setName(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + "AIO" + (inx++));
+							LOGGER.info("created new AIO thread "+ th.getName());
+							return th;
+						}
+					}
+				);
 			}
 			manager = new AIOAcceptor(NAME + "Manager", system.getBindIp(),
 					system.getManagerPort(), mf, this.asyncChannelGroups[0]);
@@ -364,59 +371,58 @@ public class MycatServer {
 			NIOReactorPool reactorPool = new NIOReactorPool(
 					DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + "NIOREACTOR",
 					processors.length);
-			connector = new NIOConnector(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX
-					+ "NIOConnector", reactorPool);
+			connector = new NIOConnector(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + "NIOConnector", reactorPool);
 			((NIOConnector) connector).start();
 
 			manager = new NIOAcceptor(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + NAME
-					+ "Manager", system.getBindIp(), system.getManagerPort(),
-					mf, reactorPool);
+					+ "Manager", system.getBindIp(), system.getManagerPort(), mf, reactorPool);
 
 			server = new NIOAcceptor(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + NAME
-					+ "Server", system.getBindIp(), system.getServerPort(), sf,
-					reactorPool);
+					+ "Server", system.getBindIp(), system.getServerPort(), sf, reactorPool);
 		}
 		// manager start
 		manager.start();
-		LOGGER.info(manager.getName() + " is started and listening on "
-				+ manager.getPort());
+		LOGGER.info(manager.getName() + " is started and listening on " + manager.getPort());
 		server.start();
+		
 		// server started
-		LOGGER.info(server.getName() + " is started and listening on "
-				+ server.getPort());
+		LOGGER.info(server.getName() + " is started and listening on " + server.getPort());
+		
 		LOGGER.info("===============================================");
+		
 		// init datahost
 		Map<String, PhysicalDBPool> dataHosts = config.getDataHosts();
 		LOGGER.info("Initialize dataHost ...");
 		for (PhysicalDBPool node : dataHosts.values()) {
-			String index = dnIndexProperties.getProperty(node.getHostName(),
-					"0");
+			String index = dnIndexProperties.getProperty(node.getHostName(),"0");
 			if (!"0".equals(index)) {
-				LOGGER.info("init datahost: " + node.getHostName()
-						+ "  to use datasource index:" + index);
+				LOGGER.info("init datahost: " + node.getHostName() + "  to use datasource index:" + index);
 			}
 			node.init(Integer.parseInt(index));
 			node.startHeartbeat();
 		}
+		
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
-
 
 		scheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MILLISECONDS);
 		scheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L,
-				dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L,
-				system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
+		scheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L, dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
+		scheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
+		scheduler.scheduleAtFixedRate(dataSourceOldConsClear(), 0L, DEFAULT_OLD_CONNECTION_CLEAR_PERIOD, TimeUnit.MILLISECONDS);
 		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MILLISECONDS);
-        if(system.getCheckTableConsistency()==1) {
+       
+		if(system.getCheckTableConsistency()==1) {
             scheduler.scheduleAtFixedRate(tableStructureCheck(), 0L, system.getCheckTableConsistencyPeriod(), TimeUnit.MILLISECONDS);
         }
+		
 		if(system.getUseSqlStat()==1) {
 			scheduler.scheduleAtFixedRate(recycleSqlStat(), 0L, DEFAULT_SQL_STAT_RECYCLE_PERIOD, TimeUnit.MILLISECONDS);
 		}
+		
 		if(system.getUseGlobleTableCheck() == 1){	// 全局表一致性检测是否开启
 			scheduler.scheduleAtFixedRate(glableTableConsistencyCheck(), 0L, system.getGlableTableCheckPeriod(), TimeUnit.MILLISECONDS);
 		}
+		
 		//定期清理结果集排行榜，控制拒绝策略
 		scheduler.scheduleAtFixedRate(resultSetMapClear(),0L,  system.getClearBigSqLResultSetMapMs(),TimeUnit.MILLISECONDS);
 		
@@ -436,6 +442,40 @@ public class MycatServer {
 			};
 		};
 	}
+	
+
+	/**
+	 * 清理 reload @@config_all 后，老的 connection 连接
+	 * @return
+	 */
+	private Runnable dataSourceOldConsClear() {
+		return new Runnable() {
+			@Override
+			public void run() {				
+				timerExecutor.execute(new Runnable() {
+					@Override
+					public void run() {						
+						//根据 lastTime 确认事务的执行， 超过2分钟 close connection 
+						//不停的有线程执行, 则超过5分钟强制关闭
+						long currentTime = TimeUtil.currentTimeMillis();
+						Iterator<PhysicalDBPool.OldConnection> iter = PhysicalDBPool.oldCons.iterator();
+						while( iter.hasNext() ) {
+							PhysicalDBPool.OldConnection oldConnection = iter.next();
+							long shiftTime = oldConnection.getShiftTime();
+							long lastTime = oldConnection.getCon().getLastTime();							
+							
+							if ( currentTime - lastTime > 1000 * 60 * 2 ||	
+									currentTime - shiftTime > 1000 * 60 * 5 ) {								
+								oldConnection.getCon().close("clear old backend connection ...");
+								iter.remove();									
+							}
+						}
+					}				
+				});				
+			};
+		};
+	}
+	
 	
 	/**
 	 * 在bufferpool使用率大于使用率阈值时不清理
