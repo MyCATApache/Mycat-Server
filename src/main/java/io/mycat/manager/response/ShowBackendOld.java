@@ -24,7 +24,7 @@ import io.mycat.util.TimeUtil;
  */
 public class ShowBackendOld {
 	
-	private static final int FIELD_COUNT = 10;
+	private static final int FIELD_COUNT = 11;
 	private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
 	private static final EOFPacket eof = new EOFPacket();
