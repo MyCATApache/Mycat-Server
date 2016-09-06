@@ -152,7 +152,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     			sql = sql.replaceFirst("\\?", "NULL");
     			continue;
     		}
-    		switch(paramType) {
+    		switch(paramType & 0xff) {
     		case Fields.FIELD_TYPE_TINY:
     			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.byteBinding));
     			break;
