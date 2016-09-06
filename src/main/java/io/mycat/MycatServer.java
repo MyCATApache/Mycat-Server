@@ -198,20 +198,18 @@ public class MycatServer {
 		long seq = this.xaIDInc.incrementAndGet();
 		if (seq < 0) {
 			synchronized (xaIDInc) {
-				if (xaIDInc.get() < 0) {
+				if ( xaIDInc.get() < 0 ) {
 					xaIDInc.set(0);
 				}
 				seq = xaIDInc.incrementAndGet();
 			}
 		}
-		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "."
-				+ seq+"'";
+		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "." + seq + "'";
 	}
 
 	public MyCatMemory getMyCatMemory() {
 		return myCatMemory;
 	}
-
 
 	/**
 	 * get next AsynchronousChannel ,first is exclude if multi
@@ -454,9 +452,14 @@ public class MycatServer {
 			public void run() {				
 				timerExecutor.execute(new Runnable() {
 					@Override
-					public void run() {						
-						//根据 lastTime 确认事务的执行， 超过2分钟 close connection 
-						//不停的有线程执行, 则超过5分钟强制关闭
+					public void run() {		
+						
+						long sqlTimeout = MycatServer.getInstance().getConfig().getSystem().getSqlExecuteTimeout() * 1000L;
+						long maxTimeout = sqlTimeout * 2;
+						
+						//根据 lastTime 确认事务的执行， 超过 sqlExecuteTimeout 阀值 close connection 
+						
+						//不停的有线程执行, 则超过10分钟强制关闭
 						long currentTime = TimeUtil.currentTimeMillis();
 						Iterator<PhysicalDBPool.OldConnection> iter = PhysicalDBPool.oldCons.iterator();
 						while( iter.hasNext() ) {
@@ -464,8 +467,8 @@ public class MycatServer {
 							long shiftTime = oldConnection.getShiftTime();
 							long lastTime = oldConnection.getCon().getLastTime();							
 							
-							if ( currentTime - lastTime > 1000 * 60 * 2 ||	
-									currentTime - shiftTime > 1000 * 60 * 5 ) {								
+							if ( currentTime - lastTime > sqlTimeout ||	
+									currentTime - shiftTime > maxTimeout ) {								
 								oldConnection.getCon().close("clear old backend connection ...");
 								iter.remove();									
 							}
@@ -512,8 +515,7 @@ public class MycatServer {
 
 	private Properties loadDnIndexProps() {
 		Properties prop = new Properties();
-		File file = new File(SystemConfig.getHomePath(), "conf"
-				+ File.separator + "dnindex.properties");
+		File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "dnindex.properties");
 		if (!file.exists()) {
 			return prop;
 		}
@@ -542,8 +544,7 @@ public class MycatServer {
 	 */
 	public synchronized void saveDataHostIndex(String dataHost, int curIndex) {
 
-		File file = new File(SystemConfig.getHomePath(), "conf"
-				+ File.separator + "dnindex.properties");
+		File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "dnindex.properties");
 		FileOutputStream fileOut = null;
 		try {
 			String oldIndex = dnIndexProperties.getProperty(dataHost);
@@ -551,9 +552,9 @@ public class MycatServer {
 			if (newIndex.equals(oldIndex)) {
 				return;
 			}
+			
 			dnIndexProperties.setProperty(dataHost, newIndex);
-			LOGGER.info("save DataHost index  " + dataHost + " cur index "
-					+ curIndex);
+			LOGGER.info("save DataHost index  " + dataHost + " cur index " + curIndex);
 
 			File parent = file.getParentFile();
 			if (parent != null && !parent.exists()) {
@@ -679,13 +680,13 @@ public class MycatServer {
 				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
-						Map<String, PhysicalDBPool> nodes = config
-								.getDataHosts();
+						
+						Map<String, PhysicalDBPool> nodes = config.getDataHosts();
 						for (PhysicalDBPool node : nodes.values()) {
 							node.heartbeatCheck(heartPeriod);
 						}
-						Map<String, PhysicalDBPool> _nodes = config
-								.getBackupDataHosts();
+						
+						Map<String, PhysicalDBPool> _nodes = config.getBackupDataHosts();
 						if (_nodes != null) {
 							for (PhysicalDBPool node : _nodes.values()) {
 								node.heartbeatCheck(heartPeriod);
@@ -705,8 +706,7 @@ public class MycatServer {
 				timerExecutor.execute(new Runnable() {
 					@Override
 					public void run() {
-						Map<String, PhysicalDBPool> nodes = config
-								.getDataHosts();
+						Map<String, PhysicalDBPool> nodes = config.getDataHosts();
 						for (PhysicalDBPool node : nodes.values()) {
 							node.doHeartbeat();
 						}
