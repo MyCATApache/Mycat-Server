@@ -29,6 +29,9 @@ import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import io.mycat.config.model.rule.RuleConfig;
+import io.mycat.route.function.TableRuleAware;
+import io.mycat.util.ObjectUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
@@ -41,7 +44,6 @@ import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.config.model.DataNodeConfig;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.TableConfigMap;
 import io.mycat.config.model.rule.TableRuleConfig;
@@ -363,11 +365,29 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String subTables = tableElement.getAttribute("subTables");
 			
 			for (int j = 0; j < tableNames.length; j++) {
+
 				String tableName = tableNames[j];
+				TableRuleConfig	tableRuleConfig=tableRule ;
+				  if(tableRuleConfig!=null) {
+				  	//对于实现TableRuleAware的function进行特殊处理  根据每个表新建个实例
+					  RuleConfig rule= tableRuleConfig.getRule();
+					  if(rule.getRuleAlgorithm() instanceof TableRuleAware)  {
+						  tableRuleConfig = (TableRuleConfig) ObjectUtil.copyObject(tableRuleConfig);
+						  tableRules.remove(tableRuleConfig.getName())   ;
+						  String newRuleName = tableRuleConfig.getName() + "_" + tableName;
+						  tableRuleConfig. setName(newRuleName);
+						  TableRuleAware tableRuleAware= (TableRuleAware) tableRuleConfig.getRule().getRuleAlgorithm();
+						  tableRuleAware.setRuleName(newRuleName);
+						  tableRuleAware.setTableName(tableName);
+						  tableRuleConfig.getRule().getRuleAlgorithm().init();
+						  tableRules.put(newRuleName,tableRuleConfig);
+					  }
+				  }
+
 				TableConfig table = new TableConfig(tableName, primaryKey,
 						autoIncrement, needAddLimit, tableType, dataNode,
 						getDbType(dataNode),
-						(tableRule != null) ? tableRule.getRule() : null,
+						(tableRuleConfig != null) ? tableRuleConfig.getRule() : null,
 						ruleRequired, null, false, null, null,subTables);
 				
 				checkDataNodeExists(table.getDataNodes());

@@ -3,6 +3,8 @@ package io.mycat.route.function;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleAlgorithm;
 
+import java.io.Serializable;
+
 /**
  * 路由分片函数抽象类
  * 为了实现一个默认的支持范围分片的函数 calcualteRange
@@ -10,7 +12,7 @@ import io.mycat.config.model.rule.RuleAlgorithm;
  * @author lxy
  *
  */
-public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm {
+public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm ,Serializable {
 
 	@Override
 	public void init() {
