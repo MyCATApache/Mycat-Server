@@ -25,12 +25,13 @@ package io.mycat.config.model.rule;
 
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 
+import java.io.Serializable;
 
 /**
  * 分片规则，column是用于分片的数据库物理字段
  * @author mycat
  */
-public class RuleConfig {
+public class RuleConfig implements Serializable {
 	private final String column;
 	private final String functionName;
 	private AbstractPartitionAlgorithm ruleAlgorithm;
