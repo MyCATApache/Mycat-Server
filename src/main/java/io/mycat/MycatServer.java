@@ -458,8 +458,6 @@ public class MycatServer {
 						long maxTimeout = sqlTimeout * 2;
 						
 						//根据 lastTime 确认事务的执行， 超过 sqlExecuteTimeout 阀值 close connection 
-						
-						//不停的有线程执行, 则超过10分钟强制关闭
 						long currentTime = TimeUtil.currentTimeMillis();
 						Iterator<PhysicalDBPool.OldConnection> iter = PhysicalDBPool.oldCons.iterator();
 						while( iter.hasNext() ) {
