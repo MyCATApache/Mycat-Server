@@ -42,6 +42,12 @@
 			<algorithm>rang-long</algorithm>
 		</rule>
 	</tableRule>
+	<tableRule name="auto-sharding-long2">
+		<rule>
+			<columns>id</columns>
+			<algorithm>rang-long2</algorithm>
+		</rule>
+	</tableRule>
 
     <tableRule name="auto-sharding-rang-mod">
         <rule>
@@ -73,6 +79,10 @@
 	<function name="rang-long"
 		class="io.mycat.route.function.AutoPartitionByLong">
 		<property name="mapFile">autopartition-long.txt</property>
+	</function>
+	<function name="rang-long2"
+		class="io.mycat.route.function.AutoPartitionByLong">
+		<property name="mapFile">autopartition-long2.txt</property>
 	</function>
 	<function name="by-date"
 		class="io.mycat.route.function.PartitionByDate">                            
