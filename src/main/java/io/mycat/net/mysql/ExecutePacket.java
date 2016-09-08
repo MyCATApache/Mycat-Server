@@ -130,6 +130,9 @@ public class ExecutePacket extends MySQLPacket {
                 bv.isNull = true;
             } else {
                 BindValueUtil.read(mm, bv, charset);
+                if(bv.isLongData) {
+                	bv.value = pstmt.getLongData(i);
+                }
             }
             values[i] = bv;
         }

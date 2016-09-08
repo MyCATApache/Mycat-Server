@@ -78,6 +78,9 @@ public class BindValueUtil {
                 bv.isNull = true;
             }
             break;
+        case Fields.FIELD_TYPE_BLOB:
+        	bv.isLongData = true;
+        	break;
         default:
             throw new IllegalArgumentException("bindValue error,unsupported type:" + bv.type);
         }
