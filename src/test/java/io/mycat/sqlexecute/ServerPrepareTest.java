@@ -1,6 +1,8 @@
 package io.mycat.sqlexecute;
 
 
+import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
 import java.sql.*;
 
 /**
@@ -18,39 +20,93 @@ public class ServerPrepareTest {
     //  Database credentials
     static final String USER = "root";
     static final String PASS = "mysql";
-
-    public static void main(String[] args) {
-        Connection conn = null;
+    
+    static {
+    	try {
+			Class.forName("com.mysql.jdbc.Driver");
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+    }
+    
+    /**
+     * 测试发送COM_STMT_SEND_LONG_DATA命令
+     */
+    public static void testComStmtSendLondData() {
+    	Connection conn = null;
+    	PreparedStatement pstmt = null;
+    	try {
+			conn = DriverManager.getConnection(DB_URL,USER,PASS);
+			pstmt = conn.prepareStatement("insert into hotnews(id, title, content) values(?,?,?)");
+			pstmt.setInt(1, 1314);
+			pstmt.setString(2, "hotnew");
+			pstmt.setBinaryStream(3, new ByteArrayInputStream("this is a content of hotnew".getBytes("UTF-8")));
+			pstmt.execute();
+			pstmt.close();
+    	} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		} finally {
+			if(conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+    }
+    
+    /**
+     * 测试发送COM_STMT_RESET命令
+     */
+    public static void testComStmtRest() {
+    	Connection conn = null;
+    	PreparedStatement pstmt = null;
+    	try {
+			conn = DriverManager.getConnection(DB_URL,USER,PASS);
+			pstmt = conn.prepareStatement("insert into hotnews(id, title, content) values(?,?,?)");
+			pstmt.setInt(1, 1314);
+			pstmt.setString(2, "hotnew");
+			pstmt.setBinaryStream(3, new ByteArrayInputStream("this is a content of hotnew".getBytes("UTF-8")));
+			pstmt.execute();
+			pstmt.clearParameters();
+			pstmt.setInt(1, 1315);
+			pstmt.setString(2, "hotnew");
+			pstmt.setBinaryStream(3, new ByteArrayInputStream("this is a new content of hotnew".getBytes("UTF-8")));
+			pstmt.execute();
+			pstmt.close();
+    	} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		} finally {
+			if(conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+    }
+    
+    public static void simpleTest() {
+    	Connection conn = null;
         PreparedStatement stmt = null;
         try{
-            //STEP 2: Register JDBC driver
-            Class.forName("com.mysql.jdbc.Driver");
 
-            //STEP 3: Open a connection
             System.out.println("Connecting to database...");
             conn = DriverManager.getConnection(DB_URL,USER,PASS);
 
-            //STEP 4: Execute a query
             System.out.println("Creating statement...");
-            String sql = "UPDATE test set sid=?,asf=?  WHERE id<20";
-//            stmt = conn.prepareStatement(sql);
-//
-//            //Bind values into the parameters.
-//            stmt.setInt(1, 35);  // This would set age
-//            stmt.setString(2, "aaaa"); // This would set ID
-//
-//            // Let us update age of the record with ID = 102;
-//            int rows = stmt.executeUpdate();
-//            System.out.println("Rows impacted : " + rows );
-
-            // Let us select all the records and display them.
-            sql = "SELECT *  FROM test  where id<?";
+            String sql = "SELECT *  FROM test  where id<?";
 
             stmt=conn.prepareStatement(sql)   ;
             stmt.setInt(1,8);
             ResultSet rs = stmt.executeQuery();
-           // print("",rs);
-            //STEP 5: Extract data from result set
+            // Extract data from result set
             ResultSetMetaData rsmd = rs.getMetaData();
             
             int colCount = rsmd.getColumnCount();
@@ -65,7 +121,7 @@ public class ServerPrepareTest {
             	}
             	System.out.println();
             }
-            //STEP 6: Clean-up environment
+            // Clean-up environment
             rs.close();
             stmt.close();
             conn.close();
@@ -90,6 +146,12 @@ public class ServerPrepareTest {
             }//end finally try
         }//end try
         System.out.println("Goodbye!");
+    }
+
+    public static void main(String[] args) {
+    	
+    	testComStmtRest();
+    	
     }//end main
 
 
