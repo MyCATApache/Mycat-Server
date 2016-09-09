@@ -177,7 +177,6 @@ public class MySQLDataSource extends PhysicalDatasource {
 	        }			
 			
 		} catch (IOException e) {
-			e.printStackTrace();
 			isConnected = false;
 		} finally {			
 			try {

@@ -77,7 +77,9 @@ public final class ReloadConfig {
 	private static boolean reload_all() {
 		
 		/**
-		 *  1、载入新的配置， ConfigInitializer 内部完成自检工作
+		 *  1、载入新的配置
+		 *  1.1、ConfigInitializer 初始化，基本自检
+		 *  1.2、DataNode/DataHost 实际链路检测
 		 */
 		ConfigInitializer loader = new ConfigInitializer(true);
 		Map<String, UserConfig> newUsers = loader.getUsers();
@@ -86,6 +88,11 @@ public final class ReloadConfig {
 		Map<String, PhysicalDBPool> newDataHosts = loader.getDataHosts();
 		MycatCluster newCluster = loader.getCluster();
 		FirewallConfig newFirewall = loader.getFirewall();
+		
+		/**
+		 * 1.2、实际链路检测
+		 */
+		loader.testConnection();
 
 		/**
 		 *  2、承接
