@@ -27,8 +27,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -45,6 +47,10 @@ import io.mycat.config.model.DataHostConfig;
 public class PhysicalDBPool {
 	
 	protected static final Logger LOGGER = LoggerFactory.getLogger(PhysicalDBPool.class);
+	
+	// TODO: add by zhuam
+	// reload @@config_all 后, 老的后端connection  全部移往 oldCons, 待检测进程销毁
+	public final static ConcurrentLinkedQueue<BackendConnection> oldCons = new ConcurrentLinkedQueue<BackendConnection>();
 	
 	public static final int BALANCE_NONE = 0;
 	public static final int BALANCE_ALL_BACK = 1;
@@ -251,13 +257,13 @@ public class PhysicalDBPool {
 		int active = -1;
 		for (int i = 0; i < writeSources.length; i++) {
 			int j = loop(i + index);
-			if (initSource(j, writeSources[j])) {
+			if ( initSource(j, writeSources[j]) ) {
 
                 //不切换-1时，如果主写挂了   不允许切换过去
-                if(dataHostConfig.getSwitchType()==DataHostConfig.NOT_SWITCH_DS&&j>0)
-                {
-                   break;
-                }
+				boolean isNotSwitchDs = ( dataHostConfig.getSwitchType() == DataHostConfig.NOT_SWITCH_DS );
+				if ( isNotSwitchDs && j > 0 ) {
+					break;
+				}
 
 				active = j;
 				activedIndex = active;
@@ -375,6 +381,31 @@ public class PhysicalDBPool {
 		}
 	}
 
+	/**
+	 *  转移 dataSources 数据库连接到回收区
+	 */
+	public void shiftDatasourcesOldCons() {	
+		
+		// 清除前一次 reload 转移出去的 old Cons, 避免后端太多的问题
+		//can't connect to mysql server ,errmsg:Too many connections
+		Iterator<BackendConnection> iter = oldCons.iterator();
+		while( iter.hasNext() ) {
+			BackendConnection con = iter.next();
+			con.close("clear old datasources");
+			iter.remove();	
+		}
+		
+		// 转移本次 old Cons 进入回收区
+		for (PhysicalDatasource source : this.allDs) {
+			List<BackendConnection> shiftCons =  source.shiftCons();
+			oldCons.addAll(shiftCons);
+		}		
+	}
+
+	/**
+	 *  强制清除 dataSources
+	 * @param reason
+	 */
 	public void clearDataSources(String reason) {
 		LOGGER.info("clear datasours of pool " + this.hostName);
 		for (PhysicalDatasource source : this.allDs) {			
@@ -705,5 +736,4 @@ public class PhysicalDBPool {
 	public void setSchemas(String[] mySchemas) {
 		this.schemas = mySchemas;
 	}
-
 }

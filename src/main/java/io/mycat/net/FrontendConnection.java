@@ -364,6 +364,22 @@ public abstract class FrontendConnection extends AbstractConnection {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
 		}
 	}
+	
+	public void stmtSendLongData(byte[] data) {
+		if(prepareHandler != null) {
+			prepareHandler.sendLongData(data);
+		} else {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
+		}
+	}
+	
+	public void stmtReset(byte[] data) {
+		if(prepareHandler != null) {
+			prepareHandler.reset(data);
+		} else {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
+		}
+	}
 
 	public void stmtExecute(byte[] data) {
 		if (prepareHandler != null) {

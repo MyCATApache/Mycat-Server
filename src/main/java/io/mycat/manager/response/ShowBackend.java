@@ -32,7 +32,6 @@ import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.config.Fields;
 import io.mycat.manager.ManagerConnection;
-import io.mycat.net.AbstractConnection;
 import io.mycat.net.BackendAIOConnection;
 import io.mycat.net.NIOProcessor;
 import io.mycat.net.mysql.EOFPacket;

@@ -23,6 +23,7 @@
  */
 package io.mycat.manager.response;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReentrantLock;
@@ -49,89 +50,136 @@ import io.mycat.net.mysql.OkPacket;
 
 /**
  * @author mycat
+ * @author zhuam
  */
 public final class ReloadConfig {
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReloadConfig.class);
 
 	public static void execute(ManagerConnection c, final boolean loadAll) {
-		final ReentrantLock lock = MycatServer.getInstance().getConfig()
-				.getLock();
+		final ReentrantLock lock = MycatServer.getInstance().getConfig().getLock();		
 		lock.lock();
 		try {
-			ListenableFuture<Boolean> listenableFuture = MycatServer.getInstance().getListeningExecutorService().submit(new Callable<Boolean>()
-            {
-                @Override
-                public Boolean call() throws Exception
-                {
-
-                    return loadAll?reload_all():reload();
-                }
-            });
-			Futures.addCallback(listenableFuture, new ReloadCallBack(c),  MycatServer.getInstance().getListeningExecutorService());
+			ListenableFuture<Boolean> listenableFuture = MycatServer.getInstance().getListeningExecutorService().submit(
+				new Callable<Boolean>() {
+					@Override
+					public Boolean call() throws Exception {
+						return loadAll ? reload_all() : reload();
+					}
+				}
+			);
+			Futures.addCallback(listenableFuture, new ReloadCallBack(c), MycatServer.getInstance().getListeningExecutorService());
 		} finally {
 			lock.unlock();
 		}
 	}
 
 	private static boolean reload_all() {
-		// 载入新的配置
-		ConfigInitializer loader = new ConfigInitializer(true);
-		Map<String, UserConfig> users = loader.getUsers();
-		Map<String, SchemaConfig> schemas = loader.getSchemas();
-		Map<String, PhysicalDBNode> dataNodes = loader.getDataNodes();
-		Map<String, PhysicalDBPool> dataHosts = loader.getDataHosts();
-		MycatCluster cluster = loader.getCluster();
-		FirewallConfig firewall = loader.getFirewall();
-
-		// 应用新配置
-		MycatConfig conf = MycatServer.getInstance().getConfig();
-		conf.setDataNodes(dataNodes);
 		
-		Map<String, PhysicalDBPool> cNodes = conf.getDataHosts();
-		boolean reloadStatus = true;
-		for (PhysicalDBPool dn : dataHosts.values()) {
-			dn.setSchemas(MycatServer.getInstance().getConfig().getDataNodeSchemasOfDataHost(dn.getHostName()));
-			// init datahost
-			String index = DnPropertyUtil.loadDnIndexProps().getProperty(dn.getHostName(),
-					"0");
-			if (!"0".equals(index)) {
-				LOGGER.info("init datahost: " + dn.getHostName()
-						+ "  to use datasource index:" + index);
-			}
-			dn.init(Integer.valueOf(index));
+		/**
+		 *  1、载入新的配置
+		 *  1.1、ConfigInitializer 初始化，基本自检
+		 *  1.2、DataNode/DataHost 实际链路检测
+		 */
+		ConfigInitializer loader = new ConfigInitializer(true);
+		Map<String, UserConfig> newUsers = loader.getUsers();
+		Map<String, SchemaConfig> newSchemas = loader.getSchemas();
+		Map<String, PhysicalDBNode> newDataNodes = loader.getDataNodes();
+		Map<String, PhysicalDBPool> newDataHosts = loader.getDataHosts();
+		MycatCluster newCluster = loader.getCluster();
+		FirewallConfig newFirewall = loader.getFirewall();
+		
+		/**
+		 * 1.2、实际链路检测
+		 */
+		loader.testConnection();
 
-			//dn.init(0);
-			if (!dn.isInitSuccess()) {
-				reloadStatus = false;
+		/**
+		 *  2、承接
+		 *  2.1、老的 dataSource 继续承接新建请求
+		 *  2.2、新的 dataSource 开始初始化， 完毕后交由 2.3
+		 *  2.3、新的 dataSource 开始承接新建请求
+		 *  2.4、老的 dataSource 内部的事务执行完毕， 相继关闭
+		 *  2.5、老的 dataSource 超过阀值的，强制关闭
+		 */
+		
+		MycatConfig config = MycatServer.getInstance().getConfig();
+		
+		/**
+		 * 2.1 、获取老的 dataHosts
+		 */
+		Map<String, PhysicalDBPool> oldDataHosts = config.getDataHosts();
+		
+		boolean isReloadStatusOK = true;
+		
+		/**
+		 * 2.2、新的 dataHosts 初始化
+		 */
+		for (PhysicalDBPool dbPool : newDataHosts.values()) {					
+			String hostName = dbPool.getHostName();
+			
+			// 设置 schemas
+			ArrayList<String> dnSchemas = new ArrayList<String>(30);
+			for (PhysicalDBNode dn : newDataNodes.values()) {
+				if (dn.getDbPool().getHostName().equals(hostName)) {
+					dnSchemas.add(dn.getDatabase());
+				}
+			}
+			dbPool.setSchemas( dnSchemas.toArray(new String[dnSchemas.size()]) );
+			
+			// 获取 data host
+			String dnIndex = DnPropertyUtil.loadDnIndexProps().getProperty(dbPool.getHostName(), "0");
+			if ( !"0".equals(dnIndex) ) {
+				LOGGER.info("init datahost: " + dbPool.getHostName() + "  to use datasource index:" + dnIndex);
+			}			
+			
+			dbPool.init( Integer.valueOf(dnIndex) );			
+			if ( !dbPool.isInitSuccess() ) {
+				isReloadStatusOK = false;
 				break;
 			}
 		}
-		// 如果重载不成功，则清理已初始化的资源。
-		if (!reloadStatus) {
-			LOGGER.warn("reload failed ,clear previously created datasources ");
-			for (PhysicalDBPool dn : dataHosts.values()) {
-				dn.clearDataSources("reload config");
-				dn.stopHeartbeat();
+		
+		/**
+		 *  TODO： 确认初始化情况
+		 *    
+		 *  新的 dataHosts 是否初始化成功
+		 */
+		if ( isReloadStatusOK ) {
+			
+			/**
+			 * 2.3、 在老的配置上，应用新的配置，开始准备承接任务
+			 */
+			config.reload(newUsers, newSchemas, newDataNodes, newDataHosts, newCluster, newFirewall, true);
+
+			/**
+			 * 2.4、 处理旧的资源
+			 */
+			for (PhysicalDBPool dbPool : oldDataHosts.values()) {			
+				//TODO: 此处不能杀掉connection，需要考虑当前正在执行中的事务确保不丢失
+				dbPool.shiftDatasourcesOldCons();
+			}
+
+			//清理缓存
+			MycatServer.getInstance().getCacheService().clearCache();
+			return true;
+			
+		} else {
+			// 如果重载不成功，则清理已初始化的资源。
+			LOGGER.warn("reload failed, clear previously created datasources ");
+			for (PhysicalDBPool dbPool : newDataHosts.values()) {
+				dbPool.clearDataSources("reload config");
+				dbPool.stopHeartbeat();
 			}
 			return false;
 		}
-
-		// 应用重载
-		conf.reload(users, schemas, dataNodes, dataHosts, cluster, firewall, true);
-
-		// 处理旧的资源
-		for (PhysicalDBPool dn : cNodes.values()) {
-			dn.clearDataSources("reload config clear old datasources");
-			dn.stopHeartbeat();
-		}
-
-		//清理缓存
-		 MycatServer.getInstance().getCacheService().clearCache();
-		return true;
 	}
 
     private static boolean reload() {
-        // 载入新的配置
+    	
+    	/**
+		 *  1、载入新的配置， ConfigInitializer 内部完成自检工作, 由于不更新数据源信息,此处不自检 dataHost  dataNode
+		 */
         ConfigInitializer loader = new ConfigInitializer(false);
         Map<String, UserConfig> users = loader.getUsers();
         Map<String, SchemaConfig> schemas = loader.getSchemas();
@@ -139,19 +187,19 @@ public final class ReloadConfig {
         Map<String, PhysicalDBPool> dataHosts = loader.getDataHosts();
         MycatCluster cluster = loader.getCluster();
         FirewallConfig firewall = loader.getFirewall();
+        
+        /**
+         * 2、在老的配置上，应用新的配置
+         */
+        MycatServer.getInstance().getConfig().reload(users, schemas, dataNodes, dataHosts, cluster, firewall, false);
 
-        // 应用新配置
-        MycatServer instance = MycatServer.getInstance();
-        MycatConfig conf = instance.getConfig();
-
-        // 应用重载
-        conf.reload(users, schemas, dataNodes, dataHosts, cluster, firewall, false);
-
-
-        //清理缓存
-        instance.getCacheService().clearCache();
+        /**
+         * 3、清理缓存
+         */
+        MycatServer.getInstance().getCacheService().clearCache();
         return true;
     }
+    
 	/**
 	 * 异步执行回调类，用于回写数据给用户等。
 	 */

@@ -23,6 +23,7 @@
  */
 package io.mycat.server.handler;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,11 +37,14 @@ import io.mycat.config.ErrorCode;
 import io.mycat.config.Fields;
 import io.mycat.net.handler.FrontendPrepareHandler;
 import io.mycat.net.mysql.ExecutePacket;
+import io.mycat.net.mysql.LongDataPacket;
+import io.mycat.net.mysql.OkPacket;
+import io.mycat.net.mysql.ResetPacket;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.response.PreparedStmtResponse;
 
 /**
- * @author mycat
+ * @author mycat, CrazyPig
  */
 public class ServerPrepareHandler implements FrontendPrepareHandler {
 	
@@ -75,6 +79,42 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     }
     
     @Override
+	public void sendLongData(byte[] data) {
+		LongDataPacket packet = new LongDataPacket();
+		packet.read(data);
+		long pstmtId = packet.getPstmtId();
+		PreparedStatement pstmt = pstmtForId.get(pstmtId);
+		if(pstmt != null) {
+			if(LOGGER.isDebugEnabled()) {
+				LOGGER.debug("send long data to prepare sql : " + pstmtForId.get(pstmtId));
+			}
+			long paramId = packet.getParamId();
+			try {
+				pstmt.appendLongData(paramId, packet.getLongData());
+			} catch (IOException e) {
+				source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPION, e.getMessage());
+			}
+		}
+	}
+
+	@Override
+	public void reset(byte[] data) {
+		ResetPacket packet = new ResetPacket();
+		packet.read(data);
+		long pstmtId = packet.getPstmtId();
+		PreparedStatement pstmt = pstmtForId.get(pstmtId);
+		if(pstmt != null) {
+			if(LOGGER.isDebugEnabled()) {
+				LOGGER.debug("reset prepare sql : " + pstmtForId.get(pstmtId));
+			}
+			pstmt.resetLongData();
+			source.write(OkPacket.OK);
+		} else {
+			source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPION, "can not reset prepare statement : " + pstmtForId.get(pstmtId));
+		}
+	} 
+    
+    @Override
     public void execute(byte[] data) {
         long pstmtId = ByteUtil.readUB4(data, 5);
         PreparedStatement pstmt = null;
@@ -93,8 +133,9 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             String sql = prepareStmtBindValue(pstmt, bindValues);
             // 执行sql
             source.getSession2().setPrepared(true);
-            
-            LOGGER.debug("execute prepare sql: " + sql);
+            if(LOGGER.isDebugEnabled()) {
+            	LOGGER.debug("execute prepare sql: " + sql);
+            }
             source.query( sql );
         }
     }
@@ -103,7 +144,9 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     @Override
     public void close(byte[] data) {
     	long pstmtId = ByteUtil.readUB4(data, 5); // 获取prepare stmt id
-    	LOGGER.debug("close prepare stmt, stmtId = " + pstmtId);
+    	if(LOGGER.isDebugEnabled()) {
+    		LOGGER.debug("close prepare stmt, stmtId = " + pstmtId);
+    	}
     	PreparedStatement pstmt = pstmtForId.remove(pstmtId);
     	if(pstmt != null) {
     		pstmtForSql.remove(pstmt.getStatement());
@@ -152,7 +195,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     			sql = sql.replaceFirst("\\?", "NULL");
     			continue;
     		}
-    		switch(paramType) {
+    		switch(paramType & 0xff) {
     		case Fields.FIELD_TYPE_TINY:
     			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.byteBinding));
     			break;
@@ -189,6 +232,6 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     		}
     	}
     	return sql;
-    } 
-    
+    }
+
 }
