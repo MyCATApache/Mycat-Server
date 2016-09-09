@@ -210,6 +210,7 @@ public final class ManagerParseShow {
                 
                 if (stmt.length() > ++offset) {
                     switch (stmt.charAt(offset)) {
+                    case ';':
                     case ' ':
                         return BACKEND;
                     case '.':
