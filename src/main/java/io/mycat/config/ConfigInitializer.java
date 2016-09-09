@@ -113,21 +113,12 @@ public class ConfigInitializer {
 		/**
 		 * 配置文件初始化， 自检
 		 */
-		this.selfChecking();
+		this.selfChecking0();
 	}
 	
-	// 配置文件初始化， 自检
-	private void selfChecking() throws ConfigException {
+	private void selfChecking0() throws ConfigException {
 		
 		// 检查user与schema配置对应以及schema配置不为空
-		checkServerConfig();
-		
-		// schema 配置检测，含dataNode dataHost 及实际链路的连接测试
-		checkSchemaConfig();
-	}
-
-	private void checkServerConfig() throws ConfigException {
-		
 		if (users == null || users.isEmpty()) {
 			throw new ConfigException("SelfCheck### user all node is empty!");
 			
@@ -150,72 +141,79 @@ public class ConfigInitializer {
 					}
 				}
 			}
-		}		
-	}
-	
-	private void checkSchemaConfig() {
-		// check schema 节点
+		}	
+		
+		
+		// schema 配置检测		
 		for (SchemaConfig sc : schemas.values()) {
 			if (null == sc) {
 				throw new ConfigException("SelfCheck### schema all node is empty!");
 				
-			} else {
-				
+			} else {				
 				// check dataNode / dataHost 节点
-				if ( this.dataNodes != null &&  this.dataHosts != null  ) {
-					
-					Map<String, Boolean> map = new HashMap<String, Boolean>();
-					
+				if ( this.dataNodes != null &&  this.dataHosts != null  ) {					
 					Set<String> dataNodeNames = sc.getAllDataNodes();
 					for(String dataNodeName: dataNodeNames) {
 						
 						PhysicalDBNode node = this.dataNodes.get(dataNodeName);
 						if ( node == null ) {
 							throw new ConfigException("SelfCheck### schema dbnode is empty!");
-							
-						} else {							
-							String database = node.getDatabase();		
-							PhysicalDBPool pool = node.getDbPool();
-							
-							for (PhysicalDatasource ds : pool.getAllDataSources()) {							
-								String key = ds.getName() + "_" + database;
-								if ( map.get( key ) == null ) {										
-									map.put( key, false );
-									
-									boolean isConnected = false;
-									try {
-										isConnected = ds.testConnection( database );		
-										map.put( key, isConnected );
-									} catch (IOException e) {
-										LOGGER.warn("test conn error:", e);
-									}									
-									
-								}								
-							}
 						}
 					}
-					
-					//
-					boolean isConnectivity = true;
-					for (Map.Entry<String, Boolean> entry : map.entrySet()) {
-						String key = entry.getKey();
-						Boolean value = entry.getValue();
-						if ( !value && isConnectivity ) {
-							LOGGER.warn("SelfCheck### test " + key + " database connection failed ");							
-							isConnectivity = false;
-							
-						} else {
-							LOGGER.info("SelfCheck### test " + key + " database connection success ");
-						}
-					}
-					
-					if ( !isConnectivity ) {
-						throw new ConfigException("SelfCheck### there are some datasource connection failed, pls check!");
-					}
-					
 				}
 			}
 		}	
+		
+	}
+	
+	public void testConnection() {
+		
+		// 实际链路的连接测试		
+		if ( this.dataNodes != null &&  this.dataHosts != null  ) {
+			
+			Map<String, Boolean> map = new HashMap<String, Boolean>();
+			
+			for(PhysicalDBNode dataNode: dataNodes.values() ) {
+				
+				String database = dataNode.getDatabase();		
+				PhysicalDBPool pool = dataNode.getDbPool();
+				
+				for (PhysicalDatasource ds : pool.getAllDataSources()) {							
+					String key = ds.getName() + "_" + database;
+					if ( map.get( key ) == null ) {										
+						map.put( key, false );
+						
+						boolean isConnected = false;
+						try {
+							isConnected = ds.testConnection( database );		
+							map.put( key, isConnected );
+						} catch (IOException e) {
+							LOGGER.warn("test conn error:", e);
+						}										
+					}								
+				}
+			}
+			
+			//
+			boolean isConnectivity = true;
+			for (Map.Entry<String, Boolean> entry : map.entrySet()) {
+				String key = entry.getKey();
+				Boolean value = entry.getValue();
+				if ( !value && isConnectivity ) {
+					LOGGER.warn("SelfCheck### test " + key + " database connection failed ");							
+					isConnectivity = false;
+					
+				} else {
+					LOGGER.info("SelfCheck### test " + key + " database connection success ");
+				}
+			}
+			
+			if ( !isConnectivity ) {
+				throw new ConfigException("SelfCheck### there are some datasource connection failed, pls check!");
+			}
+				
+		}
+		
 	}
 
 	public SystemConfig getSystem() {
