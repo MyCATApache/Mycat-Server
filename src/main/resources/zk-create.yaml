@@ -17,7 +17,7 @@ mycat-cluster:
           - TESTDB
       mycat :
         name: mycat
-        password: admin
+        password: liujun
         readOnly : false
         schemas:
           - TESTDB
