@@ -1,5 +1,7 @@
 package io.mycat.config.loader.zookeeper.create.flow;
 
+import java.io.File;
+
 import io.mycat.config.loader.zookeeper.create.comm.SeqLinkedList;
 import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
 
@@ -15,6 +17,13 @@ import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
 * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
 */
 public class FlowToNodeService implements ServiceExecInf {
+
+    public static void main(String[] args) {
+        System.out.println("File.pathSeparator:" + File.pathSeparator);
+        System.out.println("File.pathSeparatorChar:" + File.pathSeparatorChar);
+        System.out.println("File.separator:" + File.separator);
+        System.out.println("File.separatorChar:" + File.separatorChar);
+    }
 
     @Override
     public boolean invoke(SeqLinkedList seqList) throws Exception {

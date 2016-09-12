@@ -1,4 +1,4 @@
-zkURL : 127.0.0.1:2181
+zkURL : os1:2181
 mycat-cluster:
   mycat-cluster-1:
     blockSQLs:
@@ -17,7 +17,7 @@ mycat-cluster:
           - TESTDB
       mycat :
         name: mycat
-        password: liujun
+        password: admin
         readOnly : false
         schemas:
           - TESTDB

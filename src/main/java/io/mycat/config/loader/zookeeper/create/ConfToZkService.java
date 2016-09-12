@@ -46,7 +46,7 @@ public class ConfToZkService {
      * zk导入的默认的文件的名称
     * @字段说明 ZK_CONFIG_FILE_NAME
     */
-    private static String ZK_CFG_DEF_FILE_NAME = "/zk-create.yaml";
+    private static String ZK_CFG_DEF_FILE_NAME = "/zk-create-2.yaml";
 
     /**
      * yaml文件中配制的zk路径

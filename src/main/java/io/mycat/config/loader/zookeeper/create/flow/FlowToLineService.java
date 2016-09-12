@@ -2,6 +2,7 @@ package io.mycat.config.loader.zookeeper.create.flow;
 
 import io.mycat.config.loader.zookeeper.create.comm.SeqLinkedList;
 import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
+import io.mycat.config.loader.zookeeper.create.console.FlowCfg;
 
 /**
  * 生成在线信息目录
@@ -18,13 +19,30 @@ public class FlowToLineService implements ServiceExecInf {
 
     @Override
     public boolean invoke(SeqLinkedList seqList) throws Exception {
-        System.out.println(seqList.getZkProcess().getFramework());
-        return false;
+
+        // 获得集群名称:
+        String basePath = seqList.getZkProcess().getBasePath();
+
+        // 执行创建路径操作
+        boolean crRsp = seqList.getZkProcess().createPath(basePath, FlowCfg.FLOW_ZK_PATH_LINE.getKey());
+
+        // 创建成功则进行流程，失败则删除节点
+        if (crRsp) {
+            return seqList.nextExec();
+        }
+        return seqList.rollExec();
     }
 
     @Override
     public boolean rollBackInvoke(SeqLinkedList seqList) throws Exception {
-        return false;
+
+        // 获得集群名称:
+        String basePath = seqList.getZkProcess().getBasePath();
+
+        // 执行删除路径操作
+        seqList.getZkProcess().deletePath(basePath, FlowCfg.FLOW_ZK_PATH_LINE.getKey());
+
+        return seqList.rollExec();
     }
 
 }
