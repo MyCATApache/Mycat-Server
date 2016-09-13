@@ -2,7 +2,10 @@
 zkURL : os1:2181
 #集群名称
 cluster-name : mycat-cluster-1
-
+#辅助节点：
+mycat-booster :
+#通常节点：
+mycat-server :
 
 #集群中所有的主机信息
 mycat-hosts:
