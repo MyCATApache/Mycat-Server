@@ -1,4 +1,4 @@
-zkURL : os1:2181
+zkURL : 127.0.0.1:2181
 mycat-cluster:
   mycat-cluster-1:
     blockSQLs:
