@@ -53,6 +53,17 @@ public class ZkProcessBase {
     }
 
     /**
+     * 从配制文件的yaml文件中提取数据
+     * 方法描述
+     * @param key 提取的key
+     * @return
+     * @创建日期 2016年9月12日
+     */
+    public Object getValue(String key) {
+        return this.zkConfig.get(key);
+    }
+
+    /**
      * 进行多级的数据的获取
     * 方法描述
     * @param keyArray
@@ -65,6 +76,7 @@ public class ZkProcessBase {
 
         Object getTmp = map;
 
+        // 进行数据层层获取，从最开始的map层层递归
         if (null == map) {
             getTmp = zkConfig.get(keyArray[index]);
         } else {
@@ -73,7 +85,7 @@ public class ZkProcessBase {
             }
         }
 
-        if (getTmp instanceof Map && index < keyArray.length) {
+        if (null != getTmp && getTmp instanceof Map && index < keyArray.length) {
             Map keyMap = (Map) getTmp;
             return this.getMapValueByArray(keyArray, index += 1, keyMap);
         }
@@ -108,23 +120,44 @@ public class ZkProcessBase {
     }
 
     /**
-     * 创建配制信息
-     * 方法描述
-     * @param configKey 配制的当前路径名称信息
-     * @param filterInnerMap  最终的信息是否为map
-     * @param configDirectory 配制的目录
-     * @param restDirectory 子目录信息
-     * @创建日期 2016年9月11日
-     */
-    public boolean deletePath(String basePath, String createPath) {
+     * 删除当前目录 
+    * 方法描述
+    * @param basePath
+    * @return
+    * @创建日期 2016年9月13日
+    */
+    public boolean deletePath(String basePath) {
         // 得到当前的目录信息
-        String childPath = ZKPaths.makePath(basePath, createPath);
-        LOGGER.trace("deletePath child path is {}", childPath);
+        LOGGER.trace("deletePath child path is {}", basePath);
 
         boolean result = true;
         try {
             // 进行目录的删除操作
-            ZKPaths.deleteChildren(framework.getZookeeperClient().getZooKeeper(), childPath, true);
+            ZKPaths.deleteChildren(framework.getZookeeperClient().getZooKeeper(), basePath, true);
+        } catch (Exception e) {
+            LOGGER.error("deletePath error", e);
+            result = false;
+        }
+        return result;
+    }
+
+    /**
+     * 删除子目录下的信息
+    * 方法描述
+    * @param basePath 父母路径
+    * @param childPath 当前节点
+    * @return
+    * @创建日期 2016年9月13日
+    */
+    public boolean deletePath(String basePath, String childPath) {
+        // 得到当前的目录信息
+        String currPath = ZKPaths.makePath(basePath, childPath);
+        LOGGER.trace("deletePath is {}", childPath);
+
+        boolean result = true;
+        try {
+            // 进行目录的删除操作
+            ZKPaths.deleteChildren(framework.getZookeeperClient().getZooKeeper(), currPath, true);
         } catch (Exception e) {
             LOGGER.error("deletePath error", e);
             result = false;
@@ -156,20 +189,26 @@ public class ZkProcessBase {
             // 得到配制的map中的信息
             Object mapObject = null;
 
+            // 检查当前的数据是否为单层获取
             if (yarmConfigKey.indexOf(".") == -1) {
                 mapObject = zkConfig.get(yarmConfigKey);
-            } else {
+            }
+            // 如果数据为多层获取,则需要递归
+            else {
                 String[] spit = yarmConfigKey.split(SysFlow.ZK_GET_SEP);
                 mapObject = this.getMapValueByArray(spit, 0, null);
             }
-            // recursion sub map
-            if (mapObject instanceof Map) {
-                createChildConfig(mapObject, filterInnerMap, childPath);
 
-                return result;
-            }
-
+            // 如果不为空
             if (mapObject != null) {
+                // recursion sub map
+                if (mapObject instanceof Map) {
+                    // 生成子节点与数据信息
+                    createChildConfig(mapObject, filterInnerMap, childPath);
+
+                    return result;
+                }
+
                 framework.setData().forPath(childPath, JSON.toJSONString(mapObject).getBytes());
             }
         } catch (Exception e) {

@@ -47,13 +47,13 @@ public enum FlowCfg {
      * 对应数据库信息
     * @字段说明 FLOW_ZK_PATH_SCHEMA_DATANODE
     */
-    FLOW_ZK_PATH_SCHEMA_DATANODE("dataNode"),
+    FLOW_ZK_PATH_SCHEMA_DATANODE("datahode"),
 
     /**
      * 数据库信息dataHost
      * @字段说明 FLOW_ZK_PATH_SCHEMA_DATANODE
      */
-    FLOW_ZK_PATH_SCHEMA_DATAHOST("dataHost"),
+    FLOW_ZK_PATH_SCHEMA_DATAHOST("datahost"),
 
     /**
      * 路由信息
@@ -86,7 +86,7 @@ public enum FlowCfg {
     FLOW_ZK_PATH_SERVER_USER("user"),
 
     /**
-     * 配制的防火墙信息
+     * 配制的防火墙信息,如黑白名单信息
      * @字段说明 FLOW_ZK_PATH_SERVER_DEFAULT
      */
     FLOW_ZK_PATH_SERVER_FIREWALL("firewall"),

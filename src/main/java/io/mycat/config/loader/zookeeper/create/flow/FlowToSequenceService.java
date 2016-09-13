@@ -1,7 +1,12 @@
 package io.mycat.config.loader.zookeeper.create.flow;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.mycat.config.loader.zookeeper.create.comm.SeqLinkedList;
 import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
+import io.mycat.config.loader.zookeeper.create.console.FlowCfg;
+import io.mycat.config.loader.zookeeper.create.console.SysFlow;
 
 /**
  * 将序列信息存入到zk中
@@ -16,14 +21,54 @@ import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
 */
 public class FlowToSequenceService implements ServiceExecInf {
 
+    /**
+     * 日志
+    * @字段说明 LOGGER
+    */
+    private static final Logger LOGGER = LoggerFactory.getLogger(FlowToSequenceService.class);
+
     @Override
     public boolean invoke(SeqLinkedList seqList) throws Exception {
-        return false;
+
+        // 获得集群名称:
+        String basePath = seqList.getZkProcess().getBasePath();
+
+        // 配制sequence的配制信息
+        String writeSequencePath = basePath + SysFlow.ZK_SEPARATOR + FlowCfg.FLOW_ZK_PATH_SEQUENCE.getKey()
+                + SysFlow.ZK_SEPARATOR;
+
+        // map获取路径 信息
+        String mapDataGet = "";
+        mapDataGet += FlowCfg.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_GET_SEP;
+        mapDataGet += String.valueOf(seqList.getZkProcess().getValue(FlowCfg.FLOW_YAML_CFG_CLUSTER.getKey()))
+                + SysFlow.ZK_GET_SEP;
+        // sequence的key信息
+        String sequenceMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_SEQUENCE.getKey();
+
+        // 创建schema路径并录入数据
+        boolean sequenceRsp = seqList.getZkProcess().createConfig(sequenceMapKey, true, writeSequencePath);
+
+        LOGGER.info("flow to zk sequence path write rsp { sequenceRsp:" + sequenceRsp + "}");
+
+        // 创建成功则进行流程，失败则删除节点
+        if (sequenceRsp) {
+            return seqList.nextExec();
+        }
+
+        return seqList.rollExec();
     }
 
     @Override
     public boolean rollBackInvoke(SeqLinkedList seqList) throws Exception {
-        return false;
+
+        // 获得集群名称:
+        String basePath = seqList.getZkProcess().getBasePath();
+
+        // 删除序列路径
+        boolean sequenceZkPathRsp = seqList.getZkProcess().deletePath(basePath, FlowCfg.FLOW_ZK_PATH_SEQUENCE.getKey());
+        LOGGER.info("flow to rollback zk sequence path delete rsp:" + sequenceZkPathRsp);
+
+        return seqList.rollExec();
     }
 
 }
