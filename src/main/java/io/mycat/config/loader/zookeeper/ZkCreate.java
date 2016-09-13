@@ -1,5 +1,10 @@
 package io.mycat.config.loader.zookeeper;
 
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -10,11 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import com.alibaba.fastjson.JSON;
-
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by v1.lion on 2015/10/7.
@@ -32,9 +32,9 @@ public class ZkCreate {
 
     private static String ZK_CONFIG_FILE_NAME = "/zk-create.yaml";
     private static CuratorFramework framework;
-    //private static Map<String, Object> zkConfig;
+    // private static Map<String, Object> zkConfig;
     private static Map<String, Object> zkConfig = new HashMap<String, Object>();
-    //initialized by shenhai.yan for line 40 NullPointerException
+    // initialized by shenhai.yan for line 40 NullPointerException
 
     public static void main(String[] args) {
         String url;
@@ -42,9 +42,7 @@ public class ZkCreate {
             ZK_CONFIG_FILE_NAME = args[0];
             url = args[1];
         } else {
-            url = zkConfig.containsKey(CONFIG_URL_KEY) ?
-                (String) zkConfig.get(CONFIG_URL_KEY) :
-                "127.0.0.1:2181";
+            url = zkConfig.containsKey(CONFIG_URL_KEY) ? (String) zkConfig.get(CONFIG_URL_KEY) : "127.0.0.1:2181";
         }
 
         zkConfig = loadZkConfig();
@@ -59,8 +57,8 @@ public class ZkCreate {
         createConfig(MYCAT_LBS, true, MYCAT_LBS);
     }
 
-    private static void createConfig(String configKey, boolean filterInnerMap,
-        String configDirectory, String... restDirectory) {
+    private static void createConfig(String configKey, boolean filterInnerMap, String configDirectory,
+            String... restDirectory) {
         String childPath = ZKPaths.makePath("/", configDirectory, restDirectory);
         LOGGER.trace("child path is {}", childPath);
 
@@ -68,29 +66,27 @@ public class ZkCreate {
             ZKPaths.mkdirs(framework.getZookeeperClient().getZooKeeper(), childPath);
 
             Object mapObject = zkConfig.get(configKey);
-            //recursion sub map
+            // recursion sub map
             if (mapObject instanceof Map) {
                 createChildConfig(mapObject, filterInnerMap, childPath);
                 return;
             }
 
             if (mapObject != null) {
-                framework.setData()
-                    .forPath(childPath, JSON.toJSONString(mapObject).getBytes());
+                framework.setData().forPath(childPath, JSON.toJSONString(mapObject).getBytes());
             }
         } catch (Exception e) {
-            LOGGER.error("error",e);
+            LOGGER.error("error", e);
         }
     }
 
-    private static void createChildConfig(Object mapObject, boolean filterInnerMap,
-        String childPath) {
+    private static void createChildConfig(Object mapObject, boolean filterInnerMap, String childPath) {
         if (mapObject instanceof Map) {
             Map<Object, Object> innerMap = (Map<Object, Object>) mapObject;
             for (Map.Entry<Object, Object> entry : innerMap.entrySet()) {
                 if (entry.getValue() instanceof Map) {
                     createChildConfig(entry.getValue(), filterInnerMap,
-                        ZKPaths.makePath(childPath, String.valueOf(entry.getKey())));
+                            ZKPaths.makePath(childPath, String.valueOf(entry.getKey())));
                 } else {
                     LOGGER.trace("sub child path is {}", childPath);
                     processLeafNode(innerMap, filterInnerMap, childPath);
@@ -99,8 +95,7 @@ public class ZkCreate {
         }
     }
 
-    private static void processLeafNode(Map<Object, Object> innerMap, boolean filterInnerMap,
-        String childPath) {
+    private static void processLeafNode(Map<Object, Object> innerMap, boolean filterInnerMap, String childPath) {
         try {
             Stat restNodeStat = framework.checkExists().forPath(childPath);
             if (restNodeStat == null) {
@@ -115,11 +110,9 @@ public class ZkCreate {
                     }
                 }
 
-                framework.setData()
-                    .forPath(childPath, JSON.toJSONString(filtered).getBytes());
+                framework.setData().forPath(childPath, JSON.toJSONString(filtered).getBytes());
             } else {
-                framework.setData()
-                    .forPath(childPath, JSON.toJSONString(innerMap).toString().getBytes());
+                framework.setData().forPath(childPath, JSON.toJSONString(innerMap).toString().getBytes());
             }
         } catch (Exception e) {
             LOGGER.error("create node error: {} ", e.getMessage(), e);
@@ -127,7 +120,8 @@ public class ZkCreate {
         }
     }
 
-    @SuppressWarnings("unchecked") private static Map<String, Object> loadZkConfig() {
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> loadZkConfig() {
         InputStream configIS = ZkCreate.class.getResourceAsStream(ZK_CONFIG_FILE_NAME);
         if (configIS == null) {
             throw new RuntimeException("can't find zk properties file : " + ZK_CONFIG_FILE_NAME);
@@ -136,22 +130,22 @@ public class ZkCreate {
     }
 
     private static CuratorFramework createConnection(String url) {
-        CuratorFramework curatorFramework =
-            CuratorFrameworkFactory.newClient(url, new ExponentialBackoffRetry(100, 6));
+        CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient(url, new ExponentialBackoffRetry(100, 6));
 
-        //start connection
+        // start connection
         curatorFramework.start();
-        //wait 3 second to establish connect
+        // wait 3 second to establish connect
         try {
             curatorFramework.blockUntilConnected(3, TimeUnit.SECONDS);
             if (curatorFramework.getZookeeperClient().isConnected()) {
-                return curatorFramework.usingNamespace("mycat");
+                // return curatorFramework.usingNamespace("mycat");
+                return curatorFramework.usingNamespace("");
             }
         } catch (InterruptedException ignored) {
             Thread.currentThread().interrupt();
         }
 
-        //fail situation
+        // fail situation
         curatorFramework.close();
         throw new RuntimeException("failed to connect to zookeeper service : " + url);
     }

@@ -23,6 +23,7 @@
  */
 package io.mycat.server.handler;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
@@ -42,6 +43,7 @@ import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.ResetPacket;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.response.PreparedStmtResponse;
+import io.mycat.util.HexFormatUtil;
 
 /**
  * @author mycat, CrazyPig
@@ -217,8 +219,20 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     		case Fields.FIELD_TYPE_VAR_STRING:
             case Fields.FIELD_TYPE_STRING:
             case Fields.FIELD_TYPE_VARCHAR:
-            case Fields.FIELD_TYPE_BLOB:
             	sql = sql.replaceFirst("\\?", "'" + bindValue.value + "'");
+            	break;
+            case Fields.FIELD_TYPE_TINY_BLOB:
+            case Fields.FIELD_TYPE_BLOB:
+            case Fields.FIELD_TYPE_MEDIUM_BLOB:
+            case Fields.FIELD_TYPE_LONG_BLOB:
+            	if(bindValue.value instanceof ByteArrayOutputStream) {
+            		byte[] bytes = ((ByteArrayOutputStream) bindValue.value).toByteArray();
+            		sql = sql.replaceFirst("\\?", "X'" + HexFormatUtil.bytesToHexString(bytes) + "'");
+            	} else {
+            		// 正常情况下不会走到else, 除非long data的存储方式(ByteArrayOutputStream)被修改
+            		LOGGER.warn("bind value is not a instance of ByteArrayOutputStream, maybe someone change the implement of long data storage!");
+            		sql = sql.replaceFirst("\\?", "'" + bindValue.value + "'");
+            	}
             	break;
             case Fields.FIELD_TYPE_TIME:
             case Fields.FIELD_TYPE_DATE:
