@@ -3,9 +3,9 @@ package io.mycat.config.loader.zookeeper.create.flow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zookeeper.create.comm.SeqLinkedList;
 import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
-import io.mycat.config.loader.zookeeper.create.console.FlowCfg;
 import io.mycat.config.loader.zookeeper.create.console.SysFlow;
 
 /**
@@ -34,7 +34,7 @@ public class FlowToLineService implements ServiceExecInf {
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 执行创建路径操作
-        boolean crRsp = seqList.getZkProcess().createPath(basePath, FlowCfg.FLOW_ZK_PATH_LINE.getKey());
+        boolean crRsp = seqList.getZkProcess().createPath(basePath, ZookeeperPath.FLOW_ZK_PATH_LINE.getKey());
 
         LOGGER.info("flow to zk line path write rsp:" + crRsp);
 
@@ -53,7 +53,7 @@ public class FlowToLineService implements ServiceExecInf {
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 执行删除路径操作
-        boolean deleteRsp = seqList.getZkProcess().deletePath(basePath, FlowCfg.FLOW_ZK_PATH_LINE.getKey());
+        boolean deleteRsp = seqList.getZkProcess().deletePath(basePath, ZookeeperPath.FLOW_ZK_PATH_LINE.getKey());
 
         LOGGER.info("flow to rollback zk line path delete rsp:" + deleteRsp);
 
@@ -63,7 +63,7 @@ public class FlowToLineService implements ServiceExecInf {
 
         // 删除mycat目录
         boolean mycatZkRsp = seqList.getZkProcess()
-                .deletePath(SysFlow.ZK_SEPARATOR + FlowCfg.FLOW_ZK_PATH_BASE.getKey());
+                .deletePath(SysFlow.ZK_SEPARATOR + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey());
         LOGGER.info("flow to rollback zk mycat path delete rsp { mycatZkRsp:" + mycatZkRsp + "}");
 
         return seqList.rollExec();

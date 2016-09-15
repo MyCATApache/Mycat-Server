@@ -3,6 +3,7 @@ package io.mycat.config.loader.zookeeper.create.flow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zookeeper.create.comm.SeqLinkedList;
 import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
 import io.mycat.config.loader.zookeeper.create.console.FlowCfg;
@@ -34,16 +35,16 @@ public class FlowToNodeService implements ServiceExecInf {
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 配制cache的配制信息
-        String writeNodePath = basePath + SysFlow.ZK_SEPARATOR + FlowCfg.FLOW_ZK_PATH_NODE.getKey()
+        String writeNodePath = basePath + SysFlow.ZK_SEPARATOR + ZookeeperPath.FLOW_ZK_PATH_NODE.getKey()
                 + SysFlow.ZK_SEPARATOR;
 
         // map获取路径 信息
         String mapDataGet = "";
-        mapDataGet += FlowCfg.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_GET_SEP;
+        mapDataGet += ZookeeperPath.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_GET_SEP;
         mapDataGet += String.valueOf(seqList.getZkProcess().getValue(FlowCfg.FLOW_YAML_CFG_CLUSTER.getKey()))
                 + SysFlow.ZK_GET_SEP;
         // cache的key信息
-        String nodeMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_NODE.getKey();
+        String nodeMapKey = mapDataGet + ZookeeperPath.FLOW_ZK_PATH_NODE.getKey();
 
         // 创建schema路径并录入数据
         boolean nodeRsp = seqList.getZkProcess().createConfig(nodeMapKey, true, writeNodePath);
@@ -64,7 +65,7 @@ public class FlowToNodeService implements ServiceExecInf {
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 删除路由路径
-        boolean ruleZkPathRsp = seqList.getZkProcess().deletePath(basePath, FlowCfg.FLOW_ZK_PATH_NODE.getKey());
+        boolean ruleZkPathRsp = seqList.getZkProcess().deletePath(basePath, ZookeeperPath.FLOW_ZK_PATH_NODE.getKey());
         LOGGER.info("flow to rollback zk node path delete rsp:" + ruleZkPathRsp);
 
         return seqList.rollExec();
