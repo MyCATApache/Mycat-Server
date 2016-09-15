@@ -20,7 +20,6 @@ import io.mycat.config.loader.zktoxml.zkProcess.DiretoryInf;
 import io.mycat.config.loader.zktoxml.zkProcess.zkdirectry.ZkDataImpl;
 import io.mycat.config.loader.zktoxml.zkProcess.zkdirectry.ZkDirectoryImpl;
 import io.mycat.config.loader.zktoxml.zkProcess.zkdirectry.ZkDirectoryLoader;
-import io.mycat.config.loader.zookeeper.entitiy.ParseMsg;
 
 /**
  * 进行schema的文件从zk中加载
@@ -121,7 +120,8 @@ public class SchemasLoader extends ZkDirectoryLoader implements notiflyService {
         List<DataHost> dataHostList = this.getGson().fromJson(dataHostJson, typedataHost);
         schemaObj.setDataHost(dataHostList);
 
-        String path = ParseMsg.class.getClassLoader().getResource("io/mycat/config/loader/zktoxml/listen/").getPath();
+        String path = SchemasLoader.class.getClassLoader().getResource("io/mycat/config/loader/zktoxml/listen/")
+                .getPath();
         path = path.substring(1) + "schema.xml";
 
         this.xmlParse.parseToXml(schemaObj, path, "schema");
