@@ -12,8 +12,8 @@ public interface notiflyService {
     /**
      * 进行通知接口
      * @throws Exception 异常操作
-     * @return true 缓存更新成功, false缓存更新失败
+     * @return true 通知更新成功，false ，更新失败
      */
-    public boolean cacheNotifly() throws Exception;
+    public boolean notiflyProcess() throws Exception;
 
 }

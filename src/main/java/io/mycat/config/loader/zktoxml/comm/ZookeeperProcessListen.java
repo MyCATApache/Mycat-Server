@@ -78,7 +78,7 @@ public class ZookeeperProcessListen {
 
                 if (null != cacheService) {
                     try {
-                        result = cacheService.cacheNotifly();
+                        result = cacheService.notiflyProcess();
                     } catch (Exception e) {
                         e.printStackTrace();
                         lOG.error("ZookeeperProcessListen notifly key :" + key + " error:Exception info:", e);
@@ -105,7 +105,7 @@ public class ZookeeperProcessListen {
             // 进行缓存更新通知操作
             if (null != item.getValue()) {
                 try {
-                    item.getValue().cacheNotifly();
+                    item.getValue().notiflyProcess();
                 } catch (Exception e) {
                     lOG.error("ZookeeperProcessListen notiflyAll key :" + item.getKey() + ";value " + item.getValue()
                             + ";error:Exception info:", e);

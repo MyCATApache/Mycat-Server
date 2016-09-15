@@ -4,6 +4,8 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.reflect.TypeToken;
 
@@ -33,6 +35,12 @@ import io.mycat.config.loader.zktoxml.zkProcess.zkdirectry.ZkDirectoryLoader;
 * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
 */
 public class SchemasLoader extends ZkDirectoryLoader implements notiflyService {
+
+    /**
+     * 日志
+    * @字段说明 LOGGER
+    */
+    private static final Logger LOGGER = LoggerFactory.getLogger(SchemasLoader.class);
 
     /**
      * 当前文件中的zkpath信息 
@@ -65,7 +73,7 @@ public class SchemasLoader extends ZkDirectoryLoader implements notiflyService {
     }
 
     @Override
-    public boolean cacheNotifly() throws Exception {
+    public boolean notiflyProcess() throws Exception {
         // 1,将集群schema目录下的所有集群按层次结构加载出来
         // 通过组合模式进行zk目录树的加载
         DiretoryInf schemaDirectory = new ZkDirectoryImpl(currZkPath, null);
@@ -93,6 +101,8 @@ public class SchemasLoader extends ZkDirectoryLoader implements notiflyService {
         List<Schema> schemaList = this.getGson().fromJson(jsonValue, typeSchema);
         schemaObj.setSchema(schemaList);
 
+        LOGGER.info("SchemasLoader notiflyProcess zk to object  Schema :" + schemaList);
+
         // 将dataNode转换为json字符串
         DiretoryInf dataNodeZk = this.getZkDirectory(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey());
         StringBuilder dataNodeBuild = new StringBuilder();
@@ -103,6 +113,8 @@ public class SchemasLoader extends ZkDirectoryLoader implements notiflyService {
         }.getType();
         List<DataNode> dataNodeList = this.getGson().fromJson(dataNodeJson, typeNodeData);
         schemaObj.setDataNode(dataNodeList);
+
+        LOGGER.info("SchemasLoader notiflyProcess zk to object  DataNode :" + dataNodeList);
 
         // 转换dataHost信息
 
@@ -120,15 +132,20 @@ public class SchemasLoader extends ZkDirectoryLoader implements notiflyService {
         List<DataHost> dataHostList = this.getGson().fromJson(dataHostJson, typedataHost);
         schemaObj.setDataHost(dataHostList);
 
+        LOGGER.info("SchemasLoader notiflyProcess zk to object  DataHost :" + dataHostList);
+        LOGGER.info("SchemasLoader notiflyProcess zk to object  zk schema Object  :" + schemaObj);
+
         String path = SchemasLoader.class.getClassLoader().getResource("io/mycat/config/loader/zktoxml/listen/")
                 .getPath();
         path = path.substring(1) + "schema.xml";
 
+        LOGGER.info("SchemasLoader notiflyProcess zk to object  writePath  :" + path);
+
         this.xmlParse.parseToXml(schemaObj, path, "schema");
 
-        System.out.println("当前schema对象:" + schemaObj);
+        LOGGER.info("SchemasLoader notiflyProcess zk to object  zk schema write  :" + path + " is success");
 
-        return false;
+        return true;
     }
 
     /**
@@ -200,30 +217,6 @@ public class SchemasLoader extends ZkDirectoryLoader implements notiflyService {
      */
     private void toDataNodeJsonStr(DiretoryInf dataNodeZk, StringBuilder tojson) {
         List<Object> dirctoryList = dataNodeZk.getSubordinateInfo();
-        tojson.append("[");
-        for (int i = 0; i < dirctoryList.size(); i++) {
-            Object object = dirctoryList.get(i);
-            // 如果当前为数据节点
-            if (object instanceof DataInf) {
-                ZkDataImpl data = (ZkDataImpl) object;
-                tojson.append(data.getValue());
-                if (i != dirctoryList.size() - 1) {
-                    tojson.append(",");
-                }
-            }
-        }
-        tojson.append("]");
-    }
-
-    /**
-     * 将schema的信息转换为json的字符信息
-     * 方法描述
-     * @param dataHostZk
-     * @param tojson
-     * @创建日期 2016年9月15日
-     */
-    private void toDataHostJson(DiretoryInf dataHostZk, StringBuilder tojson) {
-        List<Object> dirctoryList = dataHostZk.getSubordinateInfo();
         tojson.append("[");
         for (int i = 0; i < dirctoryList.size(); i++) {
             Object object = dirctoryList.get(i);
