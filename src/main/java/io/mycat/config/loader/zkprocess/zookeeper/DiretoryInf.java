@@ -41,4 +41,10 @@ public interface DiretoryInf {
      */
     List<Object> getSubordinateInfo();
 
+    /**
+     * 获取节点的名称
+    * @字段说明 getDataName
+    */
+    String getDataName();
+
 }

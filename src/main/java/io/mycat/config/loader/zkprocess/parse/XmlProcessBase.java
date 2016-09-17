@@ -23,8 +23,6 @@ import javax.xml.transform.stream.StreamSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 /**
  * xml文件操作转换的类的信息 
 * 源文件名：XmlProcessBase.java
@@ -143,13 +141,17 @@ public class XmlProcessBase {
         // 搜索当前转化的文件
         InputStream inputStream = XmlProcessBase.class.getResourceAsStream(fileName);
 
-        Preconditions.checkNotNull(inputStream, fileName + " is not exist.");
-        // 进行文件反序列化信息
-        XMLInputFactory xif = XMLInputFactory.newFactory();
-        xif.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        XMLStreamReader xmlRead = xif.createXMLStreamReader(new StreamSource(inputStream));
+        // 如果能够搜索到文件
+        if (inputStream != null) {
+            // 进行文件反序列化信息
+            XMLInputFactory xif = XMLInputFactory.newFactory();
+            xif.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+            XMLStreamReader xmlRead = xif.createXMLStreamReader(new StreamSource(inputStream));
 
-        return unmarshaller.unmarshal(xmlRead);
+            return unmarshaller.unmarshal(xmlRead);
+        }
+
+        return null;
     }
 
 }

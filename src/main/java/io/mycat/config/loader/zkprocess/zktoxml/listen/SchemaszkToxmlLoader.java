@@ -22,7 +22,6 @@ import io.mycat.config.loader.zkprocess.parse.entryparse.schema.json.SchemaJsonP
 import io.mycat.config.loader.zkprocess.parse.entryparse.schema.xml.SchemasParseXmlImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
 import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
-import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDirectoryImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 
@@ -55,7 +54,7 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements notiflyService
      * 写入本地的文件路径
     * @字段说明 WRITEPATH
     */
-    private static final String WRITEPATH = ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey() + "schema.xml";
+    private static final String WRITEPATH = "schema.xml";
 
     /**
      * schema类与xml转换服务 
@@ -116,7 +115,7 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements notiflyService
         String path = SchemaszkToxmlLoader.class.getClassLoader()
                 .getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey()).getPath();
 
-        path = path.substring(1) + "schema.xml";
+        path = path.substring(1) + WRITEPATH;
 
         LOGGER.info("SchemasLoader notiflyProcess zk to object writePath :" + path);
 
@@ -138,14 +137,14 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements notiflyService
         Schemas schema = new Schemas();
 
         // 得到schema对象的目录信息
-        DataInf schemaZkDirectory = this.getZkDirectory(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey());
+        DataInf schemaZkDirectory = this.getZkData(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey());
 
         List<Schema> schemaList = parseJsonSchema.parseJsonToBean(schemaZkDirectory.getDataValue());
 
         schema.setSchema(schemaList);
 
         // 得到dataNode的信息
-        DataInf dataNodeZkDirectory = this.getZkDirectory(zkDirectory,
+        DataInf dataNodeZkDirectory = this.getZkData(zkDirectory,
                 ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey());
 
         List<DataNode> dataNodeList = parseJsonDataNode.parseJsonToBean(dataNodeZkDirectory.getDataValue());
@@ -153,7 +152,7 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements notiflyService
         schema.setDataNode(dataNodeList);
 
         // 得到dataNode的信息
-        DataInf dataHostZkDirectory = this.getZkDirectory(zkDirectory,
+        DataInf dataHostZkDirectory = this.getZkData(zkDirectory,
                 ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey());
 
         List<DataHost> dataHostList = parseJsonDataHost.parseJsonToBean(dataHostZkDirectory.getDataValue());
@@ -162,34 +161,6 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements notiflyService
 
         return schema;
 
-    }
-
-    /**
-     * 通过名称获取路径对象信息
-    * 方法描述
-    * @param zkDirectory
-    * @param name
-    * @return
-    * @创建日期 2016年9月16日
-    */
-    private DataInf getZkDirectory(DiretoryInf zkDirectory, String name) {
-        List<Object> list = zkDirectory.getSubordinateInfo();
-
-        if (null != list && !list.isEmpty()) {
-            for (Object directObj : list) {
-
-                if (directObj instanceof ZkDataImpl) {
-                    ZkDataImpl zkDirectoryValue = (ZkDataImpl) directObj;
-
-                    if (name.equals(zkDirectoryValue.getName())) {
-
-                        return zkDirectoryValue;
-                    }
-
-                }
-            }
-        }
-        return null;
     }
 
 }

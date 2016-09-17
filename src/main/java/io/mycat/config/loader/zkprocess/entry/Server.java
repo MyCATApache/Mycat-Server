@@ -7,6 +7,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import io.mycat.config.loader.zkprocess.entry.server.System;
 import io.mycat.config.loader.zkprocess.entry.server.user.User;
 
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -33,6 +34,17 @@ public class Server {
 
     public void setUser(List<User> user) {
         this.user = user;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Server [system=");
+        builder.append(system);
+        builder.append(", user=");
+        builder.append(user);
+        builder.append("]");
+        return builder.toString();
     }
 
 }

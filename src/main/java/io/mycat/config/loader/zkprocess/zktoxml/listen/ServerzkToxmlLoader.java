@@ -7,19 +7,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.comm.MycatConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.comm.notiflyService;
 import io.mycat.config.loader.zkprocess.entry.Server;
+import io.mycat.config.loader.zkprocess.entry.server.System;
+import io.mycat.config.loader.zkprocess.entry.server.user.User;
+import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
+import io.mycat.config.loader.zkprocess.parse.ParseXmlServiceInf;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
+import io.mycat.config.loader.zkprocess.parse.entryparse.server.json.SystemJsonParse;
+import io.mycat.config.loader.zkprocess.parse.entryparse.server.json.UserJsonParse;
+import io.mycat.config.loader.zkprocess.parse.entryparse.server.xml.ServerParseXmlImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
 import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
-import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDirectoryImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 
 /**
  * 进行server的文件从zk中加载
-* 源文件名：SchemasLoader.java
+* 源文件名：ServerzkToxmlLoader.java
 * 文件版本：1.0.0
 * 创建作者：liujun
 * 创建日期：2016年9月15日
@@ -43,162 +51,135 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements notiflyService 
     private final String currZkPath;
 
     /**
-     * xml转换对象信息
-    * @字段说明 xmlParse
+     * 写入本地的文件路径
+    * @字段说明 WRITEPATH
     */
-    private XmlProcessBase xmlParse;
+    private static final String WRITEPATH = "server.xml";
+
+    /**
+     * server的xml的转换信息
+    * @字段说明 parseServerXMl
+    */
+    private ParseXmlServiceInf<Server> parseServerXMl;
+
+    /**
+     * system信息
+    * @字段说明 parseJsonserver
+    */
+    private ParseJsonServiceInf<System> parseJsonSystem = new SystemJsonParse();
+
+    /**
+     * system信息
+     * @字段说明 parseJsonserver
+     */
+    private ParseJsonServiceInf<List<User>> parseJsonUser = new UserJsonParse();
 
     public ServerzkToxmlLoader(ZookeeperProcessListen zookeeperListen, CuratorFramework curator,
-            XmlProcessBase xmlParse) {
+            XmlProcessBase xmlParseBase) {
 
         this.setCurator(curator);
 
         // 获得当前集群的名称
-        String schemaPath = zookeeperListen.getBasePath();
-        schemaPath = schemaPath + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SERVER.getKey();
+        String serverPath = zookeeperListen.getBasePath();
+        serverPath = serverPath + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SERVER.getKey();
 
-        currZkPath = schemaPath;
+        currZkPath = serverPath;
         // 将当前自己注册为事件接收对象
-        zookeeperListen.addListen(schemaPath, this);
+        zookeeperListen.addListen(serverPath, this);
 
-        this.xmlParse = xmlParse;
-
-        // 注册转换对象信息
-        this.xmlParse.addParseClass(Server.class);
+        // 生成xml与类的转换信息
+        parseServerXMl = new ServerParseXmlImpl(xmlParseBase);
     }
 
     @Override
     public boolean notiflyProcess() throws Exception {
-        // 1,将集群schema目录下的所有集群按层次结构加载出来
+        // 1,将集群server目录下的所有集群按层次结构加载出来
+        // 通过组合模式进行zk目录树的加载
+        DiretoryInf serverDirectory = new ZkDirectoryImpl(currZkPath, null);
+        // 进行递归的数据获取
+        this.getTreeDirectory(currZkPath, ZookeeperPath.FLOW_ZK_PATH_SERVER.getKey(), serverDirectory);
 
-        String dataPath = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey();
+        // 从当前的下一级开始进行遍历,获得到
+        ZkDirectoryImpl zkDirectory = (ZkDirectoryImpl) serverDirectory.getSubordinateInfo().get(0);
+        Server server = this.zktoServerBean(zkDirectory);
 
-        // this.getCurator().getZookeeperClient().getZooKeeper().getData(dataPath,
-        // new Watcher() {
-        //
-        // @Override
-        // public void process(WatchedEvent event) {
-        // System.out.println(event.getState());
-        // System.out.println("当前路径发生了更新" + event.getPath());
-        // }
-        //
-        // }, null);
-        //
-        // System.out.println("当前监视的子路径:" + dataPath);
-        //
-        // dataPath = "/mycat/mycat-cluster-1/schema/schema/schema/table";
-        //
-        // // 当前路径的通知
-        // this.getCurator().getData().usingWatcher(new Watcher() {
-        //
-        // @Override
-        // public void process(WatchedEvent event) {
-        // System.out.println("通知信息:" + event);
-        // System.out.println("收到通知:" + event.getPath());
-        // }
-        //
-        // }).inBackground().forPath(dataPath);
-        //
-        // String childPath = "/mycat/mycat-cluster-1/schema/schema/schema";
-        //
-        // // 子节点修改的通知
-        // this.getCurator().getChildren().usingWatcher(new Watcher() {
-        //
-        // @Override
-        // public void process(WatchedEvent event) {
-        // System.out.println("子节点通知信息:" + event);
-        // System.out.println("子节点收到通知:" + event.getPath());
-        // }
-        //
-        // }).inBackground().forPath(childPath);
+        // 读取当前集群中当前节点的特殊的配制信息
+        Server currSer = this.zktoServerBeanByCurrNode(zkDirectory);
+
+        // 为当前的参数赋新值
+        if (null != currSer) {
+            server.getSystem().setNewValue(currSer.getSystem());
+        }
+
+        LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to object  zk server Object  :" + server);
+
+        // 数配制信息写入文件
+        String path = ServerzkToxmlLoader.class.getClassLoader().getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey())
+                .getPath();
+
+        path = path.substring(1) + WRITEPATH;
+
+        LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to object writePath :" + path);
+
+        this.parseServerXMl.parseToXmlWrite(server, path, "server");
+
+        LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to object zk server      write :" + path + " is success");
 
         return true;
-
     }
 
     /**
-     * 通过名称获取路径对象信息
+     * 将zk上面的信息转换为javabean对象
     * 方法描述
     * @param zkDirectory
-    * @param name
     * @return
-    * @创建日期 2016年9月16日
+    * @创建日期 2016年9月17日
     */
-    private DiretoryInf getZkDirectory(DiretoryInf zkDirectory, String name) {
-        List<Object> list = zkDirectory.getSubordinateInfo();
+    private Server zktoServerBean(DiretoryInf zkDirectory) {
+        Server server = new Server();
 
-        if (null != list && !list.isEmpty()) {
-            for (Object directObj : list) {
+        // 得到server对象的目录信息
+        DataInf serverZkDirectory = this.getZkData(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SERVER_DEFAULT.getKey());
+        System systemValue = parseJsonSystem.parseJsonToBean(serverZkDirectory.getDataValue());
+        server.setSystem(systemValue);
 
-                if (directObj instanceof ZkDirectoryImpl) {
-                    ZkDirectoryImpl zkDirectoryValue = (ZkDirectoryImpl) directObj;
+        // 得到user的信息
+        DataInf userZkDirectory = this.getZkData(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SERVER_USER.getKey());
+        List<User> userList = parseJsonUser.parseJsonToBean(userZkDirectory.getDataValue());
+        server.setUser(userList);
 
-                    if (name.equals(zkDirectoryValue.getName())) {
-
-                        return zkDirectoryValue;
-                    }
-
-                }
-            }
-        }
-        return null;
+        return server;
     }
 
     /**
-     * 带子级的信息转换为json的字符信息，可以为schema以及dataHost转换使用
+     * 加载当前节点的特殊配制信息
     * 方法描述
-    * @param schemaDirectory
-    * @param tojson
-    * @创建日期 2016年9月15日
+    * @param zkDirectory
+    * @return
+    * @创建日期 2016年9月17日
     */
-    private void toJsonStr(DiretoryInf schemaDirectory, StringBuilder tojson) {
-        List<Object> dirctoryList = schemaDirectory.getSubordinateInfo();
+    private Server zktoServerBeanByCurrNode(DiretoryInf zkDirectory) {
 
-        for (Object object : dirctoryList) {
-            // 如果当前为目录节点
-            if (object instanceof ZkDirectoryImpl) {
-                ZkDirectoryImpl directory = (ZkDirectoryImpl) object;
-                String value = directory.getValue();
-                tojson.append(value.replaceAll("\\}", ""));
-                tojson.append(",");
-                this.toJsonStr(directory, tojson);
-                tojson.append("}");
-            }
-            // 如果当前为数据节点
-            else if (object instanceof DataInf) {
-                ZkDataImpl data = (ZkDataImpl) object;
-                tojson.append(data.getName());
-                tojson.append(":");
-                tojson.append("[");
-                tojson.append(data.getValue());
-                tojson.append("]");
-            }
-        }
-    }
+        Server server = null;
 
-    /**
-     * 将schema的信息转换为json的字符信息
-     * 方法描述
-     * @param dataNodeZk
-     * @param tojson
-     * @创建日期 2016年9月15日
-     */
-    private void toDataNodeJsonStr(DiretoryInf dataNodeZk, StringBuilder tojson) {
-        List<Object> dirctoryList = dataNodeZk.getSubordinateInfo();
-        tojson.append("[");
-        for (int i = 0; i < dirctoryList.size(); i++) {
-            Object object = dirctoryList.get(i);
-            // 如果当前为数据节点
-            if (object instanceof DataInf) {
-                ZkDataImpl data = (ZkDataImpl) object;
-                tojson.append(data.getValue());
-                if (i != dirctoryList.size() - 1) {
-                    tojson.append(",");
-                }
-            }
+        // 得到集群节点的配制信息
+        DiretoryInf directory = this.getZkDirectory(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SERVER_CLUSTER.getKey());
+
+        // 获得当前myid的名称
+        String myid = MycatConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+
+        // 获邓当前节点的信息
+        DataInf currDataCfg = this.getZkData(directory, myid);
+
+        // 如果当前节点存在配制信息，则加载
+        if (null != currDataCfg) {
+            server = new Server();
+
+            System systemValue = parseJsonSystem.parseJsonToBean(currDataCfg.getDataValue());
+            server.setSystem(systemValue);
         }
-        tojson.append("]");
+
+        return server;
     }
 
 }

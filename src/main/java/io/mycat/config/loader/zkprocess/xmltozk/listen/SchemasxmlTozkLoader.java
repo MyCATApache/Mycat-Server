@@ -51,7 +51,7 @@ public class SchemasxmlTozkLoader extends ZkMultLoader implements notiflyService
      * schema文件的路径信息
     * @字段说明 SCHEMA_PATH
     */
-    private static final String SCHEMA_PATH = "/zkconf/schema.xml";
+    private static final String SCHEMA_PATH = ZookeeperPath.ZK_LOCAL_CFG_PATH.getKey() + "schema.xml";
 
     /**
      * schema类与xml转换服务 

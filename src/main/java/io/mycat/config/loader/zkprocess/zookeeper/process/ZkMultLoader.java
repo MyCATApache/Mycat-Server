@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 
 import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
 import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
 
 /**
@@ -156,6 +157,60 @@ public class ZkMultLoader {
             return "{}";
         }
         return new String(raw, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * 通过名称数据节点信息
+    * 方法描述
+    * @param zkDirectory
+    * @param name
+    * @return
+    * @创建日期 2016年9月16日
+    */
+    protected DataInf getZkData(DiretoryInf zkDirectory, String name) {
+        List<Object> list = zkDirectory.getSubordinateInfo();
+
+        if (null != list && !list.isEmpty()) {
+            for (Object directObj : list) {
+
+                if (directObj instanceof ZkDataImpl) {
+                    ZkDataImpl zkDirectoryValue = (ZkDataImpl) directObj;
+
+                    if (name.equals(zkDirectoryValue.getName())) {
+
+                        return zkDirectoryValue;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 通过名称获得目录节点信息
+     * 方法描述
+     * @param zkDirectory
+     * @param name
+     * @return
+     * @创建日期 2016年9月16日
+     */
+    protected DiretoryInf getZkDirectory(DiretoryInf zkDirectory, String name) {
+        List<Object> list = zkDirectory.getSubordinateInfo();
+
+        if (null != list && !list.isEmpty()) {
+            for (Object directObj : list) {
+
+                if (directObj instanceof DiretoryInf) {
+                    DiretoryInf zkDirectoryValue = (DiretoryInf) directObj;
+
+                    if (name.equals(zkDirectoryValue.getDataName())) {
+
+                        return zkDirectoryValue;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public CuratorFramework getCurator() {

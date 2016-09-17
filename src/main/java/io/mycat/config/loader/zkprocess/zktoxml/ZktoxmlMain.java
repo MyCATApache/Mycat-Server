@@ -9,10 +9,11 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 
 import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.comm.MycatConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
-import io.mycat.config.loader.zkprocess.zktoxml.MycatConfig.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.SchemaszkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.ServerzkToxmlLoader;
 

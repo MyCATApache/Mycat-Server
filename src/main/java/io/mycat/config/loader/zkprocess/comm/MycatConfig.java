@@ -1,4 +1,4 @@
-package io.mycat.config.loader.zkprocess.xmltozk;
+package io.mycat.config.loader.zkprocess.comm;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,23 +22,23 @@ import io.mycat.config.loader.zookeeper.ZookeeperLoader;
 * 文件描述：TODO
 * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
 */
-public class ZkConfig {
+public class MycatConfig {
     /**
      * 日志信息
     * @字段说明 LOGGER
     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(ZkConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MycatConfig.class);
 
-    private static final String ZK_CONFIG_FILE_NAME = "/zkconf/myid.properties";
+    private static final String ZK_CONFIG_FILE_NAME = "/myid.properties";
 
-    private ZkConfig() {
+    private MycatConfig() {
     }
 
     /**
      * 实例对象信息
     * @字段说明 ZKCFGINSTANCE
     */
-    private static ZkConfig ZKCFGINSTANCE = null;
+    private static MycatConfig ZKCFGINSTANCE = null;
 
     /**
      * myid的属性文件信息
@@ -51,69 +51,15 @@ public class ZkConfig {
     }
 
     /**
-     * 当前zk的配制参数信息
-    * 源文件名：ZkConfig.java
-    * 文件版本：1.0.0
-    * 创建作者：liujun
-    * 创建日期：2016年9月15日
-    * 修改作者：liujun
-    * 修改日期：2016年9月15日
-    * 文件描述：TODO
-    * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
-    */
-    public enum ZkParamCfg {
-
-        /**
-         * zk是否启用标识
-        * @字段说明 ZK_CFG_OPEN
-        */
-        ZK_CFG_FLAG("loadZk"),
-
-        /**
-         * zk配制的url地址信息
-        * @字段说明 ZK_CFG_URL
-        */
-        ZK_CFG_URL("zkURL"),
-
-        /**
-         * 集群的id
-        * @字段说明 ZK_CFG_CLUSTERID
-        */
-        ZK_CFG_CLUSTERID("clusterId"),
-
-        /**
-         * 当前mycat节点的id
-        * @字段说明 zk_CFG_MYID
-        */
-        ZK_CFG_MYID("myid"),
-
-        ;
-
-        private ZkParamCfg(String key) {
-            this.key = key;
-        }
-
-        private String key;
-
-        public String getKey() {
-            return key;
-        }
-
-        public void setKey(String key) {
-            this.key = key;
-        }
-    }
-
-    /**
      * 获得实例对象信息
     * 方法描述
     * @return
     * @创建日期 2016年9月15日
     */
-    public synchronized static ZkConfig getInstance() {
+    public synchronized static MycatConfig getInstance() {
 
         if (null == ZKCFGINSTANCE) {
-            ZKCFGINSTANCE = new ZkConfig();
+            ZKCFGINSTANCE = new MycatConfig();
         }
 
         return ZKCFGINSTANCE;
@@ -166,7 +112,7 @@ public class ZkConfig {
     }
 
     public static void main(String[] args) {
-        String zk = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
+        String zk = MycatConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
         System.out.println(zk);
     }
 

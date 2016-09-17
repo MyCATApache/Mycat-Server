@@ -9,11 +9,13 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 
 import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
-import io.mycat.config.loader.zkprocess.xmltozk.ZkConfig.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.xmltozk.listen.SchemasxmlTozkLoader;
+import io.mycat.config.loader.zkprocess.xmltozk.listen.ServerxmlTozkLoader;
 
 public class XmltozkMain {
 
@@ -38,13 +40,15 @@ public class XmltozkMain {
         // 进行xmltozk的schema文件的操作
         new SchemasxmlTozkLoader(zkListen, zkConn, xmlProcess);
 
+        // 进行xmltozk的server文件的操作
+        new ServerxmlTozkLoader(zkListen, zkConn, xmlProcess);
+
         // 初始化xml转换操作
         xmlProcess.initJaxbClass();
 
         // 加载通知进程
         zkListen.notifly(ZkNofiflyCfg.ZK_NOTIFLY_LOAD_ALL.getKey());
 
-        Thread.currentThread().sleep(1000000);
     }
 
     private static CuratorFramework buildConnection(String url) {

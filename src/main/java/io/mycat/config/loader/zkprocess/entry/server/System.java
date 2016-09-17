@@ -43,4 +43,35 @@ public class System implements Propertied {
         this.getProperty().add(property);
     }
 
+    /**
+     * 设置最新的方法值
+    * 方法描述
+    * @param newSet
+    * @创建日期 2016年9月17日
+    */
+    public void setNewValue(System newSet) {
+        if (null != newSet) {
+            List<Property> valuePro = newSet.getProperty();
+            // 最新设置的属性值
+            for (Property netsetProper : valuePro) {
+                // 当前已经设置的属性值
+                for (Property property : this.getProperty()) {
+                    // 如果新设置的属性名称与当前的已经存在的名称相同，则设置为新值
+                    if (netsetProper.getName().equals(property.getName())) {
+                        property.setValue(netsetProper.getValue());
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("System [property=");
+        builder.append(property);
+        builder.append("]");
+        return builder.toString();
+    }
+
 }
