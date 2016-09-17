@@ -1,4 +1,4 @@
-package io.mycat.config.loader.zkprocess.zktoxml.zkProcess;
+package io.mycat.config.loader.zkprocess.zookeeper;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package io.mycat.config.loader.zkprocess.zktoxml;
+package io.mycat.config.loader.zkprocess.xmltozk;
 
 import java.util.concurrent.TimeUnit;
 
@@ -9,15 +9,15 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 
 import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
+import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
-import io.mycat.config.loader.zkprocess.zktoxml.ZkConfig.ZkParamCfg;
-import io.mycat.config.loader.zkprocess.zktoxml.comm.ZookeeperProcessListen;
-import io.mycat.config.loader.zkprocess.zktoxml.console.ZkNofiflyCfg;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.SchemasLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.ServerLoader;
+import io.mycat.config.loader.zkprocess.xmltozk.ZkConfig.ZkParamCfg;
+import io.mycat.config.loader.zkprocess.xmltozk.listen.SchemasxmlTozkLoader;
 
-public class ZkParseMain {
+public class XmltozkMain {
 
+    @SuppressWarnings("static-access")
     public static void main(String[] args) throws JAXBException, InterruptedException {
         // 加载zk总服务
         ZookeeperProcessListen zkListen = new ZookeeperProcessListen();
@@ -35,16 +35,13 @@ public class ZkParseMain {
         // 获得公共的xml转换器对象
         XmlProcessBase xmlProcess = new XmlProcessBase();
 
-        // 加载以接收者
-        new SchemasLoader(zkListen, zkConn, xmlProcess);
-
-        // server加载
-        new ServerLoader(zkListen, zkConn, xmlProcess);
+        // 进行xmltozk的schema文件的操作
+        new SchemasxmlTozkLoader(zkListen, zkConn, xmlProcess);
 
         // 初始化xml转换操作
         xmlProcess.initJaxbClass();
 
-        // 通知所有人
+        // 加载通知进程
         zkListen.notifly(ZkNofiflyCfg.ZK_NOTIFLY_LOAD_ALL.getKey());
 
         Thread.currentThread().sleep(1000000);

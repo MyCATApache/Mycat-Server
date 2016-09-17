@@ -1,4 +1,4 @@
-package io.mycat.config.loader.zkprocess.zktoxml.comm;
+package io.mycat.config.loader.zkprocess.comm;
 
 /**
  * 通过接口

@@ -1,6 +1,6 @@
-package io.mycat.config.loader.zkprocess.zktoxml.zkProcess.zkdirectry;
+package io.mycat.config.loader.zkprocess.zookeeper.process;
 
-import io.mycat.config.loader.zkprocess.zktoxml.zkProcess.DataInf;
+import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
 
 /**
  * 数据节点信息
@@ -52,6 +52,11 @@ public class ZkDataImpl implements DataInf {
 
     public void setValue(String value) {
         this.value = value;
+    }
+
+    @Override
+    public String getDataValue() {
+        return this.value;
     }
 
 }

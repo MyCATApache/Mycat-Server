@@ -1,4 +1,4 @@
-package io.mycat.config.loader.zkprocess.zktoxml;
+package io.mycat.config.loader.zkprocess.xmltozk;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +29,7 @@ public class ZkConfig {
     */
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkConfig.class);
 
-    private static final String ZK_CONFIG_FILE_NAME = "/myid.properties";
+    private static final String ZK_CONFIG_FILE_NAME = "/zkconf/myid.properties";
 
     private ZkConfig() {
     }

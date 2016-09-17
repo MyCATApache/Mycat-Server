@@ -1,4 +1,4 @@
-package io.mycat.config.loader.zkprocess.zktoxml.comm;
+package io.mycat.config.loader.zkprocess.comm;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.mycat.config.loader.zkprocess.zktoxml.console.ZkNofiflyCfg;
+import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 
 /**
  * 进行zookeeper操作的监控器器父类信息

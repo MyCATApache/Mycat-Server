@@ -40,4 +40,13 @@ public class ReadHost extends WriteHost {
         return super.getReadHost();
     }
 
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("ReadHost [weight=");
+        builder.append(weight);
+        builder.append("]");
+        return builder.toString();
+    }
+
 }

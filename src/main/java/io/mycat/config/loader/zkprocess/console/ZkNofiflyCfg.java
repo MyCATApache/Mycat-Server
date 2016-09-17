@@ -1,4 +1,4 @@
-package io.mycat.config.loader.zkprocess.zktoxml.console;
+package io.mycat.config.loader.zkprocess.console;
 
 /**
  * 进行zk通知的参数配制信息

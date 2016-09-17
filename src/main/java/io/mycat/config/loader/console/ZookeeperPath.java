@@ -130,7 +130,12 @@ public enum ZookeeperPath {
      * 节点单独的配制信息
     * @字段说明 FLOW_ZK_PATH_NODE
     */
-    FLOW_ZK_PATH_NODE("node"),;
+    FLOW_ZK_PATH_NODE("node"),
+
+    /**zk写入本地的路径信息
+    * @字段说明 ZK_LOCAL_WRITE_PATH
+    */
+    ZK_LOCAL_WRITE_PATH("zkdownload/");
     /**
      * 配制的key的信息
     * @字段说明 key

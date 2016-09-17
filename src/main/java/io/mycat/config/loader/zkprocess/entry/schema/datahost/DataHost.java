@@ -150,4 +150,35 @@ public class DataHost implements Named {
         this.slaveThreshold = slaveThreshold;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("DataHost [balance=");
+        builder.append(balance);
+        builder.append(", maxCon=");
+        builder.append(maxCon);
+        builder.append(", minCon=");
+        builder.append(minCon);
+        builder.append(", name=");
+        builder.append(name);
+        builder.append(", writeType=");
+        builder.append(writeType);
+        builder.append(", switchType=");
+        builder.append(switchType);
+        builder.append(", slaveThreshold=");
+        builder.append(slaveThreshold);
+        builder.append(", dbType=");
+        builder.append(dbType);
+        builder.append(", dbDriver=");
+        builder.append(dbDriver);
+        builder.append(", heartbeat=");
+        builder.append(heartbeat);
+        builder.append(", connectionInitSql=");
+        builder.append(connectionInitSql);
+        builder.append(", writeHost=");
+        builder.append(writeHost);
+        builder.append("]");
+        return builder.toString();
+    }
+
 }

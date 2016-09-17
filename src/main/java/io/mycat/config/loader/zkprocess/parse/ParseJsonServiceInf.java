@@ -20,7 +20,7 @@ public interface ParseJsonServiceInf<T> {
     * @return
     * @创建日期 2016年9月16日
     */
-    public String parseBeanToJson(T data);
+    public String parseBeanToJson(T t);
 
     /**
      * 将json字符串转换为javabean对象

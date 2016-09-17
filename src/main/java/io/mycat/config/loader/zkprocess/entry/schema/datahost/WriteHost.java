@@ -87,4 +87,23 @@ public class WriteHost {
         this.readHost = readHost;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("WriteHost [host=");
+        builder.append(host);
+        builder.append(", url=");
+        builder.append(url);
+        builder.append(", password=");
+        builder.append(password);
+        builder.append(", user=");
+        builder.append(user);
+        builder.append(", usingDecrypt=");
+        builder.append(usingDecrypt);
+        builder.append(", readHost=");
+        builder.append(readHost);
+        builder.append("]");
+        return builder.toString();
+    }
+
 }

@@ -23,11 +23,13 @@ import io.mycat.config.loader.zkprocess.entry.Named;
 public class DataNode implements Named {
 
     @XmlAttribute(required = true)
-    protected String name;
+    private String name;
+
     @XmlAttribute(required = true)
-    protected String dataHost;
+    private String dataHost;
+
     @XmlAttribute(required = true)
-    protected String database;
+    private String database;
 
     public String getName() {
         return name;
