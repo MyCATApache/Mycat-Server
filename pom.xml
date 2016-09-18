@@ -192,6 +192,12 @@
 			<version>2.9.3</version>
 		</dependency>
 
+		<dependency>
+			<groupId>com.github.shyiko</groupId>
+			<artifactId>mysql-binlog-connector-java</artifactId>
+			<version>0.4.1</version>
+		</dependency>
+
 
 		<dependency>
 			<groupId>org.mockito</groupId>

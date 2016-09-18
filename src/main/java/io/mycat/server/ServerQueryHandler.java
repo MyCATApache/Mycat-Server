@@ -118,6 +118,9 @@ public class ServerQueryHandler implements FrontendQueryHandler {
             case ServerParse.LOAD_DATA_INFILE_SQL:
                 c.loadDataInfileStart(sql);
                 break;
+			case ServerParse.MIGRATE:
+				MigrateHandler.handle(sql,c);
+				break;
 		default:
 			if(readOnly){
 				LOGGER.warn(new StringBuilder().append("User readonly:").append(sql).toString());

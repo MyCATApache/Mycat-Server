@@ -20,6 +20,7 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.SessionSQLPair;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
+import io.mycat.route.function.SlotFunction;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.server.ServerConnection;
@@ -104,6 +105,9 @@ public class RouterUtil {
 		nodes[0].setSource(rrs);
 		rrs.setNodes(nodes);
 		rrs.setFinishedRoute(true);
+		if(rrs.getDataNodeSlotMap().containsKey(dataNode)){
+			nodes[0].setSlot(rrs.getDataNodeSlotMap().get(dataNode));
+		}
 		if (rrs.getCanRunInReadDB() != null) {
 			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
 		}
@@ -149,10 +153,11 @@ public class RouterUtil {
 			if(ServerParse.DDL==sqlType){
 				List<String> dataNodes = new ArrayList<>();
 				Map<String, TableConfig> tables = schema.getTables();
-				TableConfig tc;
-				if (tables != null && (tc = tables.get(tablename)) != null) {
+				TableConfig tc=tables.get(tablename);
+				if (tables != null && (tc  != null)) {
 					dataNodes = tc.getDataNodes();
 				}
+				boolean isSlotFunction= tc.getRule() != null && tc.getRule().getRuleAlgorithm() instanceof SlotFunction;
 				Iterator<String> iterator1 = dataNodes.iterator();
 				int nodeSize = dataNodes.size();
 				RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSize];
@@ -161,6 +166,11 @@ public class RouterUtil {
 					String name = iterator1.next();
 					nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
 					nodes[i].setSource(rrs);
+					if(rrs.getDataNodeSlotMap().containsKey(name)){
+						nodes[i].setSlot(rrs.getDataNodeSlotMap().get(name));
+					}  else if(isSlotFunction){
+						nodes[i].setSlot(-1);
+					}
 				}
 				rrs.setNodes(nodes);
 			}
@@ -637,6 +647,9 @@ public class RouterUtil {
 		for (String dataNode : dataNodes) {
 			node = new RouteResultsetNode(dataNode, rrs.getSqlType(), stmt);
 			node.setSource(rrs);
+			if(rrs.getDataNodeSlotMap().containsKey(dataNode)){
+				node.setSlot(rrs.getDataNodeSlotMap().get(dataNode));
+			}
 			if (rrs.getCanRunInReadDB() != null) {
 				node.setCanRunInReadDB(rrs.getCanRunInReadDB());
 			}
@@ -670,6 +683,9 @@ public class RouterUtil {
 		RouteResultsetNode[] nodes = new RouteResultsetNode[1];
 		nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), sql);
 		nodes[0].setSource(rrs);
+		if(rrs.getDataNodeSlotMap().containsKey(dataNode)){
+			nodes[0].setSlot(rrs.getDataNodeSlotMap().get(dataNode));
+		}
 		if (rrs.getCanRunInReadDB() != null) {
 			nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
 		}
@@ -730,7 +746,7 @@ public class RouterUtil {
 			Set<ColumnRoutePair> parentColVal = new HashSet<ColumnRoutePair>(1);
 			ColumnRoutePair pair = new ColumnRoutePair(joinKeyVal);
 			parentColVal.add(pair);
-			Set<String> dataNodeSet = ruleCalculate(tc.getParentTC(), parentColVal);
+			Set<String> dataNodeSet = ruleCalculate(tc.getParentTC(), parentColVal,rrs.getDataNodeSlotMap());
 			if (dataNodeSet.isEmpty() || dataNodeSet.size() > 1) {
 				throw new SQLNonTransientException(
 						"parent key can't find  valid datanode ,expect 1 but found: "
@@ -773,7 +789,7 @@ public class RouterUtil {
 														// find
 														// datanode
 
-			nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet);
+			nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet,rrs.getDataNodeSlotMap());
 			if (nodeSet.isEmpty()) {
 				throw new SQLNonTransientException(
 						"parent key can't find  valid datanode ,expect 1 but found: "
@@ -812,7 +828,7 @@ public class RouterUtil {
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleCalculate(TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet)  {
+			Set<ColumnRoutePair> colRoutePairSet,Map<String,Integer>   dataNodeSlotMap)  {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
 		String col = tc.getRule().getColumn();
 		RuleConfig rule = tc.getRule();
@@ -827,6 +843,9 @@ public class RouterUtil {
 				} else {
 					String dataNode = tc.getDataNodes().get(nodeIndx);
 					routeNodeSet.add(dataNode);
+					if(algorithm instanceof SlotFunction) {
+						dataNodeSlotMap.put(dataNode,((SlotFunction) algorithm).slotValue());
+					}
 					colPair.setNodeId(nodeIndx);
 				}
 			} else if (colPair.rangeValue != null) {
@@ -844,6 +863,9 @@ public class RouterUtil {
 						String dataNode = null;
 						for (Integer nodeId : nodeRange) {
 							dataNode = dataNodes.get(nodeId);
+							if(algorithm instanceof SlotFunction) {
+								dataNodeSlotMap.put(dataNode,((SlotFunction) algorithm).slotValue());
+							}
 							routeNodeSet.add(dataNode);
 						}
 					}
@@ -1056,8 +1078,9 @@ public class RouterUtil {
 				tablesRouteSet.addAll(tableConfig.getDistTables());
 			} else {
 				for(ColumnRoutePair pair : partitionValue) {
+					AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
 					if(pair.colValue != null) {
-						Integer tableIndex = tableConfig.getRule().getRuleAlgorithm().calculate(pair.colValue);
+						Integer tableIndex = algorithm.calculate(pair.colValue);
 						if(tableIndex == null) {
 							String msg = "can't find any valid datanode :" + tableConfig.getName()
 									+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
@@ -1067,15 +1090,21 @@ public class RouterUtil {
 						String subTable = tableConfig.getDistTables().get(tableIndex);
 						if(subTable != null) {
 							tablesRouteSet.add(subTable);
+							if(algorithm instanceof SlotFunction){
+								rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
+							}
 						}
 					}
 					if(pair.rangeValue != null) {
-						Integer[] tableIndexs = tableConfig.getRule().getRuleAlgorithm()
+						Integer[] tableIndexs = algorithm
 								.calculateRange(pair.rangeValue.beginValue.toString(), pair.rangeValue.endValue.toString());
 						for(Integer idx : tableIndexs) {
 							String subTable = tableConfig.getDistTables().get(idx);
 							if(subTable != null) {
 								tablesRouteSet.add(subTable);
+								if(algorithm instanceof SlotFunction){
+									rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
+								}
 							}
 						}
 					}
@@ -1085,14 +1114,21 @@ public class RouterUtil {
 
 		Object[] subTables =  tablesRouteSet.toArray();
 		RouteResultsetNode[] nodes = new RouteResultsetNode[subTables.length];
+	   Map<String,Integer> dataNodeSlotMap=	rrs.getDataNodeSlotMap();
 		for(int i=0;i<nodes.length;i++){
 			String table = String.valueOf(subTables[i]);
 			String changeSql = orgSql;
 			nodes[i] = new RouteResultsetNode(dataNode, rrs.getSqlType(), changeSql);//rrs.getStatement()
-			nodes[i].setSubTableName(String.valueOf(subTables[i]));
+			nodes[i].setSubTableName(table);
 			nodes[i].setSource(rrs);
+			if(rrs.getDataNodeSlotMap().containsKey(dataNode)){
+				nodes[i].setSlot(rrs.getDataNodeSlotMap().get(dataNode));
+			}
 			if (rrs.getCanRunInReadDB() != null) {
 				nodes[i].setCanRunInReadDB(rrs.getCanRunInReadDB());
+			}
+			if(dataNodeSlotMap.containsKey(table))  {
+				nodes[i].setSlot(dataNodeSlotMap.get(table));
 			}
 			if(rrs.getRunOnSlave() != null){
 				nodes[0].setRunOnSlave(rrs.getRunOnSlave());
@@ -1184,8 +1220,9 @@ public class RouterUtil {
 						tablesRouteMap.get(tableName).addAll(tableConfig.getDataNodes());
 					} else {
 						for(ColumnRoutePair pair : partitionValue) {
+							AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
 							if(pair.colValue != null) {
-								Integer nodeIndex = tableConfig.getRule().getRuleAlgorithm().calculate(pair.colValue);
+								Integer nodeIndex = algorithm.calculate(pair.colValue);
 								if(nodeIndex == null) {
 									String msg = "can't find any valid datanode :" + tableConfig.getName()
 											+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
@@ -1197,6 +1234,7 @@ public class RouterUtil {
 								String node;
 								if (nodeIndex >=0 && nodeIndex < dataNodes.size()) {
 									node = dataNodes.get(nodeIndex);
+
 								} else {
 									node = null;
 									String msg = "Can't find a valid data node for specified node index :"
@@ -1209,11 +1247,14 @@ public class RouterUtil {
 									if(tablesRouteMap.get(tableName) == null) {
 										tablesRouteMap.put(tableName, new HashSet<String>());
 									}
+									if(algorithm instanceof SlotFunction){
+										rrs.getDataNodeSlotMap().put(node,((SlotFunction) algorithm).slotValue());
+									}
 									tablesRouteMap.get(tableName).add(node);
 								}
 							}
 							if(pair.rangeValue != null) {
-								Integer[] nodeIndexs = tableConfig.getRule().getRuleAlgorithm()
+								Integer[] nodeIndexs = algorithm
 										.calculateRange(pair.rangeValue.beginValue.toString(), pair.rangeValue.endValue.toString());
 								ArrayList<String> dataNodes = tableConfig.getDataNodes();
 								String node;
@@ -1229,6 +1270,9 @@ public class RouterUtil {
 									if(node != null) {
 										if(tablesRouteMap.get(tableName) == null) {
 											tablesRouteMap.put(tableName, new HashSet<String>());
+										}
+										if(algorithm instanceof SlotFunction){
+											rrs.getDataNodeSlotMap().put(node,((SlotFunction) algorithm).slotValue());
 										}
 										tablesRouteMap.get(tableName).add(node);
 
@@ -1264,6 +1308,12 @@ public class RouterUtil {
 					//没找到拆分字段，该表的所有节点都路由
 					if(tablesRouteMap.get(tableName) == null) {
 						tablesRouteMap.put(tableName, new HashSet<String>());
+					}
+					boolean isSlotFunction= tableConfig.getRule() != null && tableConfig.getRule().getRuleAlgorithm() instanceof SlotFunction;
+					if(isSlotFunction){
+						for (String dn : tableConfig.getDataNodes()) {
+							rrs.getDataNodeSlotMap().put(dn,-1);
+						}
 					}
 					tablesRouteMap.get(tableName).addAll(tableConfig.getDataNodes());
 				}
