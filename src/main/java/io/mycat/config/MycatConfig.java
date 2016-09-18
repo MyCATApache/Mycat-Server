@@ -201,15 +201,15 @@ public class MycatConfig {
 	}
 
 	public void reload(
-			Map<String, UserConfig> users,
-			Map<String, SchemaConfig> schemas,
-			Map<String, PhysicalDBNode> dataNodes,
-			Map<String, PhysicalDBPool> dataHosts, 
-			MycatCluster cluster,
-			FirewallConfig firewall, 
+			Map<String, UserConfig> newUsers, 
+			Map<String, SchemaConfig> newSchemas,
+			Map<String, PhysicalDBNode> newDataNodes, 
+			Map<String, PhysicalDBPool> newDataHosts, 
+			MycatCluster newCluster,
+			FirewallConfig newFirewall, 
 			boolean reloadAll) {
 		
-		apply(users, schemas, dataNodes, dataHosts, cluster, firewall, reloadAll);
+		apply(newUsers, newSchemas, newDataNodes, newDataHosts, newCluster, newFirewall, reloadAll);
 		this.reloadTime = TimeUtil.currentTimeMillis();
 		this.status = reloadAll?RELOAD_ALL:RELOAD;
 	}
@@ -237,12 +237,12 @@ public class MycatConfig {
 		this.status = ROLLBACK;
 	}
 
-	private void apply(Map<String, UserConfig> users,
-			Map<String, SchemaConfig> schemas,
-			Map<String, PhysicalDBNode> dataNodes,
-			Map<String, PhysicalDBPool> dataHosts, 
-			MycatCluster cluster,
-			FirewallConfig firewall,
+	private void apply(Map<String, UserConfig> newUsers,
+			Map<String, SchemaConfig> newSchemas,
+			Map<String, PhysicalDBNode> newDataNodes,
+			Map<String, PhysicalDBPool> newDataHosts, 
+			MycatCluster newCluster,
+			FirewallConfig newFirewall,
 			boolean isLoadAll) {
 		
 		final ReentrantLock lock = this.lock;
@@ -276,20 +276,20 @@ public class MycatConfig {
 			// 2、执行新的配置
 			//---------------------------------------------------
 			if (isLoadAll) {
-				if (dataNodes != null) {
-					for (PhysicalDBPool newDbPool : dataHosts.values()) {
+				if (newDataHosts != null) {
+					for (PhysicalDBPool newDbPool : newDataHosts.values()) {
 						if ( newDbPool != null) {
 							newDbPool.startHeartbeat();
 						}
 					}
 				}
-				this.dataNodes = dataNodes;
-				this.dataHosts = dataHosts;
+				this.dataNodes = newDataNodes;
+				this.dataHosts = newDataHosts;
 			}			
-			this.users = users;
-			this.schemas = schemas;
-			this.cluster = cluster;
-			this.firewall = firewall;
+			this.users = newUsers;
+			this.schemas = newSchemas;
+			this.cluster = newCluster;
+			this.firewall = newFirewall;
 			
 		} finally {
 			lock.unlock();

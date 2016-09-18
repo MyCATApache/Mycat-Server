@@ -459,7 +459,7 @@ public class MycatServer {
 						
 						//根据 lastTime 确认事务的执行， 超过 sqlExecuteTimeout 阀值 close connection 
 						long currentTime = TimeUtil.currentTimeMillis();
-						Iterator<BackendConnection> iter = PhysicalDBPool.oldCons.iterator();
+						Iterator<BackendConnection> iter = NIOProcessor.backends_old.iterator();
 						while( iter.hasNext() ) {
 							BackendConnection con = iter.next();							
 							long lastTime = con.getLastTime();						
@@ -681,12 +681,13 @@ public class MycatServer {
 							node.heartbeatCheck(heartPeriod);
 						}
 						
+						/*
 						Map<String, PhysicalDBPool> _nodes = config.getBackupDataHosts();
 						if (_nodes != null) {
 							for (PhysicalDBPool node : _nodes.values()) {
 								node.heartbeatCheck(heartPeriod);
 							}
-						}
+						}*/
 					}
 				});
 			}
