@@ -3,11 +3,11 @@ package io.mycat.manager.response;
 import java.nio.ByteBuffer;
 
 import io.mycat.backend.BackendConnection;
-import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.config.Fields;
 import io.mycat.manager.ManagerConnection;
+import io.mycat.net.NIOProcessor;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
@@ -66,7 +66,7 @@ public class ShowBackendOld {
 		byte packetId = eof.packetId;
 		String charset = c.getCharset();
 		
-		for (BackendConnection bc : PhysicalDBPool.oldCons) {
+		for (BackendConnection bc : NIOProcessor.backends_old) {
 			if ( bc != null) {
 				RowDataPacket row = getRow(bc, charset);
 				row.packetId = ++packetId;

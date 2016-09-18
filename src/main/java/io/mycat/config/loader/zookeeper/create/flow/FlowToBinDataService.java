@@ -3,9 +3,9 @@ package io.mycat.config.loader.zookeeper.create.flow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zookeeper.create.comm.SeqLinkedList;
 import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
-import io.mycat.config.loader.zookeeper.create.console.FlowCfg;
 import io.mycat.config.loader.zookeeper.create.console.SysFlow;
 
 /**
@@ -34,27 +34,15 @@ public class FlowToBinDataService implements ServiceExecInf {
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 配制bindata的配制信息
-        String writePath = basePath + SysFlow.ZK_SEPARATOR + FlowCfg.FLOW_ZK_PATH_BINDATA.getKey()
+        String writePath = basePath + SysFlow.ZK_SEPARATOR + ZookeeperPath.FLOW_ZK_PATH_BINDATA.getKey()
                 + SysFlow.ZK_SEPARATOR;
-        // 状态切换后的信息
-        String dnindexZkPath = writePath + FlowCfg.FLOW_ZK_PATH_BINDATA_DNINDEX.getKey();
-        // 迁移路由信息
-        String moveZkPath = writePath + FlowCfg.FLOW_ZK_PATH_BINDATA_MOVE.getKey();
 
-        // map获取路径 信息
-        String mapDataGet = "";
-        mapDataGet += FlowCfg.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_GET_SEP;
-        mapDataGet += String.valueOf(seqList.getZkProcess().getValue(FlowCfg.FLOW_YAML_CFG_CLUSTER.getKey()))
-                + SysFlow.ZK_GET_SEP;
-        // 状态切换的信息
-        String dnindexMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_BINDATA_DNINDEX.getKey();
-        // 迁移路由信息
-        String moveMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_BINDATA_MOVE.getKey();
-
-        // 创建dnindex路径并录入数据
-        boolean dnindexRsp = seqList.getZkProcess().createConfig(dnindexMapKey, true, dnindexZkPath);
-        // 创建datanode路径并写入数据
-        boolean moveRsp = seqList.getZkProcess().createConfig(moveMapKey, true, moveZkPath);
+        // 创建dnindex路径
+        boolean dnindexRsp = seqList.getZkProcess().createPath(writePath,
+                ZookeeperPath.FLOW_ZK_PATH_BINDATA_DNINDEX.getKey());
+        // 创建datanode路径
+        boolean moveRsp = seqList.getZkProcess().createPath(writePath,
+                ZookeeperPath.FLOW_ZK_PATH_BINDATA_MOVE.getKey());
 
         LOGGER.info("flow to zk bindata path write rsp { dnindexRsp:" + dnindexRsp + ",moveRsp :" + moveRsp + "}");
 
@@ -73,24 +61,24 @@ public class FlowToBinDataService implements ServiceExecInf {
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 配制bindata的配制信息
-        basePath = basePath + SysFlow.ZK_SEPARATOR + FlowCfg.FLOW_ZK_PATH_BINDATA.getKey()
-                + SysFlow.ZK_SEPARATOR;
+        basePath = basePath + SysFlow.ZK_SEPARATOR + ZookeeperPath.FLOW_ZK_PATH_BINDATA.getKey() + SysFlow.ZK_SEPARATOR;
         // 状态切换后的信息
-        boolean dnindexZkPath = seqList.getZkProcess().deletePath(basePath, FlowCfg.FLOW_ZK_PATH_BINDATA_DNINDEX.getKey());
+        boolean dnindexZkPath = seqList.getZkProcess().deletePath(basePath,
+                ZookeeperPath.FLOW_ZK_PATH_BINDATA_DNINDEX.getKey());
         // 迁移路由信息
-        boolean moveZkPath = seqList.getZkProcess().deletePath(basePath,  FlowCfg.FLOW_ZK_PATH_BINDATA_MOVE.getKey());
+        boolean moveZkPath = seqList.getZkProcess().deletePath(basePath,
+                ZookeeperPath.FLOW_ZK_PATH_BINDATA_MOVE.getKey());
         // 删除路由路径
         LOGGER.info("flow to rollback zk bindata  path dnindex delete rsp:" + dnindexZkPath);
         LOGGER.info("flow to rollback zk bindata  path move delete rsp:" + moveZkPath);
-        
-        //删除bindata路径
-        //去掉尾符号
-        basePath = basePath.substring(0, basePath.length() -1 );
-        
+
+        // 删除bindata路径
+        // 去掉尾符号
+        basePath = basePath.substring(0, basePath.length() - 1);
+
         // 状态切换后的信息
         boolean bindataZkPath = seqList.getZkProcess().deletePath(basePath);
         LOGGER.info("flow to rollback zk bindata  path  delete rsp:" + bindataZkPath);
-        
 
         return seqList.rollExec();
 
