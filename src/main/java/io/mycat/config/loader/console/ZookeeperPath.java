@@ -116,6 +116,18 @@ public enum ZookeeperPath {
     FLOW_ZK_PATH_SEQUENCE("sequences"),
 
     /**
+     * 序列信息中公共配制信息
+     * @字段说明 FLOW_ZK_PATH_SERVER_AUTH
+     */
+    FLOW_ZK_PATH_SEQUENCE_COMMON("common"),
+
+    /**
+     * 序列信息中需要单独节点配制的信息
+     * @字段说明 FLOW_ZK_PATH_SERVER_AUTH
+     */
+    FLOW_ZK_PATH_SEQUENCE_CLUSTER("cluster"),
+
+    /**
      * 缓存信息
     * @字段说明 FLOW_ZK_PATH_CACHE
     */

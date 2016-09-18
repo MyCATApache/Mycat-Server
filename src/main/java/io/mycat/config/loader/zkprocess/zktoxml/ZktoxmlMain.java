@@ -16,6 +16,7 @@ import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.RuleszkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.SchemaszkToxmlLoader;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.SequenceTopropertiesLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.ServerzkToxmlLoader;
 
 public class ZktoxmlMain {
@@ -45,6 +46,9 @@ public class ZktoxmlMain {
 
         // rule文件加载
         new RuleszkToxmlLoader(zkListen, zkConn, xmlProcess);
+
+        // 将序列配制信息加载
+        new SequenceTopropertiesLoader(zkListen, zkConn, xmlProcess);
 
         // 初始化xml转换操作
         xmlProcess.initJaxbClass();
