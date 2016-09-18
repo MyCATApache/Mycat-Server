@@ -30,42 +30,22 @@ mycat-nodes:
       serverport : 8066
       sequncehandlertype : 1
 
-mycat-mysqls:
-  mysql_1:
-    ip: 192.168.3.10
-    port: 3306
-    user: root
-    password: liujun
-    hostId: host
-
-mycat-mysqlgroup :
-   mysql_rep_1 : &mysql_rep_1
-    name: mysql_rep_1
-    repType: 0
-    servers:
-      - mysql_1
-    cur-write-server: mysql_1
-    auto-write-switch: true
-    heartbeatSQL : select user()
-
-
-
 mycat:
   mycat-cluster-1:
     schema:
         schema :
-          TESTDB :
+          schema :
             name : TESTDB
-            checkSQLSchema : false
-            defaultMaxLimit : 1000
+            checkSQLschema : false
+            sqlMaxLimit : 1000
 
-            person :
+            table :
               name :  person
-              datanode :  dn1,dn2
-              ruleName :  auto-sharding-long
+              dataNode :  dn1,dn2
+              rule :  auto-sharding-long
               primaryKey : id
 
-        datanode :
+        dataNode :
           dn1:
             name : dn1
             dataHost : os61bigdata167
@@ -76,19 +56,23 @@ mycat:
             database : db2
           
 
-        datahost :
+        dataHost :
           os61bigdata167 :
             name : os61bigdata167
-            maxcon : 1000
-            mincon : 10
+            maxCon : 1000
+            minCon : 10
             balance : 0
-            writetype : 0
-            dbtype : mysql
+            writeType : 0
+            dbType : mysql
             dbDriver : native
             switchType : 1
             slaveThreshold : 100
-            heartbeatSQL : select user()
-            mysqlGroup : *mysql_rep_1
+            heartbeat : select user()
+            writeHost : 
+              host : hostM1
+              url : 192.168.3.10:3306
+              user : root
+              password : liujun
    
     rules :
       auto-sharding-long :

@@ -3,6 +3,7 @@ package io.mycat.config.loader.zookeeper.create.flow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zookeeper.create.comm.SeqLinkedList;
 import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
 import io.mycat.config.loader.zookeeper.create.comm.ZkProcessBase;
@@ -35,20 +36,21 @@ public class FlowToSchemaService extends ZkProcessBase implements ServiceExecInf
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 配制schema的配制信息
-        String writePath = basePath + SysFlow.ZK_SEPARATOR + FlowCfg.FOW_ZK_PATH_SCHEMA.getKey() + SysFlow.ZK_SEPARATOR;
-        String schemaZkPath = writePath + FlowCfg.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey();
-        String dataNodeZkPath = writePath + FlowCfg.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey();
-        String dataHostZkPath = writePath + FlowCfg.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey();
+        String writePath = basePath + SysFlow.ZK_SEPARATOR + ZookeeperPath.FOW_ZK_PATH_SCHEMA.getKey()
+                + SysFlow.ZK_SEPARATOR;
+        String schemaZkPath = writePath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey();
+        String dataNodeZkPath = writePath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey();
+        String dataHostZkPath = writePath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey();
 
         // map获取路径 信息
         String mapDataGet = "";
-        mapDataGet += FlowCfg.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_GET_SEP;
+        mapDataGet += ZookeeperPath.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_GET_SEP;
         mapDataGet += String.valueOf(seqList.getZkProcess().getValue(FlowCfg.FLOW_YAML_CFG_CLUSTER.getKey()))
-                + SysFlow.ZK_GET_SEP + FlowCfg.FOW_ZK_PATH_SCHEMA.getKey() + SysFlow.ZK_GET_SEP;
+                + SysFlow.ZK_GET_SEP + ZookeeperPath.FOW_ZK_PATH_SCHEMA.getKey() + SysFlow.ZK_GET_SEP;
 
-        String schemaMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey();
-        String dataNodeMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey();
-        String dataHostMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey();
+        String schemaMapKey = mapDataGet + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey();
+        String dataNodeMapKey = mapDataGet + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey();
+        String dataHostMapKey = mapDataGet + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey();
 
         // 创建schema路径并录入数据
         boolean schemaRsp = seqList.getZkProcess().createConfig(schemaMapKey, true, schemaZkPath);
@@ -75,19 +77,20 @@ public class FlowToSchemaService extends ZkProcessBase implements ServiceExecInf
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 配制schema的配制信息
-        String writePath = basePath + SysFlow.ZK_SEPARATOR + FlowCfg.FOW_ZK_PATH_SCHEMA.getKey() + SysFlow.ZK_SEPARATOR;
+        String writePath = basePath + SysFlow.ZK_SEPARATOR + ZookeeperPath.FOW_ZK_PATH_SCHEMA.getKey()
+                + SysFlow.ZK_SEPARATOR;
 
         // 删除schema路径
         boolean schemaZkPathRsp = seqList.getZkProcess().deletePath(writePath,
-                FlowCfg.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey());
+                ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey());
         LOGGER.info("flow to rollback zk schema schema path delete rsp:" + schemaZkPathRsp);
         // 删除dataNodeZkPath节点
         boolean dataNodeZkPathRsp = seqList.getZkProcess().deletePath(writePath,
-                FlowCfg.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey());
+                ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey());
         LOGGER.info("flow to rollback zk schema dataNode path delete rsp:" + dataNodeZkPathRsp);
         // 删除dataNodeZkPath节点
         boolean dataHostZkPathRsp = seqList.getZkProcess().deletePath(writePath,
-                FlowCfg.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey());
+                ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey());
         LOGGER.info("flow to rollback zk schema dataHost path delete rsp:" + dataHostZkPathRsp);
 
         writePath = writePath.substring(0, writePath.length() - 1);

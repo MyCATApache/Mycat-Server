@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.fastjson.JSON;
 
+import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zookeeper.create.console.FlowCfg;
 import io.mycat.config.loader.zookeeper.create.console.SysFlow;
 
@@ -48,7 +49,7 @@ public class ZkProcessBase {
     * @创建日期 2016年9月12日
     */
     public String getBasePath() {
-        return SysFlow.ZK_SEPARATOR + FlowCfg.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_SEPARATOR
+        return SysFlow.ZK_SEPARATOR + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_SEPARATOR
                 + String.valueOf(this.zkConfig.get(FlowCfg.FLOW_YAML_CFG_CLUSTER.getKey()));
     }
 
