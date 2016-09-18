@@ -58,6 +58,9 @@ public final class ServerParse {
 	public static final int DESCRIBE = 21;
     public static final int LOAD_DATA_INFILE_SQL = 99;
     public static final int DDL = 100;
+
+
+	public static final int MIGRATE  = 203;
     private static final  Pattern pattern = Pattern.compile("(load)+\\s+(data)+\\s+\\w*\\s*(infile)+",Pattern.CASE_INSENSITIVE);
     private static final  Pattern callPattern = Pattern.compile("\\w*\\;\\s*\\s*(call)+\\s+\\w*\\s*",Pattern.CASE_INSENSITIVE);
 
@@ -127,6 +130,13 @@ public final class ServerParse {
 					return rt;
 				}
 				continue;
+				case 'M':
+				case 'm':
+					rt = migrateCheck(stmt, i);
+					if (rt != OTHER) {
+						return rt;
+					}
+					continue;
 			case 'R':
 			case 'r':
 				rt = rCheck(stmt, i);
@@ -196,6 +206,29 @@ public final class ServerParse {
 			}
 		}
 
+		return OTHER;
+	}
+
+	private static int migrateCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 7) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			char c5 = stmt.charAt(++offset);
+			char c6 = stmt.charAt(++offset);
+
+
+			if ((c1 == 'i' || c1 == 'I')
+					&& (c2 == 'g' || c2 == 'G')
+					&& (c3 == 'r' || c3 == 'R')
+					&& (c4 == 'a' || c4 == 'A')
+					&& (c5 == 't' || c5 == 'T')
+					&& (c6 == 'e' || c6 == 'E'))
+					{
+				return MIGRATE;
+			}
+		}
 		return OTHER;
 	}
 	//truncate

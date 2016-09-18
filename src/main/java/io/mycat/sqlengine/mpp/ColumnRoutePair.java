@@ -34,6 +34,16 @@ public class ColumnRoutePair {
 	public final RangeValue rangeValue;
 	public Integer nodeId;
 
+	public int slot=-2;
+
+	public int getSlot() {
+		return slot;
+	}
+
+	public void setSlot(int slot) {
+		this.slot = slot;
+	}
+
 	public ColumnRoutePair(String colValue) {
 		super();
 		this.colValue = colValue;

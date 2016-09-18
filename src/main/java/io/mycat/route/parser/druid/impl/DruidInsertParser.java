@@ -21,6 +21,7 @@ import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
+import io.mycat.route.function.SlotFunction;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.route.util.RouterUtil;
@@ -223,6 +224,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 				List<ValuesClause> valueClauseList = insertStmt.getValuesList();
 				
 				Map<Integer,List<ValuesClause>> nodeValuesMap = new HashMap<Integer,List<ValuesClause>>();
+				Map<Integer,Integer> slotsMap = new HashMap<>();
 				TableConfig tableConfig = schema.getTables().get(tableName);
 				AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
 				for(ValuesClause valueClause : valueClauseList) {
@@ -244,6 +246,9 @@ public class DruidInsertParser extends DefaultDruidParser {
 					}
 					
 					Integer nodeIndex = algorithm.calculate(shardingValue);
+					if(algorithm instanceof SlotFunction){
+						slotsMap.put(nodeIndex,((SlotFunction) algorithm).slotValue()) ;
+					}
 					//没找到插入的分片
 					if(nodeIndex == null) {
 						String msg = "can't find any valid datanode :" + tableName 
@@ -266,6 +271,9 @@ public class DruidInsertParser extends DefaultDruidParser {
 					nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
 							rrs.getSqlType(),insertStmt.toString());
 					nodes[count++].setSource(rrs);
+					if(algorithm instanceof SlotFunction) {
+						nodes[count].setSlot(slotsMap.get(nodeIndex));
+					}
 				}
 				rrs.setNodes(nodes);
 				rrs.setFinishedRoute(true);
