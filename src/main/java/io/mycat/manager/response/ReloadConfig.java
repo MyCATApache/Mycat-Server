@@ -24,6 +24,7 @@
 package io.mycat.manager.response;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReentrantLock;
@@ -35,8 +36,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
+import io.mycat.backend.jdbc.JDBCConnection;
+import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.config.ConfigInitializer;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatCluster;
@@ -46,6 +51,7 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.util.DnPropertyUtil;
 import io.mycat.manager.ManagerConnection;
+import io.mycat.net.NIOProcessor;
 import io.mycat.net.mysql.OkPacket;
 
 /**
@@ -106,9 +112,8 @@ public final class ReloadConfig {
 		MycatConfig config = MycatServer.getInstance().getConfig();
 		
 		/**
-		 * 2.1 、获取老的 dataHosts
+		 * 2.1 、老的 dataSource 继续承接新建请求， 此处什么也不需要做
 		 */
-		Map<String, PhysicalDBPool> oldDataHosts = config.getDataHosts();
 		
 		boolean isReloadStatusOK = true;
 		
@@ -155,10 +160,42 @@ public final class ReloadConfig {
 			/**
 			 * 2.4、 处理旧的资源
 			 */
-			for (PhysicalDBPool dbPool : oldDataHosts.values()) {			
-				//TODO: 此处不能杀掉connection，需要考虑当前正在执行中的事务确保不丢失
-				dbPool.shiftDatasourcesOldCons();
+			LOGGER.warn("1、clear old backend connection(size): " + NIOProcessor.backends_old.size());
+			
+			// 清除前一次 reload 转移出去的 old Cons
+			Iterator<BackendConnection> iter = NIOProcessor.backends_old.iterator();
+			while( iter.hasNext() ) {
+				BackendConnection con = iter.next();
+				con.close("clear old datasources");
+				iter.remove();	
 			}
+			
+			Map<String, PhysicalDBPool> oldDataHosts = config.getBackupDataHosts();
+			for (PhysicalDBPool dbPool : oldDataHosts.values()) {			
+				dbPool.stopHeartbeat();
+				
+				// 提取数据源下的所有连接
+				for (PhysicalDatasource ds : dbPool.getAllDataSources()) {					
+					//
+					for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
+						for (BackendConnection con : processor.getBackends().values()) {
+							if (con instanceof MySQLConnection) {
+								MySQLConnection mysqlCon = (MySQLConnection) con;
+								if ( mysqlCon.getPool() == ds) {
+									NIOProcessor.backends_old.add( con );									
+								}
+
+			                } else if (con instanceof JDBCConnection) {
+			                    JDBCConnection jdbcCon = (JDBCConnection) con;
+			                    if (jdbcCon.getPool() == ds) {
+			                    	NIOProcessor.backends_old.add( con );
+			                    }
+			                }
+			            }
+					}
+				}				
+			}			
+			LOGGER.warn("2、to be recycled old backend connection(size): " + NIOProcessor.backends_old.size());
 
 			//清理缓存
 			MycatServer.getInstance().getCacheService().clearCache();
