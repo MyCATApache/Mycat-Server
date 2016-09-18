@@ -1,21 +1,21 @@
 package demo.catlets;
 
+import io.mycat.cache.LayerCachePool;
+import io.mycat.server.MySQLFrontConnection;
+import io.mycat.server.config.node.SchemaConfig;
+import io.mycat.server.config.node.SystemConfig;
+import io.mycat.server.packet.RowDataPacket;
+import io.mycat.sqlengine.AllJobFinishedListener;
+import io.mycat.sqlengine.Catlet;
+import io.mycat.sqlengine.EngineCtx;
+import io.mycat.sqlengine.SQLJobHandler;
+import io.mycat.util.ByteUtil;
+import io.mycat.util.ResultSetUtil;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import org.opencloudb.cache.LayerCachePool;
-import org.opencloudb.config.model.SchemaConfig;
-import org.opencloudb.config.model.SystemConfig;
-import org.opencloudb.net.mysql.RowDataPacket;
-import org.opencloudb.server.ServerConnection;
-import org.opencloudb.sqlengine.AllJobFinishedListener;
-import org.opencloudb.sqlengine.Catlet;
-import org.opencloudb.sqlengine.EngineCtx;
-import org.opencloudb.sqlengine.SQLJobHandler;
-import org.opencloudb.util.ByteUtil;
-import org.opencloudb.util.ResultSetUtil;
 
 public class MyHellowJoin implements Catlet {
 
@@ -36,9 +36,9 @@ public class MyHellowJoin implements Catlet {
 
 	@Override
 	public void route(SystemConfig sysConfig, SchemaConfig schema, int sqlType,
-			String realSQL, String charset, ServerConnection sc,
+			String realSQL, String charset, MySQLFrontConnection sc,
 			LayerCachePool cachePool) {
-		// TODO Auto-generated method stub
+		
 		
 	}
 }

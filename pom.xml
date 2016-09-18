@@ -2,13 +2,13 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.opencloudb.mycat</groupId>
+	<groupId>io.mycat.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.4-dev</version>
+	<version>2.0-dev</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
-	<url>http://org.opencloudb</url>
+	<url>http://io.mycat</url>
 
 	<properties>
 		<app.encoding>UTF-8</app.encoding>
@@ -23,69 +23,27 @@
 		<developerConnection>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</developerConnection>
 		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</url>
 	</scm>
+	<repositories>
+		<repository>
+			<id>nexus</id>
+			<name>local private nexus</name>
+			<url>http://nexus.mycat.io/content/groups/public</url>
+		</repository>
+	</repositories>
+	<distributionManagement>
+		<repository>
+			<id>releases</id>
+			<name>Internal Releases</name>
+			<url>http://nexus.mycat.io/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<name>Internal Snapshots</name>
+			<url>http://nexus.mycat.io/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<dependencies>
-		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
-			<version>18.0</version> </dependency> -->
-		<dependency>
-			<groupId>org.mongodb</groupId>
-			<artifactId>mongo-java-driver</artifactId>
-			<version>2.11.4</version>
-		</dependency>
-  	    <dependency>
-  		   <groupId>org.iq80.leveldb</groupId>
-  		   <artifactId>leveldb</artifactId>
-  		   <version>0.7</version>
-  	   </dependency>
-  	    <dependency>
-  		   <groupId>org.iq80.leveldb</groupId>
-  		   <artifactId>leveldb-api</artifactId>
-  		   <version>0.7</version>
-  	   </dependency>   	    		
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>18.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.foundationdb</groupId>
-			<artifactId>fdb-sql-parser</artifactId>
-			<version>1.5.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.alibaba</groupId>
-			<artifactId>druid</artifactId>
-			<version>1.0.12</version>
-		</dependency>
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.17</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<version>5.1.27</version>
-			<scope>test</scope>
-
-		</dependency>
-		<dependency>
-			<groupId>net.sf.ehcache</groupId>
-			<artifactId>ehcache-core</artifactId>
-			<version>2.6.6</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mapdb</groupId>
-			<artifactId>mapdb</artifactId>
-			<version>0.9.8</version>
-		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.4</version>
-			<scope>provided</scope>
-		</dependency>
+		<!-- test -->
 		<dependency>
 			<groupId>org.codehaus.jsr166-mirror</groupId>
 			<artifactId>jsr166y</artifactId>
@@ -93,23 +51,137 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.4</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- driver -->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.35</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongo-java-driver</artifactId>
+			<version>2.11.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.iq80.leveldb</groupId>
+			<artifactId>leveldb</artifactId>
+			<version>0.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.iq80.leveldb</groupId>
+			<artifactId>leveldb-api</artifactId>
+			<version>0.7</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sequoiadb</groupId>
+			<artifactId>sequoiadb-driver</artifactId>
+			<version>1.12</version>
+		</dependency>
+
+		<!-- common -->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>18.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>jsr305</artifactId>
+			<version>3.0.0</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-beanutils</groupId>
+			<artifactId>commons-beanutils</artifactId>
+			<version>1.9.2</version>
+		</dependency>
+
+		<!-- parse -->
+		<dependency>
+			<groupId>com.univocity</groupId>
+			<artifactId>univocity-parsers</artifactId>
+			<version>1.5.4</version>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>druid</artifactId>
+			<version>1.0.14</version>
+		</dependency>
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<version>1.16</version>
+		</dependency>
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>fastjson</artifactId>
+			<version>1.2.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.velocity</groupId>
+			<artifactId>velocity</artifactId>
+			<version>1.7</version>
+		</dependency>
+
+		<!-- cache -->
+		<dependency>
+			<groupId>org.mapdb</groupId>
+			<artifactId>mapdb</artifactId>
+			<version>1.0.7</version>
+		</dependency>
+		<dependency>
+			<groupId>net.sf.ehcache</groupId>
+			<artifactId>ehcache-core</artifactId>
+			<version>2.6.11</version>
+			<scope>compile</scope>
+		</dependency>
+
+		<!-- zookeeper -->
+		<dependency>
+			<groupId>org.apache.curator</groupId>
+			<artifactId>curator-framework</artifactId>
+			<version>2.9.0</version>
+
+		</dependency>
+
+		<!-- Logging -->
+		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.3</version>
+			<version>1.7.12</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.7.3</version>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-slf4j-impl</artifactId>
+			<version>2.3</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>2.3</version>
+		</dependency>
+		
+        <!-- joda日期处理工具 -->
+        <dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+			<version>2.8.2</version>
+		</dependency>
+
 	</dependencies>
 
 
 
 	<issueManagement>
 		<system>JIRA</system>
-		<url>http://org.opencloudb</url>
+		<url>http://io.mycat</url>
 	</issueManagement>
 
 	<build>
@@ -148,7 +220,7 @@
 								<pluginExecution>
 									<pluginExecutionFilter>
 										<groupId>com.google.code.maven-replacer-plugin</groupId>
-										<artifactId>maven-replacer-plugin</artifactId>
+										<artifactId>replacer</artifactId>
 										<versionRange>[1.0.0,)</versionRange>
 										<goals>
 											<goal>replace</goal>
@@ -167,57 +239,77 @@
 		<plugins>
 			<plugin>
 				<groupId>com.google.code.maven-replacer-plugin</groupId>
-				<artifactId>maven-replacer-plugin</artifactId>
-				<version>1.4.0</version>
+				<artifactId>replacer</artifactId>
+				<version>1.5.3</version>
 				<executions>
 					<execution>
+						<id>version</id>
 						<phase>process-sources</phase>
 						<goals>
 							<goal>replace</goal>
 						</goals>
+						<configuration>
+							<file>${project.basedir}/${version.template.file}</file>
+							<outputFile>${project.basedir}/${version.file}</outputFile>
+							<replacements>
+								<replacement>
+									<token>@buildnumber@</token>
+									<value>${buildNumber}</value>
+								</replacement>
+								<replacement>
+									<token>@buildtime@</token>
+									<value>${maven.build.timestamp}</value>
+								</replacement>
+								<replacement>
+									<token>@pomversion@</token>
+									<value>${project.version}</value>
+								</replacement>
+								<replacement>
+									<token>@giturl@</token>
+									<value>https://github.com/MyCATApache/Mycat-Server.git</value>
+								</replacement>
+								<replacement>
+									<token>@mycatsite@</token>
+									<value>http://www.mycat.org.cn</value>
+								</replacement>
+								<replacement>
+									<token>@qqgroup@</token>
+									<value>106088787</value>
+								</replacement>
+							</replacements>
+						</configuration>
+					</execution>
+					<execution>
+						<id>version2</id>
+
+						<phase>process-sources</phase>
+						<goals>
+							<goal>replace</goal>
+						</goals>
+						<configuration>
+							<file>${project.basedir}/src/main/java/io/mycat/server/Versions.template</file>
+							<outputFile>${project.basedir}/src/main/java/io/mycat/server/Versions.java</outputFile>
+							<replacements>
+								<replacement>
+									<token>@server-version@</token>
+									<value>5.5.8-mycat-${project.version}-${timestamp}</value>
+								</replacement>
+							</replacements>
+						</configuration>
 					</execution>
 				</executions>
-				<configuration>
-					<file>${version.template.file}</file>
-					<outputFile>${version.file}</outputFile>
-					<replacements>
-						<replacement>
-							<token>@buildnumber@</token>
-							<value>${buildNumber}</value>
-						</replacement>
-						<replacement>
-							<token>@buildtime@</token>
-							<value>${maven.build.timestamp}</value>
-						</replacement>
-						<replacement>
-							<token>@pomversion@</token>
-							<value>${project.version}</value>
-						</replacement>
-						<replacement>
-							<token>@giturl@</token>
-							<value>https://github.com/MyCATApache/Mycat-Server.git</value>
-						</replacement>
-						<replacement>
-							<token>@mycatsite@</token>
-							<value>http://www.mycat.org.cn</value>
-						</replacement>
-						<replacement>
-							<token>@qqgroup@</token>
-							<value>106088787</value>
-						</replacement>
-					</replacements>
-				</configuration>
+
 			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 					<encoding>${app.encoding}</encoding>
 				</configuration>
 			</plugin>
-
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
@@ -265,14 +357,13 @@
 					<additionalConfig>
 						<file>
 							<name>.settings/org.eclipse.core.resources.prefs</name>
-							<content>  
+							<content>
                <![CDATA[eclipse.preferences.version=1${line.separator}encoding/<project>=${app.encoding}${line.separator}]]>
 							</content>
 						</file>
 					</additionalConfig>
 				</configuration>
 			</plugin>
-
 			<!-- -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -286,7 +377,7 @@
 					<daemons>
 						<daemon>
 							<id>mycat</id>
-							<mainClass>org.opencloudb.MycatStartup</mainClass>
+							<mainClass>io.mycat.MycatStartup</mainClass>
 							<commandLineArguments>
 								<commandLineArgument>start</commandLineArgument>
 							</commandLineArguments>
@@ -295,22 +386,22 @@
 							</platforms>
 							<jvmSettings>
 								<!-- 启动内存配置 -->
-								<initialMemorySize>2048</initialMemorySize>
-								<maxMemorySize>2048</maxMemorySize>
 								<maxStackSize>128</maxStackSize>
 								<systemProperties>
 									<systemProperty>MYCAT_HOME=.</systemProperty>
 								</systemProperties>
 								<extraArguments>
-									<extraArgument>-server </extraArgument>
+									<extraArgument>-server</extraArgument>
 									<extraArgument>-XX:MaxPermSize=64M</extraArgument>
 									<extraArgument>-XX:+AggressiveOpts</extraArgument>
 									<extraArgument>-XX:MaxDirectMemorySize=2G</extraArgument>
 									<!-- 远程JMX -->
-									<extraArgument>-Dcom.sun.management.jmxremote </extraArgument>
+									<extraArgument>-Dcom.sun.management.jmxremote</extraArgument>
 									<extraArgument>-Dcom.sun.management.jmxremote.port=1984</extraArgument>
-									<extraArgument>-Dcom.sun.management.jmxremote.authenticate=false </extraArgument>
-									<extraArgument>-Dcom.sun.management.jmxremote.ssl=false </extraArgument>
+									<extraArgument>-Dcom.sun.management.jmxremote.authenticate=false</extraArgument>
+									<extraArgument>-Dcom.sun.management.jmxremote.ssl=false</extraArgument>
+									<extraArgument>-Xmx4G</extraArgument>
+									<extraArgument>-Xms1G</extraArgument>
 								</extraArguments>
 							</jvmSettings>
 							<generatorConfigurations>
@@ -339,6 +430,10 @@
 											<name>configuration.directory.in.classpath.first</name>
 											<value>conf</value>
 										</property>
+                                        <property>
+                                            <name>wrapper.ping.timeout</name>
+                                            <value>120</value>
+                                        </property>
 										<property>
 											<name>set.default.REPO_DIR</name>
 											<value>lib</value>
