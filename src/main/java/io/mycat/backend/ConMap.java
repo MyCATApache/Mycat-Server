@@ -1,9 +1,7 @@
 package io.mycat.backend;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -135,38 +133,4 @@ public class ConMap {
 		}
 		items.clear();
 	}
-    
-    /**
-     * 从 NIOProcessor 将  BackendConnection 移除到 old connection 待回收区
-     * @param dataSouce
-     * @return
-     */
-    public List<BackendConnection> shiftConnections(PhysicalDatasource dataSouce) {
-    	
-    	List<BackendConnection> backends = new ArrayList<BackendConnection>();
-    	
-        for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
-            ConcurrentMap<Long, BackendConnection> map = processor.getBackends();
-            Iterator<Entry<Long, BackendConnection>> itor = map.entrySet().iterator();
-            while (itor.hasNext()) {
-                Entry<Long, BackendConnection> entry = itor.next();
-                BackendConnection con = entry.getValue();
-                if (con instanceof MySQLConnection) {
-                    if (((MySQLConnection) con).getPool() == dataSouce) {
-                    	backends.add( con );
-                        itor.remove();
-                    }
-                }else if(con instanceof JDBCConnection){
-                    if(((JDBCConnection) con).getPool() == dataSouce){
-                    	backends.add( con );
-                        itor.remove();
-                    }
-                }
-            }
-		}
-		items.clear();
-		
-		return backends;
-	}
-
 }

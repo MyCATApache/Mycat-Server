@@ -3,6 +3,7 @@ package io.mycat.config.loader.zookeeper.create.flow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zookeeper.create.comm.SeqLinkedList;
 import io.mycat.config.loader.zookeeper.create.comm.ServiceExecInf;
 import io.mycat.config.loader.zookeeper.create.console.FlowCfg;
@@ -34,34 +35,34 @@ public class FlowToServerService implements ServiceExecInf {
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 配制基本的server路径
-        String writeServerBasePath = basePath + SysFlow.ZK_SEPARATOR + FlowCfg.FLOW_ZK_PATH_SERVER.getKey()
+        String writeServerBasePath = basePath + SysFlow.ZK_SEPARATOR + ZookeeperPath.FLOW_ZK_PATH_SERVER.getKey()
                 + SysFlow.ZK_SEPARATOR;
         // 执行default
-        String defabultCfg = writeServerBasePath + FlowCfg.FLOW_ZK_PATH_SERVER_DEFAULT.getKey();
+        String defabultCfg = writeServerBasePath + ZookeeperPath.FLOW_ZK_PATH_SERVER_DEFAULT.getKey();
         // 集群配制信息
-        String clusterCfg = writeServerBasePath + FlowCfg.FLOW_ZK_PATH_SERVER_CLUSTER.getKey();
+        String clusterCfg = writeServerBasePath + ZookeeperPath.FLOW_ZK_PATH_SERVER_CLUSTER.getKey();
         // 用户信息
-        String userCfg = writeServerBasePath + FlowCfg.FLOW_ZK_PATH_SERVER_USER.getKey();
+        String userCfg = writeServerBasePath + ZookeeperPath.FLOW_ZK_PATH_SERVER_USER.getKey();
         // 黑白名单信息
-        String fireWallCfg = writeServerBasePath + FlowCfg.FLOW_ZK_PATH_SERVER_FIREWALL.getKey();
+        String fireWallCfg = writeServerBasePath + ZookeeperPath.FLOW_ZK_PATH_SERVER_FIREWALL.getKey();
         // 授权信息
-        String authCfg = writeServerBasePath + FlowCfg.FLOW_ZK_PATH_SERVER_AUTH.getKey();
+        String authCfg = writeServerBasePath + ZookeeperPath.FLOW_ZK_PATH_SERVER_AUTH.getKey();
 
         // map获取路径 信息
         String mapDataGet = "";
-        mapDataGet += FlowCfg.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_GET_SEP;
+        mapDataGet += ZookeeperPath.FLOW_ZK_PATH_BASE.getKey() + SysFlow.ZK_GET_SEP;
         mapDataGet += String.valueOf(seqList.getZkProcess().getValue(FlowCfg.FLOW_YAML_CFG_CLUSTER.getKey()))
-                + SysFlow.ZK_GET_SEP + FlowCfg.FLOW_ZK_PATH_SERVER.getKey() + SysFlow.ZK_GET_SEP;
+                + SysFlow.ZK_GET_SEP + ZookeeperPath.FLOW_ZK_PATH_SERVER.getKey() + SysFlow.ZK_GET_SEP;
         // 路由的key信息
-        String defaultMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_SERVER_DEFAULT.getKey();
+        String defaultMapKey = mapDataGet + ZookeeperPath.FLOW_ZK_PATH_SERVER_DEFAULT.getKey();
         // 集群
-        String clusterMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_SERVER_CLUSTER.getKey();
+        String clusterMapKey = mapDataGet + ZookeeperPath.FLOW_ZK_PATH_SERVER_CLUSTER.getKey();
         // 用户
-        String userMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_SERVER_USER.getKey();
+        String userMapKey = mapDataGet + ZookeeperPath.FLOW_ZK_PATH_SERVER_USER.getKey();
         // 黑白名单信息
-        String fireWallMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_SERVER_FIREWALL.getKey();
+        String fireWallMapKey = mapDataGet + ZookeeperPath.FLOW_ZK_PATH_SERVER_FIREWALL.getKey();
         // 授权信息
-        String authWallMapKey = mapDataGet + FlowCfg.FLOW_ZK_PATH_SERVER_AUTH.getKey();
+        String authWallMapKey = mapDataGet + ZookeeperPath.FLOW_ZK_PATH_SERVER_AUTH.getKey();
 
         // 创建default路径并录入数据
         boolean defaultRsp = seqList.getZkProcess().createConfig(defaultMapKey, true, defabultCfg);
@@ -96,27 +97,29 @@ public class FlowToServerService implements ServiceExecInf {
         String basePath = seqList.getZkProcess().getBasePath();
 
         // 配制基本的server路径
-        basePath = basePath + SysFlow.ZK_SEPARATOR + FlowCfg.FLOW_ZK_PATH_SERVER.getKey() + SysFlow.ZK_SEPARATOR;
+        basePath = basePath + SysFlow.ZK_SEPARATOR + ZookeeperPath.FLOW_ZK_PATH_SERVER.getKey() + SysFlow.ZK_SEPARATOR;
         // 执行default
-        boolean defaultRsp = seqList.getZkProcess().deletePath(basePath, FlowCfg.FLOW_ZK_PATH_SERVER_DEFAULT.getKey());
+        boolean defaultRsp = seqList.getZkProcess().deletePath(basePath,
+                ZookeeperPath.FLOW_ZK_PATH_SERVER_DEFAULT.getKey());
         // 集群配制信息
-        boolean clusterRsp = seqList.getZkProcess().deletePath(basePath, FlowCfg.FLOW_ZK_PATH_SERVER_CLUSTER.getKey());
+        boolean clusterRsp = seqList.getZkProcess().deletePath(basePath,
+                ZookeeperPath.FLOW_ZK_PATH_SERVER_CLUSTER.getKey());
         // 用户信息
-        boolean userRsp = seqList.getZkProcess().deletePath(basePath, FlowCfg.FLOW_ZK_PATH_SERVER_USER.getKey());
+        boolean userRsp = seqList.getZkProcess().deletePath(basePath, ZookeeperPath.FLOW_ZK_PATH_SERVER_USER.getKey());
         // 黑白名单信息
         boolean fireWallRsp = seqList.getZkProcess().deletePath(basePath,
-                FlowCfg.FLOW_ZK_PATH_SERVER_FIREWALL.getKey());
+                ZookeeperPath.FLOW_ZK_PATH_SERVER_FIREWALL.getKey());
         // 授权信息
-        boolean authRsp = seqList.getZkProcess().deletePath(basePath, FlowCfg.FLOW_ZK_PATH_SERVER_AUTH.getKey());
+        boolean authRsp = seqList.getZkProcess().deletePath(basePath, ZookeeperPath.FLOW_ZK_PATH_SERVER_AUTH.getKey());
 
         LOGGER.info("flow to rollback zk server path write rsp { defaultRsp:" + defaultRsp + "}");
         LOGGER.info("flow to rollback zk server path write rsp { clusterRsp:" + clusterRsp + "}");
         LOGGER.info("flow to rollback zk server path write rsp { userRsp:" + userRsp + "}");
         LOGGER.info("flow to rollback zk server path write rsp { fireWallRsp:" + fireWallRsp + "}");
         LOGGER.info("flow to rollback zk server path write rsp { authRsp:" + authRsp + "}");
-        
-        basePath = basePath.substring(0, basePath.length() -1);
-        // 删除server目录 
+
+        basePath = basePath.substring(0, basePath.length() - 1);
+        // 删除server目录
         boolean serverZkRsp = seqList.getZkProcess().deletePath(basePath);
         LOGGER.info("flow to rollback zk server path write rsp { serverZkRsp:" + serverZkRsp + "}");
 
