@@ -82,6 +82,12 @@ public class PartitionByPrefixPattern extends AbstractPartitionAlgorithm impleme
 			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
 		}
 	}
+	
+	@Override
+	public int getPartitionNum() {
+		int nPartition = this.longRongs.length;
+		return nPartition;
+	}
 
 	private void initialize() {
 		BufferedReader in = null;

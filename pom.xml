@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.6-ALPHA</version>
+	<version>1.6-BETA</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
@@ -68,7 +68,7 @@
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>druid</artifactId>
-			<version>1.0.24</version>
+			<version>1.0.25</version>
 		</dependency>
 		<dependency>
 			<groupId>mysql</groupId>
@@ -127,7 +127,7 @@
 		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
-			<version>2.1.1</version>
+			<version>2.2.1</version>
 			<type>jar</type>
 		</dependency>
 

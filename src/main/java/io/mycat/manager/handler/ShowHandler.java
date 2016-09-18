@@ -26,6 +26,7 @@ package io.mycat.manager.handler;
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.manager.response.ShowBackend;
+import io.mycat.manager.response.ShowBackendOld;
 import io.mycat.manager.response.ShowCollation;
 import io.mycat.manager.response.ShowCommand;
 import io.mycat.manager.response.ShowConnection;
@@ -92,6 +93,9 @@ public final class ShowHandler {
 			break;
 		case ManagerParseShow.BACKEND:
 			ShowBackend.execute(c);
+			break;
+		case ManagerParseShow.BACKEND_OLD:
+			ShowBackendOld.execute(c);
 			break;
 		case ManagerParseShow.CONNECTION_SQL:
 			ShowConnectionSQL.execute(c);

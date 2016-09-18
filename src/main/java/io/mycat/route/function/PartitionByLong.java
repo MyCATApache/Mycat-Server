@@ -70,4 +70,13 @@ public final class PartitionByLong extends AbstractPartitionAlgorithm implements
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 
+//	@Override
+//	public int getPartitionCount() {
+//		int nPartition = 0;
+//		for(int i = 0; i < count.length; i++) {
+//			nPartition += count[i];
+//		}
+//		return nPartition;
+//	}
+	
 }
