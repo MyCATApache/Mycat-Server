@@ -327,13 +327,6 @@ public abstract class PhysicalDatasource {
 	public void clearCons(String reason) {
 		this.conMap.clearConnections(reason, this);
 	}
-	
-	/**
-	 * 转移 Cons
-	 */
-	public List<BackendConnection> shiftCons() {		
-		return this.conMap.shiftConnections(this);
-	}
 
 	public void startHeartbeat() {
 		heartbeat.start();
