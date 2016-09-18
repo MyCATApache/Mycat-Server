@@ -20,6 +20,7 @@ import io.mycat.route.parser.druid.impl.DruidAlterTableParser;
 import io.mycat.route.parser.druid.impl.DruidCreateTableParser;
 import io.mycat.route.parser.druid.impl.DruidDeleteParser;
 import io.mycat.route.parser.druid.impl.DruidInsertParser;
+import io.mycat.route.parser.druid.impl.DruidLockTableParser;
 import io.mycat.route.parser.druid.impl.DruidSelectDb2Parser;
 import io.mycat.route.parser.druid.impl.DruidSelectOracleParser;
 import io.mycat.route.parser.druid.impl.DruidSelectParser;
@@ -65,8 +66,9 @@ public class DruidParserFactory
         } else if (statement instanceof SQLAlterTableStatement)
         {
             parser = new DruidAlterTableParser();
-        } else
-        {
+        } else if (statement instanceof MySqlLockTableStatement) {
+        	parser = new DruidLockTableParser();
+        } else {
             parser = new DefaultDruidParser();
         }
 

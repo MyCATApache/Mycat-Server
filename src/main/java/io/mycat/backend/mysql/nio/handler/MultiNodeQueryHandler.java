@@ -166,9 +166,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		startTime = System.currentTimeMillis();
+		boolean isLocked = session.getSource().isLocked();
 		LOGGER.debug("rrs.getRunOnSlave()-" + rrs.getRunOnSlave());
 		for (final RouteResultsetNode node : rrs.getNodes()) {
 			BackendConnection conn = session.getTarget(node);
+			if (isLocked) {
+				conn = session.getLockedTarget(node);
+			}
 			if (session.tryExistsCon(conn, node)) {
 				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
 				node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
