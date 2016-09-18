@@ -1,0 +1,131 @@
+#zk连接信息
+zkURL : os1:2181
+#集群名称
+cluster-name : mycat-cluster-1
+#辅助节点：
+mycat-booster :
+#通常节点：
+mycat-server :
+
+#集群中所有的主机信息
+mycat-hosts:
+  fz_vm1:
+    hostname: fz_vm1
+    ip: 192.168.3.10
+    root: root
+    password: liujun
+
+
+#zone内mycat 实例配置,名字为mycat实例的,myid.
+mycat-nodes:
+  mycat_fz_01:
+    name: mycat_fz_01
+    hostname: fz_vm1
+    cluster: mycat-cluster-1
+    weigth: 1
+    leader: 1
+    state: red
+    systemParams:
+      defaultsqlparser : druidparser
+      serverport : 8066
+      sequncehandlertype : 1
+
+mycat:
+  mycat-cluster-1:
+    schema:
+        schema :
+          schema :
+            name : TESTDB
+            checkSQLschema : false
+            sqlMaxLimit : 1000
+
+            table :
+              name :  person
+              dataNode :  dn1,dn2
+              rule :  auto-sharding-long
+              primaryKey : id
+
+        dataNode :
+          dn1:
+            name : dn1
+            dataHost : os61bigdata167
+            database : db1
+          dn2:
+            name : dn2
+            dataHost : os61bigdata167
+            database : db2
+          
+
+        dataHost :
+          os61bigdata167 :
+            name : os61bigdata167
+            maxCon : 1000
+            minCon : 10
+            balance : 0
+            writeType : 0
+            dbType : mysql
+            dbDriver : native
+            switchType : 1
+            slaveThreshold : 100
+            heartbeat : select user()
+            writeHost : 
+              host : hostM1
+              url : 192.168.3.10:3306
+              user : root
+              password : liujun
+   
+    rules :
+      auto-sharding-long :
+       name : auto-sharding-long
+       column : id
+       functionName : io.mycat.route.function.AutoPartitionByLong
+       mapFile : auto-sharding-long.txt
+       defaultNode : 0
+       config :
+             0-500000 : 0
+             500001-4000000 : 1
+  
+    
+    
+    server:
+        blockSQLs:
+          sql1 :
+            name : sql1
+          sql2 :
+            name : sql2
+          sql3 :
+            name : sql3
+        user :
+          test :
+            name : test
+            password : admin
+            readOnly : true
+            schemas  :
+              - TESTDB
+          mycat :
+            name: mycat
+            password: liujun
+            readOnly : false
+            schemas:
+              - TESTDB
+   
+    
+    sequence:
+      sequence-3 :
+        current_value : 100000
+        increament : 100
+      sequence-2 :
+        workid: 1
+        centerid : 2
+      sequence-0 :
+        type : file
+      sequence-1 :
+        type : 1
+        config :
+          current_value : 100000
+          increament : 100
+        sequence-mapping :
+          T_NODE :  0
+    
+
+

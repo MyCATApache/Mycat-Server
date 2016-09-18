@@ -97,6 +97,11 @@ public class MyCATSequnceProcessor {
 	}
 	
 	class ExecuteThread extends Thread {
+		
+		public ExecuteThread() {
+			setDaemon(true); // 设置为后台线程,防止throw RuntimeExecption进程仍然存在的问题
+		}
+		
 		public void run() {
 			while (running) {
 				try {

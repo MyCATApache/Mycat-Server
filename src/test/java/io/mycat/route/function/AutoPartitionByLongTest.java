@@ -27,18 +27,15 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 
-import io.mycat.route.function.AutoPartitionByLong;
-
 public class AutoPartitionByLongTest {
 
 	@Test
-	public void test()
-	{
+	public void test()  {
 		AutoPartitionByLong autoPartition=new AutoPartitionByLong();
 		autoPartition.setMapFile("autopartition-long.txt");
 		autoPartition.init();
 		String idVal="0";
-		Assert.assertEquals(true, 0==autoPartition.calculate(idVal)); 
+		Assert.assertEquals(true, 0==autoPartition.calculate(idVal));
 		
 		idVal="2000000";
 		Assert.assertEquals(true, 0==autoPartition.calculate(idVal)); 

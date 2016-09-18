@@ -11,6 +11,7 @@ import io.mycat.util.IntegerUtil;
 import io.mycat.util.LongUtil;
 
 import javax.annotation.Nonnull;
+import java.io.UnsupportedEncodingException;
 
 /**
  * Created by zagnix on 2016/6/20.
@@ -43,7 +44,7 @@ public class RowPrefixComputer extends UnsafeExternalRowSorter.PrefixComputer {
         }
     }
 
-    protected long computePrefix(UnsafeRow row) {
+    protected long computePrefix(UnsafeRow row) throws UnsupportedEncodingException {
 
         if(this.colMeta == null){
             return 0;
@@ -51,28 +52,35 @@ public class RowPrefixComputer extends UnsafeExternalRowSorter.PrefixComputer {
 
         int orderIndexType = colMeta.colType;
 
-        byte[] rowIndexElem  = row.getBinary(colMeta.colIndex);;
+        byte[] rowIndexElem  = null;
+		
+		  if(!row.isNullAt(colMeta.colIndex)) {
+              rowIndexElem = row.getBinary(colMeta.colIndex);;
+          }else {
+              rowIndexElem = new byte[1];
+              rowIndexElem[0] = UnsafeRow.NULL_MARK;
+          }
+		  
         /**
          * 这里注意一下，order by 排序的第一个字段
          */
         switch (orderIndexType) {
             case ColMeta.COL_TYPE_INT:
-                return BytesTools.toInt(rowIndexElem);
-            case ColMeta.COL_TYPE_SHORT:
-                return BytesTools.toShort(rowIndexElem);
             case ColMeta.COL_TYPE_LONG:
-            case ColMeta.COL_TYPE_LONGLONG:
             case ColMeta.COL_TYPE_INT24:
-                return BytesTools.toLong(rowIndexElem);
+                return BytesTools.getInt(rowIndexElem);
+            case ColMeta.COL_TYPE_SHORT:
+                return BytesTools.getShort(rowIndexElem);
+            case ColMeta.COL_TYPE_LONGLONG:
+                return BytesTools.getLong(rowIndexElem);
             case ColMeta.COL_TYPE_FLOAT:
                 return PrefixComparators.DoublePrefixComparator.
-                    computePrefix(BytesTools.toFloat(rowIndexElem));
+                    computePrefix(BytesTools.getFloat(rowIndexElem));
             case ColMeta.COL_TYPE_DOUBLE:
             case ColMeta.COL_TYPE_DECIMAL:
             case ColMeta.COL_TYPE_NEWDECIMAL:
                 return PrefixComparators.DoublePrefixComparator.
-                        computePrefix(BytesTools.toDouble(rowIndexElem));
-
+                        computePrefix(BytesTools.getDouble(rowIndexElem));
             case ColMeta.COL_TYPE_DATE:
             case ColMeta.COL_TYPE_TIMSTAMP:
             case ColMeta.COL_TYPE_TIME:

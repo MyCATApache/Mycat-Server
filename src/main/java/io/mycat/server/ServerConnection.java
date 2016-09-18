@@ -26,7 +26,8 @@ package io.mycat.server;
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
 
-import org.slf4j.Logger; 
+import io.mycat.server.response.InformationSchemaProfiling;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -182,6 +183,13 @@ public class ServerConnection extends FrontendConnection {
 		if (schema == null) {
 			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
 					"Unknown MyCAT Database '" + db + "'");
+			return;
+		}
+
+		//fix navicat   SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage` FROM INFORMATION_SCHEMA.PROFILING WHERE QUERY_ID= GROUP BY STATE ORDER BY SEQ
+		if(ServerParse.SELECT == type &&sql.contains(" INFORMATION_SCHEMA.PROFILING ")&&sql.contains("CONCAT(ROUND(SUM(DURATION)/*100,3)"))
+		{
+			InformationSchemaProfiling.response(this);
 			return;
 		}
 		

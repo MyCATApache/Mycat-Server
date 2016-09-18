@@ -27,7 +27,9 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
@@ -78,19 +80,30 @@ public class PartitionByFileMap extends AbstractPartitionAlgorithm implements Ru
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		Object value = columnValue;
-		if(type == 0) {
-			value = Integer.valueOf(columnValue);
+	public Integer calculate(String columnValue)  {
+		try {
+			Object value = columnValue;
+			if (type == 0) {
+				value = Integer.valueOf(columnValue);
+			}
+			Integer rst = null;
+			Integer pid = app2Partition.get(value);
+			if (pid != null) {
+				rst = pid;
+			} else {
+				rst = app2Partition.get(DEFAULT_NODE);
+			}
+			return rst;
+		} catch (NumberFormatException e){
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
 		}
-		Integer rst = null;
-		Integer pid = app2Partition.get(value);
-		if (pid != null) {
-			rst = pid;
-		} else {
-			rst =app2Partition.get(DEFAULT_NODE);
-		}
-		return rst;
+	}
+	
+	@Override
+	public int getPartitionNum() {
+		Set<Integer> set = new HashSet<Integer>(app2Partition.values());
+		int count = set.size();
+		return count;
 	}
 
 	private void initialize() {

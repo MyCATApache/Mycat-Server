@@ -23,12 +23,13 @@
  */
 package io.mycat.config.model.rule;
 
+import java.io.Serializable;
 
 /**
  * @author mycat
  */
-public class TableRuleConfig {
-    private final String name;
+public class TableRuleConfig implements Serializable {
+    private  String name;
     private final RuleConfig rule;
 
     public TableRuleConfig(String name, RuleConfig rule) {
@@ -44,6 +45,10 @@ public class TableRuleConfig {
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     /**
