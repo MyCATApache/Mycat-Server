@@ -58,7 +58,7 @@ public class RulesxmlTozkLoader extends ZkMultLoader implements NotiflyService {
      * Rules文件的路径信息
     * @字段说明 SCHEMA_PATH
     */
-    private static final String Rules_PATH = ZookeeperPath.ZK_LOCAL_CFG_PATH.getKey() + "rule.xml";
+    private static final String RULE_PATH = ZookeeperPath.ZK_LOCAL_CFG_PATH.getKey() + "rule.xml";
 
     /**
      * Rules的xml的转换信息
@@ -98,7 +98,7 @@ public class RulesxmlTozkLoader extends ZkMultLoader implements NotiflyService {
     @Override
     public boolean notiflyProcess() throws Exception {
         // 1,读取本地的xml文件
-        Rules Rules = this.parseRulesXMl.parseXmlToBean(Rules_PATH);
+        Rules Rules = this.parseRulesXMl.parseXmlToBean(RULE_PATH);
         LOGGER.info("RulesxmlTozkLoader notiflyProcessxml to zk Rules Object  :" + Rules);
         // 将实体信息写入至zk中
         this.xmlTozkRulesJson(currZkPath, Rules);

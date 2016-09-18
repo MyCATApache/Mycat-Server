@@ -62,6 +62,18 @@ public enum ZookeeperPath {
     FLOW_ZK_PATH_RULE("rules"),
 
     /**
+     * 路由信息
+     * @字段说明 FLOW_ZK_PATH_SCHEMA_DATANODE
+     */
+    FLOW_ZK_PATH_RULE_TABLERULE("tableRule"),
+
+    /**
+     * 路由信息
+     * @字段说明 FLOW_ZK_PATH_SCHEMA_DATANODE
+     */
+    FLOW_ZK_PATH_RULE_FUNCTION("function"),
+
+    /**
      * 服务端配制路径
     * @字段说明 FLOW_ZK_PATH_SERVER
     */
@@ -102,6 +114,18 @@ public enum ZookeeperPath {
      * @字段说明 FLOW_ZK_PATH_SERVER_AUTH
      */
     FLOW_ZK_PATH_SEQUENCE("sequences"),
+
+    /**
+     * 序列信息中公共配制信息
+     * @字段说明 FLOW_ZK_PATH_SERVER_AUTH
+     */
+    FLOW_ZK_PATH_SEQUENCE_COMMON("common"),
+
+    /**
+     * 序列信息中需要单独节点配制的信息
+     * @字段说明 FLOW_ZK_PATH_SERVER_AUTH
+     */
+    FLOW_ZK_PATH_SEQUENCE_CLUSTER("cluster"),
 
     /**
      * 缓存信息

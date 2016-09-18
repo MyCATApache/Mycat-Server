@@ -111,6 +111,8 @@ public class ZkMultLoader {
             this.createPath(nodePath);
         }
 
+        LOGGER.debug("ZkMultLoader write file :" + nodePath + ", value :" + value);
+
         curator.setData().inBackground().forPath(nodePath, value.getBytes());
 
     }
