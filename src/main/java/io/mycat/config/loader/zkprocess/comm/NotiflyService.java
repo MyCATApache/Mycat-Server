@@ -7,7 +7,7 @@ package io.mycat.config.loader.zkprocess.comm;
  * @date 2015年2月4日
  * @vsersion 0.0.1
  */
-public interface notiflyService {
+public interface NotiflyService {
 
     /**
      * 进行通知接口

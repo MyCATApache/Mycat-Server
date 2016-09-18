@@ -14,6 +14,7 @@ import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.RuleszkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.SchemaszkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.ServerzkToxmlLoader;
 
@@ -41,6 +42,9 @@ public class ZktoxmlMain {
 
         // server加载
         new ServerzkToxmlLoader(zkListen, zkConn, xmlProcess);
+
+        // rule文件加载
+        new RuleszkToxmlLoader(zkListen, zkConn, xmlProcess);
 
         // 初始化xml转换操作
         xmlProcess.initJaxbClass();

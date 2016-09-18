@@ -10,7 +10,7 @@ import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.MycatConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
-import io.mycat.config.loader.zkprocess.comm.notiflyService;
+import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.entry.Server;
 import io.mycat.config.loader.zkprocess.entry.server.System;
 import io.mycat.config.loader.zkprocess.entry.server.user.User;
@@ -36,7 +36,7 @@ import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 * 文件描述：TODO
 * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
 */
-public class ServerzkToxmlLoader extends ZkMultLoader implements notiflyService {
+public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService {
 
     /**
      * 日志
@@ -165,18 +165,21 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements notiflyService 
         // 得到集群节点的配制信息
         DiretoryInf directory = this.getZkDirectory(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SERVER_CLUSTER.getKey());
 
-        // 获得当前myid的名称
-        String myid = MycatConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+        if (null != directory) {
 
-        // 获邓当前节点的信息
-        DataInf currDataCfg = this.getZkData(directory, myid);
+            // 获得当前myid的名称
+            String myid = MycatConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
 
-        // 如果当前节点存在配制信息，则加载
-        if (null != currDataCfg) {
-            server = new Server();
+            // 获邓当前节点的信息
+            DataInf currDataCfg = this.getZkData(directory, myid);
 
-            System systemValue = parseJsonSystem.parseJsonToBean(currDataCfg.getDataValue());
-            server.setSystem(systemValue);
+            // 如果当前节点存在配制信息，则加载
+            if (null != currDataCfg) {
+                server = new Server();
+
+                System systemValue = parseJsonSystem.parseJsonToBean(currDataCfg.getDataValue());
+                server.setSystem(systemValue);
+            }
         }
 
         return server;

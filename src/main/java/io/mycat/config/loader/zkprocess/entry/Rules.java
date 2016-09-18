@@ -1,13 +1,29 @@
 package io.mycat.config.loader.zkprocess.entry;
 
-
-import javax.xml.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import io.mycat.config.loader.zkprocess.entry.rule.function.Function;
+import io.mycat.config.loader.zkprocess.entry.rule.tablerule.TableRule;
+
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement(namespace = "http://io.mycat/", name = "rule") public class Rules {
+@XmlRootElement(namespace = "http://io.mycat/", name = "rule")
+public class Rules {
+
+    /**
+     * 表的路由配制信息
+    * @字段说明 tableRule
+    */
     protected List<TableRule> tableRule;
+
+    /**
+     * 指定的方法信息
+    * @字段说明 function
+    */
     protected List<Function> function;
 
     public List<TableRule> getTableRule() {
@@ -32,114 +48,16 @@ import java.util.List;
         this.function = function;
     }
 
-    /**
-     * <tableRule name="rule1">
-     * * *<rule>
-     * * * *<columns>id</columns>
-     * * * *<algorithm>func1</algorithm>
-     * * </rule>
-     * </tableRule>
-     */
-    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "tableRule") public static class TableRule
-        implements Named {
-        @XmlElement(required = true, name = "rule") protected Rule rule;
-        @XmlAttribute(required = true) protected String name;
-
-        public Rule getRule() {
-            return rule;
-        }
-
-        public TableRule setRule(Rule rule) {
-            this.rule = rule;
-            return this;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public TableRule setName(String name) {
-            this.name = name;
-            return this;
-        }
-
-        /**
-         * *<rule>
-         * * *<columns>id</columns>
-         * * *<algorithm>func1</algorithm>
-         * * </rule>
-         */
-        @XmlAccessorType(XmlAccessType.FIELD)
-        @XmlType(name = "rule", propOrder = {"columns", "algorithm"}) public static class Rule {
-            protected String columns;
-            protected String algorithm;
-
-            public String getColumns() {
-                return columns;
-            }
-
-            public Rule setColumns(String columns) {
-                this.columns = columns;
-                return this;
-            }
-
-            public String getAlgorithm() {
-                return algorithm;
-            }
-
-            public Rule setAlgorithm(String algorithm) {
-                this.algorithm = algorithm;
-                return this;
-            }
-        }
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Rules [tableRule=");
+        builder.append(tableRule);
+        builder.append(", function=");
+        builder.append(function);
+        builder.append("]");
+        return builder.toString();
     }
 
 
-    /**
-     * <function name="mod-long" class="io.mycat.route.function.PartitionByMod">
-     * * <property name="count">3</property>
-     * </function>
-     */
-    @XmlAccessorType(XmlAccessType.FIELD) @XmlType(name = "function") public static class Function
-        implements Propertied, Named {
-        @XmlAttribute(required = true) protected String name;
-
-        @XmlAttribute(required = true, name = "class") protected String clazz;
-
-        protected List<Property> property;
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getClazz() {
-            return clazz;
-        }
-
-        public void setClazz(String clazz) {
-            this.clazz = clazz;
-        }
-
-        public List<Property> getProperty() {
-            if (this.property == null) {
-                property = new ArrayList<>();
-            }
-            return property;
-        }
-
-        public void setProperty(List<Property> property) {
-            this.property = property;
-        }
-
-        @Override public void addProperty(Property property) {
-            this.getProperty().add(property);
-        }
-    }
 }
-
-
-

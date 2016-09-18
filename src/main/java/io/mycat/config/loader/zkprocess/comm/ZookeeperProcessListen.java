@@ -29,7 +29,7 @@ public class ZookeeperProcessListen {
     /**
      * 所有更新缓存操作的集合
      */
-    private Map<String, notiflyService> LISTEN_CACHE = new ConcurrentSkipListMap<String, notiflyService>();
+    private Map<String, NotiflyService> LISTEN_CACHE = new ConcurrentSkipListMap<String, NotiflyService>();
 
     /**
      * 基本路径信息
@@ -51,7 +51,7 @@ public class ZookeeperProcessListen {
      * @param key
      * @param cacheNotiflySercie
      */
-    public void addListen(String key, notiflyService cacheNotiflySercie) {
+    public void addListen(String key, NotiflyService cacheNotiflySercie) {
         LISTEN_CACHE.put(key, cacheNotiflySercie);
     }
 
@@ -74,7 +74,7 @@ public class ZookeeperProcessListen {
             // 如果是具体的单独更新，则进行单业务的业务刷新
             else {
                 // 取得具体的业务监听信息
-                notiflyService cacheService = LISTEN_CACHE.get(key);
+                NotiflyService cacheService = LISTEN_CACHE.get(key);
 
                 if (null != cacheService) {
                     try {
@@ -95,9 +95,9 @@ public class ZookeeperProcessListen {
      */
     private void notiflyAll() {
 
-        Iterator<Entry<String, notiflyService>> notiflyIter = LISTEN_CACHE.entrySet().iterator();
+        Iterator<Entry<String, NotiflyService>> notiflyIter = LISTEN_CACHE.entrySet().iterator();
 
-        Entry<String, notiflyService> item = null;
+        Entry<String, NotiflyService> item = null;
 
         while (notiflyIter.hasNext()) {
             item = notiflyIter.next();

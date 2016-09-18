@@ -14,12 +14,12 @@ import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
+import io.mycat.config.loader.zkprocess.xmltozk.listen.RulesxmlTozkLoader;
 import io.mycat.config.loader.zkprocess.xmltozk.listen.SchemasxmlTozkLoader;
 import io.mycat.config.loader.zkprocess.xmltozk.listen.ServerxmlTozkLoader;
 
 public class XmltozkMain {
 
-    @SuppressWarnings("static-access")
     public static void main(String[] args) throws JAXBException, InterruptedException {
         // 加载zk总服务
         ZookeeperProcessListen zkListen = new ZookeeperProcessListen();
@@ -42,6 +42,9 @@ public class XmltozkMain {
 
         // 进行xmltozk的server文件的操作
         new ServerxmlTozkLoader(zkListen, zkConn, xmlProcess);
+        
+        //进行rule文件到zk的操作
+        new RulesxmlTozkLoader(zkListen, zkConn, xmlProcess);
 
         // 初始化xml转换操作
         xmlProcess.initJaxbClass();

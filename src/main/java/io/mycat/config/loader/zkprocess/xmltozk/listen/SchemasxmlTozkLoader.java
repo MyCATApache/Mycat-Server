@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
-import io.mycat.config.loader.zkprocess.comm.notiflyService;
+import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.entry.Schemas;
 import io.mycat.config.loader.zkprocess.entry.schema.datahost.DataHost;
 import io.mycat.config.loader.zkprocess.entry.schema.datanode.DataNode;
@@ -33,7 +33,7 @@ import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 * 文件描述：TODO
 * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
 */
-public class SchemasxmlTozkLoader extends ZkMultLoader implements notiflyService {
+public class SchemasxmlTozkLoader extends ZkMultLoader implements NotiflyService {
 
     /**
      * 日志
