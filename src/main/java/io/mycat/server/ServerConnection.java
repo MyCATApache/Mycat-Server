@@ -41,6 +41,7 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.server.response.Heartbeat;
 import io.mycat.server.response.Ping;
 import io.mycat.server.util.SchemaUtil;
+import io.mycat.util.SplitUtil;
 import io.mycat.util.TimeUtil;
 
 /**
@@ -57,6 +58,9 @@ public class ServerConnection extends FrontendConnection {
 	private volatile String txInterrputMsg = "";
 	private long lastInsertId;
 	private NonBlockingSession session;
+	
+	//标识是否执行了lock tables语句并处于lock状态
+	private volatile boolean isLocked = false;
 
 	public ServerConnection(NetworkChannel channel)
 			throws IOException {
@@ -119,6 +123,14 @@ public class ServerConnection extends FrontendConnection {
 
 	public void setSession2(NonBlockingSession session2) {
 		this.session = session2;
+	}
+	
+	public boolean isLocked() {
+		return isLocked;
+	}
+	
+	public void setLocked(boolean isLocked) {
+		this.isLocked = isLocked;
 	}
 
 	@Override
@@ -299,6 +311,42 @@ public class ServerConnection extends FrontendConnection {
 
 		// 执行回滚
 		session.rollback();
+	}
+	
+	/**
+	 * lock tables [table] [read|write]
+	 * @param sql
+	 */
+	public void lockTable(String sql) {
+		// 事务中不允许执行lock table语句
+		if (!autocommit) {
+			writeErrMessage(ErrorCode.ER_YES, "can't lock table in transaction!");
+			return;
+		}
+		// 已经执行了lock table且未执行unlock table之前的连接不能再次执行lock table命令
+		if (isLocked) {
+			writeErrMessage(ErrorCode.ER_YES, "can't lock multi-table");
+			return;
+		}
+		RouteResultset rrs = routeSQL(sql, ServerParse.LOCK);
+		if (rrs != null) {
+			session.lockTable(rrs);
+		}
+	}
+	
+	/**
+	 * unlock tables;
+	 * @param sql
+	 */
+	public void unLockTable(String sql) {
+		sql = sql.replaceAll("\n", " ").replaceAll("\t", " ");
+		String[] words = SplitUtil.split(sql, ' ', true);
+		if (words.length==2 && ("table".equalsIgnoreCase(words[1]) || "tables".equalsIgnoreCase(words[1]))) {
+			isLocked = false;
+			session.unLockTable(sql);
+		} else {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Unknown command");
+		}
 	}
 
 	/**
