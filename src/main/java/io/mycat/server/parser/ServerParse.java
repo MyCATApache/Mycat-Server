@@ -56,6 +56,9 @@ public final class ServerParse {
 	public static final int MYSQL_COMMENT = 19;
 	public static final int CALL = 20;
 	public static final int DESCRIBE = 21;
+	// lock tables [table] [read|write]类型sql
+	public static final int LOCK = 22;
+	public static final int UNLOCK = 23;
     public static final int LOAD_DATA_INFILE_SQL = 99;
     public static final int DDL = 100;
 
@@ -181,7 +184,7 @@ public final class ServerParse {
 				continue;
 			case 'L':
 			case 'l':
-				rt = loadDataCheck(stmt, i);
+				rt = lCheck(stmt, i);
 				if (rt != OTHER) {
 					return rt;
 				}
@@ -194,7 +197,7 @@ public final class ServerParse {
 	}
 
 
-	static int loadDataCheck(String stmt, int offset) {
+	static int lCheck(String stmt, int offset) {
 		if (stmt.length() > offset + 3) {
 			char c1 = stmt.charAt(++offset);
 			char c2 = stmt.charAt(++offset);
@@ -203,6 +206,8 @@ public final class ServerParse {
 					&& (c3 == 'D' || c3 == 'd')) {
 				Matcher matcher = pattern.matcher(stmt);
 				return matcher.find() ? LOAD_DATA_INFILE_SQL : OTHER;
+			} else if ((c1 == 'O' || c1 == 'o') && (c2 == 'C' || c2 == 'c') && (c3 == 'K' || c3 == 'k')) {
+				return LOCK;
 			}
 		}
 
@@ -790,6 +795,23 @@ public final class ServerParse {
 					if ((c1 == 'E' || c1 == 'e')
 							&& (c2 == ' ' || c2 == '\t' || c2 == '\r' || c2 == '\n')) {
 						return (offset << 8) | USE;
+					}
+				}
+				break;
+			case 'N':
+			case 'n':
+				if (stmt.length() > offset + 5) {
+					char c1 = stmt.charAt(++offset);
+					char c2 = stmt.charAt(++offset);
+					char c3 = stmt.charAt(++offset);
+					char c4 = stmt.charAt(++offset);
+					char c5 = stmt.charAt(++offset);
+					if ((c1 == 'L' || c1 == 'l')
+							&& (c2 == 'O' || c2 == 'o')
+							&& (c3 == 'C' || c3 == 'c')
+							&& (c4 == 'K' || c4 == 'k')
+							&& (c5 == ' ' || c5 == '\t' || c5 == '\r' || c5 == '\n')){
+						return UNLOCK;
 					}
 				}
 				break;
