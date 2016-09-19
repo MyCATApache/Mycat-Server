@@ -78,10 +78,18 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
      */
     private static final String PROPERTIES_SEQUENCE_TIME_CONF = "sequence_time_conf";
 
+    /**
+     * 监控路径信息
+    * @字段说明 zookeeperListen
+    */
+    private ZookeeperProcessListen zookeeperListen;
+
     public SequenceTopropertiesLoader(ZookeeperProcessListen zookeeperListen, CuratorFramework curator,
             XmlProcessBase xmlParseBase) {
 
         this.setCurator(curator);
+
+        this.zookeeperListen = zookeeperListen;
 
         // 获得当前集群的名称
         String schemaPath = zookeeperListen.getBasePath();
@@ -89,7 +97,7 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
 
         currZkPath = schemaPath;
         // 将当前自己注册为事件接收对象
-        zookeeperListen.addListen(schemaPath, this);
+        this.zookeeperListen.addListen(schemaPath, this);
 
     }
 
@@ -116,12 +124,12 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
         LOGGER.info("SequenceTozkLoader notiflyProcess sequence_db_conf to local properties success");
 
         // 将zk的分布式信息入本地文件
-        this.sequenceZkToProperties(currZkPath, PROPERTIES_SEQUENCE_DISTRIBUTED_CONF, sequenceDirectory);
+        this.seqWriteOneZkToProperties(currZkPath, PROPERTIES_SEQUENCE_DISTRIBUTED_CONF, sequenceDirectory);
 
         LOGGER.info("SequenceTozkLoader notiflyProcess sequence_distributed_conf to local properties success");
 
         // 将zk时间序列入本地文件
-        this.sequenceZkToProperties(currZkPath, PROPERTIES_SEQUENCE_TIME_CONF, sequenceDirectory);
+        this.seqWriteOneZkToProperties(currZkPath, PROPERTIES_SEQUENCE_TIME_CONF, sequenceDirectory);
 
         LOGGER.info("SequenceTozkLoader notiflyProcess sequence_time_conf to local properties success");
 
@@ -151,6 +159,12 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
 
             // 读取公共节点的信息
             this.writeMapFile(commData.getName(), commData.getValue());
+
+            String seqComm = ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_COMMON.getKey();
+            seqComm = seqComm + ZookeeperPath.ZK_SEPARATOR.getKey() + commData.getName();
+
+            this.zookeeperListen.watchPath(currZkPath, seqComm);
+
         }
 
         // 集群中特有的节点的配制信息
@@ -169,9 +183,75 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
             if (null != clusterData) {
                 // 读取当前集群中特有的节点的信息
                 this.writeMapFile(clusterData.getName(), clusterData.getValue());
+
+                String seqCluster = ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_COMMON.getKey();
+                seqCluster = seqCluster + ZookeeperPath.ZK_SEPARATOR.getKey() + clusterData.getName();
+
+                this.zookeeperListen.watchPath(currZkPath, seqCluster);
+            }
+        }
+    }
+
+    /**
+     * 将xml文件的信息写入到zk中
+     * 方法描述
+     * @param basePath 基本路径
+     * @param schema schema文件的信息
+     * @throws Exception 异常信息
+     * @创建日期 2016年9月17日
+     */
+    private void seqWriteOneZkToProperties(String basePath, String name, DiretoryInf seqDirectory) throws Exception {
+        // 读取当前节的信息
+        ZkDirectoryImpl zkDirectory = (ZkDirectoryImpl) this.getZkDirectory(seqDirectory,
+                ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_COMMON.getKey());
+
+        ZkDataImpl commData = null;
+
+        if (null != zkDirectory) {
+            String writeFile = name + PROPERTIES_SUFFIX;
+
+            // 读取common目录下的数据
+            commData = (ZkDataImpl) this.getZkData(zkDirectory, writeFile);
+
+            // comm路径的监控路径
+            String seqComm = ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_COMMON.getKey();
+            seqComm = seqComm + ZookeeperPath.ZK_SEPARATOR.getKey() + commData.getName();
+
+            this.zookeeperListen.watchPath(currZkPath, seqComm);
+        }
+
+        // 集群中特有的节点的配制信息
+        ZkDirectoryImpl zkClusterDir = (ZkDirectoryImpl) this.getZkDirectory(seqDirectory,
+                ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_CLUSTER.getKey());
+
+        ZkDataImpl clusterData = null;
+
+        if (null != zkClusterDir) {
+
+            String clusterName = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+
+            String nodeName = name + "-" + clusterName + PROPERTIES_SUFFIX;
+
+            // 读取cluster目录下的数据
+            clusterData = (ZkDataImpl) this.getZkData(zkClusterDir, nodeName);
+
+            if (null != clusterData) {
+                // comm路径的监控路径
+                String seqCluster = ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_COMMON.getKey();
+                seqCluster = seqCluster + ZookeeperPath.ZK_SEPARATOR.getKey() + clusterData.getName();
+
+                this.zookeeperListen.watchPath(currZkPath, seqCluster);
             }
         }
 
+        // 如果配制了单独节点的信息,以公共的名称，写入当前的值
+        if (clusterData != null && commData != null) {
+            // 读取公共节点的信息
+            this.writeMapFile(commData.getName(), clusterData.getValue());
+        } else if (commData != null) {
+            // 读取当前集群中特有的节点的信息
+            this.writeMapFile(commData.getName(), commData.getValue());
+        }
     }
 
     /**

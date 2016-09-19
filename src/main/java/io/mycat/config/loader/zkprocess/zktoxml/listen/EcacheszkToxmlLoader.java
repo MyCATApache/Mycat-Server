@@ -76,10 +76,18 @@ public class EcacheszkToxmlLoader extends ZkMultLoader implements NotiflyService
     */
     private ParseJsonServiceInf<Ehcache> parseJsonEhcacheService = new EhcacheJsonParse();
 
+    /**
+     * 监控类信息
+    * @字段说明 zookeeperListen
+    */
+    private ZookeeperProcessListen zookeeperListen;
+
     public EcacheszkToxmlLoader(ZookeeperProcessListen zookeeperListen, CuratorFramework curator,
             XmlProcessBase xmlParseBase) {
 
         this.setCurator(curator);
+
+        this.zookeeperListen = zookeeperListen;
 
         // 获得当前集群的名称
         String schemaPath = zookeeperListen.getBasePath();
@@ -87,7 +95,7 @@ public class EcacheszkToxmlLoader extends ZkMultLoader implements NotiflyService
 
         currZkPath = schemaPath;
         // 将当前自己注册为事件接收对象
-        zookeeperListen.addListen(schemaPath, this);
+        this.zookeeperListen.addListen(schemaPath, this);
 
         // 生成xml与类的转换信息
         parseEcacheXMl = new EhcacheParseXmlImpl(xmlParseBase);
@@ -133,6 +141,11 @@ public class EcacheszkToxmlLoader extends ZkMultLoader implements NotiflyService
 
         parseEcacheXMl.parseToXmlWrite(ehcache, outputPath, null);
 
+        // 设置zk监控的路径信息
+        String watchPath = zkDirectory.getName();
+        watchPath = watchPath + ZookeeperPath.ZK_SEPARATOR.getKey() + EHCACHE_NAME;
+        this.zookeeperListen.watchPath(currZkPath, watchPath);
+
         // 写入cacheservice.properties的信息
         DataInf cacheserZkDirectory = this.getZkData(zkDirectory, CACHESERVER_NAME);
 
@@ -141,6 +154,10 @@ public class EcacheszkToxmlLoader extends ZkMultLoader implements NotiflyService
 
             // 写入文件cacheservice.properties
             this.writeCacheservice(cacheData.getName(), cacheData.getValue());
+
+            String watchServerPath = zkDirectory.getName();
+            watchServerPath = watchPath + ZookeeperPath.ZK_SEPARATOR.getKey() + CACHESERVER_NAME;
+            this.zookeeperListen.watchPath(currZkPath, watchServerPath);
         }
 
     }

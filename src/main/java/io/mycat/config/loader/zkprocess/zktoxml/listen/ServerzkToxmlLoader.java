@@ -8,12 +8,12 @@ import org.slf4j.LoggerFactory;
 
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.MycatConfig;
+import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.entity.Server;
 import io.mycat.config.loader.zkprocess.entity.server.System;
 import io.mycat.config.loader.zkprocess.entity.server.user.User;
-import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
 import io.mycat.config.loader.zkprocess.parse.ParseXmlServiceInf;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
@@ -22,6 +22,7 @@ import io.mycat.config.loader.zkprocess.parse.entryparse.server.json.UserJsonPar
 import io.mycat.config.loader.zkprocess.parse.entryparse.server.xml.ServerParseXmlImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
 import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
+import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDirectoryImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 
@@ -74,10 +75,18 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
      */
     private ParseJsonServiceInf<List<User>> parseJsonUser = new UserJsonParse();
 
+    /**
+     * zk监控路径
+    * @字段说明 zookeeperListen
+    */
+    private ZookeeperProcessListen zookeeperListen;
+
     public ServerzkToxmlLoader(ZookeeperProcessListen zookeeperListen, CuratorFramework curator,
             XmlProcessBase xmlParseBase) {
 
         this.setCurator(curator);
+
+        this.zookeeperListen = zookeeperListen;
 
         // 获得当前集群的名称
         String serverPath = zookeeperListen.getBasePath();
@@ -85,7 +94,7 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
         currZkPath = serverPath;
         // 将当前自己注册为事件接收对象
-        zookeeperListen.addListen(serverPath, this);
+        this.zookeeperListen.addListen(serverPath, this);
 
         // 生成xml与类的转换信息
         parseServerXMl = new ServerParseXmlImpl(xmlParseBase);
@@ -143,10 +152,15 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
         System systemValue = parseJsonSystem.parseJsonToBean(serverZkDirectory.getDataValue());
         server.setSystem(systemValue);
 
+        this.zookeeperListen.watchPath(currZkPath, ZookeeperPath.FLOW_ZK_PATH_SERVER_DEFAULT.getKey());
+
         // 得到user的信息
         DataInf userZkDirectory = this.getZkData(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SERVER_USER.getKey());
         List<User> userList = parseJsonUser.parseJsonToBean(userZkDirectory.getDataValue());
         server.setUser(userList);
+
+        // 用户路径的监控
+        this.zookeeperListen.watchPath(currZkPath, ZookeeperPath.FLOW_ZK_PATH_SERVER_USER.getKey());
 
         return server;
     }
@@ -179,6 +193,16 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
                 System systemValue = parseJsonSystem.parseJsonToBean(currDataCfg.getDataValue());
                 server.setSystem(systemValue);
+
+                if (currDataCfg instanceof ZkDataImpl) {
+                    ZkDataImpl zkData = (ZkDataImpl) currDataCfg;
+
+                    // 监控的路径信息
+                    String defaultWatchPath = ZookeeperPath.FLOW_ZK_PATH_SERVER_CLUSTER.getKey();
+                    defaultWatchPath = defaultWatchPath + ZookeeperPath.ZK_SEPARATOR.getKey() + zkData.getName();
+
+                    this.zookeeperListen.watchPath(currZkPath, defaultWatchPath);
+                }
             }
         }
 
