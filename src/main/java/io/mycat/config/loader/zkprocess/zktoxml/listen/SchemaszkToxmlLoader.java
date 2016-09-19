@@ -8,11 +8,11 @@ import org.slf4j.LoggerFactory;
 
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
+import io.mycat.config.loader.zkprocess.entity.Schemas;
+import io.mycat.config.loader.zkprocess.entity.schema.datahost.DataHost;
+import io.mycat.config.loader.zkprocess.entity.schema.datanode.DataNode;
+import io.mycat.config.loader.zkprocess.entity.schema.schema.Schema;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
-import io.mycat.config.loader.zkprocess.entry.Schemas;
-import io.mycat.config.loader.zkprocess.entry.schema.datahost.DataHost;
-import io.mycat.config.loader.zkprocess.entry.schema.datanode.DataNode;
-import io.mycat.config.loader.zkprocess.entry.schema.schema.Schema;
 import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
 import io.mycat.config.loader.zkprocess.parse.ParseXmlServiceInf;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;

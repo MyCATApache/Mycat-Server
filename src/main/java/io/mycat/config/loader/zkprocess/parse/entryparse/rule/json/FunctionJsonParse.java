@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.google.gson.reflect.TypeToken;
 
-import io.mycat.config.loader.zkprocess.entry.rule.function.Function;
+import io.mycat.config.loader.zkprocess.entity.rule.function.Function;
 import io.mycat.config.loader.zkprocess.parse.JsonProcessBase;
 import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
 
