@@ -9,6 +9,7 @@ import java.util.TreeSet;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.route.function.SlotFunction;
 import io.mycat.route.parser.util.ParseUtil;
@@ -118,8 +119,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		for (RouteResultsetNode aNodeSet : nodeSet) {
 			nodes[i] = aNodeSet;
 			  if(statement instanceof MySqlInsertStatement &&ctx.getTables().size()==1&&schema.getTables().containsKey(ctx.getTables().get(0))) {
-				  AbstractPartitionAlgorithm algorithm = schema.getTables().get(ctx.getTables().get(0)).getRule().getRuleAlgorithm();
-				  if(algorithm instanceof SlotFunction){
+				  RuleConfig rule = schema.getTables().get(ctx.getTables().get(0)).getRule();
+				  if(rule!=null&&  rule.getRuleAlgorithm() instanceof SlotFunction){
 					 aNodeSet.setStatement(ParseUtil.changeInsertAddSlot(aNodeSet.getStatement(),aNodeSet.getSlot()));
 				  }
 			  }

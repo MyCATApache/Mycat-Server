@@ -63,7 +63,7 @@ public final class ParseUtil {
     {
         SQLStatementParser parser = new MycatStatementParser(sql);
         MySqlInsertStatement insert = (MySqlInsertStatement) parser.parseStatement();
-        insert.getColumns().add(new SQLIdentifierExpr("slot") );
+        insert.getColumns().add(new SQLIdentifierExpr("_slot") );
         insert.getValues().getValues().add(new SQLIntegerExpr(slotValue))  ;
         return insert.toString();
     }
