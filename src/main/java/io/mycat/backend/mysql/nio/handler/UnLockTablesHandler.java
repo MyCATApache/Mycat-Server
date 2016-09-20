@@ -83,6 +83,7 @@ public class UnLockTablesHandler extends MultiNodeHandler implements ResponseHan
 		if (executeResponse) {
 			boolean isEndPack = decrementCountBy(1);
 			session.releaseLockedConnection(conn);
+			session.releaseConnection(conn);
 			if (isEndPack) {
 				if (this.isFail() || session.closed()) {
 					tryErrorFinished(true);
