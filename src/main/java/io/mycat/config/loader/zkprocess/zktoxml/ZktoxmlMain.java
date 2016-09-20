@@ -14,6 +14,7 @@ import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.EcacheszkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.RuleszkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.SchemaszkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.SequenceTopropertiesLoader;
@@ -49,6 +50,9 @@ public class ZktoxmlMain {
 
         // 将序列配制信息加载
         new SequenceTopropertiesLoader(zkListen, zkConn, xmlProcess);
+
+        // 进行ehcache转换
+        new EcacheszkToxmlLoader(zkListen, zkConn, xmlProcess);
 
         // 初始化xml转换操作
         xmlProcess.initJaxbClass();

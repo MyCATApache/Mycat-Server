@@ -7,8 +7,8 @@ import java.util.List;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import io.mycat.config.loader.zkprocess.entry.Schemas;
-import io.mycat.config.loader.zkprocess.entry.schema.datanode.DataNode;
+import io.mycat.config.loader.zkprocess.entity.Schemas;
+import io.mycat.config.loader.zkprocess.entity.schema.datanode.DataNode;
 
 /**
  * json数据与实体类的类的信息 
