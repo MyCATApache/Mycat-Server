@@ -272,7 +272,7 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
         path = path.substring(1) + name;
 
         ByteArrayInputStream input = null;
-        byte[] buffers = new byte[3];
+        byte[] buffers = new byte[256];
         FileOutputStream output = null;
 
         try {
@@ -291,7 +291,6 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
             IOUtils.close(output);
             IOUtils.close(input);
         }
-
     }
 
 }

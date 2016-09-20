@@ -143,7 +143,7 @@ public class ZkMultLoader {
         return result;
     }
 
-    protected void writeString(String path, String value) throws Exception {
+    protected void writeZkString(String path, String value) throws Exception {
         checkNotNull(path, "data of path" + path + " must be not null!");
         checkNotNull(value, "data of value:" + value + " must be not null!");
 

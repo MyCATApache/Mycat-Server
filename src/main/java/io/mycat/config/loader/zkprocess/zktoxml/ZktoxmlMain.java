@@ -27,6 +27,17 @@ import io.mycat.config.loader.zkprocess.zktoxml.listen.SequenceTopropertiesLoade
 import io.mycat.config.loader.zkprocess.zktoxml.listen.ServerzkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 
+/**
+ * 将xk的信息转换为xml文件的操作
+* 源文件名：ZktoxmlMain.java
+* 文件版本：1.0.0
+* 创建作者：liujun
+* 创建日期：2016年9月20日
+* 修改作者：liujun
+* 修改日期：2016年9月20日
+* 文件描述：TODO
+* 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
+*/
 public class ZktoxmlMain {
 
     /**
@@ -82,7 +93,6 @@ public class ZktoxmlMain {
         // 创建临时节点
         createTempNode("/mycat/mycat-cluster-1/line", "tmpNode1", zkConn);
 
-        Thread.currentThread().sleep(1000000);
     }
 
     public static void loadZkWatch(Set<String> setPaths, final CuratorFramework zkConn,
@@ -107,13 +117,11 @@ public class ZktoxmlMain {
     * @创建日期 2016年9月20日
     */
     public static void createTempNode(String parent, String node, final CuratorFramework zkConn) throws Exception {
-        ZKPaths.mkdirs(zkConn.getZookeeperClient().getZooKeeper(), parent);
 
         String path = ZKPaths.makePath(parent, node);
 
         zkConn.create().withMode(CreateMode.EPHEMERAL).inBackground().forPath(path);
 
-        zkConn.close();
     }
 
     /**

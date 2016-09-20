@@ -1,10 +1,17 @@
 package io.mycat.config.loader.zkprocess.zktoxml.listen;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.alibaba.fastjson.util.IOUtils;
 
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.MycatConfig;
@@ -56,6 +63,12 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
     * @字段说明 WRITEPATH
     */
     private static final String WRITEPATH = "server.xml";
+
+    /**
+     * index_to_charset文件的路径信息
+     * @字段说明 SCHEMA_PATH
+     */
+    private static final String INDEX_TOCHARSET_PATH = "index_to_charset.properties";
 
     /**
      * server的xml的转换信息
@@ -134,6 +147,19 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
         LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to object zk server      write :" + path + " is success");
 
+        // 得到server对象的目录信息
+        DataInf indexToCharSet = this.getZkData(zkDirectory, INDEX_TOCHARSET_PATH);
+
+        if (null != indexToCharSet) {
+
+            if (indexToCharSet instanceof ZkDataImpl) {
+                ZkDataImpl dataImpl = (ZkDataImpl) indexToCharSet;
+                this.writeProperties(dataImpl.getName(), dataImpl.getValue());
+            }
+
+            LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to write index_to_charset.properties is success");
+        }
+
         return true;
     }
 
@@ -207,6 +233,45 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
         }
 
         return server;
+    }
+
+    /**
+     * 写入本地文件配制信息
+    * 方法描述
+    * @param name 名称信息
+    * @return
+    * @创建日期 2016年9月18日
+    */
+    private void writeProperties(String name, String value) {
+
+        // 加载数据
+        String path = RuleszkToxmlLoader.class.getClassLoader().getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey())
+                .getPath();
+
+        checkNotNull(path, "write properties curr Path :" + path + " is null! must is not null");
+
+        path = path.substring(1) + name;
+
+        ByteArrayInputStream input = null;
+        byte[] buffers = new byte[256];
+        FileOutputStream output = null;
+
+        try {
+            int readIndex = -1;
+            input = new ByteArrayInputStream(value.getBytes());
+            output = new FileOutputStream(path);
+
+            while ((readIndex = input.read(buffers)) != -1) {
+                output.write(buffers, 0, readIndex);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            LOGGER.error("ServerzkToxmlLoader write Properties IOException", e);
+
+        } finally {
+            IOUtils.close(output);
+            IOUtils.close(input);
+        }
     }
 
 }
