@@ -42,7 +42,7 @@ public class ZkCreate {
             ZK_CONFIG_FILE_NAME = args[0];
             url = args[1];
         } else {
-            url = zkConfig.containsKey(CONFIG_URL_KEY) ? (String) zkConfig.get(CONFIG_URL_KEY) : "127.0.0.1:2181";
+            url = zkConfig.containsKey(CONFIG_URL_KEY) ? (String) zkConfig.get(CONFIG_URL_KEY) : "os1:2181";
         }
 
         zkConfig = loadZkConfig();

@@ -58,26 +58,51 @@ public class ZkMultLoader {
     */
     public void getTreeDirectory(String path, String name, DiretoryInf zkDirectory) throws Exception {
 
-        // 首先获取当前节点的数据，然后再递归
-        String currDate = this.getDataToString(path);
+        boolean check = this.checkPathExists(path);
 
-        List<String> childPathList = this.getChildNames(path);
+        // 如果文件存在，则继续遍历
+        if (check) {
+            // 首先获取当前节点的数据，然后再递归
+            String currDate = this.getDataToString(path);
 
-        // 如果存在子目录信息，则进行
-        if (null != childPathList && !childPathList.isEmpty()) {
-            DiretoryInf directory = new ZkDirectoryImpl(name, currDate);
+            List<String> childPathList = this.getChildNames(path);
 
-            // 添加目录节点信息
-            zkDirectory.add(directory);
+            // 如果存在子目录信息，则进行
+            if (null != childPathList && !childPathList.isEmpty()) {
+                DiretoryInf directory = new ZkDirectoryImpl(name, currDate);
 
-            for (String childPath : childPathList) {
-                this.getTreeDirectory(path + ZookeeperPath.ZK_SEPARATOR.getKey() + childPath, childPath, directory);
+                // 添加目录节点信息
+                zkDirectory.add(directory);
+
+                for (String childPath : childPathList) {
+                    this.getTreeDirectory(path + ZookeeperPath.ZK_SEPARATOR.getKey() + childPath, childPath, directory);
+                }
+            }
+            // 添加当前的数据节点信息
+            else {
+                zkDirectory.add(new ZkDataImpl(name, currDate));
             }
         }
-        // 添加当前的数据节点信息
-        else {
-            zkDirectory.add(new ZkDataImpl(name, currDate));
+    }
+
+    /**
+     * 检查文件是否存在
+    * 方法描述
+    * @param path
+    * @return
+    * @创建日期 2016年9月21日
+    */
+    protected boolean checkPathExists(String path) {
+        try {
+            Stat state = this.curator.checkExists().forPath(path);
+
+            if (null != state) {
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return false;
     }
 
     /**

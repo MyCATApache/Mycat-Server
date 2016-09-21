@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
 
+import io.mycat.config.loader.zkprocess.zktoxml.ZktoxmlMain;
 import io.mycat.config.loader.zookeeper.ZookeeperLoader;
 
 /**
@@ -48,6 +49,16 @@ public class ZkConfig {
 
     static {
         ZKPROPERTIES = LoadMyidPropersites();
+    }
+    
+    public void initZk()
+    {
+        try {
+            ZktoxmlMain.loadZktoFile();
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
     /**

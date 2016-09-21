@@ -1,16 +1,9 @@
 package io.mycat.config.loader.zkprocess.xmltozk.listen;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.ZKPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.alibaba.fastjson.util.IOUtils;
 
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
@@ -64,44 +57,29 @@ public class OthermsgTozkLoader extends ZkMultLoader implements NotiflyService {
         ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), line);
         LOGGER.info("OthermsgTozkLoader zookeeper mkdir " + line + " success");
 
-        // 将index_charSet写入到zk目录中
+        // 添加序列目录信息
+        String seqLine = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
+                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
+        seqLine = seqLine + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INSTANCE.getKey();
+        ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), seqLine);
+
+        String seqLeader = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
+                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
+        seqLeader = seqLeader + ZookeeperPath.ZK_SEPARATOR.getKey()
+                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_LEADER.getKey();
+        ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), seqLeader);
+
+        String incrSeq = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
+                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
+        incrSeq = incrSeq + ZookeeperPath.ZK_SEPARATOR.getKey()
+                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INCREMENT_SEQ.getKey();
+        ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), incrSeq);
+
+        LOGGER.info("OthermsgTozkLoader zookeeper mkdir " + seqLine + " success");
+        LOGGER.info("OthermsgTozkLoader zookeeper mkdir " + seqLeader + " success");
+        LOGGER.info("OthermsgTozkLoader zookeeper mkdir " + incrSeq + " success");
 
         return true;
-    }
-
-    /**
-     * 读取 mapFile文件的信息
-    * 方法描述
-    * @param name 名称信息
-    * @return
-    * @创建日期 2016年9月18日
-    */
-    private String readSeqFile(String name) {
-
-        StringBuilder mapFileStr = new StringBuilder();
-
-        String path = ZookeeperPath.ZK_LOCAL_CFG_PATH.getKey() + name;
-        // 加载数据
-        InputStream input = OthermsgTozkLoader.class.getResourceAsStream(path);
-
-        checkNotNull(input, "read SeqFile file curr Path :" + path + " is null! must is not null");
-
-        byte[] buffers = new byte[256];
-
-        try {
-            int readIndex = -1;
-
-            while ((readIndex = input.read(buffers)) != -1) {
-                mapFileStr.append(new String(buffers, 0, readIndex));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            LOGGER.error("EhcachexmlTozkLoader readMapFile IOException", e);
-        } finally {
-            IOUtils.close(input);
-        }
-
-        return mapFileStr.toString();
     }
 
 }

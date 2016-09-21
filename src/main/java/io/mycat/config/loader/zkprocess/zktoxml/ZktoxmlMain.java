@@ -47,6 +47,18 @@ public class ZktoxmlMain {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkMultLoader.class);
 
     public static void main(String[] args) throws Exception {
+        //loadZktoFile();
+        System.out.println(Long.MAX_VALUE);
+    }
+
+    /**
+     * 将zk数据放到到本地
+    * 方法描述
+     * @throws Exception 
+     * @创建日期 2016年9月21日
+    */
+    public static void loadZktoFile() throws Exception {
+
         // 加载zk总服务
         ZookeeperProcessListen zkListen = new ZookeeperProcessListen();
 
@@ -95,7 +107,7 @@ public class ZktoxmlMain {
 
     }
 
-    public static void loadZkWatch(Set<String> setPaths, final CuratorFramework zkConn,
+    private static void loadZkWatch(Set<String> setPaths, final CuratorFramework zkConn,
             final ZookeeperProcessListen zkListen) throws Exception {
 
         if (null != setPaths && !setPaths.isEmpty()) {
@@ -116,7 +128,7 @@ public class ZktoxmlMain {
     * @throws Exception
     * @创建日期 2016年9月20日
     */
-    public static void createTempNode(String parent, String node, final CuratorFramework zkConn) throws Exception {
+    private static void createTempNode(String parent, String node, final CuratorFramework zkConn) throws Exception {
 
         String path = ZKPaths.makePath(parent, node);
 
