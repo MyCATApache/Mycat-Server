@@ -77,7 +77,18 @@ public final class RouteResultset implements Serializable {
     // 强制走 master，可以通过 RouteResultset的属性canRunInReadDB=false
     // 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
     private Boolean runOnSlave = null;	// 默认null表示不施加影响
-    
+
+       //key=dataNode    value=slot
+    private Map<String,Integer>   dataNodeSlotMap=new HashMap<>();
+
+    public Map<String, Integer> getDataNodeSlotMap() {
+        return dataNodeSlotMap;
+    }
+
+    public void setDataNodeSlotMap(Map<String, Integer> dataNodeSlotMap) {
+        this.dataNodeSlotMap = dataNodeSlotMap;
+    }
+
     public Boolean getRunOnSlave() {
 		return runOnSlave;
 	}

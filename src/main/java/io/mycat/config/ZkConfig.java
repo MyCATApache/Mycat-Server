@@ -23,25 +23,37 @@ public class ZkConfig {
         return new ZkConfig();
     }
 
+    private Properties zkProperties=loadMyid();
+
+    public String getZkURL()
+    {
+        return zkProperties==null?null:zkProperties.getProperty("zkURL")  ;
+    }
     public void initZk() {
-        Properties pros = loadMyid();
+        Properties pros = zkProperties;
 
         //disable load from zookeeper,use local file.
         if (pros == null) {
             LOGGER.trace("use local configuration to startup");
             return;
         }
-        
-        try {
-            JSONObject jsonObject = new ZookeeperLoader().loadConfig(pros);
-            new ZookeeperSaver().saveConfig(jsonObject);
-            LOGGER.trace("use zookeeper configuration to startup");
-        } catch (Exception e) {
-            LOGGER.error("fail to load configuration form zookeeper,using local file to run!", e);
+        if (Boolean.parseBoolean(pros.getProperty("loadZk"))) {
+            try {
+                JSONObject jsonObject = new ZookeeperLoader().loadConfig(pros);
+                new ZookeeperSaver().saveConfig(jsonObject);
+                LOGGER.trace("use zookeeper configuration to startup");
+            } catch (Exception e) {
+                LOGGER.error("fail to load configuration form zookeeper,using local file to run!", e);
+            }
         }
+
+    }
+    public Properties getZkProperties()
+    {
+       return zkProperties;
     }
 
-    public Properties loadMyid() {
+    private Properties loadMyid() {
         Properties pros = new Properties();
 
         try (InputStream configIS = ZookeeperLoader.class
@@ -56,7 +68,7 @@ public class ZkConfig {
             throw new RuntimeException("can't find myid properties file : " + ZK_CONFIG_FILE_NAME);
         }
 
-        if (Boolean.parseBoolean(pros.getProperty("loadZk"))) {
+
             //validate
             String zkURL = pros.getProperty("zkURL");
             String myid = pros.getProperty("myid");
@@ -65,9 +77,13 @@ public class ZkConfig {
                 throw new RuntimeException("zkURL and myid must not be null or empty!");
             }
             return pros;
-        }
 
-        return null;
+
+    }
+
+    public static void main(String[] args) {
+       String zk= ZkConfig.instance().getZkURL();
+        System.out.println(zk);
     }
 
 }

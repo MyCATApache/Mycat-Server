@@ -1,19 +1,5 @@
 package io.mycat.config.loader.zookeeper;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-
-import io.mycat.config.loader.zookeeper.entitiy.*;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.config.util.ConfigException;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Marshaller;
-
-import org.apache.commons.lang.StringUtils;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +12,24 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+
+import io.mycat.config.loader.zookeeper.entitiy.Propertied;
+import io.mycat.config.loader.zookeeper.entitiy.Property;
+import io.mycat.config.loader.zookeeper.entitiy.Rules;
+import io.mycat.config.loader.zookeeper.entitiy.Schemas;
+import io.mycat.config.loader.zookeeper.entitiy.Server;
+import io.mycat.config.model.SystemConfig;
+import io.mycat.config.util.ConfigException;
+
 /**
  * save data loaded from  zookeeper to xml file.
  */
@@ -35,8 +39,7 @@ public class ZookeeperSaver {
 
     public ZookeeperSaver() throws Exception {
         super();
-        this.jaxbContext = JAXBContext
-            .newInstance(io.mycat.config.loader.zookeeper.entitiy.Server.class,
+        this.jaxbContext = JAXBContext.newInstance(io.mycat.config.loader.zookeeper.entitiy.Server.class,
                 io.mycat.config.loader.zookeeper.entitiy.Rules.class,
                 io.mycat.config.loader.zookeeper.entitiy.Schemas.class);
     }
@@ -46,7 +49,6 @@ public class ZookeeperSaver {
         saveRule(jsonObject, "rule");
         saveSchema(jsonObject, "schema");
     }
-
 
     public Schemas saveSchema(JSONObject jsonObject, String fileName) throws Exception {
         JSONObject cluster = jsonObject.getJSONObject(ZookeeperLoader.CLUSTER_KEY);
@@ -58,7 +60,7 @@ public class ZookeeperSaver {
         schemas.setDataNode(createDataNode(cluster));
         schemas.setDataHost(createDataHost(jsonObject));
 
-        //save to file, /MYCAT_HOME/conf/${fileName}.xml
+        // save to file, /MYCAT_HOME/conf/${fileName}.xml
         marshaller(schemas, getConfigPath() + fileName + ".xml", "schema");
         return schemas;
     }
@@ -75,10 +77,10 @@ public class ZookeeperSaver {
             schema.setName(schemaJson.getString("name"));
             schema.setDataNode(schemaJson.getString("dataNode"));
             Integer defaultMaxLimit = schemaJson.getInteger("defaultMaxLimit");
-            if(null!=defaultMaxLimit){
-               schema.setSqlMaxLimit(defaultMaxLimit);
-            }else{
-               schema.setSqlMaxLimit(100);	
+            if (null != defaultMaxLimit) {
+                schema.setSqlMaxLimit(defaultMaxLimit);
+            } else {
+                schema.setSqlMaxLimit(100);
             }
 
             if (StringUtils.isNotEmpty(schemaJson.getString("checkSQLSchema"))) {
@@ -92,12 +94,11 @@ public class ZookeeperSaver {
         return schemas;
     }
 
-    private List<Schemas.Schema.Table> createSchemaTables(JSONObject tablesJson)
-        throws IOException {
+    private List<Schemas.Schema.Table> createSchemaTables(JSONObject tablesJson) throws IOException {
         List<Schemas.Schema.Table> tables = new ArrayList<>();
 
         for (String tableKey : tablesJson.keySet()) {
-            //skip all none table configuration.
+            // skip all none table configuration.
             if (!(tablesJson.get(tableKey) instanceof JSONObject)) {
                 continue;
             }
@@ -127,7 +128,7 @@ public class ZookeeperSaver {
         table.setPrimaryKey(tablesJson.getString("primaryKey"));
         table.setRule(tablesJson.getString("ruleName"));
 
-        //1 is global table
+        // 1 is global table
         if (StringUtils.isNotEmpty(tablesJson.getString("type"))) {
             String talbeType = tablesJson.get("type").toString().equals("1") ? "global" : null;
             table.setType(talbeType);
@@ -142,7 +143,7 @@ public class ZookeeperSaver {
         List<Schemas.Schema.Table.ChildTable> childTables = new ArrayList<>();
 
         for (String childTableKey : tablesJson.keySet()) {
-            //have child tables
+            // have child tables
             if (tablesJson.get(childTableKey) instanceof JSONObject) {
                 Schemas.Schema.Table.ChildTable childTable = new Schemas.Schema.Table.ChildTable();
                 JSONObject childTableJson = tablesJson.getJSONObject(childTableKey);
@@ -167,7 +168,6 @@ public class ZookeeperSaver {
     private List<Schemas.DataNode> createDataNode(JSONObject cluster) throws IOException {
         JSONObject dataNodesJson = cluster.getJSONObject("datanode");
         Preconditions.checkNotNull(dataNodesJson);
-
 
         List<Schemas.DataNode> dataNodes = new ArrayList<>();
         for (String key : dataNodesJson.keySet()) {
@@ -219,8 +219,7 @@ public class ZookeeperSaver {
         return dataHosts;
     }
 
-    private List<Schemas.DataHost.WriteHost> createWriteHost(JSONObject cluster,
-        JSONObject dataHostJson) {
+    private List<Schemas.DataHost.WriteHost> createWriteHost(JSONObject cluster, JSONObject dataHostJson) {
         String mysqlGroup = dataHostJson.getString("mysqlGroup");
         String dataHostName = dataHostJson.getString("name");
 
@@ -230,29 +229,27 @@ public class ZookeeperSaver {
         String currentWriteName = myGroupJson.getString("cur-write-server");
         JSONObject currentWriteJson = mysqls.getJSONObject(currentWriteName);
 
-        //write host
+        // write host
         Schemas.DataHost.WriteHost currentWrite = new Schemas.DataHost.WriteHost();
         currentWrite.setHost(dataHostName);
         currentWrite.setPassword(currentWriteJson.getString("password"));
-        currentWrite
-            .setUrl(currentWriteJson.getString("ip") + ":" + currentWriteJson.getInteger("port"));
+        currentWrite.setUrl(currentWriteJson.getString("ip") + ":" + currentWriteJson.getInteger("port"));
         currentWrite.setUser(currentWriteJson.getString("user"));
 
         if (StringUtils.isNotEmpty(currentWriteJson.getString("usingDecrypt"))) {
             currentWrite.setUsingDecrypt(currentWriteJson.getBoolean("usingDecrypt"));
         }
 
-        //read host
+        // read host
         JSONArray allHosts = myGroupJson.getJSONArray("servers");
         List<Schemas.DataHost.WriteHost.ReadHost> readHosts = new ArrayList<>();
 
         for (int i = 0; i < allHosts.size(); i++) {
             String readHostName = allHosts.getString(i);
-            //skip current write host.
+            // skip current write host.
             if (!readHostName.equals(currentWriteName)) {
                 JSONObject readHostJson = mysqls.getJSONObject(readHostName);
-                Schemas.DataHost.WriteHost.ReadHost readHost =
-                    new Schemas.DataHost.WriteHost.ReadHost();
+                Schemas.DataHost.WriteHost.ReadHost readHost = new Schemas.DataHost.WriteHost.ReadHost();
 
                 readHost.setHost(readHostName);
                 readHost.setPassword(readHostJson.getString("password"));
@@ -288,7 +285,7 @@ public class ZookeeperSaver {
             rules.getFunction().add(createFunction(tableRuleJson));
         }
 
-        //save to file, /MYCAT_HOME/conf/${fileName}.xml
+        // save to file, /MYCAT_HOME/conf/${fileName}.xml
         marshaller(rules, getConfigPath() + fileName + ".xml", "rule");
         return rules;
     }
@@ -296,7 +293,7 @@ public class ZookeeperSaver {
     private Rules.Function createFunction(JSONObject tableRuleJson) throws IOException {
         Rules.Function tableFunction = new Rules.Function();
 
-        //get data and remove non-property in json.
+        // get data and remove non-property in json.
         String name = tableRuleJson.getString("name");
         tableFunction.setName(name);
         tableFunction.setClazz(tableRuleJson.getString("functionName"));
@@ -304,25 +301,23 @@ public class ZookeeperSaver {
         tableRuleJson.remove("name");
         tableRuleJson.remove("functionName");
 
-        //json have config key,so to save it to file and set property mapFile
+        // json have config key,so to save it to file and set property mapFile
         if (StringUtils.isNotEmpty(tableRuleJson.getString("config"))) {
             JSONObject config = tableRuleJson.getJSONObject("config");
 
-            //save config to file. /conf/${name}.txt
+            // save config to file. /conf/${name}.txt
             String fileName = name + ".txt";
             Path path = Paths.get(getConfigPath() + fileName);
 
-            try (BufferedWriter writer = Files
-                .newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)
-            ) {
+            try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
                 for (String key : config.keySet()) {
                     String value = config.get(key).toString();
                     writer.write(key + "=" + value);
                     writer.newLine();
                 }
             }
-            //remove config and put mapFile
+            // remove config and put mapFile
             tableRuleJson.remove("config");
             tableRuleJson.put("mapFile", fileName);
         }
@@ -338,7 +333,7 @@ public class ZookeeperSaver {
     private Rules.TableRule createTableRule(JSONObject tableRuleJson) {
         Rules.TableRule tableRule = new Rules.TableRule();
 
-        //get data and remove non-property in json.
+        // get data and remove non-property in json.
         tableRule.setName(tableRuleJson.getString("name"));
 
         Rules.TableRule.Rule rule = new Rules.TableRule.Rule();
@@ -361,12 +356,12 @@ public class ZookeeperSaver {
 
         Server server = new Server();
 
-        //system
+        // system
         Server.System serverSystem = new Server.System();
         putProperty(systemParams, serverSystem);
         server.setSystem(serverSystem);
 
-        //user
+        // user
         ArrayList<Server.User> userList = new ArrayList<>();
         if (user != null && user.size() > 0) {
             for (String key : user.keySet()) {
@@ -375,7 +370,7 @@ public class ZookeeperSaver {
 
                 serverUser.setName(userObject.getString("name"));
 
-                //ignore name and set other to properties;
+                // ignore name and set other to properties;
                 userObject.remove("name");
 
                 putProperty(userObject, serverUser);
@@ -384,7 +379,7 @@ public class ZookeeperSaver {
         }
         server.setUser(userList);
 
-        //save to file, /MYCAT_HOME/conf/${fileName}.xml
+        // save to file, /MYCAT_HOME/conf/${fileName}.xml
         marshaller(server, getConfigPath() + fileName + ".xml", "server");
         return server;
     }
@@ -400,20 +395,18 @@ public class ZookeeperSaver {
         }
     }
 
-    private void marshaller(Object object, String filePathAndName, String dtdName)
-        throws Exception {
+    private void marshaller(Object object, String filePathAndName, String dtdName) throws Exception {
         Marshaller marshaller = jaxbContext.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
         marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
 
         marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
-            String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", dtdName));
+                String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", dtdName));
 
         Path path = Paths.get(filePathAndName);
 
-        try (OutputStream out = Files
-            .newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE)) {
+        try (OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
             marshaller.marshal(object, out);
         }
     }
@@ -423,7 +416,7 @@ public class ZookeeperSaver {
             for (String key : json.keySet()) {
                 Object obj = json.get(key);
                 if (obj instanceof JSONArray) {
-                    //join value using ',' .
+                    // join value using ',' .
                     String value = commaJonier.join(json.getJSONArray(key).iterator()).trim();
                     propertied.addProperty(createProperty(key, value));
                     continue;

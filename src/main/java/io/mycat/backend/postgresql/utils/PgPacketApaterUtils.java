@@ -31,7 +31,7 @@ public class PgPacketApaterUtils {
 		List<FieldPacket>  fieldPks = new ArrayList<FieldPacket>(description.getColumnNumber());
 		for(ColumnDescription c: description.getColumns()){
 			FieldPacket fieldPk = new FieldPacket();
-			fieldPk.name = c.getColumnName().getBytes(UTF8);
+			fieldPk.name = c.getColumnName().trim().getBytes(UTF8);
 			fieldPk.type = convertFieldType(c.getColumnType());
 			fieldPks.add(fieldPk);
 		}
@@ -48,9 +48,18 @@ public class PgPacketApaterUtils {
 		if(columnType == DateType.timestamp_){
 			return Fields.FIELD_TYPE_TIMESTAMP;
 		}
+		if(columnType == DateType.int2_ || columnType == DateType.int4_ || columnType == DateType.int8_ ){
+			return Fields.FIELD_TYPE_INT24;
+		}
+		if(columnType == DateType.decimal_){
+			return Fields.FIELD_TYPE_NEW_DECIMAL;
+		}		
+		if(columnType == DateType.UNKNOWN){
 		
+		}
 		return Fields.FIELD_TYPE_VARCHAR;
 	}
+
 
 	/***
 	 * 行数据转换成mysql的数据

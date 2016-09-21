@@ -76,9 +76,7 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 			ShowHandler.handle(sql, c, rs >>> 8);
 			break;
 		case ServerParse.SELECT:
-			if(QuarantineHandler.handle(sql, c)){
-				SelectHandler.handle(sql, c, rs >>> 8);
-			}
+			SelectHandler.handle(sql, c, rs >>> 8);
 			break;
 		case ServerParse.START:
 			StartHandler.handle(sql, c, rs >>> 8);
@@ -120,15 +118,16 @@ public class ServerQueryHandler implements FrontendQueryHandler {
             case ServerParse.LOAD_DATA_INFILE_SQL:
                 c.loadDataInfileStart(sql);
                 break;
+			case ServerParse.MIGRATE:
+				MigrateHandler.handle(sql,c);
+				break;
 		default:
 			if(readOnly){
 				LOGGER.warn(new StringBuilder().append("User readonly:").append(sql).toString());
 				c.writeErrMessage(ErrorCode.ER_USER_READ_ONLY, "User readonly");
 				break;
 			}
-			if(QuarantineHandler.handle(sql, c)){
-				c.execute(sql, rs & 0xff);
-			}
+			c.execute(sql, rs & 0xff);
 		}
 	}
 

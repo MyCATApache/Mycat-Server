@@ -32,7 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
-import io.mycat.config.model.QuarantineConfig;
+import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
@@ -43,6 +43,7 @@ import io.mycat.util.TimeUtil;
  * @author mycat
  */
 public class MycatConfig {
+	
 	private static final int RELOAD = 1;
 	private static final int ROLLBACK = 2;
     private static final int RELOAD_ALL = 3;
@@ -50,8 +51,8 @@ public class MycatConfig {
 	private volatile SystemConfig system;
 	private volatile MycatCluster cluster;
 	private volatile MycatCluster _cluster;
-	private volatile QuarantineConfig quarantine;
-	private volatile QuarantineConfig _quarantine;
+	private volatile FirewallConfig firewall;
+	private volatile FirewallConfig _firewall;
 	private volatile Map<String, UserConfig> users;
 	private volatile Map<String, UserConfig> _users;
 	private volatile Map<String, SchemaConfig> schemas;
@@ -66,6 +67,7 @@ public class MycatConfig {
 	private final ReentrantLock lock;
 
 	public MycatConfig() {
+		
 		//读取schema.xml，rule.xml和server.xml
 		ConfigInitializer confInit = new ConfigInitializer(true);
 		this.system = confInit.getSystem();
@@ -77,12 +79,15 @@ public class MycatConfig {
 		for (PhysicalDBPool dbPool : dataHosts.values()) {
 			dbPool.setSchemas(getDataNodeSchemasOfDataHost(dbPool.getHostName()));
 		}
-		this.quarantine = confInit.getQuarantine();
+		
+		this.firewall = confInit.getFirewall();
 		this.cluster = confInit.getCluster();
+		
 		//初始化重加载配置时间
 		this.reloadTime = TimeUtil.currentTimeMillis();
 		this.rollbackTime = -1L;
 		this.status = RELOAD;
+		
 		//配置加载锁
 		this.lock = new ReentrantLock();
 	}
@@ -93,10 +98,11 @@ public class MycatConfig {
 
 	public void setSocketParams(AbstractConnection con, boolean isFrontChannel)
 			throws IOException {
+		
 		int sorcvbuf = 0;
 		int sosndbuf = 0;
 		int soNoDelay = 0;
-		if (isFrontChannel) {
+		if ( isFrontChannel ) {
 			sorcvbuf = system.getFrontsocketsorcvbuf();
 			sosndbuf = system.getFrontsocketsosndbuf();
 			soNoDelay = system.getFrontSocketNoDelay();
@@ -105,7 +111,8 @@ public class MycatConfig {
 			sosndbuf = system.getBacksocketsosndbuf();
 			soNoDelay = system.getBackSocketNoDelay();
 		}
-		NetworkChannel channel=con.getChannel();
+		
+		NetworkChannel channel = con.getChannel();
 		channel.setOption(StandardSocketOptions.SO_RCVBUF, sorcvbuf);
 		channel.setOption(StandardSocketOptions.SO_SNDBUF, sosndbuf);
 		channel.setOption(StandardSocketOptions.TCP_NODELAY, soNoDelay == 1);
@@ -145,7 +152,7 @@ public class MycatConfig {
 
 	public String[] getDataNodeSchemasOfDataHost(String dataHost) {
 		ArrayList<String> schemas = new ArrayList<String>(30);
-		for (PhysicalDBNode dn : dataNodes.values()) {
+		for (PhysicalDBNode dn: dataNodes.values()) {
 			if (dn.getDbPool().getHostName().equals(dataHost)) {
 				schemas.add(dn.getDatabase());
 			}
@@ -173,12 +180,12 @@ public class MycatConfig {
 		return _cluster;
 	}
 
-	public QuarantineConfig getQuarantine() {
-		return quarantine;
+	public FirewallConfig getFirewall() {
+		return firewall;
 	}
 
-	public QuarantineConfig getBackupQuarantine() {
-		return _quarantine;
+	public FirewallConfig getBackupFirewall() {
+		return _firewall;
 	}
 
 	public ReentrantLock getLock() {
@@ -193,12 +200,16 @@ public class MycatConfig {
 		return rollbackTime;
 	}
 
-	public void reload(Map<String, UserConfig> users,
-			Map<String, SchemaConfig> schemas,
-			Map<String, PhysicalDBNode> dataNodes,
-			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			QuarantineConfig quarantine,boolean reloadAll) {
-		apply(users, schemas, dataNodes, dataHosts, cluster, quarantine,reloadAll);
+	public void reload(
+			Map<String, UserConfig> newUsers, 
+			Map<String, SchemaConfig> newSchemas,
+			Map<String, PhysicalDBNode> newDataNodes, 
+			Map<String, PhysicalDBPool> newDataHosts, 
+			MycatCluster newCluster,
+			FirewallConfig newFirewall, 
+			boolean reloadAll) {
+		
+		apply(newUsers, newSchemas, newDataNodes, newDataHosts, newCluster, newFirewall, reloadAll);
 		this.reloadTime = TimeUtil.currentTimeMillis();
 		this.status = reloadAll?RELOAD_ALL:RELOAD;
 	}
@@ -206,77 +217,82 @@ public class MycatConfig {
 	public boolean canRollback() {
 		if (_users == null || _schemas == null || _dataNodes == null
 				|| _dataHosts == null || _cluster == null
-				|| _quarantine == null || status == ROLLBACK) {
+				|| _firewall == null || status == ROLLBACK) {
 			return false;
 		} else {
 			return true;
 		}
 	}
 
-	public void rollback(Map<String, UserConfig> users,
+	public void rollback(
+			Map<String, UserConfig> users,
 			Map<String, SchemaConfig> schemas,
 			Map<String, PhysicalDBNode> dataNodes,
-			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			QuarantineConfig quarantine) {
-		apply(users, schemas, dataNodes, dataHosts, cluster, quarantine,status==RELOAD_ALL);
+			Map<String, PhysicalDBPool> dataHosts, 
+			MycatCluster cluster,
+			FirewallConfig firewall) {
+		
+		apply(users, schemas, dataNodes, dataHosts, cluster, firewall, status==RELOAD_ALL);
 		this.rollbackTime = TimeUtil.currentTimeMillis();
 		this.status = ROLLBACK;
 	}
 
-	private void apply(Map<String, UserConfig> users,
-			Map<String, SchemaConfig> schemas,
-			Map<String, PhysicalDBNode> dataNodes,
-			Map<String, PhysicalDBPool> dataHosts, MycatCluster cluster,
-			QuarantineConfig quarantine,boolean isLoadAll) {
+	private void apply(Map<String, UserConfig> newUsers,
+			Map<String, SchemaConfig> newSchemas,
+			Map<String, PhysicalDBNode> newDataNodes,
+			Map<String, PhysicalDBPool> newDataHosts, 
+			MycatCluster newCluster,
+			FirewallConfig newFirewall,
+			boolean isLoadAll) {
+		
 		final ReentrantLock lock = this.lock;
 		lock.lock();
 		try {
-            if(isLoadAll)
-            {
-                // stop datasource heartbeat
-                Map<String, PhysicalDBPool> oldDataHosts = this.dataHosts;
-                if (oldDataHosts != null)
-                {
-                    for (PhysicalDBPool n : oldDataHosts.values())
-                    {
-                        if (n != null)
-                        {
-                            n.stopHeartbeat();
-                        }
-                    }
-                }
-                this._dataNodes = this.dataNodes;
-                this._dataHosts = this.dataHosts;
-            }
+			
+			// old 处理
+			// 1、停止老的数据源心跳
+			// 2、备份老的数据源配置
+			//--------------------------------------------
+			if (isLoadAll) {				
+				Map<String, PhysicalDBPool> oldDataHosts = this.dataHosts;
+				if (oldDataHosts != null) {
+					for (PhysicalDBPool oldDbPool : oldDataHosts.values()) {
+						if (oldDbPool != null) {
+							oldDbPool.stopHeartbeat();
+						}
+					}
+				}
+				this._dataNodes = this.dataNodes;
+				this._dataHosts = this.dataHosts;
+			}
+			
 			this._users = this.users;
 			this._schemas = this.schemas;
-
 			this._cluster = this.cluster;
-			this._quarantine = this.quarantine;
+			this._firewall = this.firewall;
 
-            if(isLoadAll)
-            {
-                // start datasoruce heartbeat
-                if (dataNodes != null)
-                {
-                    for (PhysicalDBPool n : dataHosts.values())
-                    {
-                        if (n != null)
-                        {
-                            n.startHeartbeat();
-                        }
-                    }
-                }
-                this.dataNodes = dataNodes;
-                this.dataHosts = dataHosts;
-            }
-			this.users = users;
-			this.schemas = schemas;
-			this.cluster = cluster;
-			this.quarantine = quarantine;
+			// new 处理
+			// 1、启动新的数据源心跳
+			// 2、执行新的配置
+			//---------------------------------------------------
+			if (isLoadAll) {
+				if (newDataHosts != null) {
+					for (PhysicalDBPool newDbPool : newDataHosts.values()) {
+						if ( newDbPool != null) {
+							newDbPool.startHeartbeat();
+						}
+					}
+				}
+				this.dataNodes = newDataNodes;
+				this.dataHosts = newDataHosts;
+			}			
+			this.users = newUsers;
+			this.schemas = newSchemas;
+			this.cluster = newCluster;
+			this.firewall = newFirewall;
+			
 		} finally {
 			lock.unlock();
 		}
-	}
-	
+	}	
 }

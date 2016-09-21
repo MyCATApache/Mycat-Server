@@ -1,20 +1,5 @@
 package io.mycat.backend.postgresql;
 
-import io.mycat.backend.BackendConnection;
-import io.mycat.backend.mysql.CharsetUtil;
-import io.mycat.backend.mysql.nio.MySQLConnectionHandler;
-import io.mycat.backend.mysql.nio.handler.ResponseHandler;
-import io.mycat.backend.postgresql.packet.Query;
-import io.mycat.backend.postgresql.packet.Terminate;
-import io.mycat.backend.postgresql.utils.PacketUtils;
-import io.mycat.backend.postgresql.utils.PgSqlApaterUtils;
-import io.mycat.config.Isolations;
-import io.mycat.net.BackendAIOConnection;
-import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.ServerConnection;
-import io.mycat.server.parser.ServerParse;
-import io.mycat.util.exception.UnknownTxIsolationException;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -23,14 +8,29 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.mycat.backend.mysql.CharsetUtil;
+import io.mycat.backend.mysql.nio.MySQLConnectionHandler;
+import io.mycat.backend.mysql.nio.handler.ResponseHandler;
+import io.mycat.backend.postgresql.packet.Query;
+import io.mycat.backend.postgresql.packet.Terminate;
+import io.mycat.backend.postgresql.utils.PIOUtils;
+import io.mycat.backend.postgresql.utils.PacketUtils;
+import io.mycat.backend.postgresql.utils.PgSqlApaterUtils;
+import io.mycat.config.Isolations;
+import io.mycat.net.BackendAIOConnection;
+import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.ServerConnection;
+import io.mycat.server.parser.ServerParse;
+import io.mycat.util.TimeUtil;
+import io.mycat.util.exception.UnknownTxIsolationException;
+
 /*************************************************************
  * PostgreSQL Native Connection impl
  * 
  * @author Coollf
  *
  */
-public class PostgreSQLBackendConnection extends BackendAIOConnection implements
-		BackendConnection {
+public class PostgreSQLBackendConnection extends BackendAIOConnection {
 
 	public static enum BackendConnectionState {
 		closed, connected, connecting
@@ -208,8 +208,9 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	@Override
 	public void execute(RouteResultsetNode rrn, ServerConnection sc,
 			boolean autocommit) throws IOException {
-
-		LOGGER.warn("{}查询任务。。。。{}", id, rrn.getStatement());
+		if(LOGGER.isDebugEnabled()){
+			LOGGER.debug("{}查询任务。。。。{}", id, rrn.getStatement());
+		}
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
@@ -319,21 +320,16 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 			throw new RuntimeException(e);
 		}
 	}
-
-	/**
-	 * 读取可能的Socket字节流
-	 */
-	public void onReadData(int got) throws IOException {
-		int offset = readBufferOffset + 0;
-		readBufferOffset = readBufferOffset + got;
-		readBuffer.position(offset);
-		byte[] data = new byte[got];
-		readBuffer.get(data, 0, got);
-		readBuffer.clear();
-		readBufferOffset = 0;
-		handle(data);
+	
+	protected final int getPacketLength(ByteBuffer buffer, int offset) {
+		//Pg 协议获取包长度的方法和mysql 不一样
+		return PIOUtils.redInteger4(buffer, offset+1)+1;		
 	}
+	
 
+
+	
+	
 	/**********
 	 * 此查询用于心跳检查和获取连接后的健康检查
 	 */
@@ -543,4 +539,10 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		return true;
 	}
 
+	
+	@Override
+	public String toString() {
+		return "PostgreSQLBackendConnection [id=" + id + ", host=" + host + ", port="
+				+ port + ", localPort=" + localPort + "]";
+	}
 }

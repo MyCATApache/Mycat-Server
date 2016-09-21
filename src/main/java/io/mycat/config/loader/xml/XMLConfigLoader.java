@@ -30,7 +30,7 @@ import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.model.ClusterConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.config.model.DataNodeConfig;
-import io.mycat.config.model.QuarantineConfig;
+import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.UserConfig;
@@ -49,14 +49,14 @@ public class XMLConfigLoader implements ConfigLoader {
     private final SystemConfig system;
     /** unmodifiable */
     private final Map<String, UserConfig> users;
-    private final QuarantineConfig quarantine;
+    private final FirewallConfig firewall;
     private final ClusterConfig cluster;
 
     public XMLConfigLoader(SchemaLoader schemaLoader) {
         XMLServerLoader serverLoader = new XMLServerLoader();
         this.system = serverLoader.getSystem();
         this.users = serverLoader.getUsers();
-        this.quarantine = serverLoader.getQuarantine();
+        this.firewall = serverLoader.getFirewall();
         this.cluster = serverLoader.getCluster();
         this.dataHosts = schemaLoader.getDataHosts();
         this.dataNodes = schemaLoader.getDataNodes();
@@ -70,8 +70,8 @@ public class XMLConfigLoader implements ConfigLoader {
     }
 
     @Override
-    public QuarantineConfig getQuarantineConfig() {
-        return quarantine;
+    public FirewallConfig getFirewallConfig() {
+        return firewall;
     }
 
     @Override
