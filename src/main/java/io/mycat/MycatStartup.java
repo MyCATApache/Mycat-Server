@@ -25,14 +25,14 @@ package io.mycat;
 
 
 
-import io.mycat.config.ZkConfig;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.route.factory.RouteStrategyFactory;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.model.SystemConfig;
 
 /**
  * @author mycat
@@ -42,7 +42,7 @@ public final class MycatStartup {
     private static final Logger LOGGER = LoggerFactory.getLogger(MycatStartup.class);
     public static void main(String[] args) {
         //use zk ?
-        ZkConfig.instance().initZk();
+        ZkConfig.getInstance().initZk();
         try {
             String home = SystemConfig.getHomePath();
             if (home == null) {

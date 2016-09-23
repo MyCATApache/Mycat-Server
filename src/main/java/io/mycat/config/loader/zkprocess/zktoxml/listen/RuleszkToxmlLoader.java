@@ -82,10 +82,18 @@ public class RuleszkToxmlLoader extends ZkMultLoader implements NotiflyService {
     */
     private ParseJsonServiceInf<List<Function>> parseJsonFunctionService = new FunctionJsonParse();
 
+    /**
+     * zk的监控路径信息
+    * @字段说明 zookeeperListen
+    */
+    private ZookeeperProcessListen zookeeperListen;
+
     public RuleszkToxmlLoader(ZookeeperProcessListen zookeeperListen, CuratorFramework curator,
             XmlProcessBase xmlParseBase) {
 
         this.setCurator(curator);
+
+        this.zookeeperListen = zookeeperListen;
 
         // 获得当前集群的名称
         String RulesPath = zookeeperListen.getBasePath();
@@ -147,10 +155,23 @@ public class RuleszkToxmlLoader extends ZkMultLoader implements NotiflyService {
         List<TableRule> tableRuleData = parseJsonTableRuleService.parseJsonToBean(RulesZkData.getDataValue());
         Rules.setTableRule(tableRuleData);
 
+        // tablerule的监控路径信息
+        String watchPath = ZookeeperPath.FLOW_ZK_PATH_RULE.getKey();
+        watchPath = watchPath + ZookeeperPath.ZK_SEPARATOR.getKey()
+                + ZookeeperPath.FLOW_ZK_PATH_RULE_TABLERULE.getKey();
+        this.zookeeperListen.watchPath(currZkPath, watchPath);
+
         // 得到function信息
         DataInf functionZkData = this.getZkData(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_RULE_FUNCTION.getKey());
         List<Function> functionList = parseJsonFunctionService.parseJsonToBean(functionZkData.getDataValue());
         Rules.setFunction(functionList);
+
+        // function的监控路径信息
+        String functionWatchPath = ZookeeperPath.FLOW_ZK_PATH_RULE.getKey();
+        functionWatchPath = functionWatchPath + ZookeeperPath.ZK_SEPARATOR.getKey()
+                + ZookeeperPath.FLOW_ZK_PATH_RULE_FUNCTION.getKey();
+        this.zookeeperListen.watchPath(currZkPath, functionWatchPath);
+
         return Rules;
     }
 

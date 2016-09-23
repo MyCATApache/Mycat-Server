@@ -22,8 +22,6 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 
-import com.sun.xml.internal.bind.marshaller.NamespacePrefixMapper;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,14 +156,6 @@ public class XmlProcessBase {
                 for (Entry<String, Object> entry : map.entrySet()) {
                     marshaller.setProperty(entry.getKey(), entry.getValue());
                 }
-
-                marshaller.setProperty("com.sun.xml.bind.namespacePrefixMapper", new NamespacePrefixMapper() {
-                    @Override
-                    public String getPreferredPrefix(String arg0, String arg1, boolean arg2) {
-                        return null;
-                    }
-                });
-
             }
 
             Path path = Paths.get(inputPath);
