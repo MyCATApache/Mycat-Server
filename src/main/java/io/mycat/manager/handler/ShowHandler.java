@@ -240,6 +240,12 @@ public final class ShowHandler {
 		case ManagerParseShow.DATASOURCE_CLUSTER://by songwie
 			ShowDatasourceCluster.response(c,stmt);
 			break;	
+		case ManagerParseShow.DIRECTMEMORY_DETAILl:
+			ShowDirectMemory.execute(c,2);
+			break;
+		case ManagerParseShow.DIRECTMEMORY_TOTAL:
+			ShowDirectMemory.execute(c,1);
+			break;
 		default:
 			c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 		}
