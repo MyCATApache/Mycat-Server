@@ -24,6 +24,7 @@ import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.route.function.SlotFunction;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
+import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.StringUtil;
@@ -270,10 +271,12 @@ public class DruidInsertParser extends DefaultDruidParser {
 					insertStmt.setValuesList(valuesList);
 					nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
 							rrs.getSqlType(),insertStmt.toString());
-					nodes[count++].setSource(rrs);
 					if(algorithm instanceof SlotFunction) {
 						nodes[count].setSlot(slotsMap.get(nodeIndex));
+						nodes[count].setStatement(ParseUtil.changeInsertAddSlot(nodes[count].getStatement(),nodes[count].getSlot()));
 					}
+					nodes[count++].setSource(rrs);
+
 				}
 				rrs.setNodes(nodes);
 				rrs.setFinishedRoute(true);

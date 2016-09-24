@@ -1,6 +1,13 @@
 package io.mycat.route.util;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.statement.SQLCharacterDataType;
+import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
+import com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
@@ -161,7 +168,9 @@ public class RouterUtil {
 				Iterator<String> iterator1 = dataNodes.iterator();
 				int nodeSize = dataNodes.size();
 				RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSize];
-
+				 if(isSlotFunction){
+					 stmt=changeCreateTable(schema,tablename,stmt);
+				 }
 				for(int i=0;i<nodeSize;i++){
 					String name = iterator1.next();
 					nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
@@ -185,6 +194,28 @@ public class RouterUtil {
 		//both tablename and defaultnode null
 		LOGGER.error("table not in schema----"+tablename);
 		throw new SQLSyntaxErrorException("op table not in schema----"+tablename);
+	}
+
+	private  static String changeCreateTable(SchemaConfig schema,String tableName,String sql) {
+		if (schema.getTables().containsKey(tableName)) {
+			MySqlStatementParser parser = new MySqlStatementParser(sql);
+			SQLStatement insertStatement = parser.parseStatement();
+			if (insertStatement instanceof MySqlCreateTableStatement) {
+				TableConfig tableConfig = schema.getTables().get(tableName);
+				AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
+				if (algorithm instanceof SlotFunction) {
+					SQLColumnDefinition column = new SQLColumnDefinition();
+					column.setDataType(new SQLCharacterDataType("int"));
+					column.setName(new SQLIdentifierExpr("_slot"));
+					column.setComment(new SQLCharExpr("自动迁移算法slot,禁止修改"));
+					((SQLCreateTableStatement) insertStatement).getTableElementList().add(column);
+					return insertStatement.toString();
+
+				}
+			}
+
+		}
+		return sql;
 	}
 
 	/**
