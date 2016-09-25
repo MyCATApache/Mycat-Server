@@ -1,6 +1,7 @@
 package io.mycat.buffer;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -15,7 +16,7 @@ import sun.nio.ch.DirectBuffer;
  */
 @SuppressWarnings("restriction")
 public class DirectByteBufferPool implements BufferPool{
-    private static final Logger LOGGER = LoggerFactory.getLogger("DirectByteBufferPool");
+    private static final Logger LOGGER = LoggerFactory.getLogger(DirectByteBufferPool.class);
     public static final String LOCAL_BUF_THREAD_PREX = "$_";
     private ByteBufferPage[] allPages;
     private final int chunkSize;
@@ -24,6 +25,10 @@ public class DirectByteBufferPool implements BufferPool{
     private final  int pageSize;
     private final short pageCount;
     private final int conReadBuferChunk ;
+    /**
+     * 记录对线程ID->该线程的所使用Direct Buffer的size
+     */
+    private final ConcurrentHashMap<Long,Long> memoryUsage;
 
     public DirectByteBufferPool(int pageSize, short chunkSize, short pageCount,int conReadBuferChunk) {
         allPages = new ByteBufferPage[pageCount];
@@ -35,6 +40,7 @@ public class DirectByteBufferPool implements BufferPool{
         for (int i = 0; i < pageCount; i++) {
             allPages[i] = new ByteBufferPage(ByteBuffer.allocateDirect(pageSize), chunkSize);
         }
+        memoryUsage = new ConcurrentHashMap<>();
     }
 
     public BufferArray allocateArray() {
@@ -61,11 +67,18 @@ public class DirectByteBufferPool implements BufferPool{
     }
 
     public ByteBuffer allocate(int size) {
-        int theChunkCount = size / chunkSize + (size % chunkSize == 0 ? 0 : 1);
+       final int theChunkCount = size / chunkSize + (size % chunkSize == 0 ? 0 : 1);
         int selectedPage =  prevAllocatedPage.incrementAndGet() % allPages.length;
         ByteBuffer byteBuf = allocateBuffer(theChunkCount, 0, selectedPage);
         if (byteBuf == null) {
             byteBuf = allocateBuffer(theChunkCount, selectedPage, allPages.length);
+        }
+        final long threadId = Thread.currentThread().getId();
+
+        if (memoryUsage.containsKey(threadId)){
+            memoryUsage.put(threadId,memoryUsage.get(threadId)+byteBuf.capacity());
+        }else {
+            memoryUsage.put(threadId,(long)byteBuf.capacity());
         }
         return byteBuf;
     }
@@ -75,6 +88,9 @@ public class DirectByteBufferPool implements BufferPool{
     		theBuf.clear();
     		return;
     	}
+
+    	final long size = theBuf.capacity();
+
         boolean recycled = false;
         DirectBuffer thisNavBuf = (DirectBuffer) theBuf;
         int chunkCount = theBuf.capacity() / chunkSize;
@@ -84,6 +100,11 @@ public class DirectByteBufferPool implements BufferPool{
             if ((recycled = allPages[i].recycleBuffer((ByteBuffer) parentBuf, startChunk, chunkCount) == true)) {
                 break;
             }
+        }
+        final long threadId = Thread.currentThread().getId();
+
+        if (memoryUsage.containsKey(threadId)){
+            memoryUsage.put(threadId,memoryUsage.get(threadId)-size);
         }
         if (recycled == false) {
             LOGGER.warn("warning ,not recycled buffer " + theBuf);
@@ -103,6 +124,11 @@ public class DirectByteBufferPool implements BufferPool{
 
     public int getChunkSize() {
         return chunkSize;
+    }
+	
+	 @Override
+    public ConcurrentHashMap<Long,Long> getNetDirectMemoryUsage() {
+        return memoryUsage;
     }
 
     public int getPageSize() {

@@ -34,6 +34,10 @@ public class ByteBufferArena implements BufferPool {
 
     private final ConcurrentHashMap<Thread, Integer> sharedOptsCount;
 
+    /**
+     * 记录对线程ID->该线程的所使用Direct Buffer的size
+     */
+    private final ConcurrentHashMap<Long,Long> memoryUsage;
     private final int conReadBuferChunk;
 
     public ByteBufferArena(int chunkSize, int pageSize, int chunkCount, int conReadBuferChunk) {
@@ -68,6 +72,7 @@ public class ByteBufferArena implements BufferPool {
             capacity = new AtomicLong(6 * chunkCount * chunkSize);
             size = new AtomicLong(6 * chunkCount * chunkSize);
             sharedOptsCount = new ConcurrentHashMap<>();
+            memoryUsage = new ConcurrentHashMap<>();
         } finally {
         }
     }
@@ -98,6 +103,13 @@ public class ByteBufferArena implements BufferPool {
 //            printList();
             capacity.addAndGet(-reqCapacity);
             final Thread thread =  Thread.currentThread();
+            final long threadId = thread.getId();
+
+            if (memoryUsage.containsKey(threadId)){
+                memoryUsage.put(threadId,memoryUsage.get(thread.getId())+reqCapacity);
+            }else {
+                memoryUsage.put(threadId, (long) reqCapacity);
+            }
             if (sharedOptsCount.contains(thread)) {
                 int currentCount = sharedOptsCount.get(thread);
                 currentCount++;
@@ -119,6 +131,7 @@ public class ByteBufferArena implements BufferPool {
 
     @Override
     public void recycle(ByteBuffer byteBuffer) {
+        final long size = byteBuffer != null?byteBuffer.capacity():0;
         try {
             int i;
             for (i = 0; i < 6; i++) {
@@ -131,6 +144,11 @@ public class ByteBufferArena implements BufferPool {
                 return;
             }
             final Thread thread =  Thread.currentThread();
+            final long threadId = thread.getId();
+
+            if (memoryUsage.containsKey(threadId)){
+                memoryUsage.put(threadId,memoryUsage.get(thread.getId())-size);
+            }
             if (sharedOptsCount.contains(thread)) {
                 int currentCount = sharedOptsCount.get(thread);
                 currentCount--;
@@ -182,6 +200,11 @@ public class ByteBufferArena implements BufferPool {
     @Override
     public int getChunkSize() {
         return pageSize;
+    }
+
+    @Override
+    public ConcurrentHashMap<Long, Long> getNetDirectMemoryUsage() {
+        return memoryUsage;
     }
 
     @Override
