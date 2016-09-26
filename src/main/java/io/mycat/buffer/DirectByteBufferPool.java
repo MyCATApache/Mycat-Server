@@ -75,10 +75,12 @@ public class DirectByteBufferPool implements BufferPool{
         }
         final long threadId = Thread.currentThread().getId();
 
-        if (memoryUsage.containsKey(threadId)){
-            memoryUsage.put(threadId,memoryUsage.get(threadId)+byteBuf.capacity());
-        }else {
-            memoryUsage.put(threadId,(long)byteBuf.capacity());
+        if(byteBuf !=null){
+            if (memoryUsage.containsKey(threadId)){
+                memoryUsage.put(threadId,memoryUsage.get(threadId)+byteBuf.capacity());
+            }else {
+                memoryUsage.put(threadId,(long)byteBuf.capacity());
+            }
         }
         return byteBuf;
     }
