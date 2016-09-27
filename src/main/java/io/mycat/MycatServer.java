@@ -133,6 +133,7 @@ public class MycatServer {
 	private NameableExecutor timerExecutor;
 	private ListeningExecutorService listeningExecutorService;
 
+	private  long totalNetWorkBufferSize = 0;
 	private MycatServer() {
 		
 		//读取文件配置
@@ -175,6 +176,10 @@ public class MycatServer {
 		this.startupTime = TimeUtil.currentTimeMillis();
 	}
 
+	public long getTotalNetWorkBufferSize() {
+		return totalNetWorkBufferSize;
+	}
+	
 	public BufferPool getBufferPool() {
 		return bufferPool;
 	}
@@ -285,7 +290,7 @@ public class MycatServer {
 		
 		int socketBufferLocalPercent = system.getProcessorBufferLocalPercent();
 		int bufferPoolType = system.getProcessorBufferPoolType();
-		long totalNetWorkBufferSize = 0;
+
 		switch (bufferPoolType){
 			case 0:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,

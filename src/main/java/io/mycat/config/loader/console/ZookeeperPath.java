@@ -122,6 +122,24 @@ public enum ZookeeperPath {
     FLOW_ZK_PATH_SEQUENCE_COMMON("common"),
 
     /**
+     * 用来存放序列值的信息
+     * @字段说明 FLOW_ZK_PATH_SERVER_AUTH
+     */
+    FLOW_ZK_PATH_SEQUENCE_INSTANCE("instance"),
+
+    /**
+     * 用来存放序列值的
+     * @字段说明 FLOW_ZK_PATH_SERVER_AUTH
+     */
+    FLOW_ZK_PATH_SEQUENCE_LEADER("leader"),
+    
+    /**
+     * 递增序列号
+     * @字段说明 FLOW_ZK_PATH_SERVER_AUTH
+     */
+    FLOW_ZK_PATH_SEQUENCE_INCREMENT_SEQ("incr_sequence"),
+
+    /**
      * 序列信息中需要单独节点配制的信息
      * @字段说明 FLOW_ZK_PATH_SERVER_AUTH
      */
@@ -159,7 +177,11 @@ public enum ZookeeperPath {
     /**zk写入本地的路径信息
     * @字段说明 ZK_LOCAL_WRITE_PATH
     */
-    ZK_LOCAL_WRITE_PATH("zkdownload/"),
+    ZK_LOCAL_WRITE_PATH("./"),
+    // /**zk写入本地的路径信息
+    // * @字段说明 ZK_LOCAL_WRITE_PATH
+    // */
+    // ZK_LOCAL_WRITE_PATH("zkdownload/"),
 
     /**
      * zk本地配制目录信息

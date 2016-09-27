@@ -1,19 +1,23 @@
 package io.mycat.config.loader.zkprocess.xmltozk.listen;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.util.IOUtils;
+
 import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
-import io.mycat.config.loader.zkprocess.comm.NotiflyService;
-import io.mycat.config.loader.zkprocess.entry.Server;
-import io.mycat.config.loader.zkprocess.entry.server.System;
-import io.mycat.config.loader.zkprocess.entry.server.user.User;
+import io.mycat.config.loader.zkprocess.entity.Server;
+import io.mycat.config.loader.zkprocess.entity.server.System;
+import io.mycat.config.loader.zkprocess.entity.server.user.User;
 import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
 import io.mycat.config.loader.zkprocess.parse.ParseXmlServiceInf;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
@@ -52,6 +56,12 @@ public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService 
     * @字段说明 SCHEMA_PATH
     */
     private static final String SERVER_PATH = ZookeeperPath.ZK_LOCAL_CFG_PATH.getKey() + "server.xml";
+
+    /**
+     * index_to_charset文件的路径信息
+     * @字段说明 SCHEMA_PATH
+     */
+    private static final String INDEX_TOCHARSET_PATH = "index_to_charset.properties";
 
     /**
      * server的xml的转换信息
@@ -98,6 +108,11 @@ public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService 
 
         // 2,读取集群中的节点信息
         this.writeClusterNode(currZkPath);
+
+        // 读取properties
+        String charSetValue = readProperties(INDEX_TOCHARSET_PATH);
+        // 将文件上传
+        this.checkAndwriteString(currZkPath, INDEX_TOCHARSET_PATH, charSetValue);
 
         LOGGER.info("ServerxmlTozkLoader notiflyProcess xml to zk is success");
 
@@ -167,7 +182,44 @@ public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService 
         basePath = basePath + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SERVER_CLUSTER.getKey();
         String clusterSystemValue = this.parseJsonSystem.parseBeanToJson(server.getSystem());
         this.checkAndwriteString(basePath, node, clusterSystemValue);
+    }
 
+    /**
+     * 读取 properties配制文件的信息
+    * 方法描述
+    * @param name 名称信息
+    * @return
+    * @创建日期 2016年9月18日
+    */
+    private String readProperties(String name) {
+
+        String path = ZookeeperPath.ZK_LOCAL_CFG_PATH.getKey() + name;
+        // 加载数据
+        InputStream input = SequenceTozkLoader.class.getResourceAsStream(path);
+
+        if (null != input) {
+
+            StringBuilder mapFileStr = new StringBuilder();
+
+            byte[] buffers = new byte[256];
+
+            try {
+                int readIndex = -1;
+
+                while ((readIndex = input.read(buffers)) != -1) {
+                    mapFileStr.append(new String(buffers, 0, readIndex));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                LOGGER.error("SequenceTozkLoader readMapFile IOException", e);
+
+            } finally {
+                IOUtils.close(input);
+            }
+
+            return mapFileStr.toString();
+        }
+        return null;
     }
 
 }

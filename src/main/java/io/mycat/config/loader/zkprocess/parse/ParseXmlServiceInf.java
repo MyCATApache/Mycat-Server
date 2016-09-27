@@ -14,7 +14,7 @@ package io.mycat.config.loader.zkprocess.parse;
 public interface ParseXmlServiceInf<T> {
 
     /**
-     * 将对象T转换为json字符串
+     * 将对象T写入xml文件
     * 方法描述
     * @param data
     * @return

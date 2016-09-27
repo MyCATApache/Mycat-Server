@@ -1,19 +1,26 @@
 package io.mycat.config.loader.zkprocess.zktoxml.listen;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.util.IOUtils;
+
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.MycatConfig;
+import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
-import io.mycat.config.loader.zkprocess.comm.NotiflyService;
-import io.mycat.config.loader.zkprocess.entry.Server;
-import io.mycat.config.loader.zkprocess.entry.server.System;
-import io.mycat.config.loader.zkprocess.entry.server.user.User;
+import io.mycat.config.loader.zkprocess.entity.Server;
+import io.mycat.config.loader.zkprocess.entity.server.System;
+import io.mycat.config.loader.zkprocess.entity.server.user.User;
 import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
 import io.mycat.config.loader.zkprocess.parse.ParseXmlServiceInf;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
@@ -22,6 +29,7 @@ import io.mycat.config.loader.zkprocess.parse.entryparse.server.json.UserJsonPar
 import io.mycat.config.loader.zkprocess.parse.entryparse.server.xml.ServerParseXmlImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
 import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
+import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDirectoryImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 
@@ -57,6 +65,12 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
     private static final String WRITEPATH = "server.xml";
 
     /**
+     * index_to_charset文件的路径信息
+     * @字段说明 SCHEMA_PATH
+     */
+    private static final String INDEX_TOCHARSET_PATH = "index_to_charset.properties";
+
+    /**
      * server的xml的转换信息
     * @字段说明 parseServerXMl
     */
@@ -74,10 +88,18 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
      */
     private ParseJsonServiceInf<List<User>> parseJsonUser = new UserJsonParse();
 
+    /**
+     * zk监控路径
+    * @字段说明 zookeeperListen
+    */
+    private ZookeeperProcessListen zookeeperListen;
+
     public ServerzkToxmlLoader(ZookeeperProcessListen zookeeperListen, CuratorFramework curator,
             XmlProcessBase xmlParseBase) {
 
         this.setCurator(curator);
+
+        this.zookeeperListen = zookeeperListen;
 
         // 获得当前集群的名称
         String serverPath = zookeeperListen.getBasePath();
@@ -85,7 +107,7 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
         currZkPath = serverPath;
         // 将当前自己注册为事件接收对象
-        zookeeperListen.addListen(serverPath, this);
+        this.zookeeperListen.addListen(serverPath, this);
 
         // 生成xml与类的转换信息
         parseServerXMl = new ServerParseXmlImpl(xmlParseBase);
@@ -125,6 +147,19 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
         LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to object zk server      write :" + path + " is success");
 
+        // 得到server对象的目录信息
+        DataInf indexToCharSet = this.getZkData(zkDirectory, INDEX_TOCHARSET_PATH);
+
+        if (null != indexToCharSet) {
+
+            if (indexToCharSet instanceof ZkDataImpl) {
+                ZkDataImpl dataImpl = (ZkDataImpl) indexToCharSet;
+                this.writeProperties(dataImpl.getName(), dataImpl.getValue());
+            }
+
+            LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to write index_to_charset.properties is success");
+        }
+
         return true;
     }
 
@@ -143,10 +178,15 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
         System systemValue = parseJsonSystem.parseJsonToBean(serverZkDirectory.getDataValue());
         server.setSystem(systemValue);
 
+        this.zookeeperListen.watchPath(currZkPath, ZookeeperPath.FLOW_ZK_PATH_SERVER_DEFAULT.getKey());
+
         // 得到user的信息
         DataInf userZkDirectory = this.getZkData(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SERVER_USER.getKey());
         List<User> userList = parseJsonUser.parseJsonToBean(userZkDirectory.getDataValue());
         server.setUser(userList);
+
+        // 用户路径的监控
+        this.zookeeperListen.watchPath(currZkPath, ZookeeperPath.FLOW_ZK_PATH_SERVER_USER.getKey());
 
         return server;
     }
@@ -179,10 +219,59 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
                 System systemValue = parseJsonSystem.parseJsonToBean(currDataCfg.getDataValue());
                 server.setSystem(systemValue);
+
+                if (currDataCfg instanceof ZkDataImpl) {
+                    ZkDataImpl zkData = (ZkDataImpl) currDataCfg;
+
+                    // 监控的路径信息
+                    String defaultWatchPath = ZookeeperPath.FLOW_ZK_PATH_SERVER_CLUSTER.getKey();
+                    defaultWatchPath = defaultWatchPath + ZookeeperPath.ZK_SEPARATOR.getKey() + zkData.getName();
+
+                    this.zookeeperListen.watchPath(currZkPath, defaultWatchPath);
+                }
             }
         }
 
         return server;
+    }
+
+    /**
+     * 写入本地文件配制信息
+    * 方法描述
+    * @param name 名称信息
+    * @return
+    * @创建日期 2016年9月18日
+    */
+    private void writeProperties(String name, String value) {
+
+        // 加载数据
+        String path = RuleszkToxmlLoader.class.getClassLoader().getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey())
+                .getPath();
+
+        checkNotNull(path, "write properties curr Path :" + path + " is null! must is not null");
+
+        path = path.substring(1) + name;
+
+        ByteArrayInputStream input = null;
+        byte[] buffers = new byte[256];
+        FileOutputStream output = null;
+
+        try {
+            int readIndex = -1;
+            input = new ByteArrayInputStream(value.getBytes());
+            output = new FileOutputStream(path);
+
+            while ((readIndex = input.read(buffers)) != -1) {
+                output.write(buffers, 0, readIndex);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            LOGGER.error("ServerzkToxmlLoader write Properties IOException", e);
+
+        } finally {
+            IOUtils.close(output);
+            IOUtils.close(input);
+        }
     }
 
 }

@@ -1,6 +1,6 @@
 package io.mycat.config.loader.zkprocess.parse.entryparse.server.json;
 
-import io.mycat.config.loader.zkprocess.entry.server.System;
+import io.mycat.config.loader.zkprocess.entity.server.System;
 import io.mycat.config.loader.zkprocess.parse.JsonProcessBase;
 import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
 

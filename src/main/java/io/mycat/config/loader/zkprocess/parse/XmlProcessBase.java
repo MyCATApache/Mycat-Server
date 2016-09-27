@@ -10,6 +10,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -110,8 +112,51 @@ public class XmlProcessBase {
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
             marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
 
-            marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
-                    String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", name));
+            if (null != name) {
+                marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
+                        String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", name));
+            }
+
+            Path path = Paths.get(inputPath);
+
+            OutputStream out = Files.newOutputStream(path, StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+
+            marshaller.marshal(user, out);
+
+        } catch (JAXBException e) {
+            lOG.error("ZookeeperProcessListen parseToXml  error:Exception info:", e);
+        } catch (IOException e) {
+            lOG.error("ZookeeperProcessListen parseToXml  error:Exception info:", e);
+        }
+    }
+
+    /**
+     * 默认将bean序列化为xml对象信息并写入文件
+     * 方法描述
+     * @param user 用户对象
+     * @param inputPath
+     * @param name 当前的转换xml的dtd文件的信息
+     * @创建日期 2016年9月15日
+     */
+    @SuppressWarnings("restriction")
+    public void baseParseAndWriteToXml(Object user, String inputPath, String name, Map<String, Object> map)
+            throws IOException {
+        try {
+            Marshaller marshaller = this.jaxContext.createMarshaller();
+            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+            marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
+
+            if (null != name) {
+                marshaller.setProperty("com.sun.xml.internal.bind.xmlHeaders",
+                        String.format("<!DOCTYPE mycat:%1$s SYSTEM \"%1$s.dtd\">", name));
+            }
+
+            if (null != map && !map.isEmpty()) {
+                for (Entry<String, Object> entry : map.entrySet()) {
+                    marshaller.setProperty(entry.getKey(), entry.getValue());
+                }
+            }
 
             Path path = Paths.get(inputPath);
 
