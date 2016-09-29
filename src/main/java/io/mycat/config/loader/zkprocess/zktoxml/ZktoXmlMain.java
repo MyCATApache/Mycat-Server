@@ -3,6 +3,7 @@ package io.mycat.config.loader.zkprocess.zktoxml;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -14,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.config.loader.console.ZookeeperPath;
-import io.mycat.config.loader.zkprocess.comm.MycatConfig;
+
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
@@ -38,7 +39,7 @@ import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 * 文件描述：TODO
 * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
 */
-public class ZktoxmlMain {
+public class ZktoXmlMain {
 
     /**
      * 日志
@@ -63,14 +64,14 @@ public class ZktoxmlMain {
         ZookeeperProcessListen zkListen = new ZookeeperProcessListen();
 
         // 得到集群名称
-        String custerName = MycatConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
+        String custerName = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
         // 得到基本路径
         String basePath = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey();
         basePath = basePath + ZookeeperPath.ZK_SEPARATOR.getKey() + custerName;
         zkListen.setBasePath(basePath);
 
         // 获得zk的连接信息
-        CuratorFramework zkConn = buildConnection(MycatConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_URL));
+        CuratorFramework zkConn = buildConnection(ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_URL));
 
         // 获得公共的xml转换器对象
         XmlProcessBase xmlProcess = new XmlProcessBase();
