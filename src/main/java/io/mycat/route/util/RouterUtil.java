@@ -79,6 +79,9 @@ public class RouterUtil {
 				return stmt;
 			}
 		}
+		int firstE=upStmt.indexOf("'");
+		int endE=upStmt.lastIndexOf("'");
+
 		StringBuilder sb = new StringBuilder();
 		while (indx > 0) {
 			sb.append(stmt.substring(strtPos, indx));
@@ -86,10 +89,25 @@ public class RouterUtil {
 			if (flag) {
 				strtPos += 2;
 			}
+			if(indx>firstE&&indx<endE&&countChar(stmt,indx)%2==1)
+			{
+				sb.append(stmt.substring( indx,indx+schema.length()+1))  ;
+			}
 			indx = upStmt.indexOf(upSchema, strtPos);
 		}
 		sb.append(stmt.substring(strtPos));
 		return sb.toString();
+	}
+
+	private static int countChar(String sql,int end)
+	{
+		int count=0;
+		for (int i = 0; i < end; i++) {
+			if(sql.charAt(i)=='\'') {
+				count++;
+			}
+		}
+		return count;
 	}
 
 	/**
