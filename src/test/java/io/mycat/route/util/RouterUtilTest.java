@@ -24,4 +24,31 @@ public class RouterUtilTest {
         Assert.assertTrue(values.get(3).equals("insert into hotnews(title,name) values(\")\",\"\\\"\\')\")"));
     }
 
+
+    @Test
+    public void testRemoveSchema()  {
+        String sql = "update test set name='abcdtestx.aa'   where id=1 and testx=123";
+
+      String afterAql=  RouterUtil.removeSchema(sql,"testx");
+        Assert.assertEquals(sql,afterAql);
+        System.out.println(afterAql);
+
+    }
+    @Test
+    public void testRemoveSchemaSelect()  {
+        String sql = "select id as 'aa' from  test where name='abcdtestx.aa'   and id=1 and testx=123";
+
+        String afterAql=  RouterUtil.removeSchema(sql,"testx");
+        Assert.assertEquals(sql,afterAql);
+
+    }
+
+    @Test
+    public void testRemoveSchemaSelect2()  {
+        String sql = "select id as 'aa' from  testx.test where name='abcd testx.aa'   and id=1 and testx=123";
+
+        String afterAql=  RouterUtil.removeSchema(sql,"testx");
+        Assert.assertNotSame(sql.indexOf("testx."),afterAql.indexOf("testx."));
+
+    }
 }
