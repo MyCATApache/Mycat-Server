@@ -21,7 +21,7 @@ import io.mycat.config.loader.zkprocess.xmltozk.listen.SchemasxmlTozkLoader;
 import io.mycat.config.loader.zkprocess.xmltozk.listen.SequenceTozkLoader;
 import io.mycat.config.loader.zkprocess.xmltozk.listen.ServerxmlTozkLoader;
 
-public class XmltozkMain {
+public class XmltoZkMain {
 
     public static void main(String[] args) throws JAXBException, InterruptedException {
         // 加载zk总服务

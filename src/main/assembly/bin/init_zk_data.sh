@@ -2,7 +2,7 @@
 
 echo "check JAVA_HOME & java"
 JAVA_CMD=$JAVA_HOME/bin/java
-MAIN_CLASS=demo.catlets.ZkCreate
+MAIN_CLASS=io.mycat.config.loader.zkprocess.xmltozk.XmltoZkMain
 if [ ! -d "$JAVA_HOME" ]; then
     echo ---------------------------------------------------
     echo WARN: JAVA_HOME environment variable is not set. 

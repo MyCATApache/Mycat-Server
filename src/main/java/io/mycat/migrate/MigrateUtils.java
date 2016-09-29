@@ -1,6 +1,4 @@
-package io.mycat.server.handler;
-
-import io.mycat.route.function.PartitionByCRC32PreSlot;
+package io.mycat.migrate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,7 +56,7 @@ public class MigrateUtils {
 
             if(allMoveList.size()>0)
             {
-                System.out.println();
+                throw new RuntimeException("some slot has not moved to")  ;
             }
 
 
