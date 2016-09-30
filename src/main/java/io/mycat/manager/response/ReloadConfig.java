@@ -65,7 +65,7 @@ public final class ReloadConfig {
 	public static void execute(ManagerConnection c, final boolean loadAll) {
 		
 		// reload @@config_all 校验前一次的事务完成情况
-		if ( loadAll && NIOProcessor.backends_old.isEmpty() ) {
+		if ( loadAll && !NIOProcessor.backends_old.isEmpty() ) {
 			c.writeErrMessage(ErrorCode.ER_YES, "The before @@config_all reload has an unfinished db transaction, please try again later.");
 			return;
 		}
