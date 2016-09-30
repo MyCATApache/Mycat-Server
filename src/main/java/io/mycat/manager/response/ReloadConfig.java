@@ -66,6 +66,15 @@ public final class ReloadConfig {
 		final ReentrantLock lock = MycatServer.getInstance().getConfig().getLock();		
 		lock.lock();
 		try {
+			
+			if ( loadAll ) {
+				if ( !NIOProcessor.backends_old.isEmpty() ) {
+					c.writeErrMessage(ErrorCode.ER_YES, 
+							"The before @@config_all reload has an unfinished db transaction, please try again later.");
+					return;
+				}
+			}
+			
 			ListenableFuture<Boolean> listenableFuture = MycatServer.getInstance().getListeningExecutorService().submit(
 				new Callable<Boolean>() {
 					@Override
