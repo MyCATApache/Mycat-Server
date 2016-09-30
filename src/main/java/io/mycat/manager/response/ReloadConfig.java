@@ -63,18 +63,16 @@ public final class ReloadConfig {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ReloadConfig.class);
 
 	public static void execute(ManagerConnection c, final boolean loadAll) {
+		
+		// reload @@config_all 校验前一次的事务完成情况
+		if ( loadAll && NIOProcessor.backends_old.isEmpty() ) {
+			c.writeErrMessage(ErrorCode.ER_YES, "The before @@config_all reload has an unfinished db transaction, please try again later.");
+			return;
+		}
+		
 		final ReentrantLock lock = MycatServer.getInstance().getConfig().getLock();		
 		lock.lock();
 		try {
-			
-			if ( loadAll ) {
-				if ( !NIOProcessor.backends_old.isEmpty() ) {
-					c.writeErrMessage(ErrorCode.ER_YES, 
-							"The before @@config_all reload has an unfinished db transaction, please try again later.");
-					return;
-				}
-			}
-			
 			ListenableFuture<Boolean> listenableFuture = MycatServer.getInstance().getListeningExecutorService().submit(
 				new Callable<Boolean>() {
 					@Override
