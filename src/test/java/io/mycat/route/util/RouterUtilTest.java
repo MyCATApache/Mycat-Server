@@ -14,6 +14,31 @@ import java.util.Map;
  * @date 2016/7/19
  */
 public class RouterUtilTest {
+
+    @Test
+    public void testRemoveSchema1(){
+        String sql = "update test set name='abcd testx.aa' where id=1";
+
+        String sqlnew = RouterUtil.removeSchema(sql, "testx");
+        Assert.assertEquals("处理错误：", sql, sqlnew);
+    }
+
+    @Test
+    public void testRemoveSchema2(){
+        String sql = "update testx.test set name='abcd testx.aa' where id=1";
+        String sqltrue = "update test set name='abcd testx.aa' where id=1";
+        String sqlnew = RouterUtil.removeSchema(sql, "testx");
+        Assert.assertEquals("处理错误：", sqltrue, sqlnew);
+    }
+
+    @Test
+    public void testRemoveSchema3(){
+        String sql = "update testx.test set testx.name='abcd testx.aa' where testx.id=1";
+        String sqltrue = "update test set name='abcd testx.aa' where id=1";
+        String sqlnew = RouterUtil.removeSchema(sql, "testx");
+        Assert.assertEquals("处理错误：", sqltrue, sqlnew);
+    }
+
     @Test
     public void testBatchInsert()  {
         String sql = "insert into hotnews(title,name) values('test1',\"name\"),('(test)',\"(test)\"),('\\\"',\"\\'\"),(\")\",\"\\\"\\')\");";

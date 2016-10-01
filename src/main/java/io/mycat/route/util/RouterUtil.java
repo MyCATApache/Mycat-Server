@@ -42,6 +42,8 @@ import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -51,7 +53,8 @@ import java.util.concurrent.Callable;
 public class RouterUtil {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(RouterUtil.class);
-	
+
+	private static final Pattern pattern =  Pattern.compile("'([^']+(?:(?!^\\').)?[^']+)'");
 	
 	/**
 	 * 移除执行语句中的数据库名
@@ -62,8 +65,19 @@ public class RouterUtil {
 	 * 
 	 * @author mycat
 	 */
-
 	public static String removeSchema(String stmt, String schema) {
+		// 缓存 内容数据，并替换sql中的内容数据
+		Matcher matcher = pattern.matcher(stmt);
+		Map<String,String> stmts = new HashMap<>();
+		int index = 0;
+		while (matcher.find()) {
+			index++;
+			String stmtsqlindex = new StringBuilder("#stmtsql").append(index).append("#").toString();
+			String stmtsql = matcher.group();
+			stmt = stmt.replace(stmtsql,stmtsqlindex);
+			stmts.put(stmtsqlindex,stmtsql);
+		}
+
 		final String upStmt = stmt.toUpperCase();
 		final String upSchema = schema.toUpperCase() + ".";
 		int strtPos = 0;
@@ -76,6 +90,11 @@ public class RouterUtil {
 			indx = upStmt.indexOf(sb.toString(), strtPos);
 			flag = true;
 			if (indx < 0) {
+
+				// 还原替换内容
+				for (Map.Entry<String,String> entry : stmts.entrySet()) {
+					stmt = stmt.replace(entry.getKey(),entry.getValue());
+				}
 				return stmt;
 			}
 		}
@@ -89,7 +108,13 @@ public class RouterUtil {
 			indx = upStmt.indexOf(upSchema, strtPos);
 		}
 		sb.append(stmt.substring(strtPos));
-		return sb.toString();
+
+		// 还原替换内容
+		String stmtnew = sb.toString();
+		for (Map.Entry<String,String> entry : stmts.entrySet()) {
+			stmtnew = stmtnew.replace(entry.getKey(),entry.getValue());
+		}
+		return stmtnew;
 	}
 
 	/**
