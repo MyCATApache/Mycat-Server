@@ -7,10 +7,7 @@ import io.mycat.config.model.rule.RuleAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
 
@@ -99,7 +96,7 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
     }
 
     private Map<Integer, List<Range>> convertToMap(Properties p) {
-        Map<Integer, List<Range>> map = new HashMap<>();
+        Map<Integer, List<Range>> map = new TreeMap<>();
         for (Object o : p.keySet()) {
             String k = (String) o;
             String v = p.getProperty(k);
@@ -248,7 +245,7 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         return slot;
     }
 
-    public static class Range {
+    public static class Range implements Serializable {
         public Range(int start, int end) {
             this.start = start;
             this.end = end;

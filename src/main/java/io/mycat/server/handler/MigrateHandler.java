@@ -23,18 +23,24 @@
  */
 package io.mycat.server.handler;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
+import io.mycat.util.ZKUtils;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
+import io.mycat.migrate.MigrateTask;
+import io.mycat.migrate.MigrateUtils;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.ObjectUtil;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,9 +70,10 @@ public final class MigrateHandler {
             return;
         }
 
-        try {
+        try
+        {
             SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(c.getSchema());
-            TableConfig tableConfig = schemaConfig.getTables().get(table);
+            TableConfig tableConfig = schemaConfig.getTables().get(table.toUpperCase());
             AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
             if (!(algorithm instanceof PartitionByCRC32PreSlot)) {
                 writeErrMessage(c, "table: " + table + " rule is not be PartitionByCRC32PreSlot");
@@ -78,8 +85,22 @@ public final class MigrateHandler {
 
             ArrayList<String> oldDataNodes = tableConfig.getDataNodes();
             List<String> newDataNodes = Splitter.on(",").omitEmptyStrings().trimResults().splitToList(add);
-            Map<String, List<MigrateTask>> tasks= MigrateUtils.balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
+            Map<String, List<MigrateTask>> tasks= MigrateUtils
+                    .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
+             long  taskID=  System.currentTimeMillis();     //todo 需要修改唯一
+            CuratorTransactionFinal transactionFinal=null;
+            String taskPath = ZKUtils.getZKBasePath() + "migrate/" + table + "/" + taskID;
+            CuratorFramework client= ZKUtils.getConnection();
+            client.create().creatingParentsIfNeeded().forPath(taskPath);
+            transactionFinal=   client.inTransaction() .setData().forPath(taskPath,stmt.getBytes("UTF-8")).and() ;
+            for (Map.Entry<String, List<MigrateTask>> entry : tasks.entrySet()) {
+                String key=entry.getKey();
+                List<MigrateTask> value=entry.getValue();
 
+                String path= taskPath + "/" + key;
+                transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and() .setData().forPath(taskPath,stmt.getBytes("UTF-8")).and() ;
+            }
+            transactionFinal.commit();
         } catch (Exception e) {
             LOGGER.error("migrate error", e);
             writeErrMessage(c, "migrate error:" + e);
