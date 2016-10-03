@@ -55,7 +55,7 @@ public final class MycatStartup {
 
             // startup
             server.startup();
-            System.out.println("MyCAT Server startup successfully. see logs in logs/mycat.log");
+            System.out.println("yangqizhang de MyCAT Server startup successfully. see logs in logs/mycat.log");
             while (true) {
                 Thread.sleep(300 * 1000);
             }
