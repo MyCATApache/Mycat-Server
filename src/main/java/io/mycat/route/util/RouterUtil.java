@@ -52,7 +52,6 @@ public class RouterUtil {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(RouterUtil.class);
 	
-	
 	/**
 	 * 移除执行语句中的数据库名
 	 *
@@ -62,7 +61,6 @@ public class RouterUtil {
 	 * 
 	 * @author mycat
 	 */
-
 	public static String removeSchema(String stmt, String schema) {
 		final String upStmt = stmt.toUpperCase();
 		final String upSchema = schema.toUpperCase() + ".";
@@ -102,9 +100,15 @@ public class RouterUtil {
 	private static int countChar(String sql,int end)
 	{
 		int count=0;
+		boolean skipChar = false;
 		for (int i = 0; i < end; i++) {
-			if(sql.charAt(i)=='\'') {
+			if(sql.charAt(i)=='\'' && !skipChar) {
 				count++;
+				skipChar = false;
+			}else if( sql.charAt(i)=='\\'){
+				skipChar = true;
+			}else{
+				skipChar = false;
 			}
 		}
 		return count;
