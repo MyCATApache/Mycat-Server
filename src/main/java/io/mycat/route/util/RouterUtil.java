@@ -102,15 +102,15 @@ public class RouterUtil {
 	private static int countChar(String sql,int end)
 	{
 		int count=0;
-		boolean shipChar = false;
+		boolean skipChar = false;
 		for (int i = 0; i < end; i++) {
-			if(sql.charAt(i)=='\'' && !shipChar) {
+			if(sql.charAt(i)=='\'' && !skipChar) {
 				count++;
-				shipChar = false;
+				skipChar = false;
 			}else if( sql.charAt(i)=='\\'){
-				shipChar = true;
+				skipChar = true;
 			}else{
-				shipChar = false;
+				skipChar = false;
 			}
 		}
 		return count;
