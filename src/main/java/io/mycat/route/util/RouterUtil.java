@@ -42,8 +42,6 @@ import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.*;
 import java.util.concurrent.Callable;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
