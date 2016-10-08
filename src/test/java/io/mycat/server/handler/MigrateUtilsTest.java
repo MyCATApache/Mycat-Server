@@ -1,7 +1,8 @@
 package io.mycat.server.handler;
 
 import com.google.common.collect.Lists;
-import io.mycat.route.function.PartitionByCRC32PreSlot;
+import io.mycat.migrate.MigrateTask;
+import io.mycat.migrate.MigrateUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -25,7 +26,8 @@ public class MigrateUtilsTest {
         int totalSlots=100;
         List<String> oldDataNodes = Lists.newArrayList("dn1","dn2","dn3");
         List<String> newDataNodes =  Lists.newArrayList("dn4","dn5");
-        Map<String, List<MigrateTask>> tasks= MigrateUtils.balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,totalSlots);
+        Map<String, List<MigrateTask>> tasks= MigrateUtils
+                .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,totalSlots);
         for (Map.Entry<String, List<MigrateTask>> stringListEntry : tasks.entrySet()) {
             String key=stringListEntry.getKey();
             List<Range> rangeList=new ArrayList<>();

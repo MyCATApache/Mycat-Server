@@ -23,12 +23,16 @@
  */
 package io.mycat.route.sequence.handler;
 
-import io.mycat.config.ZkConfig;
+
+import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.route.util.PropertiesUtil;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -57,12 +61,16 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class IncrSequenceZKHandler extends IncrSequenceHandler {
     protected static final Logger LOGGER = LoggerFactory.getLogger(IncrSequenceHandler.class);
-    private final static String PATH = "/mycat/incr_sequence";
+    private final static String PATH = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey()
+            + ZookeeperPath.ZK_SEPARATOR.getKey()
+            + io.mycat.config.loader.zkprocess.comm.ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID)
+            + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey()
+            + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INCREMENT_SEQ.getKey();
     private final static String LOCK = "/lock";
     private final static String SEQ = "/seq";
     private final static IncrSequenceZKHandler instance = new IncrSequenceZKHandler();
 
-    public static IncrSequenceZKHandler getInstance(){
+    public static IncrSequenceZKHandler getInstance() {
         return instance;
     }
 
@@ -74,11 +82,11 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
 
     public void load() {
         props = PropertiesUtil.loadProps(FILE_NAME);
-        String zkAddress = ZkConfig.instance().getZkURL();
+        String zkAddress = ZkConfig.getInstance().getZkURL();
         try {
             initializeZK(props, zkAddress);
         } catch (Exception e) {
-            LOGGER.error("Error caught while initializing ZK:"+e.getCause());
+            LOGGER.error("Error caught while initializing ZK:" + e.getCause());
         }
     }
 
@@ -121,14 +129,19 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
         if (paraValMap == null) {
             paraValMap = new ConcurrentHashMap<>();
             tableParaValMap.put(table, paraValMap);
-            Stat stat = this.client.checkExists().forPath(PATH + "/" + table + SEQ);
+
+            String seqPath = PATH + ZookeeperPath.ZK_SEPARATOR.getKey() + table + SEQ;
+
+            Stat stat = this.client.checkExists().forPath(seqPath);
+
             if (stat == null || (stat.getDataLength() == 0)) {
                 paraValMap.put(table + KEY_MIN_NAME, props.getProperty(key));
                 paraValMap.put(table + KEY_MAX_NAME, props.getProperty(table + KEY_MAX_NAME));
                 paraValMap.put(table + KEY_CUR_NAME, props.getProperty(table + KEY_CUR_NAME));
                 try {
                     String val = props.getProperty(table + KEY_MIN_NAME);
-                    client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT).forPath(PATH + "/" + table + SEQ, val.getBytes());
+                    client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT)
+                            .forPath(PATH + "/" + table + SEQ, val.getBytes());
                 } catch (Exception e) {
                     LOGGER.debug("Node exists! Maybe other instance is initializing!");
                 }
@@ -144,11 +157,11 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
             try {
                 threadLocalLoad();
             } catch (Exception e) {
-                LOGGER.error("Error caught while loding configuration within current thread:"+e.getCause());
+                LOGGER.error("Error caught while loding configuration within current thread:" + e.getCause());
             }
             tableParaValMap = tableParaValMapThreadLocal.get();
         }
-        Map<String,String> paraValMap = tableParaValMap.get(prefixName);
+        Map<String, String> paraValMap = tableParaValMap.get(prefixName);
         return paraValMap;
     }
 
@@ -177,7 +190,8 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
             if (paraValMap.get(prefixName + KEY_CUR_NAME) == null) {
                 paraValMap.put(prefixName + KEY_CUR_NAME, props.getProperty(prefixName + KEY_CUR_NAME));
             }
-            long period = Long.parseLong(paraValMap.get(prefixName + KEY_MAX_NAME)) - Long.parseLong(paraValMap.get(prefixName + KEY_MIN_NAME));
+            long period = Long.parseLong(paraValMap.get(prefixName + KEY_MAX_NAME))
+                    - Long.parseLong(paraValMap.get(prefixName + KEY_MIN_NAME));
             long now = Long.parseLong(new String(client.getData().forPath(PATH + "/" + prefixName + SEQ)));
             client.setData().forPath(PATH + "/" + prefixName + SEQ, ((now + period + 1) + "").getBytes());
 
@@ -186,12 +200,12 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
             paraValMap.put(prefixName + KEY_CUR_NAME, (now) + "");
 
         } catch (Exception e) {
-            LOGGER.error("Error caught while updating period from ZK:"+e.getCause());
+            LOGGER.error("Error caught while updating period from ZK:" + e.getCause());
         } finally {
             try {
                 interProcessSemaphoreMutex.release();
             } catch (Exception e) {
-                LOGGER.error("Error caught while realeasing distributed lock"+e.getCause());
+                LOGGER.error("Error caught while realeasing distributed lock" + e.getCause());
             }
         }
         return true;
@@ -214,9 +228,9 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
     public static void main(String[] args) throws UnsupportedEncodingException {
         IncrSequenceZKHandler incrSequenceZKHandler = new IncrSequenceZKHandler();
         incrSequenceZKHandler.load();
-        System.out.println(incrSequenceZKHandler.nextId("HOTNEWS"));
-        System.out.println(incrSequenceZKHandler.nextId("HOTNEWS"));
-        System.out.println(incrSequenceZKHandler.nextId("HOTNEWS"));
-        System.out.println(incrSequenceZKHandler.nextId("HOTNEWS"));
+        System.out.println(incrSequenceZKHandler.nextId("TRAVELRECORD"));
+        System.out.println(incrSequenceZKHandler.nextId("TRAVELRECORD"));
+        System.out.println(incrSequenceZKHandler.nextId("TRAVELRECORD"));
+        System.out.println(incrSequenceZKHandler.nextId("TRAVELRECORD"));
     }
 }

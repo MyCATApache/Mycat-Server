@@ -9,8 +9,11 @@ import java.util.Set;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.*;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLockTableStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 
 import io.mycat.config.model.SchemaConfig;
@@ -20,6 +23,7 @@ import io.mycat.route.parser.druid.impl.DruidAlterTableParser;
 import io.mycat.route.parser.druid.impl.DruidCreateTableParser;
 import io.mycat.route.parser.druid.impl.DruidDeleteParser;
 import io.mycat.route.parser.druid.impl.DruidInsertParser;
+import io.mycat.route.parser.druid.impl.DruidLockTableParser;
 import io.mycat.route.parser.druid.impl.DruidSelectDb2Parser;
 import io.mycat.route.parser.druid.impl.DruidSelectOracleParser;
 import io.mycat.route.parser.druid.impl.DruidSelectParser;
@@ -65,6 +69,8 @@ public class DruidParserFactory
         } else if (statement instanceof SQLAlterTableStatement)
         {
             parser = new DruidAlterTableParser();
+        } else if (statement instanceof MySqlLockTableStatement) {
+        	parser = new DruidLockTableParser();
         } else
         {
             parser = new DefaultDruidParser();

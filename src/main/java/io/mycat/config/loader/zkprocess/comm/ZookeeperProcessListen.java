@@ -1,13 +1,16 @@
 package io.mycat.config.loader.zkprocess.comm;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 
 /**
@@ -29,7 +32,19 @@ public class ZookeeperProcessListen {
     /**
      * 所有更新缓存操作的集合
      */
-    private Map<String, NotiflyService> LISTEN_CACHE = new ConcurrentSkipListMap<String, NotiflyService>();
+    private Map<String, NotiflyService> listenCache = new HashMap<String, NotiflyService>();
+
+    /**
+     * 监控的路径信息
+    * @字段说明 watchPath
+    */
+    private Map<String, Set<String>> watchPathMap = new HashMap<>();
+
+    /**
+     * 监控路径对应的缓存key的对应表
+    * @字段说明 watchToListen
+    */
+    private Map<String, String> watchToListenMap = new HashMap<>();
 
     /**
      * 基本路径信息
@@ -52,7 +67,57 @@ public class ZookeeperProcessListen {
      * @param cacheNotiflySercie
      */
     public void addListen(String key, NotiflyService cacheNotiflySercie) {
-        LISTEN_CACHE.put(key, cacheNotiflySercie);
+        listenCache.put(key, cacheNotiflySercie);
+    }
+
+    /**
+     * 专门针对zk设置的监控路径
+    * 方法描述
+    * @param key
+    * @param path
+    * @param cacheNotiflySercie
+    * @创建日期 2016年9月19日
+    */
+    public void watchPath(String key, String path) {
+        Set<String> watchPaths = watchPathMap.get(key);
+
+        if (null == watchPaths) {
+            watchPaths = new HashSet<>();
+        }
+
+        watchPaths.add(path);
+        watchPathMap.put(key, watchPaths);
+    }
+
+    /**
+     * 进行监控路径的转换
+    * 方法描述
+    * @创建日期 2016年9月20日
+    */
+    public void watchToParse() {
+        if (null != watchPathMap && !watchPathMap.isEmpty()) {
+            for (Entry<String, Set<String>> watchPathEntry : watchPathMap.entrySet()) {
+                for (String path : watchPathEntry.getValue()) {
+                    watchToListenMap.put(watchPathEntry.getKey() + ZookeeperPath.ZK_SEPARATOR.getKey() + path,
+                            watchPathEntry.getKey());
+                }
+            }
+        }
+    }
+
+    /**
+     * 返回路径集合
+    * 方法描述
+    * @return
+    * @创建日期 2016年9月19日
+    */
+    public Set<String> getWatchPath() {
+
+        if (watchToListenMap.isEmpty()) {
+            this.watchToParse();
+        }
+
+        return watchToListenMap.keySet();
     }
 
     /**
@@ -73,15 +138,19 @@ public class ZookeeperProcessListen {
             }
             // 如果是具体的单独更新，则进行单业务的业务刷新
             else {
-                // 取得具体的业务监听信息
-                NotiflyService cacheService = LISTEN_CACHE.get(key);
+                String watchListen = watchToListenMap.get(key);
 
-                if (null != cacheService) {
-                    try {
-                        result = cacheService.notiflyProcess();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        lOG.error("ZookeeperProcessListen notifly key :" + key + " error:Exception info:", e);
+                if (null != watchListen) {
+                    // 取得具体的业务监听信息
+                    NotiflyService cacheService = listenCache.get(watchListen);
+
+                    if (null != cacheService) {
+                        try {
+                            result = cacheService.notiflyProcess();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            lOG.error("ZookeeperProcessListen notifly key :" + key + " error:Exception info:", e);
+                        }
                     }
                 }
             }
@@ -95,7 +164,7 @@ public class ZookeeperProcessListen {
      */
     private void notiflyAll() {
 
-        Iterator<Entry<String, NotiflyService>> notiflyIter = LISTEN_CACHE.entrySet().iterator();
+        Iterator<Entry<String, NotiflyService>> notiflyIter = listenCache.entrySet().iterator();
 
         Entry<String, NotiflyService> item = null;
 

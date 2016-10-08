@@ -115,12 +115,18 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		case ServerParse.MYSQL_COMMENT:
 			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			break;
-            case ServerParse.LOAD_DATA_INFILE_SQL:
-                c.loadDataInfileStart(sql);
-                break;
-			case ServerParse.MIGRATE:
-				MigrateHandler.handle(sql,c);
-				break;
+        case ServerParse.LOAD_DATA_INFILE_SQL:
+            c.loadDataInfileStart(sql);
+            break;
+		case ServerParse.MIGRATE:
+			MigrateHandler.handle(sql,c);
+			break;
+		case ServerParse.LOCK:
+        	c.lockTable(sql);
+        	break;
+        case ServerParse.UNLOCK:
+        	c.unLockTable(sql);
+        	break;
 		default:
 			if(readOnly){
 				LOGGER.warn(new StringBuilder().append("User readonly:").append(sql).toString());

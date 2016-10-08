@@ -1,15 +1,16 @@
-package io.mycat.server.handler;
+package io.mycat.migrate;
 
 import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by magicdoom on 2016/9/15.
  */
-public class MigrateTask {
+public class MigrateTask implements Serializable {
 
     public String from;
     public String to;
@@ -17,7 +18,7 @@ public class MigrateTask {
     public List<Range> slots=new ArrayList<>();
 
     public String method;
-    public String fclass;
+    public String fclass=PartitionByCRC32PreSlot.class.getName();
 
 
     public int getSize()
@@ -37,4 +38,6 @@ public class MigrateTask {
     {
         slots.addAll(ranges);
     }
+
+
 }

@@ -6,6 +6,7 @@ import io.mycat.memory.unsafe.array.ByteArrayMethods;
 import io.mycat.memory.unsafe.memory.MemoryAllocator;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import javax.annotation.concurrent.GuardedBy;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class MemoryManager {
 
@@ -150,4 +151,11 @@ public void releaseExecutionMemory(long numBytes, long taskAttemptId, MemoryMode
     return null;
   }
 
+    /**
+     * Get Direct Memory Usage.
+     */
+    public final ConcurrentHashMap<Long, Long> getDirectMemorUsage() {
+
+        return offHeapExecutionMemoryPool.getMemoryForConnection();
+    }
 }
