@@ -251,13 +251,13 @@ public class PhysicalDBPool {
 		int active = -1;
 		for (int i = 0; i < writeSources.length; i++) {
 			int j = loop(i + index);
-			if (initSource(j, writeSources[j])) {
+			if ( initSource(j, writeSources[j]) ) {
 
                 //不切换-1时，如果主写挂了   不允许切换过去
-                if(dataHostConfig.getSwitchType()==DataHostConfig.NOT_SWITCH_DS&&j>0)
-                {
-                   break;
-                }
+				boolean isNotSwitchDs = ( dataHostConfig.getSwitchType() == DataHostConfig.NOT_SWITCH_DS );
+				if ( isNotSwitchDs && j > 0 ) {
+					break;
+				}
 
 				active = j;
 				activedIndex = active;
@@ -375,6 +375,10 @@ public class PhysicalDBPool {
 		}
 	}
 
+	/**
+	 *  强制清除 dataSources
+	 * @param reason
+	 */
 	public void clearDataSources(String reason) {
 		LOGGER.info("clear datasours of pool " + this.hostName);
 		for (PhysicalDatasource source : this.allDs) {			
@@ -705,5 +709,4 @@ public class PhysicalDBPool {
 	public void setSchemas(String[] mySchemas) {
 		this.schemas = mySchemas;
 	}
-
 }

@@ -96,6 +96,12 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 			return new Integer[0];
 		}
 	}
+	
+	@Override
+	public int getPartitionNum() {
+		int count = this.nCount;
+		return count > 0 ? count : -1;
+	}
 
 	public void setsBeginDate(String sBeginDate) {
 		this.sBeginDate = sBeginDate;

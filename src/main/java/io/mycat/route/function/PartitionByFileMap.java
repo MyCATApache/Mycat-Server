@@ -27,7 +27,9 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
@@ -95,6 +97,13 @@ public class PartitionByFileMap extends AbstractPartitionAlgorithm implements Ru
 		} catch (NumberFormatException e){
 			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
 		}
+	}
+	
+	@Override
+	public int getPartitionNum() {
+		Set<Integer> set = new HashSet<Integer>(app2Partition.values());
+		int count = set.size();
+		return count;
 	}
 
 	private void initialize() {

@@ -1,6 +1,9 @@
 package io.mycat.route.sequence.handler;
 
-import io.mycat.config.ZkConfig;
+
+import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.util.PropertiesUtil;
 import org.apache.curator.framework.CuratorFramework;
@@ -69,20 +72,24 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
     private ThreadLocal<Long> threadID = new ThreadLocal<>();
     private long nextID = 0L;
 
-    private final static String PATH = "/mycat/sequence";
-    private final static String INSTANCE_PATH = "/instance";
-    private final static String LEADER_PATH = "/leader";
+    private final static String PATH = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey()
+            + io.mycat.config.loader.zkprocess.comm.ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID)
+            + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
+    // private final static String PATH = "/mycat/sequence";
+    private final static String INSTANCE_PATH = ZookeeperPath.ZK_SEPARATOR.getKey()
+            + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INSTANCE.getKey();
+    private final static String LEADER_PATH = ZookeeperPath.ZK_SEPARATOR.getKey()
+            + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_LEADER.getKey();
     private SystemConfig mycatConfig;
     private String ID;
 
     private int mark[];
     private volatile boolean isLeader = false;
     private volatile String slavePath;
-    //配置是否载入好
+    // 配置是否载入好
     private volatile boolean ready = false;
 
     private CuratorFramework client;
-
 
     private LeaderSelector leaderSelector;
 
@@ -134,16 +141,14 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         // load sequnce properties
         Properties props = PropertiesUtil.loadProps(SEQUENCE_DB_PROPS);
         if ("ZK".equals(props.getProperty("INSTANCEID"))) {
-            initializeZK(ZkConfig.instance().getZkURL());
+            initializeZK(ZkConfig.getInstance().getZkURL());
         } else {
             this.instanceId = Long.parseLong(props.getProperty("INSTANCEID"));
             this.ready = true;
         }
         this.clusterId = Long.valueOf(props.getProperty("CLUSTERID"));
 
-
     }
-
 
     public void initializeZK(String zkAddress) {
         this.client = CuratorFrameworkFactory.newClient(zkAddress, new ExponentialBackoffRetry(1000, 3));
@@ -153,7 +158,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                 client.create().creatingParentContainersIfNeeded().forPath(PATH.concat(INSTANCE_PATH));
             }
         } catch (Exception e) {
-            //do nothing
+            // do nothing
         }
         this.leaderSelector = new LeaderSelector(client, PATH.concat(LEADER_PATH), this);
         this.leaderSelector.autoRequeue();
@@ -170,7 +175,8 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                         if (slavePath != null && client.checkExists().forPath(slavePath) != null) {
                             return;
                         }
-                        slavePath = client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL_SEQUENTIAL).forPath(PATH.concat("/instance/node"), "ready".getBytes());
+                        slavePath = client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
+                                .forPath(PATH.concat("/instance/node"), "ready".getBytes());
                         while ("ready".equals(new String(client.getData().forPath(slavePath)))) {
                             Thread.currentThread().yield();
                         }
@@ -185,10 +191,9 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         timerExecutor.scheduleAtFixedRate(runnable, 1L, 10L, TimeUnit.SECONDS);
     }
 
-
     @Override
     public long nextId(String prefixName) {
-//        System.out.println(instanceId);
+        // System.out.println(instanceId);
         while (!ready) {
             try {
                 Thread.sleep(50);
@@ -217,7 +222,8 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             threadInc.set(a + 1L);
         }
         threadLastTime.set(time);
-        return ((time & timestampMask) << timestampShift) | (((threadID.get() % maxThreadId) << threadIdShift)) | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
+        return ((time & timestampMask) << timestampShift) | (((threadID.get() % maxThreadId) << threadIdShift))
+                | (instanceId << instanceIdShift) | (clusterId << clusterIdShift) | a;
     }
 
     private synchronized Long getNextThreadID() {
@@ -257,7 +263,8 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
             }
             if (children != null) {
                 for (String child : children) {
-                    String data = new String(client.getData().forPath(PATH.concat(INSTANCE_PATH.concat("/").concat(child))));
+                    String data = new String(
+                            client.getData().forPath(PATH.concat(INSTANCE_PATH.concat("/").concat(child))));
                     if (!"ready".equals(data)) {
                         mark[Integer.parseInt(data)] = 1;
                     }
@@ -281,7 +288,8 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
                         String data = new String(client.getData().forPath(PATH.concat("/instance/" + child)));
                         if ("ready".equals(data)) {
                             int i = nextFree();
-                            client.setData().forPath(PATH.concat(INSTANCE_PATH.concat("/").concat(child)), ("" + i).getBytes());
+                            client.setData().forPath(PATH.concat(INSTANCE_PATH.concat("/").concat(child)),
+                                    ("" + i).getBytes());
                             mark2[i] = 1;
                         } else {
                             mark2[Integer.parseInt(data)] = 1;

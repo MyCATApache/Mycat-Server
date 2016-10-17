@@ -56,5 +56,10 @@ public class PartitionByHashMod extends AbstractPartitionAlgorithm implements Ru
         super.init();
     }
 
+	@Override
+	public int getPartitionNum() {
+		int count = this.count;
+		return count;
+	}
 
 }

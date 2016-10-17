@@ -168,8 +168,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		startTime = System.currentTimeMillis();
 		LOGGER.debug("rrs.getRunOnSlave()-" + rrs.getRunOnSlave());
+		boolean isLocked = session.getSource().isLocked();
 		for (final RouteResultsetNode node : rrs.getNodes()) {
 			BackendConnection conn = session.getTarget(node);
+			// 如果执行过lock table语句，则从lockedTarget map中获取后端连接
+			if (isLocked) {
+				conn = session.getLockedTarget(node);
+			}
 			if (session.tryExistsCon(conn, node)) {
 				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
 				node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
@@ -604,6 +609,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 							&& !columToIndx.containsKey(fieldName)) {
 						if (shouldRemoveAvgField.contains(fieldName)) {
 							shouldSkip = true;
+							fieldPackets.remove(fieldPackets.size() - 1);
 						}
 						if (shouldRenameAvgField.contains(fieldName)) {
 							String newFieldName = fieldName.substring(0,

@@ -357,9 +357,21 @@ public class BinaryRowDataPacket extends MySQLPacket {
 				case Fields.FIELD_TYPE_BIT:
 				case Fields.FIELD_TYPE_DECIMAL:
 				case Fields.FIELD_TYPE_NEW_DECIMAL:
-					// 长度编码的字符串需要一个字节来存储长度
+					/*
+					 * 长度编码的字符串需要计算存储长度, 根据mysql协议文档描述
+					 * To convert a length-encoded integer into its numeric value, check the first byte:
+					 * If it is < 0xfb, treat it as a 1-byte integer.
+                     * If it is 0xfc, it is followed by a 2-byte integer.
+                     * If it is 0xfd, it is followed by a 3-byte integer.
+                     * If it is 0xfe, it is followed by a 8-byte integer.
+					 * 
+					 */
 					if(value.length != 0) {
-						size = size + 1 + value.length;
+						/*
+						 * 长度编码的字符串需要计算存储长度,不能简单默认只有1个字节是表示长度,当数据足够长,占用的就不止1个字节
+						 */
+//						size = size + 1 + value.length;
+						size = size + BufferUtil.getLength(value);
 					} else {
 						size = size + 1; // 处理空字符串,只计算长度1个字节
 					}

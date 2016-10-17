@@ -49,4 +49,11 @@ public class PartitionDirectBySubString extends AbstractPartitionAlgorithm imple
         return partitionCount > 0 && partition >= partitionCount
                 ? defaultPartition : partition;
     }
+
+	@Override
+	public int getPartitionNum() {
+		int nPartition = this.partitionCount;
+		return nPartition;
+	}
+	
 }

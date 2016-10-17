@@ -26,6 +26,7 @@ package io.mycat.manager.handler;
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.manager.response.ShowBackend;
+import io.mycat.manager.response.ShowBackendOld;
 import io.mycat.manager.response.ShowCollation;
 import io.mycat.manager.response.ShowCommand;
 import io.mycat.manager.response.ShowConnection;
@@ -61,6 +62,7 @@ import io.mycat.manager.response.ShowTime;
 import io.mycat.manager.response.ShowVariables;
 import io.mycat.manager.response.ShowVersion;
 import io.mycat.manager.response.ShowWhiteHost;
+import io.mycat.manager.response.ShowDirectMemory;
 import io.mycat.route.parser.ManagerParseShow;
 import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.server.handler.ShowCache;
@@ -92,6 +94,9 @@ public final class ShowHandler {
 			break;
 		case ManagerParseShow.BACKEND:
 			ShowBackend.execute(c);
+			break;
+		case ManagerParseShow.BACKEND_OLD:
+			ShowBackendOld.execute(c);
 			break;
 		case ManagerParseShow.CONNECTION_SQL:
 			ShowConnectionSQL.execute(c);
@@ -236,6 +241,12 @@ public final class ShowHandler {
 		case ManagerParseShow.DATASOURCE_CLUSTER://by songwie
 			ShowDatasourceCluster.response(c,stmt);
 			break;	
+		case ManagerParseShow.DIRECTMEMORY_DETAILl:
+			ShowDirectMemory.execute(c,2);
+			break;
+		case ManagerParseShow.DIRECTMEMORY_TOTAL:
+			ShowDirectMemory.execute(c,1);
+			break;
 		default:
 			c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
 		}

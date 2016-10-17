@@ -13,6 +13,7 @@ import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.net.NIOProcessor;
 
 public class ConMap {
+	
 	// key -schema
 	private final ConcurrentHashMap<String, ConQueue> items = new ConcurrentHashMap<String, ConQueue>();
 
@@ -132,5 +133,4 @@ public class ConMap {
 		}
 		items.clear();
 	}
-
 }

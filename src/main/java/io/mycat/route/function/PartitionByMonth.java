@@ -131,6 +131,12 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 			return new Integer[0];
 		}
 	}
+	
+	@Override
+	public int getPartitionNum() {
+		int nPartition = this.nPartition;
+		return nPartition;
+	}
 
 	public void setsBeginDate(String sBeginDate) {
 		this.sBeginDate = sBeginDate;
