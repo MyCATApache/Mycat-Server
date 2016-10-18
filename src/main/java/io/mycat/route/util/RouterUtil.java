@@ -52,7 +52,6 @@ public class RouterUtil {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(RouterUtil.class);
 	
-	
 	/**
 	 * 移除执行语句中的数据库名
 	 *
@@ -62,7 +61,6 @@ public class RouterUtil {
 	 * 
 	 * @author mycat
 	 */
-
 	public static String removeSchema(String stmt, String schema) {
 		final String upStmt = stmt.toUpperCase();
 		final String upSchema = schema.toUpperCase() + ".";
@@ -79,6 +77,9 @@ public class RouterUtil {
 				return stmt;
 			}
 		}
+		int firstE=upStmt.indexOf("'");
+		int endE=upStmt.lastIndexOf("'");
+
 		StringBuilder sb = new StringBuilder();
 		while (indx > 0) {
 			sb.append(stmt.substring(strtPos, indx));
@@ -86,10 +87,31 @@ public class RouterUtil {
 			if (flag) {
 				strtPos += 2;
 			}
+			if(indx>firstE&&indx<endE&&countChar(stmt,indx)%2==1)
+			{
+				sb.append(stmt.substring( indx,indx+schema.length()+1))  ;
+			}
 			indx = upStmt.indexOf(upSchema, strtPos);
 		}
 		sb.append(stmt.substring(strtPos));
 		return sb.toString();
+	}
+
+	private static int countChar(String sql,int end)
+	{
+		int count=0;
+		boolean skipChar = false;
+		for (int i = 0; i < end; i++) {
+			if(sql.charAt(i)=='\'' && !skipChar) {
+				count++;
+				skipChar = false;
+			}else if( sql.charAt(i)=='\\'){
+				skipChar = true;
+			}else{
+				skipChar = false;
+			}
+		}
+		return count;
 	}
 
 	/**

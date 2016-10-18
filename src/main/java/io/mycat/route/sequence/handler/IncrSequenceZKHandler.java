@@ -23,8 +23,9 @@
  */
 package io.mycat.route.sequence.handler;
 
-import io.mycat.config.ZkConfig;
+
 import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.route.util.PropertiesUtil;
 import org.apache.curator.framework.CuratorFramework;
@@ -81,7 +82,7 @@ public class IncrSequenceZKHandler extends IncrSequenceHandler {
 
     public void load() {
         props = PropertiesUtil.loadProps(FILE_NAME);
-        String zkAddress = ZkConfig.instance().getZkURL();
+        String zkAddress = ZkConfig.getInstance().getZkURL();
         try {
             initializeZK(props, zkAddress);
         } catch (Exception e) {

@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.fastjson.util.IOUtils;
 
 import io.mycat.config.loader.console.ZookeeperPath;
-import io.mycat.config.loader.zkprocess.comm.MycatConfig;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
@@ -208,7 +208,7 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
         if (null != directory) {
 
             // 获得当前myid的名称
-            String myid = MycatConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+            String myid = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
 
             // 获邓当前节点的信息
             DataInf currDataCfg = this.getZkData(directory, myid);
