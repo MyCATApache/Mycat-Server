@@ -59,6 +59,7 @@ public class ShowTables {
             }
         } else {
              c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,"No database selected");
+             return;
         }
 
         //分库的schema，直接从SchemaConfig中获取所有表名
