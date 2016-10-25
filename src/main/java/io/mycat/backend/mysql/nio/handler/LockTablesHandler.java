@@ -42,15 +42,12 @@ public class LockTablesHandler extends MultiNodeHandler {
 		for (final RouteResultsetNode node : rrs.getNodes()) {
 			BackendConnection conn = session.getTarget(node);
 			if (session.tryExistsCon(conn, node)) {
-				// 若该连接已被绑定到session.target中，则继续添加到session.lockTarget中
-				session.bindLockTableConnection(node, conn);
 				_execute(conn, node);
 			} else {
 				// create new connection
 				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
 				dn.getConnection(dn.getDatabase(), autocommit, node, this, node);
 			}
-
 		}
 	}
 	
@@ -69,10 +66,7 @@ public class LockTablesHandler extends MultiNodeHandler {
 	@Override
 	public void connectionAcquired(BackendConnection conn) {
 		final RouteResultsetNode node = (RouteResultsetNode) conn.getAttachment();
-		// 将新获取的后端连接分别绑定到session.target和session.lockTarget
-		session.bindLockTableConnection(node, conn);
 		session.bindConnection(node, conn);
-		LOGGER.info("bind lock table connection:"+node.getName()+"->"+conn.toString());
 		_execute(conn, node);
 	}
 
