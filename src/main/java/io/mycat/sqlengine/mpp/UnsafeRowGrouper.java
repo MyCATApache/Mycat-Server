@@ -759,12 +759,12 @@ public class UnsafeRowGrouper {
 			}
 
 			case MergeCol.MERGE_MAX: {
-				int compare = BytesTools.compareTo(bs, bs2);
+				int compare = ByteUtil.compareNumberByte(bs,bs2);
 				return (compare > 0) ? bs : bs2;
 			}
 
 			case MergeCol.MERGE_MIN: {
-				int compare = BytesTools.compareTo(bs, bs2);
+				int compare = ByteUtil.compareNumberByte(bs,bs2);
 				return (compare > 0) ? bs2 : bs;
 
 			}
