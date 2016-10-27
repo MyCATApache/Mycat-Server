@@ -162,14 +162,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		ServerConnection sc = session.getSource();
 		this.isRunning = true;
 		this.packetId = 0;
-//		final BackendConnection conn = session.getTarget(node);
-		BackendConnection tConn = session.getTarget(node);
-		if (session.getSource().isLocked()) {
-			if (tConn == null) {
-				tConn = session.getLockedTarget(node); 
-			}
-		}
-		final BackendConnection conn = tConn;
+		final BackendConnection conn = session.getTarget(node);
 		LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
 		node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
 		LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
