@@ -160,6 +160,7 @@ public final class NIOReactor {
 					c.register();
 				} catch (Exception e) {
 					c.close("register err" + e.toString());
+					LOGGER.error("register err", e);
 				}
 			}
 		}
