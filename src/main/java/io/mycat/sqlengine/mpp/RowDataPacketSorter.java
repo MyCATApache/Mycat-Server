@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.util.ByteUtil;
-import io.mycat.util.CompareUtil;
 
 public class RowDataPacketSorter {
 
@@ -183,7 +182,8 @@ public class RowDataPacketSorter {
         case ColMeta.COL_TYPE_DATETIME:
         case ColMeta.COL_TYPE_NEWDATE:
         case ColMeta.COL_TYPE_BIT:
-            return BytesTools.compareTo(left,right);
+//            return BytesTools.compareTo(left,right);
+        	return ByteUtil.compareNumberByte(left, right);
         case ColMeta.COL_TYPE_VAR_STRING:
         case ColMeta.COL_TYPE_STRING:
             // ENUM和SET类型都是字符串，按字符串处理
