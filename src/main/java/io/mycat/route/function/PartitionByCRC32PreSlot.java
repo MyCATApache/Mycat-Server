@@ -2,6 +2,7 @@ package io.mycat.route.function;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.io.Files;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.rule.RuleAlgorithm;
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         this.rangeMap = rangeMap;
 
         Properties prop = new Properties();
-        File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + ruleName + ".properties");
+        File file = new File(SystemConfig.getHomePath(), "conf" + File.separator +"ruledata"+ File.separator + ruleName + ".properties");
         if (file.exists())
             file.delete();
         for (Map.Entry<Integer, List<Range>> integerListEntry : rangeMap.entrySet()) {
@@ -48,6 +49,11 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
                 values.add(range.start + "-" + range.end);
             }
             prop.setProperty(key, Joiner.on(",").join(values));
+        }
+        try {
+            Files.createParentDirs(file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
         try (FileOutputStream out = new FileOutputStream(file)) {
             prop.store(out, "WARNING   !!!Please do not modify or delete this file!!!");
@@ -59,11 +65,16 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
 
     private Properties loadProps(String name, boolean forceNew) {
         Properties prop = new Properties();
-        File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + name + ".properties");
+        File file = new File(SystemConfig.getHomePath(), "conf" + File.separator +"ruledata"+ File.separator + ruleName + ".properties");
         if (file.exists() && forceNew)
             file.delete();
         if (!file.exists()) {
             prop = genarateP();
+            try {
+                Files.createParentDirs(file);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             try (FileOutputStream out = new FileOutputStream(file)) {
                 prop.store(out, "WARNING   !!!Please do not modify or delete this file!!!");
             } catch (IOException e) {
@@ -156,6 +167,8 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         crc32.update(bytes, 0, bytes.length);
         long x = crc32.getValue();
         int slot = (int) (x % DEFAULT_SLOTS_NUM);
+
+        //todo   优化
         for (Map.Entry<Integer, List<Range>> rangeEntry : rangeMap.entrySet()) {
             List<Range> range = rangeEntry.getValue();
             for (Range range1 : range) {
@@ -185,7 +198,7 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         hash.setRuleName("test");
         hash.count = 1024;//分片数
 
-        hash.init();
+        hash.reInit();
         long start = System.currentTimeMillis();
         int[] bucket = new int[hash.count];
 
