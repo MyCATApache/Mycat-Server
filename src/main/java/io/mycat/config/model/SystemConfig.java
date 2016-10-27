@@ -72,6 +72,7 @@ public final class SystemConfig {
 	private static final String DEFAULT_CLUSTER_HEARTBEAT_PASS = "_HEARTBEAT_PASS_";
 	private static final int DEFAULT_PARSER_COMMENT_VERSION = 50148;
 	private static final int DEFAULT_SQL_RECORD_COUNT = 10;
+	private static final boolean DEFAULT_USE_ZK_SWITCH = true;
 	private int maxStringLiteralLength = 65535;
 	private int frontWriteQueueSize = 2048;
 	private String bindIp = "0.0.0.0";
@@ -212,8 +213,10 @@ public final class SystemConfig {
 	 */
 	private String dataNodeSortedTempDir;
 
-
-
+	/**
+	 * 是否启用zk切换
+	 */
+	private boolean	useZKSwitch=DEFAULT_USE_ZK_SWITCH;
 
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
@@ -304,6 +307,14 @@ public final class SystemConfig {
 
 	public void setSystemReserveMemorySize(String systemReserveMemorySize) {
 		this.systemReserveMemorySize = systemReserveMemorySize;
+	}
+
+	public boolean isUseZKSwitch() {
+		return useZKSwitch;
+	}
+
+	public void setUseZKSwitch(boolean useZKSwitch) {
+		this.useZKSwitch = useZKSwitch;
 	}
 
 	public int getUseGlobleTableCheck() {
