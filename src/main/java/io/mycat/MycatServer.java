@@ -440,24 +440,25 @@ public class MycatServer {
 		
 		RouteStrategyFactory.init();
 //        new Thread(tableStructureCheck()).start();
-
-		//首次启动如果发现zk上dnindex为空，则将本地初始化上zk
-		try {
-			File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "dnindex.properties");
-			dnindexLock.acquire(30,TimeUnit.SECONDS)   ;
-			String path = ZKUtils.getZKBasePath() + "bindata/dnindex.properties";
-			CuratorFramework zk = ZKUtils.getConnection();
-			if(zk.checkExists().forPath(path)==null) {
-				zk.create().creatingParentsIfNeeded().forPath(path, Files.toByteArray(file));
-			}
-
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		} finally {
+		if(isUseZkSwitch()) {
+			//首次启动如果发现zk上dnindex为空，则将本地初始化上zk
 			try {
-				dnindexLock.release();
+				File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "dnindex.properties");
+				dnindexLock.acquire(30, TimeUnit.SECONDS);
+				String path = ZKUtils.getZKBasePath() + "bindata/dnindex.properties";
+				CuratorFramework zk = ZKUtils.getConnection();
+				if (zk.checkExists().forPath(path) == null) {
+					zk.create().creatingParentsIfNeeded().forPath(path, Files.toByteArray(file));
+				}
+
 			} catch (Exception e) {
 				throw new RuntimeException(e);
+			} finally {
+				try {
+					dnindexLock.release();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
 			}
 		}
 	}
@@ -623,9 +624,11 @@ public class MycatServer {
 						ByteArrayOutputStream out=new ByteArrayOutputStream();
 						Properties properties=new Properties();
 						properties.load(new ByteArrayInputStream(data));
-						properties.setProperty(dataHost,String.valueOf(curIndex)) ;
-						properties.store(out,"update");
-						zk.setData().forPath(path,out.toByteArray());
+						 if(!String.valueOf(curIndex).equals(properties.getProperty(dataHost))) {
+							 properties.setProperty(dataHost, String.valueOf(curIndex));
+							 properties.store(out, "update");
+							 zk.setData().forPath(path, out.toByteArray());
+						 }
 					}
 
 				}finally {
