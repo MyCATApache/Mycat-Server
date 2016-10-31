@@ -205,7 +205,9 @@ public final class SystemConfig {
 	 */
 	private String systemReserveMemorySize;
 
+	private String XARecoveryLogBaseDir;
 
+	private String XARecoveryLogBaseName;
 
 	/**
 	 * 排序时，内存不够时，将已经排序的结果集
@@ -315,6 +317,22 @@ public final class SystemConfig {
 
 	public void setUseZKSwitch(boolean useZKSwitch) {
 		this.useZKSwitch = useZKSwitch;
+	}
+
+	public String getXARecoveryLogBaseDir() {
+		return XARecoveryLogBaseDir;
+	}
+
+	public void setXARecoveryLogBaseDir(String XARecoveryLogBaseDir) {
+		this.XARecoveryLogBaseDir = XARecoveryLogBaseDir;
+	}
+
+	public String getXARecoveryLogBaseName() {
+		return XARecoveryLogBaseName;
+	}
+
+	public void setXARecoveryLogBaseName(String XARecoveryLogBaseName) {
+		this.XARecoveryLogBaseName = XARecoveryLogBaseName;
 	}
 
 	public int getUseGlobleTableCheck() {
