@@ -348,14 +348,14 @@ public class NonBlockingSession implements Session {
                 if (c.isAutocommit()) {
                     c.release();
                 } else
-                if (needRollback)
+                //if (needRollback)
                 {
                     c.setResponseHandler(new RollbackReleaseHandler());
                     c.rollback();
                 }
-                else {
-					c.release();
-				}
+                //else {
+				//	c.release();
+				//}
             }
         }
     }
