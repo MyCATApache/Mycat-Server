@@ -25,7 +25,15 @@ package io.mycat;
 
 import com.google.common.io.Files;
 import io.mycat.backend.BackendConnection;
+import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.mysql.nio.handler.MultiNodeCoordinator;
+import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
+import io.mycat.backend.mysql.xa.ParticipantLogEntry;
+import io.mycat.backend.mysql.xa.TxState;
+import io.mycat.backend.mysql.xa.XARollbackCallback;
+import io.mycat.backend.mysql.xa.recovery.Repository;
+import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.DirectByteBufferPool;
 import io.mycat.cache.CacheService;
@@ -33,7 +41,9 @@ import io.mycat.config.MycatConfig;
 import io.mycat.config.classloader.DynaClassLoader;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
+import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
+import io.mycat.config.model.TableConfig;
 import io.mycat.config.table.structure.MySQLTableStructureDetector;
 import io.mycat.manager.ManagerConnectionFactory;
 import io.mycat.memory.MyCatMemory;
@@ -51,6 +61,8 @@ import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnectionFactory;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
+import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
+import io.mycat.sqlengine.SQLJob;
 import io.mycat.statistic.SQLRecorder;
 import io.mycat.statistic.stat.SqlResultSizeRecorder;
 import io.mycat.statistic.stat.UserStat;
@@ -61,10 +73,7 @@ import io.mycat.util.TimeUtil;
 
 import java.io.*;
 import java.nio.channels.AsynchronousChannelGroup;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -95,6 +104,7 @@ public class MycatServer {
 	
 	private static final MycatServer INSTANCE = new MycatServer();
 	private static final Logger LOGGER = LoggerFactory.getLogger("MycatServer");
+	private static final Repository fileRepository = new FileSystemRepository();
 	private final RouteService routerService;
 	private final CacheService cacheService;
 	private Properties dnIndexProperties;
@@ -440,6 +450,12 @@ public class MycatServer {
 		
 		RouteStrategyFactory.init();
 //        new Thread(tableStructureCheck()).start();
+
+		//XA Init recovery Log
+		LOGGER.info("===============================================");
+		LOGGER.info("Perform XA recovery log ...");
+		performXARecoveryLog();
+
 		if(isUseZkSwitch()) {
 			//首次启动如果发现zk上dnindex为空，则将本地初始化上zk
 			try {
@@ -832,6 +848,67 @@ public class MycatServer {
 			}
 		};
 	}
+
+
+	//XA recovery log check
+	private void performXARecoveryLog() {
+		//fetch the recovery log
+		CoordinatorLogEntry[] coordinatorLogEntries = getCoordinatorLogEntries();
+
+		for(int i=0; i<coordinatorLogEntries.length; i++){
+			CoordinatorLogEntry coordinatorLogEntry = coordinatorLogEntries[i];
+			boolean needRollback = false;
+			for(int j=0; j<coordinatorLogEntry.participants.length; j++) {
+				ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
+				if (participantLogEntry.txState == TxState.TX_PREPARED_STATE){
+					needRollback = true;
+					break;
+				}
+			}
+			if(needRollback){
+				for(int j=0; j<coordinatorLogEntry.participants.length; j++){
+					ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
+					//XA rollback
+					String xacmd = "XA ROLLBACK "+ coordinatorLogEntry.id +';';
+					OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler( new String[0], new XARollbackCallback());
+					outloop:
+					for (SchemaConfig schema : MycatServer.getInstance().getConfig().getSchemas().values()) {
+						for (TableConfig table : schema.getTables().values()) {
+							for (String dataNode : table.getDataNodes()) {
+								PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
+								if (dn.getDbPool().getSource().getConfig().getIp().equals(participantLogEntry.uri)
+										&& dn.getDatabase().equals(participantLogEntry.resourceName)) {
+									//XA STATE ROLLBACK
+									participantLogEntry.txState = TxState.TX_ROLLBACKED_STATE;
+									SQLJob sqlJob = new SQLJob(xacmd, dn.getDatabase(), resultHandler, dn.getDbPool().getSource());
+									sqlJob.run();
+									LOGGER.debug(String.format("[XA ROLLBACK] [%s] Host:[%s] schema:[%s]", xacmd, dn.getName(), dn.getDatabase()));
+									break outloop;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//init into in memory cached
+		for(int i=0;i<coordinatorLogEntries.length;i++){
+			MultiNodeCoordinator.inMemoryRepository.put(coordinatorLogEntries[i].id,coordinatorLogEntries[i]);
+		}
+		//discard the recovery log
+		MultiNodeCoordinator.fileRepository.writeCheckpoint(MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
+	}
+
+	/** covert the collection to array **/
+	private CoordinatorLogEntry[] getCoordinatorLogEntries(){
+		Collection<CoordinatorLogEntry> allCoordinatorLogEntries = fileRepository.getAllCoordinatorLogEntries();
+		if(allCoordinatorLogEntries == null){return new CoordinatorLogEntry[0];}
+		if(allCoordinatorLogEntries.size()==0){return new CoordinatorLogEntry[0];}
+		return allCoordinatorLogEntries.toArray(new CoordinatorLogEntry[allCoordinatorLogEntries.size()]);
+	}
+
+
 
 	public boolean isAIO() {
 		return aio;
