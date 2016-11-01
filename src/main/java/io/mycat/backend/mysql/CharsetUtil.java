@@ -59,7 +59,7 @@ public class CharsetUtil {
                INDEX_TO_CHARSET.put(Integer.parseInt((String) index), prop.getProperty((String) index));
             }
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error("error:",e);
         }
         
         // charset --> index

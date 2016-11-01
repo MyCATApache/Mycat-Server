@@ -81,7 +81,7 @@ public class HeartbeatRecorder {
             recordsAll.add(new Record(value, time));
             calculate(time);
     	}catch(Exception e){ 
-    		LOGGER.error("record HeartbeatRecorder error " + e.getMessage());
+    		LOGGER.error("record HeartbeatRecorder error " ,e);
     	}
     }
 
