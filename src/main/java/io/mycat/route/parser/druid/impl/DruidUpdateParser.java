@@ -7,6 +7,9 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
+import com.alibaba.druid.stat.TableStat.Name;
+
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
@@ -15,12 +18,13 @@ import io.mycat.util.StringUtil;
 
 import java.sql.SQLNonTransientException;
 import java.util.List;
+import java.util.Map;
 
 public class DruidUpdateParser extends DefaultDruidParser {
     @Override
     public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
         //这里限制了update分片表的个数只能有一个
-        if (ctx.getTables() != null && ctx.getTables().size() > 1 && !schema.isNoSharding()) {
+        if (ctx.getTables() != null && getUpdateTableCount() > 1 && !schema.isNoSharding()) {
             String msg = "multi table related update not supported,tables:" + ctx.getTables();
             LOGGER.warn(msg);
             throw new SQLNonTransientException(msg);
@@ -65,7 +69,24 @@ public class DruidUpdateParser extends DefaultDruidParser {
             throw new SQLNonTransientException("global table is not supported in multi table related update " + tableName);
         }
     }
-
+    
+    /**
+     * 获取更新的表数
+     * @author lian
+     * @date 2016年11月2日
+     * @return
+     */
+    private int getUpdateTableCount(){
+    	Map<Name, TableStat> tableMap = this.ctx.getVisitor().getTables();
+    	int updateTableCount = 0;
+    	for(Name _name : tableMap.keySet()){
+    		
+    		TableStat ts = tableMap.get(_name);
+    		updateTableCount += ts.getUpdateCount();
+    	}
+    	return updateTableCount;
+    }
+    
     /*
     * 判断字段是否在SQL AST的节点中，比如 col 在 col = 'A' 中，这里要注意，一些子句中可能会在字段前加上表的别名，
     * 比如 t.col = 'A'，这两种情况， 操作符(=)左边被druid解析器解析成不同的对象SQLIdentifierExpr(无表别名)和

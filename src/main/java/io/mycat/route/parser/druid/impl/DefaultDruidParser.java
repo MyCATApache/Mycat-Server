@@ -136,6 +136,7 @@ public class DefaultDruidParser implements DruidParser {
 			ctx.setTableAliasMap(tableAliasMap);
 		}
 		ctx.setRouteCalculateUnits(this.buildRouteCalculateUnits(visitor, mergedConditionList));
+		ctx.setVisitor(visitor);
 	}
 	
 	private List<RouteCalculateUnit> buildRouteCalculateUnits(SchemaStatVisitor visitor, List<List<Condition>> conditionList) {
