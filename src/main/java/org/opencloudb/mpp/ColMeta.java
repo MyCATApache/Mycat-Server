@@ -53,6 +53,8 @@ public class ColMeta {
 	public static final int COL_TYPE_GEOMETRY = 0xff;
 	public  int colIndex;
 	public final int colType;
+	
+	public int decimals;
 
     public  int avgSumIndex;
     public  int avgCountIndex;
