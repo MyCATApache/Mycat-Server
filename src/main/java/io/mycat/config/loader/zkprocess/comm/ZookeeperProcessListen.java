@@ -148,7 +148,6 @@ public class ZookeeperProcessListen {
                         try {
                             result = cacheService.notiflyProcess();
                         } catch (Exception e) {
-                            e.printStackTrace();
                             lOG.error("ZookeeperProcessListen notifly key :" + key + " error:Exception info:", e);
                         }
                     }

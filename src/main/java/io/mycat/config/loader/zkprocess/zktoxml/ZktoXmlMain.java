@@ -4,6 +4,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.*;
+import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -20,12 +22,6 @@ import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.BindatazkToxmlLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.EcacheszkToxmlLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.RuleszkToxmlLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.SchemaszkToxmlLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.SequenceTopropertiesLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.ServerzkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 
 /**
@@ -92,7 +88,10 @@ public class ZktoXmlMain {
         new EcacheszkToxmlLoader(zkListen, zkConn, xmlProcess);
 
         // 将bindata目录的数据进行转换到本地文件
-        new BindatazkToxmlLoader(zkListen, zkConn, xmlProcess);
+        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath()+"bindata",new BinDataPathChildrenCacheListener());
+
+         //ruledata
+        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath()+"ruledata",new RuleDataPathChildrenCacheListener());
 
         // 初始化xml转换操作
         xmlProcess.initJaxbClass();

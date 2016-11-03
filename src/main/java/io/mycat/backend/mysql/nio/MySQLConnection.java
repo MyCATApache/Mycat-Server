@@ -458,7 +458,7 @@ public class MySQLConnection extends BackendAIOConnection {
 			schemaCmd.write(this);
 		}
 		// and our query sql to multi command at last
-		sb.append(rrn.getStatement());
+		sb.append(rrn.getStatement()+";");
 		// syn and execute others
 		this.sendQueryCmd(sb.toString());
 		// waiting syn result...

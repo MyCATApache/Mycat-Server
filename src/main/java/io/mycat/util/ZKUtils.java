@@ -1,6 +1,7 @@
 package io.mycat.util;
 
 
+import io.mycat.MycatServer;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import org.apache.curator.framework.CuratorFramework;
@@ -63,23 +64,40 @@ public class ZKUtils {
         throw new RuntimeException("failed to connect to zookeeper service : " + url);
     }
 
+    public  static void addChildPathCache(  String path ,PathChildrenCacheListener listener )
+    {
+        NameableExecutor businessExecutor = MycatServer.getInstance().getBusinessExecutor();
+        ExecutorService executor = businessExecutor ==null?Executors.newFixedThreadPool(5):
+                businessExecutor;
 
+        try {
+            /**
+             * 监听子节点的变化情况
+             */
+            final PathChildrenCache childrenCache = new PathChildrenCache(getConnection(), path, true);
+            childrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
+            childrenCache.getListenable().addListener(listener,executor);
+        } catch (Exception e) {
+           throw new RuntimeException(e);
+        }
+    }
 
     public static void main(String[] args) throws Exception {
         CuratorFramework client= ZKUtils.getConnection();
+        ExecutorService executor = Executors.newFixedThreadPool(5);
        // System.out.println(client.getZookeeperClient().isConnected());
-        addChildPathCache(client,ZKUtils.getZKBasePath()+"migrate",true);
+        addChildPathCache(client,ZKUtils.getZKBasePath()+"migrate",true,executor);
 
-       Thread.sleep(4000);
+       Thread.sleep(8000);
     }
 
-    private static void addChildPathCache(CuratorFramework client, final String path, final boolean addChild) throws Exception {
+    private static void addChildPathCache(CuratorFramework client, final String path, final boolean addChild,  final ExecutorService executor) throws Exception {
         /**
          * 监听子节点的变化情况
          */
         final PathChildrenCache childrenCache = new PathChildrenCache(client, path, true);
         childrenCache.start(PathChildrenCache.StartMode.NORMAL);
-        ExecutorService executor = Executors.newFixedThreadPool(5);
+
         childrenCache.getListenable().addListener(
                 new PathChildrenCacheListener() {
                     @Override
@@ -90,7 +108,7 @@ public class ZKUtils {
                                 if(addChild)
                                 {
 
-                                    addChildPathCache(client,event.getData().getPath(),false);
+                                    addChildPathCache(client,event.getData().getPath(),false,executor);
                                 }
                                 System.out.println("CHILD_ADDED: " + event.getData().getPath());
                                 break;
