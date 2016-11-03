@@ -23,6 +23,8 @@
  */
 package io.mycat.sqlengine.mpp;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -260,14 +262,17 @@ public class RowDataPacketGrouper {
 		}
 		switch (mergeType) {
 		case MergeCol.MERGE_SUM:
-			if (colType == ColMeta.COL_TYPE_NEWDECIMAL
-					|| colType == ColMeta.COL_TYPE_DOUBLE
-					|| colType == ColMeta.COL_TYPE_FLOAT
-					|| colType == ColMeta.COL_TYPE_DECIMAL) {
+			if (colType == ColMeta.COL_TYPE_DOUBLE
+				|| colType == ColMeta.COL_TYPE_FLOAT) {
 
 				Double vale = ByteUtil.getDouble(bs) + ByteUtil.getDouble(bs2);
 				return vale.toString().getBytes();
 				// return String.valueOf(vale).getBytes();
+			} else if(colType == ColMeta.COL_TYPE_NEWDECIMAL
+					|| colType == ColMeta.COL_TYPE_DECIMAL) {
+				BigDecimal d1 = new BigDecimal(new String(bs));
+				d1 = d1.add(new BigDecimal(new String(bs2)));
+				return String.valueOf(d1).getBytes();
 			}
 			// continue to count case
 		case MergeCol.MERGE_COUNT: {
@@ -298,10 +303,19 @@ public class RowDataPacketGrouper {
 			// return ByteUtil.compareNumberArray2(bs, bs2, 2);
 		}
             case MergeCol.MERGE_AVG: {
-                double aDouble = ByteUtil.getDouble(bs);
-                long s2 = Long.parseLong(new String(bs2));
-                Double vale = aDouble / s2;
-                return vale.toString().getBytes();
+            	if (colType == ColMeta.COL_TYPE_DOUBLE
+    					|| colType == ColMeta.COL_TYPE_FLOAT) {
+            		double aDouble = ByteUtil.getDouble(bs);
+            		long s2 = Long.parseLong(new String(bs2));
+            		Double vale = aDouble / s2;
+            		return vale.toString().getBytes();
+            	} else if(colType == ColMeta.COL_TYPE_NEWDECIMAL
+    					|| colType == ColMeta.COL_TYPE_DECIMAL) {
+            		BigDecimal sum = new BigDecimal(new String(bs));
+                    // mysql avg 处理精度为 sum结果的精度扩展4, 采用四舍五入
+                    BigDecimal avg = sum.divide(new BigDecimal(new String(bs2)), sum.scale() + 4, RoundingMode.HALF_UP);
+                    return avg.toString().getBytes();
+            	}
             }
 		default:
 			return null;
