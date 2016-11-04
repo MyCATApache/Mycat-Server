@@ -167,7 +167,7 @@ public class VersionedFile {
     public FileChannel openNewVersionForNioWriting() throws FileNotFoundException
     {
         if ( randomAccessFile != null ) throw new IllegalStateException ( "Already writing a new version." );
-        version++;
+        //version++;
         randomAccessFile = new RandomAccessFile(getCurrentVersionFileName(), "rw");
         return randomAccessFile.getChannel();
     }

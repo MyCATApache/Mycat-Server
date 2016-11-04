@@ -23,6 +23,7 @@
  */
 package io.mycat.backend.mysql.nio;
 
+import io.mycat.backend.mysql.xa.TxState;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -347,7 +348,6 @@ public class MySQLConnection extends BackendAIOConnection {
 		private void updateConnectionInfo(MySQLConnection conn)
 
 		{
-			conn.xaStatus = (xaStarted) ? 1 : 0;
 			if (schema != null) {
 				conn.schema = schema;
 				conn.oldSchema = conn.schema;
@@ -403,10 +403,10 @@ public class MySQLConnection extends BackendAIOConnection {
 		// never executed modify sql,so auto commit
 		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB()
 				|| clientAutoCommit;
-		if (expectAutocommit == false && xaTxID != null && xaStatus == 0) {
-			clientTxIsoLation = Isolations.SERIALIZABLE;
+		if (expectAutocommit == false && xaTxID != null && xaStatus == TxState.TX_INITIALIZE_STATE) {
+			//clientTxIsoLation = Isolations.SERIALIZABLE;
 			xaCmd = "XA START " + xaTxID + ';';
-
+			this.xaStatus = TxState.TX_STARTED_STATE;
 		}
 		int schemaSyn = conSchema.equals(oldSchema) ? 0 : 1;
 		int charsetSyn = 0;
@@ -420,7 +420,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
 		int autoCommitSyn = (conAutoComit == expectAutocommit) ? 0 : 1;
 		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn;
-		if (synCount == 0) {
+		if (synCount == 0 && this.xaStatus != TxState.TX_STARTED_STATE) {
 			// not need syn connection
 			sendQueryCmd(rrn.getStatement());
 			return;

@@ -57,9 +57,9 @@ public class MultiNodeCoordinator implements ResponseHandler {
 				conn.setResponseHandler(this);
 				//process the XA_END XA_PREPARE Command
 				MySQLConnection mysqlCon = (MySQLConnection) conn;
+				String xaTxId = session.getXaTXID();
 				if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE)
 				{
-					String xaTxId = session.getXaTXID();
 					//recovery Log
 					participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
 					String[] cmds = new String[]{"XA END " + xaTxId,
@@ -71,6 +71,8 @@ public class MultiNodeCoordinator implements ResponseHandler {
 					mysqlCon.execBatchCmd(cmds);
 				} else
 				{
+					//recovery Log
+					participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
 					cmdHandler.sendCommand(session, conn);
 				}
 				++started;
@@ -180,8 +182,8 @@ public class MultiNodeCoordinator implements ResponseHandler {
 					inMemoryRepository.put(session.getXaTXID(),coordinatorLogEntry);
 					fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
 
-					//XA started now
-					mysqlCon.setXaStatus(TxState.TX_STARTED_STATE);
+					//XA reset status now
+					mysqlCon.setXaStatus(TxState.TX_INITIALIZE_STATE);
 					break;
 				}
 				default:
