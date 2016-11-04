@@ -117,6 +117,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 							ColMeta colMeta = new ColMeta(sumColMeta.colIndex,
 									countColMeta.colIndex,
 									sumColMeta.getColType());
+							colMeta.decimals = sumColMeta.decimals; // 保存精度
 							mergCols.add(new MergeCol(colMeta, mergEntry
 									.getValue()));
 						}
