@@ -33,8 +33,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * implement group function select a,count(*),sum(*) from A group by a
@@ -177,7 +179,7 @@ public class RowDataPacketGrouper {
 			return;
 		}
 
-
+		Set<Integer> rmIndexSet = new HashSet<Integer>();
 		for (MergeCol merg : mergCols) {
 			if(merg.mergeType==MergeCol.MERGE_AVG)
 			{
@@ -188,12 +190,16 @@ public class RowDataPacketGrouper {
 				if (result != null)
 				{
 					toRow.fieldValues.set(merg.colMeta.avgSumIndex, result);
-					toRow.fieldValues.remove(merg.colMeta.avgCountIndex) ;
-					toRow.fieldCount=toRow.fieldCount-1;
+//					toRow.fieldValues.remove(merg.colMeta.avgCountIndex) ;
+//					toRow.fieldCount=toRow.fieldCount-1;
+					rmIndexSet.add(merg.colMeta.avgCountIndex);
 				}
 			}
 		}
-
+		for(Integer index : rmIndexSet) {
+			toRow.fieldValues.remove(index);
+			toRow.fieldCount = toRow.fieldCount - 1;
+		}
 
 
 	}
