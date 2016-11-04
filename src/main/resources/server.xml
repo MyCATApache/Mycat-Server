@@ -63,10 +63,10 @@
 		<property name="useZKSwitch">true</property>
 
 		<!-- XA Recovery Log日志路径 -->
-		<property name="XARecoveryLogBaseDir">./</property>
+		<!--<property name="XARecoveryLogBaseDir">./</property>-->
 
 		<!-- XA Recovery Log日志名称 -->
-		<property name="XARecoveryLogBaseName">tmlog</property>
+		<!--<property name="XARecoveryLogBaseName">tmlog</property>-->
 
 	</system>
 	

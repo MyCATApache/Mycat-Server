@@ -265,7 +265,7 @@ public final class SystemConfig {
 		this.useStreamOutput = 0;
 		this.systemReserveMemorySize = RESERVED_SYSTEM_MEMORY_BYTES;
 		this.dataNodeSortedTempDir = System.getProperty("user.dir");
-		this.XARecoveryLogBaseDir = "./";
+		this.XARecoveryLogBaseDir = SystemConfig.getHomePath()+"/tmlogs/";
 		this.XARecoveryLogBaseName ="tmlog";
 	}
 

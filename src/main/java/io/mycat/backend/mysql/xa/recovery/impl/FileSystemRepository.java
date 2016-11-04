@@ -24,8 +24,6 @@ public class FileSystemRepository implements Repository{
             .getLogger(FileSystemRepository.class);
     private VersionedFile file;
     private FileChannel rwChannel = null;
-    private LogFileLock lock_;
-
 
     public FileSystemRepository()  {
            init();
@@ -44,13 +42,10 @@ public class FileSystemRepository implements Repository{
 
         logger.debug("baseDir " + baseDir);
         logger.debug("baseName " + baseName);
-//        lock_ = new LogFileLock(baseDir, baseName);
-//        logger.debug("LogFileLock " + lock_);
-//        try {
-//            lock_.acquireLock();
-//        } catch (LogException e) {
-//            logger.error(e.getMessage(),e);
-//        }
+
+        //Judge whether exist the basedir
+        createBaseDir(baseDir);
+
         file = new VersionedFile(baseDir, baseName, ".log");
 
     }
@@ -187,8 +182,6 @@ public class FileSystemRepository implements Repository{
             closeOutput();
         } catch (Exception e) {
             logger.warn("Error closing file - ignoring", e);
-        } finally {
-            lock_.releaseLock();
         }
 
     }
@@ -225,4 +218,16 @@ public class FileSystemRepository implements Repository{
         }
 
     }
+
+    /**
+     * create the log base dir
+     * @param baseDir
+     */
+    public void createBaseDir(String baseDir){
+        File baseDirFolder = new File (baseDir);
+        if (!baseDirFolder.exists()){
+                baseDirFolder.mkdirs();
+        }
+    }
+
 }
