@@ -17,10 +17,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
+import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleConfig;
@@ -770,33 +772,34 @@ public class RouterUtil {
 		return dataNode;
 	}
 
-	private static String getRandomDataNode(TableConfig tc){
-		//写节点不可用，意味着读节点也不可用。
-		//直接使用下一个 dataHost
-		String randomDn = tc.getRandomDataNode();
-		if (!MycatServer.getInstance()
-				.getConfig()
-				.getDataNodes()
-				.get(randomDn)
-				.getDbPool()
-				.getSource()
-				.isAlive()) {
-			for (PhysicalDBPool pool : MycatServer.getInstance()
-					.getConfig()
-					.getDataHosts()
-					.values()) {
-				if(pool.getSource().getHostConfig().containDataNode(randomDn)){
-					continue;
-				}
+    private static String getRandomDataNode(TableConfig tc) {
+        //写节点不可用，意味着读节点也不可用。
+        //直接使用下一个 dataHost
+        String randomDn = tc.getRandomDataNode();
+        MycatConfig mycatConfig = MycatServer.getInstance().getConfig();
+        if (mycatConfig != null) {
+            PhysicalDBNode physicalDBNode = mycatConfig.getDataNodes().get(randomDn);
+            if (physicalDBNode != null) {
+                if (physicalDBNode.getDbPool().getSource().isAlive()) {
+                    for (PhysicalDBPool pool : MycatServer.getInstance()
+                            .getConfig()
+                            .getDataHosts()
+                            .values()) {
+                        if (pool.getSource().getHostConfig().containDataNode(randomDn)) {
+                            continue;
+                        }
 
-				if(pool.getSource().isAlive()){
-					return pool.getSource().getHostConfig().getRandomDataNode();
-				}
-			}
-		}
-		//all fail return default
-		return randomDn;
-	}
+                        if (pool.getSource().isAlive()) {
+                            return pool.getSource().getHostConfig().getRandomDataNode();
+                        }
+                    }
+                }
+            }
+        }
+
+        //all fail return default
+        return randomDn;
+    }
 
 	/**
 	 * 根据 ER分片规则获取路由集合
