@@ -137,8 +137,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 		ByteBuffer buf = buffer;
 		if (buf != null) {
-			buffer = null;
 			session.getSource().recycle(buffer);
+			buffer = null;
 
 		}
 	}
