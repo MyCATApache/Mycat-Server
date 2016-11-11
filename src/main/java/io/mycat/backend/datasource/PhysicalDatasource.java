@@ -474,4 +474,8 @@ public abstract class PhysicalDatasource {
 	public DBHostConfig getConfig() {
 		return config;
 	}
+
+	public boolean isAlive() {
+		return getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS;
+	}
 }
