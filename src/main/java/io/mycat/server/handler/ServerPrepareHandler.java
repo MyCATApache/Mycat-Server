@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ import io.mycat.server.response.PreparedStmtResponse;
 import io.mycat.util.HexFormatUtil;
 
 /**
- * @author mycat, CrazyPig
+ * @author mycat, CrazyPig, zhuam
  */
 public class ServerPrepareHandler implements FrontendPrepareHandler {
 	
@@ -219,6 +220,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     		case Fields.FIELD_TYPE_VAR_STRING:
             case Fields.FIELD_TYPE_STRING:
             case Fields.FIELD_TYPE_VARCHAR:
+            	bindValue.value = Matcher.quoteReplacement( String.valueOf( bindValue.value ) );
             	sql = sql.replaceFirst("\\?", "'" + bindValue.value + "'");
             	break;
             case Fields.FIELD_TYPE_TINY_BLOB:
@@ -241,6 +243,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             	sql = sql.replaceFirst("\\?", "'" + bindValue.value + "'");
             	break;
             default:
+            	bindValue.value = Matcher.quoteReplacement( String.valueOf( bindValue.value ) );
             	sql = sql.replaceFirst("\\?", bindValue.value.toString());
             	break;
     		}
