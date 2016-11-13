@@ -235,7 +235,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 
 	private void getAutocommitCommand(StringBuilder sb, boolean autoCommit) {
 		if (autoCommit) {
-			sb.append("SET autocommit=1;");
+			sb.append(/*"SET autocommit=1;"*/"");//Fix bug  由于 PG9.0 开始不支持此选项，默认是为自动提交逻辑。
 		} else {
 			sb.append("begin transaction;");
 		}
