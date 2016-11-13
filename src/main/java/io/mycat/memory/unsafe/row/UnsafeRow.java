@@ -29,6 +29,8 @@ import io.mycat.net.mysql.MySQLPacket;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
 
@@ -427,6 +429,50 @@ public final class UnsafeRow extends MySQLPacket {
     }
     return size;
   }
+  
+  	public BigDecimal getDecimal(int ordinal, int scale) {
+		if (isNullAt(ordinal)) {
+			return null;
+		}
+		byte[] bytes = getBinary(ordinal);
+		BigInteger bigInteger = new BigInteger(bytes);
+		BigDecimal javaDecimal = new BigDecimal(bigInteger, scale);
+		return javaDecimal;
+	}
+  	
+  	/**
+ 	 * update <strong>exist</strong> decimal column value to new decimal value
+ 	 * 
+ 	 * NOTE: decimal max precision is limit to 38
+ 	 * @param ordinal
+ 	 * @param value
+ 	 * @param precision
+ 	 */
+ 	public void updateDecimal(int ordinal, BigDecimal value) {
+ 		assertIndexIsValid(ordinal);
+ 		// fixed length
+ 		long cursor = getLong(ordinal) >>> 32;
+ 		assert cursor > 0 : "invalid cursor " + cursor;
+ 		// zero-out the bytes
+ 		Platform.putLong(baseObject, baseOffset + cursor, 0L);
+ 		Platform.putLong(baseObject, baseOffset + cursor + 8, 0L);
+ 
+ 		if (value == null) {
+ 			setNullAt(ordinal);
+ 			// keep the offset for future update
+ 			Platform.putLong(baseObject, getFieldOffset(ordinal), cursor << 32);
+ 		} else {
+ 
+ 			final BigInteger integer = value.unscaledValue();
+ 			byte[] bytes = integer.toByteArray();
+ 			assert (bytes.length <= 16);
+ 
+ 			// Write the bytes to the variable length portion.
+ 			Platform.copyMemory(bytes, Platform.BYTE_ARRAY_OFFSET, baseObject, baseOffset + cursor, bytes.length);
+ 			setLong(ordinal, (cursor << 32) | ((long) bytes.length));
+ 		}
+ 
+ 	}
 
   /**
   public Decimal getDecimal(int ordinal, int precision, int scale) {

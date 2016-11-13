@@ -3,10 +3,14 @@ package io.mycat.config.loader.zkprocess.zktoxml.listen;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 
+import io.mycat.MycatServer;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.manager.response.ReloadConfig;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.fastjson.util.IOUtils;
 
 import io.mycat.config.loader.console.ZookeeperPath;
-import io.mycat.config.loader.zkprocess.comm.MycatConfig;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
@@ -138,8 +141,8 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
         // 数配制信息写入文件
         String path = ServerzkToxmlLoader.class.getClassLoader().getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey())
                 .getPath();
-
-        path = path.substring(1) + WRITEPATH;
+        path=new File(path).getPath()+File.separator;
+        path += WRITEPATH;
 
         LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to object writePath :" + path);
 
@@ -159,7 +162,8 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
             LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to write index_to_charset.properties is success");
         }
-
+        if(MycatServer.getInstance().getProcessors()!=null)
+        ReloadConfig.reload();
         return true;
     }
 
@@ -208,7 +212,7 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
         if (null != directory) {
 
             // 获得当前myid的名称
-            String myid = MycatConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+            String myid = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
 
             // 获邓当前节点的信息
             DataInf currDataCfg = this.getZkData(directory, myid);
@@ -250,7 +254,8 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
         checkNotNull(path, "write properties curr Path :" + path + " is null! must is not null");
 
-        path = path.substring(1) + name;
+        path=new File(path).getPath()+File.separator;
+        path  += name;
 
         ByteArrayInputStream input = null;
         byte[] buffers = new byte[256];

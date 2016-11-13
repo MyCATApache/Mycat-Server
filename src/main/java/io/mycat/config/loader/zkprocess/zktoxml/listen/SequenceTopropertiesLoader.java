@@ -3,9 +3,12 @@ package io.mycat.config.loader.zkprocess.zktoxml.listen;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import io.mycat.MycatServer;
+import io.mycat.manager.response.ReloadConfig;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,6 +138,8 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
 
         LOGGER.info("SequenceTozkLoader notiflyProcess xml to local properties is success");
 
+        if(MycatServer.getInstance().getProcessors()!=null)
+        ReloadConfig.reload();
         return true;
     }
 
@@ -269,7 +274,8 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
 
         checkNotNull(path, "write Map file curr Path :" + path + " is null! must is not null");
 
-        path = path.substring(1) + name;
+        path=new File(path).getPath()+File.separator;
+        path  += name;
 
         ByteArrayInputStream input = null;
         byte[] buffers = new byte[256];

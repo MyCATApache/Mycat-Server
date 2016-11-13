@@ -10,9 +10,9 @@
 <!DOCTYPE mycat:server SYSTEM "server.dtd">
 <mycat:server xmlns:mycat="http://io.mycat/">
 	<system>
-	<property name="useSqlStat">1</property>  <!-- 1为开启实时统计、0为关闭 -->
+	<property name="useSqlStat">0</property>  <!-- 1为开启实时统计、0为关闭 -->
 	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
-	<property name="defaultSqlParser">druidparser</property>
+
 		<property name="sequnceHandlerType">2</property>
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
         <!--  <property name="fakeMySQLVersion">5.6.20</property>--> <!--设置模拟的MySQL版本号-->
@@ -29,10 +29,7 @@
 		<!--<property name="backSocketNoDelay">1</property>-->
 		<!--<property name="frontSocketNoDelay">1</property>-->
 		<!--<property name="processorExecutor">16</property>-->
-		<!-- 
-			<property name="mutiNodeLimitType">1</property> 0：开启小数量级（默认） ；1：开启亿级数据排序
-	    	<property name="mutiNodePatchSize">100</property> 亿级数量排序批量
-			<property name="processors">32</property> <property name="processorExecutor">32</property> 
+		<!--
 			<property name="serverPort">8066</property> <property name="managerPort">9066</property> 
 			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property> 
 			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property> -->
@@ -60,6 +57,17 @@
 			单位为m
 		-->
 		<property name="systemReserveMemorySize">384m</property>
+
+
+		<!--是否采用zookeeper协调切换  -->
+		<property name="useZKSwitch">true</property>
+
+		<!-- XA Recovery Log日志路径 -->
+		<!--<property name="XARecoveryLogBaseDir">./</property>-->
+
+		<!-- XA Recovery Log日志名称 -->
+		<!--<property name="XARecoveryLogBaseName">tmlog</property>-->
+
 	</system>
 	
 	<!-- 全局SQL防火墙设置 -->
@@ -75,7 +83,7 @@
 	-->
 	
 	<user name="root">
-		<property name="password">digdeep</property>
+		<property name="password">123456</property>
 		<property name="schemas">TESTDB</property>
 		
 		<!-- 表级 DML 权限设置 -->

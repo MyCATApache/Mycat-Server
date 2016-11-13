@@ -63,6 +63,7 @@
 
     <schema name="mysqldb"  sqlMaxLimit="100">
         <table name="offer" dataNode="dn1,dn2" rule="auto-sharding-long2" />
+		<table name="autoslot" dataNode="dn1,dn2" rule="crc32slot" />
         <table name="offer1" dataNode="dn1" />
     </schema>
     <schema name="oracledb"  sqlMaxLimit="100">

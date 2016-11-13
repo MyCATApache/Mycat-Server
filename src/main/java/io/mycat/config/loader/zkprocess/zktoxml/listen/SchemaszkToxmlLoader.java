@@ -1,7 +1,10 @@
 package io.mycat.config.loader.zkprocess.zktoxml.listen;
 
+import java.io.File;
 import java.util.List;
 
+import io.mycat.MycatServer;
+import io.mycat.manager.response.ReloadConfig;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,8 +125,8 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements NotiflyService
 
         String path = SchemaszkToxmlLoader.class.getClassLoader()
                 .getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey()).getPath();
-
-        path = path.substring(1) + WRITEPATH;
+        path=new File(path).getPath()+File.separator;
+        path += WRITEPATH;
 
         LOGGER.info("SchemasLoader notiflyProcess zk to object writePath :" + path);
 
@@ -131,6 +134,8 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements NotiflyService
 
         LOGGER.info("SchemasLoader notiflyProcess zk to object zk schema      write :" + path + " is success");
 
+        if(MycatServer.getInstance().getProcessors()!=null)
+          ReloadConfig.reload_all();
         return true;
     }
 

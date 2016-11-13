@@ -57,6 +57,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private Boolean runOnSlave = null;	// 默认null表示不施加影响, true走slave,false走master
 	
 	private String subTableName; // 分表的表名
+
+	//迁移算法用     -2代表不是slot分片  ，-1代表扫描所有分片
+	private int slot=-2;
 	
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
 		this.name = name;
@@ -129,7 +132,15 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
         return procedure;
     }
 
-    public void setProcedure(Procedure procedure)
+	public int getSlot() {
+		return slot;
+	}
+
+	public void setSlot(int slot) {
+		this.slot = slot;
+	}
+
+	public void setProcedure(Procedure procedure)
     {
         this.procedure = procedure;
     }

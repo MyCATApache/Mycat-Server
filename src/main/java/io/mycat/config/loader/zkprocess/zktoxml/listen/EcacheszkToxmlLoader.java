@@ -3,6 +3,7 @@ package io.mycat.config.loader.zkprocess.zktoxml.listen;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
@@ -136,8 +137,8 @@ public class EcacheszkToxmlLoader extends ZkMultLoader implements NotiflyService
 
         String outputPath = EcacheszkToxmlLoader.class.getClassLoader()
                 .getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey()).getPath();
-
-        outputPath = outputPath.substring(1) + EHCACHE_NAME;
+        outputPath=new File(outputPath).getPath()+File.separator;
+        outputPath += EHCACHE_NAME;
 
         parseEcacheXMl.parseToXmlWrite(ehcache, outputPath, null);
 
@@ -176,8 +177,8 @@ public class EcacheszkToxmlLoader extends ZkMultLoader implements NotiflyService
                 .getPath();
 
         checkNotNull(path, "write ecache file curr Path :" + path + " is null! must is not null");
-
-        path = path.substring(1) + name;
+        path=new File(path).getPath()+File.separator;
+        path  += name;
 
         ByteArrayInputStream input = null;
         byte[] buffers = new byte[3];

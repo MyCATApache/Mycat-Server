@@ -18,6 +18,8 @@
 package io.mycat.memory.unsafe.row;
 
 
+import java.math.BigDecimal;
+
 import io.mycat.memory.unsafe.Platform;
 import io.mycat.memory.unsafe.array.ByteArrayMethods;
 import io.mycat.memory.unsafe.bitset.BitSetMethods;
@@ -191,4 +193,39 @@ public class UnsafeRowWriter {
     holder.cursor += roundedSize;
   }
 
+  	/**
+	 * different from Spark, we use java BigDecimal here, 
+	 * and we limit the max precision to be 38 because the bytes length limit to be 16
+	 * 
+	 * @param ordinal
+	 * @param input
+	 */
+	public void write(int ordinal, BigDecimal input) {
+
+		// grow the global buffer before writing data.
+		holder.grow(16);
+
+		// zero-out the bytes
+		Platform.putLong(holder.buffer, holder.cursor, 0L);
+		Platform.putLong(holder.buffer, holder.cursor + 8, 0L);
+
+		// Make sure Decimal object has the same scale as DecimalType.
+		// Note that we may pass in null Decimal object to set null for it.
+		if (input == null) {
+			BitSetMethods.set(holder.buffer, startingOffset, ordinal);
+			// keep the offset for future update
+			setOffsetAndSize(ordinal, 0L);
+		} else {
+			final byte[] bytes = input.unscaledValue().toByteArray();
+			assert bytes.length <= 16;
+
+			// Write the bytes to the variable length portion.
+			Platform.copyMemory(bytes, Platform.BYTE_ARRAY_OFFSET, holder.buffer, holder.cursor, bytes.length);
+			setOffsetAndSize(ordinal, bytes.length);
+		}
+
+		// move the cursor forward.
+		holder.cursor += 16;
+	}
+  
 }

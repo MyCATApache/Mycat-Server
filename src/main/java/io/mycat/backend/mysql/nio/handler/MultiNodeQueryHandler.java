@@ -267,7 +267,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			boolean isEndPacket = isCallProcedure ? decrementOkCountBy(1): decrementCountBy(1);
 			if (isEndPacket && isCanClose2Client) {
 				
-				if (this.autocommit) {// clear all connections
+				if (this.autocommit && !session.getSource().isLocked()) {// clear all connections
 					session.releaseConnections(false);
 				}
 				
@@ -334,7 +334,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 		if (decrementCountBy(1)) {
             if (!rrs.isCallStatement()||(rrs.isCallStatement()&&rrs.getProcedure().isResultSimpleValue())) {
-				if (this.autocommit) {// clear all connections
+				if (this.autocommit && !session.getSource().isLocked()) {// clear all connections
 					session.releaseConnections(false);
 				}
 
@@ -604,6 +604,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 							&& !columToIndx.containsKey(fieldName)) {
 						if (shouldRemoveAvgField.contains(fieldName)) {
 							shouldSkip = true;
+							fieldPackets.remove(fieldPackets.size() - 1);
 						}
 						if (shouldRenameAvgField.contains(fieldName)) {
 							String newFieldName = fieldName.substring(0,
@@ -611,12 +612,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 							fieldPkg.name = newFieldName.getBytes();
 							fieldPkg.packetId = ++packetId;
 							shouldSkip = true;
+							// 处理AVG字段位数和精度, AVG位数 = SUM位数 - 14
+							fieldPkg.length = fieldPkg.length - 14;
+							// AVG精度 = SUM精度 + 4
+ 							fieldPkg.decimals = (byte) (fieldPkg.decimals + 4);
 							buffer = fieldPkg.write(buffer, source, false);
 
+							// 还原精度
+							fieldPkg.decimals = (byte) (fieldPkg.decimals - 4);
 						}
 
-						columToIndx.put(fieldName,
-								new ColMeta(i, fieldPkg.type));
+						ColMeta colMeta = new ColMeta(i, fieldPkg.type);
+						colMeta.decimals = fieldPkg.decimals;
+						columToIndx.put(fieldName, colMeta);
 					}
 				} else {
 					FieldPacket fieldPkg = new FieldPacket();

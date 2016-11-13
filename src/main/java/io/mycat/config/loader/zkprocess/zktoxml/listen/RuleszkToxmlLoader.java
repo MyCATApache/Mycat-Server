@@ -3,11 +3,14 @@ package io.mycat.config.loader.zkprocess.zktoxml.listen;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.mycat.MycatServer;
+import io.mycat.manager.response.ReloadConfig;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,13 +132,17 @@ public class RuleszkToxmlLoader extends ZkMultLoader implements NotiflyService {
         // 数配制信息写入文件
         String path = RuleszkToxmlLoader.class.getClassLoader().getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey())
                 .getPath();
-        path = path.substring(1) + WRITEPATH;
+        path=new File(path).getPath()+File.separator;
+        path  =path+WRITEPATH;
 
         LOGGER.info("RuleszkToxmlLoader notiflyProcess zk to object writePath :" + path);
 
         this.parseRulesXMl.parseToXmlWrite(Rules, path, "rule");
 
         LOGGER.info("RuleszkToxmlLoader notiflyProcess zk to object zk Rules      write :" + path + " is success");
+
+        if(MycatServer.getInstance().getProcessors()!=null)
+        ReloadConfig.reload();
 
         return true;
     }
@@ -242,8 +249,9 @@ public class RuleszkToxmlLoader extends ZkMultLoader implements NotiflyService {
                 .getPath();
 
         checkNotNull(path, "write Map file curr Path :" + path + " is null! must is not null");
+        path=new File(path).getPath()+File.separator;
+        path  += name;
 
-        path = path.substring(1) + name;
 
         ByteArrayInputStream input = null;
         byte[] buffers = new byte[3];
