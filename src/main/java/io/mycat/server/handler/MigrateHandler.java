@@ -91,7 +91,7 @@ public final class MigrateHandler {
                     .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
              long  taskID=  System.currentTimeMillis();     //todo 需要修改唯一
             CuratorTransactionFinal transactionFinal=null;
-            String taskPath = ZKUtils.getZKBasePath() + "migrate/" + table + "/" + taskID;
+            String taskPath = ZKUtils.getZKBasePath() + "migrate/" +c.getSchema()+"/"+ table + "/" + taskID;
             CuratorFramework client= ZKUtils.getConnection();
             client.create().creatingParentsIfNeeded().forPath(taskPath);
             TaskNode taskNode=new TaskNode();
