@@ -20,6 +20,7 @@ import io.mycat.config.loader.zkprocess.xmltozk.listen.RulesxmlTozkLoader;
 import io.mycat.config.loader.zkprocess.xmltozk.listen.SchemasxmlTozkLoader;
 import io.mycat.config.loader.zkprocess.xmltozk.listen.SequenceTozkLoader;
 import io.mycat.config.loader.zkprocess.xmltozk.listen.ServerxmlTozkLoader;
+import io.mycat.util.ZKUtils;
 
 public class XmltoZkMain {
 
@@ -67,22 +68,7 @@ public class XmltoZkMain {
     }
 
     private static CuratorFramework buildConnection(String url) {
-        CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient(url, new ExponentialBackoffRetry(100, 6));
 
-        // start connection
-        curatorFramework.start();
-        // wait 3 second to establish connect
-        try {
-            curatorFramework.blockUntilConnected(3, TimeUnit.SECONDS);
-            if (curatorFramework.getZookeeperClient().isConnected()) {
-                return curatorFramework.usingNamespace("");
-            }
-        } catch (InterruptedException ignored) {
-            Thread.currentThread().interrupt();
-        }
-
-        // fail situation
-        curatorFramework.close();
-        throw new RuntimeException("failed to connect to zookeeper service : " + url);
+        return ZKUtils.getConnection();
     }
 }
