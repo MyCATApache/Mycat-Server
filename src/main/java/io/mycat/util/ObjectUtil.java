@@ -80,11 +80,11 @@ public final class ObjectUtil {
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(b.toByteArray()));
 			return ois.readObject();
 		} catch (IOException e) {
-            throw new RuntimeException(e);
+		    LOGGER.error("copyObjectIOError", e);
 		} catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+		    LOGGER.error("copyObjectError", e);
 		}
-
+		return null;
 	}
 	
     /**

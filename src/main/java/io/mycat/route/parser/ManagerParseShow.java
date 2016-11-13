@@ -78,8 +78,6 @@ public final class ManagerParseShow {
 
 	public static final int WHITE_HOST = 43;
 	public static final int WHITE_HOST_SET = 44;
-    public static final int DIRECTMEMORY_TOTAL = 45;
-    public static final int DIRECTMEMORY_DETAILl = 46;
 
 
     public static int parse(String stmt, int offset) {
@@ -290,56 +288,8 @@ public final class ManagerParseShow {
                     default:
                         return OTHER;
                     }
-            }else if( (c1 == 'I'|| c1 == 'i')
-                    &&(c2 == 'R' || c2 == 'r')
-                    && (c3 == 'E' || c3 == 'e')
-                    && stmt.length() > ++offset){   /**DIRECTMEMORY**/
-                    switch (stmt.charAt(offset)) {
-                        case 'C':
-                        case 'c':
-                            return show2DirectMemoryCheck(stmt,offset);
-                        default:
-                            return OTHER;
-                    }
             }
         }
-        return OTHER;
-    }
- // SHOW @@DIRECT_MEMORY=1 or 0
-    static int show2DirectMemoryCheck(String stmt, int offset) {
-        if (stmt.length() > offset + "TMEMORY".length()) {
-
-            char c1 = stmt.charAt(++offset);
-            char c2 = stmt.charAt(++offset);
-            char c3 = stmt.charAt(++offset);
-            char c4 = stmt.charAt(++offset);
-            char c5 = stmt.charAt(++offset);
-            char c6 = stmt.charAt(++offset);
-            char c7 = stmt.charAt(++offset);
-            char c8 = stmt.charAt(++offset);
-
-            if ((c1 == 'T' || c1 == 't')
-                    && (c2 == 'M' || c2 == 'm')
-                    && (c3 == 'E' || c3 == 'e')
-                    && (c4 == 'M' || c4 == 'm')
-                    && (c5 == 'O' || c5 == 'o')
-                    && (c6 == 'R' || c6 == 'r')
-                    && (c7 == 'Y' || c7 == 'y')
-                    && (c8 == '=' || c8 == '=')
-                    && stmt.length() > ++offset) {
-
-                switch (stmt.charAt(offset)) {
-                    case '1':
-                        return DIRECTMEMORY_TOTAL;
-                    case '2':
-                        return DIRECTMEMORY_DETAILl;
-                    default:
-                        return OTHER;
-                }
-
-            }
-        }
-
         return OTHER;
     }
     // SHOW @@DataSyn

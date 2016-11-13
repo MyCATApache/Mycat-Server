@@ -329,9 +329,6 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 String dataNode = dataNodes.get(i);
                 RouteResultsetNode rrNode = new RouteResultsetNode(dataNode, ServerParse.INSERT, sql);
                 rrsNodes[i]=rrNode;
-                if(rrs.getDataNodeSlotMap().containsKey(dataNode)){
-                    rrsNodes[i].setSlot(rrs.getDataNodeSlotMap().get(dataNode));
-                }
                 rrsNodes[i].setSource(rrs);
             }
 

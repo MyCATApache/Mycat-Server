@@ -53,7 +53,6 @@ public class HintSQLHandler implements HintHandler {
 		for (int i = 0; i < newRrsNodes.length; i++) {
 			newRrsNodes[i] = new RouteResultsetNode(oldRsNodes[i].getName(),
 					oldRsNodes[i].getSqlType(), realSQL);
-            newRrsNodes[i].setSlot(oldRsNodes[i].getSlot());
 		}
 		rrs.setNodes(newRrsNodes);
 
