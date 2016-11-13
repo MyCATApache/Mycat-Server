@@ -44,13 +44,9 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by zagnix on 2016/6/26.
@@ -64,7 +60,7 @@ public class UnsafeRowGrouper {
 	private UnsafeFixedWidthAggregationMap aggregationMap = null;
 	private final Map<String, ColMeta> columToIndx;
 	private final MergeCol[] mergCols;
-        private String[] sortColumnsByIndex = null;
+    private String[] sortColumnsByIndex = null;
  	private final String[] columns;
 	private boolean isMergAvg=false;
 	private HavingCols havingCols;
@@ -90,7 +86,7 @@ public class UnsafeRowGrouper {
 		this.columns = columns;
 		this.mergCols = mergCols;
 		this.havingCols = havingCols;
-                this.sortColumnsByIndex =  columns !=null ? toSortColumnsByIndex(columns,columToIndx):null;
+        this.sortColumnsByIndex =  columns !=null ? toSortColumnsByIndex(columns,columToIndx):null;
 		this.groupKeyfieldCount = columns != null?columns.length:0;
 		this.valuefieldCount = columToIndx != null?columToIndx.size():0;
 		this.myCatMemory = MycatServer.getInstance().getMyCatMemory();
@@ -191,11 +187,8 @@ public class UnsafeRowGrouper {
 						groupKey.setFloat(i, 0);
 						break;
 					case ColMeta.COL_TYPE_DOUBLE:
-						groupKey.setDouble(i, 0);
-						break;
 					case ColMeta.COL_TYPE_NEWDECIMAL:
-//						groupKey.setDouble(i, 0);
-						unsafeRowWriter.write(i, new BigDecimal(0L));
+						groupKey.setDouble(i, 0);
 						break;
 					case ColMeta.COL_TYPE_LONGLONG:
 						groupKey.setLong(i, 0);
@@ -244,11 +237,8 @@ public class UnsafeRowGrouper {
 						emptyAggregationBuffer.setFloat(curColMeta.colIndex, 0);
 						break;
 					case ColMeta.COL_TYPE_DOUBLE:
-						emptyAggregationBuffer.setDouble(curColMeta.colIndex, 0);
-						break;
 					case ColMeta.COL_TYPE_NEWDECIMAL:
-//						emptyAggregationBuffer.setDouble(curColMeta.colIndex, 0);
-						unsafeRowWriter.write(curColMeta.colIndex, new BigDecimal(0L));
+						emptyAggregationBuffer.setDouble(curColMeta.colIndex, 0);
 						break;
 					default:
 						unsafeRowWriter.write(curColMeta.colIndex, "init".getBytes());
@@ -277,7 +267,6 @@ public class UnsafeRowGrouper {
 				logger.error(e.getMessage());
 			}
 			isMergAvg = true;
-			processAvgFieldPrecision();
 		}
         /**
          * group having
@@ -292,29 +281,6 @@ public class UnsafeRowGrouper {
             insertValue(sorter);
         }
 		return sorter.sort();
-	}
-	
-	/**
-	 * 处理AVG列精度
-	 */
-	private void processAvgFieldPrecision() {
-		for(String key : columToIndx.keySet()) {
-			if(isAvgField(key)) { // AVG列的小数点精度默认取SUM小数点精度, 计算和返回的小数点精度应该扩展4
-				ColMeta colMeta = columToIndx.get(key);
-				colMeta.decimals += 4;
-			}
-		}
-	}
-	
-	/**
-	 * 判断列是否为AVG列
-	 * @param columnName
-	 * @return
-	 */
-	private boolean isAvgField(String columnName) {
-		Pattern pattern = Pattern.compile("AVG([1-9]\\d*|0)SUM");
-		Matcher matcher = pattern.matcher(columnName);
-		return matcher.find();
 	}
 
 
@@ -353,13 +319,9 @@ public class UnsafeRowGrouper {
 								BytesTools.float2Bytes(row.getFloat(curColMeta.colIndex)));
 						break;
 					case ColMeta.COL_TYPE_DOUBLE:
+					case ColMeta.COL_TYPE_NEWDECIMAL:
 						unsafeRowWriter.write(curColMeta.colIndex,
 								BytesTools.double2Bytes(row.getDouble(curColMeta.colIndex)));
-						break;
-					case ColMeta.COL_TYPE_NEWDECIMAL:
-						int scale = curColMeta.decimals;
-						BigDecimal decimalVal = row.getDecimal(curColMeta.colIndex, scale);
-						unsafeRowWriter.write(curColMeta.colIndex, decimalVal.toString().getBytes());
 						break;
 					default:
 						unsafeRowWriter.write(curColMeta.colIndex,
@@ -374,7 +336,7 @@ public class UnsafeRowGrouper {
         value.setTotalSize(bufferHolder.totalSize());
         return value;
     }
-    
+
     private void insertValue(@Nonnull UnsafeExternalRowSorter sorter){
             KVIterator<UnsafeRow,UnsafeRow> it = aggregationMap.iterator();
             try {
@@ -502,14 +464,9 @@ public class UnsafeRowGrouper {
 								 BytesTools.getFloat(row.getBinary(curColMeta.colIndex)));
 						break;
 					case ColMeta.COL_TYPE_DOUBLE:
-						key.setDouble(i,
-								BytesTools.getDouble(row.getBinary(curColMeta.colIndex)));
-						break;
 					case ColMeta.COL_TYPE_NEWDECIMAL:
-//						key.setDouble(i,
-//								BytesTools.getDouble(row.getBinary(curColMeta.colIndex)));
-						unsafeRowWriter.write(curColMeta.colIndex, 
-								new BigDecimal(new String(row.getBinary(i))));
+						key.setDouble(curColMeta.colIndex,
+								BytesTools.getDouble(row.getBinary(curColMeta.colIndex)));
 						break;
 					case ColMeta.COL_TYPE_LONGLONG:
 						key.setLong(i,
@@ -554,30 +511,34 @@ public class UnsafeRowGrouper {
 						value.setInt(curColMeta.colIndex,
 								BytesTools.getInt(row.getBinary(curColMeta.colIndex)));
 
+						logger.error("getValue INT " + BytesTools.getInt(row.getBinary(curColMeta.colIndex)));
 						break;
 					case ColMeta.COL_TYPE_SHORT:
 						value.setShort(curColMeta.colIndex,
 								BytesTools.getShort(row.getBinary(curColMeta.colIndex)));
+						logger.error("getValue toShort " + BytesTools.getShort(row.getBinary(curColMeta.colIndex)));
 						break;
 					case ColMeta.COL_TYPE_LONGLONG:
 						value.setLong(curColMeta.colIndex,
 								BytesTools.getLong(row.getBinary(curColMeta.colIndex)));
+
+						logger.error("getValue COL_TYPE_LONGLONG ===> " + "size  " + row.getBinary(curColMeta.colIndex).length + "  " +
+								ByteUtil.getLong(row.getBinary(curColMeta.colIndex)));
 
 
 						break;
 					case ColMeta.COL_TYPE_FLOAT:
 						value.setFloat(curColMeta.colIndex,
 								BytesTools.getFloat(row.getBinary(curColMeta.colIndex)));
+						logger.error("getValue COL_TYPE_FLOAT " + BytesTools.getFloat(row.getBinary(curColMeta.colIndex)));
 
 						break;
 					case ColMeta.COL_TYPE_DOUBLE:
-						value.setDouble(curColMeta.colIndex, BytesTools.getDouble(row.getBinary(curColMeta.colIndex)));
-
-						break;
 					case ColMeta.COL_TYPE_NEWDECIMAL:
-//						value.setDouble(curColMeta.colIndex, BytesTools.getDouble(row.getBinary(curColMeta.colIndex)));
-						unsafeRowWriter.write(curColMeta.colIndex, 
-								new BigDecimal(new String(row.getBinary(curColMeta.colIndex))));
+						value.setDouble(curColMeta.colIndex, BytesTools.getDouble(row.getBinary(curColMeta.colIndex)));
+						logger.error("getValue COL_TYPE_NEWDECIMAL " +
+								BytesTools.getDouble(row.getBinary(curColMeta.colIndex)));
+
 						break;
 					default:
 						unsafeRowWriter.write(curColMeta.colIndex,
@@ -585,15 +546,8 @@ public class UnsafeRowGrouper {
 						break;
 				}
 			}else {
-				switch(curColMeta.colType) {
-					case ColMeta.COL_TYPE_NEWDECIMAL:
-						BigDecimal nullDecimal = null;
-						unsafeRowWriter.write(curColMeta.colIndex, nullDecimal);
-						break;
-					default:
-						value.setNullAt(curColMeta.colIndex);
-						break;
-				}
+				value.setNullAt(curColMeta.colIndex);
+				logger.error("NULL");
 			}
 		}
 
@@ -663,17 +617,9 @@ public class UnsafeRowGrouper {
 						 right = BytesTools.float2Bytes(newRow.getFloat(index));
 						 break;
 					 case ColMeta.COL_TYPE_DOUBLE:
+					 case ColMeta.COL_TYPE_NEWDECIMAL:
 						 left = BytesTools.double2Bytes(toRow.getDouble(index));
 						 right = BytesTools.double2Bytes(newRow.getDouble(index));
-						 break;
-					 case ColMeta.COL_TYPE_NEWDECIMAL:
-//						 left = BytesTools.double2Bytes(toRow.getDouble(index));
-//						 right = BytesTools.double2Bytes(newRow.getDouble(index));
-						 int scale = merg.colMeta.decimals;
-						 BigDecimal decimalLeft = toRow.getDecimal(index, scale);
-						 BigDecimal decimalRight = newRow.getDecimal(index, scale);
-						 left = decimalLeft == null ? null : decimalLeft.toString().getBytes();
-						 right = decimalRight == null ? null : decimalRight.toString().getBytes();
 						 break;
 					 default:
 						 break;
@@ -700,11 +646,8 @@ public class UnsafeRowGrouper {
 							 toRow.setFloat(index,BytesTools.getFloat(result));
 							 break;
 						 case ColMeta.COL_TYPE_DOUBLE:
-                             toRow.setDouble(index,BytesTools.getDouble(result));
-							 break;
 						 case ColMeta.COL_TYPE_NEWDECIMAL:
-//                           toRow.setDouble(index,BytesTools.getDouble(result));
-							 toRow.updateDecimal(index, new BigDecimal(new String(result)));
+                             toRow.setDouble(index,BytesTools.getDouble(result));
 							 break;
 						 default:
 							 break;
@@ -757,15 +700,8 @@ public class UnsafeRowGrouper {
 
 						break;
 					case ColMeta.COL_TYPE_DOUBLE:
-						avgSum = BytesTools.double2Bytes(toRow.getDouble(avgSumIndex));
-						avgCount = BytesTools.long2Bytes(toRow.getLong(avgCountIndex));
-						break;
 					case ColMeta.COL_TYPE_NEWDECIMAL:
-//						avgSum = BytesTools.double2Bytes(toRow.getDouble(avgSumIndex));
-//						avgCount = BytesTools.long2Bytes(toRow.getLong(avgCountIndex));
-						int scale = merg.colMeta.decimals;
-						BigDecimal sumDecimal = toRow.getDecimal(avgSumIndex, scale);
-						avgSum = sumDecimal == null ? null : sumDecimal.toString().getBytes();
+						avgSum = BytesTools.double2Bytes(toRow.getDouble(avgSumIndex));
 						avgCount = BytesTools.long2Bytes(toRow.getLong(avgCountIndex));
 						break;
 					default:
@@ -794,12 +730,9 @@ public class UnsafeRowGrouper {
                             toRow.setFloat(avgSumIndex,BytesTools.getFloat(result));
                             break;
                         case ColMeta.COL_TYPE_DOUBLE:
+                        case ColMeta.COL_TYPE_NEWDECIMAL:
                             toRow.setDouble(avgSumIndex,ByteUtil.getDouble(result));
                             break;
-                        case ColMeta.COL_TYPE_NEWDECIMAL:
-//                          toRow.setDouble(avgSumIndex,ByteUtil.getDouble(result));
-                      	toRow.updateDecimal(avgSumIndex, new BigDecimal(new String(result)));
-                          break;
                         default:
                             break;
                     }
@@ -818,57 +751,49 @@ public class UnsafeRowGrouper {
 
 		switch (mergeType) {
 			case MergeCol.MERGE_SUM:
-				if (colType == ColMeta.COL_TYPE_DOUBLE
-					|| colType == ColMeta.COL_TYPE_FLOAT){
-					double value = BytesTools.getDouble(bs) +
+				if (colType == ColMeta.COL_TYPE_NEWDECIMAL
+						|| colType == ColMeta.COL_TYPE_DECIMAL
+						|| colType == ColMeta.COL_TYPE_DOUBLE
+						|| colType == ColMeta.COL_TYPE_FLOAT){
+					double vale = BytesTools.getDouble(bs) +
 							BytesTools.getDouble(bs2);
-
-					return BytesTools.double2Bytes(value);
-				} else if(colType == ColMeta.COL_TYPE_NEWDECIMAL
-						|| colType == ColMeta.COL_TYPE_DECIMAL) {
-					BigDecimal decimal = new BigDecimal(new String(bs));
-					decimal = decimal.add(new BigDecimal(new String(bs2)));
-					return decimal.toString().getBytes();
+					logger.error("MERGE_SUM " + vale);
+					return BytesTools.double2Bytes(vale);
 				}
-
 
 			case MergeCol.MERGE_COUNT: {
 				long s1 = BytesTools.getLong(bs);
 				long s2 = BytesTools.getLong(bs2);
 				long total = s1 + s2;
+				logger.error("total " + total);
 				return BytesTools.long2Bytes(total);
 			}
 
 			case MergeCol.MERGE_MAX: {
-				int compare = ByteUtil.compareNumberByte(bs,bs2);
+				int compare = BytesTools.compareTo(bs, bs2);
 				return (compare > 0) ? bs : bs2;
 			}
 
 			case MergeCol.MERGE_MIN: {
-				int compare = ByteUtil.compareNumberByte(bs,bs2);
+				int compare = BytesTools.compareTo(bs, bs2);
 				return (compare > 0) ? bs2 : bs;
 
 			}
 			case MergeCol.MERGE_AVG: {
 				/**
+				 * 数值总和
+				 */
+				double sum = BytesTools.getDouble(bs);
+
+				/**
 				 * 元素总个数
 				 */
 				long count = BytesTools.getLong(bs2);
-				if (colType == ColMeta.COL_TYPE_DOUBLE
-						|| colType == ColMeta.COL_TYPE_FLOAT) {
-					/**
-					 * 数值总和
-					 */
-					double sum = BytesTools.getDouble(bs);
-					double value = sum / count;
-					return BytesTools.double2Bytes(value);
-				} else if(colType == ColMeta.COL_TYPE_NEWDECIMAL
-						|| colType == ColMeta.COL_TYPE_DECIMAL){
-					BigDecimal sum = new BigDecimal(new String(bs));
-					// AVG计算时候小数点精度扩展4, 并且四舍五入
-					BigDecimal avg = sum.divide(new BigDecimal(count), sum.scale() + 4, RoundingMode.HALF_UP);
-					return avg.toString().getBytes();
-				}
+				double value = sum / count;
+				NumberFormat nf = NumberFormat.getNumberInstance();
+				nf.setMaximumFractionDigits(4);
+				logger.error("MERGE_SUM " +value);
+				return BytesTools.double2Bytes(value);
 			}
 			default:
 				return null;

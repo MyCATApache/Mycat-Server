@@ -18,7 +18,7 @@
 
 <!ELEMENT system (property*) >
 
-<!ELEMENT user (property+,privileges*)>
+<!ELEMENT user (property+)>
 <!ATTLIST user name NMTOKEN #REQUIRED>
 
 <!ELEMENT privileges (schema)*>

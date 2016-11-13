@@ -1,8 +1,7 @@
 package io.mycat.route.sequence.handler;
 
-
+import io.mycat.config.ZkConfig;
 import io.mycat.config.loader.console.ZookeeperPath;
-import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.util.PropertiesUtil;
@@ -141,7 +140,7 @@ public class DistributedSequenceHandler extends LeaderSelectorListenerAdapter im
         // load sequnce properties
         Properties props = PropertiesUtil.loadProps(SEQUENCE_DB_PROPS);
         if ("ZK".equals(props.getProperty("INSTANCEID"))) {
-            initializeZK(ZkConfig.getInstance().getZkURL());
+            initializeZK(ZkConfig.instance().getZkURL());
         } else {
             this.instanceId = Long.parseLong(props.getProperty("INSTANCEID"));
             this.ready = true;

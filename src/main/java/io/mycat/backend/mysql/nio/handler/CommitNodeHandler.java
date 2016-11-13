@@ -25,7 +25,6 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
-import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.config.ErrorCode;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
@@ -93,12 +92,12 @@ public class CommitNodeHandler implements ResponseHandler {
 					{
 						String xaTxId = session.getXaTXID();
 						mysqlCon.execCmd("XA COMMIT " + xaTxId);
-						mysqlCon.setXaStatus(TxState.TX_PREPARED_STATE);
+						mysqlCon.setXaStatus(2);
 					}
 					return;
 				case 2:
 				{
-					mysqlCon.setXaStatus(TxState.TX_INITIALIZE_STATE);
+					mysqlCon.setXaStatus(0);
 					break;
 				}
 				default:

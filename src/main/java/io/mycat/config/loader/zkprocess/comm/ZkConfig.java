@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
 
-import io.mycat.config.loader.zkprocess.zktoxml.ZktoXmlMain;
-
+import io.mycat.config.loader.zkprocess.zktoxml.ZktoxmlMain;
+import io.mycat.config.loader.zookeeper.ZookeeperLoader;
 
 /**
  * 进行zk的配制信息
@@ -30,7 +30,7 @@ public class ZkConfig {
     */
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkConfig.class);
 
-    private static final String ZK_CONFIG_FILE_NAME = "/myid.properties";
+    private static final String ZK_CONFIG_FILE_NAME = "/zkconf/myid.properties";
 
     private ZkConfig() {
     }
@@ -39,8 +39,7 @@ public class ZkConfig {
      * 实例对象信息
     * @字段说明 ZKCFGINSTANCE
     */
-    private static ZkConfig ZKCFGINSTANCE = new ZkConfig();
-
+    private static ZkConfig ZKCFGINSTANCE = null;
 
     /**
      * myid的属性文件信息
@@ -51,20 +50,14 @@ public class ZkConfig {
     static {
         ZKPROPERTIES = LoadMyidPropersites();
     }
-
-
-    public String getZkURL()
-    {
-        return ZKPROPERTIES==null?null:ZKPROPERTIES.getProperty(ZkParamCfg.ZK_CFG_URL.getKey())  ;
-    }
+    
     public void initZk()
     {
         try {
-            if (Boolean.parseBoolean(ZKPROPERTIES.getProperty(ZkParamCfg.ZK_CFG_FLAG.getKey()))) {
-                ZktoXmlMain.loadZktoFile();
-            }
+            ZktoxmlMain.loadZktoFile();
         } catch (Exception e) {
-            LOGGER.error("error:",e);
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
 
@@ -74,7 +67,11 @@ public class ZkConfig {
     * @return
     * @创建日期 2016年9月15日
     */
-    public  static ZkConfig getInstance() {
+    public synchronized static ZkConfig getInstance() {
+
+        if (null == ZKCFGINSTANCE) {
+            ZKCFGINSTANCE = new ZkConfig();
+        }
 
         return ZKCFGINSTANCE;
     }
@@ -103,7 +100,7 @@ public class ZkConfig {
     private static Properties LoadMyidPropersites() {
         Properties pros = new Properties();
 
-        try (InputStream configIS = ZkConfig.class.getResourceAsStream(ZK_CONFIG_FILE_NAME)) {
+        try (InputStream configIS = ZookeeperLoader.class.getResourceAsStream(ZK_CONFIG_FILE_NAME)) {
             if (configIS == null) {
                 return null;
             }
@@ -118,10 +115,8 @@ public class ZkConfig {
         String zkURL = pros.getProperty(ZkParamCfg.ZK_CFG_URL.getKey());
         String myid = pros.getProperty(ZkParamCfg.ZK_CFG_MYID.getKey());
 
-        String clusterId = pros.getProperty(ZkParamCfg.ZK_CFG_CLUSTERID.getKey());
-
-        if (Strings.isNullOrEmpty(clusterId) ||Strings.isNullOrEmpty(zkURL) || Strings.isNullOrEmpty(myid)) {
-            throw new RuntimeException("clusterId and zkURL and myid must not be null or empty!");
+        if (Strings.isNullOrEmpty(zkURL) || Strings.isNullOrEmpty(myid)) {
+            throw new RuntimeException("zkURL and myid must not be null or empty!");
         }
         return pros;
 

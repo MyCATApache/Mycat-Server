@@ -27,7 +27,7 @@ import org.apache.log4j.Logger;
 public class MyCatMemory {
 	private static Logger LOGGER = Logger.getLogger(MyCatMemory.class);
 
-	public final  static double DIRECT_SAFETY_FRACTION  = 0.7;
+	private final  static double DIRECT_SAFETY_FRACTION  = 0.7;
 	private final long systemReserveBufferSize;
 
 	private final long memoryPageSize;
@@ -41,6 +41,7 @@ public class MyCatMemory {
 	 */
 	private final MycatPropertyConf conf;
 	private final MemoryManager resultMergeMemoryManager;
+	private final DataNodeMemoryManager dataNodeMemoryManager;
 	private final DataNodeDiskManager blockManager;
 	private final SerializerManager serializerManager;
 	private final SystemConfig system;
@@ -58,7 +59,7 @@ public class MyCatMemory {
 		LOGGER.info("totalNetWorkBufferSize = " + JavaUtils.bytesToString2(totalNetWorkBufferSize));
 		LOGGER.info("dataNodeSortedTempDir = " + system.getDataNodeSortedTempDir());
 
-		this.conf = new MycatPropertyConf();
+		conf = new MycatPropertyConf();
 		numCores = Runtime.getRuntime().availableProcessors();
 
 		this.systemReserveBufferSize = JavaUtils.
@@ -125,6 +126,7 @@ public class MyCatMemory {
 		resultMergeMemoryManager =
 				new ResultMergeMemoryManager(conf,numCores,maxOnHeapMemory);
 
+		dataNodeMemoryManager = new DataNodeMemoryManager(resultMergeMemoryManager,1);
 
 		serializerManager = new SerializerManager();
 
@@ -168,6 +170,8 @@ public class MyCatMemory {
 		resultMergeMemoryManager =
 				new ResultMergeMemoryManager(conf,numCores,maxOnHeapMemory);
 
+		dataNodeMemoryManager = new DataNodeMemoryManager(resultMergeMemoryManager,1);
+
 		serializerManager = new SerializerManager();
 
 		blockManager = new DataNodeDiskManager(conf,true,serializerManager);
@@ -178,6 +182,10 @@ public class MyCatMemory {
 		return conf;
 	}
 
+	public int getNumCores() {
+		return numCores;
+	}
+
 	public long getResultSetBufferSize() {
 		return resultSetBufferSize;
 	}
@@ -186,12 +194,28 @@ public class MyCatMemory {
 		return resultMergeMemoryManager;
 	}
 
+	public DataNodeMemoryManager getDataNodeMemoryManager() {
+		return dataNodeMemoryManager;
+	}
+
 	public SerializerManager getSerializerManager() {
 		return serializerManager;
 	}
 
 	public DataNodeDiskManager getBlockManager() {
 		return blockManager;
+	}
+
+	public long getSystemReserveBufferSize() {
+		return systemReserveBufferSize;
+	}
+
+	public long getMemoryPageSize() {
+		return memoryPageSize;
+	}
+
+	public long getSpillsFileBufferSize() {
+		return spillsFileBufferSize;
 	}
 
 }

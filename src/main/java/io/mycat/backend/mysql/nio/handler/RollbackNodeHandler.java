@@ -25,7 +25,6 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
-import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.config.ErrorCode;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
@@ -82,18 +81,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 					return;
 				}
 				conn.setResponseHandler(RollbackNodeHandler.this);
-
-				//support the XA rollback
-				MySQLConnection mysqlCon = (MySQLConnection) conn;
-				if(session.getXaTXID()!=null) {
-					String xaTxId = session.getXaTXID();
-					//exeBatch cmd issue : the 2nd package can not receive the response
-					mysqlCon.execCmd("XA END " + xaTxId + ";");
-					mysqlCon.execCmd("XA ROLLBACK " + xaTxId + ";");
-				}else {
-					conn.rollback();
-				}
-
+				conn.rollback();
 
 				++started;
 			}
