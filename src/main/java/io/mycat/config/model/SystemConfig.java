@@ -152,6 +152,10 @@ public final class SystemConfig {
 	private int mycatNodeId=1;
 	private int useCompression =0;	
 	private int useSqlStat = 1;
+	
+	// 是否使用HandshakeV10Packet来与client进行通讯, 1:是 , 0:否(使用HandshakePacket)
+	// 使用HandshakeV10Packet为的是兼容高版本的jdbc驱动, 后期稳定下来考虑全部采用HandshakeV10Packet来通讯
+	private int useHandshakeV10 = 0;
 
 	//处理分布式事务开关，默认为不过滤分布式事务
 	private int handleDistributedTransactions = 0;
@@ -916,4 +920,14 @@ public final class SystemConfig {
 	public void setHandleDistributedTransactions(int handleDistributedTransactions) {
 		this.handleDistributedTransactions = handleDistributedTransactions;
 	}
+
+	public int getUseHandshakeV10() {
+		return useHandshakeV10;
+	}
+
+	public void setUseHandshakeV10(int useHandshakeV10) {
+		this.useHandshakeV10 = useHandshakeV10;
+	}
+	
+	
 }
