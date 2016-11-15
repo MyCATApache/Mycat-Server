@@ -508,8 +508,8 @@ public class UnsafeRowGrouper {
 					case ColMeta.COL_TYPE_NEWDECIMAL:
 //						key.setDouble(i,
 //								BytesTools.getDouble(row.getBinary(curColMeta.colIndex)));
-						unsafeRowWriter.write(curColMeta.colIndex, 
-								new BigDecimal(new String(row.getBinary(i))));
+						unsafeRowWriter.write(i, 
+								new BigDecimal(new String(row.getBinary(curColMeta.colIndex))));
 						break;
 					case ColMeta.COL_TYPE_LONGLONG:
 						key.setLong(i,
