@@ -305,12 +305,18 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}		
 		
 		// DML 权限检查
-		boolean isPassed = privileges.checkDmlPrivilege(user, schema, sql);
-		if ( !isPassed ) {
-			writeErrMessage(ErrorCode.ERR_WRONG_USED, 
-					"The statement DML privilege check is not passed, reject for user '" + user + "'");
-			return;
-		}
+		try {
+			boolean isPassed = privileges.checkDmlPrivilege(user, schema, sql);
+			if ( !isPassed ) {
+				writeErrMessage(ErrorCode.ERR_WRONG_USED, 
+						"The statement DML privilege check is not passed, reject for user '" + user + "'");
+				return;
+			}
+		 } catch( com.alibaba.druid.sql.parser.ParserException e1) {
+	        	writeErrMessage(ErrorCode.ERR_WRONG_USED,  e1.getMessage());
+	        	LOGGER.error("parse exception", e1 );
+				return;
+	     }
 		
 		// 执行查询
 		if (queryHandler != null) {			
