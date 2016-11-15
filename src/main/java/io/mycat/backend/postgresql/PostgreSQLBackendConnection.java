@@ -22,7 +22,6 @@ import io.mycat.net.BackendAIOConnection;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
-import io.mycat.util.TimeUtil;
 import io.mycat.util.exception.UnknownTxIsolationException;
 
 /*************************************************************
@@ -124,13 +123,12 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 
 	private Object attachment;
 
-	private volatile boolean autocommit;
+	private volatile boolean autocommit=true;
 
 	private volatile boolean borrowed;
 
 	protected volatile String charset = "utf8";
 
-	protected volatile int charsetIndex;
 
 	/***
 	 * 当前事物ID
@@ -209,12 +207,17 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		}
 		int sqlType = rrn.getSqlType();
 		String orgin = rrn.getStatement();
+		LOGGER.info(orgin);
 		
 		//FIX BUG  https://github.com/MyCATApache/Mycat-Server/issues/1185
-		if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
+		if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {			
 			if (sqlType == ServerParse.SHOW) {
-				ShowVariables.execute(sc, orgin, this);
-				return;
+				//此处进行部分SHOW 语法适配			
+				String _newSql = PgSqlApaterUtils.apater(orgin);				
+				if(_newSql.trim().substring(0,4).equalsIgnoreCase("show")){//未能适配成功
+					ShowVariables.execute(sc, orgin, this);
+					return;	
+				}
 			} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
 				ShowVariables.justReturnValue(sc, String.valueOf(sc.getId()), this);
 				return;
@@ -235,7 +238,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 
 	private void getAutocommitCommand(StringBuilder sb, boolean autoCommit) {
 		if (autoCommit) {
-			sb.append("SET autocommit=1;");
+			sb.append(/*"SET autocommit=1;"*/"");//Fix bug  由于 PG9.0 开始不支持此选项，默认是为自动提交逻辑。
 		} else {
 			sb.append("begin transaction;");
 		}
@@ -501,7 +504,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		statusSync = new StatusSync(xaCmd != null, conSchema, clientCharSetIndex, clientTxIsoLation, expectAutocommit,
 				synCount);
 		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement())).toString();
-		LOGGER.debug("con={}, SQL:{}", this, sql);
+		LOGGER.info("con={}, SQL={}", this, sql);
 		Query query = new Query(sql);
 		ByteBuffer buf = allocate();// 申请ByetBuffer
 		query.write(buf);
