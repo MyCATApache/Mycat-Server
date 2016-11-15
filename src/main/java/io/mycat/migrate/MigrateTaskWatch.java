@@ -1,6 +1,7 @@
 package io.mycat.migrate;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import io.mycat.MycatServer;
@@ -17,10 +18,7 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -67,7 +65,7 @@ public class MigrateTaskWatch {
         for (Map.Entry<String, PhysicalDBNode> stringPhysicalDBNodeEntry : dataNodesMap.entrySet()) {
             String key=stringPhysicalDBNodeEntry.getKey();
             PhysicalDBNode value=stringPhysicalDBNodeEntry.getValue();
-           String dataHostName= value.getName();
+           String dataHostName= value.getDbPool().getHostName();
             if(dataHostSet.contains(dataHostName)){
                 dataNodes.add(key);
             }
@@ -89,25 +87,39 @@ public class MigrateTaskWatch {
                 PathChildrenCacheEvent event) throws Exception {
             switch (event.getType()) {
                 case CHILD_ADDED:
-                    String text = new String(event.getData().getData(), "UTF-8");
-                    TaskNode taskNode=         JSON.parseObject(
-                            text,TaskNode.class);
-                    if(!taskNode.end) {
-                     List<String> dataNodeList= ZKUtils.getConnection().getChildren().forPath(event.getData().getPath());
-                     String boosterDataHosts=   ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_BOOSTER_DATAHOSTS) ;
-                        Set<String> dataNodes=getDataNodeFromDataHost(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts)) ;
-                        for (String dataNode : dataNodes) {
-
-                        }
-                    }
+                    addOrUpdate(event);
                     LOGGER.info("table CHILD_ADDED: " + event.getData().getPath());
                     break;
                 case CHILD_UPDATED:
-                    System.out.println("CHILD_UPDATED: " + event.getData().getPath());
+                    addOrUpdate(event);
+                    LOGGER.info("CHILD_UPDATED: " + event.getData().getPath());
                     break;
                 default:
                     break;
             }
+        }
+
+        private void addOrUpdate(PathChildrenCacheEvent event) throws Exception {
+            String text = new String(event.getData().getData(), "UTF-8");
+
+            List<String> dataNodeList= ZKUtils.getConnection().getChildren().forPath(event.getData().getPath());
+            if(!dataNodeList.isEmpty())    {
+            TaskNode taskNode=         JSON.parseObject(
+                    text,TaskNode.class);
+            if(!taskNode.end) {
+             String boosterDataHosts=   ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_BOOSTER_DATAHOSTS) ;
+                Set<String> dataNodes=getDataNodeFromDataHost(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts)) ;
+                List<MigrateTask> finalMigrateList=new ArrayList<>();
+                for (String s : dataNodeList) {
+                    if(dataNodes.contains(s)) {
+                      String data=new String(ZKUtils.getConnection().getData().forPath(event.getData().getPath() + "/" + s),"UTF-8");
+                        List<MigrateTask> migrateTaskList= JSONArray.parseArray(data,MigrateTask.class);
+                        finalMigrateList.addAll(migrateTaskList);
+                    }
+                }
+
+                System.out.println(finalMigrateList.size());
+            }  }
         }
     }
 }

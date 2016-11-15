@@ -26,7 +26,9 @@ package io.mycat.server.handler;
 import com.alibaba.fastjson.JSON;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.config.ErrorCode;
 import io.mycat.migrate.TaskNode;
 import io.mycat.util.StringUtil;
@@ -102,7 +104,9 @@ public final class MigrateHandler {
             for (Map.Entry<String, List<MigrateTask>> entry : tasks.entrySet()) {
                 String key=entry.getKey();
                 List<MigrateTask> value=entry.getValue();
-
+                for (MigrateTask migrateTask : value) {
+                    migrateTask.schema=c.getSchema();
+                }
                 String path= taskPath + "/" + key;
                 transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and()  ;
             }
@@ -114,6 +118,17 @@ public final class MigrateHandler {
         }
 
         getOkPacket().write(c);
+    }
+
+
+    private int   getSlaveIdFromZKForDataNode(String dataNode)
+    {
+        PhysicalDBNode dbNode= MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
+         String slaveIDs= dbNode.getDbPool().getSlaveIDs();
+        if(Strings.isNullOrEmpty(slaveIDs)) throw new RuntimeException("dataHost:"+dbNode.getDbPool().getHostName()+" do not config the salveIDs field");
+
+
+        return 0;
     }
 
 
