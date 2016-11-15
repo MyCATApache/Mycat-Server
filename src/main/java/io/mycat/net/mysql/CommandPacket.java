@@ -24,7 +24,6 @@
 package io.mycat.net.mysql;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
@@ -115,11 +114,21 @@ public class CommandPacket extends MySQLPacket {
     @Override
     public void write(BackendAIOConnection c) {
         ByteBuffer buffer = c.allocate();
-        BufferUtil.writeUB3(buffer, calcPacketSize());
-        buffer.put(packetId);
-        buffer.put(command);
-        buffer = c.writeToBuffer(arg, buffer);
-        c.write(buffer);
+        try {    
+	        BufferUtil.writeUB3(buffer, calcPacketSize());
+	        buffer.put(packetId);
+	        buffer.put(command);
+	        buffer = c.writeToBuffer(arg, buffer);
+	        c.write(buffer);	        
+        } catch(java.nio.BufferOverflowException e1) { 
+        	//fixed issues #98 #1072
+        	buffer =  c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + calcPacketSize(), false);
+	        BufferUtil.writeUB3(buffer, calcPacketSize());
+	        buffer.put(packetId);
+	        buffer.put(command);
+	        buffer = c.writeToBuffer(arg, buffer);
+	        c.write(buffer);
+        }
     }
 
     @Override
