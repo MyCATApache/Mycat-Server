@@ -43,8 +43,8 @@ public class DataHostConfig {
 	public static final int DEFAULT_SWITCH_DS = 1;
 	public static final int SYN_STATUS_SWITCH_DS = 2;
 	public static final int CLUSTER_STATUS_SWITCH_DS = 3;
-	private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
-	private static final Pattern patternCluster = Pattern.compile("\\s*show\\s+status\\s+like\\s+'wsrep%'",Pattern.CASE_INSENSITIVE);
+    private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
+    private static final Pattern patternCluster = Pattern.compile("\\s*show\\s+status\\s+like\\s+'wsrep%'",Pattern.CASE_INSENSITIVE);
 	private String name;
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;
@@ -55,10 +55,10 @@ public class DataHostConfig {
 	private final DBHostConfig[] writeHosts;
 	private final Map<Integer, DBHostConfig[]> readHosts;
 	private String hearbeatSQL;
-	private boolean isShowSlaveSql=false;
-	private boolean isShowClusterSql=false;
+    private boolean isShowSlaveSql=false;
+    private boolean isShowClusterSql=false;
 	private String connectionInitSql;
-	private int slaveThreshold = -1;
+    private int slaveThreshold = -1;
 	private final int switchType;
 	private String filters="mergeStat";
 	private long logTime=300000;
@@ -121,12 +121,12 @@ public class DataHostConfig {
 		this.name = name;
 	}
 
-	public boolean isShowSlaveSql()
-	{
-		return isShowSlaveSql;
-	}
+    public boolean isShowSlaveSql()
+    {
+        return isShowSlaveSql;
+    }
 
-	public int getMaxCon() {
+    public int getMaxCon() {
 		return maxCon;
 	}
 
@@ -172,16 +172,16 @@ public class DataHostConfig {
 
 	public void setHearbeatSQL(String heartbeatSQL) {
 		this.hearbeatSQL = heartbeatSQL;
-		Matcher matcher = pattern.matcher(heartbeatSQL);
-		if (matcher.find())
-		{
-			isShowSlaveSql=true;
-		}
-		Matcher matcher2 = patternCluster.matcher(heartbeatSQL);
-		if (matcher2.find())
-		{
-			isShowClusterSql=true;
-		}
+        Matcher matcher = pattern.matcher(heartbeatSQL);
+        if (matcher.find())
+        {
+            isShowSlaveSql=true;
+        }
+        Matcher matcher2 = patternCluster.matcher(heartbeatSQL);
+        if (matcher2.find())
+        {
+        	isShowClusterSql=true;
+        }
 	}
 
 	public String getFilters() {
@@ -213,7 +213,7 @@ public class DataHostConfig {
 		return Iterables.get(dataNodes,index);
 	}
 
-	public boolean containDataNode(String randomDn) {
-		return dataNodes.contains(randomDn);
-	}
+    public boolean containDataNode(String randomDn) {
+        return dataNodes.contains(randomDn);
+    }
 }
