@@ -45,19 +45,21 @@ import io.mycat.server.ServerConnection;
 import io.mycat.util.ObjectUtil;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author nange
  */
 public final class MigrateHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger("MigrateHandler");
+
+    //可以优化成多个锁
+    private static InterProcessMutex  slaveIDsLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath()+"lock/slaveIDs.lock");;
 
     public static void handle(String stmt, ServerConnection c) {
         Map<String, String> map = parse(stmt);
@@ -106,6 +108,7 @@ public final class MigrateHandler {
                 List<MigrateTask> value=entry.getValue();
                 for (MigrateTask migrateTask : value) {
                     migrateTask.schema=c.getSchema();
+                    migrateTask.slaveId=   getSlaveIdFromZKForDataNode(migrateTask.from);
                 }
                 String path= taskPath + "/" + key;
                 transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and()  ;
@@ -121,14 +124,64 @@ public final class MigrateHandler {
     }
 
 
-    private int   getSlaveIdFromZKForDataNode(String dataNode)
+    private  static int   getSlaveIdFromZKForDataNode(String dataNode)
     {
         PhysicalDBNode dbNode= MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
          String slaveIDs= dbNode.getDbPool().getSlaveIDs();
-        if(Strings.isNullOrEmpty(slaveIDs)) throw new RuntimeException("dataHost:"+dbNode.getDbPool().getHostName()+" do not config the salveIDs field");
+        if(Strings.isNullOrEmpty(slaveIDs))
+            throw new RuntimeException("dataHost:"+dbNode.getDbPool().getHostName()+" do not config the salveIDs field");
 
+           List<Integer> allSlaveIDList=  parseSlaveIDs(slaveIDs);
 
-        return 0;
+        String taskPath = ZKUtils.getZKBasePath() + "slaveIDs/" +dbNode.getDbPool().getHostName();
+        try {
+            slaveIDsLock.acquire(30, TimeUnit.SECONDS);
+            Set<Integer> zkSlaveIdsSet=new HashSet<>();
+            if(ZKUtils.getConnection().checkExists().forPath(taskPath)!=null  ) {
+                List<String> zkHasSlaveIDs = ZKUtils.getConnection().getChildren().forPath(taskPath);
+                for (String zkHasSlaveID : zkHasSlaveIDs) {
+                    zkSlaveIdsSet.add(Integer.parseInt(zkHasSlaveID));
+                }
+            }
+            for (Integer integer : allSlaveIDList) {
+                if(!zkSlaveIdsSet.contains(integer))    {
+                    ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(taskPath+"/"+integer);
+                    return integer;
+                }
+            }
+        } catch (Exception e) {
+         throw new RuntimeException(e);
+        }   finally {
+            try {
+                slaveIDsLock.release();
+            } catch (Exception e) {
+                LOGGER.error("error:",e);
+            }
+        }
+
+        throw new RuntimeException("cannot get the slaveID  for dataHost :"+dbNode.getDbPool().getHostName());
+    }
+
+    private  static List<Integer>  parseSlaveIDs(String slaveIDs)
+    {
+        List<Integer> allSlaveList=new ArrayList<>();
+      List<String> stringList=  Splitter.on(",").omitEmptyStrings().trimResults().splitToList(slaveIDs);
+        for (String id : stringList) {
+            if(id.contains("-")) {
+               List<String> idRangeList=   Splitter.on("-").omitEmptyStrings().trimResults().splitToList(id) ;
+                if(idRangeList.size()!=2)
+                    throw new RuntimeException(id+"slaveIds range must be 2  size");
+                for(int i=Integer.parseInt(idRangeList.get(0));i<=Integer.parseInt(idRangeList.get(1));i++)
+                {
+                    allSlaveList.add(i);
+                }
+
+            }   else
+            {
+                allSlaveList.add(Integer.parseInt(id));
+            }
+        }
+        return allSlaveList;
     }
 
 
