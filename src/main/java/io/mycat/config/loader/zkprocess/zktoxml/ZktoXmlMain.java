@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.*;
+import io.mycat.migrate.MigrateTaskWatch;
 import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -104,6 +105,9 @@ public class ZktoXmlMain {
 
         // 创建临时节点
         createTempNode("/mycat/mycat-cluster-1/line", "tmpNode1", zkConn);
+
+
+        MigrateTaskWatch.start();
 
     }
 

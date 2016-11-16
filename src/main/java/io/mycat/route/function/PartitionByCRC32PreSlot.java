@@ -265,6 +265,9 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
             size = end - start + 1;
         }
 
+        public Range() {
+        }
+
         public int start;
         public int end;
 

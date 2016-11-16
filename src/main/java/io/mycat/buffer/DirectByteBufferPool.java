@@ -82,6 +82,10 @@ public class DirectByteBufferPool implements BufferPool{
                 memoryUsage.put(threadId,(long)byteBuf.capacity());
             }
         }
+
+        if(byteBuf==null){
+            return  ByteBuffer.allocate(size);
+        }
         return byteBuf;
     }
 

@@ -74,6 +74,7 @@ public class PhysicalDBPool {
 	private final Random wnrandom = new Random();
 	private String[] schemas;
 	private final DataHostConfig dataHostConfig;
+	private String slaveIDs;
 
 	public PhysicalDBPool(String name, DataHostConfig conf,
 			PhysicalDatasource[] writeSources,
@@ -122,6 +123,14 @@ public class PhysicalDBPool {
 		
 		LOGGER.warn("can't find connection in pool " + this.hostName + " con:"	+ exitsCon);
 		return null;
+	}
+
+	public String getSlaveIDs() {
+		return slaveIDs;
+	}
+
+	public void setSlaveIDs(String slaveIDs) {
+		this.slaveIDs = slaveIDs;
 	}
 
 	public String getHostName() {
