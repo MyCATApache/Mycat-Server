@@ -86,7 +86,7 @@ public class TestDirectByteBufferPool {
         int i = 0;
         for (; i < allocTimes; i++) {
             byteBuffer = pool.allocate(size);
-            if (byteBuffer == null) {
+            if (byteBuffer == null||!(byteBuffer instanceof DirectBuffer) ) {
                 break;
             }
             buffs.add(byteBuffer);
@@ -110,7 +110,7 @@ public class TestDirectByteBufferPool {
         int i = 0;
         for (; i < allocTimes; i++) {
             byteBuffer = pool.allocate(size);
-            if (byteBuffer == null) {
+            if (byteBuffer == null||!(byteBuffer instanceof DirectBuffer) ) {
                 break;
             }
             buffs.add(byteBuffer);
