@@ -3,10 +3,10 @@ package io.mycat.config.loader.zkprocess.zktoxml;
 import java.util.Set;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.NodeCache;
+import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,9 +114,9 @@ public class ZktoXmlMain {
 
         if (null != setPaths && !setPaths.isEmpty()) {
             for (String path : setPaths) {
-                runWatch(zkConn, path, zkListen);
-
-                // ZKUtils.addChildPathCache(path, listener);
+                // 进行本地节点的监控操作
+                NodeCache node = runWatch(zkConn, path, zkListen);
+                node.start();
 
                 LOGGER.info("ZktoxmlMain loadZkWatch path:" + path + " regist success");
             }
@@ -149,30 +149,23 @@ public class ZktoXmlMain {
     * @throws Exception
     * @创建日期 2016年9月20日
     */
-    private static void runWatch(final CuratorFramework zkConn, String path, final ZookeeperProcessListen zkListen)
-            throws Exception {
-
-        zkConn.getData().usingWatcher(new Watcher() {
-
+    private static NodeCache runWatch(final CuratorFramework zkConn, final String path,
+            final ZookeeperProcessListen zkListen) throws Exception {
+        final NodeCache cache = new NodeCache(zkConn, path);
+        cache.getListenable().addListener(new NodeCacheListener() {
             @Override
-            public void process(WatchedEvent event) {
-                LOGGER.info("ZktoxmlMain runWatch  process path receive event:" + event);
-
-                String path = ZookeeperPath.ZK_SEPARATOR.getKey() + event.getPath();
+            public void nodeChanged() throws Exception {
+                LOGGER.info("ZktoxmlMain runWatch  process path  event start ");
+                LOGGER.info("NodeCache changed, path is: " + cache.getCurrentData().getPath());
+                String notPath = cache.getCurrentData().getPath();
                 // 进行通知更新
-                zkListen.notifly(path);
-
-                LOGGER.info("ZktoxmlMain runWatch  process path receive event:" + event + " notifly success");
-
-                try {
-                    // 重新注册监听
-                    runWatch(zkConn, path, zkListen);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                zkListen.notifly(notPath);
+                LOGGER.info("ZktoxmlMain runWatch  process path  event over");
             }
+        });
 
-        }).inBackground().forPath(path);
+        return cache;
+
     }
 
     private static CuratorFramework buildConnection(String url) {
