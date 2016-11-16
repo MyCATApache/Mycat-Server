@@ -201,6 +201,7 @@ public class NonBlockingSession implements Session {
                     break;
                 default:
                     multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
+                    LOGGER.warn("DEFAULT:Distributed transaction detected! Targets:" + target);
             }
         } else {
             multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
@@ -347,14 +348,14 @@ public class NonBlockingSession implements Session {
                 if (c.isAutocommit()) {
                     c.release();
                 } else
-                //  if (needRollback)
+                //if (needRollback)
                 {
                     c.setResponseHandler(new RollbackReleaseHandler());
                     c.rollback();
                 }
-                //              else {
-//					c.release();
-//				}
+                //else {
+				//	c.release();
+				//}
             }
         }
     }

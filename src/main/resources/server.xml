@@ -10,6 +10,7 @@
 <!DOCTYPE mycat:server SYSTEM "server.dtd">
 <mycat:server xmlns:mycat="http://io.mycat/">
 	<system>
+	<property name="useHandshakeV10">1</property>
 	<property name="useSqlStat">0</property>  <!-- 1为开启实时统计、0为关闭 -->
 	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
 
@@ -62,6 +63,11 @@
 		<!--是否采用zookeeper协调切换  -->
 		<property name="useZKSwitch">true</property>
 
+		<!-- XA Recovery Log日志路径 -->
+		<!--<property name="XARecoveryLogBaseDir">./</property>-->
+
+		<!-- XA Recovery Log日志名称 -->
+		<!--<property name="XARecoveryLogBaseName">tmlog</property>-->
 
 	</system>
 	

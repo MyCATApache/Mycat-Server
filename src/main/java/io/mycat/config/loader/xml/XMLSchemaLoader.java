@@ -653,6 +653,8 @@ public class XMLSchemaLoader implements SchemaLoader {
 		if (!dataHosts.containsKey(host)) {
 			throw new ConfigException("dataNode " + dnName + " reference dataHost:" + host + " not exists!");
 		}
+
+		dataHosts.get(host).addDataNode(conf.getName());
 		dataNodes.put(conf.getName(), conf);
 	}
 

@@ -17,9 +17,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
+import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleConfig;
@@ -764,10 +767,39 @@ public class RouterUtil {
 		Map<String, TableConfig> tables = schema.getTables();
 		TableConfig tc;
 		if (tables != null && (tc = tables.get(table)) != null) {
-			dataNode = tc.getRandomDataNode();
+			dataNode = getRandomDataNode(tc);
 		}
 		return dataNode;
 	}
+
+    private static String getRandomDataNode(TableConfig tc) {
+        //写节点不可用，意味着读节点也不可用。
+        //直接使用下一个 dataHost
+        String randomDn = tc.getRandomDataNode();
+        MycatConfig mycatConfig = MycatServer.getInstance().getConfig();
+        if (mycatConfig != null) {
+            PhysicalDBNode physicalDBNode = mycatConfig.getDataNodes().get(randomDn);
+            if (physicalDBNode != null) {
+                if (physicalDBNode.getDbPool().getSource().isAlive()) {
+                    for (PhysicalDBPool pool : MycatServer.getInstance()
+                            .getConfig()
+                            .getDataHosts()
+                            .values()) {
+                        if (pool.getSource().getHostConfig().containDataNode(randomDn)) {
+                            continue;
+                        }
+
+                        if (pool.getSource().isAlive()) {
+                            return pool.getSource().getHostConfig().getRandomDataNode();
+                        }
+                    }
+                }
+            }
+        }
+
+        //all fail return default
+        return randomDn;
+    }
 
 	/**
 	 * 根据 ER分片规则获取路由集合
@@ -1055,7 +1087,7 @@ public class RouterUtil {
 			if(isSelect) {
 				// global select ,not cache route result
 				rrs.setCacheAble(false);
-				return routeToSingleNode(rrs, tc.getRandomDataNode(),ctx.getSql());
+				return routeToSingleNode(rrs, getRandomDataNode(tc), ctx.getSql());
 			} else {//insert into 全局表的记录
 				return routeToMultiNode(false, rrs, tc.getDataNodes(), ctx.getSql(),true);
 			}
