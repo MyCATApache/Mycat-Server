@@ -64,6 +64,7 @@ public class DataHostConfig {
 	private long logTime=300000;
 	private boolean tempReadHostAvailable = false;  //如果写服务挂掉, 临时读服务是否继续可用
 	private final Set<String> dataNodes; //包含的所有dataNode名字
+	private String slaveIDs;
 
 	public DataHostConfig(String name, String dbType, String dbDriver,
 			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold, boolean tempReadHostAvailable) {
@@ -140,6 +141,14 @@ public class DataHostConfig {
 
 	public void setMinCon(int minCon) {
 		this.minCon = minCon;
+	}
+
+	public String getSlaveIDs() {
+		return slaveIDs;
+	}
+
+	public void setSlaveIDs(String slaveIDs) {
+		this.slaveIDs = slaveIDs;
 	}
 
 	public int getBalance() {
