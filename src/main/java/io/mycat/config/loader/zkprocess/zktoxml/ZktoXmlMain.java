@@ -1,29 +1,30 @@
 package io.mycat.config.loader.zkprocess.zktoxml;
 
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-import io.mycat.config.loader.zkprocess.comm.ZkConfig;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.*;
-import io.mycat.migrate.MigrateTaskWatch;
-import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.framework.recipes.cache.NodeCache;
+import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.config.loader.console.ZookeeperPath;
-
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.BinDataPathChildrenCacheListener;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.EcacheszkToxmlLoader;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.RuleDataPathChildrenCacheListener;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.RuleszkToxmlLoader;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.SchemaszkToxmlLoader;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.SequenceTopropertiesLoader;
+import io.mycat.config.loader.zkprocess.zktoxml.listen.ServerzkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import io.mycat.util.ZKUtils;
 
 /**
  * 将xk的信息转换为xml文件的操作
@@ -45,7 +46,7 @@ public class ZktoXmlMain {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkMultLoader.class);
 
     public static void main(String[] args) throws Exception {
-        //loadZktoFile();
+        // loadZktoFile();
         System.out.println(Long.MAX_VALUE);
     }
 
@@ -89,10 +90,10 @@ public class ZktoXmlMain {
         new EcacheszkToxmlLoader(zkListen, zkConn, xmlProcess);
 
         // 将bindata目录的数据进行转换到本地文件
-        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath()+"bindata",new BinDataPathChildrenCacheListener());
+        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "bindata", new BinDataPathChildrenCacheListener());
 
-         //ruledata
-        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath()+"ruledata",new RuleDataPathChildrenCacheListener());
+        // ruledata
+        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "ruledata", new RuleDataPathChildrenCacheListener());
 
         // 初始化xml转换操作
         xmlProcess.initJaxbClass();
@@ -106,9 +107,6 @@ public class ZktoXmlMain {
         // 创建临时节点
         createTempNode("/mycat/mycat-cluster-1/line", "tmpNode1", zkConn);
 
-
-        MigrateTaskWatch.start();
-
     }
 
     private static void loadZkWatch(Set<String> setPaths, final CuratorFramework zkConn,
@@ -116,7 +114,9 @@ public class ZktoXmlMain {
 
         if (null != setPaths && !setPaths.isEmpty()) {
             for (String path : setPaths) {
-                runWatch(zkConn, path, zkListen);
+                // 进行本地节点的监控操作
+                NodeCache node = runWatch(zkConn, path, zkListen);
+                node.start();
 
                 LOGGER.info("ZktoxmlMain loadZkWatch path:" + path + " regist success");
             }
@@ -149,48 +149,27 @@ public class ZktoXmlMain {
     * @throws Exception
     * @创建日期 2016年9月20日
     */
-    private static void runWatch(final CuratorFramework zkConn, String path, final ZookeeperProcessListen zkListen)
-            throws Exception {
-        zkConn.getData().usingWatcher(new Watcher() {
-
+    private static NodeCache runWatch(final CuratorFramework zkConn, final String path,
+            final ZookeeperProcessListen zkListen) throws Exception {
+        final NodeCache cache = new NodeCache(zkConn, path);
+        cache.getListenable().addListener(new NodeCacheListener() {
             @Override
-            public void process(WatchedEvent event) {
-                LOGGER.info("ZktoxmlMain runWatch  process path receive event:" + event);
-
-                String path = ZookeeperPath.ZK_SEPARATOR.getKey() + event.getPath();
+            public void nodeChanged() throws Exception {
+                LOGGER.info("ZktoxmlMain runWatch  process path  event start ");
+                LOGGER.info("NodeCache changed, path is: " + cache.getCurrentData().getPath());
+                String notPath = cache.getCurrentData().getPath();
                 // 进行通知更新
-                zkListen.notifly(path);
-
-                LOGGER.info("ZktoxmlMain runWatch  process path receive event:" + event + " notifly success");
-
-                try {
-                    // 重新注册监听
-                    runWatch(zkConn, path, zkListen);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                zkListen.notifly(notPath);
+                LOGGER.info("ZktoxmlMain runWatch  process path  event over");
             }
+        });
 
-        }).inBackground().forPath(path);
+        return cache;
+
     }
 
     private static CuratorFramework buildConnection(String url) {
-        CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient(url, new ExponentialBackoffRetry(100, 6));
 
-        // start connection
-        curatorFramework.start();
-        // wait 3 second to establish connect
-        try {
-            curatorFramework.blockUntilConnected(3, TimeUnit.SECONDS);
-            if (curatorFramework.getZookeeperClient().isConnected()) {
-                return curatorFramework.usingNamespace("");
-            }
-        } catch (InterruptedException ignored) {
-            Thread.currentThread().interrupt();
-        }
-
-        // fail situation
-        curatorFramework.close();
-        throw new RuntimeException("failed to connect to zookeeper service : " + url);
+        return ZKUtils.getConnection();
     }
 }
