@@ -24,6 +24,7 @@ import io.mycat.config.loader.zkprocess.zktoxml.listen.SchemaszkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.SequenceTopropertiesLoader;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.ServerzkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import io.mycat.migrate.MigrateTaskWatch;
 import io.mycat.util.ZKUtils;
 
 /**
@@ -46,7 +47,7 @@ public class ZktoXmlMain {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkMultLoader.class);
 
     public static void main(String[] args) throws Exception {
-        // loadZktoFile();
+        //loadZktoFile();
         System.out.println(Long.MAX_VALUE);
     }
 
@@ -90,10 +91,10 @@ public class ZktoXmlMain {
         new EcacheszkToxmlLoader(zkListen, zkConn, xmlProcess);
 
         // 将bindata目录的数据进行转换到本地文件
-        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "bindata", new BinDataPathChildrenCacheListener());
+        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath()+"bindata",new BinDataPathChildrenCacheListener());
 
-        // ruledata
-        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "ruledata", new RuleDataPathChildrenCacheListener());
+         //ruledata
+        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath()+"ruledata",new RuleDataPathChildrenCacheListener());
 
         // 初始化xml转换操作
         xmlProcess.initJaxbClass();
@@ -106,6 +107,9 @@ public class ZktoXmlMain {
 
         // 创建临时节点
         createTempNode("/mycat/mycat-cluster-1/line", "tmpNode1", zkConn);
+
+
+        MigrateTaskWatch.start();
 
     }
 
