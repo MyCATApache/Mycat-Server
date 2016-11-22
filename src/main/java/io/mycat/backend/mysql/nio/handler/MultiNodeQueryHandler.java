@@ -302,6 +302,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					lock.unlock();
 				}
 			}
+			
+			// add by lian
+			// 解决sql统计中写操作永远为0
+			execCount++;
+			if (execCount == rrs.getNodes().length) {
+				QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+						rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0);
+				QueryResultDispatcher.dispatchQuery( queryResult );
+			}
 		}
 	}
 
@@ -612,12 +621,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 							fieldPkg.name = newFieldName.getBytes();
 							fieldPkg.packetId = ++packetId;
 							shouldSkip = true;
+							// 处理AVG字段位数和精度, AVG位数 = SUM位数 - 14
+							fieldPkg.length = fieldPkg.length - 14;
+							// AVG精度 = SUM精度 + 4
+ 							fieldPkg.decimals = (byte) (fieldPkg.decimals + 4);
 							buffer = fieldPkg.write(buffer, source, false);
 
+							// 还原精度
+							fieldPkg.decimals = (byte) (fieldPkg.decimals - 4);
 						}
 
-						columToIndx.put(fieldName,
-								new ColMeta(i, fieldPkg.type));
+						ColMeta colMeta = new ColMeta(i, fieldPkg.type);
+						colMeta.decimals = fieldPkg.decimals;
+						columToIndx.put(fieldName, colMeta);
 					}
 				} else {
 					FieldPacket fieldPkg = new FieldPacket();
