@@ -192,10 +192,11 @@ public class BinaryRowDataPacket extends MySQLPacket {
 			break;
 		case Fields.FIELD_TYPE_DATE:
 			try {
-				Date dateVar = DateUtil.parseDate(
-						ByteUtil.getDate(fv),
-						DateUtil.DATE_PATTERN_ONLY_DATE);
-				this.fieldValues.add(ByteUtil.getBytes(dateVar, false));
+				Date dateVar = DateUtil.parseDate(ByteUtil.getDate(fv), DateUtil.DATE_PATTERN_ONLY_DATE);
+				this.fieldValues.add(ByteUtil.getBytes(dateVar, false));				
+			} catch(org.joda.time.IllegalFieldValueException e1) {
+				// 当时间为 0000-00-00 00:00:00 的时候, 默认返回 1970-01-01 08:00:00.0
+				this.fieldValues.add(ByteUtil.getBytes(new Date(0L), false));
 			} catch (ParseException e) {
 				LOGGER.error("error",e);
 			}
@@ -206,16 +207,16 @@ public class BinaryRowDataPacket extends MySQLPacket {
 			Date dateTimeVar = null;
 			try {
 				if (dateStr.indexOf(".") > 0) {
-					dateTimeVar = DateUtil.parseDate(dateStr,
-							DateUtil.DATE_PATTERN_FULL);
-					this.fieldValues.add(ByteUtil.getBytes(dateTimeVar,
-							false));
+					dateTimeVar = DateUtil.parseDate(dateStr, DateUtil.DATE_PATTERN_FULL);
+					this.fieldValues.add(ByteUtil.getBytes(dateTimeVar, false));
 				} else {
-					dateTimeVar = DateUtil.parseDate(dateStr,
-							DateUtil.DEFAULT_DATE_PATTERN);
-					this.fieldValues.add(ByteUtil.getBytes(dateTimeVar,
-							false));
+					dateTimeVar = DateUtil.parseDate(dateStr, DateUtil.DEFAULT_DATE_PATTERN);
+					this.fieldValues.add(ByteUtil.getBytes(dateTimeVar, false));
 				}
+			} catch(org.joda.time.IllegalFieldValueException e1) {
+				// 当时间为 0000-00-00 00:00:00 的时候, 默认返回 1970-01-01 08:00:00.0
+				this.fieldValues.add(ByteUtil.getBytes(new Date(0L), false));
+				
 			} catch (ParseException e) {
 				LOGGER.error("error",e);
 			}
@@ -225,16 +226,17 @@ public class BinaryRowDataPacket extends MySQLPacket {
 			Date timeVar = null;
 			try {
 				if (timeStr.indexOf(".") > 0) {
-					timeVar = DateUtil.parseDate(timeStr,
-							DateUtil.TIME_PATTERN_FULL);
-					this.fieldValues.add(ByteUtil.getBytes(timeVar,
-							true));
+					timeVar = DateUtil.parseDate(timeStr, DateUtil.TIME_PATTERN_FULL);
+					this.fieldValues.add(ByteUtil.getBytes(timeVar, true));
 				} else {
-					timeVar = DateUtil.parseDate(timeStr,
-							DateUtil.DEFAULT_TIME_PATTERN);
-					this.fieldValues.add(ByteUtil.getBytes(timeVar,
-							true));
+					timeVar = DateUtil.parseDate(timeStr, DateUtil.DEFAULT_TIME_PATTERN);
+					this.fieldValues.add(ByteUtil.getBytes(timeVar, true));
 				}
+				
+			} catch(org.joda.time.IllegalFieldValueException e1) {
+				// 当时间为 0000-00-00 00:00:00 的时候, 默认返回 1970-01-01 08:00:00.0
+				this.fieldValues.add(ByteUtil.getBytes(new Date(0L), true));
+				
 			} catch (ParseException e) {
 				LOGGER.error("error",e);
 			}

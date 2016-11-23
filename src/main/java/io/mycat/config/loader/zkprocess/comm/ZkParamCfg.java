@@ -37,6 +37,11 @@ public enum ZkParamCfg {
     */
     ZK_CFG_MYID("myid"),
 
+
+    MYCAT_SERVER_TYPE("type"),
+
+    MYCAT_BOOSTER_DATAHOSTS("boosterDataHosts"),
+
     /**
      * 集群中所有节点的名称信息
     * @字段说明 ZK_CFG_CLUSTER_NODES

@@ -20,6 +20,10 @@ public class MigrateTask implements Serializable {
     public String method;
     public String fclass=PartitionByCRC32PreSlot.class.getName();
 
+    public String schema;
+
+
+    public int slaveId;
 
     public int getSize()
     {   int size=0;
