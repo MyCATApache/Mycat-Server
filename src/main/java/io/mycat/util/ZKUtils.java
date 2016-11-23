@@ -1,6 +1,7 @@
 package io.mycat.util;
 
 
+import io.mycat.MycatServer;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import org.apache.curator.framework.CuratorFramework;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -24,7 +26,8 @@ public class ZKUtils {
         curatorFramework=createConnection();
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override public void run() {
-                   if(curatorFramework!=null)curatorFramework.close();
+                   if(curatorFramework!=null)
+                       curatorFramework.close();
             }
         }));
     }
@@ -42,28 +45,59 @@ public class ZKUtils {
     private static CuratorFramework createConnection() {
            String url= ZkConfig.getInstance().getZkURL();
 
-        CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient(url, new ExponentialBackoffRetry(1000, 300));
-        try {
-            curatorFramework.blockUntilConnected(3,TimeUnit.SECONDS) ;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        CuratorFramework curatorFramework = CuratorFrameworkFactory.newClient(url, new ExponentialBackoffRetry(100, 6));
+
         // start connection
         curatorFramework.start();
-       return curatorFramework;
+        // wait 3 second to establish connect
+        try {
+            curatorFramework.blockUntilConnected(3, TimeUnit.SECONDS);
+            if (curatorFramework.getZookeeperClient().isConnected()) {
+                return curatorFramework;
+            }
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        }
+
+        // fail situation
+        curatorFramework.close();
+        throw new RuntimeException("failed to connect to zookeeper service : " + url);
     }
 
+    public  static void addChildPathCache(  String path ,PathChildrenCacheListener listener )
+    {
+        NameableExecutor businessExecutor = MycatServer.getInstance().getBusinessExecutor();
+        ExecutorService executor = businessExecutor ==null?Executors.newFixedThreadPool(5):
+                businessExecutor;
 
+        try {
+            /**
+             * 监听子节点的变化情况
+             */
+            final PathChildrenCache childrenCache = new PathChildrenCache(getConnection(), path, true);
+            childrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
+            childrenCache.getListenable().addListener(listener,executor);
+        } catch (Exception e) {
+           throw new RuntimeException(e);
+        }
+    }
 
     public static void main(String[] args) throws Exception {
         CuratorFramework client= ZKUtils.getConnection();
-        System.out.println(client.getZookeeperClient().isConnected());
+        ExecutorService executor = Executors.newFixedThreadPool(5);
+       // System.out.println(client.getZookeeperClient().isConnected());
+        addChildPathCache(client,ZKUtils.getZKBasePath()+"migrate",true,executor);
 
+       Thread.sleep(8000);
+    }
+
+    private static void addChildPathCache(CuratorFramework client, final String path, final boolean addChild,  final ExecutorService executor) throws Exception {
         /**
          * 监听子节点的变化情况
          */
-        final PathChildrenCache childrenCache = new PathChildrenCache(client, ZKUtils.getZKBasePath()+"migrate", true);
-        childrenCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
+        final PathChildrenCache childrenCache = new PathChildrenCache(client, path, true);
+        childrenCache.start(PathChildrenCache.StartMode.NORMAL);
+
         childrenCache.getListenable().addListener(
                 new PathChildrenCacheListener() {
                     @Override
@@ -71,6 +105,11 @@ public class ZKUtils {
                             throws Exception {
                         switch (event.getType()) {
                             case CHILD_ADDED:
+                                if(addChild)
+                                {
+
+                                    addChildPathCache(client,event.getData().getPath(),false,executor);
+                                }
                                 System.out.println("CHILD_ADDED: " + event.getData().getPath());
                                 break;
                             case CHILD_REMOVED:
@@ -83,7 +122,7 @@ public class ZKUtils {
                                 break;
                         }
                     }
-                }, Executors.newCachedThreadPool()
+                }, executor
         );
 
     }

@@ -26,8 +26,12 @@ package io.mycat.server.handler;
 import com.alibaba.fastjson.JSON;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.config.ErrorCode;
+import io.mycat.migrate.TaskNode;
+import io.mycat.util.StringUtil;
 import io.mycat.util.ZKUtils;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
@@ -89,16 +93,22 @@ public final class MigrateHandler {
                     .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
              long  taskID=  System.currentTimeMillis();     //todo 需要修改唯一
             CuratorTransactionFinal transactionFinal=null;
-            String taskPath = ZKUtils.getZKBasePath() + "migrate/" + table + "/" + taskID;
+            String taskPath = ZKUtils.getZKBasePath() + "migrate/" +c.getSchema()+"/"+ table + "/" + taskID;
             CuratorFramework client= ZKUtils.getConnection();
             client.create().creatingParentsIfNeeded().forPath(taskPath);
-            transactionFinal=   client.inTransaction() .setData().forPath(taskPath,stmt.getBytes("UTF-8")).and() ;
+            TaskNode taskNode=new TaskNode();
+            taskNode.schema=c.getSchema();
+            taskNode.sql=stmt;
+            taskNode.end=false;
+            transactionFinal=   client.inTransaction() .setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and() ;
             for (Map.Entry<String, List<MigrateTask>> entry : tasks.entrySet()) {
                 String key=entry.getKey();
                 List<MigrateTask> value=entry.getValue();
-
+                for (MigrateTask migrateTask : value) {
+                    migrateTask.schema=c.getSchema();
+                }
                 String path= taskPath + "/" + key;
-                transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and() .setData().forPath(taskPath,stmt.getBytes("UTF-8")).and() ;
+                transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and()  ;
             }
             transactionFinal.commit();
         } catch (Exception e) {
@@ -108,6 +118,17 @@ public final class MigrateHandler {
         }
 
         getOkPacket().write(c);
+    }
+
+
+    private int   getSlaveIdFromZKForDataNode(String dataNode)
+    {
+        PhysicalDBNode dbNode= MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
+         String slaveIDs= dbNode.getDbPool().getSlaveIDs();
+        if(Strings.isNullOrEmpty(slaveIDs)) throw new RuntimeException("dataHost:"+dbNode.getDbPool().getHostName()+" do not config the salveIDs field");
+
+
+        return 0;
     }
 
 
@@ -125,12 +146,18 @@ public final class MigrateHandler {
     }
 
     public static void main(String[] args) {
-        String sql = "migrate    -table=testTable  -add=dn1,dn2,dn3  " + " \n -additional=\"a=b\"";
+        String sql = "migrate    -table=test  -add=dn2,dn3,dn4  " + " \n -additional=\"a=b\"";
         Map map = parse(sql);
         System.out.println();
         for (int i = 0; i < 100; i++) {
             System.out.println(i % 5);
         }
+
+        TaskNode taskNode=new TaskNode();
+        taskNode.sql=sql;
+        taskNode.end=false;
+
+        System.out.println(new String(JSON.toJSONBytes(taskNode)));
     }
 
     private static Map<String, String> parse(String sql) {

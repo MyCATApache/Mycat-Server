@@ -87,7 +87,7 @@ public final class ReloadConfig {
 		}
 	}
 
-	private static boolean reload_all() {
+	public static boolean reload_all() {
 		
 		/**
 		 *  1、载入新的配置
@@ -219,7 +219,7 @@ public final class ReloadConfig {
 		}
 	}
 
-    private static boolean reload() {
+    public static boolean reload() {
     	
     	/**
 		 *  1、载入新的配置， ConfigInitializer 内部完成自检工作, 由于不更新数据源信息,此处不自检 dataHost  dataNode

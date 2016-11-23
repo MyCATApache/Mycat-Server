@@ -151,9 +151,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 
 		ByteBuffer buf = buffer;
 		if (buf != null) {
-			buffer = null;
 			session.getSource().recycle(buffer);
-
+			buffer = null;
 		}
 	}
 
@@ -162,14 +161,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		ServerConnection sc = session.getSource();
 		this.isRunning = true;
 		this.packetId = 0;
-//		final BackendConnection conn = session.getTarget(node);
-		BackendConnection tConn = session.getTarget(node);
-		if (session.getSource().isLocked()) {
-			if (tConn == null) {
-				tConn = session.getLockedTarget(node); 
-			}
-		}
-		final BackendConnection conn = tConn;
+		final BackendConnection conn = session.getTarget(node);
 		LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
 		node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
 		LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
@@ -259,7 +251,25 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
 		
 		source.setTxInterrupt(errmgs);
+		
+		/**
+		 * TODO: 修复全版本BUG
+		 * 
+		 * BUG复现：
+		 * 1、MysqlClient:  SELECT 9223372036854775807 + 1;
+		 * 2、MyCatServer:  ERROR 1690 (22003): BIGINT value is out of range in '(9223372036854775807 + 1)'
+		 * 3、MysqlClient: ERROR 2013 (HY000): Lost connection to MySQL server during query
+		 * 
+		 * Fixed后
+		 * 1、MysqlClient:  SELECT 9223372036854775807 + 1;
+		 * 2、MyCatServer:  ERROR 1690 (22003): BIGINT value is out of range in '(9223372036854775807 + 1)'
+		 * 3、MysqlClient: ERROR 1690 (22003): BIGINT value is out of range in '(9223372036854775807 + 1)'
+		 * 
+		 */		
+		// 由于 pakcetId != 1 造成的问题 
+		errPkg.packetId = 1;		
 		errPkg.write(source);
+		
 		recycleResources();
 	}
 

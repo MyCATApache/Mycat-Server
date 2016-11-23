@@ -339,7 +339,7 @@ public class JDBCConnection implements BackendConnection {
 			if(error.message!=null){
 			    err = new String(error.message);
 			}
-			LOGGER.error("sql execute error, "+ err +", "+ e);
+			LOGGER.error("sql execute error, "+ err , e);
 			this.respHandler.errorResponse(error.writeToBytes(sc), this);
 		}
 		finally {

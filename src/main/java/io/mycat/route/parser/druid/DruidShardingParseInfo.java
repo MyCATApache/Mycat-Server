@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
+
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.RangeValue;
 
@@ -38,6 +40,8 @@ public class DruidShardingParseInfo {
 	 * key table alias, value talbe realname;
 	 */
 	private Map<String, String> tableAliasMap = new LinkedHashMap<String, String>();
+
+	private SchemaStatVisitor visitor;
 
 	public Map<String, String> getTableAliasMap() {
 		return tableAliasMap;
@@ -84,6 +88,16 @@ public class DruidShardingParseInfo {
 		for(RouteCalculateUnit unit : routeCalculateUnits ) {
 			unit.clear();
 		}
+	}
+	
+	public void setVisitor(SchemaStatVisitor visitor) {
+		
+		this.visitor = visitor;
+	}
+	
+	public SchemaStatVisitor getVisitor(){
+		
+		return this.visitor;
 	}
 
 }

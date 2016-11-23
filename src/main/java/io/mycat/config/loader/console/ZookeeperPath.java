@@ -156,6 +156,13 @@ public enum ZookeeperPath {
     * @字段说明 FLOW_ZK_PATH_BINDATA
     */
     FLOW_ZK_PATH_BINDATA("bindata"),
+
+
+    /**
+     * 配制切换及状态目录信息
+     * @字段说明 FLOW_ZK_PATH_RULEDATA
+     */
+    FLOW_ZK_PATH_RULEATA("ruledata"),
     /**
      * dnindex切换信息
      * @字段说明 FLOW_ZK_PATH_CACHE

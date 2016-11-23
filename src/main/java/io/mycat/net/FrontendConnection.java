@@ -34,6 +34,7 @@ import io.mycat.config.Versions;
 import io.mycat.net.handler.*;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.HandshakePacket;
+import io.mycat.net.mysql.HandshakeV10Packet;
 import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.util.CompressUtil;
@@ -304,12 +305,18 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}		
 		
 		// DML 权限检查
-		boolean isPassed = privileges.checkDmlPrivilege(user, schema, sql);
-		if ( !isPassed ) {
-			writeErrMessage(ErrorCode.ERR_WRONG_USED, 
-					"The statement DML privilege check is not passed, reject for user '" + user + "'");
-			return;
-		}
+		try {
+			boolean isPassed = privileges.checkDmlPrivilege(user, schema, sql);
+			if ( !isPassed ) {
+				writeErrMessage(ErrorCode.ERR_WRONG_USED, 
+						"The statement DML privilege check is not passed, reject for user '" + user + "'");
+				return;
+			}
+		 } catch( com.alibaba.druid.sql.parser.ParserException e1) {
+	        	writeErrMessage(ErrorCode.ERR_WRONG_USED,  e1.getMessage());
+	        	LOGGER.error("parse exception", e1 );
+				return;
+	     }
 		
 		// 执行查询
 		if (queryHandler != null) {			
@@ -428,17 +435,32 @@ public abstract class FrontendConnection extends AbstractConnection {
 			this.seed = seed;
 
 			// 发送握手数据包
-			HandshakePacket hs = new HandshakePacket();
-			hs.packetId = 0;
-			hs.protocolVersion = Versions.PROTOCOL_VERSION;
-			hs.serverVersion = Versions.SERVER_VERSION;
-			hs.threadId = id;
-			hs.seed = rand1;
-			hs.serverCapabilities = getServerCapabilities();
-			hs.serverCharsetIndex = (byte) (charsetIndex & 0xff);
-			hs.serverStatus = 2;
-			hs.restOfScrambleBuff = rand2;
-			hs.write(this);
+			boolean useHandshakeV10 = MycatServer.getInstance().getConfig().getSystem().getUseHandshakeV10() == 1;
+			if(useHandshakeV10) {
+				HandshakeV10Packet hs = new HandshakeV10Packet();
+				hs.packetId = 0;
+				hs.protocolVersion = Versions.PROTOCOL_VERSION;
+				hs.serverVersion = Versions.SERVER_VERSION;
+				hs.threadId = id;
+				hs.seed = rand1;
+				hs.serverCapabilities = getServerCapabilities();
+				hs.serverCharsetIndex = (byte) (charsetIndex & 0xff);
+				hs.serverStatus = 2;
+				hs.restOfScrambleBuff = rand2;
+				hs.write(this);
+			} else {
+				HandshakePacket hs = new HandshakePacket();
+				hs.packetId = 0;
+				hs.protocolVersion = Versions.PROTOCOL_VERSION;
+				hs.serverVersion = Versions.SERVER_VERSION;
+				hs.threadId = id;
+				hs.seed = rand1;
+				hs.serverCapabilities = getServerCapabilities();
+				hs.serverCharsetIndex = (byte) (charsetIndex & 0xff);
+				hs.serverStatus = 2;
+				hs.restOfScrambleBuff = rand2;
+				hs.write(this);
+			}
 
 			// asynread response
 			this.asynRead();
@@ -502,6 +524,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_SECURE_CONNECTION;
         flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
         flag |= Capabilities.CLIENT_MULTI_RESULTS;
+        boolean useHandshakeV10 = MycatServer.getInstance().getConfig().getSystem().getUseHandshakeV10() == 1;
+        if(useHandshakeV10) {
+        	flag |= Capabilities.CLIENT_PLUGIN_AUTH;
+        }
 		return flag;
 	}
 

@@ -2,20 +2,20 @@ package io.mycat.config.loader.zkprocess.zktoxml.listen;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.fastjson.util.IOUtils;
+import com.google.common.io.Files;
 
+import io.mycat.MycatServer;
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.entity.Server;
@@ -32,6 +32,7 @@ import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDirectoryImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import io.mycat.manager.response.ReloadConfig;
 
 /**
  * 进行server的文件从zk中加载
@@ -138,8 +139,8 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
         // 数配制信息写入文件
         String path = ServerzkToxmlLoader.class.getClassLoader().getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey())
                 .getPath();
-
-        path = path.substring(1) + WRITEPATH;
+        path = new File(path).getPath() + File.separator;
+        path += WRITEPATH;
 
         LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to object writePath :" + path);
 
@@ -159,7 +160,8 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
             LOGGER.info("ServerzkToxmlLoader notiflyProcess zk to write index_to_charset.properties is success");
         }
-
+        if (MycatServer.getInstance().getProcessors() != null)
+            ReloadConfig.reload();
         return true;
     }
 
@@ -250,27 +252,14 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
 
         checkNotNull(path, "write properties curr Path :" + path + " is null! must is not null");
 
-        path = path.substring(1) + name;
+        path = new File(path).getPath() + File.separator;
+        path += name;
 
-        ByteArrayInputStream input = null;
-        byte[] buffers = new byte[256];
-        FileOutputStream output = null;
-
+        // 进行数据写入
         try {
-            int readIndex = -1;
-            input = new ByteArrayInputStream(value.getBytes());
-            output = new FileOutputStream(path);
-
-            while ((readIndex = input.read(buffers)) != -1) {
-                output.write(buffers, 0, readIndex);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            LOGGER.error("ServerzkToxmlLoader write Properties IOException", e);
-
-        } finally {
-            IOUtils.close(output);
-            IOUtils.close(input);
+            Files.write(value.getBytes(), new File(path));
+        } catch (IOException e1) {
+            e1.printStackTrace();
         }
     }
 

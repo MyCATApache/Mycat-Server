@@ -57,7 +57,6 @@ public class NonBlockingSession implements Session {
 
     private final ServerConnection source;
     private final ConcurrentHashMap<RouteResultsetNode, BackendConnection> target;
-    private final ConcurrentHashMap<RouteResultsetNode, BackendConnection> lockedTarget;
     // life-cycle: each sql execution
     private volatile SingleNodeHandler singleNodeHandler;
     private volatile MultiNodeQueryHandler multiNodeHandler;
@@ -71,7 +70,6 @@ public class NonBlockingSession implements Session {
     public NonBlockingSession(ServerConnection source) {
         this.source = source;
         this.target = new ConcurrentHashMap<RouteResultsetNode, BackendConnection>(2, 0.75f);
-        this.lockedTarget = new ConcurrentHashMap<RouteResultsetNode, BackendConnection>();
         multiNodeCoordinator = new MultiNodeCoordinator(this);
         commitHandler = new CommitNodeHandler(this);
     }
@@ -102,13 +100,6 @@ public class NonBlockingSession implements Session {
         return target.remove(key);
     }
     
-	public BackendConnection getLockedTarget(RouteResultsetNode key) {
-		return this.lockedTarget.get(key);
-	}
-	
-	public ConcurrentHashMap<RouteResultsetNode, BackendConnection> getLockedTargetMap() {
-		return this.lockedTarget;
-	}
     @Override
     public void execute(RouteResultset rrs, int type) {
 
@@ -210,6 +201,7 @@ public class NonBlockingSession implements Session {
                     break;
                 default:
                     multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
+                    LOGGER.warn("DEFAULT:Distributed transaction detected! Targets:" + target);
             }
         } else {
             multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
@@ -315,10 +307,6 @@ public class NonBlockingSession implements Session {
             node.close("client closed ");
         }
         target.clear();
-        for (BackendConnection node : lockedTarget.values()) {
-        	node.close("client closed ");
-        }
-        lockedTarget.clear();
         clearHandlesResources();
     }
 
@@ -338,8 +326,8 @@ public class NonBlockingSession implements Session {
             if (node.isDisctTable()) {
                 return;
             }
-            if (this.source.isAutocommit() || conn.isFromSlaveDB()
-                    || !conn.isModifiedSQLExecuted()) {
+            if ((this.source.isAutocommit() || conn.isFromSlaveDB()
+                    || !conn.isModifiedSQLExecuted()) && !this.source.isLocked()) {
                 releaseConnection((RouteResultsetNode) conn.getAttachment(), LOGGER.isDebugEnabled(), needRollback);
             }
         }
@@ -360,14 +348,14 @@ public class NonBlockingSession implements Session {
                 if (c.isAutocommit()) {
                     c.release();
                 } else
-                //  if (needRollback)
+                //if (needRollback)
                 {
                     c.setResponseHandler(new RollbackReleaseHandler());
                     c.rollback();
                 }
-                //              else {
-//					c.release();
-//				}
+                //else {
+				//	c.release();
+				//}
             }
         }
     }
@@ -396,22 +384,6 @@ public class NonBlockingSession implements Session {
 
     }
 
-	public void releaseLockedConnection(BackendConnection con) {
-		Iterator<Entry<RouteResultsetNode, BackendConnection>> itor = lockedTarget
-				.entrySet().iterator();
-		while (itor.hasNext()) {
-			BackendConnection theCon = itor.next().getValue();
-			if (theCon == con) {
-				itor.remove();
-				con.release();
-				if (LOGGER.isDebugEnabled()) {
-					LOGGER.debug("realse connection " + con);
-				}
-				break;
-			}
-		}
-	}
-	
     /**
      * @return previous bound connection
      */
@@ -422,16 +394,6 @@ public class NonBlockingSession implements Session {
         return target.put(key, conn);
     }
     
-	/**
-	 * 绑定lock tables语句使用的后端连接
-	 * @param key
-	 * @param conn
-	 * @return
-	 */
-	public BackendConnection bindLockTableConnection(RouteResultsetNode key, BackendConnection conn) {
-		return lockedTarget.put(key, conn);
-	}
-
     public boolean tryExistsCon(final BackendConnection conn, RouteResultsetNode node) {
         if (conn == null) {
             return false;
