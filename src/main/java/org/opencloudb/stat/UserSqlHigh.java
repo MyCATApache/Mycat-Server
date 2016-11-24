@@ -3,22 +3,19 @@ package org.opencloudb.stat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class UserSqlHigh {
+	
 	private static final int CAPACITY_SIZE = 100;
 	private static final int DELETE_SIZE = 10;
 	
-	private LinkedHashMap<String, SqlFrequency> sqlFrequencyMap = new LinkedHashMap<String, SqlFrequency>();	
+	private ConcurrentHashMap<String, SqlFrequency> sqlFrequencyMap = new ConcurrentHashMap<String, SqlFrequency>();
 	
-	
-	private SQLParserHigh sqlParser = new SQLParserHigh();
-	
+	private SQLParserHigh sqlParser = new SQLParserHigh();	
 
 	public void addSql(String sql,long executeTime,long startTime, long endTime ){
     	if ( this.sqlFrequencyMap.size() >= CAPACITY_SIZE ) {
@@ -42,51 +39,32 @@ public class UserSqlHigh {
         frequency.incCount();
         frequency.setExecuteTime(executeTime);
         this.sqlFrequencyMap.put(newSql, frequency);        
-	}		
-
+	}
 	
 	/**
 	 * 获取 SQL 访问频率
 	 */
 	public List<Map.Entry<String, SqlFrequency>> getSqlFrequency(boolean isClear) {
 		
-		List<Map.Entry<String, SqlFrequency>> list = null;
-		
-  //      lock.readLock().lock();
-  //      try {
-        	list = this.sortFrequency( sqlFrequencyMap, false );
-//        } finally {
-    //        lock.readLock().unlock();
-  //      }
-        
+		List<Map.Entry<String, SqlFrequency>> list = this.sortFrequency( sqlFrequencyMap, false );        
         if ( isClear ) {
         	clearSqlFrequency();  // 获取 高频SQL后清理
-        }
-        
+        }        
         return list;
-	}	
-	
+	}		
 	
 	private void clearSqlFrequency() {		
-	//	lock.readLock().lock();
-	//	try {
-			sqlFrequencyMap.clear();
-//		} finally {
-   //         lock.readLock().unlock();
-//        }
+		sqlFrequencyMap.clear();
 	}
 	
 	/**
 	 * 排序
 	 */
-	private List<Map.Entry<String, SqlFrequency>> sortFrequency(HashMap<String, SqlFrequency> map,
+	private List<Map.Entry<String, SqlFrequency>> sortFrequency(ConcurrentHashMap<String, SqlFrequency> map,
 			final boolean bAsc) {
-
 		List<Map.Entry<String, SqlFrequency>> list = new ArrayList<Map.Entry<String, SqlFrequency>>(map.entrySet());
-
 		Collections.sort(list, new Comparator<Map.Entry<String, SqlFrequency>>() {
 			public int compare(Map.Entry<String, SqlFrequency> o1, Map.Entry<String, SqlFrequency> o2) {
-
 				if (!bAsc) {
 					return o2.getValue().getCount() - o1.getValue().getCount(); // 降序
 				} else {
@@ -94,7 +72,6 @@ public class UserSqlHigh {
 				}
 			}
 		});
-
 		return list;
 
 	}
