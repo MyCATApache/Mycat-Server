@@ -28,7 +28,7 @@ public class HintSQLHandler implements HintHandler {
 			LayerCachePool cachePool, String hintSQLValue)
 			throws SQLNonTransientException {
 
-		RouteResultset rrs = routeStrategy.route(sysConfig, schema, sqlType,
+		RouteResultset rrs = routeStrategy.route(sysConfig, schema, ServerParse.parse(hintSQLValue),
 				hintSQLValue, charset, sc, cachePool);
 		// 替换RRS中的SQL执行
 		RouteResultsetNode[] oldRsNodes = rrs.getNodes();
