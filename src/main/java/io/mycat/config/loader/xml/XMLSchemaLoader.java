@@ -760,6 +760,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String dbType = element.getAttribute("dbType");
 			String filters = element.getAttribute("filters");
 			String logTimeStr = element.getAttribute("logTime");
+			String slaveIDs = element.getAttribute("slaveIDs");
 			long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.parseLong(logTimeStr) ;
 			//读取心跳语句
 			String heartbeatSQL = element.getElementsByTagName("heartbeat").item(0).getTextContent();
@@ -773,16 +774,28 @@ public class XMLSchemaLoader implements SchemaLoader {
 			NodeList writeNodes = element.getElementsByTagName("writeHost");
 			DBHostConfig[] writeDbConfs = new DBHostConfig[writeNodes.getLength()];
 			Map<Integer, DBHostConfig[]> readHostsMap = new HashMap<Integer, DBHostConfig[]>(2);
+			Set<String> writeHostNameSet = new HashSet<String>(writeNodes.getLength());
 			for (int w = 0; w < writeDbConfs.length; w++) {
 				Element writeNode = (Element) writeNodes.item(w);
 				writeDbConfs[w] = createDBHostConf(name, writeNode, dbType, dbDriver, maxCon, minCon,filters,logTime);
+				if(writeHostNameSet.contains(writeDbConfs[w].getHostName())) {
+					throw new ConfigException("writeHost " + writeDbConfs[w].getHostName() + " duplicated!");
+				} else {
+					writeHostNameSet.add(writeDbConfs[w].getHostName());
+				}
 				NodeList readNodes = writeNode.getElementsByTagName("readHost");
 				//读取对应的每一个readHost
 				if (readNodes.getLength() != 0) {
 					DBHostConfig[] readDbConfs = new DBHostConfig[readNodes.getLength()];
+					Set<String> readHostNameSet = new HashSet<String>(readNodes.getLength());
 					for (int r = 0; r < readDbConfs.length; r++) {
 						Element readNode = (Element) readNodes.item(r);
 						readDbConfs[r] = createDBHostConf(name, readNode, dbType, dbDriver, maxCon, minCon,filters, logTime);
+						if(readHostNameSet.contains(readDbConfs[r].getHostName())) {
+							throw new ConfigException("readHost " + readDbConfs[r].getHostName() + " duplicated!");
+						} else {
+							readHostNameSet.add(readDbConfs[r].getHostName());
+						}
 					}
 					readHostsMap.put(w, readDbConfs);
 				}
@@ -799,6 +812,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			hostConf.setConnectionInitSql(initConSQL);
 			hostConf.setFilters(filters);
 			hostConf.setLogTime(logTime);
+			hostConf.setSlaveIDs(slaveIDs);
 			dataHosts.put(hostConf.getName(), hostConf);
 		}
 	}

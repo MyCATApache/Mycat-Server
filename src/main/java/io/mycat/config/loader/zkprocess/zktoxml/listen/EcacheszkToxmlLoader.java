@@ -2,16 +2,14 @@ package io.mycat.config.loader.zkprocess.zktoxml.listen;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.fastjson.util.IOUtils;
+import com.google.common.io.Files;
 
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
@@ -137,7 +135,7 @@ public class EcacheszkToxmlLoader extends ZkMultLoader implements NotiflyService
 
         String outputPath = EcacheszkToxmlLoader.class.getClassLoader()
                 .getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey()).getPath();
-        outputPath=new File(outputPath).getPath()+File.separator;
+        outputPath = new File(outputPath).getPath() + File.separator;
         outputPath += EHCACHE_NAME;
 
         parseEcacheXMl.parseToXmlWrite(ehcache, outputPath, null);
@@ -177,28 +175,14 @@ public class EcacheszkToxmlLoader extends ZkMultLoader implements NotiflyService
                 .getPath();
 
         checkNotNull(path, "write ecache file curr Path :" + path + " is null! must is not null");
-        path=new File(path).getPath()+File.separator;
-        path  += name;
+        path = new File(path).getPath() + File.separator;
+        path += name;
 
-        ByteArrayInputStream input = null;
-        byte[] buffers = new byte[3];
-        FileOutputStream output = null;
-
+        // 进行数据写入
         try {
-            int readIndex = -1;
-            input = new ByteArrayInputStream(value.getBytes());
-            output = new FileOutputStream(path);
-
-            while ((readIndex = input.read(buffers)) != -1) {
-                output.write(buffers, 0, readIndex);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            LOGGER.error("RulesxmlTozkLoader readMapFile IOException", e);
-
-        } finally {
-            IOUtils.close(output);
-            IOUtils.close(input);
+            Files.write(value.getBytes(), new File(path));
+        } catch (IOException e1) {
+            e1.printStackTrace();
         }
 
     }

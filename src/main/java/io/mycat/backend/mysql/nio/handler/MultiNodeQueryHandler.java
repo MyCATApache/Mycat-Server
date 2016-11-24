@@ -302,6 +302,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					lock.unlock();
 				}
 			}
+			
+			// add by lian
+			// 解决sql统计中写操作永远为0
+			execCount++;
+			if (execCount == rrs.getNodes().length) {
+				QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+						rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0);
+				QueryResultDispatcher.dispatchQuery( queryResult );
+			}
 		}
 	}
 
