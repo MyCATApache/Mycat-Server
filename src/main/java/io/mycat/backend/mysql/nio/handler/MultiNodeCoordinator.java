@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.esotericsoftware.minlog.Log;
 import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
 import io.mycat.backend.mysql.xa.ParticipantLogEntry;
@@ -115,14 +116,23 @@ public class MultiNodeCoordinator implements ResponseHandler {
 	public void errorResponse(byte[] err, BackendConnection conn) {
 		faileCount.incrementAndGet();
 
+		//replayCommit
+		MySQLConnection mysqlCon = (MySQLConnection) conn;
+		String xaTxId = session.getXaTXID();
+		if(xaTxId!=null) {
+			String cmd = "XA COMMIT " + xaTxId;
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("Replay Commit execute the cmd :" + cmd + ",current host:" +
+						mysqlCon.getHost() + ":" + mysqlCon.getPort());
+			}
+			mysqlCon.execCmd(cmd);
+		}
+
+		//release connection
 		if (this.cmdHandler.releaseConOnErr()) {
 			session.releaseConnection(conn);
 		} else {
-			
-			
-			
-			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
-					false);
+			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),false);
 		}
 		if (this.finished()) {
 			cmdHandler.errorResponse(session, err, this.nodeCount,
