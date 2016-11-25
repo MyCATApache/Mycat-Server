@@ -292,11 +292,11 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			doProcessBusinessQuery(con, response, commandComplete);
 		} else {
 			OkPacket okPck = new OkPacket();
-			okPck.affectedRows = 0;
-			okPck.insertId = 0;
+			
+			okPck.affectedRows =commandComplete.getAffectedRows();
+			okPck.insertId =commandComplete.getInsertId();
 			okPck.packetId = ++packetId;
-			okPck.message = commandComplete.getCommandResponse().trim()
-					.getBytes();
+			okPck.message = commandComplete.getCommandResponse().getBytes();
 			con.getResponseHandler().okResponse(okPck.writeToBytes(), con);
 		}
 	}

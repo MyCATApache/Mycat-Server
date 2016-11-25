@@ -201,13 +201,13 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 	}
 
 	@Override
-	public void execute(RouteResultsetNode rrn, ServerConnection sc, boolean autocommit) throws IOException {
-		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("{}查询任务。。。。{}", id, rrn.getStatement());
-		}
+	public void execute(RouteResultsetNode rrn, ServerConnection sc, boolean autocommit) throws IOException {	
 		int sqlType = rrn.getSqlType();
 		String orgin = rrn.getStatement();
-		LOGGER.info(orgin);
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("{}查询任务。。。。{}", id, rrn.getStatement());
+			LOGGER.debug(orgin);
+		}		
 		
 		//FIX BUG  https://github.com/MyCATApache/Mycat-Server/issues/1185
 		if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {			
@@ -504,7 +504,9 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		statusSync = new StatusSync(xaCmd != null, conSchema, clientCharSetIndex, clientTxIsoLation, expectAutocommit,
 				synCount);
 		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement())).toString();
-		LOGGER.info("con={}, SQL={}", this, sql);
+		if(LOGGER.isDebugEnabled()){
+			LOGGER.debug("con={}, SQL={}", this, sql);
+		}
 		Query query = new Query(sql);
 		ByteBuffer buf = allocate();// 申请ByetBuffer
 		query.write(buf);
