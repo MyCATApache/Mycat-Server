@@ -234,28 +234,13 @@ public class MycatServer {
 	}
 
 	public String getXATXIDGLOBAL(){
-		int seqHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
-		switch(seqHandlerType){
-			case SystemConfig.SEQUENCEHANDLER_MYSQLDB:
-				sequenceHandler = IncrSequenceMySQLHandler.getInstance();
-				break;
-			case SystemConfig.SEQUENCEHANDLER_LOCALFILE:
-				sequenceHandler = IncrSequencePropHandler.getInstance();
-				break;
-			case SystemConfig.SEQUENCEHANDLER_LOCAL_TIME:
-				sequenceHandler = IncrSequenceTimeHandler.getInstance();
-				break;
-			case SystemConfig.SEQUENCEHANDLER_ZK_DISTRIBUTED:
-				sequenceHandler = DistributedSequenceHandler.getInstance(MycatServer.getInstance().getConfig().getSystem());
-				break;
-			case SystemConfig.SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT:
-				sequenceHandler = IncrSequenceZKHandler.getInstance();
-				break;
-			default:
-				throw new java.lang.IllegalArgumentException("Invalid sequnce handler type "+seqHandlerType);
-		}
-		long seq = sequenceHandler.nextId("XASEQ");
-		return "'" + seq + "'";
+		return "'" + getUUID() + "'";
+	}
+
+	public static String getUUID(){
+		String s = UUID.randomUUID().toString();
+		//去掉“-”符号
+		return s.substring(0,8)+s.substring(9,13)+s.substring(14,18)+s.substring(19,23)+s.substring(24);
 	}
 
 	public MyCatMemory getMyCatMemory() {
