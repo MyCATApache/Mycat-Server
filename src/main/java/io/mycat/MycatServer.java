@@ -58,6 +58,7 @@ import io.mycat.net.SocketConnector;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
+import io.mycat.route.sequence.handler.*;
 import io.mycat.server.ServerConnectionFactory;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
@@ -125,7 +126,8 @@ public class MycatServer {
 
 	//XA事务全局ID生成
 	private final AtomicLong xaIDInc = new AtomicLong();
-
+	//sequence处理对象
+	private SequenceHandler sequenceHandler;
 
 	/**
 	 * Mycat 内存管理类
@@ -231,6 +233,31 @@ public class MycatServer {
 		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "." + seq + "'";
 	}
 
+	public String getXATXIDGLOBAL(){
+		int seqHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
+		switch(seqHandlerType){
+			case SystemConfig.SEQUENCEHANDLER_MYSQLDB:
+				sequenceHandler = IncrSequenceMySQLHandler.getInstance();
+				break;
+			case SystemConfig.SEQUENCEHANDLER_LOCALFILE:
+				sequenceHandler = IncrSequencePropHandler.getInstance();
+				break;
+			case SystemConfig.SEQUENCEHANDLER_LOCAL_TIME:
+				sequenceHandler = IncrSequenceTimeHandler.getInstance();
+				break;
+			case SystemConfig.SEQUENCEHANDLER_ZK_DISTRIBUTED:
+				sequenceHandler = DistributedSequenceHandler.getInstance(MycatServer.getInstance().getConfig().getSystem());
+				break;
+			case SystemConfig.SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT:
+				sequenceHandler = IncrSequenceZKHandler.getInstance();
+				break;
+			default:
+				throw new java.lang.IllegalArgumentException("Invalid sequnce handler type "+seqHandlerType);
+		}
+		long seq = sequenceHandler.nextId("");
+		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "." + seq + "'";
+	}
+
 	public MyCatMemory getMyCatMemory() {
 		return myCatMemory;
 	}
@@ -273,7 +300,6 @@ public class MycatServer {
 		int processorCount = system.getProcessors();
 
 		// server startup
-		LOGGER.info("===============================================");
 		LOGGER.info(NAME + " is ready to startup ...");
 		String inf = "Startup processors ...,total processors:"
 				+ system.getProcessors() + ",aio thread pool size:"
