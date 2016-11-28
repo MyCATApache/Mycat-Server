@@ -254,8 +254,8 @@ public class MycatServer {
 			default:
 				throw new java.lang.IllegalArgumentException("Invalid sequnce handler type "+seqHandlerType);
 		}
-		long seq = sequenceHandler.nextId("");
-		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "." + seq + "'";
+		long seq = sequenceHandler.nextId("XASEQ");
+		return "'" + seq + "'";
 	}
 
 	public MyCatMemory getMyCatMemory() {
