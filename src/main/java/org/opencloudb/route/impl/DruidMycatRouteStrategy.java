@@ -283,7 +283,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		case ServerParse.SHOW:// if origSQL is like show tables
 			return analyseShowSQL(schema, rrs, stmt);
 		case ServerParse.SELECT://if origSQL is like select @@
-			if(stmt.contains("@@")){
+			int index = stmt.indexOf("@@");
+			if(index > 0 && "SELECT".equals(stmt.substring(0, index).trim().toUpperCase())){
 				return analyseDoubleAtSgin(schema, rrs, stmt);
 			}
 			break;
