@@ -150,6 +150,8 @@ public class MycatServer {
 	private ListeningExecutorService listeningExecutorService;
 	private  InterProcessMutex dnindexLock;
 	private  long totalNetWorkBufferSize = 0;
+
+	private final AtomicBoolean startup=new AtomicBoolean(false);
 	private MycatServer() {
 		
 		//读取文件配置
@@ -194,6 +196,11 @@ public class MycatServer {
 			 String path=     ZKUtils.getZKBasePath()+"lock/dnindex.lock";
 			 dnindexLock = new InterProcessMutex(ZKUtils.getConnection(), path);
 		 }
+
+	}
+
+	public AtomicBoolean getStartup() {
+		return startup;
 	}
 
 	public long getTotalNetWorkBufferSize() {
@@ -488,6 +495,9 @@ public class MycatServer {
 				}
 			}
 		}
+
+
+		startup.set(true);
 	}
 
 

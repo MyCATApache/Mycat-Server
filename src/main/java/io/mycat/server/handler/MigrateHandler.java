@@ -103,12 +103,24 @@ public final class MigrateHandler {
             taskNode.sql=stmt;
             taskNode.end=false;
             transactionFinal=   client.inTransaction() .setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and() ;
+
+            Map<String,Integer>  fromNodeSlaveIdMap=new HashMap<>();
+
             for (Map.Entry<String, List<MigrateTask>> entry : tasks.entrySet()) {
                 String key=entry.getKey();
                 List<MigrateTask> value=entry.getValue();
                 for (MigrateTask migrateTask : value) {
                     migrateTask.schema=c.getSchema();
-                    migrateTask.slaveId=   getSlaveIdFromZKForDataNode(migrateTask.from);
+
+                    //分配slaveid只需要一个dataHost分配一个即可，后续任务执行模拟从节点只需要一个dataHost一个
+                      String dataHost=getDataHostNameFromNode(migrateTask.from);
+                    if(fromNodeSlaveIdMap.containsKey(dataHost)) {
+                        migrateTask.slaveId= fromNodeSlaveIdMap.get(dataHost);
+                    }   else {
+                        migrateTask.slaveId=   getSlaveIdFromZKForDataNode(migrateTask.from);
+                        fromNodeSlaveIdMap.put(dataHost,migrateTask.slaveId);
+                    }
+
                 }
                 String path= taskPath + "/" + key;
                 transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and()  ;
@@ -121,6 +133,11 @@ public final class MigrateHandler {
         }
 
         getOkPacket().write(c);
+    }
+
+
+    private static String getDataHostNameFromNode(String dataNode){
+       return MycatServer.getInstance().getConfig().getDataNodes().get(dataNode).getDbPool().getHostName();
     }
 
 

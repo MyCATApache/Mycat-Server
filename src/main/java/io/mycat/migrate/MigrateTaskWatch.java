@@ -3,6 +3,7 @@ package io.mycat.migrate;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
@@ -19,8 +20,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * ......./migrate/schemal/tableName/taskid/dn   [任务数据]
@@ -118,8 +121,40 @@ public class MigrateTaskWatch {
                     }
                 }
 
+                CountDownLatch latch=new CountDownLatch(finalMigrateList.size());
+                for (MigrateTask migrateTask : finalMigrateList) {
+                    MycatServer.getInstance().getBusinessExecutor().submit(new MigrateDumpRunner(migrateTask,latch));
+                }
+                latch.await(5, TimeUnit.MINUTES);
+                //先mysqldump全量做完，然后在处理增量
+                Map<String, List<MigrateTask> > taskMap=mergerTaskForDataHost(finalMigrateList);
                 System.out.println(finalMigrateList.size());
             }  }
         }
+
+
+        private static String getDataHostNameFromNode(String dataNode){
+            return MycatServer.getInstance().getConfig().getDataNodes().get(dataNode).getDbPool().getHostName();
+        }
+
+        private static   Map<String, List<MigrateTask> > mergerTaskForDataHost ( List<MigrateTask> migrateTaskList)
+        {
+            Map<String, List<MigrateTask> > taskMap=new HashMap<>();
+            for (MigrateTask migrateTask : migrateTaskList) {
+                String dataHost=getDataHostNameFromNode(migrateTask.from);
+                if(taskMap.containsKey(dataHost)) {
+                    taskMap.get(dataHost).add(migrateTask);
+                }   else
+                {
+                    taskMap.put(dataHost, Lists.newArrayList(migrateTask)) ;
+                }
+            }
+
+
+            return taskMap;
+        }
+
+
+
     }
 }
