@@ -150,6 +150,10 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		this.isRunning = true;
 		this.packetId = 0;
 		final BackendConnection conn = session.getTarget(node);
+		LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
+		node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
+		LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
+
 		//之前是否获取过Connection并且Connection有效
 		if (session.tryExistsCon(conn, node)) {
 			_execute(conn);

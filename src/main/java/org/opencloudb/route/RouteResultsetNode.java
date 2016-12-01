@@ -47,8 +47,12 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private int limitStart;
 	private int limitSize;
 	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
-   private Procedure procedure;
+    private Procedure procedure;
 	private LoadData loadData;
+	
+	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB(false)
+	// 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
+	private Boolean runOnSlave = null;	// 默认null表示不施加影响, true走slave,false走master
 
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
 		this.name = name;
@@ -72,6 +76,14 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
     {
         this.hintMap = hintMap;
     }
+    
+    public Boolean getRunOnSlave() {
+		return runOnSlave;
+	}
+
+	public void setRunOnSlave(Boolean runOnSlave) {
+		this.runOnSlave = runOnSlave;
+	}
 
 	public void setStatement(String statement) {
 		this.statement = statement;
@@ -215,5 +227,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			return 1;
 		}
 		return this.name.compareTo(obj.name);
+	}
+	
+	public boolean isHasBlanceFlag() {
+		return hasBlanceFlag;
 	}
 }

@@ -44,15 +44,18 @@ import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 
 public class RouteService {
-    private static final Logger LOGGER = Logger
-            .getLogger(RouteService.class);
-    public static final String MYCAT_HINT_TYPE = "_mycatHintType";
-    private final CachePool sqlRouteCache;
-	private final LayerCachePool tableId2DataNodeCache;	
+	private static final Logger LOGGER = Logger.getLogger(RouteService.class);
+	public static final String MYCAT_HINT_TYPE = "_mycatHintType";
+	private final CachePool sqlRouteCache;
+	private final LayerCachePool tableId2DataNodeCache;
 
-	private final String OLD_MYCAT_HINT = "/*!mycat:"; 	// 处理自定义分片注解, 注解格式：/*!mycat: type = value */ sql
-	private final String NEW_MYCAT_HINT = "/*#mycat:"; 	// 新的注解格式:/* !mycat: type = value */ sql，oldMycatHint的格式不兼容直连mysql
-    private final String HINT_SPLIT = "=";
+	private final String OLD_MYCAT_HINT = "/*!mycat:"; // 处理自定义分片注解,
+														// 注解格式：/*!mycat: type =
+														// value */ sql
+	private final String NEW_MYCAT_HINT = "/*#mycat:"; // 新的注解格式:/* !mycat: type
+														// = value */
+														// sql，oldMycatHint的格式不兼容直连mysql
+	private final String HINT_SPLIT = "=";
 
 	public RouteService(CacheService cachService) {
 		sqlRouteCache = cachService.getCachePool("SQLRouteCache");
@@ -71,67 +74,86 @@ public class RouteService {
 		String cacheKey = null;
 
 		/**
-		 *  SELECT 类型的SQL, 检测
+		 * SELECT 类型的SQL, 检测
 		 */
 		if (sqlType == ServerParse.SELECT) {
-			cacheKey = schema.getName() + stmt;			
+			cacheKey = schema.getName() + stmt;
 			rrs = (RouteResultset) sqlRouteCache.get(cacheKey);
 			if (rrs != null) {
 				return rrs;
 			}
 		}
-        
-		/*!mycat: sql = select name from aa */
-        /*!mycat: schema = test */
-        boolean isMatchOldHint = stmt.startsWith(OLD_MYCAT_HINT);
-        boolean isMatchNewHint = stmt.startsWith(NEW_MYCAT_HINT);
-		if (isMatchOldHint || isMatchNewHint ) {
-			
+
+		/* !mycat: sql = select name from aa */
+		/* !mycat: schema = test */
+		/*
+		 * boolean isMatchOldHint = stmt.startsWith(OLD_MYCAT_HINT); boolean
+		 * isMatchNewHint = stmt.startsWith(NEW_MYCAT_HINT); if (isMatchOldHint
+		 * || isMatchNewHint ) {
+		 */
+		int hintLength = RouteService.isHintSql(stmt);
+		if (hintLength != -1) {
 			int endPos = stmt.indexOf("*/");
-			if (endPos > 0) {				
+			if (endPos > 0) {
 				// 用!mycat:内部的语句来做路由分析
-				int hintLength = isMatchOldHint ? OLD_MYCAT_HINT.length() : NEW_MYCAT_HINT.length();				
-				String hint = stmt.substring(hintLength, endPos).trim();	
-				
-                int firstSplitPos = hint.indexOf(HINT_SPLIT);                
-                if(firstSplitPos > 0 ){
-                    Map hintMap=    parseHint(hint);
-                	String hintType = (String) hintMap.get(MYCAT_HINT_TYPE);
-                    String hintSql = (String) hintMap.get(hintType);
-                    if( hintSql.length() == 0 ) {
-                    	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
-                    	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
-                    }
-                    String realSQL = stmt.substring(endPos + "*/".length()).trim();
+				// int hintLength = isMatchOldHint ? OLD_MYCAT_HINT.length() :
+				// NEW_MYCAT_HINT.length();
+				String hint = stmt.substring(hintLength, endPos).trim();
 
-                    HintHandler hintHandler = HintHandlerFactory.getHintHandler(hintType);
-                    if( hintHandler != null ) {    
+				int firstSplitPos = hint.indexOf(HINT_SPLIT);
+				if (firstSplitPos > 0) {
+					Map hintMap = parseHint(hint);
+					String hintType = (String) hintMap.get(MYCAT_HINT_TYPE);
+					String hintSql = (String) hintMap.get(hintType);
+					if (hintSql.length() == 0) {
+						LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "
+								+ stmt);
+						throw new SQLSyntaxErrorException(
+								"comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "
+										+ stmt);
+					}
+					String realSQL = stmt.substring(endPos + "*/".length())
+							.trim();
 
-                    	if ( hintHandler instanceof  HintSQLHandler) {                    		
-                          	/**
-                        	 * 修复 注解SQL的 sqlType 与 实际SQL的 sqlType 不一致问题， 如： hint=SELECT，real=INSERT
-                        	 * fixed by zhuam
-                        	 */
-                    		int hintSqlType = ServerParse.parse( hintSql ) & 0xff;     
-                    		rrs = hintHandler.route(sysconf, schema, sqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql,hintSqlType,hintMap);
-                    		
-                    	} else {                    		
-                    		rrs = hintHandler.route(sysconf, schema, sqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql,sqlType,hintMap);
-                    	}
- 
-                    }else{
-                        LOGGER.warn("TODO , support hint sql type : " + hintType);
-                    }
-                    
-                }else{//fixed by runfriends@126.com
-                	LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "+stmt);
-                	throw new SQLSyntaxErrorException("comment in sql must meet :/*!mcat:type=value*/ or /*#mycat:type=value*/: "+stmt);
-                }
+					HintHandler hintHandler = HintHandlerFactory
+							.getHintHandler(hintType);
+					if (hintHandler != null) {
+
+						if (hintHandler instanceof HintSQLHandler) {
+							/**
+							 * 修复 注解SQL的 sqlType 与 实际SQL的 sqlType 不一致问题， 如：
+							 * hint=SELECT，real=INSERT fixed by zhuam
+							 */
+							int hintSqlType = ServerParse.parse(hintSql) & 0xff;
+							rrs = hintHandler.route(sysconf, schema, sqlType,
+									realSQL, charset, sc,
+									tableId2DataNodeCache, hintSql,
+									hintSqlType, hintMap);
+
+						} else {
+							rrs = hintHandler.route(sysconf, schema, sqlType,
+									realSQL, charset, sc,
+									tableId2DataNodeCache, hintSql, sqlType,
+									hintMap);
+						}
+
+					} else {
+						LOGGER.warn("TODO , support hint sql type : "
+								+ hintType);
+					}
+
+				} else {// fixed by runfriends@126.com
+					LOGGER.warn("comment in sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/: "
+							+ stmt);
+					throw new SQLSyntaxErrorException(
+							"comment in sql must meet :/*!mcat:type=value*/ or /*#mycat:type=value*/: "
+									+ stmt);
+				}
 			}
 		} else {
 			stmt = stmt.trim();
-			rrs = RouteStrategyFactory.getRouteStrategy().route(sysconf, schema, sqlType, stmt,
-					charset, sc, tableId2DataNodeCache);
+			rrs = RouteStrategyFactory.getRouteStrategy().route(sysconf,
+					schema, sqlType, stmt, charset, sc, tableId2DataNodeCache);
 		}
 
 		if (rrs != null && sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
@@ -140,56 +162,69 @@ public class RouteService {
 		return rrs;
 	}
 
+	public static int isHintSql(String sql) {
+		int j = 0;
+		int len = sql.length();
+		if (sql.charAt(j++) == '/' && sql.charAt(j++) == '*') {
+			char c = sql.charAt(j);
+			// 过滤掉 空格 和 * 两种字符, 支持： "/** !mycat: */" 和 "/** #mycat: */" 形式的注解
+			while (j < len && c != '!' && c != '#' && (c == ' ' || c == '*')) {
+				c = sql.charAt(++j);
+			}
+			//注解支持的'!'不被mysql单库兼容，
+			//注解支持的'#'不被mybatis兼容
+			//考虑用mycat字符前缀标志Hintsql:"/** mycat: */"
+			if(sql.charAt(j)=='m'){
+				j--;
+			}
+			if (j + 6 >= len) // prevent the following sql.charAt overflow
+				return -1; // false
+			if (sql.charAt(++j) == 'm' && sql.charAt(++j) == 'y'
+					&& sql.charAt(++j) == 'c' && sql.charAt(++j) == 'a'
+					&& sql.charAt(++j) == 't' && sql.charAt(++j) == ':')
+				return j + 1; // true，同时返回注解部分的长度
+		}
+		return -1; // false
+	}
 
-    private   Map parseHint( String sql)
-    {
-        Map map=new HashMap();
-        int y=0;
-        int begin=0;
-        for(int i=0;i<sql.length();i++)
-        {
-            char cur=sql.charAt(i);
-            if(cur==','&& y%2==0)
-            {
-                String substring = sql.substring(begin, i);
+	private Map parseHint(String sql) {
+		Map map = new HashMap();
+		int y = 0;
+		int begin = 0;
+		for (int i = 0; i < sql.length(); i++) {
+			char cur = sql.charAt(i);
+			if (cur == ',' && y % 2 == 0) {
+				String substring = sql.substring(begin, i);
 
-                parseKeyValue(map, substring);
-                begin=i+1;
-            }
-            else
-            if(cur=='\'')
-            {
-                y++;
-            } if(i==sql.length()-1)
-        {
-            parseKeyValue(map, sql.substring(begin));
+				parseKeyValue(map, substring);
+				begin = i + 1;
+			} else if (cur == '\'') {
+				y++;
+			}
+			if (i == sql.length() - 1) {
+				parseKeyValue(map, sql.substring(begin));
 
-        }
+			}
 
+		}
+		return map;
+	}
 
-        }
-        return map;
-    }
+	private void parseKeyValue(Map map, String substring) {
+		int indexOf = substring.indexOf('=');
+		if (indexOf != -1) {
 
-    private  void parseKeyValue(Map map, String substring)
-    {
-        int indexOf = substring.indexOf('=');
-        if(indexOf!=-1)
-        {
+			String key = substring.substring(0, indexOf).trim().toLowerCase();
+			String value = substring.substring(indexOf + 1, substring.length());
+			if (value.endsWith("'") && value.startsWith("'")) {
+				value = value.substring(1, value.length() - 1);
+			}
+			if (map.isEmpty()) {
+				map.put(MYCAT_HINT_TYPE, key);
+			}
+			map.put(key, value.trim());
 
-            String key=substring.substring(0,indexOf).trim().toLowerCase();
-            String value=substring.substring(indexOf+1,substring.length());
-            if(value.endsWith("'")&&value.startsWith("'"))
-            {
-                value=value.substring(1,value.length()-1);
-            }
-            if(map.isEmpty())
-            {
-              map.put(MYCAT_HINT_TYPE,key)  ;
-            }
-            map.put(key,value.trim());
-
-        }
-    }
+		}
+	}
 
 }
