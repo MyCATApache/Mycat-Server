@@ -17,7 +17,7 @@
 			needAddLimit="false"/> <table name="worker" primaryKey="ID" dataNode="jdbc_dn1,jdbc_dn2,jdbc_dn3"
 			rule="mod-long" /> -->
 		<table name="employee" primaryKey="ID" dataNode="dn1,dn2"
-			   rule="sharding-by-intfile" /> 
+			   rule="sharding-by-intfile" />
 		<table name="customer" primaryKey="ID" dataNode="dn1,dn2"
 			   rule="sharding-by-intfile">
 			<childTable name="orders" primaryKey="ID" joinKey="customer_id"
