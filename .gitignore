@@ -111,4 +111,3 @@ hs_err_pid*
 /RUNNING_PID
 .DS_Store
 /target/
-src/main/resources/schema.xml
