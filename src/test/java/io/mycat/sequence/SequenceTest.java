@@ -1,5 +1,6 @@
 package io.mycat.sequence;
 
+import io.mycat.MycatServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,6 +55,12 @@ public class SequenceTest {
         for (int i = 0; i < 100; i++) {
             sequenceSet.add("aaassscccddd"+i);
         }
+    }
+
+    @Test
+    public void testXAXID(){
+        String xid = MycatServer.getInstance().getXATXIDGLOBAL();
+        System.out.println(xid);
     }
 
 

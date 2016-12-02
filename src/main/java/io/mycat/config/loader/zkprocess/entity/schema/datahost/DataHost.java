@@ -46,6 +46,9 @@ public class DataHost implements Named {
     @XmlAttribute(required = true)
     protected String dbDriver;
 
+    @XmlAttribute()
+    protected String slaveIDs;
+
     protected String heartbeat;
     protected String connectionInitSql;
 
@@ -72,6 +75,14 @@ public class DataHost implements Named {
             writeHost = new ArrayList<>();
         }
         return writeHost;
+    }
+
+    public String getSlaveIDs() {
+        return slaveIDs;
+    }
+
+    public void setSlaveIDs(String slaveIDs) {
+        this.slaveIDs = slaveIDs;
     }
 
     public void setWriteHost(List<WriteHost> writeHost) {

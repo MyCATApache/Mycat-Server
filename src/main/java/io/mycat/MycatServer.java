@@ -58,6 +58,7 @@ import io.mycat.net.SocketConnector;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
+import io.mycat.route.sequence.handler.*;
 import io.mycat.server.ServerConnectionFactory;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
@@ -125,7 +126,8 @@ public class MycatServer {
 
 	//XA事务全局ID生成
 	private final AtomicLong xaIDInc = new AtomicLong();
-
+	//sequence处理对象
+	private SequenceHandler sequenceHandler;
 
 	/**
 	 * Mycat 内存管理类
@@ -231,6 +233,16 @@ public class MycatServer {
 		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "." + seq + "'";
 	}
 
+	public String getXATXIDGLOBAL(){
+		return "'" + getUUID() + "'";
+	}
+
+	public static String getUUID(){
+		String s = UUID.randomUUID().toString();
+		//去掉“-”符号
+		return s.substring(0,8)+s.substring(9,13)+s.substring(14,18)+s.substring(19,23)+s.substring(24);
+	}
+
 	public MyCatMemory getMyCatMemory() {
 		return myCatMemory;
 	}
@@ -273,7 +285,6 @@ public class MycatServer {
 		int processorCount = system.getProcessors();
 
 		// server startup
-		LOGGER.info("===============================================");
 		LOGGER.info(NAME + " is ready to startup ...");
 		String inf = "Startup processors ...,total processors:"
 				+ system.getProcessors() + ",aio thread pool size:"

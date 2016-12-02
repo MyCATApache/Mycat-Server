@@ -517,7 +517,7 @@ public class NonBlockingSession implements Session {
     }
 
     private String genXATXID() {
-        return MycatServer.getInstance().genXATXID();
+        return MycatServer.getInstance().getXATXIDGLOBAL();
     }
 
     public void setXATXEnabled(boolean xaTXEnabled) {
