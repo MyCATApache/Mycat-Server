@@ -1468,6 +1468,24 @@ public class RouterUtil {
 
 		return false;
 	}
+	
+	/**
+	 * 系统表判断,某些sql语句会查询系统表或者跟系统表关联
+	 * @author lian
+	 * @date 2016年12月2日
+	 * @param tableName
+	 * @return
+	 */
+	public static boolean isSystemSchema(String tableName) {
+		// 以information_schema， mysql开头的是系统表
+		if (tableName.startsWith("INFORMATION_SCHEMA.")
+				|| tableName.startsWith("MYSQL.")
+				|| tableName.startsWith("PERFORMANCE_SCHEMA.")) {
+			return true;
+		}
+
+		return false;
+	}
 
 	/**
 	 * 判断条件是否永真
