@@ -1,6 +1,7 @@
 package io.mycat.migrate;
 
 import com.alibaba.druid.util.JdbcUtils;
+import com.alibaba.fastjson.JSON;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.io.Files;
@@ -12,8 +13,11 @@ import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.util.ProcessUtil;
+import io.mycat.util.ZKUtils;
 import io.mycat.util.dataMigrator.DataMigratorUtil;
 import io.mycat.util.dataMigrator.DataNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,26 +30,28 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.mycat.util.dataMigrator.DataMigratorUtil.executeQuery;
-import static io.mycat.util.dataMigrator.DataMigratorUtil.getMysqlConnection;
+
 
 /**
  * Created by nange on 2016/12/1.
  */
 public class MigrateDumpRunner implements Runnable {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(MigrateDumpRunner.class);
     private MigrateTask task;
     private CountDownLatch latch;
-
-    public MigrateDumpRunner(MigrateTask task, CountDownLatch latch) {
+    private AtomicInteger sucessTask;
+    public MigrateDumpRunner(MigrateTask task, CountDownLatch latch, AtomicInteger sucessTask) {
         this.task = task;
         this.latch = latch;
+        this.sucessTask=sucessTask;
     }
 
     @Override public void run() {
         try {
-        String mysqldump = "?mysqldump -h? -P? -u? -p?  ? ? --single-transaction -q --default-character-set=utf8mb4 --hex-blob --where=\"?\" --master-data=1  -T  \"?\"  --fields-enclosed-by=\" --fields-terminated-by=, --lines-terminated-by=\\n  --fields-escaped-by=\\ ";
+        String mysqldump = "?mysqldump -h? -P? -u? -p?  ? ? --single-transaction -q --default-character-set=utf8mb4 --hex-blob --where=\"?\" --master-data=1  -T  \"?\"  --fields-enclosed-by=\\\" --fields-terminated-by=, --lines-terminated-by=\\n  --fields-escaped-by=\\\\ ";
         PhysicalDBPool dbPool = MycatServer.getInstance().getConfig().getDataNodes().get(task.from).getDbPool();
         PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
         DBHostConfig config = datasource.getConfig();
@@ -70,11 +76,19 @@ public class MigrateDumpRunner implements Runnable {
         String logPos=result.substring(logPosIndex +15,logPosIndex +15+result.substring(logPosIndex +15).indexOf(";")) ;
 
             File dataFile = new File(file, task.table + ".txt");
-            String xxx=  Files.toString(dataFile, Charset.forName("UTF-8")) ;
-           loaddataToDn(dataFile,task.to,task.table);
+            if(dataFile.length()>0) {
+                String xxx = Files.toString(dataFile, Charset.forName("UTF-8"));
+                loaddataToDn(dataFile, task.to, task.table);
+            }
+            pushMsgToZK(task.zkpath,task.from+"-"+task.to,1,"sucess");
+            DataMigratorUtil.deleteDir(file);
+            sucessTask.getAndIncrement();
         } catch (Exception e) {
-            //todo error log to zk
-            e.printStackTrace();
+            try {
+                pushMsgToZK(task.zkpath,task.from+"-"+task.to,0,e.getMessage());
+            } catch (Exception e1) {
+            }
+            LOGGER.error("error:",e);
         }  finally {
             latch.countDown();
         }
@@ -82,7 +96,22 @@ public class MigrateDumpRunner implements Runnable {
 
     }
 
-    private void loaddataToDn(File loaddataFile,String toDn,String table)   {
+
+    private void pushMsgToZK(String rootZkPath,String child,int status,String msg) throws Exception {
+        String path = rootZkPath + "/" + child;
+        TaskStatus taskStatus=new TaskStatus();
+        taskStatus.msg=msg;
+        taskStatus.status=status;
+
+        if(ZKUtils.getConnection().checkExists().forPath(path)==null )
+        {
+           ZKUtils.getConnection().create().forPath(path, JSON.toJSONBytes(taskStatus)) ;
+        } else{
+            ZKUtils.getConnection().setData().forPath(path, JSON.toJSONBytes(taskStatus)) ;
+        }
+    }
+
+    private void loaddataToDn(File loaddataFile,String toDn,String table) throws SQLException, IOException {
         PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
         PhysicalDBPool dbPool = dbNode.getDbPool();
         PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
@@ -90,11 +119,10 @@ public class MigrateDumpRunner implements Runnable {
         Connection con = null;
         try {
             con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
-            String sql = "load data local infile '"+loaddataFile.getPath()+"' replace into table "+table+" character set utf8mb4  fields terminated by ','  enclosed by '\"' ESCAPED BY '\\' lines terminated by '\n'";
-            JdbcUtils.execute(con,sql,null);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }finally{
+            String sql = "load data local infile '"+loaddataFile.getPath().replace("\\","//")+"' replace into table "+table+" character set 'utf8mb4'  fields terminated by ','  enclosed by '\"'  ESCAPED BY '\\\\'  lines terminated by '\\n'";
+            System.out.println(sql);
+            JdbcUtils.execute(con,sql, new ArrayList<>());
+        } finally{
             JdbcUtils.close(con);
         }
     }

@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * ......./migrate/schemal/tableName/taskid/dn   [任务数据]
@@ -115,17 +116,27 @@ public class MigrateTaskWatch {
                 List<MigrateTask> finalMigrateList=new ArrayList<>();
                 for (String s : dataNodeList) {
                     if(dataNodes.contains(s)) {
-                      String data=new String(ZKUtils.getConnection().getData().forPath(event.getData().getPath() + "/" + s),"UTF-8");
+                        String zkpath = event.getData().getPath() + "/" + s;
+                        String data=new String(ZKUtils.getConnection().getData().forPath(
+                                zkpath),"UTF-8");
                         List<MigrateTask> migrateTaskList= JSONArray.parseArray(data,MigrateTask.class);
+                        for (MigrateTask migrateTask : migrateTaskList) {
+                            migrateTask.zkpath=zkpath;
+                        }
                         finalMigrateList.addAll(migrateTaskList);
                     }
                 }
 
+                AtomicInteger sucessTask=new AtomicInteger(0);
                 CountDownLatch latch=new CountDownLatch(finalMigrateList.size());
                 for (MigrateTask migrateTask : finalMigrateList) {
-                    MycatServer.getInstance().getBusinessExecutor().submit(new MigrateDumpRunner(migrateTask,latch));
+                    MycatServer.getInstance().getBusinessExecutor().submit(new MigrateDumpRunner(migrateTask,latch,sucessTask));
                 }
                 latch.await(5, TimeUnit.MINUTES);
+                if(sucessTask.get()==finalMigrateList.size())
+                {
+                    System.out.println();
+                }
                 //先mysqldump全量做完，然后在处理增量
                 Map<String, List<MigrateTask> > taskMap=mergerTaskForDataHost(finalMigrateList);
                 System.out.println(finalMigrateList.size());

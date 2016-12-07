@@ -25,6 +25,8 @@ public class MigrateTask implements Serializable {
 
     public int slaveId;
 
+    public String zkpath;
+
     public int getSize()
     {   int size=0;
         for (Range slot : slots) {
