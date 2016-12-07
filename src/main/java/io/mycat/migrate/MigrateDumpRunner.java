@@ -5,6 +5,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.io.Files;
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.config.model.DBHostConfig;
@@ -43,7 +44,8 @@ public class MigrateDumpRunner implements Runnable {
     }
 
     @Override public void run() {
-        String mysqldump = "?mysqldump -h? -P? -u? -p?  ? ? --single-transaction -q --default-character-set=utf8 --hex-blob --where=\"?\" --master-data=1  -T  \"?\"  --fields-enclosed-by=\\\" --fields-terminated-by=, --lines-terminated-by=\\n  --fields-escaped-by=\\ ";
+        try {
+        String mysqldump = "?mysqldump -h? -P? -u? -p?  ? ? --single-transaction -q --default-character-set=utf8mb4 --hex-blob --where=\"?\" --master-data=1  -T  \"?\"  --fields-enclosed-by=\" --fields-terminated-by=, --lines-terminated-by=\\n  --fields-escaped-by=\\ ";
         PhysicalDBPool dbPool = MycatServer.getInstance().getConfig().getDataNodes().get(task.from).getDbPool();
         PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
         DBHostConfig config = datasource.getConfig();
@@ -66,14 +68,35 @@ public class MigrateDumpRunner implements Runnable {
         int logPosIndex = result.indexOf("MASTER_LOG_POS=");
         String logFile=result.substring(logIndex +17,logIndex +17+result.substring(logIndex +17).indexOf("'")) ;
         String logPos=result.substring(logPosIndex +15,logPosIndex +15+result.substring(logPosIndex +15).indexOf(";")) ;
-        try {
-          String xxx=  Files.toString(new File(file,task.table+".txt"), Charset.forName("UTF-8")) ;
-            System.out.println(xxx);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        latch.countDown();
 
+            File dataFile = new File(file, task.table + ".txt");
+            String xxx=  Files.toString(dataFile, Charset.forName("UTF-8")) ;
+           loaddataToDn(dataFile,task.to,task.table);
+        } catch (Exception e) {
+            //todo error log to zk
+            e.printStackTrace();
+        }  finally {
+            latch.countDown();
+        }
+
+
+    }
+
+    private void loaddataToDn(File loaddataFile,String toDn,String table)   {
+        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
+        PhysicalDBPool dbPool = dbNode.getDbPool();
+        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
+        DBHostConfig config = datasource.getConfig();
+        Connection con = null;
+        try {
+            con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
+            String sql = "load data local infile '"+loaddataFile.getPath()+"' replace into table "+table+" character set utf8mb4  fields terminated by ','  enclosed by '\"' ESCAPED BY '\\' lines terminated by '\n'";
+            JdbcUtils.execute(con,sql,null);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }finally{
+            JdbcUtils.close(con);
+        }
     }
 
     private String makeWhere(MigrateTask task) {
