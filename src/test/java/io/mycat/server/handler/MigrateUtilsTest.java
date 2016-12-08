@@ -47,7 +47,7 @@ public class MigrateUtilsTest {
                    Assert.assertEquals(66, rangeList.get(1).start);
                    Assert.assertEquals(79, rangeList.get(1).end);
                }
-            integerListMap.put(integerListMap.size(),rangeList);
+            integerListMap.put(Integer.parseInt(key.substring(2))-1,rangeList);
         }
 
         pringList("after balance :",integerListMap);
@@ -89,7 +89,7 @@ public class MigrateUtilsTest {
                 Assert.assertEquals(45, rangeList.get(1).end);
             }
 
-            integerListMap.put(integerListMap.size(),rangeList);
+            integerListMap.put(Integer.parseInt(key.substring(2))-1,rangeList);
         }
 
         pringList("agin balance :",integerListMap);
@@ -111,17 +111,17 @@ public class MigrateUtilsTest {
                 Assert.assertEquals(22, rangeList.get(0).start);
                 Assert.assertEquals(22, rangeList.get(0).end);
             }  else   if("dn100".equals(key)) {
-                Assert.assertEquals(83, rangeList.get(0).start);
-                Assert.assertEquals(83, rangeList.get(0).end);
+                Assert.assertEquals(67, rangeList.get(0).start);
+                Assert.assertEquals(67, rangeList.get(0).end);
             } else     if("dn50".equals(key)) {
                 Assert.assertEquals(69, rangeList.get(0).start);
                 Assert.assertEquals(69, rangeList.get(0).end);
             }  else   if("dn99".equals(key)) {
-                Assert.assertEquals(82, rangeList.get(0).start);
-                Assert.assertEquals(82, rangeList.get(0).end);
+                Assert.assertEquals(66, rangeList.get(0).start);
+                Assert.assertEquals(66, rangeList.get(0).end);
 
             }
-            integerListMap.put(integerListMap.size(),rangeList);
+            integerListMap.put(Integer.parseInt(key.substring(2))-1,rangeList);
         }
 
         pringList("agin agin balance :",integerListMap);
