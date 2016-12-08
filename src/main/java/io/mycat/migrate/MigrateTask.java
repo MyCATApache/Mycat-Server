@@ -12,20 +12,28 @@ import java.util.List;
  */
 public class MigrateTask implements Serializable {
 
-    public String from;
-    public String to;
-    public String table;
-    public List<Range> slots=new ArrayList<>();
+    private String from;
+    private String to;
+    private String table;
+    private List<Range> slots=new ArrayList<>();
 
-    public String method;
-    public String fclass=PartitionByCRC32PreSlot.class.getName();
+    private String method;
+    private String fclass=PartitionByCRC32PreSlot.class.getName();
 
-    public String schema;
+    private String schema;
 
 
-    public int slaveId;
+    private int slaveId;
 
-    public String zkpath;
+    private String zkpath;
+
+    public List<Range> getSlots() {
+        return slots;
+    }
+
+    public void setSlots(List<Range> slots) {
+        this.slots = slots;
+    }
 
     public int getSize()
     {   int size=0;
@@ -33,6 +41,70 @@ public class MigrateTask implements Serializable {
            size=size+slot.size;
         }
         return size;
+    }
+
+    public String getFrom() {
+        return from;
+    }
+
+    public void setFrom(String from) {
+        this.from = from;
+    }
+
+    public String getTo() {
+        return to;
+    }
+
+    public void setTo(String to) {
+        this.to = to;
+    }
+
+    public String getTable() {
+        return table;
+    }
+
+    public void setTable(String table) {
+        this.table = table;
+    }
+
+    public String getMethod() {
+        return method;
+    }
+
+    public void setMethod(String method) {
+        this.method = method;
+    }
+
+    public String getFclass() {
+        return fclass;
+    }
+
+    public void setFclass(String fclass) {
+        this.fclass = fclass;
+    }
+
+    public String getSchema() {
+        return schema;
+    }
+
+    public void setSchema(String schema) {
+        this.schema = schema;
+    }
+
+    public int getSlaveId() {
+        return slaveId;
+    }
+
+    public void setSlaveId(int slaveId) {
+        this.slaveId = slaveId;
+    }
+
+    public String getZkpath() {
+        return zkpath;
+    }
+
+    public void setZkpath(String zkpath) {
+        this.zkpath = zkpath;
     }
 
     public void addSlots(Range range)

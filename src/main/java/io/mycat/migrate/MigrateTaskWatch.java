@@ -110,7 +110,7 @@ public class MigrateTaskWatch {
             if(!dataNodeList.isEmpty())    {
             TaskNode taskNode=         JSON.parseObject(
                     text,TaskNode.class);
-            if(!taskNode.end) {
+            if(!taskNode.isEnd()) {
              String boosterDataHosts=   ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_BOOSTER_DATAHOSTS) ;
                 Set<String> dataNodes=getDataNodeFromDataHost(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts)) ;
                 List<MigrateTask> finalMigrateList=new ArrayList<>();
@@ -121,7 +121,7 @@ public class MigrateTaskWatch {
                                 zkpath),"UTF-8");
                         List<MigrateTask> migrateTaskList= JSONArray.parseArray(data,MigrateTask.class);
                         for (MigrateTask migrateTask : migrateTaskList) {
-                            migrateTask.zkpath=zkpath;
+                            migrateTask.setZkpath(zkpath);
                         }
                         finalMigrateList.addAll(migrateTaskList);
                     }
@@ -152,7 +152,7 @@ public class MigrateTaskWatch {
         {
             Map<String, List<MigrateTask> > taskMap=new HashMap<>();
             for (MigrateTask migrateTask : migrateTaskList) {
-                String dataHost=getDataHostNameFromNode(migrateTask.from);
+                String dataHost=getDataHostNameFromNode(migrateTask.getFrom());
                 if(taskMap.containsKey(dataHost)) {
                     taskMap.get(dataHost).add(migrateTask);
                 }   else

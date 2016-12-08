@@ -33,7 +33,7 @@ public class MigrateUtilsTest {
             List<Range> rangeList=new ArrayList<>();
             List<MigrateTask> value=stringListEntry.getValue();
             for (MigrateTask task : value) {
-               rangeList.addAll(task.slots);
+               rangeList.addAll(task.getSlots());
             }
             Assert.assertEquals(true,value.size()==2);
                if("dn4".equals(key)) {
@@ -65,7 +65,7 @@ public class MigrateUtilsTest {
             List<Range> rangeList=new ArrayList<>();
             List<MigrateTask> value=stringListEntry.getValue();
             for (MigrateTask task : value) {
-                rangeList.addAll(task.slots);
+                rangeList.addAll(task.getSlots());
             }
             if("dn6".equals(key)) {
                 Assert.assertEquals(13, rangeList.get(0).start);
@@ -104,7 +104,7 @@ public class MigrateUtilsTest {
             List<Range> rangeList=new ArrayList<>();
             List<MigrateTask> value=stringListEntry.getValue();
             for (MigrateTask task : value) {
-                rangeList.addAll(task.slots);
+                rangeList.addAll(task.getSlots());
             }
 
             if("dn10".equals(key)) {

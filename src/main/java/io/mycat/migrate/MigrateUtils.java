@@ -45,10 +45,10 @@ public class MigrateUtils {
                 if (needMove > 0) {
                     List<Range> moveList = getPartAndRemove(allMoveList, needMove);
                     MigrateTask task = new MigrateTask();
-                    task.from = oldDataNodes.get(i);
-                    task.to = newDataNode;
-                    task.table = table;
-                    task.slots = moveList;
+                    task.setFrom( oldDataNodes.get(i));
+                    task.setTo( newDataNode);
+                    task.setTable(table);
+                    task.setSlots( moveList);
                     curRangeList.add(task);
                     newNodeTask.put(newDataNode, curRangeList);
                 }
@@ -102,7 +102,7 @@ public class MigrateUtils {
     private static int getCurTotalSizeForTask(List<MigrateTask> rangeList) {
         int size = 0;
         for (MigrateTask task : rangeList) {
-            size = size + getCurTotalSize(task.slots);
+            size = size + getCurTotalSize(task.getSlots());
         }
         return size;
     }

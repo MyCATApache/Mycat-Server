@@ -52,14 +52,14 @@ public class MigrateDumpRunner implements Runnable {
     @Override public void run() {
         try {
         String mysqldump = "?mysqldump -h? -P? -u? -p?  ? ? --single-transaction -q --default-character-set=utf8mb4 --hex-blob --where=\"?\" --master-data=1  -T  \"?\"  --fields-enclosed-by=\\\" --fields-terminated-by=, --lines-terminated-by=\\n  --fields-escaped-by=\\\\ ";
-        PhysicalDBPool dbPool = MycatServer.getInstance().getConfig().getDataNodes().get(task.from).getDbPool();
+        PhysicalDBPool dbPool = MycatServer.getInstance().getConfig().getDataNodes().get(task.getFrom()).getDbPool();
         PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
         DBHostConfig config = datasource.getConfig();
         File file = null;
        String spath=   querySecurePath(config);
         if(Strings.isNullOrEmpty(spath)||"NULL".equalsIgnoreCase(spath)||"empty".equalsIgnoreCase(spath)) {
             file = new File(SystemConfig.getHomePath() + File.separator + "temp",
-                    task.from + "_" + task.to + Thread.currentThread().getId() + System.currentTimeMillis() + "");
+                    task.getFrom() + "_" + task.getTo() + Thread.currentThread().getId() + System.currentTimeMillis() + "");
         }   else {
             spath+= Thread.currentThread().getId() + System.currentTimeMillis();
             file=new File(spath);
@@ -68,24 +68,24 @@ public class MigrateDumpRunner implements Runnable {
 
         String finalCmd = DataMigratorUtil
                 .paramsAssignment(mysqldump,"?", "", config.getIp(), String.valueOf(config.getPort()), config.getUser(),
-                config.getPassword(), task.schema, task.table, makeWhere(task), file.getPath());
+                config.getPassword(), task.getSchema(), task.getTable(), makeWhere(task), file.getPath());
       String result=  ProcessUtil.execReturnString(finalCmd);
         int logIndex = result.indexOf("MASTER_LOG_FILE='");
         int logPosIndex = result.indexOf("MASTER_LOG_POS=");
         String logFile=result.substring(logIndex +17,logIndex +17+result.substring(logIndex +17).indexOf("'")) ;
         String logPos=result.substring(logPosIndex +15,logPosIndex +15+result.substring(logPosIndex +15).indexOf(";")) ;
 
-            File dataFile = new File(file, task.table + ".txt");
+            File dataFile = new File(file, task.getTable() + ".txt");
             if(dataFile.length()>0) {
                 String xxx = Files.toString(dataFile, Charset.forName("UTF-8"));
-                loaddataToDn(dataFile, task.to, task.table);
+                loaddataToDn(dataFile, task.getTo(), task.getTable());
             }
-            pushMsgToZK(task.zkpath,task.from+"-"+task.to,1,"sucess");
+            pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),1,"sucess");
             DataMigratorUtil.deleteDir(file);
             sucessTask.getAndIncrement();
         } catch (Exception e) {
             try {
-                pushMsgToZK(task.zkpath,task.from+"-"+task.to,0,e.getMessage());
+                pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),0,e.getMessage());
             } catch (Exception e1) {
             }
             LOGGER.error("error:",e);
@@ -100,8 +100,8 @@ public class MigrateDumpRunner implements Runnable {
     private void pushMsgToZK(String rootZkPath,String child,int status,String msg) throws Exception {
         String path = rootZkPath + "/" + child;
         TaskStatus taskStatus=new TaskStatus();
-        taskStatus.msg=msg;
-        taskStatus.status=status;
+        taskStatus.setMsg(msg);
+        taskStatus.setStatus(status);
 
         if(ZKUtils.getConnection().checkExists().forPath(path)==null )
         {
@@ -129,7 +129,7 @@ public class MigrateDumpRunner implements Runnable {
 
     private String makeWhere(MigrateTask task) {
         List<String> whereList = new ArrayList<>();
-        List<Range> slotRanges = task.slots;
+        List<Range> slotRanges = task.getSlots();
         for (Range slotRange : slotRanges) {
             if (slotRange.start == slotRange.end) {
                 whereList.add("_slot =" + slotRange.start);

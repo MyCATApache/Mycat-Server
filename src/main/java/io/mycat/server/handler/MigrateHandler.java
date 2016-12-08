@@ -99,9 +99,9 @@ public final class MigrateHandler {
             CuratorFramework client= ZKUtils.getConnection();
             client.create().creatingParentsIfNeeded().forPath(taskPath);
             TaskNode taskNode=new TaskNode();
-            taskNode.schema=c.getSchema();
-            taskNode.sql=stmt;
-            taskNode.end=false;
+            taskNode.setSchema(c.getSchema());
+            taskNode.setSql(stmt);
+            taskNode.setEnd(false);
             transactionFinal=   client.inTransaction() .setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and() ;
 
             Map<String,Integer>  fromNodeSlaveIdMap=new HashMap<>();
@@ -110,15 +110,15 @@ public final class MigrateHandler {
                 String key=entry.getKey();
                 List<MigrateTask> value=entry.getValue();
                 for (MigrateTask migrateTask : value) {
-                    migrateTask.schema=c.getSchema();
+                    migrateTask.setSchema(c.getSchema());
 
                     //分配slaveid只需要一个dataHost分配一个即可，后续任务执行模拟从节点只需要一个dataHost一个
-                      String dataHost=getDataHostNameFromNode(migrateTask.from);
+                      String dataHost=getDataHostNameFromNode(migrateTask.getFrom());
                     if(fromNodeSlaveIdMap.containsKey(dataHost)) {
-                        migrateTask.slaveId= fromNodeSlaveIdMap.get(dataHost);
+                        migrateTask.setSlaveId( fromNodeSlaveIdMap.get(dataHost));
                     }   else {
-                        migrateTask.slaveId=   getSlaveIdFromZKForDataNode(migrateTask.from);
-                        fromNodeSlaveIdMap.put(dataHost,migrateTask.slaveId);
+                        migrateTask.setSlaveId(   getSlaveIdFromZKForDataNode(migrateTask.getFrom()));
+                        fromNodeSlaveIdMap.put(dataHost,migrateTask.getSlaveId());
                     }
 
                 }
@@ -224,8 +224,8 @@ public final class MigrateHandler {
         }
 
         TaskNode taskNode=new TaskNode();
-        taskNode.sql=sql;
-        taskNode.end=false;
+        taskNode.setSql(sql);
+        taskNode.setEnd(false);
 
         System.out.println(new String(JSON.toJSONBytes(taskNode)));
     }
