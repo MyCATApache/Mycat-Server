@@ -95,7 +95,7 @@ public class RouterUtilTest {
                 "\tcontent varchar(32),\n",
                 "\tproducer_id int(11) key\n",
                 ");").toUpperCase();
-        System.out.println(RouterUtil.getTableName(sql1, RouterUtil.getCreateTablePos(sql1, 0)));
-        System.out.println(RouterUtil.getTableName(sql2, RouterUtil.getCreateTablePos(sql2, 0)));
+        Assert.assertTrue("producer".equalsIgnoreCase(RouterUtil.getTableName(sql1, RouterUtil.getCreateTablePos(sql1, 0))));
+        Assert.assertTrue("good".equalsIgnoreCase(RouterUtil.getTableName(sql2, RouterUtil.getCreateTablePos(sql2, 0))));
     }
 }
