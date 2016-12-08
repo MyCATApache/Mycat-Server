@@ -315,6 +315,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
             
 			this.affectedRows = ok.affectedRows;
 			
+			// add by lian
+			// 解决sql统计中写操作永远为0
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+					rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0);
+			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 	}
 

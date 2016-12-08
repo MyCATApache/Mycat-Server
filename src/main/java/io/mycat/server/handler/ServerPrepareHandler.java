@@ -28,9 +28,12 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import com.google.common.escape.Escaper;
+import com.google.common.escape.Escapers;
+import com.google.common.escape.Escapers.Builder;
 
 import io.mycat.backend.mysql.BindValue;
 import io.mycat.backend.mysql.ByteUtil;
@@ -52,6 +55,15 @@ import io.mycat.util.HexFormatUtil;
 public class ServerPrepareHandler implements FrontendPrepareHandler {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(ServerPrepareHandler.class);
+	
+	private static Escaper varcharEscaper = null;
+	
+	static {
+		Builder escapeBuilder = Escapers.builder();
+		escapeBuilder.addEscape('\'', "\\'");
+		escapeBuilder.addEscape('$', "\\$");
+		varcharEscaper = escapeBuilder.build();
+	}
 	
     private ServerConnection source;
     private volatile long pstmtId;
@@ -189,39 +201,50 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
      */
     private String prepareStmtBindValue(PreparedStatement pstmt, BindValue[] bindValues) {
     	String sql = pstmt.getStatement();
-    	int paramNumber = pstmt.getParametersNumber();
     	int[] paramTypes = pstmt.getParametersType();
-    	for(int i = 0; i < paramNumber; i++) {
-    		int paramType = paramTypes[i];
-    		BindValue bindValue = bindValues[i];
-    		if(bindValue.isNull) {
-    			sql = sql.replaceFirst("\\?", "NULL");
+    	
+    	StringBuilder sb = new StringBuilder();
+    	int idx = 0;
+    	for(int i = 0, len = sql.length(); i < len; i++) {
+    		char c = sql.charAt(i);
+    		if(c != '?') {
+    			sb.append(c);
     			continue;
     		}
+    		// 处理占位符?
+    		int paramType = paramTypes[idx];
+    		BindValue bindValue = bindValues[idx];
+    		idx++;
+    		// 处理字段为空的情况
+    		if(bindValue.isNull) {
+    			sb.append("NULL");
+    			continue;
+    		}
+    		// 非空情况, 根据字段类型获取值
     		switch(paramType & 0xff) {
     		case Fields.FIELD_TYPE_TINY:
-    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.byteBinding));
+    			sb.append(String.valueOf(bindValue.byteBinding));
     			break;
     		case Fields.FIELD_TYPE_SHORT:
-    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.shortBinding));
+    			sb.append(String.valueOf(bindValue.shortBinding));
     			break;
     		case Fields.FIELD_TYPE_LONG:
-    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.intBinding));
+    			sb.append(String.valueOf(bindValue.intBinding));
     			break;
     		case Fields.FIELD_TYPE_LONGLONG:
-    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.longBinding));
+    			sb.append(String.valueOf(bindValue.longBinding));
     			break;
     		case Fields.FIELD_TYPE_FLOAT:
-    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.floatBinding));
+    			sb.append(String.valueOf(bindValue.floatBinding));
     			break;
     		case Fields.FIELD_TYPE_DOUBLE:
-    			sql = sql.replaceFirst("\\?", String.valueOf(bindValue.doubleBinding));
+    			sb.append(String.valueOf(bindValue.doubleBinding));
     			break;
     		case Fields.FIELD_TYPE_VAR_STRING:
             case Fields.FIELD_TYPE_STRING:
             case Fields.FIELD_TYPE_VARCHAR:
-            	bindValue.value = Matcher.quoteReplacement( String.valueOf( bindValue.value ) );
-            	sql = sql.replaceFirst("\\?", "'" + bindValue.value + "'");
+            	bindValue.value = varcharEscaper.asFunction().apply(String.valueOf(bindValue.value));
+            	sb.append("'" + bindValue.value + "'");
             	break;
             case Fields.FIELD_TYPE_TINY_BLOB:
             case Fields.FIELD_TYPE_BLOB:
@@ -229,26 +252,27 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             case Fields.FIELD_TYPE_LONG_BLOB:
             	if(bindValue.value instanceof ByteArrayOutputStream) {
             		byte[] bytes = ((ByteArrayOutputStream) bindValue.value).toByteArray();
-            		sql = sql.replaceFirst("\\?", "X'" + HexFormatUtil.bytesToHexString(bytes) + "'");
+            		sb.append("X'" + HexFormatUtil.bytesToHexString(bytes) + "'");
             	} else {
             		// 正常情况下不会走到else, 除非long data的存储方式(ByteArrayOutputStream)被修改
             		LOGGER.warn("bind value is not a instance of ByteArrayOutputStream, maybe someone change the implement of long data storage!");
-            		sql = sql.replaceFirst("\\?", "'" + bindValue.value + "'");
+            		sb.append("'" + bindValue.value + "'");
             	}
             	break;
             case Fields.FIELD_TYPE_TIME:
             case Fields.FIELD_TYPE_DATE:
             case Fields.FIELD_TYPE_DATETIME:
             case Fields.FIELD_TYPE_TIMESTAMP:
-            	sql = sql.replaceFirst("\\?", "'" + bindValue.value + "'");
+            	sb.append("'" + bindValue.value + "'");
             	break;
             default:
-            	bindValue.value = Matcher.quoteReplacement( String.valueOf( bindValue.value ) );
-            	sql = sql.replaceFirst("\\?", bindValue.value.toString());
+            	bindValue.value = varcharEscaper.asFunction().apply(String.valueOf(bindValue.value));
+            	sb.append(bindValue.value.toString());
             	break;
     		}
     	}
-    	return sql;
+    	
+    	return sb.toString();
     }
 
 }

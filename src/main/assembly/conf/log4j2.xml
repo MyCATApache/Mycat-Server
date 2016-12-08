@@ -24,7 +24,7 @@
         <!--</AsyncLogger>-->
         <asyncRoot level="info" includeLocation="true">
 
-            <AppenderRef ref="Console" />
+            <!--<AppenderRef ref="Console" />-->
             <AppenderRef ref="RollingFile"/>
 
         </asyncRoot>
