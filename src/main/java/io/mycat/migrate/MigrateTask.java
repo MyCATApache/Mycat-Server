@@ -25,7 +25,9 @@ public class MigrateTask implements Serializable {
 
     private int slaveId;
 
-    private String zkpath;
+    private transient String zkpath;
+    private transient String binlogFile;
+    private transient int pos;
 
     public List<Range> getSlots() {
         return slots;
@@ -41,6 +43,22 @@ public class MigrateTask implements Serializable {
            size=size+slot.size;
         }
         return size;
+    }
+
+    public String getBinlogFile() {
+        return binlogFile;
+    }
+
+    public void setBinlogFile(String binlogFile) {
+        this.binlogFile = binlogFile;
+    }
+
+    public int getPos() {
+        return pos;
+    }
+
+    public void setPos(int pos) {
+        this.pos = pos;
     }
 
     public String getFrom() {

@@ -4,27 +4,17 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import io.mycat.MycatServer;
-import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.util.NameableExecutor;
 import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * ......./migrate/schemal/tableName/taskid/dn   [任务数据]
@@ -127,22 +117,12 @@ public class MigrateTaskWatch {
                     }
                 }
 
-                AtomicInteger sucessTask=new AtomicInteger(0);
-                CountDownLatch latch=new CountDownLatch(finalMigrateList.size());
-                for (MigrateTask migrateTask : finalMigrateList) {
-                    MycatServer.getInstance().getBusinessExecutor().submit(new MigrateDumpRunner(migrateTask,latch,sucessTask));
-                }
-                latch.await(5, TimeUnit.MINUTES);
-                if(sucessTask.get()==finalMigrateList.size())
-                {
-                    System.out.println();
-                }
-                //先mysqldump全量做完，然后在处理增量
+
                 Map<String, List<MigrateTask> > taskMap=mergerTaskForDataHost(finalMigrateList);
                 for (Map.Entry<String, List<MigrateTask>> stringListEntry : taskMap.entrySet()) {
                     String key=stringListEntry.getKey();
                     List<MigrateTask> value=stringListEntry.getValue();
-                    MycatServer.getInstance().getBusinessExecutor().submit(new MigrateBinlogRunner(key,value)) ;
+                    MycatServer.getInstance().getBusinessExecutor().submit(new MigrateMainRunner(key,value)) ;
                 }
 
             }  }

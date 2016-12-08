@@ -41,11 +41,11 @@ import static io.mycat.util.dataMigrator.DataMigratorUtil.executeQuery;
 public class MigrateDumpRunner implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MigrateDumpRunner.class);
     private MigrateTask task;
-    private CountDownLatch latch;
+    //private CountDownLatch latch;
     private AtomicInteger sucessTask;
-    public MigrateDumpRunner(MigrateTask task, CountDownLatch latch, AtomicInteger sucessTask) {
+    public MigrateDumpRunner(MigrateTask task, AtomicInteger sucessTask) {
         this.task = task;
-        this.latch = latch;
+     //   this.latch = latch;
         this.sucessTask=sucessTask;
     }
 
@@ -74,10 +74,11 @@ public class MigrateDumpRunner implements Runnable {
         int logPosIndex = result.indexOf("MASTER_LOG_POS=");
         String logFile=result.substring(logIndex +17,logIndex +17+result.substring(logIndex +17).indexOf("'")) ;
         String logPos=result.substring(logPosIndex +15,logPosIndex +15+result.substring(logPosIndex +15).indexOf(";")) ;
-
+           task.setBinlogFile(logFile);
+            task.setPos(Integer.parseInt(logPos));
             File dataFile = new File(file, task.getTable() + ".txt");
             if(dataFile.length()>0) {
-                String xxx = Files.toString(dataFile, Charset.forName("UTF-8"));
+               // String xxx = Files.toString(dataFile, Charset.forName("UTF-8"));
                 loaddataToDn(dataFile, task.getTo(), task.getTable());
             }
             pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),1,"sucess",logFile,logPos);
@@ -90,7 +91,7 @@ public class MigrateDumpRunner implements Runnable {
             }
             LOGGER.error("error:",e);
         }  finally {
-            latch.countDown();
+         //   latch.countDown();
         }
 
 
