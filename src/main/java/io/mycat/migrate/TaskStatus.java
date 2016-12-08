@@ -9,7 +9,7 @@ public class TaskStatus implements Serializable {
     private int status;         //0= dump error     1=dump sucess
     private String msg;
     private String binlogFile;
-    private long pos;
+    private int pos;
 
     public int getStatus() {
         return status;
@@ -35,11 +35,11 @@ public class TaskStatus implements Serializable {
         this.binlogFile = binlogFile;
     }
 
-    public long getPos() {
+    public int getPos() {
         return pos;
     }
 
-    public void setPos(long pos) {
+    public void setPos(int pos) {
         this.pos = pos;
     }
 }

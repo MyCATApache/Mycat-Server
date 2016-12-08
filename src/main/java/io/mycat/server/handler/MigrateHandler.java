@@ -27,6 +27,7 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.config.ErrorCode;
@@ -106,6 +107,7 @@ public final class MigrateHandler {
 
             Map<String,Integer>  fromNodeSlaveIdMap=new HashMap<>();
 
+            List<MigrateTask>  allTaskList=new ArrayList<>();
             for (Map.Entry<String, List<MigrateTask>> entry : tasks.entrySet()) {
                 String key=entry.getKey();
                 List<MigrateTask> value=entry.getValue();
@@ -122,9 +124,21 @@ public final class MigrateHandler {
                     }
 
                 }
+                allTaskList.addAll(value);
+
+            }
+
+            //合并成dataHost级别任务
+            Map<String, List<MigrateTask> > dataHostMigrateMap=mergerTaskForDataHost(allTaskList);
+            for (Map.Entry<String, List<MigrateTask>> entry : dataHostMigrateMap.entrySet()) {
+                String key=entry.getKey();
+                List<MigrateTask> value=entry.getValue();
                 String path= taskPath + "/" + key;
                 transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and()  ;
             }
+
+
+
             transactionFinal.commit();
         } catch (Exception e) {
             LOGGER.error("migrate error", e);
@@ -136,10 +150,29 @@ public final class MigrateHandler {
     }
 
 
+
+
+
     private static String getDataHostNameFromNode(String dataNode){
-       return MycatServer.getInstance().getConfig().getDataNodes().get(dataNode).getDbPool().getHostName();
+        return MycatServer.getInstance().getConfig().getDataNodes().get(dataNode).getDbPool().getHostName();
     }
 
+    private static   Map<String, List<MigrateTask> > mergerTaskForDataHost ( List<MigrateTask> migrateTaskList)
+    {
+        Map<String, List<MigrateTask> > taskMap=new HashMap<>();
+        for (MigrateTask migrateTask : migrateTaskList) {
+            String dataHost=getDataHostNameFromNode(migrateTask.getFrom());
+            if(taskMap.containsKey(dataHost)) {
+                taskMap.get(dataHost).add(migrateTask);
+            }   else
+            {
+                taskMap.put(dataHost, Lists.newArrayList(migrateTask)) ;
+            }
+        }
+
+
+        return taskMap;
+    }
 
     private  static int   getSlaveIdFromZKForDataNode(String dataNode)
     {

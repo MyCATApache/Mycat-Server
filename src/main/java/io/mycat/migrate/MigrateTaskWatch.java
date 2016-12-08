@@ -61,23 +61,23 @@ public class MigrateTaskWatch {
     }
 
 
-    private static Set<String> getDataNodeFromDataHost(List<String> dataHosts)
-    {
-        Set<String> dataHostSet= Sets.newConcurrentHashSet(dataHosts) ;
-        Set<String> dataNodes = new HashSet<>();
-        Map<String, PhysicalDBNode> dataNodesMap= MycatServer.getInstance().getConfig().getDataNodes();
-        for (Map.Entry<String, PhysicalDBNode> stringPhysicalDBNodeEntry : dataNodesMap.entrySet()) {
-            String key=stringPhysicalDBNodeEntry.getKey();
-            PhysicalDBNode value=stringPhysicalDBNodeEntry.getValue();
-           String dataHostName= value.getDbPool().getHostName();
-            if(dataHostSet.contains(dataHostName)){
-                dataNodes.add(key);
-            }
-        }
-
-
-        return dataNodes;
-    }
+//    private static Set<String> getDataNodeFromDataHost(List<String> dataHosts)
+//    {
+//        Set<String> dataHostSet= Sets.newConcurrentHashSet(dataHosts) ;
+//        Set<String> dataNodes = new HashSet<>();
+//        Map<String, PhysicalDBNode> dataNodesMap= MycatServer.getInstance().getConfig().getDataNodes();
+//        for (Map.Entry<String, PhysicalDBNode> stringPhysicalDBNodeEntry : dataNodesMap.entrySet()) {
+//            String key=stringPhysicalDBNodeEntry.getKey();
+//            PhysicalDBNode value=stringPhysicalDBNodeEntry.getValue();
+//           String dataHostName= value.getDbPool().getHostName();
+//            if(dataHostSet.contains(dataHostName)){
+//                dataNodes.add(key);
+//            }
+//        }
+//
+//
+//        return dataNodes;
+//    }
 
 
 
@@ -112,7 +112,7 @@ public class MigrateTaskWatch {
                     text,TaskNode.class);
             if(!taskNode.isEnd()) {
              String boosterDataHosts=   ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_BOOSTER_DATAHOSTS) ;
-                Set<String> dataNodes=getDataNodeFromDataHost(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts)) ;
+                Set<String> dataNodes=new HashSet<>(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts)) ;
                 List<MigrateTask> finalMigrateList=new ArrayList<>();
                 for (String s : dataNodeList) {
                     if(dataNodes.contains(s)) {
@@ -139,7 +139,12 @@ public class MigrateTaskWatch {
                 }
                 //先mysqldump全量做完，然后在处理增量
                 Map<String, List<MigrateTask> > taskMap=mergerTaskForDataHost(finalMigrateList);
-                System.out.println(finalMigrateList.size());
+                for (Map.Entry<String, List<MigrateTask>> stringListEntry : taskMap.entrySet()) {
+                    String key=stringListEntry.getKey();
+                    List<MigrateTask> value=stringListEntry.getValue();
+                    MycatServer.getInstance().getBusinessExecutor().submit(new MigrateBinlogRunner(key,value)) ;
+                }
+
             }  }
         }
 

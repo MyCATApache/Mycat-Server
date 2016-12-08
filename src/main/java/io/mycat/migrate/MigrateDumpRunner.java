@@ -80,12 +80,12 @@ public class MigrateDumpRunner implements Runnable {
                 String xxx = Files.toString(dataFile, Charset.forName("UTF-8"));
                 loaddataToDn(dataFile, task.getTo(), task.getTable());
             }
-            pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),1,"sucess");
+            pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),1,"sucess",logFile,logPos);
             DataMigratorUtil.deleteDir(file);
             sucessTask.getAndIncrement();
         } catch (Exception e) {
             try {
-                pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),0,e.getMessage());
+                pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),0,e.getMessage(),"","");
             } catch (Exception e1) {
             }
             LOGGER.error("error:",e);
@@ -97,7 +97,7 @@ public class MigrateDumpRunner implements Runnable {
     }
 
 
-    private void pushMsgToZK(String rootZkPath,String child,int status,String msg) throws Exception {
+    private void pushMsgToZK(String rootZkPath,String child,int status,String msg,String binlogFile,String pos) throws Exception {
         String path = rootZkPath + "/" + child;
         TaskStatus taskStatus=new TaskStatus();
         taskStatus.setMsg(msg);
