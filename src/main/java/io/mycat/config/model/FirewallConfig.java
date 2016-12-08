@@ -27,6 +27,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -35,6 +37,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import io.mycat.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -61,7 +64,11 @@ public final class FirewallConfig {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(FirewallConfig.class);
 	
-    private Map<String, List<UserConfig>> whitehost;
+    private Map<String, List<UserConfig>> whitehost;//具体host的白名单
+	private Map<Pattern, List<UserConfig>> whitehostMask;//网段的白名单
+	public static Pattern getMaskPattern(String host){
+		return Pattern.compile(host.replaceAll(".","\\.").replaceAll("[*]","[0-9]*").replaceAll("%","[0-9]*"));
+	}
     private List<String> blacklist;
     private boolean check = false;
     
@@ -77,7 +84,15 @@ public final class FirewallConfig {
     		provider.setBlackListEnable(true);
     	}
     }
-    
+
+	public Map<Pattern, List<UserConfig>> getWhitehostMask() {
+		return whitehostMask;
+	}
+
+	public void setWhitehostMask(Map<Pattern, List<UserConfig>> whitehostMask) {
+		this.whitehostMask = whitehostMask;
+	}
+
     public WallProvider getWallProvider(){
     	return provider;
     }
@@ -88,13 +103,25 @@ public final class FirewallConfig {
 	public void setWhitehost(Map<String, List<UserConfig>> whitehost) {
 		this.whitehost = whitehost;
 	}
-	
+	/**
+	 * 通过manager端命令动态配置白名单，配置防火墙方法之一，一共有两处，另一处:
+	 * @see  XMLServerLoader
+	 *
+	 * @modification 修改增加网段白名单
+	 * @date 2016/12/8
+	 * @modifiedBy Hash Zhang
+	 */
 	public boolean addWhitehost(String host, List<UserConfig> Users) {
 		if (existsHost(host)){
 			return false;	
 		}
 		else {
-		 this.whitehost.put(host, Users);
+		 if(host.contains("*")||host.contains("%")){
+			 this.whitehostMask.put(getMaskPattern(host),Users);
+		 }else {
+		 	this.whitehost.put(host, Users);
+
+		 }
 		 return true;
 		}
 	}
