@@ -285,7 +285,7 @@ public class ServerConnection extends FrontendConnection {
 		}
 		if (rrs != null) {
 			// session执行
-			session.execute(rrs, type);
+			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
 		}
 	}
 

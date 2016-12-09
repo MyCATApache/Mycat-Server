@@ -81,6 +81,16 @@ public final class RouteResultset implements Serializable {
        //key=dataNode    value=slot
     private Map<String,Integer>   dataNodeSlotMap=new HashMap<>();
 
+    private boolean selectForUpdate;
+
+    public boolean isSelectForUpdate() {
+        return selectForUpdate;
+    }
+
+    public void setSelectForUpdate(boolean selectForUpdate) {
+        this.selectForUpdate = selectForUpdate;
+    }
+
     public Map<String, Integer> getDataNodeSlotMap() {
         return dataNodeSlotMap;
     }
