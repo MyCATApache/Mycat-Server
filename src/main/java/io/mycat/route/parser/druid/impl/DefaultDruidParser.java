@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -95,7 +98,16 @@ public class DefaultDruidParser implements DruidParser {
 
 		stmt.accept(visitor);
 		ctx.setVisitor(visitor);
-		
+
+		if(stmt instanceof SQLSelectStatement){
+			SQLSelectQuery query = ((SQLSelectStatement) stmt).getSelect().getQuery();
+			if(query instanceof MySqlSelectQueryBlock){
+				if(((MySqlSelectQueryBlock)query).isForUpdate()){
+					rrs.setSelectForUpdate(true);
+				}
+			}
+		}
+
 		List<List<Condition>> mergedConditionList = new ArrayList<List<Condition>>();
 		if(visitor.hasOrCondition()) {//包含or语句
 			//TODO
