@@ -86,18 +86,27 @@ public final class ServerParseSet {
 	private static int xaFlag(String stmt, int offset) {
 		if (stmt.length() > offset + 1) {
 			char c1 = stmt.charAt(++offset);
-			char c2=stmt.charAt(++offset);
-			if ((c1 == 'A' || c1 == 'a')
-					&&( c2== ' '||c2=='=')) {
-				int value = autocommitValue(stmt, offset);
-				if (value == AUTOCOMMIT_ON) {
-					return XA_FLAG_ON;
-				} else if (value == AUTOCOMMIT_OFF) {
-					return XA_FLAG_OFF;
-				} else {
-					return OTHER;
+			if ((c1 == 'A' || c1 == 'a')) {
+				while (stmt.length() >= ++ offset) {
+					switch (stmt.charAt(offset)) {
+					case ' ':
+					case '\r':
+					case '\n':
+					case '\t':
+						continue;
+					case '=':
+						int value = autocommitValue(stmt, offset);
+						if (value == AUTOCOMMIT_ON) {
+							return XA_FLAG_ON;
+						} else if (value == AUTOCOMMIT_OFF) {
+							return XA_FLAG_OFF;
+						} else {
+							return OTHER;
+						}
+					default:
+						return OTHER;
+					}
 				}
-
 			}
 		}
 		return OTHER;

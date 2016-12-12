@@ -26,7 +26,9 @@ package io.mycat.route.function;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
@@ -79,7 +81,16 @@ public class AutoPartitionByLong extends AbstractPartitionAlgorithm implements R
 
 	@Override
 	public int getPartitionNum() {
-		int nPartition = longRongs.length;
+//		int nPartition = longRongs.length;
+		
+		/*
+		 * fix #1284 这里的统计应该统计Range的nodeIndex的distinct总数
+		 */
+		Set<Integer> distNodeIdxSet = new HashSet<Integer>();
+		for(LongRange range : longRongs) {
+			distNodeIdxSet.add(range.nodeIndx);
+		}
+		int nPartition = distNodeIdxSet.size();
 		return nPartition;
 	}
 

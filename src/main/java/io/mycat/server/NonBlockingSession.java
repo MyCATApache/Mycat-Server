@@ -148,7 +148,6 @@ public class NonBlockingSession implements Session {
                 } else {
                     multiNodeHandler.execute();
                 }
-
             } catch (Exception e) {
                 LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
                 source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
