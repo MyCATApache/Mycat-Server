@@ -2,13 +2,19 @@ package io.mycat.migrate;
 import com.alibaba.druid.util.JdbcUtils;
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.*;
+import io.mycat.util.DateUtil;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 
@@ -128,18 +134,19 @@ public class BinlogStream {
     private final class DelegatingEventListener implements BinaryLogClient.EventListener {
 
         private final Map<Long, TableMapEventData> tablesById = new HashMap<Long, TableMapEventData>();
-        private final Map<Long, List<Map<String, Object>>> tablesColumnMap = new HashMap<>();
+        private final Map<String, Map<Integer,Map<String, Object>>> tablesColumnMap = new HashMap<>();
 
         private boolean transactionInProgress;
         private String binlogFilename;
 
         //当发现ddl语句时 需要更新重新取列名
-        private List<Map<String, Object>> loadColumn(String database,String table)
+        private Map<Integer,Map<String, Object>> loadColumn(String database,String table)
         {
+            Map<Integer,Map<String, Object>> rtn=new HashMap<>();
             List<Map<String, Object>> list=null;
             Connection con = null;
             try {
-                con =  DriverManager.getConnection("jdbc:mysql://"+hostname,username,password);
+                con =  DriverManager.getConnection("jdbc:mysql://"+hostname+":"+port,username,password);
                 list = executeQuery(con, "select  COLUMN_NAME, ORDINAL_POSITION, DATA_TYPE, CHARACTER_SET_NAME from INFORMATION_SCHEMA.COLUMNS where table_name='"+table+"' and TABLE_SCHEMA='"+database+"'");
 
             } catch (SQLException e) {
@@ -147,20 +154,24 @@ public class BinlogStream {
             }finally{
                 JdbcUtils.close(con);
             }
-            return list;
+            for (Map<String, Object> stringObjectMap : list) {
+                BigInteger pos= (BigInteger) stringObjectMap.get("ORDINAL_POSITION");
+                rtn.put(pos.intValue(),stringObjectMap);
+            }
+            return rtn;
         }
 
         @Override
         public void onEvent(Event event) {
             // todo: do something about schema changes
-          // System.out.println(event);
+           // System.out.println(event);
             EventType eventType = event.getHeader().getEventType();
             switch (eventType) {
                 case TABLE_MAP:
                     TableMapEventData tableMapEventData = event.getData();
                     tablesById.put(tableMapEventData.getTableId(), tableMapEventData);
-                    if(!tablesColumnMap.containsKey(tableMapEventData.getTableId())) {
-                        tablesColumnMap.put(tableMapEventData.getTableId(),loadColumn(tableMapEventData.getDatabase(),tableMapEventData.getTable())) ;
+                    if(!tablesColumnMap.containsKey(tableMapEventData.getDatabase()+"."+tableMapEventData.getTable())) {
+                        tablesColumnMap.put(tableMapEventData.getDatabase()+"."+tableMapEventData.getTable(),loadColumn(tableMapEventData.getDatabase(),tableMapEventData.getTable())) ;
                     }
                     break;
                 case ROTATE:
@@ -188,6 +199,8 @@ public class BinlogStream {
                         String query = queryEventData.getSql();
                         if ("BEGIN".equals(query)) {
                             transactionInProgress = true;
+                        }   else if(!query.startsWith("#")) {
+                            handleOtherSqlEvent(event);
                         }
                     }
                     break;
@@ -201,27 +214,191 @@ public class BinlogStream {
             }
         }
 
+
+        private void handleOtherSqlEvent(Event event) {
+            QueryEventData queryEventData = event.getData();
+            String query = queryEventData.getSql();
+            System.out.println(query);
+        }
+
         private void handleWriteRowsEvent(Event event) {
             WriteRowsEventData eventData = event.getData();
             TableMapEventData tableMapEvent = tablesById.get(eventData.getTableId());
-            List<Map<String, Object>> xxx=    tablesColumnMap.get(eventData.getTableId());
-            System.out.println(tableMapEvent);
-            System.out.println(event);
+            Map<Integer, Map<String, Object>> xxx=    tablesColumnMap.get(tableMapEvent.getDatabase()+"."+tableMapEvent.getTable());
+            BitSet inculudeColumn= eventData.getIncludedColumns();
+            StringBuilder sb=new StringBuilder("insert into  ");
+            sb.append(tableMapEvent.getTable())  ;
+            sb.append("(");
+            int size=  inculudeColumn.length()   ;
+            List<Serializable[]> rows = eventData.getRows();
+           ;
+
+            for (int i = 0; i <size; i++) {
+                int column=inculudeColumn.nextSetBit(i);
+                Map<String, Object> coumnMap=   xxx.get(column+1);
+                sb.append(coumnMap.get("COLUMN_NAME"));
+                if(i!=size-1){
+                    sb.append(",");
+                }
+            }
+            sb.append(")  values  ");
+            for (int i = 0; i < rows.size(); i++) {
+                Serializable[]  value= rows.get(i);
+                sb.append(" (");
+                for (int y = 0; y<size; y++) {
+                    int column=inculudeColumn.nextSetBit(y);
+                    Map<String, Object> coumnMap=   xxx.get(column+1);
+                    String dataType= (String) coumnMap.get("DATA_TYPE");
+                    sb.append(convertBinlogValue(value[y],dataType));
+
+                    if(y!=size-1){
+                        sb.append(",");
+                    }
+                }
+                sb.append(")");
+                if(i!=rows.size()-1){
+                    sb.append(",");
+                }
+            }
+
+
+
+            System.out.println(sb);
         }
 
+
+        private Object convertBinlogValue(Serializable value,String dataType){
+            if(value instanceof String )   {
+                return   "'"+value+"'";
+            }  else  if(value instanceof byte[] )   {
+                //todo 需要确认编码
+                return   "'"+new String((byte[]) value)+"'";
+            }else    if(value instanceof Date )   {
+                return   "'"+dateToString((Date)value,dataType)+"'";
+            }else if(("date".equalsIgnoreCase(dataType))&&value instanceof Long)
+            {
+                return   "'"+dateToStringFromUTC((Long) value)+"'";
+                //mariadb   date
+
+            }
+            else if("datetime".equalsIgnoreCase(dataType)&&value instanceof Long)
+            {
+                return   "'"+datetimeToStringFromUTC((Long) value)+"'";
+                //mariadb   date
+
+            }   else if(("timestamp".equalsIgnoreCase(dataType))&&value instanceof Long)
+            {
+                return   "'"+dateToString((Long) value)+"'";
+                //mariadb   date
+
+            }
+            else{
+               return value;
+            }
+        }
+
+        private String dateToStringFromUTC(Long date){
+            DateTime dt = new DateTime(date, DateTimeZone.UTC);
+            return dt.toString(DateUtil.DATE_PATTERN_ONLY_DATE);
+        }
+
+        private String datetimeToStringFromUTC(Long date){
+            DateTime dt = new DateTime(date, DateTimeZone.UTC);
+            return dt.toString(DateUtil.DATE_PATTERN_FULL);
+        }
+        private String dateToString(Long date){
+            DateTime dt = new DateTime(date);
+            return dt.toString(DateUtil.DATE_PATTERN_FULL);
+        }
+        private String dateToString(Date date,String dateType){
+            if("timestamp".equalsIgnoreCase(dateType))
+            {
+                DateTime dt = new DateTime(date);
+                return dt.toString(DateUtil.DATE_PATTERN_FULL);
+            }  else    if("datetime".equalsIgnoreCase(dateType))   {
+                DateTime dt = new DateTime(date,DateTimeZone.UTC);
+                return dt.toString(DateUtil.DATE_PATTERN_FULL);
+            }else    if("date".equalsIgnoreCase(dateType))   {
+                DateTime dt = new DateTime(date,DateTimeZone.UTC);
+                return dt.toString(DateUtil.DATE_PATTERN_ONLY_DATE);
+            }  else
+            {
+                DateTime dt = new DateTime(date);
+                return dt.toString(DateUtil.DATE_PATTERN_FULL);
+            }
+
+        }
         private void handleUpdateRowsEvent(Event event) {
             UpdateRowsEventData eventData = event.getData();
             TableMapEventData tableMapEvent = tablesById.get(eventData.getTableId());
-            List<Map<String, Object>> xxx=    tablesColumnMap.get(eventData.getTableId());
-            System.out.println(tableMapEvent);
-            System.out.println(event);
+            Map<Integer, Map<String, Object>> xxx=    tablesColumnMap.get(tableMapEvent.getDatabase()+"."+tableMapEvent.getTable());
+            BitSet inculudeColumn= eventData.getIncludedColumns();
+            StringBuilder sb=new StringBuilder("update ");
+            sb.append(tableMapEvent.getTable())  ;
+            sb.append(" set ");
+            int size=  inculudeColumn.length()   ;
+            Map.Entry<Serializable[], Serializable[]> rowMap=     eventData.getRows().get(0)  ;
+            Serializable[] value=   rowMap.getValue();
+            Serializable[] key=   rowMap.getKey();
+            for (int i = 0; i <size; i++) {
+                int column=inculudeColumn.nextSetBit(i);
+                Map<String, Object> coumnMap=   xxx.get(column+1);
+                sb.append(coumnMap.get("COLUMN_NAME"));
+                sb.append("=");
+                String dataType= (String) coumnMap.get("DATA_TYPE");
+                sb.append(convertBinlogValue(value[i],dataType));
+
+                if(i!=size-1){
+                    sb.append(",");
+                }
+            }
+            sb.append(" where ");
+
+            BitSet includedColumnsBeforeUpdate= eventData.getIncludedColumnsBeforeUpdate();
+            for (int i = 0; i <size; i++) {
+                int column=includedColumnsBeforeUpdate.nextSetBit(i);
+                Map<String, Object> coumnMap=   xxx.get(column+1);
+                sb.append(coumnMap.get("COLUMN_NAME"));
+                sb.append("=");
+                String dataType= (String) coumnMap.get("DATA_TYPE");
+                sb.append(convertBinlogValue(value[i],dataType));
+
+                if(i!=size-1){
+                    sb.append(" and ");
+                }
+            }
+
+
+
+            System.out.println(sb);
         }
 
         private void handleDeleteRowsEvent(Event event) {
             DeleteRowsEventData eventData = event.getData();
             TableMapEventData tableMapEvent = tablesById.get(eventData.getTableId());
-            System.out.println(tableMapEvent);
-            System.out.println(event);
+            Map<Integer, Map<String, Object>> xxx=    tablesColumnMap.get(tableMapEvent.getDatabase()+"."+tableMapEvent.getTable());
+            BitSet inculudeColumn= eventData.getIncludedColumns();
+            StringBuilder sb=new StringBuilder("delete from ");
+            sb.append(tableMapEvent.getTable())  ;
+            int size=  inculudeColumn.length()   ;
+            Serializable[]  value=     eventData.getRows().get(0)  ;
+
+            sb.append(" where ");
+
+            for (int i = 0; i <size; i++) {
+                int column=inculudeColumn.nextSetBit(i);
+                Map<String, Object> coumnMap=   xxx.get(column+1);
+                sb.append(coumnMap.get("COLUMN_NAME"));
+                sb.append("=");
+                String dataType= (String) coumnMap.get("DATA_TYPE");
+                sb.append(convertBinlogValue(value[i],dataType));
+
+                if(i!=size-1){
+                    sb.append(" and ");
+                }
+            }
+
+            System.out.println(sb);
         }
 
 
@@ -229,10 +406,10 @@ public class BinlogStream {
     }
 
     public static void main(String[] args) {
-        BinlogStream  stream=new BinlogStream("localhost",3306,"czn","MUXmux");
+        BinlogStream  stream=new BinlogStream("localhost",3301,"czn","MUXmux");
         try {
             stream.setSlaveID(23511);
-            stream.setBinglogFile("NANGE-PC-bin.000025");
+            stream.setBinglogFile("mysql-bin.000005");
             stream.setBinlogPos(4);
             stream.connect();
 
