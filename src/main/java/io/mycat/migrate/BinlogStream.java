@@ -2,6 +2,14 @@ package io.mycat.migrate;
 import com.alibaba.druid.util.JdbcUtils;
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.*;
+import com.google.common.base.Strings;
+import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.config.table.structure.MySQLTableStructureDetector;
+import io.mycat.route.function.PartitionByCRC32PreSlot;
+import io.mycat.server.util.SchemaUtil;
+import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
+import io.mycat.sqlengine.SQLJob;
 import io.mycat.util.DateUtil;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -34,6 +42,21 @@ public class BinlogStream {
     private long slaveID;
     private String binglogFile;
     private long binlogPos;
+
+    private Set<String> databaseSet=new HashSet<>();
+
+    private List<MigrateTask> migrateTaskList;
+
+    public List<MigrateTask> getMigrateTaskList() {
+        return migrateTaskList;
+    }
+
+    public void setMigrateTaskList(List<MigrateTask> migrateTaskList) {
+        this.migrateTaskList = migrateTaskList;
+        for (MigrateTask migrateTask : migrateTaskList) {
+            databaseSet.add(migrateTask.getSchema().toLowerCase()) ;
+        }
+    }
 
     public long getSlaveID() {
         return slaveID;
@@ -163,8 +186,7 @@ public class BinlogStream {
 
         @Override
         public void onEvent(Event event) {
-            // todo: do something about schema changes
-           // System.out.println(event);
+            logger.debug(event.toString());
             EventType eventType = event.getHeader().getEventType();
             switch (eventType) {
                 case TABLE_MAP:
@@ -214,16 +236,55 @@ public class BinlogStream {
             }
         }
 
+        private void exeSql(MigrateTask task,String sql){
+            OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0], new SqlExecuteListener(task,sql,BinlogStream.this));
+            resultHandler.setMark("binlog execute");
+            PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(task.getTo());
+            SQLJob sqlJob = new SQLJob(sql, dn.getDatabase(), resultHandler, dn.getDbPool().getSource());
+            sqlJob.run();
+        }
 
         private void handleOtherSqlEvent(Event event) {
             QueryEventData queryEventData = event.getData();
+            logger.debug("receve sql:",queryEventData.getSql());
+            SchemaUtil.SchemaInfo schemaInfo=SchemaUtil.parseSchema(queryEventData.getSql());
+            if(isShouldBeFilter(queryEventData.getDatabase(),schemaInfo.table))
+                return;
             String query = queryEventData.getSql();
+            for (MigrateTask migrateTask : migrateTaskList) {
+                if(schemaInfo.table.equalsIgnoreCase(migrateTask.getTable())
+                        &&queryEventData.getDatabase().equalsIgnoreCase(migrateTask.getSchema())){
+                     exeSql(migrateTask,query);
+                }
+            }
+
             System.out.println(query);
+        }
+
+        private boolean isShouldBeFilter(String database,String table)
+        {
+            if(Strings.isNullOrEmpty(database))
+                return true;
+            if(Strings.isNullOrEmpty(table))
+                return true;
+            if(!databaseSet.contains(database.toLowerCase())){
+                return true;
+            }
+            for (MigrateTask migrateTask : migrateTaskList) {
+                if(table.equalsIgnoreCase(migrateTask.getTable())){
+                    return false;
+                }
+            }
+
+
+            return true;
         }
 
         private void handleWriteRowsEvent(Event event) {
             WriteRowsEventData eventData = event.getData();
             TableMapEventData tableMapEvent = tablesById.get(eventData.getTableId());
+            if(isShouldBeFilter(tableMapEvent.getDatabase(),tableMapEvent.getTable()))
+                return;
             Map<Integer, Map<String, Object>> xxx=    tablesColumnMap.get(tableMapEvent.getDatabase()+"."+tableMapEvent.getTable());
             BitSet inculudeColumn= eventData.getIncludedColumns();
             StringBuilder sb=new StringBuilder("insert into  ");
@@ -231,8 +292,8 @@ public class BinlogStream {
             sb.append("(");
             int size=  inculudeColumn.length()   ;
             List<Serializable[]> rows = eventData.getRows();
-           ;
 
+            int slot=-1;
             for (int i = 0; i <size; i++) {
                 int column=inculudeColumn.nextSetBit(i);
                 Map<String, Object> coumnMap=   xxx.get(column+1);
@@ -249,6 +310,10 @@ public class BinlogStream {
                     int column=inculudeColumn.nextSetBit(y);
                     Map<String, Object> coumnMap=   xxx.get(column+1);
                     String dataType= (String) coumnMap.get("DATA_TYPE");
+                    String columnName= (String) coumnMap.get("COLUMN_NAME");
+                    if("_slot".equalsIgnoreCase(columnName)){
+                         slot=((BigInteger) value[y]).intValue();
+                    }
                     sb.append(convertBinlogValue(value[y],dataType));
 
                     if(y!=size-1){
@@ -261,11 +326,23 @@ public class BinlogStream {
                 }
             }
 
-
-
+            checkIfExeSql(tableMapEvent, sb, slot);
             System.out.println(sb);
         }
 
+        private void checkIfExeSql(TableMapEventData tableMapEvent, StringBuilder sb, int slot) {
+            for (MigrateTask migrateTask : migrateTaskList) {
+                if(tableMapEvent.getTable().equalsIgnoreCase(migrateTask.getTable())
+                        &&tableMapEvent.getDatabase().equalsIgnoreCase(migrateTask.getSchema())){
+                    for (PartitionByCRC32PreSlot.Range range :migrateTask.getSlots()) {
+                          if(range.end>=slot&&range.start<=slot) {
+                              exeSql(migrateTask,sb.toString());
+                          }
+                    }
+
+                }
+            }
+        }
 
         private Object convertBinlogValue(Serializable value,String dataType){
             if(value instanceof String )   {
@@ -331,12 +408,15 @@ public class BinlogStream {
         private void handleUpdateRowsEvent(Event event) {
             UpdateRowsEventData eventData = event.getData();
             TableMapEventData tableMapEvent = tablesById.get(eventData.getTableId());
+            if(isShouldBeFilter(tableMapEvent.getDatabase(),tableMapEvent.getTable()))
+                return;
             Map<Integer, Map<String, Object>> xxx=    tablesColumnMap.get(tableMapEvent.getDatabase()+"."+tableMapEvent.getTable());
             BitSet inculudeColumn= eventData.getIncludedColumns();
             StringBuilder sb=new StringBuilder("update ");
             sb.append(tableMapEvent.getTable())  ;
             sb.append(" set ");
             int size=  inculudeColumn.length()   ;
+            int slot=-1;
             Map.Entry<Serializable[], Serializable[]> rowMap=     eventData.getRows().get(0)  ;
             Serializable[] value=   rowMap.getValue();
             Serializable[] key=   rowMap.getKey();
@@ -362,13 +442,16 @@ public class BinlogStream {
                 sb.append("=");
                 String dataType= (String) coumnMap.get("DATA_TYPE");
                 sb.append(convertBinlogValue(value[i],dataType));
-
+                String columnName= (String) coumnMap.get("COLUMN_NAME");
+                if("_slot".equalsIgnoreCase(columnName)){
+                    slot=((BigInteger) value[i]).intValue();
+                }
                 if(i!=size-1){
                     sb.append(" and ");
                 }
             }
 
-
+             checkIfExeSql(tableMapEvent,sb,slot);
 
             System.out.println(sb);
         }
@@ -376,6 +459,8 @@ public class BinlogStream {
         private void handleDeleteRowsEvent(Event event) {
             DeleteRowsEventData eventData = event.getData();
             TableMapEventData tableMapEvent = tablesById.get(eventData.getTableId());
+            if(isShouldBeFilter(tableMapEvent.getDatabase(),tableMapEvent.getTable()))
+                return;
             Map<Integer, Map<String, Object>> xxx=    tablesColumnMap.get(tableMapEvent.getDatabase()+"."+tableMapEvent.getTable());
             BitSet inculudeColumn= eventData.getIncludedColumns();
             StringBuilder sb=new StringBuilder("delete from ");
@@ -384,7 +469,7 @@ public class BinlogStream {
             Serializable[]  value=     eventData.getRows().get(0)  ;
 
             sb.append(" where ");
-
+              int slot=-1;
             for (int i = 0; i <size; i++) {
                 int column=inculudeColumn.nextSetBit(i);
                 Map<String, Object> coumnMap=   xxx.get(column+1);
@@ -392,12 +477,15 @@ public class BinlogStream {
                 sb.append("=");
                 String dataType= (String) coumnMap.get("DATA_TYPE");
                 sb.append(convertBinlogValue(value[i],dataType));
-
+                String columnName= (String) coumnMap.get("COLUMN_NAME");
+                if("_slot".equalsIgnoreCase(columnName)){
+                    slot=((BigInteger) value[i]).intValue();
+                }
                 if(i!=size-1){
                     sb.append(" and ");
                 }
             }
-
+            checkIfExeSql(tableMapEvent,sb,slot);
             System.out.println(sb);
         }
 
