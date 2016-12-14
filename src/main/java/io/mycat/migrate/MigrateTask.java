@@ -5,6 +5,7 @@ import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -28,6 +29,7 @@ public class MigrateTask implements Serializable {
     private transient String zkpath;
     private transient String binlogFile;
     private transient int pos;
+    private transient volatile Date lastBinlogDate;
 
     public List<Range> getSlots() {
         return slots;
@@ -63,6 +65,14 @@ public class MigrateTask implements Serializable {
 
     public String getFrom() {
         return from;
+    }
+
+    public Date getLastBinlogDate() {
+        return lastBinlogDate;
+    }
+
+    public void setLastBinlogDate(Date lastBinlogDate) {
+        this.lastBinlogDate = lastBinlogDate;
     }
 
     public void setFrom(String from) {

@@ -103,6 +103,8 @@ public class MigrateDumpRunner implements Runnable {
         TaskStatus taskStatus=new TaskStatus();
         taskStatus.setMsg(msg);
         taskStatus.setStatus(status);
+        taskStatus.setBinlogFile(binlogFile);
+        taskStatus.setPos(Long.parseLong(pos));
 
         if(ZKUtils.getConnection().checkExists().forPath(path)==null )
         {

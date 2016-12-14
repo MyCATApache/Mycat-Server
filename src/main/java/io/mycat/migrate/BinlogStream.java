@@ -5,7 +5,6 @@ import com.github.shyiko.mysql.binlog.event.*;
 import com.google.common.base.Strings;
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
-import io.mycat.config.table.structure.MySQLTableStructureDetector;
 import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.server.util.SchemaUtil;
 import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
@@ -22,8 +21,9 @@ import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.text.ParseException;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeoutException;
 
 import static io.mycat.util.dataMigrator.DataMigratorUtil.executeQuery;
@@ -36,7 +36,7 @@ public class BinlogStream {
     private final int port;
     private final String username;
     private final String password;
-
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private BinaryLogClient binaryLogClient;
 
     private long slaveID;
@@ -44,6 +44,8 @@ public class BinlogStream {
     private long binlogPos;
 
     private Set<String> databaseSet=new HashSet<>();
+
+
 
     private List<MigrateTask> migrateTaskList;
 
@@ -113,11 +115,20 @@ public class BinlogStream {
 
     public void connect() throws IOException {
         allocateBinaryLogClient().connect();
+       // scheduler.scheduleAtFixedRate()
+        initTaskDate();
     }
 
+    private void initTaskDate() {
+        Date curDate=new Date();
+        for (MigrateTask migrateTask : migrateTaskList) {
+            migrateTask.setLastBinlogDate(curDate);
+        }
+    }
 
     public void connect(long timeoutInMilliseconds) throws IOException, TimeoutException {
         allocateBinaryLogClient().connect(timeoutInMilliseconds);
+        initTaskDate();
     }
 
     private synchronized BinaryLogClient allocateBinaryLogClient() {
@@ -148,6 +159,7 @@ public class BinlogStream {
             binaryLogClient.disconnect();
             binaryLogClient = null;
         }
+        scheduler.shutdown();
     }
 
 
@@ -161,6 +173,7 @@ public class BinlogStream {
 
         private boolean transactionInProgress;
         private String binlogFilename;
+
 
         //当发现ddl语句时 需要更新重新取列名
         private Map<Integer,Map<String, Object>> loadColumn(String database,String table)
@@ -258,7 +271,7 @@ public class BinlogStream {
                 }
             }
 
-            System.out.println(query);
+
         }
 
         private boolean isShouldBeFilter(String database,String table)
@@ -327,7 +340,7 @@ public class BinlogStream {
             }
 
             checkIfExeSql(tableMapEvent, sb, slot);
-            System.out.println(sb);
+
         }
 
         private void checkIfExeSql(TableMapEventData tableMapEvent, StringBuilder sb, int slot) {
@@ -453,7 +466,7 @@ public class BinlogStream {
 
              checkIfExeSql(tableMapEvent,sb,slot);
 
-            System.out.println(sb);
+
         }
 
         private void handleDeleteRowsEvent(Event event) {
@@ -486,7 +499,7 @@ public class BinlogStream {
                 }
             }
             checkIfExeSql(tableMapEvent,sb,slot);
-            System.out.println(sb);
+
         }
 
 
