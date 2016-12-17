@@ -29,7 +29,7 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
         if (!result.isSuccess()) {
             try {
                 task.setHaserror(true);
-                pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),2,result.getErrMsg());
+                pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),2,"sql:"+sql+";"+result.getErrMsg());
             } catch (Exception e) {
               LOGGER.error("error:",e);
             }

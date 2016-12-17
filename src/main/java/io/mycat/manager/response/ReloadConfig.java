@@ -206,6 +206,7 @@ public final class ReloadConfig {
 
 			//清理缓存
 			MycatServer.getInstance().getCacheService().clearCache();
+			MycatServer.getInstance().initRuleData();
 			return true;
 			
 		} else {
@@ -241,6 +242,7 @@ public final class ReloadConfig {
          * 3、清理缓存
          */
         MycatServer.getInstance().getCacheService().clearCache();
+		MycatServer.getInstance().initRuleData();
         return true;
     }
     

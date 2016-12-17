@@ -56,7 +56,7 @@ public class MigrateMainRunner implements Runnable {
             PhysicalDBPool dbPool= MycatServer.getInstance().getConfig().getDataHosts().get(dataHost);
             PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
             DBHostConfig config = datasource.getConfig();
-            BinlogStream  stream=new BinlogStream(config.getUrl(),config.getPort(),config.getUser(),config.getPassword());
+            BinlogStream  stream=new BinlogStream(config.getUrl().substring(0,config.getUrl().indexOf(":")),config.getPort(),config.getUser(),config.getPassword());
             try {
                 stream.setSlaveID(migrateTaskList.get(0).getSlaveId());
                 stream.setBinglogFile(binlogFile);
