@@ -60,7 +60,8 @@ public class MigrateMainRunner implements Runnable {
             try {
                 stream.setSlaveID(migrateTaskList.get(0).getSlaveId());
                 stream.setBinglogFile(binlogFile);
-                stream.setBinlogPos(binlogFileNum);
+                stream.setBinlogPos(pos);
+                stream.setMigrateTaskList(migrateTaskList);
                 stream.connect();
 
             } catch (IOException e) {

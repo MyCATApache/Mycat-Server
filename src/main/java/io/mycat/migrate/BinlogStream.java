@@ -288,13 +288,17 @@ public class BinlogStream {
                 return true;
             }
             for (MigrateTask migrateTask : migrateTaskList) {
-                if(table.equalsIgnoreCase(migrateTask.getTable())){
+                if(database.equals(getDatabaseFromDataNode(migrateTask.getFrom()))&&table.equalsIgnoreCase(migrateTask.getTable())){
                     return false;
                 }
             }
 
 
             return true;
+        }
+
+        private String getDatabaseFromDataNode(String dn){
+         return    MycatServer.getInstance().getConfig().getDataNodes().get(dn).getDatabase();
         }
 
         private void handleWriteRowsEvent(Event event) {
@@ -329,7 +333,7 @@ public class BinlogStream {
                     String dataType= (String) coumnMap.get("DATA_TYPE");
                     String columnName= (String) coumnMap.get("COLUMN_NAME");
                     if("_slot".equalsIgnoreCase(columnName)){
-                         slot=((BigInteger) value[y]).intValue();
+                         slot= value[y] instanceof  BigInteger?((BigInteger) value[y]).intValue():((Integer) value[y]);
                     }
                     sb.append(convertBinlogValue(value[y],dataType));
 
@@ -363,10 +367,10 @@ public class BinlogStream {
 
         private Object convertBinlogValue(Serializable value,String dataType){
             if(value instanceof String )   {
-                return   "'"+value+"'";
+                return   "'"+((String)value).replace("'","\\'")+"'";
             }  else  if(value instanceof byte[] )   {
                 //todo 需要确认编码
-                return   "'"+new String((byte[]) value)+"'";
+                return   "'"+new String((byte[]) value).replace("'","\\'")+"'";
             }else    if(value instanceof Date )   {
                 return   "'"+dateToString((Date)value,dataType)+"'";
             }else if(("date".equalsIgnoreCase(dataType))&&value instanceof Long)
@@ -458,10 +462,10 @@ public class BinlogStream {
                 sb.append(coumnMap.get("COLUMN_NAME"));
                 sb.append("=");
                 String dataType= (String) coumnMap.get("DATA_TYPE");
-                sb.append(convertBinlogValue(value[i],dataType));
+                sb.append(convertBinlogValue(key[i],dataType));
                 String columnName= (String) coumnMap.get("COLUMN_NAME");
                 if("_slot".equalsIgnoreCase(columnName)){
-                    slot=((BigInteger) value[i]).intValue();
+                    slot= key[i] instanceof  BigInteger?((BigInteger) key[i]).intValue():((Integer) key[i]);
                 }
                 if(i!=size-1){
                     sb.append(" and ");
@@ -496,7 +500,7 @@ public class BinlogStream {
                 sb.append(convertBinlogValue(value[i],dataType));
                 String columnName= (String) coumnMap.get("COLUMN_NAME");
                 if("_slot".equalsIgnoreCase(columnName)){
-                    slot=((BigInteger) value[i]).intValue();
+                    slot= value[i] instanceof  BigInteger?((BigInteger) value[i]).intValue():((Integer) value[i]);
                 }
                 if(i!=size-1){
                     sb.append(" and ");
@@ -511,15 +515,18 @@ public class BinlogStream {
     }
 
     public static void main(String[] args) {
-        BinlogStream  stream=new BinlogStream("localhost",3301,"czn","MUXmux");
-        try {
-            stream.setSlaveID(23511);
-            stream.setBinglogFile("mysql-bin.000005");
-            stream.setBinlogPos(4);
-            stream.connect();
+//        BinlogStream  stream=new BinlogStream("localhost",3301,"czn","MUXmux");
+//        try {
+//            stream.setSlaveID(23511);
+//            stream.setBinglogFile("mysql-bin.000005");
+//            stream.setBinlogPos(4);
+//            stream.connect();
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String sql="2'aa\"啊啊402";
+        System.out.println(sql.replace("'","\\'"));
     }
 }
