@@ -30,6 +30,15 @@ public class MigrateTask implements Serializable {
     private transient String binlogFile;
     private transient int pos;
     private transient volatile Date lastBinlogDate;
+    private transient volatile boolean haserror=false;
+
+    public boolean isHaserror() {
+        return haserror;
+    }
+
+    public void setHaserror(boolean haserror) {
+        this.haserror = haserror;
+    }
 
     public List<Range> getSlots() {
         return slots;

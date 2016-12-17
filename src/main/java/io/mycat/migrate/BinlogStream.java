@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.mycat.util.dataMigrator.DataMigratorUtil.executeQuery;
@@ -115,8 +116,8 @@ public class BinlogStream {
 
     public void connect() throws IOException {
         allocateBinaryLogClient().connect();
-       // scheduler.scheduleAtFixedRate()
         initTaskDate();
+        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this),5,15, TimeUnit.SECONDS);
     }
 
     private void initTaskDate() {
@@ -129,6 +130,7 @@ public class BinlogStream {
     public void connect(long timeoutInMilliseconds) throws IOException, TimeoutException {
         allocateBinaryLogClient().connect(timeoutInMilliseconds);
         initTaskDate();
+        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this),5,15, TimeUnit.SECONDS);
     }
 
     private synchronized BinaryLogClient allocateBinaryLogClient() {
@@ -250,6 +252,8 @@ public class BinlogStream {
         }
 
         private void exeSql(MigrateTask task,String sql){
+            if(task.isHaserror())
+                return;
             OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0], new SqlExecuteListener(task,sql,BinlogStream.this));
             resultHandler.setMark("binlog execute");
             PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(task.getTo());
