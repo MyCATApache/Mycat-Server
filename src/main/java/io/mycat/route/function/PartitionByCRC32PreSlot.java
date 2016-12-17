@@ -18,7 +18,7 @@ import java.util.*;
  * @author nange magicdoom@gmail.com
  */
 public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
-        implements RuleAlgorithm, TableRuleAware, SlotFunction {
+        implements RuleAlgorithm, TableRuleAware, SlotFunction,ReloadFunction {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("PartitionByCRC32PreSlot");
 
@@ -277,6 +277,10 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
 
     @Override public int slotValue() {
         return slot;
+    }
+
+    @Override public void reload() {
+          reInit();
     }
 
     public static class Range implements Serializable {
