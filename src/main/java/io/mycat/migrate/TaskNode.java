@@ -7,8 +7,26 @@ import java.io.Serializable;
  */
 public class TaskNode implements Serializable {
     private String sql;
-    private boolean end;
+    private int status ;    //0=start    1=sucess  end  2=error   end
     private String schema;
+    private int totalTask;   //总的任务数
+    private int readyTask;   //准备好可以切换的任务数量
+
+    public int getTotalTask() {
+        return totalTask;
+    }
+
+    public void setTotalTask(int totalTask) {
+        this.totalTask = totalTask;
+    }
+
+    public int getReadyTask() {
+        return readyTask;
+    }
+
+    public void setReadyTask(int readyTask) {
+        this.readyTask = readyTask;
+    }
 
     public String getSql() {
         return sql;
@@ -18,12 +36,12 @@ public class TaskNode implements Serializable {
         this.sql = sql;
     }
 
-    public boolean isEnd() {
-        return end;
+    public int getStatus() {
+        return status;
     }
 
-    public void setEnd(boolean end) {
-        this.end = end;
+    public void setStatus(int status) {
+        this.status = status;
     }
 
     public String getSchema() {

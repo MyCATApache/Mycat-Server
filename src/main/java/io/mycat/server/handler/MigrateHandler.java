@@ -124,7 +124,7 @@ public final class MigrateHandler {
             TaskNode taskNode=new TaskNode();
             taskNode.setSchema(c.getSchema());
             taskNode.setSql(stmt);
-            taskNode.setEnd(false);
+            taskNode.setStatus(0);
             transactionFinal=   client.inTransaction() .setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and() ;
 
             Map<String,Integer>  fromNodeSlaveIdMap=new HashMap<>();
@@ -366,7 +366,7 @@ public final class MigrateHandler {
 
         TaskNode taskNode=new TaskNode();
         taskNode.setSql(sql);
-        taskNode.setEnd(false);
+
 
         System.out.println(new String(JSON.toJSONBytes(taskNode)));
     }

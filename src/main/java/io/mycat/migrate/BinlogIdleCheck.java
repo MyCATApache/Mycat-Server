@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.StringReader;
 import java.nio.charset.Charset;
@@ -64,8 +65,10 @@ public class BinlogIdleCheck implements Runnable {
                                      byte[] ruleData=zk.getData().forPath(rulePath);
                                 Properties prop = new Properties();
                                 prop.load(new ByteArrayInputStream(ruleData));
-
-
+                               modifyRuleData(prop,migrateTask,tableConfig);
+                                ByteArrayOutputStream out=new ByteArrayOutputStream();
+                                prop.store(out, "WARNING   !!!Please do not modify or delete this file!!!");
+                               zk.setData().forPath(ruleName, out.toByteArray());
 
                             } finally {
                                 try {
@@ -83,6 +86,23 @@ public class BinlogIdleCheck implements Runnable {
                 LOGGER.error("error:",e);
             }
         }
+    }
+
+
+    private   void modifyRuleData( Properties prop ,MigrateTask task, TableConfig tableConfig ){
+        int fromIndex=-1;
+        int toIndex=-1;
+    List<String> dataNodes=   tableConfig.getDataNodes();
+        for (int i = 0; i < dataNodes.size(); i++) {
+            String dataNode = dataNodes.get(i);
+            if(dataNode.equalsIgnoreCase(task.getFrom())){
+                fromIndex=i;
+            } else
+            if(dataNode.equalsIgnoreCase(task.getTo())){
+                toIndex=i;
+            }
+        }
+      String from=  prop.getProperty(String.valueOf(fromIndex)) ;
     }
 
 

@@ -100,7 +100,7 @@ public class MigrateTaskWatch {
             if(!dataNodeList.isEmpty())    {
             TaskNode taskNode=         JSON.parseObject(
                     text,TaskNode.class);
-            if(!taskNode.isEnd()) {
+            if(taskNode.getStatus()==0) {
              String boosterDataHosts=   ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_BOOSTER_DATAHOSTS) ;
                 Set<String> dataNodes=new HashSet<>(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts)) ;
                 List<MigrateTask> finalMigrateList=new ArrayList<>();

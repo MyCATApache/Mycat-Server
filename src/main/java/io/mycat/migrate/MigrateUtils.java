@@ -106,6 +106,42 @@ public class MigrateUtils {
         return size;
     }
 
+
+   public static List<Range> removeAndGetRemain(List<Range> oriRangeList, List<Range> rangeList) {
+       for (Range range : rangeList) {
+           oriRangeList=removeAndGetRemain(oriRangeList,range) ;
+       }
+       return oriRangeList;
+    }
+
+    private static List<Range> removeAndGetRemain(List<Range> oriRangeList, Range newRange){
+        List<Range> result=new ArrayList<>();
+        for (Range range : oriRangeList) {
+           result.addAll(removeAndGetRemain(range,newRange));
+        }
+        return result;
+    }
+
+    private static List<Range> removeAndGetRemain(Range oriRange, Range newRange) {
+
+        List<Range> result=new ArrayList<>();
+        if(newRange.start>oriRange.end||newRange.end<oriRange.start){
+            result.add(oriRange);
+        } else if(newRange.start<=oriRange.start&&newRange.end>=oriRange.end){
+            return result;
+        }  else if(newRange.start>oriRange.start&&newRange.end<oriRange.end){
+            result.add(new Range(oriRange.start,newRange.start-1)) ;
+            result.add(new Range(newRange.end+1,oriRange.end)) ;
+        } else if(newRange.start<=oriRange.start&&newRange.end<oriRange.end){
+            result.add(new Range(newRange.end+1,oriRange.end)) ;
+        } else if(newRange.start>oriRange.start&&newRange.end>=oriRange.end){
+            result.add(new Range(oriRange.start,newRange.start-1)) ;
+        }
+
+
+        return result;
+    }
+
     public static int getCurTotalSize(List<Range> rangeList) {
         int size = 0;
         for (Range range : rangeList) {
