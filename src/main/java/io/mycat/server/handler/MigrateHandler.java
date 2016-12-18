@@ -24,32 +24,39 @@
 package io.mycat.server.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
-import io.mycat.migrate.TaskNode;
-import io.mycat.util.StringUtil;
-import io.mycat.util.ZKUtils;
+import io.mycat.config.Fields;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.migrate.MigrateTask;
 import io.mycat.migrate.MigrateUtils;
-import io.mycat.net.mysql.OkPacket;
+import io.mycat.migrate.TaskNode;
+import io.mycat.net.mysql.*;
+import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.ObjectUtil;
+import io.mycat.util.StringUtil;
+import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -61,7 +68,18 @@ public final class MigrateHandler {
 
     //可以优化成多个锁
     private static InterProcessMutex  slaveIDsLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath()+"lock/slaveIDs.lock");;
+    private static final int FIELD_COUNT = 1;
+    private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
+    static {
+        fields[0] = PacketUtil.getField("TASK_ID",
+                Fields.FIELD_TYPE_VAR_STRING);
 
+    }
+    private static String getUUID(){
+        String s = UUID.randomUUID().toString();
+        //去掉“-”符号
+        return s.substring(0,8)+s.substring(9,13)+s.substring(14,18)+s.substring(19,23)+s.substring(24);
+    }
     public static void handle(String stmt, ServerConnection c) {
         Map<String, String> map = parse(stmt);
 
@@ -76,7 +94,7 @@ public final class MigrateHandler {
             writeErrMessage(c, "add cannot be null");
             return;
         }
-
+        String  taskID= getUUID();
         try
         {
             SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(c.getSchema());
@@ -94,10 +112,14 @@ public final class MigrateHandler {
             List<String> newDataNodes = Splitter.on(",").omitEmptyStrings().trimResults().splitToList(add);
             Map<String, List<MigrateTask>> tasks= MigrateUtils
                     .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
-             long  taskID=  System.currentTimeMillis();     //todo 需要修改唯一
+
             CuratorTransactionFinal transactionFinal=null;
             String taskPath = ZKUtils.getZKBasePath() + "migrate/" +c.getSchema()+"/"+ table + "/" + taskID;
             CuratorFramework client= ZKUtils.getConnection();
+
+            //校验 之前同一个表的迁移任务未完成，则jzhi禁止继续
+             //todo
+
             client.create().creatingParentsIfNeeded().forPath(taskPath);
             TaskNode taskNode=new TaskNode();
             taskNode.setSchema(c.getSchema());
@@ -137,8 +159,16 @@ public final class MigrateHandler {
                 transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and()  ;
             }
 
-
-
+            //先修改rule config
+             InterProcessMutex  ruleLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath()+"lock/rules.lock");;
+            try {
+                ruleLock.acquire(30, TimeUnit.SECONDS);
+               modifyZkRules(transactionFinal,tableConfig.getRule().getFunctionName(),newDataNodes);
+                modifyTableConfigRules(transactionFinal,c.getSchema(),table,newDataNodes);
+            }
+            finally {
+                ruleLock.release();
+            }
             transactionFinal.commit();
         } catch (Exception e) {
             LOGGER.error("migrate error", e);
@@ -146,13 +176,91 @@ public final class MigrateHandler {
             return;
         }
 
-        getOkPacket().write(c);
+        writePackToClient(c, taskID);
+
     }
 
+    private static void writePackToClient(ServerConnection c, String taskID) {
+        ByteBuffer buffer = c.allocate();
 
+        // write header
+        ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
+        byte packetId = header.packetId;
+        buffer = header.write(buffer, c,true);
 
+        // write fields
+        for (FieldPacket field : fields) {
+            field.packetId = ++packetId;
+            buffer = field.write(buffer, c,true);
+        }
 
+        // write eof
+        EOFPacket eof = new EOFPacket();
+        eof.packetId = ++packetId;
+        buffer = eof.write(buffer, c,true);
 
+        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
+        row.add(StringUtil.encode(taskID, c.getCharset()));
+        row.packetId = ++packetId;
+        buffer = row.write(buffer, c,true);
+
+        // write last eof
+        EOFPacket lastEof = new EOFPacket();
+        lastEof.packetId = ++packetId;
+        buffer = lastEof.write(buffer, c,true);
+
+        // post write
+        c.write(buffer);
+    }
+
+    private static void modifyZkRules( CuratorTransactionFinal transactionFinal,String ruleName ,List<String> newDataNodes )
+          throws Exception {
+      CuratorFramework client= ZKUtils.getConnection();
+      String rulePath= ZKUtils.getZKBasePath() + "rules/function";
+      JSONArray jsonArray= JSON.parseArray(new String(client.getData().forPath(rulePath) ,"UTF-8"))  ;
+      for (Object obj: jsonArray) {
+          JSONObject func= (JSONObject) obj;
+          if(ruleName.equalsIgnoreCase(func.getString("name"))) {
+           JSONArray property=   func.getJSONArray("property") ;
+              for (Object o : property) {
+                  JSONObject count= (JSONObject) o;
+                  if("count".equals(count.getString("name"))){
+                  Integer xcount=Integer.parseInt( count.getString("value")) ;
+                      count.put("value",String.valueOf(xcount+newDataNodes.size())) ;
+                      transactionFinal.setData().forPath(rulePath,JSON.toJSONBytes(jsonArray)) ;
+                  }
+              }
+          }
+
+      }
+  }
+
+    private static void modifyTableConfigRules( CuratorTransactionFinal transactionFinal,String schemal,String table ,List<String> newDataNodes )
+            throws Exception {
+        CuratorFramework client= ZKUtils.getConnection();
+        String rulePath= ZKUtils.getZKBasePath() + "schema/schema";
+        JSONArray jsonArray= JSON.parseArray(new String(client.getData().forPath(rulePath) ,"UTF-8"))  ;
+        for (Object obj: jsonArray) {
+            JSONObject func= (JSONObject) obj;
+            if(schemal.equalsIgnoreCase(func.getString("name"))) {
+
+                JSONArray property = func.getJSONArray("table");
+                for (Object o : property) {
+                    JSONObject tt= (JSONObject) o;
+                    String tableName = tt.getString("name");
+                    String dataNode = tt.getString("dataNode");
+                    if (table.equalsIgnoreCase(tableName)) {
+                        List<String> allDataNodes = new ArrayList<>();
+                        allDataNodes.add(dataNode);
+                        allDataNodes.addAll(newDataNodes);
+                        tt.put("dataNode", Joiner.on(",").join(allDataNodes));
+                        transactionFinal.setData().forPath(rulePath, JSON.toJSONBytes(jsonArray));
+                    }
+
+                }
+            }
+        }
+    }
     private static String getDataHostNameFromNode(String dataNode){
         return MycatServer.getInstance().getConfig().getDataNodes().get(dataNode).getDbPool().getHostName();
     }

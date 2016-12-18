@@ -68,7 +68,7 @@ public class MigrateDumpRunner implements Runnable {
 
         String finalCmd = DataMigratorUtil
                 .paramsAssignment(mysqldump,"?", "", config.getIp(), String.valueOf(config.getPort()), config.getUser(),
-                config.getPassword(), task.getSchema(), task.getTable(), makeWhere(task), file.getPath());
+                config.getPassword(), MigrateUtils.getDatabaseFromDataNode(task.getFrom()), task.getTable(), makeWhere(task), file.getPath());
       String result=  ProcessUtil.execReturnString(finalCmd);
         int logIndex = result.indexOf("MASTER_LOG_FILE='");
         int logPosIndex = result.indexOf("MASTER_LOG_POS=");
@@ -103,6 +103,7 @@ public class MigrateDumpRunner implements Runnable {
         TaskStatus taskStatus=new TaskStatus();
         taskStatus.setMsg(msg);
         taskStatus.setStatus(status);
+        task.setStatus(status);
         taskStatus.setBinlogFile(binlogFile);
         taskStatus.setPos(Long.parseLong(pos));
 

@@ -72,12 +72,5 @@ public class MigrateMainRunner implements Runnable {
     }
 
 
-    private void pushMsgToZK(String rootZkPath,String child,int status,String msg) throws Exception {
-        String path = rootZkPath + "/" + child;
-        TaskStatus taskStatus=JSON.parseObject(ZKUtils.getConnection().getData().forPath(path),TaskStatus.class);
-        taskStatus.setMsg(msg);
-        taskStatus.setStatus(status);
-        ZKUtils.getConnection().setData().forPath(path, JSON.toJSONBytes(taskStatus)) ;
 
-    }
 }

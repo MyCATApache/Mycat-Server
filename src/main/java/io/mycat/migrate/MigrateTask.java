@@ -31,6 +31,15 @@ public class MigrateTask implements Serializable {
     private transient int pos;
     private transient volatile Date lastBinlogDate;
     private transient volatile boolean haserror=false;
+    private transient volatile int status;
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
 
     public boolean isHaserror() {
         return haserror;

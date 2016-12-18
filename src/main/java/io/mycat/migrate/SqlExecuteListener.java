@@ -43,6 +43,7 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
         TaskStatus taskStatus=new TaskStatus();
         taskStatus.setMsg(msg);
         taskStatus.setStatus(status);
+        task.setStatus(status);
 
         if(ZKUtils.getConnection().checkExists().forPath(path)==null )
         {

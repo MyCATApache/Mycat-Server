@@ -57,7 +57,7 @@ public class BinlogStream {
     public void setMigrateTaskList(List<MigrateTask> migrateTaskList) {
         this.migrateTaskList = migrateTaskList;
         for (MigrateTask migrateTask : migrateTaskList) {
-            databaseSet.add(migrateTask.getSchema().toLowerCase()) ;
+            databaseSet.add(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom())) ;
         }
     }
 
@@ -270,7 +270,7 @@ public class BinlogStream {
             String query = queryEventData.getSql();
             for (MigrateTask migrateTask : migrateTaskList) {
                 if(schemaInfo.table.equalsIgnoreCase(migrateTask.getTable())
-                        &&queryEventData.getDatabase().equalsIgnoreCase(migrateTask.getSchema())){
+                        &&queryEventData.getDatabase().equalsIgnoreCase(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()))){
                      exeSql(migrateTask,query);
                 }
             }
@@ -288,7 +288,7 @@ public class BinlogStream {
                 return true;
             }
             for (MigrateTask migrateTask : migrateTaskList) {
-                if(database.equals(getDatabaseFromDataNode(migrateTask.getFrom()))&&table.equalsIgnoreCase(migrateTask.getTable())){
+                if(database.equals(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()))&&table.equalsIgnoreCase(migrateTask.getTable())){
                     return false;
                 }
             }
@@ -297,9 +297,7 @@ public class BinlogStream {
             return true;
         }
 
-        private String getDatabaseFromDataNode(String dn){
-         return    MycatServer.getInstance().getConfig().getDataNodes().get(dn).getDatabase();
-        }
+
 
         private void handleWriteRowsEvent(Event event) {
             WriteRowsEventData eventData = event.getData();
@@ -354,7 +352,7 @@ public class BinlogStream {
         private void checkIfExeSql(TableMapEventData tableMapEvent, StringBuilder sb, int slot) {
             for (MigrateTask migrateTask : migrateTaskList) {
                 if(tableMapEvent.getTable().equalsIgnoreCase(migrateTask.getTable())
-                        &&tableMapEvent.getDatabase().equalsIgnoreCase(migrateTask.getSchema())){
+                        &&tableMapEvent.getDatabase().equalsIgnoreCase(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()))){
                     for (PartitionByCRC32PreSlot.Range range :migrateTask.getSlots()) {
                           if(range.end>=slot&&range.start<=slot) {
                               exeSql(migrateTask,sb.toString());

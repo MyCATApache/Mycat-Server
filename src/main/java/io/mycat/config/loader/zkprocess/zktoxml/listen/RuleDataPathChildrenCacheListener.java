@@ -43,7 +43,7 @@ public class RuleDataPathChildrenCacheListener implements PathChildrenCacheListe
 
 
     private void reloadRuleData(String name){
-        String tableName=name.substring(name.indexOf("_")+1,name.indexOf("."));
+        String tableName=name.substring(name.lastIndexOf("_")+1,name.indexOf("."));
         String ruleName=name.substring(0,name.indexOf("."));
         Map<String, SchemaConfig> schemaConfigMap= MycatServer.getInstance().getConfig().getSchemas() ;
         for (SchemaConfig schemaConfig : schemaConfigMap.values()) {

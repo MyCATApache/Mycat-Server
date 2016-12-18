@@ -1,5 +1,7 @@
 package io.mycat.migrate;
 
+import io.mycat.MycatServer;
+
 import java.util.*;
 
 import static io.mycat.route.function.PartitionByCRC32PreSlot.*;
@@ -110,5 +112,9 @@ public class MigrateUtils {
             size = size + range.size;
         }
         return size;
+    }
+
+    public static String getDatabaseFromDataNode(String dn){
+        return    MycatServer.getInstance().getConfig().getDataNodes().get(dn).getDatabase();
     }
 }
