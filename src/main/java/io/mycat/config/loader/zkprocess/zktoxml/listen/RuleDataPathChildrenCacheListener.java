@@ -48,6 +48,7 @@ public class RuleDataPathChildrenCacheListener implements PathChildrenCacheListe
         Map<String, SchemaConfig> schemaConfigMap= MycatServer.getInstance().getConfig().getSchemas() ;
         for (SchemaConfig schemaConfig : schemaConfigMap.values()) {
             TableConfig tableConfig= schemaConfig.getTables().get(tableName.toUpperCase());
+            if(tableConfig==null)continue;
             RuleConfig rule=tableConfig.getRule();
             AbstractPartitionAlgorithm function= rule.getRuleAlgorithm() ;
             if(function instanceof ReloadFunction){

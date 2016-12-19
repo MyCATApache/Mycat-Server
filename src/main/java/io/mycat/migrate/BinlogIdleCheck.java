@@ -36,58 +36,79 @@ public class BinlogIdleCheck implements Runnable {
 
     @Override public void run() {
         List<MigrateTask>migrateTaskList= binlogStream.getMigrateTaskList();
+        int sucessSwitchTask=0;
+        String taskPath=null;
+        String dataHost=null;
         for (MigrateTask migrateTask : migrateTaskList) {
-            String zkPath=migrateTask.getZkpath()+"/"+migrateTask.getFrom()+"-"+migrateTask.getTo();
-            try {
+            String zkPath=migrateTask.getZkpath();
+            if(taskPath==null){
+                taskPath=zkPath.substring(0,zkPath.lastIndexOf("/")) ;
+                dataHost=zkPath.substring(zkPath.lastIndexOf("/")+1);
+            }
                 Date lastDate=       migrateTask.getLastBinlogDate();
                 long diff = (new Date().getTime() - lastDate.getTime())/1000;
                 if((!migrateTask.isHaserror())&&diff>60){
                     //暂定60秒空闲 则代表增量任务结束，开始切换
-                        byte[] data=   ZKUtils.getConnection().getData().forPath(zkPath) ;
-                        TaskStatus taskStatus =JSON.parseObject(data, TaskStatus.class);
-                        if(taskStatus.getStatus()==1)  {
-                             taskStatus.setStatus(3);
-                            migrateTask.setStatus(3);
-                            ZKUtils.getConnection().setData().forPath(zkPath,JSON.toJSONBytes(taskStatus)) ;
-                            InterProcessMutex ruleDataLock =null;
-                            try {
-                                String path=     ZKUtils.getZKBasePath()+"lock/ruledata.lock";
-                                ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
-                                ruleDataLock.acquire(30, TimeUnit.SECONDS);
-                                Map<String, SchemaConfig> schemaConfigMap= MycatServer.getInstance().getConfig().getSchemas() ;
-                                SchemaConfig schemaConfig=   schemaConfigMap.get(migrateTask.getSchema());
-                                TableConfig tableConfig = schemaConfig.getTables()
-                                        .get(migrateTask.getTable().toUpperCase());
-                                RuleConfig ruleConfig= tableConfig.getRule();
-                                String ruleName=ruleConfig.getFunctionName()+"_"+ migrateTask.getTable().toUpperCase()+".properties";
-                                String rulePath=ZKUtils.getZKBasePath()+"ruledata/"+ruleName;
-                                    CuratorFramework zk = ZKUtils.getConnection();
-                                     byte[] ruleData=zk.getData().forPath(rulePath);
-                                Properties prop = new Properties();
-                                prop.load(new ByteArrayInputStream(ruleData));
-                               modifyRuleData(prop,migrateTask,tableConfig);
-                                ByteArrayOutputStream out=new ByteArrayOutputStream();
-                                prop.store(out, "WARNING   !!!Please do not modify or delete this file!!!");
-                               zk.setData().forPath(ruleName, out.toByteArray());
+                   sucessSwitchTask=sucessSwitchTask+1;
 
-                            } finally {
-                                try {
-                                    if(ruleDataLock!=null)
-                                        ruleDataLock.release();
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-                        }
+                }
 
+        }
+        if(sucessSwitchTask==migrateTaskList.size()){
+             taskPath=taskPath+"/_status/"+dataHost;
+            try {
+                if( ZKUtils.getConnection().checkExists().forPath(taskPath)==null) {
+                   ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(taskPath);
                 }
 
             } catch (Exception e) {
                 LOGGER.error("error:",e);
             }
+
         }
     }
 
+
+
+    private void xx()
+    {
+//        byte[] data=   ZKUtils.getConnection().getData().forPath(zkPath) ;
+//        TaskStatus taskStatus =JSON.parseObject(data, TaskStatus.class);
+//        if(taskStatus.getStatus()==1)  {
+//            taskStatus.setStatus(3);
+//            migrateTask.setStatus(3);
+//            ZKUtils.getConnection().setData().forPath(zkPath,JSON.toJSONBytes(taskStatus)) ;
+//            InterProcessMutex ruleDataLock =null;
+//            try {
+//                String path=     ZKUtils.getZKBasePath()+"lock/ruledata.lock";
+//                ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
+//                ruleDataLock.acquire(30, TimeUnit.SECONDS);
+//                Map<String, SchemaConfig> schemaConfigMap= MycatServer.getInstance().getConfig().getSchemas() ;
+//                SchemaConfig schemaConfig=   schemaConfigMap.get(migrateTask.getSchema());
+//                TableConfig tableConfig = schemaConfig.getTables()
+//                        .get(migrateTask.getTable().toUpperCase());
+//                RuleConfig ruleConfig= tableConfig.getRule();
+//                String ruleName=ruleConfig.getFunctionName()+"_"+ migrateTask.getTable().toUpperCase()+".properties";
+//                String rulePath=ZKUtils.getZKBasePath()+"ruledata/"+ruleName;
+//                CuratorFramework zk = ZKUtils.getConnection();
+//                byte[] ruleData=zk.getData().forPath(rulePath);
+//                Properties prop = new Properties();
+//                prop.load(new ByteArrayInputStream(ruleData));
+//                modifyRuleData(prop,migrateTask,tableConfig);
+//                ByteArrayOutputStream out=new ByteArrayOutputStream();
+//                prop.store(out, "WARNING   !!!Please do not modify or delete this file!!!");
+//                zk.setData().forPath(ruleName, out.toByteArray());
+//
+//            } finally {
+//                try {
+//                    if(ruleDataLock!=null)
+//                        ruleDataLock.release();
+//                } catch (Exception e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//        }
+    }
 
     private   void modifyRuleData( Properties prop ,MigrateTask task, TableConfig tableConfig ){
         int fromIndex=-1;

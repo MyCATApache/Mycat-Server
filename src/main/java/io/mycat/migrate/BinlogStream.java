@@ -254,10 +254,13 @@ public class BinlogStream {
         private void exeSql(MigrateTask task,String sql){
             if(task.isHaserror())
                 return;
-            OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0], new SqlExecuteListener(task,sql,BinlogStream.this));
+            SqlExecuteListener listener = new SqlExecuteListener(task, sql, BinlogStream.this);
+            OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0],
+                    listener);
             resultHandler.setMark("binlog execute");
             PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(task.getTo());
             SQLJob sqlJob = new SQLJob(sql, dn.getDatabase(), resultHandler, dn.getDbPool().getSource());
+            listener.setSqlJob(sqlJob);
             sqlJob.run();
         }
 

@@ -11,10 +11,12 @@ import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * ......./migrate/schemal/tableName/taskid/dn   [任务数据]
@@ -94,7 +96,15 @@ public class MigrateTaskWatch {
         }
 
         private void addOrUpdate(PathChildrenCacheEvent event) throws Exception {
-            String text = new String(event.getData().getData(), "UTF-8");
+
+            InterProcessMutex taskLock =null;
+            try{
+               String tpath=    event.getData().getPath();
+                String taskID=tpath.substring(tpath.lastIndexOf("/")+1,tpath.length());
+                String lockPath=     ZKUtils.getZKBasePath()+"lock/"+taskID+".lock";
+                taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
+                taskLock.acquire(10, TimeUnit.SECONDS);
+             String text = new String(ZKUtils.getConnection().getData().forPath(event.getData().getPath()), "UTF-8");
 
             List<String> dataNodeList= ZKUtils.getConnection().getChildren().forPath(event.getData().getPath());
             if(!dataNodeList.isEmpty())    {
@@ -105,6 +115,7 @@ public class MigrateTaskWatch {
                 Set<String> dataNodes=new HashSet<>(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts)) ;
                 List<MigrateTask> finalMigrateList=new ArrayList<>();
                 for (String s : dataNodeList) {
+                    if("_status".equals(s))continue;
                     if(dataNodes.contains(s)) {
                         String zkpath = event.getData().getPath() + "/" + s;
                         String data=new String(ZKUtils.getConnection().getData().forPath(
@@ -125,7 +136,17 @@ public class MigrateTaskWatch {
                     MycatServer.getInstance().getBusinessExecutor().submit(new MigrateMainRunner(key,value)) ;
                 }
 
-            }  }
+
+                //
+                taskNode.setStatus(1);
+                ZKUtils.getConnection().setData().forPath(event.getData().getPath(),JSON.toJSONBytes(taskNode));
+            }
+            }
+            }finally {
+                 if(taskLock!=null){
+                     taskLock.release();
+                 }
+            }
         }
 
 

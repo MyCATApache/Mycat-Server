@@ -18,6 +18,15 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
     private MigrateTask task;
    private String sql   ;
     private BinlogStream binlogStream;
+    private volatile SQLJob sqlJob;
+
+    public SQLJob getSqlJob() {
+        return sqlJob;
+    }
+
+    public void setSqlJob(SQLJob sqlJob) {
+        this.sqlJob = sqlJob;
+    }
 
     public SqlExecuteListener(MigrateTask task, String sql, BinlogStream binlogStream) {
         this.task = task;
@@ -30,8 +39,11 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
             try {
                 task.setHaserror(true);
                 pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),2,"sql:"+sql+";"+result.getErrMsg());
+                close("sucess");
+                binlogStream.disconnect();
             } catch (Exception e) {
               LOGGER.error("error:",e);
+                close(e.getMessage());
             }
         }
     }
@@ -50,6 +62,13 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
             ZKUtils.getConnection().create().forPath(path, JSON.toJSONBytes(taskStatus)) ;
         } else{
             ZKUtils.getConnection().setData().forPath(path, JSON.toJSONBytes(taskStatus)) ;
+        }
+    }
+    public void close(String msg) {
+        SQLJob curJob = sqlJob;
+        if (curJob != null && !curJob.isFinished()) {
+            curJob.teminate(msg);
+            sqlJob = null;
         }
     }
 }

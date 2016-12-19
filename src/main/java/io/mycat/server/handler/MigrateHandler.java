@@ -159,16 +159,16 @@ public final class MigrateHandler {
                 transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and()  ;
             }
 
-            //先修改rule config
-             InterProcessMutex  ruleLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath()+"lock/rules.lock");;
-            try {
-                ruleLock.acquire(30, TimeUnit.SECONDS);
-               modifyZkRules(transactionFinal,tableConfig.getRule().getFunctionName(),newDataNodes);
-                modifyTableConfigRules(transactionFinal,c.getSchema(),table,newDataNodes);
-            }
-            finally {
-                ruleLock.release();
-            }
+//            //先修改rule config
+//             InterProcessMutex  ruleLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath()+"lock/rules.lock");;
+//            try {
+//                ruleLock.acquire(30, TimeUnit.SECONDS);
+//               modifyZkRules(transactionFinal,tableConfig.getRule().getFunctionName(),newDataNodes);
+//                modifyTableConfigRules(transactionFinal,c.getSchema(),table,newDataNodes);
+//            }
+//            finally {
+//                ruleLock.release();
+//            }
             transactionFinal.commit();
         } catch (Exception e) {
             LOGGER.error("migrate error", e);

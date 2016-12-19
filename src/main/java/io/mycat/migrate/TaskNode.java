@@ -7,7 +7,7 @@ import java.io.Serializable;
  */
 public class TaskNode implements Serializable {
     private String sql;
-    private int status ;    //0=start    1=sucess  end  2=error   end
+    private int status ;    //0=init    1=start    2=sucess  end  3=error   end
     private String schema;
     private int totalTask;   //总的任务数
     private int readyTask;   //准备好可以切换的任务数量
