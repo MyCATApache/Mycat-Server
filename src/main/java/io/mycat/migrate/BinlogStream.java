@@ -87,8 +87,7 @@ public class BinlogStream {
 
     private volatile boolean groupEventsByTX = true;
 
-    private Set<Long> ignoredServerIds = new HashSet<Long>();
-    private Set<String> ignoredTables = new HashSet<String>();
+
 
 
 
@@ -105,19 +104,12 @@ public class BinlogStream {
 
 
 
-    public void setIgnoredHostsIds(Set<Long> ignoredServerIds) {
-        this.ignoredServerIds = ignoredServerIds;
-    }
-
-    public void setIgnoredTables(Set<String> ignoredTables) {
-        this.ignoredTables = ignoredTables;
-    }
-
 
     public void connect() throws IOException {
-        allocateBinaryLogClient().connect();
         initTaskDate();
         scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this),5,15, TimeUnit.SECONDS);
+        allocateBinaryLogClient().connect();
+
     }
 
     private void initTaskDate() {
@@ -128,9 +120,10 @@ public class BinlogStream {
     }
 
     public void connect(long timeoutInMilliseconds) throws IOException, TimeoutException {
-        allocateBinaryLogClient().connect(timeoutInMilliseconds);
         initTaskDate();
         scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this),5,15, TimeUnit.SECONDS);
+        allocateBinaryLogClient().connect(timeoutInMilliseconds);
+
     }
 
     private synchronized BinaryLogClient allocateBinaryLogClient() {

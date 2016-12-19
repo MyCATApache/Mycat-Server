@@ -84,6 +84,11 @@ public class MigrateTaskWatch {
             switch (event.getType()) {
                 case CHILD_ADDED:
                     addOrUpdate(event);
+                    String path = event.getData().getPath() + "/_status";
+                   if( curatorFramework.checkExists().forPath(path)==null){
+                       curatorFramework.create().creatingParentsIfNeeded().forPath(path);
+                   }
+                   ZKUtils.addChildPathCache(path,new SwitchListener());
                     LOGGER.info("table CHILD_ADDED: " + event.getData().getPath());
                     break;
                 case CHILD_UPDATED:
@@ -103,7 +108,7 @@ public class MigrateTaskWatch {
                 String taskID=tpath.substring(tpath.lastIndexOf("/")+1,tpath.length());
                 String lockPath=     ZKUtils.getZKBasePath()+"lock/"+taskID+".lock";
                 taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
-                taskLock.acquire(10, TimeUnit.SECONDS);
+                taskLock.acquire(20, TimeUnit.SECONDS);
              String text = new String(ZKUtils.getConnection().getData().forPath(event.getData().getPath()), "UTF-8");
 
             List<String> dataNodeList= ZKUtils.getConnection().getChildren().forPath(event.getData().getPath());

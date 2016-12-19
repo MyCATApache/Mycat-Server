@@ -124,6 +124,8 @@ public final class MigrateHandler {
             TaskNode taskNode=new TaskNode();
             taskNode.setSchema(c.getSchema());
             taskNode.setSql(stmt);
+            taskNode.setTable(table);
+            taskNode.setAdd(add);
             taskNode.setStatus(0);
             transactionFinal=   client.inTransaction() .setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and() ;
 
@@ -159,16 +161,7 @@ public final class MigrateHandler {
                 transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and()  ;
             }
 
-//            //先修改rule config
-//             InterProcessMutex  ruleLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath()+"lock/rules.lock");;
-//            try {
-//                ruleLock.acquire(30, TimeUnit.SECONDS);
-//               modifyZkRules(transactionFinal,tableConfig.getRule().getFunctionName(),newDataNodes);
-//                modifyTableConfigRules(transactionFinal,c.getSchema(),table,newDataNodes);
-//            }
-//            finally {
-//                ruleLock.release();
-//            }
+
             transactionFinal.commit();
         } catch (Exception e) {
             LOGGER.error("migrate error", e);
@@ -213,54 +206,7 @@ public final class MigrateHandler {
         c.write(buffer);
     }
 
-    private static void modifyZkRules( CuratorTransactionFinal transactionFinal,String ruleName ,List<String> newDataNodes )
-          throws Exception {
-      CuratorFramework client= ZKUtils.getConnection();
-      String rulePath= ZKUtils.getZKBasePath() + "rules/function";
-      JSONArray jsonArray= JSON.parseArray(new String(client.getData().forPath(rulePath) ,"UTF-8"))  ;
-      for (Object obj: jsonArray) {
-          JSONObject func= (JSONObject) obj;
-          if(ruleName.equalsIgnoreCase(func.getString("name"))) {
-           JSONArray property=   func.getJSONArray("property") ;
-              for (Object o : property) {
-                  JSONObject count= (JSONObject) o;
-                  if("count".equals(count.getString("name"))){
-                  Integer xcount=Integer.parseInt( count.getString("value")) ;
-                      count.put("value",String.valueOf(xcount+newDataNodes.size())) ;
-                      transactionFinal.setData().forPath(rulePath,JSON.toJSONBytes(jsonArray)) ;
-                  }
-              }
-          }
 
-      }
-  }
-
-    private static void modifyTableConfigRules( CuratorTransactionFinal transactionFinal,String schemal,String table ,List<String> newDataNodes )
-            throws Exception {
-        CuratorFramework client= ZKUtils.getConnection();
-        String rulePath= ZKUtils.getZKBasePath() + "schema/schema";
-        JSONArray jsonArray= JSON.parseArray(new String(client.getData().forPath(rulePath) ,"UTF-8"))  ;
-        for (Object obj: jsonArray) {
-            JSONObject func= (JSONObject) obj;
-            if(schemal.equalsIgnoreCase(func.getString("name"))) {
-
-                JSONArray property = func.getJSONArray("table");
-                for (Object o : property) {
-                    JSONObject tt= (JSONObject) o;
-                    String tableName = tt.getString("name");
-                    String dataNode = tt.getString("dataNode");
-                    if (table.equalsIgnoreCase(tableName)) {
-                        List<String> allDataNodes = new ArrayList<>();
-                        allDataNodes.add(dataNode);
-                        allDataNodes.addAll(newDataNodes);
-                        tt.put("dataNode", Joiner.on(",").join(allDataNodes));
-                        transactionFinal.setData().forPath(rulePath, JSON.toJSONBytes(jsonArray));
-                    }
-
-                }
-            }
-        }
-    }
     private static String getDataHostNameFromNode(String dataNode){
         return MycatServer.getInstance().getConfig().getDataNodes().get(dataNode).getDbPool().getHostName();
     }

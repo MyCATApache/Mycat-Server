@@ -9,6 +9,8 @@ public class TaskNode implements Serializable {
     private String sql;
     private int status ;    //0=init    1=start    2=sucess  end  3=error   end
     private String schema;
+    private String table;
+    private String add;
     private int totalTask;   //总的任务数
     private int readyTask;   //准备好可以切换的任务数量
 
@@ -30,6 +32,22 @@ public class TaskNode implements Serializable {
 
     public String getSql() {
         return sql;
+    }
+
+    public String getTable() {
+        return table;
+    }
+
+    public void setTable(String table) {
+        this.table = table;
+    }
+
+    public String getAdd() {
+        return add;
+    }
+
+    public void setAdd(String add) {
+        this.add = add;
     }
 
     public void setSql(String sql) {
