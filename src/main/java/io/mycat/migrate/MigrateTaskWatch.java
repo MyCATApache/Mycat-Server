@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -145,6 +146,17 @@ public class MigrateTaskWatch {
                 //
                 taskNode.setStatus(1);
                 ZKUtils.getConnection().setData().forPath(event.getData().getPath(),JSON.toJSONBytes(taskNode));
+            } else   if(taskNode.getStatus()==2) {
+                  //start switch
+
+                ScheduledExecutorService scheduledExecutorService=MycatServer.getInstance().getScheduler();
+                Set<String> allRunnerSet=      SwitchPrepareCheckRunner.allSwitchRunnerSet;
+                if(!allRunnerSet.contains(taskID)){
+                    List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(tpath);
+                    List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(tpath,dataHosts);
+                    scheduledExecutorService.schedule(new SwitchPrepareCheckRunner(taskID,tpath,taskNode, MigrateUtils.convertAllTask(allTaskList)),1,TimeUnit.SECONDS);
+                    allRunnerSet.add(taskID);
+                }
             }
             }
             }finally {

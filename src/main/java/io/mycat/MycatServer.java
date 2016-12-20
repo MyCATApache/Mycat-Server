@@ -227,6 +227,10 @@ public class MycatServer {
 		return sqlInterceptor;
 	}
 
+	public ScheduledExecutorService getScheduler() {
+		return scheduler;
+	}
+
 	public String genXATXID() {
 		long seq = this.xaIDInc.incrementAndGet();
 		if (seq < 0) {

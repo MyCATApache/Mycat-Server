@@ -19,9 +19,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -50,14 +48,14 @@ public class SwitchPrepareListener implements PathChildrenCacheListener {
             String taskID=taskPath.substring(taskPath.lastIndexOf('/')+1,taskPath.length());
             String lockPath=     ZKUtils.getZKBasePath()+"lock/"+taskID+".lock";
             List<String> sucessDataHost= ZKUtils.getConnection().getChildren().forPath(path.substring(0,path.lastIndexOf('/')));
-            List<MigrateTask> allTaskList=queryAllTask(path.substring(0,path.lastIndexOf('/')),sucessDataHost);
+            List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(path.substring(0,path.lastIndexOf('/')),sucessDataHost);
             TaskNode pTaskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
 
             ConcurrentMap<String,List<PartitionByCRC32PreSlot.Range>> tableRuleMap=
                     RouteCheckRule.migrateRuleMap.containsKey(pTaskNode.getSchema().toUpperCase()) ?
                     RouteCheckRule.migrateRuleMap.get(pTaskNode.getSchema().toUpperCase()) :
                     new ConcurrentHashMap();
-                 tableRuleMap.put(pTaskNode.getTable().toUpperCase(),convertAllTask(allTaskList));
+                 tableRuleMap.put(pTaskNode.getTable().toUpperCase(),MigrateUtils.convertAllTask(allTaskList));
             RouteCheckRule.migrateRuleMap.put(pTaskNode.getSchema().toUpperCase(),tableRuleMap);
 
 
@@ -65,7 +63,7 @@ public class SwitchPrepareListener implements PathChildrenCacheListener {
             taskLock.acquire(20, TimeUnit.SECONDS);
 
             List<String> dataHost=  ZKUtils.getConnection().getChildren().forPath(taskID) ;
-            if(dataHost.size()-1==sucessDataHost.size()){
+            if(getRealSize(dataHost)==sucessDataHost.size()){
                 TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
                   if(taskNode.getStatus()==1){
                        taskNode.setStatus(2);  //prepare switch
@@ -84,6 +82,19 @@ public class SwitchPrepareListener implements PathChildrenCacheListener {
                 }
             }
         }
+    }
+
+    private int getRealSize(List<String> dataHosts){
+        int size=dataHosts.size();
+        Set<String> set=new HashSet(dataHosts);
+        if(set.contains("_prepare"))   {
+            size=size-1;
+        }
+        if(set.contains("_commit"))   {
+            size=size-1;
+        }
+
+        return size;
     }
     private void checkSwitch1(PathChildrenCacheEvent event)    {
         InterProcessMutex taskLock =null;
@@ -133,20 +144,7 @@ public class SwitchPrepareListener implements PathChildrenCacheListener {
     }
 
 
-    private List<PartitionByCRC32PreSlot.Range> convertAllTask(List<MigrateTask> allTasks){
-        List<PartitionByCRC32PreSlot.Range>  resutlList=new ArrayList<>();
-        for (MigrateTask allTask : allTasks) {
-            resutlList.addAll(allTask.getSlots());
-        }
-        return resutlList;
-    }
-    private List<MigrateTask> queryAllTask(String basePath, List<String> dataHost) throws Exception {
-       List<MigrateTask>  resutlList=new ArrayList<>();
-        for (String dataHostName : dataHost) {
-          resutlList.addAll(  JSON.parseArray(new String(ZKUtils.getConnection().getData().forPath(basePath+"/"+dataHostName),"UTF-8") ,MigrateTask.class));
-        }
-        return resutlList;
-    }
+
 
     private void xx()
     {

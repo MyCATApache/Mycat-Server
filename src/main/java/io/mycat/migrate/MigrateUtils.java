@@ -1,6 +1,9 @@
 package io.mycat.migrate;
 
+import com.alibaba.fastjson.JSON;
 import io.mycat.MycatServer;
+import io.mycat.route.function.PartitionByCRC32PreSlot;
+import io.mycat.util.ZKUtils;
 
 import java.util.*;
 
@@ -152,5 +155,21 @@ public class MigrateUtils {
 
     public static String getDatabaseFromDataNode(String dn){
         return    MycatServer.getInstance().getConfig().getDataNodes().get(dn).getDatabase();
+    }
+
+    public static List<PartitionByCRC32PreSlot.Range> convertAllTask(List<MigrateTask> allTasks){
+        List<PartitionByCRC32PreSlot.Range>  resutlList=new ArrayList<>();
+        for (MigrateTask allTask : allTasks) {
+            resutlList.addAll(allTask.getSlots());
+        }
+        return resutlList;
+    }
+    public static List<MigrateTask> queryAllTask(String basePath, List<String> dataHost) throws Exception {
+        List<MigrateTask>  resutlList=new ArrayList<>();
+        for (String dataHostName : dataHost) {
+            resutlList.addAll(  JSON
+                    .parseArray(new String(ZKUtils.getConnection().getData().forPath(basePath+"/"+dataHostName),"UTF-8") ,MigrateTask.class));
+        }
+        return resutlList;
     }
 }
