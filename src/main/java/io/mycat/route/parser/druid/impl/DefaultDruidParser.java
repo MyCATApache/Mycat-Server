@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -94,7 +97,17 @@ public class DefaultDruidParser implements DruidParser {
 	public void visitorParse(RouteResultset rrs, SQLStatement stmt,MycatSchemaStatVisitor visitor) throws SQLNonTransientException{
 
 		stmt.accept(visitor);
-		
+		ctx.setVisitor(visitor);
+
+		if(stmt instanceof SQLSelectStatement){
+			SQLSelectQuery query = ((SQLSelectStatement) stmt).getSelect().getQuery();
+			if(query instanceof MySqlSelectQueryBlock){
+				if(((MySqlSelectQueryBlock)query).isForUpdate()){
+					rrs.setSelectForUpdate(true);
+				}
+			}
+		}
+
 		List<List<Condition>> mergedConditionList = new ArrayList<List<Condition>>();
 		if(visitor.hasOrCondition()) {//包含or语句
 			//TODO
@@ -120,9 +133,7 @@ public class DefaultDruidParser implements DruidParser {
 					if(pos> 0) {
 						key = key.substring(pos + 1);
 					}
-					if(key.equalsIgnoreCase(value)) {
-						ctx.addTable(key.toUpperCase());
-					}
+					
 					tableAliasMap.put(key.toUpperCase(), value);
 				}
 				
@@ -132,11 +143,12 @@ public class DefaultDruidParser implements DruidParser {
 //				}
 
 			}
+			ctx.addTables(visitor.getTables());
+			
 			visitor.getAliasMap().putAll(tableAliasMap);
 			ctx.setTableAliasMap(tableAliasMap);
 		}
 		ctx.setRouteCalculateUnits(this.buildRouteCalculateUnits(visitor, mergedConditionList));
-		ctx.setVisitor(visitor);
 	}
 	
 	private List<RouteCalculateUnit> buildRouteCalculateUnits(SchemaStatVisitor visitor, List<List<Condition>> conditionList) {

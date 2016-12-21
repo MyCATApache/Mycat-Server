@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -140,7 +141,7 @@ public class ShowHeartbeatDetail {
 		}
 		if(hb!=null){
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-			List<HeartbeatRecorder.Record> heatbeartRecorders = hb.getRecorder().getRecordsAll();  
+			Queue<HeartbeatRecorder.Record> heatbeartRecorders = hb.getRecorder().getRecordsAll();  
 			for(HeartbeatRecorder.Record record : heatbeartRecorders){
 				RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 				row.add(StringUtil.encode(name,charset));

@@ -326,15 +326,23 @@ public class RouterUtil {
 	 * @return int[]	  关键字位置和占位个数
 	 * 
 	 * @author mycat
+	 *
+	 * @modification 修改支持语句中包含“IF NOT EXISTS”的情况
+	 * @date 2016/12/8
+	 * @modifiedBy Hash Zhang
 	 */
 	public static int[] getCreateTablePos(String upStmt, int start) {
 		String token1 = "CREATE ";
 		String token2 = " TABLE ";
+		String token3 = " EXISTS ";
 		int createInd = upStmt.indexOf(token1, start);
-		int tabInd = upStmt.indexOf(token2, start);
+		int tabInd1 = upStmt.indexOf(token2, start);
+		int tabInd2 = upStmt.indexOf(token3, tabInd1);
 		// 既包含CREATE又包含TABLE，且CREATE关键字在TABLE关键字之前
-		if (createInd >= 0 && tabInd > 0 && tabInd > createInd) {
-			return new int[] { tabInd, token2.length() };
+		if (createInd >= 0 && tabInd2 > 0 && tabInd2 > createInd) {
+			return new int[] { tabInd2, token3.length() };
+		} else if(createInd >= 0 && tabInd1 > 0 && tabInd1 > createInd) {
+			return new int[] { tabInd1, token2.length() };
 		} else {
 			return new int[] { -1, token2.length() };// 不满足条件时，只关注第一个返回值为-1，第二个任意
 		}
@@ -1463,6 +1471,24 @@ public class RouterUtil {
 		}
 		
 		if (schemaConfig.getDataNode() != null && !schemaConfig.getTables().containsKey(tableName)) {
+			return true;
+		}
+
+		return false;
+	}
+	
+	/**
+	 * 系统表判断,某些sql语句会查询系统表或者跟系统表关联
+	 * @author lian
+	 * @date 2016年12月2日
+	 * @param tableName
+	 * @return
+	 */
+	public static boolean isSystemSchema(String tableName) {
+		// 以information_schema， mysql开头的是系统表
+		if (tableName.startsWith("INFORMATION_SCHEMA.")
+				|| tableName.startsWith("MYSQL.")
+				|| tableName.startsWith("PERFORMANCE_SCHEMA.")) {
 			return true;
 		}
 

@@ -72,17 +72,22 @@
 	</system>
 	
 	<!-- 全局SQL防火墙设置 -->
-	<!-- 
-	<firewall> 
+	<!--白名单可以使用通配符%或着*-->
+	<!--例如<host host="127.0.0.*" user="root"/>-->
+	<!--例如<host host="127.0.*" user="root"/>-->
+	<!--例如<host host="127.*" user="root"/>-->
+	<!--例如<host host="1*7.*" user="root"/>-->
+	<!--这些配置情况下对于127.0.0.1都能以root账户登录-->
+	<!--
+	<firewall>
 	   <whitehost>
-	      <host host="127.0.0.1" user="mycat"/>
-	      <host host="127.0.0.2" user="mycat"/>
+	      <host host="1*7.0.0.*" user="root"/>
 	   </whitehost>
        <blacklist check="false">
        </blacklist>
 	</firewall>
 	-->
-	
+
 	<user name="root">
 		<property name="password">123456</property>
 		<property name="schemas">TESTDB</property>

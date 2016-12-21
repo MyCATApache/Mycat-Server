@@ -67,9 +67,9 @@ public class BindValueUtil {
         case Fields.FIELD_TYPE_STRING:
         case Fields.FIELD_TYPE_VARCHAR:
             bv.value = mm.readStringWithLength(charset);
-            if (bv.value == null) {
-                bv.isNull = true;
-            }
+//            if (bv.value == null) {
+//                bv.isNull = true;
+//            }
             break;
         case Fields.FIELD_TYPE_DECIMAL:
         case Fields.FIELD_TYPE_NEW_DECIMAL:

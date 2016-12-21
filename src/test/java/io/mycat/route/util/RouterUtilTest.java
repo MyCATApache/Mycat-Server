@@ -1,5 +1,6 @@
 package io.mycat.route.util;
 
+import io.mycat.util.StringUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -77,5 +78,24 @@ public class RouterUtilTest {
         String sqltrue = "update test set name='abcd testx.aa' and name2='abcd testx.aa' where id=1";
         String sqlnew = RouterUtil.removeSchema(sql, "testx");
         Assert.assertEquals("处理错误：", sqltrue, sqlnew);
+    }
+    /**
+     * @modification 修改支持createTable语句中包含“IF NOT EXISTS”的情况,这里测试下
+     * @date 2016/12/8
+     * @modifiedBy Hash Zhang
+     */
+    @Test
+    public void testGetCreateTableStmtTableName(){
+        String sql1 = StringUtil.makeString("create table if not exists producer(\n",
+                "\tid int(11) primary key,\n",
+                "\tname varchar(32)\n",
+                ");").toUpperCase();
+        String sql2 = StringUtil.makeString("create table good(\n",
+                "\tid int(11) primary key,\n",
+                "\tcontent varchar(32),\n",
+                "\tproducer_id int(11) key\n",
+                ");").toUpperCase();
+        Assert.assertTrue("producer".equalsIgnoreCase(RouterUtil.getTableName(sql1, RouterUtil.getCreateTablePos(sql1, 0))));
+        Assert.assertTrue("good".equalsIgnoreCase(RouterUtil.getTableName(sql2, RouterUtil.getCreateTablePos(sql2, 0))));
     }
 }

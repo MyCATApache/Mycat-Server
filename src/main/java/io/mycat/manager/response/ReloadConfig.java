@@ -66,7 +66,7 @@ public final class ReloadConfig {
 		
 		// reload @@config_all 校验前一次的事务完成情况
 		if ( loadAll && !NIOProcessor.backends_old.isEmpty() ) {
-			c.writeErrMessage(ErrorCode.ER_YES, "The before reload @@config_all has an unfinished db transaction, please try again later.");
+			c.writeErrMessage(ErrorCode.ER_YES, "The are several unfinished db transactions before executing \"reload @@config_all\", therefore the execution is terminated for logical integrity and please try again later.");
 			return;
 		}
 		
@@ -189,7 +189,7 @@ public final class ReloadConfig {
 							if (con instanceof MySQLConnection) {
 								MySQLConnection mysqlCon = (MySQLConnection) con;
 								if ( mysqlCon.getPool() == ds) {
-									NIOProcessor.backends_old.add( con );									
+									NIOProcessor.backends_old.add( con );
 								}
 
 			                } else if (con instanceof JDBCConnection) {

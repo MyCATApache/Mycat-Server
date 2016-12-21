@@ -40,6 +40,29 @@ public class RuleFunctionSuitTableTest {
 		tableConf.getDataNodes().addAll(Arrays.asList("dn1", "dn2", "dn3", "dn4"));
 		int suit3 = autoPartition.suitableFor(tableConf);
 		Assert.assertEquals(1, suit3);
+		
+		/* 
+		 * autopartition-long-dupl.txt
+		 * 0-1000=0
+		 * 1001-2000=1
+		 * 2001-3000=0
+		 * 3001-4000=1
+		*/
+		AutoPartitionByLong autoPartition2 = new AutoPartitionByLong();
+		autoPartition2.setMapFile("autopartition-long-dupl.txt");
+		autoPartition2.init();
+		Assert.assertEquals(2, autoPartition2.getPartitionNum());
+		RuleConfig rule2 = new RuleConfig("id", "auto-partition-long-dupl");
+		rule2.setRuleAlgorithm(autoPartition2);
+		TableConfig tableConf2 = new TableConfig("test2", "id", true, false, -1, "dn1,dn2",
+				null, rule, true, null, false, null, null, null);
+		Assert.assertEquals(0, autoPartition2.suitableFor(tableConf2));
+		
+		Assert.assertEquals(0, autoPartition2.calculate("500").intValue());
+		Assert.assertEquals(1, autoPartition2.calculate("1500").intValue());
+		Assert.assertEquals(1, autoPartition2.calculate("2000").intValue());
+		Assert.assertEquals(0, autoPartition2.calculate("3000").intValue());
+		Assert.assertEquals(1, autoPartition2.calculate("3001").intValue());
 	}
 	
 	@Test
@@ -133,6 +156,70 @@ public class RuleFunctionSuitTableTest {
 		int suit3 = partition.suitableFor(tableConf);
 		Assert.assertEquals(1, suit3);
 		
+	}
+	
+	@Test
+	public void testPartitionByPattern() {
+		PartitionByPattern partition = new PartitionByPattern();
+		partition.setMapFile("partition-pattern.txt");
+		partition.init();
+		
+		/*
+		 * partition-pattern.txt
+		 * 1-32=0
+         * 33-64=1
+         * 65-96=2
+         * 97-128=3
+         * 129-160=4
+         * 161-192=5
+         * 193-224=6
+         * 225-256=7
+         * 0-0=7
+		 */
+		
+		Assert.assertEquals(8, partition.getPartitionNum());
+		
+	}
+	
+	@Test
+	public void testPartitionByPrefixPattern() {
+		PartitionByPrefixPattern partition = new PartitionByPrefixPattern();
+		partition.setMapFile("partition_prefix_pattern.txt");
+		partition.init();
+		
+		
+		/*
+		 * partition_prefix_pattern.txt
+		 * 1-4=0
+         * 5-8=1
+         * 9-12=2
+         * 13-16=3
+         * 17-20=4
+	     * 21-24=5
+         * 25-28=6
+         * 29-32=7
+         * 0-0=7
+		 */
+		Assert.assertEquals(8, partition.getPartitionNum());
+		
+		RuleConfig rule = new RuleConfig("id", "partition-prefix-pattern");
+		rule.setRuleAlgorithm(partition);
+		TableConfig tableConf = new TableConfig("test", "id", true, false, -1, "dn1,dn2",
+				null, rule, true, null, false, null, null, null);
+		int suit1 = partition.suitableFor(tableConf);
+		Assert.assertEquals(-1, suit1);
+		
+		tableConf.getDataNodes().clear();
+		String[] dataNodes = SplitUtil.split("dn$1-8", ',', '$', '-');
+		tableConf.getDataNodes().addAll(Arrays.asList(dataNodes));
+		int suit2 = partition.suitableFor(tableConf);
+		Assert.assertEquals(0, suit2);
+		
+		tableConf.getDataNodes().clear();
+		dataNodes = SplitUtil.split("dn$1-10", ',', '$', '-');
+		tableConf.getDataNodes().addAll(Arrays.asList(dataNodes));
+		int suit3 = partition.suitableFor(tableConf);
+		Assert.assertEquals(1, suit3);
 	}
 
 }
