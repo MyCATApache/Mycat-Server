@@ -85,11 +85,18 @@ public class MigrateTaskWatch {
             switch (event.getType()) {
                 case CHILD_ADDED:
                     addOrUpdate(event);
+
                     String path = event.getData().getPath() + "/_prepare";
                    if( curatorFramework.checkExists().forPath(path)==null){
                        curatorFramework.create().creatingParentsIfNeeded().forPath(path);
                    }
                    ZKUtils.addChildPathCache(path,new SwitchPrepareListener());
+
+                    String commitPath = event.getData().getPath() + "/_commit";
+                    if( curatorFramework.checkExists().forPath(commitPath)==null){
+                        curatorFramework.create().creatingParentsIfNeeded().forPath(commitPath);
+                    }
+                    ZKUtils.addChildPathCache(commitPath,new SwitchCommitListener());
                     LOGGER.info("table CHILD_ADDED: " + event.getData().getPath());
                     break;
                 case CHILD_UPDATED:
@@ -153,7 +160,7 @@ public class MigrateTaskWatch {
                 Set<String> allRunnerSet=      SwitchPrepareCheckRunner.allSwitchRunnerSet;
                 if(!allRunnerSet.contains(taskID)){
                     List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(tpath);
-                    List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(tpath,dataHosts);
+                    List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(tpath,removeStatusNode(dataHosts));
                     scheduledExecutorService.schedule(new SwitchPrepareCheckRunner(taskID,tpath,taskNode, MigrateUtils.convertAllTask(allTaskList)),1,TimeUnit.SECONDS);
                     allRunnerSet.add(taskID);
                 }
@@ -164,6 +171,21 @@ public class MigrateTaskWatch {
                      taskLock.release();
                  }
             }
+        }
+
+        private List<String> removeStatusNode(List<String> dataHosts){
+            List<String> resultList=new ArrayList<>();
+            for (String dataHost : dataHosts) {
+                if("_prepare".equals(dataHost)||"_commit".equals(dataHost))
+                {
+                    continue;
+                }
+                resultList.add(dataHost);
+            }
+
+
+
+            return resultList;
         }
 
 

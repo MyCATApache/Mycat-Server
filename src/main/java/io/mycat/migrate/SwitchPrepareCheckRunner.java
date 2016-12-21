@@ -3,11 +3,16 @@ package io.mycat.migrate;
 import com.google.common.collect.Sets;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.net.NIOProcessor;
 import io.mycat.route.RouteCheckRule;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.function.PartitionByCRC32PreSlot;
+import io.mycat.util.ZKUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -20,6 +25,7 @@ import java.util.concurrent.TimeUnit;
  * Created by nange on 2016/12/20.
  */
 public class SwitchPrepareCheckRunner implements Runnable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SwitchPrepareListener.class);
       public  static Set<String> allSwitchRunnerSet= Sets.newConcurrentHashSet();
 
     private String taskID;
@@ -62,9 +68,18 @@ public class SwitchPrepareCheckRunner implements Runnable {
             }
         }
 
-        //todo
-        if(!isHasInTransation){
 
+        if(!isHasInTransation){
+            try {
+            String myID=    ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+            String path=taskPath+"/_commit/"+myID;
+            if(ZKUtils.getConnection().checkExists().forPath(path)==null ){
+                    ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(path);
+            }
+                allSwitchRunnerSet.remove(taskID);
+            } catch (Exception e) {
+                LOGGER.error("error:",e);
+            }
         }
 
     }

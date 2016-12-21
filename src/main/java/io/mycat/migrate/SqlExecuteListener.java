@@ -45,6 +45,8 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
               LOGGER.error("error:",e);
                 close(e.getMessage());
             }
+        }    else{
+            close("sucess");
         }
     }
 

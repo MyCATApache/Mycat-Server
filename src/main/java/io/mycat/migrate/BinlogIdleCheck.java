@@ -1,28 +1,11 @@
 package io.mycat.migrate;
 
-import com.alibaba.fastjson.JSON;
-import com.google.common.io.Files;
-import io.mycat.MycatServer;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.config.model.TableConfig;
-import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.util.ZKUtils;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.StringReader;
-import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by magicdoom on 2016/12/14.
@@ -55,7 +38,7 @@ public class BinlogIdleCheck implements Runnable {
 
         }
         if(sucessSwitchTask==migrateTaskList.size()){
-             taskPath=taskPath+"/_status/"+dataHost;
+             taskPath=taskPath+"/_prepare/"+dataHost;
             try {
                 if( ZKUtils.getConnection().checkExists().forPath(taskPath)==null) {
                    ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(taskPath);

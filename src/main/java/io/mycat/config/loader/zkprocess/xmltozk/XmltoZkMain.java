@@ -63,6 +63,11 @@ public class XmltoZkMain {
         xmlProcess.initJaxbClass();
 
 
+        // 加载通知进程
+        zkListen.notifly(ZkNofiflyCfg.ZK_NOTIFLY_LOAD_ALL.getKey());
+
+
+
         String clusterNodes=    ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTER_NODES);
         String clusterSize=    ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTER_SIZE);
         ClusterInfo info=new ClusterInfo();
@@ -71,10 +76,8 @@ public class XmltoZkMain {
         try {
             zkConn.setData().forPath(basePath, JSON.toJSONBytes(info));
         } catch (Exception e) {
-           LOGGER.error("error",e);
+            LOGGER.error("error",e);
         }
-        // 加载通知进程
-        zkListen.notifly(ZkNofiflyCfg.ZK_NOTIFLY_LOAD_ALL.getKey());
 
     }
 
