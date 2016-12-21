@@ -33,10 +33,7 @@ import io.mycat.sqlengine.mpp.HavingCols;
 import io.mycat.util.FormatUtil;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author mycat
