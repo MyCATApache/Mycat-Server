@@ -85,12 +85,14 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                          finally {
                              ruleLock.release();
                          }
-
+                           //todo 清理数据
                          modifyRuleData(transactionFinal,allTaskList,tableConfig,allNewDataNodes);
                          transactionFinal.commit() ;
 
 
 
+                     }  else   if(taskNode.getStatus()==3){
+                         //todo   清理规则     顺利拉下ruledata保证一定更新到本地
                      }
 
              }
