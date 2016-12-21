@@ -33,7 +33,10 @@ import io.mycat.sqlengine.mpp.HavingCols;
 import io.mycat.util.FormatUtil;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author mycat
@@ -78,14 +81,14 @@ public final class RouteResultset implements Serializable {
        //key=dataNode    value=slot
     private Map<String,Integer>   dataNodeSlotMap=new HashMap<>();
 
-    private List<String> tables;
+    private boolean selectForUpdate;
 
-    public List<String> getTables() {
-        return tables;
+    public boolean isSelectForUpdate() {
+        return selectForUpdate;
     }
 
-    public void setTables(List<String> tables) {
-        this.tables = tables;
+    public void setSelectForUpdate(boolean selectForUpdate) {
+        this.selectForUpdate = selectForUpdate;
     }
 
     public Map<String, Integer> getDataNodeSlotMap() {
