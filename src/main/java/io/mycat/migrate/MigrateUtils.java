@@ -1,6 +1,8 @@
 package io.mycat.migrate;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import io.mycat.MycatServer;
 import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.util.ZKUtils;
@@ -144,6 +146,37 @@ public class MigrateUtils {
 
         return result;
     }
+    public static  String convertRangeListToString(List<Range> rangeList)
+    {   List<String> rangeStringList=new ArrayList<>();
+        for (Range range : rangeList) {
+            if(range.start==range.end){
+                rangeStringList.add(String.valueOf(range.start))  ;
+            } else{
+                rangeStringList.add(range.start+"-"+range.end)  ;
+            }
+        }
+     return    Joiner.on(',').join(rangeStringList);
+    }
+
+    public static List<Range>  convertRangeStringToList(String rangeStr){
+        List<String> ranges = Splitter.on(",").omitEmptyStrings().trimResults().splitToList(rangeStr);
+        List<Range> rangeList = new ArrayList<>();
+        for (String range : ranges) {
+            List<String> vv = Splitter.on("-").omitEmptyStrings().trimResults().splitToList(range);
+            if (vv.size() == 2) {
+                Range ran = new Range(Integer.parseInt(vv.get(0)), Integer.parseInt(vv.get(1)));
+                rangeList.add(ran);
+
+            } else if (vv.size() == 1) {
+                Range ran = new Range(Integer.parseInt(vv.get(0)), Integer.parseInt(vv.get(0)));
+                rangeList.add(ran);
+
+            } else {
+                throw new RuntimeException("load crc32slot datafile error:dn=value=" + range);
+            }
+        }
+        return rangeList;
+    }
 
     public static int getCurTotalSize(List<Range> rangeList) {
         int size = 0;
@@ -157,8 +190,8 @@ public class MigrateUtils {
         return    MycatServer.getInstance().getConfig().getDataNodes().get(dn).getDatabase();
     }
 
-    public static List<PartitionByCRC32PreSlot.Range> convertAllTask(List<MigrateTask> allTasks){
-        List<PartitionByCRC32PreSlot.Range>  resutlList=new ArrayList<>();
+    public static List<Range> convertAllTask(List<MigrateTask> allTasks){
+        List<Range>  resutlList=new ArrayList<>();
         for (MigrateTask allTask : allTasks) {
             resutlList.addAll(allTask.getSlots());
         }
@@ -167,6 +200,7 @@ public class MigrateUtils {
     public static List<MigrateTask> queryAllTask(String basePath, List<String> dataHost) throws Exception {
         List<MigrateTask>  resutlList=new ArrayList<>();
         for (String dataHostName : dataHost) {
+            if("_prepare".equals(dataHostName)||"_commit".equals(dataHostName))
             resutlList.addAll(  JSON
                     .parseArray(new String(ZKUtils.getConnection().getData().forPath(basePath+"/"+dataHostName),"UTF-8") ,MigrateTask.class));
         }

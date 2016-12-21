@@ -11,8 +11,10 @@ import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.zookeeper.ClusterInfo;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
+import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.route.RouteCheckRule;
 import io.mycat.route.function.PartitionByCRC32PreSlot;
+import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
@@ -22,6 +24,8 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -54,15 +58,39 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
             String custerName = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
            ClusterInfo clusterInfo= JSON.parseObject(ZKUtils.getConnection().getData().forPath("/mycat/"+custerName) , ClusterInfo.class);
            List<String> clusterNodeList= Splitter.on(',').omitEmptyStrings().splitToList(clusterInfo.getClusterNodes());
-            TaskNode pTaskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
              if(sucessDataHost.size()==clusterNodeList.size()){
 
+                 List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(taskPath,sucessDataHost);
                  taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
                  taskLock.acquire(20, TimeUnit.SECONDS);
                      TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
                      if(taskNode.getStatus()==2){
-                         taskNode.setStatus(3);  //prepare switch
-                         ZKUtils.getConnection().setData().forPath(taskPath,JSON.toJSONBytes(taskNode))  ;
+                         taskNode.setStatus(3);
+                         //开始切换 且个节点已经禁止写入并且无原有写入在执行
+
+                         CuratorTransactionFinal transactionFinal= ZKUtils.getConnection().inTransaction().setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and();
+
+                         SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(taskNode.getSchema());
+                         TableConfig tableConfig = schemaConfig.getTables().get(taskNode.getTable().toUpperCase());
+                         List<String> newDataNodes = Splitter.on(",").omitEmptyStrings().trimResults().splitToList(taskNode.getAdd());
+                         List<String> allNewDataNodes =  tableConfig.getDataNodes();
+                         allNewDataNodes.addAll(newDataNodes);
+                         //先修改rule config
+                         InterProcessMutex  ruleLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath()+"lock/rules.lock");;
+                         try {
+                             ruleLock.acquire(30, TimeUnit.SECONDS);
+                             modifyZkRules(transactionFinal,tableConfig.getRule().getFunctionName(),newDataNodes);
+                             modifyTableConfigRules(transactionFinal,taskNode.getSchema(),taskNode.getTable(),newDataNodes);
+                         }
+                         finally {
+                             ruleLock.release();
+                         }
+
+                         modifyRuleData(transactionFinal,allTaskList,tableConfig,allNewDataNodes);
+                         transactionFinal.commit() ;
+
+
+
                      }
 
              }
@@ -83,112 +111,47 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         }
     }
 
-    private int getRealSize(List<String> dataHosts){
-        int size=dataHosts.size();
-        Set<String> set=new HashSet(dataHosts);
-        if(set.contains("_prepare"))   {
-            size=size-1;
-        }
-        if(set.contains("_commit"))   {
-            size=size-1;
-        }
-
-        return size;
-    }
-    private void checkSwitch1(PathChildrenCacheEvent event)    {
-        InterProcessMutex taskLock =null;
-        try {
-
-            String path=event.getData().getPath();
-            String taskPath=path.substring(0,path.lastIndexOf("/_status/"))  ;
-            String taskID=taskPath.substring(taskPath.lastIndexOf('/')+1,taskPath.length());
-            String lockPath=     ZKUtils.getZKBasePath()+"lock/"+taskID+".lock";
-            taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
-            taskLock.acquire(20, TimeUnit.SECONDS);
-            List<String> sucessDataHost= ZKUtils.getConnection().getChildren().forPath(path.substring(0,path.lastIndexOf('/')));
-            List<String> dataHost=  ZKUtils.getConnection().getChildren().forPath(taskID) ;
-            if(dataHost.size()-1==sucessDataHost.size()){
-                   CuratorTransactionFinal transactionFinal=null;
-                TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
-
-                SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(taskNode.getSchema());
-                TableConfig tableConfig = schemaConfig.getTables().get(taskNode.getTable().toUpperCase());
-                List<String> newDataNodes = Splitter.on(",").omitEmptyStrings().trimResults().splitToList(taskNode.getAdd());
-
-                            //先修改rule config
-                             InterProcessMutex  ruleLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath()+"lock/rules.lock");;
-                            try {
-                                ruleLock.acquire(30, TimeUnit.SECONDS);
-                               modifyZkRules(transactionFinal,tableConfig.getRule().getFunctionName(),newDataNodes);
-                                modifyTableConfigRules(transactionFinal,taskNode.getSchema(),taskNode.getTable(),newDataNodes);
-                            }
-                            finally {
-                                ruleLock.release();
-                            }
 
 
-                transactionFinal.commit() ;
-            }
-        } catch (Exception e) {
-           LOGGER.error("error:",e);
-        }   finally {
-            if(taskLock!=null){
-                try {
-                    taskLock.release();
-                } catch (Exception ignored) {
 
-                }
-            }
-        }
+
+    private void modifyRuleData( CuratorTransactionFinal transactionFinal, List<MigrateTask> allTaskList,  TableConfig tableConfig,List<String> allNewDataNodes )
+            throws Exception {
+
+                    InterProcessMutex ruleDataLock =null;
+                    try {
+                        String path=     ZKUtils.getZKBasePath()+"lock/ruledata.lock";
+                        ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
+                        ruleDataLock.acquire(30, TimeUnit.SECONDS);
+                        RuleConfig ruleConfig= tableConfig.getRule();
+                        String ruleName=ruleConfig.getFunctionName()+"_"+ tableConfig.getName().toUpperCase()+".properties";
+                        String rulePath=ZKUtils.getZKBasePath()+"ruledata/"+ruleName;
+                        CuratorFramework zk = ZKUtils.getConnection();
+                        byte[] ruleData=zk.getData().forPath(rulePath);
+                        Properties prop = new Properties();
+                        prop.load(new ByteArrayInputStream(ruleData));
+                        for (MigrateTask migrateTask : allTaskList) {
+                            modifyRuleData(prop,migrateTask,allNewDataNodes);
+                        }
+                        ByteArrayOutputStream out=new ByteArrayOutputStream();
+                        prop.store(out, "WARNING   !!!Please do not modify or delete this file!!!");
+                       transactionFinal.setData().forPath(ruleName, out.toByteArray());
+
+                    }finally {
+                        try {
+                            if(ruleDataLock!=null)
+                                ruleDataLock.release();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
     }
 
-
-
-
-    private void xx()
-    {
-//                byte[] data=   ZKUtils.getConnection().getData().forPath(zkPath) ;
-//                TaskStatus taskStatus =JSON.parseObject(data, TaskStatus.class);
-//                if(taskStatus.getStatus()==1)  {
-//                    taskStatus.setStatus(3);
-//                    migrateTask.setStatus(3);
-//                    ZKUtils.getConnection().setData().forPath(zkPath,JSON.toJSONBytes(taskStatus)) ;
-//                    InterProcessMutex ruleDataLock =null;
-//                    try {
-//                        String path=     ZKUtils.getZKBasePath()+"lock/ruledata.lock";
-//                        ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
-//                        ruleDataLock.acquire(30, TimeUnit.SECONDS);
-//                        Map<String, SchemaConfig> schemaConfigMap= MycatServer.getInstance().getConfig().getSchemas() ;
-//                        SchemaConfig schemaConfig=   schemaConfigMap.get(migrateTask.getSchema());
-//                        TableConfig tableConfig = schemaConfig.getTables()
-//                                .get(migrateTask.getTable().toUpperCase());
-//                        RuleConfig ruleConfig= tableConfig.getRule();
-//                        String ruleName=ruleConfig.getFunctionName()+"_"+ migrateTask.getTable().toUpperCase()+".properties";
-//                        String rulePath=ZKUtils.getZKBasePath()+"ruledata/"+ruleName;
-//                        CuratorFramework zk = ZKUtils.getConnection();
-//                        byte[] ruleData=zk.getData().forPath(rulePath);
-//                        Properties prop = new Properties();
-//                        prop.load(new ByteArrayInputStream(ruleData));
-//                        modifyRuleData(prop,migrateTask,tableConfig);
-//                        ByteArrayOutputStream out=new ByteArrayOutputStream();
-//                        prop.store(out, "WARNING   !!!Please do not modify or delete this file!!!");
-//                        zk.setData().forPath(ruleName, out.toByteArray());
-//
-//                    } finally {
-//                        try {
-//                            if(ruleDataLock!=null)
-//                                ruleDataLock.release();
-//                        } catch (Exception e) {
-//                            throw new RuntimeException(e);
-//                        }
-//                    }
-//                }
-    }
-
-    private   void modifyRuleData( Properties prop ,MigrateTask task, TableConfig tableConfig ){
+    private   void modifyRuleData( Properties prop ,MigrateTask task ,List<String> allNewDataNodes){
         int fromIndex=-1;
         int toIndex=-1;
-        List<String> dataNodes=   tableConfig.getDataNodes();
+        List<String> dataNodes=   allNewDataNodes;
         for (int i = 0; i < dataNodes.size(); i++) {
             String dataNode = dataNodes.get(i);
             if(dataNode.equalsIgnoreCase(task.getFrom())){
@@ -199,7 +162,20 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
             }
         }
         String from=  prop.getProperty(String.valueOf(fromIndex)) ;
+        String to=  prop.getProperty(String.valueOf(toIndex)) ;
+        String fromRemain=removeRangesRemain(from,task.getSlots());
+        String taskRanges = MigrateUtils.convertRangeListToString(task.getSlots());
+        String newTo=to==null? taskRanges : to+","+taskRanges;
+        prop.setProperty(String.valueOf(fromIndex),fromRemain);
+        prop.setProperty(String.valueOf(toIndex),newTo);
     }
+
+    private  String removeRangesRemain(String ori,List<Range> rangeList){
+       List<Range> ranges=MigrateUtils.convertRangeStringToList(ori);
+        List<Range> ramain=  MigrateUtils.removeAndGetRemain(ranges,rangeList);
+        return MigrateUtils.convertRangeListToString(ramain);
+    }
+
 
 
     private static void modifyZkRules( CuratorTransactionFinal transactionFinal,String ruleName ,List<String> newDataNodes )
