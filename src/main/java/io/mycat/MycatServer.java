@@ -150,6 +150,8 @@ public class MycatServer {
 	private ListeningExecutorService listeningExecutorService;
 	private  InterProcessMutex dnindexLock;
 	private  long totalNetWorkBufferSize = 0;
+
+	private final AtomicBoolean startup=new AtomicBoolean(false);
 	private MycatServer() {
 		
 		//读取文件配置
@@ -194,6 +196,11 @@ public class MycatServer {
 			 String path=     ZKUtils.getZKBasePath()+"lock/dnindex.lock";
 			 dnindexLock = new InterProcessMutex(ZKUtils.getConnection(), path);
 		 }
+
+	}
+
+	public AtomicBoolean getStartup() {
+		return startup;
 	}
 
 	public long getTotalNetWorkBufferSize() {
@@ -218,6 +225,10 @@ public class MycatServer {
 
 	public SQLInterceptor getSqlInterceptor() {
 		return sqlInterceptor;
+	}
+
+	public ScheduledExecutorService getScheduler() {
+		return scheduler;
 	}
 
 	public String genXATXID() {
@@ -469,27 +480,63 @@ public class MycatServer {
 
 		if(isUseZkSwitch()) {
 			//首次启动如果发现zk上dnindex为空，则将本地初始化上zk
-			try {
-				File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "dnindex.properties");
-				dnindexLock.acquire(30, TimeUnit.SECONDS);
-				String path = ZKUtils.getZKBasePath() + "bindata/dnindex.properties";
-				CuratorFramework zk = ZKUtils.getConnection();
-				if (zk.checkExists().forPath(path) == null) {
-					zk.create().creatingParentsIfNeeded().forPath(path, Files.toByteArray(file));
-				}
+			initZkDnindex();
+		}
+		initRuleData();
 
+		startup.set(true);
+	}
+
+	public void initRuleData() {
+		if(!isUseZk())  return;
+		InterProcessMutex	ruleDataLock =null;
+		try {
+			File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "ruledata");
+			String path=     ZKUtils.getZKBasePath()+"lock/ruledata.lock";
+			ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
+			ruleDataLock.acquire(30, TimeUnit.SECONDS);
+		      File[]  childFiles=	file.listFiles();
+			String basePath=ZKUtils.getZKBasePath()+"ruledata/";
+			for (File childFile : childFiles) {
+				CuratorFramework zk = ZKUtils.getConnection();
+				if (zk.checkExists().forPath(basePath+childFile.getName()) == null) {
+					zk.create().creatingParentsIfNeeded().forPath(basePath+childFile.getName(), Files.toByteArray(childFile));
+				}
+			}
+
+
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} finally {
+			try {
+				if(ruleDataLock!=null)
+				ruleDataLock.release();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
-			} finally {
-				try {
-					dnindexLock.release();
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
 			}
 		}
 	}
 
+	private void initZkDnindex() {
+		try {
+            File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "dnindex.properties");
+            dnindexLock.acquire(30, TimeUnit.SECONDS);
+            String path = ZKUtils.getZKBasePath() + "bindata/dnindex.properties";
+            CuratorFramework zk = ZKUtils.getConnection();
+            if (zk.checkExists().forPath(path) == null) {
+                zk.create().creatingParentsIfNeeded().forPath(path, Files.toByteArray(file));
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                dnindexLock.release();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+	}
 
 	public void reloadDnIndex()
 	{
@@ -673,6 +720,12 @@ public class MycatServer {
 			}
 		}
 
+	}
+
+
+	private boolean isUseZk(){
+		String loadZk=ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_FLAG);
+		return "true".equalsIgnoreCase(loadZk)   ;
 	}
 
 	private boolean isUseZkSwitch()

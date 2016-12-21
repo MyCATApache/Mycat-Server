@@ -90,6 +90,17 @@ public final class RouteResultset implements Serializable {
     public void setSelectForUpdate(boolean selectForUpdate) {
         this.selectForUpdate = selectForUpdate;
     }
+	
+	
+	 private List<String> tables;
+
+    public List<String> getTables() {
+        return tables;
+    }
+
+    public void setTables(List<String> tables) {
+        this.tables = tables;
+    }
 
     public Map<String, Integer> getDataNodeSlotMap() {
         return dataNodeSlotMap;

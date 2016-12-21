@@ -106,9 +106,12 @@ public class ZktoXmlMain {
         loadZkWatch(zkListen.getWatchPath(), zkConn, zkListen);
 
         // 创建临时节点
-        createTempNode("/mycat/mycat-cluster-1/line", "tmpNode1", zkConn);
+        createTempNode(ZKUtils.getZKBasePath()+"line", ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID)
+                , zkConn,ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_SERVER_TYPE));
 
         MigrateTaskWatch.start();
+
+
 
     }
 
@@ -135,11 +138,11 @@ public class ZktoXmlMain {
     * @throws Exception
     * @创建日期 2016年9月20日
     */
-    private static void createTempNode(String parent, String node, final CuratorFramework zkConn) throws Exception {
+    private static void createTempNode(String parent, String node, final CuratorFramework zkConn,String type) throws Exception {
 
         String path = ZKPaths.makePath(parent, node);
 
-        zkConn.create().withMode(CreateMode.EPHEMERAL).inBackground().forPath(path);
+        zkConn.create().withMode(CreateMode.EPHEMERAL).inBackground().forPath(path,type.getBytes("UTF-8"));
 
     }
 
