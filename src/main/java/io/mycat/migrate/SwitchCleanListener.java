@@ -41,7 +41,6 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
             String taskID=taskPath.substring(taskPath.lastIndexOf('/')+1,taskPath.length());
             String lockPath=     ZKUtils.getZKBasePath()+"lock/"+taskID+".lock";
             List<String> sucessDataHost= ZKUtils.getConnection().getChildren().forPath(path.substring(0,path.lastIndexOf('/')));
-            List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(taskPath,sucessDataHost);
             TaskNode pTaskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
 
             String custerName = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);

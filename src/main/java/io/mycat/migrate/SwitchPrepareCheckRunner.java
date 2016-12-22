@@ -68,7 +68,7 @@ public class SwitchPrepareCheckRunner implements Runnable {
             }
         }
 
-
+       //todo 增加判断binlog完成
         if(!isHasInTransation){
             try {
             String myID=    ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);

@@ -67,7 +67,8 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
            List<String> clusterNodeList= Splitter.on(',').omitEmptyStrings().splitToList(clusterInfo.getClusterNodes());
              if(sucessDataHost.size()==clusterNodeList.size()){
 
-                 List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(taskPath,sucessDataHost);
+                 List<String> taskDataHost= ZKUtils.getConnection().getChildren().forPath(taskPath);
+                 List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(taskPath,taskDataHost);
                  taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
                  taskLock.acquire(120, TimeUnit.SECONDS);
                      TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
@@ -201,9 +202,9 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                         ByteArrayOutputStream out=new ByteArrayOutputStream();
                         prop.store(out, "WARNING   !!!Please do not modify or delete this file!!!");
                         if(transactionFinal==null){
-                            transactionFinal=  ZKUtils.getConnection().inTransaction().setData().forPath(ruleName, out.toByteArray()).and();
+                            transactionFinal=  ZKUtils.getConnection().inTransaction().setData().forPath(rulePath, out.toByteArray()).and();
                         }  else {
-                            transactionFinal.setData().forPath(ruleName, out.toByteArray());
+                            transactionFinal.setData().forPath(rulePath, out.toByteArray());
                         }
                     }finally {
                         try {

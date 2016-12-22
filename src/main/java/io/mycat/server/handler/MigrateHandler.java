@@ -60,7 +60,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-/**
+/**   todo remove watch
  * @author nange
  */
 public final class MigrateHandler {
@@ -119,16 +119,18 @@ public final class MigrateHandler {
             CuratorFramework client= ZKUtils.getConnection();
 
             //校验 之前同一个表的迁移任务未完成，则jzhi禁止继续
-        List<String> childTaskList=     client.getChildren().forPath(taskBase);
-            for (String child : childTaskList) {
-                TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskBase+"/"+child),TaskNode.class);
-                if(taskNode.getSchema().equalsIgnoreCase(c.getSchema())&&table.equalsIgnoreCase(taskNode.getTable())
-                        &&taskNode.getStatus()<5)   {
-                    writeErrMessage(c, "table: " + table + " previous migrate task is still running,on the same time one table only one task");
-                    return;
-                }
-            }
-
+           if( client.checkExists().forPath(taskBase) !=null ) {
+               List<String> childTaskList = client.getChildren().forPath(taskBase);
+               for (String child : childTaskList) {
+                   TaskNode taskNode = JSON
+                           .parseObject(ZKUtils.getConnection().getData().forPath(taskBase + "/" + child), TaskNode.class);
+                   if (taskNode.getSchema().equalsIgnoreCase(c.getSchema()) && table.equalsIgnoreCase(taskNode.getTable())
+                           && taskNode.getStatus() < 5) {
+                       writeErrMessage(c, "table: " + table + " previous migrate task is still running,on the same time one table only one task");
+                       return;
+                   }
+               }
+           }
             client.create().creatingParentsIfNeeded().forPath(taskPath);
             TaskNode taskNode=new TaskNode();
             taskNode.setSchema(c.getSchema());
