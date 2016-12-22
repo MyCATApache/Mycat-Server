@@ -145,9 +145,9 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
 
     private void checkAndClean(  String taskID,List<MigrateTask> allTaskList) throws IOException, SQLException {
         for (MigrateTask migrateTask : allTaskList) {
-            String sql=makeCountSql(migrateTask);
-            long oldCount=execulteCount(sql,migrateTask.getFrom());
-            long newCount=execulteCount(sql,migrateTask.getTo());
+            String sql=MigrateUtils.makeCountSql(migrateTask);
+            long oldCount=MigrateUtils.execulteCount(sql,migrateTask.getFrom());
+            long newCount=MigrateUtils.execulteCount(sql,migrateTask.getTo());
             if(oldCount!=newCount){
                 throw new  RuntimeException("migrate task ("+taskID+") check fail,because  fromNode:"
                         +migrateTask.getFrom()+"("+oldCount+")"+" and  toNode:"+migrateTask.getTo()+"("+newCount+") and sql is "+sql);
@@ -156,7 +156,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         //clean
         for (MigrateTask migrateTask : allTaskList) {
             String sql=makeCleanSql(migrateTask);
-           execulteSql(sql,migrateTask.getFrom());
+            MigrateUtils.execulteSql(sql,migrateTask.getFrom());
         }
     }
     private String makeCleanSql(MigrateTask task){
@@ -178,59 +178,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         return sb.toString();
     }
 
-    private String makeCountSql(MigrateTask task){
-        StringBuilder sb=new StringBuilder();
-        sb.append("select count(*) as count from ");
-        sb.append(task.getTable()).append(" where ");
-        List<Range> slots = task.getSlots();
-        for (int i = 0; i < slots.size(); i++) {
-            Range range = slots.get(i);
-          if(i!=0)
-              sb.append(" and ");
-            if(range.start==range.end){
-              sb.append(" _slot=").append(range.start);
-            }   else {
-                sb.append(" _slot>=").append(range.start);
-                sb.append(" and _slot<=").append(range.end);
-            }
-        }
-       return sb.toString();
-    }
 
-    private void execulteSql(String sql,String toDn) throws SQLException, IOException {
-        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
-        PhysicalDBPool dbPool = dbNode.getDbPool();
-        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
-        DBHostConfig config = datasource.getConfig();
-        Connection con = null;
-        try {
-            con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
-
-               JdbcUtils.execute(con,sql, new ArrayList<>());
-
-        } finally{
-            JdbcUtils.close(con);
-        }
-
-    }
-    private long execulteCount(String sql,String toDn) throws SQLException, IOException {
-        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
-        PhysicalDBPool dbPool = dbNode.getDbPool();
-        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
-        DBHostConfig config = datasource.getConfig();
-        Connection con = null;
-        try {
-            con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
-
-            List<Map<String, Object>> result=      JdbcUtils.executeQuery(con,sql, new ArrayList<>());
-            if(result.size()==1){
-                return (long) result.get(0).get("count");
-            }
-        } finally{
-            JdbcUtils.close(con);
-        }
-        return 0;
-    }
 
     private CuratorTransactionFinal modifyRuleData( CuratorTransactionFinal transactionFinal, List<MigrateTask> allTaskList,  TableConfig tableConfig,List<String> allNewDataNodes )
             throws Exception {

@@ -1,12 +1,21 @@
 package io.mycat.migrate;
 
+import com.alibaba.druid.util.JdbcUtils;
 import com.alibaba.fastjson.JSON;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
+import io.mycat.config.model.DBHostConfig;
 import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.util.ZKUtils;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.*;
 
 import static io.mycat.route.function.PartitionByCRC32PreSlot.*;
@@ -206,5 +215,60 @@ public class MigrateUtils {
                     .parseArray(new String(ZKUtils.getConnection().getData().forPath(basePath+"/"+dataHostName),"UTF-8") ,MigrateTask.class));
         }
         return resutlList;
+    }
+
+    public static String makeCountSql(MigrateTask task){
+        StringBuilder sb=new StringBuilder();
+        sb.append("select count(*) as count from ");
+        sb.append(task.getTable()).append(" where ");
+        List<Range> slots = task.getSlots();
+        for (int i = 0; i < slots.size(); i++) {
+            Range range = slots.get(i);
+            if(i!=0)
+                sb.append(" and ");
+            if(range.start==range.end){
+                sb.append(" _slot=").append(range.start);
+            }   else {
+                sb.append(" _slot>=").append(range.start);
+                sb.append(" and _slot<=").append(range.end);
+            }
+        }
+        return sb.toString();
+    }
+
+    public static void execulteSql(String sql,String toDn) throws SQLException, IOException {
+        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
+        PhysicalDBPool dbPool = dbNode.getDbPool();
+        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
+        DBHostConfig config = datasource.getConfig();
+        Connection con = null;
+        try {
+            con =  DriverManager
+                    .getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
+
+            JdbcUtils.execute(con,sql, new ArrayList<>());
+
+        } finally{
+            JdbcUtils.close(con);
+        }
+
+    }
+    public static long execulteCount(String sql,String toDn) throws SQLException, IOException {
+        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
+        PhysicalDBPool dbPool = dbNode.getDbPool();
+        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
+        DBHostConfig config = datasource.getConfig();
+        Connection con = null;
+        try {
+            con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
+
+            List<Map<String, Object>> result=      JdbcUtils.executeQuery(con,sql, new ArrayList<>());
+            if(result.size()==1){
+                return (long) result.get(0).get("count");
+            }
+        } finally{
+            JdbcUtils.close(con);
+        }
+        return 0;
     }
 }

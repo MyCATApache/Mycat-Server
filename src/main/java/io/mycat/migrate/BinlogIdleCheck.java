@@ -1,9 +1,12 @@
 package io.mycat.migrate;
 
+import com.alibaba.fastjson.JSON;
 import io.mycat.util.ZKUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 
@@ -34,9 +37,38 @@ public class BinlogIdleCheck implements Runnable {
                     //暂定30秒空闲 则代表增量任务结束，开始切换
                    sucessSwitchTask=sucessSwitchTask+1;
 
+                }else if(!migrateTask.isHaserror()){
+                    String sql=MigrateUtils.makeCountSql(migrateTask);
+                    try {
+                        long oldCount=MigrateUtils.execulteCount(sql,migrateTask.getFrom());
+                        long newCount=MigrateUtils.execulteCount(sql,migrateTask.getTo());
+                        if(oldCount!=0) {
+                            double percent = newCount / oldCount;
+                            if(percent>=0.9) {
+                                sucessSwitchTask=sucessSwitchTask+1;
+                            }
+                        }
+                    } catch (SQLException e) {
+                        LOGGER.error("error:",e);
+                    } catch (IOException e) {
+                        LOGGER.error("error:",e);
+                    }
+
                 }
 
         }
+
+
+        try {
+            TaskNode taskNode = JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
+            if(taskNode.getStatus()>=3){
+                    binlogStream.disconnect();
+            }
+        } catch (Exception e) {
+            LOGGER.error("error:",e);
+        }
+
+
         if(sucessSwitchTask==migrateTaskList.size()){
              taskPath=taskPath+"/_prepare/"+dataHost;
             try {
