@@ -1,19 +1,22 @@
 package io.mycat.migrate;
 
+import com.alibaba.druid.util.JdbcUtils;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.zookeeper.ClusterInfo;
+import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleConfig;
-import io.mycat.route.RouteCheckRule;
-import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -26,10 +29,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+
+
 
 /**
  * Created by magicdoom on 2016/12/19.
@@ -40,13 +47,13 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
             PathChildrenCacheEvent event) throws Exception {
         switch (event.getType()) {
             case CHILD_ADDED:
-                 checkSwitch(event);
+                 checkCommit(event);
                 break;
             default:
                 break;
         }
     }
-    private void checkSwitch(PathChildrenCacheEvent event)    {
+    private void checkCommit(PathChildrenCacheEvent event)    {
         InterProcessMutex taskLock =null;
         try {
 
@@ -62,13 +69,15 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
 
                  List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(taskPath,sucessDataHost);
                  taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
-                 taskLock.acquire(20, TimeUnit.SECONDS);
+                 taskLock.acquire(120, TimeUnit.SECONDS);
                      TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
                      if(taskNode.getStatus()==2){
                          taskNode.setStatus(3);
                          //开始切换 且个节点已经禁止写入并且无原有写入在执行
+                         try {
 
-                         CuratorTransactionFinal transactionFinal= ZKUtils.getConnection().inTransaction().setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and();
+
+                         CuratorTransactionFinal transactionFinal=null;
 
                          SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(taskNode.getSchema());
                          TableConfig tableConfig = schemaConfig.getTables().get(taskNode.getTable().toUpperCase());
@@ -79,20 +88,30 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                          InterProcessMutex  ruleLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath()+"lock/rules.lock");;
                          try {
                              ruleLock.acquire(30, TimeUnit.SECONDS);
-                             modifyZkRules(transactionFinal,tableConfig.getRule().getFunctionName(),newDataNodes);
-                             modifyTableConfigRules(transactionFinal,taskNode.getSchema(),taskNode.getTable(),newDataNodes);
+                             transactionFinal=  modifyZkRules(transactionFinal,tableConfig.getRule().getFunctionName(),newDataNodes);
+                             transactionFinal=    modifyTableConfigRules(transactionFinal,taskNode.getSchema(),taskNode.getTable(),newDataNodes);
                          }
                          finally {
                              ruleLock.release();
                          }
-                           //todo 清理数据
-                         modifyRuleData(transactionFinal,allTaskList,tableConfig,allNewDataNodes);
+
+                         transactionFinal=  modifyRuleData(transactionFinal,allTaskList,tableConfig,allNewDataNodes);
+                         transactionFinal.setData().forPath(taskPath,JSON.toJSONBytes(taskNode));
+
+                         checkAndClean(taskID,allTaskList);
                          transactionFinal.commit() ;
 
-
-
-                     }  else   if(taskNode.getStatus()==3){
+                             forceTableRuleToLocal();
+                             pushACKToClean(taskPath);
+                     } catch (Exception e){
+                             //todo 异常to  Zk
+                             LOGGER.error("error:",e);
+                         }
                          //todo   清理规则     顺利拉下ruledata保证一定更新到本地
+
+                     }else   if(taskNode.getStatus()==3){
+                         forceTableRuleToLocal();
+                         pushACKToClean(taskPath);
                      }
 
              }
@@ -113,11 +132,107 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         }
     }
 
+    private void forceTableRuleToLocal(){}
+
+    private void pushACKToClean(String taskPath) throws Exception {
+            String myID=    ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+            String path=taskPath+"/_clean/"+myID;
+            if(ZKUtils.getConnection().checkExists().forPath(path)==null ){
+                ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(path);
+            }
+    }
 
 
+    private void checkAndClean(  String taskID,List<MigrateTask> allTaskList) throws IOException, SQLException {
+        for (MigrateTask migrateTask : allTaskList) {
+            String sql=makeCountSql(migrateTask);
+            long oldCount=execulteCount(sql,migrateTask.getFrom());
+            long newCount=execulteCount(sql,migrateTask.getTo());
+            if(oldCount!=newCount){
+                throw new  RuntimeException("migrate task ("+taskID+") check fail,because  fromNode:"
+                        +migrateTask.getFrom()+"("+oldCount+")"+" and  toNode:"+migrateTask.getTo()+"("+newCount+") and sql is "+sql);
+            }
+        }
+        //clean
+        for (MigrateTask migrateTask : allTaskList) {
+            String sql=makeCleanSql(migrateTask);
+           execulteSql(sql,migrateTask.getFrom());
+        }
+    }
+    private String makeCleanSql(MigrateTask task){
+        StringBuilder sb=new StringBuilder();
+        sb.append("delete  from ");
+        sb.append(task.getTable()).append(" where ");
+        List<Range> slots = task.getSlots();
+        for (int i = 0; i < slots.size(); i++) {
+            Range range = slots.get(i);
+            if(i!=0)
+                sb.append(" and ");
+            if(range.start==range.end){
+                sb.append(" _slot=").append(range.start);
+            }   else {
+                sb.append(" _slot>=").append(range.start);
+                sb.append(" and _slot<=").append(range.end);
+            }
+        }
+        return sb.toString();
+    }
 
+    private String makeCountSql(MigrateTask task){
+        StringBuilder sb=new StringBuilder();
+        sb.append("select count(*) as count from ");
+        sb.append(task.getTable()).append(" where ");
+        List<Range> slots = task.getSlots();
+        for (int i = 0; i < slots.size(); i++) {
+            Range range = slots.get(i);
+          if(i!=0)
+              sb.append(" and ");
+            if(range.start==range.end){
+              sb.append(" _slot=").append(range.start);
+            }   else {
+                sb.append(" _slot>=").append(range.start);
+                sb.append(" and _slot<=").append(range.end);
+            }
+        }
+       return sb.toString();
+    }
 
-    private void modifyRuleData( CuratorTransactionFinal transactionFinal, List<MigrateTask> allTaskList,  TableConfig tableConfig,List<String> allNewDataNodes )
+    private void execulteSql(String sql,String toDn) throws SQLException, IOException {
+        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
+        PhysicalDBPool dbPool = dbNode.getDbPool();
+        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
+        DBHostConfig config = datasource.getConfig();
+        Connection con = null;
+        try {
+            con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
+
+               JdbcUtils.execute(con,sql, new ArrayList<>());
+
+        } finally{
+            JdbcUtils.close(con);
+        }
+
+    }
+    private long execulteCount(String sql,String toDn) throws SQLException, IOException {
+        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
+        PhysicalDBPool dbPool = dbNode.getDbPool();
+        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
+        DBHostConfig config = datasource.getConfig();
+        Connection con = null;
+        try {
+            con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
+
+            List<Map<String, Object>> result=      JdbcUtils.executeQuery(con,sql, new ArrayList<>());
+            if(result.size()==1){
+                return (long) result.get(0).get("count");
+            }
+        } finally{
+            JdbcUtils.close(con);
+        }
+        return 0;
+    }
+
+    private CuratorTransactionFinal modifyRuleData( CuratorTransactionFinal transactionFinal, List<MigrateTask> allTaskList,  TableConfig tableConfig,List<String> allNewDataNodes )
             throws Exception {
 
                     InterProcessMutex ruleDataLock =null;
@@ -137,8 +252,11 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                         }
                         ByteArrayOutputStream out=new ByteArrayOutputStream();
                         prop.store(out, "WARNING   !!!Please do not modify or delete this file!!!");
-                       transactionFinal.setData().forPath(ruleName, out.toByteArray());
-
+                        if(transactionFinal==null){
+                            transactionFinal=  ZKUtils.getConnection().inTransaction().setData().forPath(ruleName, out.toByteArray()).and();
+                        }  else {
+                            transactionFinal.setData().forPath(ruleName, out.toByteArray());
+                        }
                     }finally {
                         try {
                             if(ruleDataLock!=null)
@@ -147,7 +265,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                             throw new RuntimeException(e);
                         }
                     }
-
+          return transactionFinal;
     }
 
     private   void modifyRuleData( Properties prop ,MigrateTask task ,List<String> allNewDataNodes){
@@ -180,7 +298,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
 
 
 
-    private static void modifyZkRules( CuratorTransactionFinal transactionFinal,String ruleName ,List<String> newDataNodes )
+    private static CuratorTransactionFinal modifyZkRules( CuratorTransactionFinal transactionFinal,String ruleName ,List<String> newDataNodes )
             throws Exception {
         CuratorFramework client= ZKUtils.getConnection();
         String rulePath= ZKUtils.getZKBasePath() + "rules/function";
@@ -194,15 +312,21 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                     if("count".equals(count.getString("name"))){
                         Integer xcount=Integer.parseInt( count.getString("value")) ;
                         count.put("value",String.valueOf(xcount+newDataNodes.size())) ;
-                        transactionFinal.setData().forPath(rulePath,JSON.toJSONBytes(jsonArray)) ;
+
+                        if(transactionFinal==null){
+                            transactionFinal=  ZKUtils.getConnection().inTransaction().setData().forPath(rulePath, JSON.toJSONBytes(jsonArray)).and();
+                        }  else {
+                            transactionFinal.setData().forPath(rulePath, JSON.toJSONBytes(jsonArray));
+                        }
                     }
                 }
             }
 
         }
+        return transactionFinal;
     }
 
-    private static void modifyTableConfigRules( CuratorTransactionFinal transactionFinal,String schemal,String table ,List<String> newDataNodes )
+    private static CuratorTransactionFinal modifyTableConfigRules( CuratorTransactionFinal transactionFinal,String schemal,String table ,List<String> newDataNodes )
             throws Exception {
         CuratorFramework client= ZKUtils.getConnection();
         String rulePath= ZKUtils.getZKBasePath() + "schema/schema";
@@ -221,11 +345,16 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                         allDataNodes.add(dataNode);
                         allDataNodes.addAll(newDataNodes);
                         tt.put("dataNode", Joiner.on(",").join(allDataNodes));
-                        transactionFinal.setData().forPath(rulePath, JSON.toJSONBytes(jsonArray));
+                        if(transactionFinal==null){
+                            transactionFinal=  ZKUtils.getConnection().inTransaction().setData().forPath(rulePath, JSON.toJSONBytes(jsonArray)).and();
+                        }  else {
+                            transactionFinal.setData().forPath(rulePath, JSON.toJSONBytes(jsonArray));
+                        }
                     }
 
                 }
             }
         }
+        return transactionFinal;
     }
 }

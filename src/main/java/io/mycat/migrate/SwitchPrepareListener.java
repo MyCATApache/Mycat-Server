@@ -1,25 +1,19 @@
 package io.mycat.migrate;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import io.mycat.MycatServer;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteCheckRule;
 import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -93,7 +87,9 @@ public class SwitchPrepareListener implements PathChildrenCacheListener {
         if(set.contains("_commit"))   {
             size=size-1;
         }
-
+        if(set.contains("_clean"))   {
+            size=size-1;
+        }
         return size;
     }
 

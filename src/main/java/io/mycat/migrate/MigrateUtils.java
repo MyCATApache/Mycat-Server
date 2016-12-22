@@ -200,7 +200,8 @@ public class MigrateUtils {
     public static List<MigrateTask> queryAllTask(String basePath, List<String> dataHost) throws Exception {
         List<MigrateTask>  resutlList=new ArrayList<>();
         for (String dataHostName : dataHost) {
-            if("_prepare".equals(dataHostName)||"_commit".equals(dataHostName))
+            if("_prepare".equals(dataHostName)||"_commit".equals(dataHostName)||"_clean".equals(dataHostName))
+                continue;
             resutlList.addAll(  JSON
                     .parseArray(new String(ZKUtils.getConnection().getData().forPath(basePath+"/"+dataHostName),"UTF-8") ,MigrateTask.class));
         }

@@ -114,7 +114,7 @@ public final class MigrateHandler {
                     .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
 
             CuratorTransactionFinal transactionFinal=null;
-            String taskPath = ZKUtils.getZKBasePath() + "migrate/" +c.getSchema()+"/"+ table + "/" + taskID;
+            String taskPath = ZKUtils.getZKBasePath() + "migrate/" +c.getSchema() + "/" + taskID;
             CuratorFramework client= ZKUtils.getConnection();
 
             //校验 之前同一个表的迁移任务未完成，则jzhi禁止继续

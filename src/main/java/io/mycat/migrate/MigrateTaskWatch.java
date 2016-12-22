@@ -20,7 +20,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * ......./migrate/schemal/tableName/taskid/dn   [任务数据]
+ * ......./migrate/schemal/taskid/dn   [任务数据]
  * Created by magicdoom on 2016/9/28.
  */
 public class MigrateTaskWatch {
@@ -34,16 +34,7 @@ public class MigrateTaskWatch {
                     switch (fevent.getType()) {
                         case CHILD_ADDED:
                             LOGGER.info("table CHILD_ADDED: " + fevent.getData().getPath());
-                            ZKUtils.addChildPathCache(fevent.getData().getPath(), new PathChildrenCacheListener() {
-                                @Override public void childEvent(CuratorFramework curatorFramework,
-                                        PathChildrenCacheEvent pathChildrenCacheEvent) throws Exception {
-                                    switch (pathChildrenCacheEvent.getType()) {
-                                        case CHILD_ADDED:
-                                            ZKUtils.addChildPathCache(pathChildrenCacheEvent.getData().getPath(),new TaskPathChildrenCacheListener()) ;
-                                            break;
-                                    }
-                                }
-                            });
+                         ZKUtils.addChildPathCache(fevent.getData().getPath(),new TaskPathChildrenCacheListener()) ;
                             break;
                         default:
                             break;
@@ -54,30 +45,9 @@ public class MigrateTaskWatch {
     }
 
 
-//    private static Set<String> getDataNodeFromDataHost(List<String> dataHosts)
-//    {
-//        Set<String> dataHostSet= Sets.newConcurrentHashSet(dataHosts) ;
-//        Set<String> dataNodes = new HashSet<>();
-//        Map<String, PhysicalDBNode> dataNodesMap= MycatServer.getInstance().getConfig().getDataNodes();
-//        for (Map.Entry<String, PhysicalDBNode> stringPhysicalDBNodeEntry : dataNodesMap.entrySet()) {
-//            String key=stringPhysicalDBNodeEntry.getKey();
-//            PhysicalDBNode value=stringPhysicalDBNodeEntry.getValue();
-//           String dataHostName= value.getDbPool().getHostName();
-//            if(dataHostSet.contains(dataHostName)){
-//                dataNodes.add(key);
-//            }
-//        }
-//
-//
-//        return dataNodes;
-//    }
 
 
 
-    public static void main(String[] args) throws InterruptedException {
-          MigrateTaskWatch.start();
-      //  Thread.sleep(10000);
-    }
 
     private static class TaskPathChildrenCacheListener implements PathChildrenCacheListener {
         @Override public void childEvent(CuratorFramework curatorFramework,
@@ -97,6 +67,13 @@ public class MigrateTaskWatch {
                         curatorFramework.create().creatingParentsIfNeeded().forPath(commitPath);
                     }
                     ZKUtils.addChildPathCache(commitPath,new SwitchCommitListener());
+
+
+                    String cleanPath = event.getData().getPath() + "/_clean";
+                    if( curatorFramework.checkExists().forPath(cleanPath)==null){
+                        curatorFramework.create().creatingParentsIfNeeded().forPath(cleanPath);
+                    }
+                    ZKUtils.addChildPathCache(cleanPath,new SwitchCleanListener());
                     LOGGER.info("table CHILD_ADDED: " + event.getData().getPath());
                     break;
                 case CHILD_UPDATED:
@@ -176,7 +153,7 @@ public class MigrateTaskWatch {
         private List<String> removeStatusNode(List<String> dataHosts){
             List<String> resultList=new ArrayList<>();
             for (String dataHost : dataHosts) {
-                if("_prepare".equals(dataHost)||"_commit".equals(dataHost))
+                if("_prepare".equals(dataHost)||"_commit".equals(dataHost)||"_clean".equals(dataHost))
                 {
                     continue;
                 }
