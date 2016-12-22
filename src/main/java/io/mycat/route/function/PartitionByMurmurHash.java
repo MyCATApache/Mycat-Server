@@ -92,12 +92,15 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 
 	private void generateBucketMap(){
 		hash=Hashing.murmur3_32(seed);//计算一致性哈希的对象
-		for(int i=0;i<count;i++){//构造一致性哈希环，用TreeMap表示
-			StringBuilder hashName=new StringBuilder("SHARD-").append(i);
+
+		for(int i=0;i<count;i++){
+			StringBuilder hashName=new StringBuilder("SHARD-").append(i).append("-NODE-");
 			for(int n=0,shard=virtualBucketTimes*getWeight(i);n<shard;n++){
-				bucketMap.put(hash.hashUnencodedChars(hashName.append("-NODE-").append(n)).asInt(),i);
+				bucketMap.put(hash.hashUnencodedChars(hashName.append(n)).asInt(),i);
+				hashName.delete(hashName.lastIndexOf("-")+1,hashName.length());
 			}
 		}
+
 		weightMap=null;
 	}
 //	private void storeBucketMap() throws IOException{
@@ -202,7 +205,7 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		hash.init();
 		
 		int[] bucket=new int[hash.count];
-		
+		long start = System.currentTimeMillis();
 		Map<Integer,List<Integer>> hashed=new HashMap<>();
 		
 		int total=1000_0000;//数据量
@@ -241,6 +244,9 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		props.load(new ByteArrayInputStream(out.toByteArray()));
 		System.out.println(props);
 		System.out.println("****************************************************");
+		long used = System.currentTimeMillis() - start;
+
+		System.out.println("tps " + total * 1000.0 / used);
 //		rehashTest(hashed.get(0));
 	}
 	private static void rehashTest(List<Integer> partition){
