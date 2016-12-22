@@ -7,7 +7,7 @@ import java.io.Serializable;
  */
 public class TaskNode implements Serializable {
     private String sql;
-    private int status ;    //0=init    1=start    2=prepare switch    3=commit sucess   4=error
+    private int status ;    //0=init    1=start    2=prepare switch    3=commit sucess   4=error     5=clean  sucess     6=error process end
     private String schema;
     private String table;
     private String add;

@@ -41,11 +41,10 @@ import static io.mycat.util.dataMigrator.DataMigratorUtil.executeQuery;
 public class MigrateDumpRunner implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MigrateDumpRunner.class);
     private MigrateTask task;
-    //private CountDownLatch latch;
+
     private AtomicInteger sucessTask;
     public MigrateDumpRunner(MigrateTask task, AtomicInteger sucessTask) {
         this.task = task;
-     //   this.latch = latch;
         this.sucessTask=sucessTask;
     }
 
@@ -78,7 +77,7 @@ public class MigrateDumpRunner implements Runnable {
             task.setPos(Integer.parseInt(logPos));
             File dataFile = new File(file, task.getTable() + ".txt");
             if(dataFile.length()>0) {
-               // String xxx = Files.toString(dataFile, Charset.forName("UTF-8"));
+
                 loaddataToDn(dataFile, task.getTo(), task.getTable());
             }
             pushMsgToZK(task.getZkpath(),task.getFrom()+"-"+task.getTo(),1,"sucess",logFile,logPos);
@@ -91,7 +90,7 @@ public class MigrateDumpRunner implements Runnable {
             }
             LOGGER.error("error:",e);
         }  finally {
-         //   latch.countDown();
+
         }
 
 
@@ -124,7 +123,6 @@ public class MigrateDumpRunner implements Runnable {
         try {
             con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
             String sql = "load data local infile '"+loaddataFile.getPath().replace("\\","//")+"' replace into table "+table+" character set 'utf8mb4'  fields terminated by ','  enclosed by '\"'  ESCAPED BY '\\\\'  lines terminated by '\\n'";
-            System.out.println(sql);
             JdbcUtils.execute(con,sql, new ArrayList<>());
         } finally{
             JdbcUtils.close(con);

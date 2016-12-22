@@ -1,11 +1,9 @@
 package io.mycat.migrate;
 
-import com.alibaba.fastjson.JSON;
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.config.model.DBHostConfig;
-import io.mycat.util.ZKUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

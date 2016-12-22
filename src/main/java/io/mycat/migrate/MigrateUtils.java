@@ -1,10 +1,21 @@
 package io.mycat.migrate;
 
+import com.alibaba.druid.util.JdbcUtils;
 import com.alibaba.fastjson.JSON;
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
+import io.mycat.config.model.DBHostConfig;
 import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.util.ZKUtils;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.*;
 
 import static io.mycat.route.function.PartitionByCRC32PreSlot.*;
@@ -144,6 +155,37 @@ public class MigrateUtils {
 
         return result;
     }
+    public static  String convertRangeListToString(List<Range> rangeList)
+    {   List<String> rangeStringList=new ArrayList<>();
+        for (Range range : rangeList) {
+            if(range.start==range.end){
+                rangeStringList.add(String.valueOf(range.start))  ;
+            } else{
+                rangeStringList.add(range.start+"-"+range.end)  ;
+            }
+        }
+     return    Joiner.on(',').join(rangeStringList);
+    }
+
+    public static List<Range>  convertRangeStringToList(String rangeStr){
+        List<String> ranges = Splitter.on(",").omitEmptyStrings().trimResults().splitToList(rangeStr);
+        List<Range> rangeList = new ArrayList<>();
+        for (String range : ranges) {
+            List<String> vv = Splitter.on("-").omitEmptyStrings().trimResults().splitToList(range);
+            if (vv.size() == 2) {
+                Range ran = new Range(Integer.parseInt(vv.get(0)), Integer.parseInt(vv.get(1)));
+                rangeList.add(ran);
+
+            } else if (vv.size() == 1) {
+                Range ran = new Range(Integer.parseInt(vv.get(0)), Integer.parseInt(vv.get(0)));
+                rangeList.add(ran);
+
+            } else {
+                throw new RuntimeException("load crc32slot datafile error:dn=value=" + range);
+            }
+        }
+        return rangeList;
+    }
 
     public static int getCurTotalSize(List<Range> rangeList) {
         int size = 0;
@@ -157,8 +199,8 @@ public class MigrateUtils {
         return    MycatServer.getInstance().getConfig().getDataNodes().get(dn).getDatabase();
     }
 
-    public static List<PartitionByCRC32PreSlot.Range> convertAllTask(List<MigrateTask> allTasks){
-        List<PartitionByCRC32PreSlot.Range>  resutlList=new ArrayList<>();
+    public static List<Range> convertAllTask(List<MigrateTask> allTasks){
+        List<Range>  resutlList=new ArrayList<>();
         for (MigrateTask allTask : allTasks) {
             resutlList.addAll(allTask.getSlots());
         }
@@ -167,9 +209,66 @@ public class MigrateUtils {
     public static List<MigrateTask> queryAllTask(String basePath, List<String> dataHost) throws Exception {
         List<MigrateTask>  resutlList=new ArrayList<>();
         for (String dataHostName : dataHost) {
+            if("_prepare".equals(dataHostName)||"_commit".equals(dataHostName)||"_clean".equals(dataHostName))
+                continue;
             resutlList.addAll(  JSON
                     .parseArray(new String(ZKUtils.getConnection().getData().forPath(basePath+"/"+dataHostName),"UTF-8") ,MigrateTask.class));
         }
         return resutlList;
+    }
+
+    public static String makeCountSql(MigrateTask task){
+        StringBuilder sb=new StringBuilder();
+        sb.append("select count(*) as count from ");
+        sb.append(task.getTable()).append(" where ");
+        List<Range> slots = task.getSlots();
+        for (int i = 0; i < slots.size(); i++) {
+            Range range = slots.get(i);
+            if(i!=0)
+                sb.append(" and ");
+            if(range.start==range.end){
+                sb.append(" _slot=").append(range.start);
+            }   else {
+                sb.append(" _slot>=").append(range.start);
+                sb.append(" and _slot<=").append(range.end);
+            }
+        }
+        return sb.toString();
+    }
+
+    public static void execulteSql(String sql,String toDn) throws SQLException, IOException {
+        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
+        PhysicalDBPool dbPool = dbNode.getDbPool();
+        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
+        DBHostConfig config = datasource.getConfig();
+        Connection con = null;
+        try {
+            con =  DriverManager
+                    .getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
+
+            JdbcUtils.execute(con,sql, new ArrayList<>());
+
+        } finally{
+            JdbcUtils.close(con);
+        }
+
+    }
+    public static long execulteCount(String sql,String toDn) throws SQLException, IOException {
+        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
+        PhysicalDBPool dbPool = dbNode.getDbPool();
+        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
+        DBHostConfig config = datasource.getConfig();
+        Connection con = null;
+        try {
+            con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
+
+            List<Map<String, Object>> result=      JdbcUtils.executeQuery(con,sql, new ArrayList<>());
+            if(result.size()==1){
+                return (long) result.get(0).get("count");
+            }
+        } finally{
+            JdbcUtils.close(con);
+        }
+        return 0;
     }
 }
