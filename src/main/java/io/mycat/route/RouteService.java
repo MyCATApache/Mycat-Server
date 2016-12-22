@@ -26,8 +26,11 @@ package io.mycat.route;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
+import io.mycat.route.function.PartitionByCRC32PreSlot;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.cache.CachePool;
@@ -76,6 +79,7 @@ public class RouteService {
 			cacheKey = schema.getName() + stmt;			
 			rrs = (RouteResultset) sqlRouteCache.get(cacheKey);
 			if (rrs != null) {
+				checkMigrateRule(schema.getName(),rrs,sqlType);
 				return rrs;
 			}
 		}
@@ -137,7 +141,42 @@ public class RouteService {
 		if (rrs != null && sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
 			sqlRouteCache.putIfAbsent(cacheKey, rrs);
 		}
+		checkMigrateRule(schema.getName(),rrs,sqlType);
 		return rrs;
+	}
+
+	 //数据迁移的切换准备阶段，需要拒绝写操作和所有的跨多节点写操作
+		private   void checkMigrateRule(String schemal,RouteResultset rrs,int sqlType ) throws SQLNonTransientException {
+		if(rrs!=null&&rrs.getTables()!=null){
+			boolean isUpdate=isUpdateSql(sqlType);
+			if(!isUpdate)return;
+			ConcurrentMap<String,List<PartitionByCRC32PreSlot.Range>> tableRules= RouteCheckRule.migrateRuleMap.get(schemal.toUpperCase()) ;
+			if(tableRules!=null){
+			for (String table : rrs.getTables()) {
+				List<PartitionByCRC32PreSlot.Range> rangeList= tableRules.get(table.toUpperCase()) ;
+				if(rangeList!=null&&!rangeList.isEmpty()){
+					if(rrs.getNodes().length>1&&isUpdate){
+						throw new   SQLNonTransientException ("schema:"+schemal+",table:"+table+",sql:"+rrs.getStatement()+" is not allowed,because table is migrate switching,please wait for a moment");
+					}
+					for (PartitionByCRC32PreSlot.Range range : rangeList) {
+						RouteResultsetNode[] routeResultsetNodes=	rrs.getNodes();
+						for (RouteResultsetNode routeResultsetNode : routeResultsetNodes) {
+							int slot=routeResultsetNode.getSlot();
+							if(isUpdate&&slot>=range.start&&slot<=range.end){
+								throw new   SQLNonTransientException ("schema:"+schemal+",table:"+table+",sql:"+rrs.getStatement()+" is not allowed,because table is migrate switching,please wait for a moment");
+
+							}
+						}
+					}
+				}
+			}
+			}
+		}
+	}
+
+
+	private boolean isUpdateSql(int type) {
+		return ServerParse.INSERT==type||ServerParse.UPDATE==type||ServerParse.DELETE==type||ServerParse.DDL==type;
 	}
 
 	public static int isHintSql(String sql){

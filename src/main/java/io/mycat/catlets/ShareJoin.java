@@ -324,7 +324,7 @@ class ShareDBJoinHandler implements SQLJobHandler {
 	}
 
 	@Override
-	public void finished(String dataNode, boolean failed) {
+	public void finished(String dataNode, boolean failed, String errorMsg) {
 		ctx.endJobInput(dataNode,failed);
 	}
 
@@ -397,7 +397,7 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 	
 
 	@Override
-	public void finished(String dataNode, boolean failed) {
+	public void finished(String dataNode, boolean failed, String errorMsg) {
 	//	EngineCtx.LOGGER.info("完成2:" + dataNode+" failed:"+failed);
 	}
 }

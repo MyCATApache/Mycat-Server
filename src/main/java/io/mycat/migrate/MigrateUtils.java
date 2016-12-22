@@ -1,9 +1,11 @@
 package io.mycat.migrate;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.alibaba.fastjson.JSON;
+import io.mycat.MycatServer;
+import io.mycat.route.function.PartitionByCRC32PreSlot;
+import io.mycat.util.ZKUtils;
+
+import java.util.*;
 
 import static io.mycat.route.function.PartitionByCRC32PreSlot.*;
 
@@ -45,10 +47,10 @@ public class MigrateUtils {
                 if (needMove > 0) {
                     List<Range> moveList = getPartAndRemove(allMoveList, needMove);
                     MigrateTask task = new MigrateTask();
-                    task.from = oldDataNodes.get(i);
-                    task.to = newDataNode;
-                    task.table = table;
-                    task.slots = moveList;
+                    task.setFrom( oldDataNodes.get(i));
+                    task.setTo( newDataNode);
+                    task.setTable(table);
+                    task.setSlots( moveList);
                     curRangeList.add(task);
                     newNodeTask.put(newDataNode, curRangeList);
                 }
@@ -102,9 +104,45 @@ public class MigrateUtils {
     private static int getCurTotalSizeForTask(List<MigrateTask> rangeList) {
         int size = 0;
         for (MigrateTask task : rangeList) {
-            size = size + getCurTotalSize(task.slots);
+            size = size + getCurTotalSize(task.getSlots());
         }
         return size;
+    }
+
+
+   public static List<Range> removeAndGetRemain(List<Range> oriRangeList, List<Range> rangeList) {
+       for (Range range : rangeList) {
+           oriRangeList=removeAndGetRemain(oriRangeList,range) ;
+       }
+       return oriRangeList;
+    }
+
+    private static List<Range> removeAndGetRemain(List<Range> oriRangeList, Range newRange){
+        List<Range> result=new ArrayList<>();
+        for (Range range : oriRangeList) {
+           result.addAll(removeAndGetRemain(range,newRange));
+        }
+        return result;
+    }
+
+    private static List<Range> removeAndGetRemain(Range oriRange, Range newRange) {
+
+        List<Range> result=new ArrayList<>();
+        if(newRange.start>oriRange.end||newRange.end<oriRange.start){
+            result.add(oriRange);
+        } else if(newRange.start<=oriRange.start&&newRange.end>=oriRange.end){
+            return result;
+        }  else if(newRange.start>oriRange.start&&newRange.end<oriRange.end){
+            result.add(new Range(oriRange.start,newRange.start-1)) ;
+            result.add(new Range(newRange.end+1,oriRange.end)) ;
+        } else if(newRange.start<=oriRange.start&&newRange.end<oriRange.end){
+            result.add(new Range(newRange.end+1,oriRange.end)) ;
+        } else if(newRange.start>oriRange.start&&newRange.end>=oriRange.end){
+            result.add(new Range(oriRange.start,newRange.start-1)) ;
+        }
+
+
+        return result;
     }
 
     public static int getCurTotalSize(List<Range> rangeList) {
@@ -113,5 +151,25 @@ public class MigrateUtils {
             size = size + range.size;
         }
         return size;
+    }
+
+    public static String getDatabaseFromDataNode(String dn){
+        return    MycatServer.getInstance().getConfig().getDataNodes().get(dn).getDatabase();
+    }
+
+    public static List<PartitionByCRC32PreSlot.Range> convertAllTask(List<MigrateTask> allTasks){
+        List<PartitionByCRC32PreSlot.Range>  resutlList=new ArrayList<>();
+        for (MigrateTask allTask : allTasks) {
+            resutlList.addAll(allTask.getSlots());
+        }
+        return resutlList;
+    }
+    public static List<MigrateTask> queryAllTask(String basePath, List<String> dataHost) throws Exception {
+        List<MigrateTask>  resutlList=new ArrayList<>();
+        for (String dataHostName : dataHost) {
+            resutlList.addAll(  JSON
+                    .parseArray(new String(ZKUtils.getConnection().getData().forPath(basePath+"/"+dataHostName),"UTF-8") ,MigrateTask.class));
+        }
+        return resutlList;
     }
 }

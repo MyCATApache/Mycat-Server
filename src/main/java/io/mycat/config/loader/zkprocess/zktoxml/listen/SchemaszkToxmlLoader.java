@@ -134,8 +134,9 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements NotiflyService
 
         LOGGER.info("SchemasLoader notiflyProcess zk to object zk schema      write :" + path + " is success");
 
-        if(MycatServer.getInstance().getProcessors()!=null)
-          ReloadConfig.reload_all();
+        if(MycatServer.getInstance().getStartup().get()) {
+            ReloadConfig.reload_all();
+        }
         return true;
     }
 

@@ -18,7 +18,7 @@ import java.util.*;
  * @author nange magicdoom@gmail.com
  */
 public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
-        implements RuleAlgorithm, TableRuleAware, SlotFunction {
+        implements RuleAlgorithm, TableRuleAware, SlotFunction,ReloadFunction {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("PartitionByCRC32PreSlot");
 
@@ -28,7 +28,8 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
     private Map<Integer, List<Range>> rangeMap = new TreeMap<>();
 
     private int count;
-
+    //slot:index
+    private int[] rangeMap2 = new int[DEFAULT_SLOTS_NUM];
     private int slot = -1;
 
     public Map<Integer, List<Range>> getRangeMap() {
@@ -139,6 +140,7 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         if (ruleName != null) {
             Properties p = loadProps(ruleName, false);
             rangeMap = convertToMap(p);
+            hack();
         }
     }
 
@@ -147,9 +149,28 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         if (ruleName != null) {
             Properties p = loadProps(ruleName, true);
             rangeMap = convertToMap(p);
+            hack();
         }
     }
 
+
+    private void hack(   )
+    {
+        //todo   优化
+        Iterator<Map.Entry<Integer, List<Range>>> iterator = rangeMap.entrySet().iterator();
+        while (iterator
+                .hasNext()) {
+            Map.Entry<Integer, List<Range>> rangeEntry = iterator.next();
+            List<Range> range = rangeEntry.getValue();
+            for (Range range1 : range) {
+                for(int i=range1.start;i<=range1.end;i++)
+                {
+                    rangeMap2[i]=rangeEntry.getKey() ;
+                }
+            }
+
+        }
+    }
     /**
      * 节点的数量
      *
@@ -167,26 +188,26 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         crc32.update(bytes, 0, bytes.length);
         long x = crc32.getValue();
         int slot = (int) (x % DEFAULT_SLOTS_NUM);
-
-        //todo   优化
-        for (Map.Entry<Integer, List<Range>> rangeEntry : rangeMap.entrySet()) {
-            List<Range> range = rangeEntry.getValue();
-            for (Range range1 : range) {
-                if (slot >= range1.start && slot <= range1.end) {
-                    this.slot = slot;
-                    return rangeEntry.getKey();
-                }
-            }
-
-        }
-        this.slot = slot;
-        int slotSize = DEFAULT_SLOTS_NUM / count;
-
-        int index = slot / slotSize;
-        if (slotSize * count != DEFAULT_SLOTS_NUM && index > count - 1) {
-            index = (count - 1);
-        }
-        return index;
+        return rangeMap2[slot];
+//        //todo   优化
+//        for (Map.Entry<Integer, List<Range>> rangeEntry : rangeMap.entrySet()) {
+//            List<Range> range = rangeEntry.getValue();
+//            for (Range range1 : range) {
+//                if (slot >= range1.start && slot <= range1.end) {
+//                    this.slot = slot;
+//                    return rangeEntry.getKey();
+//                }
+//            }
+//
+//        }
+//        this.slot = slot;
+//        int slotSize = DEFAULT_SLOTS_NUM / count;
+//
+//        int index = slot / slotSize;
+//        if (slotSize * count != DEFAULT_SLOTS_NUM && index > count - 1) {
+//            index = (count - 1);
+//        }
+//        return index;
     }
 
     @Override public int getPartitionNum() {
@@ -256,6 +277,10 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
 
     @Override public int slotValue() {
         return slot;
+    }
+
+    @Override public void reload() {
+          reInit();
     }
 
     public static class Range implements Serializable {
