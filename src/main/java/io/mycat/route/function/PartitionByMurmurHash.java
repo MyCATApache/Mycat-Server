@@ -92,15 +92,12 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 
 	private void generateBucketMap(){
 		hash=Hashing.murmur3_32(seed);//计算一致性哈希的对象
-
-		for(int i=0;i<count;i++){
-			StringBuilder hashName=new StringBuilder("SHARD-").append(i).append("-NODE-");
+		for(int i=0;i<count;i++){//构造一致性哈希环，用TreeMap表示
+			StringBuilder hashName=new StringBuilder("SHARD-").append(i);
 			for(int n=0,shard=virtualBucketTimes*getWeight(i);n<shard;n++){
-				bucketMap.put(hash.hashUnencodedChars(hashName.append(n)).asInt(),i);
-				hashName.delete(hashName.lastIndexOf("-")+1,hashName.length());
+				bucketMap.put(hash.hashUnencodedChars(hashName.append("-NODE-").append(n)).asInt(),i);
 			}
 		}
-
 		weightMap=null;
 	}
 //	private void storeBucketMap() throws IOException{
@@ -160,8 +157,8 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 	 * 节点的权重，没有指定权重的节点默认是1。以properties文件的格式填写，以从0开始到count-1的整数值也就是节点索引为key，以节点权重值为值。
 	 * 所有权重值必须是正整数，否则以1代替
 	 * @param weightMapPath
-	 * @throws IOException 
-	 * @throws  
+	 * @throws IOException
+	 * @throws
 	 */
 	public void setWeightMapFile(String weightMapPath) throws IOException{
 		Properties props=new Properties();
@@ -192,7 +189,7 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		}
 		return tail.get(tail.firstKey());
 	}
-	
+
 	@Override
 	public int getPartitionNum() {
 		int nPartition = this.count;
@@ -203,11 +200,11 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 		PartitionByMurmurHash hash=new PartitionByMurmurHash();
 		hash.count=10;//分片数
 		hash.init();
-		
+
 		int[] bucket=new int[hash.count];
-		long start = System.currentTimeMillis();
+
 		Map<Integer,List<Integer>> hashed=new HashMap<>();
-		
+
 		int total=1000_0000;//数据量
 		int c=0;
 		for(int i=100_0000;i<total+100_0000;i++){//假设分片键从100万开始
@@ -232,21 +229,18 @@ public class PartitionByMurmurHash extends AbstractPartitionAlgorithm implements
 			System.out.println(idx+++"  "+i+"   "+(i/(double)total));
 		}
 		System.out.println(d+"  "+c);
-		
+
 		Properties props=new Properties();
 		for(Map.Entry entry:hash.bucketMap.entrySet()){
 			props.setProperty(entry.getKey().toString(), entry.getValue().toString());
 		}
 		ByteArrayOutputStream out=new ByteArrayOutputStream();
 		props.store(out, null);
-		
+
 		props.clear();
 		props.load(new ByteArrayInputStream(out.toByteArray()));
 		System.out.println(props);
 		System.out.println("****************************************************");
-		long used = System.currentTimeMillis() - start;
-
-		System.out.println("tps " + total * 1000.0 / used);
 //		rehashTest(hashed.get(0));
 	}
 	private static void rehashTest(List<Integer> partition){
