@@ -48,6 +48,8 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
         }    else{
             close("sucess");
         }
+
+        task.setHasExecute(false);
     }
 
 

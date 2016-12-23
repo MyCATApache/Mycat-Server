@@ -23,6 +23,7 @@ public class BinlogIdleCheck implements Runnable {
     @Override public void run() {
         List<MigrateTask>migrateTaskList= binlogStream.getMigrateTaskList();
         int sucessSwitchTask=0;
+        int fullSucessSwitchTask=0;
         String taskPath=null;
         String dataHost=null;
         for (MigrateTask migrateTask : migrateTaskList) {
@@ -31,11 +32,16 @@ public class BinlogIdleCheck implements Runnable {
                 taskPath=zkPath.substring(0,zkPath.lastIndexOf("/")) ;
                 dataHost=zkPath.substring(zkPath.lastIndexOf("/")+1);
             }
+            if(migrateTask.isHaserror()||migrateTask.isHasExecute())
+            {
+                continue;
+            }
                 Date lastDate=       migrateTask.getLastBinlogDate();
                 long diff = (new Date().getTime() - lastDate.getTime())/1000;
                 if((!migrateTask.isHaserror())&&diff>30){
                     //暂定30秒空闲 则代表增量任务结束，开始切换
                    sucessSwitchTask=sucessSwitchTask+1;
+                    fullSucessSwitchTask=fullSucessSwitchTask+1;
 
                 }else if(!migrateTask.isHaserror()){
                     String sql=MigrateUtils.makeCountSql(migrateTask);
@@ -70,12 +76,37 @@ public class BinlogIdleCheck implements Runnable {
 
 
         if(sucessSwitchTask==migrateTaskList.size()){
-             taskPath=taskPath+"/_prepare/"+dataHost;
+           String  childTaskPath=taskPath+"/_prepare/"+dataHost;
             try {
-                if( ZKUtils.getConnection().checkExists().forPath(taskPath)==null) {
-                   ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(taskPath);
+                if( ZKUtils.getConnection().checkExists().forPath(childTaskPath)==null) {
+                   ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(childTaskPath);
                 }
 
+            } catch (Exception e) {
+                LOGGER.error("error:",e);
+            }
+
+        }
+
+
+          //全部空闲后，如果已经开始切换了，则修改每个子任务状态
+        if(fullSucessSwitchTask==migrateTaskList.size()){
+            try {
+                TaskNode taskNode=JSON.parseObject(new String( ZKUtils.getConnection().getData().forPath(taskPath),"UTF-8"),TaskNode.class);
+                 if(taskNode.getStatus()==2) {
+
+                     for (MigrateTask migrateTask : migrateTaskList) {
+                         String zkPath = migrateTask.getZkpath() + "/" + migrateTask.getFrom() + "-" + migrateTask.getTo();
+                         if (ZKUtils.getConnection().checkExists().forPath(zkPath) != null) {
+                             TaskStatus taskStatus = JSON.parseObject(
+                                     new String(ZKUtils.getConnection().getData().forPath(zkPath), "UTF-8"), TaskStatus.class);
+                             if (taskStatus.getStatus() == 1) {
+                                 taskStatus.setStatus(3);
+                                 ZKUtils.getConnection().setData().forPath(zkPath, JSON.toJSONBytes(taskStatus));
+                             }
+                         }
+                     }
+                 }
             } catch (Exception e) {
                 LOGGER.error("error:",e);
             }

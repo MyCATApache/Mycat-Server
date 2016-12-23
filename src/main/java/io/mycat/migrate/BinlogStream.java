@@ -247,6 +247,7 @@ public class BinlogStream {
         private void exeSql(MigrateTask task,String sql){
             if(task.isHaserror())
                 return;
+            task.setHasExecute(true);
             SqlExecuteListener listener = new SqlExecuteListener(task, sql, BinlogStream.this);
             OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0],
                     listener);

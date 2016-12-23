@@ -140,6 +140,7 @@ public class MycatServer {
 
 	private final MycatConfig config;
 	private final ScheduledExecutorService scheduler;
+	private final ScheduledExecutorService heartbeatScheduler;
 	private final SQLRecorder sqlRecorder;
 	private final AtomicBoolean isOnline;
 	private final long startupTime;
@@ -159,6 +160,9 @@ public class MycatServer {
 		
 		//定时线程池，单线程线程池
 		scheduler = Executors.newSingleThreadScheduledExecutor();
+
+		//心跳调度独立出来，避免被其他任务影响
+		heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
 		
 		//SQL记录器
 		this.sqlRecorder = new SQLRecorder(config.getSystem().getSqlRecordCount());
@@ -448,11 +452,11 @@ public class MycatServer {
 		
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
 
-		scheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L, dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(dataSourceOldConsClear(), 0L, DEFAULT_OLD_CONNECTION_CLEAR_PERIOD, TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L, dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(dataSourceOldConsClear(), 0L, DEFAULT_OLD_CONNECTION_CLEAR_PERIOD, TimeUnit.MILLISECONDS);
 		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MILLISECONDS);
        
 		if(system.getCheckTableConsistency()==1) {
