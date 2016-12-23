@@ -12,9 +12,6 @@ public class TaskNode implements Serializable {
     private String table;
     private String add;
 
-
-
-
     public String getSql() {
         return sql;
     }

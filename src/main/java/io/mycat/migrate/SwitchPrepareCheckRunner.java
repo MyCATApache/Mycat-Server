@@ -82,7 +82,7 @@ public class SwitchPrepareCheckRunner implements Runnable {
                     List<MigrateTask> migrateTaskList= JSON
                             .parseArray(new String(ZKUtils.getConnection().getData().forPath(taskPath+"/"+dataHostName),"UTF-8") ,MigrateTask.class);
                     for (MigrateTask migrateTask : migrateTaskList) {
-                        String zkPath = migrateTask.getZkpath() + "/" + migrateTask.getFrom() + "-" + migrateTask.getTo();
+                        String zkPath =taskPath+"/"+dataHostName+ "/" + migrateTask.getFrom() + "-" + migrateTask.getTo();
                         if (ZKUtils.getConnection().checkExists().forPath(zkPath) != null) {
                             TaskStatus taskStatus = JSON.parseObject(
                                     new String(ZKUtils.getConnection().getData().forPath(zkPath), "UTF-8"), TaskStatus.class);

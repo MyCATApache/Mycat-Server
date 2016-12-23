@@ -275,6 +275,14 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         this.ruleName = ruleName;
     }
 
+    @Override public String getTableName() {
+        return tableName;
+    }
+
+    @Override public String getRuleName() {
+        return ruleName;
+    }
+
     @Override public int slotValue() {
         return slot;
     }

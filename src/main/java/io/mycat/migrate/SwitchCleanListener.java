@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/**      清理本地的阻止写的规则
+/**      清理本地的阻止写的规则      slaveID relese      create table
  * Ceated by magicdoom on 2016/12/19.
  */
 public class SwitchCleanListener implements PathChildrenCacheListener {
@@ -54,6 +54,28 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
                     TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
                     if(taskNode.getStatus()==3){
                         taskNode.setStatus(5);  //clean sucess
+
+                        //释放slaveIDs
+
+
+                        List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(taskPath);
+                        for (String dataHostName : dataHosts) {
+                            if("_prepare".equals(dataHostName)||"_commit".equals(dataHostName)||"_clean".equals(dataHostName))
+                                continue;
+                            List<MigrateTask> migrateTaskList= JSON
+                                    .parseArray(new String(ZKUtils.getConnection().getData().forPath(taskPath+"/"+dataHostName),"UTF-8") ,MigrateTask.class);
+                          int slaveId=  migrateTaskList.get(0).getSlaveId();
+                            String slavePath=ZKUtils.getZKBasePath()+"slaveIDs/"+dataHostName+"/"+slaveId;
+                            if( ZKUtils.getConnection().checkExists().forPath(slavePath)!=null) {
+                                ZKUtils.getConnection().delete().forPath(slavePath);
+                            }
+                        }
+
+
+
+
+
+
                         ZKUtils.getConnection().setData().forPath(taskPath,JSON.toJSONBytes(taskNode))  ;
                     }
 
@@ -72,10 +94,6 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
             }
         }
     }
-
-
-
-
 
 
 

@@ -76,6 +76,11 @@ public class MigrateDumpRunner implements Runnable {
            task.setBinlogFile(logFile);
             task.setPos(Integer.parseInt(logPos));
             File dataFile = new File(file, task.getTable() + ".txt");
+
+            File sqlFile = new File(file, task.getTable() + ".sql");
+           List<String> createTable= Files.readLines(sqlFile,Charset.forName("UTF-8")) ;
+
+            exeCreateTableToDn(extractCreateSql(createTable),task.getTo(),task.getTable());
             if(dataFile.length()>0) {
 
                 loaddataToDn(dataFile, task.getTo(), task.getTable());
@@ -94,6 +99,43 @@ public class MigrateDumpRunner implements Runnable {
         }
 
 
+    }
+
+    private String extractCreateSql(List<String> lines){
+        StringBuilder sb=new StringBuilder();
+        boolean isAdd=false;
+        for (String line : lines) {
+            if(Strings.isNullOrEmpty(line)||line.startsWith("--")||line.startsWith("/*")||line.startsWith("DROP")) {
+                isAdd=false;
+                continue;
+            }
+            if(line.startsWith("CREATE")) {
+                isAdd=true;
+            }
+
+            if(isAdd){
+                sb.append(line).append("\n");
+            }
+        }
+      String rtn=sb.toString();
+        if(rtn.endsWith(";\n")){
+          rtn=   rtn.substring(0,rtn.length()-2);
+        }
+        return rtn.replace("CREATE TABLE","CREATE TABLE IF not EXISTS ");
+    }
+
+    private void exeCreateTableToDn(String sql,String toDn,String table) throws SQLException {
+        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(toDn);
+        PhysicalDBPool dbPool = dbNode.getDbPool();
+        PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
+        DBHostConfig config = datasource.getConfig();
+        Connection con = null;
+        try {
+            con =  DriverManager.getConnection("jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase(),config.getUser(),config.getPassword());
+            JdbcUtils.execute(con,sql, new ArrayList<>());
+        } finally{
+            JdbcUtils.close(con);
+        }
     }
 
 
