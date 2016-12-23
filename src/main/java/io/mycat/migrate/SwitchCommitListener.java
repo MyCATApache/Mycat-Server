@@ -18,6 +18,7 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
+import io.mycat.route.function.TableRuleAware;
 import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
@@ -190,7 +191,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                         ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
                         ruleDataLock.acquire(30, TimeUnit.SECONDS);
                         RuleConfig ruleConfig= tableConfig.getRule();
-                        String ruleName=ruleConfig.getFunctionName()+"_"+ tableConfig.getName().toUpperCase()+".properties";
+                        String ruleName=((TableRuleAware)ruleConfig.getRuleAlgorithm()).getRuleName()+".properties";
                         String rulePath=ZKUtils.getZKBasePath()+"ruledata/"+ruleName;
                         CuratorFramework zk = ZKUtils.getConnection();
                         byte[] ruleData=zk.getData().forPath(rulePath);

@@ -138,7 +138,6 @@ public final class MigrateHandler {
             taskNode.setTable(table);
             taskNode.setAdd(add);
             taskNode.setStatus(0);
-            transactionFinal=   client.inTransaction() .setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and() ;
 
             Map<String,Integer>  fromNodeSlaveIdMap=new HashMap<>();
 
@@ -150,7 +149,7 @@ public final class MigrateHandler {
                     migrateTask.setSchema(c.getSchema());
 
                     //分配slaveid只需要一个dataHost分配一个即可，后续任务执行模拟从节点只需要一个dataHost一个
-                      String dataHost=getDataHostNameFromNode(migrateTask.getFrom());
+                    String dataHost=getDataHostNameFromNode(migrateTask.getFrom());
                     if(fromNodeSlaveIdMap.containsKey(dataHost)) {
                         migrateTask.setSlaveId( fromNodeSlaveIdMap.get(dataHost));
                     }   else {
@@ -162,6 +161,11 @@ public final class MigrateHandler {
                 allTaskList.addAll(value);
 
             }
+
+
+            transactionFinal=   client.inTransaction() .setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and() ;
+
+
 
             //合并成dataHost级别任务
             Map<String, List<MigrateTask> > dataHostMigrateMap=mergerTaskForDataHost(allTaskList);

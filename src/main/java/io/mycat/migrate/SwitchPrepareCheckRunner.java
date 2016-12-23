@@ -1,5 +1,6 @@
 package io.mycat.migrate;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Sets;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -68,21 +69,50 @@ public class SwitchPrepareCheckRunner implements Runnable {
             }
         }
 
-       //todo 增加判断binlog完成
+       //增加判断binlog完成
         if(!isHasInTransation){
             try {
-            String myID=    ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
-            String path=taskPath+"/_commit/"+myID;
-            if(ZKUtils.getConnection().checkExists().forPath(path)==null ){
-                    ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(path);
-            }
-                allSwitchRunnerSet.remove(taskID);
+
+                //先判断后端binlog都完成了才算本任务完成
+               boolean allIncrentmentSucess=true;
+                List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(taskPath);
+                for (String dataHostName : dataHosts) {
+                    if("_prepare".equals(dataHostName)||"_commit".equals(dataHostName)||"_clean".equals(dataHostName))
+                        continue;
+                    List<MigrateTask> migrateTaskList= JSON
+                            .parseArray(new String(ZKUtils.getConnection().getData().forPath(taskPath+"/"+dataHostName),"UTF-8") ,MigrateTask.class);
+                    for (MigrateTask migrateTask : migrateTaskList) {
+                        String zkPath =taskPath+"/"+dataHostName+ "/" + migrateTask.getFrom() + "-" + migrateTask.getTo();
+                        if (ZKUtils.getConnection().checkExists().forPath(zkPath) != null) {
+                            TaskStatus taskStatus = JSON.parseObject(
+                                    new String(ZKUtils.getConnection().getData().forPath(zkPath), "UTF-8"), TaskStatus.class);
+                            if (taskStatus.getStatus() != 3) {
+                                allIncrentmentSucess=false;
+                                break;
+                            }
+                        }else{
+                            allIncrentmentSucess=false;
+                            break;
+                        }
+                    }
+                }
+                if(allIncrentmentSucess) {
+                    String myID = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+                    String path = taskPath + "/_commit/" + myID;
+                    if (ZKUtils.getConnection().checkExists().forPath(path) == null) {
+                        ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(path);
+                    }
+                    allSwitchRunnerSet.remove(taskID);
+                }
             } catch (Exception e) {
                 LOGGER.error("error:",e);
             }
         }
 
     }
+
+
+
 
     private boolean  checkIsInTransation(BackendConnection backendConnection) {
         if(!taskNode.getSchema().equalsIgnoreCase(backendConnection.getSchema()))
