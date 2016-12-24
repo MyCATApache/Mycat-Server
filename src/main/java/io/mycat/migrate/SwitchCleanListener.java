@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -90,6 +91,7 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
 
 
                         ZKUtils.getConnection().setData().forPath(taskPath,JSON.toJSONBytes(taskNode))  ;
+                        LOGGER.info("task end",new Date());
                     }
 
             }

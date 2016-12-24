@@ -11,6 +11,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -61,6 +62,7 @@ public class SwitchPrepareListener implements PathChildrenCacheListener {
                 TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
                   if(taskNode.getStatus()==1){
                        taskNode.setStatus(2);  //prepare switch
+                      LOGGER.info("task switch:",new Date());
                       ZKUtils.getConnection().setData().forPath(taskPath,JSON.toJSONBytes(taskNode))  ;
                   }
               }
