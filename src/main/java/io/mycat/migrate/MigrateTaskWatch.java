@@ -153,8 +153,9 @@ public class MigrateTaskWatch {
                 if(!allRunnerSet.contains(taskID)){
                     List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(tpath);
                     List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(tpath,removeStatusNode(dataHosts));
-                    scheduledExecutorService.schedule(new SwitchPrepareCheckRunner(taskID,tpath,taskNode, MigrateUtils.convertAllTask(allTaskList)),1,TimeUnit.SECONDS);
                     allRunnerSet.add(taskID);
+                    scheduledExecutorService.schedule(new SwitchPrepareCheckRunner(taskID,tpath,taskNode, MigrateUtils.convertAllTask(allTaskList)),1,TimeUnit.SECONDS);
+
                 }
             }
             }
