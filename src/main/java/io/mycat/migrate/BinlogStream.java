@@ -22,10 +22,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 import static io.mycat.util.dataMigrator.DataMigratorUtil.executeQuery;
 
@@ -45,6 +42,7 @@ public class BinlogStream {
     private long binlogPos;
 
     private Set<String> databaseSet=new HashSet<>();
+    private Map<String,Semaphore>  semaphoreMap=new ConcurrentHashMap<>();
 
 
 
@@ -58,6 +56,11 @@ public class BinlogStream {
         this.migrateTaskList = migrateTaskList;
         for (MigrateTask migrateTask : migrateTaskList) {
             databaseSet.add(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom())) ;
+           String dataHostTo= MigrateUtils.getDataHostFromDataNode(migrateTask.getTo());
+            if(!semaphoreMap.containsKey(dataHostTo)){
+           int count=Double.valueOf( MycatServer.getInstance().getConfig().getDataHosts().get(dataHostTo).getSource().getSize()*0.8).intValue();
+                semaphoreMap.put(dataHostTo,new Semaphore(count)) ;
+            }
         }
     }
 
@@ -248,7 +251,15 @@ public class BinlogStream {
             if(task.isHaserror())
                 return;
             task.setHasExecute(true);
-            SqlExecuteListener listener = new SqlExecuteListener(task, sql, BinlogStream.this);
+            String dataHostTo= MigrateUtils.getDataHostFromDataNode(task.getTo());
+            Semaphore semaphore = semaphoreMap.get(dataHostTo);
+            try {
+                semaphore.acquire();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            SqlExecuteListener listener = new SqlExecuteListener(task, sql, BinlogStream.this,
+                    semaphore);
             OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0],
                     listener);
             resultHandler.setMark("binlog execute");
