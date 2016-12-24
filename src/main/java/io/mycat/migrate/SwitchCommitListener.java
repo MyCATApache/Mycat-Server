@@ -80,7 +80,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
 
 
                          CuratorTransactionFinal transactionFinal=null;
-
+                             check(taskID,allTaskList);
                          SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(taskNode.getSchema());
                          TableConfig tableConfig = schemaConfig.getTables().get(taskNode.getTable().toUpperCase());
                          List<String> newDataNodes = Splitter.on(",").omitEmptyStrings().trimResults().splitToList(taskNode.getAdd());
@@ -100,7 +100,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                          transactionFinal=  modifyRuleData(transactionFinal,allTaskList,tableConfig,allNewDataNodes);
                          transactionFinal.setData().forPath(taskPath,JSON.toJSONBytes(taskNode));
 
-                         checkAndClean(taskID,allTaskList);
+                         clean(taskID,allTaskList);
                          transactionFinal.commit() ;
 
                              forceTableRuleToLocal();
@@ -145,9 +145,18 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
     }
 
 
-    private void checkAndClean(  String taskID,List<MigrateTask> allTaskList) throws IOException, SQLException {
+    private void clean(  String taskID,List<MigrateTask> allTaskList) throws IOException, SQLException {
+
+        //clean
         for (MigrateTask migrateTask : allTaskList) {
-            String sql=MigrateUtils.makeCountSql(migrateTask);
+            String sql=makeCleanSql(migrateTask);
+            MigrateUtils.execulteSql(sql,migrateTask.getFrom());
+        }
+    }
+
+    private void check(String taskID, List<MigrateTask> allTaskList) throws SQLException, IOException {
+        for (MigrateTask migrateTask : allTaskList) {
+            String sql= MigrateUtils.makeCountSql(migrateTask);
             long oldCount=MigrateUtils.execulteCount(sql,migrateTask.getFrom());
             long newCount=MigrateUtils.execulteCount(sql,migrateTask.getTo());
             if(oldCount!=newCount){
@@ -155,12 +164,8 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                         +migrateTask.getFrom()+"("+oldCount+")"+" and  toNode:"+migrateTask.getTo()+"("+newCount+") and sql is "+sql);
             }
         }
-        //clean
-        for (MigrateTask migrateTask : allTaskList) {
-            String sql=makeCleanSql(migrateTask);
-            MigrateUtils.execulteSql(sql,migrateTask.getFrom());
-        }
     }
+
     private String makeCleanSql(MigrateTask task){
         StringBuilder sb=new StringBuilder();
         sb.append("delete  from ");

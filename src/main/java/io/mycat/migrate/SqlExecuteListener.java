@@ -77,7 +77,7 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
     }
     public void close(String msg) {
         SQLJob curJob = sqlJob;
-        if (curJob != null && !curJob.isFinished()) {
+        if (curJob != null) {
             curJob.teminate(msg);
             sqlJob = null;
         }
