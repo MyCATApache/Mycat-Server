@@ -14,6 +14,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +50,18 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
             if(sucessDataHost.size()==clusterNodeList.size()) {
 
                 RouteCheckRule.migrateRuleMap.remove(pTaskNode.getSchema().toUpperCase());
+
+                List<String> needToCloseWatch=new ArrayList<>();
+                List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(taskPath);
+                for (String dataHostName : dataHosts) {
+                    if ("_prepare".equals(dataHostName) || "_commit".equals(dataHostName) || "_clean".equals(dataHostName))
+                    {
+                       needToCloseWatch.add( taskPath+"/"+dataHostName );
+                    }
+                }
+                ZKUtils.closeWatch(needToCloseWatch);
+
+
                 taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
                 taskLock.acquire(20, TimeUnit.SECONDS);
                     TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
@@ -58,7 +71,7 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
                         //释放slaveIDs
 
 
-                        List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(taskPath);
+
                         for (String dataHostName : dataHosts) {
                             if("_prepare".equals(dataHostName)||"_commit".equals(dataHostName)||"_clean".equals(dataHostName))
                                 continue;
