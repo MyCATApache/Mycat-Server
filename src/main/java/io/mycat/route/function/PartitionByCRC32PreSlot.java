@@ -289,7 +289,7 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
     }
 
     @Override public void reload() {
-          reInit();
+          init();
     }
 
     public static class Range implements Serializable {

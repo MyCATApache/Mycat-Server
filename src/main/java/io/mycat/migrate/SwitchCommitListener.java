@@ -91,6 +91,10 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                          try {
                              ruleLock.acquire(30, TimeUnit.SECONDS);
                              transactionFinal=  modifyZkRules(transactionFinal,tableConfig.getRule().getFunctionName(),newDataNodes);
+
+                             //临时措施function路径的watch有bug
+                            String tableRulePath= ZKUtils.getZKBasePath()+"rules/tableRule";
+                             ZKUtils.getConnection().setData().forPath(tableRulePath, ZKUtils.getConnection().getData().forPath(tableRulePath)) ;
                              transactionFinal=    modifyTableConfigRules(transactionFinal,taskNode.getSchema(),taskNode.getTable(),newDataNodes);
                          }
                          finally {
