@@ -103,6 +103,13 @@ public class SwitchPrepareCheckRunner implements Runnable {
                     }
                 }
                 if(allIncrentmentSucess) {
+                    //需要关闭binlog，不然后续的清楚老数据会删除数据
+                  BinlogStream stream=         BinlogStreamHoder.binlogStreamMap.get(taskID);
+                    if(stream!=null){
+                        BinlogStreamHoder.binlogStreamMap.remove(taskID);
+                        stream.disconnect();
+                    }
+
                     String myID = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
                     String path = taskPath + "/_commit/" + myID;
                     if (ZKUtils.getConnection().checkExists().forPath(path) == null) {

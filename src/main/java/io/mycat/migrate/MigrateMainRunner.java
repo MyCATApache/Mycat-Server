@@ -57,6 +57,9 @@ public class MigrateMainRunner implements Runnable {
                     }
                 }
             }
+             String taskPath=migrateTaskList.get(0).getZkpath();
+            taskPath=taskPath.substring(0,taskPath.lastIndexOf("/"));
+            String taskID=taskPath.substring(taskPath.lastIndexOf('/')+1,taskPath.length());
 
            //开始增量数据迁移
             PhysicalDBPool dbPool= MycatServer.getInstance().getConfig().getDataHosts().get(dataHost);
@@ -68,6 +71,7 @@ public class MigrateMainRunner implements Runnable {
                 stream.setBinglogFile(binlogFile);
                 stream.setBinlogPos(pos);
                 stream.setMigrateTaskList(migrateTaskList);
+                BinlogStreamHoder.binlogStreamMap.put(taskID,stream);
                 stream.connect();
 
             } catch (IOException e) {
