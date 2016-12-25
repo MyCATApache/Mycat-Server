@@ -139,7 +139,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		//conn.syncAndExcute();
+		conn.syncAndExcute();
 		conn.release();
 		doFinished(false,null);
 	}
