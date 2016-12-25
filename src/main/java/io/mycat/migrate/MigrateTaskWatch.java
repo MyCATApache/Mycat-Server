@@ -9,6 +9,7 @@ import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
@@ -20,14 +21,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * ......./migrate/schemal/taskid/dn   [任务数据]
+ * ......./migrate/schemal/taskid/datahost   [任务数据]
  * Created by magicdoom on 2016/9/28.
  */
 public class MigrateTaskWatch {
     private static final Logger LOGGER = LoggerFactory.getLogger(MigrateTaskWatch.class);
     public static void start()
     {
-            ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "migrate", new PathChildrenCacheListener() {
+        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "migrate", new PathChildrenCacheListener() {
                 @Override public void childEvent(CuratorFramework curatorFramework,
                         PathChildrenCacheEvent fevent) throws Exception {
 
@@ -54,8 +55,8 @@ public class MigrateTaskWatch {
                 PathChildrenCacheEvent event) throws Exception {
             switch (event.getType()) {
                 case CHILD_ADDED:
+                    if(isTaskErrorOrSucess(event))break;
                     addOrUpdate(event);
-
                     String path = event.getData().getPath() + "/_prepare";
                    if( curatorFramework.checkExists().forPath(path)==null){
                        curatorFramework.create().creatingParentsIfNeeded().forPath(path);
@@ -77,6 +78,7 @@ public class MigrateTaskWatch {
                     LOGGER.info("table CHILD_ADDED: " + event.getData().getPath());
                     break;
                 case CHILD_UPDATED:
+                    if(isTaskErrorOrSucess(event))break;
                     addOrUpdate(event);
                     LOGGER.info("CHILD_UPDATED: " + event.getData().getPath());
                     break;
@@ -84,6 +86,19 @@ public class MigrateTaskWatch {
                     break;
             }
         }
+
+    private boolean isTaskErrorOrSucess(PathChildrenCacheEvent event){
+        try {
+            TaskNode pTaskNode= JSON.parseObject(event.getData().getData(),TaskNode.class);
+            if(pTaskNode.getStatus()>=4) {
+                return true;
+            }
+        } catch (Exception e){
+
+        }
+
+        return false;
+    }
 
         private void addOrUpdate(PathChildrenCacheEvent event) throws Exception {
 
@@ -138,8 +153,9 @@ public class MigrateTaskWatch {
                 if(!allRunnerSet.contains(taskID)){
                     List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(tpath);
                     List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(tpath,removeStatusNode(dataHosts));
-                    scheduledExecutorService.schedule(new SwitchPrepareCheckRunner(taskID,tpath,taskNode, MigrateUtils.convertAllTask(allTaskList)),1,TimeUnit.SECONDS);
                     allRunnerSet.add(taskID);
+                    scheduledExecutorService.schedule(new SwitchPrepareCheckRunner(taskID,tpath,taskNode, MigrateUtils.convertAllTask(allTaskList)),1,TimeUnit.SECONDS);
+
                 }
             }
             }

@@ -198,7 +198,9 @@ public class MigrateUtils {
     public static String getDatabaseFromDataNode(String dn){
         return    MycatServer.getInstance().getConfig().getDataNodes().get(dn).getDatabase();
     }
-
+    public static String getDataHostFromDataNode(String dn){
+        return    MycatServer.getInstance().getConfig().getDataNodes().get(dn).getDbPool().getHostName();
+    }
     public static List<Range> convertAllTask(List<MigrateTask> allTasks){
         List<Range>  resutlList=new ArrayList<>();
         for (MigrateTask allTask : allTasks) {

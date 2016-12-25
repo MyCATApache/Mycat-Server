@@ -41,10 +41,11 @@ import static io.mycat.util.dataMigrator.DataMigratorUtil.executeQuery;
 public class MigrateDumpRunner implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MigrateDumpRunner.class);
     private MigrateTask task;
-
+    private CountDownLatch latch;
     private AtomicInteger sucessTask;
-    public MigrateDumpRunner(MigrateTask task, AtomicInteger sucessTask) {
+    public MigrateDumpRunner(MigrateTask task, CountDownLatch latch, AtomicInteger sucessTask) {
         this.task = task;
+        this.latch = latch;
         this.sucessTask=sucessTask;
     }
 
@@ -95,7 +96,7 @@ public class MigrateDumpRunner implements Runnable {
             }
             LOGGER.error("error:",e);
         }  finally {
-
+            latch.countDown();
         }
 
 

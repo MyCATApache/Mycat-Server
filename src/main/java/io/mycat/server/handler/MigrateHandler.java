@@ -185,7 +185,7 @@ public final class MigrateHandler {
         }
 
         writePackToClient(c, taskID);
-
+        LOGGER.info("task start",new Date());
     }
 
     private static void writePackToClient(ServerConnection c, String taskID) {

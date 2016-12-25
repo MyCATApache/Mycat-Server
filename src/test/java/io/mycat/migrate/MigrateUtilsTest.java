@@ -6,6 +6,7 @@ import io.mycat.migrate.MigrateUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.util.*;
 
 import static io.mycat.route.function.PartitionByCRC32PreSlot.Range;
@@ -126,6 +127,88 @@ public class MigrateUtilsTest {
 
         pringList("agin agin balance :",integerListMap);
 
+    }
+    @Test
+    public void balanceExpand1() {
+        String table = "test1";
+        //4=81920-102399
+       // 3=61440-81919
+      //  2=40960-61439
+      //  1=20480-40959
+     //   0=0-20479
+        Map<Integer, List<Range>> integerListMap = new TreeMap<>();
+        integerListMap.put(0, Lists.newArrayList(new Range(0, 20479)));
+        integerListMap.put(1, Lists.newArrayList(new Range(20480, 40959)));
+        integerListMap.put(2, Lists.newArrayList(new Range(40960, 61439)));
+        integerListMap.put(3, Lists.newArrayList(new Range(61440, 81919)));
+        integerListMap.put(4, Lists.newArrayList(new Range(81920, 102399)));
+        pringList("beforse  balance :", integerListMap);
+        //dn1=0-32    dn2=33-65  dn3=66-99
+        int totalSlots = 102400;
+        List<String> oldDataNodes = Lists.newArrayList("dn1", "dn2", "dn3","dn4", "dn5");
+        List<String> newDataNodes = Lists.newArrayList("dn6", "dn7", "dn8","dn9", "dn10");
+        Map<String, List<MigrateTask>> tasks = MigrateUtils
+                .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes, totalSlots);
+
+        List<MigrateTask>  allTaskList=new ArrayList<>();
+
+        for (Map.Entry<String, List<MigrateTask>> stringListEntry : tasks.entrySet()) {
+            String key=stringListEntry.getKey();
+            List<Range> rangeList=new ArrayList<>();
+            List<MigrateTask> value=stringListEntry.getValue();
+            allTaskList.addAll(value);
+            for (MigrateTask task : value) {
+                rangeList.addAll(task.getSlots());
+            }
+
+
+            integerListMap.put(Integer.parseInt(key.substring(2))-1,rangeList);
+        }
+        pringList("after  balance :", integerListMap);
+
+
+      List<String> allNewDataNodes=new ArrayList<>();
+        allNewDataNodes.addAll(oldDataNodes);
+        allNewDataNodes.addAll(newDataNodes);
+        Properties prop = new Properties();
+        prop.put("0","0-20479");
+        prop.put("1","20480-40959");
+        prop.put("2","40960-61439");
+        prop.put("3","61440-81919");
+        prop.put("4","81920-102399");
+        for (MigrateTask migrateTask : allTaskList) {
+            modifyRuleData(prop,migrateTask,allNewDataNodes);
+        }
+
+        System.out.println();
+    }
+
+    private   void modifyRuleData( Properties prop ,MigrateTask task ,List<String> allNewDataNodes){
+        int fromIndex=-1;
+        int toIndex=-1;
+        List<String> dataNodes=   allNewDataNodes;
+        for (int i = 0; i < dataNodes.size(); i++) {
+            String dataNode = dataNodes.get(i);
+            if(dataNode.equalsIgnoreCase(task.getFrom())){
+                fromIndex=i;
+            } else
+            if(dataNode.equalsIgnoreCase(task.getTo())){
+                toIndex=i;
+            }
+        }
+        String from=  prop.getProperty(String.valueOf(fromIndex)) ;
+        String to=  prop.getProperty(String.valueOf(toIndex)) ;
+        String fromRemain=removeRangesRemain(from,task.getSlots());
+        String taskRanges = MigrateUtils.convertRangeListToString(task.getSlots());
+        String newTo=to==null? taskRanges : to+","+taskRanges;
+        prop.setProperty(String.valueOf(fromIndex),fromRemain);
+        prop.setProperty(String.valueOf(toIndex),newTo);
+    }
+
+    private  String removeRangesRemain(String ori,List<Range> rangeList){
+        List<Range> ranges=MigrateUtils.convertRangeStringToList(ori);
+        List<Range> ramain=  MigrateUtils.removeAndGetRemain(ranges,rangeList);
+        return MigrateUtils.convertRangeListToString(ramain);
     }
 
     private void pringList(String comm,Map<Integer, List<Range>> integerListMap) {
