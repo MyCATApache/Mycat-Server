@@ -33,6 +33,8 @@ public class MigrateTask implements Serializable {
     private transient volatile boolean haserror=false;
     private transient volatile int status;
 
+    private transient volatile boolean hasExecute=false;
+
     public int getStatus() {
         return status;
     }
@@ -63,6 +65,14 @@ public class MigrateTask implements Serializable {
            size=size+slot.size;
         }
         return size;
+    }
+
+    public boolean isHasExecute() {
+        return hasExecute;
+    }
+
+    public void setHasExecute(boolean hasExecute) {
+        this.hasExecute = hasExecute;
     }
 
     public String getBinlogFile() {

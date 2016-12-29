@@ -1,16 +1,16 @@
 package io.mycat.migrate;
 
-import com.alibaba.fastjson.JSON;
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.config.model.DBHostConfig;
-import io.mycat.util.ZKUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -28,10 +28,16 @@ public class MigrateMainRunner implements Runnable {
 
     @Override public void run() {
         AtomicInteger sucessTask=new AtomicInteger(0);
+        CountDownLatch downLatch=new CountDownLatch(migrateTaskList.size()) ;
         for (MigrateTask migrateTask : migrateTaskList) {
-            new MigrateDumpRunner(migrateTask,sucessTask).run();
+            MycatServer.getInstance().getBusinessExecutor().submit( new MigrateDumpRunner(migrateTask,downLatch,sucessTask)) ;
         }
-         //同一个dataHost的任务合并执行，避免过多流量浪费
+        try {
+            downLatch.await(2, TimeUnit.HOURS) ;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        //同一个dataHost的任务合并执行，避免过多流量浪费
         if(sucessTask.get()==migrateTaskList.size())
         {
              long binlogFileNum=-1;
@@ -51,6 +57,9 @@ public class MigrateMainRunner implements Runnable {
                     }
                 }
             }
+             String taskPath=migrateTaskList.get(0).getZkpath();
+            taskPath=taskPath.substring(0,taskPath.lastIndexOf("/"));
+            String taskID=taskPath.substring(taskPath.lastIndexOf('/')+1,taskPath.length());
 
            //开始增量数据迁移
             PhysicalDBPool dbPool= MycatServer.getInstance().getConfig().getDataHosts().get(dataHost);
@@ -62,6 +71,7 @@ public class MigrateMainRunner implements Runnable {
                 stream.setBinglogFile(binlogFile);
                 stream.setBinlogPos(pos);
                 stream.setMigrateTaskList(migrateTaskList);
+                BinlogStreamHoder.binlogStreamMap.put(taskID,stream);
                 stream.connect();
 
             } catch (IOException e) {

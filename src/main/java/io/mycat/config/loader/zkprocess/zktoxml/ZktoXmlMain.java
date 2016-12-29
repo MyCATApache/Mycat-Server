@@ -2,6 +2,7 @@ package io.mycat.config.loader.zkprocess.zktoxml;
 
 import java.util.Set;
 
+import io.mycat.config.loader.zkprocess.zktoxml.listen.*;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
@@ -16,13 +17,6 @@ import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.BinDataPathChildrenCacheListener;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.EcacheszkToxmlLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.RuleDataPathChildrenCacheListener;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.RuleszkToxmlLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.SchemaszkToxmlLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.SequenceTopropertiesLoader;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.ServerzkToxmlLoader;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 import io.mycat.migrate.MigrateTaskWatch;
 import io.mycat.util.ZKUtils;
@@ -82,8 +76,8 @@ public class ZktoXmlMain {
         new ServerzkToxmlLoader(zkListen, zkConn, xmlProcess);
 
         // rule文件加载
-        new RuleszkToxmlLoader(zkListen, zkConn, xmlProcess);
-
+       // new RuleszkToxmlLoader(zkListen, zkConn, xmlProcess);
+        ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "rules", new RuleFunctionCacheListener());
         // 将序列配制信息加载
         new SequenceTopropertiesLoader(zkListen, zkConn, xmlProcess);
 

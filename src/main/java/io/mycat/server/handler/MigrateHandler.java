@@ -60,7 +60,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-/**
+/**   todo remove watch
  * @author nange
  */
 public final class MigrateHandler {
@@ -114,12 +114,23 @@ public final class MigrateHandler {
                     .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
 
             CuratorTransactionFinal transactionFinal=null;
-            String taskPath = ZKUtils.getZKBasePath() + "migrate/" +c.getSchema()+"/"+ table + "/" + taskID;
+            String taskBase = ZKUtils.getZKBasePath() + "migrate/" + c.getSchema();
+            String taskPath = taskBase + "/" + taskID;
             CuratorFramework client= ZKUtils.getConnection();
 
             //校验 之前同一个表的迁移任务未完成，则jzhi禁止继续
-             //todo
-
+           if( client.checkExists().forPath(taskBase) !=null ) {
+               List<String> childTaskList = client.getChildren().forPath(taskBase);
+               for (String child : childTaskList) {
+                   TaskNode taskNode = JSON
+                           .parseObject(ZKUtils.getConnection().getData().forPath(taskBase + "/" + child), TaskNode.class);
+                   if (taskNode.getSchema().equalsIgnoreCase(c.getSchema()) && table.equalsIgnoreCase(taskNode.getTable())
+                           && taskNode.getStatus() < 5) {
+                       writeErrMessage(c, "table: " + table + " previous migrate task is still running,on the same time one table only one task");
+                       return;
+                   }
+               }
+           }
             client.create().creatingParentsIfNeeded().forPath(taskPath);
             TaskNode taskNode=new TaskNode();
             taskNode.setSchema(c.getSchema());
@@ -127,7 +138,6 @@ public final class MigrateHandler {
             taskNode.setTable(table);
             taskNode.setAdd(add);
             taskNode.setStatus(0);
-            transactionFinal=   client.inTransaction() .setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and() ;
 
             Map<String,Integer>  fromNodeSlaveIdMap=new HashMap<>();
 
@@ -139,7 +149,7 @@ public final class MigrateHandler {
                     migrateTask.setSchema(c.getSchema());
 
                     //分配slaveid只需要一个dataHost分配一个即可，后续任务执行模拟从节点只需要一个dataHost一个
-                      String dataHost=getDataHostNameFromNode(migrateTask.getFrom());
+                    String dataHost=getDataHostNameFromNode(migrateTask.getFrom());
                     if(fromNodeSlaveIdMap.containsKey(dataHost)) {
                         migrateTask.setSlaveId( fromNodeSlaveIdMap.get(dataHost));
                     }   else {
@@ -151,6 +161,11 @@ public final class MigrateHandler {
                 allTaskList.addAll(value);
 
             }
+
+
+            transactionFinal=   client.inTransaction() .setData().forPath(taskPath,JSON.toJSONBytes(taskNode)).and() ;
+
+
 
             //合并成dataHost级别任务
             Map<String, List<MigrateTask> > dataHostMigrateMap=mergerTaskForDataHost(allTaskList);
@@ -170,7 +185,7 @@ public final class MigrateHandler {
         }
 
         writePackToClient(c, taskID);
-
+        LOGGER.info("task start",new Date());
     }
 
     private static void writePackToClient(ServerConnection c, String taskID) {

@@ -1,5 +1,6 @@
 package io.mycat.migrate;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Sets;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -42,12 +43,16 @@ public class SwitchPrepareCheckRunner implements Runnable {
     }
 
     @Override public void run() {
+        if(!allSwitchRunnerSet.contains(taskID)){
+            return;
+        }
         ScheduledExecutorService scheduledExecutorService= MycatServer.getInstance().getScheduler();
         ConcurrentMap<String, ConcurrentMap<String, List<PartitionByCRC32PreSlot.Range>>> migrateRuleMap = RouteCheckRule.migrateRuleMap;
         String schemal = taskNode.getSchema().toUpperCase();
-        if(!migrateRuleMap.containsKey(schemal)||migrateRuleMap.get(
+        if(!migrateRuleMap.containsKey(schemal)||!migrateRuleMap.get(
                 schemal).containsKey(taskNode.getTable().toUpperCase())){
            scheduledExecutorService.schedule(this,3, TimeUnit.SECONDS);
+            return;
         }
        boolean isHasInTransation=false;
         NIOProcessor[] processors=MycatServer.getInstance().getProcessors();
@@ -57,6 +62,7 @@ public class SwitchPrepareCheckRunner implements Runnable {
                 isHasInTransation=  checkIsInTransation(backendConnection);
                 if(isHasInTransation){
                     scheduledExecutorService.schedule(this,3, TimeUnit.SECONDS);
+                    return;
                 }
             }
         }
@@ -65,24 +71,63 @@ public class SwitchPrepareCheckRunner implements Runnable {
             isHasInTransation=  checkIsInTransation(backendConnection);
             if(isHasInTransation){
                 scheduledExecutorService.schedule(this,3, TimeUnit.SECONDS);
+                return;
             }
         }
 
-
+       //增加判断binlog完成
         if(!isHasInTransation){
             try {
-            String myID=    ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
-            String path=taskPath+"/_commit/"+myID;
-            if(ZKUtils.getConnection().checkExists().forPath(path)==null ){
-                    ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(path);
-            }
-                allSwitchRunnerSet.remove(taskID);
+
+                //先判断后端binlog都完成了才算本任务完成
+               boolean allIncrentmentSucess=true;
+                List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(taskPath);
+                for (String dataHostName : dataHosts) {
+                    if("_prepare".equals(dataHostName)||"_commit".equals(dataHostName)||"_clean".equals(dataHostName))
+                        continue;
+                    List<MigrateTask> migrateTaskList= JSON
+                            .parseArray(new String(ZKUtils.getConnection().getData().forPath(taskPath+"/"+dataHostName),"UTF-8") ,MigrateTask.class);
+                    for (MigrateTask migrateTask : migrateTaskList) {
+                        String zkPath =taskPath+"/"+dataHostName+ "/" + migrateTask.getFrom() + "-" + migrateTask.getTo();
+                        if (ZKUtils.getConnection().checkExists().forPath(zkPath) != null) {
+                            TaskStatus taskStatus = JSON.parseObject(
+                                    new String(ZKUtils.getConnection().getData().forPath(zkPath), "UTF-8"), TaskStatus.class);
+                            if (taskStatus.getStatus() != 3) {
+                                allIncrentmentSucess=false;
+                                break;
+                            }
+                        }else{
+                            allIncrentmentSucess=false;
+                            break;
+                        }
+                    }
+                }
+                if(allIncrentmentSucess) {
+                    //需要关闭binlog，不然后续的清楚老数据会删除数据
+                  BinlogStream stream=         BinlogStreamHoder.binlogStreamMap.get(taskID);
+                    if(stream!=null){
+                        BinlogStreamHoder.binlogStreamMap.remove(taskID);
+                        stream.disconnect();
+                    }
+
+                    String myID = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+                    String path = taskPath + "/_commit/" + myID;
+                    if (ZKUtils.getConnection().checkExists().forPath(path) == null) {
+                        ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(path);
+                    }
+                    allSwitchRunnerSet.remove(taskID);
+                }   else {
+                    scheduledExecutorService.schedule(this,3, TimeUnit.SECONDS);
+                }
             } catch (Exception e) {
                 LOGGER.error("error:",e);
             }
         }
 
     }
+
+
+
 
     private boolean  checkIsInTransation(BackendConnection backendConnection) {
         if(!taskNode.getSchema().equalsIgnoreCase(backendConnection.getSchema()))

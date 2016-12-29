@@ -188,6 +188,7 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         crc32.update(bytes, 0, bytes.length);
         long x = crc32.getValue();
         int slot = (int) (x % DEFAULT_SLOTS_NUM);
+        this.slot = slot;
         return rangeMap2[slot];
 //        //todo   优化
 //        for (Map.Entry<Integer, List<Range>> rangeEntry : rangeMap.entrySet()) {
@@ -275,12 +276,20 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         this.ruleName = ruleName;
     }
 
+    @Override public String getTableName() {
+        return tableName;
+    }
+
+    @Override public String getRuleName() {
+        return ruleName;
+    }
+
     @Override public int slotValue() {
         return slot;
     }
 
     @Override public void reload() {
-          reInit();
+          init();
     }
 
     public static class Range implements Serializable {

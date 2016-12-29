@@ -9,4 +9,6 @@ package io.mycat.route.function;
 public interface TableRuleAware {
      void setTableName(String tableName);
     void setRuleName(String ruleName);
+    String getTableName();
+    String getRuleName();
 }
