@@ -100,8 +100,8 @@ public class RouterUtilTest {
     }
 
     /**
-     * @modification 修改支持createTable语句中包含“IF NOT EXISTS”的情况,这里测试下
-     * @date 2016/12/8
+     * @modification 针对修改RouterUtil的去除schema的方法支持` 进行测试
+     * @date 2016/12/29
      * @modifiedBy Hash Zhang
      */
     @Test
