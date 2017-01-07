@@ -14,4 +14,4 @@ set "CURR_DIR=%cd%"
 cd ..
 set "MYCAT_HOME=%cd%"
 cd %CURR_DIR%
-"%JAVA_CMD%" -Xms256M -Xmx1G -XX:MaxPermSize=64M  -DMYCAT_HOME=%MYCAT_HOME% -cp "..\conf;..\lib\*" demo.catlets.ZkCreate
+%JAVA_CMD% -Xms256M -Xmx1G -XX:MaxPermSize=64M  -DMYCAT_HOME=%MYCAT_HOME% -cp "..\conf;..\lib\*" io.mycat.config.loader.zkprocess.xmltozk.XmltoZkMain

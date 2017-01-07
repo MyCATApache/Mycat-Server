@@ -6,6 +6,13 @@ import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import io.mycat.config.model.rule.RuleConfig;
+import io.mycat.route.function.AbstractPartitionAlgorithm;
+import io.mycat.route.function.SlotFunction;
+import io.mycat.route.parser.util.ParseUtil;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -75,7 +82,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 
 		DruidParser druidParser = DruidParserFactory.create(schema, statement, visitor);
 		druidParser.parser(schema, rrs, statement, stmt,cachePool,visitor);
-
+		DruidShardingParseInfo ctx=  druidParser.getCtx() ;
+		rrs.setTables(ctx.getTables());
 		/**
 		 * DruidParser 解析过程中已完成了路由的直接返回
 		 */
@@ -86,7 +94,6 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		/**
 		 * 没有from的select语句或其他
 		 */
-        DruidShardingParseInfo ctx=  druidParser.getCtx() ;
         if((ctx.getTables() == null || ctx.getTables().size() == 0)&&(ctx.getTableAliasMap()==null||ctx.getTableAliasMap().isEmpty()))
         {
 		    return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), druidParser.getCtx().getSql());
@@ -109,8 +116,14 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		
 		RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSet.size()];
 		int i = 0;
-		for (Iterator<RouteResultsetNode> iterator = nodeSet.iterator(); iterator.hasNext();) {
-			nodes[i] = iterator.next();
+		for (RouteResultsetNode aNodeSet : nodeSet) {
+			nodes[i] = aNodeSet;
+			  if(statement instanceof MySqlInsertStatement &&ctx.getTables().size()==1&&schema.getTables().containsKey(ctx.getTables().get(0))) {
+				  RuleConfig rule = schema.getTables().get(ctx.getTables().get(0)).getRule();
+				  if(rule!=null&&  rule.getRuleAlgorithm() instanceof SlotFunction){
+					 aNodeSet.setStatement(ParseUtil.changeInsertAddSlot(aNodeSet.getStatement(),aNodeSet.getSlot()));
+				  }
+			  }
 			i++;
 		}		
 		rrs.setNodes(nodes);		
@@ -126,6 +139,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		
 		return rrs;
 	}
+
+
+
 	
 	private SQLExprTableSource getDisTable(SQLTableSource tableSource,RouteResultsetNode node) throws SQLSyntaxErrorException{
 		if(node.getSubTableName()==null){
@@ -352,7 +368,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		case ServerParse.SHOW:// if origSQL is like show tables
 			return analyseShowSQL(schema, rrs, stmt);
 		case ServerParse.SELECT://if origSQL is like select @@
-			if(stmt.contains("@@")){
+			int index = stmt.indexOf("@@");
+			if(index > 0 && "SELECT".equals(stmt.substring(0, index).trim().toUpperCase())){
 				return analyseDoubleAtSgin(schema, rrs, stmt);
 			}
 			break;

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- - - Licensed under the Apache License, Version 2.0 (the "License"); 
+	- you may not use this file except in compliance with the License. - You 
+	may obtain a copy of the License at - - http://www.apache.org/licenses/LICENSE-2.0 
+	- - Unless required by applicable law or agreed to in writing, software - 
+	distributed under the License is distributed on an "AS IS" BASIS, - WITHOUT 
+	WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. - See the 
+	License for the specific language governing permissions and - limitations 
+	under the License. -->
+<!DOCTYPE mycat:server SYSTEM "server.dtd">
+<mycat:server xmlns:mycat="http://io.mycat/">
+	<system>
+	<property name="useSqlStat">1</property>  <!-- 1为开启实时统计、0为关闭 -->
+	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
+	<property name="defaultSqlParser">druidparser</property>
+		<property name="sequnceHandlerType">2</property>
+      <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
+        <!--  <property name="fakeMySQLVersion">5.6.20</property>--> <!--设置模拟的MySQL版本号-->
+	<!-- <property name="processorBufferChunk">40960</property> -->
+	<!-- 
+	<property name="processors">1</property> 
+	<property name="processorExecutor">32</property> 
+	 -->
+		<!--默认为type 0: DirectByteBufferPool | type 1 ByteBufferArena-->
+		<property name="processorBufferPoolType">0</property>
+		<!--默认是65535 64K 用于sql解析时最大文本长度 -->
+		<!--<property name="maxStringLiteralLength">65535</property>-->
+		<!--<property name="sequnceHandlerType">0</property>-->
+		<!--<property name="backSocketNoDelay">1</property>-->
+		<!--<property name="frontSocketNoDelay">1</property>-->
+		<!--<property name="processorExecutor">16</property>-->
+		<!-- 
+			<property name="mutiNodeLimitType">1</property> 0：开启小数量级（默认） ；1：开启亿级数据排序
+	    	<property name="mutiNodePatchSize">100</property> 亿级数量排序批量
+			<property name="processors">32</property> <property name="processorExecutor">32</property> 
+			<property name="serverPort">8066</property> <property name="managerPort">9066</property> 
+			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property> 
+			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property> -->
+		<!--分布式事务开关，0为不过滤分布式事务，1为过滤分布式事务（如果分布式事务内只涉及全局表，则不过滤），2为不过滤分布式事务,但是记录分布式事务日志-->
+		<property name="handleDistributedTransactions">0</property>
+		
+			<!--
+			off heap for merge/order/group/limit      1开启   0关闭
+		-->
+		<property name="useOffHeapForMerge">1</property>
+
+		<!--
+			单位为m
+		-->
+		<property name="memoryPageSize">1m</property>
+
+		<!--
+			单位为k
+		-->
+		<property name="spillsFileBufferSize">1k</property>
+
+		<property name="useStreamOutput">0</property>
+
+		<!--
+			单位为m
+		-->
+		<property name="systemReserveMemorySize">384m</property>
+	</system>
+	<user name="root">
+		<property name="password">digdeep</property>
+		<property name="schemas">TESTDB</property>
+	</user>
+
+	<user name="user">
+		<property name="password">user</property>
+		<property name="schemas">TESTDB</property>
+		<property name="readOnly">true</property>
+	</user>
+	<!-- 
+	<quarantine> 
+	   <whitehost>
+	      <host host="127.0.0.1" user="mycat"/>
+	      <host host="127.0.0.2" user="mycat"/>
+	   </whitehost>
+       <blacklist check="false"></blacklist>
+	</quarantine>
+	-->
+
+</mycat:server>

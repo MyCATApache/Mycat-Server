@@ -151,9 +151,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 
 		ByteBuffer buf = buffer;
 		if (buf != null) {
-			buffer = null;
 			session.getSource().recycle(buffer);
-
+			buffer = null;
 		}
 	}
 
@@ -163,7 +162,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		this.isRunning = true;
 		this.packetId = 0;
 		final BackendConnection conn = session.getTarget(node);
-		
 		LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
 		node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
 		LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
@@ -253,7 +251,25 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
 		
 		source.setTxInterrupt(errmgs);
+		
+		/**
+		 * TODO: 修复全版本BUG
+		 * 
+		 * BUG复现：
+		 * 1、MysqlClient:  SELECT 9223372036854775807 + 1;
+		 * 2、MyCatServer:  ERROR 1690 (22003): BIGINT value is out of range in '(9223372036854775807 + 1)'
+		 * 3、MysqlClient: ERROR 2013 (HY000): Lost connection to MySQL server during query
+		 * 
+		 * Fixed后
+		 * 1、MysqlClient:  SELECT 9223372036854775807 + 1;
+		 * 2、MyCatServer:  ERROR 1690 (22003): BIGINT value is out of range in '(9223372036854775807 + 1)'
+		 * 3、MysqlClient: ERROR 1690 (22003): BIGINT value is out of range in '(9223372036854775807 + 1)'
+		 * 
+		 */		
+		// 由于 pakcetId != 1 造成的问题 
+		errPkg.packetId = 1;		
 		errPkg.write(source);
+		
 		recycleResources();
 	}
 
@@ -299,6 +315,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
             
 			this.affectedRows = ok.affectedRows;
 			
+			// add by lian
+			// 解决sql统计中写操作永远为0
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+					rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0);
+			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 	}
 
@@ -376,6 +397,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			
 			buffer = source.writeToBuffer(field, buffer);
 		}
+		
+		fieldCount = fieldPackets.size();
+		
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, buffer);
 
@@ -427,7 +451,13 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
 			binRowDataPk.read(fieldPackets, rowDataPk);
 			binRowDataPk.packetId = rowDataPk.packetId;
-			binRowDataPk.write(session.getSource());
+//			binRowDataPk.write(session.getSource());
+			/*
+			 * [fix bug] : 这里不能直接将包写到前端连接,
+			 * 因为在fieldEofResponse()方法结束后buffer还没写出,
+			 * 所以这里应该将包数据顺序写入buffer(如果buffer满了就写出),然后再将buffer写出
+			 */
+			buffer = binRowDataPk.write(buffer, session.getSource(), true);
 		} else {
 			buffer = session.getSource().writeToBuffer(row, allocBuffer());
 			//session.getSource().write(row);

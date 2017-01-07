@@ -81,7 +81,6 @@ public class Explain2Handler {
 			singleNodeHandler.execute();
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e.getCause());
-			e.printStackTrace();
 			showerror(stmt, c, e.getMessage());
 		}
 	}

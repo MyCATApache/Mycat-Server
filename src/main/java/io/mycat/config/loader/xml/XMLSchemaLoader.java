@@ -29,6 +29,11 @@ import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import io.mycat.config.model.rule.RuleConfig;
+import io.mycat.route.function.TableRuleAware;
+import io.mycat.util.ObjectUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -39,12 +44,12 @@ import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.config.model.DataNodeConfig;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.TableConfigMap;
 import io.mycat.config.model.rule.TableRuleConfig;
 import io.mycat.config.util.ConfigException;
 import io.mycat.config.util.ConfigUtil;
+import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.util.DecryptUtil;
 import io.mycat.util.SplitUtil;
 
@@ -53,6 +58,8 @@ import io.mycat.util.SplitUtil;
  */
 @SuppressWarnings("unchecked")
 public class XMLSchemaLoader implements SchemaLoader {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(XMLSchemaLoader.class);
 	
 	private final static String DEFAULT_DTD = "/schema.dtd";
 	private final static String DEFAULT_XML = "/schema.xml";
@@ -358,14 +365,36 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String subTables = tableElement.getAttribute("subTables");
 			
 			for (int j = 0; j < tableNames.length; j++) {
+
 				String tableName = tableNames[j];
+				TableRuleConfig	tableRuleConfig=tableRule ;
+				  if(tableRuleConfig!=null) {
+				  	//对于实现TableRuleAware的function进行特殊处理  根据每个表新建个实例
+					  RuleConfig rule= tableRuleConfig.getRule();
+					  if(rule.getRuleAlgorithm() instanceof TableRuleAware)  {
+						  tableRuleConfig = (TableRuleConfig) ObjectUtil.copyObject(tableRuleConfig);
+						  tableRules.remove(tableRuleConfig.getName())   ;
+						  String newRuleName = tableRuleConfig.getName() + "_" + tableName;
+						  tableRuleConfig. setName(newRuleName);
+						  TableRuleAware tableRuleAware= (TableRuleAware) tableRuleConfig.getRule().getRuleAlgorithm();
+						  tableRuleAware.setRuleName(newRuleName);
+						  tableRuleAware.setTableName(tableName);
+						  tableRuleConfig.getRule().getRuleAlgorithm().init();
+						  tableRules.put(newRuleName,tableRuleConfig);
+					  }
+				  }
+
 				TableConfig table = new TableConfig(tableName, primaryKey,
 						autoIncrement, needAddLimit, tableType, dataNode,
 						getDbType(dataNode),
-						(tableRule != null) ? tableRule.getRule() : null,
+						(tableRuleConfig != null) ? tableRuleConfig.getRule() : null,
 						ruleRequired, null, false, null, null,subTables);
 				
 				checkDataNodeExists(table.getDataNodes());
+				// 检查分片表分片规则配置是否合法
+				if(table.getRule() != null) {
+					checkRuleSuitTable(table);
+				}
 				
 				if (distTableDns) {
 					distributeDataNodes(table.getDataNodes());
@@ -506,6 +535,49 @@ public class XMLSchemaLoader implements SchemaLoader {
 			}
 		}
 	}
+	
+	/**
+	 * 检查分片表分片规则配置, 目前主要检查分片表分片算法定义与分片dataNode是否匹配<br>
+	 * 例如分片表定义如下:<br>
+	 * {@code
+	 * <table name="hotnews" primaryKey="ID" autoIncrement="true" dataNode="dn1,dn2"
+			   rule="mod-long" />
+	 * }
+	 * <br>
+	 * 分片算法如下:<br>
+	 * {@code
+	 * <function name="mod-long" class="io.mycat.route.function.PartitionByMod">
+		<!-- how many data nodes -->
+		<property name="count">3</property>
+	   </function>
+	 * }
+	 * <br>
+	 * shard table datanode(2) < function count(3) 此时检测为不匹配
+	 */
+	private void checkRuleSuitTable(TableConfig tableConf) {
+		AbstractPartitionAlgorithm function = tableConf.getRule().getRuleAlgorithm();
+		int suitValue = function.suitableFor(tableConf);
+		switch(suitValue) {
+			case -1:
+				// 少节点,给提示并抛异常
+				throw new ConfigException("Illegal table conf : table [ " + tableConf.getName() + " ] rule function [ "
+						+ tableConf.getRule().getFunctionName() + " ] partition size : " + tableConf.getRule().getRuleAlgorithm().getPartitionNum() + " > table datanode size : "
+						+ tableConf.getDataNodes().size() + ", please make sure table datanode size = function partition size");
+			case 0:
+				// table datanode size == rule function partition size
+				break;
+			case 1:
+				// 有些节点是多余的,给出warn log
+				LOGGER.warn("table conf : table [ {} ] rule function [ {} ] partition size : {} < table datanode size : {} , this cause some datanode to be redundant", 
+						new String[]{
+								tableConf.getName(),
+								tableConf.getRule().getFunctionName(),
+								String.valueOf(tableConf.getRule().getRuleAlgorithm().getPartitionNum()),
+								String.valueOf(tableConf.getDataNodes().size())
+						});
+				break;
+		}
+	}
 
 	private void loadDataNodes(Element root) {
 		//读取DataNode分支
@@ -581,6 +653,8 @@ public class XMLSchemaLoader implements SchemaLoader {
 		if (!dataHosts.containsKey(host)) {
 			throw new ConfigException("dataNode " + dnName + " reference dataHost:" + host + " not exists!");
 		}
+
+		dataHosts.get(host).addDataNode(conf.getName());
 		dataNodes.put(conf.getName(), conf);
 	}
 
@@ -686,6 +760,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String dbType = element.getAttribute("dbType");
 			String filters = element.getAttribute("filters");
 			String logTimeStr = element.getAttribute("logTime");
+			String slaveIDs = element.getAttribute("slaveIDs");
 			long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.parseLong(logTimeStr) ;
 			//读取心跳语句
 			String heartbeatSQL = element.getElementsByTagName("heartbeat").item(0).getTextContent();
@@ -699,16 +774,28 @@ public class XMLSchemaLoader implements SchemaLoader {
 			NodeList writeNodes = element.getElementsByTagName("writeHost");
 			DBHostConfig[] writeDbConfs = new DBHostConfig[writeNodes.getLength()];
 			Map<Integer, DBHostConfig[]> readHostsMap = new HashMap<Integer, DBHostConfig[]>(2);
+			Set<String> writeHostNameSet = new HashSet<String>(writeNodes.getLength());
 			for (int w = 0; w < writeDbConfs.length; w++) {
 				Element writeNode = (Element) writeNodes.item(w);
 				writeDbConfs[w] = createDBHostConf(name, writeNode, dbType, dbDriver, maxCon, minCon,filters,logTime);
+				if(writeHostNameSet.contains(writeDbConfs[w].getHostName())) {
+					throw new ConfigException("writeHost " + writeDbConfs[w].getHostName() + " duplicated!");
+				} else {
+					writeHostNameSet.add(writeDbConfs[w].getHostName());
+				}
 				NodeList readNodes = writeNode.getElementsByTagName("readHost");
 				//读取对应的每一个readHost
 				if (readNodes.getLength() != 0) {
 					DBHostConfig[] readDbConfs = new DBHostConfig[readNodes.getLength()];
+					Set<String> readHostNameSet = new HashSet<String>(readNodes.getLength());
 					for (int r = 0; r < readDbConfs.length; r++) {
 						Element readNode = (Element) readNodes.item(r);
 						readDbConfs[r] = createDBHostConf(name, readNode, dbType, dbDriver, maxCon, minCon,filters, logTime);
+						if(readHostNameSet.contains(readDbConfs[r].getHostName())) {
+							throw new ConfigException("readHost " + readDbConfs[r].getHostName() + " duplicated!");
+						} else {
+							readHostNameSet.add(readDbConfs[r].getHostName());
+						}
 					}
 					readHostsMap.put(w, readDbConfs);
 				}
@@ -725,6 +812,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			hostConf.setConnectionInitSql(initConSQL);
 			hostConf.setFilters(filters);
 			hostConf.setLogTime(logTime);
+			hostConf.setSlaveIDs(slaveIDs);
 			dataHosts.put(hostConf.getName(), hostConf);
 		}
 	}

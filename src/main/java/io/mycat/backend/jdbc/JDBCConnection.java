@@ -334,12 +334,12 @@ public class JDBCConnection implements BackendConnection {
 			ErrorPacket error = new ErrorPacket();
 			error.packetId = ++packetId;
 			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
-			error.message = msg.getBytes();
+			error.message = ((msg == null) ? e.toString().getBytes() : msg.getBytes());
 			String err = null;
 			if(error.message!=null){
 			    err = new String(error.message);
 			}
-			LOGGER.error("sql execute error, "+ err +", "+ e);
+			LOGGER.error("sql execute error, "+ err , e);
 			this.respHandler.errorResponse(error.writeToBytes(sc), this);
 		}
 		finally {

@@ -50,8 +50,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class PhysicalDatasource {
-	private static final Logger LOGGER = LoggerFactory
-			.getLogger(PhysicalDatasource.class);
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(PhysicalDatasource.class);
 
 	private final String name;
 	private final int size;
@@ -63,8 +63,10 @@ public abstract class PhysicalDatasource {
 	private final DataHostConfig hostConfig;
 	private final ConnectionHeartBeatHandler conHeartBeatHanler = new ConnectionHeartBeatHandler();
 	private PhysicalDBPool dbPool;
+	
 	// 添加DataSource读计数
 	private AtomicLong readCount = new AtomicLong(0);
+	
 	// 添加DataSource写计数
 	private AtomicLong writeCount = new AtomicLong(0);
 
@@ -334,11 +336,12 @@ public abstract class PhysicalDatasource {
 		heartbeat.stop();
 	}
 
-	public void doHeartbeat() {
+	public void doHeartbeat() {		
 		// 未到预定恢复时间，不执行心跳检测。
 		if (TimeUtil.currentTimeMillis() < heartbeatRecoveryTime) {
 			return;
 		}
+		
 		if (!heartbeat.isStop()) {
 			try {
 				heartbeat.heartbeat();
@@ -366,15 +369,14 @@ public abstract class PhysicalDatasource {
 	}
 
 	private void createNewConnection(final ResponseHandler handler,
-			final Object attachment, final String schema) throws IOException {
+			final Object attachment, final String schema) throws IOException {		
 		// aysn create connection
 		MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
 			public void run() {
 				try {
 					createNewConnection(new DelegateResponseHandler(handler) {
 						@Override
-						public void connectionError(Throwable e,
-								BackendConnection conn) {
+						public void connectionError(Throwable e, BackendConnection conn) {
 							handler.connectionError(e, conn);
 						}
 
@@ -393,27 +395,29 @@ public abstract class PhysicalDatasource {
 	public void getConnection(String schema, boolean autocommit,
 			final ResponseHandler handler, final Object attachment)
 			throws IOException {
+		
+		// 从当前连接map中拿取已建立好的后端连接
 		BackendConnection con = this.conMap.tryTakeCon(schema, autocommit);
 		if (con != null) {
+			
+			//如果不为空，则绑定对应前端请求的handler
 			takeCon(con, handler, attachment, schema);
-			return;
+			return;	
+			
 		} else {
 			int activeCons = this.getActiveCount();// 当前最大活动连接
 			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
 				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
-				throw new IOException(
-						"the max activeConnnections size can not be max than maxconnections");
+				throw new IOException("the max activeConnnections size can not be max than maxconnections");
 			} else { // create connection
-				LOGGER.info("no ilde connection in pool,create new connection for "
-						+ this.name + " of schema " + schema);
+				LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
 				createNewConnection(handler, attachment, schema);
 			}
-
 		}
-
 	}
 
 	private void returnCon(BackendConnection c) {
+		
 		c.setAttachment(null);
 		c.setBorrowed(false);
 		c.setLastTime(TimeUtil.currentTimeMillis());
@@ -425,6 +429,7 @@ public abstract class PhysicalDatasource {
 		} else {
 			ok = queue.getManCommitCons().offer(c);
 		}
+		
 		if (!ok) {
 
 			LOGGER.warn("can't return to pool ,so close con " + c);
@@ -448,8 +453,15 @@ public abstract class PhysicalDatasource {
 
 	}
 
-	public abstract void createNewConnection(ResponseHandler handler,
-			String schema) throws IOException;
+	/**
+	 * 创建新连接
+	 */
+	public abstract void createNewConnection(ResponseHandler handler, String schema) throws IOException;
+	
+	/**
+	 * 测试连接，用于初始化及热更新配置检测
+	 */
+	public abstract boolean testConnection(String schema) throws IOException;
 
 	public long getHeartbeatRecoveryTime() {
 		return heartbeatRecoveryTime;
@@ -461,5 +473,9 @@ public abstract class PhysicalDatasource {
 
 	public DBHostConfig getConfig() {
 		return config;
+	}
+
+	public boolean isAlive() {
+		return getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS;
 	}
 }

@@ -42,6 +42,12 @@
 			<algorithm>rang-long</algorithm>
 		</rule>
 	</tableRule>
+	<tableRule name="auto-sharding-long2">
+		<rule>
+			<columns>id</columns>
+			<algorithm>rang-long2</algorithm>
+		</rule>
+	</tableRule>
 
     <tableRule name="auto-sharding-rang-mod">
         <rule>
@@ -55,6 +61,12 @@
             <algorithm>range-date-hash</algorithm>
         </rule>
     </tableRule>
+	<tableRule name="crc32slot">
+		<rule>
+			<columns>id</columns>
+			<algorithm>crc32slot</algorithm>
+		</rule>
+	</tableRule>
 	<function name="func1"
 		class="io.mycat.route.function.PartitionByFileMap">
 		<property name="defaultNode">0</property>
@@ -73,6 +85,10 @@
 	<function name="rang-long"
 		class="io.mycat.route.function.AutoPartitionByLong">
 		<property name="mapFile">autopartition-long.txt</property>
+	</function>
+	<function name="rang-long2"
+		class="io.mycat.route.function.AutoPartitionByLong">
+		<property name="mapFile">autopartition-long2.txt</property>
 	</function>
 	<function name="by-date"
 		class="io.mycat.route.function.PartitionByDate">                            
@@ -93,4 +109,9 @@
         <property name="dateFormat">yyyy-MM-dd HH:mm:ss</property>
         <property name="groupPartionSize">6</property>
     </function>
+
+	<function name="crc32slot"
+			  class="io.mycat.route.function.PartitionByCRC32PreSlot">
+		<property name="count">2</property><!-- 要分片的数据库节点数量，必须指定，否则没法分片 -->
+	</function>
 </mycat:rule>

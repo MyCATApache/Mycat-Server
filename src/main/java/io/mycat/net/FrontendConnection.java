@@ -34,6 +34,7 @@ import io.mycat.config.Versions;
 import io.mycat.net.handler.*;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.HandshakePacket;
+import io.mycat.net.mysql.HandshakeV10Packet;
 import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.util.CompressUtil;
@@ -296,8 +297,29 @@ public abstract class FrontendConnection extends AbstractConnection {
 		// 记录SQL
 		this.setExecuteSql(sql);
 		
-		if (queryHandler != null) {
-			// 执行查询
+		// 防火墙策略( SQL 黑名单/ 注入攻击)
+		if ( !privileges.checkFirewallSQLPolicy( user, sql ) ) {
+			writeErrMessage(ErrorCode.ERR_WRONG_USED, 
+					"The statement is unsafe SQL, reject for user '" + user + "'");
+			return;
+		}		
+		
+		// DML 权限检查
+		try {
+			boolean isPassed = privileges.checkDmlPrivilege(user, schema, sql);
+			if ( !isPassed ) {
+				writeErrMessage(ErrorCode.ERR_WRONG_USED, 
+						"The statement DML privilege check is not passed, reject for user '" + user + "'");
+				return;
+			}
+		 } catch( com.alibaba.druid.sql.parser.ParserException e1) {
+	        	writeErrMessage(ErrorCode.ERR_WRONG_USED,  e1.getMessage());
+	        	LOGGER.error("parse exception", e1 );
+				return;
+	     }
+		
+		// 执行查询
+		if (queryHandler != null) {			
 			queryHandler.setReadOnly(privileges.isReadOnly(user));
 			queryHandler.query(sql);
 			
@@ -345,6 +367,22 @@ public abstract class FrontendConnection extends AbstractConnection {
 			
 			// 执行预处理
 			prepareHandler.prepare(sql);
+		} else {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
+		}
+	}
+	
+	public void stmtSendLongData(byte[] data) {
+		if(prepareHandler != null) {
+			prepareHandler.sendLongData(data);
+		} else {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
+		}
+	}
+	
+	public void stmtReset(byte[] data) {
+		if(prepareHandler != null) {
+			prepareHandler.reset(data);
 		} else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
 		}
@@ -397,17 +435,32 @@ public abstract class FrontendConnection extends AbstractConnection {
 			this.seed = seed;
 
 			// 发送握手数据包
-			HandshakePacket hs = new HandshakePacket();
-			hs.packetId = 0;
-			hs.protocolVersion = Versions.PROTOCOL_VERSION;
-			hs.serverVersion = Versions.SERVER_VERSION;
-			hs.threadId = id;
-			hs.seed = rand1;
-			hs.serverCapabilities = getServerCapabilities();
-			hs.serverCharsetIndex = (byte) (charsetIndex & 0xff);
-			hs.serverStatus = 2;
-			hs.restOfScrambleBuff = rand2;
-			hs.write(this);
+			boolean useHandshakeV10 = MycatServer.getInstance().getConfig().getSystem().getUseHandshakeV10() == 1;
+			if(useHandshakeV10) {
+				HandshakeV10Packet hs = new HandshakeV10Packet();
+				hs.packetId = 0;
+				hs.protocolVersion = Versions.PROTOCOL_VERSION;
+				hs.serverVersion = Versions.SERVER_VERSION;
+				hs.threadId = id;
+				hs.seed = rand1;
+				hs.serverCapabilities = getServerCapabilities();
+				hs.serverCharsetIndex = (byte) (charsetIndex & 0xff);
+				hs.serverStatus = 2;
+				hs.restOfScrambleBuff = rand2;
+				hs.write(this);
+			} else {
+				HandshakePacket hs = new HandshakePacket();
+				hs.packetId = 0;
+				hs.protocolVersion = Versions.PROTOCOL_VERSION;
+				hs.serverVersion = Versions.SERVER_VERSION;
+				hs.threadId = id;
+				hs.seed = rand1;
+				hs.serverCapabilities = getServerCapabilities();
+				hs.serverCharsetIndex = (byte) (charsetIndex & 0xff);
+				hs.serverStatus = 2;
+				hs.restOfScrambleBuff = rand2;
+				hs.write(this);
+			}
 
 			// asynread response
 			this.asynRead();
@@ -471,6 +524,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_SECURE_CONNECTION;
         flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
         flag |= Capabilities.CLIENT_MULTI_RESULTS;
+        boolean useHandshakeV10 = MycatServer.getInstance().getConfig().getSystem().getUseHandshakeV10() == 1;
+        if(useHandshakeV10) {
+        	flag |= Capabilities.CLIENT_PLUGIN_AUTH;
+        }
 		return flag;
 	}
 

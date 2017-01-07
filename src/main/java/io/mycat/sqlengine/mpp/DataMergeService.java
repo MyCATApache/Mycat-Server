@@ -30,10 +30,13 @@ import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultset;
+import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.sqlengine.mpp.tmp.RowDataSorter;
 import io.mycat.util.StringUtil;
+
 import org.apache.log4j.Logger;
+
 
 
 import java.nio.ByteBuffer;
@@ -54,11 +57,15 @@ public class DataMergeService extends AbstractDataNodeMerge {
 
 	private RowDataSorter sorter;
 	private RowDataPacketGrouper grouper;
-	private List<RowDataPacket> result = new Vector<RowDataPacket>();
+	private Map<String, LinkedList<RowDataPacket>> result = new HashMap<String, LinkedList<RowDataPacket>>();
 	private static Logger LOGGER = Logger.getLogger(DataMergeService.class);
 	private ConcurrentHashMap<String, Boolean> canDiscard = new ConcurrentHashMap<String, Boolean>();
 	public DataMergeService(MultiNodeQueryHandler handler, RouteResultset rrs) {
 		super(handler,rrs);
+
+		for (RouteResultsetNode node : rrs.getNodes()) {
+			result.put(node.getName(), new LinkedList<RowDataPacket>());
+		}
 	}
 
 
@@ -110,6 +117,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 							ColMeta colMeta = new ColMeta(sumColMeta.colIndex,
 									countColMeta.colIndex,
 									sumColMeta.getColType());
+							colMeta.decimals = sumColMeta.decimals; // 保存精度
 							mergCols.add(new MergeCol(colMeta, mergEntry
 									.getValue()));
 						}
@@ -233,7 +241,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 						canDiscard.put(pack.dataNode,true);
 					}
 				} else {
-					result.add(row);
+					result.get(pack.dataNode).add(row);
 				}
 			}// rof
 		}catch(final Exception e){
@@ -258,7 +266,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 	 */
 	public List<RowDataPacket> getResults(byte[] eof) {
 	
-		List<RowDataPacket> tmpResult = result;
+		List<RowDataPacket> tmpResult = null;
 
 		if (this.grouper != null) {
 			tmpResult = grouper.getResult();
@@ -280,9 +288,19 @@ public class DataMergeService extends AbstractDataNodeMerge {
 		}
 
 
+		
+		//no grouper and sorter
+		if(tmpResult == null){
+			tmpResult = new LinkedList<RowDataPacket>();
+			for (RouteResultsetNode node : rrs.getNodes()) {
+				tmpResult.addAll(result.get(node.getName()));
+			}
+		}
+		
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("prepare mpp merge result for " + rrs.getStatement());
 		}
 		return tmpResult;
 	}
 }
+

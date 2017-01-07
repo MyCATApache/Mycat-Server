@@ -26,7 +26,6 @@ package io.mycat.server;
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
 
-import io.mycat.server.response.InformationSchemaProfiling;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +38,10 @@ import io.mycat.server.handler.MysqlInformationSchemaHandler;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.response.Heartbeat;
+import io.mycat.server.response.InformationSchemaProfiling;
 import io.mycat.server.response.Ping;
 import io.mycat.server.util.SchemaUtil;
+import io.mycat.util.SplitUtil;
 import io.mycat.util.TimeUtil;
 
 /**
@@ -57,6 +58,10 @@ public class ServerConnection extends FrontendConnection {
 	private volatile String txInterrputMsg = "";
 	private long lastInsertId;
 	private NonBlockingSession session;
+	/**
+	 * 标志是否执行了lock tables语句，并处于lock状态
+	 */
+	private volatile boolean isLocked = false;
 
 	public ServerConnection(NetworkChannel channel)
 			throws IOException {
@@ -119,6 +124,14 @@ public class ServerConnection extends FrontendConnection {
 
 	public void setSession2(NonBlockingSession session2) {
 		this.session = session2;
+	}
+	
+	public boolean isLocked() {
+		return isLocked;
+	}
+
+	public void setLocked(boolean isLocked) {
+		this.isLocked = isLocked;
 	}
 
 	@Override
@@ -187,7 +200,7 @@ public class ServerConnection extends FrontendConnection {
 		}
 
 		//fix navicat   SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage` FROM INFORMATION_SCHEMA.PROFILING WHERE QUERY_ID= GROUP BY STATE ORDER BY SEQ
-		if(ServerParse.SELECT == type &&sql.contains(" INFORMATION_SCHEMA.PROFILING ")&&sql.contains("CONCAT(ROUND(SUM(DURATION)/*100,3)"))
+		if(ServerParse.SELECT == type &&sql.contains(" INFORMATION_SCHEMA.PROFILING ")&&sql.contains("CONCAT(ROUND(SUM(DURATION)/"))
 		{
 			InformationSchemaProfiling.response(this);
 			return;
@@ -272,7 +285,7 @@ public class ServerConnection extends FrontendConnection {
 		}
 		if (rrs != null) {
 			// session执行
-			session.execute(rrs, type);
+			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
 		}
 	}
 
@@ -299,6 +312,42 @@ public class ServerConnection extends FrontendConnection {
 
 		// 执行回滚
 		session.rollback();
+	}
+	/**
+	 * 执行lock tables语句方法
+	 * @param sql
+	 */
+	public void lockTable(String sql) {
+		// 事务中不允许执行lock table语句
+		if (!autocommit) {
+			writeErrMessage(ErrorCode.ER_YES, "can't lock table in transaction!");
+			return;
+		}
+		// 已经执行了lock table且未执行unlock table之前的连接不能再次执行lock table命令
+		if (isLocked) {
+			writeErrMessage(ErrorCode.ER_YES, "can't lock multi-table");
+			return;
+		}
+		RouteResultset rrs = routeSQL(sql, ServerParse.LOCK);
+		if (rrs != null) {
+			session.lockTable(rrs);
+		}
+	}
+	
+	/**
+	 * 执行unlock tables语句方法
+	 * @param sql
+	 */
+	public void unLockTable(String sql) {
+		sql = sql.replaceAll("\n", " ").replaceAll("\t", " ");
+		String[] words = SplitUtil.split(sql, ' ', true);
+		if (words.length==2 && ("table".equalsIgnoreCase(words[1]) || "tables".equalsIgnoreCase(words[1]))) {
+			isLocked = false;
+			session.unLockTable(sql);
+		} else {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Unknown command");
+		}
+		
 	}
 
 	/**

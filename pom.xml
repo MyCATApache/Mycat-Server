@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.6-ALPHA</version>
+	<version>1.6.5-DEV</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
@@ -68,13 +68,12 @@
 		<dependency>
 			<groupId>com.alibaba</groupId>
 			<artifactId>druid</artifactId>
-			<version>1.0.23</version>
+			<version>1.0.26</version>
 		</dependency>
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>5.1.35</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>net.sf.ehcache</groupId>
@@ -127,7 +126,7 @@
 		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
-			<version>2.1.1</version>
+			<version>2.2.1</version>
 			<type>jar</type>
 		</dependency>
 
@@ -156,17 +155,17 @@
 		<dependency>
 			<groupId>org.apache.curator</groupId>
 			<artifactId>curator-framework</artifactId>
-			<version>2.10.0</version>
+			<version>2.11.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.curator</groupId>
 			<artifactId>curator-recipes</artifactId>
-			<version>2.10.0</version>
+			<version>2.11.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.curator</groupId>
 			<artifactId>curator-test</artifactId>
-			<version>2.10.0</version>
+			<version>2.11.0</version>
 			<scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -174,11 +173,6 @@
                     <artifactId>log4j</artifactId>
                 </exclusion>
             </exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.yaml</groupId>
-			<artifactId>snakeyaml</artifactId>
-			<version>1.17</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba</groupId>
@@ -190,6 +184,12 @@
 			<groupId>joda-time</groupId>
 			<artifactId>joda-time</artifactId>
 			<version>2.9.3</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.shyiko</groupId>
+			<artifactId>mysql-binlog-connector-java</artifactId>
+			<version>0.6.0</version>
 		</dependency>
 
 

@@ -101,7 +101,7 @@ class DirectDBJoinHandler implements SQLJobHandler {
 	}
 
 	@Override
-	public void finished(String dataNode, boolean failed) {
+	public void finished(String dataNode, boolean failed, String errorMsg) {
 		if (!failed) {
 			createQryJob(Integer.MAX_VALUE);
 		}
@@ -149,7 +149,7 @@ class MyRowOutPutDataHandler implements SQLJobHandler {
 	}
 
 	@Override
-	public void finished(String dataNode, boolean failed) {
+	public void finished(String dataNode, boolean failed, String errorMsg) {
 
 	}
 }

@@ -57,7 +57,6 @@ public class NonBlockingSession implements Session {
 
     private final ServerConnection source;
     private final ConcurrentHashMap<RouteResultsetNode, BackendConnection> target;
-
     // life-cycle: each sql execution
     private volatile SingleNodeHandler singleNodeHandler;
     private volatile MultiNodeQueryHandler multiNodeHandler;
@@ -100,7 +99,7 @@ public class NonBlockingSession implements Session {
     public BackendConnection removeTarget(RouteResultsetNode key) {
         return target.remove(key);
     }
-
+    
     @Override
     public void execute(RouteResultset rrs, int type) {
 
@@ -149,7 +148,6 @@ public class NonBlockingSession implements Session {
                 } else {
                     multiNodeHandler.execute();
                 }
-
             } catch (Exception e) {
                 LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
                 source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
@@ -192,7 +190,6 @@ public class NonBlockingSession implements Session {
         if(!isALLGlobal()){
             switch(MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
                 case 1:
-//                        rollback();
                     source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!Please rollback!");
                     source.setTxInterrupt("Distributed transaction is disabled!");
                     break;
@@ -202,6 +199,7 @@ public class NonBlockingSession implements Session {
                     break;
                 default:
                     multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
+
             }
         } else {
             multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
@@ -257,6 +255,43 @@ public class NonBlockingSession implements Session {
         rollbackHandler.rollback();
     }
 
+	/**
+	 * 执行lock tables语句方法
+	 * @author songdabin
+	 * @date 2016-7-9
+	 * @param rrs
+	 */
+	public void lockTable(RouteResultset rrs) {
+		// 检查路由结果是否为空
+		RouteResultsetNode[] nodes = rrs.getNodes();
+		if (nodes == null || nodes.length == 0 || nodes[0].getName() == null
+				|| nodes[0].getName().equals("")) {
+			source.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
+					"No dataNode found ,please check tables defined in schema:"
+							+ source.getSchema());
+			return;
+		}
+		LockTablesHandler handler = new LockTablesHandler(this, rrs);
+		source.setLocked(true);
+		try {
+			handler.execute();
+		} catch (Exception e) {
+			LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
+			source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
+		}
+	}
+
+	/**
+	 * 执行unlock tables语句方法
+	 * @author songdabin
+	 * @date 2016-7-9
+	 * @param rrs
+	 */
+	public void unLockTable(String sql) {
+		UnLockTablesHandler handler = new UnLockTablesHandler(this, this.source.isAutocommit(), sql);
+		handler.execute();
+	}
+	
     @Override
     public void cancel(FrontendConnection sponsor) {
 
@@ -289,8 +324,8 @@ public class NonBlockingSession implements Session {
             if (node.isDisctTable()) {
                 return;
             }
-            if (this.source.isAutocommit() || conn.isFromSlaveDB()
-                    || !conn.isModifiedSQLExecuted()) {
+            if ((this.source.isAutocommit() || conn.isFromSlaveDB()
+                    || !conn.isModifiedSQLExecuted()) && !this.source.isLocked()) {
                 releaseConnection((RouteResultsetNode) conn.getAttachment(), LOGGER.isDebugEnabled(), needRollback);
             }
         }
@@ -311,14 +346,14 @@ public class NonBlockingSession implements Session {
                 if (c.isAutocommit()) {
                     c.release();
                 } else
-                //  if (needRollback)
+                //if (needRollback)
                 {
                     c.setResponseHandler(new RollbackReleaseHandler());
                     c.rollback();
                 }
-                //              else {
-//					c.release();
-//				}
+                //else {
+				//	c.release();
+				//}
             }
         }
     }
@@ -356,7 +391,7 @@ public class NonBlockingSession implements Session {
         // " to key "+key.getName()+" on sesion "+this);
         return target.put(key, conn);
     }
-
+    
     public boolean tryExistsCon(final BackendConnection conn, RouteResultsetNode node) {
         if (conn == null) {
             return false;
@@ -480,7 +515,7 @@ public class NonBlockingSession implements Session {
     }
 
     private String genXATXID() {
-        return MycatServer.getInstance().genXATXID();
+        return MycatServer.getInstance().getXATXIDGLOBAL();
     }
 
     public void setXATXEnabled(boolean xaTXEnabled) {

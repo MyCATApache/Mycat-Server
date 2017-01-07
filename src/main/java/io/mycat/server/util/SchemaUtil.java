@@ -134,7 +134,12 @@ private  static     Pattern pattern = Pattern.compile("^\\s*(SHOW)\\s+(FULL)*\\s
        // System.out.println(parseSchema(sql));
         sql="update updatebase.test set xx=1 " ;
         //System.out.println(parseSchema(sql));
-
+        sql="CREATE TABLE IF not EXISTS  `test` (\n" + "  `id` bigint(20) NOT NULL AUTO_INCREMENT,\n"
+                + "  `sid` bigint(20) DEFAULT NULL,\n" + "  `name` varchar(45) DEFAULT NULL,\n"
+                + "  `value` varchar(45) DEFAULT NULL,\n"
+                + "  `_slot` int(11) DEFAULT NULL COMMENT '自动迁移算法slot,禁止修改',\n" + "  PRIMARY KEY (`id`)\n"
+                + ") ENGINE=InnoDB AUTO_INCREMENT=805781256930734081 DEFAULT CHARSET=utf8";
+        System.out.println(parseSchema(sql));
         String pat3 = "show  full  tables from  base like ";
         Matcher ma = pattern.matcher(pat3);
         if(ma.matches())

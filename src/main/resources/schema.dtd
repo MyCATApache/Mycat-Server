@@ -62,6 +62,7 @@
   dbType CDATA #REQUIRED
   filters CDATA #IMPLIED
   logTime CDATA #IMPLIED
+    slaveIDs CDATA #IMPLIED
   dbDriver CDATA #REQUIRED>
 
 <!ELEMENT writeHost (readHost)*>

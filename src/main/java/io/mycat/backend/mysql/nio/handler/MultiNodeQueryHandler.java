@@ -25,6 +25,7 @@ package io.mycat.backend.mysql.nio.handler;
 
 import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.sqlengine.mpp.*;
+
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -266,7 +267,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			boolean isEndPacket = isCallProcedure ? decrementOkCountBy(1): decrementCountBy(1);
 			if (isEndPacket && isCanClose2Client) {
 				
-				if (this.autocommit) {// clear all connections
+				if (this.autocommit && !session.getSource().isLocked()) {// clear all connections
 					session.releaseConnections(false);
 				}
 				
@@ -301,6 +302,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					lock.unlock();
 				}
 			}
+			
+			// add by lian
+			// 解决sql统计中写操作永远为0
+			execCount++;
+			if (execCount == rrs.getNodes().length) {
+				QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+						rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0);
+				QueryResultDispatcher.dispatchQuery( queryResult );
+			}
 		}
 	}
 
@@ -333,7 +343,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 		if (decrementCountBy(1)) {
             if (!rrs.isCallStatement()||(rrs.isCallStatement()&&rrs.getProcedure().isResultSimpleValue())) {
-				if (this.autocommit) {// clear all connections
+				if (this.autocommit && !session.getSource().isLocked()) {// clear all connections
 					session.releaseConnections(false);
 				}
 
@@ -401,24 +411,35 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			if (rrs.getLimitSize() < 0)
 				end = Integer.MAX_VALUE;
 
-			while (iter.hasNext()){
-
-				UnsafeRow row = iter.next();
-
-				if(index >= start){
-					row.packetId = ++packetId;
-					buffer = row.write(buffer,source,true);
+			if(prepared) {
+				while (iter.hasNext()){
+					UnsafeRow row = iter.next();
+					if(index >= start){
+						row.packetId = ++packetId;
+						BinaryRowDataPacket binRowPacket = new BinaryRowDataPacket();
+						binRowPacket.read(fieldPackets, row);
+						buffer = binRowPacket.write(buffer, source, true);
+					}
+					index++;
+					if(index == end){
+						break;
+					}
 				}
-
-				index++;
-
-				if(index == end){
-					break;
+			} else {
+				while (iter.hasNext()){
+					UnsafeRow row = iter.next();
+					if(index >= start){
+						row.packetId = ++packetId;
+						buffer = row.write(buffer,source,true);
+					}
+					index++;
+					if(index == end){
+						break;
+					}
 				}
 			}
-
+			
 			eof[3] = ++packetId;
-
 
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("last packet id:" + packetId);
@@ -462,15 +483,33 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			if (end > results.size()) {
 				end = results.size();
 			}
-
-			for (int i = start; i < end; i++) {
-				RowDataPacket row = results.get(i);
-				if( prepared ) {
+			
+//			for (int i = start; i < end; i++) {
+//				RowDataPacket row = results.get(i);
+//				if( prepared ) {
+//					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+//					binRowDataPk.read(fieldPackets, row);
+//					binRowDataPk.packetId = ++packetId;
+//					//binRowDataPk.write(source);
+//					buffer = binRowDataPk.write(buffer, session.getSource(), true);
+//				} else {
+//					row.packetId = ++packetId;
+//					buffer = row.write(buffer, source, true);
+//				}
+//			}
+			
+			if(prepared) {
+				for (int i = start; i < end; i++) {
+					RowDataPacket row = results.get(i);
 					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
 					binRowDataPk.read(fieldPackets, row);
 					binRowDataPk.packetId = ++packetId;
-					binRowDataPk.write(source);
-				} else {
+					//binRowDataPk.write(source);
+					buffer = binRowDataPk.write(buffer, session.getSource(), true);
+				}
+			} else {
+				for (int i = start; i < end; i++) {
+					RowDataPacket row = results.get(i);
 					row.packetId = ++packetId;
 					buffer = row.write(buffer, source, true);
 				}
@@ -574,6 +613,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 							&& !columToIndx.containsKey(fieldName)) {
 						if (shouldRemoveAvgField.contains(fieldName)) {
 							shouldSkip = true;
+							fieldPackets.remove(fieldPackets.size() - 1);
 						}
 						if (shouldRenameAvgField.contains(fieldName)) {
 							String newFieldName = fieldName.substring(0,
@@ -581,24 +621,32 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 							fieldPkg.name = newFieldName.getBytes();
 							fieldPkg.packetId = ++packetId;
 							shouldSkip = true;
+							// 处理AVG字段位数和精度, AVG位数 = SUM位数 - 14
+							fieldPkg.length = fieldPkg.length - 14;
+							// AVG精度 = SUM精度 + 4
+ 							fieldPkg.decimals = (byte) (fieldPkg.decimals + 4);
 							buffer = fieldPkg.write(buffer, source, false);
 
+							// 还原精度
+							fieldPkg.decimals = (byte) (fieldPkg.decimals - 4);
 						}
 
-						columToIndx.put(fieldName,
-								new ColMeta(i, fieldPkg.type));
+						ColMeta colMeta = new ColMeta(i, fieldPkg.type);
+						colMeta.decimals = fieldPkg.decimals;
+						columToIndx.put(fieldName, colMeta);
 					}
-				} else if (primaryKey != null && primaryKeyIndex == -1) {
-					// find primary key index
+				} else {
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
 					fieldPackets.add(fieldPkg);
+					fieldCount = fields.size();
+					if (primaryKey != null && primaryKeyIndex == -1) {
+					// find primary key index
 					String fieldName = new String(fieldPkg.name);
 					if (primaryKey.equalsIgnoreCase(fieldName)) {
 						primaryKeyIndex = i;
-						fieldCount = fields.size();
 					}
-				}
+				}   }
 				if (!shouldSkip) {
 					field[3] = ++packetId;
 					buffer = source.writeToBuffer(field, buffer);
@@ -656,16 +704,27 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				// @since 2016-03-25
 				dataMergeSvr.onNewRecord(dataNode, row);
 			} else {
+				RowDataPacket rowDataPkg =null;
 				// cache primaryKey-> dataNode
 				if (primaryKeyIndex != -1) {
-					RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
+					 rowDataPkg = new RowDataPacket(fieldCount);
 					rowDataPkg.read(row);
 					String primaryKey = new String(rowDataPkg.fieldValues.get(primaryKeyIndex));
 					LayerCachePool pool = MycatServer.getInstance().getRouterservice().getTableId2DataNodeCache();
 					pool.putIfAbsent(priamaryKeyTable, primaryKey, dataNode);
 				}
 				row[3] = ++packetId;
-				session.getSource().write(row);
+				if( prepared ) {
+					if(rowDataPkg==null) {
+						rowDataPkg = new RowDataPacket(fieldCount);
+						rowDataPkg.read(row);
+					}
+					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+					binRowDataPk.read(fieldPackets, rowDataPkg);
+					binRowDataPk.write(session.getSource());
+				} else {
+					session.getSource().write(row);
+				}
 			}
 
 		} catch (Exception e) {

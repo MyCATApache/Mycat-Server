@@ -34,4 +34,10 @@ public class PostgreSQLDataSource extends PhysicalDatasource {
 		factory.make(this, handler, schema);
 	}
 
+	@Override
+	public boolean testConnection(String schema) throws IOException {
+		// TODO Auto-generated method stub
+		return true;
+	}
+
 }

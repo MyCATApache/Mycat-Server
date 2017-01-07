@@ -87,10 +87,10 @@ public class JoinParser {
 			SQLExpr expr=table1.getCondition();//SQLBinaryOpExpr
 			parserJoinKey(expr);
 		}
-//		else {
-//			tFilter=setTableFilter(tFilter,getTableFilter(table,isOutJoin));
-		//	LOGGER.info("table "+table.toString() +" Alias:"+table.getAlias()+" Hints:"+table.getHints());
-//		}
+		else {
+			tFilter=setTableFilter(tFilter,getTableFilter(table,isOutJoin));
+			LOGGER.info("table "+table.toString() +" Alias:"+table.getAlias()+" Hints:"+table.getHints());
+		}
 	}
 	private TableFilter setTableFilter(TableFilter tFilter,TableFilter newFilter){
 		if (tFilter==null) {

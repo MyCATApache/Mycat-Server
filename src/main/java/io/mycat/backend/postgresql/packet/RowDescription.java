@@ -77,16 +77,15 @@ public class RowDescription extends PostgreSQLPacket {
 		int _offset = offset + 1 + 4 + 2;
 		for (int i = 0; i < pack.columns.length; i++) {
 			ColumnDescription col = new ColumnDescription();
-
 			col.columnName = PIOUtils.redString(buffer, _offset, UTF8);
-			_offset = _offset + col.columnName.getBytes().length;
+			_offset = _offset + col.columnName.getBytes(UTF8).length + 1;
 
 			col.oid = PIOUtils.redInteger4(buffer, _offset);
 			_offset += 4;
 			col.coid = PIOUtils.redInteger2(buffer, _offset);
 			_offset += 2;
 			col.columnType = DateType.valueOf(PIOUtils.redInteger4(buffer,
-					_offset));
+					_offset));			
 			_offset += 4;
 			col.typlen = PIOUtils.redInteger2(buffer, _offset);
 			_offset += 2;
