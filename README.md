@@ -416,7 +416,7 @@ algorithm 是规则对应的切分规则：映射到function 的name。
 
 function 配置是分片规则的配置。
 
-name 为切分规则的名称，名字人员取，但是需要与tableRule 中匹配。
+name 为切分规则的名称，名字任意取，但是需要与tableRule 中匹配。
 
 class 是切分规则对应的切分类，写死，需要哪种规则则配置哪种，例如本例子是按小时分片：org.opencloudb.route.function.LatestMonthPartion
 
