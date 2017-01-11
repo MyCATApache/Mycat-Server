@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;
+import org.opencloudb.trace.Tracer;
 
 /**
  * wuzh
@@ -65,6 +66,8 @@ public class GetConnectionHandler implements ResponseHandler {
 		finishedCount.addAndGet(1);
 		logger.info("connected successfuly " + conn);
         conn.release();
+        
+        Tracer.trace(conn);
 	}
 
 	@Override
@@ -72,18 +75,22 @@ public class GetConnectionHandler implements ResponseHandler {
 		finishedCount.addAndGet(1);
 		logger.warn("connect error " + conn+ e);
         conn.release();
+        
+        Tracer.trace(conn);
 	}
 
 	@Override
 	public void errorResponse(byte[] err, BackendConnection conn) {
 		logger.warn("caught error resp: " + conn + " " + new String(err));
         conn.release();
+        
+        Tracer.trace(conn);
 	}
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
 		logger.info("received ok resp: " + conn + " " + new String(ok));
-
+		Tracer.trace(conn);
 	}
 
 	@Override
@@ -109,7 +116,7 @@ public class GetConnectionHandler implements ResponseHandler {
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-
+		Tracer.trace(conn, reason);
 	}
 
 }

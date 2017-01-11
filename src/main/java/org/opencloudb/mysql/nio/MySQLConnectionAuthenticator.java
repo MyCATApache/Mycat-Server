@@ -36,6 +36,7 @@ import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.HandshakePacket;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.net.mysql.Reply323Packet;
+import org.opencloudb.trace.Tracer;
 
 /**
  * MySQL 验证处理器
@@ -116,8 +117,9 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 				}
 
 			}
-
+			Tracer.trace(source);
 		} catch (RuntimeException e) {
+			Tracer.trace(source);
 			if (listener != null) {
 				listener.connectionError(e, source);
 				return;
@@ -139,6 +141,7 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 		if (charset != null) {
 			source.setCharset(charset);
 		} else {
+			Tracer.trace(source);
 			throw new RuntimeException("Unknown charsetIndex:" + charsetIndex);
 		}
 	}

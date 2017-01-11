@@ -43,7 +43,6 @@ import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.buffer.BufferPool;
 import org.opencloudb.cache.CacheService;
 import org.opencloudb.classloader.DynaClassLoader;
-import org.opencloudb.config.ZkConfig;
 import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.interceptor.SQLInterceptor;
 import org.opencloudb.manager.ManagerConnectionFactory;

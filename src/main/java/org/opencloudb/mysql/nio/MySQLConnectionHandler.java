@@ -32,6 +32,7 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.net.mysql.RequestFilePacket;
+import org.opencloudb.trace.Tracer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,6 +88,8 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 
     @Override
     protected void handleData(byte[] data) {
+    	Tracer.trace(source);
+    	
         switch (resultStatus) {
             //第一阶段
             case RESULT_STATUS_INIT:
