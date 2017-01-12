@@ -11,5 +11,5 @@ public interface SQLJobHandler {
 
 	public boolean onRowData(String dataNode, byte[] rowData);
 
-	public void finished(String dataNode, boolean failed);
+	public void finished(String dataNode, boolean failed, String errorMsg);
 }

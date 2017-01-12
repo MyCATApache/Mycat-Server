@@ -22,7 +22,7 @@ import io.mycat.server.parser.ServerParse;
  */
 public class SQLJob implements ResponseHandler, Runnable {
 	
-	public static final Logger LOGGER = LoggerFactory.getLogger(SQLJob.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SQLJob.class);
 	
 	private final String sql;
 	private final String dataNodeOrDatabase;
@@ -69,8 +69,8 @@ public class SQLJob implements ResponseHandler, Runnable {
 				ds.getConnection(dataNodeOrDatabase, true, this, null);
 			}
 		} catch (Exception e) {
-			LOGGER.info("can't get connection for sql ,error:" + e);
-			doFinished(true);
+			LOGGER.info("can't get connection for sql ,error:" ,e);
+			doFinished(true,e.getMessage());
 		}
 	}
 
@@ -92,7 +92,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 			conn.query(sql);
 			connection = conn;
 		} catch (Exception e) {// (UnsupportedEncodingException e) {
-			doFinished(true);
+			doFinished(true,e.getMessage());
 		}
 
 	}
@@ -101,9 +101,9 @@ public class SQLJob implements ResponseHandler, Runnable {
 		return finished;
 	}
 
-	private void doFinished(boolean failed) {
+	private void doFinished(boolean failed,String errorMsg) {
 		finished = true;
-		jobHandler.finished(dataNodeOrDatabase, failed);
+		jobHandler.finished(dataNodeOrDatabase, failed,errorMsg );
 		if (ctx != null) {
 			ctx.onJobFinished(this);
 		}
@@ -112,7 +112,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
 		LOGGER.info("can't get connection for sql :" + sql);
-		doFinished(true);
+		doFinished(true,e.getMessage());
 	}
 
 	@Override
@@ -134,12 +134,14 @@ public class SQLJob implements ResponseHandler, Runnable {
 		
 		
 		conn.release();
-		doFinished(true);
+		doFinished(true,errMsg);
 	}
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
 		conn.syncAndExcute();
+		conn.release();
+		doFinished(false,null);
 	}
 
 	@Override
@@ -154,7 +156,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 		boolean finsihed = jobHandler.onRowData(dataNodeOrDatabase, row);
 		if (finsihed) {
 			conn.close("not needed by user proc");
-			doFinished(false);
+			doFinished(false,null);
 		}
 
 	}
@@ -162,7 +164,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		conn.release();
-		doFinished(false);
+		doFinished(false,null);
 	}
 
 	@Override
@@ -172,7 +174,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-		doFinished(true);
+		doFinished(true,reason);
 	}
 
 	public int getId() {

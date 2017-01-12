@@ -148,7 +148,6 @@ public class NonBlockingSession implements Session {
                 } else {
                     multiNodeHandler.execute();
                 }
-
             } catch (Exception e) {
                 LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
                 source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
@@ -191,7 +190,6 @@ public class NonBlockingSession implements Session {
         if(!isALLGlobal()){
             switch(MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
                 case 1:
-//                        rollback();
                     source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!Please rollback!");
                     source.setTxInterrupt("Distributed transaction is disabled!");
                     break;
@@ -201,7 +199,7 @@ public class NonBlockingSession implements Session {
                     break;
                 default:
                     multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
-                    LOGGER.warn("DEFAULT:Distributed transaction detected! Targets:" + target);
+
             }
         } else {
             multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
@@ -517,7 +515,7 @@ public class NonBlockingSession implements Session {
     }
 
     private String genXATXID() {
-        return MycatServer.getInstance().genXATXID();
+        return MycatServer.getInstance().getXATXIDGLOBAL();
     }
 
     public void setXATXEnabled(boolean xaTXEnabled) {

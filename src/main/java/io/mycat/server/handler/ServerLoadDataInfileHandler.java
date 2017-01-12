@@ -25,6 +25,7 @@ package io.mycat.server.handler;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLLiteralExpr;
 import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLoadDataInFileStatement;
@@ -45,6 +46,7 @@ import io.mycat.net.mysql.BinaryPacket;
 import io.mycat.net.mysql.RequestFilePacket;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.function.SlotFunction;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatStatementParser;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
@@ -94,6 +96,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private LayerCachePool tableId2DataNodeCache;
     private SchemaConfig schema;
     private boolean isStartLoadData = false;
+
+    private boolean shoudAddSlot = false;
 
     public int getPackID()
     {
@@ -172,6 +176,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
         tableName = statement.getTableName().getSimpleName().toUpperCase();
         tableConfig = schema.getTables().get(tableName);
+      if(  tableConfig.getRule().getRuleAlgorithm() instanceof SlotFunction){
+          shoudAddSlot=true;
+      }
         tempPath = SystemConfig.getHomePath() + File.separator + "temp" + File.separator + serverConnection.getId() + File.separator;
         tempFile = tempPath + "clientTemp.txt";
         tempByteBuffer = new ByteArrayOutputStream();
@@ -180,24 +187,22 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         if(tableConfig!=null)
         {
             String pColumn = getPartitionColumn();
-            if (pColumn != null && columns != null && columns.size() > 0)
-            {
-
-                for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
-                {
+            if (pColumn != null && columns != null && columns.size() > 0) {
+                for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++) {
                     String column = StringUtil.removeBackquote(columns.get(i).toString());
-                    if (pColumn.equalsIgnoreCase(column))
-                    {
+                    if (pColumn.equalsIgnoreCase(column)) {
                         partitionColumnIndex = i;
-                        break;
-
                     }
-
+                    if("_slot".equalsIgnoreCase(column)){
+                        shoudAddSlot=false;
+                    }
                 }
 
             }
         }
-
+            if(shoudAddSlot){
+                columns.add(new SQLIdentifierExpr("_slot"));
+            }
         parseLoadDataPram();
         if (statement.isLocal())
         {
@@ -420,6 +425,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 }
 
                     String jLine = joinField(line, data);
+                if(shoudAddSlot){
+                    jLine=jLine+loadData.getFieldTerminatedBy()+routeResultsetNode.getSlot();
+                }
                     if (data.getData() == null)
                     {
                         data.setData(Lists.newArrayList(jLine));

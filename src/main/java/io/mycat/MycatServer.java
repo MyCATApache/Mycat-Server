@@ -58,6 +58,7 @@ import io.mycat.net.SocketConnector;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
+import io.mycat.route.sequence.handler.*;
 import io.mycat.server.ServerConnectionFactory;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
@@ -125,7 +126,8 @@ public class MycatServer {
 
 	//XA事务全局ID生成
 	private final AtomicLong xaIDInc = new AtomicLong();
-
+	//sequence处理对象
+	private SequenceHandler sequenceHandler;
 
 	/**
 	 * Mycat 内存管理类
@@ -138,6 +140,7 @@ public class MycatServer {
 
 	private final MycatConfig config;
 	private final ScheduledExecutorService scheduler;
+	private final ScheduledExecutorService heartbeatScheduler;
 	private final SQLRecorder sqlRecorder;
 	private final AtomicBoolean isOnline;
 	private final long startupTime;
@@ -148,6 +151,8 @@ public class MycatServer {
 	private ListeningExecutorService listeningExecutorService;
 	private  InterProcessMutex dnindexLock;
 	private  long totalNetWorkBufferSize = 0;
+
+	private final AtomicBoolean startup=new AtomicBoolean(false);
 	private MycatServer() {
 		
 		//读取文件配置
@@ -155,6 +160,9 @@ public class MycatServer {
 		
 		//定时线程池，单线程线程池
 		scheduler = Executors.newSingleThreadScheduledExecutor();
+
+		//心跳调度独立出来，避免被其他任务影响
+		heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
 		
 		//SQL记录器
 		this.sqlRecorder = new SQLRecorder(config.getSystem().getSqlRecordCount());
@@ -192,6 +200,11 @@ public class MycatServer {
 			 String path=     ZKUtils.getZKBasePath()+"lock/dnindex.lock";
 			 dnindexLock = new InterProcessMutex(ZKUtils.getConnection(), path);
 		 }
+
+	}
+
+	public AtomicBoolean getStartup() {
+		return startup;
 	}
 
 	public long getTotalNetWorkBufferSize() {
@@ -218,6 +231,10 @@ public class MycatServer {
 		return sqlInterceptor;
 	}
 
+	public ScheduledExecutorService getScheduler() {
+		return scheduler;
+	}
+
 	public String genXATXID() {
 		long seq = this.xaIDInc.incrementAndGet();
 		if (seq < 0) {
@@ -229,6 +246,16 @@ public class MycatServer {
 			}
 		}
 		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "." + seq + "'";
+	}
+
+	public String getXATXIDGLOBAL(){
+		return "'" + getUUID() + "'";
+	}
+
+	public static String getUUID(){
+		String s = UUID.randomUUID().toString();
+		//去掉“-”符号
+		return s.substring(0,8)+s.substring(9,13)+s.substring(14,18)+s.substring(19,23)+s.substring(24);
 	}
 
 	public MyCatMemory getMyCatMemory() {
@@ -273,7 +300,6 @@ public class MycatServer {
 		int processorCount = system.getProcessors();
 
 		// server startup
-		LOGGER.info("===============================================");
 		LOGGER.info(NAME + " is ready to startup ...");
 		String inf = "Startup processors ...,total processors:"
 				+ system.getProcessors() + ",aio thread pool size:"
@@ -426,11 +452,11 @@ public class MycatServer {
 		
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
 
-		scheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L, dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
-		scheduler.scheduleAtFixedRate(dataSourceOldConsClear(), 0L, DEFAULT_OLD_CONNECTION_CLEAR_PERIOD, TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L, dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(dataSourceOldConsClear(), 0L, DEFAULT_OLD_CONNECTION_CLEAR_PERIOD, TimeUnit.MILLISECONDS);
 		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MILLISECONDS);
        
 		if(system.getCheckTableConsistency()==1) {
@@ -458,27 +484,63 @@ public class MycatServer {
 
 		if(isUseZkSwitch()) {
 			//首次启动如果发现zk上dnindex为空，则将本地初始化上zk
-			try {
-				File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "dnindex.properties");
-				dnindexLock.acquire(30, TimeUnit.SECONDS);
-				String path = ZKUtils.getZKBasePath() + "bindata/dnindex.properties";
-				CuratorFramework zk = ZKUtils.getConnection();
-				if (zk.checkExists().forPath(path) == null) {
-					zk.create().creatingParentsIfNeeded().forPath(path, Files.toByteArray(file));
-				}
+			initZkDnindex();
+		}
+		initRuleData();
 
+		startup.set(true);
+	}
+
+	public void initRuleData() {
+		if(!isUseZk())  return;
+		InterProcessMutex	ruleDataLock =null;
+		try {
+			File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "ruledata");
+			String path=     ZKUtils.getZKBasePath()+"lock/ruledata.lock";
+			ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
+			ruleDataLock.acquire(30, TimeUnit.SECONDS);
+		      File[]  childFiles=	file.listFiles();
+			String basePath=ZKUtils.getZKBasePath()+"ruledata/";
+			for (File childFile : childFiles) {
+				CuratorFramework zk = ZKUtils.getConnection();
+				if (zk.checkExists().forPath(basePath+childFile.getName()) == null) {
+					zk.create().creatingParentsIfNeeded().forPath(basePath+childFile.getName(), Files.toByteArray(childFile));
+				}
+			}
+
+
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} finally {
+			try {
+				if(ruleDataLock!=null)
+				ruleDataLock.release();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
-			} finally {
-				try {
-					dnindexLock.release();
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
 			}
 		}
 	}
 
+	private void initZkDnindex() {
+		try {
+            File file = new File(SystemConfig.getHomePath(), "conf" + File.separator + "dnindex.properties");
+            dnindexLock.acquire(30, TimeUnit.SECONDS);
+            String path = ZKUtils.getZKBasePath() + "bindata/dnindex.properties";
+            CuratorFramework zk = ZKUtils.getConnection();
+            if (zk.checkExists().forPath(path) == null) {
+                zk.create().creatingParentsIfNeeded().forPath(path, Files.toByteArray(file));
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                dnindexLock.release();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+	}
 
 	public void reloadDnIndex()
 	{
@@ -662,6 +724,12 @@ public class MycatServer {
 			}
 		}
 
+	}
+
+
+	private boolean isUseZk(){
+		String loadZk=ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_FLAG);
+		return "true".equalsIgnoreCase(loadZk)   ;
 	}
 
 	private boolean isUseZkSwitch()

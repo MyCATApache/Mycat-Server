@@ -82,7 +82,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 
 		DruidParser druidParser = DruidParserFactory.create(schema, statement, visitor);
 		druidParser.parser(schema, rrs, statement, stmt,cachePool,visitor);
-
+		DruidShardingParseInfo ctx=  druidParser.getCtx() ;
+		rrs.setTables(ctx.getTables());
 		/**
 		 * DruidParser 解析过程中已完成了路由的直接返回
 		 */
@@ -93,7 +94,6 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		/**
 		 * 没有from的select语句或其他
 		 */
-        DruidShardingParseInfo ctx=  druidParser.getCtx() ;
         if((ctx.getTables() == null || ctx.getTables().size() == 0)&&(ctx.getTableAliasMap()==null||ctx.getTableAliasMap().isEmpty()))
         {
 		    return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), druidParser.getCtx().getSql());
@@ -368,7 +368,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		case ServerParse.SHOW:// if origSQL is like show tables
 			return analyseShowSQL(schema, rrs, stmt);
 		case ServerParse.SELECT://if origSQL is like select @@
-			if(stmt.contains("@@")){
+			int index = stmt.indexOf("@@");
+			if(index > 0 && "SELECT".equals(stmt.substring(0, index).trim().toUpperCase())){
 				return analyseDoubleAtSgin(schema, rrs, stmt);
 			}
 			break;
