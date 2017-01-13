@@ -184,7 +184,7 @@ public class MycatServer {
 	}
 
 	public void beforeStart() {
-		// always load lg4j.xml from classpath for development & deployment, otherwise can
+		// always load log4j.xml from classpath for development & deployment, otherwise can
 		//lead to can't find the ${MYCAT_HOME}/conf/log4j.xml config file in common development!
 		// @since 2017-01-13 pzp
 		final URL config = SystemConfig.class.getClassLoader().getResource("log4j.xml");
