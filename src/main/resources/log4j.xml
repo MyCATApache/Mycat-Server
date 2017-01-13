@@ -15,7 +15,7 @@
  - limitations under the License.
 -->
 <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
-<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" debug="false">
 <appender name="ConsoleAppender" class="org.apache.log4j.ConsoleAppender">
   <layout class="org.apache.log4j.PatternLayout">
    <param name="ConversionPattern" value="%d{MM-dd HH:mm:ss.SSS}  %5p [%t] (%F:%L) -%m%n" />
@@ -34,9 +34,9 @@
  
   
   <root>
-    <level value="warn" />
-    <appender-ref ref="ConsoleAppender" />
-     <!--<appender-ref ref="FILE" />-->
+    <level value="INFO" />
+    <!--<appender-ref ref="ConsoleAppender" />-->
+  	<appender-ref ref="FILE" />
   </root>
 <!--
 <logger name="org.opencloudb.server.NonBlockingSession" >    
