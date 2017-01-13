@@ -35,17 +35,28 @@ import java.util.Date;
  */
 public final class MycatStartup {
     private static final String dateFormat = "yyyy-MM-dd HH:mm:ss";
+    
+    static{
+    	// init home path which no specified on bootstrap such as common development,
+    	//before log4j first start, otherwise can lead to create another mycat.log file
+    	//in the "/logs" directory!
+    	// @since 2017-01-13 pzp
+    	SystemConfig.getHomePath();
+    }
 
     public static void main(String[] args) {
         //是否启用zk配置，/myid.properties中的loadZk属性决定，默认不启用，从本地xml文件中读取配置
         ZkConfig.instance().initZk();
 
         try {
-            String home = SystemConfig.getHomePath();
+            final String home = SystemConfig.getHomePath();
             if (home == null) {
-                System.out.println(SystemConfig.SYS_HOME + "  is not set.");
+                System.out.println(SystemConfig.SYS_HOME + " is not set.");
                 System.exit(-1);
             }
+            // Very important for log4j.xml
+            // @since 2017-01-13 little-pan 
+            System.out.println("MyCAT Server home path " + home);
             // init
             MycatServer server = MycatServer.getInstance();
             server.beforeStart();

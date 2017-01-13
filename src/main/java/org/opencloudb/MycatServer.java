@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.Map;
 import java.util.Properties;
@@ -38,6 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.buffer.BufferPool;
@@ -182,8 +184,15 @@ public class MycatServer {
 	}
 
 	public void beforeStart() {
-		String home = SystemConfig.getHomePath();
-		Log4jInitializer.configureAndWatch(home + "/conf/log4j.xml", LOG_WATCH_DELAY);
+		// always load lg4j.xml from classpath for development & deployment, otherwise can
+		//lead to can't find the ${MYCAT_HOME}/conf/log4j.xml config file in common development!
+		// @since 2017-01-13 pzp
+		final URL config = SystemConfig.class.getClassLoader().getResource("log4j.xml");
+		if(config == null){
+			System.err.println("log4j.xml not in classpath");
+			return;
+		}
+		Log4jInitializer.configureAndWatch(config.getFile(), LOG_WATCH_DELAY);
 		
 		//ZkConfig.instance().initZk();
 	}
