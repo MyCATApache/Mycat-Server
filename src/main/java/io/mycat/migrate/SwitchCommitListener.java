@@ -174,12 +174,12 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         for (int i = 0; i < slots.size(); i++) {
             Range range = slots.get(i);
             if(i!=0)
-                sb.append(" and ");
+                sb.append(" or ");
             if(range.start==range.end){
                 sb.append(" _slot=").append(range.start);
             }   else {
-                sb.append(" _slot>=").append(range.start);
-                sb.append(" and _slot<=").append(range.end);
+                sb.append("( _slot>=").append(range.start);
+                sb.append(" and _slot<=").append(range.end).append(")");
             }
         }
         return sb.toString();
