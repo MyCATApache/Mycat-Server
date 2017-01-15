@@ -101,9 +101,13 @@ public class CommitNodeHandler implements ResponseHandler {
 				}
 			}
 		}
+		
 		session.clearResources(false);
-		ServerConnection source = session.getSource();
+		final ServerConnection source = session.getSource();
 		source.write(ok);
+		// Tag tx done successfully.
+		// @since 2017-01-16 little-pan
+		source.onTxDone("commit");
 	}
 
 	@Override
@@ -113,7 +117,6 @@ public class CommitNodeHandler implements ResponseHandler {
 		String errInfo = new String(errPkg.message);
 		session.getSource().setTxInterrupt(errInfo);
 		errPkg.write(session.getSource());
-
 	}
 
 	@Override

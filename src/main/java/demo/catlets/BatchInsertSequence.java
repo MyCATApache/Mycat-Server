@@ -59,7 +59,7 @@ public class BatchInsertSequence implements Catlet {
 				return;
 			} 
 			
-			sc.getSession2().execute(rrs, sqltype);//将路由好的数据执行入库
+			sc.getSession().execute(rrs, sqltype);//将路由好的数据执行入库
 			
 		} catch (Exception e) {
 			LOGGER.error("BatchInsertSequence.processSQL(String sql, EngineCtx ctx)",e);

@@ -88,8 +88,6 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 
     @Override
     protected void handleData(byte[] data) {
-    	Tracer.trace(source);
-    	
         switch (resultStatus) {
             //第一阶段
             case RESULT_STATUS_INIT:
@@ -152,6 +150,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
                 }
                 break;
             default:
+            	Tracer.trace(source, "status: %s, cnxn: %s", resultStatus, source);
                 throw new RuntimeException("unknown status!");
         }
     }

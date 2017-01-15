@@ -66,8 +66,6 @@ public class GetConnectionHandler implements ResponseHandler {
 		finishedCount.addAndGet(1);
 		logger.info("connected successfuly " + conn);
         conn.release();
-        
-        Tracer.trace(conn);
 	}
 
 	@Override
@@ -75,16 +73,12 @@ public class GetConnectionHandler implements ResponseHandler {
 		finishedCount.addAndGet(1);
 		logger.warn("connect error " + conn+ e);
         conn.release();
-        
-        Tracer.trace(conn);
 	}
 
 	@Override
 	public void errorResponse(byte[] err, BackendConnection conn) {
 		logger.warn("caught error resp: " + conn + " " + new String(err));
         conn.release();
-        
-        Tracer.trace(conn);
 	}
 
 	@Override
@@ -116,7 +110,7 @@ public class GetConnectionHandler implements ResponseHandler {
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-		Tracer.trace(conn, reason);
+		Tracer.trace(conn, "reason: %s, cnxn: %s", reason, conn);
 	}
 
 }

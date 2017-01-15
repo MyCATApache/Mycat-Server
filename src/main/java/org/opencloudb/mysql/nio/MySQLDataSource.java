@@ -55,9 +55,5 @@ public class MySQLDataSource extends PhysicalDatasource {
 	public DBHeartbeat createHeartBeat() {
 		return new MySQLHeartbeat(this);
 	}
-
 	
-
-	
-
 }

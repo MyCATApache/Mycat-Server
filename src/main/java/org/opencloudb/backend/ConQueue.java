@@ -3,6 +3,8 @@ package org.opencloudb.backend;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.opencloudb.trace.Tracer;
+
 public class ConQueue {
 	private final ConcurrentLinkedQueue<BackendConnection> autoCommitCons = new ConcurrentLinkedQueue<BackendConnection>();
 	private final ConcurrentLinkedQueue<BackendConnection> manCommitCons = new ConcurrentLinkedQueue<BackendConnection>();
@@ -22,8 +24,10 @@ public class ConQueue {
 			con = f2.poll();
 		}
 		if (con == null || con.isClosedOrQuit()) {
+			Tracer.trace(con, "no idle cnxn");
 			return null;
 		} else {
+			Tracer.trace(con, "take idle cnxn: %s", con);
 			return con;
 		}
 

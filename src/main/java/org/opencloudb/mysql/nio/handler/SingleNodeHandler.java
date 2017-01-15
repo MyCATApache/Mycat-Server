@@ -146,9 +146,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 	public void execute() throws Exception {
 		//从这里开始计算处理时间
 		startTime=System.currentTimeMillis();
-		ServerConnection sc = session.getSource();
+		final ServerConnection sc = session.getSource();
 		this.isRunning = true;
-		this.packetId = 0;
+		this.packetId  = 0;
 		final BackendConnection conn = session.getTarget(node);
 		//之前是否获取过Connection并且Connection有效
 		if (session.tryExistsCon(conn, node)) {
@@ -200,15 +200,25 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
-
 		endRunning();
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.errno = ErrorCode.ER_NEW_ABORTING_CONNECTION;
-		err.message = StringUtil.encode(e.getMessage(), session.getSource()
-				.getCharset());
-		ServerConnection source = session.getSource();
+		err.errno    = ErrorCode.ER_NEW_ABORTING_CONNECTION;
+		err.message  = 
+			StringUtil.encode(e.getMessage(), session.getSource().getCharset());
+		final ServerConnection source = session.getSource();
 		source.write(err.write(allocBuffer(), source, true));
+		
+		maybeTxDone(source);
+	}
+	
+	/** Tag tx maybe done.
+     * @since 2017-01-16 little-pan
+    */
+	private final void maybeTxDone(final ServerConnection source){
+		if(source.isAutocommit()){
+			source.onTxDone("autocommit");
+		}
 	}
 
 	@Override
@@ -237,6 +247,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		source.setTxInterrupt(errmgs);
 		errPkg.write(source);
 		recycleResources();
+		
+		maybeTxDone(source);
 	}
 
 
@@ -247,7 +259,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
-            boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());
+            final boolean isCanClose2Client = (!rrs.isCallStatement()) 
+            		|| (rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());
 			if (rrs.isLoadData()) {
 				byte lastPackId = source.getLoadDataInfileHandler()
 						.getLastPackId();
@@ -257,22 +270,23 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
             {
 				ok.packetId = ++packetId;// OK_PACKET
 			}
-
-
+			
             if(isCanClose2Client)   {
-            session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
-                    false);
-            endRunning();
+            	session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
+            	endRunning();
             }
 
 			ok.serverStatus = source.isAutocommit() ? 2 : 1;
 
 			recycleResources();
 
-            if(isCanClose2Client)
-            {  source.setLastInsertId(ok.insertId);
+            if(isCanClose2Client) { 
+            	source.setLastInsertId(ok.insertId);
                 ok.write(source);
+                
+                maybeTxDone(source);
             }
+            
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), session.getSource().getHost(),
@@ -285,9 +299,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
-		ServerConnection source = session.getSource();
-		conn.recordSql(source.getHost(), source.getSchema(),
-                node.getStatement());
+		final ServerConnection source = session.getSource();
+		conn.recordSql(source.getHost(), source.getSchema(), node.getStatement());
         // 判断是调用存储过程的话不能在这里释放链接
 		if (!rrs.isCallStatement()||(rrs.isCallStatement()&&rrs.getProcedure().isResultSimpleValue()))
         {
@@ -299,7 +312,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, allocBuffer());
 		source.write(buffer);
-
+		
+		maybeTxDone(source);
 	}
 
 	/**
@@ -399,8 +413,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable,
 
 	@Override
 	public String toString() {
-		return "SingleNodeHandler [node=" + node + ", packetId=" + packetId
-				+ "]";
+		return "SingleNodeHandler [node=" + node 
+				+ ", packetId=" + packetId 
+				+ ", source=" + session.getSource() + "]";
 	}
 
 }

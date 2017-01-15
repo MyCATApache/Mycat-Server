@@ -34,7 +34,6 @@ import org.opencloudb.config.model.DBHostConfig;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.NIOConnector;
 import org.opencloudb.net.factory.BackendConnectionFactory;
-import org.opencloudb.trace.Tracer;
 
 /**
  * @author mycat
@@ -73,8 +72,6 @@ public class MySQLConnectionFactory extends BackendConnectionFactory {
 					.postConnect(c);
 
 		}
-		
-		Tracer.trace(c, "created");
 		
 		return c;
 	}

@@ -100,6 +100,7 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 				String errMsg = new String(err.message);
 				LOGGER.warn("can't connect to mysql server ,errmsg:"+errMsg+" "+source);
 				//source.close(errMsg);
+				Tracer.trace(source, "auth error: cnxn = %s", source);
 				throw new ConnectionException(err.errno, errMsg);
 			//如果是EOFPacket，则为MySQL 4.1版本，是MySQL323加密
 			case EOFPacket.FIELD_COUNT:
@@ -113,17 +114,17 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 					source.authenticate();
 					break;
 				} else {
+					Tracer.trace(source);
 					throw new RuntimeException("Unknown Packet!");
 				}
 
 			}
-			Tracer.trace(source);
 		} catch (RuntimeException e) {
-			Tracer.trace(source);
 			if (listener != null) {
 				listener.connectionError(e, source);
 				return;
 			}
+			Tracer.trace(source);
 			throw e;
 		}
 	}
@@ -136,17 +137,20 @@ public class MySQLConnectionAuthenticator implements NIOHandler {
 		source.setThreadId(packet.threadId);
 
 		// 设置字符集编码
-		int charsetIndex = (packet.serverCharsetIndex & 0xff);
-		String charset = CharsetUtil.getCharset(charsetIndex);
+		final int charsetIndex = (packet.serverCharsetIndex & 0xff);
+		final String charset = CharsetUtil.getCharset(charsetIndex);
 		if (charset != null) {
 			source.setCharset(charset);
 		} else {
 			Tracer.trace(source);
 			throw new RuntimeException("Unknown charsetIndex:" + charsetIndex);
 		}
+		Tracer.trace(source, "after process: charset-idx = %d, charset = %s, cnxn = %s",
+			charsetIndex, charset, source);
 	}
 
    private void auth323(byte packetId) {
+	    Tracer.trace(source);
 		// 发送323响应认证数据包
 		Reply323Packet r323 = new Reply323Packet();
 		r323.packetId = ++packetId;

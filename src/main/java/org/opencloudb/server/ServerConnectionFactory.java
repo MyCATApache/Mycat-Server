@@ -32,6 +32,7 @@ import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.net.FrontendConnection;
 import org.opencloudb.net.factory.FrontendConnectionFactory;
 import org.opencloudb.server.handler.ServerLoadDataInfileHandler;
+import org.opencloudb.trace.Tracer;
 
 /**
  * @author mycat
@@ -49,7 +50,9 @@ public class ServerConnectionFactory extends FrontendConnectionFactory {
         // c.setPrepareHandler(new ServerPrepareHandler(c));
         c.setTxIsolation(sys.getTxIsolation());
         //创建绑定唯一Session
-        c.setSession2(new NonBlockingSession(c));
+        c.setSession(new NonBlockingSession(c));
+        
+        Tracer.trace(c, "created");
         return c;
     }
 

@@ -24,9 +24,14 @@
 
 package org.opencloudb.trace;
 
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+
 import org.apache.log4j.Logger;
 import org.opencloudb.backend.BackendConnection;
+import org.opencloudb.net.AbstractConnection;
 import org.opencloudb.net.FrontendConnection;
+import org.opencloudb.server.ServerConnection;
 
 /**
  * <p>
@@ -47,11 +52,14 @@ import org.opencloudb.net.FrontendConnection;
 public final class Tracer {
 	final static Logger LOGGER = Logger.getLogger(Tracer.class);
 	
-	final static boolean trace,     traceStack,  useBuffer;
+	final static boolean trace,     traceStack,  useBuffer,
+						 buffer,    fronend,     backend,
+						 tx;
 	final static int     maxBuffer, initBuffer,  stackMaxDeep;
 	final static String  lineSep,   stackPrompt, stackIndent;
 	
-	final static Object[] zeroArgs = new Object[0];
+	final static Method address;
+	
 	
 	private final static ThreadLocal<StringBuilder> localBuffer = new ThreadLocal<StringBuilder>(){
 		@Override
@@ -61,7 +69,24 @@ public final class Tracer {
 	};
 	
 	static{
-		trace = Boolean.parseBoolean(System.getProperty("mycat.trace.enabled", "false"));
+		trace   = Boolean.parseBoolean(System.getProperty("mycat.trace.enabled", "false"));
+		buffer  = Boolean.parseBoolean(System.getProperty("mycat.trace.buffer",  "false"));
+		fronend = Boolean.parseBoolean(System.getProperty("mycat.trace.fronend", "false"));
+		backend = Boolean.parseBoolean(System.getProperty("mycat.trace.backend", "false"));
+		tx      = Boolean.parseBoolean(System.getProperty("mycat.trace.tx", "true"));
+		if(trace && buffer){
+			final ByteBuffer dbuf = ByteBuffer.allocateDirect(1);
+			Method addr = null;
+			try{
+				addr = dbuf.getClass().getDeclaredMethod("address");
+				addr.setAccessible(true);
+			}catch(final Exception e){
+				addr = null;
+			}
+			address = addr;
+		}else{
+			address = null;
+		}
 		
 		traceStack  = Boolean.parseBoolean(System.getProperty("mycat.trace.stack", "true"));
 		stackPrompt = System.getProperty("mycat.trace.stackPrompt", ">");
@@ -91,35 +116,140 @@ public final class Tracer {
 		}
 	}
 	
-	public final static void trace(final FrontendConnection fronend){
+	public final static void trace(final ByteBuffer buffer){
+		if(trace && Tracer.buffer && LOGGER.isDebugEnabled()){
+			trace0(2, bufferTag(buffer), 
+				"pos = %x, rem = %x, lim = %x", 
+					buffer.position(), buffer.remaining(), buffer.limit());
+		}
+	}
+	
+	public final static void trace(final ByteBuffer buffer, final String format, final Object ...args){
+		if(trace && Tracer.buffer && LOGGER.isDebugEnabled()){
+			trace0(2, bufferTag(buffer), format, args);
+		}
+	}
+	
+	private final static String bufferTag(final ByteBuffer buffer){
+		if(buffer == null){
+			return ("buffer#null");
+		}
+		// ByteBuffer hash-code related to content, so that it same when
+		//the buffer block size same. We can get the buffer address or array
+		//hash code as buffer hash code for tracing.
+		// @since 2017-01-14 little-pan
+		final String heap;
+		long hash = 0L;
+		if(buffer.isDirect()){
+			heap = "oheap";
+			try{
+				if(address != null){
+					hash = (Long)address.invoke(buffer);
+				}
+			}catch(final Exception e){
+				// ignore
+			}
+		}else{
+			heap = "heap";
+			final byte[] array = buffer.array();
+			hash = array.hashCode();
+		}
+		return (String.format("%s#%x-%x", heap, hash, buffer.capacity()));
+	}
+	
+	public final static void traceTx(final ServerConnection connection) {
+		if(trace && Tracer.tx && LOGGER.isDebugEnabled()){
+			trace0(2, txTag(connection), connection + "");
+		}
+	}
+	
+	public final static void traceTx(final ServerConnection connection, final String format, final Object ...args) {
+		if(trace && Tracer.tx && LOGGER.isDebugEnabled()){
+			trace0(2, txTag(connection), format, args);
+		}
+	}
+	
+	private final static String txTag(final ServerConnection connection) {
+		if(connection == null){
+			return ("tx#null");
+		}
+		return (String.format("tx#%x-%x", connection.hashCode(), connection.getTxLocalId()));
+	}
+
+	public final static void traceCnxn(final AbstractConnection connection){
 		if(trace && LOGGER.isDebugEnabled()){
+			if( (connection instanceof BackendConnection  && Tracer.backend == false) 
+					|| 
+				(connection instanceof FrontendConnection && Tracer.fronend == false)
+			){
+				return;
+			}
+			trace0(2, connectTag(connection), connection+"");
+		}
+	}
+	
+	public final static void traceCnxn(final AbstractConnection connection, final String format, final Object ...args){
+		if(trace && LOGGER.isDebugEnabled()){
+			if( (connection instanceof BackendConnection  && Tracer.backend == false) 
+					|| 
+				(connection instanceof FrontendConnection && Tracer.fronend == false)
+			){
+				return;
+			}
+			trace0(2, connectTag(connection), format, args);
+		}
+	}
+	
+	private final static String connectTag(final AbstractConnection connection){
+		final String tag;
+		if(connection instanceof BackendConnection){
+			tag = backendTag((BackendConnection)connection);
+		}else if(connection instanceof FrontendConnection){
+			tag = fronendTag((FrontendConnection)connection);
+		}else if(connection == null){
+			tag = "connect#null";
+		}else{
+			tag = String.format("connect#%x-%d", 
+				connection.hashCode(), connection.getId());
+		}
+		return tag;
+	}
+	
+	public final static void trace(final FrontendConnection fronend){
+		if(trace && Tracer.fronend && LOGGER.isDebugEnabled()){
 			trace0(2, fronendTag(fronend), fronend+"");
 		}
 	}
 	
 	public final static void trace(final FrontendConnection fronend, final String format, final Object ...args){
-		if(trace && LOGGER.isDebugEnabled()){
+		if(trace && Tracer.fronend && LOGGER.isDebugEnabled()){
 			trace0(2, fronendTag(fronend), format, args);
 		}
 	}
 	
 	private final static String fronendTag(final FrontendConnection fronend){
+		if(fronend == null){
+			return "fronend#null";
+		}
 		return (String.format("fronend#%x-%d", fronend.hashCode(), fronend.getId()));
 	}
 	
 	public final static void trace(final BackendConnection backend){
-		if(trace && LOGGER.isDebugEnabled()){
+		if(trace && Tracer.backend && LOGGER.isDebugEnabled()){
 			trace0(2, backendTag(backend), backend+"");
 		}
 	}
 	
 	public final static void trace(final BackendConnection backend, final String format, final Object ...args){
-		if(trace && LOGGER.isDebugEnabled()){
+		if(trace && Tracer.backend && LOGGER.isDebugEnabled()){
 			trace0(2, backendTag(backend), format, args);
 		}
 	}
 	
 	private final static String backendTag(final BackendConnection backend){
+		if(backend == null){
+			return "backend#null";
+		}
 		return (String.format("backend#%x-%d", backend.hashCode(), backend.getId()));
 	}
 	

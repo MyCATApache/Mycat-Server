@@ -36,6 +36,7 @@ import org.opencloudb.net.mysql.*;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.trace.Tracer;
 import org.opencloudb.util.TimeUtil;
 
 import java.io.UnsupportedEncodingException;
@@ -247,6 +248,8 @@ public class MySQLConnection extends BackendAIOConnection {
 	}
 
 	public void authenticate() {
+		Tracer.trace(this);
+		
 		AuthPacket packet = new AuthPacket();
 		packet.packetId = 1;
 		packet.clientFlags = clientFlags;
@@ -285,9 +288,11 @@ public class MySQLConnection extends BackendAIOConnection {
 		try {
 			packet.arg = query.getBytes(charset);
 		} catch (UnsupportedEncodingException e) {
+			Tracer.trace(this, "charset error: charset = %s, cnxn = %s", charset, this);
 			throw new RuntimeException(e);
 		}
 		lastTime = TimeUtil.currentTimeMillis();
+		Tracer.trace(this, "query: %s", query);
 		packet.write(this);
 	}
 
@@ -350,8 +355,10 @@ public class MySQLConnection extends BackendAIOConnection {
 				conn.metaDataSyned = true;
 				return false;
 			} else if (remains < 0) {
+				Tracer.trace(conn);
 				return true;
 			}
+			Tracer.trace(conn);
 			return false;
 		}
 
@@ -372,6 +379,7 @@ public class MySQLConnection extends BackendAIOConnection {
 			if (autocommit != null) {
 				conn.autocommit = autocommit;
 			}
+			Tracer.trace(conn);
 		}
 
 	}
@@ -383,6 +391,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	public boolean syncAndExcute() {
 		StatusSync sync = this.statusSync;
 		if (sync == null) {
+			Tracer.trace(this);
 			return true;
 		} else {
 			boolean executed = sync.synAndExecuted(this);
@@ -399,7 +408,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
-		String xaTXID = sc.getSession2().getXaTXID();
+		String xaTXID = sc.getSession().getXaTXID();
 		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(),
 				autocommit);
 	}
@@ -527,7 +536,9 @@ public class MySQLConnection extends BackendAIOConnection {
 				this.respHandler.connectionClose(this, reason);
 				respHandler = null;
 			}
+			return;
 		}
+		Tracer.trace(this, "reason: %s, cnxn: %s", reason, this);
 	}
 
 	public void commit() {
@@ -658,7 +669,8 @@ public class MySQLConnection extends BackendAIOConnection {
 				+ ", user=" + user
 				+ ", schema=" + schema + ", old shema=" + oldSchema
 				+ ", borrowed=" + borrowed + ", fromSlaveDB=" + fromSlaveDB
-				+ ", threadId=" + threadId + ", charset=" + charset
+				+ ", threadId=" + threadId + ", charset=" + charset 
+				+ ", charsetIndex=" + charsetIndex
 				+ ", txIsolation=" + txIsolation + ", autocommit=" + autocommit
 				+ ", attachment=" + attachment + ", respHandler=" + respHandler
 				+ ", host=" + host + ", port=" + port + ", statusSync="

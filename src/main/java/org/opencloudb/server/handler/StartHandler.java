@@ -23,7 +23,6 @@
  */
 package org.opencloudb.server.handler;
 
-import org.opencloudb.config.ErrorCode;
 import org.opencloudb.server.ServerConnection;
 import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.server.parser.ServerParseStart;
@@ -43,7 +42,7 @@ public final class StartHandler {
                 c.write(c.writeToBuffer(AC_OFF, c.allocate()));
             }else
             {
-                c.getSession2().commit() ;
+                c.getSession().commit() ;
             }
             break;
         default:

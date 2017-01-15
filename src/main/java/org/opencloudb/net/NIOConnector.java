@@ -34,6 +34,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
+import org.opencloudb.trace.Tracer;
 
 /**
  * @author mycat
@@ -62,6 +63,8 @@ public final class NIOConnector extends Thread implements SocketConnector {
 	}
 
 	public void postConnect(AbstractConnection c) {
+		Tracer.traceCnxn(c, "offer for connect: cnxn = %s", c);
+		
 		connectQueue.offer(c);
 		selector.wakeup();
 	}
@@ -83,6 +86,10 @@ public final class NIOConnector extends Thread implements SocketConnector {
 							finishConnect(key, att);
 						} else {
 							key.cancel();
+							
+							final AbstractConnection c = (AbstractConnection)att;
+							Tracer.traceCnxn(c, 
+								"channel canceled: invalid or not cnxntable, cnxn = %s", c);
 						}
 					}
 				} finally {

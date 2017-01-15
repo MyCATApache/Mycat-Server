@@ -26,7 +26,6 @@ package org.opencloudb.heartbeat;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.opencloudb.backend.PhysicalDBPool;
 import org.opencloudb.backend.PhysicalDatasource;
 import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.mysql.nio.MySQLDataSource;
@@ -117,7 +116,7 @@ public class MySQLDetector implements
 	@Override
 	public void onResult(SQLQueryResult<Map<String, String>> result) {
 		if (result.isSuccess()) {
-            int balance = heartbeat.getSource().getDbPool().getBalance();
+            //int balance = heartbeat.getSource().getDbPool().getBalance();
             PhysicalDatasource source = heartbeat.getSource();
             int switchType = source.getHostConfig().getSwitchType();
             Map<String, String> resultResult = result.getResult();
@@ -146,7 +145,7 @@ public class MySQLDetector implements
             else if( switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS
             		&& source.getHostConfig().isShowClusterSql())
             {
-            	String Variable_name = resultResult!=null? resultResult.get("Variable_name"):null;
+            	//String Variable_name = resultResult!=null? resultResult.get("Variable_name"):null;
             	String wsrep_cluster_status = resultResult!=null? resultResult.get("wsrep_cluster_status"):null;//Primary
 				String wsrep_connected = resultResult!=null?resultResult.get("wsrep_connected"):null;//ON
 				String wsrep_ready = resultResult!=null?resultResult.get("wsrep_ready"):null;//ON

@@ -131,8 +131,8 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		err.read(data);
 		String errmsg = new String(err.message);
 		this.setFail(errmsg);
-		LOGGER.warn("error response from " + conn + " err " + errmsg + " code:"
-				+ err.errno);
+		LOGGER.warn("error response from " + conn + " err " + errmsg 
+			+ " code: " + err.errno);
 
 		this.tryErrorFinished(this.decrementCountBy(1));
 	}
@@ -142,7 +142,6 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("session closed ,clear resources " + session);
 			}
-
 			session.clearResources(true);
 			this.clearResources();
 			return true;
@@ -202,12 +201,14 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 			}
 			if (session.getSource().isAutocommit()) {
 				session.closeAndClearResources(error);
+				// Tag tx done.
+				// @since 2017-01-16 little-pan
+				session.getSource().onTxDone("rollback");
 			} else {
 				session.getSource().setTxInterrupt(this.error);
 				// clear resouces
 				clearResources();
 			}
-
 		}
 
 	}
@@ -218,12 +219,13 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		lock.lock();
 		try {
 			finished = (this.nodeCount == 0);
-
+			// dec should be here for nodeCount sync reason.
+			// @since 2017-01-16 little-pan
+			if (finished == false) {
+				finished = this.decrementCountBy(1);
+			}
 		} finally {
 			lock.unlock();
-		}
-		if (finished == false) {
-			finished = this.decrementCountBy(1);
 		}
 		if (error == null) {
 			error = "back connection closed ";
@@ -232,5 +234,6 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 	}
 
 	public void clearResources() {
+		
 	}
 }

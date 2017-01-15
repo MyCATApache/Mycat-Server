@@ -48,7 +48,6 @@ import org.opencloudb.util.SetIgnoreUtil;
 /**
  * SET 语句处理
  * 
- * @author mycat
  * @author zhuam
  */
 public final class SetHandler {
@@ -82,7 +81,7 @@ public final class SetHandler {
 						"set xa cmd on can't used in autocommit connection ");
 				return;
 			}
-			c.getSession2().setXATXEnabled(true);
+			c.getSession().setXATXEnabled(true);
 			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			break;
 		}

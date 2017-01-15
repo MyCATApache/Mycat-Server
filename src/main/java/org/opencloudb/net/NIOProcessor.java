@@ -35,6 +35,7 @@ import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.buffer.BufferPool;
 import org.opencloudb.statistic.CommandCount;
+import org.opencloudb.trace.Tracer;
 import org.opencloudb.util.NameableExecutor;
 import org.opencloudb.util.TimeUtil;
 
@@ -222,7 +223,8 @@ public final class NIOProcessor {
 			this.frontends.remove(con.getId());
 			this.frontendsLength.decrementAndGet();
 		}
-
+		
+		Tracer.traceCnxn(con);
 	}
 	//jdbc连接用这个释放
 	public void removeConnection(BackendConnection con){

@@ -1,0 +1,18 @@
+Change log
+
+@version Mycat-1.5.1
+
+@since 2017-01-15
+@author little-pan
+
+2017-01-15
+--------------------------------------------------
+* ServerConnection {get|set}Session2() changed to {} {get|set}Session().
++ Trace buffer allocate & recycle.
++ Trace Frontend connection & MySQL backend connection, includes create, take, 
+  release and close.
++ Trace tx execution such as start, commit and rollback.
+* fixbug one rollback multi-response and rollback not over(response handler handed over
+  RollbackReleaseHandler is incorrect) issues in RollbackNodeHandler, and remove the class
+  RollbackNodeHandler for success or fail(connection broken only) always correct after 
+  calling backend rollback() in RollbackReleaseHandler.

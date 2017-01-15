@@ -29,7 +29,6 @@ import java.nio.channels.NetworkChannel;
 
 import org.opencloudb.MycatServer;
 import org.opencloudb.net.FrontendConnection;
-import org.opencloudb.trace.Tracer;
 
 /**
  * @author mycat
@@ -45,11 +44,7 @@ public abstract class FrontendConnectionFactory {
 		FrontendConnection c = getConnection(channel);
 		MycatServer.getInstance().getConfig().setSocketParams(c, true);
 		
-		Tracer.trace(c, "created");
-		
 		return c;
 	}
-
 	
-
 }

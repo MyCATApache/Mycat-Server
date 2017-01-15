@@ -221,7 +221,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 {
                     flushDataToFile();
                     isStartLoadData = false;
-                    serverConnection.getSession2().execute(rrs, ServerParse.LOAD_DATA_INFILE_SQL);
+                    serverConnection.getSession().execute(rrs, ServerParse.LOAD_DATA_INFILE_SQL);
                 }
 
             }
@@ -657,13 +657,10 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         if (rrs != null)
         {
             flushDataToFile();
-            serverConnection.getSession2().execute(rrs, ServerParse.LOAD_DATA_INFILE_SQL);
+            serverConnection.getSession().execute(rrs, ServerParse.LOAD_DATA_INFILE_SQL);
         }
 
-
         // sendOk(++packID);
-
-
     }
 
 
@@ -811,7 +808,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             File file = fileList[i];
             if (file.isFile()&&file.exists())
             {
-                boolean delete = file.delete();
+                //boolean delete = file.delete();
             } else if (file.isDirectory())
             {
                 deleteFile(file.getAbsolutePath());
