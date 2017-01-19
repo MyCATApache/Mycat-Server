@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
+import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import io.mycat.config.loader.zkprocess.zktoxml.ZktoXmlMain;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.manager.response.ReloadZktoXml;
@@ -28,7 +29,7 @@ public class ZKHandler {
     /**
      * 直接从zk拉所有配置，然后本地执行reload_all
      */
-    private static final String RELOAD_FROM_ZK = "zk reload_from_zk";
+    public static final String RELOAD_FROM_ZK = "zk reload_from_zk";
 
     /**
      * 强制所有节点操作
@@ -46,7 +47,8 @@ public class ZKHandler {
         if (RELOAD_FROM_ZK.equals(command)) {
             // 调用zktoxml操作
             try {
-                ZktoXmlMain.loadZktoFile();
+                // 通知所有节点进行数据更新
+                ZktoXmlMain.ZKLISTENER.notifly(ZkNofiflyCfg.ZK_NOTIFLY_LOAD_ALL.getKey());
 
                 // 执行重新加载本地配制信息
                 ReloadHandler.handle("RELOAD @@config_all", c, 7 >>> 8);
@@ -129,7 +131,7 @@ public class ZKHandler {
 
         String basePath = ZKUtils.getZKBasePath();
 
-        String nodePath = ZKPaths.makePath(basePath, ZK_NODE_PATH +"/"+ myId);
+        String nodePath = ZKPaths.makePath(basePath, ZK_NODE_PATH + "/" + myId);
 
         Stat stat;
         try {

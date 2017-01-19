@@ -43,6 +43,11 @@ public class ZktoXmlMain {
     */
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkMultLoader.class);
 
+    /**
+     * 加载zk监听服务
+     */
+    public static final ZookeeperProcessListen ZKLISTENER = new ZookeeperProcessListen();
+
     public static void main(String[] args) throws Exception {
         loadZktoFile();
         System.out.println(Long.MAX_VALUE);
@@ -56,15 +61,12 @@ public class ZktoXmlMain {
     */
     public static void loadZktoFile() throws Exception {
 
-        // 加载zk总服务
-        ZookeeperProcessListen zkListen = new ZookeeperProcessListen();
-
         // 得到集群名称
         String custerName = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
         // 得到基本路径
         String basePath = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey();
         basePath = basePath + ZookeeperPath.ZK_SEPARATOR.getKey() + custerName;
-        zkListen.setBasePath(basePath);
+        ZKLISTENER.setBasePath(basePath);
 
         // 获得zk的连接信息
         CuratorFramework zkConn = buildConnection(ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_URL));
@@ -73,19 +75,19 @@ public class ZktoXmlMain {
         XmlProcessBase xmlProcess = new XmlProcessBase();
 
         // 加载以接收者
-        new SchemaszkToxmlLoader(zkListen, zkConn, xmlProcess);
+        new SchemaszkToxmlLoader(ZKLISTENER, zkConn, xmlProcess);
 
         // server加载
-        new ServerzkToxmlLoader(zkListen, zkConn, xmlProcess);
+        new ServerzkToxmlLoader(ZKLISTENER, zkConn, xmlProcess);
 
         // rule文件加载
         // new RuleszkToxmlLoader(zkListen, zkConn, xmlProcess);
         ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "rules", new RuleFunctionCacheListener());
         // 将序列配制信息加载
-        new SequenceTopropertiesLoader(zkListen, zkConn, xmlProcess);
+        new SequenceTopropertiesLoader(ZKLISTENER, zkConn, xmlProcess);
 
         // 进行ehcache转换
-        new EcacheszkToxmlLoader(zkListen, zkConn, xmlProcess);
+        new EcacheszkToxmlLoader(ZKLISTENER, zkConn, xmlProcess);
 
         // 将bindata目录的数据进行转换到本地文件
         ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "bindata", new BinDataPathChildrenCacheListener());
@@ -97,10 +99,10 @@ public class ZktoXmlMain {
         xmlProcess.initJaxbClass();
 
         // 通知所有人
-        zkListen.notifly(ZkNofiflyCfg.ZK_NOTIFLY_LOAD_ALL.getKey());
+        ZKLISTENER.notifly(ZkNofiflyCfg.ZK_NOTIFLY_LOAD_ALL.getKey());
 
         // 加载watch
-        loadZkWatch(zkListen.getWatchPath(), zkConn, zkListen);
+        loadZkWatch(ZKLISTENER.getWatchPath(), zkConn, ZKLISTENER);
 
         // 创建临时节点
         createTempNode(ZKUtils.getZKBasePath() + "line", ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID),
@@ -131,17 +133,18 @@ public class ZktoXmlMain {
     * 方法描述
     * @param zkConn zk的连接信息
     * @param path 路径信息
-    * @param zkListen 监控路径信息
+    * @param ZKLISTENER 监控路径信息
     * @throws Exception
     * @创建日期 2016年9月20日
     */
     @SuppressWarnings("resource")
     private static void runCommandWatch(final CuratorFramework zkConn, final String path) throws Exception {
+
         PathChildrenCache children = new PathChildrenCache(zkConn, path, true);
 
-        // 命令行监听器
         CommandPathListener commandListener = new CommandPathListener();
 
+        // 移除原来的监听再进行添加
         children.getListenable().addListener(commandListener);
 
         children.start();
@@ -177,7 +180,8 @@ public class ZktoXmlMain {
     private static NodeCache runWatch(final CuratorFramework zkConn, final String path,
             final ZookeeperProcessListen zkListen) throws Exception {
         final NodeCache cache = new NodeCache(zkConn, path);
-        cache.getListenable().addListener(new NodeCacheListener() {
+
+        NodeCacheListener listen = new NodeCacheListener() {
             @Override
             public void nodeChanged() throws Exception {
                 LOGGER.info("ZktoxmlMain runWatch  process path  event start ");
@@ -187,7 +191,10 @@ public class ZktoXmlMain {
                 zkListen.notifly(notPath);
                 LOGGER.info("ZktoxmlMain runWatch  process path  event over");
             }
-        });
+        };
+
+        // 添加监听
+        cache.getListenable().addListener(listen);
 
         return cache;
     }
