@@ -576,7 +576,17 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	private void closeSocket() {
 		if (channel != null) {
-			
+			if (channel instanceof SocketChannel) {
+				Socket socket = ((SocketChannel) channel).socket();
+				if (socket != null) {
+					try {
+						socket.close();
+					} catch (IOException e) {
+				       LOGGER.error("closeChannelError", e);
+					}
+				}
+			}
+				
 			boolean isSocketClosed = true;
 			try {
 				channel.close();

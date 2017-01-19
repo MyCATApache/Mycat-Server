@@ -145,13 +145,15 @@ public class DirectByteBufferPool implements BufferPool{
         return pageCount;
     }
 
-    //TODO   should  fix it
-    public long capacity(){
-        return size();
+    public long capacity() {
+	return (long) pageSize * pageCount;
     }
 
-    public long size(){
-        return  (long) pageSize * chunkSize * pageCount;
+    public long size() {
+	long freeSize = 0;
+	for (int i = 0; i < pageCount; i++)
+		freeSize += allPages[i].getFreeBuffer();
+	return freeSize;
     }
 
     //TODO
