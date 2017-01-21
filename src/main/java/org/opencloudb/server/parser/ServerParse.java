@@ -79,6 +79,9 @@ public final class ServerParse {
 						&& stmt.charAt(lenth - 1) == '/') {
 					return MYSQL_CMD_COMMENT;
 				}
+			case '-':
+				// + "-- comment"
+				// @since 2017-01-21 little-pan
 			case '#':
 				i = ParseUtil.comment(stmt, i);
 				if (i + 1 == lenth) {
