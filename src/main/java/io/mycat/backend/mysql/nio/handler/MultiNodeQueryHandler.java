@@ -249,6 +249,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 	@Override
 	public void okResponse(byte[] data, BackendConnection conn) {
+
+		/**并发查询信号量释放*/
+		if (limitsqlExecute != null) {
+			limitsqlExecute.release();
+		}
 		
 		this.netOutBytes += data.length;
 		
