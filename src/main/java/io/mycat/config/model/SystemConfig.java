@@ -224,6 +224,8 @@ public final class SystemConfig {
 	 */
 	private boolean	useZKSwitch=DEFAULT_USE_ZK_SWITCH;
 
+	/**限制并发查询度，控制cpu的消耗*/
+	public int limitConcurrentQuery;
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
 	}
@@ -837,6 +839,13 @@ public final class SystemConfig {
 		this.mycatNodeId = mycatNodeId;
 	}
 
+	public int getLimitConcurrentQuery() {
+		return limitConcurrentQuery;
+	}
+
+	public void setLimitConcurrentQuery(int limitConcurrentQuery) {
+		this.limitConcurrentQuery = limitConcurrentQuery;
+	}
 	@Override
 	public String toString() {
 		return "SystemConfig [processorBufferLocalPercent="

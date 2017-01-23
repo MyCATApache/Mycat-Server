@@ -46,6 +46,7 @@ import io.mycat.statistic.stat.QueryResultDispatcher;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -87,6 +88,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private int index = 0;
 
 	private int end = 0;
+
+
+	/**limitsqlExecute为空说明不用限制并发查询*/
+	private Semaphore limitsqlExecute = null;
 
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
@@ -140,6 +145,20 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		if ( rrs != null && rrs.getStatement() != null) {
 			netInBytes += rrs.getStatement().getBytes().length;
 		}
+
+
+
+		if (MycatServer.getInstance().getConfig().
+				getSystem().getLimitConcurrentQuery() == 1) {
+			int dataNodes = rrs.getNodes().length;
+			int cores = Runtime.getRuntime().availableProcessors()*2;
+			if (dataNodes >= cores){
+				/**最大并发度为cores*/
+				int  maxPermits = Math.round(cores*2/3);
+				LOGGER.info("Max Concurrent Query Threads :" + maxPermits);
+				limitsqlExecute = new Semaphore(maxPermits);
+			}
+		}
 	}
 
 	protected void reset(int initCount) {
@@ -169,6 +188,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		startTime = System.currentTimeMillis();
 		LOGGER.debug("rrs.getRunOnSlave()-" + rrs.getRunOnSlave());
 		for (final RouteResultsetNode node : rrs.getNodes()) {
+
+			/**并发查询控制*/
+			if (limitsqlExecute !=null) {
+				limitsqlExecute.acquire();
+			}
+
+
 			BackendConnection conn = session.getTarget(node);
 			if (session.tryExistsCon(conn, node)) {
 				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
@@ -319,7 +345,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("on row end reseponse " + conn);
 		}
-		
+
+		/**并发查询信号量释放*/
+		if (limitsqlExecute != null) {
+			limitsqlExecute.release();
+		}
+
 		this.netOutBytes += eof.length;
 		
 		if (errorRepsponsed.get()) {
