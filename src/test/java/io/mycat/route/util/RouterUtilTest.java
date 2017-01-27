@@ -98,4 +98,22 @@ public class RouterUtilTest {
         Assert.assertTrue("producer".equalsIgnoreCase(RouterUtil.getTableName(sql1, RouterUtil.getCreateTablePos(sql1, 0))));
         Assert.assertTrue("good".equalsIgnoreCase(RouterUtil.getTableName(sql2, RouterUtil.getCreateTablePos(sql2, 0))));
     }
+
+    /**
+     * @modification 针对修改RouterUtil的去除schema的方法支持` 进行测试
+     * @date 2016/12/29
+     * @modifiedBy Hash Zhang
+     */
+    @Test
+    public void testRemoveSchemaWithHypha(){
+        String sql1 = StringUtil.makeString("select `testdb`.`orders`.`id`, `testdb`.`orders`.`customer_id`, `testdb`.`orders`.`goods_id` from `testdb`.`orders` where testdb.`orders`.`id` = 1;").toUpperCase();
+        String sql2 = StringUtil.makeString("select `testdb`.`orders`.`id`, testdb.`orders`.`customer_id`, `testdb`.`orders`.`goods_id` from testdb.`orders` where `testdb`.`orders`.`id` = 1;").toUpperCase();
+        String sql3 = StringUtil.makeString("select testdb.`orders`.`id`, `testdb`.`orders`.`customer_id`, testdb.`orders`.`goods_id` from `testdb`.`orders` where testdb.`orders`.`id` = 1;").toUpperCase();
+        String sql4 = StringUtil.makeString("select testdb.`orders`.`id`, testdb.`orders`.`customer_id`, testdb.`orders`.`goods_id` from testdb.`orders` where testdb.`orders`.`id` = 1;").toUpperCase();
+        String result = "SELECT `ORDERS`.`ID`, `ORDERS`.`CUSTOMER_ID`, `ORDERS`.`GOODS_ID` FROM `ORDERS` WHERE `ORDERS`.`ID` = 1;";
+        Assert.assertTrue(result.equals(RouterUtil.removeSchema(sql1,"testdb")));
+        Assert.assertTrue(result.equals(RouterUtil.removeSchema(sql2,"testdb")));
+        Assert.assertTrue(result.equals(RouterUtil.removeSchema(sql3,"testdb")));
+        Assert.assertTrue(result.equals(RouterUtil.removeSchema(sql4,"testdb")));
+    }
 }

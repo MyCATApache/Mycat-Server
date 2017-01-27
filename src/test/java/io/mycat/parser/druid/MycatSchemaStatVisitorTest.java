@@ -1,12 +1,10 @@
 package io.mycat.parser.druid;
 
-import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.List;
 
 import junit.framework.Assert;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.junit.Test;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -14,7 +12,6 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.stat.TableStat.Condition;
 
-import io.mycat.route.impl.DruidMycatRouteStrategy;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 
 /**
@@ -26,6 +23,22 @@ import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
  * @copyright wonhigh.cn
  */
 public class MycatSchemaStatVisitorTest {
+	
+	
+	/**
+	 * 从注解中解析 mycat schema
+	 */
+	@Test
+	public void test4() {
+		String sql = "/*!mycat:schema = helper1 */update adm_task a set a.remark = 'test' where id=1";
+		Assert.assertEquals(getSchema(sql), "helper1.");
+		sql = "/*!mycat:schema=helper1*/update adm_task a set a.remark = 'test' where id=1";
+		Assert.assertEquals(getSchema(sql), "helper1.");
+		sql = "/*!mycat:schema=  helper1*/update adm_task a set a.remark = 'test' where id=1";
+		Assert.assertEquals(getSchema(sql), "helper1.");
+		System.out.println(getSchema(sql));
+	}
+	
 	
 	/**
 	 * 3层嵌套or语句
@@ -111,6 +124,25 @@ public class MycatSchemaStatVisitorTest {
 		
 		Assert.assertEquals(list.get(2).get(0).toString(), "travelrecord.id = 1");
 		Assert.assertEquals(list.get(2).get(1).toString(), "travelrecord.fee = 3");
+	}
+	
+	private String getSchema(String sql) {
+		SQLStatementParser parser =null;
+		parser = new MySqlStatementParser(sql);
+
+		MycatSchemaStatVisitor visitor = null;
+		SQLStatement statement = null;
+		//解析出现问题统一抛SQL语法错误
+		try {
+			statement = parser.parseStatement();
+            visitor = new MycatSchemaStatVisitor();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		statement.accept(visitor);
+		
+		
+		return visitor.getCurrentTable();
 	}
 
 	private List<List<Condition>> getConditionList(String sql) {
