@@ -149,11 +149,8 @@ public class DirectByteBufferPool implements BufferPool{
 	return (long) pageSize * pageCount;
     }
 
-    public long size() {
-	long freeSize = 0;
-	for (int i = 0; i < pageCount; i++)
-		freeSize += allPages[i].getFreeBuffer();
-	return freeSize;
+    public long size(){
+        return  (long) pageSize * chunkSize * pageCount;
     }
 
     //TODO
