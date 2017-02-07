@@ -123,7 +123,7 @@ public class CacheService {
 			int expireSeconds) {
 		checkExists(cacheName);
 		logger.info("create layer cache pool " + cacheName + " of type " + type
-				+ " ,default cache size " + size + " ,default expire seconds"
+				+ " ,default cache size " + size + " ,default expire seconds "
 				+ expireSeconds);
 		DefaultLayedCachePool layerdPool = new DefaultLayedCachePool(cacheName,
 				this.getCacheFact(type), size, expireSeconds);
