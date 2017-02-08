@@ -39,6 +39,7 @@ import org.opencloudb.config.model.DataHostConfig;
 import org.opencloudb.heartbeat.DBHeartbeat;
 import org.opencloudb.mysql.nio.handler.GetConnectionHandler;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
+import org.opencloudb.trace.Tracer;
 
 public class PhysicalDBPool {
 	
@@ -291,7 +292,7 @@ public class PhysicalDBPool {
 	private boolean initSource(int index, PhysicalDatasource ds) {
 		int initSize = ds.getConfig().getMinCon();
 		
-		LOGGER.info("init backend myqsl source ,create connections total " + initSize + " for " + ds.getName() + " index :" + index);
+		LOGGER.info("init backend mysql source ,create connections total " + initSize + " for " + ds.getName() + " index :" + index);
 		
 		CopyOnWriteArrayList<BackendConnection> list = new CopyOnWriteArrayList<BackendConnection>();
 		GetConnectionHandler getConHandler = new GetConnectionHandler(list, initSize);
@@ -324,18 +325,18 @@ public class PhysicalDBPool {
 	}
 
 	public void doHeartbeat() {
-
-
 		if (writeSources == null || writeSources.length == 0) {
+			Tracer.trace(hostName, "no writable dataSource: "
+					+ "initSuccess = %s, activedIndex = %d, banlance = %s, writeType = %s", 
+						initSuccess, activedIndex, banlance, writeType);
 			return;
 		}
 
-		for (PhysicalDatasource source : this.allDs) {
-
+		for (final PhysicalDatasource source : this.allDs) {
 			if (source != null) {
 				source.doHeartbeat();
 			} else {
-				StringBuilder s = new StringBuilder();
+				final StringBuilder s = new StringBuilder();
 				s.append(Alarms.DEFAULT).append(hostName).append(" current dataSource is null!");
 				LOGGER.error(s.toString());
 			}

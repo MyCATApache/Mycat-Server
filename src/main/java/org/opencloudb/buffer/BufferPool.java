@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.trace.Tracer;
 
 /**
  * @author mycat
@@ -111,13 +112,16 @@ public final class BufferPool {
 				LOGGER.warn("Direct buffer OOM occurs: so allocate from heap", oom);
 				node = this.createTempBuffer(chunkSize);
 			}
+			return node;
 		}
+		Tracer.trace(node);
 		return node;
 	}
 
 	private boolean checkValidBuffer(ByteBuffer buffer) {
 		// 拒绝回收null和容量大于chunkSize的缓存
 		if (buffer == null || !buffer.isDirect()) {
+			Tracer.trace(buffer, "no recycle need");
 			return false;
 		} else if (buffer.capacity() > chunkSize) {
 			LOGGER.warn("cant' recycle  a buffer large than my pool chunksize "
@@ -138,17 +142,18 @@ public final class BufferPool {
 			BufferQueue localQueue = localBufferPool.get();
 			if (localQueue.snapshotSize() < threadLocalCount) {
 				localQueue.put(buffer);
-			} else {
-				// recyle 3/4 thread local buffer
-				items.addAll(localQueue.removeItems(threadLocalCount * 3 / 4));
-				items.offer(buffer);
-				sharedOptsCount++;
+				return;
 			}
+			// recyle 3/4 thread local buffer
+			items.addAll(localQueue.removeItems(threadLocalCount * 3 / 4));
+			items.offer(buffer);
+			sharedOptsCount++;
 		} else {
 			sharedOptsCount++;
 			items.offer(buffer);
 		}
-
+		
+		Tracer.trace(buffer);
 	}
 
 	public int getAvgBufSize() {
@@ -172,12 +177,16 @@ public final class BufferPool {
 	}
 
 	private ByteBuffer createTempBuffer(int size) {
-		return ByteBuffer.allocate(size);
+		final ByteBuffer buffer = ByteBuffer.allocate(size);
+		Tracer.trace(buffer);
+		return buffer;
 	}
 
 	private ByteBuffer createDirectBuffer(int size) {
 		// for performance
-		return ByteBuffer.allocateDirect(size);
+		final ByteBuffer buffer = ByteBuffer.allocateDirect(size);
+		Tracer.trace(buffer);
+		return buffer;
 	}
 
 	public ByteBuffer allocate(int size) {

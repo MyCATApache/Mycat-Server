@@ -29,7 +29,6 @@ import org.opencloudb.backend.BackendConnection;
 
 /**
  * @author mycat
- * @author mycat
  */
 public interface ResponseHandler {
 

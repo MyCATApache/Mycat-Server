@@ -41,6 +41,7 @@ import org.opencloudb.mysql.nio.handler.ConnectionHeartBeatHandler;
 import org.opencloudb.mysql.nio.handler.DelegateResponseHandler;
 import org.opencloudb.mysql.nio.handler.NewConnectionRespHandler;
 import org.opencloudb.mysql.nio.handler.ResponseHandler;
+import org.opencloudb.trace.Tracer;
 import org.opencloudb.util.TimeUtil;
 
 public abstract class PhysicalDatasource {
@@ -198,7 +199,8 @@ public abstract class PhysicalDatasource {
         	}
 
 	public void heatBeatCheck(long timeout, long conHeartBeatPeriod) {
-		int ildeCloseCount = hostConfig.getMinCon() * 3;
+		// not used so comment it.
+		//int ildeCloseCount = hostConfig.getMinCon() * 3;
 		int maxConsInOneCheck = 5;
 		LinkedList<BackendConnection> heartBeatCons = new LinkedList<BackendConnection>();
 
@@ -304,7 +306,11 @@ public abstract class PhysicalDatasource {
 
 	public void doHeartbeat() {
 		// 未到预定恢复时间，不执行心跳检测。
-		if (TimeUtil.currentTimeMillis() < heartbeatRecoveryTime) {
+		final long current = TimeUtil.currentTimeMillis(),
+			recovery = heartbeatRecoveryTime;
+		if (current < recovery) {
+			Tracer.trace(name, 
+				"heartbeat skip: current(%d) < recoveryTime(%d)", current, recovery);
 			return;
 		}
 		if (!heartbeat.isStop()) {
@@ -313,7 +319,10 @@ public abstract class PhysicalDatasource {
 			} catch (Exception e) {
 				LOGGER.error(name + " heartbeat error.", e);
 			}
+			return;
 		}
+		
+		Tracer.trace(name, "heartbeat skip: heartbeat stopped, current = %d", current);
 	}
 
 	private BackendConnection takeCon(BackendConnection conn,
@@ -330,6 +339,8 @@ public abstract class PhysicalDatasource {
 		conn.setAttachment(attachment);
 		conn.setLastTime(System.currentTimeMillis());  //每次取连接的时候，更新下lasttime，防止在前端连接检查的时候，关闭连接，导致sql执行失败
 		handler.connectionAcquired(conn);
+		
+		Tracer.trace(conn, "take cnxn ok: %s", conn);
 		return conn;
 	}
 
@@ -356,6 +367,8 @@ public abstract class PhysicalDatasource {
 				}
 			}
 		});
+		
+		Tracer.trace(name, "submit cnxn creation: schema = %s, response-handler = %s", schema, handler);
 	}
 
     public void getConnection(String schema,boolean autocommit, final ResponseHandler handler,
@@ -365,18 +378,16 @@ public abstract class PhysicalDatasource {
             takeCon(con, handler, attachment, schema);
             return;
         } else {
-            int activeCons = this.getActiveCount();//当前最大活动连接
-            if(activeCons+1>size){//下一个连接大于最大连接数
+            final int activeCons = this.getActiveCount();//当前最大活动连接
+            if(activeCons + 1 > size){//下一个连接大于最大连接数
                 LOGGER.error("the max activeConnnections size can not be max than maxconnections");
                 throw new IOException("the max activeConnnections size can not be max than maxconnections");
             }else{            // create connection
-                LOGGER.info("not ilde connection in pool,create new connection for " + this.name
+                LOGGER.info("no ilde connection in pool, create new connection for " + this.name
                         + " of schema "+schema);
                 createNewConnection(handler, attachment, schema);
             }
-            
         }
-        
     }
 
 	private void returnCon(BackendConnection c) {
@@ -391,11 +402,14 @@ public abstract class PhysicalDatasource {
 		} else {
 			ok = queue.getManCommitCons().offer(c);
 		}
+		
 		if (!ok) {
-
 			LOGGER.warn("can't return to pool ,so close con " + c);
 			c.close("can't return to pool ");
+			return;
 		}
+		
+		Tracer.trace(c, "release ok: cnxn = %s", c);
 	}
 
 	public void releaseChannel(BackendConnection c) {
@@ -407,6 +421,8 @@ public abstract class PhysicalDatasource {
 	}
 
 	public void connectionClosed(BackendConnection conn) {
+		Tracer.trace(conn);
+		
 		ConQueue queue = this.conMap.getSchemaConQueue(conn.getSchema());
 		if (queue != null) {
 			queue.removeCon(conn);

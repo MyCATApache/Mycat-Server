@@ -88,7 +88,7 @@ public class ShowSession {
 
 	private static RowDataPacket getRow(ServerConnection sc, String charset) {
 		StringBuilder sb = new StringBuilder();
-		NonBlockingSession ssesion = sc.getSession2();
+		NonBlockingSession ssesion = sc.getSession();
 		Collection<BackendConnection> backConnections = ssesion.getTargetMap()
 				.values();
 		int cncount = backConnections.size();

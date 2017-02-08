@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.common.base.Strings;
 import org.apache.log4j.Logger;
 import org.opencloudb.mysql.CharsetUtil;
+import org.opencloudb.trace.Tracer;
 import org.opencloudb.util.CompressUtil;
 import org.opencloudb.util.TimeUtil;
 
@@ -95,7 +96,6 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 
 	public boolean setCharset(String charset) {
-		
 		//修复PHP字符集设置错误, 如： set names 'utf8'
 		if ( charset != null ) {			
 			charset = charset.replace("'", "");
@@ -107,12 +107,11 @@ public abstract class AbstractConnection implements NIOConnection {
 			this.charsetIndex = ci;
 			return true;
 		} else {
+			Tracer.traceCnxn(this, 
+				"no charset index: charset = %s, cnxn = %s", charset, this);
 			return false;
 		}
 	}
-
-
-
 
     public boolean isSupportCompress()
 	{
@@ -278,8 +277,9 @@ public abstract class AbstractConnection implements NIOConnection {
 		this.socketWR.doNextWriteCheck();
 	}
 
-	public void onReadData(int got) throws IOException {
+	public void onReadData(final int got) throws IOException {
 		if (isClosed.get()) {
+			Tracer.traceCnxn(this, "connection closed: recv-bytes = %d, cnxn = %s", got, this);
 			return;
 		}
 		ByteBuffer buffer = this.readBuffer;
@@ -542,7 +542,8 @@ public abstract class AbstractConnection implements NIOConnection {
 			if (closed == false) {
 				LOGGER.warn("close socket of connnection failed " + this);
 			}
-
+			
+			Tracer.traceCnxn(this);
 		}
 	}
 

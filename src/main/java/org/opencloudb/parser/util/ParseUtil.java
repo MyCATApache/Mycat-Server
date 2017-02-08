@@ -197,8 +197,8 @@ public final class ParseUtil {
      * @param offset
      * @return
      */
-    public static int comment(String stmt, int offset) {
-        int len = stmt.length();
+    public static int comment(final String stmt, final int offset) {
+        final int len = stmt.length();
         int n = offset;
         switch (stmt.charAt(n)) {
         case '/':
@@ -207,18 +207,46 @@ public final class ParseUtil {
                     if (stmt.charAt(i) == '*') {
                         int m = i + 1;
                         if (len > m && stmt.charAt(m) == '/') {
-                            return m;
+                        	// fixbug>>
+                        	// the rest whitespace? eg. [\r]\n
+                        	// @since 2017-01-21 little-pan
+                        	for(;len > ++m && stmt.charAt(m) <= '\u0020';);
+                            return (--m);
                         }
                     }
                 }
             }
             break;
+        case '-':
+        	boolean line = false;
+        	if(++n < len && stmt.charAt(n) == '-'){
+        		if(++n < len && stmt.charAt(n) <= '\u0020'){
+        			// skip to '#' handler
+        			line = true;
+        		}
+        		if(n == len){
+        			// only "--"
+        			return (--n);
+        		}
+        	}
+        	if(line == false){
+        		return offset;
+        	}
         case '#':
-            for (int i = n + 1; i < len; ++i) {
+        	int i;
+            for (i = n + 1; i < len; ++i) {
                 if (stmt.charAt(i) == '\n') {
                     return i;
                 }
             }
+            // fixbug>>
+            // case 1. the last char is '\r' in mysqlslap Ver 1.0 Distrib 5.5.28, for Win32 (x86)
+            // case 2. the last char is not '\r' or '\n' in SQL comment
+            // @since 2017-01-21 little-pan
+            if(i == len){
+            	return (--i);
+            }
+            //<<fixbug
             break;
         }
         return offset;

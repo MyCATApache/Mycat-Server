@@ -606,7 +606,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String name = element.getAttribute("name");
 			
 			if (dataHosts.containsKey(name)) {
-				throw new ConfigException("dataHost name " + name + "duplicated!");
+				throw new ConfigException("dataHost name " + name + " duplicated!");
 			}
 			
 			int maxCon = Integer.valueOf(element.getAttribute("maxCon"));

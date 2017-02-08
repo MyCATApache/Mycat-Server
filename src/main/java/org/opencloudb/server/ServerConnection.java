@@ -25,7 +25,6 @@ package org.opencloudb.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.opencloudb.MycatServer;
@@ -38,6 +37,7 @@ import org.opencloudb.server.parser.ServerParse;
 import org.opencloudb.server.response.Heartbeat;
 import org.opencloudb.server.response.Ping;
 import org.opencloudb.server.util.SchemaUtil;
+import org.opencloudb.trace.Tracer;
 import org.opencloudb.util.TimeUtil;
 
 /**
@@ -49,6 +49,11 @@ public class ServerConnection extends FrontendConnection {
 	private static final long AUTH_TIMEOUT = 15 * 1000L;
 
 	private volatile int txIsolation;
+	// local tx id: used to trace tx execution,
+	// 0 - tx not start, other - tx pending.
+	// @since 2017-01-15 little-pan
+	private volatile int txLocalId, txLastLocalId;
+	
 	private volatile boolean autocommit;
 	private volatile boolean txInterrupted;
 	private volatile String txInterrputMsg = "";
@@ -110,12 +115,21 @@ public class ServerConnection extends FrontendConnection {
 	{
 		return txInterrupted;
 	}
-	public NonBlockingSession getSession2() {
+	
+	/**
+	 * <p>
+	 * getSession2() -> getSession().
+	 * </p>
+	 * 
+	 * @since 2017-01-15 little-pan
+	 * @return server connection session
+	 */
+	public NonBlockingSession getSession() {
 		return session;
 	}
 
-	public void setSession2(NonBlockingSession session2) {
-		this.session = session2;
+	public void setSession(NonBlockingSession session) {
+		this.session = session;
 	}
 
 	@Override
@@ -289,12 +303,43 @@ public class ServerConnection extends FrontendConnection {
 			getLoadDataInfileHandler().clear();
 		}
 	}
+	
+	public int getTxLocalId(){
+		return txLocalId;
+	}
+	
+	public int getTxLastLocalId(){
+		return txLastLocalId;
+	}
+	
+	public ServerConnection onTxStart(final String stmt){
+		final int txid = txLocalId;
+		if(txid != 0){
+			LOGGER.warn("tx ended abnormally!");
+		}
+		txLocalId = txLastLocalId + 1;
+		Tracer.traceTx(this, "tx start: stmt = %s, cnxn = %s", stmt, this);
+		return this;
+	}
+	
+	public ServerConnection onTxDone(final String reason){
+		final int txid= txLocalId;
+		if(txid == 0){
+			// case: multi-call.
+			return this;
+		}
+		Tracer.traceTx(this, "tx done: reason = %s, cnxn = %s", reason, this);
+		txLastLocalId = txid;
+		txLocalId     = 0;
+		return this;
+	}
 
 	@Override
 	public String toString() {
 		return "ServerConnection [id=" + id + ", schema=" + schema + ", host="
 				+ host + ", user=" + user + ",txIsolation=" + txIsolation
-				+ ", autocommit=" + autocommit + ", schema=" + schema + "]";
+				+ ", autocommit=" + autocommit 
+				+ ", charset=" + charset + ", charsetIndex=" + charsetIndex +"]";
 	}
 
 }

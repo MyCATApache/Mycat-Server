@@ -43,9 +43,8 @@ public abstract class FrontendConnectionFactory {
 
 		FrontendConnection c = getConnection(channel);
 		MycatServer.getInstance().getConfig().setSocketParams(c, true);
+		
 		return c;
 	}
-
 	
-
 }

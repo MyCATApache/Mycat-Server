@@ -72,6 +72,7 @@ public class MySQLConnectionFactory extends BackendConnectionFactory {
 					.postConnect(c);
 
 		}
+		
 		return c;
 	}
 

@@ -24,6 +24,8 @@
 package org.opencloudb;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.channels.NetworkChannel;
 import java.util.ArrayList;
@@ -114,7 +116,13 @@ public class MycatConfig {
 		con.setPacketHeaderSize(system.getPacketHeaderSize());
 		con.setIdleTimeout(system.getIdleTimeout());
 		con.setCharset(system.getCharset());
-
+		// set local-port
+		// @since 2017-01-12 little-pan
+		final SocketAddress addr = channel.getLocalAddress();
+		if(addr instanceof InetSocketAddress){
+			final InetSocketAddress inetAddr = (InetSocketAddress)addr;
+			con.setLocalPort(inetAddr.getPort());
+		}
 	}
 
 	public Map<String, UserConfig> getUsers() {

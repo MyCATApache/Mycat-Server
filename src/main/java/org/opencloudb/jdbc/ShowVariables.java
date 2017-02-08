@@ -186,12 +186,12 @@ public final class ShowVariables
     
      public static void execute(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
         execute(sc, orgin);
-        NonBlockingSession session = sc.getSession2();
+        NonBlockingSession session = sc.getSession();
         session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
     }
      public static void justReturnValue(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
     	 justReturnValue(sc, orgin);
-         NonBlockingSession session = sc.getSession2();
+         NonBlockingSession session = sc.getSession();
          session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
      }
 }

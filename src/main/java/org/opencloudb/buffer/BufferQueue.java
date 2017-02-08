@@ -30,6 +30,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.opencloudb.trace.Tracer;
+
 /**
  * @author mycat
  */
@@ -70,6 +72,8 @@ public final class BufferQueue {
 	 * @throws InterruptedException
 	 */
 	public void put(ByteBuffer buffer) {
+		Tracer.trace(buffer);
+		
 		this.items.offer(buffer);
 		if (items.size() > total) {
 			throw new java.lang.RuntimeException(
@@ -80,7 +84,9 @@ public final class BufferQueue {
 	}
 
 	public ByteBuffer poll() {
-		return items.poll();
+		final ByteBuffer buffer = items.poll();
+		Tracer.trace(buffer);
+		return buffer;
 	}
 
 	public boolean isEmpty() {

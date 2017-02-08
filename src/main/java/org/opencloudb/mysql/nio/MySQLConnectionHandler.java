@@ -32,6 +32,7 @@ import org.opencloudb.net.mysql.EOFPacket;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.net.mysql.RequestFilePacket;
+import org.opencloudb.trace.Tracer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -149,6 +150,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
                 }
                 break;
             default:
+            	Tracer.trace(source, "status: %s, cnxn: %s", resultStatus, source);
                 throw new RuntimeException("unknown status!");
         }
     }

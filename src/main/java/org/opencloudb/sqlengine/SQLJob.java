@@ -12,6 +12,7 @@ import org.opencloudb.mysql.nio.handler.ResponseHandler;
 import org.opencloudb.net.mysql.ErrorPacket;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.server.parser.ServerParse;
+import org.opencloudb.trace.Tracer;
 
 /**
  * asyn execute in EngineCtx or standalone (EngineCtx=null)
@@ -104,13 +105,14 @@ public class SQLJob implements ResponseHandler, Runnable {
 		if (ctx != null) {
 			ctx.onJobFinished(this);
 		}
+		Tracer.trace(connection, "finished = %s, failed = %s, cnxn = %s", 
+			finished, failed, connection);
 	}
 
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
 		LOGGER.info("can't get connection for sql :" + sql);
 		doFinished(true);
-
 	}
 
 	@Override
@@ -121,7 +123,6 @@ public class SQLJob implements ResponseHandler, Runnable {
 				+ " from of sql :" + sql + " at con:" + conn);
 		conn.release();
 		doFinished(true);
-
 	}
 
 	@Override

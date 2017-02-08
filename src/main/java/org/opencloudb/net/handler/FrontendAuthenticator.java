@@ -38,6 +38,7 @@ import org.opencloudb.net.NIOProcessor;
 import org.opencloudb.net.mysql.AuthPacket;
 import org.opencloudb.net.mysql.MySQLPacket;
 import org.opencloudb.net.mysql.QuitPacket;
+import org.opencloudb.trace.Tracer;
 
 /**
  * 前端认证处理器
@@ -57,6 +58,8 @@ public class FrontendAuthenticator implements NIOHandler {
 
     @Override
     public void handle(byte[] data) {
+    	Tracer.trace(source);
+    	
         // check quit packet
         if (data.length == QuitPacket.QUIT.length && data[4] == MySQLPacket.COM_QUIT) {
             source.close("quit packet");

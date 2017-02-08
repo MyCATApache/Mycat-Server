@@ -7,6 +7,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.opencloudb.trace.Tracer;
 import org.opencloudb.util.TimeUtil;
 
 public class NIOSocketWR extends SocketWR {
@@ -35,6 +36,7 @@ public class NIOSocketWR extends SocketWR {
 	public void doNextWriteCheck() {
 
 		if (!writing.compareAndSet(false, true)) {
+			Tracer.traceCnxn(con, "channel writing: return simply, cnxn = %s", con);
 			return;
 		}
 
@@ -80,6 +82,7 @@ public class NIOSocketWR extends SocketWR {
 
 			if (buffer.hasRemaining()) {
 				con.writeAttempts++;
+				Tracer.traceCnxn(con, "channel busy: hand over, cnxn = %s", con);
 				return false;
 			} else {
 				con.writeBuffer = null;
@@ -108,11 +111,13 @@ public class NIOSocketWR extends SocketWR {
 			if (buffer.hasRemaining()) {
 				con.writeBuffer = buffer;
 				con.writeAttempts++;
+				Tracer.traceCnxn(con, "channel busy: hand over, cnxn = %s", con);
 				return false;
 			} else {
 				con.recycle(buffer);
 			}
 		}
+		Tracer.traceCnxn(con, "write ok: queue drained, cnxn = %s", con);
 		return true;
 	}
 
@@ -120,6 +125,8 @@ public class NIOSocketWR extends SocketWR {
 		try {
 			SelectionKey key = this.processKey;
 			key.interestOps(key.interestOps() & OP_NOT_WRITE);
+			
+			Tracer.traceCnxn(con);
 		} catch (Exception e) {
 			AbstractConnection.LOGGER.warn("can't disable write " + e + " con "
 					+ con);
@@ -128,6 +135,8 @@ public class NIOSocketWR extends SocketWR {
 	}
 
 	private void enableWrite(boolean wakeup) {
+		Tracer.traceCnxn(con, "wakeup reactor? %s", wakeup);
+		
 		boolean needWakeup = false;
 		try {
 			SelectionKey key = this.processKey;
@@ -135,7 +144,6 @@ public class NIOSocketWR extends SocketWR {
 			needWakeup = true;
 		} catch (Exception e) {
 			AbstractConnection.LOGGER.warn("can't enable write " + e);
-
 		}
 		if (needWakeup && wakeup) {
 			processKey.selector().wakeup();

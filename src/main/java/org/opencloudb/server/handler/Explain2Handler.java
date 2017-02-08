@@ -75,7 +75,7 @@ public class Explain2Handler {
 			RouteResultset	rrs =  new RouteResultset(sql, ServerParse.SELECT);
 			EMPTY_ARRAY[0] = node; 
 			rrs.setNodes(EMPTY_ARRAY);
-			SingleNodeHandler singleNodeHandler = new SingleNodeHandler(rrs, c.getSession2());
+			SingleNodeHandler singleNodeHandler = new SingleNodeHandler(rrs, c.getSession());
 			singleNodeHandler.execute();
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e.getCause());

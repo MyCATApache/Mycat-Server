@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
+import org.opencloudb.trace.Tracer;
 
 /**
  * 网络事件反应器
@@ -57,6 +58,8 @@ public final class NIOReactor {
 	}
 
 	final void postRegister(AbstractConnection c) {
+		Tracer.traceCnxn(c, "offer for rw: cnxn = %s", c);
+		
 		reactorR.registerQueue.offer(c);
 		reactorR.selector.wakeup();
 	}

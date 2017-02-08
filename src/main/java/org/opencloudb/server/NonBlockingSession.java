@@ -38,12 +38,11 @@ import org.opencloudb.MycatServer;
 import org.opencloudb.backend.BackendConnection;
 import org.opencloudb.backend.PhysicalDBNode;
 import org.opencloudb.config.ErrorCode;
-import org.opencloudb.config.model.SystemConfig;
 import org.opencloudb.mysql.nio.handler.CommitNodeHandler;
 import org.opencloudb.mysql.nio.handler.KillConnectionHandler;
 import org.opencloudb.mysql.nio.handler.MultiNodeCoordinator;
 import org.opencloudb.mysql.nio.handler.MultiNodeQueryHandler;
-import org.opencloudb.mysql.nio.handler.RollbackNodeHandler;
+//import org.opencloudb.mysql.nio.handler.RollbackNodeHandler;
 import org.opencloudb.mysql.nio.handler.RollbackReleaseHandler;
 import org.opencloudb.mysql.nio.handler.SingleNodeHandler;
 import org.opencloudb.net.FrontendConnection;
@@ -51,6 +50,7 @@ import org.opencloudb.net.mysql.OkPacket;
 import org.opencloudb.route.RouteResultset;
 import org.opencloudb.route.RouteResultsetNode;
 import org.opencloudb.sqlcmd.SQLCmdConstant;
+import org.opencloudb.trace.Tracer;
 
 /**
  * @author mycat
@@ -65,7 +65,7 @@ public class NonBlockingSession implements Session {
 	// life-cycle: each sql execution
 	private volatile SingleNodeHandler singleNodeHandler;
 	private volatile MultiNodeQueryHandler multiNodeHandler;
-	private volatile RollbackNodeHandler rollbackHandler;
+	//private volatile RollbackNodeHandler rollbackHandler;
 	private final MultiNodeCoordinator multiNodeCoordinator;
 	private final CommitNodeHandler commitHandler;
 	private volatile String xaTXID;
@@ -105,7 +105,7 @@ public class NonBlockingSession implements Session {
 	}
 
 	@Override
-	public void execute(RouteResultset rrs, int type) {
+	public void execute(final RouteResultset rrs, final int type) {
 		// clear prev execute resources
 		clearHandlesResources();
 		if (LOGGER.isDebugEnabled()) {
@@ -122,6 +122,13 @@ public class NonBlockingSession implements Session {
 							+ source.getSchema());
 			return;
 		}
+		
+		// Tag tx start if not.
+		// @since 2017-01-16 little-pan
+		if(target.size() == 0 && source.getTxLocalId() == 0){
+			source.onTxStart(rrs.getStatement());
+		}
+		
 		if (nodes.length == 1) {
 			singleNodeHandler = new SingleNodeHandler(rrs, this);
 			try {
@@ -131,13 +138,9 @@ public class NonBlockingSession implements Session {
 				source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
 			}
 		} else {
-			boolean autocommit = source.isAutocommit();
-			SystemConfig sysConfig = MycatServer.getInstance().getConfig()
-					.getSystem();
-			int mutiNodeLimitType = sysConfig.getMutiNodeLimitType();
-			multiNodeHandler = new MultiNodeQueryHandler(type, rrs, autocommit,
-					this);
-
+			final boolean autocommit = source.isAutocommit();
+			multiNodeHandler = 
+				new MultiNodeQueryHandler(type, rrs, autocommit, this);
 			try {
 				multiNodeHandler.execute();
 			} catch (Exception e) {
@@ -153,13 +156,15 @@ public class NonBlockingSession implements Session {
 			ByteBuffer buffer = source.allocate();
 			buffer = source.writeToBuffer(OkPacket.OK, buffer);
 			source.write(buffer);
+			// Tag tx done.
+			if(source.getTxLocalId() != 0){
+				source.onTxDone("commit");
+			}
 			return;
 		} else if (initCount == 1) {
 			BackendConnection con = target.elements().nextElement();
 			commitHandler.commit(con);
-
 		} else {
-
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("multi node commit to send ,total " + initCount);
 			}
@@ -177,10 +182,28 @@ public class NonBlockingSession implements Session {
 			ByteBuffer buffer = source.allocate();
 			buffer = source.writeToBuffer(OkPacket.OK, buffer);
 			source.write(buffer);
+			// Tag tx done.
+			if(source.getTxLocalId() != 0){
+				source.onTxDone("rollback");
+			}
 			return;
 		}
-		rollbackHandler = new RollbackNodeHandler(this);
-		rollbackHandler.rollback();
+		//rollbackHandler = new RollbackNodeHandler(this);
+		//rollbackHandler.rollback();
+		//
+		// We should always clear resource here and response directly, because success or 
+		//fail(connection broken only) always be correct after calling backend rollback().
+		// @since 2017-01-16 little-pan
+		// 
+		// clear resources & rollback
+		clearResources(true);
+		// do-response
+		final ByteBuffer buffer = 
+			source.writeToBuffer(OkPacket.OK, source.allocate());
+		source.write(buffer);
+		// Tag tx done successfully.
+		// @since 2017-01-16 little-pan
+		source.onTxDone("rollback");
 	}
 
 	@Override
@@ -220,10 +243,8 @@ public class NonBlockingSession implements Session {
 		}
 	}
 
-	public void releaseConnection(RouteResultsetNode rrn, boolean debug,
-			final boolean needRollback) {
-
-		BackendConnection c = target.remove(rrn);
+	public void releaseConnection(RouteResultsetNode rrn, boolean debug, final boolean needRollback) {
+		final BackendConnection c = target.remove(rrn);
 		if (c != null) {
 			if (debug) {
 				LOGGER.debug("release connection " + c);
@@ -234,15 +255,14 @@ public class NonBlockingSession implements Session {
 			if (!c.isClosedOrQuit()) {
 				if (c.isAutocommit()) {
 					c.release();
-				} else
-              //  if (needRollback)
-              {
+				} else if (needRollback) {
+				// Should used to rollback(), so that should uncomment the code block.
+				// @since 2017-01-16 little-pan
 					c.setResponseHandler(new RollbackReleaseHandler());
 					c.rollback();
-			}
-  //              else {
-//					c.release();
-//				}
+				} else {
+					c.release();
+				}
 			}
 		}
 	}
@@ -274,15 +294,14 @@ public class NonBlockingSession implements Session {
 	/**
 	 * @return previous bound connection
 	 */
-	public BackendConnection bindConnection(RouteResultsetNode key,
-			BackendConnection conn) {
-		// System.out.println("bind connection "+conn+
-		// " to key "+key.getName()+" on sesion "+this);
+	public BackendConnection bindConnection(final RouteResultsetNode key,
+			final BackendConnection conn) {
+		Tracer.trace(conn, "binding: route-node = %s, src-cnxn = %s, back-cnxn = %s", 
+			key, source, conn);
 		return target.put(key, conn);
 	}
 
-	public boolean tryExistsCon(final BackendConnection conn,
-			RouteResultsetNode node) {
+	public boolean tryExistsCon(final BackendConnection conn, RouteResultsetNode node) {
 
 		if (conn == null) {
 			return false;
@@ -300,7 +319,7 @@ public class NonBlockingSession implements Session {
 		} else {
 			// slavedb connection and can't use anymore ,release it
 			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("release slave connection,can't be used in trasaction  "
+				LOGGER.debug("release slave connection, can't be used in trasaction  "
 						+ conn + " for " + node);
 			}
 			releaseConnection(node, LOGGER.isDebugEnabled(), false);
