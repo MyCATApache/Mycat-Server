@@ -5,6 +5,18 @@ Change log
 @since 2017-01-15
 @author little-pan
 
+2017-01-20
+--------------------------------------------------
++ Supports single SQL comment statments such as: 
+# update company set description=description where id=1;
+--
+-- select 1;
+-- 
+/***/
+/**/
+/*select 1; */
+* some description issues.
+
 2017-01-15
 --------------------------------------------------
 * ServerConnection {get|set}Session2() changed to {} {get|set}Session().
