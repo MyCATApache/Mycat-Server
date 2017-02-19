@@ -1592,7 +1592,8 @@ public class RouterUtil {
 				@Override
 				public String call() throws Exception {
 					FetchStoreNodeOfChildTableHandler fetchHandler = new FetchStoreNodeOfChildTableHandler();
-					return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes());
+//					return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes());
+					return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes(), sc);
 				}
 			});
 
@@ -1605,6 +1606,9 @@ public class RouterUtil {
 						StringBuilder s = new StringBuilder();
 						LOGGER.warn(s.append(sc.getSession2()).append(origSQL).toString() +
 								" err:" + "can't find (root) parent sharding node for sql:" + origSQL);
+						if(!sc.isAutocommit()) { // 处于事务下失败, 必须回滚
+							sc.setTxInterrupt("can't find (root) parent sharding node for sql:" + origSQL);
+						}
 						sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, "can't find (root) parent sharding node for sql:" + origSQL);
 						return;
 					}
