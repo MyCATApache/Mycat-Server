@@ -487,12 +487,18 @@ public class BinlogStream {
                     int column=includedColumnsBeforeUpdate.nextSetBit(i);
                     Map<String, Object> coumnMap=   xxx.get(column+1);
                     sb.append(coumnMap.get("COLUMN_NAME"));
-                    sb.append("=");
-                    String dataType= (String) coumnMap.get("DATA_TYPE");
-                    sb.append(convertBinlogValue(key[i],dataType));
+                    Serializable value1 = key[i];
+                    if(value1==null){
+                        sb.append(" is null");
+                    } else {
+                        sb.append("=");
+                        String dataType = (String) coumnMap.get("DATA_TYPE");
+
+                        sb.append(convertBinlogValue(value1, dataType));
+                    }
                     String columnName= (String) coumnMap.get("COLUMN_NAME");
                     if("_slot".equalsIgnoreCase(columnName)){
-                        slot= key[i] instanceof  BigInteger?((BigInteger) key[i]).intValue():((Integer) key[i]);
+                        slot= value1 instanceof  BigInteger?((BigInteger) value1).intValue():((Integer) value1);
                     }
                     if(i!=size-1){
                         sb.append(" and ");
@@ -528,12 +534,18 @@ public class BinlogStream {
                     int column=inculudeColumn.nextSetBit(i);
                     Map<String, Object> coumnMap=   xxx.get(column+1);
                     sb.append(coumnMap.get("COLUMN_NAME"));
-                    sb.append("=");
-                    String dataType= (String) coumnMap.get("DATA_TYPE");
-                    sb.append(convertBinlogValue(value[i],dataType));
+                    Serializable value1 = value[i];
+                    if(value1==null){
+                        sb.append(" is null");
+                    }     else {
+                        sb.append("=");
+                        String dataType = (String) coumnMap.get("DATA_TYPE");
+
+                        sb.append(convertBinlogValue(value1, dataType));
+                    }
                     String columnName= (String) coumnMap.get("COLUMN_NAME");
                     if("_slot".equalsIgnoreCase(columnName)){
-                        slot= value[i] instanceof  BigInteger?((BigInteger) value[i]).intValue():((Integer) value[i]);
+                        slot= value1 instanceof  BigInteger?((BigInteger) value1).intValue():((Integer) value1);
                     }
                     if(i!=size-1){
                         sb.append(" and ");
