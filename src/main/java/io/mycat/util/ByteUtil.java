@@ -155,7 +155,8 @@ public class ByteUtil {
 	}
 
 	public static short getShort(byte[] bytes) {
-		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
+		return Short.parseShort(new String(bytes));
+//		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
 	}
 
 	public static char getChar(byte[] bytes) {

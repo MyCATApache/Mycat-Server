@@ -31,6 +31,8 @@ public enum ZkParamCfg {
     */
     ZK_CFG_CLUSTERID("clusterId"),
 
+    ZK_CFG_CLUSTER_SIZE("clusterSize"),
+
     /**
      * 当前mycat节点的id
     * @字段说明 zk_CFG_MYID

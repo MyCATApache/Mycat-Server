@@ -298,9 +298,9 @@ public class MySQLMessage {
 
     public String readStringWithLength(String charset) throws UnsupportedEncodingException {
         int length = (int) readLength();
-        if (length <= 0) {
-            return null;
-        }
+//        if (length <= 0) {
+//            return null;
+//        }
         String s = new String(data, position, length, charset);
         position += length;
         return s;

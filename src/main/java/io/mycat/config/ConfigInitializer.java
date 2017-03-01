@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import org.apache.log4j.Logger;
 
 import io.mycat.backend.datasource.PhysicalDBNode;
@@ -250,10 +252,14 @@ public class ConfigInitializer {
 
 	private Map<String, PhysicalDBPool> initDataHosts(ConfigLoader configLoader) {
 		Map<String, DataHostConfig> nodeConfs = configLoader.getDataHosts();
+		boolean isBooster="booster".equalsIgnoreCase(ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_SERVER_TYPE) ) ;
 		//根据DataHost建立PhysicalDBPool，其实就是实际数据库连接池，每个DataHost对应一个PhysicalDBPool
 		Map<String, PhysicalDBPool> nodes = new HashMap<String, PhysicalDBPool>(
 				nodeConfs.size());
 		for (DataHostConfig conf : nodeConfs.values()) {
+			if(isBooster){
+				conf.setMinCon(2);
+			}
 			//建立PhysicalDBPool
 			PhysicalDBPool pool = getPhysicalDBPool(conf, configLoader);
 			nodes.put(pool.getHostName(), pool);

@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.ast.SQLCommentHint;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLObject;
@@ -22,7 +24,10 @@ import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlHintStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
@@ -527,10 +532,28 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 
         return false;
     }
+    public boolean visit(MySqlCreateTableStatement x) {
+        SQLName sqlName=  x.getName();
+        if(sqlName!=null)
+        {
+            String table = sqlName.toString();
+            if(table.startsWith("`"))
+            {
+                table=table.substring(1,table.length()-1);
+            }
+            setCurrentTable(table);
+        }
+        return false;
+    }
     public boolean visit(MySqlInsertStatement x) {
         SQLName sqlName=  x.getTableName();
         if(sqlName!=null)
         {
+            String table = sqlName.toString();
+            if(table.startsWith("`"))
+            {
+                table=table.substring(1,table.length()-1);
+            }
             setCurrentTable(sqlName.toString());
         }
         return false;
@@ -593,5 +616,35 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         accept(x.getWhere());
 
         return false;
+    }
+    
+    @Override
+    public void endVisit(MySqlHintStatement x) {
+    	super.endVisit(x);
+    }
+    
+    @Override
+    public boolean visit(MySqlHintStatement x) {
+    	List<SQLCommentHint> hits = x.getHints();
+    	if(hits != null && !hits.isEmpty()) {
+    		String schema = parseSchema(hits);
+    		if(schema != null ) {
+    			setCurrentTable(x, schema + ".");
+    			return true;
+    		}
+    	}
+    	return true;
+    }
+    
+    private String parseSchema(List<SQLCommentHint> hits) {
+    	String regx = "\\!mycat:schema\\s*=([\\s\\w]*)$";
+    	for(SQLCommentHint hit : hits ) {
+    		Pattern pattern = Pattern.compile(regx);
+    		Matcher m = pattern.matcher(hit.getText());
+    		if(m.matches()) {
+    			return m.group(1).trim();
+    		}
+    	}
+		return null;
     }
 }
