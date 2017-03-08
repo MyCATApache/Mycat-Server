@@ -52,6 +52,7 @@ public class BinaryRowDataPacket extends MySQLPacket {
 		this.fieldPackets = fieldPackets;
 		this.fieldCount = rowDataPk.fieldCount;
 		this.fieldValues = new ArrayList<byte[]>(fieldCount);
+		this.packetId = rowDataPk.packetId;
 		nullBitMap = new byte[(fieldCount + 7 + 2) / 8];
 		List<byte[]> _fieldValues = rowDataPk.fieldValues;
 		for (int i = 0; i < fieldCount; i++) {
