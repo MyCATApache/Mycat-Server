@@ -2,7 +2,7 @@
 
 echo "check JAVA_HOME & java"
 JAVA_CMD=$JAVA_HOME/bin/java
-MAIN_CLASS=org.opencloudb.performance.TestInsertPerf
+MAIN_CLASS=io.mycat.performance.TestInsertPerf
 if [ ! -d "$JAVA_HOME" ]; then
     echo ---------------------------------------------------
     echo WARN: JAVA_HOME environment variable is not set. 
