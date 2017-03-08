@@ -26,7 +26,7 @@ public class RouteStrategyFactory {
 		defaultSqlParser = defaultSqlParser == null ? "" : defaultSqlParser;
 		//修改为ConcurrentHashMap，避免并发问题
 		strategyMap.putIfAbsent("druidparser", new DruidMycatRouteStrategy());
-		
+
 		defaultStrategy = strategyMap.get(defaultSqlParser);
 		if(defaultStrategy == null) {
 			defaultStrategy = strategyMap.get("druidparser");
