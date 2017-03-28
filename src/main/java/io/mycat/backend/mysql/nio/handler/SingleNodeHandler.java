@@ -438,7 +438,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		if (isDefaultNodeShowTable || isDefaultNodeShowFullTable) {
 			RowDataPacket rowDataPacket = new RowDataPacket(1);
 			rowDataPacket.read(row);
-			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), conn.getCharset());
+			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), session.getSource().getCharset());
 			if (shardingTablesSet.contains(table.toUpperCase())) {
 				return;
 			}

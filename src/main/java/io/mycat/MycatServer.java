@@ -298,6 +298,9 @@ public class MycatServer {
 
 		SystemConfig system = config.getSystem();
 		int processorCount = system.getProcessors();
+		
+		//init RouteStrategyFactory first
+		RouteStrategyFactory.init();
 
 		// server startup
 		LOGGER.info(NAME + " is ready to startup ...");
@@ -474,7 +477,7 @@ public class MycatServer {
 		//定期清理结果集排行榜，控制拒绝策略
 		scheduler.scheduleAtFixedRate(resultSetMapClear(),0L,  system.getClearBigSqLResultSetMapMs(),TimeUnit.MILLISECONDS);
 		
-		RouteStrategyFactory.init();
+		
 //        new Thread(tableStructureCheck()).start();
 
 		//XA Init recovery Log

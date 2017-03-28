@@ -11,6 +11,7 @@ import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.SystemConfig;
+import io.mycat.memory.environment.OperatingSystem;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.util.ProcessUtil;
 import io.mycat.util.ZKUtils;
@@ -66,13 +67,14 @@ public class MigrateDumpRunner implements Runnable {
         }
         file.mkdirs();
 
+            String encose= OperatingSystem.isWindows()?"\\":"";
         String finalCmd = DataMigratorUtil
                 .paramsAssignment(mysqldump,"?", "", config.getIp(), String.valueOf(config.getPort()), config.getUser(),
                 config.getPassword(),MigrateUtils.getDatabaseFromDataNode(task.getFrom()), task.getTable() , makeWhere(task), file.getPath());
             List<String> args= Arrays.asList("mysqldump", "-h"+config.getIp(), "-P"+String.valueOf(config.getPort()), "-u"+config.getUser(),
                     "-p"+config.getPassword(), MigrateUtils.getDatabaseFromDataNode(task.getFrom()), task.getTable(), "--single-transaction","-q","--default-character-set=utf8mb4","--hex-blob","--where="+makeWhere(task), "--master-data=1","-T"+file.getPath()
 
-                    ,"--fields-enclosed-by=\"","--fields-terminated-by=,", "--lines-terminated-by=\\n",  "--fields-escaped-by=\\\\");
+                    ,"--fields-enclosed-by="+encose+"\"","--fields-terminated-by=,", "--lines-terminated-by=\\n",  "--fields-escaped-by=\\\\");
       String result=  ProcessUtil.execReturnString(args);
         int logIndex = result.indexOf("MASTER_LOG_FILE='");
         int logPosIndex = result.indexOf("MASTER_LOG_POS=");
