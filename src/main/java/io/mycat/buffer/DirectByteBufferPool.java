@@ -21,7 +21,7 @@ public class DirectByteBufferPool implements BufferPool{
     private ByteBufferPage[] allPages;
     private final int chunkSize;
    // private int prevAllocatedPage = 0;
-    private AtomicInteger prevAllocatedPage;
+    private AtomicLong prevAllocatedPage;
     private final  int pageSize;
     private final short pageCount;
     private final int conReadBuferChunk ;
@@ -68,7 +68,7 @@ public class DirectByteBufferPool implements BufferPool{
 
     public ByteBuffer allocate(int size) {
        final int theChunkCount = size / chunkSize + (size % chunkSize == 0 ? 0 : 1);
-        int selectedPage =  prevAllocatedPage.incrementAndGet() % allPages.length;
+       final int selectedPage =  (int)(prevAllocatedPage.incrementAndGet() % allPages.length);
         ByteBuffer byteBuf = allocateBuffer(theChunkCount, 0, selectedPage);
         if (byteBuf == null) {
             byteBuf = allocateBuffer(theChunkCount, selectedPage, allPages.length);
