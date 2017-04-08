@@ -106,8 +106,9 @@ public class RouteService {
                     	LOGGER.warn("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
                     	throw new SQLSyntaxErrorException("comment int sql must meet :/*!mycat:type=value*/ or /*#mycat:type=value*/ or /*mycat:type=value*/: "+stmt);
                     }
+                    //自定义解析类型,catlet对应HintCatletHandler
                     String realSQL = stmt.substring(endPos + "*/".length()).trim();
-
+                     //
                     HintHandler hintHandler = HintHandlerFactory.getHintHandler(hintType);
                     if( hintHandler != null ) {    
 

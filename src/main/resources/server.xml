@@ -90,7 +90,7 @@
 
 	<user name="root">
 		<property name="password">123456</property>
-		<property name="schemas">TESTDB</property>
+		<property name="schemas">mycattest,TESTDB</property>
 		
 		<!-- 表级 DML 权限设置 -->
 		<!-- 		
@@ -105,8 +105,8 @@
 
 	<user name="user">
 		<property name="password">user</property>
-		<property name="schemas">TESTDB</property>
-		<property name="readOnly">true</property>
+		<property name="schemas">mycattest,TESTDB</property>
+		<property name="readOnly">false</property>
 	</user>
 
 </mycat:server>

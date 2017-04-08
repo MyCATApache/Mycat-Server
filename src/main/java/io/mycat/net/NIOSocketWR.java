@@ -187,7 +187,10 @@ public class NIOSocketWR extends SocketWR {
 		if (theBuffer == null) {
 
 			theBuffer = con.processor.getBufferPool().allocate(con.processor.getBufferPool().getChunkSize());
-
+			
+			if(theBuffer.capacity()==124){
+				System.out.println();
+			}
 			con.readBuffer = theBuffer;
 		}
 

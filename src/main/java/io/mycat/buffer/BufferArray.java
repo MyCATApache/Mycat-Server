@@ -30,6 +30,9 @@ public class BufferArray {
 		if (capacity > curWritingBlock.remaining()) {
 			addtoBlock(curWritingBlock);
 			curWritingBlock = bufferPool.allocate(capacity);
+			if(curWritingBlock.capacity()==124){
+				System.out.println();
+			}
 			return curWritingBlock;
 		} else {
 			return curWritingBlock;

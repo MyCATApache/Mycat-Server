@@ -43,6 +43,7 @@ public final class MycatStartup {
     public static void main(String[] args) {
         //use zk ?
         ZkConfig.getInstance().initZk();
+        
         try {
             String home = SystemConfig.getHomePath();
             if (home == null) {

@@ -113,6 +113,12 @@ public class SQLJob implements ResponseHandler, Runnable {
 	public void connectionError(Throwable e, BackendConnection conn) {
 		LOGGER.info("can't get connection for sql :" + sql);
 		doFinished(true,e.getMessage());
+		//add huangyiming
+		try{
+			conn.close("connectionError===");
+			}catch(Exception e1){
+				e1.printStackTrace();
+			}
 	}
 
 	@Override

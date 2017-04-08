@@ -52,6 +52,7 @@ public class QueryResultDispatcher {
 		}
 		
 		//TODO：异步分发，待进一步调优 
+		//huangyiming  todo 
 		MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
 			
 			public void run() {		
