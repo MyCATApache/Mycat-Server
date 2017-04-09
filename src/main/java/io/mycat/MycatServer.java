@@ -147,6 +147,10 @@ public class MycatServer {
 	private NIOProcessor[] processors;
 	private SocketConnector connector;
 	private NameableExecutor businessExecutor;
+	
+	//huangyiming add 
+	private NameableExecutor recycleExecutor;
+
 	private NameableExecutor timerExecutor;
 	private ListeningExecutorService listeningExecutorService;
 	private  InterProcessMutex dnindexLock;
@@ -213,6 +217,11 @@ public class MycatServer {
 	
 	public BufferPool getBufferPool() {
 		return bufferPool;
+	}
+	
+	//huangyiming add
+	public DirectByteBufferPool getDirectByteBufferPool() {
+		return (DirectByteBufferPool)bufferPool;
 	}
 
 	public NameableExecutor getTimerExecutor() {
@@ -328,6 +337,9 @@ public class MycatServer {
 		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
 		processors = new NIOProcessor[processorCount];
+		//内存回收线程数
+	    int recycleThreadSize = system.getRecycleThreadSize(); 
+
 		// a page size
 		int bufferPoolPageSize = system.getBufferPoolPageSize();
 		// total page number 
@@ -381,6 +393,14 @@ public class MycatServer {
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
 		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
+		
+		recycleExecutor = ExecutorUtil.create("recycleExecutor", recycleThreadSize);
+		
+		//huangyiming add
+		for(int i=0;i < recycleThreadSize;i++){
+ 			recycleExecutor.execute(new RecycleThread("RecycleThread_"+i));
+		}
+		
 		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
 
 		for (int i = 0; i < processors.length; i++) {
@@ -850,7 +870,7 @@ public class MycatServer {
 						
 						Map<String, PhysicalDBPool> nodes = config.getDataHosts();
 						for (PhysicalDBPool node : nodes.values()) {
-							node.heartbeatCheck(heartPeriod);
+ 							node.heartbeatCheck(heartPeriod);
 						}
 						
 						/*
@@ -876,7 +896,7 @@ public class MycatServer {
 					public void run() {
 						Map<String, PhysicalDBPool> nodes = config.getDataHosts();
 						for (PhysicalDBPool node : nodes.values()) {
-							node.doHeartbeat();
+ 							node.doHeartbeat();
 						}
 					}
 				});
@@ -987,6 +1007,12 @@ public class MycatServer {
 
 	public ListeningExecutorService getListeningExecutorService() {
 		return listeningExecutorService;
+	}
+
+	
+	
+	public NameableExecutor getRecycleExecutor() {
+		return recycleExecutor;
 	}
 
 	public static void main(String[] args) throws Exception {

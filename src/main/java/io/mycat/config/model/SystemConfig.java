@@ -81,6 +81,7 @@ public final class SystemConfig {
 	private int managerPort;
 	private String charset;
 	private int processors;
+	private int recycleThreadSize;
 	private int processorExecutor;
 	private int timerExecutor;
 	private int managerExecutor;
@@ -885,6 +886,7 @@ public final class SystemConfig {
 				+ ", usingAIO=" + usingAIO 
 				+ ", packetHeaderSize=" + packetHeaderSize 
 				+ ", maxPacketSize=" + maxPacketSize
+				+ ", recycleThreadSize=" + recycleThreadSize
 				+ ", mycatNodeId=" + mycatNodeId + "]";
 	}
 
@@ -927,6 +929,14 @@ public final class SystemConfig {
 
 	public void setUseHandshakeV10(int useHandshakeV10) {
 		this.useHandshakeV10 = useHandshakeV10;
+	}
+
+	public int getRecycleThreadSize() {
+		return recycleThreadSize;
+	}
+
+	public void setRecycleThreadSize(int recycleThreadSize) {
+		this.recycleThreadSize = recycleThreadSize;
 	}
 	
 	

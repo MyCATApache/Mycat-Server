@@ -13,8 +13,8 @@
 	<property name="useHandshakeV10">1</property>
 	<property name="useSqlStat">0</property>  <!-- 1为开启实时统计、0为关闭 -->
 	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
-
-		<property name="sequnceHandlerType">2</property>
+    <property name="recycleThreadSize">2</property>  <!-- 内存回收的线程数 -->
+	<property name="sequnceHandlerType">2</property>
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
         <!--  <property name="fakeMySQLVersion">5.6.20</property>--> <!--设置模拟的MySQL版本号-->
 	<!-- <property name="processorBufferChunk">40960</property> -->
@@ -90,7 +90,7 @@
 
 	<user name="root">
 		<property name="password">123456</property>
-		<property name="schemas">TESTDB</property>
+		<property name="schemas">mycattest,TESTDB</property>
 		
 		<!-- 表级 DML 权限设置 -->
 		<!-- 		
@@ -105,8 +105,8 @@
 
 	<user name="user">
 		<property name="password">user</property>
-		<property name="schemas">TESTDB</property>
-		<property name="readOnly">true</property>
+		<property name="schemas">mycattest,TESTDB</property>
+		<property name="readOnly">false</property>
 	</user>
 
 </mycat:server>
