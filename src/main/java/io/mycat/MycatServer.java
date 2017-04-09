@@ -151,7 +151,6 @@ public class MycatServer {
 	//huangyiming add 
 	private NameableExecutor recycleExecutor;
 
-	final int recycleThreadSize = 2; 
 	private NameableExecutor timerExecutor;
 	private ListeningExecutorService listeningExecutorService;
 	private  InterProcessMutex dnindexLock;
@@ -338,6 +337,9 @@ public class MycatServer {
 		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
 		processors = new NIOProcessor[processorCount];
+		//内存回收线程数
+	    int recycleThreadSize = system.getRecycleThreadSize(); 
+
 		// a page size
 		int bufferPoolPageSize = system.getBufferPoolPageSize();
 		// total page number 
