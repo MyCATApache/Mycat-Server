@@ -1,7 +1,9 @@
 package io.mycat.buffer;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -25,6 +27,11 @@ public class DirectByteBufferPool implements BufferPool{
     private final  int pageSize;
     private final short pageCount;
     private final int conReadBuferChunk ;
+    public static BlockingQueue<ByteBuffer> noBlockingQueue = new LinkedBlockingQueue<ByteBuffer>();
+    //回收个数
+	static AtomicInteger count = new AtomicInteger(0);
+	//申请个数
+	public static AtomicInteger apply = new AtomicInteger(0);
     /**
      * 记录对线程ID->该线程的所使用Direct Buffer的size
      */
@@ -90,31 +97,9 @@ public class DirectByteBufferPool implements BufferPool{
     }
 
     public void recycle(ByteBuffer theBuf) {
-    	if(!(theBuf instanceof DirectBuffer)){
-    		theBuf.clear();
-    		return;
-    	}
-
-    	final long size = theBuf.capacity();
-
-        boolean recycled = false;
-        DirectBuffer thisNavBuf = (DirectBuffer) theBuf;
-        int chunkCount = theBuf.capacity() / chunkSize;
-        DirectBuffer parentBuf = (DirectBuffer) thisNavBuf.attachment();
-        int startChunk = (int) ((thisNavBuf.address() - parentBuf.address()) / this.chunkSize);
-        for (int i = 0; i < allPages.length; i++) {
-            if ((recycled = allPages[i].recycleBuffer((ByteBuffer) parentBuf, startChunk, chunkCount) == true)) {
-                break;
-            }
-        }
-        final long threadId = Thread.currentThread().getId();
-
-        if (memoryUsage.containsKey(threadId)){
-            memoryUsage.put(threadId,memoryUsage.get(threadId)-size);
-        }
-        if (recycled == false) {
-            LOGGER.warn("warning ,not recycled buffer " + theBuf);
-        }
+     	LOGGER.debug("recyclequeue process number :"+count.incrementAndGet());
+    	//huangyiming add  async queue to process the DirectBuffer
+    	noBlockingQueue.offer(theBuf);
     }
 
     private ByteBuffer allocateBuffer(int theChunkCount, int startPage, int endPage) {
@@ -158,8 +143,13 @@ public class DirectByteBufferPool implements BufferPool{
         return 0;
     }
 
+    
 
-    public int getConReadBuferChunk() {
+    public ByteBufferPage[] getAllPages() {
+		return allPages;
+	}
+
+	public int getConReadBuferChunk() {
         return conReadBuferChunk;
     }
 
