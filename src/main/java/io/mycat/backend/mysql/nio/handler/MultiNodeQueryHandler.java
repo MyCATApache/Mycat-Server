@@ -704,6 +704,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				// @since 2016-03-25
 				dataMergeSvr.onNewRecord(dataNode, row);
 			} else {
+				row[3] = ++packetId;
 				RowDataPacket rowDataPkg =null;
 				// cache primaryKey-> dataNode
 				if (primaryKeyIndex != -1) {
@@ -713,7 +714,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					LayerCachePool pool = MycatServer.getInstance().getRouterservice().getTableId2DataNodeCache();
 					pool.putIfAbsent(priamaryKeyTable, primaryKey, dataNode);
 				}
-				row[3] = ++packetId;
 				if( prepared ) {
 					if(rowDataPkg==null) {
 						rowDataPkg = new RowDataPacket(fieldCount);
