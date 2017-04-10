@@ -98,7 +98,11 @@ public class DirectByteBufferPool implements BufferPool{
 
     public void recycle(ByteBuffer theBuf) {
      	LOGGER.debug("recyclequeue process number :"+count.incrementAndGet());
-    	//huangyiming add  async queue to process the DirectBuffer
+     	if(theBuf !=null && (!(theBuf instanceof DirectBuffer) )){
+    		theBuf.clear();
+    		return;
+         }
+    	//huangyiming add  异步队列回收堆外内存
     	noBlockingQueue.offer(theBuf);
     }
 
