@@ -27,8 +27,7 @@ public class DirectByteBufferPool implements BufferPool{
     private final  int pageSize;
     private final short pageCount;
     private final int conReadBuferChunk ;
-    public static BlockingQueue<ByteBuffer> noBlockingQueue = new LinkedBlockingQueue<ByteBuffer>();
-     
+      
      /**
      * 记录对线程ID->该线程的所使用Direct Buffer的size
      */
