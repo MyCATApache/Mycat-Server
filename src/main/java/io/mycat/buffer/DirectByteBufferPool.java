@@ -3,6 +3,7 @@ package io.mycat.buffer;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,8 @@ public class DirectByteBufferPool implements BufferPool{
     private ByteBufferPage[] allPages;
     private final int chunkSize;
    // private int prevAllocatedPage = 0;
-    private AtomicInteger prevAllocatedPage;
+    //private AtomicInteger prevAllocatedPage;
+    private AtomicLong prevAllocatedPage;
     private final  int pageSize;
     private final short pageCount;
     private final int conReadBuferChunk ;
@@ -36,7 +38,8 @@ public class DirectByteBufferPool implements BufferPool{
         this.pageSize = pageSize;
         this.pageCount = pageCount;
         this.conReadBuferChunk = conReadBuferChunk;
-        prevAllocatedPage = new AtomicInteger(0);
+        //prevAllocatedPage = new AtomicInteger(0);
+        prevAllocatedPage = new AtomicLong(0);
         for (int i = 0; i < pageCount; i++) {
             allPages[i] = new ByteBufferPage(ByteBuffer.allocateDirect(pageSize), chunkSize);
         }
@@ -68,7 +71,7 @@ public class DirectByteBufferPool implements BufferPool{
 
     public ByteBuffer allocate(int size) {
        final int theChunkCount = size / chunkSize + (size % chunkSize == 0 ? 0 : 1);
-        int selectedPage =  prevAllocatedPage.incrementAndGet() % allPages.length;
+        int selectedPage =  (int)(prevAllocatedPage.incrementAndGet() % allPages.length);
         ByteBuffer byteBuf = allocateBuffer(theChunkCount, 0, selectedPage);
         if (byteBuf == null) {
             byteBuf = allocateBuffer(theChunkCount, selectedPage, allPages.length);
