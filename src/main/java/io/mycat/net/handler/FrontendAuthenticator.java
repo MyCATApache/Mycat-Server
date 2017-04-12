@@ -67,16 +67,20 @@ public class FrontendAuthenticator implements NIOHandler {
         AuthPacket auth = new AuthPacket();
         auth.read(data);
 
-        // check user
-        if (!checkUser(auth.user, source.getHost())) {
-            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "' with host '" + source.getHost()+ "'");
-            return;
-        }
+        //huangyiming
+        int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
+        if(nopassWordLogin == 0){
+        	  // check user
+            if (!checkUser(auth.user, source.getHost())) {
+                failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "' with host '" + source.getHost()+ "'");
+                return;
+            }
 
-        // check password
-        if (!checkPassword(auth.password, auth.user)) {
-            failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because password is error ");
-            return;
+            // check password
+            if (!checkPassword(auth.password, auth.user)) {
+                failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because password is error ");
+                return;
+            }
         }
         
         // check degrade

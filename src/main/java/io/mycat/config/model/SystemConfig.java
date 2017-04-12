@@ -224,6 +224,15 @@ public final class SystemConfig {
 	 */
 	private boolean	useZKSwitch=DEFAULT_USE_ZK_SWITCH;
 
+	
+ 	/**
+ 	 * huangyiming add
+	 * 无密码登陆标示, 0:否,1:是,默认为0
+	 */
+	private int nonePasswordLogin = DEFAULT_NONEPASSWORDLOGIN ;
+
+	private final static int DEFAULT_NONEPASSWORDLOGIN = 0;
+	
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
 	}
@@ -927,6 +936,14 @@ public final class SystemConfig {
 
 	public void setUseHandshakeV10(int useHandshakeV10) {
 		this.useHandshakeV10 = useHandshakeV10;
+	}
+
+	public int getNonePasswordLogin() {
+		return nonePasswordLogin;
+	}
+
+	public void setNonePasswordLogin(int nonePasswordLogin) {
+		this.nonePasswordLogin = nonePasswordLogin;
 	}
 	
 	
