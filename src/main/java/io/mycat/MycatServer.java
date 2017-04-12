@@ -64,7 +64,6 @@ import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.DirectByteBufferPool;
-import io.mycat.buffer.handler.RecycleThread;
 import io.mycat.cache.CacheService;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.classloader.DynaClassLoader;
@@ -486,9 +485,8 @@ public class MycatServer {
 		
 		//定期清理结果集排行榜，控制拒绝策略
 		scheduler.scheduleAtFixedRate(resultSetMapClear(),0L,  system.getClearBigSqLResultSetMapMs(),TimeUnit.MILLISECONDS);
-		//启动回收直接内存线程
-		businessExecutor.execute(new RecycleThread("RecycleBufferThread"));
 		
+ 		
 //        new Thread(tableStructureCheck()).start();
 
 		//XA Init recovery Log
