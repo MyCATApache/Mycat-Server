@@ -384,6 +384,7 @@ public class UnsafeRowGrouper {
                 }
             } catch (IOException e) {
                logger.error("group insertValue err: " + e.getMessage());
+			   free();
             }
     }
 
@@ -875,7 +876,7 @@ public class UnsafeRowGrouper {
 		}
 	}
 
-	public void free(){
+	public void  free(){
 		if(aggregationMap != null)
 		aggregationMap.free();
 	}

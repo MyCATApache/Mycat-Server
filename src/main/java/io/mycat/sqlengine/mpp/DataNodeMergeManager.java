@@ -125,6 +125,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             Map<String, Integer> mergeColsMap = rrs.getMergeCols();
 
             if (mergeColsMap != null) {
+            
 				if (LOGGER.isDebugEnabled() && rrs.getMergeCols() != null) {
 	                LOGGER.debug("isHasAggrColumn:" + rrs.getMergeCols().toString());
 	            }
@@ -370,23 +371,6 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
                     if(iters != null)
                         multiQueryHandler.outputMergeResult(source,array,iters);
-
-
-                    if(unsafeRowGrouper!=null){
-                        unsafeRowGrouper.free();
-                        unsafeRowGrouper = null;
-                    }
-
-                    if(globalSorter != null){
-                        globalSorter.cleanupResources();
-                        globalSorter = null;
-                    }
-
-                    if (globalMergeResult != null){
-                        globalMergeResult.cleanupResources();
-                        globalMergeResult = null;
-                    }
-
                     break;
                 }
 
@@ -442,9 +426,12 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
         unsafeRows.clear();
 
-        if(unsafeRowGrouper!=null){
-            unsafeRowGrouper.free();
-            unsafeRowGrouper = null;
+        synchronized (this)
+        {
+            if (unsafeRowGrouper != null) {
+                unsafeRowGrouper.free();
+                unsafeRowGrouper = null;
+            }
         }
 
         if(globalSorter != null){
