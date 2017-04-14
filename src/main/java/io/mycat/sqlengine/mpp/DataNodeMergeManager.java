@@ -82,8 +82,8 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
     public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) throws IOException {
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("field metadata keys:" + columToIndx.keySet());
-            LOGGER.debug("field metadata values:" + columToIndx.values());
+            LOGGER.debug("field metadata keys:" + columToIndx != null ? columToIndx.keySet() : "null");
+            LOGGER.debug("field metadata values:" + columToIndx != null ? columToIndx.values() : "null");
         }
 
         OrderCol[] orderCols = null;
@@ -125,9 +125,9 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             Map<String, Integer> mergeColsMap = rrs.getMergeCols();
 
             if (mergeColsMap != null) {
-            	if (LOGGER.isDebugEnabled()) {
-                	LOGGER.debug("isHasAggrColumn:" + mergeColsMap.toString());
-            	}
+				if (LOGGER.isDebugEnabled() && rrs.getMergeCols() != null) {
+	                LOGGER.debug("isHasAggrColumn:" + rrs.getMergeCols().toString());
+	            }
                 for (Map.Entry<String, Integer> mergEntry : mergeColsMap
                         .entrySet()) {
                     String colName = mergEntry.getKey().toUpperCase();

@@ -106,7 +106,6 @@ public final class UnsafeExternalRowSorter {
   }
 
   public void cleanupResources() {
-      logger.debug("row sorter clean up resources!!!");
       sorter.cleanupResources();
   }
 

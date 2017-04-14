@@ -637,7 +637,7 @@ public class UnsafeRowGrouper {
 		}
 
 		for (MergeCol merg : mergCols) {
-             if(merg.mergeType != MergeCol.MERGE_AVG) {
+             if(merg.mergeType != MergeCol.MERGE_AVG && merg.colMeta !=null) {
 				 byte[] result = null;
 				 byte[] left = null;
 				 byte[] right = null;
