@@ -1,5 +1,23 @@
 package io.mycat.route.util;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
@@ -19,6 +37,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
@@ -38,13 +57,6 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.*;
-import java.util.concurrent.Callable;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -767,7 +779,7 @@ public class RouterUtil {
 	}
 
 	/**
-	 * 根据标名随机获取一个节点
+	 * 根据表名随机获取一个节点
 	 *
 	 * @param schema     数据库名
 	 * @param table      表名
@@ -782,11 +794,41 @@ public class RouterUtil {
 		Map<String, TableConfig> tables = schema.getTables();
 		TableConfig tc;
 		if (tables != null && (tc = tables.get(table)) != null) {
-			dataNode = getRandomDataNode(tc);
+			dataNode = getAliveRandomDataNode(tc);
 		}
 		return dataNode;
 	}
+	
+	/**
+	 * 解决getRandomDataNode方法获取错误节点的问题.
+	 * @param tc
+	 * @return
+	 */
+	private static String getAliveRandomDataNode(TableConfig tc) {
+		List<String> randomDns = tc.getDataNodes();
 
+		MycatConfig mycatConfig = MycatServer.getInstance().getConfig();
+		if (mycatConfig != null) {
+			for (String randomDn : randomDns) {
+				PhysicalDBNode physicalDBNode = mycatConfig.getDataNodes().get(randomDn);
+				if (physicalDBNode != null) {
+					if (physicalDBNode.getDbPool().getSource().isAlive()) {
+						for (PhysicalDBPool pool : MycatServer.getInstance().getConfig().getDataHosts().values()) {
+							PhysicalDatasource source = pool.getSource();
+							if (source.getHostConfig().containDataNode(randomDn) && pool.getSource().isAlive()) {
+								return randomDn;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// all fail return default
+		return tc.getRandomDataNode();
+	}
+
+	@Deprecated
     private static String getRandomDataNode(TableConfig tc) {
         //写节点不可用，意味着读节点也不可用。
         //直接使用下一个 dataHost
@@ -1102,7 +1144,7 @@ public class RouterUtil {
 			if(isSelect) {
 				// global select ,not cache route result
 				rrs.setCacheAble(false);
-				return routeToSingleNode(rrs, getRandomDataNode(tc), ctx.getSql());
+				return routeToSingleNode(rrs, getAliveRandomDataNode(tc)/*getRandomDataNode(tc)*/, ctx.getSql());
 			} else {//insert into 全局表的记录
 				return routeToMultiNode(false, rrs, tc.getDataNodes(), ctx.getSql(),true);
 			}
