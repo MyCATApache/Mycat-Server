@@ -110,8 +110,8 @@ public class UnsafeRowGrouper {
 				aggBufferSchema,
 				groupKeySchema,
 				dataNodeMemoryManager,
-				2*1024,
-				conf.getSizeAsBytes("mycat.buffer.pageSize", "1m"),
+				1024,
+				conf.getSizeAsBytes("mycat.buffer.pageSize", "32k"),
 				false);
 	}
 
@@ -383,7 +383,7 @@ public class UnsafeRowGrouper {
                     sorter.insertRow(row);
                 }
             } catch (IOException e) {
-               logger.error(e.getMessage());
+               logger.error("group insertValue err: " + e.getMessage());
             }
     }
 

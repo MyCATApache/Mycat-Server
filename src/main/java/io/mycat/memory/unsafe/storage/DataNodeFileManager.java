@@ -109,7 +109,7 @@ public class DataNodeFileManager {
     synchronized (this) {
       File file = subDirs.get(dirId).get(subDirId);
       if (file != null) {
-        LOG.warn(file.getName() + " exist !");
+      
       } else {
         file = new File(localDirs.get(dirId), "%02x".format(String.valueOf(subDirId)));
         if (!file.exists() && !file.mkdir()) {

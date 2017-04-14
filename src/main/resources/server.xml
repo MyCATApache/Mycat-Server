@@ -45,7 +45,7 @@
 		<!--
 			单位为m
 		-->
-		<property name="memoryPageSize">1m</property>
+        <property name="memoryPageSize">64k</property>
 
 		<!--
 			单位为k

@@ -214,7 +214,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     myCatMemory,
                     schema,
                     prefixComparator, prefixComputer,
-                    conf.getSizeAsBytes("mycat.buffer.pageSize","1m"),
+                    conf.getSizeAsBytes("mycat.buffer.pageSize","32k"),
                     false/**是否使用基数排序*/,
                     true/**排序*/);
         }
@@ -254,7 +254,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     schema,
                     prefixComparator,
                     prefixComputer,
-                    conf.getSizeAsBytes("mycat.buffer.pageSize", "1m"),
+                    conf.getSizeAsBytes("mycat.buffer.pageSize", "32k"),
                     false,/**是否使用基数排序*/
                     false/**不排序*/);
         }
