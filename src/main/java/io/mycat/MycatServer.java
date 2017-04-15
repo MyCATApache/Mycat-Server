@@ -338,6 +338,11 @@ public class MycatServer {
 		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
 		processors = new NIOProcessor[processorCount];
+
+		businessExecutor = ExecutorUtil.create("BusinessExecutor",
+				threadPoolSize);
+		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
+		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
 		// a page size
 		int bufferPoolPageSize = system.getBufferPoolPageSize();
 		// total page number 
@@ -351,7 +356,7 @@ public class MycatServer {
 		switch (bufferPoolType){
 			case 0:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
-					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
+					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf(),businessExecutor);
 			
 
 				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
@@ -372,10 +377,14 @@ public class MycatServer {
 				break;
 			default:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
-					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());;
+					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf(),businessExecutor);;
 				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
 		}
 		
+		for (int i = 0; i < processors.length; i++) {
+			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
+					businessExecutor);
+		}
 			/**
 		 * Off Heap For Merge/Order/Group/Limit 初始化
 		 */
@@ -388,16 +397,17 @@ public class MycatServer {
 				LOGGER.error("Error",e);
 			}
 		}
-		businessExecutor = ExecutorUtil.create("BusinessExecutor",
-				threadPoolSize);
-		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
-		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
+		/**
+			businessExecutor = ExecutorUtil.create("BusinessExecutor",
+					threadPoolSize);
+			timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
+			listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
 
-		for (int i = 0; i < processors.length; i++) {
-			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
-					businessExecutor);
-		}
-
+			for (int i = 0; i < processors.length; i++) {
+				processors[i] = new NIOProcessor("Processor" + i, bufferPool,
+						businessExecutor);
+			}
+	    */
 		if (aio) {
 			LOGGER.info("using aio network handler ");
 			asyncChannelGroups = new AsynchronousChannelGroup[processorCount];
@@ -486,9 +496,7 @@ public class MycatServer {
 		
 		//定期清理结果集排行榜，控制拒绝策略
 		scheduler.scheduleAtFixedRate(resultSetMapClear(),0L,  system.getClearBigSqLResultSetMapMs(),TimeUnit.MILLISECONDS);
-		//启动回收直接内存线程
-		businessExecutor.execute(new RecycleThread("RecycleBufferThread"));
-		
+
 //        new Thread(tableStructureCheck()).start();
 
 		//XA Init recovery Log
@@ -988,11 +996,6 @@ public class MycatServer {
 		if(allCoordinatorLogEntries == null){return new CoordinatorLogEntry[0];}
 		if(allCoordinatorLogEntries.size()==0){return new CoordinatorLogEntry[0];}
 		return allCoordinatorLogEntries.toArray(new CoordinatorLogEntry[allCoordinatorLogEntries.size()]);
-	}
-
-	//huangyiming add
-	public DirectByteBufferPool getDirectByteBufferPool() {
-		return (DirectByteBufferPool)bufferPool;
 	}
 
 	public boolean isAIO() {

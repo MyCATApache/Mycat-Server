@@ -6,6 +6,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.mycat.MycatServer;
+import io.mycat.buffer.handler.RecycleThread;
+import io.mycat.util.NameableExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +40,7 @@ public class DirectByteBufferPool implements BufferPool{
      */
     private final ConcurrentHashMap<Long,Long> memoryUsage;
 
-    public DirectByteBufferPool(int pageSize, short chunkSize, short pageCount,int conReadBuferChunk) {
+    public DirectByteBufferPool(int pageSize, short chunkSize, short pageCount, int conReadBuferChunk,final NameableExecutor businessExecutor) {
         allPages = new ByteBufferPage[pageCount];
         this.chunkSize = chunkSize;
         this.pageSize = pageSize;
@@ -48,6 +51,11 @@ public class DirectByteBufferPool implements BufferPool{
             allPages[i] = new ByteBufferPage(ByteBuffer.allocateDirect(pageSize), chunkSize);
         }
         memoryUsage = new ConcurrentHashMap<>();
+
+        //启动回收直接内存线程
+        if(businessExecutor !=null)
+             businessExecutor.
+                     execute(new RecycleThread("RecycleBufferThread", allPages,memoryUsage));
     }
 
     public BufferArray allocateArray() {

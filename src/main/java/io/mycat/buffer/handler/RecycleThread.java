@@ -24,9 +24,13 @@ public class RecycleThread implements Runnable {
 
 	@SuppressWarnings("unused")
 	private String name;
-
-	public RecycleThread(String name) {
+	private final ByteBufferPage[] allPages;
+	private final ConcurrentHashMap<Long, Long> memoryUsage;
+	public RecycleThread(String name, final ByteBufferPage[] byteBufferPages,
+						 final ConcurrentHashMap<Long, Long> memoryUsage) {
 		this.name = name;
+		this.allPages = byteBufferPages;
+		this.memoryUsage = memoryUsage;
 	}
 
 	protected static final Logger LOGGER = LoggerFactory.getLogger(RecycleThread.class);
@@ -34,12 +38,8 @@ public class RecycleThread implements Runnable {
 	@Override
 	public void run() {
 		int chunkSize = MycatServer.getInstance().getConfig().getSystem().getBufferPoolChunkSize();
-		ConcurrentHashMap<Long, Long> memoryUsage = MycatServer.getInstance().getDirectByteBufferPool()
-				.getNetDirectMemoryUsage();
-		ByteBufferPage[] allPages = MycatServer.getInstance().getDirectByteBufferPool().getAllPages();
 		ByteBuffer theBuf = null;
 		for (;;) {
-
 			try {
 				// it won't be block until the queue has no bytebuffer in it
 				while ((theBuf = DirectByteBufferPool.noBlockingQueue.take()) != null) {
