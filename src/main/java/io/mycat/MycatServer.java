@@ -23,6 +23,8 @@
  */
 package io.mycat;
 
+
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -43,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.mycat.buffer.NettyBufferPool;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
@@ -343,6 +346,7 @@ public class MycatServer {
 				threadPoolSize);
 		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
 		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
+
 		// a page size
 		int bufferPoolPageSize = system.getBufferPoolPageSize();
 		// total page number 
@@ -357,8 +361,6 @@ public class MycatServer {
 			case 0:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
 					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf(),businessExecutor);
-			
-
 				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
 				break;
 			case 1:
@@ -375,12 +377,18 @@ public class MycatServer {
 
 				totalNetWorkBufferSize = 6*bufferPoolPageSize * bufferPoolPageNumber;
 				break;
+			case 2:
+				bufferPool = new NettyBufferPool(bufferPoolChunkSize);
+				LOGGER.info("Use Netty Buffer Pool");
+		
+				break;
 			default:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
 					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf(),businessExecutor);;
 				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
 		}
-		
+
+
 		for (int i = 0; i < processors.length; i++) {
 			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
 					businessExecutor);
