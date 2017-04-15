@@ -67,7 +67,6 @@ import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.DirectByteBufferPool;
-import io.mycat.buffer.handler.RecycleThread;
 import io.mycat.cache.CacheService;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.classloader.DynaClassLoader;
@@ -341,12 +340,6 @@ public class MycatServer {
 		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
 		processors = new NIOProcessor[processorCount];
-
-		businessExecutor = ExecutorUtil.create("BusinessExecutor",
-				threadPoolSize);
-		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
-		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
-
 		// a page size
 		int bufferPoolPageSize = system.getBufferPoolPageSize();
 		// total page number 
@@ -360,7 +353,9 @@ public class MycatServer {
 		switch (bufferPoolType){
 			case 0:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
-					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf(),businessExecutor);
+					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
+			
+
 				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
 				break;
 			case 1:
@@ -384,15 +379,10 @@ public class MycatServer {
 				break;
 			default:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
-					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf(),businessExecutor);;
+					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());;
 				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
 		}
-
-
-		for (int i = 0; i < processors.length; i++) {
-			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
-					businessExecutor);
-		}
+		
 			/**
 		 * Off Heap For Merge/Order/Group/Limit 初始化
 		 */
@@ -405,17 +395,16 @@ public class MycatServer {
 				LOGGER.error("Error",e);
 			}
 		}
-		/**
-			businessExecutor = ExecutorUtil.create("BusinessExecutor",
-					threadPoolSize);
-			timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
-			listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
+		businessExecutor = ExecutorUtil.create("BusinessExecutor",
+				threadPoolSize);
+		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
+		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
 
-			for (int i = 0; i < processors.length; i++) {
-				processors[i] = new NIOProcessor("Processor" + i, bufferPool,
-						businessExecutor);
-			}
-	    */
+		for (int i = 0; i < processors.length; i++) {
+			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
+					businessExecutor);
+		}
+
 		if (aio) {
 			LOGGER.info("using aio network handler ");
 			asyncChannelGroups = new AsynchronousChannelGroup[processorCount];
