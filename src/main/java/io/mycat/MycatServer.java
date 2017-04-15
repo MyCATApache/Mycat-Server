@@ -514,14 +514,15 @@ public class MycatServer {
 			ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
 			ruleDataLock.acquire(30, TimeUnit.SECONDS);
 		      File[]  childFiles=	file.listFiles();
-			String basePath=ZKUtils.getZKBasePath()+"ruledata/";
-			for (File childFile : childFiles) {
-				CuratorFramework zk = ZKUtils.getConnection();
-				if (zk.checkExists().forPath(basePath+childFile.getName()) == null) {
-					zk.create().creatingParentsIfNeeded().forPath(basePath+childFile.getName(), Files.toByteArray(childFile));
+			if(childFiles!=null&&childFiles.length>0) {
+				String basePath = ZKUtils.getZKBasePath() + "ruledata/";
+				for (File childFile : childFiles) {
+					CuratorFramework zk = ZKUtils.getConnection();
+					if (zk.checkExists().forPath(basePath + childFile.getName()) == null) {
+						zk.create().creatingParentsIfNeeded().forPath(basePath + childFile.getName(), Files.toByteArray(childFile));
+					}
 				}
 			}
-
 
 		} catch (Exception e) {
 			throw new RuntimeException(e);
