@@ -27,12 +27,8 @@ public class DirectByteBufferPool implements BufferPool{
     private final  int pageSize;
     private final short pageCount;
     private final int conReadBuferChunk ;
-    public static BlockingQueue<ByteBuffer> noBlockingQueue = new LinkedBlockingQueue<ByteBuffer>();
-    //回收个数
-	static AtomicInteger count = new AtomicInteger(0);
-	//申请个数
-	public static AtomicInteger apply = new AtomicInteger(0);
-    /**
+      
+     /**
      * 记录对线程ID->该线程的所使用Direct Buffer的size
      */
     private final ConcurrentHashMap<Long,Long> memoryUsage;
@@ -97,13 +93,33 @@ public class DirectByteBufferPool implements BufferPool{
     }
 
     public void recycle(ByteBuffer theBuf) {
-     	LOGGER.debug("recyclequeue process number :"+count.incrementAndGet());
-     	if(theBuf !=null && (!(theBuf instanceof DirectBuffer) )){
+      	if(theBuf !=null && (!(theBuf instanceof DirectBuffer) )){
     		theBuf.clear();
     		return;
          }
-    	//huangyiming add  异步队列回收堆外内存
-    	noBlockingQueue.offer(theBuf);
+ 		 
+		final long size = theBuf.capacity();
+
+		boolean recycled = false;
+		DirectBuffer thisNavBuf = (DirectBuffer) theBuf;
+		int chunkCount = theBuf.capacity() / chunkSize;
+		DirectBuffer parentBuf = (DirectBuffer) thisNavBuf.attachment();
+		int startChunk = (int) ((thisNavBuf.address() - parentBuf.address()) / chunkSize);
+		for (int i = 0; i < allPages.length; i++) {
+			if ((recycled = allPages[i].recycleBuffer((ByteBuffer) parentBuf, startChunk,
+					chunkCount) == true)) {
+				break;
+			}
+		}
+		final long threadId = Thread.currentThread().getId();
+
+		if (memoryUsage.containsKey(threadId)) {
+			memoryUsage.put(threadId, memoryUsage.get(threadId) - size);
+		}
+		if (recycled == false) {
+			LOGGER.warn("warning ,not recycled buffer " + theBuf);
+		}
+	
     }
 
     private ByteBuffer allocateBuffer(int theChunkCount, int startPage, int endPage) {
