@@ -68,6 +68,8 @@
 
 		<!-- XA Recovery Log日志名称 -->
 		<!--<property name="XARecoveryLogBaseName">tmlog</property>-->
+		<!--限制并发查询，控制CPU消耗 1开启,0关闭-->
+		<property name="limitConcurrentQuery">1</property>
 
 	</system>
 	
