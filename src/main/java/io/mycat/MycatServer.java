@@ -23,8 +23,6 @@
  */
 package io.mycat;
 
-
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -67,7 +65,6 @@ import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.DirectByteBufferPool;
-import io.mycat.buffer.handler.RecycleThread;
 import io.mycat.cache.CacheService;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.classloader.DynaClassLoader;
@@ -341,12 +338,6 @@ public class MycatServer {
 		// startup processors
 		int threadPoolSize = system.getProcessorExecutor();
 		processors = new NIOProcessor[processorCount];
-
-		businessExecutor = ExecutorUtil.create("BusinessExecutor",
-				threadPoolSize);
-		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
-		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
-
 		// a page size
 		int bufferPoolPageSize = system.getBufferPoolPageSize();
 		// total page number 
@@ -360,7 +351,9 @@ public class MycatServer {
 		switch (bufferPoolType){
 			case 0:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
-					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf(),businessExecutor);
+					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());
+			
+
 				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
 				break;
 			case 1:
@@ -384,15 +377,10 @@ public class MycatServer {
 				break;
 			default:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
-					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf(),businessExecutor);;
+					bufferPoolPageNumber,system.getFrontSocketSoRcvbuf());;
 				totalNetWorkBufferSize = bufferPoolPageSize*bufferPoolPageNumber;
 		}
-
-
-		for (int i = 0; i < processors.length; i++) {
-			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
-					businessExecutor);
-		}
+		
 			/**
 		 * Off Heap For Merge/Order/Group/Limit 初始化
 		 */
@@ -405,17 +393,16 @@ public class MycatServer {
 				LOGGER.error("Error",e);
 			}
 		}
-		/**
-			businessExecutor = ExecutorUtil.create("BusinessExecutor",
-					threadPoolSize);
-			timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
-			listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
+		businessExecutor = ExecutorUtil.create("BusinessExecutor",
+				threadPoolSize);
+		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
+		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
 
-			for (int i = 0; i < processors.length; i++) {
-				processors[i] = new NIOProcessor("Processor" + i, bufferPool,
-						businessExecutor);
-			}
-	    */
+		for (int i = 0; i < processors.length; i++) {
+			processors[i] = new NIOProcessor("Processor" + i, bufferPool,
+					businessExecutor);
+		}
+
 		if (aio) {
 			LOGGER.info("using aio network handler ");
 			asyncChannelGroups = new AsynchronousChannelGroup[processorCount];
@@ -504,7 +491,8 @@ public class MycatServer {
 		
 		//定期清理结果集排行榜，控制拒绝策略
 		scheduler.scheduleAtFixedRate(resultSetMapClear(),0L,  system.getClearBigSqLResultSetMapMs(),TimeUnit.MILLISECONDS);
-
+		
+ 		
 //        new Thread(tableStructureCheck()).start();
 
 		//XA Init recovery Log
@@ -530,14 +518,15 @@ public class MycatServer {
 			ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
 			ruleDataLock.acquire(30, TimeUnit.SECONDS);
 		      File[]  childFiles=	file.listFiles();
-			String basePath=ZKUtils.getZKBasePath()+"ruledata/";
-			for (File childFile : childFiles) {
-				CuratorFramework zk = ZKUtils.getConnection();
-				if (zk.checkExists().forPath(basePath+childFile.getName()) == null) {
-					zk.create().creatingParentsIfNeeded().forPath(basePath+childFile.getName(), Files.toByteArray(childFile));
+			if(childFiles!=null&&childFiles.length>0) {
+				String basePath = ZKUtils.getZKBasePath() + "ruledata/";
+				for (File childFile : childFiles) {
+					CuratorFramework zk = ZKUtils.getConnection();
+					if (zk.checkExists().forPath(basePath + childFile.getName()) == null) {
+						zk.create().creatingParentsIfNeeded().forPath(basePath + childFile.getName(), Files.toByteArray(childFile));
+					}
 				}
 			}
-
 
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -1004,6 +993,11 @@ public class MycatServer {
 		if(allCoordinatorLogEntries == null){return new CoordinatorLogEntry[0];}
 		if(allCoordinatorLogEntries.size()==0){return new CoordinatorLogEntry[0];}
 		return allCoordinatorLogEntries.toArray(new CoordinatorLogEntry[allCoordinatorLogEntries.size()]);
+	}
+
+	//huangyiming add
+	public DirectByteBufferPool getDirectByteBufferPool() {
+		return (DirectByteBufferPool)bufferPool;
 	}
 
 	public boolean isAIO() {
