@@ -995,6 +995,10 @@ public class MycatServer {
 		return allCoordinatorLogEntries.toArray(new CoordinatorLogEntry[allCoordinatorLogEntries.size()]);
 	}
 
+	//huangyiming add
+	public DirectByteBufferPool getDirectByteBufferPool() {
+		return (DirectByteBufferPool)bufferPool;
+	}
 	public boolean isAIO() {
 		return aio;
 	}
