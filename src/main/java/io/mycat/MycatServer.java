@@ -467,7 +467,7 @@ public class MycatServer {
 		heartbeatScheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MILLISECONDS);
 		heartbeatScheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MILLISECONDS);
 		heartbeatScheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L, dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
-		//heartbeatScheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
 		heartbeatScheduler.scheduleAtFixedRate(dataSourceOldConsClear(), 0L, DEFAULT_OLD_CONNECTION_CLEAR_PERIOD, TimeUnit.MILLISECONDS);
 		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MILLISECONDS);
        
@@ -859,7 +859,7 @@ public class MycatServer {
 						
 						Map<String, PhysicalDBPool> nodes = config.getDataHosts();
 						for (PhysicalDBPool node : nodes.values()) {
-						//	node.heartbeatCheck(heartPeriod);
+							node.heartbeatCheck(heartPeriod);
 						}
 						
 						/*
@@ -885,7 +885,7 @@ public class MycatServer {
 					public void run() {
 						Map<String, PhysicalDBPool> nodes = config.getDataHosts();
 						for (PhysicalDBPool node : nodes.values()) {
-							//node.doHeartbeat();
+							node.doHeartbeat();
 						}
 					}
 				});
