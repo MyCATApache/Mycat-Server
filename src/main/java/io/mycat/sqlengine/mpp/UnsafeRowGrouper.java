@@ -110,8 +110,8 @@ public class UnsafeRowGrouper {
 				aggBufferSchema,
 				groupKeySchema,
 				dataNodeMemoryManager,
-				2*1024,
-				conf.getSizeAsBytes("mycat.buffer.pageSize", "1m"),
+				1024,
+				conf.getSizeAsBytes("mycat.buffer.pageSize", "32k"),
 				false);
 	}
 
@@ -383,7 +383,8 @@ public class UnsafeRowGrouper {
                     sorter.insertRow(row);
                 }
             } catch (IOException e) {
-               logger.error(e.getMessage());
+               logger.error("group insertValue err: " + e.getMessage());
+			   free();
             }
     }
 
@@ -637,7 +638,7 @@ public class UnsafeRowGrouper {
 		}
 
 		for (MergeCol merg : mergCols) {
-             if(merg.mergeType != MergeCol.MERGE_AVG) {
+             if(merg.mergeType != MergeCol.MERGE_AVG && merg.colMeta !=null) {
 				 byte[] result = null;
 				 byte[] left = null;
 				 byte[] right = null;
@@ -875,7 +876,7 @@ public class UnsafeRowGrouper {
 		}
 	}
 
-	public void free(){
+	public void  free(){
 		if(aggregationMap != null)
 		aggregationMap.free();
 	}

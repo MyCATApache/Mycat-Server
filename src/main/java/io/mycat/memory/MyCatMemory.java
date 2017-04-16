@@ -106,7 +106,7 @@ public class MyCatMemory {
 		if(system.getMemoryPageSize() != null){
 			conf.set("mycat.buffer.pageSize",system.getMemoryPageSize());
 		}else{
-			conf.set("mycat.buffer.pageSize","1m");
+			conf.set("mycat.buffer.pageSize","32k");
 		}
 
 
@@ -116,7 +116,7 @@ public class MyCatMemory {
 			conf.set("mycat.merge.file.buffer","32k");
 		}
 
-		conf.set("mycat.pointer.array.len","8k")
+		conf.set("mycat.pointer.array.len","1k")
 			.set("mycat.memory.offHeap.size", JavaUtils.bytesToString2(resultSetBufferSize));
 
 		LOGGER.info("mycat.memory.offHeap.size: " +

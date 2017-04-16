@@ -137,7 +137,7 @@ public class ResultSetMemoryPool extends MemoryPool {
             long memoryToFree = 0L;
 
             if (curMem < numBytes) {
-                System.out.print(
+                 LOG.error(
                         "Internal error: release called on $numBytes bytes but task only has $curMem bytes " +
                                 "of memory from the " + poolName() + "  pool");
                 memoryToFree = curMem;

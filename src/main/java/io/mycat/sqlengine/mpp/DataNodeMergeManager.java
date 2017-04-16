@@ -82,8 +82,8 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
     public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) throws IOException {
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("field metadata keys:" + columToIndx.keySet());
-            LOGGER.debug("field metadata values:" + columToIndx.values());
+            LOGGER.debug("field metadata keys:" + columToIndx != null ? columToIndx.keySet() : "null");
+            LOGGER.debug("field metadata values:" + columToIndx != null ? columToIndx.values() : "null");
         }
 
         OrderCol[] orderCols = null;
@@ -125,9 +125,10 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             Map<String, Integer> mergeColsMap = rrs.getMergeCols();
 
             if (mergeColsMap != null) {
-            	if (LOGGER.isDebugEnabled()) {
-                	LOGGER.debug("isHasAggrColumn:" + mergeColsMap.toString());
-            	}
+            
+				if (LOGGER.isDebugEnabled() && rrs.getMergeCols() != null) {
+	                LOGGER.debug("isHasAggrColumn:" + rrs.getMergeCols().toString());
+	            }
                 for (Map.Entry<String, Integer> mergEntry : mergeColsMap
                         .entrySet()) {
                     String colName = mergEntry.getKey().toUpperCase();
@@ -214,7 +215,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     myCatMemory,
                     schema,
                     prefixComparator, prefixComputer,
-                    conf.getSizeAsBytes("mycat.buffer.pageSize","1m"),
+                    conf.getSizeAsBytes("mycat.buffer.pageSize","32k"),
                     false/**是否使用基数排序*/,
                     true/**排序*/);
         }
@@ -254,7 +255,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     schema,
                     prefixComparator,
                     prefixComputer,
-                    conf.getSizeAsBytes("mycat.buffer.pageSize", "1m"),
+                    conf.getSizeAsBytes("mycat.buffer.pageSize", "32k"),
                     false,/**是否使用基数排序*/
                     false/**不排序*/);
         }
@@ -370,23 +371,6 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
                     if(iters != null)
                         multiQueryHandler.outputMergeResult(source,array,iters);
-
-
-                    if(unsafeRowGrouper!=null){
-                        unsafeRowGrouper.free();
-                        unsafeRowGrouper = null;
-                    }
-
-                    if(globalSorter != null){
-                        globalSorter.cleanupResources();
-                        globalSorter = null;
-                    }
-
-                    if (globalMergeResult != null){
-                        globalMergeResult.cleanupResources();
-                        globalMergeResult = null;
-                    }
-
                     break;
                 }
 
@@ -442,9 +426,12 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
         unsafeRows.clear();
 
-        if(unsafeRowGrouper!=null){
-            unsafeRowGrouper.free();
-            unsafeRowGrouper = null;
+        synchronized (this)
+        {
+            if (unsafeRowGrouper != null) {
+                unsafeRowGrouper.free();
+                unsafeRowGrouper = null;
+            }
         }
 
         if(globalSorter != null){

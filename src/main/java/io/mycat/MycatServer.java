@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.mycat.buffer.NettyBufferPool;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
@@ -368,6 +369,11 @@ public class MycatServer {
 				 */
 
 				totalNetWorkBufferSize = 6*bufferPoolPageSize * bufferPoolPageNumber;
+				break;
+			case 2:
+				bufferPool = new NettyBufferPool(bufferPoolChunkSize);
+				LOGGER.info("Use Netty Buffer Pool");
+		
 				break;
 			default:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
