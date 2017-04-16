@@ -107,7 +107,7 @@ public class MycatPrivileges implements FrontendPrivileges {
     public Set<String> getUserSchemas(String user) {
       	//huangyiming 
         MycatConfig conf = MycatServer.getInstance().getConfig();
-        int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
+       /* int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
         if(nopassWordLogin == 1){
 	        Map<String, SchemaConfig> schemas = conf.getSchemas();
 	   		Set<String> result = new HashSet<String>();
@@ -115,7 +115,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 		   	    result =  schemas.keySet();
 		   	    return result;
 	   		}
-        }
+        }*/
         UserConfig uc = conf.getUsers().get(user);
         if (uc != null) {
             return uc.getSchemas();
@@ -129,10 +129,10 @@ public class MycatPrivileges implements FrontendPrivileges {
     public Boolean isReadOnly(String user) {
         MycatConfig conf = MycatServer.getInstance().getConfig();
         //huangyiming add
-        int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
+       /* int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
         if(nopassWordLogin == 1){
         	 return false;
-        }
+        }*/
         UserConfig uc = conf.getUsers().get(user);
         if (uc != null) {
             return uc.isReadOnly();
@@ -177,10 +177,10 @@ public class MycatPrivileges implements FrontendPrivileges {
         	Map<String, UserConfig> users = mycatConfig.getUsers();
         	isPassed = users.containsKey(user);
         	//huangyiming add 
-       	 	int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
+       	 	/*int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
             if(nopassWordLogin == 1){
             	isPassed = true;
-            }
+            }*/
         } else {
         	List<UserConfig> list = whitehost.get(host);
 			Set<Pattern> patterns = whitehostMask.keySet();

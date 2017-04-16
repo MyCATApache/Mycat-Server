@@ -360,6 +360,9 @@ public class NonBlockingSession implements Session {
 
     public void releaseConnections(final boolean needRollback) {
         boolean debug = LOGGER.isDebugEnabled();
+        /*if(target .isEmpty()){
+        	return;
+        }*/
         for (RouteResultsetNode rrn : target.keySet()) {
             releaseConnection(rrn, debug, needRollback);
         }
