@@ -3,6 +3,7 @@ package io.mycat.migrate;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import io.mycat.MycatServer;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
@@ -112,52 +113,52 @@ public class MigrateTaskWatch {
              String text = new String(ZKUtils.getConnection().getData().forPath(event.getData().getPath()), "UTF-8");
 
             List<String> dataNodeList= ZKUtils.getConnection().getChildren().forPath(event.getData().getPath());
-            if(!dataNodeList.isEmpty())    {
-            TaskNode taskNode=         JSON.parseObject(
-                    text,TaskNode.class);
-            if(taskNode.getStatus()==0) {
-             String boosterDataHosts=   ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_BOOSTER_DATAHOSTS) ;
-                Set<String> dataNodes=new HashSet<>(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts)) ;
-                List<MigrateTask> finalMigrateList=new ArrayList<>();
-                for (String s : dataNodeList) {
-                    if("_prepare".equals(s))continue;
-                    if(dataNodes.contains(s)) {
-                        String zkpath = event.getData().getPath() + "/" + s;
-                        String data=new String(ZKUtils.getConnection().getData().forPath(
-                                zkpath),"UTF-8");
-                        List<MigrateTask> migrateTaskList= JSONArray.parseArray(data,MigrateTask.class);
-                        for (MigrateTask migrateTask : migrateTaskList) {
-                            migrateTask.setZkpath(zkpath);
+            if(!dataNodeList.isEmpty()) {
+                if ((!Strings.isNullOrEmpty(text) )&& text.startsWith("{")) {
+                    TaskNode taskNode = JSON.parseObject(text, TaskNode.class);
+                    if (taskNode.getStatus() == 0) {
+                        String boosterDataHosts = ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_BOOSTER_DATAHOSTS);
+                        Set<String> dataNodes = new HashSet<>(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts));
+                        List<MigrateTask> finalMigrateList = new ArrayList<>();
+                        for (String s : dataNodeList) {
+                            if ("_prepare".equals(s))
+                                continue;
+                            if (dataNodes.contains(s)) {
+                                String zkpath = event.getData().getPath() + "/" + s;
+                                String data = new String(ZKUtils.getConnection().getData().forPath(zkpath), "UTF-8");
+                                List<MigrateTask> migrateTaskList = JSONArray.parseArray(data, MigrateTask.class);
+                                for (MigrateTask migrateTask : migrateTaskList) {
+                                    migrateTask.setZkpath(zkpath);
+                                }
+                                finalMigrateList.addAll(migrateTaskList);
+                            }
                         }
-                        finalMigrateList.addAll(migrateTaskList);
+
+                        Map<String, List<MigrateTask>> taskMap = mergerTaskForDataHost(finalMigrateList);
+                        for (Map.Entry<String, List<MigrateTask>> stringListEntry : taskMap.entrySet()) {
+                            String key = stringListEntry.getKey();
+                            List<MigrateTask> value = stringListEntry.getValue();
+                            MycatServer.getInstance().getBusinessExecutor().submit(new MigrateMainRunner(key, value));
+                        }
+
+                        //
+                        taskNode.setStatus(1);
+                        ZKUtils.getConnection().setData().forPath(event.getData().getPath(), JSON.toJSONBytes(taskNode));
+                    } else if (taskNode.getStatus() == 2) {
+                        //start switch
+
+                        ScheduledExecutorService scheduledExecutorService = MycatServer.getInstance().getScheduler();
+                        Set<String> allRunnerSet = SwitchPrepareCheckRunner.allSwitchRunnerSet;
+                        if (!allRunnerSet.contains(taskID)) {
+                            List<String> dataHosts = ZKUtils.getConnection().getChildren().forPath(tpath);
+                            List<MigrateTask> allTaskList = MigrateUtils.queryAllTask(tpath, removeStatusNode(dataHosts));
+                            allRunnerSet.add(taskID);
+                            scheduledExecutorService.schedule(new SwitchPrepareCheckRunner(taskID, tpath, taskNode,
+                                    MigrateUtils.convertAllTask(allTaskList)), 1, TimeUnit.SECONDS);
+
+                        }
                     }
                 }
-
-
-                Map<String, List<MigrateTask> > taskMap=mergerTaskForDataHost(finalMigrateList);
-                for (Map.Entry<String, List<MigrateTask>> stringListEntry : taskMap.entrySet()) {
-                    String key=stringListEntry.getKey();
-                    List<MigrateTask> value=stringListEntry.getValue();
-                    MycatServer.getInstance().getBusinessExecutor().submit(new MigrateMainRunner(key,value)) ;
-                }
-
-
-                //
-                taskNode.setStatus(1);
-                ZKUtils.getConnection().setData().forPath(event.getData().getPath(),JSON.toJSONBytes(taskNode));
-            } else   if(taskNode.getStatus()==2) {
-                  //start switch
-
-                ScheduledExecutorService scheduledExecutorService=MycatServer.getInstance().getScheduler();
-                Set<String> allRunnerSet=      SwitchPrepareCheckRunner.allSwitchRunnerSet;
-                if(!allRunnerSet.contains(taskID)){
-                    List<String> dataHosts=  ZKUtils.getConnection().getChildren().forPath(tpath);
-                    List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(tpath,removeStatusNode(dataHosts));
-                    allRunnerSet.add(taskID);
-                    scheduledExecutorService.schedule(new SwitchPrepareCheckRunner(taskID,tpath,taskNode, MigrateUtils.convertAllTask(allTaskList)),1,TimeUnit.SECONDS);
-
-                }
-            }
             }
             }finally {
                  if(taskLock!=null){
