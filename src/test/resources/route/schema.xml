@@ -87,6 +87,12 @@
 		<table name="offer" dataNode="pg_1,pg_2" rule="auto-sharding-long2" />
 		<table name="offer1" dataNode="pg_1" />
 	</schema>
+	
+	<schema name="subQueries" sqlMaxLimit="100">
+		<table name="subq1" primaryKey="id"  dataNode="dn1,dn2" rule="partitionByMod"/>
+		<table name="subq2" primaryKey="id"  dataNode="dn1,dn2" rule="partitionByMod"/>
+		<table name="subq3" primaryKey="id"  dataNode="dn2,dn3" rule="partitionByMod"/>
+	</schema>
 
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />
 	<dataNode name="dn2" dataHost="localhost1" database="db2" />
