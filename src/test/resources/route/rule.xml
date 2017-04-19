@@ -55,6 +55,14 @@
             <algorithm>rang-mod</algorithm>
         </rule>
     </tableRule>
+    
+    <tableRule name="partitionByMod">
+    	<rule>
+    		<columns>id</columns>
+    		<algorithm>partitionByMod</algorithm>
+    	</rule>
+    </tableRule>
+    
     <tableRule name="rangeDateHash">
         <rule>
             <columns>col_date</columns>
@@ -67,6 +75,10 @@
 			<algorithm>crc32slot</algorithm>
 		</rule>
 	</tableRule>
+	
+	<function name="partitionByMod" class="io.mycat.route.function.PartitionByMod">
+		<property name="count">2</property>
+	</function>
 	<function name="func1"
 		class="io.mycat.route.function.PartitionByFileMap">
 		<property name="defaultNode">0</property>

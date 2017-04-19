@@ -3,6 +3,7 @@ package io.mycat.route.parser.druid.impl;
 import java.sql.SQLNonTransientException;
 import java.util.ArrayList;
 import java.util.HashMap;
+
 import java.util.List;
 import java.util.Map;
 
@@ -159,7 +160,7 @@ public class DefaultDruidParser implements DruidParser {
 			for(Condition condition : conditionList.get(i)) {
 				List<Object> values = condition.getValues();
 				if(values.size() == 0) {
-					break;
+					continue;  
 				}
 				if(checkConditionValues(values)) {
 					String columnName = StringUtil.removeBackquote(condition.getColumn().getName().toUpperCase());
