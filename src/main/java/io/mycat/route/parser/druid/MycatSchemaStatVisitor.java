@@ -30,6 +30,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlHintStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Column;
 import com.alibaba.druid.stat.TableStat.Condition;
@@ -272,6 +273,17 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	public boolean visit(SQLBinaryOpExpr x) {
         x.getLeft().setParent(x);
         x.getRight().setParent(x);
+        
+        /*
+         * fix bug 当 selectlist 存在多个子查询时, 主表没有别名的情况下.主表的查询条件 被错误的附加到子查询上.
+         *  eg. select (select id from subtest2 where id = 1), (select id from subtest3 where id = 2) from subtest1 where id =4;
+         *  像这样的子查询, subtest1 的 过滤条件  id = 4 .  被 加入到  subtest3 上. 加别名的情况下正常,不加别名,就会存在这个问题.
+         *  这里设置好操作的是哪张表后,再进行判断.
+         */
+        String currenttable = x.getParent()==null?null: (String) x.getParent().getAttribute(SchemaStatVisitor.ATTR_TABLE);
+        if(currenttable!=null){
+        	this.setCurrentTable(currenttable);
+        }
 
         switch (x.getOperator()) {
             case Equality:
