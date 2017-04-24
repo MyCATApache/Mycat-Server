@@ -3,6 +3,7 @@ package io.mycat.route.impl;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -28,8 +29,10 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.base.Strings;
 
+import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.parser.druid.DruidParser;
@@ -39,6 +42,7 @@ import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.MycatStatementParser;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.route.util.RouterUtil;
+import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
@@ -48,7 +52,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	@Override
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
 			String stmt, RouteResultset rrs, String charset,
-			LayerCachePool cachePool) throws SQLNonTransientException {
+			LayerCachePool cachePool,ServerConnection sc) throws SQLNonTransientException {
 		
 		/**
 		 *  只有mysql时只支持mysql语法
@@ -84,6 +88,43 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		druidParser.parser(schema, rrs, statement, stmt,cachePool,visitor);
 		DruidShardingParseInfo ctx=  druidParser.getCtx() ;
 		rrs.setTables(ctx.getTables());
+		
+		//add huangyiming 分片规则不一样的且表中带查询条件的则走Catlet
+		List<String> tables = ctx.getTables();
+		SchemaConfig schemaConf = MycatServer.getInstance().getConfig().getSchemas().get(schema.getName());
+		int index = 0;
+		RuleConfig firstRule = null;
+		boolean needCatlet = false;
+		
+		for(String tableName : tables){
+			TableConfig tc =  schemaConf.getTables().get(tableName);
+			if(index == 0){
+				firstRule=  tc.getRule();
+			}else{
+				RuleConfig ruleCfg = tc.getRule();
+				if(!ruleCfg.equals(firstRule)){
+					needCatlet = true;
+					break;
+				}
+			}
+			index++;
+		}
+		
+	    if(needCatlet && ctx.getVisitor().getConditions() !=null && ctx.getVisitor().getConditions().size()>0){
+		try {
+			rrs = MycatServer
+					.getInstance()
+					.getRouterservice()
+					.route(MycatServer.getInstance().getConfig().getSystem(),
+							schema, ServerParse.SELECT, "/*!mycat:catlet=io.mycat.catlets.ShareJoin */ "+stmt, charset, sc);
+			
+		}catch(Exception e){
+			
+		}
+		return rrs;
+	 }
+			 
+		 
 		/**
 		 * DruidParser 解析过程中已完成了路由的直接返回
 		 */
