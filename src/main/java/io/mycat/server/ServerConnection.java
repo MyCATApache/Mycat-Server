@@ -30,6 +30,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.mysql.DataType;
+import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
+import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
+import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
+import io.mycat.backend.mysql.nio.handler.SecondHandler;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
@@ -266,7 +271,72 @@ public class ServerConnection extends FrontendConnection {
 
 
 
-	public void routeEndExecuteSQL(String sql, int type, SchemaConfig schema) {
+	public void routeEndExecuteSQL(String sql, final int type, final SchemaConfig schema) {
+		// 路由计算
+
+		String original = sql;
+		
+ 		/**
+		 * huangyiming add
+		 * 1.如果有括号则先把()内容发出去执行得到执行结果,然后组装
+		 * 
+		 */
+		int start = sql.indexOf("(");
+		int end  = sql.indexOf(")");
+		boolean canClose = true;
+		  //MiddlerResultHandler middlerResultHandler = null;
+		if(start >-1 && end >-1){
+ 			String firstSql = sql.substring(start+1, end);
+			final String endSql = sql.substring(0, start);
+			sql = firstSql;
+			int rs = ServerParse.parse(firstSql);
+			int sqlType = rs & 0xff;
+ 			   if(sqlType == ServerParse.SELECT ){
+				canClose = false;
+				 original = firstSql;
+				 MiddlerResultHandler	middlerResultHandler = null;
+				  middlerResultHandler =  new MiddlerQueryResultHandler<String>(DataType.STRING,  new SecondHandler() {						 
+						@Override
+						public void doExecute(String param) {
+ 							
+ 							String sqls = endSql +" ("+param+")  ";
+							// 路由计算
+							RouteResultset rrs = null;
+							try {
+								rrs = MycatServer
+										.getInstance()
+										.getRouterservice()
+										.route(MycatServer.getInstance().getConfig().getSystem(),
+												schema, type,sqls, charset,ServerConnection.this );
+
+							} catch (Exception e) {
+								StringBuilder s = new StringBuilder();
+								LOGGER.warn(s.append(this).append(sqls).toString() + " err:" + e.toString(),e);
+								String msg = e.getMessage();
+								writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
+								return;
+							}
+ 							
+							if (rrs != null) {
+								
+ 								MultiNodeQueryHandler multiNodeQueryHandler = 	new MultiNodeQueryHandler(rrs.isSelectForUpdate()?ServerParse.UPDATE:type, rrs, autocommit, session);
+								NonBlockingSession noBlockSession =  new NonBlockingSession(session.getSource());
+								noBlockSession.setCanClose(false);
+								noBlockSession.execute(rrs, type);
+							 
+							}
+							
+						}
+					} );
+				  session.setMiddlerResultHandler(middlerResultHandler);
+			}
+		 
+		}
+		
+		//
+		if(!canClose){
+			session.setCanClose(canClose);
+		}
 		// 路由计算
 		RouteResultset rrs = null;
 		try {
@@ -274,7 +344,7 @@ public class ServerConnection extends FrontendConnection {
 					.getInstance()
 					.getRouterservice()
 					.route(MycatServer.getInstance().getConfig().getSystem(),
-							schema, type, sql, this.charset, this);
+							schema, type, original, this.charset, this);
 
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
@@ -283,10 +353,20 @@ public class ServerConnection extends FrontendConnection {
 			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return;
 		}
+		 
+		
 		if (rrs != null) {
-			// session执行
+			// session执行			
 			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
 		}
+		
+		/*if(middlerResultHandler !=null){
+			List<String> result = middlerResultHandler.getResult();
+			for(String str:result){
+				System.out.println(str);
+			}
+		}*/
+	
 	}
 
 	/**
