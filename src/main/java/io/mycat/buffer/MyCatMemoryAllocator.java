@@ -88,7 +88,7 @@ public class MyCatMemoryAllocator implements ByteBufAllocator {
      *
      * @return Number of arenas.
      */
-    int getNumberOfArenas() {
+    public int getNumberOfArenas() {
         return numberOfArenas;
     }
 
@@ -97,7 +97,7 @@ public class MyCatMemoryAllocator implements ByteBufAllocator {
      *
      * @return Chunk size.
      */
-    int getChunkSize() {
+    public int getChunkSize() {
         return chunkSize;
     }
 
