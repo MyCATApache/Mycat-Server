@@ -392,8 +392,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				}
 			}
 		}
-		execCount++;
-		if (execCount == rrs.getNodes().length) {
+ 		if (execCount == rrs.getNodes().length) {
 			int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
 			//TODO: add by zhuam
 			//查询结果派发
@@ -736,7 +735,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				// So the "isClosedByDiscard" variable is unnecessary.
 				// @author Uncle-pan
 				// @since 2016-03-25
-				dataMergeSvr.onNewRecord(dataNode, row);
+				MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+ 				if(null == middlerResultHandler ){
+ 					dataMergeSvr.onNewRecord(dataNode, row);
+				}else{
+					 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
+						 //if(middlerResultHandler.getDataType().equalsIgnoreCase("string")){
+							 String rowValue =  ResultSetUtil.getColumnValAsString(row, fields, 0);
+							 middlerResultHandler.add(rowValue);	
+						// }
+					 }
+				}
 			} else {
 				row[3] = ++packetId;
 				RowDataPacket rowDataPkg =null;
@@ -764,10 +773,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					}else{
 						
 						 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
-							 if(middlerResultHandler.getDataType().equalsIgnoreCase("string")){
+							 //if(middlerResultHandler.getDataType().equalsIgnoreCase("string")){
 								 String rowValue =  ResultSetUtil.getColumnValAsString(row, fields, 0);
 								 middlerResultHandler.add(rowValue);	
- 							 }
+ 							// }
 						 }
 						
 					}
