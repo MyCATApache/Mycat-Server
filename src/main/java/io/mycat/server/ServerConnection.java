@@ -319,11 +319,11 @@ public class ServerConnection extends FrontendConnection {
 		    	final String endSql = sql.substring(middleIndex,sql.length());//) AND NAME='' AND DATE>1 and id not in () group by num having min(num)>1
 		    	original = middleSql;
 		    	//执行第二部sql
-		    	 MiddlerResultHandler	middlerResultHandler = null;
-				  middlerResultHandler =  new MiddlerQueryResultHandler<String>(DataType.STRING,  new SecondHandler() {						 
+		    	MiddlerResultHandler	middlerResultHandler = null;
+				  middlerResultHandler =  new MiddlerQueryResultHandler<String>(  new SecondHandler() {						 
 						@Override
 						public void doExecute(String param) {
-							
+							session.setMiddlerResultHandler(null);
 							String sqls = beginSql +param+endSql;
 							// 路由计算
 							RouteResultset rrs = null;
@@ -341,16 +341,16 @@ public class ServerConnection extends FrontendConnection {
 								writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 								return;
 							}
-							
+							NonBlockingSession noBlockSession =  new NonBlockingSession(session.getSource());
+							noBlockSession.setMiddlerResultHandler(null);
 							if (rrs != null) {
 								
 								MultiNodeQueryHandler multiNodeQueryHandler = 	new MultiNodeQueryHandler(rrs.isSelectForUpdate()?ServerParse.UPDATE:type, rrs, autocommit, session);
-								NonBlockingSession noBlockSession =  new NonBlockingSession(session.getSource());
+								
 								noBlockSession.setCanClose(false);
 								noBlockSession.execute(rrs, type);
 							 
 							}
-							
 						}
 					} );
 				  session.setMiddlerResultHandler(middlerResultHandler);
@@ -382,8 +382,9 @@ public class ServerConnection extends FrontendConnection {
 		 
 		
 		if (rrs != null) {
-			// session执行			
+ 			// session执行			
 			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
+			//session.setMiddlerResultHandler(null);
 		}
 	    
  	}

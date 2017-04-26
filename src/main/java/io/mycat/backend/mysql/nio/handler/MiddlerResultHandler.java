@@ -2,8 +2,6 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
-import io.mycat.backend.mysql.DataType;
-
 /**
  * 中间结果处理器
  * @author huangyiming
