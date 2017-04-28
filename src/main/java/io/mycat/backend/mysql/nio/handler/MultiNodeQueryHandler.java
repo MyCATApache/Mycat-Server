@@ -42,6 +42,7 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.statistic.stat.QueryResult;
 import io.mycat.statistic.stat.QueryResultDispatcher;
+import io.mycat.util.ResultSetUtil;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -87,7 +88,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private int index = 0;
 
 	private int end = 0;
-
+	
+	//huangyiming 
+	private byte[] header = null;
+	private List<byte[]> fields = null;
+	
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
 		
@@ -295,6 +300,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 						ok.insertId = insertId;
 						source.setLastInsertId(insertId);
 					}
+					
 					ok.write(source);
 				} catch (Exception e) {
 					handleDataProcessException(e);
@@ -321,7 +327,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
 		
 		this.netOutBytes += eof.length;
-		
+		MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+		execCount++;
+		if(middlerResultHandler !=null){
+			if (execCount != rrs.getNodes().length) {
+				
+				return;
+			}
+			/*else{
+				middlerResultHandler.secondEexcute(); 
+			}*/
+		}
 		if (errorRepsponsed.get()) {
 			// the connection has been closed or set to "txInterrupt" properly
 			//in tryErrorFinished() method! If we close it here, it can
@@ -366,21 +382,27 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					if (LOGGER.isDebugEnabled()) {
 						LOGGER.debug("last packet id:" + packetId);
 					}
-					source.write(eof);
-				} finally {
+					if(  middlerResultHandler ==null ){
+						//middlerResultHandler.secondEexcute();
+						source.write(eof);
+					} 
+ 				} finally {
 					lock.unlock();
 
 				}
 			}
 		}
-		execCount++;
-		if (execCount == rrs.getNodes().length) {
+ 		if (execCount == rrs.getNodes().length) {
 			int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 					rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize);
 			QueryResultDispatcher.dispatchQuery( queryResult );
+			//	add huangyiming 
+ 			if(  middlerResultHandler !=null ){
+				middlerResultHandler.secondEexcute(); 
+			} 
 		}
 
 	}
@@ -533,7 +555,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
 		
-		
+		//huangyiming add 
+		this.header = header;
+		this.fields = fields;
+		MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+        if(null !=middlerResultHandler ){
+			return;
+		}
 		this.netOutBytes += header.length;
 		this.netOutBytes += eof.length;
 		for (int i = 0, len = fields.size(); i < len; ++i) {
@@ -654,8 +682,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			}
 			eof[3] = ++packetId;
 			buffer = source.writeToBuffer(eof, buffer);
-			source.write(buffer);
-			if (dataMergeSvr != null) {
+			
+			if(null == middlerResultHandler ){
+				//session.getSource().write(row);
+				source.write(buffer);
+		     }
+			
+ 			if (dataMergeSvr != null) {
 				dataMergeSvr.onRowMetaData(columToIndx, fieldCount);
 
 			}
@@ -702,7 +735,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				// So the "isClosedByDiscard" variable is unnecessary.
 				// @author Uncle-pan
 				// @since 2016-03-25
-				dataMergeSvr.onNewRecord(dataNode, row);
+				MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+ 				if(null == middlerResultHandler ){
+ 					dataMergeSvr.onNewRecord(dataNode, row);
+				}else{
+					 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
+						 //if(middlerResultHandler.getDataType().equalsIgnoreCase("string")){
+							 String rowValue =  ResultSetUtil.getColumnValAsString(row, fields, 0);
+							 middlerResultHandler.add(rowValue);	
+						// }
+					 }
+				}
 			} else {
 				row[3] = ++packetId;
 				RowDataPacket rowDataPkg =null;
@@ -723,7 +766,20 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					binRowDataPk.read(fieldPackets, rowDataPkg);
 					binRowDataPk.write(session.getSource());
 				} else {
-					session.getSource().write(row);
+					//add huangyiming 
+					MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+					if(null == middlerResultHandler ){
+ 						session.getSource().write(row);
+					}else{
+						
+						 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
+							 //if(middlerResultHandler.getDataType().equalsIgnoreCase("string")){
+								 String rowValue =  ResultSetUtil.getColumnValAsString(row, fields, 0);
+								 middlerResultHandler.add(rowValue);	
+ 							// }
+						 }
+						
+					}
 				}
 			}
 

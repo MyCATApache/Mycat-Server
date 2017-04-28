@@ -25,11 +25,18 @@ package io.mycat.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.mysql.DataType;
+import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
+import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
+import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
+import io.mycat.backend.mysql.nio.handler.SecondHandler;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
@@ -266,7 +273,96 @@ public class ServerConnection extends FrontendConnection {
 
 
 
-	public void routeEndExecuteSQL(String sql, int type, SchemaConfig schema) {
+	public void routeEndExecuteSQL(String sql, final int type, final SchemaConfig schema) {
+		sql = sql.toUpperCase();
+		String original = sql;
+		
+ 
+		//String sql = "SELECT * FROM TB1 WHERE  ID IN ( SELECT MIN(NUM) FROM TB2 T2,TB3 T3 WHERE T2.ID=T3.ID AND T2.NAME='4' GROUP BY T2.NUM having min(NUM) >4) AND NAME='' AND DATE>1 and id not in () group by num having min(num)>1";
+		String middleSql = "";
+
+		int rsType = ServerParse.parse(sql);
+		int sqlType = rsType & 0xff;
+		boolean canClose = true;
+		//step1:判断是一个select语句 
+	    if(sqlType == ServerParse.SELECT ){
+			   //step2:判断select的个数,只处理2个的情况
+	    	String array[] = sql.toUpperCase().split("SELECT ");
+	    	if(array !=null && array.length == 3){
+				canClose = false;
+	    		//step3:得到第一步要处理的select语句
+	    		String last = array[2];		
+	    		char begin1='(';
+	    		char end1 = ')';
+	    		//得到第一步需要执行的sql 
+	    		for(int i=0;i<last.length();i++){
+	    			
+	    			char c = last.charAt(i);
+	    			if(c == end1){
+	    				System.out.println(last.substring(0,i+1));//MIN(NUM) FROM TB2 T2,TB3 T3 WHERE T2.ID=T3.ID AND T2.NAME='4' GROUP BY T2.NUM having min(NUM) >4)
+	    				String str1 = last.substring(0,i+1);
+	    				int a1 = appearNumber(str1, "\\(");
+	    				int a2 = appearNumber(str1, "\\)");
+	    				if(a1 !=a2){
+	    					 middleSql = last.substring(0,i);
+	    					 break;
+	    				}
+	    			}
+	    		 
+	    		}
+	    		
+	    		middleSql = "SELECT " + middleSql;
+		    	int beginIndex = sql.indexOf(middleSql);
+		    	final String beginSql = sql.substring(0, beginIndex);
+		    	//System.out.println(sql.substring(0, beginIndex));//SELECT * FROM TB1 WHERE  ID IN ( 
+		    	int middleIndex = beginIndex + middleSql.length();	
+		    	final String endSql = sql.substring(middleIndex,sql.length());//) AND NAME='' AND DATE>1 and id not in () group by num having min(num)>1
+		    	original = middleSql;
+		    	//执行第二部sql
+		    	MiddlerResultHandler	middlerResultHandler = null;
+				  middlerResultHandler =  new MiddlerQueryResultHandler<String>(  new SecondHandler() {						 
+						@Override
+						public void doExecute(String param) {
+							session.setMiddlerResultHandler(null);
+							String sqls = beginSql +param+endSql;
+							// 路由计算
+							RouteResultset rrs = null;
+							try {
+								rrs = MycatServer
+										.getInstance()
+										.getRouterservice()
+										.route(MycatServer.getInstance().getConfig().getSystem(),
+												schema, type,sqls.toLowerCase(), charset,ServerConnection.this );
+
+							} catch (Exception e) {
+								StringBuilder s = new StringBuilder();
+								LOGGER.warn(s.append(this).append(sqls).toString() + " err:" + e.toString(),e);
+								String msg = e.getMessage();
+								writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
+								return;
+							}
+							NonBlockingSession noBlockSession =  new NonBlockingSession(session.getSource());
+							noBlockSession.setMiddlerResultHandler(null);
+							if (rrs != null) {
+								
+								MultiNodeQueryHandler multiNodeQueryHandler = 	new MultiNodeQueryHandler(rrs.isSelectForUpdate()?ServerParse.UPDATE:type, rrs, autocommit, session);
+								
+								noBlockSession.setCanClose(false);
+								noBlockSession.execute(rrs, type);
+							 
+							}
+						}
+					} );
+				  session.setMiddlerResultHandler(middlerResultHandler);
+	    	}
+	    	
+	    	
+		}
+	
+	    //
+		if(!canClose){
+			session.setCanClose(canClose);
+		}
 		// 路由计算
 		RouteResultset rrs = null;
 		try {
@@ -274,7 +370,7 @@ public class ServerConnection extends FrontendConnection {
 					.getInstance()
 					.getRouterservice()
 					.route(MycatServer.getInstance().getConfig().getSystem(),
-							schema, type, sql, this.charset, this);
+							schema, type, original.toLowerCase(), this.charset, this);
 
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
@@ -283,11 +379,15 @@ public class ServerConnection extends FrontendConnection {
 			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return;
 		}
+		 
+		
 		if (rrs != null) {
-			// session执行
+ 			// session执行			
 			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
+			//session.setMiddlerResultHandler(null);
 		}
-	}
+	    
+ 	}
 
 	/**
 	 * 提交事务
@@ -375,6 +475,21 @@ public class ServerConnection extends FrontendConnection {
 		}
 	}
 
+	/**
+	 * add huangyiming 检测字符串中某字符串出现次数
+	 * @param srcText
+	 * @param findText
+	 * @return
+	 */
+	public static int appearNumber(String srcText, String findText) {
+	    int count = 0;
+	    Pattern p = Pattern.compile(findText);
+	    Matcher m = p.matcher(srcText);
+	    while (m.find()) {
+	        count++;
+	    }
+	    return count;
+	}
 	@Override
 	public String toString() {
 		return "ServerConnection [id=" + id + ", schema=" + schema + ", host="

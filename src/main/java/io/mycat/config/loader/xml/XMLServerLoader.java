@@ -198,12 +198,16 @@ public class XMLServerLoader {
             if (node instanceof Element) {
                 Element e = (Element) node;
                 String name = e.getAttribute("name");
+                //huangyiming add  
+                String defaultAccount = e.getAttribute("defaultAccount");
+
                 UserConfig user = new UserConfig();
                 Map<String, Object> props = ConfigUtil.loadElements(e);
                 String password = (String)props.get("password");
                 String usingDecrypt = (String)props.get("usingDecrypt");
                 String passwordDecrypt = DecryptUtil.mycatDecrypt(usingDecrypt,name,password);
                 user.setName(name);
+                user.setDefaultAccount(Boolean.parseBoolean(defaultAccount));
                 user.setPassword(passwordDecrypt);
                 user.setEncryptPassword(password);
 
@@ -216,7 +220,8 @@ public class XMLServerLoader {
 				if (null != readOnly) {
 					user.setReadOnly(Boolean.parseBoolean(readOnly));
 				}
-
+				
+				
 				String schemas = (String) props.get("schemas");
                 if (schemas != null) {
                     String[] strArray = SplitUtil.split(schemas, ',', true);

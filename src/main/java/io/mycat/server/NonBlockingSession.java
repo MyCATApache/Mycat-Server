@@ -65,6 +65,10 @@ public class NonBlockingSession implements Session {
     private final CommitNodeHandler commitHandler;
     private volatile String xaTXID;
 
+  //huangyiming 
+  	private  volatile boolean canClose = true;
+  	
+  	private volatile MiddlerResultHandler  middlerResultHandler;
     private boolean prepared;
 
     public NonBlockingSession(ServerConnection source) {
@@ -360,6 +364,7 @@ public class NonBlockingSession implements Session {
 
     public void releaseConnections(final boolean needRollback) {
         boolean debug = LOGGER.isDebugEnabled();
+        
         for (RouteResultsetNode rrn : target.keySet()) {
             releaseConnection(rrn, debug, needRollback);
         }
@@ -539,4 +544,21 @@ public class NonBlockingSession implements Session {
         this.prepared = prepared;
     }
 
+	public boolean isCanClose() {
+		return canClose;
+	}
+
+	public void setCanClose(boolean canClose) {
+		this.canClose = canClose;
+	}
+
+	public MiddlerResultHandler getMiddlerResultHandler() {
+		return middlerResultHandler;
+	}
+
+	public void setMiddlerResultHandler(MiddlerResultHandler middlerResultHandler) {
+		this.middlerResultHandler = middlerResultHandler;
+	}
+
+    
 }
