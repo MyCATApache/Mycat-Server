@@ -333,7 +333,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		}
 	}
 
-	public final int getPacketLength(ByteBuffer buffer, int offset) {
+	protected final int getPacketLength(ByteBuffer buffer, int offset) {
 		// Pg 协议获取包长度的方法和mysql 不一样
 		return PIOUtils.redInteger4(buffer, offset + 1) + 1;
 	}
