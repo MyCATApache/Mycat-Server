@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -68,9 +69,10 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
     private final  int limitStart;
     private final  int limitSize;
 
-
-    public DataNodeMergeManager(MultiNodeQueryHandler handler, RouteResultset rrs) {
+    private AtomicBoolean isMiddleResultDone;
+    public DataNodeMergeManager(MultiNodeQueryHandler handler, RouteResultset rrs,AtomicBoolean isMiddleResultDone) {
         super(handler,rrs);
+        this.isMiddleResultDone = isMiddleResultDone;
         this.myCatMemory = MycatServer.getInstance().getMyCatMemory();
         this.memoryManager = myCatMemory.getResultMergeMemoryManager();
         this.conf = myCatMemory.getConf();
@@ -330,7 +332,8 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     break;
                 }
                 if (pack == END_FLAG_PACK) {
-                    /**
+                	
+                     /**
                      * 最后一个节点datenode发送了row eof packet说明了整个
                      * 分片数据全部接收完成，进而将结果集全部发给你Mycat 客户端
                      */
@@ -369,8 +372,9 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
                     }
 
-                    if(iters != null)
-                        multiQueryHandler.outputMergeResult(source,array,iters);
+                    if(iters != null){
+                        multiQueryHandler.outputMergeResult(source,array,iters,isMiddleResultDone);
+                     }    
                     break;
                 }
 
@@ -410,6 +414,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             }
 
         } catch (final Exception e) {
+        	e.printStackTrace();
             multiQueryHandler.handleDataProcessException(e);
         } finally {
             running.set(false);
