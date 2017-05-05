@@ -465,7 +465,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				end = Integer.MAX_VALUE;
 
 			if(prepared) {
-				while (iter.hasNext()){
+ 				while (iter.hasNext()){
 					UnsafeRow row = iter.next();
 					if(index >= start){
 						row.packetId = ++packetId;
@@ -513,6 +513,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				 }
 				 isMiddleResultDone.set(false);
 		}else{
+			/* buffer.flip();
+             byte[] data = new byte[buffer.limit()];
+             buffer.get(data);
+            // buffer.clear();
+             //如果该操作只是一个中间过程则把结果存储起来
+				 String str =  ResultSetUtil.getColumnValAsString(data, fields, 1);
+				 System.out.println("==============="+str);*/
 			ByteBuffer byteBuffer = source.writeToBuffer(eof, buffer);
 			
 			/**
@@ -762,7 +769,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
+		String str =  ResultSetUtil.getColumnValAsString(row, fields, 0);
 		
+		System.out.println("================="+str);
 		if (errorRepsponsed.get()) {
 			// the connection has been closed or set to "txInterrupt" properly
 			//in tryErrorFinished() method! If we close it here, it can
