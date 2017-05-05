@@ -465,7 +465,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				end = Integer.MAX_VALUE;
 
 			if(prepared) {
-				while (iter.hasNext()){
+ 				while (iter.hasNext()){
 					UnsafeRow row = iter.next();
 					if(index >= start){
 						row.packetId = ++packetId;
@@ -762,8 +762,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
-		
-		if (errorRepsponsed.get()) {
+ 		
+ 		if (errorRepsponsed.get()) {
 			// the connection has been closed or set to "txInterrupt" properly
 			//in tryErrorFinished() method! If we close it here, it can
 			// lead to tx error such as blocking rollback tx for ever.
