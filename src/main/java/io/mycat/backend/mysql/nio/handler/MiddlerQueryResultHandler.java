@@ -40,21 +40,7 @@ public class MiddlerQueryResultHandler<T> implements MiddlerResultHandler<T> {
  	}
 
 	 
-	public static void main(String[] args) {
-		System.out.println(String.class);
-		
-		MiddlerQueryResultHandler<String> m = new MiddlerQueryResultHandler<String>(new SecondHandler() {
-			
-			@Override
-			public void doExecute(String param) {
-				// TODO Auto-generated method stub
-				
-			}
-		});
-		
-	    
-		
-	}
+	 
 	@Override
 	public String getDataType() {
  		return dataType.name();
@@ -64,19 +50,19 @@ public class MiddlerQueryResultHandler<T> implements MiddlerResultHandler<T> {
 	public void secondEexcute() {
 		List<T> list =   getResult();
 		StringBuffer sb = new StringBuffer();
+		
 		 for(T t:list){
 			 sb.append('\'');
 			 sb.append(t).append('\'').append(",");
 		 }
 		 
-		 //huangyiming 
 		 String param = "";
 		  if(sb.equals("")|| sb.length()==0){
 			  param="";
 		  }else{
 			  param = sb.substring(0, sb.length()-1);
 		  }
-		  
+ 		  
 		secondHandler.doExecute(param);
 		
 	}
