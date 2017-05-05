@@ -278,12 +278,12 @@ public class ServerConnection extends FrontendConnection {
 		String original = sql;
 		
  
-		//String sql = "SELECT * FROM TB1 WHERE  ID IN ( SELECT MIN(NUM) FROM TB2 T2,TB3 T3 WHERE T2.ID=T3.ID AND T2.NAME='4' GROUP BY T2.NUM having min(NUM) >4) AND NAME='' AND DATE>1 and id not in () group by num having min(num)>1";
-		String middleSql = "";
+ 		String middleSql = "";
 
 		int rsType = ServerParse.parse(sql);
 		int sqlType = rsType & 0xff;
 		boolean canClose = true;
+		//对双重select进行代理执行
 		//step1:判断是一个select语句 
 	    if(sqlType == ServerParse.SELECT ){
 			   //step2:判断select的个数,只处理2个的情况
@@ -299,8 +299,7 @@ public class ServerConnection extends FrontendConnection {
 	    			
 	    			char c = last.charAt(i);
 	    			if(c == end1){
-	    				System.out.println(last.substring(0,i+1));//MIN(NUM) FROM TB2 T2,TB3 T3 WHERE T2.ID=T3.ID AND T2.NAME='4' GROUP BY T2.NUM having min(NUM) >4)
-	    				String str1 = last.substring(0,i+1);
+ 	    				String str1 = last.substring(0,i+1);
 	    				int a1 = appearNumber(str1, "\\(");
 	    				int a2 = appearNumber(str1, "\\)");
 	    				if(a1 !=a2){
@@ -314,9 +313,8 @@ public class ServerConnection extends FrontendConnection {
 	    		middleSql = "SELECT " + middleSql;
 		    	int beginIndex = sql.indexOf(middleSql);
 		    	final String beginSql = sql.substring(0, beginIndex);
-		    	//System.out.println(sql.substring(0, beginIndex));//SELECT * FROM TB1 WHERE  ID IN ( 
-		    	int middleIndex = beginIndex + middleSql.length();	
-		    	final String endSql = sql.substring(middleIndex,sql.length());//) AND NAME='' AND DATE>1 and id not in () group by num having min(num)>1
+ 		    	int middleIndex = beginIndex + middleSql.length();	
+		    	final String endSql = sql.substring(middleIndex,sql.length()); 
 		    	original = middleSql;
 		    	//执行第二部sql
 		    	MiddlerResultHandler	middlerResultHandler = null;
@@ -343,6 +341,8 @@ public class ServerConnection extends FrontendConnection {
 							}
 							NonBlockingSession noBlockSession =  new NonBlockingSession(session.getSource());
 							noBlockSession.setMiddlerResultHandler(null);
+							//session的预编译标示传递
+							noBlockSession.setPrepared(session.isPrepared());
 							if (rrs != null) {
 								
 								MultiNodeQueryHandler multiNodeQueryHandler = 	new MultiNodeQueryHandler(rrs.isSelectForUpdate()?ServerParse.UPDATE:type, rrs, autocommit, session);
