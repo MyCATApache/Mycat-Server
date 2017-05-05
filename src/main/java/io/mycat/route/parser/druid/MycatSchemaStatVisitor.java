@@ -11,17 +11,25 @@ import com.alibaba.druid.sql.ast.SQLCommentHint;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAllExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAnyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBetweenExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
+import com.alibaba.druid.sql.ast.expr.SQLSomeExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
+import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
@@ -267,6 +275,96 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
             }
         }
         return "";
+    }
+    
+    /* 
+     *  遇到 all 将子查询改写成  SELECT MAX(name) FROM subtest1
+     *  例如:
+     *        select * from subtest where id > some (select name from subtest1);
+     *  ----> SELECT * FROM subtest WHERE id > (SELECT MIN(name) FROM subtest1 FROM subtest1);
+     */    
+    @Override
+    public boolean visit(SQLAllExpr x) {
+    	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.subQuery.getQuery())).getSelectList();
+    	SQLExpr sexpr = itemlist.get(0).getExpr();
+    	if(sexpr instanceof SQLIdentifierExpr){
+    		SQLAggregateExpr saexpr = new SQLAggregateExpr("MAX");
+    		saexpr.getArguments().add(sexpr);
+    		saexpr.setParent(itemlist.get(0));
+    		itemlist.get(0).setExpr(saexpr);
+    	}
+    	
+    	x.subQuery.setParent(x.getParent());
+    	
+    	if(x.getParent() instanceof SQLBinaryOpExpr){
+    		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
+    			((SQLBinaryOpExpr)x.getParent()).setLeft(new SQLQueryExpr(x.subQuery));
+    		}else if(((SQLBinaryOpExpr)x.getParent()).getRight().equals(x)){
+    			((SQLBinaryOpExpr)x.getParent()).setRight(new SQLQueryExpr(x.subQuery));
+    		}
+    	}
+    	
+    	return super.visit(x.subQuery);
+    }
+    
+    /* 
+     *  遇到 some 将子查询改写成  SELECT MIN(name) FROM subtest1
+     *  例如:
+     *        select * from subtest where id > some (select name from subtest1);
+     *  ----> SELECT * FROM subtest WHERE id > (SELECT MIN(name) FROM subtest1 FROM subtest1);
+     */
+    @Override
+    public boolean visit(SQLSomeExpr x) {
+    	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.subQuery.getQuery())).getSelectList();
+    	SQLExpr sexpr = itemlist.get(0).getExpr();
+    	if(sexpr instanceof SQLIdentifierExpr){
+    		SQLAggregateExpr saexpr = new SQLAggregateExpr("MIN");
+    		saexpr.getArguments().add(sexpr);
+    		saexpr.setParent(itemlist.get(0));
+    		itemlist.get(0).setExpr(saexpr);
+    	}
+    	
+    	x.subQuery.setParent(x.getParent());
+    	
+    	if(x.getParent() instanceof SQLBinaryOpExpr){
+    		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
+    			((SQLBinaryOpExpr)x.getParent()).setLeft(new SQLQueryExpr(x.subQuery));
+    		}else if(((SQLBinaryOpExpr)x.getParent()).getRight().equals(x)){
+    			((SQLBinaryOpExpr)x.getParent()).setRight(new SQLQueryExpr(x.subQuery));
+    		}
+    	}
+    	
+    	return super.visit(x.subQuery);
+    }
+
+    /* 
+     *  遇到 any 将子查询改写成  SELECT MIN(name) FROM subtest1
+     *  例如:
+     *        select * from subtest where id > some (select name from subtest1);
+     *  ----> SELECT * FROM subtest WHERE id > (SELECT MIN(name) FROM subtest1 FROM subtest1);
+     */
+    @Override
+    public boolean visit(SQLAnyExpr x) {
+    	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.subQuery.getQuery())).getSelectList();
+    	SQLExpr sexpr = itemlist.get(0).getExpr();
+    	if(sexpr instanceof SQLIdentifierExpr){
+    		SQLAggregateExpr saexpr = new SQLAggregateExpr("MIN");
+    		saexpr.getArguments().add(sexpr);
+    		saexpr.setParent(itemlist.get(0));
+    		itemlist.get(0).setExpr(saexpr);
+    	}
+    	
+    	x.subQuery.setParent(x.getParent());
+    	
+    	if(x.getParent() instanceof SQLBinaryOpExpr){
+    		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
+    			((SQLBinaryOpExpr)x.getParent()).setLeft(new SQLQueryExpr(x.subQuery));
+    		}else if(((SQLBinaryOpExpr)x.getParent()).getRight().equals(x)){
+    			((SQLBinaryOpExpr)x.getParent()).setRight(new SQLQueryExpr(x.subQuery));
+    		}
+    	}
+    	
+    	return super.visit(x.subQuery);
     }
     
     @Override

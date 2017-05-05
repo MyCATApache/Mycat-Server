@@ -31,6 +31,9 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.DataType;
 import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
@@ -41,6 +44,7 @@ import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
+import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.server.handler.MysqlInformationSchemaHandler;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
@@ -274,9 +278,8 @@ public class ServerConnection extends FrontendConnection {
 
 
 	public void routeEndExecuteSQL(String sql, final int type, final SchemaConfig schema) {
-		sql = sql.toUpperCase();
+		sql = changeSql(sql.toUpperCase());
 		String original = sql;
-		
  
  		String middleSql = "";
 
@@ -388,6 +391,14 @@ public class ServerConnection extends FrontendConnection {
 		}
 	    
  	}
+	
+	private String changeSql(String stmt){
+		MySqlStatementParser parser = new MySqlStatementParser(stmt);
+		SQLStatement statement = parser.parseStatement();
+		MycatSchemaStatVisitor visitor = new MycatSchemaStatVisitor();
+		statement.accept(visitor);
+		return statement.toString();
+	}
 
 	/**
 	 * 提交事务
