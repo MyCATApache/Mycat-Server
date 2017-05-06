@@ -278,7 +278,6 @@ public class ServerConnection extends FrontendConnection {
 
 
 	public void routeEndExecuteSQL(String sql, final int type, final SchemaConfig schema) {
-		sql = changeSql(sql.toUpperCase());
 		String original = sql;
  
  		String middleSql = "";
@@ -289,6 +288,7 @@ public class ServerConnection extends FrontendConnection {
 		//对双重select进行代理执行
 		//step1:判断是一个select语句 
 	    if(sqlType == ServerParse.SELECT ){
+	    	sql = changeSql(sql.toUpperCase());
 			   //step2:判断select的个数,只处理2个的情况
 	    	String array[] = sql.toUpperCase().split("SELECT ");
 	    	if(array !=null && array.length == 3){
