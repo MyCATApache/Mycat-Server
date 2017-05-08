@@ -23,10 +23,32 @@
  */
 package io.mycat.server;
 
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
-import io.mycat.backend.mysql.nio.handler.*;
+import io.mycat.backend.mysql.nio.handler.CommitNodeHandler;
+import io.mycat.backend.mysql.nio.handler.KillConnectionHandler;
+import io.mycat.backend.mysql.nio.handler.LockTablesHandler;
+import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
+import io.mycat.backend.mysql.nio.handler.MultiNodeCoordinator;
+import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
+import io.mycat.backend.mysql.nio.handler.RollbackNodeHandler;
+import io.mycat.backend.mysql.nio.handler.RollbackReleaseHandler;
+import io.mycat.backend.mysql.nio.handler.SingleNodeHandler;
+import io.mycat.backend.mysql.nio.handler.UnLockTablesHandler;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
 import io.mycat.net.FrontendConnection;
@@ -35,17 +57,6 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.sqlcmd.SQLCmdConstant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author mycat
@@ -56,7 +67,8 @@ public class NonBlockingSession implements Session {
     public static final Logger LOGGER = LoggerFactory.getLogger(NonBlockingSession.class);
 
     private final ServerConnection source;
-    private final ConcurrentHashMap<RouteResultsetNode, BackendConnection> target;
+    //huangyiming add 避免出现jdk版本冲突
+    private final ConcurrentMap<RouteResultsetNode, BackendConnection> target;
     // life-cycle: each sql execution
     private volatile SingleNodeHandler singleNodeHandler;
     private volatile MultiNodeQueryHandler multiNodeHandler;
@@ -65,7 +77,7 @@ public class NonBlockingSession implements Session {
     private final CommitNodeHandler commitHandler;
     private volatile String xaTXID;
 
-  //huangyiming 
+   //huangyiming 
   	private  volatile boolean canClose = true;
   	
   	private volatile MiddlerResultHandler  middlerResultHandler;
@@ -218,7 +230,8 @@ public class NonBlockingSession implements Session {
             source.write(buffer);
             return;
         } else if (initCount == 1) {
-            BackendConnection con = target.elements().nextElement();
+        	//huangyiming add 避免出现jdk版本冲突
+            BackendConnection con = target.values().iterator().next();
             commitHandler.commit(con);
 
         } else {
