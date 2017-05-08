@@ -1,5 +1,23 @@
 package io.mycat.route.util;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
@@ -19,6 +37,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
@@ -38,13 +57,6 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.*;
-import java.util.concurrent.Callable;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -767,7 +779,7 @@ public class RouterUtil {
 	}
 
 	/**
-	 * 根据标名随机获取一个节点
+	 * 根据表名随机获取一个节点
 	 *
 	 * @param schema     数据库名
 	 * @param table      表名
@@ -782,11 +794,41 @@ public class RouterUtil {
 		Map<String, TableConfig> tables = schema.getTables();
 		TableConfig tc;
 		if (tables != null && (tc = tables.get(table)) != null) {
-			dataNode = getRandomDataNode(tc);
+			dataNode = getAliveRandomDataNode(tc);
 		}
 		return dataNode;
 	}
+	
+	/**
+	 * 解决getRandomDataNode方法获取错误节点的问题.
+	 * @param tc
+	 * @return
+	 */
+	private static String getAliveRandomDataNode(TableConfig tc) {
+		List<String> randomDns = tc.getDataNodes();
 
+		MycatConfig mycatConfig = MycatServer.getInstance().getConfig();
+		if (mycatConfig != null) {
+			for (String randomDn : randomDns) {
+				PhysicalDBNode physicalDBNode = mycatConfig.getDataNodes().get(randomDn);
+				if (physicalDBNode != null) {
+					if (physicalDBNode.getDbPool().getSource().isAlive()) {
+						for (PhysicalDBPool pool : MycatServer.getInstance().getConfig().getDataHosts().values()) {
+							PhysicalDatasource source = pool.getSource();
+							if (source.getHostConfig().containDataNode(randomDn) && pool.getSource().isAlive()) {
+								return randomDn;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// all fail return default
+		return tc.getRandomDataNode();
+	}
+
+	@Deprecated
     private static String getRandomDataNode(TableConfig tc) {
         //写节点不可用，意味着读节点也不可用。
         //直接使用下一个 dataHost
@@ -1102,7 +1144,7 @@ public class RouterUtil {
 			if(isSelect) {
 				// global select ,not cache route result
 				rrs.setCacheAble(false);
-				return routeToSingleNode(rrs, getRandomDataNode(tc), ctx.getSql());
+				return routeToSingleNode(rrs, getAliveRandomDataNode(tc)/*getRandomDataNode(tc)*/, ctx.getSql());
 			} else {//insert into 全局表的记录
 				return routeToMultiNode(false, rrs, tc.getDataNodes(), ctx.getSql(),true);
 			}
@@ -1527,9 +1569,10 @@ public class RouterUtil {
 		}
 		return false;
 	}
-	
+
+
 	/**
-	 * 该方法，返回是否是ER字表
+	 * 该方法，返回是否是ER子表
 	 * @param schema
 	 * @param origSQL
 	 * @param sc
@@ -1684,126 +1727,6 @@ public class RouterUtil {
 		return erFlag;
 	}
 
-/*  该方法目前不支持 insert into table1 values  (1,2);insert into table2 values (2,3); 
-	public static boolean processERChildTable(final SchemaConfig schema, final String origSQL,
-	                                          final ServerConnection sc) throws SQLNonTransientException {
-		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
-		final TableConfig tc = schema.getTables().get(tableName);
-		//判断是否为子表，如果不是，只会返回false
-		if (null != tc && tc.isChildTable()) {
-			final RouteResultset rrs = new RouteResultset(origSQL, ServerParse.INSERT);
-			String joinKey = tc.getJoinKey();
-			//因为是Insert语句，用MySqlInsertStatement进行parse
-			MySqlInsertStatement insertStmt = (MySqlInsertStatement) (new MySqlStatementParser(origSQL)).parseInsert();
-			//判断条件完整性，取得解析后语句列中的joinkey列的index
-			int joinKeyIndex = getJoinKeyIndex(insertStmt.getColumns(), joinKey);
-			if (joinKeyIndex == -1) {
-				String inf = "joinKey not provided :" + tc.getJoinKey() + "," + insertStmt;
-				LOGGER.warn(inf);
-				throw new SQLNonTransientException(inf);
-			}
-			//子表不支持批量插入
-			if (isMultiInsert(insertStmt)) {
-				String msg = "ChildTable multi insert not provided";
-				LOGGER.warn(msg);
-				throw new SQLNonTransientException(msg);
-			}
-			//取得joinkey的值
-			String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
-			//解决bug #938，当关联字段的值为char类型时，去掉前后"'"
-			String realVal = joinKeyVal;
-			if (joinKeyVal.startsWith("'") && joinKeyVal.endsWith("'") && joinKeyVal.length() > 2) {
-				realVal = joinKeyVal.substring(1, joinKeyVal.length() - 1);
-			}
-
-			String sql = insertStmt.toString();
-
-			// try to route by ER parent partion key
-			//如果是二级子表（父表不再有父表）,并且分片字段正好是joinkey字段，调用routeByERParentKey
-			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, realVal);
-			if (theRrs != null) {
-				boolean processedInsert=false;
-				//判断是否需要全局序列号
-                if ( sc!=null && tc.isAutoIncrement()) {
-                    String primaryKey = tc.getPrimaryKey();
-                    processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
-                }
-                if(processedInsert==false){
-                	rrs.setFinishedRoute(true);
-                    sc.getSession2().execute(rrs, ServerParse.INSERT);
-                }
-				return true;
-			}
-
-			// route by sql query root parent's datanode
-			//如果不是二级子表或者分片字段不是joinKey字段结果为空，则启动异步线程去后台分片查询出datanode
-			//只要查询出上一级表的parentkey字段的对应值在哪个分片即可
-			final String findRootTBSql = tc.getLocateRTableKeySql().toLowerCase() + joinKeyVal;
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("find root parent's node sql " + findRootTBSql);
-			}
-
-			ListenableFuture<String> listenableFuture = MycatServer.getInstance().
-					getListeningExecutorService().submit(new Callable<String>() {
-				@Override
-				public String call() throws Exception {
-					FetchStoreNodeOfChildTableHandler fetchHandler = new FetchStoreNodeOfChildTableHandler();
-//					return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes());
-					return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes(), sc);
-				}
-			});
-
-
-			Futures.addCallback(listenableFuture, new FutureCallback<String>() {
-				@Override
-				public void onSuccess(String result) {
-					//结果为空，证明上一级表中不存在那条记录，失败
-					if (Strings.isNullOrEmpty(result)) {
-						StringBuilder s = new StringBuilder();
-						LOGGER.warn(s.append(sc.getSession2()).append(origSQL).toString() +
-								" err:" + "can't find (root) parent sharding node for sql:" + origSQL);
-						if(!sc.isAutocommit()) { // 处于事务下失败, 必须回滚
-							sc.setTxInterrupt("can't find (root) parent sharding node for sql:" + origSQL);
-						}
-						sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, "can't find (root) parent sharding node for sql:" + origSQL);
-						return;
-					}
-
-					if (LOGGER.isDebugEnabled()) {
-						LOGGER.debug("found partion node for child table to insert " + result + " sql :" + origSQL);
-					}
-					//找到分片，进行插入（和其他的一样，需要判断是否需要全局自增ID）
-					boolean processedInsert=false;
-                    if ( sc!=null && tc.isAutoIncrement()) {
-                        try {
-                            String primaryKey = tc.getPrimaryKey();
-							processedInsert=processInsert(sc,schema,ServerParse.INSERT,origSQL,tc.getName(),primaryKey);
-						} catch (SQLNonTransientException e) {
-							LOGGER.warn("sequence processInsert error,",e);
-		                    sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
-						}
-                    }
-                    if(processedInsert==false){
-                    	RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
-    					sc.getSession2().execute(executeRrs, ServerParse.INSERT);
-                    }
-
-				}
-
-				@Override
-				public void onFailure(Throwable t) {
-					StringBuilder s = new StringBuilder();
-					LOGGER.warn(s.append(sc.getSession2()).append(origSQL).toString() +
-							" err:" + t.getMessage());
-					sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, t.getMessage() + " " + s.toString());
-				}
-			}, MycatServer.getInstance().
-					getListeningExecutorService());
-			return true;
-		}
-		return false;
-	}
-*/
 	/**
 	 * 寻找joinKey的索引
 	 *
