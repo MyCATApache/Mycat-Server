@@ -42,7 +42,7 @@ public abstract class Versions {
                 break;
         }
 
-        // 閲嶆柊鎷兼帴mycat version瀛楄妭鏁扮粍
+        // 生成mycat version信息
         byte[] newMycatVersion = new byte[mysqlVersionPart.length + SERVER_VERSION.length - startIndex];
         System.arraycopy(mysqlVersionPart, 0, newMycatVersion, 0, mysqlVersionPart.length);
         System.arraycopy(SERVER_VERSION, startIndex, newMycatVersion, mysqlVersionPart.length,
