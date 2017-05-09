@@ -300,7 +300,8 @@ public class JDBCConnection implements BackendConnection {
 				con.setAutoCommit(autocommit);
 			}
 			int sqlType = rrn.getSqlType();
-             if(rrn.isCallStatement()&&"oracle".equalsIgnoreCase(getDbType()))
+             // if(rrn.isCallStatement()&&"oracle".equalsIgnoreCase(getDbType()))
+			if(rrn.isCallStatement()) //支持mysql,edit by dingw at 2017-05-07 16:04
              {
                  //存储过程暂时只支持oracle
                  ouputCallStatement(rrn,sc,orgin);
