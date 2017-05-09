@@ -278,94 +278,6 @@ public class ServerConnection extends FrontendConnection {
 
 
 	public void routeEndExecuteSQL(String sql, final int type, final SchemaConfig schema) {
-		String original = sql;
- 
- 		String middleSql = "";
-
-		int rsType = ServerParse.parse(sql);
-		int sqlType = rsType & 0xff;
-		boolean canClose = true;
-		//对双重select进行代理执行
-		//step1:判断是一个select语句 
-	    if(sqlType == ServerParse.SELECT ){
-	    	sql = changeSql(sql.toUpperCase());
-			   //step2:判断select的个数,只处理2个的情况
-	    	String array[] = sql.toUpperCase().split("SELECT ");
-	    	if(array !=null && array.length == 3){
-				canClose = false;
-	    		//step3:得到第一步要处理的select语句
-	    		String last = array[2];		
-	    		char begin1='(';
-	    		char end1 = ')';
-	    		//得到第一步需要执行的sql 
-	    		for(int i=0;i<last.length();i++){
-	    			
-	    			char c = last.charAt(i);
-	    			if(c == end1){
- 	    				String str1 = last.substring(0,i+1);
-	    				int a1 = appearNumber(str1, "\\(");
-	    				int a2 = appearNumber(str1, "\\)");
-	    				if(a1 !=a2){
-	    					 middleSql = last.substring(0,i);
-	    					 break;
-	    				}
-	    			}
-	    		 
-	    		}
-	    		
-	    		middleSql = "SELECT " + middleSql;
-		    	int beginIndex = sql.indexOf(middleSql);
-		    	final String beginSql = sql.substring(0, beginIndex);
- 		    	int middleIndex = beginIndex + middleSql.length();	
-		    	final String endSql = sql.substring(middleIndex,sql.length()); 
-		    	original = middleSql;
-		    	//执行第二部sql
-		    	MiddlerResultHandler	middlerResultHandler = null;
-				  middlerResultHandler =  new MiddlerQueryResultHandler<String>(  new SecondHandler() {						 
-						@Override
-						public void doExecute(String param) {
-							session.setMiddlerResultHandler(null);
-							String sqls = beginSql +param+endSql;
-							// 路由计算
-							RouteResultset rrs = null;
-							try {
-								rrs = MycatServer
-										.getInstance()
-										.getRouterservice()
-										.route(MycatServer.getInstance().getConfig().getSystem(),
-												schema, type,sqls.toLowerCase(), charset,ServerConnection.this );
-
-							} catch (Exception e) {
-								StringBuilder s = new StringBuilder();
-								LOGGER.warn(s.append(this).append(sqls).toString() + " err:" + e.toString(),e);
-								String msg = e.getMessage();
-								writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
-								return;
-							}
-							NonBlockingSession noBlockSession =  new NonBlockingSession(session.getSource());
-							noBlockSession.setMiddlerResultHandler(null);
-							//session的预编译标示传递
-							noBlockSession.setPrepared(session.isPrepared());
-							if (rrs != null) {
-								
-								MultiNodeQueryHandler multiNodeQueryHandler = 	new MultiNodeQueryHandler(rrs.isSelectForUpdate()?ServerParse.UPDATE:type, rrs, autocommit, session);
-								
-								noBlockSession.setCanClose(false);
-								noBlockSession.execute(rrs, type);
-							 
-							}
-						}
-					} );
-				  session.setMiddlerResultHandler(middlerResultHandler);
-	    	}
-	    	
-	    	
-		}
-	
-	    //
-		if(!canClose){
-			session.setCanClose(canClose);
-		}
 		// 路由计算
 		RouteResultset rrs = null;
 		try {
@@ -373,7 +285,7 @@ public class ServerConnection extends FrontendConnection {
 					.getInstance()
 					.getRouterservice()
 					.route(MycatServer.getInstance().getConfig().getSystem(),
-							schema, type, original.toLowerCase(), this.charset, this);
+							schema, type, sql, this.charset, this);
 
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
@@ -382,23 +294,12 @@ public class ServerConnection extends FrontendConnection {
 			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return;
 		}
-		 
-		
 		if (rrs != null) {
- 			// session执行			
+			// session执行
 			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
-			//session.setMiddlerResultHandler(null);
 		}
-	    
+		
  	}
-	
-	private String changeSql(String stmt){
-		MySqlStatementParser parser = new MySqlStatementParser(stmt);
-		SQLStatement statement = parser.parseStatement();
-		MycatSchemaStatVisitor visitor = new MycatSchemaStatVisitor();
-		statement.accept(visitor);
-		return statement.toString();
-	}
 
 	/**
 	 * 提交事务
