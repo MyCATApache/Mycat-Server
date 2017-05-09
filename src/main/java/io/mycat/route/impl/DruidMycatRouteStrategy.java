@@ -103,13 +103,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		rrs.setTables(ctx.getTables());
 		
 		/* 按照以下情况路由
-		 * 1.单表查询/多表查询分片规则一直.        直接路由
-		 * 2.多表分片规则不一致.                直接路由
-		 * 3.没有from 的路由.                直接路由
-		 * 4.分表路由.                      直接路由
-		 * 5.两表关联,路由规则不一致.            需要catlet
-		 * 6.只涉及一个表的内查询,可以先执行的情况.   第一版  调用 MiddlerResultHandler 获取中间结果,改写sql 后,继续执行 
-		 * 7.内查询 存在两个表关联的情况.          暂时直接路由
+			1.2.1 可以直接路由.
+       		1.2.2 两个表夸库join的sql.调用calat
+       		1.2.3 需要先执行subquery 的sql.把subquery拆分出来.获取结果后,与outerquery
 		 */
 		
 		//add huangyiming 分片规则不一样的且表中带查询条件的则走Catlet

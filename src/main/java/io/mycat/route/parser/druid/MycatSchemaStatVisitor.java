@@ -419,6 +419,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 				break;
 			}
 		}
+		subQuerys.add(x.getSubQuery());
     	return super.visit(x);
     }
     
@@ -523,6 +524,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 				break;
 			}
 		}
+		subQuerys.add(x.getSubQuery());
     	return super.visit(x);
     }
 
@@ -626,6 +628,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 				break;
 			}
 		}
+		subQuerys.add(x.getSubQuery());
     	return super.visit(x);
     }
     
