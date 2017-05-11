@@ -1,0 +1,1 @@
+发现mycat中join以及sharejoin的问题，少了2条，由于分析过程比较长，有图片，这里不太方便编写，所以整理成blog：http://blog.csdn.net/mchdba/article/details/51317608，请负责join以及sharejoin的开发人员看到后，核实并完善。
