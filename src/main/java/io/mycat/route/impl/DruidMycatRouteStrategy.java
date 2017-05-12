@@ -4,6 +4,7 @@ import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -98,14 +99,26 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		
 		for(String tableName : tables){
 			TableConfig tc =  schemaConf.getTables().get(tableName);
+			if(tc == null){
+				//add 别名中取
+				Map<String, String> tableAliasMap = ctx.getTableAliasMap();
+				if(tableAliasMap !=null && tableAliasMap.get(tableName) !=null){
+ 					tc = schemaConf.getTables().get(tableAliasMap.get(tableName));
+				}
+			}
+			 
 			if(index == 0){
 				firstRule=  tc.getRule();
 			}else{
-				RuleConfig ruleCfg = tc.getRule();
-				if(!ruleCfg.equals(firstRule)){
-					needCatlet = true;
-					break;
+				if(tc !=null){
+					//ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
+					RuleConfig ruleCfg = tc.getRule();
+					if(ruleCfg !=null && !ruleCfg.equals(firstRule)){
+						needCatlet = true;
+						break;
+					}
 				}
+				
 			}
 			index++;
 		}
