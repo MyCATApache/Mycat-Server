@@ -543,7 +543,8 @@ public class RouterUtil {
 		// check if origSQL is with global sequence
 		// @micmiu it is just a simple judgement
 		//对应本地文件配置方式：insert into table1(id,name) values(next value for MYCATSEQ_GLOBAL,‘test’);
-		if (origSQL.indexOf(" MYCATSEQ_") != -1) {
+		// edit by dingw,增加mycatseq_ 兼容，因为ServerConnection的373行，进行路由计算时，将原始语句全部转换为小写
+		if (origSQL.indexOf(" MYCATSEQ_") != -1 || origSQL.indexOf("mycatseq_") != -1) {
 			processSQL(sc,schema,origSQL,sqlType);
 			return true;
 		}
