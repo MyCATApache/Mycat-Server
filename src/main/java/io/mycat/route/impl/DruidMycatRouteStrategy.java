@@ -699,4 +699,3 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), stmt);
 	}
 }
-
