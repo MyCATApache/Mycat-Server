@@ -17,7 +17,16 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLNumericLiteralExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
@@ -41,6 +50,7 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
@@ -278,6 +288,30 @@ public class DruidSelectParser extends DefaultDruidParser {
 			return item.toString();
 		}
 	}
+	
+	/**
+	 * 现阶段目标为 有一个只涉及到一张表的子查询时,先执行子查询,获得返回结果后,改写原有sql继续执行,得到最终结果.
+	 * 在这种情况下,原sql不需要继续解析.
+	 * 使用catlet 的情况也不再继续解析.
+	 */
+	@Override
+	public boolean afterVisitorParser(RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor) {
+		int subQuerySize = visitor.getSubQuerys().size();
+		
+		if(subQuerySize==0&&ctx.getTables().size()==2){ //两表关联,考虑使用catlet
+		    if(ctx.getVisitor().getConditions() !=null && ctx.getVisitor().getConditions().size()>0){
+		    	return true;
+			}
+		}else if(subQuerySize==1){     //只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行 TODO 后期可能会考虑多个.
+			SQLSelectQuery sqlSelectQuery = visitor.getSubQuerys().get(0).getQuery();
+			if(((MySqlSelectQueryBlock)sqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
+				return true;
+			}
+		}
+		
+		return super.afterVisitorParser(rrs, stmt, visitor);
+	}
+	
 	/**
 	 * 改写sql：需要加limit的加上
 	 */

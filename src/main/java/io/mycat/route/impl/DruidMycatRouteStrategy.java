@@ -2,46 +2,60 @@ package io.mycat.route.impl;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import io.mycat.config.model.rule.RuleConfig;
-import io.mycat.route.function.AbstractPartitionAlgorithm;
-import io.mycat.route.function.SlotFunction;
-import io.mycat.route.parser.util.ParseUtil;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLExistsExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
+import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
+import com.alibaba.druid.sql.ast.expr.SQLListExpr;
+import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.base.Strings;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
+import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
+import io.mycat.backend.mysql.nio.handler.SecondHandler;
 import io.mycat.cache.LayerCachePool;
+import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
+import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.function.SlotFunction;
 import io.mycat.route.parser.druid.DruidParser;
 import io.mycat.route.parser.druid.DruidParserFactory;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.MycatStatementParser;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
+import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.route.util.RouterUtil;
+import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 
@@ -51,8 +65,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	
 	@Override
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
-			String stmt, RouteResultset rrs, String charset,
-			LayerCachePool cachePool,ServerConnection sc) throws SQLNonTransientException {
+			String stmt, RouteResultset rrs,String charset,
+			LayerCachePool cachePool,int sqlType,ServerConnection sc) throws SQLNonTransientException {
 		
 		/**
 		 *  只有mysql时只支持mysql语法
@@ -83,34 +97,218 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		 */
 		checkUnSupportedStatement(statement);
 
-
 		DruidParser druidParser = DruidParserFactory.create(schema, statement, visitor);
 		druidParser.parser(schema, rrs, statement, stmt,cachePool,visitor);
 		DruidShardingParseInfo ctx=  druidParser.getCtx() ;
 		rrs.setTables(ctx.getTables());
+		
+		/* 按照以下情况路由
+			1.2.1 可以直接路由.
+       		1.2.2 两个表夸库join的sql.调用calat
+       		1.2.3 需要先执行subquery 的sql.把subquery拆分出来.获取结果后,与outerquery
+		 */
 		
 		//add huangyiming 分片规则不一样的且表中带查询条件的则走Catlet
 		List<String> tables = ctx.getTables();
 		SchemaConfig schemaConf = MycatServer.getInstance().getConfig().getSchemas().get(schema.getName());
 		int index = 0;
 		RuleConfig firstRule = null;
-		boolean needCatlet = false;
+		boolean directRoute = true;
 		
-		for(String tableName : tables){
-			TableConfig tc =  schemaConf.getTables().get(tableName);
-			if(index == 0){
-				firstRule=  tc.getRule();
-			}else{
-				RuleConfig ruleCfg = tc.getRule();
-				if(!ruleCfg.equals(firstRule)){
-					needCatlet = true;
-					break;
+		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
+		
+		if(tconfigs!=null){
+			for(String tableName : tables){
+				TableConfig tc =  tconfigs.get(tableName);
+				if(index == 0){
+					firstRule=  tc.getRule();
+				}else{
+					RuleConfig ruleCfg = tc.getRule();
+					if(!ruleCfg.equals(firstRule)){
+						directRoute = false;
+						break;
+					}
 				}
+				index++;
 			}
-			index++;
 		}
 		
-	    if(needCatlet && ctx.getVisitor().getConditions() !=null && ctx.getVisitor().getConditions().size()>0){
+		/*
+		 * TODO 后期可以优化为策略.
+		 */
+		if(directRoute){ // 1/2/3/4种情况下直接路由
+			return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
+		}else{
+			int subQuerySize = visitor.getSubQuerys().size();
+			if(subQuerySize==0&&ctx.getTables().size()==2){ //两表关联,考虑使用catlet
+			    if(ctx.getVisitor().getConditions() !=null && ctx.getVisitor().getConditions().size()>0){
+			    	return catletRoute(schema,ctx.getSql(),charset,sc);
+				}
+			}else if(subQuerySize==1){     //只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行 TODO 后期可能会考虑多个子查询的情况.
+				SQLSelect sqlselect = visitor.getSubQuerys().get(0);
+				if((sqlselect.getParent() instanceof SQLQueryExpr 
+						&&sqlselect.getParent().getParent() instanceof MySqlSelectQueryBlock)
+					||sqlselect.getParent() instanceof SQLExistsExpr){
+					return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
+				}
+				SQLSelectQuery sqlSelectQuery = sqlselect.getQuery();
+				if(((MySqlSelectQueryBlock)sqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
+					return middlerResultRoute(schema,charset,sqlselect,sqlType,statement,sc);
+				}
+			}
+		}
+		return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
+	}
+	
+	private RouteResultset middlerResultRoute(final SchemaConfig schema,final String charset,final SQLSelect sqlselect,
+												final int sqlType,final SQLStatement statement,final ServerConnection sc){
+		
+		final String middlesql = SQLUtils.toMySqlString(sqlselect);
+		
+    	MiddlerResultHandler<String> middlerResultHandler =  new MiddlerQueryResultHandler<>(new SecondHandler() {						 
+				@Override
+				public void doExecute(List param) {
+					sc.getSession2().setMiddlerResultHandler(null);
+					String sqls = null;
+					// 路由计算
+					RouteResultset rrs = null;
+					try {
+						
+						sqls = buildSql(statement,sqlselect,param);
+						rrs = MycatServer
+								.getInstance()
+								.getRouterservice()
+								.route(MycatServer.getInstance().getConfig().getSystem(),
+										schema, sqlType,sqls.toLowerCase(), charset,sc );
+
+					} catch (Exception e) {
+						StringBuilder s = new StringBuilder();
+						LOGGER.warn(s.append(this).append(sqls).toString() + " err:" + e.toString(),e);
+						String msg = e.getMessage();
+						sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
+						return;
+					}
+					NonBlockingSession noBlockSession =  new NonBlockingSession(sc.getSession2().getSource());
+					noBlockSession.setMiddlerResultHandler(null);
+					//session的预编译标示传递
+					noBlockSession.setPrepared(sc.getSession2().isPrepared());
+					if (rrs != null) {						
+						noBlockSession.setCanClose(false);
+						noBlockSession.execute(rrs, ServerParse.SELECT);
+					}
+				}
+			} );
+    	sc.getSession2().setMiddlerResultHandler(middlerResultHandler);
+    	sc.getSession2().setCanClose(false);
+    
+		// 路由计算
+		RouteResultset rrs = null;
+		try {
+			rrs = MycatServer
+					.getInstance()
+					.getRouterservice()
+					.route(MycatServer.getInstance().getConfig().getSystem(),
+							schema, ServerParse.SELECT, middlesql, charset, sc);
+	
+		} catch (Exception e) {
+			StringBuilder s = new StringBuilder();
+			LOGGER.warn(s.append(this).append(middlesql).toString() + " err:" + e.toString(),e);
+			String msg = e.getMessage();
+			sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
+			return null;
+		}
+		return rrs;
+	}
+	
+	/**
+	 * 获取子查询执行结果后,改写原始sql 继续执行.
+	 * @param statement
+	 * @param sqlselect
+	 * @param param
+	 * @return
+	 */
+	private String buildSql(SQLStatement statement,SQLSelect sqlselect,List param){
+		SQLObject parent = sqlselect.getParent();
+		if(parent instanceof SQLInSubQueryExpr){
+			SQLInListExpr inlistExpr = new SQLInListExpr();
+			inlistExpr.setTargetList(param);
+			inlistExpr.setExpr(((SQLInSubQueryExpr)parent).getExpr());
+			inlistExpr.setNot(((SQLInSubQueryExpr)parent).isNot());
+			inlistExpr.setParent(sqlselect.getParent());
+//			((SQLInSubQueryExpr)parent).setSubQuery(inlistExpr);
+			if(parent.getParent() instanceof MySqlSelectQueryBlock){
+				((MySqlSelectQueryBlock)parent.getParent()).setWhere(inlistExpr);
+			}else if(parent.getParent() instanceof SQLBinaryOpExpr){
+				SQLBinaryOpExpr pp = ((SQLBinaryOpExpr)parent.getParent());
+				if(pp.getLeft().equals(parent)){
+					pp.setLeft(inlistExpr);
+				}else if(pp.getRight().equals(parent)){
+					pp.setRight(inlistExpr);
+				}
+			}
+		}else if(parent instanceof SQLBinaryOpExpr){
+			SQLInListExpr inlistExpr = new SQLInListExpr();
+			inlistExpr.setTargetList(param);
+			SQLBinaryOpExpr pp = (SQLBinaryOpExpr)parent;
+			if(pp.getLeft() instanceof SQLQueryExpr){
+				SQLQueryExpr left = (SQLQueryExpr)pp.getLeft();
+				if(left.getSubQuery().equals(sqlselect)){
+					inlistExpr.setExpr(pp.getRight());
+					inlistExpr.setParent(left.getParent());
+					pp.setLeft(inlistExpr);
+				}
+			}else if(pp.getRight() instanceof SQLQueryExpr){
+				SQLQueryExpr right = (SQLQueryExpr)pp.getRight();
+				if(right.getSubQuery().equals(sqlselect)){
+					inlistExpr.setExpr(pp.getLeft());
+					inlistExpr.setParent(right.getParent());
+					pp.setRight(inlistExpr);
+					
+				}
+			}else if(pp.getLeft() instanceof SQLInSubQueryExpr){
+				SQLInSubQueryExpr left = (SQLInSubQueryExpr)pp.getLeft();
+				if(left.getSubQuery().equals(sqlselect)){
+					inlistExpr.setExpr(pp.getRight());
+					inlistExpr.setNot(left.isNot());
+					inlistExpr.setParent(left.getParent());
+					pp.setLeft(inlistExpr);
+				}
+			}else if(pp.getRight() instanceof SQLInSubQueryExpr){
+				SQLInSubQueryExpr right = (SQLInSubQueryExpr)pp.getRight();
+				if(right.getSubQuery().equals(sqlselect)){
+					SQLListExpr listExpr = new SQLListExpr();
+					listExpr.getItems().addAll(param);
+					pp.setRight(listExpr);
+					
+				}
+			}
+		}else if(parent instanceof SQLQueryExpr){
+			if(parent.getParent() instanceof SQLBinaryOpExpr){
+				SQLBinaryOpExpr pp = (SQLBinaryOpExpr)parent.getParent();
+				SQLListExpr listExpr = new SQLListExpr();
+				listExpr.getItems().addAll(param);
+				if(pp.getLeft().equals(parent)){
+					pp.setLeft(listExpr);
+				}else if(pp.getRight().equals(parent)){
+					pp.setRight(listExpr);
+				}
+			}
+
+		}
+		return statement.toString();
+	}
+	
+	
+	/**
+	 * 两个表的情况，catlet
+	 * @param schema
+	 * @param stmt
+	 * @param charset
+	 * @param sc
+	 * @return
+	 */
+	private RouteResultset catletRoute(SchemaConfig schema,String stmt,String charset,ServerConnection sc){
+		RouteResultset rrs = null;
 		try {
 			rrs = MycatServer
 					.getInstance()
@@ -122,9 +320,21 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			
 		}
 		return rrs;
-	 }
-			 
-		 
+	}
+	
+	/**
+	 *  直接结果路由
+	 * @param rrs
+	 * @param ctx
+	 * @param schema
+	 * @param druidParser
+	 * @param statement
+	 * @param cachePool
+	 * @return
+	 * @throws SQLNonTransientException
+	 */
+	private RouteResultset directRoute(RouteResultset rrs,DruidShardingParseInfo ctx,SchemaConfig schema,
+										DruidParser druidParser,SQLStatement statement,LayerCachePool cachePool) throws SQLNonTransientException{
 		/**
 		 * DruidParser 解析过程中已完成了路由的直接返回
 		 */
@@ -177,12 +387,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		if(rrs.isDistTable()){
 			return this.routeDisTable(statement,rrs);
 		}
-		
 		return rrs;
 	}
-
-
-
 	
 	private SQLExprTableSource getDisTable(SQLTableSource tableSource,RouteResultsetNode node) throws SQLSyntaxErrorException{
 		if(node.getSubTableName()==null){

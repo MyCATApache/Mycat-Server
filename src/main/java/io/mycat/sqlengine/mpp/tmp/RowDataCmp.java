@@ -29,6 +29,9 @@ public class RowDataCmp implements Comparator<RowDataPacket> {
 			int colIndex = tmp[i].colMeta.colIndex;
 			byte[] left = o1.fieldValues.get(colIndex);
 			byte[] right = o2.fieldValues.get(colIndex);
+			// fix bug 当 order by 列 为  null 时, 报空指针的异常.
+			if(left==null){ left = new byte[0];}
+			if(right==null){ right = new byte[0];}
 			if (tmp[i].orderType == type) {
 				cmp = RowDataPacketSorter.compareObject(left, right, tmp[i]);
 			} else {
