@@ -109,28 +109,34 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		 */
 		
 		//add huangyiming 分片规则不一样的且表中带查询条件的则走Catlet
-		
 		List<String> tables = ctx.getTables();
 		SchemaConfig schemaConf = MycatServer.getInstance().getConfig().getSchemas().get(schema.getName());
+		int index = 0;
+		RuleConfig firstRule = null;
 		boolean directRoute = true;
-		RuleConfig firstRule = null;		
-		for(String tableName : tables){
-			TableConfig tc =  schemaConf.getTables().get(tableName);
-			if(firstRule == null){ 
-				firstRule=  tc.getRule();
-			}else{
-				RuleConfig ruleCfg = tc.getRule();
-				if( ruleCfg != null && !ruleCfg.equals(firstRule)){  // 这里需要考虑rule为空的情况，(ER表、全局表不需要配置rule属性)
-					directRoute = true;
-					break;
+		
+		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
+		
+		if(tconfigs!=null){
+			for(String tableName : tables){
+				TableConfig tc =  tconfigs.get(tableName);
+				if(index == 0){
+					firstRule=  tc.getRule();
+				}else{
+					RuleConfig ruleCfg = tc.getRule();
+					if(!ruleCfg.equals(firstRule)){
+						directRoute = false;
+						break;
+					}
 				}
+				index++;
 			}
 		}
 		
 		/*
 		 * TODO 后期可以优化为策略.
 		 */
-		if(directRoute){ // 直接路由的情况
+		if(directRoute){ // 1/2/3/4种情况下直接路由
 			return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
 		}else{
 			int subQuerySize = visitor.getSubQuerys().size();
@@ -693,3 +699,4 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), stmt);
 	}
 }
+
