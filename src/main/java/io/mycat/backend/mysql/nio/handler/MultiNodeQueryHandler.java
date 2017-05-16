@@ -792,7 +792,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
  				if(null != middlerResultHandler ){
  					 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
-						 String rowValue =  ResultSetUtil.getColumnValAsString(row, fields, 0);
+ 						 byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
+						 String rowValue =  rv==null?null:new String(rv);
 						 middlerResultHandler.add(rowValue);	
  					 }
 				}

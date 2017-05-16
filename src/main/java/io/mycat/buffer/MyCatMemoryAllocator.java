@@ -25,7 +25,7 @@ public class MyCatMemoryAllocator implements ByteBufAllocator {
     public final ConcurrentHashMap<Long,ByteBuf> recycleMaps = new ConcurrentHashMap<>();
 
     private final static MyCatMemoryAllocator INSTANCE =
-           new MyCatMemoryAllocator(Runtime.getRuntime().availableProcessors());
+           new MyCatMemoryAllocator(Runtime.getRuntime().availableProcessors()*2);
 
     /** netty memory pool alloctor*/
     private final PooledByteBufAllocator alloc;
@@ -34,6 +34,9 @@ public class MyCatMemoryAllocator implements ByteBufAllocator {
 
     /** ChunkSize 大小 = pageSize << maxOrder */
     private final int chunkSize;
+
+    /**页大小*/
+    private final int pageSize;
 
     /**
      * numberOfArenas 设置为处理器cores*2
@@ -46,7 +49,7 @@ public class MyCatMemoryAllocator implements ByteBufAllocator {
         }
         boolean preferDirect = true;
 
-        int pageSize = 8192*2;
+        this.pageSize = 8192*2;
         int maxOrder = 11;
         this.chunkSize = pageSize << maxOrder;
         int numDirectArenas = numberOfArenas;
@@ -85,7 +88,7 @@ public class MyCatMemoryAllocator implements ByteBufAllocator {
      *
      * @return Number of arenas.
      */
-    int getNumberOfArenas() {
+    public int getNumberOfArenas() {
         return numberOfArenas;
     }
 
@@ -94,8 +97,16 @@ public class MyCatMemoryAllocator implements ByteBufAllocator {
      *
      * @return Chunk size.
      */
-    int getChunkSize() {
+    public int getChunkSize() {
         return chunkSize;
+    }
+
+    /**
+     *   page Size
+     * @return page Size
+     */
+    public int getPageSize() {
+        return pageSize;
     }
 
 
