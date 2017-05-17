@@ -543,7 +543,8 @@ public class RouterUtil {
 		// check if origSQL is with global sequence
 		// @micmiu it is just a simple judgement
 		//对应本地文件配置方式：insert into table1(id,name) values(next value for MYCATSEQ_GLOBAL,‘test’);
-		if (origSQL.indexOf(" MYCATSEQ_") != -1) {
+		// edit by dingw,增加mycatseq_ 兼容，因为ServerConnection的373行，进行路由计算时，将原始语句全部转换为小写
+		if (origSQL.indexOf(" MYCATSEQ_") != -1 || origSQL.indexOf("mycatseq_") != -1) {
 			processSQL(sc,schema,origSQL,sqlType);
 			return true;
 		}
@@ -1052,11 +1053,22 @@ public class RouterUtil {
 
 		//为全局表和单库表找路由
 		for(String tableName : tables) {
+			
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
+			
 			if(tableConfig == null) {
-				String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
-				LOGGER.warn(msg);
-				throw new SQLNonTransientException(msg);
+				//add 如果表读取不到则先将表名从别名中读取转化后再读取
+				String alias = ctx.getTableAliasMap().get(tableName);
+				if(!StringUtil.isEmpty(alias)){
+					tableConfig = schema.getTables().get(alias.toUpperCase());
+				}
+				
+				if(tableConfig == null){
+					String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
+					LOGGER.warn(msg);
+					throw new SQLNonTransientException(msg);
+				}
+				
 			}
 			if(tableConfig.isGlobalTable()) {//全局表
 				if(tablesRouteMap.get(tableName) == null) {
@@ -1571,123 +1583,160 @@ public class RouterUtil {
 	}
 
 
+	/**
+	 * 该方法，返回是否是ER子表
+	 * @param schema
+	 * @param origSQL
+	 * @param sc
+	 * @return
+	 * @throws SQLNonTransientException
+	 * 
+	 * 备注说明：
+	 *     edit by ding.w at 2017.4.28, 主要处理 CLIENT_MULTI_STATEMENTS(insert into ; insert into)的情况
+	 *     目前仅支持mysql,并COM_QUERY请求包中的所有insert语句要么全部是er表，要么全部不是
+	 *     
+	 *     
+	 */
 	public static boolean processERChildTable(final SchemaConfig schema, final String origSQL,
-	                                          final ServerConnection sc) throws SQLNonTransientException {
-		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
-		final TableConfig tc = schema.getTables().get(tableName);
-		//判断是否为子表，如果不是，只会返回false
-		if (null != tc && tc.isChildTable()) {
-			final RouteResultset rrs = new RouteResultset(origSQL, ServerParse.INSERT);
-			String joinKey = tc.getJoinKey();
-			//因为是Insert语句，用MySqlInsertStatement进行parse
-			MySqlInsertStatement insertStmt = (MySqlInsertStatement) (new MySqlStatementParser(origSQL)).parseInsert();
-			//判断条件完整性，取得解析后语句列中的joinkey列的index
-			int joinKeyIndex = getJoinKeyIndex(insertStmt.getColumns(), joinKey);
-			if (joinKeyIndex == -1) {
-				String inf = "joinKey not provided :" + tc.getJoinKey() + "," + insertStmt;
-				LOGGER.warn(inf);
-				throw new SQLNonTransientException(inf);
-			}
-			//子表不支持批量插入
-			if (isMultiInsert(insertStmt)) {
-				String msg = "ChildTable multi insert not provided";
-				LOGGER.warn(msg);
-				throw new SQLNonTransientException(msg);
-			}
-			//取得joinkey的值
-			String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
-			//解决bug #938，当关联字段的值为char类型时，去掉前后"'"
-			String realVal = joinKeyVal;
-			if (joinKeyVal.startsWith("'") && joinKeyVal.endsWith("'") && joinKeyVal.length() > 2) {
-				realVal = joinKeyVal.substring(1, joinKeyVal.length() - 1);
-			}
-
-			String sql = insertStmt.toString();
-
-			// try to route by ER parent partion key
-			//如果是二级子表（父表不再有父表）,并且分片字段正好是joinkey字段，调用routeByERParentKey
-			RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, realVal);
-			if (theRrs != null) {
-				boolean processedInsert=false;
-				//判断是否需要全局序列号
-                if ( sc!=null && tc.isAutoIncrement()) {
-                    String primaryKey = tc.getPrimaryKey();
-                    processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
-                }
-                if(processedInsert==false){
-                	rrs.setFinishedRoute(true);
-                    sc.getSession2().execute(rrs, ServerParse.INSERT);
-                }
-				return true;
-			}
-
-			// route by sql query root parent's datanode
-			//如果不是二级子表或者分片字段不是joinKey字段结果为空，则启动异步线程去后台分片查询出datanode
-			//只要查询出上一级表的parentkey字段的对应值在哪个分片即可
-			final String findRootTBSql = tc.getLocateRTableKeySql().toLowerCase() + joinKeyVal;
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("find root parent's node sql " + findRootTBSql);
-			}
-
-			ListenableFuture<String> listenableFuture = MycatServer.getInstance().
-					getListeningExecutorService().submit(new Callable<String>() {
-				@Override
-				public String call() throws Exception {
-					FetchStoreNodeOfChildTableHandler fetchHandler = new FetchStoreNodeOfChildTableHandler();
-//					return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes());
-					return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes(), sc);
+            final ServerConnection sc) throws SQLNonTransientException {
+	
+		MySqlStatementParser parser = new MySqlStatementParser(origSQL);
+		List<SQLStatement> statements = parser.parseStatementList();
+		
+		if(statements == null || statements.isEmpty() ) {
+			throw new SQLNonTransientException(String.format("无效的SQL语句:%s", origSQL));
+		}
+		
+		
+		boolean erFlag = false; //是否是er表
+		for(SQLStatement stmt : statements ) {
+			MySqlInsertStatement insertStmt = (MySqlInsertStatement) stmt; 
+			String tableName = insertStmt.getTableName().getSimpleName().toUpperCase();
+			final TableConfig tc = schema.getTables().get(tableName);
+			
+			if (null != tc && tc.isChildTable()) {
+				erFlag = true;
+				
+				String sql = insertStmt.toString();
+				
+				final RouteResultset rrs = new RouteResultset(sql, ServerParse.INSERT);
+				String joinKey = tc.getJoinKey();
+				//因为是Insert语句，用MySqlInsertStatement进行parse
+//				MySqlInsertStatement insertStmt = (MySqlInsertStatement) (new MySqlStatementParser(origSQL)).parseInsert();
+				//判断条件完整性，取得解析后语句列中的joinkey列的index
+				int joinKeyIndex = getJoinKeyIndex(insertStmt.getColumns(), joinKey);
+				if (joinKeyIndex == -1) {
+					String inf = "joinKey not provided :" + tc.getJoinKey() + "," + insertStmt;
+					LOGGER.warn(inf);
+					throw new SQLNonTransientException(inf);
 				}
-			});
+				//子表不支持批量插入
+				if (isMultiInsert(insertStmt)) {
+					String msg = "ChildTable multi insert not provided";
+					LOGGER.warn(msg);
+					throw new SQLNonTransientException(msg);
+				}
+				//取得joinkey的值
+				String joinKeyVal = insertStmt.getValues().getValues().get(joinKeyIndex).toString();
+				//解决bug #938，当关联字段的值为char类型时，去掉前后"'"
+				String realVal = joinKeyVal;
+				if (joinKeyVal.startsWith("'") && joinKeyVal.endsWith("'") && joinKeyVal.length() > 2) {
+					realVal = joinKeyVal.substring(1, joinKeyVal.length() - 1);
+				}
+
+				
+
+				// try to route by ER parent partion key
+				//如果是二级子表（父表不再有父表）,并且分片字段正好是joinkey字段，调用routeByERParentKey
+				RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, realVal);
+				if (theRrs != null) {
+					boolean processedInsert=false;
+					//判断是否需要全局序列号
+	                if ( sc!=null && tc.isAutoIncrement()) {
+	                    String primaryKey = tc.getPrimaryKey();
+	                    processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
+	                }
+	                if(processedInsert==false){
+	                	rrs.setFinishedRoute(true);
+	                    sc.getSession2().execute(rrs, ServerParse.INSERT);
+	                }
+					// return true;
+	                //继续处理下一条
+	                continue;
+				}
+
+				// route by sql query root parent's datanode
+				//如果不是二级子表或者分片字段不是joinKey字段结果为空，则启动异步线程去后台分片查询出datanode
+				//只要查询出上一级表的parentkey字段的对应值在哪个分片即可
+				final String findRootTBSql = tc.getLocateRTableKeySql().toLowerCase() + joinKeyVal;
+				if (LOGGER.isDebugEnabled()) {
+					LOGGER.debug("find root parent's node sql " + findRootTBSql);
+				}
+
+				ListenableFuture<String> listenableFuture = MycatServer.getInstance().
+						getListeningExecutorService().submit(new Callable<String>() {
+					@Override
+					public String call() throws Exception {
+						FetchStoreNodeOfChildTableHandler fetchHandler = new FetchStoreNodeOfChildTableHandler();
+//						return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes());
+						return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes(), sc);
+					}
+				});
 
 
-			Futures.addCallback(listenableFuture, new FutureCallback<String>() {
-				@Override
-				public void onSuccess(String result) {
-					//结果为空，证明上一级表中不存在那条记录，失败
-					if (Strings.isNullOrEmpty(result)) {
+				Futures.addCallback(listenableFuture, new FutureCallback<String>() {
+					@Override
+					public void onSuccess(String result) {
+						//结果为空，证明上一级表中不存在那条记录，失败
+						if (Strings.isNullOrEmpty(result)) {
+							StringBuilder s = new StringBuilder();
+							LOGGER.warn(s.append(sc.getSession2()).append(origSQL).toString() +
+									" err:" + "can't find (root) parent sharding node for sql:" + origSQL);
+							if(!sc.isAutocommit()) { // 处于事务下失败, 必须回滚
+								sc.setTxInterrupt("can't find (root) parent sharding node for sql:" + origSQL);
+							}
+							sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, "can't find (root) parent sharding node for sql:" + origSQL);
+							return;
+						}
+
+						if (LOGGER.isDebugEnabled()) {
+							LOGGER.debug("found partion node for child table to insert " + result + " sql :" + origSQL);
+						}
+						//找到分片，进行插入（和其他的一样，需要判断是否需要全局自增ID）
+						boolean processedInsert=false;
+	                    if ( sc!=null && tc.isAutoIncrement()) {
+	                        try {
+	                            String primaryKey = tc.getPrimaryKey();
+								processedInsert=processInsert(sc,schema,ServerParse.INSERT,origSQL,tc.getName(),primaryKey);
+							} catch (SQLNonTransientException e) {
+								LOGGER.warn("sequence processInsert error,",e);
+			                    sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
+							}
+	                    }
+	                    if(processedInsert==false){
+	                    	RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
+	    					sc.getSession2().execute(executeRrs, ServerParse.INSERT);
+	                    }
+
+					}
+
+					@Override
+					public void onFailure(Throwable t) {
 						StringBuilder s = new StringBuilder();
 						LOGGER.warn(s.append(sc.getSession2()).append(origSQL).toString() +
-								" err:" + "can't find (root) parent sharding node for sql:" + origSQL);
-						if(!sc.isAutocommit()) { // 处于事务下失败, 必须回滚
-							sc.setTxInterrupt("can't find (root) parent sharding node for sql:" + origSQL);
-						}
-						sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, "can't find (root) parent sharding node for sql:" + origSQL);
-						return;
+								" err:" + t.getMessage());
+						sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, t.getMessage() + " " + s.toString());
 					}
-
-					if (LOGGER.isDebugEnabled()) {
-						LOGGER.debug("found partion node for child table to insert " + result + " sql :" + origSQL);
-					}
-					//找到分片，进行插入（和其他的一样，需要判断是否需要全局自增ID）
-					boolean processedInsert=false;
-                    if ( sc!=null && tc.isAutoIncrement()) {
-                        try {
-                            String primaryKey = tc.getPrimaryKey();
-							processedInsert=processInsert(sc,schema,ServerParse.INSERT,origSQL,tc.getName(),primaryKey);
-						} catch (SQLNonTransientException e) {
-							LOGGER.warn("sequence processInsert error,",e);
-		                    sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
-						}
-                    }
-                    if(processedInsert==false){
-                    	RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
-    					sc.getSession2().execute(executeRrs, ServerParse.INSERT);
-                    }
-
-				}
-
-				@Override
-				public void onFailure(Throwable t) {
-					StringBuilder s = new StringBuilder();
-					LOGGER.warn(s.append(sc.getSession2()).append(origSQL).toString() +
-							" err:" + t.getMessage());
-					sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, t.getMessage() + " " + s.toString());
-				}
-			}, MycatServer.getInstance().
-					getListeningExecutorService());
-			return true;
+				}, MycatServer.getInstance().
+						getListeningExecutorService());
+				
+			} else if(erFlag) {
+				throw new SQLNonTransientException(String.format("%s包含不是ER分片的表", origSQL));
+			}
 		}
-		return false;
+		
+		
+		return erFlag;
 	}
 
 	/**
