@@ -499,19 +499,21 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			}
 			//huangyiming add  中间过程缓存起来,isMiddleResultDone是确保合并部分执行完成后才会执行secondExecute
 			MiddlerResultHandler middlerResultHandler = source.getSession2().getMiddlerResultHandler();
- 			if(null != middlerResultHandler ){
-			    buffer.flip();
-                byte[] data = new byte[buffer.limit()];
-                buffer.get(data);
-                buffer.clear();
-                //如果该操作只是一个中间过程则把结果存储起来
-				 String str =  ResultSetUtil.getColumnValAsString(data, fields, 0);
-				 //真的需要数据合并的时候才合并
-				 if(rrs.isHasAggrColumn()){
-					 middlerResultHandler.getResult().clear();
-					 middlerResultHandler.add(str);	
-				 }
-				 isMiddleResultDone.set(false);
+ 			if(null != middlerResultHandler){
+ 				if(buffer.position() > 0){
+ 					buffer.flip();
+ 	                byte[] data = new byte[buffer.limit()];
+ 	                buffer.get(data);
+ 	                buffer.clear();
+ 	                //如果该操作只是一个中间过程则把结果存储起来
+ 					 String str =  ResultSetUtil.getColumnValAsString(data, fields, 0);
+ 					 //真的需要数据合并的时候才合并
+ 					 if(rrs.isHasAggrColumn()){
+ 						 middlerResultHandler.getResult().clear();
+ 						 middlerResultHandler.add(str);	
+ 					 }
+ 				}
+				isMiddleResultDone.set(false);
 		}else{
 			ByteBuffer byteBuffer = source.writeToBuffer(eof, buffer);
 			

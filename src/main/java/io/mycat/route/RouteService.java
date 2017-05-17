@@ -140,7 +140,6 @@ public class RouteService {
 		}
 
 		if (rrs != null && sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
-			cacheKey = schema.getName() + rrs.getStatement();  //存在sql 改写的情况下,路由缓存可能缓存的结果不对,这里重新回去执行的sql
 			sqlRouteCache.putIfAbsent(cacheKey, rrs);
 		}
 		checkMigrateRule(schema.getName(),rrs,sqlType);
