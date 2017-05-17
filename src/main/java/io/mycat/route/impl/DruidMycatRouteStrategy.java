@@ -117,20 +117,30 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		
 		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
 		
-		if(tconfigs!=null){
-			for(String tableName : tables){
-				TableConfig tc =  tconfigs.get(tableName);
-				if(index == 0){
-					firstRule=  tc.getRule();
-				}else{
-					RuleConfig ruleCfg = tc.getRule();
-					if(!ruleCfg.equals(firstRule)){
-						directRoute = false;
-						break;
-					}
-				}
-				index++;
-			}
+    if(tconfigs!=null){	
+        for(String tableName : tables){
+            TableConfig tc =  tconfigs.get(tableName);
+            if(tc == null){
+              //add 别名中取
+              Map<String, String> tableAliasMap = ctx.getTableAliasMap();
+              if(tableAliasMap !=null && tableAliasMap.get(tableName) !=null){
+                tc = schemaConf.getTables().get(tableAliasMap.get(tableName));
+              }
+            }
+
+            if(index == 0){
+                firstRule=  tc.getRule();
+            }else{
+                if(tc !=null){
+                  //ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
+                    RuleConfig ruleCfg = tc.getRule();
+                    if(ruleCfg !=null && !ruleCfg.equals(firstRule)){
+                      directRoute = false;
+                      break;
+                    }
+                }
+            }
+        }
 		}
 		
 		/*
@@ -155,6 +165,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				if(((MySqlSelectQueryBlock)sqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
 					return middlerResultRoute(schema,charset,sqlselect,sqlType,statement,sc);
 				}
+				
 			}
 		}
 		return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);

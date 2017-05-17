@@ -1053,11 +1053,22 @@ public class RouterUtil {
 
 		//为全局表和单库表找路由
 		for(String tableName : tables) {
+			
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
+			
 			if(tableConfig == null) {
-				String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
-				LOGGER.warn(msg);
-				throw new SQLNonTransientException(msg);
+				//add 如果表读取不到则先将表名从别名中读取转化后再读取
+				String alias = ctx.getTableAliasMap().get(tableName);
+				if(!StringUtil.isEmpty(alias)){
+					tableConfig = schema.getTables().get(alias.toUpperCase());
+				}
+				
+				if(tableConfig == null){
+					String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
+					LOGGER.warn(msg);
+					throw new SQLNonTransientException(msg);
+				}
+				
 			}
 			if(tableConfig.isGlobalTable()) {//全局表
 				if(tablesRouteMap.get(tableName) == null) {
