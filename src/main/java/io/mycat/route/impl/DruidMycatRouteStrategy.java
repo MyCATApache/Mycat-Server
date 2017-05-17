@@ -34,6 +34,7 @@ import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelect;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
@@ -246,6 +247,10 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return null;
 		}
+		
+		if(rrs!=null){
+			rrs.setCacheAble(false);
+		}
 		return rrs;
 	}
 	
@@ -383,6 +388,17 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 						items.set(i, listExpr);
 					}
 				}
+			}else if(parent.getParent() instanceof SQLSelectOrderByItem){
+				SQLSelectOrderByItem orderItem = (SQLSelectOrderByItem)parent.getParent();
+				SQLExprImpl listExpr = null;
+				if(null==param||param.isEmpty()){
+					listExpr = getEmptyExpr(parent);
+				}else{
+					listExpr = new SQLListExpr();
+					((SQLListExpr)listExpr).getItems().addAll(param);
+				}
+				listExpr.setParent(orderItem);
+				orderItem.setExpr(listExpr);
 			}
 
 		}
