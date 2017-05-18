@@ -36,7 +36,7 @@ public class MiddlerQueryResultHandler<T> implements MiddlerResultHandler<T> {
 	}
 	@Override
 	public void add(T t ) {
- 		reusult.add(new SQLCharExpr(t.toString()));
+ 		reusult.add(new SQLCharExpr(t==null?null:t.toString()));
  	}	 
 	 
 	@Override

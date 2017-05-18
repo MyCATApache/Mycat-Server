@@ -34,6 +34,7 @@ import com.alibaba.druid.sql.ast.statement.SQLSelect;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
@@ -290,6 +291,15 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     @Override
     public boolean visit(SQLQueryExpr x) {
     	subQuerys.add(x.getSubQuery());
+    	return super.visit(x);
+    }
+    /*
+     * (non-Javadoc)
+     * @see com.alibaba.druid.sql.visitor.SchemaStatVisitor#visit(com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource)
+     */
+    @Override
+    public boolean visit(SQLSubqueryTableSource x){
+    	subQuerys.add(x.getSelect());
     	return super.visit(x);
     }
     
