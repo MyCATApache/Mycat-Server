@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- - - Licensed under the Apache License, Version 2.0 (the "License"); 
+	- you may not use this file except in compliance with the License. - You 
+	may obtain a copy of the License at - - http://www.apache.org/licenses/LICENSE-2.0 
+	- - Unless required by applicable law or agreed to in writing, software - 
+	distributed under the License is distributed on an "AS IS" BASIS, - WITHOUT 
+	WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. - See the 
+	License for the specific language governing permissions and - limitations 
+	under the License. -->
+<!DOCTYPE mycat:rule SYSTEM "rule.dtd">
+<mycat:rule xmlns:mycat="http://io.mycat/">
+
+	<tableRule name="offerRule">
+		<rule>
+			<columns>member_id</columns>
+			<algorithm>func</algorithm>
+		</rule>
+	</tableRule>
+	
+	<tableRule name="dateRule">
+		<rule>
+			<columns>col_date</columns>
+			<algorithm>by-date</algorithm>
+		</rule>
+	</tableRule>
+
+	<tableRule name="offerDetailRule">
+		<rule>
+			<columns>offer_id</columns>
+			<algorithm>func2</algorithm>
+		</rule>
+	</tableRule>
+	<tableRule name="sharding-by-intfile">
+		<rule>
+			<columns>sharding_id</columns>
+			<algorithm>func1</algorithm>
+		</rule>
+	</tableRule>
+	<tableRule name="auto-sharding-long">
+		<rule>
+			<columns>id</columns>
+			<algorithm>rang-long</algorithm>
+		</rule>
+	</tableRule>
+	<tableRule name="auto-sharding-long2">
+		<rule>
+			<columns>id</columns>
+			<algorithm>rang-long2</algorithm>
+		</rule>
+	</tableRule>
+
+    <tableRule name="auto-sharding-rang-mod">
+        <rule>
+            <columns>id</columns>
+            <algorithm>rang-mod</algorithm>
+        </rule>
+    </tableRule>
+    <tableRule name="rangeDateHash">
+        <rule>
+            <columns>col_date</columns>
+            <algorithm>range-date-hash</algorithm>
+        </rule>
+    </tableRule>
+	<tableRule name="crc32slot">
+		<rule>
+			<columns>id</columns>
+			<algorithm>crc32slot</algorithm>
+		</rule>
+	</tableRule>
+	<function name="func1"
+		class="io.mycat.route.function.PartitionByFileMap">
+		<property name="defaultNode">0</property>
+		<property name="mapFile">sharding.txt</property>
+	</function>
+	<function name="func"
+		class="io.mycat.route.function.PartitionByString">
+		<property name="partitionCount">128</property>
+		<property name="partitionLength">8</property>
+		<property name="hashSlice">:8</property>
+	</function>
+	<function name="func2" class="io.mycat.route.function.PartitionByLong">
+		<property name="partitionCount">128</property>
+		<property name="partitionLength">8</property>
+	</function>
+	<function name="rang-long"
+		class="io.mycat.route.function.AutoPartitionByLong">
+		<property name="mapFile">autopartition-long.txt</property>
+	</function>
+	<function name="rang-long2"
+		class="io.mycat.route.function.AutoPartitionByLong">
+		<property name="mapFile">autopartition-long2.txt</property>
+	</function>
+	<function name="by-date"
+		class="io.mycat.route.function.PartitionByDate">                            
+		<property name="sBeginDate">2014-01-01</property>
+		<property name="sPartionDay">10</property>
+		<property name="dateFormat">yyyy-MM-dd</property>
+	</function>
+
+    <function name="rang-mod"
+              class="io.mycat.route.function.PartitionByRangeMod">
+        <property name="mapFile">partition-range-mod.txt</property>
+    </function>
+
+    <function name="range-date-hash"
+              class="io.mycat.route.function.PartitionByRangeDateHash">
+        <property name="sBeginDate">2014-01-01 00:00:00</property>
+        <property name="sPartionDay">3</property>
+        <property name="dateFormat">yyyy-MM-dd HH:mm:ss</property>
+        <property name="groupPartionSize">6</property>
+    </function>
+
+	<function name="crc32slot"
+			  class="io.mycat.route.function.PartitionByCRC32PreSlot">
+		<property name="count">2</property><!-- 要分片的数据库节点数量，必须指定，否则没法分片 -->
+	</function>
+</mycat:rule>

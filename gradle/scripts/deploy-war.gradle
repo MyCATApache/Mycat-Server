@@ -1,0 +1,204 @@
+
+buildscript {
+	repositories { maven { url repositoriesUrl } }
+	configurations.all {
+		resolutionStrategy { cacheChangingModulesFor 0, 'seconds' //cacheDynamicVersionsFor 0, 'seconds'
+		}
+	}
+	dependencies {
+		classpath group: 'com.jcraft', name: 'jsch', version: '0.1.53'
+	}
+}
+
+import com.jcraft.jsch.*;
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+
+def createUseInfo() {
+    return new UserInfo (){
+        public String getPassword(){ return null; }
+        public boolean promptYesNo(String str){ return false; }
+        public String getPassphrase(){ return null; }
+        public boolean promptPassphrase(String message){ return false; }
+        public boolean promptPassword(String message){ return false; }
+        public void showMessage(String message){ }
+        public String[] promptKeyboardInteractive(String destination, String name, String instruction, String[] prompt, boolean[] echo){
+          return null;
+        }
+    }
+}
+
+def createSession(con) {
+    def jsch = new JSch();
+    def session = jsch.getSession(con.username, con.host, con.port as int);
+    session.setPassword(con.password);
+    def userInfo = createUseInfo()
+    session.setUserInfo(userInfo);
+    session.setConfig("StrictHostKeyChecking", "no");
+    session.connect(30000);
+    return session
+}
+
+def checkAck(InputStream ins) {
+    int b = ins.read();
+    // b may be 0 for success,
+    //          1 for error,
+    //          2 for fatal error,
+    //          -1
+    if(b==0) return b;
+    if(b==-1) return b;
+
+    if(b==1 || b==2){
+        StringBuffer sb=new StringBuffer();
+        int c;
+        while(c!='\n') {
+            c=ins.read();
+            sb.append((char)c);
+        }
+        if(b==1){ // error
+            System.out.print(sb.toString());
+        }
+        if(b==2){ // fatal error
+            System.out.print(sb.toString());
+        }
+    }
+    return b;
+}
+
+ext {
+	//创建session
+    //connection
+	scp = {con, from, to ->
+		def session = createSession(con);
+        Channel channel=session.openChannel("exec");
+        String command = "scp -t " + to;
+        ((ChannelExec)channel).setCommand("scp -t " + to);
+        // get I/O streams for remote scp
+        OutputStream out=channel.getOutputStream();
+        InputStream ins = channel.getInputStream();
+  
+        channel.connect();
+  
+        if(checkAck(ins)!=0){
+            System.exit(0);
+        }
+        File fromFile = new File(from);
+
+//        if(ptimestamp){
+//            command="T "+(_lfile.lastModified()/1000)+" 0";
+//            // The access time should be sent here,
+//            // but it is not accessible with JavaAPI ;-<
+//            command+=(" "+(_lfile.lastModified()/1000)+" 0\n");
+//            out.write(command.getBytes()); out.flush();
+//            if(checkAck(in)!=0){
+//                System.exit(0);
+//            }
+//        }
+        // send "C0644 filesize filename", where filename should not include '/'
+        long filesize = fromFile.length();
+        command = "C0644 " + filesize + " ";
+        if(from.lastIndexOf('/')>0){
+            command+=from.substring(from.lastIndexOf('/') + 1);
+        } else {
+            command += from;
+        }
+        command+="\n";
+        out.write(command.getBytes()); out.flush();
+        if(checkAck(ins)!=0){
+            System.exit(0);
+        }
+
+        // send a content of lfile
+        fis = new FileInputStream(fromFile);
+        byte[] buf=new byte[1024];
+        while(true){
+            int len=fis.read(buf, 0, buf.length);
+            if(len<=0) break;
+            out.write(buf, 0, len); //out.flush();
+        }
+        fis.close();
+        // send '\0'
+        buf[0]=0; out.write(buf, 0, 1); out.flush();
+        if(checkAck(ins)!=0){
+            System.exit(0);
+        }
+        out.close();
+
+        channel.disconnect();
+        session.disconnect();
+	}
+    
+    execCommand = {con, command ->
+        def session = createSession(con);
+        Channel channel=session.openChannel("exec");
+        println "Execute command: $command"
+        ((ChannelExec)channel).setCommand(command);
+        // X Forwarding
+        // channel.setXForwarding(true);
+
+        //channel.setInputStream(System.in);
+        channel.setInputStream(null);
+
+        //channel.setOutputStream(System.out);
+
+        //FileOutputStream fos=new FileOutputStream("/tmp/stderr");
+        //((ChannelExec)channel).setErrStream(fos);
+        ((ChannelExec)channel).setErrStream(System.err);
+
+        InputStream ins=channel.getInputStream();
+
+        channel.connect();
+
+        byte[] tmp=new byte[1024];
+        while(true){
+            while(ins.available()>0){
+                int i=ins.read(tmp, 0, 1024);
+                if(i<0)break;
+                System.out.print(new String(tmp, 0, i));
+            }
+            if(channel.isClosed()){
+                if(ins.available()>0) continue;
+                System.out.println("exit-status: "+channel.getExitStatus());
+                break;
+            }
+            try{Thread.sleep(1000);}catch(Exception ee){}
+        }
+        channel.disconnect();
+        session.disconnect();
+    
+    }
+    
+    srm = {con, files ->
+        def command = "rm -rf " + files.join(" ")
+        execCommand(con, command)
+    }
+    
+    runShell = {con, command ->
+        def session = createSession(con);
+        Channel channel = session.openChannel("shell");
+        
+        PipedInputStream pipeIn = new PipedInputStream();
+        PipedOutputStream pipeOut = new PipedOutputStream( pipeIn );
+        channel.setInputStream(pipeIn);
+        def shellLog = new File("$buildDir/shell${con.host}.log")
+        channel.setOutputStream(new FileOutputStream(shellLog));
+        
+        channel.connect(3*1000);
+        
+        pipeOut.write( command.getBytes() );
+        Thread.sleep( 10000 );
+        pipeOut.close();
+        pipeIn.close();
+        channel.disconnect();
+    }
+    
+	/**
+	 * 假定子进程的主线程生成另一个线程，然后主线程终止。此时，系统就可以从内存中释放了子进程
+	 * 的主线程对象——前提是父进程没有打开到这个线程对象的句柄。但是，假如父进程打开了到子进程
+	 * 的主线程对象的一个句柄，系统就不会释放这个对象，除非父进程关闭这个句柄
+	 */
+}
+

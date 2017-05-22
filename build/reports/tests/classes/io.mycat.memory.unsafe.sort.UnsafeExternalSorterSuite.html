@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class io.mycat.memory.unsafe.sort.UnsafeExternalSorterSuite</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class io.mycat.memory.unsafe.sort.UnsafeExternalSorterSuite</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/io.mycat.memory.unsafe.sort.html">io.mycat.memory.unsafe.sort</a> &gt; UnsafeExternalSorterSuite</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">10</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">1.399s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div id="tabs">
+<ul class="tabLinks">
+<li>
+<a href="#tab0">Tests</a>
+</li>
+<li>
+<a href="#tab1">Standard output</a>
+</li>
+</ul>
+<div id="tab0" class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">forcedSpillingWithNotReadIterator</td>
+<td>0.057s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">forcedSpillingWithReadIterator</td>
+<td>0.049s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">forcedSpillingWithoutComparator</td>
+<td>0.068s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">sortingRecordsThatExceedPageSize</td>
+<td>0.058s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">spillingOccursInResponseToMemoryPressure</td>
+<td>0.494s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testFillingPage</td>
+<td>0.044s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPeakMemoryUsed</td>
+<td>0.009s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortTimeMetric</td>
+<td>0.006s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortingEmptyArrays</td>
+<td>0.594s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testSortingOnlyByPrefix</td>
+<td>0.020s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div id="tab1" class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>2017-05-22 15:41:41.587  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 42 exist !
+2017-05-22 15:41:41.627 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-53622279-e391-418c-b342-023e09889c1e\42\4fc51559-64cb-40e3-bd57-d4ad99f64ecd
+2017-05-22 15:41:41.628 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-53622279-e391-418c-b342-023e09889c1e\42\4fc51559-64cb-40e3-bd57-d4ad99f64ecd
+2017-05-22 15:41:41.631  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (0 times so far)
+2017-05-22 15:41:41.633  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 16 exist !
+2017-05-22 15:41:41.640  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (1 times so far)
+2017-05-22 15:41:41.642  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 19 exist !
+2017-05-22 15:41:41.649  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (2 times so far)
+2017-05-22 15:41:41.651  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 36 exist !
+2017-05-22 15:41:41.659  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (3 times so far)
+2017-05-22 15:41:41.661  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 62 exist !
+2017-05-22 15:41:41.684 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-be408adc-5b4a-42e8-becc-38ebf1f15468\16\fc36f6b7-d065-4c54-ae6b-f864fd97339e
+2017-05-22 15:41:41.685 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-be408adc-5b4a-42e8-becc-38ebf1f15468\16\fc36f6b7-d065-4c54-ae6b-f864fd97339e
+2017-05-22 15:41:41.688 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-33cb6709-b89a-4899-819e-c2a885d6a6fe\19\b77d8fd7-14fd-4db4-aca1-6142e6f66a0f
+2017-05-22 15:41:41.689 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-33cb6709-b89a-4899-819e-c2a885d6a6fe\19\b77d8fd7-14fd-4db4-aca1-6142e6f66a0f
+2017-05-22 15:41:41.691 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-e7fca8cd-aca3-432a-9f72-32ab9c6ecca6\36\0235a160-db38-4583-907e-d1aacdaed4ee
+2017-05-22 15:41:41.693 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-e7fca8cd-aca3-432a-9f72-32ab9c6ecca6\36\0235a160-db38-4583-907e-d1aacdaed4ee
+2017-05-22 15:41:41.695 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-2be43b85-efd2-4415-aedd-f97f1beda29b\62\aa4b3ad7-cad6-4e4f-a8f4-b8fb8d529c55
+2017-05-22 15:41:41.697 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-2be43b85-efd2-4415-aedd-f97f1beda29b\62\aa4b3ad7-cad6-4e4f-a8f4-b8fb8d529c55
+2017-05-22 15:41:41.710  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 59 exist !
+2017-05-22 15:41:41.755  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 16.0 MB to disk (0 times so far)
+2017-05-22 15:41:41.757  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 24 exist !
+2017-05-22 15:41:41.776  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (1 times so far)
+2017-05-22 15:41:41.778  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 13 exist !
+2017-05-22 15:41:41.803  WARN [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.cleanUpAllAllocatedMemory(DataNodeMemoryManager.java:389)) - leak 20.0 MB memory from io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter@65fa44
+2017-05-22 15:41:41.803  WARN [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.cleanUpAllAllocatedMemory(DataNodeMemoryManager.java:396)) - leak a page: io.mycat.memory.unsafe.memory.MemoryBlock@111c109 in task 0
+2017-05-22 15:41:41.803  WARN [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.cleanUpAllAllocatedMemory(DataNodeMemoryManager.java:396)) - leak a page: io.mycat.memory.unsafe.memory.MemoryBlock@983878 in task 0
+2017-05-22 15:41:41.803  WARN [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.cleanUpAllAllocatedMemory(DataNodeMemoryManager.java:396)) - leak a page: io.mycat.memory.unsafe.memory.MemoryBlock@1a3779e in task 0
+2017-05-22 15:41:41.911  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 12.0 MB to disk (0 times so far)
+2017-05-22 15:41:41.913  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 36 exist !
+2017-05-22 15:41:42.148  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.acquireExecutionMemory(DataNodeMemoryManager.java:160)) - Thread 0 released 4.0 MBfrom itself (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter@10243a2)
+2017-05-22 15:41:42.298 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-89aa8e7f-cd59-44ab-9b30-b3023864007b\36\f055cf56-19f9-4460-acb5-72745e8688ca
+2017-05-22 15:41:42.299 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-89aa8e7f-cd59-44ab-9b30-b3023864007b\36\f055cf56-19f9-4460-acb5-72745e8688ca
+2017-05-22 15:41:42.300  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (0 times so far)
+2017-05-22 15:41:42.302  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 42 exist !
+2017-05-22 15:41:42.304  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (1 times so far)
+2017-05-22 15:41:42.885  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 47 exist !
+2017-05-22 15:41:42.889 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-40b03d43-911b-40e7-8c11-cbfcc0310395\42\6892986a-65c5-47fe-abfd-57dcdfd6887a
+2017-05-22 15:41:42.890 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-40b03d43-911b-40e7-8c11-cbfcc0310395\42\6892986a-65c5-47fe-abfd-57dcdfd6887a
+2017-05-22 15:41:42.892 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-d5d0fbcb-e715-417d-814b-237eef8dd60d\47\957cf057-1e00-48f5-91cf-64380bd75e34
+2017-05-22 15:41:42.893 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-d5d0fbcb-e715-417d-814b-237eef8dd60d\47\957cf057-1e00-48f5-91cf-64380bd75e34
+2017-05-22 15:41:42.894  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (0 times so far)
+2017-05-22 15:41:42.897  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 58 exist !
+2017-05-22 15:41:42.899  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (1 times so far)
+2017-05-22 15:41:42.902  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 60 exist !
+2017-05-22 15:41:42.912 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-f7c10e28-801e-4120-8025-815af74652ce\60\ddc06021-2be4-4feb-aa88-d044d15df9a4
+2017-05-22 15:41:42.913 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-f7c10e28-801e-4120-8025-815af74652ce\60\ddc06021-2be4-4feb-aa88-d044d15df9a4
+2017-05-22 15:41:42.914  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 4.0 MB to disk (0 times so far)
+2017-05-22 15:41:42.917  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 15 exist !
+2017-05-22 15:41:42.919  WARN [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.cleanUpAllAllocatedMemory(DataNodeMemoryManager.java:389)) - leak 4.0 MB memory from io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter@121471c
+2017-05-22 15:41:42.919  WARN [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.cleanUpAllAllocatedMemory(DataNodeMemoryManager.java:396)) - leak a page: io.mycat.memory.unsafe.memory.MemoryBlock@1c39669 in task 0
+2017-05-22 15:41:42.919  WARN [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.cleanUpAllAllocatedMemory(DataNodeMemoryManager.java:396)) - leak a page: io.mycat.memory.unsafe.memory.MemoryBlock@1c7faaa in task 0
+2017-05-22 15:41:42.965  INFO [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.spill(UnsafeExternalSorter.java:167)) - Thread10 spilling sort data of 18.0 KB to disk (0 times so far)
+2017-05-22 15:41:42.967  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 47 exist !
+2017-05-22 15:41:42.971 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:317)) - Failed to delete: C:\Users\hqq\git\Mycat-Server\datanode\datenode-fcca584a-7f2b-497f-a590-fd6488ab6318\47\1da612db-cc9a-4dfe-824e-93162c52edcc
+2017-05-22 15:41:42.973 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-fcca584a-7f2b-497f-a590-fd6488ab6318\47\1da612db-cc9a-4dfe-824e-93162c52edcc
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="http://www.gradle.org">Gradle 2.3</a> at 2017-5-22 15:41:49</p>
+</div>
+</div>
+</body>
+</html>

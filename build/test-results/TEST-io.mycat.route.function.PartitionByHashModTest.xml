@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.route.function.PartitionByHashModTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:44" hostname="DESKTOP-T7UG6RU" time="2.677">
+  <properties/>
+  <testcase name="test" classname="io.mycat.route.function.PartitionByHashModTest" time="2.677"/>
+  <system-out><![CDATA[Shard Count is 64, time elapsed: 2585
+Shard Count is 63, time elapsed: 2674
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

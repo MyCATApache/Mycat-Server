@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.route.DruidOracleSqlParserTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:44" hostname="DESKTOP-T7UG6RU" time="0.028">
+  <properties/>
+  <testcase name="testOraclePageSQL" classname="io.mycat.route.DruidOracleSqlParserTest" time="0.003"/>
+  <testcase name="testInsertUpdate" classname="io.mycat.route.DruidOracleSqlParserTest" time="0.0"/>
+  <testcase name="testLimitToOraclePage" classname="io.mycat.route.DruidOracleSqlParserTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

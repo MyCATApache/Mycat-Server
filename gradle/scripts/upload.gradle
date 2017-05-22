@@ -1,0 +1,25 @@
+repositories {
+	maven {
+		url repositoriesUrl
+	}
+}
+
+uploadArchives.doFirst {
+	def confirm = System.console().readLine("\n --------------------------------------------------\n | Make sure you have updated all files from SVN? |\n --------------------------------------------------\n(Yes/No) ")
+	if(confirm == "Yes") {
+		println "   uploading..."
+	} else {
+		System.exit(0)
+	}
+}
+
+uploadArchives.repositories.mavenDeployer {
+	  repository(url: repositoriesUploadReleasesUrl) {
+			authentication(userName: nexusDeployUsername, password: nexusDeployPassword)
+	  }
+	  snapshotRepository(url: repositoriesUploadSnapshotsUrl) {
+		  authentication(userName:nexusDeployUsername, password: nexusDeployPassword)
+		  snapshotTimeout = 0
+	  }
+	  uniqueVersion = false
+}

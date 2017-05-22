@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ -  
+ - Licensed under the Apache License, Version 2.0 (the "License");
+ - you may not use this file except in compliance with the License.
+ - You may obtain a copy of the License at
+ -  
+ -      http://www.apache.org/licenses/LICENSE-2.0
+ -  
+ - Unless required by applicable law or agreed to in writing, software
+ - distributed under the License is distributed on an "AS IS" BASIS,
+ - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ - See the License for the specific language governing permissions and
+ - limitations under the License.
+-->
+<!ELEMENT mycat:server (system?,firewall?,user+,cluster?)>
+<!ATTLIST mycat:server xmlns:mycat CDATA #FIXED "http://io.mycat/">
+
+<!ELEMENT system (property*) >
+
+<!ELEMENT user (property+,privileges*)>
+<!ATTLIST user name NMTOKEN #REQUIRED>
+
+<!ELEMENT privileges (schema)*>
+<!ATTLIST privileges check NMTOKEN #REQUIRED>
+
+<!ELEMENT schema (table)*>
+<!ATTLIST schema
+  name CDATA #REQUIRED
+  dml CDATA #REQUIRED>
+
+<!ELEMENT table (name*)>
+<!ATTLIST table
+  name CDATA #REQUIRED
+  dml CDATA #REQUIRED
+  ext CDATA #IMPLIED>
+
+<!ELEMENT cluster (node+,group*) >
+<!ELEMENT node (property+)>
+<!ATTLIST node name NMTOKEN #REQUIRED>
+<!ELEMENT group (property) >
+<!ATTLIST group name NMTOKEN #REQUIRED>
+
+<!ELEMENT firewall (whitehost*,blacklist*) >
+<!ELEMENT whitehost (host*)>
+<!ELEMENT blacklist (property*)>
+<!ATTLIST blacklist check NMTOKEN #REQUIRED>
+<!ELEMENT host (property*)>
+<!ATTLIST host 
+   host CDATA #REQUIRED
+   user CDATA #REQUIRED
+   >
+<!ATTLIST sqllist sql CDATA #REQUIRED>
+
+<!ELEMENT property (#PCDATA | bean)*>
+<!ATTLIST property name NMTOKEN #REQUIRED>
+<!ELEMENT bean (property*)>
+<!ATTLIST bean name NMTOKEN #IMPLIED>
+<!ATTLIST bean class NMTOKEN #REQUIRED>

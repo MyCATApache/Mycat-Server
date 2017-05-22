@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.util.StringUtilTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:49" hostname="DESKTOP-T7UG6RU" time="0.003">
+  <properties/>
+  <testcase name="test4" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test3" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test2" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test1" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test7" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test8" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test9" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test6" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test5" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test10" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test11" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test12" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test13" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <testcase name="test" classname="io.mycat.util.StringUtilTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

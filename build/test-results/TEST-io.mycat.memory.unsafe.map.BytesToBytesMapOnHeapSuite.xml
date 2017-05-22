@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" tests="13" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:37" hostname="DESKTOP-T7UG6RU" time="2.016">
+  <properties/>
+  <testcase name="failureToGrow" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.002"/>
+  <testcase name="iteratorTest" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.073"/>
+  <testcase name="iteratingOverDataPagesWithWastedSpace" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="1.672"/>
+  <testcase name="randomizedTestWithRecordsLargerThanPageSize" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.023"/>
+  <testcase name="failureToAllocateFirstPage" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.002"/>
+  <testcase name="initialCapacityBoundsChecking" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.001"/>
+  <testcase name="multipleValuesForSameKey" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.005"/>
+  <testcase name="destructiveIteratorTest" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.004"/>
+  <testcase name="spillInIterator" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.008"/>
+  <testcase name="testPeakMemoryUsed" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.001"/>
+  <testcase name="randomizedStressTest" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.222"/>
+  <testcase name="setAndRetrieveAKey" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.001"/>
+  <testcase name="emptyMap" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite" time="0.0"/>
+  <system-out><![CDATA[2017-05-22 15:41:37.155  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
+2017-05-22 15:41:37.155  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@a945f8: 2.0 KB
+2017-05-22 15:41:37.155  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -2048 bytes of memory were used by task 0 but are not associated with specific consumers
+2017-05-22 15:41:37.155  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
+2017-05-22 15:41:38.925  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
+2017-05-22 15:41:38.926  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@ddc385: 1024.0 B
+2017-05-22 15:41:38.926  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -1024 bytes of memory were used by task 0 but are not associated with specific consumers
+2017-05-22 15:41:38.926  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
+2017-05-22 15:41:38.942  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 34 exist !
+2017-05-22 15:41:38.945 ERROR [Test worker] (io.mycat.memory.unsafe.map.BytesToBytesMap$MapIterator.hasNext(BytesToBytesMap.java:310)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-b95978c8-a95b-4816-8639-ae2a2886bd22\34\04720c46-b8d4-4199-a6c8-3990a6dbbb1b
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

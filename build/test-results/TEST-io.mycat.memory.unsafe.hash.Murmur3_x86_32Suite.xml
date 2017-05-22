@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.memory.unsafe.hash.Murmur3_x86_32Suite" tests="5" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:34" hostname="DESKTOP-T7UG6RU" time="0.505">
+  <properties/>
+  <testcase name="randomizedStressTestPaddedStrings" classname="io.mycat.memory.unsafe.hash.Murmur3_x86_32Suite" time="0.061"/>
+  <testcase name="testKnownIntegerInputs" classname="io.mycat.memory.unsafe.hash.Murmur3_x86_32Suite" time="0.0"/>
+  <testcase name="randomizedStressTestBytes" classname="io.mycat.memory.unsafe.hash.Murmur3_x86_32Suite" time="0.4"/>
+  <testcase name="testKnownLongInputs" classname="io.mycat.memory.unsafe.hash.Murmur3_x86_32Suite" time="0.0"/>
+  <testcase name="randomizedStressTest" classname="io.mycat.memory.unsafe.hash.Murmur3_x86_32Suite" time="0.042"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

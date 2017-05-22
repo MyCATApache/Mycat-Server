@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class io.mycat.parser.druid.DruidUpdateParserTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class io.mycat.parser.druid.DruidUpdateParserTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/io.mycat.parser.druid.html">io.mycat.parser.druid</a> &gt; DruidUpdateParserTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">2</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.200s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div id="tabs">
+<ul class="tabLinks">
+<li>
+<a href="#tab0">Tests</a>
+</li>
+<li>
+<a href="#tab1">Standard output</a>
+</li>
+</ul>
+<div id="tab0" class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">testAliasUpdateShardColumn</td>
+<td>0.173s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testUpdateShardColumn</td>
+<td>0.027s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div id="tab1" class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>2017-05-22 15:41:43.588  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.605  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.609  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+2017-05-22 15:41:43.667  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+抛异常原因为SQLNonTransientException则正确
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+2017-05-22 15:41:43.673  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+抛异常原因为SQLNonTransientException则正确
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+2017-05-22 15:41:43.675  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+抛异常原因为SQLNonTransientException则正确
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.679  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.682  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.683  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+2017-05-22 15:41:43.687  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+抛异常原因为SQLNonTransientException则正确
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+2017-05-22 15:41:43.689  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.693  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.695  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.700  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.703  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.705  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.706  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews-&gt;ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="http://www.gradle.org">Gradle 2.3</a> at 2017-5-22 15:41:49</p>
+</div>
+</div>
+</body>
+</html>

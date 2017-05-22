@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.mysql.MySQLMessageTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.003">
+  <properties/>
+  <testcase name="testReadBytesWithNull2" classname="io.mycat.mysql.MySQLMessageTest" time="0.002"/>
+  <testcase name="testReadBytesWithNull3" classname="io.mycat.mysql.MySQLMessageTest" time="0.0"/>
+  <testcase name="testReadBytesWithNull" classname="io.mycat.mysql.MySQLMessageTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ -
+ - Licensed under the Apache License, Version 2.0 (the "License");
+ - you may not use this file except in compliance with the License.
+ - You may obtain a copy of the License at
+ -
+ -      http://www.apache.org/licenses/LICENSE-2.0
+ -
+ - Unless required by applicable law or agreed to in writing, software
+ - distributed under the License is distributed on an "AS IS" BASIS,
+ - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ - See the License for the specific language governing permissions and
+ - limitations under the License.
+-->
+<!ELEMENT mycat:schema (schema*,dataNode*,dataHost*)>
+<!ATTLIST mycat:schema xmlns:mycat CDATA #FIXED "http://io.mycat/">
+
+<!ELEMENT schema (table*)>
+<!ATTLIST schema name NMTOKEN #REQUIRED>
+<!ATTLIST schema checkSQLschema NMTOKEN #IMPLIED>
+<!ATTLIST schema dataNode CDATA #IMPLIED>
+<!ATTLIST schema sqlMaxLimit CDATA #IMPLIED>
+
+<!ELEMENT table (property*,(childTable*))>
+<!ATTLIST table name CDATA #REQUIRED>
+<!ATTLIST table nameSuffix CDATA #IMPLIED>
+<!ATTLIST table dataNode CDATA #REQUIRED>
+<!ATTLIST table rule NMTOKEN #IMPLIED>
+<!ATTLIST table ruleRequired NMTOKEN #IMPLIED>
+<!ATTLIST table primaryKey NMTOKEN #IMPLIED>
+<!ATTLIST table subTables CDATA #IMPLIED>
+<!ATTLIST table autoIncrement NMTOKEN #IMPLIED>
+<!ATTLIST table needAddLimit NMTOKEN #IMPLIED>
+<!ATTLIST table type NMTOKEN #IMPLIED>
+
+
+<!ELEMENT childTable (property*,(childTable*))>
+<!ATTLIST childTable name NMTOKEN #REQUIRED>
+<!ATTLIST childTable joinKey NMTOKEN #REQUIRED>
+<!ATTLIST childTable parentKey NMTOKEN #REQUIRED>
+<!ATTLIST childTable primaryKey NMTOKEN #IMPLIED>
+<!ATTLIST childTable autoIncrement NMTOKEN #IMPLIED>
+
+
+<!ELEMENT dataNode (property*)>
+<!ATTLIST dataNode name CDATA #REQUIRED>
+<!ATTLIST dataNode dataHost CDATA #REQUIRED>
+<!ATTLIST dataNode database CDATA #REQUIRED>
+
+<!ELEMENT dataHost (heartbeat,(connectionInitSql*),(writeHost+))>
+<!ATTLIST dataHost
+  balance CDATA #REQUIRED
+  maxCon CDATA #REQUIRED
+  minCon CDATA #REQUIRED
+  name NMTOKEN #REQUIRED
+  balance CDATA #REQUIRED
+  writeType CDATA #IMPLIED
+  switchType  CDATA #IMPLIED
+  slaveThreshold  CDATA #IMPLIED
+  tempReadHostAvailable CDATA #IMPLIED
+  dbType CDATA #REQUIRED
+  filters CDATA #IMPLIED
+  logTime CDATA #IMPLIED
+    slaveIDs CDATA #IMPLIED
+  dbDriver CDATA #REQUIRED>
+
+<!ELEMENT writeHost (readHost)*>
+<!ATTLIST writeHost
+  url CDATA #REQUIRED
+  host NMTOKEN #REQUIRED
+  password CDATA #REQUIRED
+  user CDATA #REQUIRED
+  usingDecrypt CDATA #IMPLIED>
+
+<!ELEMENT heartbeat (#PCDATA)>
+<!ELEMENT connectionInitSql (#PCDATA)>
+<!ELEMENT readHost (property*) >
+<!ATTLIST readHost
+  host NMTOKEN #REQUIRED
+  url CDATA #REQUIRED
+  password CDATA #REQUIRED
+  user NMTOKEN #REQUIRED
+  weight CDATA #IMPLIED
+  usingDecrypt CDATA #IMPLIED>
+
+

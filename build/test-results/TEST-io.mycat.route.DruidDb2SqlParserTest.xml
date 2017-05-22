@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.route.DruidDb2SqlParserTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.08">
+  <properties/>
+  <testcase name="testDb2PageSQL" classname="io.mycat.route.DruidDb2SqlParserTest" time="0.056"/>
+  <testcase name="testLimitToDb2Page" classname="io.mycat.route.DruidDb2SqlParserTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

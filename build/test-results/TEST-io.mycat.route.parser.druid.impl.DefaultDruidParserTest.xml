@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.route.parser.druid.impl.DefaultDruidParserTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:49" hostname="DESKTOP-T7UG6RU" time="0.006">
+  <properties/>
+  <testcase name="testParser" classname="io.mycat.route.parser.druid.impl.DefaultDruidParserTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

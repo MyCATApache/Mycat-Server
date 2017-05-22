@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.memory.unsafe.map.UnsafeFixedWidthAggregationMapSuite" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:39" hostname="DESKTOP-T7UG6RU" time="0.346">
+  <properties/>
+  <testcase name="testWithMemoryLeakDetection" classname="io.mycat.memory.unsafe.map.UnsafeFixedWidthAggregationMapSuite" time="0.017"/>
+  <testcase name="testAggregateMap" classname="io.mycat.memory.unsafe.map.UnsafeFixedWidthAggregationMapSuite" time="0.329"/>
+  <system-out><![CDATA[2017-05-22 15:41:39.180  INFO [Test worker] (io.mycat.memory.MyCatMemory.<init>(MyCatMemory.java:166)) - mycat.memory.offHeap.size: 173MB
+2017-05-22 15:41:39.195  INFO [Test worker] (io.mycat.memory.MyCatMemory.<init>(MyCatMemory.java:166)) - mycat.memory.offHeap.size: 173MB
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

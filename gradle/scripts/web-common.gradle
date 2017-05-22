@@ -1,0 +1,182 @@
+
+buildscript {
+	repositories { maven { url repositoriesUrl } }
+	configurations.all {
+		resolutionStrategy { cacheChangingModulesFor 0, 'seconds' //cacheDynamicVersionsFor 0, 'seconds'
+		}
+	}
+	dependencies {
+		classpath group: 'com.inspur.healthframework', name: 'healthframework-dojo-tools', version: '1.0.0-SNAPSHOT'
+	}
+}
+
+import groovy.io.FileType
+import org.apache.tools.ant.filters.ReplaceTokens
+import com.inspur.healthframework.dojo.TableContainerTranslater
+
+def dealDir(anyFile, logFile) {
+	anyFile.eachFileMatch FileType.FILES, ~/.*\.js/, { File js ->
+		//println "${js.path}   ${js.size()}"
+		if(js.size()< 15 && !js.path.contains("optimizes")) {
+			logFile.append("${js.path}\n")
+		}
+	}
+	anyFile.eachFileMatch FileType.DIRECTORIES, {true}, { File dir -> dealDir(dir, logFile) }
+}
+ext {
+	//检查出现错误的js文件
+	scanErrJs = {dir->
+		def distDir = new File(dir)
+		delete "$dojoSrcDir/dist/error.log"
+		def logFile = new File("$dojoSrcDir/dist/error.log")
+		dealDir(distDir, logFile)
+		if(logFile.exists()) {
+			System.setProperty("org.gradle.color.error", "RED")
+			logger.error("javascript compress error!")
+			logger.error(">--------------------------------------")
+			logFile.eachLine {line, lineIndex->
+				logger.error("\t${lineIndex}. $line")
+			}
+			logger.error("---------------------------------------\n")
+			System.exit(0)
+		}
+	}
+
+	//查找jar文件
+	findJar = { prefix->
+		configurations.runtime.files { it.name.startsWith(prefix) }.iterator().next()
+	}
+
+	isExcludeJar = {name->
+		def isExclude = false;
+		excludeRegexs.any {
+			def matcher = name =~ it
+			while(matcher.find()) {
+				isExclude = true;
+			}
+		}
+		return isExclude;
+	}
+
+	//解压dojo源代码到 dojoSrcDir
+	dojoSource = {jarName->
+		ant.unzip(src: findJar(jarName), dest: dojoSrcDir) {
+			filtermapper {
+				replacestring(from:"META-INF/dojo-src/", to: "")
+			}
+		}
+	}
+
+	prepareDojoBase = {
+		//一、组织源码目录
+		//1、创建源码文件夹${dojoSrc}
+		//2、解压dojo源代码到${dojoSrc}
+		dojoSource("dojo-src")
+		println "\t| dojo is ready."
+		//3、解压dgrid源代码到${dojoSrc}
+		dojoSource("dgrid-src")
+		println "\t| dgrid is ready."
+		//4、下载fly组件源代码到${dojoSrc}
+		dojoSource("healthframework-dojo-fly-src")
+		println "\t| fly is ready."
+		copy {
+			from "WebContent/resources/dojo-src/profiles/"
+			into "$dojoSrcDir/profiles"
+		}
+		copy {
+			from ("WebContent/resources/dojo-src/") {
+				include "build.*"
+				include "logging.properties"
+			}
+			into "$dojoSrcDir/"
+		}
+		println "\t| build cmd is ready."
+	}
+	//优化js
+	optimizes = {js, fly, dgrid ->
+		if(fly == null) {
+			System.setProperty("org.gradle.color.error", "YOLLOW")
+			logger.error("The \"fly\" optimizes file must not be null!")
+		}
+		if(dgrid == null) {
+			System.setProperty("org.gradle.color.error", "YOLLOW")
+			logger.error("The \"dgrid\" optimizes file must not be null!")
+		}
+		def replaced = false
+		if(!replaced && (js.indexOf("fly/optimizes/dojo-fly")>=0 || js.indexOf("fly/optimizes/dgrid")>= 0)) {
+			def optimizesContent = js.replace("fly/optimizes/dojo-fly", fly)
+			optimizesContent = optimizesContent.replaceAll("fly/optimizes/dgrid", dgrid)
+			replaced = true
+			return optimizesContent
+		} else {
+			return js
+		}
+	}
+
+	//构建dojo代码，优化js
+	execDojoBuild = {
+		def os = System.getProperty("os.name").toLowerCase()
+		exec {
+			workingDir dojoSrcDir
+			if(os.startsWith("windows")){
+				commandLine 'cmd', '/c', 'build.bat'
+			}else{
+				def proc1 ="chmod +x  ${dojoSrcDir}/build.sh".execute(); 
+				proc1.waitFor()
+                ignoreExitValue true
+				commandLine './build.sh'
+				//executable "sh"
+				//args  "build.sh"	
+			} 
+		}
+	}
+
+
+
+	pageDir = "$buildDir/original-pages"
+	dojoDebugRegex = /isDebug\s*:\s*true/
+	//页面 table优化时的文件准备目录(翻译TableContainer为html table, isDebug改为false)
+	removeDebug = {srcDir, destDir ->
+		copy {
+			from (srcDir) {
+				filter {file->
+					def replaced = false
+					if(!replaced && file.indexOf("isDebug")>=0) {
+						def matcher = file =~ dojoDebugRegex
+						while(matcher.find()) {
+							file = file.replaceAll(dojoDebugRegex, "isDebug:false")
+							replaced = true;
+						}
+					}
+					return file
+				}
+			}
+			into "${pageDir}/${destDir}"
+		}
+	}
+
+	translateHtml = { htmlDir->
+		def destDir = new File("$buildDir/html/")
+		if(!destDir.exists()) {
+			destDir.mkdirs();
+		}
+		def dir = "$pageDir/html/${htmlDir}"
+		println "-->htmls to be tanslated: $dir"
+		TableContainerTranslater.translate(new File(dir), destDir.getPath(), "html" )
+	}
+	translateView = { viewsDir, excludes ->
+		def destDir = new File("$buildDir/views/")
+		if(!destDir.exists()) {
+			destDir.mkdirs();
+		}
+		def dir = "$pageDir/views/${viewsDir}"
+		println "-->views to be tanslated: $dir"
+		TableContainerTranslater.translate(new File(dir), destDir.getPath(), "views", excludes )
+	}
+	/**
+	 * 假定子进程的主线程生成另一个线程，然后主线程终止。此时，系统就可以从内存中释放了子进程
+	 * 的主线程对象——前提是父进程没有打开到这个线程对象的句柄。但是，假如父进程打开了到子进程
+	 * 的主线程对象的一个句柄，系统就不会释放这个对象，除非父进程关闭这个句柄
+	 */
+}
+

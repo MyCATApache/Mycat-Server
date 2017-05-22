@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.memory.unsafe.types.CalendarIntervalSuite" tests="8" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.004">
+  <properties/>
+  <testcase name="fromYearMonthStringTest" classname="io.mycat.memory.unsafe.types.CalendarIntervalSuite" time="0.002"/>
+  <testcase name="fromSingleUnitStringTest" classname="io.mycat.memory.unsafe.types.CalendarIntervalSuite" time="0.0"/>
+  <testcase name="fromStringTest" classname="io.mycat.memory.unsafe.types.CalendarIntervalSuite" time="0.0"/>
+  <testcase name="fromDayTimeStringTest" classname="io.mycat.memory.unsafe.types.CalendarIntervalSuite" time="0.0"/>
+  <testcase name="addTest" classname="io.mycat.memory.unsafe.types.CalendarIntervalSuite" time="0.0"/>
+  <testcase name="equalsTest" classname="io.mycat.memory.unsafe.types.CalendarIntervalSuite" time="0.0"/>
+  <testcase name="toStringTest" classname="io.mycat.memory.unsafe.types.CalendarIntervalSuite" time="0.0"/>
+  <testcase name="subtractTest" classname="io.mycat.memory.unsafe.types.CalendarIntervalSuite" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

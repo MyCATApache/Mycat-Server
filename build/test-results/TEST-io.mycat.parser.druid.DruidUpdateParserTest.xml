@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.parser.druid.DruidUpdateParserTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.2">
+  <properties/>
+  <testcase name="testAliasUpdateShardColumn" classname="io.mycat.parser.druid.DruidUpdateParserTest" time="0.173"/>
+  <testcase name="testUpdateShardColumn" classname="io.mycat.parser.druid.DruidUpdateParserTest" time="0.027"/>
+  <system-out><![CDATA[2017-05-22 15:41:43.588  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.605  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.609  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+2017-05-22 15:41:43.667  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+抛异常原因为SQLNonTransientException则正确
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+2017-05-22 15:41:43.673  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+抛异常原因为SQLNonTransientException则正确
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+2017-05-22 15:41:43.675  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+抛异常原因为SQLNonTransientException则正确
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.679  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.682  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.683  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+2017-05-22 15:41:43.687  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+抛异常原因为SQLNonTransientException则正确
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+2017-05-22 15:41:43.689  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.693  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.695  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.700  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.703  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.705  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+class java.sql.SQLNonTransientException
+抛异常原因为SQLNonTransientException则正确
+2017-05-22 15:41:43.706  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:219)) - Sharding column can't be updated hotnews->ID
+未抛异常，解析通过，此情况分片字段可能在update语句中但是实际不会被更新
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

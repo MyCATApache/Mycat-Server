@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.route.DruidMysqlRouteStrategyTest" tests="26" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:44" hostname="DESKTOP-T7UG6RU" time="0.061">
+  <properties/>
+  <testcase name="testGlobalTableSingleNodeLimit" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.0"/>
+  <testcase name="testInsertOnDuplicateKey" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.005"/>
+  <testcase name="testMoreGlobalTableroute" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testDuplicatePartitionKey" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.008"/>
+  <testcase name="testSelectNoTable" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testModifySQLLimit" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testBatchInsert" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testRouteMultiTables" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testBetweenExpr" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.003"/>
+  <testcase name="testERRouteMutiNode" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testAggregateExpr" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testRouteInsertShort" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testGroupLimit" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.003"/>
+  <testcase name="testIgnoreSchema" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.0"/>
+  <testcase name="testRouteCache" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.002"/>
+  <testcase name="testConfigSchema" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testAddLimitToSQL" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testGlobalTableroute" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.003"/>
+  <testcase name="testNonPartitionSQL" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.002"/>
+  <testcase name="testMultiLevelOr" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.004"/>
+  <testcase name="testGlobalTableOr" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.009"/>
+  <testcase name="testTableMetaRead" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testroute" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.003"/>
+  <testcase name="testERroute" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.002"/>
+  <testcase name="testAlias" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.001"/>
+  <testcase name="testOr" classname="io.mycat.route.DruidMysqlRouteStrategyTest" time="0.002"/>
+  <system-out><![CDATA[2017-05-22 15:41:44.444  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidInsertParser.parserSingleInsert(DruidInsertParser.java:199)) - Sharding column can't be updated: EMPLOYEE -> SHARDING_ID
+2017-05-22 15:41:44.457  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidInsertParser.parserChildTable(DruidInsertParser.java:126)) - ChildTable multi insert not provided
+2017-05-22 15:41:44.457  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidInsertParser.parserBatchInsert(DruidInsertParser.java:286)) - TODO:insert into .... select .... not supported!
+2017-05-22 15:41:44.463  WARN [Test worker] (io.mycat.route.util.RouterUtil.ruleByJoinValueCalculate(RouterUtil.java:874)) - joinKey can't have multi Value
+2017-05-22 15:41:44.465  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidInsertParser.parserSingleInsert(DruidInsertParser.java:186)) - bad insert sql (sharding column:OFFER_ID not provided,INSERT INTO offer_detail (gmt)
+VALUES (now())
+2017-05-22 15:41:44.496  WARN [Test worker] (io.mycat.route.parser.druid.impl.DruidUpdateParser.confirmShardColumnNotUpdated(DruidUpdateParser.java:226)) - Parent relevant column can't be updated ORDERS->CUSTOMER_ID
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

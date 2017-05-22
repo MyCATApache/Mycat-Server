@@ -1,0 +1,53 @@
+buildscript {
+    repositories {
+		maven {
+			credentials {
+				username = nexusUsername
+				password = nexusPassword
+			}
+			url repositoriesUrl
+		}
+	}
+	dependencies {
+		classpath group: 'com.inspur.cloud', name: 'cloud-gradle-plugin', version: '2.1-SNAPSHOT'
+	}
+}
+
+apply plugin: 'cloud'
+dependencies {
+    compile("org.mongodb:mongo-java-driver:2.11.4")
+    compile group: 'org.iq80.leveldb', name: 'leveldb', version:'0.7'
+    compile group: 'org.iq80.leveldb', name: 'leveldb-api', version:'0.7'
+    compile group: 'com.google.guava', name: 'guava', version:'19.0'
+    compile group: 'com.alibaba', name: 'druid', version:'1.0.26'
+    compile group: 'mysql', name: 'mysql-connector-java', version:'5.1.35'
+    compile group: 'net.sf.ehcache', name: 'ehcache-core', version:'2.6.11'
+    compile group: 'org.mapdb', name: 'mapdb', version:'1.0.7'
+	 compile group: 'junit', name: 'junit', version:'4.4'
+	 compile group: 'org.apache.velocity', name: 'velocity', version:'1.7'
+	 compile group: 'org.codehaus.jsr166-mirror', name: 'jsr166y', version:'1.7.0'
+	 compile group: 'com.lmax', name: 'disruptor', version:'3.3.4'
+       compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version:'2.5'
+        compile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.5'
+         compile group: 'org.apache.logging.log4j', name: 'log4j-1.2-api', version:'2.5'
+    compile group: 'com.univocity', name: 'univocity-parsers', version:'2.2.1'
+    compile group: 'com.sequoiadb', name: 'sequoiadb-driver', version:'1.12'
+    compile group: 'dom4j', name: 'dom4j', version:'1.6.1'
+    compile group: 'org.apache.curator', name: 'curator-framework', version:'2.11.0'
+    compile group: 'org.apache.curator', name: 'curator-recipes', version:'2.11.0'
+    compile group: 'com.alibaba', name: 'fastjson', version:'1.2.12'
+		compile group: 'joda-time', name: 'joda-time', version:'2.9.3'
+		compile group: 'com.github.shyiko', name: 'mysql-binlog-connector-java', version:'0.6.0'
+		compile group: 'org.mockito', name: 'mockito-all', version:'1.8.5'
+		compile group: 'com.google.code.findbugs', name: 'jsr305', version:'2.0.3'
+		compile group: 'com.esotericsoftware.kryo', name: 'kryo', version:'2.10'
+		compile group: 'org.hamcrest', name: 'hamcrest-library', version:'1.3'
+		compile group: 'commons-lang', name: 'commons-lang', version:'2.6'
+    
+}
+//packaging tests
+task packageTests(type: Jar) {
+  from sourceSets.test.output
+  classifier = 'tests'
+}
+artifacts.archives packageTests

@@ -1,7 +1,10 @@
 package io.mycat.buffer;
 
 import junit.framework.Assert;
+
+import org.junit.Ignore;
 import org.junit.Test;
+
 import sun.nio.ch.DirectBuffer;
 
 import java.nio.ByteBuffer;
@@ -19,6 +22,7 @@ import java.util.Map;
  * @time 17:19 2016/5/17
  * @see @https://github.com/netty/netty
  */
+@Ignore
 public class TestByteBufferArena {
     int pageSize = 256;
     int chunkSize = 1024 * 8;

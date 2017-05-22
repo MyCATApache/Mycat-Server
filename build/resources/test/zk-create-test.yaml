@@ -1,0 +1,258 @@
+zkURL : 127.0.0.1:2181
+mycat-cluster:
+  mycat-cluster-1:
+    blockSQLs:
+      sql1 :
+        name : sql1
+      sql2 :
+        name : sql2
+      sql3 :
+        name : sql3
+    user :
+      test :
+        name : test
+        password : admin
+        readOnly : true
+        schemas  :
+          - testdb
+          - test
+      mycat :
+        name: mycat
+        password: admin
+        readOnly : false
+        schemas:
+          - testdb
+    rule :
+      sharding-by-enum :
+        name : sharding-by-enum
+        functionName : io.mycat.route.function.PartitionByFileMap
+        column : create_time
+        defaultnode : 0
+        type : 0
+        config :
+          10000 : 0
+          10010 : 1
+      sharding-by-hour :
+        name : sharding-by-hour
+        functionName : io.mycat.route.function.LatestMonthPartion
+        column : createTime
+        splitOneDay : 24
+
+      auto-sharding-long :
+       name : auto-sharding-long
+       column : id
+       functionName : io.mycat.route.function.AutoPartitionByLong
+       defaultNode : 0
+       config :
+             0-2000000 : 0
+             2000001-4000000 : 1
+             4000001-8000000 : 2
+
+      sharding-by-mod :
+       name : sharding-by-mod
+       column : id
+       functionName : io.mycat.route.function.PartitionByMod
+       count : 3
+
+      auto-sharding-rang-mod :
+       name : auto-sharding-rang-mod
+       column : id
+       functionName : io.mycat.route.function.PartitionByRangeMod
+       defaultNode : 21
+       config :
+             0-200M : 5
+             200M1-400M : 1
+             400M1-600M : 4
+             600M1-800M : 4
+             800M1-1000M : 6
+
+      auto-sharding-rang-mod :
+       name : sharding-by-RangeDateHash
+       column : create_time
+       functionName : io.mycat.route.function.PartitionByRangeDateHash
+       sBeginDate : "2014-01-01 00:00:00"
+       sPartionDay : 3
+       dateFormat : yyyy-MM-dd HH:mm:ss
+       groupPartionSize : 6
+
+    sequence:
+      sequence-3 :
+        current_value : 100000
+        increament : 100
+      sequence-2 :
+        workid: 1
+        centerid : 2
+      sequence-0 :
+        type : file
+      sequence-1 :
+        type : 1
+        config :
+          current_value : 100000
+          increament : 100
+        sequence-mapping :
+          T_NODE :  0
+
+    schema :
+      TESTDB :
+        name : TESTDB
+        checkSQLSchema : false
+        defaultMaxLimit : 100
+
+        travelrecord :
+          name :  travelrecord
+          datanode :  dn1,dn2,dn3
+          ruleName :  auto-sharding-long
+
+        company :
+          name :  company
+          datanode :  dn1,dn2,dn3
+          primaryKey : ID
+          type : 1  #全局表为 1
+
+        goods :
+          name :  goods
+          datanode :  dn1,dn2
+          primaryKey : ID
+          type : 1  #全局表为 1
+
+        hotnews :
+          name :  hotnews
+          datanode :  dn1,dn2,dn3
+          primaryKey : ID
+          ruleName : sharding-by-mod
+
+        employee :
+          name :  employee
+          datanode :  dn1,dn2
+          primaryKey : ID
+          ruleName : sharding-by-enum
+
+        customer :
+          name :  customer
+          datanode :  dn1,dn2
+          primaryKey : ID
+          ruleName : sharding-by-enum
+
+          orders :
+            name :  orders
+            primaryKey :  ID
+            joinKey : customer_id
+            parentKey : ID
+
+            order_items :
+              name :  order_items
+              joinKey : order_id
+              parentKey : ID
+
+          customer_addr :
+            name :  customer_addr
+            joinKey : customer_id
+            parentKey : ID
+
+        offer :
+          name :  offer
+          datanode :  offer_dn$1-20
+          primaryKey : id
+          ruleName : auto-sharding-rang-mod
+
+        offer1 :
+          name :  offer1
+          datanode :  offer_dn$1-36
+          primaryKey : id
+          ruleName : sharding-by-RangeDateHash
+
+    datanode :
+      dn1:
+        name : dn1
+        dataHost : localhost1
+        database : db1
+      dn2:
+        name : dn2
+        dataHost : localhost1
+        database : db2
+      dn3:
+        name : dn3
+        dataHost : localhost1
+        database : db3
+      offer_dn$0-127:
+        name : offer_dn$0-127
+        dataHost : localhost1
+        database : db1$0-127
+
+    datahost :
+      localhost1 :
+        name : localhost1
+        maxcon : 1000
+        mincon : 10
+        balance : 0
+        writetype : 0
+        dbtype : mysql
+        dbDriver : native
+        switchType : 1
+        slaveThreshold : 100
+        heartbeatSQL : select user()
+        mysqlGroup : mysql_rep_1
+
+#集群中所有的主机信息
+mycat-hosts:
+  fz_vm1:
+    hostname: fz_vm1
+    ip: 192.168.10.2
+    root: root
+    password: admin
+
+mycat-zones:
+  wh:
+    name: 武汉中心
+  fz: 福州中心
+
+#zone内mycat 实例配置,名字为mycat实例的,myid.
+mycat-nodes:
+  mycat_fz_01:
+    name: mycat_fz_01
+    hostname: fz_vm1
+    zone: fz
+    cluster: mycat-cluster-1
+    weigth: 1
+    leader: 1
+    state: red
+    systemParams:
+      defaultsqlparser : druidparser
+      serverport : 8066
+      sequncehandlertype : 1
+
+mycat-mysqls:
+  mysql_1:
+    ip: 192.168.8.2
+    port: 3306
+    user: mysql
+    password: mysql
+    hostId: host
+    zone: bj
+  mysql_2:
+    ip: 192.168.8.3
+    port: 3307
+    user: mysql
+    password: mysql
+    hostId: host
+    zone: bj
+  mysql_3:
+    ip: 192.168.8.4
+    port: 3308
+    user: mysql
+    password: mysql
+    hostId: host
+    zone: bj
+
+mycat-mysqlgroup :
+  mysql_rep_1:
+    name: mysql_rep_1
+    repType: 0
+    zone: bj
+    servers:
+      - mysql_1
+      - mysql_2
+      - mysql_3
+    cur-write-server: mysql_1
+    auto-write-switch: true
+    heartbeatSQL : select user()

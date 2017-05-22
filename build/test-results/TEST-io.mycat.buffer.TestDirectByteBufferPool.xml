@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.buffer.TestDirectByteBufferPool" tests="5" skipped="5" failures="0" errors="0" timestamp="2017-05-22T07:41:27" hostname="DESKTOP-T7UG6RU" time="0.001">
+  <properties/>
+  <testcase name="testAllocateNullWhenOutOfMemory" classname="io.mycat.buffer.TestDirectByteBufferPool" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="testAllocateWithDifferentAddress" classname="io.mycat.buffer.TestDirectByteBufferPool" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="testAllocate" classname="io.mycat.buffer.TestDirectByteBufferPool" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="testExpandBuffer" classname="io.mycat.buffer.TestDirectByteBufferPool" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="testAllocateSign" classname="io.mycat.buffer.TestDirectByteBufferPool" time="0.0">
+    <skipped/>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

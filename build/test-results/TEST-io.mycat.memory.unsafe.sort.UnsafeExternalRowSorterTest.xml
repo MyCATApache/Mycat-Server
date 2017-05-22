@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.memory.unsafe.sort.UnsafeExternalRowSorterTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:39" hostname="DESKTOP-T7UG6RU" time="1.14">
+  <properties/>
+  <testcase name="testUnsafeExternalRowSorter" classname="io.mycat.memory.unsafe.sort.UnsafeExternalRowSorterTest" time="1.14"/>
+  <system-out><![CDATA[2017-05-22 15:41:39.542  INFO [Test worker] (io.mycat.memory.MyCatMemory.<init>(MyCatMemory.java:166)) - mycat.memory.offHeap.size: 173MB
+2017-05-22 15:41:39.573  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
+2017-05-22 15:41:39.577  INFO [Test worker] (io.mycat.cache.CacheService.createLayeredPool(CacheService.java:125)) - create layer cache pool TableID2DataNodeCache of type encache ,default cache size 10000 ,default expire seconds18000
+2017-05-22 15:41:39.577  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: TESTDB_ORDERS for layered cache TableID2DataNodeCache, size 50000, expire seconds 18000
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
