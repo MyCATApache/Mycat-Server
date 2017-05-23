@@ -17,7 +17,7 @@ java_in_wrapper="`sed -nr \
 
 # test java(JRE) in this order: 
 #  wrapper.conf's java -> $JAVA_HOME/bin/java -> $PATH/java
-for java_cmd in "$JAVA_CMD" "$JAVA_HOME/bin/java" "java" ; do
+for java_cmd in "$java_in_wrapper" "$JAVA_HOME/bin/java" "java" ; do
 	if $java_cmd -Xmx1m -version &>/dev/null ; then
 		JAVA_CMD=$java_cmd
 		break
