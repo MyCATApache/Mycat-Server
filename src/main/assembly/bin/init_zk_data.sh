@@ -7,8 +7,8 @@ JAVA_CMD=""
 
 #function log_info <msg>
 #stdout: YYYY-mm-dd HH:MM:ss INFO msg
-function log_info() { date +o"%F %T INFO $1" }
-function log_error() { date +o"%F %T ERROR $1" }
+function log_info() { date +o"%F %T INFO $1" ; }
+function log_error() { date +o"%F %T ERROR $1" ; }
 
 #01. Locate java(JRE)
 java_in_wrapper="`sed -nr \
@@ -17,9 +17,10 @@ java_in_wrapper="`sed -nr \
 
 # test java(JRE) in this order: 
 #  wrapper.conf's java -> $JAVA_HOME/bin/java -> $PATH/java
-while java_cmd in ("$JAVA_CMD" "$JAVA_HOME/bin/java" "java") ; do
+for java_cmd in "$JAVA_CMD" "$JAVA_HOME/bin/java" "java" ; do
 	if $java_cmd -Xmx1m -version &>/dev/null ; then
 		JAVA_CMD=$java_cmd
+		break
 	fi
 done
 
