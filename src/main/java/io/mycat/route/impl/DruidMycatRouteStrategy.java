@@ -2,8 +2,10 @@ package io.mycat.route.impl;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -14,6 +16,7 @@ import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLExistsExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
@@ -114,6 +117,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		int index = 0;
 		RuleConfig firstRule = null;
 		boolean directRoute = true;
+		Set<String> firstDataNodes = new HashSet<String>();
 		
 		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
 		
@@ -129,17 +133,23 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
             }
 
             if(index == 0){
-                firstRule=  tc.getRule();
+            	 if(tc !=null){
+	                firstRule=  tc.getRule();
+	                firstDataNodes.addAll(tc.getDataNodes());
+            	 }
             }else{
                 if(tc !=null){
                   //ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
                     RuleConfig ruleCfg = tc.getRule();
-                    if(ruleCfg !=null && !ruleCfg.equals(firstRule)){
+                    Set<String> dataNodes = new HashSet<String>();
+                    dataNodes.addAll(tc.getDataNodes());
+                    if((ruleCfg !=null && !ruleCfg.equals(firstRule) )||( !dataNodes.equals(firstDataNodes))){
                       directRoute = false;
                       break;
                     }
                 }
             }
+            index++;
         }
 		}
 		
@@ -240,6 +250,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 */
 	private String buildSql(SQLStatement statement,SQLSelect sqlselect,List param){
 		SQLObject parent = sqlselect.getParent();
+		 if(param.isEmpty()){
+			 param.add(new SQLCharExpr(""));
+		 }
 		if(parent instanceof SQLInSubQueryExpr){
 			SQLInListExpr inlistExpr = new SQLInListExpr();
 			inlistExpr.setTargetList(param);

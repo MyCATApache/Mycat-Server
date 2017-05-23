@@ -505,12 +505,16 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
                 buffer.get(data);
                 buffer.clear();
                 //如果该操作只是一个中间过程则把结果存储起来
-				 String str =  ResultSetUtil.getColumnValAsString(data, fields, 0);
-				 //真的需要数据合并的时候才合并
-				 if(rrs.isHasAggrColumn()){
-					 middlerResultHandler.getResult().clear();
-					 middlerResultHandler.add(str);	
+				 String str =  null;
+				 if(data != null && data.length >0){
+					 
+					 str = ResultSetUtil.getColumnValAsString(data, fields, 0);
+					 if(rrs.isHasAggrColumn()){
+						 middlerResultHandler.getResult().clear();
+ 						 middlerResultHandler.add(str);	
+ 					 }
 				 }
+				 //真的需要数据合并的时候才合并
 				 isMiddleResultDone.set(false);
 		}else{
 			ByteBuffer byteBuffer = source.writeToBuffer(eof, buffer);
@@ -793,7 +797,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
  				if(null != middlerResultHandler ){
  					 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
  						 byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
-						 String rowValue =  rv==null?null:new String(rv);
+						 String rowValue =  rv==null? "" :new String(rv);
 						 middlerResultHandler.add(rowValue);	
  					 }
 				}

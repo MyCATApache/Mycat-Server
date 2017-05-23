@@ -472,15 +472,14 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			 */
 			buffer = binRowDataPk.write(buffer, session.getSource(), true);
 		} else {
-
-			MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+ 			MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
 	        if(null ==middlerResultHandler ){
 	        	 buffer = session.getSource().writeToBuffer(row, allocBuffer());
 			}else{
 		        if(middlerResultHandler instanceof MiddlerQueryResultHandler){
-		        	byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
-					 	 String rowValue =  rv==null?null:new String(rv);
-						 middlerResultHandler.add(rowValue);	
+		            byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
+				 	String rowValue =  rv==null ? "" :new String(rv);
+					middlerResultHandler.add(rowValue);	
  				 }
 			}
 		 
