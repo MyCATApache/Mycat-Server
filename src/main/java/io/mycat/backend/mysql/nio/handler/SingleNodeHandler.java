@@ -479,7 +479,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			}else{
 		        if(middlerResultHandler instanceof MiddlerQueryResultHandler){
 		        	byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
-					 	 String rowValue =  rv==null?null:new String(rv);
+					 	 String rowValue =  rv==null?"":new String(rv);
 						 middlerResultHandler.add(rowValue);	
  				 }
 			}
