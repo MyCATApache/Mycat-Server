@@ -151,6 +151,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	                    RuleConfig ruleCfg = tc.getRule();
 	                    Set<String> dataNodes = new HashSet<String>();
 	                    dataNodes.addAll(tc.getDataNodes());
+	                    //如果匹配规则不相同或者分片的datanode不相同则需要走子查询处理
 	                    if((ruleCfg !=null && !ruleCfg.equals(firstRule) )||( !dataNodes.equals(firstDataNodes))){
 	                      directRoute = false;
 	                      break;
