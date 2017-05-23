@@ -205,7 +205,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 				}
 			}
 		}
-		
+		System.out.println("是否开启黑名单检查："+check);
 		if( check ){
 			WallCheckResult result = contextLocal.get().check(sql);
 			
