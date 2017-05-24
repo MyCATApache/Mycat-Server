@@ -1,9 +1,9 @@
 package io.mycat.backend.mysql.nio.handler;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 
 import io.mycat.backend.mysql.DataType;
 
@@ -15,7 +15,7 @@ import io.mycat.backend.mysql.DataType;
  */
 public class MiddlerQueryResultHandler<T> implements MiddlerResultHandler<T> {
 
-	List<T> reusult = new ArrayList<T>();
+	List<SQLCharExpr> reusult = new ArrayList<>();
 	DataType dataType;
 	Class<T> clazz;
 	private SecondHandler secondHandler;
@@ -31,30 +31,14 @@ public class MiddlerQueryResultHandler<T> implements MiddlerResultHandler<T> {
 	}
 	
 	@Override
-	public List<T> getResult() {
+	public List<SQLCharExpr> getResult() {
  		return reusult;
 	}
 	@Override
 	public void add(T t ) {
- 		reusult.add(t);
- 	}
-
+ 		reusult.add(new SQLCharExpr(t==null?null:t.toString()));
+ 	}	 
 	 
-	public static void main(String[] args) {
-		System.out.println(String.class);
-		
-		MiddlerQueryResultHandler<String> m = new MiddlerQueryResultHandler<String>(new SecondHandler() {
-			
-			@Override
-			public void doExecute(String param) {
-				// TODO Auto-generated method stub
-				
-			}
-		});
-		
-	    
-		
-	}
 	@Override
 	public String getDataType() {
  		return dataType.name();
@@ -62,25 +46,6 @@ public class MiddlerQueryResultHandler<T> implements MiddlerResultHandler<T> {
 	
 	@Override
 	public void secondEexcute() {
-		List<T> list =   getResult();
-		StringBuffer sb = new StringBuffer();
-		 for(T t:list){
-			 sb.append('\'');
-			 sb.append(t).append('\'').append(",");
-		 }
-		 
-		 //huangyiming 
-		 String param = "";
-		  if(sb.equals("")|| sb.length()==0){
-			  param="";
-		  }else{
-			  param = sb.substring(0, sb.length()-1);
-		  }
-		  
-		secondHandler.doExecute(param);
-		
+		secondHandler.doExecute(getResult());
 	}
-	
-	 
-	 
 }
