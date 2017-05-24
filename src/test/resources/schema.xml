@@ -3,19 +3,15 @@
 <mycat:schema xmlns:mycat="http://io.mycat/">
 
     <schema name="dbtest" checkSQLschema="true" sqlMaxLimit="100">
-        <!-- auto sharding by id (long) -->
-        <table name="travelrecord" dataNode="dn1,dn2,dn3" autoIncrement="true" primaryKey="id" rule="auto-sharding-long" />
+        <table name="travelrecord" dataNode="dn1" autoIncrement="true" primaryKey="id" />
     </schema>
 
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />
-	<dataNode name="dn2" dataHost="localhost1" database="db2" />
-	<dataNode name="dn3" dataHost="localhost1" database="db3" />
 
 	<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
-			  writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
+			  writeType="0" dbType="mysql" dbDriver="native" switchType="1" slaveThreshold="100">
 		<heartbeat>select user()</heartbeat>
-		<!-- can have multi write hosts -->
-		<writeHost host="hostM1" url="127.0.0.1:33061" user="root" password="123456">
+		<writeHost host="hostM1" url="127.0.0.1:33061" user="root" password="123456"> <!-- url、user、password 设置成你的数据库 -->
 		</writeHost>
 	</dataHost>
 
