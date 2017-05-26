@@ -172,7 +172,8 @@ public final class NIOProcessor {
 
 			// 清理已关闭连接，否则空闲检查。
 			if (c.isClosed()) {
-				c.cleanup();
+				// 此处在高并发情况下会存在并发问题, fixed #1072  极有可能解决了 #700
+				//c.cleanup();
 				it.remove();
 				this.frontendsLength.decrementAndGet();
 			} else {
