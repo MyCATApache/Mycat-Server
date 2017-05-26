@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
+<mycat:schema xmlns:mycat="http://io.mycat/">
+
+    <schema name="dbtest" checkSQLschema="true" sqlMaxLimit="100">
+        <table name="travelrecord" dataNode="dn1" autoIncrement="true" primaryKey="id" />
+    </schema>
+
+	<dataNode name="dn1" dataHost="localhost1" database="db1" />
+
+	<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
+			  writeType="0" dbType="mysql" dbDriver="native" switchType="1" slaveThreshold="100">
+		<heartbeat>select user()</heartbeat>
+		<writeHost host="hostM1" url="127.0.0.1:33061" user="root" password="123456"> <!-- url、user、password 设置成你的数据库 -->
+		</writeHost>
+	</dataHost>
+
+</mycat:schema>
