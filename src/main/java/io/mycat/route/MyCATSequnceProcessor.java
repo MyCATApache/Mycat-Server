@@ -1,11 +1,5 @@
 package io.mycat.route;
 
-import java.nio.ByteBuffer;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
 import io.mycat.net.mysql.EOFPacket;
@@ -15,6 +9,12 @@ import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.parser.druid.DruidSequenceHandler;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public class MyCATSequnceProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MyCATSequnceProcessor.class);
@@ -77,13 +77,15 @@ public class MyCATSequnceProcessor {
 				return;
 			}*/
 			
-			//使用Druid解析器实现sequence处理  @兵临城下
+			// 使用Druid解析器实现sequence处理  @兵临城下
 			DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
 					.getInstance().getConfig().getSystem().getSequnceHandlerType());
-			
+
+			// 生成可执行 SQL ：目前主要是生成 id
 			String charset = pair.session.getSource().getCharset();
 			String executeSql = sequenceHandler.getExecuteSql(pair.sql,charset == null ? "utf-8":charset);
-			
+
+			// 执行 SQL
 			pair.session.getSource().routeEndExecuteSQL(executeSql, pair.type,pair.schema);
 		} catch (Exception e) {
 			LOGGER.error("MyCATSequenceProcessor.executeSeq(SesionSQLPair)",e);
@@ -107,7 +109,9 @@ public class MyCATSequnceProcessor {
 				try {
 					SessionSQLPair pair=seqSQLQueue.poll(100,TimeUnit.MILLISECONDS);
 					if(pair!=null){
-						executeSeq(pair);
+                        Long now = System.nanoTime();
+                        executeSeq(pair);
+                        System.err.println("消耗时间：" + (System.nanoTime() - now));
 					}
 				} catch (Exception e) {
 					LOGGER.warn("MyCATSequenceProcessor$ExecutorThread",e);

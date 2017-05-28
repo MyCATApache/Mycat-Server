@@ -23,16 +23,6 @@
  */
 package io.mycat.route;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheService;
 import io.mycat.cache.LayerCachePool;
@@ -45,7 +35,19 @@ import io.mycat.route.handler.HintHandlerFactory;
 import io.mycat.route.handler.HintSQLHandler;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+
+/**
+ * 路由服务
+ */
 public class RouteService {
     private static final Logger LOGGER = LoggerFactory
             .getLogger(RouteService.class);
@@ -67,15 +69,25 @@ public class RouteService {
 		return tableId2DataNodeCache;
 	}
 
+    /**
+     * 获取路由
+     *
+     * @param sysconf 系统配置
+     * @param schema scheme 配置
+     * @param sqlType SQL 类型
+     * @param stmt SQL
+     * @param charset 编码
+     * @param sc 前端服务器连接
+     * @return 路由结果
+     * @throws SQLNonTransientException 当数据迁移时
+     */
 	public RouteResultset route(SystemConfig sysconf, SchemaConfig schema,
 			int sqlType, String stmt, String charset, ServerConnection sc)
 			throws SQLNonTransientException {
 		RouteResultset rrs = null;
 		String cacheKey = null;
 
-		/**
-		 *  SELECT 类型的SQL, 检测
-		 */
+		// SELECT 类型的SQL, 检测缓存是否存在
 		if (sqlType == ServerParse.SELECT) {
 			cacheKey = schema.getName() + stmt;			
 			rrs = (RouteResultset) sqlRouteCache.get(cacheKey);
@@ -113,7 +125,7 @@ public class RouteService {
                     if( hintHandler != null ) {    
 
                     	if ( hintHandler instanceof  HintSQLHandler) {                    		
-                          	/**
+                          	/*
                         	 * 修复 注解SQL的 sqlType 与 实际SQL的 sqlType 不一致问题， 如： hint=SELECT，real=INSERT
                         	 * fixed by zhuam
                         	 */
@@ -146,8 +158,8 @@ public class RouteService {
 		return rrs;
 	}
 
-	 //数据迁移的切换准备阶段，需要拒绝写操作和所有的跨多节点写操作
-		private   void checkMigrateRule(String schemal,RouteResultset rrs,int sqlType ) throws SQLNonTransientException {
+    //数据迁移的切换准备阶段，需要拒绝写操作和所有的跨多节点写操作
+    private   void checkMigrateRule(String schemal,RouteResultset rrs,int sqlType ) throws SQLNonTransientException {
 		if(rrs!=null&&rrs.getTables()!=null){
 			boolean isUpdate=isUpdateSql(sqlType);
 			if(!isUpdate)return;

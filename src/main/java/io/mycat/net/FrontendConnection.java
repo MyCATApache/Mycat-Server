@@ -219,7 +219,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 			writeErrMessage(ErrorCode.ER_BAD_DB_ERROR, "Unknown database '" + db + "'");
 			return;
 		}
-		
+
 		if (!privileges.userExists(user, host)) {
 			writeErrMessage(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + user + "'");
 			return;
@@ -276,8 +276,12 @@ public abstract class FrontendConnection extends AbstractConnection {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "load data infile end is not  unsupported!");
 		}
 	}
-	
-	
+
+    /**
+     * 执行语句
+     *
+     * @param sql SQL
+     */
 	public void query(String sql) {
 		
 		if (sql == null || sql.length() == 0) {
@@ -327,7 +331,12 @@ public abstract class FrontendConnection extends AbstractConnection {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Query unsupported!");
 		}		
 	}
-	
+
+    /**
+     * 解析查询语句，并进行查询
+     *
+     * @param data
+     */
 	public void query(byte[] data) {
 		
 		// 取得语句
@@ -340,7 +349,8 @@ public abstract class FrontendConnection extends AbstractConnection {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
 			return;
 		}		
-		
+
+		// 执行语句
 		this.query( sql );
 	}
 

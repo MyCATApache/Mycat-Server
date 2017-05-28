@@ -49,9 +49,9 @@ public class DruidSequenceHandler {
     /**
      * 根据原sql获取可执行的sql
      *
-     * @param sql
-     * @return
-     * @throws UnsupportedEncodingException
+     * @param sql SQL
+     * @return 可执行 SQL
+     * @throws UnsupportedEncodingException 当编码不支持时
      */
     public String getExecuteSql(String sql, String charset) throws UnsupportedEncodingException {
         String executeSql = null;

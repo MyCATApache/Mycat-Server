@@ -32,6 +32,8 @@ import io.mycat.server.handler.*;
 import io.mycat.server.parser.ServerParse;
 
 /**
+ * 数据库查询处理器实现
+ *
  * @author mycat
  */
 public class ServerQueryHandler implements FrontendQueryHandler {
@@ -49,6 +51,11 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		this.source = source;
 	}
 
+    /**
+     * 解析 SQL ，分发到不同的 Handler 里进行处理。
+     *
+     * @param sql SQL
+     */
 	@Override
 	public void query(String sql) {
 		
@@ -56,7 +63,7 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug(new StringBuilder().append(c).append(sql).toString());
 		}
-		//
+		// 解析 SQL 类型
 		int rs = ServerParse.parse(sql);
 		int sqlType = rs & 0xff;
 		

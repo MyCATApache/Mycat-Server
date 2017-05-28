@@ -1,23 +1,5 @@
 package io.mycat.route.util;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
@@ -33,7 +15,6 @@ import com.google.common.base.Strings;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -57,6 +38,13 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.*;
+import java.util.concurrent.Callable;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -172,7 +160,7 @@ public class RouterUtil {
 
 
 	/**
-	 * 修复DDL路由
+	 * 修复DDL路由 TODO 待读：创建表
 	 *
 	 * @return RouteResultset
 	 * @author aStoneGod
@@ -538,6 +526,15 @@ public class RouterUtil {
 		return tabInd;
 	}
 
+    /**
+     * 处理 SQL 里带 MYCATSEQ_ / mycatseq_，即 id 使用全局序列号
+     *
+     * @param schema schema 配置
+     * @param sqlType SQL 类型
+     * @param origSQL SQL
+     * @param sc 前端接入连接
+     * @return 是否进行处理
+     */
 	public static boolean processWithMycatSeq(SchemaConfig schema, int sqlType,
 	                                          String origSQL, ServerConnection sc) {
 		// check if origSQL is with global sequence
@@ -551,6 +548,14 @@ public class RouterUtil {
 		return false;
 	}
 
+    /**
+     * 处理 SQL：添加到 序号（id）处理器，进行一步处理。
+     *
+     * @param sc 前端接入连接
+     * @param schema schema 配置
+     * @param sql SQL
+     * @param sqlType SQL 类型
+     */
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
 //		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
 		SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
@@ -570,6 +575,16 @@ public class RouterUtil {
 //		}
 	}
 
+    /**
+     * 处理 id 自增长
+     *
+     * @param schema schema 配置
+     * @param sqlType SQL 类型
+     * @param origSQL SQL
+     * @param sc 前端接入连接
+     * @return 是否结束路由
+     * @throws SQLNonTransientException 当 SQL 不正确时
+     */
 	public static boolean processInsert(SchemaConfig schema, int sqlType,
 	                                    String origSQL, ServerConnection sc) throws SQLNonTransientException {
 		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
@@ -578,11 +593,20 @@ public class RouterUtil {
 		//判断是有自增字段
 		if (null != tableConfig && tableConfig.isAutoIncrement()) {
 			String primaryKey = tableConfig.getPrimaryKey();
-			processedInsert=processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey);
+			processedInsert = processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey);
 		}
 		return processedInsert;
 	}
 
+    /**
+     * 判断 SQL 里是否包含 主键
+     *
+     * @param origSQL SQL
+     * @param primaryKey 主键
+     * @param firstLeftBracketIndex 查询 fields 左括号位置
+     * @param firstRightBracketIndex 查询 fields 右括号位置
+     * @return 是否有主键
+     */
 	private static boolean isPKInFields(String origSQL,String primaryKey,int firstLeftBracketIndex,int firstRightBracketIndex){
 
 		if (primaryKey == null) {
@@ -610,6 +634,18 @@ public class RouterUtil {
 		return isPrimaryKeyInFields;
 	}
 
+    /**
+     * 处理 id 自增长
+     *
+     * @param sc 前端接入连接
+     * @param schema schema 配置
+     * @param sqlType SQL 类型
+     * @param origSQL SQL
+     * @param tableName 表名
+     * @param primaryKey 主键
+     * @return 是否处理
+     * @throws SQLNonTransientException 当 SQL 不正确时
+     */
 	public static boolean processInsert(ServerConnection sc,SchemaConfig schema,
 			int sqlType,String origSQL,String tableName,String primaryKey) throws SQLNonTransientException {
 
@@ -626,7 +662,7 @@ public class RouterUtil {
 			throw new SQLNonTransientException(msg);
 		}
 		//屏蔽批量插入
-		if(selectIndex > 0 &&fromIndex>0&&selectIndex>firstRightBracketIndex&&valuesIndex<0) {
+		if(selectIndex > 0 && fromIndex > 0 && selectIndex > firstRightBracketIndex&&valuesIndex < 0) {
 			String msg = "multi insert not provided" ;
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
@@ -636,8 +672,9 @@ public class RouterUtil {
 			throw new SQLSyntaxErrorException("insert must provide ColumnList");
 		}
 		//如果主键不在插入语句的fields中，则需要进一步处理
-		boolean processedInsert=!isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
-		if(processedInsert){
+		boolean processedInsert = !isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
+		if (processedInsert){
+		    // 分拆SQL
 			List<String> insertSQLs = handleBatchInsert(origSQL, valuesIndex);
 			for(String insertSQL:insertSQLs) {
 				processInsert(sc, schema, sqlType, insertSQL, tableName, primaryKey, firstLeftBracketIndex + 1, insertSQL.indexOf('(', firstRightBracketIndex) + 1);
@@ -646,7 +683,18 @@ public class RouterUtil {
 		return processedInsert;
 	}
 
-	public static List<String> handleBatchInsert(String origSQL, int valuesIndex){
+    /**
+     * 分拆批量插入 SQL 为多条 SQL。
+     * INSERT INTO table1(age) VALUES(1),(2);
+     *      =>
+     *          INSERT INTO table1(age) VALUES(1);
+     *          INSERT INTO table1(age) VALUES(2);
+     *
+     * @param origSQL SQL
+     * @param valuesIndex values 开始位置
+     * @return SQL 数组
+     */
+	public static List<String> handleBatchInsert(String origSQL, int valuesIndex) {
 		List<String> handledSQLs = new LinkedList<>();
 		String prefix = origSQL.substring(0,valuesIndex + "VALUES".length());
 		String values = origSQL.substring(valuesIndex + "VALUES".length());
@@ -691,10 +739,22 @@ public class RouterUtil {
 		return handledSQLs;
 	}
 
-
+    /**
+     * 改写 SQL ，并进一步处理 SQL
+     * insert into hotnews(title) values('aaa'); =》insert into hotnews(id, title) values(next value for MYCATSEQ_hotnews,'aaa');
+     *
+     * @param sc 前端接入连接
+     * @param schema schema 配置
+     * @param sqlType SQL 类型
+     * @param origSQL SQL
+     * @param tableName 表名
+     * @param primaryKey 主键
+     * @param afterFirstLeftBracketIndex fields 开始位置
+     * @param afterLastLeftBracketIndex values 开始位置
+     */
 	private static void processInsert(ServerConnection sc, SchemaConfig schema, int sqlType, String origSQL,
 			String tableName, String primaryKey, int afterFirstLeftBracketIndex, int afterLastLeftBracketIndex) {
-		/**
+		/*
 		 * 对于主键不在插入语句的fields中的SQL，需要改写。比如hotnews主键为id，插入语句为：
 		 * insert into hotnews(title) values('aaa');
 		 * 需要改写成：
@@ -705,7 +765,6 @@ public class RouterUtil {
 		String mycatSeqPrefix = "next value for MYCATSEQ_";
 		int mycatSeqPrefixLength = mycatSeqPrefix.length();
 		int tableNameLength = tableName.length();
-
 		char[] newSQLBuf = new char[origSQL.length() + primaryKeyLength + mycatSeqPrefixLength + tableNameLength + 2];
 		origSQL.getChars(0, afterFirstLeftBracketIndex, newSQLBuf, 0);
 		primaryKey.getChars(0, primaryKeyLength, newSQLBuf, insertSegOffset);
@@ -721,6 +780,8 @@ public class RouterUtil {
 		newSQLBuf[insertSegOffset] = ',';
 		insertSegOffset++;
 		origSQL.getChars(afterLastLeftBracketIndex, origSQL.length(), newSQLBuf, insertSegOffset);
+
+		// 处理SQL
 		processSQL(sc, schema, new String(newSQLBuf), sqlType);
 	}
 
@@ -1584,7 +1645,7 @@ public class RouterUtil {
 
 
 	/**
-	 * 该方法，返回是否是ER子表
+	 * 该方法，返回是否是ER子表 TODO 待读：ER子表
 	 * @param schema
 	 * @param origSQL
 	 * @param sc

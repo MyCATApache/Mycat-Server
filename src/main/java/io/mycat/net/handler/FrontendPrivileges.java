@@ -76,7 +76,7 @@ public interface FrontendPrivileges {
      */
     boolean checkFirewallWhiteHostPolicy(String user, String host);
     
-    /**
+    /** TODO 待读：防火墙
      * 检查防火墙策略
      * (SQL黑名单及注入策略)
      * @param sql
@@ -85,7 +85,7 @@ public interface FrontendPrivileges {
     boolean checkFirewallSQLPolicy(String user, String sql);
     
     
-    /**
+    /** TODO 待读：防火墙
      * 检查 SQL 语句的 DML 权限
      * @return
      */

@@ -23,28 +23,11 @@
  */
 package io.mycat.server;
 
-import java.io.IOException;
-import java.nio.channels.NetworkChannel;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-
 import io.mycat.MycatServer;
-import io.mycat.backend.mysql.DataType;
-import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
-import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
-import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
-import io.mycat.backend.mysql.nio.handler.SecondHandler;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
-import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.server.handler.MysqlInformationSchemaHandler;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
@@ -54,6 +37,13 @@ import io.mycat.server.response.Ping;
 import io.mycat.server.util.SchemaUtil;
 import io.mycat.util.SplitUtil;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.channels.NetworkChannel;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author mycat
@@ -155,6 +145,12 @@ public class ServerConnection extends FrontendConnection {
 		Heartbeat.response(this, data);
 	}
 
+    /**
+     * 执行 SQL
+     *
+     * @param sql SQL
+     * @param type SQL 类型
+     */
 	public void execute(String sql, int type) {
 		//连接状态检查
 		if (this.isClosed()) {
@@ -188,7 +184,8 @@ public class ServerConnection extends FrontendConnection {
 			return;
 		}
 
-		if (ServerParse.SELECT == type 
+        // 兼容MySQLWorkbench
+        if (ServerParse.SELECT == type
 				&& sql.contains("mysql") 
 				&& sql.contains("proc")) {
 			
@@ -196,8 +193,6 @@ public class ServerConnection extends FrontendConnection {
 			if (schemaInfo != null 
 					&& "mysql".equalsIgnoreCase(schemaInfo.schema)
 					&& "proc".equalsIgnoreCase(schemaInfo.table)) {
-				
-				// 兼容MySQLWorkbench
 				MysqlProcHandler.handle(sql, this);
 				return;
 			}
@@ -220,6 +215,7 @@ public class ServerConnection extends FrontendConnection {
 		/* 当已经设置默认schema时，可以通过在sql中指定其它schema的方式执行
 		 * 相关sql，已经在mysql客户端中验证。
 		 * 所以在此处增加关于sql中指定Schema方式的支持。
+		 * 例如：select * from schema.table 的 schema。
 		 */
 		if (isDefault && schema.isCheckSQLSchema() && isNormalSql(type)) {
 			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
@@ -230,8 +226,8 @@ public class ServerConnection extends FrontendConnection {
 			}
 		}
 
+		// 路由到后端数据库，执行 SQL
 		routeEndExecuteSQL(sql, type, schema);
-
 	}
 	
 	private boolean isNormalSql(int type) {
@@ -274,10 +270,14 @@ public class ServerConnection extends FrontendConnection {
 		return rrs;
 	}
 
-
-
-
-	public void routeEndExecuteSQL(String sql, final int type, final SchemaConfig schema) {
+    /**
+     * 路由到后端数据库，执行 SQL
+     *
+     * @param sql SQL
+     * @param type SQL 类型
+     * @param schema schema 配置
+     */
+    public void routeEndExecuteSQL(String sql, final int type, final SchemaConfig schema) {
 		// 路由计算
 		RouteResultset rrs = null;
 		try {
@@ -294,9 +294,11 @@ public class ServerConnection extends FrontendConnection {
 			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return;
 		}
+
+		// 执行 SQL
 		if (rrs != null) {
 			// session执行
-			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
+			session.execute(rrs, rrs.isSelectForUpdate() ? ServerParse.UPDATE : type);
 		}
 		
  	}

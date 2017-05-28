@@ -24,11 +24,17 @@
 package io.mycat.statistic;
 
 /**
+ * 命令计数器
+ *
  * @author mycat
  */
 public class CommandCount {
 
     private long initDB;
+    /**
+     * 查询命名计数
+     * 不仅仅包括SELECT，INSERT / DELETE / UPDATE 也算
+     */
     private long query;
     private long stmtPrepare;
     private long stmtSendLongData;

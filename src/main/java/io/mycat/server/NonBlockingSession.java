@@ -142,9 +142,9 @@ public class NonBlockingSession implements Session {
             }
 
             try {
-                if(initCount > 1){
+                if (initCount > 1) {
                     checkDistriTransaxAndExecute(rrs,1,autocommit);
-                }else{
+                } else {
                     singleNodeHandler.execute();
                 }
             } catch (Exception e) {
@@ -153,7 +153,6 @@ public class NonBlockingSession implements Session {
             }
 
         } else {
-
             multiNodeHandler = new MultiNodeQueryHandler(type, rrs, autocommit, this);
             if (this.isPrepared()) {
                 multiNodeHandler.setPrepared(true);
