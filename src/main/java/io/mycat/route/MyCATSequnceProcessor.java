@@ -98,7 +98,7 @@ public class MyCATSequnceProcessor {
 		running=false;
 	}
 	
-	class ExecuteThread extends Thread {
+	class ExecuteThread extends Thread { // TODO 疑问：单线程
 		
 		public ExecuteThread() {
 			setDaemon(true); // 设置为后台线程,防止throw RuntimeExecption进程仍然存在的问题
@@ -111,7 +111,7 @@ public class MyCATSequnceProcessor {
 					if(pair!=null){
                         Long now = System.nanoTime();
                         executeSeq(pair);
-                        System.err.println("消耗时间：" + (System.nanoTime() - now));
+                        System.err.println(Thread.currentThread().getId() + "：消耗时间：" + (System.nanoTime() - now));
 					}
 				} catch (Exception e) {
 					LOGGER.warn("MyCATSequenceProcessor$ExecutorThread",e);

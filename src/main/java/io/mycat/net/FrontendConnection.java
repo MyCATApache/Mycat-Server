@@ -479,7 +479,6 @@ public abstract class FrontendConnection extends AbstractConnection {
 
 	@Override
 	public void handle(final byte[] data) {
-
 		if (isSupportCompress()) {			
 			List<byte[]> packs = CompressUtil.decompressMysqlPacket(data, decompressUnfinishedDataQueue);
 			for (byte[] pack : packs) {
@@ -487,14 +486,17 @@ public abstract class FrontendConnection extends AbstractConnection {
 					rawHandle(pack);
 				}
 			}
-			
 		} else {
 			rawHandle(data);
 		}
 	}
 
+    /**
+     * 处理请求数据
+     *
+     * @param data 数据
+     */
 	public void rawHandle(final byte[] data) {
-
 		//load data infile  客户端会发空包 长度为4
 		if (data.length == 4 && data[0] == 0 && data[1] == 0 && data[2] == 0) {
 			// load in data空包
@@ -507,6 +509,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 			this.close("quit cmd");
 			return;
 		}
+		// 处理请求
 		handler.handle(data);
 	}
 

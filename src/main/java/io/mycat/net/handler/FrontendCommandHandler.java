@@ -60,7 +60,7 @@ public class FrontendCommandHandler implements NIOHandler
             }
             return;
         }
-        switch (data[4])
+        switch (data[4]) //
         {
             case MySQLPacket.COM_INIT_DB:
                 commands.doInitDB();

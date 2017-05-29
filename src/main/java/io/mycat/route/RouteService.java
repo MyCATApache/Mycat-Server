@@ -103,7 +103,7 @@ public class RouteService {
 //      boolean isMatchNewHint = stmt.startsWith(NEW_MYCAT_HINT);
 //		if (isMatchOldHint || isMatchNewHint ) {
 		int hintLength = RouteService.isHintSql(stmt);
-		if(hintLength != -1){
+		if(hintLength != -1){ // TODO 待读：hint
 			int endPos = stmt.indexOf("*/");
 			if (endPos > 0) {				
 				// 用!mycat:内部的语句来做路由分析
