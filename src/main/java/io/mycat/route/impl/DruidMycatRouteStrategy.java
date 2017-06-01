@@ -136,12 +136,10 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			    	return catletRoute(schema,ctx.getSql(),charset,sc);
 				}
 			}else if(subQuerySize==1){     //只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行 TODO 后期可能会考虑多个子查询的情况.
-				SQLSelect sqlselect = visitor.getSubQuerys().get(0);
-				if((sqlselect.getParent() instanceof SQLQueryExpr 
-						&&sqlselect.getParent().getParent() instanceof MySqlSelectQueryBlock)
-					||sqlselect.getParent() instanceof SQLExistsExpr
+				SQLSelect sqlselect = visitor.getSubQuerys().iterator().next();
+				if(sqlselect.getParent() instanceof SQLExistsExpr
 					||!visitor.getRelationships().isEmpty()
-					||sqlselect.getParent() instanceof SQLSomeExpr
+					||sqlselect.getParent() instanceof SQLSomeExpr  /* 如果 some,all,any 没有被改写 直接路由  */
 					||sqlselect.getParent() instanceof SQLAllExpr
 					||sqlselect.getParent() instanceof SQLAnyExpr){
 					return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
@@ -368,6 +366,19 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				}
 				listExpr.setParent(orderItem);
 				orderItem.setExpr(listExpr);
+			}else if(parent.getParent() instanceof MySqlSelectQueryBlock){
+				MySqlSelectQueryBlock query = (MySqlSelectQueryBlock)parent.getParent();
+				// select * from subtest1 a where (select 1 from subtest3); 这种情况会进入到当前分支.
+				// 改写为   select * from subtest1 a where (1); 或  select * from subtest1 a where (null);
+				SQLExprImpl listExpr = null;
+				if(null==param||param.isEmpty()){
+					listExpr = getEmptyExpr(parent);
+				}else{
+					listExpr = new SQLListExpr();
+					((SQLListExpr)listExpr).getItems().addAll(param);
+				}
+				listExpr.setParent(query);
+				query.setWhere(listExpr);
 			}
 
 		}

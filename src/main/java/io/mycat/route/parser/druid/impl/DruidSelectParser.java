@@ -303,7 +303,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		    	return true;
 			}
 		}else if(subQuerySize==1){     //只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行 TODO 后期可能会考虑多个.
-			SQLSelectQuery sqlSelectQuery = visitor.getSubQuerys().get(0).getQuery();
+			SQLSelectQuery sqlSelectQuery = visitor.getSubQuerys().iterator().next().getQuery();
 			if(((MySqlSelectQueryBlock)sqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
 				return true;
 			}
