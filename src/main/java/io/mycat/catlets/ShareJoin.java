@@ -424,8 +424,10 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 				 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
 					// if(middlerResultHandler.getDataType().equalsIgnoreCase("string")){
 						 byte[] columnData = rowDataPkg.fieldValues.get(0);
-						 String rowValue =    new String(columnData);
-						 middlerResultHandler.add(rowValue);	
+						 if(columnData !=null && columnData.length >0){
+ 							 String rowValue =    new String(columnData);
+							 middlerResultHandler.add(rowValue);	
+						 }
 				   //}
 				 }
 				

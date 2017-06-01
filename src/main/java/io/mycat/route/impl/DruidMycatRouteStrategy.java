@@ -2,8 +2,10 @@ package io.mycat.route.impl;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -18,12 +20,11 @@ import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAllExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAnyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLExistsExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
 import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.ast.expr.SQLListExpr;
 import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
@@ -45,7 +46,6 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.base.Strings;
-import java.lang.Number;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
@@ -126,34 +126,40 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		int index = 0;
 		RuleConfig firstRule = null;
 		boolean directRoute = true;
-		
+		Set<String> firstDataNodes = new HashSet<String>();
 		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
 		
-    if(tconfigs!=null){	
-        for(String tableName : tables){
-            TableConfig tc =  tconfigs.get(tableName);
-            if(tc == null){
-              //add 别名中取
-              Map<String, String> tableAliasMap = ctx.getTableAliasMap();
-              if(tableAliasMap !=null && tableAliasMap.get(tableName) !=null){
-                tc = schemaConf.getTables().get(tableAliasMap.get(tableName));
-              }
-            }
+		if(tconfigs!=null){	
+	        for(String tableName : tables){
+	            TableConfig tc =  tconfigs.get(tableName);
+	            if(tc == null){
+	              //add 别名中取
+	              Map<String, String> tableAliasMap = ctx.getTableAliasMap();
+	              if(tableAliasMap !=null && tableAliasMap.get(tableName) !=null){
+	                tc = schemaConf.getTables().get(tableAliasMap.get(tableName));
+	              }
+	            }
 
-            if(index == 0){
-                firstRule=  tc.getRule();
-            }else{
-                if(tc !=null){
-                  //ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
-                    RuleConfig ruleCfg = tc.getRule();
-                    if(ruleCfg !=null && !ruleCfg.equals(firstRule)){
-                      directRoute = false;
-                      break;
-                    }
-                }
-            }
-            index++;
-        }
+	            if(index == 0){
+	            	 if(tc !=null){
+		                firstRule=  tc.getRule();
+		                firstDataNodes.addAll(tc.getDataNodes());
+	            	 }
+	            }else{
+	                if(tc !=null){
+	                  //ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
+	                    RuleConfig ruleCfg = tc.getRule();
+	                    Set<String> dataNodes = new HashSet<String>();
+	                    dataNodes.addAll(tc.getDataNodes());
+	                    //如果匹配规则不相同或者分片的datanode不相同则需要走子查询处理
+	                    if((ruleCfg !=null && !ruleCfg.equals(firstRule) )||( !dataNodes.equals(firstDataNodes))){
+	                      directRoute = false;
+	                      break;
+	                    }
+	                }
+	            }
+	            index++;
+	        }
 		}
 		
 		/*
@@ -264,7 +270,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	private String buildSql(SQLStatement statement,SQLSelect sqlselect,List param){
 		
 		SQLObject parent = sqlselect.getParent();
-		
+		if(param.isEmpty()){
+			 param.add(new SQLCharExpr(""));
+		}
 		if(parent instanceof SQLInSubQueryExpr){
 			SQLExprImpl inlistExpr = null;
 			if(null==param||param.isEmpty()){

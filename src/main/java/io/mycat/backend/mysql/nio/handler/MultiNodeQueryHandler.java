@@ -510,7 +510,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
  					 //真的需要数据合并的时候才合并
  					 if(rrs.isHasAggrColumn()){
  						 middlerResultHandler.getResult().clear();
- 						 middlerResultHandler.add(str);	
+ 						 if(str !=null){
+  							 middlerResultHandler.add(str);	
+ 						 }
  					 }
  				}
 				isMiddleResultDone.set(false);
@@ -795,7 +797,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
  				if(null != middlerResultHandler ){
  					 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
  						 byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
-						 String rowValue =  rv==null?null:new String(rv);
+						 String rowValue =  rv==null? "":new String(rv);
 						 middlerResultHandler.add(rowValue);	
  					 }
 				}
