@@ -289,7 +289,7 @@ public class ServerConnection extends FrontendConnection {
 
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
-			LOGGER.warn(s.append(this).append(sql).toString() + " err:" + e.toString(),e);
+			LOGGER.warn(s.append(this).append(sql).toString() + " err:" ,e);
 			String msg = e.getMessage();
 			writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return;

@@ -16,6 +16,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat.Condition;
 
+import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
@@ -138,6 +139,7 @@ public class DefaultDruidParser implements DruidParser {
 		}
 		
 		if(visitor.getAliasMap() != null) {
+			Map<String, SchemaConfig> schemas = MycatServer.getInstance().getConfig().getSchemas();
 			for(Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
 				String key = entry.getKey();
 				String value = entry.getValue();
@@ -147,11 +149,16 @@ public class DefaultDruidParser implements DruidParser {
 				if(value != null && value.indexOf("`") >= 0) {
 					value = value.replaceAll("`", "");
 				}
-				//表名前面带database的，去掉
+				//表名前面带database的，若存在则去掉，否则抛异常
 				if(key != null) {
 					int pos = key.indexOf(".");
 					if(pos> 0) {
-						key = key.substring(pos + 1);
+						String database = key.substring(0, pos);
+						if (schemas.containsKey(database)) {
+							key = key.substring(pos + 1);
+						} else {
+							throw new SQLNonTransientException("Table '" + key + "' doesn't exist");
+						}
 					}
 					
 					tableAliasMap.put(key.toUpperCase(), value);
