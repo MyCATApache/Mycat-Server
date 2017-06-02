@@ -61,7 +61,7 @@ public class CommitNodeHandler implements ResponseHandler {
 		   MySQLConnection mysqlCon = (MySQLConnection) conn;
 		   if (mysqlCon.getXaStatus() == 1)
 		   {
-			   String xaTxId = session.getXaTXID();
+			   String xaTxId = session.getXaTXID()+",'"+mysqlCon.getSchema()+"'";
 			   String[] cmds = new String[]{"XA END " + xaTxId,
 					   "XA PREPARE " + xaTxId};
 			   mysqlCon.execBatchCmd(cmds);
@@ -91,7 +91,7 @@ public class CommitNodeHandler implements ResponseHandler {
 				case 1:
 					if (mysqlCon.batchCmdFinished())
 					{
-						String xaTxId = session.getXaTXID();
+						String xaTxId = session.getXaTXID()+",'"+mysqlCon.getSchema()+"'";
 						mysqlCon.execCmd("XA COMMIT " + xaTxId);
 						mysqlCon.setXaStatus(TxState.TX_PREPARED_STATE);
 					}
