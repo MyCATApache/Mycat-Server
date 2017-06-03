@@ -23,11 +23,6 @@
  */
 package io.mycat.backend.mysql.nio;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.backend.mysql.ByteUtil;
 import io.mycat.backend.mysql.nio.handler.LoadDataResponseHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
@@ -36,6 +31,11 @@ import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.RequestFilePacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * life cycle: from connection establish to close <br/>
@@ -100,7 +100,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 			case RequestFilePacket.FIELD_COUNT:
 				handleRequestPacket(data);
 				break;
-			default:
+			default: // 初始化 header fields
 				resultStatus = RESULT_STATUS_HEADER;
 				header = data;
 				fields = new ArrayList<byte[]>((int) ByteUtil.readLength(data,
@@ -113,11 +113,11 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 				resultStatus = RESULT_STATUS_INIT;
 				handleErrorPacket(data);
 				break;
-			case EOFPacket.FIELD_COUNT:
+			case EOFPacket.FIELD_COUNT: // 解析 fields 结束
 				resultStatus = RESULT_STATUS_FIELD_EOF;
 				handleFieldEofPacket(data);
 				break;
-			default:
+			default: // 解析 fields
 				fields.add(data);
 			}
 			break;
@@ -127,11 +127,11 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 				resultStatus = RESULT_STATUS_INIT;
 				handleErrorPacket(data);
 				break;
-			case EOFPacket.FIELD_COUNT:
+			case EOFPacket.FIELD_COUNT: // 解析 每行记录 结束
 				resultStatus = RESULT_STATUS_INIT;
 				handleRowEofPacket(data);
 				break;
-			default:
+			default: // 每行记录
 				handleRowPacket(data);
 			}
 			break;

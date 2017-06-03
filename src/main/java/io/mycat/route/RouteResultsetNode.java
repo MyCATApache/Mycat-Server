@@ -23,33 +23,52 @@
  */
 package io.mycat.route;
 
-import java.io.Serializable;
-import java.util.Map;
-import java.util.Set;
-
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.LoadData;
+
+import java.io.Serializable;
+import java.util.Map;
 
 /**
  * @author mycat
  */
 public final class RouteResultsetNode implements Serializable , Comparable<RouteResultsetNode> {
-	/**
-	 *
-	 */
+
 	private static final long serialVersionUID = 1L;
+
+    /**
+     * 数据节点名称
+     */
 	private final String name; // 数据节点名称
+    /**
+     * SQL
+     */
 	private String statement; // 执行的语句
+    /**
+     * 原始 SQL
+     */
 	private final String srcStatement;
+    /**
+     * SQL 类型
+     */
 	private final int sqlType;
 	private volatile boolean canRunInReadDB;
 	private final boolean hasBlanceFlag;
     private boolean callStatement = false; // 处理call关键字
+    /**
+     * 分页开始位置
+     */
 	private int limitStart;
+    /**
+     * 分页大小
+     */
 	private int limitSize;
-	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
-   private Procedure procedure;
+	private int totalNodeSize = 0; //方便后续jdbc批量获取扩展
+    private Procedure procedure;
 	private LoadData loadData;
+    /**
+     * 路由结果
+     */
 	private RouteResultset source;
 	
 	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB(false)

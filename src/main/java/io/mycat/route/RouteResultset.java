@@ -24,9 +24,6 @@
 package io.mycat.route;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
-
-import io.mycat.MycatServer;
-import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.parser.util.PageSQLUtil;
 import io.mycat.sqlengine.mpp.HavingCols;
@@ -36,22 +33,49 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
+ * 路由结果
+ *
  * @author mycat
  */
 public final class RouteResultset implements Serializable {
-    private String statement; // 原始语句
-    private final int sqlType;
-    private RouteResultsetNode[] nodes; // 路由结果节点
-    private Set<String> subTables;
-    private SQLStatement sqlStatement; 
-    
 
+    /**
+     * SQL
+     */
+    private String statement; // 原始语句
+    /**
+     * SQL 类型
+     */
+    private final int sqlType;
+    /**
+     * 路由结果节点数组
+     */
+    private RouteResultsetNode[] nodes; // 路由结果节点
+    /**
+     * TODO
+     */
+    private List<String> tables;
+    /**
+     * TODO
+     */
+    private Set<String> subTables;
+    private SQLStatement sqlStatement;
+
+    /**
+     * 分页开始位置
+     */
     private int limitStart;
+    /**
+     * 是否缓存路由结
+     */
     private boolean cacheAble;
     // used to store table's ID->datanodes cache
     // format is table.primaryKey
     private String primaryKey;
     // limit output total
+    /**
+     * 分页大小
+     */
     private int limitSize;
     private SQLMerge sqlMerge;
 
@@ -87,9 +111,6 @@ public final class RouteResultset implements Serializable {
     public void setSelectForUpdate(boolean selectForUpdate) {
         this.selectForUpdate = selectForUpdate;
     }
-	
-	
-	 private List<String> tables;
 
     public List<String> getTables() {
         return tables;

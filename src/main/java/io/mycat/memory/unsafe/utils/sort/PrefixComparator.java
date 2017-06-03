@@ -21,7 +21,14 @@ package io.mycat.memory.unsafe.utils.sort;
  * Compares 8-byte key prefixes in prefix sort. Subclasses may implement type-specific
  * comparisons, such as lexicographic comparison for strings.
  */
-
 public abstract class PrefixComparator {
-  public abstract int compare(long prefix1, long prefix2);
+
+    /**
+     * 比较
+     *
+     * @param prefix1 prefix1
+     * @param prefix2 prefix2
+     * @return 1 / 0 / -1
+     */
+    public abstract int compare(long prefix1, long prefix2);
 }

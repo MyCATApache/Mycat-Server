@@ -27,6 +27,8 @@ import io.mycat.route.parser.util.CharTypes;
 import io.mycat.route.parser.util.ParseUtil;
 
 /**
+ * Select SQL 解析器
+ *
  * @author mycat
  */
 public final class ServerParseSelect {
@@ -53,6 +55,13 @@ public final class ServerParseSelect {
 	private static final char[] _DATABASE = "DATABASE()".toCharArray();
 	private static final char[] _CURRENT_USER = "CURRENT_USER()".toCharArray();
 
+    /**
+     * 解析 Select SQL 类型
+     *
+     * @param stmt SQL
+     * @param offset
+     * @return Select SQL 类型
+     */
 	public static int parse(String stmt, int offset) {
 		int i = offset;
 		for (; i < stmt.length(); ++i) {

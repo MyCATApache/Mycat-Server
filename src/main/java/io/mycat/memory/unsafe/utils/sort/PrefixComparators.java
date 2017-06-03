@@ -7,7 +7,8 @@ import io.mycat.memory.unsafe.types.ByteArray;
 
 
 public class PrefixComparators {
-  private PrefixComparators() {}
+
+    private PrefixComparators() {}
 
   public static final PrefixComparator STRING = new UnsignedPrefixComparator();
   public static final PrefixComparator STRING_DESC = new UnsignedPrefixComparatorDesc();
@@ -23,7 +24,7 @@ public class PrefixComparators {
 
 
   public static final class BinaryPrefixComparator {
-    public static long computePrefix(byte[] bytes) {
+      public static long computePrefix(byte[] bytes) {
       return ByteArray.getPrefix(bytes);
     }
   }

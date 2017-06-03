@@ -151,9 +151,11 @@ public class RouteService {
 					charset, sc, tableId2DataNodeCache);
 		}
 
+		// 记录查询命令路由结果缓存
 		if (rrs != null && sqlType == ServerParse.SELECT && rrs.isCacheAble()) {
 			sqlRouteCache.putIfAbsent(cacheKey, rrs);
 		}
+
 		checkMigrateRule(schema.getName(),rrs,sqlType);
 		return rrs;
 	}

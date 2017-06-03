@@ -3,7 +3,6 @@
 package io.mycat.memory.unsafe.utils.sort;
 
 import com.google.common.annotations.VisibleForTesting;
-
 import io.mycat.MycatServer;
 import io.mycat.memory.unsafe.Platform;
 import io.mycat.memory.unsafe.array.LongArray;
@@ -392,22 +391,22 @@ public final class UnsafeExternalSorter extends MemoryConsumer {
    * Write a record to the sorter.
    */
   public void insertRecord(Object recordBase, long recordOffset, int length, long prefix)
-    throws IOException {
+          throws IOException {
 
-    growPointerArrayIfNecessary();
-    // Need 4 bytes to store the record length.
-    final int required = length + 4;
-    acquireNewPageIfNecessary(required);
+      growPointerArrayIfNecessary();
+      // Need 4 bytes to store the record length.
+      final int required = length + 4;
+      acquireNewPageIfNecessary(required);
 
-    final Object base = currentPage.getBaseObject();
+      final Object base = currentPage.getBaseObject();
 
-    final long recordAddress = dataNodeMemoryManager.encodePageNumberAndOffset(currentPage,pageCursor);
-    Platform.putInt(base, pageCursor, length);
-    pageCursor += 4;
-    Platform.copyMemory(recordBase,recordOffset,base,pageCursor,length);
-    pageCursor += length;
-    assert(inMemSorter != null);
-    inMemSorter.insertRecord(recordAddress,prefix);
+      final long recordAddress = dataNodeMemoryManager.encodePageNumberAndOffset(currentPage, pageCursor);
+      Platform.putInt(base, pageCursor, length);
+      pageCursor += 4;
+      Platform.copyMemory(recordBase, recordOffset, base, pageCursor, length);
+      pageCursor += length;
+      assert (inMemSorter != null);
+      inMemSorter.insertRecord(recordAddress, prefix);
   }
 
   /**

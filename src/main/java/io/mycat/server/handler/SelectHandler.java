@@ -30,32 +30,41 @@ import io.mycat.server.parser.ServerParseSelect;
 import io.mycat.server.response.*;
 
 /**
+ * Select SQL 处理器
+ *
  * @author mycat
  */
 public final class SelectHandler {
 
+    /**
+     * 处理 Select SQL
+     *
+     * @param stmt SQL
+     * @param c 前端接入服务器
+     * @param offs
+     */
 	public static void handle(String stmt, ServerConnection c, int offs) {
 		int offset = offs;
-		switch (ServerParseSelect.parse(stmt, offs)) {
-		case ServerParseSelect.VERSION_COMMENT:
+		switch (ServerParseSelect.parse(stmt, offs)) { // 解析 Select SQL 类型
+		case ServerParseSelect.VERSION_COMMENT: // select @@VERSION_COMMENT;
 			SelectVersionComment.response(c);
 			break;
-		case ServerParseSelect.DATABASE:
+		case ServerParseSelect.DATABASE: // select DATABASE();
 			SelectDatabase.response(c);
 			break;
-		case ServerParseSelect.USER:
-			SelectUser.response(c);
+		case ServerParseSelect.USER: // select CURRENT_USER();
+            SelectUser.response(c);
 			break;
-		case ServerParseSelect.VERSION:
+		case ServerParseSelect.VERSION: // select VERSION();
 			SelectVersion.response(c);
 			break;
-		case ServerParseSelect.SESSION_INCREMENT:
+		case ServerParseSelect.SESSION_INCREMENT: // select @@session.auto_increment_increment;
 			SessionIncrement.response(c);
 			break;
-		case ServerParseSelect.SESSION_ISOLATION:
+		case ServerParseSelect.SESSION_ISOLATION: // select @@session.tx_isolation;
 			SessionIsolation.response(c);
 			break;
-		case ServerParseSelect.LAST_INSERT_ID:
+		case ServerParseSelect.LAST_INSERT_ID: // select LAST_INSERT_ID();
 			// offset = ParseUtil.move(stmt, 0, "select".length());
 			loop:for (int l=stmt.length(); offset < l; ++offset) {
 				switch (stmt.charAt(offset)) {
@@ -74,7 +83,7 @@ public final class SelectHandler {
 			offset = ServerParseSelect.skipAs(stmt, offset);
 			SelectLastInsertId.response(c, stmt, offset);
 			break;
-		case ServerParseSelect.IDENTITY:
+		case ServerParseSelect.IDENTITY: // select @@identity
 			// offset = ParseUtil.move(stmt, 0, "select".length());
 			loop:for (int l=stmt.length(); offset < l; ++offset) {
 				switch (stmt.charAt(offset)) {
@@ -95,13 +104,13 @@ public final class SelectHandler {
 			offset = ServerParseSelect.skipAs(stmt, offset);
 			SelectIdentity.response(c, stmt, offset, orgName);
 			break;
-            case ServerParseSelect.SELECT_VAR_ALL:
-                SelectVariables.execute(c,stmt);
+        case ServerParseSelect.SELECT_VAR_ALL: //
+            SelectVariables.execute(c,stmt);
                 break;
-			case ServerParseSelect.SESSION_TX_READ_ONLY:
-				SelectTxReadOnly.response(c);
+        case ServerParseSelect.SESSION_TX_READ_ONLY: //
+            SelectTxReadOnly.response(c);
 				break;
-		default:
+		default: // 其他，例如 select * from table
 			c.execute(stmt, ServerParse.SELECT);
 		}
 	}

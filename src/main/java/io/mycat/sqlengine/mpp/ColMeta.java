@@ -25,6 +25,9 @@ package io.mycat.sqlengine.mpp;
 
 import java.io.Serializable;
 
+/**
+ * 列（字段）元信息
+ */
 public class ColMeta implements Serializable{
 	public static final int COL_TYPE_DECIMAL = 0;
 	public static final int COL_TYPE_INT = 1;
@@ -53,13 +56,29 @@ public class ColMeta implements Serializable{
 	public static final int COL_TYPE_VAR_STRING = 0xfd;
 	public static final int COL_TYPE_STRING = 0xfe;
 	public static final int COL_TYPE_GEOMETRY = 0xff;
-	public  int colIndex;
-	public final int colType;
-	
-	public int decimals;
 
-    public  int avgSumIndex;
-    public  int avgCountIndex;
+    /**
+     * 列位置
+     */
+	public int colIndex;
+    /**
+     * 列类型
+     */
+	public final int colType;
+    /**
+     * 精度
+     */
+	public int decimals;
+    /**
+     * 求和列
+     * 当且仅当该字段为 avg
+     */
+    public int avgSumIndex;
+    /**
+     * 求总数列
+     * 当且仅当该字段为 avg
+     */
+    public int avgCountIndex;
 
     public ColMeta(int colIndex, int colType) {
 		super();
@@ -72,6 +91,7 @@ public class ColMeta implements Serializable{
         this.avgCountIndex=avgCountIndex;
         this.colType = colType;
     }
+
 	public int getColIndex() {
 		return colIndex;
 	}

@@ -23,15 +23,15 @@ package io.mycat.memory.unsafe.utils.sort;
  */
 public abstract class RecordComparator {
 
-  /**
-   * Compare two records for order.
-   *
-   * @return a negative integer, zero, or a positive integer as the first record is less than,
-   *         equal to, or greater than the second.
-   */
-  public abstract int compare(
-    Object leftBaseObject,
-    long leftBaseOffset,
-    Object rightBaseObject,
-    long rightBaseOffset);
+    /**
+     * Compare two records for order.
+     *
+     * @return a negative integer, zero, or a positive integer as the first record is less than,
+     * equal to, or greater than the second.
+     */
+    public abstract int compare(
+            Object leftBaseObject,
+            long leftBaseOffset,
+            Object rightBaseObject,
+            long rightBaseOffset);
 }

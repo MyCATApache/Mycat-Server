@@ -1,11 +1,10 @@
 package io.mycat.backend.mysql.nio.handler;
 
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import io.mycat.backend.mysql.DataType;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
-
-import io.mycat.backend.mysql.DataType;
 
 /**
  * 查询中间结果处理器
@@ -22,9 +21,8 @@ public class MiddlerQueryResultHandler<T> implements MiddlerResultHandler<T> {
 	
 	public MiddlerQueryResultHandler(SecondHandler secondHandler) {
  		this.secondHandler = secondHandler;
- 		
- 	  
  	}
+
 	//确保只有一个构造函数入口
 	private MiddlerQueryResultHandler(){
 		

@@ -23,21 +23,6 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
@@ -45,24 +30,24 @@ import io.mycat.backend.mysql.LoadDataUtil;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.MycatConfig;
 import io.mycat.memory.unsafe.row.UnsafeRow;
-import io.mycat.net.mysql.BinaryRowDataPacket;
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.net.mysql.*;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
-import io.mycat.sqlengine.mpp.AbstractDataNodeMerge;
-import io.mycat.sqlengine.mpp.ColMeta;
-import io.mycat.sqlengine.mpp.DataMergeService;
-import io.mycat.sqlengine.mpp.DataNodeMergeManager;
-import io.mycat.sqlengine.mpp.MergeCol;
+import io.mycat.sqlengine.mpp.*;
 import io.mycat.statistic.stat.QueryResult;
 import io.mycat.statistic.stat.QueryResultDispatcher;
 import io.mycat.util.ResultSetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author mycat
@@ -74,6 +59,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private final RouteResultset rrs;
 	private final NonBlockingSession session;
 	// private final CommitNodeHandler icHandler;
+    /**
+     * 数据合并服务
+     */
 	private final AbstractDataNodeMerge dataMergeSvr;
 	private final boolean autocommit;
 	private String priamaryKeyTable = null;
@@ -83,31 +71,57 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private long affectedRows;
 	private long selectRows;
 	private long insertId;
+    /**
+     * fields 是否返回
+     */
 	private volatile boolean fieldsReturned;
 	private int okCount;
 	private final boolean isCallProcedure;
+    /**
+     * 开始执行 SQL 时间
+     */
 	private long startTime;
 	private long netInBytes;
+    /**
+     * 网络流量字节数：后端数据库=》MyCAT
+     */
 	private long netOutBytes;
 	private int execCount = 0;
 	
 	private boolean prepared;
 	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
+    /**
+     * 是否启用Off Heap for Merge
+     *  1-启用
+     *  0-不启用
+     */
 	private int isOffHeapuseOffHeapForMerge = 1;
 	//huangyiming add  中间处理结果是否处理完毕
 	private final AtomicBoolean isMiddleResultDone;
-	/**
-	 * Limit N，M
-	 */
-	private   int limitStart;
-	private   int limitSize;
+
+    /**
+     * 分页开始位置
+     */
+	private int limitStart;
+    /**
+     * 分页大小
+     */
+	private int limitSize;
 
 	private int index = 0;
-
+    /**
+     * 分页结束位置
+     */
 	private int end = 0;
 	
-	//huangyiming 
+	//huangyiming
+    /**
+     * header
+     */
 	private byte[] header = null;
+    /**
+     * fields 字段
+     */
 	private List<byte[]> fields = null;
 	
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
@@ -125,15 +139,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
 		
 		this.rrs = rrs;
-		isOffHeapuseOffHeapForMerge = MycatServer.getInstance().
-				getConfig().getSystem().getUseOffHeapForMerge();
+
+		// 赋值 数据合并服务
+		isOffHeapuseOffHeapForMerge = MycatServer.getInstance().getConfig().getSystem().getUseOffHeapForMerge();
 		if (ServerParse.SELECT == sqlType && rrs.needMerge()) {
-			/**
-			 * 使用Off Heap
-			 */
-			if(isOffHeapuseOffHeapForMerge == 1){
+			if (isOffHeapuseOffHeapForMerge == 1) { // 对外内存（off-heap memory）
 				dataMergeSvr = new DataNodeMergeManager(this,rrs,isMiddleResultDone);
-			}else {
+			} else { // 堆内内存（on-heap memory）
 				dataMergeSvr = new DataMergeService(this,rrs);
 			}
 		} else {
@@ -146,20 +158,21 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		this.lock = new ReentrantLock();
 		// this.icHandler = new CommitNodeHandler(session);
 
+        // 赋值 分页位置
 		this.limitStart = rrs.getLimitStart();
 		this.limitSize = rrs.getLimitSize();
 		this.end = limitStart + rrs.getLimitSize();
-
-		if (this.limitStart < 0)
-			this.limitStart = 0;
-
-		if (rrs.getLimitSize() < 0)
-			end = Integer.MAX_VALUE;
-		if ((dataMergeSvr != null)
-				&& LOGGER.isDebugEnabled()) {
+		if (this.limitStart < 0) {
+            this.limitStart = 0;
+        }
+		if (rrs.getLimitSize() < 0) {
+            end = Integer.MAX_VALUE;
+        }
+		if ((dataMergeSvr != null) && LOGGER.isDebugEnabled()) {
 				LOGGER.debug("has data merge logic ");
 		}
-		
+
+		// 赋值 网络流量统计
 		if ( rrs != null && rrs.getStatement() != null) {
 			netInBytes += rrs.getStatement().getBytes().length;
 		}
@@ -178,6 +191,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	}
 
 	public void execute() throws Exception {
+	    // 初始化 Handler
 		final ReentrantLock lock = this.lock;
 		lock.lock();
 		try {
@@ -188,6 +202,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		} finally {
 			lock.unlock();
 		}
+
+		// 遍历路由node，发送 SQL 执行
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		startTime = System.currentTimeMillis();
 		LOGGER.debug("rrs.getRunOnSlave()-" + rrs.getRunOnSlave());
@@ -618,6 +634,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
         /*if(null !=middlerResultHandler ){
 			return;
 		}*/
+
+        // 计算 网络流量 ：后端数据库=》MyCAT
 		this.netOutBytes += header.length;
 		this.netOutBytes += eof.length;
 		for (int i = 0, len = fields.size(); i < len; ++i) {
@@ -637,30 +655,25 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			}
 			fieldsReturned = true;
 
-			boolean needMerg = (dataMergeSvr != null)
-					&& dataMergeSvr.getRrs().needMerge();
+			// 计算需要 移除、重命名 的 求平均 的 字段
+			boolean needMerg = (dataMergeSvr != null) && dataMergeSvr.getRrs().needMerge();
 			Set<String> shouldRemoveAvgField = new HashSet<>();
 			Set<String> shouldRenameAvgField = new HashSet<>();
 			if (needMerg) {
-				Map<String, Integer> mergeColsMap = dataMergeSvr.getRrs()
-						.getMergeCols();
+				Map<String, Integer> mergeColsMap = dataMergeSvr.getRrs().getMergeCols();
 				if (mergeColsMap != null) {
-					for (Map.Entry<String, Integer> entry : mergeColsMap
-							.entrySet()) {
+					for (Map.Entry<String, Integer> entry : mergeColsMap.entrySet()) {
 						String key = entry.getKey();
 						int mergeType = entry.getValue();
-						if (MergeCol.MERGE_AVG == mergeType
-								&& mergeColsMap.containsKey(key + "SUM")) {
-							shouldRemoveAvgField.add((key + "COUNT")
-									.toUpperCase());
-							shouldRenameAvgField.add((key + "SUM")
-									.toUpperCase());
+						if (MergeCol.MERGE_AVG == mergeType && mergeColsMap.containsKey(key + "SUM")) {
+							shouldRemoveAvgField.add((key + "COUNT").toUpperCase()); // 移除
+							shouldRenameAvgField.add((key + "SUM").toUpperCase()); // 重命名
 						}
 					}
 				}
-
 			}
 
+			// 输出 header 到 buffer
 			source = session.getSource();
 			ByteBuffer buffer = source.allocate();
 			fieldCount = fields.size();
@@ -670,38 +683,36 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				packet.fieldCount = fieldCount - shouldRemoveAvgField.size();
 				buffer = packet.write(buffer, source, true);
 			} else {
-
 				header[3] = ++packetId;
 				buffer = source.writeToBuffer(header, buffer);
 			}
 
-			String primaryKey = null;
+			String primaryKey = null; // TODO 待读
 			if (rrs.hasPrimaryKeyToCache()) {
 				String[] items = rrs.getPrimaryKeyItems();
 				priamaryKeyTable = items[0];
 				primaryKey = items[1];
 			}
 
-			Map<String, ColMeta> columToIndx = new HashMap<String, ColMeta>(
-					fieldCount);
-
+			// 输出 field 到 buffer；
+			Map<String, ColMeta> columToIndx = new HashMap<String, ColMeta>(fieldCount); // 字段元数据集合
 			for (int i = 0, len = fieldCount; i < len; ++i) {
 				boolean shouldSkip = false;
 				byte[] field = fields.get(i);
-				if (needMerg) {
+				if (needMerg) { // important：如果需要合并，设置字段元数据集合
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
 					fieldPackets.add(fieldPkg);
 					String fieldName = new String(fieldPkg.name).toUpperCase();
-					if (columToIndx != null
-							&& !columToIndx.containsKey(fieldName)) {
+					if (columToIndx != null && !columToIndx.containsKey(fieldName)) {
+					    // 移除 需要移除的求平均字段
 						if (shouldRemoveAvgField.contains(fieldName)) {
 							shouldSkip = true;
 							fieldPackets.remove(fieldPackets.size() - 1);
 						}
+						// 重命名 需要重命名的求平均字段
 						if (shouldRenameAvgField.contains(fieldName)) {
-							String newFieldName = fieldName.substring(0,
-									fieldName.length() - 3);
+							String newFieldName = fieldName.substring(0, fieldName.length() - 3); // 截取结尾AVG
 							fieldPkg.name = newFieldName.getBytes();
 							fieldPkg.packetId = ++packetId;
 							shouldSkip = true;
@@ -709,12 +720,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 							fieldPkg.length = fieldPkg.length - 14;
 							// AVG精度 = SUM精度 + 4
  							fieldPkg.decimals = (byte) (fieldPkg.decimals + 4);
-							buffer = fieldPkg.write(buffer, source, false);
+
+                            // 输出 field 到 buffer
+                            buffer = fieldPkg.write(buffer, source, false);
 
 							// 还原精度
 							fieldPkg.decimals = (byte) (fieldPkg.decimals - 4);
 						}
-
+						// 设置字段元数据集合
 						ColMeta colMeta = new ColMeta(i, fieldPkg.type);
 						colMeta.decimals = fieldPkg.decimals;
 						columToIndx.put(fieldName, colMeta);
@@ -725,28 +738,32 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					fieldPackets.add(fieldPkg);
 					fieldCount = fields.size();
 					if (primaryKey != null && primaryKeyIndex == -1) {
-					// find primary key index
-					String fieldName = new String(fieldPkg.name);
-					if (primaryKey.equalsIgnoreCase(fieldName)) {
-						primaryKeyIndex = i;
-					}
-				}   }
+                        // find primary key index
+                        String fieldName = new String(fieldPkg.name);
+                        if (primaryKey.equalsIgnoreCase(fieldName)) {
+                            primaryKeyIndex = i;
+                        }
+				    }
+				}
+				// 输出 field 到 buffer
 				if (!shouldSkip) {
 					field[3] = ++packetId;
 					buffer = source.writeToBuffer(field, buffer);
 				}
 			}
+
+			// 输出 eof
 			eof[3] = ++packetId;
 			buffer = source.writeToBuffer(eof, buffer);
-			
-			if(null == middlerResultHandler ){
+
+			// 输出 field 到 socket
+			if (null == middlerResultHandler ) {
 				//session.getSource().write(row);
 				source.write(buffer);
-		     }
+            }
 			
  			if (dataMergeSvr != null) {
 				dataMergeSvr.onRowMetaData(columToIndx, fieldCount);
-
 			}
 		} catch (Exception e) {
 			handleDataProcessException(e);

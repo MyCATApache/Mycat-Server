@@ -23,15 +23,46 @@
  */
 package io.mycat.sqlengine.mpp;
 
+/**
+ * 合并列（字段）
+ */
 public class MergeCol {
+    /**
+     * COUNT
+     */
 	public static final int MERGE_COUNT = 1;
+    /**
+     * SUM
+     */
 	public static final int MERGE_SUM = 2;
+    /**
+     * MIN
+     */
 	public static final int MERGE_MIN = 3;
+    /**
+     * MAX
+     */
 	public static final int MERGE_MAX = 4;
+    /**
+     * AVG
+     */
     public static final int MERGE_AVG= 5;
+    /**
+     * 不支持
+     */
 	public static final int MERGE_UNSUPPORT = -1;
+    /**
+     * 无需合并
+     */
 	public static final int MERGE_NOMERGE = -2;
+
+    /**
+     * 合并类型
+     */
 	public final int mergeType;
+    /**
+     * 列（字段）元信息
+     */
 	public final ColMeta colMeta;
 
 	public MergeCol(ColMeta colMeta, int mergeType) {

@@ -31,13 +31,25 @@ package io.mycat.cache;
  */
 public interface CachePool {
 
-	public void putIfAbsent(Object key, Object value);
+    /**
+     * 设置 VALUE
+     *
+     * @param key KEY
+     * @param value VALUE
+     */
+	void putIfAbsent(Object key, Object value);
 
-	public Object get(Object key);
+    /**
+     * 获得 VALUE
+     *
+     * @param key KEY
+     * @return VALUE
+     */
+	Object get(Object key);
 
-	public void clearCache();
+	void clearCache();
 
-	public CacheStatic getCacheStatic();
+	CacheStatic getCacheStatic();
 
-	public long getMaxSize();
+	long getMaxSize();
 }

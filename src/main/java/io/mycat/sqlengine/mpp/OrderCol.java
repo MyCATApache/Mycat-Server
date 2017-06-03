@@ -23,12 +23,29 @@
  */
 package io.mycat.sqlengine.mpp;
 
+/**
+ * 排序列（字段）
+ */
 public class OrderCol {
-	public final int orderType;
+
+    /**
+     * 排序 - ASC
+     */
+    public static final int COL_ORDER_TYPE_ASC = 0; // ASC
+    /**
+     * 排序 - DESC
+     */
+    public static final int COL_ORDER_TYPE_DESC = 1; // DESC
+
+    /**
+     * 排序列表
+     */
+    public final int orderType;
+    /**
+     * 列元信息
+     */
 	public final ColMeta colMeta;
 
-	public static final int COL_ORDER_TYPE_ASC = 0; // ASC
-	public static final int COL_ORDER_TYPE_DESC = 1; // DESC
 	public OrderCol(ColMeta colMeta, int orderType) {
 		super();
 		this.colMeta = colMeta;

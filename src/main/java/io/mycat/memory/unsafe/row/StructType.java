@@ -7,13 +7,22 @@ import javax.annotation.Nonnull;
 import java.util.Map;
 
 /**
+ * TODO
  * Created by zagnix on 2016/6/6.
  */
 public class StructType {
 
+    /**
+     * 列元信息集合
+     */
     private final Map<String, ColMeta> columToIndx;
+    /**
+     * fields 数量
+     */
     private final int fieldCount;
-
+    /**
+     * 排序列数组
+     */
     private  OrderCol[] orderCols = null;
 
     public StructType(@Nonnull Map<String,ColMeta> columToIndx,int fieldCount){

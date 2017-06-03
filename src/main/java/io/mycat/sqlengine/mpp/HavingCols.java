@@ -3,12 +3,28 @@ package io.mycat.sqlengine.mpp;
 import java.io.Serializable;
 
 /**
+ * Having列
+ * 目前只支持一个列
+ *
  * Created by v1.lion on 2015/6/10.
  */
 public class HavingCols implements Serializable {
-	String left;
+
+    /**
+     * 表达式左边
+     */
+    String left;
+    /**
+     * 表达式右边
+     */
 	String right;
+    /**
+     * 操作
+     */
 	String operator;
+    /**
+     * 列（字段）元信息
+     */
 	public ColMeta colMeta;
 
 	public HavingCols(String left, String right, String operator) {
