@@ -6,9 +6,6 @@ import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.memory.unsafe.utils.BytesTools;
 import io.mycat.sqlengine.mpp.ColMeta;
 import io.mycat.sqlengine.mpp.OrderCol;
-import io.mycat.util.ByteUtil;
-import io.mycat.util.IntegerUtil;
-import io.mycat.util.LongUtil;
 
 import javax.annotation.Nonnull;
 import java.io.UnsupportedEncodingException;
@@ -26,20 +23,27 @@ public class RowPrefixComputer extends UnsafeExternalRowSorter.PrefixComputer {
         /**
          * 通过计算得到排序关键词的第一个在行的索引下标
          */
-        int orderIndex = 0;
+//        int orderIndex = 0;
+//        OrderCol[] orderCols = schema.getOrderCols();
+//
+//        if (orderCols != null){
+//            for (int i = 0; i < orderCols.length; i++) {
+//                ColMeta colMeta = orderCols[i].colMeta;
+//                if(colMeta.colIndex == 0){
+//                    orderIndex = i;
+//                    break;
+//                }
+//            }
+//
+//            this.colMeta = orderCols[orderIndex].colMeta;
+//        }else {
+//            this.colMeta = null;
+//        }
+        // TODO 芋艿：bugfix，不确定是否对的
         OrderCol[] orderCols = schema.getOrderCols();
-
-        if (orderCols != null){
-            for (int i = 0; i < orderCols.length; i++) {
-                ColMeta colMeta = orderCols[i].colMeta;
-                if(colMeta.colIndex == 0){
-                    orderIndex = i;
-                    break;
-                }
-            }
-
-            this.colMeta = orderCols[orderIndex].colMeta;
-        }else {
+        if (orderCols != null && orderCols.length > 0) {
+            this.colMeta = orderCols[0].colMeta;
+        } else {
             this.colMeta = null;
         }
     }
@@ -54,7 +58,7 @@ public class RowPrefixComputer extends UnsafeExternalRowSorter.PrefixComputer {
 
         byte[] rowIndexElem  = null;
 		
-		  if(!row.isNullAt(colMeta.colIndex)) {
+        if(!row.isNullAt(colMeta.colIndex)) {
               rowIndexElem = row.getBinary(colMeta.colIndex);
               /**
                * 这里注意一下，order by 排序的第一个字段
