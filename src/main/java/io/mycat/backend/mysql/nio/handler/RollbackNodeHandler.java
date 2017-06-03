@@ -86,9 +86,9 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 				//support the XA rollback
 				if(session.getXaTXID()!=null && conn instanceof  MySQLConnection) {
 					MySQLConnection mysqlCon = (MySQLConnection) conn;
-					String xaTxId = session.getXaTXID();
+					String xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
 					//exeBatch cmd issue : the 2nd package can not receive the response
-					mysqlCon.execCmd("XA END " + xaTxId + ";");
+					mysqlCon.execCmd("XA END " + xaTxId  + ";");
 					mysqlCon.execCmd("XA ROLLBACK " + xaTxId + ";");
 				}else {
 					conn.rollback();
