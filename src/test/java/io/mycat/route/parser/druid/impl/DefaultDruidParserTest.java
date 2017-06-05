@@ -42,8 +42,16 @@ public class DefaultDruidParserTest {
 	@Test
 	public void testParser() throws Exception {
 		
-		assertArrayEquals(getParseTables("select id as id from company t;"), getArr("company".toUpperCase()));
-		assertArrayEquals(getParseTables("select 1 from (select 1 from company) company;"), getArr("company".toUpperCase()));
+		assertArrayEquals(getParseTables("select id as id from company t;"), 
+				getArr("company".toUpperCase()));
+		assertArrayEquals(getParseTables("select 1 from (select 1 from company) company;"), 
+				getArr("company".toUpperCase()));
+		assertArrayEquals(getParseTables("select 1 from company,customer where company.id = customer.cid"), 
+				getArr("company".toUpperCase(),"customer".toUpperCase()));
+		assertArrayEquals(getParseTables("select 1 from db1.company,db1.customer where company.id = customer.cid"), 
+				getArr("company".toUpperCase(),"customer".toUpperCase()));
+		assertArrayEquals(getParseTables("select 1 from mysql.company,db1.customer where company.id = customer.cid"), 
+				getArr("customer".toUpperCase()));
 	}
 	
 	private Object[] getParseTables(String sql) throws Exception{
