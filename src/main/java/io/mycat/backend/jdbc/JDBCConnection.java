@@ -649,7 +649,6 @@ public class JDBCConnection implements BackendConnection {
 				byteBuf.get(field);
 				byteBuf.clear();
 				fields.add(field);
-				itor.remove();
 			}
 			EOFPacket eofPckg = new EOFPacket();
 			eofPckg.packetId = ++packetId;
@@ -665,8 +664,13 @@ public class JDBCConnection implements BackendConnection {
 				RowDataPacket curRow = new RowDataPacket(colunmCount);
 				for (int i = 0; i < colunmCount; i++) {
 					int j = i + 1;
-					curRow.add(StringUtil.encode(rs.getString(j),
-							sc.getCharset()));
+					if(MysqlDefs.isBianry((byte) fieldPks.get(i).type)) {
+							curRow.add(rs.getBytes(j));
+						} else {
+						   curRow.add(StringUtil.encode(rs.getString(j),
+								   sc.getCharset()));
+					}
+
 				}
 				curRow.packetId = ++packetId;
 				byteBuf = curRow.write(byteBuf, sc, false);
@@ -676,6 +680,8 @@ public class JDBCConnection implements BackendConnection {
 				byteBuf.clear();
 				this.respHandler.rowResponse(row, this);
 			}
+
+			fieldPks.clear();
 
 			// end row
 			eofPckg = new EOFPacket();

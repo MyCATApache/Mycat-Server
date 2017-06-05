@@ -1,5 +1,5 @@
-BuildTime  2017-04-16 09:46:09
-GitVersion   6dd6f154fcf026a30287d8d895b3160ef80766d9
+BuildTime  2017-06-05 11:15:22
+GitVersion   0cb486f08300fcaeb09a3214bedbac588d1c200f
 MavenVersion 1.6.5-BETA
 GitUrl https://github.com/MyCATApache/Mycat-Server.git
 MyCatSite http://www.mycat.org.cn
