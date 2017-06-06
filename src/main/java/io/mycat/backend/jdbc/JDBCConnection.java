@@ -2,6 +2,7 @@ package io.mycat.backend.jdbc;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.*;
@@ -666,7 +667,13 @@ public class JDBCConnection implements BackendConnection {
 					int j = i + 1;
 					if(MysqlDefs.isBianry((byte) fieldPks.get(i).type)) {
 							curRow.add(rs.getBytes(j));
-						} else {
+					} else if(fieldPks.get(i).type == MysqlDefs.FIELD_TYPE_DECIMAL ||
+							fieldPks.get(i).type == (MysqlDefs.FIELD_TYPE_NEW_DECIMAL - 256)) { // field type is unsigned byte
+						// ensure that do not use scientific notation format
+						BigDecimal val = rs.getBigDecimal(j);
+						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null,
+								sc.getCharset()));
+					} else {
 						   curRow.add(StringUtil.encode(rs.getString(j),
 								   sc.getCharset()));
 					}
