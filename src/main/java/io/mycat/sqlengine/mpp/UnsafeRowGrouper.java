@@ -33,7 +33,6 @@ import io.mycat.memory.unsafe.row.BufferHolder;
 import io.mycat.memory.unsafe.row.StructType;
 import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.memory.unsafe.row.UnsafeRowWriter;
-
 import io.mycat.memory.unsafe.utils.BytesTools;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import io.mycat.memory.unsafe.utils.sort.UnsafeExternalRowSorter;
@@ -47,7 +46,6 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
-import java.text.NumberFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
