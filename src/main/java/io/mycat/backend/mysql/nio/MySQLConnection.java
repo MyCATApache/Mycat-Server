@@ -388,7 +388,10 @@ public class MySQLConnection extends BackendAIOConnection {
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
-		String xaTXID = sc.getSession2().getXaTXID()+",'"+getSchema()+"'";
+		String xaTXID = null;
+		if(sc.getSession2().getXaTXID()!=null){
+			xaTXID = sc.getSession2().getXaTXID()+",'"+getSchema()+"'";
+		}
 		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(),
 				autocommit);
 	}
