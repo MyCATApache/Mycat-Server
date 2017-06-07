@@ -119,16 +119,20 @@ public class HintSQLHandler implements HintHandler {
                 {
                     SQLExpr sqlExpr = paramterList.get(i1);
                     String pName = sqlExpr.toString();
-                    String pType=outSet.contains(pName)? ProcedureParameter.OUT:ProcedureParameter.IN;
+                    String pType=  null; //  outSet.contains(pName)? ProcedureParameter.OUT:ProcedureParameter.IN;
                     ProcedureParameter parameter=new ProcedureParameter();
                     parameter.setIndex(i1+1);
                     parameter.setName(pName);
                     parameter.setParameterType(pType);
                     if(pName.startsWith("@"))
                     {
-                        procedure.getParamterMap().put(pName, parameter);
+                    	pType = ProcedureParameter.OUT;
+						procedure.getParamterMap().put(pName, parameter);
+						procedure.getSelectColumns().add(pName);
+						outSet.add(pName);
                     }   else
                     {
+                    	pType = ProcedureParameter.IN;
                         procedure.getParamterMap().put(String.valueOf(i1+1), parameter);
                     }
 
