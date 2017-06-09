@@ -44,7 +44,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +72,27 @@ public abstract class PhysicalDatasource {
 	
 	// 添加DataSource写计数
 	private AtomicLong writeCount = new AtomicLong(0);
+	
+	
+	/** 
+	 *   edit by dingw at 2017.06.08
+	 *   @see https://github.com/MyCATApache/Mycat-Server/issues/1524
+	 *   
+	 */
+	
+	// 获取连接超时时间，超过该时间后，才抛出超过最大连接数量,默认为30秒，初次修改未做出可配置的，@todo 待优化
+	public static final int GET_CONNECTION_TIMEOUT = 30;
+	// 连接 保护锁
+	private ReentrantLock lock = new ReentrantLock();
+	private Condition noActiveConnWait = lock.newCondition();
+	// 当前活动连接
+	private int activeCount;
+	
+	// 当前存活的总连接数,为什么不直接使用activeCount,主要是因为连接的创建是异步完成的
+	private int totalConnections;
+	
+
+	
 
 	public PhysicalDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
@@ -323,6 +347,53 @@ public abstract class PhysicalDatasource {
 	public int getActiveCount() {
 		return this.conMap.getActiveCountForDs(this);
 	}
+	
+	public void decrementActiveCountSafe() {
+		try {
+			lock.lock();
+			this.activeCount -- ;
+			noActiveConnWait.signal();
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public void incrementActiveCountSafe() {
+		try {
+			lock.lock();
+			this.activeCount ++ ;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public int getActiveCountSafe() {
+		try {
+			lock.lock();
+			return this.activeCount;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public int getTotalConnectionsSafe() {
+		try {
+			lock.lock();
+			return this.totalConnections;
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public void decrementTotalConnectionsSafe() {
+		try {
+			lock.lock();
+			this.totalConnections --;
+			noActiveConnWait.signal();
+		} finally {
+			lock.unlock();
+		}
+	}
 
 	public void clearCons(String reason) {
 		this.conMap.clearConnections(reason, this);
@@ -356,6 +427,9 @@ public abstract class PhysicalDatasource {
 			String schema) {
 
 		conn.setBorrowed(true);
+		
+		incrementActiveCountSafe();
+		
 		if (!conn.getSchema().equals(schema)) {
 			// need do schema syn in before sql send
 			conn.setSchema(schema);
@@ -377,6 +451,7 @@ public abstract class PhysicalDatasource {
 					createNewConnection(new DelegateResponseHandler(handler) {
 						@Override
 						public void connectionError(Throwable e, BackendConnection conn) {
+							decrementTotalConnectionsSafe(); // 如果创建连接失败，将当前连接数减1
 							handler.connectionError(e, conn);
 						}
 
@@ -399,20 +474,55 @@ public abstract class PhysicalDatasource {
 		// 从当前连接map中拿取已建立好的后端连接
 		BackendConnection con = this.conMap.tryTakeCon(schema, autocommit);
 		if (con != null) {
-			
 			//如果不为空，则绑定对应前端请求的handler
 			takeCon(con, handler, attachment, schema);
 			return;	
 			
-		} else {
-			int activeCons = this.getActiveCount();// 当前最大活动连接
-			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
+		} else { // this.getActiveCount并不是线程安全的（严格上说该方法获取数量不准确），
+			
+			try {
+				lock.lock();
+				
+				if(this.totalConnections + 1 <= size) {
+					LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
+					this.totalConnections ++;
+					createNewConnection(handler, attachment, schema);
+					return;
+				} 
+				
+				// 等待一定时间
+				long beginWaitTime = System.currentTimeMillis();
+				noActiveConnWait.await(GET_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
+				
+				if( System.currentTimeMillis() - beginWaitTime <  GET_CONNECTION_TIMEOUT * 1000 ) { // 非超时退出
+					//再次尝试获取连接
+					con = this.conMap.tryTakeCon(schema, autocommit);
+					if (con != null) {
+						//如果不为空，则绑定对应前端请求的handler
+						takeCon(con, handler, attachment, schema);
+						return;	
+					}
+				}
+				
 				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
 				throw new IOException("the max activeConnnections size can not be max than maxconnections");
-			} else { // create connection
-				LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
-				createNewConnection(handler, attachment, schema);
+				
+			} catch (InterruptedException e) {
+				LOGGER.error("the max activeConnnections size can not be max than maxconnections,has hanppen InterruptedException");
+				throw new IOException("the max activeConnnections size can not be max than maxconnections,has hanppen InterruptedException");
+				
+			} finally {
+				lock.unlock();
 			}
+			
+//			int activeCons = this.getActiveCount();// 当前最大活动连接
+//			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
+//				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
+//				throw new IOException("the max activeConnnections size can not be max than maxconnections");
+//			} else { // create connection
+//				LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
+//				createNewConnection(handler, attachment, schema);
+//			}
 		}
 	}
 
@@ -429,6 +539,8 @@ public abstract class PhysicalDatasource {
 		} else {
 			ok = queue.getManCommitCons().offer(c);
 		}
+		
+		decrementActiveCountSafe();
 		
 		if (!ok) {
 
@@ -449,6 +561,7 @@ public abstract class PhysicalDatasource {
 		ConQueue queue = this.conMap.getSchemaConQueue(conn.getSchema());
 		if (queue != null) {
 			queue.removeCon(conn);
+			decrementTotalConnectionsSafe(); 
 		}
 
 	}
