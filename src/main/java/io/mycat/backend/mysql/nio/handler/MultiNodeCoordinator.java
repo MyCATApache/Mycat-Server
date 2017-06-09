@@ -59,7 +59,10 @@ public class MultiNodeCoordinator implements ResponseHandler {
 				conn.setResponseHandler(this);
 				//process the XA_END XA_PREPARE Command
 				MySQLConnection mysqlCon = (MySQLConnection) conn;
-				String xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
+				String xaTxId = null;
+				if(session.getXaTXID()!=null){
+					xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
+				}
 				if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE)
 				{
 					//recovery Log
@@ -216,7 +219,14 @@ public class MultiNodeCoordinator implements ResponseHandler {
 			if (cmdHandler.isAutoClearSessionCons()) {
 				session.clearResources(false);
 			}
-
+			/* 1.  事务提交后,xa 事务结束
+			 * 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
+			if(session.getXaTXID()!=null){
+				session.setXATXEnabled(false);
+			}
+			if(!session.getSource().isCreateNewTx()){
+				session.getSource().setAutocommit(true);
+			}
 		}
 
 	}

@@ -39,12 +39,12 @@ public final class StartHandler {
         case ServerParseStart.TRANSACTION:
             if (c.isAutocommit())
             {
-                c.setAutocommit(false);
                 c.write(c.writeToBuffer(AC_OFF, c.allocate()));
             }else
             {
                 c.getSession2().commit() ;
             }
+            c.setAutocommit(false);
             break;
         default:
             c.execute(stmt, ServerParse.START);

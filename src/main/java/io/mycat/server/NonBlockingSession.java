@@ -227,12 +227,19 @@ public class NonBlockingSession implements Session {
             ByteBuffer buffer = source.allocate();
             buffer = source.writeToBuffer(OkPacket.OK, buffer);
             source.write(buffer);
+            /* 1. 如果开启了 xa 事务 */
+            if(getXaTXID()!=null){
+				setXATXEnabled(false);
+			}
+            /* 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
+            if(!source.isCreateNewTx()&&!source.isAutocommit()){
+            	source.setAutocommit(true);
+            }
             return;
         } else if (initCount == 1) {
         	//huangyiming add 避免出现jdk版本冲突
             BackendConnection con = target.values().iterator().next();
             commitHandler.commit(con);
-
         } else {
 
             if (LOGGER.isDebugEnabled()) {
@@ -264,6 +271,14 @@ public class NonBlockingSession implements Session {
             ByteBuffer buffer = source.allocate();
             buffer = source.writeToBuffer(OkPacket.OK, buffer);
             source.write(buffer);
+            /* 1. 如果开启了 xa 事务 */
+            if(getXaTXID()!=null){
+				setXATXEnabled(false);
+			}
+            /* 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
+            if(!source.isCreateNewTx()&&!source.isAutocommit()){
+            	source.setAutocommit(true);
+            }
             return;
         }
 
@@ -537,10 +552,14 @@ public class NonBlockingSession implements Session {
 
     public void setXATXEnabled(boolean xaTXEnabled) {
 
-        LOGGER.info("XA Transaction enabled ,con " + this.getSource());
-        if (xaTXEnabled && this.xaTXID == null) {
-            xaTXID = genXATXID();
-
+        if (xaTXEnabled) {
+        	LOGGER.info("XA Transaction enabled ,con " + this.getSource());
+        	if(this.xaTXID == null){
+        		xaTXID = genXATXID();
+        	}
+        }else{
+        	LOGGER.info("XA Transaction disabled ,con " + this.getSource());
+        	this.xaTXID = null;
         }
     }
 
