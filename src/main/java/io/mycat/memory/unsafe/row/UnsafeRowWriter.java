@@ -18,11 +18,11 @@
 package io.mycat.memory.unsafe.row;
 
 
-import java.math.BigDecimal;
-
 import io.mycat.memory.unsafe.Platform;
 import io.mycat.memory.unsafe.array.ByteArrayMethods;
 import io.mycat.memory.unsafe.bitset.BitSetMethods;
+
+import java.math.BigDecimal;
 
 /**
  * A helper class to write data into global row buffer using `UnsafeRow` format.
@@ -39,18 +39,27 @@ import io.mycat.memory.unsafe.bitset.BitSetMethods;
  */
 public class UnsafeRowWriter {
 
-  private final BufferHolder holder;
-  // The offset of the global buffer where we start to write this row.
-  private int startingOffset;
-  private final int nullBitsSize;
-  private final int fixedSize;
+    private final BufferHolder holder;
+    /**
+     * 目标 buffer 开始写入位置
+     * The offset of the global buffer where we start to write this row.
+     */
+    private int startingOffset;
+    /**
+     * fields 占用 Byte
+     */
+    private final int nullBitsSize;
+    /**
+     * 大小
+     */
+    private final int fixedSize;
 
-  public UnsafeRowWriter(BufferHolder holder,int numFields) {
-    this.holder = holder;
-    this.nullBitsSize = UnsafeRow.calculateBitSetWidthInBytes(numFields);
-    this.fixedSize = nullBitsSize + 8 * numFields;
-    this.startingOffset = holder.cursor;
-  }
+    public UnsafeRowWriter(BufferHolder holder, int numFields) {
+        this.holder = holder;
+        this.nullBitsSize = UnsafeRow.calculateBitSetWidthInBytes(numFields);
+        this.fixedSize = nullBitsSize + 8 * numFields;
+        this.startingOffset = holder.cursor;
+    }
 
   /**
    * Resets the `startingOffset` according to the current cursor of row buffer, and clear out null
@@ -75,11 +84,18 @@ public class UnsafeRowWriter {
     }
   }
 
-  private void zeroOutPaddingBytes(int numBytes) {
-    if ((numBytes & 0x07) > 0) {
-      Platform.putLong(holder.buffer, holder.cursor + ((numBytes >> 3) << 3), 0L);
+    /**
+     * 填充 空隙位置 为 0
+     * 为什么需要填充？因为 {@link ByteArrayMethods#roundNumberOfBytesToNearestWord(int)} 时，
+     * 如果不被整除，则尾部有部分无法被我们的 字节数组 填充到，我们使用 0 进行填充，避免可能存在的内容存在在空隙位置。
+     *
+     * @param numBytes 字节数
+     */
+    private void zeroOutPaddingBytes(int numBytes) {
+        if ((numBytes & 0x07) > 0) {
+            Platform.putLong(holder.buffer, holder.cursor + ((numBytes >> 3) << 3), 0L);
+        }
     }
-  }
 
   public BufferHolder holder() { return holder; }
 
@@ -92,21 +108,40 @@ public class UnsafeRowWriter {
     Platform.putLong(holder.buffer, getFieldOffset(ordinal), 0L);
   }
 
-  public long getFieldOffset(int ordinal) {
-    return startingOffset + nullBitsSize + 8 * ordinal;
-  }
+    /**
+     * 获得 顺序 对应的 字节数组位置
+     *
+     * @param ordinal 顺序
+     * @return 位置
+     */
+    public long getFieldOffset(int ordinal) {
+        return startingOffset + nullBitsSize + 8 * ordinal;
+    }
 
-  public void setOffsetAndSize(int ordinal, long size) {
-    setOffsetAndSize(ordinal, holder.cursor, size);
-  }
+    /**
+     * 设置 顺序位置 对应的 value 位置与大小
+     *
+     * @param ordinal 顺序
+     * @param size 大小
+     */
+    public void setOffsetAndSize(int ordinal, long size) {
+        setOffsetAndSize(ordinal, holder.cursor, size);
+    }
 
-  public void setOffsetAndSize(int ordinal, long currentCursor, long size) {
-    final long relativeOffset = currentCursor - startingOffset;
-    final long fieldOffset = getFieldOffset(ordinal);
-    final long offsetAndSize = (relativeOffset << 32) | size;
-
-    Platform.putLong(holder.buffer, fieldOffset, offsetAndSize);
-  }
+    /**
+     * 设置 顺序位置 对应的 value 位置与大小
+     *
+     * @param ordinal 顺序
+     * @param currentCursor 当前 cursor
+     * @param size 大小
+     */
+    public void setOffsetAndSize(int ordinal, long currentCursor, long size) {
+        final long relativeOffset = currentCursor - startingOffset;
+        final long fieldOffset = getFieldOffset(ordinal);
+        final long offsetAndSize = (relativeOffset << 32) | size; // Long 8个字节对半拆成两半：relativeOffset、size。因此，relativeOffset 左移四个字节
+        // 设置
+        Platform.putLong(holder.buffer, fieldOffset, offsetAndSize);
+    }
 
   // Do word alignment for this row and grow the row buffer if needed.
   // todo: remove this after we make unsafe array data word align.
@@ -168,30 +203,47 @@ public class UnsafeRowWriter {
     Platform.putDouble(holder.buffer, getFieldOffset(ordinal), value);
   }
 
-  public void write(int ordinal, byte[] input) {
-    if(input == null){
-      return;
+    /**
+     * 写入 字节数组 到 指定顺序
+     *
+     * @param ordinal 顺序
+     * @param input 字节数组
+     */
+    public void write(int ordinal, byte[] input) {
+        if (input == null) {
+            return;
+        }
+        write(ordinal, input, 0, input.length);
     }
-    write(ordinal, input, 0, input.length);
-  }
 
-  public void write(int ordinal, byte[] input, int offset, int numBytes) {
-    final int roundedSize = ByteArrayMethods.roundNumberOfBytesToNearestWord(numBytes);
+    /**
+     * 写入 字节数组 到 指定顺序
+     *
+     * @param ordinal 顺序
+     * @param input 字节数组
+     * @param offset 字节数组-起始位置
+     * @param numBytes 字节数组-写入字节数
+     */
+    public void write(int ordinal, byte[] input, int offset, int numBytes) {
+        // 计算 numBytes 最接近的 8（Long） 字节长度
+        final int roundedSize = ByteArrayMethods.roundNumberOfBytesToNearestWord(numBytes);
 
-    // grow the global buffer before writing data.
-    holder.grow(roundedSize);
+        // grow the global buffer before writing data.
+        holder.grow(roundedSize);
 
-    zeroOutPaddingBytes(numBytes);
+        // 填充 空隙位置 为 0
+        zeroOutPaddingBytes(numBytes);
 
-    // Write the bytes to the variable length portion.
-    Platform.copyMemory(input, Platform.BYTE_ARRAY_OFFSET + offset,
-      holder.buffer, holder.cursor, numBytes);
+        // 写入 字节数组 Write the bytes to the variable length portion.
+        Platform.copyMemory(input, Platform.BYTE_ARRAY_OFFSET + offset,
+                holder.buffer, holder.cursor, numBytes);
 
-    setOffsetAndSize(ordinal, numBytes);
+        // 写入
+        setOffsetAndSize(ordinal, numBytes);
 
-    // move the cursor forward.
-    holder.cursor += roundedSize;
-  }
+        // move the cursor forward.
+        holder.cursor += roundedSize;
+    }
 
   	/**
 	 * different from Spark, we use java BigDecimal here, 

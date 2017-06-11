@@ -75,15 +75,21 @@ public final class UnsafeExternalRowSorter {
                 enableSort);
     }
 
+    /**
+     * 插入 row
+     *
+     * @param row row
+     * @throws IOException 当 IO 发生异常时
+     */
     public void insertRow(UnsafeRow row) throws IOException {
+        // 计算 排序prefix
         final long prefix = prefixComputer.computePrefix(row);
-
+        // 插入 row
         sorter.insertRecord(
                 row.getBaseObject(),
                 row.getBaseOffset(),
                 row.getSizeInBytes(),
                 prefix);
-
         numRowsInserted++;
     }
 

@@ -36,12 +36,13 @@ public final class BitSetMethods {
   }
 
   /**
+   * 设置 index 对应的 bit位 为 1，即 true。
    * Sets the bit at the specified index to {@code true}.
    */
   public static void set(Object baseObject, long baseOffset, int index) {
     assert index >= 0 : "index (" + index + ") should >= 0";
-    final long mask = 1L << (index & 0x3f);  // mod 64 and shift
-    final long wordOffset = baseOffset + (index >> 6) * WORD_SIZE;
+    final long mask = 1L << (index & 0x3f);  // mod 64 and shift。计算 index 位 的 bit。0x3f = 63。
+    final long wordOffset = baseOffset + (index >> 6) * WORD_SIZE; // 计算 index 对应的 bit位 对应的 位置。
     final long word = Platform.getLong(baseObject, wordOffset);
     Platform.putLong(baseObject, wordOffset, word | mask);
   }

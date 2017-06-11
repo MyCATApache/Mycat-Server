@@ -35,53 +35,75 @@ import io.mycat.memory.unsafe.Platform;
  * if the fields of row are all fixed-length, as the size of result row is also fixed.
  */
 public class BufferHolder {
-  public byte[] buffer;
-  public int cursor = Platform.BYTE_ARRAY_OFFSET;
 
+    /**
+     * buffer
+     */
+    public byte[] buffer;
+    /**
+     * 位置
+     */
+    public int cursor = Platform.BYTE_ARRAY_OFFSET;
+    /**
+     * row
+     */
+    private final UnsafeRow row;
+    /**
+     * 大小
+     */
+    private final int fixedSize;
 
-  private final UnsafeRow row;
-  private final int fixedSize;
-
-  public BufferHolder(UnsafeRow row) {
-    this(row, 64);
-  }
-
-  public BufferHolder(UnsafeRow row, int initialSize) {
-    this.fixedSize = UnsafeRow.calculateBitSetWidthInBytes(row.numFields()) + 8 * row.numFields();
-    this.buffer = new byte[fixedSize + initialSize];
-    this.row = row;
-    this.row.pointTo(buffer, buffer.length);
-  }
-
-  /**
-   * Grows the buffer by at least neededSize and points the row to the buffer.
-   */
-  public void grow(int neededSize) {
-    final int length = totalSize() + neededSize;
-    if (buffer.length < length) {
-      // This will not happen frequently, because the buffer is re-used.
-      final byte[] tmp = new byte[length * 2];
-      Platform.copyMemory(
-        buffer,
-        Platform.BYTE_ARRAY_OFFSET,
-        tmp,
-        Platform.BYTE_ARRAY_OFFSET,
-        totalSize());
-      buffer = tmp;
-      row.pointTo(buffer, buffer.length);
+    public BufferHolder(UnsafeRow row) {
+        this(row, 64);
     }
-  }
 
-  public UnsafeRow getRow() {
-    return row;
-  }
+    public BufferHolder(UnsafeRow row, int initialSize) {
+        this.fixedSize = UnsafeRow.calculateBitSetWidthInBytes(row.numFields()) + 8 * row.numFields();
+        this.buffer = new byte[fixedSize + initialSize];
+        this.row = row;
+        this.row.pointTo(buffer, buffer.length);
+    }
 
+    /**
+     * 扩容
+     * Grows the buffer by at least neededSize and points the row to the buffer.
+     *
+     * @param neededSize 扩容大小
+     */
+    public void grow(int neededSize) {
+        final int length = totalSize() + neededSize;
+        if (buffer.length < length) {
+            // This will not happen frequently, because the buffer is re-used.
+            final byte[] tmp = new byte[length * 2];
+            Platform.copyMemory(
+                    buffer,
+                    Platform.BYTE_ARRAY_OFFSET,
+                    tmp,
+                    Platform.BYTE_ARRAY_OFFSET,
+                    totalSize());
+            buffer = tmp;
+            row.pointTo(buffer, buffer.length);
+        }
+    }
 
-  public void reset() {
-    cursor = Platform.BYTE_ARRAY_OFFSET + fixedSize;
-  }
+    public UnsafeRow getRow() {
+        return row;
+    }
 
-  public int totalSize() {
-    return cursor - Platform.BYTE_ARRAY_OFFSET;
-  }
+    /**
+     * 重置 cursor 到头
+     */
+    public void reset() {
+        cursor = Platform.BYTE_ARRAY_OFFSET + fixedSize;
+    }
+
+    /**
+     * 占用 Byte
+     *
+     * @return Byte
+     */
+    public int totalSize() {
+        return cursor - Platform.BYTE_ARRAY_OFFSET;
+    }
+
 }

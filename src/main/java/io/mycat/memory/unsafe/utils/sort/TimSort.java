@@ -161,74 +161,79 @@ class TimSort<K, Buffer> {
     assert sortState.stackSize == 1;
   }
 
-  /**
-   * Sorts the specified portion of the specified array using a binary
-   * insertion sort.  This is the best method for sorting small numbers
-   * of elements.  It requires O(n log n) compares, but O(n^2) data
-   * movement (worst case).
-   *
-   * If the initial part of the specified range is already sorted,
-   * this method can take advantage of it: the method assumes that the
-   * elements from index {@code lo}, inclusive, to {@code start},
-   * exclusive are already sorted.
-   *
-   * @param a the array in which a range is to be sorted
-   * @param lo the index of the first element in the range to be sorted
-   * @param hi the index after the last element in the range to be sorted
-   * @param start the index of the first element in the range that is
-   *        not already known to be sorted ({@code lo <= start <= hi})
-   * @param c comparator to used for the sort
-   */
-  @SuppressWarnings("fallthrough")
-  private void binarySort(Buffer a, int lo, int hi, int start, Comparator<? super K> c) {
-    assert lo <= start && start <= hi;
-    if (start == lo)
-      start++;
+    /**
+     * 折半插入排序 TODO 需要细分析下
+     *
+     * Sorts the specified portion of the specified array using a binary
+     * insertion sort.  This is the best method for sorting small numbers
+     * of elements.  It requires O(n log n) compares, but O(n^2) data
+     * movement (worst case).
+     *
+     * If the initial part of the specified range is already sorted,
+     * this method can take advantage of it: the method assumes that the
+     * elements from index {@code lo}, inclusive, to {@code start},
+     * exclusive are already sorted.
+     *
+     * @param a     the array in which a range is to be sorted
+     * @param lo    the index of the first element in the range to be sorted
+     * @param hi    the index after the last element in the range to be sorted
+     * @param start the index of the first element in the range that is
+     *              not already known to be sorted ({@code lo <= start <= hi})
+     * @param c     comparator to used for the sort
+     */
+    @SuppressWarnings("fallthrough")
+    private void binarySort(Buffer a, int lo, int hi, int start, Comparator<? super K> c) {
+        assert lo <= start && start <= hi;
+        if (start == lo)
+            start++;
 
-    K key0 = s.newKey();
-    K key1 = s.newKey();
+        K key0 = s.newKey();
+        K key1 = s.newKey();
 
-    Buffer pivotStore = s.allocate(1);
-    for ( ; start < hi; start++) {
-      s.copyElement(a, start, pivotStore, 0);
-      K pivot = s.getKey(pivotStore, 0, key0);
+        Buffer pivotStore = s.allocate(1);
+        for (; start < hi; start++) {
+            s.copyElement(a, start, pivotStore, 0);
+            K pivot = s.getKey(pivotStore, 0, key0);
 
-      // Set left (and right) to the index where a[start] (pivot) belongs
-      int left = lo;
-      int right = start;
-      assert left <= right;
-      /*
-       * Invariants:
-       *   pivot >= all in [lo, left).
-       *   pivot <  all in [right, start).
-       */
-      while (left < right) {
-        int mid = (left + right) >>> 1;
-        if (c.compare(pivot, s.getKey(a, mid, key1)) < 0)
-          right = mid;
-        else
-          left = mid + 1;
-      }
-      assert left == right;
+            // Set left (and right) to the index where a[start] (pivot) belongs
+            int left = lo;
+            int right = start;
+            assert left <= right;
+            /*
+             * Invariants:
+             *   pivot >= all in [lo, left).
+             *   pivot <  all in [right, start).
+             */
+            while (left < right) {
+                int mid = (left + right) >>> 1;
+                if (c.compare(pivot, s.getKey(a, mid, key1)) < 0)
+                    right = mid;
+                else
+                    left = mid + 1;
+            }
+            assert left == right;
 
-      /*
-       * The invariants still hold: pivot >= all in [lo, left) and
-       * pivot < all in [left, start), so pivot belongs at left.  Note
-       * that if there are elements equal to pivot, left points to the
-       * first slot after them -- that's why this sort is stable.
-       * Slide elements over to make room for pivot.
-       */
-      int n = start - left;  // The number of elements to move
-      // Switch is just an optimization for arraycopy in default case
-      switch (n) {
-        case 2:  s.copyElement(a, left + 1, a, left + 2);
-        case 1:  s.copyElement(a, left, a, left + 1);
-          break;
-        default: s.copyRange(a, left, a, left + 1, n);
-      }
-      s.copyElement(pivotStore, 0, a, left);
+            /*
+             * The invariants still hold: pivot >= all in [lo, left) and
+             * pivot < all in [left, start), so pivot belongs at left.  Note
+             * that if there are elements equal to pivot, left points to the
+             * first slot after them -- that's why this sort is stable.
+             * Slide elements over to make room for pivot.
+             */
+            int n = start - left;  // The number of elements to move
+            // Switch is just an optimization for arraycopy in default case
+            switch (n) {
+                case 2:
+                    s.copyElement(a, left + 1, a, left + 2);
+                case 1:
+                    s.copyElement(a, left, a, left + 1);
+                    break;
+                default:
+                    s.copyRange(a, left, a, left + 1, n);
+            }
+            s.copyElement(pivotStore, 0, a, left);
+        }
     }
-  }
 
   /**
    * Returns the length of the run beginning at the specified position in

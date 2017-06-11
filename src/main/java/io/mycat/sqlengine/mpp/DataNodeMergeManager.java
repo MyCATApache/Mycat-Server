@@ -22,6 +22,7 @@ import io.mycat.route.RouteResultset;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.StringUtil;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -337,36 +338,35 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     break;
                 }
 
+                // 生成 row
                 unsafeRow = new UnsafeRow(fieldCount);
                 bufferHolder = new BufferHolder(unsafeRow,0);
                 unsafeRowWriter = new UnsafeRowWriter(bufferHolder,fieldCount);
-                bufferHolder.reset();
-
-                /**
-                 *构造一行row，将对应的col填充.
-                 */
+                bufferHolder.reset(); // 重置 cursor
+                // 构造一行row，将对应的col填充.
                 MySQLMessage mm = new MySQLMessage(pack.rowData);
                 mm.readUB3();
                 mm.read();
-
                 for (int i = 0; i < fieldCount; i++) {
                     byte[] colValue = mm.readBytesWithLength();
-                    if (colValue != null)
-                    	unsafeRowWriter.write(i,colValue);
-                    else
+                    if (colValue != null) {
+                        unsafeRowWriter.write(i, colValue);
+                    } else {
                         unsafeRow.setNullAt(i);
+                    }
                 }
-
+                // 设置 占用Byte
                 unsafeRow.setTotalSize(bufferHolder.totalSize());
 
-                if(unsafeRowGrouper != null){
+                if (unsafeRowGrouper != null) {
                     unsafeRowGrouper.addRow(unsafeRow);
-                }else if (globalSorter != null){
+                } else if (globalSorter != null) {
                     globalSorter.insertRow(unsafeRow);
-                }else {
+                } else {
                     globalMergeResult.insertRow(unsafeRow);
                 }
 
+                // 置空
                 unsafeRow = null;
                 bufferHolder = null;
                 unsafeRowWriter = null;

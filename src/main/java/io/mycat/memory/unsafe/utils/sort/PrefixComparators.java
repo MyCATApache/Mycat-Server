@@ -22,12 +22,22 @@ public class PrefixComparators {
   public static final PrefixComparator RadixSortDemo = new RadixSortDemo();
 
 
+    /**
+     * 字节数组 prefix Comparator
+     */
+    public static final class BinaryPrefixComparator {
 
-  public static final class BinaryPrefixComparator {
-      public static long computePrefix(byte[] bytes) {
-      return ByteArray.getPrefix(bytes);
+        /**
+         * 计算 prefix
+         *
+         * @param bytes 字节数组
+         * @return prefix
+         */
+        public static long computePrefix(byte[] bytes) {
+            return ByteArray.getPrefix(bytes);
+        }
+
     }
-  }
 
   public static final class DoublePrefixComparator {
     /**

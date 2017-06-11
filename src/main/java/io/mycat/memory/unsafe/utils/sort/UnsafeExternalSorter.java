@@ -401,10 +401,14 @@ public final class UnsafeExternalSorter extends MemoryConsumer {
       final Object base = currentPage.getBaseObject();
 
       final long recordAddress = dataNodeMemoryManager.encodePageNumberAndOffset(currentPage, pageCursor);
+      // row 长度
       Platform.putInt(base, pageCursor, length);
       pageCursor += 4;
+      // row 内容（字节数组）
       Platform.copyMemory(recordBase, recordOffset, base, pageCursor, length);
       pageCursor += length;
+
+      // 插入 row
       assert (inMemSorter != null);
       inMemSorter.insertRecord(recordAddress, prefix);
   }

@@ -17,12 +17,10 @@
 
 package io.mycat.memory.unsafe;
 
-import io.mycat.memory.unsafe.utils.BytesTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Cleaner;
 import sun.misc.Unsafe;
-import sun.nio.ch.DirectBuffer;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -278,11 +276,21 @@ public final class Platform {
         _UNSAFE.setMemory(address, size, value);
     }
 
+    /**
+     * 复制 src =》dst
+     *
+     * @param src 原内容
+     * @param srcOffset 原内容复制起始位置
+     * @param dst 目标内容
+     * @param dstOffset 目标内容复制起始位置
+     * @param length 长度
+     */
     public static void copyMemory(
             Object src, long srcOffset, Object dst, long dstOffset, long length) {
+        // TODO 原因是？？
         // Check if dstOffset is before or after srcOffset to determine if we should copy
         // forward or backwards. This is necessary in case src and dst overlap.
-        if (dstOffset < srcOffset) {
+        if (dstOffset < srcOffset) { // 正序复制
             while (length > 0) {
                 long size = Math.min(length, UNSAFE_COPY_THRESHOLD);
                 _UNSAFE.copyMemory(src, srcOffset, dst, dstOffset, size);
@@ -290,7 +298,7 @@ public final class Platform {
                 srcOffset += size;
                 dstOffset += size;
             }
-        } else {
+        } else { // 倒序复制
             srcOffset += length;
             dstOffset += length;
             while (length > 0) {

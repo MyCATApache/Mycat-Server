@@ -1,7 +1,6 @@
 package io.mycat.memory.unsafe.memory.mm;
 
 import com.google.common.annotations.VisibleForTesting;
-
 import io.mycat.memory.unsafe.memory.MemoryBlock;
 import io.mycat.memory.unsafe.utils.JavaUtils;
 import org.slf4j.Logger;
@@ -304,33 +303,33 @@ public class DataNodeMemoryManager {
     releaseExecutionMemory(pageSize,tungstenMemoryMode,consumer);
   }
 
-  /**
-   * Given a memory page and offset within that page, encode this address into a 64-bit long.
-   * This address will remain valid as long as the corresponding page has not been freed.
-   *
-   * @param page a data page allocated by {@link DataNodeMemoryManager#allocatePage}/
-   * @param offsetInPage an offset in this page which incorporates the base offset. In other words,
-   *                     this should be the value that you would pass as the base offset into an
-   *                     UNSAFE call (e.g. page.baseOffset() + something).
-   * @return an encoded page address.
-   */
-  public long encodePageNumberAndOffset(MemoryBlock page, long offsetInPage) {
+    /**
+     * Given a memory page and offset within that page, encode this address into a 64-bit long.
+     * This address will remain valid as long as the corresponding page has not been freed.
+     *
+     * @param page         a data page allocated by {@link DataNodeMemoryManager#allocatePage}/
+     * @param offsetInPage an offset in this page which incorporates the base offset. In other words,
+     *                     this should be the value that you would pass as the base offset into an
+     *                     UNSAFE call (e.g. page.baseOffset() + something).
+     * @return an encoded page address.
+     */
+    public long encodePageNumberAndOffset(MemoryBlock page, long offsetInPage) {
 
-    if (tungstenMemoryMode == MemoryMode.OFF_HEAP) {
-      // In off-heap mode, an offset is an absolute address that may require a full 64 bits to
-      // encode. Due to our page size limitation, though, we can convert this into an offset that's
-      // relative to the page's base offset; this relative offset will fit in 51 bits.
-      offsetInPage -= page.getBaseOffset();
+        if (tungstenMemoryMode == MemoryMode.OFF_HEAP) {
+            // In off-heap mode, an offset is an absolute address that may require a full 64 bits to
+            // encode. Due to our page size limitation, though, we can convert this into an offset that's
+            // relative to the page's base offset; this relative offset will fit in 51 bits.
+            offsetInPage -= page.getBaseOffset();
+        }
+
+        return encodePageNumberAndOffset(page.pageNumber, offsetInPage);
     }
 
-    return encodePageNumberAndOffset(page.pageNumber, offsetInPage);
-  }
-
-  @VisibleForTesting
-  public static long encodePageNumberAndOffset(int pageNumber, long offsetInPage) {
-    assert (pageNumber != -1) : "encodePageNumberAndOffset called with invalid page";
-    return (((long) pageNumber) << OFFSET_BITS) | (offsetInPage & MASK_LONG_LOWER_51_BITS);
-  }
+    @VisibleForTesting
+    public static long encodePageNumberAndOffset(int pageNumber, long offsetInPage) {
+        assert (pageNumber != -1) : "encodePageNumberAndOffset called with invalid page";
+        return (((long) pageNumber) << OFFSET_BITS) | (offsetInPage & MASK_LONG_LOWER_51_BITS);
+    }
 
   @VisibleForTesting
   public static int decodePageNumber(long pagePlusOffsetAddress) {

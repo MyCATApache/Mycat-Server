@@ -32,14 +32,20 @@ public class ByteArrayMethods {
     return (highBit == num) ? num : highBit << 1;
   }
 
-  public static int roundNumberOfBytesToNearestWord(int numBytes) {
-    int remainder = numBytes & 0x07;  // This is equivalent to `numBytes % 8`
-    if (remainder == 0) {
-      return numBytes;
-    } else {
-      return numBytes + (8 - remainder);
+    /**
+     * 计算 numBytes 最接近的 8（Long） 字节长度
+     *
+     * @param numBytes 字节数
+     * @return 字节长度
+     */
+    public static int roundNumberOfBytesToNearestWord(int numBytes) {
+        int remainder = numBytes & 0x07;  // This is equivalent to `numBytes % 8`
+        if (remainder == 0) {
+            return numBytes;
+        } else {
+            return numBytes + (8 - remainder);
+        }
     }
-  }
 
   /**
    * Optimized byte array equality check for byte arrays.

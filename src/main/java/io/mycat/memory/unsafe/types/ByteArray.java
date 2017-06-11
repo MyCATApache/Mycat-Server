@@ -34,22 +34,26 @@ public final class ByteArray {
     Platform.copyMemory(src, Platform.BYTE_ARRAY_OFFSET, target, targetOffset, src.length);
   }
 
-  /**
-   * Returns a 64-bit integer that can be used as the prefix used in sorting.
-   */
-  public static long getPrefix(byte[] bytes) {
-    if (bytes == null) {
-      return 0L;
-    } else {
-      final int minLen = Math.min(bytes.length, 8);
-      long p = 0;
-      for (int i = 0; i < minLen; ++i) {
-        p |= (128L + Platform.getByte(bytes, Platform.BYTE_ARRAY_OFFSET + i))
-            << (56 - 8 * i);
-      }
-      return p;
+    /**
+     * 获得 prefix
+     * Returns a 64-bit integer that can be used as the prefix used in sorting.
+     *
+     * @param bytes 字节数组
+     * @return prefix
+     */
+    public static long getPrefix(byte[] bytes) {
+        if (bytes == null) {
+            return 0L;
+        } else {
+            final int minLen = Math.min(bytes.length, 8);
+            long p = 0;
+            for (int i = 0; i < minLen; ++i) {
+                p |= (128L + Platform.getByte(bytes, Platform.BYTE_ARRAY_OFFSET + i)) // 这里 128 的原因是，byte 最大值是127，+ 128 才是最大
+                        << (56 - 8 * i);
+            }
+            return p;
+        }
     }
-  }
 
   public static byte[] subStringSQL(byte[] bytes, int pos, int len) {
     // This pos calculation is according to UTF8String#subStringSQL

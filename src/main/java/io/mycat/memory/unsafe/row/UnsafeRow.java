@@ -57,9 +57,21 @@ public final class UnsafeRow extends MySQLPacket {
   // Static methods
   //////////////////////////////////////////////////////////////////////////////
 
-  public static int calculateBitSetWidthInBytes(int numFields) {
-    return ((numFields + 63)/ 64) * 8;
-  }
+    /**
+     * 计算 fields 占用 Byte
+     * 每 fields 占用 1 Bit
+     * 如果 Bit 不满 Byte，向上取整 Byte
+     * 例如：
+     *      [0] Bit => 0 Byte
+     *      [1 - 64] Bit => 1 Byte
+     *      ....
+     *
+     * @param numFields fields 数量
+     * @return 占用 Byte
+     */
+    public static int calculateBitSetWidthInBytes(int numFields) {
+        return ((numFields + 63) / 64) * 8;
+    }
 
   public static int calculateFixedPortionByteSize(int numFields) {
     return 8 * numFields + calculateBitSetWidthInBytes(numFields);
@@ -69,26 +81,49 @@ public final class UnsafeRow extends MySQLPacket {
   // Private fields and methods
   //////////////////////////////////////////////////////////////////////////////
 
-  private Object baseObject;
-  private long baseOffset;
+    /**
+     * 对象
+     */
+    private Object baseObject;
+    /**
+     * TODO 疑问：注释
+     */
+    private long baseOffset;
+    /**
+     * fields 数量
+     * The number of fields in this row, used for calculating the bitset width (and in assertions)
+     */
+    private int numFields;
+    /**
+     * 对象占用 Byte
+     * The size of this row's backing data, in bytes)
+     */
+    private int sizeInBytes;
+    /**
+     * fields 占用 Byte
+     * The width of the null tracking bit set, in bytes
+     */
+    private int bitSetWidthInBytes;
 
-  /** The number of fields in this row, used for calculating the bitset width (and in assertions) */
-  private int numFields;
+    /**
+     * 获得 顺序 对应的 value 位置
+     *
+     * @param ordinal 顺序
+     * @return 位置
+     */
+    private long getFieldOffset(int ordinal) {
+        return baseOffset + bitSetWidthInBytes + ordinal * 8L;
+    }
 
-  /** The size of this row's backing data, in bytes) */
-  private int sizeInBytes;
-
-  /** The width of the null tracking bit set, in bytes */
-  private int bitSetWidthInBytes;
-
-  private long getFieldOffset(int ordinal) {
-    return baseOffset + bitSetWidthInBytes + ordinal * 8L;
-  }
-
-  private void assertIndexIsValid(int index) {
-    assert index >= 0 : "index (" + index + ") should >= 0";
-    assert index < numFields : "index (" + index + ") should < " + numFields;
-  }
+    /**
+     * 校验 index 是否合法
+     *
+     * @param index 位置
+     */
+    private void assertIndexIsValid(int index) {
+        assert index >= 0 : "index (" + index + ") should >= 0";
+        assert index < numFields : "index (" + index + ") should < " + numFields;
+    }
 
   //////////////////////////////////////////////////////////////////////////////
   // Public methods
@@ -147,15 +182,19 @@ public final class UnsafeRow extends MySQLPacket {
     BitSetMethods.unset(baseObject, baseOffset, i);
   }
 
-
-  public void setNullAt(int i) {
-    assertIndexIsValid(i);
-    BitSetMethods.set(baseObject, baseOffset, i);
-    // To preserve row equality, zero out the value when setting the column to null.
-    // Since this row does does not currently support updates to variable-length values, we don't
-    // have to worry about zeroing out that data.
-    Platform.putLong(baseObject, getFieldOffset(i), 0);
-  }
+    /**
+     * 设置 顺序 对应的 字符数组 为 Null
+     *
+     * @param i 顺序
+     */
+    public void setNullAt(int i) {
+        assertIndexIsValid(i);
+        BitSetMethods.set(baseObject, baseOffset, i);
+        // To preserve row equality, zero out the value when setting the column to null.
+        // Since this row does does not currently support updates to variable-length values, we don't
+        // have to worry about zeroing out that data.
+        Platform.putLong(baseObject, getFieldOffset(i), 0);
+    }
 
   public void update(int ordinal, Object value) {
     throw new UnsupportedOperationException();
@@ -215,7 +254,6 @@ public final class UnsafeRow extends MySQLPacket {
     return BitSetMethods.isSet(baseObject, baseOffset, ordinal);
   }
 
-
   public boolean getBoolean(int ordinal) {
     assertIndexIsValid(ordinal);
     return Platform.getBoolean(baseObject, getFieldOffset(ordinal));
@@ -265,26 +303,31 @@ public final class UnsafeRow extends MySQLPacket {
     final int size = (int) offsetAndSize;
     return UTF8String.fromAddress(baseObject, baseOffset + offset, size);
   }
-  public byte[] getBinary(int ordinal) {
-    if (isNullAt(ordinal)) {
-      return null;
-    } else {
-      final long offsetAndSize = getLong(ordinal);
-      final int offset = (int) (offsetAndSize >> 32);
-      final int size = (int) offsetAndSize;
-      final byte[] bytes = new byte[size];
-      Platform.copyMemory(
-        baseObject,
-        baseOffset + offset,
-        bytes,
-        Platform.BYTE_ARRAY_OFFSET,
-        size
-      );
-      return bytes;
+
+    /**
+     * 获得 顺序 对应的 字符数组
+     *
+     * @param ordinal 顺序
+     * @return 字节数组
+     */
+    public byte[] getBinary(int ordinal) {
+        if (isNullAt(ordinal)) {
+            return null;
+        } else {
+            final long offsetAndSize = getLong(ordinal);
+            final int offset = (int) (offsetAndSize >> 32);
+            final int size = (int) offsetAndSize;
+            final byte[] bytes = new byte[size];
+            Platform.copyMemory(
+                    baseObject,
+                    baseOffset + offset,
+                    bytes,
+                    Platform.BYTE_ARRAY_OFFSET,
+                    size
+            );
+            return bytes;
+        }
     }
-  }
-
-
 
   /**
    * Copies this row, returning a self-contained UnsafeRow that stores its data in an internal
