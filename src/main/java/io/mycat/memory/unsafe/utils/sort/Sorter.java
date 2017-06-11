@@ -33,10 +33,10 @@ public class Sorter<K,Buffer> {
     timSort = new TimSort(s);
   }
 
-  /**
-   * Sorts the input buffer within range [lo, hi).
-   */
-  public void sort(Buffer a, int lo, int hi,  Comparator<K> c) {
-    timSort.sort(a, lo, hi, c);
-  }
+    /**
+     * Sorts the input buffer within range [lo, hi).
+     */
+    public void sort(Buffer a, int lo, int hi, Comparator<K> c) {
+        timSort.sort(a, lo, hi, c);
+    }
 }
