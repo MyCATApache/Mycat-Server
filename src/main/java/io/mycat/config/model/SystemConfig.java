@@ -146,7 +146,16 @@ public final class SystemConfig {
 	private int mutiNodePatchSize = MUTINODELIMIT_PATCH_SIZE;
 
 	private String defaultSqlParser = DEFAULT_SQL_PARSER;
+	private String createDatabaseSqlParser="";
 	private int usingAIO = 0;
+	public String getCreateDatabaseSqlParser() {
+		return createDatabaseSqlParser;
+	}
+
+	public void setCreateDatabaseSqlParser(String createDatabaseSqlParser) {
+		this.createDatabaseSqlParser = createDatabaseSqlParser;
+	}
+
 	private int packetHeaderSize = 4;
 	private int maxPacketSize = 16 * 1024 * 1024;
 	private int mycatNodeId=1;
