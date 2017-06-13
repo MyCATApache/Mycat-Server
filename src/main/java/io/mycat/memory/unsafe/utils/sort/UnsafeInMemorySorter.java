@@ -295,7 +295,7 @@ public final class UnsafeInMemorySorter {
     int offset = 0;
     long start = System.nanoTime();
     if (sorter != null && enableSort) {
-      if (this.radixSortSupport != null) {
+      if (this.radixSortSupport != null) { // TODO 待读：另外一种排序器
         // TODO(ekl) we should handle NULL values before radix sort for efficiency, since they
         // force a full-width sort (and we cannot radix-sort nullable long fields at all).
         offset = RadixSort.sortKeyPrefixArray(array, pos / 2, 0, 7, radixSortSupport.sortDescending(),radixSortSupport.sortSigned());

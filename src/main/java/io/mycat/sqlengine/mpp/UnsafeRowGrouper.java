@@ -33,7 +33,6 @@ import io.mycat.memory.unsafe.row.BufferHolder;
 import io.mycat.memory.unsafe.row.StructType;
 import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.memory.unsafe.row.UnsafeRowWriter;
-
 import io.mycat.memory.unsafe.utils.BytesTools;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import io.mycat.memory.unsafe.utils.sort.UnsafeExternalRowSorter;
@@ -47,7 +46,6 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
-import java.text.NumberFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -90,7 +88,7 @@ public class UnsafeRowGrouper {
 		this.columns = columns;
 		this.mergCols = mergCols;
 		this.havingCols = havingCols;
-                this.sortColumnsByIndex =  columns !=null ? toSortColumnsByIndex(columns,columToIndx):null;
+        this.sortColumnsByIndex =  columns !=null ? toSortColumnsByIndex(columns,columToIndx):null;
 		this.groupKeyfieldCount = columns != null?columns.length:0;
 		this.valuefieldCount = columToIndx != null?columToIndx.size():0;
 		this.myCatMemory = MycatServer.getInstance().getMyCatMemory();
@@ -284,7 +282,7 @@ public class UnsafeRowGrouper {
          */
         if (havingCols !=null){
             filterHaving(sorter);
-        }else{
+        } else {
 
             /**
              * KVIterator<K,V> ==>Iterator<V>
@@ -297,14 +295,29 @@ public class UnsafeRowGrouper {
 	/**
 	 * 处理AVG列精度
 	 */
-	private void processAvgFieldPrecision() {
-		for(String key : columToIndx.keySet()) {
-			if(isAvgField(key)) { // AVG列的小数点精度默认取SUM小数点精度, 计算和返回的小数点精度应该扩展4
-				ColMeta colMeta = columToIndx.get(key);
-				colMeta.decimals += 4;
-			}
-		}
-	}
+//	private void processAvgFieldPrecision() {
+//		for(String key : columToIndx.keySet()) {
+//			if(isAvgField(key)) { // AVG列的小数点精度默认取SUM小数点精度, 计算和返回的小数点精度应该扩展4
+//				ColMeta colMeta = columToIndx.get(key);
+//				colMeta.decimals += 4;
+//			}
+//		}
+//	}
+
+    // TODO 从 github 找到的解决方案：https://github.com/MyCATApache/Mycat-Server/issues/1435
+    private void processAvgFieldPrecision() {
+        for (int i = 0; i < mergCols.length; i++) {
+            if (mergCols[i].mergeType == MergeCol.MERGE_AVG) {
+                for (String key : columToIndx.keySet()) {
+// AVG列的小数点精度默认取SUM小数点精度, 计算和返回的小数点精度应该扩展4
+                    if (columToIndx.get(key).colIndex == mergCols[i].colMeta.avgSumIndex) {
+                        ColMeta colMeta = columToIndx.get(key);
+                        colMeta.decimals += 4;
+                    }
+                }
+            }
+        }
+    }
 	
 	/**
 	 * 判断列是否为AVG列
@@ -389,7 +402,7 @@ public class UnsafeRowGrouper {
     }
 
 	private void filterHaving(@Nonnull UnsafeExternalRowSorter sorter){
-
+        // TODO 待解决，bug：当使用avg时，colMeta == null select nickname, age, avg(age) from travelrecord group by nickname, age having avg(age) > 0;
         if (havingCols.getColMeta() == null || aggregationMap == null) {
 			return;
 		}
@@ -607,7 +620,7 @@ public class UnsafeRowGrouper {
 		UnsafeRow key = getGroupKey(rowDataPkg);
 		UnsafeRow value = getValue(rowDataPkg);
 
-		if(aggregationMap.find(key)){
+		if(aggregationMap.find(key)){ // TODO 待读：算法
 			UnsafeRow rs = aggregationMap.getAggregationBuffer(key);
 			aggregateRow(key,rs,value);
 		}else {
@@ -860,8 +873,8 @@ public class UnsafeRowGrouper {
                             break;
                         case ColMeta.COL_TYPE_NEWDECIMAL:
 //                          toRow.setDouble(avgSumIndex,ByteUtil.getDouble(result));
-                      	toRow.updateDecimal(avgSumIndex, new BigDecimal(new String(result)));
-                          break;
+                      	    toRow.updateDecimal(avgSumIndex, new BigDecimal(new String(result)));
+                            break;
                         default:
                             break;
                     }
@@ -879,7 +892,7 @@ public class UnsafeRowGrouper {
 		}
 
 		switch (mergeType) {
-			case MergeCol.MERGE_SUM:
+			case MergeCol.MERGE_SUM: // TODO 待尝试：sum
 				if (colType == ColMeta.COL_TYPE_DOUBLE
 					|| colType == ColMeta.COL_TYPE_FLOAT){
 					double value = BytesTools.getDouble(bs) +
@@ -901,17 +914,17 @@ public class UnsafeRowGrouper {
 				return BytesTools.long2Bytes(total);
 			}
 
-			case MergeCol.MERGE_MAX: {
+			case MergeCol.MERGE_MAX: { // TODO 待尝试：sum
 				int compare = ByteUtil.compareNumberByte(bs,bs2);
 				return (compare > 0) ? bs : bs2;
 			}
 
-			case MergeCol.MERGE_MIN: {
+			case MergeCol.MERGE_MIN: { // TODO 待尝试：sum
 				int compare = ByteUtil.compareNumberByte(bs,bs2);
 				return (compare > 0) ? bs2 : bs;
 
 			}
-			case MergeCol.MERGE_AVG: {
+			case MergeCol.MERGE_AVG: { // TODO 待尝试：sum
 				/**
 				 * 元素总个数
 				 */

@@ -326,7 +326,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
                         iters = globalSorter.sort();
 
-                    }else if (!isStreamOutputResult){
+                    }else if (!isStreamOutputResult){ // TODO 待读：调试一次
 
                         iters = globalMergeResult.sort();
 
