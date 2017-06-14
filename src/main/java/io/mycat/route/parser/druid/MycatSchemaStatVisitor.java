@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import com.alibaba.druid.sql.ast.SQLCommentHint;
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLExprImpl;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
@@ -289,6 +290,14 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         return "";
     }
     
+    private void setSubQueryRelationOrFlag(SQLExprImpl x){
+    	MycatSubQueryVisitor subQueryVisitor = new MycatSubQueryVisitor();
+    	x.accept(subQueryVisitor);
+    	if(subQueryVisitor.isRelationOr()){
+    		subqueryRelationOr = true;
+    	}
+    }
+    
     /*
      * 子查询
      * (non-Javadoc)
@@ -296,6 +305,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLQueryExpr x) {
+    	setSubQueryRelationOrFlag(x);
     	addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
@@ -315,6 +325,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLExistsExpr x) {
+    	setSubQueryRelationOrFlag(x);
     	addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
@@ -331,6 +342,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLInSubQueryExpr x) {
+    	setSubQueryRelationOrFlag(x);
     	addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
@@ -346,7 +358,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      *          other  不改写
      */    
     @Override
-    public boolean visit(SQLAllExpr x) {    	
+    public boolean visit(SQLAllExpr x) {
+    	setSubQueryRelationOrFlag(x);
+    	
     	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
     	SQLExpr sexpr = itemlist.get(0).getExpr();
     	
@@ -449,7 +463,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      *    other  不改写
      */
     @Override
-    public boolean visit(SQLSomeExpr x) {   	
+    public boolean visit(SQLSomeExpr x) {
+    	
+    	setSubQueryRelationOrFlag(x);
+    	
     	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
     	SQLExpr sexpr = itemlist.get(0).getExpr();
     	
@@ -581,6 +598,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLAnyExpr x) {
+    	
+    	setSubQueryRelationOrFlag(x);
+    	
     	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
     	SQLExpr sexpr = itemlist.get(0).getExpr();
     	

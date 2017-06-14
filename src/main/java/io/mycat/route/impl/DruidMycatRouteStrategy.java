@@ -5,6 +5,7 @@ import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +37,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
+import com.alibaba.druid.stat.TableStat.Relationship;
 import com.google.common.base.Strings;
 
 import io.mycat.MycatServer;
@@ -122,6 +124,12 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		DruidShardingParseInfo ctx=  druidParser.getCtx() ;
 		rrs.setTables(ctx.getTables());
 		
+		if(visitor.isSubqueryRelationOr()){
+			String err = "In subQuery,the or condition is not supported.";
+			LOGGER.error(err);
+			throw new SQLSyntaxErrorException(err);
+		}
+		
 		/* 按照以下情况路由
 			1.2.1 可以直接路由.
        		1.2.2 两个表夸库join的sql.调用calat
@@ -137,6 +145,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		Set<String> firstDataNodes = new HashSet<String>();
 		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
 		
+		Map<String,RuleConfig> rulemap = new HashMap<>();
 		if(tconfigs!=null){	
 	        for(String tableName : tables){
 	            TableConfig tc =  tconfigs.get(tableName);
@@ -152,6 +161,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	            	 if(tc !=null){
 		                firstRule=  tc.getRule();
 		                firstDataNodes.addAll(tc.getDataNodes());
+		                rulemap.put(tc.getName(), firstRule);
 	            	 }
 	            }else{
 	                if(tc !=null){
@@ -159,6 +169,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	                    RuleConfig ruleCfg = tc.getRule();
 	                    Set<String> dataNodes = new HashSet<String>();
 	                    dataNodes.addAll(tc.getDataNodes());
+	                    rulemap.put(tc.getName(), ruleCfg);
 	                    //如果匹配规则不相同或者分片的datanode不相同则需要走子查询处理
 	                    if((ruleCfg !=null && !ruleCfg.equals(firstRule) )||( !dataNodes.equals(firstDataNodes))){
 	                      directRoute = false;
@@ -173,7 +184,12 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		/*
 		 * TODO 后期可以优化为策略.
 		 */
-		if(directRoute){ // 1/2/3/4种情况下直接路由
+		if(directRoute){ //直接路由
+			if(!checkRuleField(rulemap,visitor)){
+				String err = "In case of slice table,sql have same rules,but the relationship condition is different from rule field!";
+				LOGGER.error(err);
+				throw new SQLSyntaxErrorException(err);
+			}
 			return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
 		}else{
 			int subQuerySize = visitor.getSubQuerys().size();
@@ -185,7 +201,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			}else if(subQuerySize==1){     //只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行 TODO 后期可能会考虑多个子查询的情况.
 				SQLSelect sqlselect = visitor.getSubQuerys().iterator().next();
 				if(!visitor.getRelationships().isEmpty()){     // 当 inner query  和 outer  query  有关联条件时,暂不支持
-					throw new UnsupportedOperationException("In case of slice table,sql have different rules,the relationship condition is not supported.");
+					String err = "In case of slice table,sql have different rules,the relationship condition is not supported.";
+					LOGGER.error(err);
+					throw new SQLSyntaxErrorException(err);
 				}else{
 					SQLSelectQuery sqlSelectQuery = sqlselect.getQuery();
 					if(((MySqlSelectQueryBlock)sqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
@@ -194,10 +212,41 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 					}
 				}
 			}else if(subQuerySize >=2){
-				throw new UnsupportedOperationException("In case of slice table,sql has different rules,currently only one subQuery is supported.");
+				String err = "In case of slice table,sql has different rules,currently only one subQuery is supported.";
+				LOGGER.error(err);
+				throw new SQLSyntaxErrorException(err);
 			}
 		}
 		return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
+	}
+	
+	/**
+	 * 子查询中存在关联查询的情况下,检查关联字段是否是分片字段
+	 * @param rulemap
+	 * @param ships
+	 * @return
+	 */
+	private boolean checkRuleField(Map<String,RuleConfig> rulemap,MycatSchemaStatVisitor visitor){
+		Set<Relationship> ships = visitor.getRelationships();
+		Iterator<Relationship> iter = ships.iterator();
+		while(iter.hasNext()){
+			Relationship ship = iter.next();
+			String lefttable = ship.getLeft().getTable().toUpperCase();
+			RuleConfig leftconfig = rulemap.get(lefttable);
+			if(leftconfig!=null){
+				if(!leftconfig.getColumn().equals(ship.getLeft().getName().toUpperCase())){
+					return false;
+				}
+			}
+			String righttable = ship.getRight().getTable().toUpperCase();
+			RuleConfig rightconfig = rulemap.get(righttable);
+			if(rightconfig!=null){
+				if(!rightconfig.getColumn().equals(ship.getRight().getName().toUpperCase())){
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 	
 	private RouteResultset middlerResultRoute(final SchemaConfig schema,final String charset,final SQLSelect sqlselect,
