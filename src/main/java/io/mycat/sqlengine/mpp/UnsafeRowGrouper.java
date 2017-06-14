@@ -401,32 +401,32 @@ public class UnsafeRowGrouper {
                 UnsafeRow row = getAllBinaryRow(it.getValue());
                 switch (havingCols.getOperator()) {
                 case "=":
-                    if (!eq(row.getBinary(index),right)) {
+                    if (eq(row.getBinary(index),right)) {
                         sorter.insertRow(row);
                     }
                     break;
                 case ">":
-                    if (!gt(row.getBinary(index),right)) {
+                    if (gt(row.getBinary(index),right)) {
                         sorter.insertRow(row);
                     }
                     break;
                 case "<":
-                    if (!lt(row.getBinary(index),right)) {
+                    if (lt(row.getBinary(index),right)) {
                         sorter.insertRow(row);
                     }
                     break;
                 case ">=":
-                    if (!gt(row.getBinary(index),right) && eq(row.getBinary(index),right)) {
+                    if (gt(row.getBinary(index),right) || eq(row.getBinary(index),right)) {
                         sorter.insertRow(row);
                     }
                     break;
                 case "<=":
-                    if (!lt(row.getBinary(index),right) && eq(row.getBinary(index),right)) {
+                    if (lt(row.getBinary(index),right) || eq(row.getBinary(index),right)) {
                         sorter.insertRow(row);
                     }
                     break;
                 case "!=":
-                    if (!neq(row.getBinary(index),right)) {
+                    if (neq(row.getBinary(index),right)) {
                         sorter.insertRow(row);
                     }
                     break;
@@ -439,19 +439,19 @@ public class UnsafeRowGrouper {
 	}
 
 	private boolean lt(byte[] l, byte[] r) {
-		return -1 != ByteUtil.compareNumberByte(l, r);
+		return -1 >= ByteUtil.compareNumberByte(l, r);
 	}
 
 	private boolean gt(byte[] l, byte[] r) {
-		return 1 != ByteUtil.compareNumberByte(l, r);
+		return 1 <= ByteUtil.compareNumberByte(l, r);
 	}
 
 	private boolean eq(byte[] l, byte[] r) {
-		return 0 != ByteUtil.compareNumberByte(l, r);
+		return 0 == ByteUtil.compareNumberByte(l, r);
 	}
 
 	private boolean neq(byte[] l, byte[] r) {
-		return 0 == ByteUtil.compareNumberByte(l, r);
+		return 0 != ByteUtil.compareNumberByte(l, r);
 	}
 
 	/**
