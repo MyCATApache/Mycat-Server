@@ -402,7 +402,6 @@ public class UnsafeRowGrouper {
     }
 
 	private void filterHaving(@Nonnull UnsafeExternalRowSorter sorter){
-        // TODO 待解决，bug：当使用avg时，colMeta == null select nickname, age, avg(age) from travelrecord group by nickname, age having avg(age) > 0;
         if (havingCols.getColMeta() == null || aggregationMap == null) {
 			return;
 		}
