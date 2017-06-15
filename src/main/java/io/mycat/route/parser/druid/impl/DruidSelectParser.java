@@ -35,11 +35,20 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
+import com.alibaba.druid.sql.dialect.db2.ast.stmt.DB2SelectQueryBlock;
+import com.alibaba.druid.sql.dialect.db2.visitor.DB2OutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.oracle.visitor.OracleOutputVisitor;
+import com.alibaba.druid.sql.dialect.postgresql.ast.stmt.PGSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.postgresql.visitor.PGOutputVisitor;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
+import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
 import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
@@ -161,16 +170,31 @@ public class DruidSelectParser extends DefaultDruidParser {
                     isNeedChangeSql=true;
                     aggrColumns.put(colName, mergeType);
                     rrs.setHasAggrColumn(true);
-                } else
-				if (MergeCol.MERGE_UNSUPPORT != mergeType)
-				{
+                } else if (MergeCol.MERGE_UNSUPPORT != mergeType){
+					String aggColName = null;
+					StringBuilder sb = new StringBuilder();
+					if(mysqlSelectQuery instanceof MySqlSelectQueryBlock) {
+						expr.accept(new MySqlOutputVisitor(sb));
+					} else if(mysqlSelectQuery instanceof OracleSelectQueryBlock) {
+						expr.accept(new OracleOutputVisitor(sb));
+					} else if(mysqlSelectQuery instanceof PGSelectQueryBlock){
+						expr.accept(new PGOutputVisitor(sb));
+					} else if(mysqlSelectQuery instanceof SQLServerSelectQueryBlock) {
+						expr.accept(new SQLASTOutputVisitor(sb));
+					} else if(mysqlSelectQuery instanceof DB2SelectQueryBlock) {
+						expr.accept(new DB2OutputVisitor(sb));
+					}
+					aggColName = sb.toString();
+
 					if (item.getAlias() != null && item.getAlias().length() > 0)
 					{
 						aggrColumns.put(item.getAlias(), mergeType);
+						aliaColumns.put(aggColName,item.getAlias());
 					} else
 					{   //如果不加，jdbc方式时取不到正确结果   ;修改添加别名
 							item.setAlias(method + i);
 							aggrColumns.put(method + i, mergeType);
+							aliaColumns.put(aggColName, method + i);
                             isNeedChangeSql=true;
 					}
 					rrs.setHasAggrColumn(true);
@@ -215,7 +239,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			List<SQLExpr> groupByItems = mysqlSelectQuery.getGroupBy().getItems();
 			String[] groupByCols = buildGroupByCols(groupByItems,aliaColumns);
 			rrs.setGroupByCols(groupByCols);
-			rrs.setHavings(buildGroupByHaving(mysqlSelectQuery.getGroupBy().getHaving()));
+			rrs.setHavings(buildGroupByHaving(mysqlSelectQuery.getGroupBy().getHaving(),aliaColumns));
 			rrs.setHasAggrColumn(true);
 			rrs.setHavingColsName(havingColsName.toArray()); // Added by winbill, 20160314, for having clause
 		}
@@ -230,7 +254,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		return aliaColumns;
 	}
 
-	private HavingCols buildGroupByHaving(SQLExpr having){
+	private HavingCols buildGroupByHaving(SQLExpr having,Map<String, String> aliaColumns ){
 		if (having == null) {
 			return null;
 		}
@@ -244,6 +268,11 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if (left instanceof SQLAggregateExpr) {
 			leftValue = ((SQLAggregateExpr) left).getMethodName() + "("
 					+ ((SQLAggregateExpr) left).getArguments().get(0) + ")";
+			String aggrColumnAlias = getAliaColumn(aliaColumns,leftValue);
+			if(aggrColumnAlias != null) { // having聚合函数存在别名
+				expr.setLeft(new SQLIdentifierExpr(aggrColumnAlias));
+				leftValue = aggrColumnAlias;
+			}
 		} else if (left instanceof SQLIdentifierExpr) {
 			leftValue = ((SQLIdentifierExpr) left).getName();
 		}

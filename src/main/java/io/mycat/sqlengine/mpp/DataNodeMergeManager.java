@@ -116,6 +116,22 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("getHavingCols:" + rrs.getHavingCols().toString());
             }
+			
+	    /**
+             * mycat 中将 sql： select avg(xxx) from t
+             * 重写 为 select sum(xxx) AS AVG[0~9]SUM,count(xxx) AS AVG[0~9]COUNT from t
+             *  或者 select avg(xxx)  AS xxx from t
+             *  select sum(xxx) AS xxxSUM,count(xxx) AS xxxCOUNT from t
+             */
+            if (colMeta == null) {
+                for (String key : columToIndx.keySet()) {
+                    if (key.toUpperCase().endsWith("SUM")) {
+                        colMeta = columToIndx.get(key);
+                        break;
+                    }
+                }
+            }
+			
             if (colMeta != null) {
                 rrs.getHavingCols().setColMeta(colMeta);
             }
