@@ -219,7 +219,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	/**
 	 * 行数据包结束处理
 	 */
-	private void handleRowEofPacket(byte[] data) {
+    private void handleRowEofPacket(byte[] data) {
 		if (responseHandler != null) {
 			responseHandler.rowEofResponse(data, source);
 		} else {

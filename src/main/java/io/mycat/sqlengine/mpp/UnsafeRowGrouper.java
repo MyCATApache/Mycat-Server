@@ -616,19 +616,19 @@ public class UnsafeRowGrouper {
 		return value;
 	}
 
-	public void addRow(UnsafeRow rowDataPkg) throws UnsupportedEncodingException {
-		UnsafeRow key = getGroupKey(rowDataPkg);
-		UnsafeRow value = getValue(rowDataPkg);
+    public void addRow(UnsafeRow rowDataPkg) throws UnsupportedEncodingException {
+        UnsafeRow key = getGroupKey(rowDataPkg);
+        UnsafeRow value = getValue(rowDataPkg);
 
-		if(aggregationMap.find(key)){ // TODO 待读：算法
-			UnsafeRow rs = aggregationMap.getAggregationBuffer(key);
-			aggregateRow(key,rs,value);
-		}else {
-			aggregationMap.put(key,value);
-		}
+        if (aggregationMap.find(key)) { // TODO 待读：算法
+            UnsafeRow rs = aggregationMap.getAggregationBuffer(key);
+            aggregateRow(key, rs, value);
+        } else {
+            aggregationMap.put(key, value);
+        }
 
-		return;
-	}
+        return;
+    }
 
 
 	private boolean isMergeAvg(){
@@ -892,7 +892,7 @@ public class UnsafeRowGrouper {
 		}
 
 		switch (mergeType) {
-			case MergeCol.MERGE_SUM: // TODO 待尝试：sum
+			case MergeCol.MERGE_SUM:
 				if (colType == ColMeta.COL_TYPE_DOUBLE
 					|| colType == ColMeta.COL_TYPE_FLOAT){
 					double value = BytesTools.getDouble(bs) +
@@ -914,17 +914,17 @@ public class UnsafeRowGrouper {
 				return BytesTools.long2Bytes(total);
 			}
 
-			case MergeCol.MERGE_MAX: { // TODO 待尝试：sum
+			case MergeCol.MERGE_MAX: {
 				int compare = ByteUtil.compareNumberByte(bs,bs2);
 				return (compare > 0) ? bs : bs2;
 			}
 
-			case MergeCol.MERGE_MIN: { // TODO 待尝试：sum
+			case MergeCol.MERGE_MIN: {
 				int compare = ByteUtil.compareNumberByte(bs,bs2);
 				return (compare > 0) ? bs2 : bs;
 
 			}
-			case MergeCol.MERGE_AVG: { // TODO 待尝试：sum
+			case MergeCol.MERGE_AVG: {
 				/**
 				 * 元素总个数
 				 */

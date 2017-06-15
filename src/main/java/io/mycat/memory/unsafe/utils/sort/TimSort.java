@@ -128,7 +128,7 @@ class TimSort<K, Buffer> {
       return;
     }
 
-    /* TODO 待读：折半
+    /* TO
      * March over the array once, left to right, finding natural runs,
      * extending short natural runs to minRun elements, and merging runs
      * to maintain stack invariant.

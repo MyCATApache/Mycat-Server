@@ -29,6 +29,7 @@ import java.io.Serializable;
  * 列（字段）元信息
  */
 public class ColMeta implements Serializable{
+
 	public static final int COL_TYPE_DECIMAL = 0;
 	public static final int COL_TYPE_INT = 1;
 	public static final int COL_TYPE_SHORT = 2;

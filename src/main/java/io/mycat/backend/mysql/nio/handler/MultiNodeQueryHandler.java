@@ -50,6 +50,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
+ * 堆外
+ *
  * @author mycat
  */
 public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataResponseHandler {
@@ -143,7 +145,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		// 赋值 数据合并服务
 		isOffHeapuseOffHeapForMerge = MycatServer.getInstance().getConfig().getSystem().getUseOffHeapForMerge();
 		if (ServerParse.SELECT == sqlType && rrs.needMerge()) {
-			if (isOffHeapuseOffHeapForMerge == 1) { // 对外内存（off-heap memory）
+			if (isOffHeapuseOffHeapForMerge == 1) { // 堆外内存（off-heap memory）
 				dataMergeSvr = new DataNodeMergeManager(this,rrs,isMiddleResultDone);
 			} else { // 堆内内存（on-heap memory）
 				dataMergeSvr = new DataMergeService(this,rrs);
@@ -808,7 +810,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				// So the "isClosedByDiscard" variable is unnecessary.
 				// @author Uncle-pan
 				// @since 2016-03-25
-					dataMergeSvr.onNewRecord(dataNode, row);
+                dataMergeSvr.onNewRecord(dataNode, row);
 
 				MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
  				if(null != middlerResultHandler ){

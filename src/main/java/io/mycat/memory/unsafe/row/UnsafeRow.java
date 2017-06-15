@@ -86,7 +86,7 @@ public final class UnsafeRow extends MySQLPacket {
      */
     private Object baseObject;
     /**
-     * TODO 疑问：注释
+     * 对象开始位置
      */
     private long baseOffset;
     /**

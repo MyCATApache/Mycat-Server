@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Created by zagnix on 2016/7/6.
  */
-public abstract class AbstractDataNodeMerge implements Runnable{
+public abstract class AbstractDataNodeMerge implements Runnable {
 
 
     private static Logger LOGGER = Logger.getLogger(AbstractDataNodeMerge.class);
@@ -31,7 +31,7 @@ public abstract class AbstractDataNodeMerge implements Runnable{
      */
     protected final RouteResultset rrs;
     /**
-     * 夸分片处理handler
+     * 垮分片处理handler
      */
     protected MultiNodeQueryHandler multiQueryHandler = null;
     /**
@@ -47,7 +47,7 @@ public abstract class AbstractDataNodeMerge implements Runnable{
     protected boolean isStreamOutputResult = false;
 
     /**
-     * rowData缓存队列
+     * 待合并记录行(row)队列
      */
     protected BlockingQueue<PackWraper> packs = new LinkedBlockingQueue<PackWraper>();
 

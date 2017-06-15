@@ -52,7 +52,6 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
      * UnsafeRowGrouper
      */
     private UnsafeRowGrouper unsafeRowGrouper = null;
-
     /**
      * 全局merge，排序器
      */
@@ -71,6 +70,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
     private final  int limitSize;
 
     private AtomicBoolean isMiddleResultDone;
+
     public DataNodeMergeManager(MultiNodeQueryHandler handler, RouteResultset rrs,AtomicBoolean isMiddleResultDone) {
         super(handler,rrs);
         this.isMiddleResultDone = isMiddleResultDone;
@@ -80,7 +80,6 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
         this.limitStart = rrs.getLimitStart();
         this.limitSize = rrs.getLimitSize();
     }
-
 
     @SuppressWarnings("Duplicates")
     public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) throws IOException {
@@ -163,7 +162,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     mergCols.toArray(new MergeCol[mergCols.size()]), rrs.getHavingCols());
         }
 
-        // 处理 排序列
+        // 处理 排序（sort）列
         if (rrs.getOrderByCols() != null) {
             LinkedHashMap<String, Integer> orders = rrs.getOrderByCols();
             orderCols = new OrderCol[orders.size()];
@@ -195,7 +194,6 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     false, // 是否使用基数排序
                     true); // 排序
         }
-
 
         if (conf.getBoolean("mycat.stream.output.result",false) && globalSorter == null && unsafeRowGrouper == null) {
             setStreamOutputResult(true);
@@ -282,7 +280,6 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
         }
 
         boolean nulpack = false;
-
         try {
             for (; ; ) {
                 final PackWraper pack = packs.poll();
@@ -323,13 +320,9 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                         }
 
                     }else if(globalSorter != null){
-
                         iters = globalSorter.sort();
-
-                    }else if (!isStreamOutputResult){ // TODO 待读：调试一次
-
+                    }else if (!isStreamOutputResult){
                         iters = globalMergeResult.sort();
-
                     }
 
                     if(iters != null){

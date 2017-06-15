@@ -12,6 +12,14 @@ package io.mycat.sqlengine.mpp;
  * 进行排序.
  */
 public final  class PackWraper {
+
+    /**
+     * 行数据
+     */
     public byte[] rowData;
+    /**
+     * 数据节点
+     */
     public String dataNode;
+
 }

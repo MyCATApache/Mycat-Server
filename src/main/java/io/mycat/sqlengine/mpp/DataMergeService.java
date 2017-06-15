@@ -45,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
+ * 堆内
  * 
  * @author wuzhih /modify by coder_czp/2015/11/2
  * 

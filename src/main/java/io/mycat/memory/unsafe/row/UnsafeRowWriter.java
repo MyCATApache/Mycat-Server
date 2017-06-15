@@ -103,10 +103,10 @@ public class UnsafeRowWriter {
     return BitSetMethods.isSet(holder.buffer, startingOffset, ordinal);
   }
 
-  public void setNullAt(int ordinal) {
-    BitSetMethods.set(holder.buffer, startingOffset, ordinal);
-    Platform.putLong(holder.buffer, getFieldOffset(ordinal), 0L);
-  }
+    public void setNullAt(int ordinal) {
+        BitSetMethods.set(holder.buffer, startingOffset, ordinal);
+        Platform.putLong(holder.buffer, getFieldOffset(ordinal), 0L);
+    }
 
     /**
      * 获得 顺序 对应的 字节数组位置

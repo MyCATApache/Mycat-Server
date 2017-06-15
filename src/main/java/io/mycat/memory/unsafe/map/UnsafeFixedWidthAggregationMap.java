@@ -115,7 +115,7 @@ public final class UnsafeFixedWidthAggregationMap {
   public boolean put(UnsafeRow key, UnsafeRow value){
 
     int hash =  Murmur3_x86_32.hashUnsafeWords(key.getBaseObject(),
-            key.getBaseOffset(), key.getSizeInBytes(),SEED);
+            key.getBaseOffset(), key.getSizeInBytes(), SEED);
 
     // Probe our map using the serialized key
     final BytesToBytesMap.Location loc = map.lookup(

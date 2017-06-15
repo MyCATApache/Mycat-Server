@@ -7,7 +7,8 @@ import javax.annotation.Nonnull;
 import java.util.Map;
 
 /**
- * TODO
+ * 结构信息
+ *
  * Created by zagnix on 2016/6/6.
  */
 public class StructType {
