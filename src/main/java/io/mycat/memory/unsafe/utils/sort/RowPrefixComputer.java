@@ -6,9 +6,6 @@ import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.memory.unsafe.utils.BytesTools;
 import io.mycat.sqlengine.mpp.ColMeta;
 import io.mycat.sqlengine.mpp.OrderCol;
-import io.mycat.util.ByteUtil;
-import io.mycat.util.IntegerUtil;
-import io.mycat.util.LongUtil;
 
 import javax.annotation.Nonnull;
 import java.io.UnsupportedEncodingException;
@@ -26,19 +23,10 @@ public class RowPrefixComputer extends UnsafeExternalRowSorter.PrefixComputer {
         /**
          * 通过计算得到排序关键词的第一个在行的索引下标
          */
-        int orderIndex = 0;
         OrderCol[] orderCols = schema.getOrderCols();
 
-        if (orderCols != null){
-            for (int i = 0; i < orderCols.length; i++) {
-                ColMeta colMeta = orderCols[i].colMeta;
-                if(colMeta.colIndex == 0){
-                    orderIndex = i;
-                    break;
-                }
-            }
-
-            this.colMeta = orderCols[orderIndex].colMeta;
+        if (orderCols != null && orderCols.length > 0){
+            this.colMeta = orderCols[0].colMeta;
         }else {
             this.colMeta = null;
         }
