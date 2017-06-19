@@ -1,8 +1,11 @@
 package io.mycat.route.impl;
 
+import java.security.InvalidParameterException;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,29 +16,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.SQLUtils;
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLExprImpl;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAllExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAnyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLExistsExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
 import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
-import com.alibaba.druid.sql.ast.expr.SQLListExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
-import com.alibaba.druid.sql.ast.expr.SQLSomeExpr;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelect;
-import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
-import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
@@ -45,6 +37,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
+import com.alibaba.druid.stat.TableStat.Relationship;
 import com.google.common.base.Strings;
 
 import io.mycat.MycatServer;
@@ -59,6 +52,12 @@ import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.function.SlotFunction;
+import io.mycat.route.impl.middlerResultStrategy.BinaryOpResultHandler;
+import io.mycat.route.impl.middlerResultStrategy.InSubQueryResultHandler;
+import io.mycat.route.impl.middlerResultStrategy.RouteMiddlerReaultHandler;
+import io.mycat.route.impl.middlerResultStrategy.SQLAllResultHandler;
+import io.mycat.route.impl.middlerResultStrategy.SQLExistsResultHandler;
+import io.mycat.route.impl.middlerResultStrategy.SQLQueryResultHandler;
 import io.mycat.route.parser.druid.DruidParser;
 import io.mycat.route.parser.druid.DruidParserFactory;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
@@ -74,6 +73,17 @@ import io.mycat.server.parser.ServerParse;
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	
 	public static final Logger LOGGER = LoggerFactory.getLogger(DruidMycatRouteStrategy.class);
+	
+	private static Map<Class<?>,RouteMiddlerReaultHandler> middlerResultHandler = new HashMap<>();
+	
+	static{
+		middlerResultHandler.put(SQLQueryExpr.class, new SQLQueryResultHandler());
+		middlerResultHandler.put(SQLBinaryOpExpr.class, new BinaryOpResultHandler());
+		middlerResultHandler.put(SQLInSubQueryExpr.class, new InSubQueryResultHandler());
+		middlerResultHandler.put(SQLExistsExpr.class, new SQLExistsResultHandler());
+		middlerResultHandler.put(SQLAllExpr.class, new SQLAllResultHandler());
+	}
+	
 	
 	@Override
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
@@ -114,6 +124,12 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		DruidShardingParseInfo ctx=  druidParser.getCtx() ;
 		rrs.setTables(ctx.getTables());
 		
+		if(visitor.isSubqueryRelationOr()){
+			String err = "In subQuery,the or condition is not supported.";
+			LOGGER.error(err);
+			throw new SQLSyntaxErrorException(err);
+		}
+		
 		/* 按照以下情况路由
 			1.2.1 可以直接路由.
        		1.2.2 两个表夸库join的sql.调用calat
@@ -129,6 +145,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		Set<String> firstDataNodes = new HashSet<String>();
 		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
 		
+		Map<String,RuleConfig> rulemap = new HashMap<>();
 		if(tconfigs!=null){	
 	        for(String tableName : tables){
 	            TableConfig tc =  tconfigs.get(tableName);
@@ -144,6 +161,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	            	 if(tc !=null){
 		                firstRule=  tc.getRule();
 		                firstDataNodes.addAll(tc.getDataNodes());
+		                rulemap.put(tc.getName(), firstRule);
 	            	 }
 	            }else{
 	                if(tc !=null){
@@ -151,6 +169,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	                    RuleConfig ruleCfg = tc.getRule();
 	                    Set<String> dataNodes = new HashSet<String>();
 	                    dataNodes.addAll(tc.getDataNodes());
+	                    rulemap.put(tc.getName(), ruleCfg);
 	                    //如果匹配规则不相同或者分片的datanode不相同则需要走子查询处理
 	                    if((ruleCfg !=null && !ruleCfg.equals(firstRule) )||( !dataNodes.equals(firstDataNodes))){
 	                      directRoute = false;
@@ -165,23 +184,26 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		/*
 		 * TODO 后期可以优化为策略.
 		 */
-		if(directRoute){ // 1/2/3/4种情况下直接路由
+		if(directRoute){ //直接路由
+			if(!checkRuleField(rulemap,visitor)){
+				String err = "In case of slice table,sql have same rules,but the relationship condition is different from rule field!";
+				LOGGER.error(err);
+				throw new SQLSyntaxErrorException(err);
+			}
 			return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
 		}else{
 			int subQuerySize = visitor.getSubQuerys().size();
 			if(subQuerySize==0&&ctx.getTables().size()==2){ //两表关联,考虑使用catlet
-			    if(ctx.getVisitor().getConditions() !=null && ctx.getVisitor().getConditions().size()>0){
+			    if(!visitor.getRelationships().isEmpty()){
 			    	rrs.setCacheAble(false);
 			    	return catletRoute(schema,ctx.getSql(),charset,sc);
 				}
 			}else if(subQuerySize==1){     //只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行 TODO 后期可能会考虑多个子查询的情况.
 				SQLSelect sqlselect = visitor.getSubQuerys().iterator().next();
-				if(sqlselect.getParent() instanceof SQLExistsExpr
-					||!visitor.getRelationships().isEmpty()
-					||sqlselect.getParent() instanceof SQLSomeExpr  /* 如果 some,all,any 没有被改写 直接路由  */
-					||sqlselect.getParent() instanceof SQLAllExpr
-					||sqlselect.getParent() instanceof SQLAnyExpr){
-					return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
+				if(!visitor.getRelationships().isEmpty()){     // 当 inner query  和 outer  query  有关联条件时,暂不支持
+					String err = "In case of slice table,sql have different rules,the relationship condition is not supported.";
+					LOGGER.error(err);
+					throw new SQLSyntaxErrorException(err);
 				}else{
 					SQLSelectQuery sqlSelectQuery = sqlselect.getQuery();
 					if(((MySqlSelectQueryBlock)sqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
@@ -189,9 +211,42 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 						return middlerResultRoute(schema,charset,sqlselect,sqlType,statement,sc);
 					}
 				}
+			}else if(subQuerySize >=2){
+				String err = "In case of slice table,sql has different rules,currently only one subQuery is supported.";
+				LOGGER.error(err);
+				throw new SQLSyntaxErrorException(err);
 			}
 		}
 		return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
+	}
+	
+	/**
+	 * 子查询中存在关联查询的情况下,检查关联字段是否是分片字段
+	 * @param rulemap
+	 * @param ships
+	 * @return
+	 */
+	private boolean checkRuleField(Map<String,RuleConfig> rulemap,MycatSchemaStatVisitor visitor){
+		Set<Relationship> ships = visitor.getRelationships();
+		Iterator<Relationship> iter = ships.iterator();
+		while(iter.hasNext()){
+			Relationship ship = iter.next();
+			String lefttable = ship.getLeft().getTable().toUpperCase();
+			RuleConfig leftconfig = rulemap.get(lefttable);
+			if(leftconfig!=null){
+				if(!leftconfig.getColumn().equals(ship.getLeft().getName().toUpperCase())){
+					return false;
+				}
+			}
+			String righttable = ship.getRight().getTable().toUpperCase();
+			RuleConfig rightconfig = rulemap.get(righttable);
+			if(rightconfig!=null){
+				if(!rightconfig.getColumn().equals(ship.getRight().getName().toUpperCase())){
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 	
 	private RouteResultset middlerResultRoute(final SchemaConfig schema,final String charset,final SQLSelect sqlselect,
@@ -266,168 +321,14 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 * @return
 	 */
 	private String buildSql(SQLStatement statement,SQLSelect sqlselect,List param){
-		
-		SQLObject parent = sqlselect.getParent();
-		if(param.isEmpty()){
-			 param.add(new SQLCharExpr(""));
-		}
-		if(parent instanceof SQLInSubQueryExpr){
-			SQLExprImpl inlistExpr = null;
-			if(null==param||param.isEmpty()){
-				inlistExpr = getEmptyExpr(parent);
-			}else{
-				inlistExpr = new SQLInListExpr();
-				((SQLInListExpr)inlistExpr).setTargetList(param);
-				((SQLInListExpr)inlistExpr).setExpr(((SQLInSubQueryExpr)parent).getExpr());
-				((SQLInListExpr)inlistExpr).setNot(((SQLInSubQueryExpr)parent).isNot());
-				((SQLInListExpr)inlistExpr).setParent(sqlselect.getParent());
-			}
-			if(parent.getParent() instanceof MySqlSelectQueryBlock){
-				((MySqlSelectQueryBlock)parent.getParent()).setWhere(inlistExpr);
-			}else if(parent.getParent() instanceof SQLBinaryOpExpr){
-				SQLBinaryOpExpr pp = ((SQLBinaryOpExpr)parent.getParent());
-				if(pp.getLeft().equals(parent)){
-					pp.setLeft(inlistExpr);
-				}else if(pp.getRight().equals(parent)){
-					pp.setRight(inlistExpr);
-				}
-			}
-		}else if(parent instanceof SQLBinaryOpExpr){
-			SQLBinaryOpExpr pp = (SQLBinaryOpExpr)parent;
-			if(pp.getLeft() instanceof SQLQueryExpr){
-				SQLQueryExpr left = (SQLQueryExpr)pp.getLeft();
-				if(left.getSubQuery().equals(sqlselect)){
-					SQLExprImpl listExpr = null;
-					if(null==param||param.isEmpty()){
-						listExpr = getEmptyExpr(parent);
-					}else{
-						listExpr = new SQLListExpr();
-						listExpr.setParent(left.getParent());
-						((SQLListExpr)listExpr).getItems().addAll(param);
-					}
-					pp.setLeft(listExpr);
-				}
-			}else if(pp.getRight() instanceof SQLQueryExpr){
-				SQLQueryExpr right = (SQLQueryExpr)pp.getRight();
-				if(right.getSubQuery().equals(sqlselect)){
-					SQLExprImpl listExpr = null;
-					if(null==param||param.isEmpty()){
-						listExpr = getEmptyExpr(parent);
-					}else{
-						listExpr = new SQLListExpr();
-						listExpr.setParent(right.getParent());
-						((SQLListExpr)listExpr).getItems().addAll(param);
-					}
-					pp.setRight(listExpr);
-					
-				}
-			}else if(pp.getLeft() instanceof SQLInSubQueryExpr){
-				SQLInSubQueryExpr left = (SQLInSubQueryExpr)pp.getLeft();
-				if(left.getSubQuery().equals(sqlselect)){
-					SQLExprImpl inlistExpr = null;
-					if(null==param||param.isEmpty()){
-						inlistExpr = getEmptyExpr(parent);
-					}else{
-						inlistExpr = new SQLInListExpr();
-						((SQLInListExpr)inlistExpr).setTargetList(param);
-						((SQLInListExpr)inlistExpr).setExpr(pp.getRight());
-						((SQLInListExpr)inlistExpr).setNot(left.isNot());
-						((SQLInListExpr)inlistExpr).setParent(left.getParent());
-					}
-					pp.setLeft(inlistExpr);
-				}
-			}else if(pp.getRight() instanceof SQLInSubQueryExpr){
-				SQLInSubQueryExpr right = (SQLInSubQueryExpr)pp.getRight();
-				if(right.getSubQuery().equals(sqlselect)){
-					SQLExprImpl listExpr = null;
-					if(null==param||param.isEmpty()){
-						listExpr = getEmptyExpr(parent);
-					}else{
-						listExpr = new SQLListExpr();
-						((SQLListExpr)listExpr).getItems().addAll(param);
-					}
-					pp.setRight(listExpr);
-					
-				}
-			}
-		}else if(parent instanceof SQLQueryExpr){
-			if(parent.getParent() instanceof SQLBinaryOpExpr){
-				SQLBinaryOpExpr pp = (SQLBinaryOpExpr)parent.getParent();
-				SQLExprImpl listExpr = null;
-				if(null==param||param.isEmpty()){
-					listExpr = getEmptyExpr(parent);
-				}else{
-					listExpr = new SQLListExpr();
-					((SQLListExpr)listExpr).getItems().addAll(param);
-				}
-				if(pp.getLeft().equals(parent)){
-					pp.setLeft(listExpr);
-				}else if(pp.getRight().equals(parent)){
-					pp.setRight(listExpr);
-				}
-			}else if(parent.getParent() instanceof SQLSelectItem){
-				SQLSelectItem pp = (SQLSelectItem)parent.getParent();
-				SQLExprImpl listExpr = null;
-				if(null==param||param.isEmpty()){
-					listExpr = getEmptyExpr(parent);
-				}else{
-					listExpr = new SQLListExpr();
-					((SQLListExpr)listExpr).getItems().addAll(param);
-				}
-				pp.setExpr(listExpr);
-			}else if(parent.getParent() instanceof SQLSelectGroupByClause){
-				SQLSelectGroupByClause pp = (SQLSelectGroupByClause)parent.getParent();
-				
-				List<SQLExpr> items = pp.getItems();
-				for(int i=0;i<items.size();i++){
-					SQLExpr expr = items.get(i);
-					if(expr instanceof SQLQueryExpr 
-							&&((SQLQueryExpr)expr).getSubQuery().equals(sqlselect)){
-						
-						SQLExprImpl listExpr = null;
-						if(null==param||param.isEmpty()){
-							listExpr = getEmptyExpr(parent);
-						}else{
-							listExpr = new SQLListExpr();
-							((SQLListExpr)listExpr).getItems().addAll(param);
-						}
-						items.set(i, listExpr);
-					}
-				}
-			}else if(parent.getParent() instanceof SQLSelectOrderByItem){
-				SQLSelectOrderByItem orderItem = (SQLSelectOrderByItem)parent.getParent();
-				SQLExprImpl listExpr = null;
-				if(null==param||param.isEmpty()){
-					listExpr = getEmptyExpr(parent);
-				}else{
-					listExpr = new SQLListExpr();
-					((SQLListExpr)listExpr).getItems().addAll(param);
-				}
-				listExpr.setParent(orderItem);
-				orderItem.setExpr(listExpr);
-			}else if(parent.getParent() instanceof MySqlSelectQueryBlock){
-				MySqlSelectQueryBlock query = (MySqlSelectQueryBlock)parent.getParent();
-				// select * from subtest1 a where (select 1 from subtest3); 这种情况会进入到当前分支.
-				// 改写为   select * from subtest1 a where (1); 或  select * from subtest1 a where (null);
-				SQLExprImpl listExpr = null;
-				if(null==param||param.isEmpty()){
-					listExpr = getEmptyExpr(parent);
-				}else{
-					listExpr = new SQLListExpr();
-					((SQLListExpr)listExpr).getItems().addAll(param);
-				}
-				listExpr.setParent(query);
-				query.setWhere(listExpr);
-			}
 
+		SQLObject parent = sqlselect.getParent();
+		RouteMiddlerReaultHandler handler = middlerResultHandler.get(parent.getClass());
+		if(handler==null){
+			throw new UnsupportedOperationException(parent.getClass()+" current is not supported ");
 		}
-		return statement.toString();
+		return handler.dohandler(statement, sqlselect, parent, param);
 	}
-	
-	private SQLExprImpl getEmptyExpr(SQLObject parent){
-		return new SQLNullExpr();
-	}
-	
 	
 	/**
 	 * 两个表的情况，catlet
