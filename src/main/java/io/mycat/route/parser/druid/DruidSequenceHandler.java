@@ -78,7 +78,7 @@ public class DruidSequenceHandler {
                 	matcher = pattern.matcher(executeSql);
                 	while(matcher.find()){            
                 		long value = sequenceHandler.nextId(tableName.toUpperCase());
-                        executeSql = executeSql.replaceFirst(matcher.group(1), Long.toString(value));
+                        executeSql = executeSql.replaceFirst(matcher.group(1), " "+Long.toString(value));
                     }
 				} finally {
 					lock.unlock();
