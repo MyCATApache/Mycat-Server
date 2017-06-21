@@ -224,7 +224,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 			if(session.getXaTXID()!=null){
 				session.setXATXEnabled(false);
 			}
-			if(!session.getSource().isCreateNewTx()){
+			if(!session.getSource().isPreAcStates()){
 				session.getSource().setAutocommit(true);
 			}
 		}
