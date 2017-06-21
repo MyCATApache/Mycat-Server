@@ -233,7 +233,7 @@ public class NonBlockingSession implements Session {
 				setXATXEnabled(false);
 			}
             /* 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
-            if(!source.isCreateNewTx()&&!source.isAutocommit()){
+            if(!source.isPreAcStates()&&!source.isAutocommit()){
             	source.setAutocommit(true);
             }
             return;
@@ -277,7 +277,7 @@ public class NonBlockingSession implements Session {
 				setXATXEnabled(false);
 			}
             /* 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
-            if(!source.isCreateNewTx()&&!source.isAutocommit()){
+            if(!source.isPreAcStates()&&!source.isAutocommit()){
             	source.setAutocommit(true);
             }
             return;
