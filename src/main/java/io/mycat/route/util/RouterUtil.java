@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -702,7 +703,8 @@ public class RouterUtil {
         String values = origSQL.substring(valuesIndex + 6);
         
         prefix = prefix.replaceFirst("\\(", pk);
-        values = values.replaceAll("\\(",mycatSeqPrefix);
+        values = values.replaceFirst("\\(", mycatSeqPrefix);
+        values =Pattern.compile(",\\s*\\(").matcher(values).replaceAll(","+mycatSeqPrefix);
         processSQL(sc, schema,prefix+values, sqlType);
     }
 
