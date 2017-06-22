@@ -14,6 +14,7 @@ import org.junit.Test;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 
+import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
@@ -38,6 +39,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         String ruleFile = "/route/rule.xml";
         SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
         schemaMap = schemaLoader.getSchemas();
+        MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
         RouteStrategyFactory.init();
         routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
     }
@@ -170,7 +172,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         schema = schemaMap.get("TESTDB");
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
         Assert.assertEquals(1, rrs.getNodes().length);
-        Assert.assertEquals(true, rrs.isCacheAble());
+        Assert.assertEquals(false, rrs.isCacheAble());   // 全局表涉及到多个节点时,不缓存路由结果
 
     }
 

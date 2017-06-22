@@ -78,7 +78,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		} else {
 			RouteResultset returnedSet = routeSystemInfo(schema, sqlType, stmt, rrs);
 			if (returnedSet == null) {
-				rrs = routeNormalSqlWithAST(schema, stmt, rrs, charset, cachePool);
+				rrs = routeNormalSqlWithAST(schema, stmt, rrs, charset, cachePool,sqlType,sc);
 			}
 		}
 
@@ -101,7 +101,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	 * 通过解析AST语法树类来寻找路由
 	 */
 	public abstract RouteResultset routeNormalSqlWithAST(SchemaConfig schema, String stmt, RouteResultset rrs,
-			String charset, LayerCachePool cachePool) throws SQLNonTransientException;
+			String charset, LayerCachePool cachePool,int sqlType,ServerConnection sc) throws SQLNonTransientException;
 
 	/**
 	 * 路由信息指令, 如 SHOW、SELECT@@、DESCRIBE

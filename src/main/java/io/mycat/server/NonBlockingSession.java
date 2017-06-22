@@ -23,10 +23,32 @@
  */
 package io.mycat.server;
 
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
-import io.mycat.backend.mysql.nio.handler.*;
+import io.mycat.backend.mysql.nio.handler.CommitNodeHandler;
+import io.mycat.backend.mysql.nio.handler.KillConnectionHandler;
+import io.mycat.backend.mysql.nio.handler.LockTablesHandler;
+import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
+import io.mycat.backend.mysql.nio.handler.MultiNodeCoordinator;
+import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
+import io.mycat.backend.mysql.nio.handler.RollbackNodeHandler;
+import io.mycat.backend.mysql.nio.handler.RollbackReleaseHandler;
+import io.mycat.backend.mysql.nio.handler.SingleNodeHandler;
+import io.mycat.backend.mysql.nio.handler.UnLockTablesHandler;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
 import io.mycat.net.FrontendConnection;
@@ -35,17 +57,6 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.sqlcmd.SQLCmdConstant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author mycat
@@ -56,7 +67,8 @@ public class NonBlockingSession implements Session {
     public static final Logger LOGGER = LoggerFactory.getLogger(NonBlockingSession.class);
 
     private final ServerConnection source;
-    private final ConcurrentHashMap<RouteResultsetNode, BackendConnection> target;
+    //huangyiming add 避免出现jdk版本冲突
+    private final ConcurrentMap<RouteResultsetNode, BackendConnection> target;
     // life-cycle: each sql execution
     private volatile SingleNodeHandler singleNodeHandler;
     private volatile MultiNodeQueryHandler multiNodeHandler;
@@ -65,6 +77,10 @@ public class NonBlockingSession implements Session {
     private final CommitNodeHandler commitHandler;
     private volatile String xaTXID;
 
+   //huangyiming 
+  	private  volatile boolean canClose = true;
+  	
+  	private volatile MiddlerResultHandler  middlerResultHandler;
     private boolean prepared;
 
     public NonBlockingSession(ServerConnection source) {
@@ -212,11 +228,19 @@ public class NonBlockingSession implements Session {
             ByteBuffer buffer = source.allocate();
             buffer = source.writeToBuffer(OkPacket.OK, buffer);
             source.write(buffer);
+            /* 1. 如果开启了 xa 事务 */
+            if(getXaTXID()!=null){
+				setXATXEnabled(false);
+			}
+            /* 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
+            if(!source.isPreAcStates()&&!source.isAutocommit()){
+            	source.setAutocommit(true);
+            }
             return;
         } else if (initCount == 1) {
-            BackendConnection con = target.elements().nextElement();
+        	//huangyiming add 避免出现jdk版本冲突
+            BackendConnection con = target.values().iterator().next();
             commitHandler.commit(con);
-
         } else {
 
             if (LOGGER.isDebugEnabled()) {
@@ -248,6 +272,14 @@ public class NonBlockingSession implements Session {
             ByteBuffer buffer = source.allocate();
             buffer = source.writeToBuffer(OkPacket.OK, buffer);
             source.write(buffer);
+            /* 1. 如果开启了 xa 事务 */
+            if(getXaTXID()!=null){
+				setXATXEnabled(false);
+			}
+            /* 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
+            if(!source.isPreAcStates()&&!source.isAutocommit()){
+            	source.setAutocommit(true);
+            }
             return;
         }
 
@@ -521,10 +553,14 @@ public class NonBlockingSession implements Session {
 
     public void setXATXEnabled(boolean xaTXEnabled) {
 
-        LOGGER.info("XA Transaction enabled ,con " + this.getSource());
-        if (xaTXEnabled && this.xaTXID == null) {
-            xaTXID = genXATXID();
-
+        if (xaTXEnabled) {
+        	LOGGER.info("XA Transaction enabled ,con " + this.getSource());
+        	if(this.xaTXID == null){
+        		xaTXID = genXATXID();
+        	}
+        }else{
+        	LOGGER.info("XA Transaction disabled ,con " + this.getSource());
+        	this.xaTXID = null;
         }
     }
 
@@ -540,4 +576,21 @@ public class NonBlockingSession implements Session {
         this.prepared = prepared;
     }
 
+	public boolean isCanClose() {
+		return canClose;
+	}
+
+	public void setCanClose(boolean canClose) {
+		this.canClose = canClose;
+	}
+
+	public MiddlerResultHandler getMiddlerResultHandler() {
+		return middlerResultHandler;
+	}
+
+	public void setMiddlerResultHandler(MiddlerResultHandler middlerResultHandler) {
+		this.middlerResultHandler = middlerResultHandler;
+	}
+
+    
 }

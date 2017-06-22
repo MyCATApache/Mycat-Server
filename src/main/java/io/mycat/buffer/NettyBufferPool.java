@@ -2,9 +2,14 @@ package io.mycat.buffer;
 
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PoolArenaMetric;
+import io.netty.buffer.PoolChunkListMetric;
+import io.netty.buffer.PoolChunkMetric;
 import io.netty.util.internal.PlatformDependent;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -18,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 
 public class NettyBufferPool implements BufferPool {
+
+
     MyCatMemoryAllocator allocator;
     private int chunkSize = 0;
 
@@ -38,24 +45,61 @@ public class NettyBufferPool implements BufferPool {
     public void recycle(ByteBuffer byteBuffer) {
         ByteBuf byteBuf =
                 allocator.recycleMaps.get(PlatformDependent.directBufferAddress(byteBuffer));
+
         if (byteBuf != null) {
             byteBuf.release();
+            allocator.recycleMaps.remove(PlatformDependent.directBufferAddress(byteBuffer));
         }
-        allocator.recycleMaps.remove(PlatformDependent.directBufferAddress(byteBuffer));
+
+    }
+
+    /**
+     * return memory allocator
+     *
+     * @return
+     */
+    public MyCatMemoryAllocator getAllocator() {
+        return allocator;
     }
 
     /**
      * TODO
      * 下面函数需要将netty相关内存信息导出处理，然后实现
+     * 计算逻辑就是，
+     * 1.先计算PoolChunk分配的页,表示已经消耗的内存，
+     * 2.然后计算小于一页情况，记录小于一页内存使用情况，
+     * 上面二者合起来就是整个netty 使用的内存，
+     * 已经分配了，但是没有使用的内存的情况
      */
+
     @Override
     public long capacity() {
-        return 0;
+        return size();
     }
 
     @Override
     public long size() {
-        return 0;
+
+        List<PoolArenaMetric> list = allocator.getAlloc().directArenas();
+        long chunkSizeBytes = allocator.getChunkSize();
+        int chunkCount = 0;
+
+        synchronized (this) {
+            /**PoolArenas*/
+            for (PoolArenaMetric pool : list) {
+                List<PoolChunkListMetric> pcks = pool.chunkLists();
+                /**针对PoolChunkList*/
+                for (PoolChunkListMetric pck : pcks) {
+                    Iterator<PoolChunkMetric> it = pck.iterator();
+                    while (it.hasNext()) {
+                        PoolChunkMetric p = it.next();
+                        chunkCount++;
+                    }
+                }
+            }
+        }
+
+        return chunkCount * chunkSizeBytes;
     }
 
     @Override

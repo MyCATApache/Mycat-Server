@@ -1,66 +1,36 @@
 package io.mycat.route;
 
-import java.nio.ByteBuffer;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.parser.druid.DruidSequenceHandler;
-import io.mycat.server.ServerConnection;
-import io.mycat.util.StringUtil;
 
 public class MyCATSequnceProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MyCATSequnceProcessor.class);
-	private LinkedBlockingQueue<SessionSQLPair> seqSQLQueue = new LinkedBlockingQueue<SessionSQLPair>();
-	private volatile boolean running=true;
 	
-	public MyCATSequnceProcessor() {
-		new ExecuteThread().start();
+	//使用Druid解析器实现sequence处理  @兵临城下
+	private static final DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
+			.getInstance().getConfig().getSystem().getSequnceHandlerType());
+	
+	private static class InnerMyCATSequnceProcessor{
+		private static MyCATSequnceProcessor INSTANCE = new MyCATSequnceProcessor();
+	}
+	
+	public static MyCATSequnceProcessor getInstance(){
+		return InnerMyCATSequnceProcessor.INSTANCE;
+	}
+	
+	private MyCATSequnceProcessor() {
 	}
 
-	public void addNewSql(SessionSQLPair pair) {
-		seqSQLQueue.add(pair);
-	}
-
-	private void outRawData(ServerConnection sc,String value) {
-		byte packetId = 0;
-		int fieldCount = 1;
-		ByteBuffer byteBuf = sc.allocate();
-		ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-		headerPkg.fieldCount = fieldCount;
-		headerPkg.packetId = ++packetId;
-
-		byteBuf = headerPkg.write(byteBuf, sc, true);
-		FieldPacket fieldPkg = new FieldPacket();
-		fieldPkg.packetId = ++packetId;
-		fieldPkg.name = StringUtil.encode("SEQUNCE", sc.getCharset());
-		byteBuf = fieldPkg.write(byteBuf, sc, true);
-
-		EOFPacket eofPckg = new EOFPacket();
-		eofPckg.packetId = ++packetId;
-		byteBuf = eofPckg.write(byteBuf, sc, true);
-
-		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
-		rowDataPkg.packetId = ++packetId;
-		rowDataPkg.add(StringUtil.encode(value, sc.getCharset()));
-		byteBuf = rowDataPkg.write(byteBuf, sc, true);
-		// write last eof
-		EOFPacket lastEof = new EOFPacket();
-		lastEof.packetId = ++packetId;
-		byteBuf = lastEof.write(byteBuf, sc, true);
-
-		// write buffer
-		sc.write(byteBuf);
-	}
-
-	private void executeSeq(SessionSQLPair pair) {
+	/**
+	 *  锁的粒度控制到序列级别.一个序列一把锁.
+	 *  如果是 db 方式, 可以 给 mycat_sequence表的 name 列 加索引.可以借助mysql 行级锁 提高并发 
+	 * @param pair
+	 */
+	public void executeSeq(SessionSQLPair pair) {
 		try {
 			/*// @micmiu 扩展NodeToString实现自定义全局序列号
 			NodeToString strHandler = new ExtNodeToString4SEQ(MycatServer
@@ -77,10 +47,6 @@ public class MyCATSequnceProcessor {
 				return;
 			}*/
 			
-			//使用Druid解析器实现sequence处理  @兵临城下
-			DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
-					.getInstance().getConfig().getSystem().getSequnceHandlerType());
-			
 			String charset = pair.session.getSource().getCharset();
 			String executeSql = sequenceHandler.getExecuteSql(pair.sql,charset == null ? "utf-8":charset);
 			
@@ -89,30 +55,6 @@ public class MyCATSequnceProcessor {
 			LOGGER.error("MyCATSequenceProcessor.executeSeq(SesionSQLPair)",e);
 			pair.session.getSource().writeErrMessage(ErrorCode.ER_YES,"mycat sequnce err." + e);
 			return;
-		}
-	}
-	
-	public void shutdown(){
-		running=false;
-	}
-	
-	class ExecuteThread extends Thread {
-		
-		public ExecuteThread() {
-			setDaemon(true); // 设置为后台线程,防止throw RuntimeExecption进程仍然存在的问题
-		}
-		
-		public void run() {
-			while (running) {
-				try {
-					SessionSQLPair pair=seqSQLQueue.poll(100,TimeUnit.MILLISECONDS);
-					if(pair!=null){
-						executeSeq(pair);
-					}
-				} catch (Exception e) {
-					LOGGER.warn("MyCATSequenceProcessor$ExecutorThread",e);
-				}
-			}
 		}
 	}
 }
