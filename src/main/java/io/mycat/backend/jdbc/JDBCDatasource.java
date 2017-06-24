@@ -27,7 +27,8 @@ public class JDBCDatasource extends PhysicalDatasource {
 				"io.mycat.backend.jdbc.mongodb.MongoDriver",
 				"io.mycat.backend.jdbc.sequoiadb.SequoiaDriver", 
 				"oracle.jdbc.OracleDriver",
-				"com.microsoft.sqlserver.jdbc.SQLServerDriver", 
+				"com.microsoft.sqlserver.jdbc.SQLServerDriver",
+				"net.sourceforge.jtds.jdbc.Driver",
 				"org.apache.hive.jdbc.HiveDriver",
 				"com.ibm.db2.jcc.DB2Driver", 
 				"org.postgresql.Driver");
