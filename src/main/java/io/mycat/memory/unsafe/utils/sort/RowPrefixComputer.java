@@ -23,27 +23,11 @@ public class RowPrefixComputer extends UnsafeExternalRowSorter.PrefixComputer {
         /**
          * 通过计算得到排序关键词的第一个在行的索引下标
          */
-//        int orderIndex = 0;
-//        OrderCol[] orderCols = schema.getOrderCols();
-//
-//        if (orderCols != null){
-//            for (int i = 0; i < orderCols.length; i++) {
-//                ColMeta colMeta = orderCols[i].colMeta;
-//                if(colMeta.colIndex == 0){
-//                    orderIndex = i;
-//                    break;
-//                }
-//            }
-//
-//            this.colMeta = orderCols[orderIndex].colMeta;
-//        }else {
-//            this.colMeta = null;
-//        }
-        // TODO 芋艿：bugfix，不确定是否对的
         OrderCol[] orderCols = schema.getOrderCols();
-        if (orderCols != null && orderCols.length > 0) {
+
+        if (orderCols != null && orderCols.length > 0){
             this.colMeta = orderCols[0].colMeta;
-        } else {
+        }else {
             this.colMeta = null;
         }
     }

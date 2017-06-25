@@ -121,7 +121,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 					session.setXATXEnabled(false);
 				}
 				/* 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
-		        if(!session.getSource().isCreateNewTx()&&!session.getSource().isAutocommit()){
+		        if(!session.getSource().isPreAcStates()&&!session.getSource().isAutocommit()){
 		        	session.getSource().setAutocommit(true);
 		        }
 				session.getSource().write(ok);

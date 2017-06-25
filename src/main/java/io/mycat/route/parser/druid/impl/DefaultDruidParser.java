@@ -120,11 +120,6 @@ public class DefaultDruidParser implements DruidParser {
 				if(((MySqlSelectQueryBlock)query).isForUpdate()){
 					rrs.setSelectForUpdate(true);
 				}
-				
-				if(visitor.isHasChange()){	// 在解析的过程中子查询被改写了.需要更新ctx.
-					ctx.setSql(stmt.toString());
-					rrs.setStatement(ctx.getSql());
-				}
 			}
 		}
 
@@ -135,6 +130,11 @@ public class DefaultDruidParser implements DruidParser {
 			mergedConditionList = visitor.splitConditions();
 		} else {//不包含OR语句
 			mergedConditionList.add(visitor.getConditions());
+		}
+		
+		if(visitor.isHasChange()){	// 在解析的过程中子查询被改写了.需要更新ctx.
+			ctx.setSql(stmt.toString());
+			rrs.setStatement(ctx.getSql());
 		}
 		
 		if(visitor.getAliasMap() != null) {

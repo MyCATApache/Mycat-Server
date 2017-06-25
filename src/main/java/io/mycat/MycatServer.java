@@ -125,7 +125,7 @@ public class MycatServer {
 	private volatile int channelIndex = 0;
 
 	//全局序列号
-	private final MyCATSequnceProcessor sequnceProcessor = new MyCATSequnceProcessor();
+//	private final MyCATSequnceProcessor sequnceProcessor = new MyCATSequnceProcessor();
 	private final DynaClassLoader catletClassLoader;
 	private final SQLInterceptor sqlInterceptor;
 	private volatile int nextProcessor;
@@ -234,7 +234,7 @@ public class MycatServer {
 	}
 
 	public MyCATSequnceProcessor getSequnceProcessor() {
-		return sequnceProcessor;
+		return MyCATSequnceProcessor.getInstance();
 	}
 
 	public SQLInterceptor getSqlInterceptor() {

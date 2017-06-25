@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.alibaba.druid.sql.ast.SQLCommentHint;
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLExprImpl;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
@@ -26,6 +28,7 @@ import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import com.alibaba.druid.sql.ast.expr.SQLSomeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLValuableExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
@@ -49,6 +52,7 @@ import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Column;
 import com.alibaba.druid.stat.TableStat.Condition;
 import com.alibaba.druid.stat.TableStat.Mode;
+import com.alibaba.druid.stat.TableStat.Relationship;
 
 import io.mycat.route.util.RouterUtil;
 
@@ -63,6 +67,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	private List<WhereUnit> storedwhereUnits = new CopyOnWriteArrayList<WhereUnit>();
 	private List<SQLSelect> subQuerys = new CopyOnWriteArrayList<>();  //子查询集合
 	private boolean hasChange = false; // 是否有改写sql
+	private boolean subqueryRelationOr = false;   //子查询存在关联条件的情况下，是否有 or 条件
 	
 	private void reset() {
 		this.conditions.clear();
@@ -285,6 +290,14 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         return "";
     }
     
+    private void setSubQueryRelationOrFlag(SQLExprImpl x){
+    	MycatSubQueryVisitor subQueryVisitor = new MycatSubQueryVisitor();
+    	x.accept(subQueryVisitor);
+    	if(subQueryVisitor.isRelationOr()){
+    		subqueryRelationOr = true;
+    	}
+    }
+    
     /*
      * 子查询
      * (non-Javadoc)
@@ -292,6 +305,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLQueryExpr x) {
+    	setSubQueryRelationOrFlag(x);
     	addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
@@ -311,6 +325,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLExistsExpr x) {
+    	setSubQueryRelationOrFlag(x);
     	addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
@@ -327,6 +342,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLInSubQueryExpr x) {
+    	setSubQueryRelationOrFlag(x);
     	addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
@@ -338,10 +354,13 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      *    		>/>= all ----> >/>= max
      *    		</<= all ----> </<= min
      *    		<>   all ----> not in
+     *          =    all ----> id = 1 and id = 2
      *          other  不改写
      */    
     @Override
-    public boolean visit(SQLAllExpr x) {    	
+    public boolean visit(SQLAllExpr x) {
+    	setSubQueryRelationOrFlag(x);
+    	
     	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
     	SQLExpr sexpr = itemlist.get(0).getExpr();
     	
@@ -444,7 +463,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      *    other  不改写
      */
     @Override
-    public boolean visit(SQLSomeExpr x) {   	
+    public boolean visit(SQLSomeExpr x) {
+    	
+    	setSubQueryRelationOrFlag(x);
+    	
     	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
     	SQLExpr sexpr = itemlist.get(0).getExpr();
     	
@@ -576,6 +598,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLAnyExpr x) {
+    	
+    	setSubQueryRelationOrFlag(x);
+    	
     	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
     	SQLExpr sexpr = itemlist.get(0).getExpr();
     	
@@ -709,12 +734,20 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         if(currenttable!=null){
         	this.setCurrentTable(currenttable);
         }
-
+        
         switch (x.getOperator()) {
             case Equality:
             case LessThanOrEqualOrGreaterThan:
             case Is:
             case IsNot:
+            case GreaterThan:
+            case GreaterThanOrEqual:
+            case LessThan:
+            case LessThanOrEqual:
+            case NotLessThan:
+            case LessThanOrGreater:
+			case NotEqual:
+			case NotGreaterThan:
                 handleCondition(x.getLeft(), x.getOperator().name, x.getRight());
                 handleCondition(x.getRight(), x.getOperator().name, x.getLeft());
                 handleRelationship(x.getLeft(), x.getOperator().name, x.getRight());
@@ -740,11 +773,6 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
             	return false;
             case Like:
             case NotLike:
-            case NotEqual:
-            case GreaterThan:
-            case GreaterThanOrEqual:
-            case LessThan:
-            case LessThanOrEqual:
             default:
                 break;
         }
@@ -1137,5 +1165,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 
 	public boolean isHasChange() {
 		return hasChange;
+	}
+
+	public boolean isSubqueryRelationOr() {
+		return subqueryRelationOr;
 	}
 }

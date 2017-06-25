@@ -55,7 +55,7 @@ public class ServerConnection extends FrontendConnection {
 
 	private volatile int txIsolation;
 	private volatile boolean autocommit;
-	private volatile boolean createNewTx; //事务提交或回滚后,是否自动开启新事务. true时，开启新事务,false时,不开启新事务
+	private volatile boolean preAcStates; //事务提交或回滚后,是否自动开启新事务. true时，开启新事务,false时,不开启新事务
 	private volatile boolean txInterrupted;
 	private volatile String txInterrputMsg = "";
 	private long lastInsertId;
@@ -412,12 +412,12 @@ public class ServerConnection extends FrontendConnection {
 				+ ", autocommit=" + autocommit + ", schema=" + schema + "]";
 	}
 
-	public boolean isCreateNewTx() {
-		return createNewTx;
+	public boolean isPreAcStates() {
+		return preAcStates;
 	}
 
-	public void setCreateNewTx(boolean createNewTx) {
-		this.createNewTx = createNewTx;
+	public void setPreAcStates(boolean preAcStates) {
+		this.preAcStates = preAcStates;
 	}
 
 }

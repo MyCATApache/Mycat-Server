@@ -1,5 +1,24 @@
 package io.mycat.route.util;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.regex.Pattern;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
@@ -558,20 +577,17 @@ public class RouterUtil {
      */
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
 //		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
-		SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
-//		if(sequenceHandlerType == 3 || sequenceHandlerType == 4){
-//			DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
-//					.getInstance().getConfig().getSystem().getSequnceHandlerType());
-//			String charset = sessionSQLPair.session.getSource().getCharset();
-//			String executeSql = null;
-//			try {
-//				executeSql = sequenceHandler.getExecuteSql(sessionSQLPair.sql,charset == null ? "utf-8":charset);
-//			} catch (UnsupportedEncodingException e) {
-//				LOGGER.error("UnsupportedEncodingException!");
-//			}
-//			sessionSQLPair.session.getSource().routeEndExecuteSQL(executeSql, sessionSQLPair.type,sessionSQLPair.schema);
-//		} else {
-			MycatServer.getInstance().getSequnceProcessor().addNewSql(sessionSQLPair);
+		final SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
+//      modify by yanjunli  序列获取修改为多线程方式。使用分段锁方式,一个序列一把锁。  begin
+//		MycatServer.getInstance().getSequnceProcessor().addNewSql(sessionSQLPair);
+		LOGGER.warn("prefix+values ===" + sql);
+        MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
+				@Override
+				public void run() {
+					MycatServer.getInstance().getSequnceProcessor().executeSeq(sessionSQLPair);
+				}
+		 });
+//      modify   序列获取修改为多线程方式。使用分段锁方式,一个序列一把锁。  end
 //		}
 	}
 
@@ -671,15 +687,11 @@ public class RouterUtil {
 		if(valuesIndex + "VALUES".length() <= firstLeftBracketIndex) {
 			throw new SQLSyntaxErrorException("insert must provide ColumnList");
 		}
-		//如果主键不在插入语句的fields中，则需要进一步处理
-		boolean processedInsert = !isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
-		if (processedInsert){
-		    // 分拆SQL
-			List<String> insertSQLs = handleBatchInsert(origSQL, valuesIndex);
-			for(String insertSQL:insertSQLs) {
-				processInsert(sc, schema, sqlType, insertSQL, tableName, primaryKey, firstLeftBracketIndex + 1, insertSQL.indexOf('(', firstRightBracketIndex) + 1);
-			}
-		}
+        //如果主键不在插入语句的fields中，则需要进一步处理
+        boolean processedInsert=!isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
+        if(processedInsert){
+            handleBatchInsert(sc, schema, sqlType,origSQL, valuesIndex,tableName,primaryKey);
+        }
 		return processedInsert;
 	}
 
@@ -739,51 +751,27 @@ public class RouterUtil {
 		return handledSQLs;
 	}
 
-    /**
-     * 改写 SQL ，并进一步处理 SQL
-     * insert into hotnews(title) values('aaa'); =》insert into hotnews(id, title) values(next value for MYCATSEQ_hotnews,'aaa');
-     *
-     * @param sc 前端接入连接
-     * @param schema schema 配置
-     * @param sqlType SQL 类型
-     * @param origSQL SQL
-     * @param tableName 表名
-     * @param primaryKey 主键
-     * @param afterFirstLeftBracketIndex fields 开始位置
-     * @param afterLastLeftBracketIndex values 开始位置
-     */
-	private static void processInsert(ServerConnection sc, SchemaConfig schema, int sqlType, String origSQL,
-			String tableName, String primaryKey, int afterFirstLeftBracketIndex, int afterLastLeftBracketIndex) {
-		/*
-		 * 对于主键不在插入语句的fields中的SQL，需要改写。比如hotnews主键为id，插入语句为：
-		 * insert into hotnews(title) values('aaa');
-		 * 需要改写成：
-		 * insert into hotnews(id, title) values(next value for MYCATSEQ_hotnews,'aaa');
- 		 */
-		int primaryKeyLength = primaryKey.length();
-		int insertSegOffset = afterFirstLeftBracketIndex;
-		String mycatSeqPrefix = "next value for MYCATSEQ_";
-		int mycatSeqPrefixLength = mycatSeqPrefix.length();
-		int tableNameLength = tableName.length();
-		char[] newSQLBuf = new char[origSQL.length() + primaryKeyLength + mycatSeqPrefixLength + tableNameLength + 2];
-		origSQL.getChars(0, afterFirstLeftBracketIndex, newSQLBuf, 0);
-		primaryKey.getChars(0, primaryKeyLength, newSQLBuf, insertSegOffset);
-		insertSegOffset += primaryKeyLength;
-		newSQLBuf[insertSegOffset] = ',';
-		insertSegOffset++;
-		origSQL.getChars(afterFirstLeftBracketIndex, afterLastLeftBracketIndex, newSQLBuf, insertSegOffset);
-		insertSegOffset += afterLastLeftBracketIndex - afterFirstLeftBracketIndex;
-		mycatSeqPrefix.getChars(0, mycatSeqPrefixLength, newSQLBuf, insertSegOffset);
-		insertSegOffset += mycatSeqPrefixLength;
-		tableName.getChars(0, tableNameLength, newSQLBuf, insertSegOffset);
-		insertSegOffset += tableNameLength;
-		newSQLBuf[insertSegOffset] = ',';
-		insertSegOffset++;
-		origSQL.getChars(afterLastLeftBracketIndex, origSQL.length(), newSQLBuf, insertSegOffset);
+	  /**
+	  * 对于主键不在插入语句的fields中的SQL，需要改写。比如hotnews主键为id，插入语句为：
+	  * insert into hotnews(title) values('aaa');
+	  * 需要改写成：
+	  * insert into hotnews(id, title) values(next value for MYCATSEQ_hotnews,'aaa');
+	  */
+    public static void handleBatchInsert(ServerConnection sc, SchemaConfig schema,
+            int sqlType,String origSQL, int valuesIndex,String tableName, String primaryKey) {
 
-		// 处理SQL
-		processSQL(sc, schema, new String(newSQLBuf), sqlType);
-	}
+    	final String pk = "\\("+primaryKey+",";
+        final String mycatSeqPrefix = "(next value for MYCATSEQ_"+tableName.toUpperCase()+",";
+
+    	/*"VALUES".length() ==6 */
+        String prefix = origSQL.substring(0, valuesIndex + 6);
+        String values = origSQL.substring(valuesIndex + 6);
+
+        prefix = prefix.replaceFirst("\\(", pk);
+        values = values.replaceFirst("\\(", mycatSeqPrefix);
+        values =Pattern.compile(",\\s*\\(").matcher(values).replaceAll(","+mycatSeqPrefix);
+        processSQL(sc, schema,prefix+values, sqlType);
+    }
 
 	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt) {
 		RouteResultsetNode[] nodes = new RouteResultsetNode[dataNodes.size()];
