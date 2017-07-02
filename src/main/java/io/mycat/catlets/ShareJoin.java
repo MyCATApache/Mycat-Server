@@ -209,7 +209,10 @@ public class ShareJoin implements Catlet {
 		String svalue="";
 		for(Map.Entry<String,String> e: ids.entrySet() ){
 			theId=e.getKey();
-			batchRows.put(theId, rows.remove(theId));
+			byte[] rowbyte = rows.remove(theId);
+			if(rowbyte!=null){
+				batchRows.put(theId, rowbyte);
+			}			
 			if (!svalue.equals(e.getValue())){
 				if(joinKeyType == Fields.FIELD_TYPE_VAR_STRING 
 						|| joinKeyType == Fields.FIELD_TYPE_STRING){ // joinkey 为varchar
@@ -344,7 +347,11 @@ class ShareDBJoinHandler implements SQLJobHandler {
 
 	@Override
 	public void finished(String dataNode, boolean failed, String errorMsg) {
-		ctx.endJobInput(dataNode,failed);
+		if(failed){
+			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
+		}else{
+			ctx.endJobInput(dataNode,failed);
+		}
 	}
 
 }
@@ -442,6 +449,8 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 
 	@Override
 	public void finished(String dataNode, boolean failed, String errorMsg) {
-	//	EngineCtx.LOGGER.info("完成2:" + dataNode+" failed:"+failed);
+		if(failed){
+			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
+		}
 	}
 }
