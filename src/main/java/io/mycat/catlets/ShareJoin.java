@@ -347,7 +347,11 @@ class ShareDBJoinHandler implements SQLJobHandler {
 
 	@Override
 	public void finished(String dataNode, boolean failed, String errorMsg) {
-		ctx.endJobInput(dataNode,failed);
+		if(failed){
+			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
+		}else{
+			ctx.endJobInput(dataNode,failed);
+		}
 	}
 
 }
