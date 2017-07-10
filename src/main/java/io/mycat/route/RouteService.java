@@ -103,7 +103,7 @@ public class RouteService {
 //      boolean isMatchNewHint = stmt.startsWith(NEW_MYCAT_HINT);
 //		if (isMatchOldHint || isMatchNewHint ) {
 		int hintLength = RouteService.isHintSql(stmt);
-		if(hintLength != -1){ // TODO 待读：hint
+		if(hintLength != -1){ // 获得到 mycat表达式 在 SQL 里开始的位置。
 			int endPos = stmt.indexOf("*/");
 			if (endPos > 0) {				
 				// 用!mycat:内部的语句来做路由分析
@@ -111,8 +111,8 @@ public class RouteService {
 				String hint = stmt.substring(hintLength, endPos).trim();	
 				
                 int firstSplitPos = hint.indexOf(HINT_SPLIT);                
-                if(firstSplitPos > 0 ){
-                    Map hintMap=    parseHint(hint);
+                if(firstSplitPos > 0) {
+                    Map hintMap = parseHint(hint);
                 	String hintType = (String) hintMap.get(MYCAT_HINT_TYPE);
                     String hintSql = (String) hintMap.get(hintType);
                     if( hintSql.length() == 0 ) {
@@ -124,7 +124,7 @@ public class RouteService {
                     HintHandler hintHandler = HintHandlerFactory.getHintHandler(hintType);
                     if( hintHandler != null ) {    
 
-                    	if ( hintHandler instanceof  HintSQLHandler) {                    		
+                    	if ( hintHandler instanceof HintSQLHandler) {
                           	/*
                         	 * 修复 注解SQL的 sqlType 与 实际SQL的 sqlType 不一致问题， 如： hint=SELECT，real=INSERT
                         	 * fixed by zhuam
@@ -132,7 +132,7 @@ public class RouteService {
                     		int hintSqlType = ServerParse.parse( hintSql ) & 0xff;     
                     		rrs = hintHandler.route(sysconf, schema, sqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql,hintSqlType,hintMap);
                     		
-                    	} else {                    		
+                    	} else {
                     		rrs = hintHandler.route(sysconf, schema, sqlType, realSQL, charset, sc, tableId2DataNodeCache, hintSql,sqlType,hintMap);
                     	}
  
@@ -194,81 +194,71 @@ public class RouteService {
 		return ServerParse.INSERT==type||ServerParse.UPDATE==type||ServerParse.DELETE==type||ServerParse.DDL==type;
 	}
 
-	public static int isHintSql(String sql){
-		int j = 0;
-		int len = sql.length();
-		if(sql.charAt(j++) == '/' && sql.charAt(j++) == '*'){
-			char c = sql.charAt(j);
-			// 过滤掉 空格 和 * 两种字符, 支持： "/** !mycat: */" 和 "/** #mycat: */" 形式的注解
-			while(j < len && c != '!' && c != '#' && (c == ' ' || c == '*')){
-				c = sql.charAt(++j);
-			}
-			//注解支持的'!'不被mysql单库兼容，
-			//注解支持的'#'不被mybatis兼容
-			//注解支持的':'不被hibernate兼容
-			//考虑用mycat字符前缀标志Hintsql:"/** mycat: */"
-			if(sql.charAt(j)=='m'){
-				j--;
-			}
-			if(j + 6 >= len)	{// prevent the following sql.charAt overflow
-				return -1;        // false
-			}
-			if(sql.charAt(++j) == 'm' && sql.charAt(++j) == 'y' && sql.charAt(++j) == 'c'
-				&& sql.charAt(++j) == 'a' && sql.charAt(++j) == 't' && (sql.charAt(++j) == ':' || sql.charAt(j) == '#')) {
-				return j + 1;    // true，同时返回注解部分的长度
-			}
-		}
-		return -1;	// false
-	}
-	
-	 private   Map parseHint( String sql)
-    {
-        Map map=new HashMap();
-        int y=0;
-        int begin=0;
-        for(int i=0;i<sql.length();i++)
-        {
-            char cur=sql.charAt(i);
-            if(cur==','&& y%2==0)
-            {
-                String substring = sql.substring(begin, i);
-
-                parseKeyValue(map, substring);
-                begin=i+1;
+    /**
+     * 获得 mycat表达式 在 SQL 里开始的位置。如果不存在，则返回 -1 。!mycat#catlet=io.mycat.catlets.ShareJoin
+     *
+     * @param sql SQL
+     * @return 位置
+     */
+    public static int isHintSql(String sql) {
+        int j = 0;
+        int len = sql.length();
+        if (sql.charAt(j++) == '/' && sql.charAt(j++) == '*') {
+            char c = sql.charAt(j);
+            // 过滤掉 空格 和 * 两种字符, 支持： "/** !mycat: */" 和 "/** #mycat: */" 形式的注解
+            while (j < len && c != '!' && c != '#' && (c == ' ' || c == '*')) {
+                c = sql.charAt(++j);
             }
-            else
-            if(cur=='\'')
-            {
-                y++;
-            } if(i==sql.length()-1)
-        {
-            parseKeyValue(map, sql.substring(begin));
-
+            //注解支持的'!'不被mysql单库兼容，
+            //注解支持的'#'不被mybatis兼容
+            //注解支持的':'不被hibernate兼容
+            //考虑用mycat字符前缀标志Hintsql:"/** mycat: */"
+            if (sql.charAt(j) == 'm') {
+                j--;
+            }
+            if (j + 6 >= len) {// prevent the following sql.charAt overflow
+                return -1;        // false
+            }
+            if (sql.charAt(++j) == 'm' && sql.charAt(++j) == 'y' && sql.charAt(++j) == 'c'
+                    && sql.charAt(++j) == 'a' && sql.charAt(++j) == 't' && (sql.charAt(++j) == ':' || sql.charAt(j) == '#')) {
+                return j + 1;    // true，同时返回注解部分的长度
+            }
         }
+        return -1;    // false
+    }
 
-
+    private Map parseHint(String sql) { // TODO 待读：后续测下别的类型
+        Map map = new HashMap();
+        int y = 0;
+        int begin = 0;
+        for (int i = 0; i < sql.length(); i++) {
+            char cur = sql.charAt(i);
+            if (cur == ',' && y % 2 == 0) {
+                String substring = sql.substring(begin, i);
+                parseKeyValue(map, substring);
+                begin = i + 1;
+            } else if (cur == '\'') {
+                y++;
+            }
+            if (i == sql.length() - 1) {
+                parseKeyValue(map, sql.substring(begin));
+            }
         }
         return map;
     }
 
-    private  void parseKeyValue(Map map, String substring)
-    {
+    private void parseKeyValue(Map map, String substring) {
         int indexOf = substring.indexOf('=');
-        if(indexOf!=-1)
-        {
-
-            String key=substring.substring(0,indexOf).trim().toLowerCase();
-            String value=substring.substring(indexOf+1,substring.length());
-            if(value.endsWith("'")&&value.startsWith("'"))
-            {
-                value=value.substring(1,value.length()-1);
+        if (indexOf != -1) {
+            String key = substring.substring(0, indexOf).trim().toLowerCase();
+            String value = substring.substring(indexOf + 1, substring.length());
+            if (value.endsWith("'") && value.startsWith("'")) {
+                value = value.substring(1, value.length() - 1);
             }
-            if(map.isEmpty())
-            {
-              map.put(MYCAT_HINT_TYPE,key)  ;
+            if (map.isEmpty()) {
+                map.put(MYCAT_HINT_TYPE, key);
             }
-            map.put(key,value.trim());
-
+            map.put(key, value.trim());
         }
     }
 }

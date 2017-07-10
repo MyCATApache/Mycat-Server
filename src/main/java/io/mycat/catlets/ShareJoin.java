@@ -1,16 +1,10 @@
 package io.mycat.catlets;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-
 import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
 import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
 import io.mycat.cache.LayerCachePool;
@@ -31,6 +25,11 @@ import io.mycat.sqlengine.EngineCtx;
 import io.mycat.sqlengine.SQLJobHandler;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.ResultSetUtil;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 /**  
  * 功能详细描述:分片join
  * @author sohudo[http://blog.csdn.net/wind520]
@@ -70,31 +69,31 @@ public class ShareJoin implements Catlet {
 	private LayerCachePool cachePool;
 	public void setRoute(RouteResultset rrs){
 		this.rrs =rrs;
-	}	
-	
-	public void route(SystemConfig sysConfig, SchemaConfig schema,int sqlType, String realSQL, String charset, ServerConnection sc,	LayerCachePool cachePool) {
-		int rs = ServerParse.parse(realSQL);
-		this.sqltype = rs & 0xff;
-		this.sysConfig=sysConfig; 
-		this.schema=schema;
-		this.charset=charset; 
-		this.sc=sc;	
-		this.cachePool=cachePool;		
-		try {
-		 //  RouteStrategy routes=RouteStrategyFactory.getRouteStrategy();	
-		  // rrs =RouteStrategyFactory.getRouteStrategy().route(sysConfig, schema, sqlType2, realSQL,charset, sc, cachePool);		   
-			MySqlStatementParser parser = new MySqlStatementParser(realSQL);			
-			SQLStatement statement = parser.parseStatement();
-			if(statement instanceof SQLSelectStatement) {
-			   SQLSelectStatement st=(SQLSelectStatement)statement;
-			   SQLSelectQuery sqlSelectQuery =st.getSelect().getQuery();
-				if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
-					MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)st.getSelect().getQuery();
-					joinParser=new JoinParser(mysqlSelectQuery,realSQL);
-					joinParser.parser();
-				}	
-			}
-		   /*	
+	}
+
+    public void route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, String realSQL, String charset, ServerConnection sc, LayerCachePool cachePool) {
+        int rs = ServerParse.parse(realSQL);
+        this.sqltype = rs & 0xff;
+        this.sysConfig = sysConfig;
+        this.schema = schema;
+        this.charset = charset;
+        this.sc = sc;
+        this.cachePool = cachePool;
+        try {
+            //  RouteStrategy routes=RouteStrategyFactory.getRouteStrategy();
+            // rrs =RouteStrategyFactory.getRouteStrategy().route(sysConfig, schema, sqlType2, realSQL,charset, sc, cachePool);
+            MySqlStatementParser parser = new MySqlStatementParser(realSQL);
+            SQLStatement statement = parser.parseStatement();
+            if (statement instanceof SQLSelectStatement) {
+                SQLSelectStatement st = (SQLSelectStatement) statement;
+                SQLSelectQuery sqlSelectQuery = st.getSelect().getQuery();
+                if (sqlSelectQuery instanceof MySqlSelectQueryBlock) {
+                    MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock) st.getSelect().getQuery();
+                    joinParser = new JoinParser(mysqlSelectQuery, realSQL);
+                    joinParser.parser();
+                }
+            }
+           /*
 		   if (routes instanceof DruidMysqlRouteStrategy) {
 			   SQLSelectStatement st=((DruidMysqlRouteStrategy) routes).getSQLStatement();
 			   SQLSelectQuery sqlSelectQuery =st.getSelect().getQuery();
@@ -105,10 +104,11 @@ public class ShareJoin implements Catlet {
 				}
 		   }
 		   */
-		} catch (Exception e) {
-		
-		}
-	}
+        } catch (Exception e) {
+
+        }
+    }
+
 	private void getRoute(String sql){
 		try {
 		  if (joinParser!=null){
@@ -132,47 +132,46 @@ public class ShareJoin implements Catlet {
 		}
 		return dataNode;
 	}
-	public void processSQL(String sql, EngineCtx ctx) {
-		String ssql=joinParser.getSql();
-		getRoute(ssql);
-		RouteResultsetNode[] nodes = rrs.getNodes();
-		if (nodes == null || nodes.length == 0 || nodes[0].getName() == null
-				|| nodes[0].getName().equals("")) {
-			ctx.getSession().getSource().writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
-					"No dataNode found ,please check tables defined in schema:"
-							+ ctx.getSession().getSource().getSchema());
-			return;
-		} 
-		this.ctx=ctx;
-		String[] dataNodes =getDataNodes();
-		maxjob=dataNodes.length;
-	 
 
-    	//huangyiming
-		ShareDBJoinHandler joinHandler = new ShareDBJoinHandler(this,joinParser.getJoinLkey(),sc.getSession2());		
-		ctx.executeNativeSQLSequnceJob(dataNodes, ssql, joinHandler);
-    	EngineCtx.LOGGER.info("Catlet exec:"+getDataNode(getDataNodes())+" sql:" +ssql);
+    public void processSQL(String sql, EngineCtx ctx) {
+        String ssql = joinParser.getSql();
+        getRoute(ssql);
+        RouteResultsetNode[] nodes = rrs.getNodes();
+        if (nodes == null || nodes.length == 0 || nodes[0].getName() == null
+                || nodes[0].getName().equals("")) {
+            ctx.getSession().getSource().writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
+                    "No dataNode found ,please check tables defined in schema:" + ctx.getSession().getSource().getSchema());
+            return;
+        }
+        this.ctx = ctx;
+        String[] dataNodes = getDataNodes();
+        maxjob = dataNodes.length;
 
-		ctx.setAllJobFinishedListener(new AllJobFinishedListener() {
-			@Override
-			public void onAllJobFinished(EngineCtx ctx) {				
-				 if (!jointTableIsData) {
-					 ctx.writeHeader(fields);
-				 }
-				 
-				 MiddlerResultHandler middlerResultHandler = sc.getSession2().getMiddlerResultHandler();
+        //huangyiming
+        ShareDBJoinHandler joinHandler = new ShareDBJoinHandler(this, joinParser.getJoinLkey(), sc.getSession2());
+        ctx.executeNativeSQLSequnceJob(dataNodes, ssql, joinHandler);
+        EngineCtx.LOGGER.info("Catlet exec:" + getDataNode(getDataNodes()) + " sql:" + ssql);
 
-					if(  middlerResultHandler !=null ){
-						//sc.getSession2().setCanClose(false);
-						middlerResultHandler.secondEexcute(); 
-					} else{
-						ctx.writeEof();
-					}
-				EngineCtx.LOGGER.info("发送数据OK"); 
-			}
-		});
-	}
-	
+        ctx.setAllJobFinishedListener(new AllJobFinishedListener() {
+            @Override
+            public void onAllJobFinished(EngineCtx ctx) {
+                if (!jointTableIsData) {
+                    ctx.writeHeader(fields);
+                }
+
+                MiddlerResultHandler middlerResultHandler = sc.getSession2().getMiddlerResultHandler();
+
+                if (middlerResultHandler != null) {
+                    //sc.getSession2().setCanClose(false);
+                    middlerResultHandler.secondEexcute();
+                } else {
+                    ctx.writeEof();
+                }
+                EngineCtx.LOGGER.info("发送数据OK");
+            }
+        });
+    }
+
     public void putDBRow(String id,String nid, byte[] rowData,int findex){
     	rows.put(id, rowData);	
     	ids.put(id, nid);

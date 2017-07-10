@@ -2,7 +2,6 @@ package io.mycat.route.handler;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.FutureTask;
 
 public class HintHandlerFactory {
 	
@@ -29,14 +28,14 @@ public class HintHandlerFactory {
     
     // 双重校验锁 fix 线程安全问题
     public static HintHandler getHintHandler(String hintType) {
-    	if(!isInit) {
-    		synchronized(HintHandlerFactory.class){
-    			if(!isInit) {
+        if (!isInit) {
+            synchronized (HintHandlerFactory.class) {
+                if (!isInit) {
                     init();
                 }
-    		}
-    	}
-    	return hintHandlerMap.get(hintType);
+            }
+        }
+        return hintHandlerMap.get(hintType);
     }
     
 }

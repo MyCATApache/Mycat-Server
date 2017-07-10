@@ -1,29 +1,20 @@
 package io.mycat.catlets;
 
 
-import java.util.LinkedHashMap;
-import java.util.List;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
-import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
-import com.alibaba.druid.sql.ast.expr.SQLBooleanExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNumberExpr;
-import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**  
  * 功能详细描述:分片join,解析join语句
@@ -49,72 +40,71 @@ public class JoinParser {
 		this.mysqlQuery=selectQuery;
 		this.stmt=stmt;
 	}
-	
-	public void parser(){
-	   masterTable="";	   
-	   
-	   SQLTableSource table=mysqlQuery.getFrom();	   
-	   parserTable(table,tableFilter,false);
-	   
-	   parserFields(mysqlQuery.getSelectList()); 
-	   parserMasterTable();	   
-	   
-	   parserWhere(mysqlQuery.getWhere(),"");	   
-	 // getJoinField();
-	   parserOrderBy(mysqlQuery.getOrderBy());
-	   parserLimit();
-	  // LOGGER.info("field "+fieldAliasMap);	  	   
-	  // LOGGER.info("master "+masterTable);
-	 //  LOGGER.info("join Lkey "+getJoinLkey()); 
-	 //  LOGGER.info("join Rkey "+getJoinRkey()); 	   
-	   LOGGER.info("SQL: "+this.stmt);
-	}
-	
-	private void parserTable(SQLTableSource table,TableFilter tFilter,boolean isOutJoin){
-		if(table instanceof SQLJoinTableSource){
-			SQLJoinTableSource table1=(SQLJoinTableSource)table;	
-			joinType=table1.getJoinType().toString();
-			if ((table1.getJoinType()==JoinType.COMMA)||(table1.getJoinType()==JoinType.JOIN)||(table1.getJoinType()==JoinType.INNER_JOIN)
-					||(table1.getJoinType()==JoinType.LEFT_OUTER_JOIN))	{					
-				tFilter=setTableFilter(tFilter,getTableFilter(table1.getLeft(),isOutJoin));
-				if (tableFilter==null){
-					tableFilter=tFilter;
-				}
-			}
-			//parserTable(table1.getLeft());	//SQLExprTableSource
-			parserTable(table1.getRight(),tFilter,true);
-			
-			SQLExpr expr=table1.getCondition();//SQLBinaryOpExpr
-			parserJoinKey(expr);
-		}
-		else {
-			tFilter=setTableFilter(tFilter,getTableFilter(table,isOutJoin));
-			LOGGER.info("table "+table.toString() +" Alias:"+table.getAlias()+" Hints:"+table.getHints());
-		}
-	}
-	private TableFilter setTableFilter(TableFilter tFilter,TableFilter newFilter){
-		if (tFilter==null) {
-			tFilter=newFilter;
-			return tFilter;
-		}
-		else {
-			tFilter.setTableJoin(newFilter);	
-			return tFilter.getTableJoin();
-		}
-	}
-	private TableFilter getTableFilter(SQLTableSource table,boolean isOutJoin){	
-		String key   ;
-		String value = table.toString().trim();
-		if (table.getAlias()==null) {
-			key=value;
-		}
-		else {
-			 key   = table.getAlias().trim();
-		}
-		return new TableFilter(value,key,isOutJoin);	
-	}
-	
-	private void parserJoinKey(SQLExpr expr){		
+
+    public void parser() {
+        masterTable = "";
+
+        SQLTableSource table = mysqlQuery.getFrom();
+        parserTable(table, tableFilter, false);
+
+        parserFields(mysqlQuery.getSelectList());
+        parserMasterTable();
+
+        parserWhere(mysqlQuery.getWhere(), "");
+        // getJoinField();
+        parserOrderBy(mysqlQuery.getOrderBy());
+        parserLimit();
+        // LOGGER.info("field "+fieldAliasMap);
+        // LOGGER.info("master "+masterTable);
+        //  LOGGER.info("join Lkey "+getJoinLkey());
+        //  LOGGER.info("join Rkey "+getJoinRkey());
+        LOGGER.info("SQL: " + this.stmt);
+    }
+
+    private void parserTable(SQLTableSource table, TableFilter tFilter, boolean isOutJoin) {
+        if (table instanceof SQLJoinTableSource) {
+            SQLJoinTableSource table1 = (SQLJoinTableSource) table;
+            joinType = table1.getJoinType().toString();
+            if ((table1.getJoinType() == JoinType.COMMA) || (table1.getJoinType() == JoinType.JOIN) || (table1.getJoinType() == JoinType.INNER_JOIN)
+                    || (table1.getJoinType() == JoinType.LEFT_OUTER_JOIN)) {
+                tFilter = setTableFilter(tFilter, getTableFilter(table1.getLeft(), isOutJoin));
+                if (tableFilter == null) {
+                    tableFilter = tFilter;
+                }
+            }
+            //parserTable(table1.getLeft());	//SQLExprTableSource
+            parserTable(table1.getRight(), tFilter, true);
+
+            SQLExpr expr = table1.getCondition();//SQLBinaryOpExpr
+            parserJoinKey(expr);
+        } else {
+            tFilter = setTableFilter(tFilter, getTableFilter(table, isOutJoin));
+            LOGGER.info("table " + table.toString() + " Alias:" + table.getAlias() + " Hints:" + table.getHints());
+        }
+    }
+
+    private TableFilter setTableFilter(TableFilter tFilter, TableFilter newFilter) {
+        if (tFilter == null) {
+            tFilter = newFilter;
+            return tFilter;
+        } else {
+            tFilter.setTableJoin(newFilter);
+            return tFilter.getTableJoin();
+        }
+    }
+
+    private TableFilter getTableFilter(SQLTableSource table, boolean isOutJoin) {
+        String key;
+        String value = table.toString().trim();
+        if (table.getAlias() == null) {
+            key = value;
+        } else {
+            key = table.getAlias().trim();
+        }
+        return new TableFilter(value, key, isOutJoin);
+    }
+
+    private void parserJoinKey(SQLExpr expr){
 		if (expr==null) {
 			return;
 		}
