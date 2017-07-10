@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
@@ -68,6 +69,10 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
      */
     private final  int limitStart;
     private final  int limitSize;
+
+    private int[] mergeColsIndex;
+    private boolean hasEndFlag = false;
+
 
     private AtomicBoolean isMiddleResultDone;
 
@@ -174,8 +179,18 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             }
 
             // Group 操作
-            unsafeRowGrouper = new UnsafeRowGrouper(columToIndx, rrs.getGroupByCols(),
-                    mergCols.toArray(new MergeCol[mergCols.size()]), rrs.getHavingCols());
+            MergeCol[] mergColsArrays = mergCols.toArray(new MergeCol[mergCols.size()]);
+            unsafeRowGrouper = new UnsafeRowGrouper(columToIndx,rrs.getGroupByCols(),
+            		mergColsArrays,
+                    rrs.getHavingCols());
+
+            if(mergColsArrays!=null&&mergColsArrays.length>0){
+    			mergeColsIndex = new int[mergColsArrays.length];
+    			for(int i = 0;i<mergColsArrays.length;i++){
+    				mergeColsIndex[i] = mergColsArrays[i].colMeta.colIndex;
+    			}
+    		}
+            Arrays.sort(mergeColsIndex);
         }
 
         // 处理 排序（sort）列
@@ -306,6 +321,13 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                 }
                 if (pack == END_FLAG_PACK) {
                 	
+                	hasEndFlag = true;
+
+                	if(packs.peek()!=null){
+                		packs.add(pack);
+                		continue;
+                	}
+
                      /**
                      * 最后一个节点datenode发送了row eof packet说明了整个
                      * 分片数据全部接收完成，进而将结果集全部发给你Mycat 客户端
@@ -356,12 +378,30 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                 MySQLMessage mm = new MySQLMessage(pack.rowData);
                 mm.readUB3();
                 mm.read();
+
+                int nullnum = 0;
                 for (int i = 0; i < fieldCount; i++) {
                     byte[] colValue = mm.readBytesWithLength();
-                    if (colValue != null) {
-                        unsafeRowWriter.write(i, colValue);
-                    } else {
-                        unsafeRow.setNullAt(i);
+                    if (colValue != null)
+                    	unsafeRowWriter.write(i,colValue);
+                    else
+                    {
+            	 		if(mergeColsIndex!=null&&mergeColsIndex.length>0){
+
+            	 			if(Arrays.binarySearch(mergeColsIndex, i)<0){
+            	 				nullnum++;
+        	             	}
+            	 		}
+            	 		unsafeRow.setNullAt(i);
+                    }
+                }
+
+                if(mergeColsIndex!=null&&mergeColsIndex.length>0){
+                	if(nullnum == (fieldCount - mergeColsIndex.length)){
+                		if(!hasEndFlag){
+                			packs.add(pack);
+                        	continue;
+                		}
                     }
                 }
                 // 设置 占用Byte

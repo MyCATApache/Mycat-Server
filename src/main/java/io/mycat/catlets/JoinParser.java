@@ -1,10 +1,29 @@
 package io.mycat.catlets;
 
 
+import java.util.LinkedHashMap;
+import java.util.List;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
+import com.alibaba.druid.sql.ast.expr.SQLBooleanExpr;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
+import com.alibaba.druid.sql.ast.expr.SQLNumberExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
@@ -128,10 +147,23 @@ public class JoinParser {
 		}
 	}
 	
+	private String getMethodInvokeFieldName(SQLSelectItem item){
+		SQLMethodInvokeExpr invoke = (SQLMethodInvokeExpr)item.getExpr();
+		List<SQLExpr> itemExprs = invoke.getParameters();
+		for(SQLExpr itemExpr:itemExprs){
+			if (itemExpr instanceof SQLPropertyExpr) {
+				return itemExpr.toString();//字段别名
+			}
+		}
+		return item.toString();
+	}
+
+
 	private void parserFields(List<SQLSelectItem> mysqlSelectList){
 		//显示的字段
 		String key="";
 		String value ="";
+		String exprfield = "";
 		for(SQLSelectItem item : mysqlSelectList) {
 			if (item.getExpr() instanceof SQLAllColumnExpr) {
 				//*解析
@@ -141,13 +173,18 @@ public class JoinParser {
 				if (item.getExpr() instanceof SQLAggregateExpr) {
 					SQLAggregateExpr expr =(SQLAggregateExpr)item.getExpr();
 					 key = getExprFieldName(expr);
-					 //value=expr.
-				}
-				else {					
+					 setField(key, value);
+				}else if(item.getExpr() instanceof SQLMethodInvokeExpr){
+					key = getMethodInvokeFieldName(item);
+					exprfield=getFieldName(item);
+//					value=item.getAlias();
+					setField(key, value,exprfield);
+				}else {
 					key=getFieldName(item);
 					value=item.getAlias();
-				}			
-				setField(key, value);
+					setField(key, value);
+				}
+
 			}
 		}			
 	}
@@ -158,6 +195,14 @@ public class JoinParser {
 		}
 	}
 	
+	private void setField(String key,String value,String expr){
+		//fieldAliasMap.put(key, value);
+		if (tableFilter!=null){
+			tableFilter.addField(key, value,expr);
+		}
+	}
+
+
 	//判断并获得主表
 	private void parserMasterTable(){ 
 		if (tableFilter!=null){
@@ -201,7 +246,13 @@ public class JoinParser {
 				 throw new RuntimeException("Can't identify the operation of  of where"); 
 			 }
 		   }
-	   }		
+	   }else if(aexpr instanceof SQLInListExpr){
+		   SQLInListExpr expr = (SQLInListExpr)aexpr;
+		   SQLExpr exprL =  expr.getExpr();
+		   String field=exprL.toString();
+		   tableFilter.addWhere(field, SQLUtils.toMySqlString(expr), Operator);
+	   }
+
 	}
 	
 	private void andorWhere(SQLExpr exprL,String Operator,SQLExpr exprR ){ 

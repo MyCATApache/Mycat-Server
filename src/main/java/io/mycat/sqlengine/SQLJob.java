@@ -105,6 +105,9 @@ public class SQLJob implements ResponseHandler, Runnable {
 		finished = true;
 		jobHandler.finished(dataNodeOrDatabase, failed,errorMsg );
 		if (ctx != null) {
+			if(failed){
+				ctx.setHasError(true);
+			}
 			ctx.onJobFinished(this);
 		}
 	}
