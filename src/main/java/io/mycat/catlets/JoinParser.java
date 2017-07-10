@@ -1,29 +1,11 @@
 package io.mycat.catlets;
 
 
-import java.util.LinkedHashMap;
-import java.util.List;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.expr.*;
-import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
-import com.alibaba.druid.sql.ast.expr.SQLBooleanExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNumberExpr;
-import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
@@ -41,16 +23,14 @@ import java.util.List;
  * @create 2015年01月25日 
  * @version 0.0.1
  */
-
-
 public class JoinParser {
 	
 	protected static final Logger LOGGER = LoggerFactory.getLogger(JoinParser.class);
-	
+
     private MySqlSelectQueryBlock mysqlQuery;
-    private String stmt="";
+    private String stmt = "";
     private String joinType;
-    private String masterTable;    
+    private String masterTable;
     private TableFilter tableFilter;
     
     //private LinkedHashMap<String,String> fieldAliasMap = new LinkedHashMap<String,String>();
@@ -80,6 +60,13 @@ public class JoinParser {
         LOGGER.info("SQL: " + this.stmt);
     }
 
+    /**
+     * 解析 table，生成 {@link #tableFilter}
+     *
+     * @param table table
+     * @param tFilter 表过滤，即连接条件
+     * @param isOutJoin TODO 待读：用途
+     */
     private void parserTable(SQLTableSource table, TableFilter tFilter, boolean isOutJoin) {
         if (table instanceof SQLJoinTableSource) {
             SQLJoinTableSource table1 = (SQLJoinTableSource) table;
@@ -102,6 +89,13 @@ public class JoinParser {
         }
     }
 
+    /**
+     * 设置 tableFilter
+     *
+     * @param tFilter tableFilter
+     * @param newFilter 下一个（new） tableFilter
+     * @return tableFilter
+     */
     private TableFilter setTableFilter(TableFilter tFilter, TableFilter newFilter) {
         if (tFilter == null) {
             tFilter = newFilter;
@@ -112,9 +106,16 @@ public class JoinParser {
         }
     }
 
+    /**
+     * 获得 tableFilter
+     *
+     * @param table table
+     * @param isOutJoin TODO 待读
+     * @return tableFilter
+     */
     private TableFilter getTableFilter(SQLTableSource table, boolean isOutJoin) {
         String key;
-        String value = table.toString().trim();
+        String value = table.toString().trim(); // TODO 拓展点：如果超过2个表join，这里要处理下。因为druid是基于向左不断拓展
         if (table.getAlias() == null) {
             key = value;
         } else {
@@ -123,14 +124,19 @@ public class JoinParser {
         return new TableFilter(value, key, isOutJoin);
     }
 
-    private void parserJoinKey(SQLExpr expr){
-		if (expr==null) {
-			return;
-		}
-		 parserWhere(expr,"");
-	}
-	
-	private String getExprFieldName(SQLAggregateExpr expr){
+    /**
+     * 解析 join on 后的表达式
+     *
+     * @param expr 表达式
+     */
+    private void parserJoinKey(SQLExpr expr) {
+        if (expr == null) {
+            return;
+        }
+        parserWhere(expr, "");
+    }
+
+    private String getExprFieldName(SQLAggregateExpr expr){
 		StringBuilder field = new StringBuilder();
 		for (SQLExpr item :expr.getArguments()){
 			field.append(item.toString());
@@ -158,37 +164,39 @@ public class JoinParser {
 		return item.toString();
 	}
 
-
-	private void parserFields(List<SQLSelectItem> mysqlSelectList){
-		//显示的字段
-		String key="";
-		String value ="";
-		String exprfield = "";
-		for(SQLSelectItem item : mysqlSelectList) {
-			if (item.getExpr() instanceof SQLAllColumnExpr) {
-				//*解析
-				setField(item.toString(), item.toString());
-			}
-			else {
-				if (item.getExpr() instanceof SQLAggregateExpr) {
-					SQLAggregateExpr expr =(SQLAggregateExpr)item.getExpr();
-					 key = getExprFieldName(expr);
-					 setField(key, value);
-				}else if(item.getExpr() instanceof SQLMethodInvokeExpr){
-					key = getMethodInvokeFieldName(item);
-					exprfield=getFieldName(item);
+    /**
+     * 解析查询 fields
+     *
+     * @param mysqlSelectList fields
+     */
+    private void parserFields(List<SQLSelectItem> mysqlSelectList) {
+        //显示的字段
+        String key = "";
+        String value = "";
+        String exprfield = "";
+        for (SQLSelectItem item : mysqlSelectList) {
+            if (item.getExpr() instanceof SQLAllColumnExpr) { // select *
+                setField(item.toString(), item.toString());
+            } else {
+                if (item.getExpr() instanceof SQLAggregateExpr) { // TODO 待读
+                    SQLAggregateExpr expr = (SQLAggregateExpr) item.getExpr();
+                    key = getExprFieldName(expr);
+                    setField(key, value);
+                } else if (item.getExpr() instanceof SQLMethodInvokeExpr) { // TODO 待读
+                    key = getMethodInvokeFieldName(item);
+                    exprfield = getFieldName(item);
 //					value=item.getAlias();
-					setField(key, value,exprfield);
-				}else {
-					key=getFieldName(item);
-					value=item.getAlias();
-					setField(key, value);
-				}
+                    setField(key, value, exprfield);
+                } else {
+                    key = getFieldName(item);
+                    value = item.getAlias();
+                    setField(key, value);
+                }
+            }
+        }
+    }
 
-			}
-		}			
-	}
-	private void setField(String key,String value){
+    private void setField(String key,String value){
 		//fieldAliasMap.put(key, value);
 		if (tableFilter!=null){
 			tableFilter.addField(key, value);
@@ -202,88 +210,104 @@ public class JoinParser {
 		}
 	}
 
+    /**
+     * 判断并获得主表
+     */
+    private void parserMasterTable() {
+        if (tableFilter != null) {
+            masterTable = tableFilter.getTableAlia();
+        }
+    }
 
-	//判断并获得主表
-	private void parserMasterTable(){ 
-		if (tableFilter!=null){
-		   masterTable=tableFilter.getTableAlia();
-		}
-	}	
+    /**
+     * 判断 value 是否是一个 field。例如，u.id = xxxx 这种。
+     *
+     * @param value 值
+     * @return 是否
+     */
+    private boolean checkJoinField(String value) {
+        if (value == null) {
+            return false;
+        } else {
+            int i = value.indexOf('.'); // TODO bug：如果value是带"."的字符串会误判
+            return i > 0;
+        }
+    }
 
-	private boolean checkJoinField(String value){
-		if (value==null){
-			return false;	
-		}
-		else {
-			int i=value.indexOf('.');	
-			return i>0;
-		}
-	}
+    /**
+     * 解析条件表达式，where 或者 join on 后的表达式
+     *
+     * @param aexpr 表达式
+     * @param Operator 操作符
+     */
+    private void parserWhere(SQLExpr aexpr, String Operator) {
+        if (aexpr == null) {
+            return;
+        }
+        if (aexpr instanceof SQLBinaryOpExpr) {
+            SQLBinaryOpExpr expr = (SQLBinaryOpExpr) aexpr;
+            SQLExpr exprL = expr.getLeft();
+            if (!(exprL instanceof SQLBinaryOpExpr)) { // 单条条件表达式
+                opSQLExpr((SQLBinaryOpExpr) aexpr, Operator);
+            } else { // SQLBinaryOpExpr：例如，xxx = yyy AND zzz = aaa
+                // if (expr.getOperator().getName().equals("AND")) {
+                if (expr.getOperator() == SQLBinaryOperator.BooleanAnd) {
+                    //parserWhere(exprL);
+                    //parserWhere(expr.getRight());
+                    andorWhere(exprL, expr.getOperator().getName(), expr.getRight());
+                } else if (expr.getOperator() == SQLBinaryOperator.BooleanOr) {//.getName().equals("OR")) {
+                    andorWhere(exprL, expr.getOperator().getName(), expr.getRight());
+                } else {
+                    throw new RuntimeException("Can't identify the operation of  of where");
+                }
+            }
+        } else if (aexpr instanceof SQLInListExpr) {
+            SQLInListExpr expr = (SQLInListExpr) aexpr;
+            SQLExpr exprL = expr.getExpr();
+            String field = exprL.toString();
+            tableFilter.addWhere(field, SQLUtils.toMySqlString(expr), Operator);
+        }
+    }
 
-	
-	private void parserWhere(SQLExpr aexpr,String Operator){
-		 if (aexpr==null) {
-			 return;
-		 }
-	     if (aexpr instanceof SQLBinaryOpExpr){
-		   SQLBinaryOpExpr expr=(SQLBinaryOpExpr)aexpr;  
-		   SQLExpr exprL=expr.getLeft();
-		   if (!(exprL instanceof SQLBinaryOpExpr))
-		   {
-			  opSQLExpr((SQLBinaryOpExpr)aexpr,Operator);			  
-		   }
-		   else {
-			// if (expr.getOperator().getName().equals("AND")) { 
-			 if (expr.getOperator()==SQLBinaryOperator.BooleanAnd) { 	 
-			   //parserWhere(exprL); 
-			   //parserWhere(expr.getRight());
-			   andorWhere(exprL,expr.getOperator().getName(),expr.getRight());
-			 }
-			 else if (expr.getOperator()==SQLBinaryOperator.BooleanOr){//.getName().equals("OR")) {  
-				andorWhere(exprL,expr.getOperator().getName(),expr.getRight()); 				
-			 }
-			 else {
-				 throw new RuntimeException("Can't identify the operation of  of where"); 
-			 }
-		   }
-	   }else if(aexpr instanceof SQLInListExpr){
-		   SQLInListExpr expr = (SQLInListExpr)aexpr;
-		   SQLExpr exprL =  expr.getExpr();
-		   String field=exprL.toString();
-		   tableFilter.addWhere(field, SQLUtils.toMySqlString(expr), Operator);
-	   }
+    /**
+     * 解析左右表达式
+     *
+     * @param exprL 左表达式
+     * @param Operator 操作符
+     * @param exprR 右表达式
+     */
+    private void andorWhere(SQLExpr exprL, String Operator, SQLExpr exprR) {
+        parserWhere(exprL, "");
+        parserWhere(exprR, Operator);
+    }
 
-	}
-	
-	private void andorWhere(SQLExpr exprL,String Operator,SQLExpr exprR ){ 
-		   parserWhere(exprL,"");
-		   parserWhere(exprR,Operator);
-	}	
-	   
-    private void opSQLExpr(SQLBinaryOpExpr expr,String Operator) {
-		   if (expr==null) {
-			   return;
-		   }
-		   SQLExpr exprL=expr.getLeft();
-		   if (!(exprL instanceof SQLBinaryOpExpr))
-		   {
-			   String field=exprL.toString();
-			   String value=getExpValue(expr.getRight()).toString();
-			   if (expr.getOperator()==SQLBinaryOperator.Equality) {  
-				 if (checkJoinField(value)) {
-					//joinLkey=field;
-					//joinRkey=value; 
-					tableFilter.setJoinKey(field,value);
-				 }
-				 else {
-					 tableFilter.addWhere(field, value, expr.getOperator().getName(), Operator);
-				 }
-			   }
-			   else {
-				   tableFilter.addWhere(field, value, expr.getOperator().getName(), Operator);
-			   }
-		   }		
-	}
+    /**
+     * 处理单条条件表达式。例如，xxx=yyy。不是 xxx=yyy and zzz=qqq 这种多条件表达式
+     *
+     * @param expr 表达式
+     * @param Operator 操作符
+     */
+    private void opSQLExpr(SQLBinaryOpExpr expr, String Operator) {
+        if (expr == null) {
+            return;
+        }
+        SQLExpr exprL = expr.getLeft();
+        if (!(exprL instanceof SQLBinaryOpExpr)) {
+            String field = exprL.toString();
+            String value = getExpValue(expr.getRight()).toString();
+            if (expr.getOperator() == SQLBinaryOperator.Equality) {
+                if (checkJoinField(value)) {
+                    //joinLkey=field;
+                    //joinRkey=value;
+                    tableFilter.setJoinKey(field, value);
+                } else {
+                    tableFilter.addWhere(field, value, expr.getOperator().getName(), Operator);
+                }
+            } else {
+                tableFilter.addWhere(field, value, expr.getOperator().getName(), Operator);
+            }
+        }
+    }
 
 	private Object getExpValue(SQLExpr expr){
 		if (expr instanceof SQLIntegerExpr){
@@ -304,48 +328,54 @@ public class JoinParser {
 		}
 	
 		return expr;		
-	}	
-	
-	private void parserOrderBy(SQLOrderBy orderby)   
-    {   
-		if (orderby != null ){
-			for (int i = 0; i < orderby.getItems().size(); i++)
-	        {
-			  SQLSelectOrderByItem orderitem = orderby.getItems().get(i);
-			  tableFilter.addOrders(orderitem.getExpr().toString(), getSQLExprToAsc(orderitem.getType()));
+	}
+
+    /**
+     * 解析排序条件
+     *
+     * @param orderby 排序条件
+     */
+    private void parserOrderBy(SQLOrderBy orderby) {
+        if (orderby != null) {
+            for (int i = 0; i < orderby.getItems().size(); i++) {
+                SQLSelectOrderByItem orderitem = orderby.getItems().get(i);
+                tableFilter.addOrders(orderitem.getExpr().toString(), getSQLExprToAsc(orderitem.getType()));
             }
-		}		
-    }  
-	private void parserLimit(){
-	  int limitoff=0;
-	  int limitnum=0;
-	  if (this.mysqlQuery.getLimit()!=null) {
-	    limitoff=getSQLExprToInt(this.mysqlQuery.getLimit().getOffset());			
-	    limitnum=getSQLExprToInt(this.mysqlQuery.getLimit().getRowCount());
-	    tableFilter.addLimit(limitoff,limitnum);
-	  }
-	}
-	
-	private int getSQLExprToInt(SQLExpr expr){
-		if (expr instanceof SQLIntegerExpr){
-			return ((SQLIntegerExpr)expr).getNumber().intValue();
-		}
-		return 0;		
-	}
-	
-	private String getSQLExprToAsc(SQLOrderingSpecification ASC){
-		if (ASC==null ) {
-			return " ASC ";
-		}
-		if (ASC==SQLOrderingSpecification.DESC){
-			return " DESC ";
-		}
-		else {
-			return " ASC ";		
-		}
-	}		
-	
-	public String getChildSQL(){		
+        }
+    }
+
+    /**
+     * 解析 limit 条件
+     */
+    private void parserLimit() {
+        int limitoff = 0;
+        int limitnum = 0;
+        if (this.mysqlQuery.getLimit() != null) {
+            limitoff = getSQLExprToInt(this.mysqlQuery.getLimit().getOffset());
+            limitnum = getSQLExprToInt(this.mysqlQuery.getLimit().getRowCount());
+            tableFilter.addLimit(limitoff, limitnum);
+        }
+    }
+
+    private int getSQLExprToInt(SQLExpr expr) {
+        if (expr instanceof SQLIntegerExpr) {
+            return ((SQLIntegerExpr) expr).getNumber().intValue();
+        }
+        return 0;
+    }
+
+    private String getSQLExprToAsc(SQLOrderingSpecification ASC) {
+        if (ASC == null) {
+            return " ASC ";
+        }
+        if (ASC == SQLOrderingSpecification.DESC) {
+            return " DESC ";
+        } else {
+            return " ASC ";
+        }
+    }
+
+    public String getChildSQL(){
 		//String sql="select "+joinRkey+","+sql+" from "+mtable+" where "+joinRkey+" in ";
 		String sql=tableFilter.getTableJoin().getSQL();
 		return sql;

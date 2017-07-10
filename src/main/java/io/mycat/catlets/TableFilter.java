@@ -1,12 +1,12 @@
 package io.mycat.catlets;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import com.alibaba.druid.sql.SQLUtils;
 /**  
  * 功能详细描述:分片join,单独的语句
  * @author sohudo[http://blog.csdn.net/wind520]
@@ -18,16 +18,34 @@ public class TableFilter {
 	protected static final Logger LOGGER = LoggerFactory.getLogger(TableFilter.class);
 	
 	private LinkedHashMap<String,String> fieldAliasMap = new LinkedHashMap<String,String>();
-	private String tName;
-	private String tAlia;
-	private String where="";
-	private String order="";
-	
-	private String parenTable="";//左连接的join的表
-    private String joinParentkey="";//左连接的join字段
-    private String joinKey="";	//join字段
-	
-	private TableFilter join;
+    /**
+     * 表名
+     */
+    private String tName;
+    /**
+     * 表自定义命名
+     */
+    private String tAlia;
+    /**
+     * 过滤条件
+     */
+    private String where = "";
+    private String order = "";
+
+    /**
+     * 左连接的join的表
+     */
+    private String parenTable = "";
+    /**
+     * 左连接的join字段
+     */
+    private String joinParentkey = "";
+    /**
+     * join字段
+     */
+    private String joinKey = "";
+
+    private TableFilter join;
 	private TableFilter parent;
 	
 	private int offset=0;
@@ -35,206 +53,211 @@ public class TableFilter {
 	
 	private boolean outJoin;
 	private boolean allField;
-	public TableFilter(String taName,String taAlia,boolean outJoin) {
-		this.tName=taName;
-		this.tAlia=taAlia;
-		this.outJoin=outJoin;
-		this.where="";
-	}	
-	
-	private String getTablefrom(String key){
-		if (key==null){
-			return "";	
-		}
-		else {
-			int i=key.indexOf('.');
-			if (i==-1){
-				return key;
-			}
-			else {
-				return key.substring(0, i);
-			}
-		}
-		
-	}
-	private String getFieldfrom(String key){
-		if (key==null){
-			return "";	
-		}
-		else {
-		  int i=key.indexOf('.');
-			if (i==-1){
-				return key;
-			}
-			else {
-				return key.substring(i + 1);
-			}
-		}
-	}
-	
-	public void addField(String fieldName,String fieldAlia){
-		String atable=getTablefrom(fieldName);
-		String afield=getFieldfrom(fieldName);
-		boolean allfield=afield.equals("*")?true:false;
-		if (atable.equals("*")) {
-		  fieldAliasMap.put(afield, null);
-		  setAllField(allfield);
-		  if (join!=null) {
-			 join.addField(fieldName,null);  
-			 join.setAllField(allfield);
-		   }		  
-		}
-		else {
-		  if (atable.equals(tAlia)) {
-		    fieldAliasMap.put(afield, fieldAlia);
-		    setAllField(allfield);
-		 }
-		  else {
-		    if (join!=null) {
-			  join.addField(fieldName,fieldAlia);  
-			  join.setAllField(allfield);
-		     }
-		   }
-		}
-	}
-	
-	public void addField(String fieldName,String fieldAlia,String expr){
-		String atable=getTablefrom(fieldName);
-		String afield=getFieldfrom(fieldName);
-		boolean allfield=afield.equals("*")?true:false;
-		if (atable.equals("*")) {
-		  fieldAliasMap.put(afield, null);
-		  setAllField(allfield);
-		  if (join!=null) {
-			 join.addField(fieldName,null);  
-			 join.setAllField(allfield);
-		   }		  
-		}
-		else {
-		  if (atable.equals(tAlia)) {
-			expr = expr.replace(fieldName, afield);
-		    fieldAliasMap.put(expr, fieldAlia);
-		    setAllField(allfield);
-		 }
-		  else {
-		    if (join!=null) {
-			  join.addField(fieldName,fieldAlia,expr);  
-			  join.setAllField(allfield);
-		     }
-		   }
-		}
-	}
-	
-	
-	public void addWhere(String fieldName,String value,String Operator,String and){
-		String atable=getTablefrom(fieldName);
-		String afield=getFieldfrom(fieldName);
-		if (atable.equals(tAlia)) {
-			where=unionsql(where,afield+Operator+value,and);
-		}
-		else {
-		  if (join!=null) {
-			  join.addWhere(fieldName,value,Operator,and);  
-		  }
-		}
-	}
-	
-	public void addWhere(String fieldName,String condition,String and){
-		String atable=getTablefrom(fieldName);
-		String afield=getFieldfrom(fieldName);
-		condition = condition.replace(fieldName, afield);
-		if (atable.equals(tAlia)) {
-			where=unionsql(where,condition,and);
-		}
-		else {
-		  if (join!=null) {
-			  join.addWhere(fieldName,condition,and);  
-		  }
-		}
-	}
-	
-	
-    private String unionsql(String key,String value,String Operator){
-    	if (key.trim().equals("")){
-    		key=value;
-    	}
-    	else {
-    		key+=" "+Operator+" "+value;
-    	}
-    	return key;
+
+    public TableFilter(String taName, String taAlia, boolean outJoin) {
+        this.tName = taName;
+        this.tAlia = taAlia;
+        this.outJoin = outJoin;
+        this.where = "";
     }
-	
-	public void addOrders(String fieldName,String des){
-		String atable=getTablefrom(fieldName);
-		String afield=getFieldfrom(fieldName);
-		if (atable.equals(tAlia)) {
-			order=unionsql(order,afield+" "+des,",");
-		}
-		else {
-		  if (join!=null) {
-			  join.addOrders(fieldName,des);  
-		  }
-		}
-	}	
-	public void addLimit(int offset,int rowCount){
-		this.offset=offset;
-		this.rowCount=rowCount;
-	}
-	public void setJoinKey(String fieldName,String value){
-		if (parent==null){
-			if (join!=null)	{
-				join.setJoinKey(fieldName,value);
-			}
-		}
-		else {
-		 int i=joinLkey(fieldName,value);
-		 if (i==1){
-			 joinParentkey=getFieldfrom(value);
-			 parenTable   =getTablefrom(value);
-			 joinKey=getFieldfrom(fieldName);
-		 }
-		 else {			
-		   if (i==2){
-			   joinParentkey=getFieldfrom(fieldName);
-			   parenTable   =getTablefrom(fieldName);
-			   joinKey=getFieldfrom(value);
-		   }
-		   else {
-				  if (join!=null) {
-					  join.setJoinKey(fieldName,value);  
-				  }		   
-		   }
-		 }
-		}
-	}
-	
-	private String getChildJoinKey(boolean left){
-	   if (join!=null){
-			if (left) {
-				return join.joinParentkey;
-			}
-			else {
-				return join.joinKey;
-			}		   
-	   }
-	   else {
-		   return "";
-	   }
-	}
-	public String getJoinKey(boolean left){
+
+    private String getTablefrom(String key) {
+        if (key == null) {
+            return "";
+        } else {
+            int i = key.indexOf('.');
+            if (i == -1) {
+                return key;
+            } else {
+                return key.substring(0, i);
+            }
+        }
+
+    }
+
+    private String getFieldfrom(String key) {
+        if (key == null) {
+            return "";
+        } else {
+            int i = key.indexOf('.');
+            if (i == -1) {
+                return key;
+            } else {
+                return key.substring(i + 1);
+            }
+        }
+    }
+
+    public void addField(String fieldName, String fieldAlia) {
+        String atable = getTablefrom(fieldName);
+        String afield = getFieldfrom(fieldName);
+        boolean allfield = afield.equals("*") ? true : false;
+        if (atable.equals("*")) {
+            fieldAliasMap.put(afield, null);
+            setAllField(allfield);
+            if (join != null) {
+                join.addField(fieldName, null);
+                join.setAllField(allfield);
+            }
+        } else {
+            if (atable.equals(tAlia)) {
+                fieldAliasMap.put(afield, fieldAlia);
+                setAllField(allfield);
+            } else {
+                if (join != null) {
+                    join.addField(fieldName, fieldAlia);
+                    join.setAllField(allfield);
+                }
+            }
+        }
+    }
+
+    public void addField(String fieldName, String fieldAlia, String expr) {
+        String atable = getTablefrom(fieldName);
+        String afield = getFieldfrom(fieldName);
+        boolean allfield = afield.equals("*") ? true : false;
+        if (atable.equals("*")) {
+            fieldAliasMap.put(afield, null);
+            setAllField(allfield);
+            if (join != null) {
+                join.addField(fieldName, null);
+                join.setAllField(allfield);
+            }
+        } else {
+            if (atable.equals(tAlia)) {
+                expr = expr.replace(fieldName, afield);
+                fieldAliasMap.put(expr, fieldAlia);
+                setAllField(allfield);
+            } else {
+                if (join != null) {
+                    join.addField(fieldName, fieldAlia, expr);
+                    join.setAllField(allfield);
+                }
+            }
+        }
+    }
+
+    public void addWhere(String fieldName, String value, String Operator, String and) {
+        String atable = getTablefrom(fieldName);
+        String afield = getFieldfrom(fieldName);
+        if (atable.equals(tAlia)) {
+            where = unionsql(where, afield + Operator + value, and);
+        } else {
+            if (join != null) {
+                join.addWhere(fieldName, value, Operator, and);
+            }
+        }
+    }
+
+    public void addWhere(String fieldName, String condition, String and) {
+        String atable = getTablefrom(fieldName);
+        String afield = getFieldfrom(fieldName);
+        condition = condition.replace(fieldName, afield);
+        if (atable.equals(tAlia)) {
+            where = unionsql(where, condition, and);
+        } else {
+            if (join != null) {
+                join.addWhere(fieldName, condition, and);
+            }
+        }
+    }
+
+    private String unionsql(String key, String value, String Operator) {
+        if (key.trim().equals("")) {
+            key = value;
+        } else {
+            key += " " + Operator + " " + value;
+        }
+        return key;
+    }
+
+    /**
+     * 添加排序语句
+     *
+     * @param fieldName 排序 key
+     * @param des 排序 asc or desc
+     */
+    public void addOrders(String fieldName, String des) {
+        String atable = getTablefrom(fieldName);
+        String afield = getFieldfrom(fieldName);
+        if (atable.equals(tAlia)) {
+            order = unionsql(order, afield + " " + des, ",");
+        } else {
+            if (join != null) {
+                join.addOrders(fieldName, des);
+            }
+        }
+    }
+
+    public void addLimit(int offset, int rowCount) {
+        this.offset = offset;
+        this.rowCount = rowCount;
+    }
+
+    /**
+     * 设置 join 条件：joinParentKey/parenTable/joinKey
+     *
+     * @param fieldName 表达式左边
+     * @param value 表达式右边
+     */
+    public void setJoinKey(String fieldName, String value) {
+        if (parent == null) {
+            if (join != null) {
+                join.setJoinKey(fieldName, value);
+            }
+        } else {
+            int i = joinLkey(fieldName, value);
+            if (i == 1) {
+                joinParentkey = getFieldfrom(value);
+                parenTable = getTablefrom(value);
+                joinKey = getFieldfrom(fieldName);
+            } else {
+                if (i == 2) {
+                    joinParentkey = getFieldfrom(fieldName);
+                    parenTable = getTablefrom(fieldName);
+                    joinKey = getFieldfrom(value);
+                } else {
+                    if (join != null) {
+                        join.setJoinKey(fieldName, value);
+                    }
+                }
+            }
+        }
+    }
+
+    private String getChildJoinKey(boolean left) {
+        if (join != null) {
+            if (left) {
+                return join.joinParentkey;
+            } else {
+                return join.joinKey;
+            }
+        } else {
+            return "";
+        }
+    }
+
+    public String getJoinKey(boolean left){
 		return getChildJoinKey(left);
 	}
-    private int joinLkey(String fieldName,String value){
-    	String key1=getTablefrom(fieldName);
-    	String key2=getTablefrom(value);    	
-    	if (key1.equals(tAlia) ) {
-    		return 1;
-    	}
-    	
-    	if (key2.equals(tAlia) ) {
-    		return 2;
-    	}     	
-    	/*
+
+    /**
+     * 判断表达式左边（返回 1）还是右边（返回 2）等于当前表({@link #tAlia}}
+     *
+     * @param fieldName 表达式.左边
+     * @param value 表达式.右边
+     * @return 1、2、0
+     */
+    private int joinLkey(String fieldName, String value) {
+        String key1 = getTablefrom(fieldName);
+        String key2 = getTablefrom(value);
+        if (key1.equals(tAlia)) {
+            return 1;
+        }
+        if (key2.equals(tAlia)) {
+            return 2;
+        }
+        /*
     	 String bAlia=""; 
     	if (join!=null){
     		bAlia=join.getTableAlia();
@@ -247,7 +270,7 @@ public class TableFilter {
     		return 2;
     	} 
     	*/
-    	return 0;
+        return 0;
     }	
 	
 	public String getTableName(){

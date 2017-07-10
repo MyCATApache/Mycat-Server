@@ -8,6 +8,7 @@
 
         <table name="t_user" dataNode="dn1,dn2,dn3" autoIncrement="true" primaryKey="id" rule="mod-long" />
         <table name="t_order" dataNode="dn1,dn2,dn3" autoIncrement="true" primaryKey="id" rule="mod-long" />
+        <table name="t_product" dataNode="dn1,dn2,dn3" autoIncrement="true" primaryKey="id" rule="mod-long" />
     </schema>
 
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />
