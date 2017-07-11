@@ -120,10 +120,12 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 				if(session.getXaTXID()!=null){
 					session.setXATXEnabled(false);
 				}
-				/* 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
-		        if(!session.getSource().isPreAcStates()&&!session.getSource().isAutocommit()){
+				
+				/* 2. preAcStates 为true,事务结束后,需要设置为true。preAcStates 为ac上一个状态    */
+		        if(session.getSource().isPreAcStates()&&!session.getSource().isAutocommit()){
 		        	session.getSource().setAutocommit(true);
 		        }
+		        
 				session.getSource().write(ok);
 			}
 		}

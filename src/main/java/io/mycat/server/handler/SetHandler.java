@@ -66,7 +66,7 @@ public final class SetHandler {
 			if (c.isAutocommit()) {
 				c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			} else {
-				c.setPreAcStates(false);
+				c.setPreAcStates(true);
 				c.commit();
 				c.setAutocommit(true);
 			}
@@ -74,7 +74,7 @@ public final class SetHandler {
 		case AUTOCOMMIT_OFF: {
 			if (c.isAutocommit()) {
 				c.setAutocommit(false);
-				c.setPreAcStates(true);
+				c.setPreAcStates(false);
 			}
 			c.write(c.writeToBuffer(AC_OFF, c.allocate()));
 			break;
