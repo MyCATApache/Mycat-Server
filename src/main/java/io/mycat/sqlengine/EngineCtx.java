@@ -1,20 +1,19 @@
 package io.mycat.sqlengine;
 
+import io.mycat.manager.handler.ConfFileHandler;
+import io.mycat.net.mysql.EOFPacket;
+import io.mycat.net.mysql.ResultSetHeaderPacket;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.server.NonBlockingSession;
+import io.mycat.server.ServerConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.manager.handler.ConfFileHandler;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.EmptyPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.server.NonBlockingSession;
-import io.mycat.server.ServerConnection;
 
 public class EngineCtx {
 	public static final Logger LOGGER = LoggerFactory.getLogger(ConfFileHandler.class);
@@ -37,13 +36,19 @@ public class EngineCtx {
 		return (byte) packetId.incrementAndGet();
 	}
 
+    /**
+     * 顺序（非并发）在每个数据节点执行SQL任务
+     *
+     * @param dataNodes 数据节点
+     * @param sql SQL
+     * @param jobHandler SQL任务回调
+     */
 	public void executeNativeSQLSequnceJob(String[] dataNodes, String sql,
 			SQLJobHandler jobHandler) {
 		for (String dataNode : dataNodes) {
 			SQLJob job = new SQLJob(jobId.incrementAndGet(), sql, dataNode,
 					jobHandler, this);
 			bachJob.addJob(job, false);
-
 		}
 	}
 
@@ -56,13 +61,19 @@ public class EngineCtx {
 		this.allJobFinishedListener = allJobFinishedListener;
 	}
 
+    /**
+     * 并发在每个数据节点执行SQL任务
+     *
+     * @param dataNodes 数据节点
+     * @param sql SQL
+     * @param jobHandler SQL任务回调
+     */
 	public void executeNativeSQLParallJob(String[] dataNodes, String sql,
 			SQLJobHandler jobHandler) {
 		for (String dataNode : dataNodes) {
 			SQLJob job = new SQLJob(jobId.incrementAndGet(), sql, dataNode,
 					jobHandler, this);
 			bachJob.addJob(job, true);
-
 		}
 	}
 
@@ -160,27 +171,24 @@ public class EngineCtx {
 		sc.write(buf);
 		LOGGER.info("write  eof ,packgId:" + eofPckg.packetId);
 	}
-	
 
 	public NonBlockingSession getSession() {
 		return session;
 	}
 
-	public void onJobFinished(SQLJob sqlJob) {
-
-		boolean allFinished = bachJob.jobFinished(sqlJob);
-		if (allFinished && finished.compareAndSet(false, true)) {
-			if(!hasError){
-				LOGGER.info("all job finished  for front connection: "
-						+ session.getSource());
-				allJobFinishedListener.onAllJobFinished(this);
-			}else{
-				LOGGER.info("all job finished with error for front connection: "
-						+ session.getSource());
-			}
-		}
-
-	}
+    public void onJobFinished(SQLJob sqlJob) {
+        boolean allFinished = bachJob.jobFinished(sqlJob);
+        if (allFinished && finished.compareAndSet(false, true)) {
+            if (!hasError) {
+                LOGGER.info("all job finished  for front connection: "
+                        + session.getSource());
+                allJobFinishedListener.onAllJobFinished(this);
+            } else {
+                LOGGER.info("all job finished with error for front connection: "
+                        + session.getSource());
+            }
+        }
+    }
 
 	public boolean isHasError() {
 		return hasError;

@@ -94,7 +94,7 @@ public class ShareJoin implements Catlet {
                 }
             }
            /*
-		   if (routes instanceof DruidMysqlRouteStrategy) {
+           if (routes instanceof DruidMysqlRouteStrategy) {
 			   SQLSelectStatement st=((DruidMysqlRouteStrategy) routes).getSQLStatement();
 			   SQLSelectQuery sqlSelectQuery =st.getSelect().getQuery();
 				if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
@@ -109,33 +109,34 @@ public class ShareJoin implements Catlet {
         }
     }
 
-	private void getRoute(String sql){
-		try {
-		  if (joinParser!=null){
-			rrs =RouteStrategyFactory.getRouteStrategy().route(sysConfig, schema, sqltype,sql,charset, sc, cachePool);
-		  }
-		} catch (Exception e) {
-			
-		}
-	}
-	private String[] getDataNodes(){		
-		String[] dataNodes =new String[rrs.getNodes().length] ;
-		for (int i=0;i<rrs.getNodes().length;i++){
-			dataNodes[i]=rrs.getNodes()[i].getName();
-		}
-		return dataNodes;
-	}
-	private String getDataNode(String[] dataNodes){
-		String dataNode="";
-		for (int i=0;i<dataNodes.length;i++){
-			dataNode+=dataNodes[i]+",";
-		}
-		return dataNode;
-	}
+    private void getRoute(String sql) {
+        try {
+            if (joinParser != null) {
+                rrs = RouteStrategyFactory.getRouteStrategy().route(sysConfig, schema, sqltype, sql, charset, sc, cachePool);
+            }
+        } catch (Exception e) {
+        }
+    }
+
+    private String[] getDataNodes() {
+        String[] dataNodes = new String[rrs.getNodes().length];
+        for (int i = 0; i < rrs.getNodes().length; i++) {
+            dataNodes[i] = rrs.getNodes()[i].getName();
+        }
+        return dataNodes;
+    }
+
+    private String getDataNode(String[] dataNodes) {
+        String dataNode = "";
+        for (int i = 0; i < dataNodes.length; i++) {
+            dataNode += dataNodes[i] + ",";
+        }
+        return dataNode;
+    }
 
     public void processSQL(String sql, EngineCtx ctx) {
         String ssql = joinParser.getSql();
-        getRoute(ssql);
+        getRoute(ssql); // TODO 待读：获得节点
         RouteResultsetNode[] nodes = rrs.getNodes();
         if (nodes == null || nodes.length == 0 || nodes[0].getName() == null
                 || nodes[0].getName().equals("")) {
@@ -172,61 +173,61 @@ public class ShareJoin implements Catlet {
         });
     }
 
-    public void putDBRow(String id,String nid, byte[] rowData,int findex){
-    	rows.put(id, rowData);	
-    	ids.put(id, nid);
-    	joinindex=findex;
-		//ids.offer(nid);
-		int batchSize = 999;
-		// 满1000条，发送一个查询请求
-		if (ids.size() > batchSize) {
-			createQryJob(batchSize);
-		}            	
+    public void putDBRow(String id, String nid, byte[] rowData, int findex) {
+        rows.put(id, rowData);
+        ids.put(id, nid);
+        joinindex = findex;
+        //ids.offer(nid);
+        int batchSize = 999;
+        // 满1000条，发送一个查询请求
+        if (ids.size() > batchSize) { // TODO 待读：
+            createQryJob(batchSize);
+        }
     }
-    
-    public void putDBFields(List<byte[]> mFields){
-    	 if (!isMfield){
-    		 fields=mFields; 
-    	 }    	
-    }    
 
-   public void endJobInput(String dataNode, boolean failed){
-	   mjob++;
-	   if (mjob>=maxjob){
-		 createQryJob(Integer.MAX_VALUE);
-	     ctx.endJobInput();
-	   }
-	  // EngineCtx.LOGGER.info("完成"+mjob+":" + dataNode+" failed:"+failed);
-   }
-   
-	//private void createQryJob(String dataNode,int batchSize) {	
-	private void createQryJob(int batchSize) {	
-		int count = 0;
-		Map<String, byte[]> batchRows = new ConcurrentHashMap<String, byte[]>();
-		String theId = null;
-		StringBuilder sb = new StringBuilder().append('(');
-		String svalue="";
-		for(Map.Entry<String,String> e: ids.entrySet() ){
-			theId=e.getKey();
-			byte[] rowbyte = rows.remove(theId);
-			if(rowbyte!=null){
-				batchRows.put(theId, rowbyte);
-			}			
-			if (!svalue.equals(e.getValue())){
-				if(joinKeyType == Fields.FIELD_TYPE_VAR_STRING 
-						|| joinKeyType == Fields.FIELD_TYPE_STRING){ // joinkey 为varchar
-						sb.append("'").append(e.getValue()).append("'").append(','); // ('digdeep','yuanfang') 
-				}else{ // 默认joinkey为int/long
-					sb.append(e.getValue()).append(','); // (1,2,3) 
-				}
-			}
-			svalue=e.getValue();
-			if (count++ > batchSize) {
-				break;
-			}			
-		}
-		/*
-		while ((theId = ids.poll()) != null) {
+    public void putDBFields(List<byte[]> mFields) {
+        if (!isMfield) {
+            fields = mFields;
+        }
+    }
+
+    public void endJobInput(String dataNode, boolean failed) {
+        mjob++;
+        if (mjob >= maxjob) {
+            createQryJob(Integer.MAX_VALUE);
+            ctx.endJobInput();
+        }
+        // EngineCtx.LOGGER.info("完成"+mjob+":" + dataNode+" failed:"+failed);
+    }
+
+    //private void createQryJob(String dataNode,int batchSize) {
+    private void createQryJob(int batchSize) {
+        int count = 0;
+        Map<String, byte[]> batchRows = new ConcurrentHashMap<String, byte[]>();
+        String theId = null;
+        StringBuilder sb = new StringBuilder().append('(');
+        String svalue = "";
+        for (Map.Entry<String, String> e : ids.entrySet()) {
+            theId = e.getKey();
+            byte[] rowbyte = rows.remove(theId);
+            if (rowbyte != null) {
+                batchRows.put(theId, rowbyte);
+            }
+            if (!svalue.equals(e.getValue())) {
+                if (joinKeyType == Fields.FIELD_TYPE_VAR_STRING
+                        || joinKeyType == Fields.FIELD_TYPE_STRING) { // joinkey 为varchar
+                    sb.append("'").append(e.getValue()).append("'").append(','); // ('digdeep','yuanfang')
+                } else { // 默认joinkey为int/long
+                    sb.append(e.getValue()).append(','); // (1,2,3)
+                }
+            }
+            svalue = e.getValue();
+            if (count++ > batchSize) {
+                break;
+            }
+        }
+        /*
+        while ((theId = ids.poll()) != null) {
 			batchRows.put(theId, rows.remove(theId));
 			sb.append(theId).append(',');
 			if (count++ > batchSize) {
@@ -234,19 +235,20 @@ public class ShareJoin implements Catlet {
 			}
 		}
 		*/
-		if (count == 0) {
-			return;
-		}
-		jointTableIsData=true;
-		sb.deleteCharAt(sb.length() - 1).append(')');
-		String sql = String.format(joinParser.getChildSQL(), sb);
-		//if (!childRoute){
-		  getRoute(sql);
-		 //childRoute=true;
-		//}
-		ctx.executeNativeSQLParallJob(getDataNodes(),sql, new ShareRowOutPutDataHandler(this,fields,joinindex,joinParser.getJoinRkey(), batchRows,ctx.getSession()));
-		EngineCtx.LOGGER.info("SQLParallJob:"+getDataNode(getDataNodes())+" sql:" + sql);		
-	}  
+        if (count == 0) {
+            return;
+        }
+        jointTableIsData = true;
+        sb.deleteCharAt(sb.length() - 1).append(')');
+        String sql = String.format(joinParser.getChildSQL(), sb);
+        //if (!childRoute){
+        getRoute(sql);
+        //childRoute=true;
+        //}
+        ctx.executeNativeSQLParallJob(getDataNodes(), sql, new ShareRowOutPutDataHandler(this, fields, joinindex, joinParser.getJoinRkey(), batchRows, ctx.getSession()));
+        EngineCtx.LOGGER.info("SQLParallJob:" + getDataNode(getDataNodes()) + " sql:" + sql);
+    }
+
 	public void writeHeader(String dataNode,List<byte[]> afields, List<byte[]> bfields) {
 		sendField++;
 		if (sendField==1){		  	
@@ -258,8 +260,8 @@ public class ShareJoin implements Catlet {
  		  setAllFields(afields, bfields);
 		 // EngineCtx.LOGGER.info("发送字段2:" + dataNode);
 		}
-		
 	}
+
 	private void setAllFields(List<byte[]> afields, List<byte[]> bfields){		
 		allfields=new ArrayList<byte[]>();
 		for (byte[] field : afields) {
@@ -274,30 +276,34 @@ public class ShareJoin implements Catlet {
 	public List<byte[]> getAllFields(){		
 		return allfields;
 	}
+
 	public void writeRow(RowDataPacket rowDataPkg){
 		ctx.writeRow(rowDataPkg);
 	}
-	
-	public int getFieldIndex(List<byte[]> fields,String fkey){
-		int i=0;
-		for (byte[] field :fields) {	
-			  FieldPacket fieldPacket = new FieldPacket();
-			  fieldPacket.read(field);	
-			  if (ByteUtil.getString(fieldPacket.name).equals(fkey)){
-				  joinKeyType = fieldPacket.type;
-				  return i;				  
-			  }
-			  i++;
-			}
-		return i;		
-	}	
+
+    public int getFieldIndex(List<byte[]> fields, String fkey) {
+        int i = 0;
+        for (byte[] field : fields) {
+            FieldPacket fieldPacket = new FieldPacket();
+            fieldPacket.read(field);
+//            if (ByteUtil.getString(fieldPacket.name).equals(fkey)) {
+            if (ByteUtil.getString(fieldPacket.orgName).equals(fkey)) {
+                joinKeyType = fieldPacket.type;
+                return i;
+            }
+            i++;
+        }
+        return i;
+    }
 }
 
 class ShareDBJoinHandler implements SQLJobHandler {
+
 	private List<byte[]> fields;
 	private final ShareJoin ctx;
 	private String joinkey;
 	private NonBlockingSession session;
+
 	public ShareDBJoinHandler(ShareJoin ctx,String joinField,NonBlockingSession session) {
 		super();
 		this.ctx = ctx;
@@ -333,123 +339,121 @@ class ShareDBJoinHandler implements SQLJobHandler {
 		return ByteUtil.getString(fieldPacket.name);
 	}
 	*/
-	@Override
-	public boolean onRowData(String dataNode, byte[] rowData) {
-		int fid=this.ctx.getFieldIndex(fields,joinkey);
-		String id = ResultSetUtil.getColumnValAsString(rowData, fields, 0);//主键，默认id
-		String nid = ResultSetUtil.getColumnValAsString(rowData, fields, fid);
-		// 放入结果集
-		//rows.put(id, rowData);
-		ctx.putDBRow(id,nid, rowData,fid);
-		return false;
-	}
+    @Override
+    public boolean onRowData(String dataNode, byte[] rowData) {
+        int fid = this.ctx.getFieldIndex(fields, joinkey);
+        String id = ResultSetUtil.getColumnValAsString(rowData, fields, 0);//主键，默认id
+        String nid = ResultSetUtil.getColumnValAsString(rowData, fields, fid);
+        // 放入结果集
+        //rows.put(id, rowData);
+        ctx.putDBRow(id, nid, rowData, fid);
+        return false;
+    }
 
-	@Override
-	public void finished(String dataNode, boolean failed, String errorMsg) {
-		if(failed){
-			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
-		}else{
-			ctx.endJobInput(dataNode,failed);
-		}
-	}
+    @Override
+    public void finished(String dataNode, boolean failed, String errorMsg) {
+        if (failed) {
+            session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
+        } else {
+            ctx.endJobInput(dataNode, failed);
+        }
+    }
 
 }
 
 class ShareRowOutPutDataHandler implements SQLJobHandler {
-	private final List<byte[]> afields;
-	private List<byte[]> bfields;
-	private final ShareJoin ctx;
-	private final Map<String, byte[]> arows;
-	private int joinL;//A表(左边)关联字段的位置
-	private int joinR;//B表(右边)关联字段的位置
-	private String joinRkey;//B表(右边)关联字段
-	public NonBlockingSession session;
 
-	public ShareRowOutPutDataHandler(ShareJoin ctx,List<byte[]> afields,int joini,String joinField,Map<String, byte[]> arows,NonBlockingSession session) {
-		super();
-		this.afields = afields;
-		this.ctx = ctx;
-		this.arows = arows;		
-		this.joinL =joini;
-		this.joinRkey= joinField;
-		this.session = session;
-		//EngineCtx.LOGGER.info("二次查询:" +arows.size()+ " afields："+FenDBJoinHandler.getFieldNames(afields));
+    private final List<byte[]> afields;
+    private List<byte[]> bfields;
+    private final ShareJoin ctx;
+    private final Map<String, byte[]> arows;
+    private int joinL;//A表(左边)关联字段的位置
+    private int joinR;//B表(右边)关联字段的位置
+    private String joinRkey;//B表(右边)关联字段
+    public NonBlockingSession session;
+
+    public ShareRowOutPutDataHandler(ShareJoin ctx, List<byte[]> afields, int joini, String joinField, Map<String, byte[]> arows, NonBlockingSession session) {
+        super();
+        this.afields = afields;
+        this.ctx = ctx;
+        this.arows = arows;
+        this.joinL = joini;
+        this.joinRkey = joinField;
+        this.session = session;
+        //EngineCtx.LOGGER.info("二次查询:" +arows.size()+ " afields："+FenDBJoinHandler.getFieldNames(afields));
     }
 
-	@Override
-	public void onHeader(String dataNode, byte[] header, List<byte[]> bfields) {
-		  this.bfields=bfields;		
-		  joinR=this.ctx.getFieldIndex(bfields,joinRkey);
-		  MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+    @Override
+    public void onHeader(String dataNode, byte[] header, List<byte[]> bfields) {
+        this.bfields = bfields;
+        joinR = this.ctx.getFieldIndex(bfields, joinRkey);
+        MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+        if (middlerResultHandler == null) {
+            ctx.writeHeader(dataNode, afields, bfields);
+        }
+    }
 
-			if(  middlerResultHandler ==null ){
-				  ctx.writeHeader(dataNode,afields, bfields);
+    //不是主键，获取join左边的的记录
+    private byte[] getRow(Map<String, byte[]> batchRowsCopy, String value, int index) {
+        for (Map.Entry<String, byte[]> e : batchRowsCopy.entrySet()) {
+            String key = e.getKey();
+            RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(e.getValue(), afields);
+            String id = ByteUtil.getString(rowDataPkg.fieldValues.get(index));
+            if (id.equals(value)) {
+                return batchRowsCopy.remove(key);
+            }
+        }
+        return null;
+    }
 
-			} 
- 	}
-
-	//不是主键，获取join左边的的记录
-	private byte[] getRow(Map<String, byte[]> batchRowsCopy,String value,int index){
-		for(Map.Entry<String,byte[]> e: batchRowsCopy.entrySet() ){
-			String key=e.getKey();
-			RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(e.getValue(), afields);
-			String id = ByteUtil.getString(rowDataPkg.fieldValues.get(index));
-			if (id.equals(value)){
-				return batchRowsCopy.remove(key);
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public boolean onRowData(String dataNode, byte[] rowData) {
-		RowDataPacket rowDataPkgold = ResultSetUtil.parseRowData(rowData, bfields);
-		//拷贝一份batchRows
-		Map<String, byte[]> batchRowsCopy = new ConcurrentHashMap<String, byte[]>();
-		batchRowsCopy.putAll(arows);
-		// 获取Id字段，
-		String id = ByteUtil.getString(rowDataPkgold.fieldValues.get(joinR));
-		// 查找ID对应的A表的记录
-		byte[] arow = getRow(batchRowsCopy,id,joinL);//arows.remove(id);
+    @Override
+    public boolean onRowData(String dataNode, byte[] rowData) {
+        RowDataPacket rowDataPkgold = ResultSetUtil.parseRowData(rowData, bfields);
+        //拷贝一份batchRows
+        Map<String, byte[]> batchRowsCopy = new ConcurrentHashMap<String, byte[]>(); // TODO 疑问：干啥要新的
+        batchRowsCopy.putAll(arows);
+        // 获取Id字段，
+        String id = ByteUtil.getString(rowDataPkgold.fieldValues.get(joinR));
+        // 查找ID对应的A表的记录
+        byte[] arow = getRow(batchRowsCopy, id, joinL);//arows.remove(id);
 //		byte[] arow = getRow(id,joinL);//arows.remove(id);
-		while (arow!=null) {
-			RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(arow,afields );//ctx.getAllFields());
-			for (int i=1;i<rowDataPkgold.fieldCount;i++){
-				// 设置b.name 字段
-				byte[] bname = rowDataPkgold.fieldValues.get(i);
-				rowDataPkg.add(bname);
-				rowDataPkg.addFieldCount(1);
-			}
-			//RowData(rowDataPkg);
-			// huangyiming add
-			MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
-			if(null == middlerResultHandler ){
-				ctx.writeRow(rowDataPkg);
-			}else{
-				
-				 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
-					// if(middlerResultHandler.getDataType().equalsIgnoreCase("string")){
-						 byte[] columnData = rowDataPkg.fieldValues.get(0);
-						 if(columnData !=null && columnData.length >0){
- 							 String rowValue =    new String(columnData);
-							 middlerResultHandler.add(rowValue);	
-						 }
-				   //}
-				 }
-				
-			} 
-			
-			arow = getRow(batchRowsCopy,id,joinL);
-//		   arow = getRow(id,joinL);
-		}
-		return false;
-	}
-	
+        while (arow != null) {
+            RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(arow, afields);//ctx.getAllFields());
+            for (int i = 1; i < rowDataPkgold.fieldCount; i++) {
+                // 设置b.name 字段
+                byte[] bname = rowDataPkgold.fieldValues.get(i);
+                rowDataPkg.add(bname);
+                rowDataPkg.addFieldCount(1);
+            }
+            //RowData(rowDataPkg);
+            // huangyiming add
+            MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+            if (null == middlerResultHandler) {
+                ctx.writeRow(rowDataPkg);
+            } else {
 
-	@Override
-	public void finished(String dataNode, boolean failed, String errorMsg) {
-		if(failed){
-			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
-		}
-	}
+                if (middlerResultHandler instanceof MiddlerQueryResultHandler) {
+                    // if(middlerResultHandler.getDataType().equalsIgnoreCase("string")){
+                    byte[] columnData = rowDataPkg.fieldValues.get(0);
+                    if (columnData != null && columnData.length > 0) {
+                        String rowValue = new String(columnData);
+                        middlerResultHandler.add(rowValue);
+                    }
+                    //}
+                }
+
+            }
+
+            arow = getRow(batchRowsCopy, id, joinL);
+//		   arow = getRow(id,joinL);
+        }
+        return false;
+    }
+
+    @Override
+    public void finished(String dataNode, boolean failed, String errorMsg) {
+        if (failed) {
+            session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
+        }
+    }
 }

@@ -380,13 +380,13 @@ public class JoinParser {
 		String sql=tableFilter.getTableJoin().getSQL();
 		return sql;
 	}
-	
-	public String getSql(){
-		stmt=tableFilter.getSQL();
-		return stmt;
-	}
-	
-	public String getJoinType(){
+
+    public String getSql() {
+        stmt = tableFilter.getSQL();
+        return stmt;
+    }
+
+    public String getJoinType(){
 		return joinType;
 	}
 	public String getJoinLkey(){
