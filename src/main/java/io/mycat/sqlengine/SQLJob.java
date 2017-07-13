@@ -18,49 +18,61 @@ import java.util.List;
  * asyn execute in EngineCtx or standalone (EngineCtx=null)
  * 
  * @author wuzhih
- * 
  */
 public class SQLJob implements ResponseHandler, Runnable {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(SQLJob.class);
-	
+
+    /**
+     * SQL
+     */
 	private final String sql;
+    /**
+     * 数据节点
+     */
 	private final String dataNodeOrDatabase;
 	private BackendConnection connection;
+    /**
+     * SQL Job 执行完后回调
+     */
 	private final SQLJobHandler jobHandler;
 	private final EngineCtx ctx;
 	private final PhysicalDatasource ds;
+    /**
+     * 任务编号
+     */
 	private final int id;
+    /**
+     * 是否完成
+     */
 	private volatile boolean finished;
 
-	public SQLJob(int id, String sql, String dataNode,
-			SQLJobHandler jobHandler, EngineCtx ctx) {
-		super();
-		this.id = id;
-		this.sql = sql;
-		this.dataNodeOrDatabase = dataNode;
-		this.jobHandler = jobHandler;
-		this.ctx = ctx;
-		this.ds = null;
-	}
+    public SQLJob(int id, String sql, String dataNode,
+                  SQLJobHandler jobHandler, EngineCtx ctx) {
+        super();
+        this.id = id;
+        this.sql = sql;
+        this.dataNodeOrDatabase = dataNode;
+        this.jobHandler = jobHandler;
+        this.ctx = ctx;
+        this.ds = null;
+    }
 
-	public SQLJob(String sql, String databaseName, SQLJobHandler jobHandler,
-			PhysicalDatasource ds) {
-		super();
-		this.id = 0;
-		this.sql = sql;
-		this.dataNodeOrDatabase = databaseName;
-		this.jobHandler = jobHandler;
-		this.ctx = null;
-		this.ds = ds;
-
-	}
+    public SQLJob(String sql, String databaseName, SQLJobHandler jobHandler,
+                  PhysicalDatasource ds) {
+        super();
+        this.id = 0;
+        this.sql = sql;
+        this.dataNodeOrDatabase = databaseName;
+        this.jobHandler = jobHandler;
+        this.ctx = null;
+        this.ds = ds;
+    }
 
 	public void run() {
 		try {
 			if (ds == null) {
-				RouteResultsetNode node = new RouteResultsetNode(
-						dataNodeOrDatabase, ServerParse.SELECT, sql);
+				RouteResultsetNode node = new RouteResultsetNode(dataNodeOrDatabase, ServerParse.SELECT, sql);
 				// create new connection
 				MycatConfig conf = MycatServer.getInstance().getConfig();
 				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());

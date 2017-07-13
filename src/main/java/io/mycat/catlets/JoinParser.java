@@ -375,11 +375,11 @@ public class JoinParser {
         }
     }
 
-    public String getChildSQL(){
-		//String sql="select "+joinRkey+","+sql+" from "+mtable+" where "+joinRkey+" in ";
-		String sql=tableFilter.getTableJoin().getSQL();
-		return sql;
-	}
+    public String getChildSQL() {
+        //String sql="select "+joinRkey+","+sql+" from "+mtable+" where "+joinRkey+" in ";
+        String sql = tableFilter.getTableJoin().getSQL();
+        return sql;
+    }
 
     public String getSql() {
         stmt = tableFilter.getSQL();

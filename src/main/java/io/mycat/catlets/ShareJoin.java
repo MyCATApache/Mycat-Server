@@ -41,26 +41,36 @@ public class ShareJoin implements Catlet {
 	private EngineCtx ctx;
 	private RouteResultset rrs ;
 	private JoinParser joinParser;
-	
+
+    /**
+     * 左边表记录映射关系
+     * key：id，主键
+     * value：记录
+     */
 	private Map<String, byte[]> rows = new ConcurrentHashMap<String, byte[]>();
+    /**
+     * 左边表主键与join key值的映射关系
+     * key：id，主键
+     * value：join key 值
+     */
 	private Map<String,String> ids = new ConcurrentHashMap<String,String>();
 	//private ConcurrentLinkedQueue<String> ids = new ConcurrentLinkedQueue<String>();
-	
-	private List<byte[]> fields; //主表的字段
-	private ArrayList<byte[]> allfields;//所有的字段
-	private boolean isMfield=false;
-	private int mjob=0;
-	private int maxjob=0;
-	private int joinindex=0;//关联join表字段的位置
-	private int sendField=0;
-	private boolean childRoute=false;
-	private boolean jointTableIsData=false;
-	// join 字段的类型，一般情况都是int, long; 增加该字段为了支持非int,long类型的(一般为varchar)joinkey的sharejoin
- 	// 参见：io.mycat.server.packet.FieldPacket 属性： public int type;
- 	// 参见：http://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition
- 	private int joinKeyType = Fields.FIELD_TYPE_LONG; // 默认 join 字段为int型
- 	
-	//重新路由使用
+
+    private List<byte[]> fields; //主表的字段
+    private ArrayList<byte[]> allfields;//所有的字段
+    private boolean isMfield = false;
+    private int mjob = 0;
+    private int maxjob = 0;
+    private int joinindex = 0;//关联join表字段的位置
+    private int sendField = 0;
+    private boolean childRoute = false;
+    private boolean jointTableIsData = false;
+    // join 字段的类型，一般情况都是int, long; 增加该字段为了支持非int,long类型的(一般为varchar)joinkey的sharejoin
+    // 参见：io.mycat.server.packet.FieldPacket 属性： public int type;
+    // 参见：http://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::ColumnDefinition
+    private int joinKeyType = Fields.FIELD_TYPE_LONG; // 默认 join 字段为int型
+
+    //重新路由使用
 	private SystemConfig sysConfig; 
 	private SchemaConfig schema;
 	private int sqltype; 
@@ -249,30 +259,30 @@ public class ShareJoin implements Catlet {
         EngineCtx.LOGGER.info("SQLParallJob:" + getDataNode(getDataNodes()) + " sql:" + sql);
     }
 
-	public void writeHeader(String dataNode,List<byte[]> afields, List<byte[]> bfields) {
-		sendField++;
-		if (sendField==1){		  	
-			//huangyiming add 只是中间过程数据不能发送给客户端
-			MiddlerResultHandler middlerResultHandler = sc.getSession2().getMiddlerResultHandler();
- 			if(middlerResultHandler ==null ){
-				 ctx.writeHeader(afields, bfields);
- 			}  
- 		  setAllFields(afields, bfields);
-		 // EngineCtx.LOGGER.info("发送字段2:" + dataNode);
-		}
-	}
+    public void writeHeader(String dataNode, List<byte[]> afields, List<byte[]> bfields) {
+        sendField++;
+        if (sendField == 1) {
+            //huangyiming add 只是中间过程数据不能发送给客户端
+            MiddlerResultHandler middlerResultHandler = sc.getSession2().getMiddlerResultHandler();
+            if (middlerResultHandler == null) {
+                ctx.writeHeader(afields, bfields);
+            }
+            setAllFields(afields, bfields);
+            // EngineCtx.LOGGER.info("发送字段2:" + dataNode);
+        }
+    }
 
-	private void setAllFields(List<byte[]> afields, List<byte[]> bfields){		
-		allfields=new ArrayList<byte[]>();
-		for (byte[] field : afields) {
-			allfields.add(field);
-		}
-		//EngineCtx.LOGGER.info("所有字段2:" +allfields.size());
-		for (int i=1;i<bfields.size();i++){
-			allfields.add(bfields.get(i));
-		}
-		
-	}
+    private void setAllFields(List<byte[]> afields, List<byte[]> bfields) {
+        allfields = new ArrayList<byte[]>();
+        for (byte[] field : afields) {
+            allfields.add(field);
+        }
+        //EngineCtx.LOGGER.info("所有字段2:" +allfields.size());
+        for (int i = 1; i < bfields.size(); i++) {
+            allfields.add(bfields.get(i));
+        }
+    }
+
 	public List<byte[]> getAllFields(){		
 		return allfields;
 	}
@@ -297,10 +307,19 @@ public class ShareJoin implements Catlet {
     }
 }
 
+/**
+ * **左边的表**执行的 SQL 回调
+ */
 class ShareDBJoinHandler implements SQLJobHandler {
 
+    /**
+     * fields
+     */
 	private List<byte[]> fields;
 	private final ShareJoin ctx;
+    /**
+     * join key
+     */
 	private String joinkey;
 	private NonBlockingSession session;
 
@@ -320,7 +339,6 @@ class ShareDBJoinHandler implements SQLJobHandler {
 		this.fields = fields;
 		ctx.putDBFields(fields);
 	}
-	
 
 	/*
 	public static String getFieldNames(List<byte[]> fields){
@@ -339,11 +357,12 @@ class ShareDBJoinHandler implements SQLJobHandler {
 		return ByteUtil.getString(fieldPacket.name);
 	}
 	*/
+
     @Override
     public boolean onRowData(String dataNode, byte[] rowData) {
         int fid = this.ctx.getFieldIndex(fields, joinkey);
-        String id = ResultSetUtil.getColumnValAsString(rowData, fields, 0);//主键，默认id
-        String nid = ResultSetUtil.getColumnValAsString(rowData, fields, fid);
+        String id = ResultSetUtil.getColumnValAsString(rowData, fields, 0); // 主键，默认id
+        String nid = ResultSetUtil.getColumnValAsString(rowData, fields, fid); // join key 值
         // 放入结果集
         //rows.put(id, rowData);
         ctx.putDBRow(id, nid, rowData, fid);
@@ -361,6 +380,9 @@ class ShareDBJoinHandler implements SQLJobHandler {
 
 }
 
+/**
+ * **右边的表**执行的 SQL 回调
+ */
 class ShareRowOutPutDataHandler implements SQLJobHandler {
 
     private final List<byte[]> afields;
@@ -431,7 +453,6 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
             if (null == middlerResultHandler) {
                 ctx.writeRow(rowDataPkg);
             } else {
-
                 if (middlerResultHandler instanceof MiddlerQueryResultHandler) {
                     // if(middlerResultHandler.getDataType().equalsIgnoreCase("string")){
                     byte[] columnData = rowDataPkg.fieldValues.get(0);
@@ -443,7 +464,6 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
                 }
 
             }
-
             arow = getRow(batchRowsCopy, id, joinL);
 //		   arow = getRow(id,joinL);
         }

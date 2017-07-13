@@ -3,9 +3,7 @@ package io.mycat.catlets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 /**  
  * 功能详细描述:分片join,单独的语句
@@ -30,8 +28,10 @@ public class TableFilter {
      * 过滤条件
      */
     private String where = "";
+    /**
+     * 排序条件
+     */
     private String order = "";
-
     /**
      * 左连接的join的表
      */
@@ -44,15 +44,20 @@ public class TableFilter {
      * join字段
      */
     private String joinKey = "";
-
+    /**
+     * 子join filter
+     */
     private TableFilter join;
-	private TableFilter parent;
-	
-	private int offset=0;
-	private int rowCount=0;
-	
-	private boolean outJoin;
-	private boolean allField;
+    /**
+     * 父join filter
+     */
+    private TableFilter parent;
+
+    private int offset = 0;
+    private int rowCount = 0;
+
+    private boolean outJoin;
+    private boolean allField;
 
     public TableFilter(String taName, String taAlia, boolean outJoin) {
         this.tName = taName;
@@ -327,11 +332,15 @@ public class TableFilter {
     	return key;
     }
 
+    /**
+     * 获得执行 SQL
+     *
+     * @return SQL
+     */
     public String getSQL() {
         String sql = "";
-        Iterator<Entry<String, String>> iter = fieldAliasMap.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<String, String> entry = (Map.Entry<String, String>) iter.next();
+        // fields
+        for (Entry<String, String> entry : fieldAliasMap.entrySet()) {
             String key = entry.getKey();
             String val = entry.getValue();
             if (val == null) {
@@ -340,13 +349,14 @@ public class TableFilter {
                 sql = unionsql(sql, getFieldfrom(key) + " as " + val, ",");
             }
         }
+        // where
         if (parent == null) {    // on/where 等于号左边的表
             String parentJoinKey = getJoinKey(true);
             // fix sharejoin bug：
             // (AbstractConnection.java:458) -close connection,reason:program err:java.lang.IndexOutOfBoundsException:
             // 原因是左表的select列没有包含 join 列，在获取结果时报上面的错误
             if (sql != null && parentJoinKey != null &&
-                    sql.toUpperCase().indexOf(parentJoinKey.trim().toUpperCase()) == -1) {
+                    !sql.toUpperCase().contains(parentJoinKey.trim().toUpperCase())) {
                 sql += ", " + parentJoinKey;
             }
             sql = "select " + sql + " from " + tName;
@@ -367,10 +377,11 @@ public class TableFilter {
                 sql += " where " + joinKey + " in %s ";
             }
         }
-
+        // order
         if (!(order.trim().equals(""))) {
             sql += " order by " + order.trim();
         }
+        // limit
         if (parent == null) {
             if ((rowCount > 0) && (offset > 0)) {
                 sql += " limit" + offset + "," + rowCount;
