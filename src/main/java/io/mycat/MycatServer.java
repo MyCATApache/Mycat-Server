@@ -23,36 +23,9 @@
  */
 package io.mycat;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-
-import io.mycat.buffer.NettyBufferPool;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -65,6 +38,7 @@ import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.DirectByteBufferPool;
+import io.mycat.buffer.NettyBufferPool;
 import io.mycat.cache.CacheService;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.classloader.DynaClassLoader;
@@ -76,14 +50,7 @@ import io.mycat.config.model.TableConfig;
 import io.mycat.config.table.structure.MySQLTableStructureDetector;
 import io.mycat.manager.ManagerConnectionFactory;
 import io.mycat.memory.MyCatMemory;
-import io.mycat.net.AIOAcceptor;
-import io.mycat.net.AIOConnector;
-import io.mycat.net.NIOAcceptor;
-import io.mycat.net.NIOConnector;
-import io.mycat.net.NIOProcessor;
-import io.mycat.net.NIOReactorPool;
-import io.mycat.net.SocketAcceptor;
-import io.mycat.net.SocketConnector;
+import io.mycat.net.*;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
@@ -101,6 +68,20 @@ import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;
 import io.mycat.util.ZKUtils;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author mycat
@@ -258,15 +239,15 @@ public class MycatServer {
 		return "'Mycat." + this.getConfig().getSystem().getMycatNodeId() + "." + seq + "'";
 	}
 
-	public String getXATXIDGLOBAL(){
-		return "'" + getUUID() + "'";
-	}
+    public String getXATXIDGLOBAL() {
+        return "'" + getUUID() + "'";
+    }
 
-	public static String getUUID(){
-		String s = UUID.randomUUID().toString();
-		//去掉“-”符号
-		return s.substring(0,8)+s.substring(9,13)+s.substring(14,18)+s.substring(19,23)+s.substring(24);
-	}
+    public static String getUUID() {
+        String s = UUID.randomUUID().toString();
+        //去掉“-”符号
+        return s.substring(0, 8) + s.substring(9, 13) + s.substring(14, 18) + s.substring(19, 23) + s.substring(24);
+    }
 
 	public MyCatMemory getMyCatMemory() {
 		return myCatMemory;

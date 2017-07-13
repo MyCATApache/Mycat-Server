@@ -15,9 +15,6 @@ public class XARollbackCallback implements SQLQueryResultListener<SQLQueryResult
     private static final Logger LOGGER = LoggerFactory.getLogger(XARollbackCallback.class);
 
     public void onResult(SQLQueryResult<Map<String, String>> result) {
-
         LOGGER.debug("[CALLBACK][XA ROLLBACK] when Mycat start");
-
-
     }
 }

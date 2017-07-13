@@ -1,13 +1,10 @@
 package io.mycat.backend.mysql.xa.recovery.impl;
 
 import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
-import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.backend.mysql.xa.recovery.Repository;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -15,13 +12,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class InMemoryRepository implements Repository {
 
-    private Map<String, CoordinatorLogEntry> storage = new ConcurrentHashMap<String, CoordinatorLogEntry>();
-
-
+    private Map<String, CoordinatorLogEntry> storage = new ConcurrentHashMap<>();
     private boolean closed = true;
+
     @Override
     public void init() {
-        closed=false;
+        closed = false;
     }
 
     @Override
@@ -50,7 +46,7 @@ public class InMemoryRepository implements Repository {
     @Override
     public void close() {
         storage.clear();
-        closed=true;
+        closed = true;
     }
 
     @Override
@@ -68,9 +64,8 @@ public class InMemoryRepository implements Repository {
 
     }
 
-
-
     public boolean isClosed() {
         return closed;
     }
+
 }

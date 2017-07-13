@@ -10,11 +10,8 @@ public class CoordinatorLogEntry implements Serializable {
     private static final long serialVersionUID = -919666492191340531L;
 
     public final String id;
-
 //    public final boolean wasCommitted;
-
     public final ParticipantLogEntry[] participants;
-
 
     public CoordinatorLogEntry(String coordinatorId,
                                ParticipantLogEntry[] participantDetails) {
@@ -34,8 +31,5 @@ public class CoordinatorLogEntry implements Serializable {
 //        this.wasCommitted = wasCommitted;
         this.participants = participants;
     }
-
-
-
 
 }

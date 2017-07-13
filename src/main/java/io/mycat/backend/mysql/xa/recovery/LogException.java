@@ -3,7 +3,7 @@ package io.mycat.backend.mysql.xa.recovery;
 /**
  * Created by zhangchao on 2016/10/13.
  */
-public class LogException extends Exception{
+public class LogException extends Exception {
     private static final long serialVersionUID = 3259337218182873867L;
 
     public LogException() {

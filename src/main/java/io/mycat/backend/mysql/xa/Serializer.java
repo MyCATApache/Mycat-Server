@@ -21,13 +21,15 @@ public class Serializer {
         //strBuilder.append(PROPERTY_SEPARATOR);
 
         String prefix = "";
-        if(coordinatorLogEntry.participants.length>0){
+        if (coordinatorLogEntry.participants.length > 0) {
             strBuilder.append(QUOTE).append("participants").append(QUOTE);
             strBuilder.append(":");
             strBuilder.append(START_ARRAY);
 
-            for(ParticipantLogEntry participantLogEntry :coordinatorLogEntry.participants){
-                if(participantLogEntry==null){continue;}
+            for (ParticipantLogEntry participantLogEntry : coordinatorLogEntry.participants) {
+                if (participantLogEntry == null) {
+                    continue;
+                }
                 strBuilder.append(prefix);
                 prefix = PROPERTY_SEPARATOR;
                 strBuilder.append(START_OBJECT);
@@ -36,7 +38,7 @@ public class Serializer {
                 strBuilder.append(QUOTE).append("state").append(QUOTE).append(":").append(QUOTE).append(participantLogEntry.txState).append(QUOTE);
                 strBuilder.append(PROPERTY_SEPARATOR);
                 strBuilder.append(QUOTE).append("expires").append(QUOTE).append(":").append(participantLogEntry.expires);
-                if (participantLogEntry.resourceName!=null) {
+                if (participantLogEntry.resourceName != null) {
                     strBuilder.append(PROPERTY_SEPARATOR);
                     strBuilder.append(QUOTE).append("resourceName").append(QUOTE).append(":").append(QUOTE).append(participantLogEntry.resourceName).append(QUOTE);
                 }
@@ -51,4 +53,5 @@ public class Serializer {
         strBuilder.append(LINE_SEPARATOR);
         return strBuilder.toString();
     }
+
 }

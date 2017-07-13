@@ -12,26 +12,19 @@ public class ParticipantLogEntry implements Serializable {
     /**
      * The ID of the global transaction as known by the transaction core.
      */
-
     public String coordinatorId;
-
     /**
      * Identifies the participant within the global transaction.
      */
-
     public String uri;
-
     /**
      * When does this participant expire (expressed in millis since Jan 1, 1970)?
      */
-
     public long expires;
-
     /**
      * Best-known state of the participant.
      */
     public int txState;
-
     /**
      * For diagnostic purposes, null if not relevant.
      */
@@ -45,8 +38,6 @@ public class ParticipantLogEntry implements Serializable {
         this.resourceName = resourceName;
         this.txState = txState;
     }
-
-
 
     @Override
     public boolean equals(Object other) {
@@ -63,14 +54,11 @@ public class ParticipantLogEntry implements Serializable {
         return coordinatorId.hashCode();
     }
 
-
-
     @Override
     public String toString() {
         return "ParticipantLogEntry [id=" + coordinatorId
                 + ", uri=" + uri + ", expires=" + expires
                 + ", state=" + txState + ", resourceName=" + resourceName + "]";
     }
-
 
 }

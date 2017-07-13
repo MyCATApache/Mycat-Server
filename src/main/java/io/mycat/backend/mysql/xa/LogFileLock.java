@@ -26,7 +26,7 @@ public class LogFileLock {
     private String fileName;
 
     public LogFileLock(String dir, String fileName) {
-        if(!dir.endsWith(FILE_SEPARATOR)) {
+        if (!dir.endsWith(FILE_SEPARATOR)) {
             dir += FILE_SEPARATOR;
         }
         this.dir = dir;
@@ -36,7 +36,7 @@ public class LogFileLock {
     public void acquireLock() throws LogException {
         try {
             File parent = new File(dir);
-            if(!parent.exists()) {
+            if (!parent.exists()) {
                 parent.mkdir();
             }
             lockfileToPreventDoubleStartup_ = new File(dir, fileName + ".lck");
@@ -52,7 +52,7 @@ public class LogFileLock {
         }
         if (lock_ == null) {
             logger.error("ERROR: the specified log seems to be in use already: " + fileName + " in " + dir + ". Make sure that no other instance is running, or kill any pending process if needed.");
-            throw new LogException("Log already in use? " + fileName + " in "+ dir);
+            throw new LogException("Log already in use? " + fileName + " in " + dir);
         }
     }
 
