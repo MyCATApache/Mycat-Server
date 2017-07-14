@@ -1,0 +1,3 @@
+{"id":"'e533521f504a4a97a4d545c032b640f3'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"}]}
+{"id":"'046e6519a4b84e2593900aa33ed7f00d'","participants":[{"uri":"127.0.0.1","state":"1","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"1","expires":0,"resourceName":"db2"}]}
+{"id":"'2a4fa212744b477fbac39a5f083c3629'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}

@@ -202,28 +202,28 @@ public class MultiNodeCoordinator implements ResponseHandler {
             }
         }
 
-        if (this.cmdHandler.relaseConOnOK()) {
-            session.releaseConnection(conn);
-        } else {
-            session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
-                    false);
-        }
-        if (this.finished()) {
-            cmdHandler.okResponse(session, ok);
-            if (cmdHandler.isAutoClearSessionCons()) {
-                session.clearResources(false);
-            }
-            /* 1.  事务提交后,xa 事务结束
-			 * 2.  如果 autocommit 为  false,并且不自动开启新事务.则把autocommit 设置为true */
-            if (session.getXaTXID() != null) {
-                session.setXATXEnabled(false);
-            }
-            if (!session.getSource().isPreAcStates()) {
-                session.getSource().setAutocommit(true);
-            }
-        }
+		if (this.cmdHandler.relaseConOnOK()) {
+			session.releaseConnection(conn);
+		} else {
+			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
+					false);
+		}
+		if (this.finished()) {
+			cmdHandler.okResponse(session, ok);
+			if (cmdHandler.isAutoClearSessionCons()) {
+				session.clearResources(false);
+			}
+			/* 1.  事务提交后,xa 事务结束   */
+			if(session.getXaTXID()!=null){
+				session.setXATXEnabled(false);
+			}
 
-    }
+			/* 2. preAcStates 为true,事务结束后,需要设置为true。preAcStates 为ac上一个状态    */
+			if(session.getSource().isPreAcStates()){
+				session.getSource().setAutocommit(true);
+			}
+		}
+	}
 
     @Override
     public void fieldEofResponse(byte[] header, List<byte[]> fields,

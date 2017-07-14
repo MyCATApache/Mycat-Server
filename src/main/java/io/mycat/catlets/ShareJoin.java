@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-/**  
+/**
  * 功能详细描述:分片join
  * @author sohudo[http://blog.csdn.net/wind520]
  * @create 2015年01月22日 下午6:50:23 
@@ -296,7 +296,6 @@ public class ShareJoin implements Catlet {
         for (byte[] field : fields) {
             FieldPacket fieldPacket = new FieldPacket();
             fieldPacket.read(field);
-//            if (ByteUtil.getString(fieldPacket.name).equals(fkey)) {
             if (ByteUtil.getString(fieldPacket.orgName).equals(fkey)) {
                 joinKeyType = fieldPacket.type;
                 return i;

@@ -23,6 +23,14 @@
  */
 package io.mycat.server;
 
+import java.io.IOException;
+import java.nio.channels.NetworkChannel;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
@@ -55,7 +63,7 @@ public class ServerConnection extends FrontendConnection {
 
 	private volatile int txIsolation;
 	private volatile boolean autocommit;
-	private volatile boolean preAcStates; //事务提交或回滚后,是否自动开启新事务. true时，开启新事务,false时,不开启新事务
+	private volatile boolean preAcStates; //上一个ac状态,默认为true
 	private volatile boolean txInterrupted;
 	private volatile String txInterrputMsg = "";
 	private long lastInsertId;
@@ -70,6 +78,7 @@ public class ServerConnection extends FrontendConnection {
 		super(channel);
 		this.txInterrupted = false;
 		this.autocommit = true;
+		this.preAcStates = true;
 	}
 
 	@Override
