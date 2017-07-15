@@ -917,64 +917,71 @@ public class MycatServer {
 		};
 	}
 
+    /**
+     * XA recovery log check
+     */
+    private void performXARecoveryLog() {
+        // fetch the recovery log
+        CoordinatorLogEntry[] coordinatorLogEntries = getCoordinatorLogEntries();
+        for (int i = 0; i < coordinatorLogEntries.length; i++) {
+            CoordinatorLogEntry coordinatorLogEntry = coordinatorLogEntries[i];
+            boolean needRollback = false;
+            for (int j = 0; j < coordinatorLogEntry.participants.length; j++) {
+                ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
+                if (participantLogEntry.txState == TxState.TX_PREPARED_STATE) {
+                    needRollback = true;
+                    break;
+                }
+            }
+            if (needRollback) {
+                for (int j = 0; j < coordinatorLogEntry.participants.length; j++) {
+                    ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
+                    //XA rollback
+                    String xacmd = "XA ROLLBACK " + coordinatorLogEntry.id + ';';
+                    OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0], new XARollbackCallback());
+                    outloop:
+                    for (SchemaConfig schema : MycatServer.getInstance().getConfig().getSchemas().values()) {
+                        for (TableConfig table : schema.getTables().values()) {
+                            for (String dataNode : table.getDataNodes()) {
+                                PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
+                                if (dn.getDbPool().getSource().getConfig().getIp().equals(participantLogEntry.uri)
+                                        && dn.getDatabase().equals(participantLogEntry.resourceName)) {
+                                    //XA STATE ROLLBACK
+                                    participantLogEntry.txState = TxState.TX_ROLLBACKED_STATE;
+                                    SQLJob sqlJob = new SQLJob(xacmd, dn.getDatabase(), resultHandler, dn.getDbPool().getSource());
+                                    sqlJob.run();
+                                    LOGGER.debug(String.format("[XA ROLLBACK] [%s] Host:[%s] schema:[%s]", xacmd, dn.getName(), dn.getDatabase()));
+                                    break outloop;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // init into in memory cached
+        for (int i = 0; i < coordinatorLogEntries.length; i++) {
+            MultiNodeCoordinator.inMemoryRepository.put(coordinatorLogEntries[i].id, coordinatorLogEntries[i]);
+        }
+        // discard the recovery log
+        MultiNodeCoordinator.fileRepository.writeCheckpoint(MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
+    }
 
-	//XA recovery log check
-	private void performXARecoveryLog() {
-		//fetch the recovery log
-		CoordinatorLogEntry[] coordinatorLogEntries = getCoordinatorLogEntries();
-
-		for(int i=0; i<coordinatorLogEntries.length; i++){
-			CoordinatorLogEntry coordinatorLogEntry = coordinatorLogEntries[i];
-			boolean needRollback = false;
-			for(int j=0; j<coordinatorLogEntry.participants.length; j++) {
-				ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
-				if (participantLogEntry.txState == TxState.TX_PREPARED_STATE){
-					needRollback = true;
-					break;
-				}
-			}
-			if(needRollback){
-				for(int j=0; j<coordinatorLogEntry.participants.length; j++){
-					ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
-					//XA rollback
-					String xacmd = "XA ROLLBACK "+ coordinatorLogEntry.id +';';
-					OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler( new String[0], new XARollbackCallback());
-					outloop:
-					for (SchemaConfig schema : MycatServer.getInstance().getConfig().getSchemas().values()) {
-						for (TableConfig table : schema.getTables().values()) {
-							for (String dataNode : table.getDataNodes()) {
-								PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
-								if (dn.getDbPool().getSource().getConfig().getIp().equals(participantLogEntry.uri)
-										&& dn.getDatabase().equals(participantLogEntry.resourceName)) {
-									//XA STATE ROLLBACK
-									participantLogEntry.txState = TxState.TX_ROLLBACKED_STATE;
-									SQLJob sqlJob = new SQLJob(xacmd, dn.getDatabase(), resultHandler, dn.getDbPool().getSource());
-									sqlJob.run();
-									LOGGER.debug(String.format("[XA ROLLBACK] [%s] Host:[%s] schema:[%s]", xacmd, dn.getName(), dn.getDatabase()));
-									break outloop;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		//init into in memory cached
-		for(int i=0;i<coordinatorLogEntries.length;i++){
-			MultiNodeCoordinator.inMemoryRepository.put(coordinatorLogEntries[i].id,coordinatorLogEntries[i]);
-		}
-		//discard the recovery log
-		MultiNodeCoordinator.fileRepository.writeCheckpoint(MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
-	}
-
-	/** covert the collection to array **/
-	private CoordinatorLogEntry[] getCoordinatorLogEntries(){
-		Collection<CoordinatorLogEntry> allCoordinatorLogEntries = fileRepository.getAllCoordinatorLogEntries();
-		if(allCoordinatorLogEntries == null){return new CoordinatorLogEntry[0];}
-		if(allCoordinatorLogEntries.size()==0){return new CoordinatorLogEntry[0];}
-		return allCoordinatorLogEntries.toArray(new CoordinatorLogEntry[allCoordinatorLogEntries.size()]);
-	}
+    /**
+     * covert the collection to array
+     *
+     * @return xa 协调日志集合
+     **/
+    private CoordinatorLogEntry[] getCoordinatorLogEntries() {
+        Collection<CoordinatorLogEntry> allCoordinatorLogEntries = fileRepository.getAllCoordinatorLogEntries();
+        if (allCoordinatorLogEntries == null) {
+            return new CoordinatorLogEntry[0];
+        }
+        if (allCoordinatorLogEntries.size() == 0) {
+            return new CoordinatorLogEntry[0];
+        }
+        return allCoordinatorLogEntries.toArray(new CoordinatorLogEntry[allCoordinatorLogEntries.size()]);
+    }
 
 	//huangyiming add
 	public DirectByteBufferPool getDirectByteBufferPool() {

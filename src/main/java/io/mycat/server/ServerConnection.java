@@ -23,14 +23,6 @@
  */
 package io.mycat.server;
 
-import java.io.IOException;
-import java.nio.channels.NetworkChannel;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
@@ -318,8 +310,7 @@ public class ServerConnection extends FrontendConnection {
 	 */
 	public void commit() {
 		if (txInterrupted) {
-			writeErrMessage(ErrorCode.ER_YES,
-					"Transaction error, need to rollback.");
+			writeErrMessage(ErrorCode.ER_YES, "Transaction error, need to rollback.");
 		} else {
 			session.commit();
 		}

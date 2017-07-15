@@ -9,13 +9,23 @@ import java.nio.channels.FileChannel;
 public class VersionedFile {
 
     private static final String FILE_SEPARATOR = String.valueOf(File.separatorChar);
-
+    /**
+     * 所在文件夹
+     */
     private String baseDir;
+    /**
+     * 基础文件后缀
+     */
     private String suffix;
+    /**
+     * 基础文件名
+     */
     private String baseName;
 
     //state attributes below
-
+    /**
+     * 最新版本
+     */
     private long version;
     private FileInputStream inputStream;
     private RandomAccessFile randomAccessFile;
@@ -43,6 +53,14 @@ public class VersionedFile {
         this.version = extractLastValidVersionNumberFromFileNames();
     }
 
+    /**
+     * 获得文件夹下有效文件的最大版本。
+     * 目前有效文件命名为 ${baseName}${version}${suffix}
+     * 默认情况下，tmlog-1.log；
+     *
+     * @return 版本号
+     * @see #extractVersion(String)
+     */
     private long extractLastValidVersionNumberFromFileNames() {
         long version = -1;
         File cd = new File(getBaseDir());
@@ -62,6 +80,12 @@ public class VersionedFile {
         return version;
     }
 
+    /**
+     * 解析文件名版本👌
+     *
+     * @param name 文件名
+     * @return 版本号
+     */
     private long extractVersion(String name) {
         long ret = 0;
         int lastpos = name.lastIndexOf('.');
@@ -112,7 +136,9 @@ public class VersionedFile {
      */
     public FileInputStream openLastValidVersionForReading()
             throws IllegalStateException, FileNotFoundException {
-        if (randomAccessFile != null) throw new IllegalStateException("Already started writing.");
+        if (randomAccessFile != null) {
+            throw new IllegalStateException("Already started writing.");
+        }
         inputStream = new FileInputStream(getCurrentVersionFileName());
         return inputStream;
     }
@@ -138,13 +164,13 @@ public class VersionedFile {
      * this new version is tentative and cannot be read
      * by {@link #openLastValidVersionForReading()} until
      * {@link #discardBackupVersion()} is called.
+     * <p>
+     * tips：目前 version++ 被注释掉。目前功能就是打开当前version对应的文件。
      *
      * @return A file for writing to.
-     * @throws IOException
      * @throws IllegalStateException If called more than once
      *                               without a close in between.
      * @throws FileNotFoundException If the file cannot be opened for writing.
-     * @throws IOException
      */
     public FileChannel openNewVersionForNioWriting() throws FileNotFoundException {
         if (randomAccessFile != null) {
@@ -164,6 +190,8 @@ public class VersionedFile {
      * <p>
      * Note: it is the caller's responsibility to make sure that
      * all new data has been flushed to disk before calling this method!
+     * <p>
+     * tips：由于{@link #openNewVersionForNioWriting()}的version++被注释了，该方法基本没用。
      *
      * @throws IllegalStateException If {@link #openNewVersionForWriting()} has not been called yet.
      * @throws IOException           If the previous version exists but could no be deleted.

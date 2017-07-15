@@ -1,9 +1,12 @@
 package io.mycat.backend.mysql.xa;
 
 /**
+ * XA 事务状态
+ *
  * Created by zhangchao on 2016/10/13.
  */
 public class TxState {
+
     /**
      * XA INIT STATUS
      **/
@@ -24,4 +27,5 @@ public class TxState {
      * XA is rollbacked
      **/
     public static final int TX_ROLLBACKED_STATE = 4;
+
 }

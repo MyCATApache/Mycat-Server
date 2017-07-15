@@ -3,6 +3,8 @@ package io.mycat.backend.mysql.xa;
 import java.io.Serializable;
 
 /**
+ * XA 参与者日志
+ *
  * Created by zhangchao on 2016/10/17.
  */
 public class ParticipantLogEntry implements Serializable {
@@ -11,10 +13,12 @@ public class ParticipantLogEntry implements Serializable {
 
     /**
      * The ID of the global transaction as known by the transaction core.
+     * XA 事务编号
      */
     public String coordinatorId;
     /**
      * Identifies the participant within the global transaction.
+     * 数据库 uri
      */
     public String uri;
     /**
@@ -23,10 +27,12 @@ public class ParticipantLogEntry implements Serializable {
     public long expires;
     /**
      * Best-known state of the participant.
+     * XA 事务状态
      */
     public int txState;
     /**
      * For diagnostic purposes, null if not relevant.
+     * 参与者名字
      */
     public String resourceName;
 

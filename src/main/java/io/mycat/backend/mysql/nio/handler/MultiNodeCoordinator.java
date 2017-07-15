@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * 多节点 Commit 协调
+ */
 public class MultiNodeCoordinator implements ResponseHandler {
     private static final Logger LOGGER = LoggerFactory
             .getLogger(MultiNodeCoordinator.class);
@@ -50,8 +53,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
         int started = 0;
         for (RouteResultsetNode rrn : session.getTargetKeys()) {
             if (rrn == null) {
-                LOGGER.error("null is contained in RoutResultsetNodes, source = "
-                        + session.getSource());
+                LOGGER.error("null is contained in RoutResultsetNodes, source = " + session.getSource());
                 continue;
             }
             final BackendConnection conn = session.getTarget(rrn);
@@ -63,35 +65,32 @@ public class MultiNodeCoordinator implements ResponseHandler {
                 if (session.getXaTXID() != null) {
                     xaTxId = session.getXaTXID() + ",'" + mysqlCon.getSchema() + "'";
                 }
-                if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE) {
+                if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE) { // XA 事务
                     //recovery Log
                     participantLogEntry[started] = new ParticipantLogEntry(xaTxId, conn.getHost(), 0, conn.getSchema(), ((MySQLConnection) conn).getXaStatus());
-                    String[] cmds = new String[]{"XA END " + xaTxId,
-                            "XA PREPARE " + xaTxId};
+                    String[] cmds = new String[]{"XA END " + xaTxId, // XA END 命令
+                            "XA PREPARE " + xaTxId}; // XA PREPARE 命令
                     if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("Start execute the batch cmd : " + cmds[0] + ";" + cmds[1] + "," +
-                                "current connection:" + conn.getHost() + ":" + conn.getPort());
+                        LOGGER.debug("Start execute the batch cmd : " + cmds[0] + ";" + cmds[1] + "," + "current connection:" + conn.getHost() + ":" + conn.getPort());
                     }
                     mysqlCon.execBatchCmd(cmds);
-                } else {
-                    //recovery Log
+                } else { // 非 XA 事务
+                    // recovery Log
                     participantLogEntry[started] = new ParticipantLogEntry(xaTxId, conn.getHost(), 0, conn.getSchema(), ((MySQLConnection) conn).getXaStatus());
                     cmdHandler.sendCommand(session, conn);
                 }
                 ++started;
             }
         }
-
-        //xa recovery log
+        // xa recovery log
         if (session.getXaTXID() != null) {
             CoordinatorLogEntry coordinatorLogEntry = new CoordinatorLogEntry(session.getXaTXID(), false, participantLogEntry);
             inMemoryRepository.put(session.getXaTXID(), coordinatorLogEntry);
             fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
         }
-        if (started < nodeCount) {
+        if (started < nodeCount) { // TODO 疑问：如何触发
             runningCount.set(started);
-            LOGGER.warn("some connection failed to execute "
-                    + (nodeCount - started));
+            LOGGER.warn("some connection failed to execute " + (nodeCount - started));
             /**
              * assumption: only caused by front-end connection close. <br/>
              * Otherwise, packet must be returned to front-end
@@ -115,10 +114,9 @@ public class MultiNodeCoordinator implements ResponseHandler {
     }
 
     @Override
-    public void errorResponse(byte[] err, BackendConnection conn) {
+    public void errorResponse(byte[] err, BackendConnection conn) { // TODO 疑问：如何触发
         faileCount.incrementAndGet();
-
-        //replayCommit
+        // replayCommit
         if (conn instanceof MySQLConnection) {
             MySQLConnection mysqlCon = (MySQLConnection) conn;
             String xaTxId = session.getXaTXID();
@@ -126,32 +124,29 @@ public class MultiNodeCoordinator implements ResponseHandler {
                 xaTxId += ",'" + mysqlCon.getSchema() + "'";
                 String cmd = "XA COMMIT " + xaTxId;
                 if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Replay Commit execute the cmd :" + cmd + ",current host:" +
-                            mysqlCon.getHost() + ":" + mysqlCon.getPort());
+                    LOGGER.debug("Replay Commit execute the cmd :" + cmd + ",current host:" + mysqlCon.getHost() + ":" + mysqlCon.getPort());
                 }
                 mysqlCon.execCmd(cmd);
             }
         }
-
-        //release connection
+        // release connection
         if (this.cmdHandler.releaseConOnErr()) {
             session.releaseConnection(conn);
         } else {
             session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
         }
+        // 是否所有节点都完成commit，如果是，则返回Client 异常
         if (this.finished()) {
-            cmdHandler.errorResponse(session, err, this.nodeCount,
-                    this.faileCount.get());
+            cmdHandler.errorResponse(session, err, this.nodeCount, this.faileCount.get());
             if (cmdHandler.isAutoClearSessionCons()) {
                 session.clearResources(session.getSource().isTxInterrupted());
             }
         }
-
     }
 
     @Override
     public void okResponse(byte[] ok, BackendConnection conn) {
-        //process the XA Transatcion 2pc commit
+        // process the XA Transatcion 2pc commit
         if (conn instanceof MySQLConnection) {
             MySQLConnection mysqlCon = (MySQLConnection) conn;
             switch (mysqlCon.getXaStatus()) {
@@ -162,10 +157,9 @@ public class MultiNodeCoordinator implements ResponseHandler {
                         String xaTxId = session.getXaTXID();
                         String cmd = "XA COMMIT " + xaTxId + ",'" + mysqlCon.getSchema() + "'";
                         if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("Start execute the cmd :" + cmd + ",current host:" +
-                                    mysqlCon.getHost() + ":" + mysqlCon.getPort());
+                            LOGGER.debug("Start execute the cmd :" + cmd + ",current host:" + mysqlCon.getHost() + ":" + mysqlCon.getPort());
                         }
-                        //recovery log
+                        // recovery log
                         CoordinatorLogEntry coordinatorLogEntry = inMemoryRepository.get(xaTxId);
                         for (int i = 0; i < coordinatorLogEntry.participants.length; i++) {
                             LOGGER.debug("[In Memory CoordinatorLogEntry]" + coordinatorLogEntry.participants[i]);
@@ -175,14 +169,19 @@ public class MultiNodeCoordinator implements ResponseHandler {
                         }
                         inMemoryRepository.put(xaTxId, coordinatorLogEntry);
                         fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
-
-                        //send commit
+                        // send commit
                         mysqlCon.setXaStatus(TxState.TX_PREPARED_STATE);
                         mysqlCon.execCmd(cmd);
+                    } else {
+                        if (LOGGER.isDebugEnabled()) { // add by yunai for debug
+                            String xaTxId = session.getXaTXID();
+                            String cmd = "XA END " + xaTxId + ",'" + mysqlCon.getSchema() + "'";
+                            LOGGER.debug("Finish execute the cmd :" + cmd + ",current host:" + mysqlCon.getHost() + ":" + mysqlCon.getPort());
+                        }
                     }
                     return;
                 case TxState.TX_PREPARED_STATE: {
-                    //recovery log
+                    // recovery log
                     String xaTxId = session.getXaTXID();
                     CoordinatorLogEntry coordinatorLogEntry = inMemoryRepository.get(xaTxId);
                     for (int i = 0; i < coordinatorLogEntry.participants.length; i++) {
@@ -192,8 +191,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
                     }
                     inMemoryRepository.put(xaTxId, coordinatorLogEntry);
                     fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
-
-                    //XA reset status now
+                    // XA reset status now
                     mysqlCon.setXaStatus(TxState.TX_INITIALIZE_STATE);
                     break;
                 }
@@ -201,29 +199,28 @@ public class MultiNodeCoordinator implements ResponseHandler {
                     //	LOGGER.error("Wrong XA status flag!");
             }
         }
-
-		if (this.cmdHandler.relaseConOnOK()) {
-			session.releaseConnection(conn);
-		} else {
-			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
-					false);
-		}
-		if (this.finished()) {
-			cmdHandler.okResponse(session, ok);
-			if (cmdHandler.isAutoClearSessionCons()) {
-				session.clearResources(false);
-			}
-			/* 1.  事务提交后,xa 事务结束   */
-			if(session.getXaTXID()!=null){
-				session.setXATXEnabled(false);
-			}
-
-			/* 2. preAcStates 为true,事务结束后,需要设置为true。preAcStates 为ac上一个状态    */
-			if(session.getSource().isPreAcStates()){
-				session.getSource().setAutocommit(true);
-			}
-		}
-	}
+        // 释放连接
+        if (this.cmdHandler.relaseConOnOK()) {
+            session.releaseConnection(conn);
+        } else {
+            session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
+        }
+        // 是否所有节点都完成commit，如果是，则返回Client 成功
+        if (this.finished()) {
+            cmdHandler.okResponse(session, ok);
+            if (cmdHandler.isAutoClearSessionCons()) {
+                session.clearResources(false);
+            }
+            /* 1.  事务提交后,xa 事务结束   */
+            if (session.getXaTXID() != null) {
+                session.setXATXEnabled(false);
+            }
+            /* 2. preAcStates 为true,事务结束后,需要设置为true。preAcStates 为ac上一个状态    */
+            if (session.getSource().isPreAcStates()) {
+                session.getSource().setAutocommit(true);
+            }
+        }
+    }
 
     @Override
     public void fieldEofResponse(byte[] header, List<byte[]> fields,

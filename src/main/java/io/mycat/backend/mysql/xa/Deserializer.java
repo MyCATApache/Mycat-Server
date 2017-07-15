@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * XA 协调者日志 反序列化。
+ * 基于 JSON 实现
+ *
  * Created by zhangchao on 2016/10/17.
  */
 public class Deserializer {
@@ -20,7 +23,7 @@ public class Deserializer {
 
     private static final String OBJECT_END = "}";
 
-    List<String> tokenize(String content) {
+    private List<String> tokenize(String content) {
         List<String> result = new ArrayList<String>();
         int endObject = content.indexOf(OBJECT_END);
         while (endObject > 0) {
@@ -32,7 +35,7 @@ public class Deserializer {
         return result;
     }
 
-    String extractArrayPart(String content) {
+    private String extractArrayPart(String content) {
         if (!content.contains(JSON_ARRAY_START) && !content.contains(JSON_ARRAY_END)) {
             //no array...
             return "";
@@ -87,8 +90,8 @@ public class Deserializer {
         return header;
     }
 
-    ParticipantLogEntry recreateParticipantLogEntry(String coordinatorId,
-                                                    String participantLogEntry) {
+    private ParticipantLogEntry recreateParticipantLogEntry(String coordinatorId,
+                                                            String participantLogEntry) {
         participantLogEntry = participantLogEntry.replaceAll("\\{", "").replaceAll("\\}", "");
 
         Map<String, String> content = new HashMap<String, String>(5);

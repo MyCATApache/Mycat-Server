@@ -23,6 +23,21 @@
  */
 package io.mycat.server;
 
+import io.mycat.MycatServer;
+import io.mycat.backend.BackendConnection;
+import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.mysql.nio.handler.*;
+import io.mycat.config.ErrorCode;
+import io.mycat.config.MycatConfig;
+import io.mycat.net.FrontendConnection;
+import io.mycat.net.mysql.OkPacket;
+import io.mycat.route.RouteResultset;
+import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.parser.ServerParse;
+import io.mycat.server.sqlcmd.SQLCmdConstant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,31 +47,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.mycat.MycatServer;
-import io.mycat.backend.BackendConnection;
-import io.mycat.backend.datasource.PhysicalDBNode;
-import io.mycat.backend.mysql.nio.handler.CommitNodeHandler;
-import io.mycat.backend.mysql.nio.handler.KillConnectionHandler;
-import io.mycat.backend.mysql.nio.handler.LockTablesHandler;
-import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
-import io.mycat.backend.mysql.nio.handler.MultiNodeCoordinator;
-import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
-import io.mycat.backend.mysql.nio.handler.RollbackNodeHandler;
-import io.mycat.backend.mysql.nio.handler.RollbackReleaseHandler;
-import io.mycat.backend.mysql.nio.handler.SingleNodeHandler;
-import io.mycat.backend.mysql.nio.handler.UnLockTablesHandler;
-import io.mycat.config.ErrorCode;
-import io.mycat.config.MycatConfig;
-import io.mycat.net.FrontendConnection;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.parser.ServerParse;
-import io.mycat.server.sqlcmd.SQLCmdConstant;
 
 /**
  * @author mycat
@@ -174,28 +164,26 @@ public class NonBlockingSession implements Session {
         }
     }
 
-    private void checkDistriTransaxAndExecute(RouteResultset rrs, int type,boolean autocommit) throws Exception {
-        switch(MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
+    private void checkDistriTransaxAndExecute(RouteResultset rrs, int type, boolean autocommit) throws Exception {
+        switch (MycatServer.getInstance().getConfig().getSystem().getHandleDistributedTransactions()) {
             case 1:
                 source.writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Distributed transaction is disabled!");
-                if(!autocommit){
+                if (!autocommit) {
                     source.setTxInterrupt("Distributed transaction is disabled!");
                 }
                 break;
             case 2:
                 LOGGER.warn("Distributed transaction detected! RRS:" + rrs);
-                if(type == 1){
+                if (type == 1) {
                     singleNodeHandler.execute();
-                }
-                else{
+                } else {
                     multiNodeHandler.execute();
                 }
                 break;
             default:
-                if(type == 1){
+                if (type == 1) {
                     singleNodeHandler.execute();
-                }
-                else{
+                } else {
                     multiNodeHandler.execute();
                 }
         }
@@ -214,7 +202,6 @@ public class NonBlockingSession implements Session {
                     break;
                 default:
                     multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
-
             }
         } else {
             multiNodeCoordinator.executeBatchNodeCmd(SQLCmdConstant.COMMIT_CMD);
@@ -241,13 +228,11 @@ public class NonBlockingSession implements Session {
             BackendConnection con = target.values().iterator().next();
             commitHandler.commit(con);
         } else {
-
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("multi node commit to send ,total " + initCount);
             }
             checkDistriTransaxAndExecute();
         }
-
     }
 
     private boolean isALLGlobal(){
@@ -512,9 +497,7 @@ public class NonBlockingSession implements Session {
                     dn.getConnectionFromSameSource(null, true, en.getValue(),
                             kill, en.getKey());
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "get killer connection failed for " + en.getKey(),
-                            e);
+                    LOGGER.error("get killer connection failed for " + en.getKey(), e);
                     kill.connectionError(e, null);
                 }
             }
@@ -536,7 +519,7 @@ public class NonBlockingSession implements Session {
 
     public void clearResources(final boolean needRollback) {
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("clear session resources " + this);
+            LOGGER.debug("clear session resources " + this); // 获得 XA 事务编号
         }
         this.releaseConnections(needRollback);
         clearHandlesResources();
@@ -550,16 +533,20 @@ public class NonBlockingSession implements Session {
         return MycatServer.getInstance().getXATXIDGLOBAL();
     }
 
+    /**
+     * 设置 XA 事务状态
+     *
+     * @param xaTXEnabled 是否开启
+     */
     public void setXATXEnabled(boolean xaTXEnabled) {
-
         if (xaTXEnabled) {
-        	LOGGER.info("XA Transaction enabled ,con " + this.getSource());
-        	if(this.xaTXID == null){
-        		xaTXID = genXATXID();
-        	}
-        }else{
-        	LOGGER.info("XA Transaction disabled ,con " + this.getSource());
-        	this.xaTXID = null;
+            LOGGER.info("XA Transaction enabled ,con " + this.getSource());
+            if (this.xaTXID == null) {
+                xaTXID = genXATXID(); //
+            }
+        } else {
+            LOGGER.info("XA Transaction disabled ,con " + this.getSource());
+            this.xaTXID = null;
         }
     }
 

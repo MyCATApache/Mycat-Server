@@ -5,6 +5,8 @@ import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
 import java.util.Collection;
 
 /**
+ * XA 协调者日志 存储接口
+ *
  * Created by zhangchao on 2016/10/13.
  */
 public interface Repository {

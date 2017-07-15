@@ -1,6 +1,9 @@
 package io.mycat.backend.mysql.xa;
 
 /**
+ * XA 协调者日志 序列化。
+ * 基于 JSON 实现
+ *
  * Created by zhangchao on 2016/10/17.
  */
 public class Serializer {

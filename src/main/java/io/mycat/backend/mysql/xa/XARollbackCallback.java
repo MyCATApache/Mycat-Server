@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 /**
+ * XA 事务回滚回调
+ *
  * Created by zhangchao on 2016/10/18.
  */
 public class XARollbackCallback implements SQLQueryResultListener<SQLQueryResult<Map<String, String>>> {

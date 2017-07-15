@@ -3,14 +3,22 @@ package io.mycat.backend.mysql.xa;
 import java.io.Serializable;
 
 /**
+ * XA 协调者日志
+ *
  * Created by zhangchao on 2016/10/17.
  */
 public class CoordinatorLogEntry implements Serializable {
 
     private static final long serialVersionUID = -919666492191340531L;
 
+    /**
+     * XA 事务编号
+     */
     public final String id;
 //    public final boolean wasCommitted;
+    /**
+     * 参与者日志数组
+     */
     public final ParticipantLogEntry[] participants;
 
     public CoordinatorLogEntry(String coordinatorId,
