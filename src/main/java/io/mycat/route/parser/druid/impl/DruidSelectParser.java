@@ -566,7 +566,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 						&& ctx.getRouteCalculateUnit().getTablesAndConditions().get(tableName).get(primaryKey) != null 
 						&& tc.getDataNodes().size() > 1) {//有主键条件
 					return false;
-				} 
+				}
+			//全局表不缓存 
+			}else if(RouterUtil.isAllGlobalTable(ctx, schema)){
+				return false;
 			}
 			return true;
 		}

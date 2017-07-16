@@ -84,7 +84,8 @@ public class ResultSetUtil {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldValues.size());
 		rowDataPkg.read(row);
 		byte[] columnData = rowDataPkg.fieldValues.get(columnIndex);
-		return new String(columnData);
+		//columnData 为空时,直接返回null
+		return columnData==null?null:new String(columnData);
 	}
 
 	public static byte[] getColumnVal(byte[] row, List<byte[]> fieldValues,
