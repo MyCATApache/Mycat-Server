@@ -641,43 +641,49 @@ public class RouterUtil {
 		return processedInsert;
 	}
 
-	public static List<String> handleBatchInsert(String origSQL, int valuesIndex){
+	public static List<String> handleBatchInsert(String origSQL, int valuesIndex) {
 		List<String> handledSQLs = new LinkedList<>();
-		String prefix = origSQL.substring(0,valuesIndex + "VALUES".length());
+		String prefix = origSQL.substring(0, valuesIndex + "VALUES".length());
 		String values = origSQL.substring(valuesIndex + "VALUES".length());
 		int flag = 0;
 		StringBuilder currentValue = new StringBuilder();
 		currentValue.append(prefix);
 		for (int i = 0; i < values.length(); i++) {
 			char j = values.charAt(i);
-			if(j=='(' && flag == 0){
+			if (j == '(' && flag == 0) {
 				flag = 1;
 				currentValue.append(j);
-			}else if(j=='\"' && flag == 1){
+			} else if (j == '\"' && flag == 1) {
 				flag = 2;
 				currentValue.append(j);
-			} else if(j=='\'' && flag == 1){
-				flag = 2;
-				currentValue.append(j);
-			} else if(j=='\\' && flag == 2){
+			} else if (j == '\'' && flag == 1) {
 				flag = 3;
 				currentValue.append(j);
-			} else if (flag == 3){
+			} else if (j == '\\' && flag == 2) {
+				flag = 4;
+				currentValue.append(j);
+			} else if (j == '\\' && flag == 3) {
+				flag = 5;
+				currentValue.append(j);
+			} else if (flag == 4) {
 				flag = 2;
 				currentValue.append(j);
-			}else if(j=='\"' && flag == 2){
+			} else if (flag == 5) {
+				flag = 3;
+				currentValue.append(j);
+			} else if (j == '\"' && flag == 2) {
 				flag = 1;
 				currentValue.append(j);
-			} else if(j=='\'' && flag == 2){
+			} else if (j == '\'' && flag == 3) {
 				flag = 1;
 				currentValue.append(j);
-			} else if (j==')' && flag == 1){
+			} else if (j == ')' && flag == 1) {
 				flag = 0;
 				currentValue.append(j);
 				handledSQLs.add(currentValue.toString());
 				currentValue = new StringBuilder();
 				currentValue.append(prefix);
-			} else if(j == ',' && flag == 0){
+			} else if (j == ',' && flag == 0) {
 				continue;
 			} else {
 				currentValue.append(j);
