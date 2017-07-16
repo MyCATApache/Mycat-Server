@@ -64,15 +64,9 @@ public class DefaultDruidParser implements DruidParser {
 		ctx.setSql(originSql);
 		//通过visitor解析
 		visitorParse(rrs,stmt,schemaStatVisitor);
-		//是否终止解析
-		if(afterVisitorParser(rrs,stmt,schemaStatVisitor)){
-			return;
-		}
+
 		//通过Statement解析
 		statementParse(schema, rrs, stmt);
-		
-		//改写sql：如insert语句主键自增长的可以
-		changeSql(schema, rrs, stmt,cachePool);
 	}
 	
 	/**

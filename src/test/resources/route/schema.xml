@@ -89,9 +89,12 @@
 	</schema>
 	
 	<schema name="subQueries" sqlMaxLimit="100">
-		<table name="subq1" primaryKey="id"  dataNode="dn1,dn2" rule="partitionByMod"/>
-		<table name="subq2" primaryKey="id"  dataNode="dn1,dn2" rule="partitionByMod"/>
-		<table name="subq3" primaryKey="id"  dataNode="dn2,dn3" rule="partitionByMod"/>
+		<table name="table_0" dataNode="dn1,dn2" type="global"/><!-- 全局表    -->
+		<table name="table_1" dataNode="dn1"/>          <!-- 非分片表 -->
+		<table name="subtest1" dataNode="dn1,dn2" rule="mod-long" />
+		<table name="subtest2" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
+		<table name="subtest3" dataNode="dn2,dn3" rule="mod-long" />
+		<table name="subtest4" dataNode="dn1,dn2" rule="mod-long" />
 	</schema>
 
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />

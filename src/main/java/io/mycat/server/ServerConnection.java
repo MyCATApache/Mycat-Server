@@ -65,7 +65,7 @@ public class ServerConnection extends FrontendConnection {
 	 * 标志是否执行了lock tables语句，并处于lock状态
 	 */
 	private volatile boolean isLocked = false;
-
+	
 	public ServerConnection(NetworkChannel channel)
 			throws IOException {
 		super(channel);
