@@ -64,6 +64,7 @@
 {"id":"'09ee65187636478ab97254f6b1b3fdca'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}
 {"id":"'91e297cbfc634e6280c4dece678272e9'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"}]}
 {"id":"'17f23277fccd4e0ab2c1301e1b9e1daa'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}
+{"id":"'4cbb18214d0b47adbdb0658598666677'","participants":[{"uri":"127.0.0.1","state":"4","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"4","expires":0,"resourceName":"db1"}]}
 {"id":"'6efb32b495124ed58692bd1a9c35f7d4'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}
 {"id":"'e4a9f112655346589aa9090999a7b68f'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}
 {"id":"'4d1ca62dae3f4846831852e6f8cb0a55'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"}]}
@@ -179,7 +180,6 @@
 {"id":"'0482722821d2479f92ea41db79c4bbf4'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"}]}
 {"id":"'b7e46a8faadd4b1cae0dae46dbd31aa5'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"}]}
 {"id":"'6b19f0a4f750486f8105a4048050e7ad'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}
-{"id":"'951bbd48305a47039d3f0318e6675498'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db3"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}
 {"id":"'6ea37ccb987c478fa8348a8362779388'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}
 {"id":"'06b7eed135954325803d7122851aaa18'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}
 {"id":"'b5f1a7ca34f345e093039ce125985bd2'","participants":[{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db2"},{"uri":"127.0.0.1","state":"3","expires":0,"resourceName":"db1"}]}

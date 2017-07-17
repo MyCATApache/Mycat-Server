@@ -33,10 +33,25 @@ import java.util.Map;
  */
 public class PreparedStatement {
 
+    /**
+     * PreparedStatement 编号
+     */
     private long id;
+    /**
+     * SQL
+     */
     private String statement;
+    /**
+     *
+     */
     private int columnsNumber;
+    /**
+     *
+     */
     private int parametersNumber;
+    /**
+     *
+     */
     private int[] parametersType;
     /**
      * 存放COM_STMT_SEND_LONG_DATA命令发送过来的字节数据

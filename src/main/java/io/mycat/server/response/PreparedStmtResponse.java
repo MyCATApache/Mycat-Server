@@ -23,19 +23,27 @@
  */
 package io.mycat.server.response;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.PreparedStatement;
 import io.mycat.net.FrontendConnection;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.PreparedOkPacket;
 
+import java.nio.ByteBuffer;
+
 /**
+ * PreparedStatement 响应
+ *
  * @author mycat
  */
 public class PreparedStmtResponse {
 
+    /**
+     * 响应 PreparedStatement 信息
+     *
+     * @param pstmt pstmt
+     * @param c 连接
+     */
     public static void response(PreparedStatement pstmt, FrontendConnection c) {
         byte packetId = 0;
 
