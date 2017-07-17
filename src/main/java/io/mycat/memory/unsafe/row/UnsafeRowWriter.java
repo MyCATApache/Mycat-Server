@@ -18,11 +18,12 @@
 package io.mycat.memory.unsafe.row;
 
 
-import java.math.BigDecimal;
-
 import io.mycat.memory.unsafe.Platform;
 import io.mycat.memory.unsafe.array.ByteArrayMethods;
 import io.mycat.memory.unsafe.bitset.BitSetMethods;
+import io.mycat.memory.unsafe.types.UTF8String;
+
+import java.math.BigDecimal;
 
 /**
  * A helper class to write data into global row buffer using `UnsafeRow` format.
@@ -227,5 +228,24 @@ public class UnsafeRowWriter {
 		// move the cursor forward.
 		holder.cursor += 16;
 	}
-  
+
+    public void write(int ordinal, UTF8String input) {
+        if (input == null) {
+            BitSetMethods.set(holder.buffer, startingOffset, ordinal);
+            // keep the offset for future update
+            setOffsetAndSize(ordinal, 0L);
+        } else {
+            final byte[] bytes = input.getBytes();
+            int length = bytes.length;
+            // grow the global buffer before writing data.
+            holder.grow(length);
+
+            // Write the bytes to the variable length portion.
+            Platform.copyMemory(bytes, Platform.BYTE_ARRAY_OFFSET, holder.buffer, holder.cursor, length);
+            setOffsetAndSize(ordinal, length);
+            // move the cursor forward.
+            holder.cursor += length;
+        }
+
+    }
 }

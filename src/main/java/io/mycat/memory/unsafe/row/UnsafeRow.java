@@ -257,6 +257,20 @@ public final class UnsafeRow extends MySQLPacket {
     return Platform.getDouble(baseObject, getFieldOffset(ordinal));
   }
 
+  public void setUTF8String(int ordinal, UTF8String s) {
+    byte[] bytes = s.getBytes();
+    assertIndexIsValid(ordinal);
+    // fixed length
+    long cursor = getLong(ordinal) >>> 32;
+    if (bytes == null) {
+      setNullAt(ordinal);
+      Platform.putLong(baseObject, getFieldOffset(ordinal), cursor << 32);
+    } else {
+      // Write the bytes to the variable length portion.
+      Platform.copyMemory(bytes, Platform.BYTE_ARRAY_OFFSET, baseObject, baseOffset + cursor, bytes.length);
+      setLong(ordinal, cursor << 32 | ((long) bytes.length));
+    }
+  }
 
   public UTF8String getUTF8String(int ordinal) {
     if (isNullAt(ordinal)) return null;
@@ -265,6 +279,7 @@ public final class UnsafeRow extends MySQLPacket {
     final int size = (int) offsetAndSize;
     return UTF8String.fromAddress(baseObject, baseOffset + offset, size);
   }
+
   public byte[] getBinary(int ordinal) {
     if (isNullAt(ordinal)) {
       return null;

@@ -33,7 +33,7 @@ import io.mycat.memory.unsafe.row.BufferHolder;
 import io.mycat.memory.unsafe.row.StructType;
 import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.memory.unsafe.row.UnsafeRowWriter;
-
+import io.mycat.memory.unsafe.types.UTF8String;
 import io.mycat.memory.unsafe.utils.BytesTools;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import io.mycat.memory.unsafe.utils.sort.UnsafeExternalRowSorter;
@@ -47,7 +47,6 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
-import java.text.NumberFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -200,6 +199,11 @@ public class UnsafeRowGrouper {
 					case ColMeta.COL_TYPE_LONGLONG:
 						groupKey.setLong(i, 0);
 						break;
+					case ColMeta.COL_TYPE_VAR_STRING:
+					case ColMeta.COL_TYPE_STRING:
+					case ColMeta.COL_TYPE_VACHAR:
+						unsafeRowWriter.write(i, (UTF8String) null);
+						break;
 					default:
 						unsafeRowWriter.write(i, "init".getBytes());
 						break;
@@ -249,6 +253,11 @@ public class UnsafeRowGrouper {
 					case ColMeta.COL_TYPE_NEWDECIMAL:
 //						emptyAggregationBuffer.setDouble(curColMeta.colIndex, 0);
 						unsafeRowWriter.write(curColMeta.colIndex, new BigDecimal(0L));
+						break;
+					case ColMeta.COL_TYPE_VAR_STRING:
+					case ColMeta.COL_TYPE_STRING:
+					case ColMeta.COL_TYPE_VACHAR:
+						unsafeRowWriter.write(curColMeta.colIndex, (UTF8String) null);
 						break;
 					default:
 						unsafeRowWriter.write(curColMeta.colIndex, "init".getBytes());
@@ -360,6 +369,12 @@ public class UnsafeRowGrouper {
 						int scale = curColMeta.decimals;
 						BigDecimal decimalVal = row.getDecimal(curColMeta.colIndex, scale);
 						unsafeRowWriter.write(curColMeta.colIndex, decimalVal.toString().getBytes());
+						break;
+					case ColMeta.COL_TYPE_VACHAR:
+					case ColMeta.COL_TYPE_STRING:
+					case ColMeta.COL_TYPE_VAR_STRING:
+						byte[] bs = row.getUTF8String(curColMeta.colIndex).getBytes();
+						unsafeRowWriter.write(curColMeta.colIndex, bs);
 						break;
 					default:
 						unsafeRowWriter.write(curColMeta.colIndex,
@@ -515,6 +530,11 @@ public class UnsafeRowGrouper {
 						key.setLong(i,
 								BytesTools.getLong(row.getBinary(curColMeta.colIndex)));
 						break;
+					case ColMeta.COL_TYPE_VAR_STRING:
+					case ColMeta.COL_TYPE_STRING:
+					case ColMeta.COL_TYPE_VACHAR:
+						unsafeRowWriter.write(i, UTF8String.fromBytes(row.getBinary(curColMeta.colIndex)));
+						break;
 					default:
 						unsafeRowWriter.write(i,
 								row.getBinary(curColMeta.colIndex));
@@ -579,6 +599,11 @@ public class UnsafeRowGrouper {
 						unsafeRowWriter.write(curColMeta.colIndex, 
 								new BigDecimal(new String(row.getBinary(curColMeta.colIndex))));
 						break;
+					case ColMeta.COL_TYPE_VAR_STRING:
+					case ColMeta.COL_TYPE_STRING:
+					case ColMeta.COL_TYPE_VACHAR:
+						unsafeRowWriter.write(curColMeta.colIndex, UTF8String.fromBytes(row.getBinary(curColMeta.colIndex)));
+						break;
 					default:
 						unsafeRowWriter.write(curColMeta.colIndex,
 								row.getBinary(curColMeta.colIndex));
@@ -589,6 +614,11 @@ public class UnsafeRowGrouper {
 					case ColMeta.COL_TYPE_NEWDECIMAL:
 						BigDecimal nullDecimal = null;
 						unsafeRowWriter.write(curColMeta.colIndex, nullDecimal);
+						break;
+					case ColMeta.COL_TYPE_VAR_STRING:
+					case ColMeta.COL_TYPE_STRING:
+					case ColMeta.COL_TYPE_VACHAR:
+						unsafeRowWriter.write(curColMeta.colIndex, (UTF8String) null);
 						break;
 					default:
 						value.setNullAt(curColMeta.colIndex);
@@ -675,6 +705,22 @@ public class UnsafeRowGrouper {
 						 left = decimalLeft == null ? null : decimalLeft.toString().getBytes();
 						 right = decimalRight == null ? null : decimalRight.toString().getBytes();
 						 break;
+					 case ColMeta.COL_TYPE_VACHAR:
+					 case ColMeta.COL_TYPE_VAR_STRING:
+					 case ColMeta.COL_TYPE_STRING:
+						 UTF8String l = toRow.getUTF8String(index);
+						 UTF8String r = newRow.getUTF8String(index);
+						 if (l == null) {
+							 left = null;
+						 } else {
+							 left = l.getBytes();
+						 }
+						 if (r == null) {
+							 right = null;
+						 } else {
+							 right = r.getBytes();
+						 }
+						 break;
 					 default:
 						 break;
 				 }
@@ -706,6 +752,10 @@ public class UnsafeRowGrouper {
 //                           toRow.setDouble(index,BytesTools.getDouble(result));
 							 toRow.updateDecimal(index, new BigDecimal(new String(result)));
 							 break;
+						 case ColMeta.COL_TYPE_VACHAR:
+						 case ColMeta.COL_TYPE_VAR_STRING:
+						 case ColMeta.COL_TYPE_STRING:
+							 toRow.setUTF8String(index, UTF8String.fromBytes(result));
 						 default:
 							 break;
 					 }
