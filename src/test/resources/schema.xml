@@ -5,13 +5,16 @@
     <schema name="dbtest" checkSQLschema="false" sqlMaxLimit="100">
         <!--<table name="travelrecord" dataNode="dn1,dn2,dn3" autoIncrement="true" primaryKey="id" rule="auto-sharding-long" />-->
 
-        <table name="user" dataNode="dn1,dn2" primaryKey="_ID"/>
+        <table name="user" dataNode="dn1" primaryKey="_ID"/>
+
+        <!--,dn2-->
+
 
     </schema>
 
     <dataNode name="dn1" dataHost="localhost1" database="db1"/>
 
-    <dataNode name="dn2" dataHost="localhost1" database="db2"/>
+    <!--<dataNode name="dn2" dataHost="localhost1" database="db2"/>-->
 
 
     <dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"

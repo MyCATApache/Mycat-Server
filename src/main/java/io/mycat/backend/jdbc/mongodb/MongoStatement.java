@@ -52,7 +52,7 @@ public class MongoStatement implements Statement {
 
         MongoData mongo = new MongoSQLParser(this._conn.getDB(), sql).query();
         if ((this._fetchSize > 0)
-                && (mongo.getCursor() != null)) {
+                && (mongo.getCursor() != null)) { // TODO 待读：_fetchSize
             //设置每次网络请求的最大记录数
             mongo.getCursor().batchSize(this._fetchSize);
         }

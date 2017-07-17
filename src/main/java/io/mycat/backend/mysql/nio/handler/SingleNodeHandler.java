@@ -184,7 +184,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 	public void connectionAcquired(final BackendConnection conn) {
 		session.bindConnection(node, conn);
 		_execute(conn);
-
 	}
 
 	private void _execute(BackendConnection conn) {
@@ -195,8 +194,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		}
 		conn.setResponseHandler(this);
 		try {
-			conn.execute(node, session.getSource(), session.getSource()
-					.isAutocommit());
+			conn.execute(node, session.getSource(), session.getSource().isAutocommit());
 		} catch (Exception e1) {
 			executeException(conn, e1);
 			return;

@@ -1,14 +1,14 @@
 package io.mycat.backend.jdbc.mongodb;
 
+import com.mongodb.BasicDBList;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.HashMap;
-
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.BasicDBList;
 
 public class MongoData {
 	
@@ -17,7 +17,7 @@ public class MongoData {
    private String table;
    private DBObject groupby;
    
-   private HashMap<String,Integer> map = new HashMap<String,Integer>(); 
+   private HashMap<String,Integer> map = new HashMap<>();
    private boolean type=false;
    
    public MongoData(){
