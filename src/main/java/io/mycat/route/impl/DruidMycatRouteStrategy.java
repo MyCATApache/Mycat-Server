@@ -1,6 +1,5 @@
 package io.mycat.route.impl;
 
-import java.security.InvalidParameterException;
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.HashMap;
@@ -162,6 +161,10 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	            if(index == 0){
 	            	 if(tc !=null){
 		                firstRule=  tc.getRule();
+						//没有指定分片规则时,不做处理
+		                if(firstRule==null){
+		                	continue;
+		                }
 		                firstDataNodes.addAll(tc.getDataNodes());
 		                rulemap.put(tc.getName(), firstRule);
 	            	 }
@@ -169,11 +172,14 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	                if(tc !=null){
 	                  //ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
 	                    RuleConfig ruleCfg = tc.getRule();
+	                    if(ruleCfg==null){  //没有指定分片规则时,不做处理
+	                    	continue;
+	                    }
 	                    Set<String> dataNodes = new HashSet<String>();
 	                    dataNodes.addAll(tc.getDataNodes());
 	                    rulemap.put(tc.getName(), ruleCfg);
 	                    //如果匹配规则不相同或者分片的datanode不相同则需要走子查询处理
-	                    if((ruleCfg !=null && !ruleCfg.equals(firstRule) )||( !dataNodes.equals(firstDataNodes))){
+	                    if(firstRule!=null&&((ruleCfg !=null && !ruleCfg.equals(firstRule) )||( !dataNodes.equals(firstDataNodes)))){
 	                      directRoute = false;
 	                      break;
 	                    }
@@ -183,22 +189,25 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	        }
 		}
 		
-		/*
-		 * TODO 后期可以优化为策略.
-		 */
+		RouteResultset rrsResult = rrs;
 		if(directRoute){ //直接路由
-			if(!checkRuleField(rulemap,visitor)){
-				String err = "In case of slice table,sql have same rules,but the relationship condition is different from rule field!";
-				LOGGER.error(err);
-				throw new SQLSyntaxErrorException(err);
+			if(!RouterUtil.isAllGlobalTable(ctx, schemaConf)){
+				if(rulemap.size()>1&&!checkRuleField(rulemap,visitor)){
+					String err = "In case of slice table,sql have same rules,but the relationship condition is different from rule field!";
+					LOGGER.error(err);
+					throw new SQLSyntaxErrorException(err);
+				}
 			}
-			return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
+			rrsResult = directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
 		}else{
 			int subQuerySize = visitor.getSubQuerys().size();
 			if(subQuerySize==0&&ctx.getTables().size()==2){ //两表关联,考虑使用catlet
 			    if(!visitor.getRelationships().isEmpty()){
 			    	rrs.setCacheAble(false);
-			    	return catletRoute(schema,ctx.getSql(),charset,sc);
+			    	rrs.setFinishedRoute(true);
+			    	rrsResult = catletRoute(schema,ctx.getSql(),charset,sc);
+				}else{
+					rrsResult = directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
 				}
 			}else if(subQuerySize==1){     //只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行 TODO 后期可能会考虑多个子查询的情况.
 				SQLSelect sqlselect = visitor.getSubQuerys().iterator().next();
@@ -210,7 +219,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 					SQLSelectQuery sqlSelectQuery = sqlselect.getQuery();
 					if(((MySqlSelectQueryBlock)sqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
 						rrs.setCacheAble(false);
-						return middlerResultRoute(schema,charset,sqlselect,sqlType,statement,sc);
+						rrs.setFinishedRoute(true);
+						rrsResult = middlerResultRoute(schema,charset,sqlselect,sqlType,statement,sc);
 					}
 				}
 			}else if(subQuerySize >=2){
@@ -219,7 +229,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				throw new SQLSyntaxErrorException(err);
 			}
 		}
-		return directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
+		return rrsResult;
 	}
 	
 	/**
@@ -229,18 +239,23 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 * @return
 	 */
 	private boolean checkRuleField(Map<String,RuleConfig> rulemap,MycatSchemaStatVisitor visitor){
+
 		Set<Relationship> ships = visitor.getRelationships();
 		Iterator<Relationship> iter = ships.iterator();
 		while(iter.hasNext()){
 			Relationship ship = iter.next();
 			String lefttable = ship.getLeft().getTable().toUpperCase();
+			String righttable = ship.getRight().getTable().toUpperCase();
+			// 如果是同一个表中的关联条件,不做处理
+			if(lefttable.equals(righttable)){
+				return true;
+			}
 			RuleConfig leftconfig = rulemap.get(lefttable);
 			if(leftconfig!=null){
 				if(!leftconfig.getColumn().equals(ship.getLeft().getName().toUpperCase())){
 					return false;
 				}
 			}
-			String righttable = ship.getRight().getTable().toUpperCase();
 			RuleConfig rightconfig = rulemap.get(righttable);
 			if(rightconfig!=null){
 				if(!rightconfig.getColumn().equals(ship.getRight().getName().toUpperCase())){
@@ -369,6 +384,13 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 */
 	private RouteResultset directRoute(RouteResultset rrs,DruidShardingParseInfo ctx,SchemaConfig schema,
 										DruidParser druidParser,SQLStatement statement,LayerCachePool cachePool) throws SQLNonTransientException{
+
+		//改写sql：如insert语句主键自增长, 在直接结果路由的情况下,进行sql 改写处理
+		druidParser.changeSql(schema, rrs, statement,cachePool);
+
+		/**
+		 * DruidParser 解析过程中已完成了路由的直接返回
+		 */
 		// DruidParser 解析过程中已完成了路由的直接返回
 		if ( rrs.isFinishedRoute() ) {
 			return rrs;
@@ -385,12 +407,16 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		}
 		
 		SortedSet<RouteResultsetNode> nodeSet = new TreeSet<RouteResultsetNode>();
+		boolean isAllGlobalTable = RouterUtil.isAllGlobalTable(ctx, schema);
 		for(RouteCalculateUnit unit: druidParser.getCtx().getRouteCalculateUnits()) {
 			RouteResultset rrsTmp = RouterUtil.tryRouteForTables(schema, druidParser.getCtx(), unit, rrs, isSelect(statement), cachePool);
-			if(rrsTmp != null) {
+			if(rrsTmp != null&&rrsTmp.getNodes()!=null) {
 				for(RouteResultsetNode node :rrsTmp.getNodes()) {
 					nodeSet.add(node);
 				}
+			}
+			if(isAllGlobalTable) {//都是全局表时只计算一遍路由
+				break;
 			}
 		}
 		

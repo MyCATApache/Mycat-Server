@@ -74,7 +74,6 @@ public class DruidMysqlSqlParserTest
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
-
 	}
 
 	@Test
