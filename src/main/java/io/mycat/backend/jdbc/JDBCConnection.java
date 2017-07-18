@@ -600,9 +600,7 @@ public class JDBCConnection implements BackendConnection {
             byteBuf.get(header);
             byteBuf.clear();
             List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
-            Iterator<FieldPacket> itor = fieldPks.iterator();
-            while (itor.hasNext()) {
-                FieldPacket curField = itor.next();
+            for (FieldPacket curField : fieldPks) {
                 curField.packetId = ++packetId;
                 byteBuf = curField.write(byteBuf, sc, false);
                 byteBuf.flip();
@@ -611,6 +609,7 @@ public class JDBCConnection implements BackendConnection {
                 byteBuf.clear();
                 fields.add(field);
             }
+            // header eof
             EOFPacket eofPckg = new EOFPacket();
             eofPckg.packetId = ++packetId;
             byteBuf = eofPckg.write(byteBuf, sc, false);
@@ -631,13 +630,10 @@ public class JDBCConnection implements BackendConnection {
                             fieldPks.get(i).type == (MysqlDefs.FIELD_TYPE_NEW_DECIMAL - 256)) { // field type is unsigned byte
                         // ensure that do not use scientific notation format
                         BigDecimal val = rs.getBigDecimal(j);
-                        curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null,
-                                sc.getCharset()));
+                        curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null, sc.getCharset()));
                     } else {
-                        curRow.add(StringUtil.encode(rs.getString(j),
-                                sc.getCharset()));
+                        curRow.add(StringUtil.encode(rs.getString(j), sc.getCharset()));
                     }
-
                 }
                 curRow.packetId = ++packetId;
                 byteBuf = curRow.write(byteBuf, sc, false);
@@ -648,8 +644,7 @@ public class JDBCConnection implements BackendConnection {
                 this.respHandler.rowResponse(row, this);
             }
             fieldPks.clear();
-
-            // eof
+            // row eof
             eofPckg = new EOFPacket();
             eofPckg.packetId = ++packetId;
             byteBuf = eofPckg.write(byteBuf, sc, false);

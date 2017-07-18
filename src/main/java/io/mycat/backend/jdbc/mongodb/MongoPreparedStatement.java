@@ -32,13 +32,11 @@ public class MongoPreparedStatement extends MongoStatement implements
 
     @Override
     public ResultSet executeQuery() throws SQLException {
-
         return null;
     }
 
     @Override
     public int executeUpdate() throws SQLException {
-
         this._mongosql.setParams(this._params);
         return this._mongosql.executeUpdate();
     }
@@ -52,68 +50,56 @@ public class MongoPreparedStatement extends MongoStatement implements
 
     @Override
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
-
-
     }
 
     @Override
     public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-
         setValue(parameterIndex, Boolean.valueOf(x));
     }
 
     @Override
     public void setByte(int parameterIndex, byte x) throws SQLException {
-
         setValue(parameterIndex, Byte.valueOf(x));
     }
 
     @Override
     public void setShort(int parameterIndex, short x) throws SQLException {
-
         setValue(parameterIndex, Short.valueOf(x));
     }
 
     @Override
     public void setInt(int parameterIndex, int x) throws SQLException {
-
         setValue(parameterIndex, Integer.valueOf(x));
     }
 
     @Override
     public void setLong(int parameterIndex, long x) throws SQLException {
-
         setValue(parameterIndex, Long.valueOf(x));
     }
 
     @Override
     public void setFloat(int parameterIndex, float x) throws SQLException {
-
         setValue(parameterIndex, Float.valueOf(x));
     }
 
     @Override
     public void setDouble(int parameterIndex, double x) throws SQLException {
-
         setValue(parameterIndex, Double.valueOf(x));
     }
 
     @Override
     public void setBigDecimal(int parameterIndex, BigDecimal x)
             throws SQLException {
-
         setValue(parameterIndex, x);
     }
 
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
-
         setValue(parameterIndex, x);
     }
 
     @Override
     public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-
         setValue(parameterIndex, x);
     }
 
@@ -132,67 +118,50 @@ public class MongoPreparedStatement extends MongoStatement implements
     @Override
     public void setTimestamp(int parameterIndex, Timestamp x)
             throws SQLException {
-
         setValue(parameterIndex, x);
     }
 
     @Override
     public void setAsciiStream(int parameterIndex, InputStream x, int length)
             throws SQLException {
-
-
     }
 
     @Override
     public void setUnicodeStream(int parameterIndex, InputStream x, int length)
             throws SQLException {
-
-
     }
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x, int length)
             throws SQLException {
-
-
     }
 
     @Override
     public void clearParameters() throws SQLException {
-
-
     }
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType)
             throws SQLException {
-
-
     }
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
-
         setValue(parameterIndex, x);
     }
 
     @Override
     public boolean execute() throws SQLException {
-
         return false;
     }
 
     @Override
     public void addBatch() throws SQLException {
-
-
     }
 
     @Override
     public void setCharacterStream(int parameterIndex, Reader reader, int length)
             throws SQLException {
-
-
     }
 
     @Override

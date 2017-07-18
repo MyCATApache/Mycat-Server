@@ -5,16 +5,17 @@
     <schema name="dbtest" checkSQLschema="false" sqlMaxLimit="100">
         <!--<table name="travelrecord" dataNode="dn1,dn2,dn3" autoIncrement="true" primaryKey="id" rule="auto-sharding-long" />-->
 
-        <table name="user" dataNode="dn1" autoIncrement="true" primaryKey="_ID"/>
+        <table name="user" dataNode="dn1,dn2,dn3" autoIncrement="true" primaryKey="_ID" rule="mod-mongo-long" />
 
         <!--,dn2-->
-
 
     </schema>
 
     <dataNode name="dn1" dataHost="localhost1" database="db1"/>
 
-    <!--<dataNode name="dn2" dataHost="localhost1" database="db2"/>-->
+    <dataNode name="dn2" dataHost="localhost1" database="db2"/>
+
+    <dataNode name="dn3" dataHost="localhost2" database="db3"/>
 
 
     <dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
@@ -26,5 +27,11 @@
         </writeHost>
     </dataHost>
 
+    <dataHost name="localhost2" maxCon="1000" minCon="10" balance="0"
+              writeType="0" dbType="mysql" dbDriver="native" switchType="1" slaveThreshold="100">
+        <heartbeat>select user()</heartbeat>
+        <writeHost host="hostM1" url="127.0.0.1:33061" user="root" password="123456"> <!-- url、user、password 设置成你的数据库 -->
+        </writeHost>
+    </dataHost>
 
 </mycat:schema>

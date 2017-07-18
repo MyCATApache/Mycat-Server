@@ -54,6 +54,12 @@ public class MongoSQLParser {
         this._params = params;
     }
 
+    /**
+     * 查询
+     *
+     * @return 结果
+     * @throws MongoSQLException 当发生异常时
+     */
     public MongoData query() throws MongoSQLException {
         if (!(statement instanceof SQLSelectStatement)) {
             //return null;
@@ -68,7 +74,8 @@ public class MongoSQLParser {
             MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock) selectStmt.getSelect().getQuery();
 
             BasicDBObject fields = new BasicDBObject();
-            //显示的字段
+
+            // 显示（返回）的字段
             for (SQLSelectItem item : mysqlSelectQuery.getSelectList()) {
                 //System.out.println(item.toString());
                 if (!(item.getExpr() instanceof SQLAllColumnExpr)) {
@@ -91,12 +98,14 @@ public class MongoSQLParser {
             DBCollection coll = this._db.getCollection(table.toString());
             mongo.setTable(table.toString());
 
+            // WHERE
             SQLExpr expr = mysqlSelectQuery.getWhere();
             DBObject query = parserWhere(expr);
-            //System.out.println(query);
+
+            // GROUP BY
             SQLSelectGroupByClause groupby = mysqlSelectQuery.getGroupBy();
             BasicDBObject gbkey = new BasicDBObject();
-            if (groupby != null) { // TODO 待读 ： group by
+            if (groupby != null) {
                 for (SQLExpr gbexpr : groupby.getItems()) {
                     if (gbexpr instanceof SQLIdentifierExpr) {
                         String name = ((SQLIdentifierExpr) gbexpr).getName();
@@ -105,20 +114,20 @@ public class MongoSQLParser {
                 }
                 icount = 2;
             }
+
+            // SKIP / LIMIT
             int limitoff = 0;
             int limitnum = 0;
             if (mysqlSelectQuery.getLimit() != null) {
                 limitoff = getSQLExprToInt(mysqlSelectQuery.getLimit().getOffset());
                 limitnum = getSQLExprToInt(mysqlSelectQuery.getLimit().getRowCount());
             }
-
-            if (icount == 1) {
+            if (icount == 1) { // COUNT（*）
                 mongo.setCount(coll.count(query));
-            } else if (icount == 2) {
+            } else if (icount == 2) { // MapReduce
                 BasicDBObject initial = new BasicDBObject();
                 initial.put("num", 0);
-                String reduce = "function (obj, prev) { "
-                        + "  prev.num++}";
+                String reduce = "function (obj, prev) { " + "  prev.num++}";
                 mongo.setGrouyBy(coll.group(gbkey, query, initial, reduce));
             } else {
                 if ((limitoff > 0) || (limitnum > 0)) {
@@ -127,12 +136,13 @@ public class MongoSQLParser {
                     c = coll.find(query, fields);
                 }
 
+                // order by
                 SQLOrderBy orderby = mysqlSelectQuery.getOrderBy();
                 if (orderby != null) {
                     BasicDBObject order = new BasicDBObject();
                     for (int i = 0; i < orderby.getItems().size(); i++) {
                         SQLSelectOrderByItem orderitem = orderby.getItems().get(i);
-                        order.put(orderitem.getExpr().toString(), Integer.valueOf(getSQLExprToAsc(orderitem.getType())));
+                        order.put(orderitem.getExpr().toString(), getSQLExprToAsc(orderitem.getType()));
                     }
                     c.sort(order);
                     // System.out.println(order);
@@ -160,7 +170,6 @@ public class MongoSQLParser {
             return 1;
         }
         return 1;
-
     }
 
     private int InsertData(SQLInsertStatement state) {
@@ -178,7 +187,7 @@ public class MongoSQLParser {
             i++;
         }
         DBCollection coll = this._db.getCollection(table.toString());
-        coll.insert(new DBObject[]{o});
+        coll.insert(o);
         return 1;
     }
 
@@ -386,17 +395,14 @@ public class MongoSQLParser {
                     if (expr.getOperator().getName().equals(">=")) {
                         op = "$gte";
                     }
-
                     if (expr.getOperator().getName().equals("!=")) {
                         op = "$ne";
                     }
                     if (expr.getOperator().getName().equals("<>")) {
                         op = "$ne";
                     }
-
                     parserDBObject(o, exprL.toString(), op, getExpValue(expr.getRight()));
                 }
-
             } else {
                 if (expr.getOperator().getName().equals("AND")) {
                     parserWhere(exprL, o);
@@ -408,9 +414,7 @@ public class MongoSQLParser {
                 }
             }
         }
-
     }
-
 
     private void orWhere(SQLExpr exprL, SQLExpr exprR, BasicDBObject ob) {
         BasicDBObject xo = new BasicDBObject();
