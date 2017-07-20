@@ -382,8 +382,12 @@ public class MongoResultSet implements ResultSet
 
 	@Override
 	public Timestamp getTimestamp(String columnLabel) throws SQLException {
-		
-		return (Timestamp)getObject(columnLabel);//throw new UnsupportedOperationException();
+		Object obj = getObject(columnLabel);
+		if(obj instanceof java.util.Date){
+			java.util.Date d= (java.util.Date) obj;
+			return new Timestamp(d.getTime());
+		}
+		return (Timestamp)obj;//throw new UnsupportedOperationException();
 	}
 
 	@Override
