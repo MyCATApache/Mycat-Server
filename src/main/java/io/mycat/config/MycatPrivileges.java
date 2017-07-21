@@ -23,7 +23,6 @@
  */
 package io.mycat.config;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +46,6 @@ import com.alibaba.druid.wall.WallProvider;
 
 import io.mycat.MycatServer;
 import io.mycat.config.model.FirewallConfig;
-import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.model.UserPrivilegesConfig;
 import io.mycat.net.handler.FrontendPrivileges;
@@ -255,6 +253,14 @@ public class MycatPrivileges implements FrontendPrivileges {
 					int index = -1;
 					
 					//TODO 此处待优化，寻找更优SQL 解析器
+					
+					//修复bug
+					// https://github.com/alibaba/druid/issues/1309
+					//com.alibaba.druid.sql.parser.ParserException: syntax error, error in :'begin',expect END, actual EOF begin
+					if ( sql != null && sql.length() == 5 && sql.equalsIgnoreCase("begin") ) {
+						return true;
+					}
+					
 					SQLStatementParser parser = new MycatStatementParser(sql);			
 					SQLStatement stmt = parser.parseStatement();
 					
