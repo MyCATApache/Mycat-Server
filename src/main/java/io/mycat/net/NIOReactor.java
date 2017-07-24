@@ -31,6 +31,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import io.mycat.util.SelectorUtil;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 /**
@@ -72,7 +73,7 @@ public final class NIOReactor {
 	}
 
 	private final class RW implements Runnable {
-		private final Selector selector;
+		private volatile Selector selector;
 		private final ConcurrentLinkedQueue<AbstractConnection> registerQueue;
 		private long reactCount;
 
@@ -83,55 +84,75 @@ public final class NIOReactor {
 
 		@Override
 		public void run() {
-			final Selector selector = this.selector;
+			int invalidSelectCount = 0;
 			Set<SelectionKey> keys = null;
 			for (;;) {
 				++reactCount;
 				try {
-					selector.select(500L);
-					register(selector);
-					keys = selector.selectedKeys();
-					for (SelectionKey key : keys) {
-						AbstractConnection con = null;
-						try {
-							Object att = key.attachment();
-							if (att != null) {
-								con = (AbstractConnection) att;
-								if (key.isValid() && key.isReadable()) {
-									try {
-										con.asynRead();
-									} catch (IOException e) {
-                                        con.close("program err:" + e.toString());
-										continue;
-									} catch (Exception e) {
-										LOGGER.warn("caught err:", e);
-										con.close("program err:" + e.toString());
-										continue;
+					final Selector tSelector = this.selector;
+					long start = System.nanoTime();
+					tSelector.select(500L);
+					long end = System.nanoTime();
+					register(tSelector);
+					keys = tSelector.selectedKeys();
+					if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS )
+					{
+						invalidSelectCount++;
+					}
+					else
+					{
+						invalidSelectCount = 0;
+						for (SelectionKey key : keys) {
+							AbstractConnection con = null;
+							try {
+								Object att = key.attachment();
+								if (att != null) {
+									con = (AbstractConnection) att;
+									if (key.isValid() && key.isReadable()) {
+										try {
+											con.asynRead();
+										} catch (IOException e) {
+											con.close("program err:" + e.toString());
+											continue;
+										} catch (Exception e) {
+											LOGGER.warn("caught err:", e);
+											con.close("program err:" + e.toString());
+											continue;
+										}
 									}
+									if (key.isValid() && key.isWritable()) {
+										con.doNextWriteCheck();
+									}
+								} else {
+									key.cancel();
 								}
-								if (key.isValid() && key.isWritable()) {
-									con.doNextWriteCheck();
+							} catch (CancelledKeyException e) {
+								if (LOGGER.isDebugEnabled()) {
+									LOGGER.debug(con + " socket key canceled");
 								}
-							} else {
-								key.cancel();
+							} catch (Exception e) {
+								LOGGER.warn(con + " " + e);
+							} catch (final Throwable e) {
+								// Catch exceptions such as OOM and close connection if exists
+								//so that the reactor can keep running!
+								// @author Uncle-pan
+								// @since 2016-03-30
+								if (con != null) {
+									con.close("Bad: " + e);
+								}
+								LOGGER.error("caught err: ", e);
+								continue;
 							}
-                        } catch (CancelledKeyException e) {
-                            if (LOGGER.isDebugEnabled()) {
-                                LOGGER.debug(con + " socket key canceled");
-                            }
-                        } catch (Exception e) {
-                            LOGGER.warn(con + " " + e);
-                        } catch (final Throwable e){
-                        	// Catch exceptions such as OOM and close connection if exists
-                        	//so that the reactor can keep running!
-                        	// @author Uncle-pan
-                        	// @since 2016-03-30
-                        	if(con != null){
-                        		con.close("Bad: "+e);
-                        	}
-                        	LOGGER.error("caught err: ", e);
-                        	continue;
-                        }
+						}
+					}
+					if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD)
+					{
+						final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
+						if (rebuildSelector != null)
+						{
+							this.selector = rebuildSelector;
+						}
+						invalidSelectCount = 0;
 					}
 				} catch (Exception e) {
 					LOGGER.warn(name, e);

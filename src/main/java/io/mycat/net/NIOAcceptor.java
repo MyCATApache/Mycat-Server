@@ -42,7 +42,7 @@ import io.mycat.net.factory.FrontendConnectionFactory;
 /**
  * @author mycat
  */
-public final class NIOAcceptor extends Thread  implements SocketAcceptor{
+public final class NIOAcceptor extends Thread implements SocketAcceptor{
 	private static final Logger LOGGER = LoggerFactory.getLogger(NIOAcceptor.class);
 	private static final AcceptIdGenerator ID_GENERATOR = new AcceptIdGenerator();
 
@@ -90,9 +90,12 @@ public final class NIOAcceptor extends Thread  implements SocketAcceptor{
 			    tSelector.select(1000L);
 				long end = System.nanoTime();
 				Set<SelectionKey> keys = tSelector.selectedKeys();
-				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS ) {
+				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS )
+				{
 					invalidSelectCount++;
-				} else {
+				}
+				else
+                {
 					try {
 						for (SelectionKey key : keys) {
 							if (key.isValid() && key.isAcceptable()) {
@@ -103,11 +106,14 @@ public final class NIOAcceptor extends Thread  implements SocketAcceptor{
 						}
 					} finally {
 						keys.clear();
+						invalidSelectCount = 0;
 					}
 				}
-				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD) {
+				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD)
+				{
 					final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
-					if (rebuildSelector != null) {
+					if (rebuildSelector != null)
+					{
 						this.selector = rebuildSelector;
 					}
 					invalidSelectCount = 0;
