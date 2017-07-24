@@ -81,9 +81,9 @@ public final class NIOAcceptor extends Thread  implements SocketAcceptor{
 
 	@Override
 	public void run() {
-		final Selector tSelector = this.selector;
 		int invalidSelectCount = 0;
 		for (;;) {
+			final Selector tSelector = this.selector;
 			++acceptCount;
 			try {
 				long start = System.nanoTime();
@@ -106,7 +106,7 @@ public final class NIOAcceptor extends Thread  implements SocketAcceptor{
 					}
 				}
 				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD) {
-					Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
+					final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
 					if (rebuildSelector != null) {
 						this.selector = rebuildSelector;
 					}
