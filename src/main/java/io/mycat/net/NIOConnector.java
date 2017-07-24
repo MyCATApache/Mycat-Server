@@ -73,7 +73,9 @@ public final class NIOConnector extends Thread implements SocketConnector {
 		for (;;) {
 			++connectCount;
 			try {
-			    tSelector.select(1000L);
+				long start = System.nanoTime();
+				tSelector.select(1000L);
+				
 				connect(tSelector);
 				Set<SelectionKey> keys = tSelector.selectedKeys();
 				try {
