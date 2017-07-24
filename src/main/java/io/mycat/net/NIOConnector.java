@@ -31,15 +31,14 @@ import java.nio.channels.SocketChannel;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
+import io.mycat.util.SelectorUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
-import java.util.concurrent.atomic.AtomicLong;
-
-import io.mycat.util.SelectorUtil;
-
+import io.mycat.util.ExceptionUtil;
 /**
  * @author mycat
  */
@@ -73,42 +72,56 @@ public final class NIOConnector extends Thread implements SocketConnector {
 
 	@Override
 	public void run() {
-		final Selector tSelector = this.selector;
+
 		int invalidSelectCount = 0;
 		for (;;) {
 			++connectCount;
+			final Selector tSelector = this.selector;
 			try {
 				long start = System.nanoTime();
-				tSelector.select(1000L);
+			    tSelector.select(1000L);
 				long end = System.nanoTime();
 				connect(tSelector);
 				Set<SelectionKey> keys = tSelector.selectedKeys();
-				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS ) {
+				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS )
+				{
 					invalidSelectCount++;
-				} else {
-					try {
-						for (SelectionKey key : keys) {
+					LOGGER.info("Invalid select detected in NIOConnector");
+				}
+				else
+				{
+					try
+					{
+						for (SelectionKey key : keys)
+						{
 							Object att = key.attachment();
-							if (att != null && key.isValid() && key.isConnectable()) {
+							if (att != null && key.isValid() && key.isConnectable())
+							{
 								finishConnect(key, att);
-							} else {
+							}
+							else
+							{
 								key.cancel();
 							}
 						}
-					} finally {
+					}
+					finally
+					{
 						invalidSelectCount = 0;
 						keys.clear();
 					}
 				}
 				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD) {
-					Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
+					final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
 					if (rebuildSelector != null) {
+						LOGGER.info("Rebuilt selctor in NIOConnector");
 						this.selector = rebuildSelector;
 					}
 					invalidSelectCount = 0;
 				}
 			} catch (Exception e) {
-				LOGGER.warn(name, e);
+				//FORTIFY.System_Information_Leak--Internal
+				LOGGER.warn(name + ExceptionUtil.getExceptionInfo(e));
 			}
 		}
 	}
@@ -122,8 +135,10 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				channel.connect(new InetSocketAddress(c.host, c.port));
 				
 			} catch (Exception e) {
-				LOGGER.error("error:",e);
-				c.close(e.toString());
+				//CODECC by Aidan - System Infomation Leak:Internal
+				String errMsg = String.format("connect failed %s", ExceptionUtil.getExceptionInfo(e));
+				LOGGER.error(errMsg);
+				c.close(errMsg);
 			}
 		}
 	}
@@ -135,7 +150,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				clearSelectionKey(key);
 				c.setId(ID_GENERATOR.getId());
 				NIOProcessor processor = MycatServer.getInstance()
-						.nextProcessor();
+						.getNextProcessor();
 				c.setProcessor(processor);
 				NIOReactor reactor = reactorPool.getNextReactor();
 				reactor.postRegister(c);
@@ -143,7 +158,9 @@ public final class NIOConnector extends Thread implements SocketConnector {
 			}
 		} catch (Exception e) {
 			clearSelectionKey(key);
-			LOGGER.error("error:",e);
+			//CODECC by Aidan - System Infomation Leak:Internal
+			String errMsg = String.format("finish conn failed %s", ExceptionUtil.getExceptionInfo(e));
+			LOGGER.error(errMsg);
             c.close(e.toString());
 			c.onConnectFailed(e);
 
