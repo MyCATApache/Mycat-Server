@@ -67,7 +67,7 @@ public final class UnsafeExternalRowSorter {
            myCatMemory.getSerializerManager(),
             recordComparator,
       prefixComparator,
-      myCatMemory.getConf().getSizeAsBytes("mycat.pointer.array.len","16K"),
+      myCatMemory.getConf().getSizeAsBytes("mycat.pointer.array.len","1K"),
       pageSizeBytes,
       canUseRadixSort,
       enableSort);
@@ -106,7 +106,6 @@ public final class UnsafeExternalRowSorter {
   }
 
   public void cleanupResources() {
-      logger.debug("row sorter clean up resources!!!");
       sorter.cleanupResources();
   }
 

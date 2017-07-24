@@ -23,7 +23,36 @@
  */
 package io.mycat;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import io.mycat.buffer.NettyBufferPool;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.io.Files;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -58,7 +87,7 @@ import io.mycat.net.SocketConnector;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.route.sequence.handler.*;
+import io.mycat.route.sequence.handler.SequenceHandler;
 import io.mycat.server.ServerConnectionFactory;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
@@ -71,26 +100,7 @@ import io.mycat.statistic.stat.UserStatAnalyzer;
 import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;
-
-import java.io.*;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-
 import io.mycat.util.ZKUtils;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
-import org.apache.zookeeper.data.Stat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * @author mycat
@@ -115,7 +125,7 @@ public class MycatServer {
 	private volatile int channelIndex = 0;
 
 	//全局序列号
-	private final MyCATSequnceProcessor sequnceProcessor = new MyCATSequnceProcessor();
+//	private final MyCATSequnceProcessor sequnceProcessor = new MyCATSequnceProcessor();
 	private final DynaClassLoader catletClassLoader;
 	private final SQLInterceptor sqlInterceptor;
 	private volatile int nextProcessor;
@@ -224,7 +234,7 @@ public class MycatServer {
 	}
 
 	public MyCATSequnceProcessor getSequnceProcessor() {
-		return sequnceProcessor;
+		return MyCATSequnceProcessor.getInstance();
 	}
 
 	public SQLInterceptor getSqlInterceptor() {
@@ -298,6 +308,9 @@ public class MycatServer {
 
 		SystemConfig system = config.getSystem();
 		int processorCount = system.getProcessors();
+		
+		//init RouteStrategyFactory first
+		RouteStrategyFactory.init();
 
 		// server startup
 		LOGGER.info(NAME + " is ready to startup ...");
@@ -356,6 +369,11 @@ public class MycatServer {
 				 */
 
 				totalNetWorkBufferSize = 6*bufferPoolPageSize * bufferPoolPageNumber;
+				break;
+			case 2:
+				bufferPool = new NettyBufferPool(bufferPoolChunkSize);
+				LOGGER.info("Use Netty Buffer Pool");
+		
 				break;
 			default:
 				bufferPool = new DirectByteBufferPool(bufferPoolPageSize,bufferPoolChunkSize,
@@ -474,7 +492,7 @@ public class MycatServer {
 		//定期清理结果集排行榜，控制拒绝策略
 		scheduler.scheduleAtFixedRate(resultSetMapClear(),0L,  system.getClearBigSqLResultSetMapMs(),TimeUnit.MILLISECONDS);
 		
-		RouteStrategyFactory.init();
+ 		
 //        new Thread(tableStructureCheck()).start();
 
 		//XA Init recovery Log
@@ -500,14 +518,15 @@ public class MycatServer {
 			ruleDataLock=	 new InterProcessMutex(ZKUtils.getConnection(), path);
 			ruleDataLock.acquire(30, TimeUnit.SECONDS);
 		      File[]  childFiles=	file.listFiles();
-			String basePath=ZKUtils.getZKBasePath()+"ruledata/";
-			for (File childFile : childFiles) {
-				CuratorFramework zk = ZKUtils.getConnection();
-				if (zk.checkExists().forPath(basePath+childFile.getName()) == null) {
-					zk.create().creatingParentsIfNeeded().forPath(basePath+childFile.getName(), Files.toByteArray(childFile));
+			if(childFiles!=null&&childFiles.length>0) {
+				String basePath = ZKUtils.getZKBasePath() + "ruledata/";
+				for (File childFile : childFiles) {
+					CuratorFramework zk = ZKUtils.getConnection();
+					if (zk.checkExists().forPath(basePath + childFile.getName()) == null) {
+						zk.create().creatingParentsIfNeeded().forPath(basePath + childFile.getName(), Files.toByteArray(childFile));
+					}
 				}
 			}
-
 
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -976,12 +995,16 @@ public class MycatServer {
 		return allCoordinatorLogEntries.toArray(new CoordinatorLogEntry[allCoordinatorLogEntries.size()]);
 	}
 
-
+	//huangyiming add
+	public DirectByteBufferPool getDirectByteBufferPool() {
+		return (DirectByteBufferPool)bufferPool;
+	}
 
 	public boolean isAIO() {
 		return aio;
 	}
 
+	
 	public ListeningExecutorService getListeningExecutorService() {
 		return listeningExecutorService;
 	}
@@ -994,4 +1017,5 @@ public class MycatServer {
 		byte[] data=	zk.getData().forPath(path);
 		System.out.println(data.length);
 	}
+	
 }

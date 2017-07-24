@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import com.alibaba.druid.sql.SQLUtils;
 /**  
  * 功能详细描述:分片join,单独的语句
  * @author sohudo[http://blog.csdn.net/wind520]
@@ -96,6 +98,34 @@ public class TableFilter {
 		}
 	}
 	
+	public void addField(String fieldName,String fieldAlia,String expr){
+		String atable=getTablefrom(fieldName);
+		String afield=getFieldfrom(fieldName);
+		boolean allfield=afield.equals("*")?true:false;
+		if (atable.equals("*")) {
+		  fieldAliasMap.put(afield, null);
+		  setAllField(allfield);
+		  if (join!=null) {
+			 join.addField(fieldName,null);  
+			 join.setAllField(allfield);
+		   }		  
+		}
+		else {
+		  if (atable.equals(tAlia)) {
+			expr = expr.replace(fieldName, afield);
+		    fieldAliasMap.put(expr, fieldAlia);
+		    setAllField(allfield);
+		 }
+		  else {
+		    if (join!=null) {
+			  join.addField(fieldName,fieldAlia,expr);  
+			  join.setAllField(allfield);
+		     }
+		   }
+		}
+	}
+	
+	
 	public void addWhere(String fieldName,String value,String Operator,String and){
 		String atable=getTablefrom(fieldName);
 		String afield=getFieldfrom(fieldName);
@@ -108,6 +138,21 @@ public class TableFilter {
 		  }
 		}
 	}
+	
+	public void addWhere(String fieldName,String condition,String and){
+		String atable=getTablefrom(fieldName);
+		String afield=getFieldfrom(fieldName);
+		condition = condition.replace(fieldName, afield);
+		if (atable.equals(tAlia)) {
+			where=unionsql(where,condition,and);
+		}
+		else {
+		  if (join!=null) {
+			  join.addWhere(fieldName,condition,and);  
+		  }
+		}
+	}
+	
 	
     private String unionsql(String key,String value,String Operator){
     	if (key.trim().equals("")){

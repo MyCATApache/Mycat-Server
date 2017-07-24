@@ -59,8 +59,8 @@ public class MigrateDumpRunner implements Runnable {
         File file = null;
        String spath=   querySecurePath(config);
         if(Strings.isNullOrEmpty(spath)||"NULL".equalsIgnoreCase(spath)||"empty".equalsIgnoreCase(spath)) {
-            file = new File(SystemConfig.getHomePath() + File.separator + "temp",
-                    task.getFrom() + "_" + task.getTo() + Thread.currentThread().getId() + System.currentTimeMillis() + "");
+            file = new File(SystemConfig.getHomePath() + File.separator + "temp",    "dump"    );
+                  //  task.getFrom() + "_" + task.getTo() + Thread.currentThread().getId() + System.currentTimeMillis() + "");
         }   else {
             spath+= Thread.currentThread().getId() + System.currentTimeMillis();
             file=new File(spath);
@@ -82,9 +82,10 @@ public class MigrateDumpRunner implements Runnable {
         String logPos=result.substring(logPosIndex +15,logPosIndex +15+result.substring(logPosIndex +15).indexOf(";")) ;
            task.setBinlogFile(logFile);
             task.setPos(Integer.parseInt(logPos));
-            File dataFile = new File(file, task.getTable() + ".txt");
+           String ff= Thread.currentThread().getId() +""+System.currentTimeMillis();
+            File dataFile = new File(file, task.getTable() +ff+ ".txt");
 
-            File sqlFile = new File(file, task.getTable() + ".sql");
+            File sqlFile = new File(file, task.getTable() +ff+ ".sql");
            List<String> createTable= Files.readLines(sqlFile,Charset.forName("UTF-8")) ;
 
             exeCreateTableToDn(extractCreateSql(createTable),task.getTo(),task.getTable());

@@ -23,6 +23,7 @@
  */
 package io.mycat.config;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +47,7 @@ import com.alibaba.druid.wall.WallProvider;
 
 import io.mycat.MycatServer;
 import io.mycat.config.model.FirewallConfig;
+import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.model.UserPrivilegesConfig;
 import io.mycat.net.handler.FrontendPrivileges;
@@ -104,17 +106,20 @@ public class MycatPrivileges implements FrontendPrivileges {
     @Override
     public Set<String> getUserSchemas(String user) {
         MycatConfig conf = MycatServer.getInstance().getConfig();
+        
         UserConfig uc = conf.getUsers().get(user);
         if (uc != null) {
             return uc.getSchemas();
         } else {
             return null;
         }
-    }
+    
+     }
     
     @Override
     public Boolean isReadOnly(String user) {
         MycatConfig conf = MycatServer.getInstance().getConfig();
+       
         UserConfig uc = conf.getUsers().get(user);
         if (uc != null) {
             return uc.isReadOnly();
@@ -158,6 +163,7 @@ public class MycatPrivileges implements FrontendPrivileges {
         if ((whitehost == null || whitehost.size() == 0)&&(whitehostMask == null || whitehostMask.size() == 0)) {
         	Map<String, UserConfig> users = mycatConfig.getUsers();
         	isPassed = users.containsKey(user);
+        	
         } else {
         	List<UserConfig> list = whitehost.get(host);
 			Set<Pattern> patterns = whitehostMask.keySet();

@@ -26,6 +26,7 @@ public class EngineCtx {
 	private AllJobFinishedListener allJobFinishedListener;
 	private AtomicBoolean headerWrited = new AtomicBoolean();
 	private final ReentrantLock writeLock = new ReentrantLock();
+	private volatile boolean hasError = false;
 
 	public EngineCtx(NonBlockingSession session) {
 		this.bachJob = new BatchSQLJob();
@@ -169,10 +170,24 @@ public class EngineCtx {
 
 		boolean allFinished = bachJob.jobFinished(sqlJob);
 		if (allFinished && finished.compareAndSet(false, true)) {
-			LOGGER.info("all job finished  for front connection: "
-					+ session.getSource());
-			allJobFinishedListener.onAllJobFinished(this);
+			if(!hasError){
+				LOGGER.info("all job finished  for front connection: "
+						+ session.getSource());
+				allJobFinishedListener.onAllJobFinished(this);
+			}else{
+				LOGGER.info("all job finished with error for front connection: "
+						+ session.getSource());
+			}
 		}
 
 	}
+
+	public boolean isHasError() {
+		return hasError;
+	}
+
+	public void setHasError(boolean hasError) {
+		this.hasError = hasError;
+	}
+
 }

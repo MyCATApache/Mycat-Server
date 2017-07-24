@@ -1,12 +1,20 @@
 package io.mycat.route.parser.druid;
 
-import io.mycat.MycatServer;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.route.sequence.handler.*;
-
 import java.io.UnsupportedEncodingException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.mycat.MycatServer;
+import io.mycat.config.model.SystemConfig;
+import io.mycat.route.sequence.handler.DistributedSequenceHandler;
+import io.mycat.route.sequence.handler.IncrSequenceMySQLHandler;
+import io.mycat.route.sequence.handler.IncrSequencePropHandler;
+import io.mycat.route.sequence.handler.IncrSequenceTimeHandler;
+import io.mycat.route.sequence.handler.IncrSequenceZKHandler;
+import io.mycat.route.sequence.handler.SequenceHandler;
 
 /**
  * 使用Druid解析器实现对Sequence处理
@@ -16,6 +24,11 @@ import java.util.regex.Pattern;
  */
 public class DruidSequenceHandler {
     private final SequenceHandler sequenceHandler;
+    
+    /**
+     * 分段锁
+     */
+    private final static Map<String,ReentrantLock> segmentLock = new ConcurrentHashMap<>();
 
     /**
      * 获取MYCAT SEQ的匹配语句
@@ -54,21 +67,44 @@ public class DruidSequenceHandler {
      * @throws UnsupportedEncodingException
      */
     public String getExecuteSql(String sql, String charset) throws UnsupportedEncodingException {
-        String executeSql = null;
+    	String executeSql = sql;
         if (null != sql && !"".equals(sql)) {
-            //sql不能转大写，因为sql可能是insert语句会把values也给转换了
-            // 获取表名。
-            Matcher matcher = pattern.matcher(sql);
-            if (matcher.find()) {
-                String tableName = matcher.group(2);
-                long value = sequenceHandler.nextId(tableName.toUpperCase());
-
-                // 将MATCHED_FEATURE+表名替换成序列号。
-                executeSql = sql.replace(matcher.group(1), " " + value);
+            Matcher matcher = pattern.matcher(executeSql);
+            if(matcher.find()){
+            	String tableName = matcher.group(2);
+                ReentrantLock lock = getSegLock(tableName);
+                lock.lock();
+                try {
+                	matcher = pattern.matcher(executeSql);
+                	while(matcher.find()){            
+                		long value = sequenceHandler.nextId(tableName.toUpperCase());
+                        executeSql = executeSql.replaceFirst(matcher.group(1), " "+Long.toString(value));
+                    }
+				} finally {
+					lock.unlock();
+				}
             }
-
         }
         return executeSql;
+    }
+    
+    /*
+     * 获取分段锁 
+     * @param name
+     * @return
+     */
+    private ReentrantLock getSegLock(String name){
+    	ReentrantLock lock = segmentLock.get(name);
+    	if(lock==null){
+    		synchronized (segmentLock) {
+    			lock = segmentLock.get(name);
+				if(lock==null){
+					lock = new ReentrantLock();
+					segmentLock.put(name, lock);
+				}
+			}
+    	}
+    	return lock;
     }
 
 
