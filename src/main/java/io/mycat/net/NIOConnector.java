@@ -25,179 +25,158 @@ package io.mycat.net;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.StandardSocketOptions;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicLong;
 
 import io.mycat.util.SelectorUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
-import io.mycat.util.ExceptionUtil;
+import io.mycat.net.factory.FrontendConnectionFactory;
+
 /**
  * @author mycat
  */
-public final class NIOConnector extends Thread implements SocketConnector {
-	private static final Logger LOGGER = LoggerFactory.getLogger(NIOConnector.class);
-	public static final ConnectIdGenerator ID_GENERATOR = new ConnectIdGenerator();
+public final class NIOAcceptor extends Thread  implements SocketAcceptor{
+	private static final Logger LOGGER = LoggerFactory.getLogger(NIOAcceptor.class);
+	private static final AcceptIdGenerator ID_GENERATOR = new AcceptIdGenerator();
 
-	private final String name;
+	private final int port;
 	private volatile Selector selector;
-	private final BlockingQueue<AbstractConnection> connectQueue;
-	private long connectCount;
+	private final ServerSocketChannel serverChannel;
+	private final FrontendConnectionFactory factory;
+	private long acceptCount;
 	private final NIOReactorPool reactorPool;
 
-	public NIOConnector(String name, NIOReactorPool reactorPool)
+	public NIOAcceptor(String name, String bindIp,int port, 
+			FrontendConnectionFactory factory, NIOReactorPool reactorPool)
 			throws IOException {
 		super.setName(name);
-		this.name = name;
+		this.port = port;
 		this.selector = Selector.open();
+		this.serverChannel = ServerSocketChannel.open();
+		this.serverChannel.configureBlocking(false);
+		/** 设置TCP属性 */
+		serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
+		serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, 1024 * 16 * 2);
+		// backlog=100
+		serverChannel.bind(new InetSocketAddress(bindIp, port), 100);
+		this.serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+		this.factory = factory;
 		this.reactorPool = reactorPool;
-		this.connectQueue = new LinkedBlockingQueue<AbstractConnection>();
 	}
 
-	public long getConnectCount() {
-		return connectCount;
+	public int getPort() {
+		return port;
 	}
 
-	public void postConnect(AbstractConnection c) {
-		connectQueue.offer(c);
-		selector.wakeup();
+	public long getAcceptCount() {
+		return acceptCount;
 	}
 
 	@Override
 	public void run() {
-
+		final Selector tSelector = this.selector;
 		int invalidSelectCount = 0;
 		for (;;) {
-			++connectCount;
-			final Selector tSelector = this.selector;
+			++acceptCount;
 			try {
 				long start = System.nanoTime();
 			    tSelector.select(1000L);
 				long end = System.nanoTime();
-				connect(tSelector);
 				Set<SelectionKey> keys = tSelector.selectedKeys();
-				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS )
-				{
+				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS ) {
 					invalidSelectCount++;
-					LOGGER.info("Invalid select detected in NIOConnector");
-				}
-				else
-				{
-					try
-					{
-						for (SelectionKey key : keys)
-						{
-							Object att = key.attachment();
-							if (att != null && key.isValid() && key.isConnectable())
-							{
-								finishConnect(key, att);
-							}
-							else
-							{
+				} else {
+					try {
+						for (SelectionKey key : keys) {
+							if (key.isValid() && key.isAcceptable()) {
+								accept();
+							} else {
 								key.cancel();
 							}
 						}
-					}
-					finally
-					{
-						invalidSelectCount = 0;
+					} finally {
 						keys.clear();
 					}
 				}
 				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD) {
-					final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
+					Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
 					if (rebuildSelector != null) {
-						LOGGER.info("Rebuilt selctor in NIOConnector");
 						this.selector = rebuildSelector;
 					}
 					invalidSelectCount = 0;
 				}
 			} catch (Exception e) {
-				//FORTIFY.System_Information_Leak--Internal
-				LOGGER.warn(name + ExceptionUtil.getExceptionInfo(e));
+				LOGGER.warn(getName(), e);
 			}
 		}
 	}
 
-	private void connect(Selector selector) {
-		AbstractConnection c = null;
-		while ((c = connectQueue.poll()) != null) {
-			try {
-				SocketChannel channel = (SocketChannel) c.getChannel();
-				channel.register(selector, SelectionKey.OP_CONNECT, c);
-				channel.connect(new InetSocketAddress(c.host, c.port));
-				
-			} catch (Exception e) {
-				//CODECC by Aidan - System Infomation Leak:Internal
-				String errMsg = String.format("connect failed %s", ExceptionUtil.getExceptionInfo(e));
-				LOGGER.error(errMsg);
-				c.close(errMsg);
-			}
-		}
-	}
-
-	private void finishConnect(SelectionKey key, Object att) {
-		BackendAIOConnection c = (BackendAIOConnection) att;
+	private void accept() {
+		SocketChannel channel = null;
 		try {
-			if (finishConnect(c, (SocketChannel) c.channel)) {
-				clearSelectionKey(key);
-				c.setId(ID_GENERATOR.getId());
-				NIOProcessor processor = MycatServer.getInstance()
-						.getNextProcessor();
-				c.setProcessor(processor);
-				NIOReactor reactor = reactorPool.getNextReactor();
-				reactor.postRegister(c);
-				c.onConnectfinish();
-			}
+			channel = serverChannel.accept();
+			channel.configureBlocking(false);
+			FrontendConnection c = factory.make(channel);
+			c.setAccepted(true);
+			c.setId(ID_GENERATOR.getId());
+			NIOProcessor processor = (NIOProcessor) MycatServer.getInstance()
+					.nextProcessor();
+			c.setProcessor(processor);
+			
+			NIOReactor reactor = reactorPool.getNextReactor();
+			reactor.postRegister(c);
+
 		} catch (Exception e) {
-			clearSelectionKey(key);
-			//CODECC by Aidan - System Infomation Leak:Internal
-			String errMsg = String.format("finish conn failed %s", ExceptionUtil.getExceptionInfo(e));
-			LOGGER.error(errMsg);
-            c.close(e.toString());
-			c.onConnectFailed(e);
-
+	        LOGGER.warn(getName(), e);
+			closeChannel(channel);
 		}
 	}
 
-	private boolean finishConnect(AbstractConnection c, SocketChannel channel)
-			throws IOException {
-		if (channel.isConnectionPending()) {
-			channel.finishConnect();
-
-			c.setLocalPort(channel.socket().getLocalPort());
-			return true;
-		} else {
-			return false;
+	private static void closeChannel(SocketChannel channel) {
+		if (channel == null) {
+			return;
 		}
-	}
-
-	private void clearSelectionKey(SelectionKey key) {
-		if (key.isValid()) {
-			key.attach(null);
-			key.cancel();
+		Socket socket = channel.socket();
+		if (socket != null) {
+			try {
+				socket.close();
+			} catch (IOException e) {
+		       LOGGER.error("closeChannelError", e);
+			}
+		}
+		try {
+			channel.close();
+		} catch (IOException e) {
+            LOGGER.error("closeChannelError", e);
 		}
 	}
 
 	/**
-	 * 后端连接ID生成器
+	 * 前端连接ID生成器
 	 * 
 	 * @author mycat
 	 */
-	public static class ConnectIdGenerator {
+	private static class AcceptIdGenerator {
 
-		private static final long MAX_VALUE = Long.MAX_VALUE;
-		private AtomicLong connectId = new AtomicLong(0);
+		private static final long MAX_VALUE = 0xffffffffL;
 
-		public long getId() {
-			return connectId.incrementAndGet();
+		private long acceptId = 0L;
+		private final Object lock = new Object();
+
+		private long getId() {
+			synchronized (lock) {
+				if (acceptId >= MAX_VALUE) {
+					acceptId = 0L;
+				}
+				return ++acceptId;
+			}
 		}
 	}
 
