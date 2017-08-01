@@ -376,8 +376,22 @@ public abstract class PhysicalDatasource {
 			}
 			try {
 				// creat new connection
-				this.createNewConnection(simpleHandler, null, schemas[i
-						% schemas.length]);
+				
+				int curTotalConnection = this.totalConnection.get();
+				while(curTotalConnection + 1 <= size) {
+					
+					if (this.totalConnection.compareAndSet(curTotalConnection, curTotalConnection + 1)) {
+						String schema = schemas[i % schemas.length];
+						LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
+						this.createNewConnection(simpleHandler, null, schema);
+						return;
+					}
+					
+					curTotalConnection = this.totalConnection.get(); //CAS更新失败，则重新判断当前连接是否超过最大连接数
+					
+				}
+				
+				
 			} catch (IOException e) {
 				LOGGER.warn("create connection err " + e);
 			}
@@ -477,6 +491,7 @@ public abstract class PhysicalDatasource {
 		} else { // this.getActiveCount并不是线程安全的（严格上说该方法获取数量不准确），
 			int curTotalConnection = this.totalConnection.get();
 			while(curTotalConnection + 1 <= size) {
+				
 				if (this.totalConnection.compareAndSet(curTotalConnection, curTotalConnection + 1)) {
 					LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
 					createNewConnection(handler, attachment, schema);
@@ -511,10 +526,14 @@ public abstract class PhysicalDatasource {
 	}
 	
 	public int decrementActiveCountSafe() {
+		int ac = this.activeCount.get();
+		System.out.println("decrement activeCount:" + ac);
 		return this.activeCount.decrementAndGet();
 	}
 	
 	public int incrementActiveCountSafe() {
+		int ac = this.activeCount.get();
+		System.out.println("increment activeCount:" + ac);
 		return this.activeCount.incrementAndGet();
 	}
 	
@@ -531,7 +550,7 @@ public abstract class PhysicalDatasource {
 	}
 	
 	public int incrementTotalConnectionSafe() {
-		return this.activeCount.incrementAndGet();
+		return this.totalConnection.incrementAndGet();
 	}
 
 	private void returnCon(BackendConnection c) {
@@ -548,7 +567,10 @@ public abstract class PhysicalDatasource {
 			ok = queue.getManCommitCons().offer(c);
 		}
 		
-		decrementActiveCountSafe();
+		
+		if(c.getId() > 0) {
+			decrementActiveCountSafe();
+		}
 		
 		if (!ok) {
 
@@ -569,7 +591,11 @@ public abstract class PhysicalDatasource {
 		ConQueue queue = this.conMap.getSchemaConQueue(conn.getSchema());
 		if (queue != null) {
 			queue.removeCon(conn);
-			decrementTotalConnectionsSafe(); 
+			
+			if(conn.getId() > 0 ) {
+				decrementTotalConnectionsSafe(); 
+			}
+			
 		}
 
 	}
