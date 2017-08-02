@@ -63,6 +63,11 @@ public class MongoDriver implements Driver
 		
 		//删掉开头的 jdbc:
 		//url = url.replace(URL_JDBC, "");
+		//替换user:
+		if(defaults.getProperty("user")!=null && defaults.getProperty("password")!=null ){
+			url = url.replace(PREFIX, PREFIX+defaults.getProperty("user")+":"+defaults.getProperty("password")+"@");
+		}
+		LOGGER.info("Mongodb url:"+url);
 		
 		try {
 			//FIXME 判断defaults中的参数,写入URL中?

@@ -463,7 +463,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 
 		//无表的select语句直接路由带任一节点
-        if((ctx.getTables() == null || ctx.getTables().size() == 0)&&(ctx.getTableAliasMap()==null||ctx.getTableAliasMap().isEmpty())) {
+        if((ctx.getTables() == null || ctx.getTables().size() == 0)&&(ctx.getTableAliasMap()==null||ctx.getTableAliasMap().isEmpty())) {        				
 			rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
 			rrs.setFinishedRoute(true);
 			return;
@@ -494,7 +494,26 @@ public class DruidSelectParser extends DefaultDruidParser {
                     rrs.setFinishedRoute(true);
                     return;
                 }
-            }
+            }            
+
+        	//add@byron 支持通过表指定schema路由到名称相同的datanode
+			if(ctx.getTableAliasMap().size()>0){
+				for(String key: ctx.getTableAliasMap().keySet()){
+					TableConfig tb_config = schema.getTables().get(key.toUpperCase());
+					if(tb_config!=null){
+						String table_name = ctx.getTableAliasMap().get(key);
+						for(String dataNode:tb_config.getDataNodes()){
+							if(tb_config.getDataNodes().size()==1 || table_name.startsWith(dataNode+'.')){
+								rrs = RouterUtil.routeToSingleNode(rrs, dataNode, ctx.getSql());
+								rrs.setFinishedRoute(true);
+								return;
+							}
+						}
+					}
+				}				
+			}
+			//end@byron
+			
 			String msg = " find no Route:" + ctx.getSql();
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
