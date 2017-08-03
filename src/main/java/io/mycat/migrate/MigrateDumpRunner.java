@@ -82,10 +82,9 @@ public class MigrateDumpRunner implements Runnable {
         String logPos=result.substring(logPosIndex +15,logPosIndex +15+result.substring(logPosIndex +15).indexOf(";")) ;
            task.setBinlogFile(logFile);
             task.setPos(Integer.parseInt(logPos));
-           String ff= Thread.currentThread().getId() +""+System.currentTimeMillis();
-            File dataFile = new File(file, task.getTable() +ff+ ".txt");
+            File dataFile = new File(file, task.getTable() + ".txt");
 
-            File sqlFile = new File(file, task.getTable() +ff+ ".sql");
+            File sqlFile = new File(file, task.getTable() + ".sql");
            List<String> createTable= Files.readLines(sqlFile,Charset.forName("UTF-8")) ;
 
             exeCreateTableToDn(extractCreateSql(createTable),task.getTo(),task.getTable());
