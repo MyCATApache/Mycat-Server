@@ -41,7 +41,9 @@ import io.mycat.util.TimeUtil;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -82,6 +84,11 @@ public abstract class PhysicalDatasource {
 	// 当前存活的总连接数,为什么不直接使用activeCount,主要是因为连接的创建是异步完成的
 	private volatile AtomicInteger totalConnection = new AtomicInteger(0);
 	
+	/**
+	 * 由于在Mycat中，returnCon被多次调用（与takeCon并没有成对调用）导致activeCount、totalConnection容易出现负数
+	 */
+	private static final String TAKE_CONNECTION_FLAG = "1";
+	private ConcurrentMap<Long /* ConnectionId */, String /* 常量1*/> takeConnectionContext = new ConcurrentHashMap<>();
 
 	
 
@@ -438,7 +445,10 @@ public abstract class PhysicalDatasource {
 
 		conn.setBorrowed(true);
 		
-		incrementActiveCountSafe();
+		if(takeConnectionContext.putIfAbsent(conn.getId(), TAKE_CONNECTION_FLAG) == null) {
+			incrementActiveCountSafe();
+		}
+		
 		
 		if (!conn.getSchema().equals(schema)) {
 			// need do schema syn in before sql send
@@ -461,7 +471,7 @@ public abstract class PhysicalDatasource {
 					createNewConnection(new DelegateResponseHandler(handler) {
 						@Override
 						public void connectionError(Throwable e, BackendConnection conn) {
-							decrementTotalConnectionsSafe(); // 如果创建连接失败，将当前连接数减1
+							//decrementTotalConnectionsSafe(); // 如果创建连接失败，将当前连接数减1
 							handler.connectionError(e, conn);
 						}
 
@@ -526,14 +536,10 @@ public abstract class PhysicalDatasource {
 	}
 	
 	public int decrementActiveCountSafe() {
-		int ac = this.activeCount.get();
-		System.out.println("decrement activeCount:" + ac);
 		return this.activeCount.decrementAndGet();
 	}
 	
 	public int incrementActiveCountSafe() {
-		int ac = this.activeCount.get();
-		System.out.println("increment activeCount:" + ac);
 		return this.activeCount.incrementAndGet();
 	}
 	
@@ -567,16 +573,16 @@ public abstract class PhysicalDatasource {
 			ok = queue.getManCommitCons().offer(c);
 		}
 		
-		
-		if(c.getId() > 0) {
+		if(c.getId() > 0 && takeConnectionContext.remove(c.getId(), TAKE_CONNECTION_FLAG) ) {
 			decrementActiveCountSafe();
 		}
 		
-		if (!ok) {
-
+		if(ok) {
 			LOGGER.warn("can't return to pool ,so close con " + c);
 			c.close("can't return to pool ");
+			
 		}
+		
 	}
 
 	public void releaseChannel(BackendConnection c) {
@@ -589,15 +595,11 @@ public abstract class PhysicalDatasource {
 
 	public void connectionClosed(BackendConnection conn) {
 		ConQueue queue = this.conMap.getSchemaConQueue(conn.getSchema());
-		if (queue != null) {
+		if (queue != null ) {
 			queue.removeCon(conn);
-			
-			if(conn.getId() > 0 ) {
-				decrementTotalConnectionsSafe(); 
-			}
-			
 		}
-
+		
+		decrementTotalConnectionsSafe(); 
 	}
 
 	/**

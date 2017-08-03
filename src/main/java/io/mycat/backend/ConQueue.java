@@ -37,10 +37,12 @@ public class ConQueue {
 		this.executeCount++;
 	}
 
-	public void removeCon(BackendConnection con) {
-		if (!autoCommitCons.remove(con)) {
-			manCommitCons.remove(con);
+	public boolean removeCon(BackendConnection con) {
+		boolean removed = autoCommitCons.remove(con);
+		if (!removed) {
+			return manCommitCons.remove(con);
 		}
+		return removed;
 	}
 
 	public boolean isSameCon(BackendConnection con) {
