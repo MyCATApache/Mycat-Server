@@ -23,7 +23,6 @@
  */
 package io.mycat.config;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +46,6 @@ import com.alibaba.druid.wall.WallProvider;
 
 import io.mycat.MycatServer;
 import io.mycat.config.model.FirewallConfig;
-import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.model.UserPrivilegesConfig;
 import io.mycat.net.handler.FrontendPrivileges;
@@ -105,17 +103,8 @@ public class MycatPrivileges implements FrontendPrivileges {
 
     @Override
     public Set<String> getUserSchemas(String user) {
-      	//huangyiming 
         MycatConfig conf = MycatServer.getInstance().getConfig();
-        int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
-        if(nopassWordLogin == 1){
-	        Map<String, SchemaConfig> schemas = conf.getSchemas();
-	   		Set<String> result = new HashSet<String>();
-	   		if(schemas !=null && schemas.size() > 0 ){
-		   	    result =  schemas.keySet();
-		   	    return result;
-	   		}
-        }
+        
         UserConfig uc = conf.getUsers().get(user);
         if (uc != null) {
             return uc.getSchemas();
@@ -128,11 +117,7 @@ public class MycatPrivileges implements FrontendPrivileges {
     @Override
     public Boolean isReadOnly(String user) {
         MycatConfig conf = MycatServer.getInstance().getConfig();
-        //huangyiming add
-        int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
-        if(nopassWordLogin == 1){
-        	 return false;
-        }
+       
         UserConfig uc = conf.getUsers().get(user);
         if (uc != null) {
             return uc.isReadOnly();
@@ -176,11 +161,7 @@ public class MycatPrivileges implements FrontendPrivileges {
         if ((whitehost == null || whitehost.size() == 0)&&(whitehostMask == null || whitehostMask.size() == 0)) {
         	Map<String, UserConfig> users = mycatConfig.getUsers();
         	isPassed = users.containsKey(user);
-        	//huangyiming add 
-       	 	int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
-            if(nopassWordLogin == 1){
-            	isPassed = true;
-            }
+        	
         } else {
         	List<UserConfig> list = whitehost.get(host);
 			Set<Pattern> patterns = whitehostMask.keySet();
@@ -272,6 +253,14 @@ public class MycatPrivileges implements FrontendPrivileges {
 					int index = -1;
 					
 					//TODO 此处待优化，寻找更优SQL 解析器
+					
+					//修复bug
+					// https://github.com/alibaba/druid/issues/1309
+					//com.alibaba.druid.sql.parser.ParserException: syntax error, error in :'begin',expect END, actual EOF begin
+					if ( sql != null && sql.length() == 5 && sql.equalsIgnoreCase("begin") ) {
+						return true;
+					}
+					
 					SQLStatementParser parser = new MycatStatementParser(sql);			
 					SQLStatement stmt = parser.parseStatement();
 					

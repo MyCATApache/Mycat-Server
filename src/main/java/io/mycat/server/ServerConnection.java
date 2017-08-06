@@ -25,6 +25,8 @@ package io.mycat.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +56,7 @@ public class ServerConnection extends FrontendConnection {
 
 	private volatile int txIsolation;
 	private volatile boolean autocommit;
+	private volatile boolean preAcStates; //上一个ac状态,默认为true
 	private volatile boolean txInterrupted;
 	private volatile String txInterrputMsg = "";
 	private long lastInsertId;
@@ -62,12 +65,13 @@ public class ServerConnection extends FrontendConnection {
 	 * 标志是否执行了lock tables语句，并处于lock状态
 	 */
 	private volatile boolean isLocked = false;
-
+	
 	public ServerConnection(NetworkChannel channel)
 			throws IOException {
 		super(channel);
 		this.txInterrupted = false;
 		this.autocommit = true;
+		this.preAcStates = true;
 	}
 
 	@Override
@@ -266,7 +270,7 @@ public class ServerConnection extends FrontendConnection {
 
 
 
-	public void routeEndExecuteSQL(String sql, int type, SchemaConfig schema) {
+	public void routeEndExecuteSQL(String sql, final int type, final SchemaConfig schema) {
 		// 路由计算
 		RouteResultset rrs = null;
 		try {
@@ -287,7 +291,8 @@ public class ServerConnection extends FrontendConnection {
 			// session执行
 			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
 		}
-	}
+		
+ 	}
 
 	/**
 	 * 提交事务
@@ -375,11 +380,34 @@ public class ServerConnection extends FrontendConnection {
 		}
 	}
 
+	/**
+	 * add huangyiming 检测字符串中某字符串出现次数
+	 * @param srcText
+	 * @param findText
+	 * @return
+	 */
+	public static int appearNumber(String srcText, String findText) {
+	    int count = 0;
+	    Pattern p = Pattern.compile(findText);
+	    Matcher m = p.matcher(srcText);
+	    while (m.find()) {
+	        count++;
+	    }
+	    return count;
+	}
 	@Override
 	public String toString() {
 		return "ServerConnection [id=" + id + ", schema=" + schema + ", host="
 				+ host + ", user=" + user + ",txIsolation=" + txIsolation
 				+ ", autocommit=" + autocommit + ", schema=" + schema + "]";
+	}
+
+	public boolean isPreAcStates() {
+		return preAcStates;
+	}
+
+	public void setPreAcStates(boolean preAcStates) {
+		this.preAcStates = preAcStates;
 	}
 
 }
