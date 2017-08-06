@@ -33,6 +33,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
 
+import io.mycat.util.SelectorUtil;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -41,12 +42,12 @@ import io.mycat.net.factory.FrontendConnectionFactory;
 /**
  * @author mycat
  */
-public final class NIOAcceptor extends Thread  implements SocketAcceptor{
+public final class NIOAcceptor extends Thread implements SocketAcceptor{
 	private static final Logger LOGGER = LoggerFactory.getLogger(NIOAcceptor.class);
 	private static final AcceptIdGenerator ID_GENERATOR = new AcceptIdGenerator();
 
 	private final int port;
-	private final Selector selector;
+	private volatile Selector selector;
 	private final ServerSocketChannel serverChannel;
 	private final FrontendConnectionFactory factory;
 	private long acceptCount;
@@ -80,22 +81,42 @@ public final class NIOAcceptor extends Thread  implements SocketAcceptor{
 
 	@Override
 	public void run() {
-		final Selector tSelector = this.selector;
+		int invalidSelectCount = 0;
 		for (;;) {
+			final Selector tSelector = this.selector;
 			++acceptCount;
 			try {
+				long start = System.nanoTime();
 			    tSelector.select(1000L);
+				long end = System.nanoTime();
 				Set<SelectionKey> keys = tSelector.selectedKeys();
-				try {
-					for (SelectionKey key : keys) {
-						if (key.isValid() && key.isAcceptable()) {
-							accept();
-						} else {
-							key.cancel();
+				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS )
+				{
+					invalidSelectCount++;
+				}
+				else
+                {
+					try {
+						for (SelectionKey key : keys) {
+							if (key.isValid() && key.isAcceptable()) {
+								accept();
+							} else {
+								key.cancel();
+							}
 						}
+					} finally {
+						keys.clear();
+						invalidSelectCount = 0;
 					}
-				} finally {
-					keys.clear();
+				}
+				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD)
+				{
+					final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
+					if (rebuildSelector != null)
+					{
+						this.selector = rebuildSelector;
+					}
+					invalidSelectCount = 0;
 				}
 			} catch (Exception e) {
 				LOGGER.warn(getName(), e);
