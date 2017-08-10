@@ -557,8 +557,7 @@ public class RouterUtil {
 		final SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
 //      modify by yanjunli  序列获取修改为多线程方式。使用分段锁方式,一个序列一把锁。  begin		
 //		MycatServer.getInstance().getSequnceProcessor().addNewSql(sessionSQLPair);
-		LOGGER.warn("prefix+values ===" + sql);
-        MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
+        MycatServer.getInstance().getSequenceExecutor().execute(new Runnable() {
 				@Override
 				public void run() {
 					MycatServer.getInstance().getSequnceProcessor().executeSeq(sessionSQLPair);

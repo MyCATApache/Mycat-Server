@@ -67,13 +67,13 @@ public class ConQueue {
 				count);
 		while (!manCommitCons.isEmpty() && readyCloseCons.size() < count) {
 			BackendConnection theCon = manCommitCons.poll();
-			if (theCon != null) {
+			if (theCon != null&&!theCon.isBorrowed()) {
 				readyCloseCons.add(theCon);
 			}
 		}
 		while (!autoCommitCons.isEmpty() && readyCloseCons.size() < count) {
 			BackendConnection theCon = autoCommitCons.poll();
-			if (theCon != null) {
+			if (theCon != null&&!theCon.isBorrowed()) {
 				readyCloseCons.add(theCon);
 			}
 

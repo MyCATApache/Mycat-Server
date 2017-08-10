@@ -217,6 +217,10 @@ public abstract class AbstractConnection implements NIOConnection {
 	public long getLastWriteTime() {
 		return lastWriteTime;
 	}
+	
+	public void setLastWriteTime(long lasttime){
+		this.lastWriteTime = lasttime;
+	}
 
 	public long getNetInBytes() {
 		return netInBytes;
