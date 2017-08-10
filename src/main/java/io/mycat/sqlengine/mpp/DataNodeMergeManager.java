@@ -197,8 +197,8 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
     			for(int i = 0;i<mergColsArrays.length;i++){
     				mergeColsIndex[i] = mergColsArrays[i].colMeta.colIndex;
     			}
+    			Arrays.sort(mergeColsIndex);
     		}
-            Arrays.sort(mergeColsIndex);
         }
 
 
