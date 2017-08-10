@@ -225,8 +225,9 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
-		((SequenceVal) conn.getAttachment()).dbfinished = true;
+		SequenceVal sequenceVal = ((SequenceVal) conn.getAttachment());
 		conn.release();
+		sequenceVal.dbfinished = true;
 	}
 
 	private void executeException(BackendConnection c, Throwable e) {
@@ -295,15 +296,18 @@ class SequenceVal {
 		long start = System.currentTimeMillis();
 		long end = start + 10 * 1000;
 		while (System.currentTimeMillis() < end) {
-			if (dbretVal == IncrSequenceMySQLHandler.errSeqResult) {
-				throw new java.lang.RuntimeException(
-						"sequnce not found in db table ");
-			} else if (dbretVal != null) {
+			
+			if(dbfinished){
+				if (dbretVal == IncrSequenceMySQLHandler.errSeqResult) {
+					throw new java.lang.RuntimeException(
+							"sequnce not found in db table ");
+				}
+				
 				String[] items = dbretVal.split(",");
 				Long curVal = Long.parseLong(items[0]);
 				int span = Integer.parseInt(items[1]);
 				return new Long[] { curVal, curVal + span };
-			} else {
+			}else{
 				try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {

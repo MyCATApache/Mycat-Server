@@ -3,18 +3,21 @@ package io.mycat.route.parser.druid;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.mycat.MycatServer;
 import io.mycat.config.model.SystemConfig;
+import io.mycat.route.SessionSQLPair;
 import io.mycat.route.sequence.handler.DistributedSequenceHandler;
 import io.mycat.route.sequence.handler.IncrSequenceMySQLHandler;
 import io.mycat.route.sequence.handler.IncrSequencePropHandler;
 import io.mycat.route.sequence.handler.IncrSequenceTimeHandler;
 import io.mycat.route.sequence.handler.IncrSequenceZKHandler;
 import io.mycat.route.sequence.handler.SequenceHandler;
+import io.mycat.util.TimeUtil;
 
 /**
  * 使用Druid解析器实现对Sequence处理
@@ -66,19 +69,20 @@ public class DruidSequenceHandler {
      * @return
      * @throws UnsupportedEncodingException
      */
-    public String getExecuteSql(String sql, String charset) throws UnsupportedEncodingException {
-    	String executeSql = sql;
-        if (null != sql && !"".equals(sql)) {
+    public String getExecuteSql(SessionSQLPair pair, String charset) throws UnsupportedEncodingException,InterruptedException {
+    	String executeSql = pair.sql;
+        if (null != pair.sql && !"".equals(pair.sql)) {
             Matcher matcher = pattern.matcher(executeSql);
             if(matcher.find()){
             	String tableName = matcher.group(2);
                 ReentrantLock lock = getSegLock(tableName);
-                lock.lock();
-                try {
+				lock.lock();
+				try {
                 	matcher = pattern.matcher(executeSql);
                 	while(matcher.find()){            
                 		long value = sequenceHandler.nextId(tableName.toUpperCase());
                         executeSql = executeSql.replaceFirst(matcher.group(1), " "+Long.toString(value));
+                        pair.session.getSource().setLastWriteTime(TimeUtil.currentTimeMillis());
                     }
 				} finally {
 					lock.unlock();

@@ -48,7 +48,7 @@ public class MyCATSequnceProcessor {
 			}*/
 			
 			String charset = pair.session.getSource().getCharset();
-			String executeSql = sequenceHandler.getExecuteSql(pair.sql,charset == null ? "utf-8":charset);
+			String executeSql = sequenceHandler.getExecuteSql(pair,charset == null ? "utf-8":charset);
 			
 			pair.session.getSource().routeEndExecuteSQL(executeSql, pair.type,pair.schema);
 		} catch (Exception e) {

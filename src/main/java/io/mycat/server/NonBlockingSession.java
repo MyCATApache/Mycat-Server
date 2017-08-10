@@ -576,6 +576,7 @@ public class NonBlockingSession implements Session {
         this.prepared = prepared;
     }
 
+
 	public boolean isCanClose() {
 		return canClose;
 	}

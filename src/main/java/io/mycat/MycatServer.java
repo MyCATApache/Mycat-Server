@@ -157,6 +157,7 @@ public class MycatServer {
 	private NIOProcessor[] processors;
 	private SocketConnector connector;
 	private NameableExecutor businessExecutor;
+	private NameableExecutor sequenceExecutor;
 	private NameableExecutor timerExecutor;
 	private ListeningExecutorService listeningExecutorService;
 	private  InterProcessMutex dnindexLock;
@@ -395,6 +396,7 @@ public class MycatServer {
 		}
 		businessExecutor = ExecutorUtil.create("BusinessExecutor",
 				threadPoolSize);
+		sequenceExecutor = ExecutorUtil.create("SequenceExecutor", threadPoolSize);
 		timerExecutor = ExecutorUtil.create("Timer", system.getTimerExecutor());
 		listeningExecutorService = MoreExecutors.listeningDecorator(businessExecutor);
 
@@ -993,6 +995,10 @@ public class MycatServer {
 		if(allCoordinatorLogEntries == null){return new CoordinatorLogEntry[0];}
 		if(allCoordinatorLogEntries.size()==0){return new CoordinatorLogEntry[0];}
 		return allCoordinatorLogEntries.toArray(new CoordinatorLogEntry[allCoordinatorLogEntries.size()]);
+	}
+	
+	public NameableExecutor getSequenceExecutor() {
+		return sequenceExecutor;
 	}
 
 	//huangyiming add
