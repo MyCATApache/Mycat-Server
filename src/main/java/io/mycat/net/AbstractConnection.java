@@ -515,6 +515,10 @@ public abstract class AbstractConnection implements NIOConnection {
 			if (reason.contains("connection,reason:java.net.ConnectException")) {
 				throw new RuntimeException(" errr");
 			}
+		} else {
+		    // make sure cleanup again
+		    // Fix issue#1616
+		    this.cleanup();
 		}
 	}
 
