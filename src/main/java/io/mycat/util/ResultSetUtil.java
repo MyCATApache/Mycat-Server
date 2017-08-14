@@ -84,7 +84,7 @@ public class ResultSetUtil {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldValues.size());
 		rowDataPkg.read(row);
 		byte[] columnData = rowDataPkg.fieldValues.get(columnIndex);
-		//columnData Îª¿ÕÊ±,Ö±½Ó·µ»Ønull
+		//columnData ä¸ºç©ºæ—¶,ç›´æŽ¥è¿”å›žnull
 		return columnData==null?null:new String(columnData);
 	}
 
