@@ -41,7 +41,9 @@ import io.mycat.util.TimeUtil;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -82,6 +84,11 @@ public abstract class PhysicalDatasource {
 	// 当前存活的总连接数,为什么不直接使用activeCount,主要是因为连接的创建是异步完成的
 	private volatile AtomicInteger totalConnection = new AtomicInteger(0);
 	
+	/**
+	 * 由于在Mycat中，returnCon被多次调用（与takeCon并没有成对调用）导致activeCount、totalConnection容易出现负数
+	 */
+	private static final String TAKE_CONNECTION_FLAG = "1";
+	private ConcurrentMap<Long /* ConnectionId */, String /* 常量1*/> takeConnectionContext = new ConcurrentHashMap<>();
 
 	
 
@@ -376,8 +383,22 @@ public abstract class PhysicalDatasource {
 			}
 			try {
 				// creat new connection
-				this.createNewConnection(simpleHandler, null, schemas[i
-						% schemas.length]);
+				
+				int curTotalConnection = this.totalConnection.get();
+				while(curTotalConnection + 1 <= size) {
+					
+					if (this.totalConnection.compareAndSet(curTotalConnection, curTotalConnection + 1)) {
+						String schema = schemas[i % schemas.length];
+						LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
+						this.createNewConnection(simpleHandler, null, schema);
+						return;
+					}
+					
+					curTotalConnection = this.totalConnection.get(); //CAS更新失败，则重新判断当前连接是否超过最大连接数
+					
+				}
+				
+				
 			} catch (IOException e) {
 				LOGGER.warn("create connection err " + e);
 			}
@@ -424,7 +445,10 @@ public abstract class PhysicalDatasource {
 
 		conn.setBorrowed(true);
 		
-		incrementActiveCountSafe();
+		if(takeConnectionContext.putIfAbsent(conn.getId(), TAKE_CONNECTION_FLAG) == null) {
+			incrementActiveCountSafe();
+		}
+		
 		
 		if (!conn.getSchema().equals(schema)) {
 			// need do schema syn in before sql send
@@ -447,7 +471,7 @@ public abstract class PhysicalDatasource {
 					createNewConnection(new DelegateResponseHandler(handler) {
 						@Override
 						public void connectionError(Throwable e, BackendConnection conn) {
-							decrementTotalConnectionsSafe(); // 如果创建连接失败，将当前连接数减1
+							//decrementTotalConnectionsSafe(); // 如果创建连接失败，将当前连接数减1
 							handler.connectionError(e, conn);
 						}
 
@@ -477,6 +501,7 @@ public abstract class PhysicalDatasource {
 		} else { // this.getActiveCount并不是线程安全的（严格上说该方法获取数量不准确），
 			int curTotalConnection = this.totalConnection.get();
 			while(curTotalConnection + 1 <= size) {
+				
 				if (this.totalConnection.compareAndSet(curTotalConnection, curTotalConnection + 1)) {
 					LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
 					createNewConnection(handler, attachment, schema);
@@ -531,7 +556,7 @@ public abstract class PhysicalDatasource {
 	}
 	
 	public int incrementTotalConnectionSafe() {
-		return this.activeCount.incrementAndGet();
+		return this.totalConnection.incrementAndGet();
 	}
 
 	private void returnCon(BackendConnection c) {
@@ -548,13 +573,16 @@ public abstract class PhysicalDatasource {
 			ok = queue.getManCommitCons().offer(c);
 		}
 		
-		decrementActiveCountSafe();
+		if(c.getId() > 0 && takeConnectionContext.remove(c.getId(), TAKE_CONNECTION_FLAG) ) {
+			decrementActiveCountSafe();
+		}
 		
-		if (!ok) {
-
+		if(ok) {
 			LOGGER.warn("can't return to pool ,so close con " + c);
 			c.close("can't return to pool ");
+			
 		}
+		
 	}
 
 	public void releaseChannel(BackendConnection c) {
@@ -567,11 +595,11 @@ public abstract class PhysicalDatasource {
 
 	public void connectionClosed(BackendConnection conn) {
 		ConQueue queue = this.conMap.getSchemaConQueue(conn.getSchema());
-		if (queue != null) {
+		if (queue != null ) {
 			queue.removeCon(conn);
-			decrementTotalConnectionsSafe(); 
 		}
-
+		
+		decrementTotalConnectionsSafe(); 
 	}
 
 	/**
