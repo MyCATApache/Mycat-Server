@@ -317,6 +317,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
             
 			this.affectedRows = ok.affectedRows;
 			
+			source.setExecuteSql(null);
 			// add by lian
 			// 解决sql统计中写操作永远为0
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
@@ -356,6 +357,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		} else{
 			source.write(buffer);
 		}
+		source.setExecuteSql(null);
 		//TODO: add by zhuam
 		//查询结果派发
 		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 

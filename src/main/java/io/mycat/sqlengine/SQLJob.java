@@ -136,15 +136,16 @@ public class SQLJob implements ResponseHandler, Runnable {
 		}
 		
 		
-		conn.release();
+		
 		doFinished(true,errMsg);
+		conn.release();
 	}
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
 		conn.syncAndExcute();
-		conn.release();
 		doFinished(false,null);
+		conn.release();
 	}
 
 	@Override
@@ -158,16 +159,16 @@ public class SQLJob implements ResponseHandler, Runnable {
 	public void rowResponse(byte[] row, BackendConnection conn) {
 		boolean finsihed = jobHandler.onRowData(dataNodeOrDatabase, row);
 		if (finsihed) {
-			conn.close("not needed by user proc");
 			doFinished(false,null);
+			conn.close("not needed by user proc");
 		}
 
 	}
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
-		conn.release();
 		doFinished(false,null);
+		conn.release();
 	}
 
 	@Override

@@ -327,10 +327,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				}
 			}
 			
+			
 			// add by lian
 			// 解决sql统计中写操作永远为0
 			execCount++;
 			if (execCount == rrs.getNodes().length) {
+				source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
 				QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 						rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0);
 				QueryResultDispatcher.dispatchQuery( queryResult );
@@ -418,6 +420,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
  		if (execCount == rrs.getNodes().length) {
 			int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
+			source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
