@@ -248,7 +248,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			 *  has table
 			 */
 			int[] repPos = { indx[0] + indx[1], 0 };
-			String tableName = RouterUtil.getShowTableName(stmt, repPos);
+			String tableName = RouterUtil.getShowTableName(schema, stmt, repPos);
 			/**
 			 *  IN DB pattern
 			 */

@@ -297,9 +297,11 @@ public class RouterUtil {
 	 * @param repPos   开始位置和位数
 	 * @return 表名
 	 * @author AStoneGod
+	 * @param schema 
 	 */
-	public static String getShowTableName(String stmt, int[] repPos) {
+	public static String getShowTableName(SchemaConfig schema, String stmt, int[] repPos) {
 		int startPos = repPos[0];
+		startPos = getStartPos(stmt, startPos);
 		int secInd = stmt.indexOf(' ', startPos + 1);
 		if (secInd < 0) {
 			secInd = stmt.length();
@@ -307,12 +309,33 @@ public class RouterUtil {
 
 		repPos[1] = secInd;
 		String tableName = stmt.substring(startPos, secInd).trim();
+		
+		if (!schema.isCheckSQLSchema()) {
+			return tableName;
+		}
 
 		int ind2 = tableName.indexOf('.');
 		if (ind2 > 0) {
 			tableName = tableName.substring(ind2 + 1);
 		}
 		return tableName;
+	}
+
+	/**
+	 * escape white spaces and get the real start position.
+	 * @author kevin
+	 * @param stmt  The sql statement.
+	 * @param startPos  The initial start position.
+	 * @return  int  The real start position.
+	 */
+	private static int getStartPos(String stmt, int startPos) {
+		while (startPos < stmt.length()) {
+			if (!Character.isWhitespace(stmt.charAt(startPos))) {
+				break;
+			}
+			++startPos;
+		}
+		return startPos;
 	}
 
 	/**
