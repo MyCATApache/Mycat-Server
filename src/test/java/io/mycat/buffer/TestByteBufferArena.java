@@ -47,8 +47,8 @@ public class TestByteBufferArena {
 
     @Test
     public void testAllocateDirect() {
-        int pageSize = 1024 * 1024 * 100;
-        int allocTimes = 1024;
+        int pageSize = 1024 ;
+        int allocTimes = 100;
         DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 8,0);
         long start = System.currentTimeMillis();
         for (int i = 0; i < allocTimes; i++) {
@@ -65,7 +65,7 @@ public class TestByteBufferArena {
             //System.out.println("recycle usage "+(System.nanoTime()-start));
         }
         long used = (System.currentTimeMillis() - start);
-        System.out.println("DirectByteBufferPool total used time  " + used + " avg speed " + allocTimes / used);
+//        System.out.println("DirectByteBufferPool total used time  " + used + " avg speed " + allocTimes / used);
     }
 
     @Test
