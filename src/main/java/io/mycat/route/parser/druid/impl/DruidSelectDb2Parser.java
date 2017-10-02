@@ -148,13 +148,7 @@ public class DruidSelectDb2Parser extends DruidSelectOracleParser
                         {
                             parseNativeSql(stmt,rrs,mysqlSelectQuery,schema);
                         }
-
-
-
                     }
-
-
-
         }
         else
         {

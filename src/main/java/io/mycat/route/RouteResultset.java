@@ -346,7 +346,7 @@ public final class RouteResultset implements Serializable {
             for (RouteResultsetNode node : nodes)
             {
                 String dbType = dataNodeDbTypeMap.get(node.getName());
-                if (sourceDbType.equalsIgnoreCase("mysql"))
+                if (dbType.equalsIgnoreCase("mysql")) 
                 {
                     node.setStatement(sql);   //mysql之前已经加好limit
                 } else if (sqlMapCache.containsKey(dbType))

@@ -87,6 +87,15 @@
 		<table name="offer" dataNode="pg_1,pg_2" rule="auto-sharding-long2" />
 		<table name="offer1" dataNode="pg_1" />
 	</schema>
+	
+	<schema name="subQueries" sqlMaxLimit="100">
+		<table name="table_0" dataNode="dn1,dn2" type="global"/><!-- 全局表    -->
+		<table name="table_1" dataNode="dn1"/>          <!-- 非分片表 -->
+		<table name="subtest1" dataNode="dn1,dn2" rule="mod-long" />
+		<table name="subtest2" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
+		<table name="subtest3" dataNode="dn2,dn3" rule="mod-long" />
+		<table name="subtest4" dataNode="dn1,dn2" rule="mod-long" />
+	</schema>
 
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />
 	<dataNode name="dn2" dataHost="localhost1" database="db2" />

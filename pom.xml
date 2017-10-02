@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.6.5-BETA</version>
+	<version>1.6.5-release</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
@@ -224,6 +224,12 @@
 			<groupId>commons-lang</groupId>
 			<artifactId>commons-lang</artifactId>
 			<version>2.6</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.netty/netty-buffer -->
+		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty-buffer</artifactId>
+			<version>4.1.9.Final</version>
 		</dependency>
 	</dependencies>
 
@@ -489,6 +495,14 @@
 										<property>
 											<name>set.default.REPO_DIR</name>
 											<value>lib</value>
+										</property>
+										<property>
+											<name>wrapper.logfile.maxsize</name>
+											<value>512m</value>
+										</property>
+										<property>
+											<name>wrapper.logfile.maxfiles</name>
+											<value>30</value>
 										</property>
 										<property>
 											<name>wrapper.logfile</name>

@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
@@ -26,6 +27,7 @@ public class DruidOracleSqlParserTest
 		String ruleFile = "/route/rule.xml";
 		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
 		schemaMap = schemaLoader.getSchemas();
+		MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
         RouteStrategyFactory.init();
         routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 	}

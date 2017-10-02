@@ -27,6 +27,8 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 
 /**
  * Created by zagnix on 2016/6/21.
@@ -67,10 +69,15 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
      */
     private final  int limitStart;
     private final  int limitSize;
+    
+    private int[] mergeColsIndex;
+    private boolean hasEndFlag = false;
+    
 
-
-    public DataNodeMergeManager(MultiNodeQueryHandler handler, RouteResultset rrs) {
+    private AtomicBoolean isMiddleResultDone;
+    public DataNodeMergeManager(MultiNodeQueryHandler handler, RouteResultset rrs,AtomicBoolean isMiddleResultDone) {
         super(handler,rrs);
+        this.isMiddleResultDone = isMiddleResultDone;
         this.myCatMemory = MycatServer.getInstance().getMyCatMemory();
         this.memoryManager = myCatMemory.getResultMergeMemoryManager();
         this.conf = myCatMemory.getConf();
@@ -82,8 +89,8 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
     public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) throws IOException {
 
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("field metadata keys:" + columToIndx.keySet());
-            LOGGER.debug("field metadata values:" + columToIndx.values());
+            LOGGER.debug("field metadata keys:" + columToIndx != null ? columToIndx.keySet() : "null");
+            LOGGER.debug("field metadata values:" + columToIndx != null ? columToIndx.values() : "null");
         }
 
         OrderCol[] orderCols = null;
@@ -115,6 +122,22 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("getHavingCols:" + rrs.getHavingCols().toString());
             }
+			
+	    /**
+             * mycat 中将 sql： select avg(xxx) from t
+             * 重写 为 select sum(xxx) AS AVG[0~9]SUM,count(xxx) AS AVG[0~9]COUNT from t
+             *  或者 select avg(xxx)  AS xxx from t
+             *  select sum(xxx) AS xxxSUM,count(xxx) AS xxxCOUNT from t
+             */
+            if (colMeta == null) {
+                for (String key : columToIndx.keySet()) {
+                    if (key.toUpperCase().endsWith("SUM")) {
+                        colMeta = columToIndx.get(key);
+                        break;
+                    }
+                }
+            }
+			
             if (colMeta != null) {
                 rrs.getHavingCols().setColMeta(colMeta);
             }
@@ -125,9 +148,10 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             Map<String, Integer> mergeColsMap = rrs.getMergeCols();
 
             if (mergeColsMap != null) {
-            	if (LOGGER.isDebugEnabled()) {
-                	LOGGER.debug("isHasAggrColumn:" + mergeColsMap.toString());
-            	}
+            
+				if (LOGGER.isDebugEnabled() && rrs.getMergeCols() != null) {
+	                LOGGER.debug("isHasAggrColumn:" + rrs.getMergeCols().toString());
+	            }
                 for (Map.Entry<String, Integer> mergEntry : mergeColsMap
                         .entrySet()) {
                     String colName = mergEntry.getKey().toUpperCase();
@@ -163,9 +187,18 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             /**
              * Group操作
              */
+            MergeCol[] mergColsArrays = mergCols.toArray(new MergeCol[mergCols.size()]);
             unsafeRowGrouper = new UnsafeRowGrouper(columToIndx,rrs.getGroupByCols(),
-                    mergCols.toArray(new MergeCol[mergCols.size()]),
+            		mergColsArrays,
                     rrs.getHavingCols());
+            
+            if(mergColsArrays!=null&&mergColsArrays.length>0){
+    			mergeColsIndex = new int[mergColsArrays.length];
+    			for(int i = 0;i<mergColsArrays.length;i++){
+    				mergeColsIndex[i] = mergColsArrays[i].colMeta.colIndex;
+    			}
+    			Arrays.sort(mergeColsIndex);
+    		}
         }
 
 
@@ -214,7 +247,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     myCatMemory,
                     schema,
                     prefixComparator, prefixComputer,
-                    conf.getSizeAsBytes("mycat.buffer.pageSize","1m"),
+                    conf.getSizeAsBytes("mycat.buffer.pageSize","32k"),
                     false/**是否使用基数排序*/,
                     true/**排序*/);
         }
@@ -254,7 +287,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     schema,
                     prefixComparator,
                     prefixComputer,
-                    conf.getSizeAsBytes("mycat.buffer.pageSize", "1m"),
+                    conf.getSizeAsBytes("mycat.buffer.pageSize", "32k"),
                     false,/**是否使用基数排序*/
                     false/**不排序*/);
         }
@@ -329,7 +362,15 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     break;
                 }
                 if (pack == END_FLAG_PACK) {
-                    /**
+                	
+                	hasEndFlag = true;
+                	
+                	if(packs.peek()!=null){
+                		packs.add(pack);
+                		continue;
+                	}
+                	
+                     /**
                      * 最后一个节点datenode发送了row eof packet说明了整个
                      * 分片数据全部接收完成，进而将结果集全部发给你Mycat 客户端
                      */
@@ -368,25 +409,9 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
                     }
 
-                    if(iters != null)
-                        multiQueryHandler.outputMergeResult(source,array,iters);
-
-
-                    if(unsafeRowGrouper!=null){
-                        unsafeRowGrouper.free();
-                        unsafeRowGrouper = null;
-                    }
-
-                    if(globalSorter != null){
-                        globalSorter.cleanupResources();
-                        globalSorter = null;
-                    }
-
-                    if (globalMergeResult != null){
-                        globalMergeResult.cleanupResources();
-                        globalMergeResult = null;
-                    }
-
+                    if(iters != null){
+                        multiQueryHandler.outputMergeResult(source,array,iters,isMiddleResultDone);
+                     }    
                     break;
                 }
 
@@ -402,12 +427,30 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                 mm.readUB3();
                 mm.read();
 
+                int nullnum = 0;
                 for (int i = 0; i < fieldCount; i++) {
                     byte[] colValue = mm.readBytesWithLength();
                     if (colValue != null)
                     	unsafeRowWriter.write(i,colValue);
                     else
-                        unsafeRow.setNullAt(i);
+                    {
+            	 		if(mergeColsIndex!=null&&mergeColsIndex.length>0){
+            	 			
+            	 			if(Arrays.binarySearch(mergeColsIndex, i)<0){
+            	 				nullnum++;
+        	             	}
+            	 		}
+            	 		unsafeRow.setNullAt(i);
+                    }
+                }
+                
+                if(mergeColsIndex!=null&&mergeColsIndex.length>0){
+                	if(nullnum == (fieldCount - mergeColsIndex.length)){
+                		if(!hasEndFlag){
+                			packs.add(pack);
+                        	continue;
+                		}
+                    }
                 }
 
                 unsafeRow.setTotalSize(bufferHolder.totalSize());
@@ -426,6 +469,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             }
 
         } catch (final Exception e) {
+        	e.printStackTrace();
             multiQueryHandler.handleDataProcessException(e);
         } finally {
             running.set(false);
@@ -442,9 +486,12 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
         unsafeRows.clear();
 
-        if(unsafeRowGrouper!=null){
-            unsafeRowGrouper.free();
-            unsafeRowGrouper = null;
+        synchronized (this)
+        {
+            if (unsafeRowGrouper != null) {
+                unsafeRowGrouper.free();
+                unsafeRowGrouper = null;
+            }
         }
 
         if(globalSorter != null){

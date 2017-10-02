@@ -52,6 +52,7 @@ import io.mycat.server.response.ShowFullTables;
 import io.mycat.server.response.ShowTables;
 import io.mycat.statistic.stat.QueryResult;
 import io.mycat.statistic.stat.QueryResultDispatcher;
+import io.mycat.util.ResultSetUtil;
 import io.mycat.util.StringUtil;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
@@ -84,7 +85,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
     private volatile boolean isDefaultNodeShowTable;
     private volatile boolean isDefaultNodeShowFullTable;
     private  Set<String> shardingTablesSet;
-	
+	private byte[] header = null;
+	private List<byte[]> fields = null;
 	public SingleNodeHandler(RouteResultset rrs, NonBlockingSession session) {
 		this.rrs = rrs;
 		this.node = rrs.getNodes()[0];
@@ -315,6 +317,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
             
 			this.affectedRows = ok.affectedRows;
 			
+			source.setExecuteSql(null);
 			// add by lian
 			// 解决sql统计中写操作永远为0
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
@@ -347,7 +350,14 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		buffer = source.writeToBuffer(eof, allocBuffer());
 		int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
 		resultSize=resultSize+buffer.position();
-		source.write(buffer);
+		MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+
+		if(middlerResultHandler !=null ){
+			middlerResultHandler.secondEexcute(); 
+		} else{
+			source.write(buffer);
+		}
+		source.setExecuteSql(null);
 		//TODO: add by zhuam
 		//查询结果派发
 		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
@@ -376,7 +386,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
-		
+		this.header = header;
+		this.fields = fields;
+		MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+        if(null !=middlerResultHandler ){
+			return;
+		}
 		this.netOutBytes += header.length;
 		for (int i = 0, len = fields.size(); i < len; ++i) {
 			byte[] field = fields.get(i);
@@ -438,7 +453,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		if (isDefaultNodeShowTable || isDefaultNodeShowFullTable) {
 			RowDataPacket rowDataPacket = new RowDataPacket(1);
 			rowDataPacket.read(row);
-			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), conn.getCharset());
+			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), session.getSource().getCharset());
 			if (shardingTablesSet.contains(table.toUpperCase())) {
 				return;
 			}
@@ -459,8 +474,18 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			 */
 			buffer = binRowDataPk.write(buffer, session.getSource(), true);
 		} else {
-			buffer = session.getSource().writeToBuffer(row, allocBuffer());
-			//session.getSource().write(row);
+
+			MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+	        if(null ==middlerResultHandler ){
+	        	 buffer = session.getSource().writeToBuffer(row, allocBuffer());
+			}else{
+		        if(middlerResultHandler instanceof MiddlerQueryResultHandler){
+		        	byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
+					 	 String rowValue =  rv==null?"":new String(rv);
+						 middlerResultHandler.add(rowValue);	
+ 				 }
+			}
+		 
 		}
 
 	}

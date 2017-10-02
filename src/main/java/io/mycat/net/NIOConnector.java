@@ -32,10 +32,14 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import java.util.concurrent.atomic.AtomicLong;
+
+import io.mycat.util.SelectorUtil;
+
 /**
  * @author mycat
  */
@@ -44,7 +48,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 	public static final ConnectIdGenerator ID_GENERATOR = new ConnectIdGenerator();
 
 	private final String name;
-	private final Selector selector;
+	private volatile Selector selector;
 	private final BlockingQueue<AbstractConnection> connectQueue;
 	private long connectCount;
 	private final NIOReactorPool reactorPool;
@@ -69,24 +73,48 @@ public final class NIOConnector extends Thread implements SocketConnector {
 
 	@Override
 	public void run() {
-		final Selector tSelector = this.selector;
+		int invalidSelectCount = 0;
 		for (;;) {
+			final Selector tSelector = this.selector;
 			++connectCount;
 			try {
-			    tSelector.select(1000L);
+				long start = System.nanoTime();
+				tSelector.select(1000L);
+				long end = System.nanoTime();
 				connect(tSelector);
 				Set<SelectionKey> keys = tSelector.selectedKeys();
-				try {
-					for (SelectionKey key : keys) {
-						Object att = key.attachment();
-						if (att != null && key.isValid() && key.isConnectable()) {
-							finishConnect(key, att);
-						} else {
-							key.cancel();
+				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS )
+				{
+					invalidSelectCount++;
+				}
+				else
+				{
+					try {
+						for (SelectionKey key : keys)
+						{
+							Object att = key.attachment();
+							if (att != null && key.isValid() && key.isConnectable())
+							{
+								finishConnect(key, att);
+							} else
+							{
+								key.cancel();
+							}
 						}
+					} finally
+					{
+						invalidSelectCount = 0;
+						keys.clear();
 					}
-				} finally {
-					keys.clear();
+				}
+				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD)
+				{
+					final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
+					if (rebuildSelector != null)
+					{
+						this.selector = rebuildSelector;
+					}
+					invalidSelectCount = 0;
 				}
 			} catch (Exception e) {
 				LOGGER.warn(name, e);
@@ -101,7 +129,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				SocketChannel channel = (SocketChannel) c.getChannel();
 				channel.register(selector, SelectionKey.OP_CONNECT, c);
 				channel.connect(new InetSocketAddress(c.host, c.port));
-				
+
 			} catch (Exception e) {
 				LOGGER.error("error:",e);
 				c.close(e.toString());
@@ -125,7 +153,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 		} catch (Exception e) {
 			clearSelectionKey(key);
 			LOGGER.error("error:",e);
-            c.close(e.toString());
+			c.close(e.toString());
 			c.onConnectFailed(e);
 
 		}
@@ -152,7 +180,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 
 	/**
 	 * 后端连接ID生成器
-	 * 
+	 *
 	 * @author mycat
 	 */
 	public static class ConnectIdGenerator {

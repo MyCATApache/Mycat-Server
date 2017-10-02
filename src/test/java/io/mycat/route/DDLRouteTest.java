@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.CacheService;
 import io.mycat.cache.LayerCachePool;
@@ -32,6 +33,8 @@ public class DDLRouteTest {
 		String ruleFile = "/route/rule.xml";
 		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
 		schemaMap = schemaLoader.getSchemas();
+		MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
+		MycatServer.getInstance().getConfig().getSystem().setUseGlobleTableCheck(0); //DDL Route Test  不开启全局表一致性检查
         RouteStrategyFactory.init();
         routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 	}

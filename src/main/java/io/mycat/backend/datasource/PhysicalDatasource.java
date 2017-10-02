@@ -39,15 +39,17 @@ import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.TimeUtil;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 public abstract class PhysicalDatasource {
 	
@@ -69,6 +71,26 @@ public abstract class PhysicalDatasource {
 	
 	// 添加DataSource写计数
 	private AtomicLong writeCount = new AtomicLong(0);
+	
+	
+	/** 
+	 *   edit by dingw at 2017.06.08
+	 *   @see https://github.com/MyCATApache/Mycat-Server/issues/1524
+	 *   
+	 */
+	// 当前活动连接
+	private volatile AtomicInteger activeCount = new AtomicInteger(0);
+	
+	// 当前存活的总连接数,为什么不直接使用activeCount,主要是因为连接的创建是异步完成的
+	private volatile AtomicInteger totalConnection = new AtomicInteger(0);
+	
+	/**
+	 * 由于在Mycat中，returnCon被多次调用（与takeCon并没有成对调用）导致activeCount、totalConnection容易出现负数
+	 */
+	private static final String TAKE_CONNECTION_FLAG = "1";
+	private ConcurrentMap<Long /* ConnectionId */, String /* 常量1*/> takeConnectionContext = new ConcurrentHashMap<>();
+
+	
 
 	public PhysicalDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
@@ -169,6 +191,22 @@ public abstract class PhysicalDatasource {
 		}
 		return total;
 	}
+	
+	/**
+	 * 该方法也不是非常精确，因为该操作也不是一个原子操作,相对getIdleCount高效与准确一些
+	 * @return
+	 */
+	public int getIdleCountSafe() {
+		return getTotalConnectionsSafe() - getActiveCountSafe();
+	}
+	
+	/**
+	 * 是否需要继续关闭空闲连接
+	 * @return
+	 */
+	private boolean needCloseIdleConnection() {
+		return getIdleCountSafe() > hostConfig.getMinCon();
+	}
 
 	private boolean validSchema(String schema) {
 		String theSchema = schema;
@@ -255,8 +293,8 @@ public abstract class PhysicalDatasource {
 
 		// check if there has timeouted heatbeat cons
 		conHeartBeatHanler.abandTimeOuttedConns();
-		int idleCons = getIdleCount();
-		int activeCons = this.getActiveCount();
+		int idleCons = getIdleCountSafe();
+		int activeCons = this.getActiveCountSafe();
 		int createCount = (hostConfig.getMinCon() - idleCons) / 3;
 		// create if idle too little
 		if ((createCount > 0) && (idleCons + activeCons < size)
@@ -265,7 +303,7 @@ public abstract class PhysicalDatasource {
 		} else if (idleCons > hostConfig.getMinCon()) {
 			closeByIdleMany(idleCons - hostConfig.getMinCon());
 		} else {
-			int activeCount = this.getActiveCount();
+			int activeCount = this.getActiveCountSafe();
 			if (activeCount > size) {
 				StringBuilder s = new StringBuilder();
 				s.append(Alarms.DEFAULT).append("DATASOURCE EXCEED [name=")
@@ -276,23 +314,57 @@ public abstract class PhysicalDatasource {
 		}
 	}
 
+	/**
+	 * 
+	 * @param ildeCloseCount
+	 * 首先，从已创建的连接中选择本次心跳需要关闭的空闲连接数（由当前连接连接数-减去配置的最小连接数。
+	 * 然后依次关闭这些连接。由于连接空闲心跳检测与业务是同时并发的，在心跳关闭阶段，可能有连接被使用，导致需要关闭的空闲连接数减少.
+	 * 
+	 * 所以每次关闭新连接时，先判断当前空闲连接数是否大于配置的最少空闲连接，如果为否，则结束本次关闭空闲连接操作。
+	 * 该方法修改之前：
+	 *      首先从ConnMap中获取 ildeCloseCount 个连接，然后关闭；在关闭中，可能又有连接被使用，导致可能多关闭一些链接，
+	 *      导致相对频繁的创建新连接和关闭连接
+	 *      
+	 * 该方法修改之后：
+	 *     ildeCloseCount 为预期要关闭的连接
+	 *     使用循环操作，首先在关闭之前，先再一次判断是否需要关闭连接，然后每次从ConnMap中获取一个空闲连接，然后进行关闭
+	 * edit by dingw at 2017.06.16
+	 */
 	private void closeByIdleMany(int ildeCloseCount) {
 		LOGGER.info("too many ilde cons ,close some for datasouce  " + name);
-		List<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(
-				ildeCloseCount);
-		for (ConQueue queue : conMap.getAllConQueue()) {
-			readyCloseCons.addAll(queue.getIdleConsToClose(ildeCloseCount));
-			if (readyCloseCons.size() >= ildeCloseCount) {
+		
+		Iterator<ConQueue> conQueueIt = conMap.getAllConQueue().iterator();
+		ConQueue queue = null;
+		if(conQueueIt.hasNext()) {
+			queue = conQueueIt.next();
+		}
+		
+		for(int i = 0; i < ildeCloseCount; i ++ ) {
+			
+			if(!needCloseIdleConnection() || queue == null) {
+				break; //如果当时空闲连接数没有超过最小配置连接数，则结束本次连接关闭
+			}
+			
+			LOGGER.info("cur conns:" + getTotalConnectionsSafe() );
+			
+			BackendConnection idleCon = queue.takeIdleCon(false);
+			
+			while(idleCon == null && conQueueIt.hasNext()) {
+				queue = conQueueIt.next();
+				idleCon = queue.takeIdleCon(false);
+			}
+			
+			if(idleCon == null) { 
 				break;
 			}
-		}
-
-		for (BackendConnection idleCon : readyCloseCons) {
-			if (idleCon.isBorrowed()) {
+			
+			if (idleCon.isBorrowed() ) {
 				LOGGER.warn("find idle con is using " + idleCon);
 			}
 			idleCon.close("too many idle con");
+			
 		}
+		
 	}
 
 	private void createByIdleLitte(int idleCons, int createCount) {
@@ -306,13 +378,27 @@ public abstract class PhysicalDatasource {
 
 		final String[] schemas = dbPool.getSchemas();
 		for (int i = 0; i < createCount; i++) {
-			if (this.getActiveCount() + this.getIdleCount() >= size) {
+			if (exceedMaxConnections()) {
 				break;
 			}
 			try {
 				// creat new connection
-				this.createNewConnection(simpleHandler, null, schemas[i
-						% schemas.length]);
+				
+				int curTotalConnection = this.totalConnection.get();
+				while(curTotalConnection + 1 <= size) {
+					
+					if (this.totalConnection.compareAndSet(curTotalConnection, curTotalConnection + 1)) {
+						String schema = schemas[i % schemas.length];
+						LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
+						this.createNewConnection(simpleHandler, null, schema);
+						return;
+					}
+					
+					curTotalConnection = this.totalConnection.get(); //CAS更新失败，则重新判断当前连接是否超过最大连接数
+					
+				}
+				
+				
 			} catch (IOException e) {
 				LOGGER.warn("create connection err " + e);
 			}
@@ -323,6 +409,8 @@ public abstract class PhysicalDatasource {
 	public int getActiveCount() {
 		return this.conMap.getActiveCountForDs(this);
 	}
+	
+	
 
 	public void clearCons(String reason) {
 		this.conMap.clearConnections(reason, this);
@@ -356,6 +444,12 @@ public abstract class PhysicalDatasource {
 			String schema) {
 
 		conn.setBorrowed(true);
+		
+		if(takeConnectionContext.putIfAbsent(conn.getId(), TAKE_CONNECTION_FLAG) == null) {
+			incrementActiveCountSafe();
+		}
+		
+		
 		if (!conn.getSchema().equals(schema)) {
 			// need do schema syn in before sql send
 			conn.setSchema(schema);
@@ -377,6 +471,7 @@ public abstract class PhysicalDatasource {
 					createNewConnection(new DelegateResponseHandler(handler) {
 						@Override
 						public void connectionError(Throwable e, BackendConnection conn) {
+							//decrementTotalConnectionsSafe(); // 如果创建连接失败，将当前连接数减1
 							handler.connectionError(e, conn);
 						}
 
@@ -399,21 +494,69 @@ public abstract class PhysicalDatasource {
 		// 从当前连接map中拿取已建立好的后端连接
 		BackendConnection con = this.conMap.tryTakeCon(schema, autocommit);
 		if (con != null) {
-			
 			//如果不为空，则绑定对应前端请求的handler
 			takeCon(con, handler, attachment, schema);
 			return;	
 			
-		} else {
-			int activeCons = this.getActiveCount();// 当前最大活动连接
-			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
-				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
-				throw new IOException("the max activeConnnections size can not be max than maxconnections");
-			} else { // create connection
-				LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
-				createNewConnection(handler, attachment, schema);
+		} else { // this.getActiveCount并不是线程安全的（严格上说该方法获取数量不准确），
+			int curTotalConnection = this.totalConnection.get();
+			while(curTotalConnection + 1 <= size) {
+				
+				if (this.totalConnection.compareAndSet(curTotalConnection, curTotalConnection + 1)) {
+					LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
+					createNewConnection(handler, attachment, schema);
+					return;
+				}
+				
+				curTotalConnection = this.totalConnection.get(); //CAS更新失败，则重新判断当前连接是否超过最大连接数
+				
 			}
+			
+			// 如果后端连接不足，立即失败,故直接抛出连接数超过最大连接异常
+			LOGGER.error("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
+			throw new IOException("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
+			
+//			int activeCons = this.getActiveCount();// 当前最大活动连接
+//			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
+//				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
+//				throw new IOException("the max activeConnnections size can not be max than maxconnections");
+//			} else { // create connection
+//				LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
+//				createNewConnection(handler, attachment, schema);
+//			}
 		}
+	}
+	
+	/**
+	 * 是否超过最大连接数
+	 * @return
+	 */
+	private boolean exceedMaxConnections() {
+		return this.totalConnection.get() + 1 > size;
+	}
+	
+	public int decrementActiveCountSafe() {
+		return this.activeCount.decrementAndGet();
+	}
+	
+	public int incrementActiveCountSafe() {
+		return this.activeCount.incrementAndGet();
+	}
+	
+	public int getActiveCountSafe() {
+		return this.activeCount.get();
+	}
+	
+	public int getTotalConnectionsSafe() {
+		return this.totalConnection.get();
+	}
+	
+	public int decrementTotalConnectionsSafe() {
+		return this.totalConnection.decrementAndGet();
+	}
+	
+	public int incrementTotalConnectionSafe() {
+		return this.totalConnection.incrementAndGet();
 	}
 
 	private void returnCon(BackendConnection c) {
@@ -430,11 +573,16 @@ public abstract class PhysicalDatasource {
 			ok = queue.getManCommitCons().offer(c);
 		}
 		
-		if (!ok) {
-
+		if(c.getId() > 0 && takeConnectionContext.remove(c.getId(), TAKE_CONNECTION_FLAG) ) {
+			decrementActiveCountSafe();
+		}
+		
+		if(!ok) {
 			LOGGER.warn("can't return to pool ,so close con " + c);
 			c.close("can't return to pool ");
+			
 		}
+		
 	}
 
 	public void releaseChannel(BackendConnection c) {
@@ -447,10 +595,11 @@ public abstract class PhysicalDatasource {
 
 	public void connectionClosed(BackendConnection conn) {
 		ConQueue queue = this.conMap.getSchemaConQueue(conn.getSchema());
-		if (queue != null) {
+		if (queue != null ) {
 			queue.removeCon(conn);
 		}
-
+		
+		decrementTotalConnectionsSafe(); 
 	}
 
 	/**

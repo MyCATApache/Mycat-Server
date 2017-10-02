@@ -41,7 +41,6 @@ public class NewConnectionRespHandler implements ResponseHandler{
 	@Override
 	public void connectionAcquired(BackendConnection conn) {
 		//
-		conn.release();
 		LOGGER.info("connectionAcquired "+conn);
 		
 		
@@ -50,12 +49,13 @@ public class NewConnectionRespHandler implements ResponseHandler{
 	@Override
 	public void errorResponse(byte[] err, BackendConnection conn) {
 		LOGGER.warn("caught error resp: " + conn + " " + new String(err));
+		conn.release();
 	}
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
 		LOGGER.info("okResponse: " + conn );
-		
+		conn.release();
 	}
 
 	@Override
@@ -74,7 +74,7 @@ public class NewConnectionRespHandler implements ResponseHandler{
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		LOGGER.info("rowEofResponse: " + conn );
-		
+		conn.release();
 	}
 
 	@Override

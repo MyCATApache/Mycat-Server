@@ -217,6 +217,10 @@ public abstract class AbstractConnection implements NIOConnection {
 	public long getLastWriteTime() {
 		return lastWriteTime;
 	}
+	
+	public void setLastWriteTime(long lasttime){
+		this.lastWriteTime = lasttime;
+	}
 
 	public long getNetInBytes() {
 		return netInBytes;
@@ -511,6 +515,10 @@ public abstract class AbstractConnection implements NIOConnection {
 			if (reason.contains("connection,reason:java.net.ConnectException")) {
 				throw new RuntimeException(" errr");
 			}
+		} else {
+		    // make sure cleanup again
+		    // Fix issue#1616
+		    this.cleanup();
 		}
 	}
 

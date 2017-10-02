@@ -23,10 +23,20 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
-import io.mycat.memory.unsafe.row.UnsafeRow;
-import io.mycat.sqlengine.mpp.*;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -34,19 +44,25 @@ import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.mysql.LoadDataUtil;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.MycatConfig;
-import io.mycat.net.mysql.*;
+import io.mycat.memory.unsafe.row.UnsafeRow;
+import io.mycat.net.mysql.BinaryRowDataPacket;
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.OkPacket;
+import io.mycat.net.mysql.ResultSetHeaderPacket;
+import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
+import io.mycat.sqlengine.mpp.AbstractDataNodeMerge;
+import io.mycat.sqlengine.mpp.ColMeta;
+import io.mycat.sqlengine.mpp.DataMergeService;
+import io.mycat.sqlengine.mpp.DataNodeMergeManager;
+import io.mycat.sqlengine.mpp.MergeCol;
 import io.mycat.statistic.stat.QueryResult;
 import io.mycat.statistic.stat.QueryResultDispatcher;
-
-import java.io.*;
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
+import io.mycat.util.ResultSetUtil;
 
 /**
  * @author mycat
@@ -78,6 +94,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private boolean prepared;
 	private List<FieldPacket> fieldPackets = new ArrayList<FieldPacket>();
 	private int isOffHeapuseOffHeapForMerge = 1;
+	//huangyiming add  中间处理结果是否处理完毕
+	private final AtomicBoolean isMiddleResultDone;
 	/**
 	 * Limit N，M
 	 */
@@ -87,12 +105,17 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private int index = 0;
 
 	private int end = 0;
-
+	
+	//huangyiming 
+	private byte[] header = null;
+	private List<byte[]> fields = null;
+	
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 			boolean autocommit, NonBlockingSession session) {
 		
 		super(session);
-		
+ 		this.isMiddleResultDone = new AtomicBoolean(false);
+
 		if (rrs.getNodes() == null) {
 			throw new IllegalArgumentException("routeNode is null!");
 		}
@@ -109,7 +132,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			 * 使用Off Heap
 			 */
 			if(isOffHeapuseOffHeapForMerge == 1){
-				dataMergeSvr = new DataNodeMergeManager(this,rrs);
+				dataMergeSvr = new DataNodeMergeManager(this,rrs,isMiddleResultDone);
 			}else {
 				dataMergeSvr = new DataMergeService(this,rrs);
 			}
@@ -295,6 +318,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 						ok.insertId = insertId;
 						source.setLastInsertId(insertId);
 					}
+					
 					ok.write(source);
 				} catch (Exception e) {
 					handleDataProcessException(e);
@@ -303,10 +327,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				}
 			}
 			
+			
 			// add by lian
 			// 解决sql统计中写操作永远为0
 			execCount++;
 			if (execCount == rrs.getNodes().length) {
+				source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
 				QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 						rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0);
 				QueryResultDispatcher.dispatchQuery( queryResult );
@@ -321,6 +347,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
 		
 		this.netOutBytes += eof.length;
+		MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
 		
 		if (errorRepsponsed.get()) {
 			// the connection has been closed or set to "txInterrupt" properly
@@ -353,6 +380,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				}
 			}
 			if (dataMergeSvr != null) {
+				//huangyiming add 数据合并前如果有中间过程则先执行数据合并再执行下一步
+				if(session.getMiddlerResultHandler() !=null  ){
+					isMiddleResultDone.set(true);
+            	}
+            	 
 				try {
 					dataMergeSvr.outputMergeResult(session, eof);
 				} catch (Exception e) {
@@ -366,21 +398,44 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					if (LOGGER.isDebugEnabled()) {
 						LOGGER.debug("last packet id:" + packetId);
 					}
-					source.write(eof);
-				} finally {
+					if(  middlerResultHandler ==null ){
+						//middlerResultHandler.secondEexcute();
+						source.write(eof);
+					} 
+ 				} finally {
 					lock.unlock();
 
 				}
 			}
 		}
 		execCount++;
-		if (execCount == rrs.getNodes().length) {
+		if(middlerResultHandler !=null){
+			if (execCount != rrs.getNodes().length) {
+				
+				return;
+			}
+			/*else{
+				middlerResultHandler.secondEexcute(); 
+			}*/
+		}
+ 		if (execCount == rrs.getNodes().length) {
 			int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
+			source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
 					rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize);
 			QueryResultDispatcher.dispatchQuery( queryResult );
+			
+ 			
+			//	add huangyiming  如果是中间过程,必须等数据合并好了再进行下一步语句的拼装 
+ 			if(middlerResultHandler !=null ){
+ 				while (!this.isMiddleResultDone.compareAndSet(false, true)) {
+ 	                Thread.yield();
+ 	             }
+ 				middlerResultHandler.secondEexcute(); 
+				isMiddleResultDone.set(false);
+			} 
 		}
 
 	}
@@ -391,7 +446,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	 * @param eof
 	 * @param
 	 */
-	public void outputMergeResult(final ServerConnection source, final byte[] eof, Iterator<UnsafeRow> iter) {
+	public void outputMergeResult(final ServerConnection source, final byte[] eof, Iterator<UnsafeRow> iter,AtomicBoolean isMiddleResultDone) {
+		
 		try {
 			lock.lock();
 			ByteBuffer buffer = session.getSource().allocate();
@@ -412,7 +468,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				end = Integer.MAX_VALUE;
 
 			if(prepared) {
-				while (iter.hasNext()){
+ 				while (iter.hasNext()){
 					UnsafeRow row = iter.next();
 					if(index >= start){
 						row.packetId = ++packetId;
@@ -444,14 +500,39 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("last packet id:" + packetId);
 			}
-
+			//huangyiming add  中间过程缓存起来,isMiddleResultDone是确保合并部分执行完成后才会执行secondExecute
+			MiddlerResultHandler middlerResultHandler = source.getSession2().getMiddlerResultHandler();
+ 			if(null != middlerResultHandler){
+ 				if(buffer.position() > 0){
+ 					buffer.flip();
+ 	                byte[] data = new byte[buffer.limit()];
+ 	                buffer.get(data);
+ 	                buffer.clear();
+ 	                //如果该操作只是一个中间过程则把结果存储起来
+ 					 String str =  ResultSetUtil.getColumnValAsString(data, fields, 0);
+ 					 //真的需要数据合并的时候才合并
+ 					 if(rrs.isHasAggrColumn()){
+ 						 middlerResultHandler.getResult().clear();
+ 						 if(str !=null){
+  							 middlerResultHandler.add(str);	
+ 						 }
+ 					 }
+ 				}
+				isMiddleResultDone.set(false);
+		}else{
+			ByteBuffer byteBuffer = source.writeToBuffer(eof, buffer);
+			
 			/**
 			 * 真正的开始把Writer Buffer的数据写入到channel 中
 			 */
-			source.write(source.writeToBuffer(eof, buffer));
-		} catch (Exception e) {
+			session.getSource().write(byteBuffer); 
+		}
+			
+ 			
+ 		} catch (Exception e) {
+			e.printStackTrace(); 
 			handleDataProcessException(e);
-		} finally {
+		} finally { 
 			lock.unlock();
 			dataMergeSvr.clear();
 		}
@@ -533,7 +614,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
 		
-		
+		//huangyiming add 
+		this.header = header;
+		this.fields = fields;
+		MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+        /*if(null !=middlerResultHandler ){
+			return;
+		}*/
 		this.netOutBytes += header.length;
 		this.netOutBytes += eof.length;
 		for (int i = 0, len = fields.size(); i < len; ++i) {
@@ -654,8 +741,13 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			}
 			eof[3] = ++packetId;
 			buffer = source.writeToBuffer(eof, buffer);
-			source.write(buffer);
-			if (dataMergeSvr != null) {
+			
+			if(null == middlerResultHandler ){
+				//session.getSource().write(row);
+				source.write(buffer);
+		     }
+			
+ 			if (dataMergeSvr != null) {
 				dataMergeSvr.onRowMetaData(columToIndx, fieldCount);
 
 			}
@@ -677,8 +769,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
-		
-		if (errorRepsponsed.get()) {
+ 		
+ 		if (errorRepsponsed.get()) {
 			// the connection has been closed or set to "txInterrupt" properly
 			//in tryErrorFinished() method! If we close it here, it can
 			// lead to tx error such as blocking rollback tx for ever.
@@ -702,8 +794,18 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				// So the "isClosedByDiscard" variable is unnecessary.
 				// @author Uncle-pan
 				// @since 2016-03-25
-				dataMergeSvr.onNewRecord(dataNode, row);
+					dataMergeSvr.onNewRecord(dataNode, row);
+
+				MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+ 				if(null != middlerResultHandler ){
+ 					 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
+ 						 byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
+						 String rowValue =  rv==null? "":new String(rv);
+						 middlerResultHandler.add(rowValue);	
+ 					 }
+				}
 			} else {
+				row[3] = ++packetId;
 				RowDataPacket rowDataPkg =null;
 				// cache primaryKey-> dataNode
 				if (primaryKeyIndex != -1) {
@@ -713,7 +815,6 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					LayerCachePool pool = MycatServer.getInstance().getRouterservice().getTableId2DataNodeCache();
 					pool.putIfAbsent(priamaryKeyTable, primaryKey, dataNode);
 				}
-				row[3] = ++packetId;
 				if( prepared ) {
 					if(rowDataPkg==null) {
 						rowDataPkg = new RowDataPacket(fieldCount);
@@ -723,7 +824,18 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					binRowDataPk.read(fieldPackets, rowDataPkg);
 					binRowDataPk.write(session.getSource());
 				} else {
-					session.getSource().write(row);
+					//add huangyiming 
+					MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+					if(null == middlerResultHandler ){
+ 						session.getSource().write(row);
+					}else{
+						
+						 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
+							 String rowValue =  ResultSetUtil.getColumnValAsString(row, fields, 0);
+							 middlerResultHandler.add(rowValue);	
+ 						 }
+						
+					}
 				}
 			}
 
@@ -757,5 +869,4 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	public void setPrepared(boolean prepared) {
 		this.prepared = prepared;
 	}
-
 }
