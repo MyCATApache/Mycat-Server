@@ -36,55 +36,52 @@ public class ByteUtil {
      * @param b2
      * @return -1 means b1 < b2, or 0 means b1=b2 else return 1
      */
-//    public static int compareNumberByte(byte[] b1, byte[] b2) {
-//        if (b1 == null || b1.length == 0) {
-//            return -1;
-//        } else if (b2 == null || b2.length == 0) {
-//            return 1;
-//        }
-//        boolean b1IsNegative = b1[0] == 45;
-//        boolean b2IsNegative = b2[0] == 45;
-//        if (b1IsNegative != b2IsNegative) return b1IsNegative ? -1 : 1;
-//        //
-//        byte[] longB1 = getLongBytes(b1);
-//        int longB1Length = longB1.length;
-//        byte[] longB2 = getLongBytes(b2);
-//        int longB2Length = longB2.length;
-//        if (longB1.length != longB2.length) {
-//            if (b1IsNegative) return longB1.length - longB2.length;
-//            else return longB2.length - longB1.length;
-//        }
-//        int len = b1.length;
-//        int result = 0;
-//        int index = -1;
-//        for (int i = 0; i < len; i++) {
-//            int b1val = b1[i];
-//            int b2val = b2[i];
-//            if (b1val > b2val) {
-//                result = 1;
-//                index = i;
-//                break;
-//            } else if (b1val < b2val) {
-//                index = i;
-//                result = -1;
-//                break;
-//            }
-//        }
-//        if (index == 0) {
-//            // first byte compare
-//            return result;
-//        } else {
-//            if (b1.length != b2.length) {
-//
-//                int lenDelta = b1.length - b2.length;
-//                return 0 - lenDelta;
-//
-//            } else {
-//                return b1IsNegative ? 0 - result : result;
-//            }
-//        }
-//    }
     public static int compareNumberByte(byte[] b1, byte[] b2) {
+        if ((b1 == null || b1.length == 0) && b2 != null && b2.length != 0) {
+            return -1;
+        } else if (b1 == null || b1.length == 0) {
+            // 此时 b2 == null || b2.length == 0 为 true
+            return 0;
+        } else if (b2 == null || b2.length == 0) {
+            return 1;
+        }
+        boolean b1IsNegative = b1[0] == 45;
+        boolean b2IsNegative = b2[0] == 45;
+        if (b1IsNegative != b2IsNegative) return b1IsNegative ? -1 : 1;
+        //
+        byte[] longB1 = getLongBytes(b1);
+        int longB1Length = longB1.length;
+        byte[] longB2 = getLongBytes(b2);
+        int longB2Length = longB2.length;
+        if (longB1Length != longB2Length) {
+            if (b1IsNegative) return longB1.length - longB2.length;
+            else return longB2.length - longB1.length;
+        }
+        int len = longB1Length;
+        int result = 0;
+        int index = -1;
+        for (int i = 0; i < len; i++) {
+            int b1val = longB1[i];
+            int b2val = longB2[i];
+            if (b1val > b2val) {
+                result = 1;
+                index = i;
+                break;
+            } else if (b1val < b2val) {
+                index = i;
+                result = -1;
+                break;
+            }
+        }
+        if (index == 0) {
+            // first byte compare
+            return result;
+        } else {
+            return compareNumberByte2(b1, b2);
+        }
+    }
+
+    public static int compareNumberByte2(byte[] b1, byte[] b2) {
         double double1 = getDouble(b1);
         double double2 = getDouble(b2);
         double m = double1 - double2;
