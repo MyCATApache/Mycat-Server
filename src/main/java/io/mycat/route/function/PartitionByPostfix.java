@@ -11,8 +11,55 @@ import io.mycat.config.model.rule.RuleAlgorithm;
  * @version 1.0.0
  */
 public class PartitionByPostfix extends AbstractPartitionAlgorithm implements RuleAlgorithm {
+    private Integer firstValue;
+    private String prefix;
+    private String postfix;
+
+    @Override
+    public void init() {
+        if (null == firstValue) firstValue = 0;
+        if (null == prefix) prefix = "";
+    }
+
     @Override
     public Integer calculate(String columnValue) {
-        return Integer.parseInt(columnValue) - 1;
+        // 1. 按照 prefix 和 postfix 解析真正的序号
+        String finalValue = columnValue;
+        if (columnValue.startsWith(prefix))
+            finalValue = finalValue.substring(finalValue.indexOf(prefix) + 1, finalValue.length());
+        if (columnValue.endsWith(postfix)) finalValue = finalValue.substring(0, finalValue.lastIndexOf(postfix));
+        return Integer.parseInt(finalValue) - firstValue;
+    }
+
+    public Integer getFirst() {
+        return firstValue;
+    }
+
+    public void setFirst(Integer first) {
+        this.firstValue = first;
+    }
+
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+    }
+
+    public Integer getFirstValue() {
+        return firstValue;
+    }
+
+    public void setFirstValue(Integer firstValue) {
+        this.firstValue = firstValue;
+    }
+
+    public String getPostfix() {
+        return postfix;
+    }
+
+    public void setPostfix(String postfix) {
+        this.postfix = postfix;
     }
 }

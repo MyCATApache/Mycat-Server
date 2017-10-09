@@ -108,6 +108,12 @@
 	</function>
 
     <function name="func2" class="io.mycat.route.function.PartitionByPostfix">
+		<!-- 在 subTables 里配置的连续表名中 第一个表对应的分表 ID 值 -->
+		<property name="firstValue">1</property>
+		<!-- 该分表列值的固定前缀 -->
+		<property name="prefix">c</property>
+		<!-- 该分表列值的固定后缀 -->
+		<property name="postfix">d</property>
     </function>
 	<!-- <function name="latestMonth" -->
 	<!-- class="io.mycat.route.function.LatestMonthPartion"> -->
