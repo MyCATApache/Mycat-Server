@@ -437,6 +437,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
             tableSource = insertStatement.getTableSource();
             for (RouteResultsetNode node : rrs.getNodes()) {
                 SQLExprTableSource from2 = getDisTable(tableSource, node);
+                from2.setAlias(tableSource.getAlias());
                 insertStatement.setTableSource(from2);
                 node.setStatement(insertStatement.toString());
             }
@@ -446,6 +447,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
             tableSource = deleteStatement.getTableSource();
             for (RouteResultsetNode node : rrs.getNodes()) {
                 SQLExprTableSource from2 = getDisTable(tableSource, node);
+                from2.setAlias(tableSource.getAlias());
                 deleteStatement.setTableSource(from2);
                 node.setStatement(deleteStatement.toString());
             }
@@ -455,6 +457,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
             tableSource = updateStatement.getTableSource();
             for (RouteResultsetNode node : rrs.getNodes()) {
                 SQLExprTableSource from2 = getDisTable(tableSource, node);
+                from2.setAlias(tableSource.getAlias());
                 updateStatement.setTableSource(from2);
                 node.setStatement(updateStatement.toString());
             }
