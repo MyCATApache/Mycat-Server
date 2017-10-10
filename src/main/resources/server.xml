@@ -62,7 +62,7 @@
 
 
 		<!--是否采用zookeeper协调切换  -->
-		<property name="useZKSwitch">true</property>
+		<property name="useZKSwitch">false</property>
 
 		<!-- XA Recovery Log日志路径 -->
 		<!--<property name="XARecoveryLogBaseDir">./</property>-->
