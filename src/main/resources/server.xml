@@ -60,7 +60,7 @@
 
 
 		<!--是否采用zookeeper协调切换  -->
-		<property name="useZKSwitch">true</property>
+		<property name="useZKSwitch">false</property>
 
 
 	</system>

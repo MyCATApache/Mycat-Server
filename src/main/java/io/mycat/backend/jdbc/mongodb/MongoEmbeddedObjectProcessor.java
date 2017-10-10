@@ -141,7 +141,7 @@ public class MongoEmbeddedObjectProcessor {
             if (pt.getActualTypeArguments() == null || pt.getActualTypeArguments().length == 0) {
                 return null;
             }
-            parameterizedType = pt.getActualTypeArguments()[0].getTypeName();
+            parameterizedType = pt.getActualTypeArguments()[0].toString();
         } else {
             return null;
         }
