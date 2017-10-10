@@ -28,6 +28,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TestSorter {
+    byte[] b1;
+    byte[] b2;
 
     @Test
     public void testDecimal() {
@@ -57,7 +59,9 @@ public class TestSorter {
         b1 = "0".getBytes();
         b2 = "1".getBytes();
         Assert.assertEquals(true, ByteUtil.compareNumberByte(b1, b2) < 0);
-
+    }
+    @Test
+    public void testNumberCompare2() {
         b1 = "10".getBytes();
         b2 = "1".getBytes();
         Assert.assertEquals(true, ByteUtil.compareNumberByte(b1, b2) > 0);
@@ -66,6 +70,9 @@ public class TestSorter {
         b2 = "100.0".getBytes();
         Assert.assertEquals(true, ByteUtil.compareNumberByte(b1, b2) == 0);
 
+    }
+    @Test
+    public void testNumberCompare4() {
         b1 = "100.000".getBytes();
         b2 = "100.0".getBytes();
         Assert.assertEquals(true, ByteUtil.compareNumberByte(b1, b2) == 0);
@@ -74,6 +81,10 @@ public class TestSorter {
         b2 = "-100.0".getBytes();
         Assert.assertEquals(true, ByteUtil.compareNumberByte(b1, b2) == 0);
 
+    }
+
+    @Test
+    public void testNumberCompare6() {
         b1 = "-100.001".getBytes();
         b2 = "-100.0".getBytes();
         Assert.assertEquals(true, ByteUtil.compareNumberByte(b1, b2) < 0);

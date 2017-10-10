@@ -436,8 +436,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
             SQLInsertStatement insertStatement = (SQLInsertStatement) statement;
             tableSource = insertStatement.getTableSource();
             for (RouteResultsetNode node : rrs.getNodes()) {
-                SQLExprTableSource from2 = getDisTable(tableSource, node);
-                from2.setAlias(tableSource.getAlias());
+                SQLExprTableSource from2 = getSqlExprTableSource(tableSource, node);
                 insertStatement.setTableSource(from2);
                 node.setStatement(insertStatement.toString());
             }
@@ -446,8 +445,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
             SQLDeleteStatement deleteStatement = (SQLDeleteStatement) statement;
             tableSource = deleteStatement.getTableSource();
             for (RouteResultsetNode node : rrs.getNodes()) {
-                SQLExprTableSource from2 = getDisTable(tableSource, node);
-                from2.setAlias(tableSource.getAlias());
+                SQLExprTableSource from2 = getSqlExprTableSource(tableSource, node);
                 deleteStatement.setTableSource(from2);
                 node.setStatement(deleteStatement.toString());
             }
@@ -456,14 +454,20 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
             SQLUpdateStatement updateStatement = (SQLUpdateStatement) statement;
             tableSource = updateStatement.getTableSource();
             for (RouteResultsetNode node : rrs.getNodes()) {
-                SQLExprTableSource from2 = getDisTable(tableSource, node);
-                from2.setAlias(tableSource.getAlias());
+                SQLExprTableSource from2 = getSqlExprTableSource(tableSource, node);
                 updateStatement.setTableSource(from2);
                 node.setStatement(updateStatement.toString());
             }
         }
 
         return rrs;
+    }
+
+    private SQLExprTableSource getSqlExprTableSource(SQLTableSource tableSource, RouteResultsetNode node)
+            throws SQLSyntaxErrorException {
+        SQLExprTableSource from2 = getDisTable(tableSource, node);
+        from2.setAlias(tableSource.getAlias());
+        return from2;
     }
 
     /**

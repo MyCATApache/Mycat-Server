@@ -45,24 +45,32 @@ public class ByteUtil {
         } else if (b2 == null || b2.length == 0) {
             return 1;
         }
+        // 判断正负
         boolean b1IsNegative = b1[0] == 45;
         boolean b2IsNegative = b2[0] == 45;
         if (b1IsNegative != b2IsNegative) return b1IsNegative ? -1 : 1;
-        //
+        // 只比较整数部分
         byte[] longB1 = getLongBytes(b1);
         int longB1Length = longB1.length;
         byte[] longB2 = getLongBytes(b2);
         int longB2Length = longB2.length;
+        // 位数不同
         if (longB1Length != longB2Length) {
-            if (b1IsNegative) return longB1.length - longB2.length;
+            if (!b1IsNegative) return longB1.length - longB2.length;
             else return longB2.length - longB1.length;
         }
-        int len = longB1Length;
+        // 位数相同 比较每一位的大小
         int result = 0;
         int index = -1;
-        for (int i = 0; i < len; i++) {
-            int b1val = longB1[i];
-            int b2val = longB2[i];
+        int length = b1.length;
+        if (b1.length < b2.length) length = b2.length;
+        for (int i = 0; i < length; i++) {
+            int b1val = 48; // '0'
+            int b2val = 48; // '0'
+            if (i < b1.length)
+                b1val = b1[i];
+            if (i < b2.length)
+                b2val = b2[i];
             if (b1val > b2val) {
                 result = 1;
                 index = i;
@@ -76,9 +84,13 @@ public class ByteUtil {
         if (index == 0) {
             // first byte compare
             return result;
-        } else {
-            return compareNumberByte2(b1, b2);
-        }
+        } else if (index == -1 && b1.length == b2.length) {
+            // 每一位都一样
+            return 0;
+        } else if (b1IsNegative) {
+            // 两个数是负数 比较结果求反
+            return 0 - result;
+        } else return result;
     }
 
     public static int compareNumberByte2(byte[] b1, byte[] b2) {
