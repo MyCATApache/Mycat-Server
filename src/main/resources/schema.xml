@@ -2,57 +2,55 @@
 <!DOCTYPE mycat:schema SYSTEM "schema.dtd">
 <mycat:schema xmlns:mycat="http://io.mycat/">
 
-	<schema name="voyageone_wms" checkSQLschema="false" sqlMaxLimit="100">
+	<schema name="TESTDB" checkSQLschema="false" sqlMaxLimit="100">
 		<!-- auto sharding by id (long) -->
-		<!-- <table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" /> -->
+		<table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
 
 		<!-- global table is auto cloned to all defined data nodes ,so can join
 			with any table whose sharding node is in the same data node -->
-		<!-- <table name="company" primaryKey="ID" type="global" dataNode="dn1,dn2,dn3" /> -->
-		<!-- <table name="goods" primaryKey="ID" type="global" dataNode="dn1,dn2" /> -->
+		<table name="company" primaryKey="ID" type="global" dataNode="dn1,dn2,dn3" />
+		<table name="goods" primaryKey="ID" type="global" dataNode="dn1,dn2" />
 		<!-- random sharding using mod sharind rule -->
-		<!-- <table name="hotnews" primaryKey="ID" autoIncrement="true" dataNode="dn1,dn2,dn3" -->
-		<!-- rule="mod-long" /> -->
+		<table name="hotnews" primaryKey="ID" autoIncrement="true" dataNode="dn1,dn2,dn3"
+			   rule="mod-long" />
 		<!-- <table name="dual" primaryKey="ID" dataNode="dnx,dnoracle2" type="global"
 			needAddLimit="false"/> <table name="worker" primaryKey="ID" dataNode="jdbc_dn1,jdbc_dn2,jdbc_dn3"
 			rule="mod-long" /> -->
-		<!-- <table name="employee" primaryKey="ID" dataNode="dn1,dn2" -->
-		<!-- rule="sharding-by-intfile" /> -->
-		<!-- <table name="customer" primaryKey="ID" dataNode="dn1,dn2" -->
-		<!-- rule="sharding-by-intfile"> -->
-		<!-- <childTable name="orders" primaryKey="ID" joinKey="customer_id" -->
-		<!-- parentKey="id"> -->
-		<!-- <childTable name="order_items" joinKey="order_id" -->
-		<!-- parentKey="id" /> -->
-		<!-- </childTable> -->
-		<!-- <childTable name="customer_addr" primaryKey="ID" joinKey="customer_id" -->
-		<!-- parentKey="id" /> -->
-        <table name="wms_bt_channel_stock" primaryKey="id" dataNode="dn1"
-               rule="sharding-by-channel-id" subTables="wms_bt_channel_stock_c$001-009">
+		<table name="employee" primaryKey="ID" dataNode="dn1,dn2"
+			   rule="sharding-by-intfile" />
+		<table name="customer" primaryKey="ID" dataNode="dn1,dn2"
+			   rule="sharding-by-intfile">
+			<childTable name="orders" primaryKey="ID" joinKey="customer_id"
+						parentKey="id">
+				<childTable name="order_items" joinKey="order_id"
+							parentKey="id" />
+			</childTable>
+			<childTable name="customer_addr" primaryKey="ID" joinKey="customer_id"
+						parentKey="id" />
         </table>
 		<!-- <table name="oc_call" primaryKey="ID" dataNode="dn1$0-743" rule="latest-month-calldate"
 			/> -->
 	</schema>
 	<!-- <dataNode name="dn1$0-743" dataHost="localhost1" database="db$0-743"
 		/> -->
-	<dataNode name="dn1" dataHost="test_db" database="voyageone_wms" />
-	<!-- 	<dataNode name="dn2" dataHost="localhost1" database="db2" />
-        <dataNode name="dn3" dataHost="localhost1" database="db3" /> -->
+	<dataNode name="dn1" dataHost="localhost1" database="db1" />
+	<dataNode name="dn2" dataHost="localhost1" database="db2" />
+	<dataNode name="dn3" dataHost="localhost1" database="db3" />
 	<!--<dataNode name="dn4" dataHost="sequoiadb1" database="SAMPLE" />
 	 <dataNode name="jdbc_dn1" dataHost="jdbchost" database="db1" />
 	<dataNode	name="jdbc_dn2" dataHost="jdbchost" database="db2" />
 	<dataNode name="jdbc_dn3" 	dataHost="jdbchost" database="db3" /> -->
-	<dataHost name="test_db" maxCon="1000" minCon="10" balance="0"
+	<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
 			  writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
 		<heartbeat>select user()</heartbeat>
 		<!-- can have multi write hosts -->
-		<writeHost host="test_write_host_db" url="10.0.0.83:3306" user="root"
-				   password="sneakerhead">
+		<writeHost host="hostM1" url="localhost:3306" user="root"
+				   password="123456">
 			<!-- can have multi read hosts -->
-			<!-- <readHost host="test_host_db" url="10.0.0.83:3306" user="root" password="sneakerhead" /> -->
+			<readHost host="hostS2" url="192.168.1.200:3306" user="root" password="xxx" />
 		</writeHost>
-		<!-- 		<writeHost host="hostS1" url="localhost:3316" user="root"
-                           password="123456" /> -->
+		<writeHost host="hostS1" url="localhost:3316" user="root"
+				   password="123456" />
 		<!-- <writeHost host="hostM2" url="localhost:3316" user="root" password="123456"/> -->
 	</dataHost>
 	<!--

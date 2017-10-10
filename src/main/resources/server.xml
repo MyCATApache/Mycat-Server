@@ -10,6 +10,8 @@
 <!DOCTYPE mycat:server SYSTEM "server.dtd">
 <mycat:server xmlns:mycat="http://io.mycat/">
 	<system>
+	<property name="nonePasswordLogin">0</property> <!-- 0为需要密码登陆、1为不需要密码登陆 ,默认为0，设置为1则需要指定默认账户-->
+	<property name="useHandshakeV10">1</property>
 		<property name="useSqlStat">0</property>  <!-- 1为开启实时统计、0为关闭 -->
 		<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
 
@@ -21,7 +23,7 @@
         <property name="processors">1</property>
         <property name="processorExecutor">32</property>
          -->
-		<!--默认为type 0: DirectByteBufferPool | type 1 ByteBufferArena-->
+        <!--默认为type 0: DirectByteBufferPool | type 1 ByteBufferArena | type 2 NettyBufferPool -->
 		<property name="processorBufferPoolType">0</property>
 		<!--默认是65535 64K 用于sql解析时最大文本长度 -->
 		<!--<property name="maxStringLiteralLength">65535</property>-->
@@ -44,7 +46,7 @@
 		<!--
 			单位为m
 		-->
-		<property name="memoryPageSize">1m</property>
+        <property name="memoryPageSize">64k</property>
 
 		<!--
 			单位为k
@@ -60,26 +62,36 @@
 
 
 		<!--是否采用zookeeper协调切换  -->
-		<property name="useZKSwitch">false</property>
+		<property name="useZKSwitch">true</property>
 
+		<!-- XA Recovery Log日志路径 -->
+		<!--<property name="XARecoveryLogBaseDir">./</property>-->
+
+		<!-- XA Recovery Log日志名称 -->
+		<!--<property name="XARecoveryLogBaseName">tmlog</property>-->
 
 	</system>
 
 	<!-- 全局SQL防火墙设置 -->
+	<!--白名单可以使用通配符%或着*-->
+	<!--例如<host host="127.0.0.*" user="root"/>-->
+	<!--例如<host host="127.0.*" user="root"/>-->
+	<!--例如<host host="127.*" user="root"/>-->
+	<!--例如<host host="1*7.*" user="root"/>-->
+	<!--这些配置情况下对于127.0.0.1都能以root账户登录-->
 	<!--
 	<firewall>
 	   <whitehost>
-	      <host host="127.0.0.1" user="mycat"/>
-	      <host host="127.0.0.2" user="mycat"/>
+	      <host host="1*7.0.0.*" user="root"/>
 	   </whitehost>
        <blacklist check="false">
        </blacklist>
 	</firewall>
 	-->
 
-	<user name="root">
-		<property name="password">sneakerhead</property>
-		<property name="schemas">voyageone_wms</property>
+	<user name="root" defaultAccount="true">
+		<property name="password">123456</property>
+		<property name="schemas">TESTDB</property>
 
 		<!-- 表级 DML 权限设置 -->
 		<!--
@@ -93,8 +105,8 @@
 	</user>
 
 	<user name="user">
-		<property name="password">sneakerhead</property>
-		<property name="schemas">voyageone_wms</property>
+		<property name="password">user</property>
+		<property name="schemas">TESTDB</property>
 		<property name="readOnly">true</property>
 	</user>
 
