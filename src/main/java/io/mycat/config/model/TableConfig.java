@@ -56,6 +56,7 @@ public class TableConfig {
     private final boolean secondLevel;
     private final boolean partionKeyIsPrimaryKey;
     private final Random rand = new Random();
+    private final String sumTable;
 
     private volatile List<SQLTableElement> tableElementList;
     private volatile String tableStructureSQL;
@@ -66,7 +67,7 @@ public class TableConfig {
     public TableConfig(String name, String primaryKey, boolean autoIncrement, boolean needAddLimit, int tableType,
                        String dataNode, Set<String> dbType, RuleConfig rule, boolean ruleRequired,
                        TableConfig parentTC, boolean isChildTable, String joinKey,
-                       String parentKey, String subTables) {
+                       String parentKey, String subTables, String sumTable) {
         if (name == null) {
             throw new IllegalArgumentException("table name is null");
         } else if (dataNode == null) {
@@ -93,7 +94,7 @@ public class TableConfig {
         }
 
         if (subTables != null && !subTables.equals("")) {
-			String sTables[] = SplitUtil.split(subTables, ',', '$', '-');
+            String sTables[] = SplitUtil.split(subTables, ',', '$', '-');
             if (sTables == null || sTables.length <= 0) {
                 throw new IllegalArgumentException("invalid table subTables");
             }
@@ -104,6 +105,9 @@ public class TableConfig {
         } else {
             this.distTables = new ArrayList<String>();
         }
+
+        if (null != sumTable && !"".equals(sumTable)) this.sumTable = sumTable;
+        else this.sumTable = null;
 
         this.rule = rule;
         this.partitionColumn = (rule == null) ? null : rule.getColumn();
@@ -261,10 +265,7 @@ public class TableConfig {
     }
 
     public boolean isDistTable() {
-        if (this.distTables != null && !this.distTables.isEmpty()) {
-            return true;
-        }
-        return false;
+        return this.distTables != null && !this.distTables.isEmpty();
     }
 
     public List<SQLTableElement> getTableElementList() {
@@ -298,5 +299,9 @@ public class TableConfig {
 
     public void setDataNodeTableStructureSQLMap(Map<String, List<String>> dataNodeTableStructureSQLMap) {
         this.dataNodeTableStructureSQLMap = dataNodeTableStructureSQLMap;
+    }
+
+    public String getSumTable() {
+        return sumTable;
     }
 }

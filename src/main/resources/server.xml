@@ -90,8 +90,8 @@
 	-->
 
 	<user name="root" defaultAccount="true">
-		<property name="password">123456</property>
-		<property name="schemas">TESTDB</property>
+		<property name="password">utopia</property>
+		<property name="schemas">supanalyse</property>
 
 		<!-- 表级 DML 权限设置 -->
 		<!--
@@ -106,7 +106,7 @@
 
 	<user name="user">
 		<property name="password">user</property>
-		<property name="schemas">TESTDB</property>
+		<property name="schemas">supanalyse</property>
 		<property name="readOnly">true</property>
 	</user>
 

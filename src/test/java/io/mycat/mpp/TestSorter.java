@@ -28,8 +28,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class TestSorter {
-    byte[] b1;
-    byte[] b2;
+    private byte[] b1;
+    private byte[] b2;
 
     @Test
     public void testDecimal() {
@@ -85,8 +85,16 @@ public class TestSorter {
 
     @Test
     public void testNumberCompare6() {
-        b1 = "-100.001".getBytes();
-        b2 = "-100.0".getBytes();
+        b1 = "-10666666666232352345234523235666666660.001".getBytes();
+        b2 = "10666666666232352345234523235666666660.0".getBytes();
+        long start1 = System.nanoTime();
+        ByteUtil.compareNumberByte(b1, b2);
+        long end1 = System.nanoTime();
+        System.out.println(end1 - start1);
+        long start2 = System.nanoTime();
+        ByteUtil.compareNumberByte2(b1, b2);
+        long end2 = System.nanoTime();
+        System.out.println(end2 - start2);
         Assert.assertEquals(true, ByteUtil.compareNumberByte(b1, b2) < 0);
 
         b1 = "-100.001".getBytes();

@@ -1,6 +1,7 @@
 package io.mycat.route.function;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * 根据后缀分表
@@ -19,15 +20,17 @@ public class PartitionByPostfix extends AbstractPartitionAlgorithm implements Ru
     public void init() {
         if (null == firstValue) firstValue = 0;
         if (null == prefix) prefix = "";
+        if (null == postfix) postfix = "";
     }
 
     @Override
     public Integer calculate(String columnValue) {
         // 1. 按照 prefix 和 postfix 解析真正的序号
         String finalValue = columnValue;
-        if (columnValue.startsWith(prefix))
+        if (!StringUtils.isBlank(prefix) && columnValue.startsWith(prefix))
             finalValue = finalValue.substring(finalValue.indexOf(prefix) + 1, finalValue.length());
-        if (columnValue.endsWith(postfix)) finalValue = finalValue.substring(0, finalValue.lastIndexOf(postfix));
+        if (!StringUtils.isBlank(prefix) && columnValue.endsWith(postfix))
+            finalValue = finalValue.substring(0, finalValue.lastIndexOf(postfix));
         return Integer.parseInt(finalValue) - firstValue;
     }
 

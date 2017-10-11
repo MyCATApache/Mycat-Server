@@ -9,6 +9,12 @@
 	under the License. -->
 <!DOCTYPE mycat:rule SYSTEM "rule.dtd">
 <mycat:rule xmlns:mycat="http://io.mycat/">
+	<tableRule name="partition-by-post-fix">
+		<rule>
+			<columns>supplier_code</columns>
+			<algorithm>partition-by-post-fix</algorithm>
+		</rule>
+	</tableRule>
 	<tableRule name="rule1">
 		<rule>
 			<columns>id</columns>
@@ -107,6 +113,9 @@
 		<property name="count">3</property>
 	</function>
 
+	<function name="partition-by-post-fix" class="io.mycat.route.function.PartitionByPostfix">
+		<property name="firstValue">0</property>
+	</function>
 	<function name="func1" class="io.mycat.route.function.PartitionByLong">
 		<property name="partitionCount">8</property>
 		<property name="partitionLength">128</property>
