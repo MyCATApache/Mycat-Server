@@ -24,9 +24,6 @@
 package io.mycat.route;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
-
-import io.mycat.MycatServer;
-import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.parser.util.PageSQLUtil;
 import io.mycat.sqlengine.mpp.HavingCols;
@@ -43,8 +40,8 @@ public final class RouteResultset implements Serializable {
     private final int sqlType;
     private RouteResultsetNode[] nodes; // 路由结果节点
     private Set<String> subTables;
-    private SQLStatement sqlStatement; 
-    
+    private SQLStatement sqlStatement;
+
 
     private int limitStart;
     private boolean cacheAble;
@@ -66,17 +63,17 @@ public final class RouteResultset implements Serializable {
     //是否自动提交，此属性主要用于记录ServerConnection上的autocommit状态
     private boolean autocommit = true;
 
-    private boolean isLoadData=false;
+    private boolean isLoadData = false;
 
     //是否可以在从库运行,此属性主要供RouteResultsetNode获取
     private Boolean canRunInReadDB;
 
     // 强制走 master，可以通过 RouteResultset的属性canRunInReadDB=false
     // 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
-    private Boolean runOnSlave = null;	// 默认null表示不施加影响
+    private Boolean runOnSlave = null;    // 默认null表示不施加影响
 
-       //key=dataNode    value=slot
-    private Map<String,Integer>   dataNodeSlotMap=new HashMap<>();
+    //key=dataNode    value=slot
+    private Map<String, Integer> dataNodeSlotMap = new HashMap<>();
 
     private boolean selectForUpdate;
 
@@ -87,9 +84,9 @@ public final class RouteResultset implements Serializable {
     public void setSelectForUpdate(boolean selectForUpdate) {
         this.selectForUpdate = selectForUpdate;
     }
-	
-	
-	 private List<String> tables;
+
+
+    private List<String> tables;
 
     public List<String> getTables() {
         return tables;
@@ -108,31 +105,28 @@ public final class RouteResultset implements Serializable {
     }
 
     public Boolean getRunOnSlave() {
-		return runOnSlave;
-	}
+        return runOnSlave;
+    }
 
-	public void setRunOnSlave(Boolean runOnSlave) {
-		this.runOnSlave = runOnSlave;
-	}
-	  private Procedure procedure;
+    public void setRunOnSlave(Boolean runOnSlave) {
+        this.runOnSlave = runOnSlave;
+    }
 
-    public Procedure getProcedure()
-    {
+    private Procedure procedure;
+
+    public Procedure getProcedure() {
         return procedure;
     }
 
-    public void setProcedure(Procedure procedure)
-    {
+    public void setProcedure(Procedure procedure) {
         this.procedure = procedure;
     }
 
-	public boolean isLoadData()
-    {
+    public boolean isLoadData() {
         return isLoadData;
     }
 
-    public void setLoadData(boolean isLoadData)
-    {
+    public void setLoadData(boolean isLoadData) {
         this.isLoadData = isLoadData;
     }
 
@@ -168,12 +162,9 @@ public final class RouteResultset implements Serializable {
 
     public void copyLimitToNodes() {
 
-        if(nodes!=null)
-        {
-            for (RouteResultsetNode node : nodes)
-            {
-                if(node.getLimitSize()==-1&&node.getLimitStart()==0)
-                {
+        if (nodes != null) {
+            for (RouteResultsetNode node : nodes) {
+                if (node.getLimitSize() == -1 && node.getLimitStart() == 0) {
                     node.setLimitStart(limitStart);
                     node.setLimitSize(limitSize);
                 }
@@ -294,11 +285,9 @@ public final class RouteResultset implements Serializable {
     }
 
     public void setNodes(RouteResultsetNode[] nodes) {
-        if(nodes!=null)
-        {
-           int nodeSize=nodes.length;
-            for (RouteResultsetNode node : nodes)
-            {
+        if (nodes != null) {
+            int nodeSize = nodes.length;
+            for (RouteResultsetNode node : nodes) {
                 node.setTotalNodeSize(nodeSize);
             }
 
@@ -327,10 +316,8 @@ public final class RouteResultset implements Serializable {
 
     public void setCallStatement(boolean callStatement) {
         this.callStatement = callStatement;
-        if(nodes!=null)
-        {
-            for (RouteResultsetNode node : nodes)
-            {
+        if (nodes != null) {
+            for (RouteResultsetNode node : nodes) {
                 node.setCallStatement(callStatement);
             }
 
@@ -338,26 +325,21 @@ public final class RouteResultset implements Serializable {
     }
 
     public void changeNodeSqlAfterAddLimit(SchemaConfig schemaConfig, String sourceDbType, String sql, int offset, int count, boolean isNeedConvert) {
-        if (nodes != null)
-        {
+        if (nodes != null) {
 
             Map<String, String> dataNodeDbTypeMap = schemaConfig.getDataNodeDbTypeMap();
             Map<String, String> sqlMapCache = new HashMap<>();
-            for (RouteResultsetNode node : nodes)
-            {
+            for (RouteResultsetNode node : nodes) {
                 String dbType = dataNodeDbTypeMap.get(node.getName());
-                if (dbType.equalsIgnoreCase("mysql")) 
-                {
+                if (dbType.equalsIgnoreCase("mysql")) {
                     node.setStatement(sql);   //mysql之前已经加好limit
-                } else if (sqlMapCache.containsKey(dbType))
-                {
+                } else if (sqlMapCache.containsKey(dbType)) {
                     node.setStatement(sqlMapCache.get(dbType));
-                } else if(isNeedConvert)
-                {
+                } else if (isNeedConvert) {
                     String nativeSql = PageSQLUtil.convertLimitToNativePageSql(dbType, sql, offset, count);
                     sqlMapCache.put(dbType, nativeSql);
                     node.setStatement(nativeSql);
-                }  else {
+                } else {
                     node.setStatement(sql);
                 }
 
@@ -385,48 +367,48 @@ public final class RouteResultset implements Serializable {
         this.canRunInReadDB = canRunInReadDB;
     }
 
-	public HavingCols getHavingCols() {
-		return (sqlMerge != null) ? sqlMerge.getHavingCols() : null;
-	}
+    public HavingCols getHavingCols() {
+        return (sqlMerge != null) ? sqlMerge.getHavingCols() : null;
+    }
 
-	public void setSubTables(Set<String> subTables) {
-		this.subTables = subTables;
-	}
+    public void setSubTables(Set<String> subTables) {
+        this.subTables = subTables;
+    }
 
-	public void setHavings(HavingCols havings) {
-		if (havings != null) {
-			createSQLMergeIfNull().setHavingCols(havings);
-		}
-	}
+    public void setHavings(HavingCols havings) {
+        if (havings != null) {
+            createSQLMergeIfNull().setHavingCols(havings);
+        }
+    }
 
-	// Added by winbill, 20160314, for having clause, Begin ==>
-	public void setHavingColsName(Object[] names) {
-		if (names != null && names.length > 0) {
-			createSQLMergeIfNull().setHavingColsName(names);
-		}
-	}
-	// Added by winbill, 20160314, for having clause, End  <==
+    // Added by winbill, 20160314, for having clause, Begin ==>
+    public void setHavingColsName(Object[] names) {
+        if (names != null && names.length > 0) {
+            createSQLMergeIfNull().setHavingColsName(names);
+        }
+    }
+    // Added by winbill, 20160314, for having clause, End  <==
 
     public SQLStatement getSqlStatement() {
-		return this.sqlStatement;
-	}
+        return this.sqlStatement;
+    }
 
-	public void setSqlStatement(SQLStatement sqlStatement) {
-		this.sqlStatement = sqlStatement;
-	}
+    public void setSqlStatement(SQLStatement sqlStatement) {
+        this.sqlStatement = sqlStatement;
+    }
 
-	public Set<String> getSubTables() {
-		return this.subTables;
-	}
-	
-	public boolean isDistTable(){
-		if(this.getSubTables()!=null && !this.getSubTables().isEmpty() ){
-			return true;
-		}
-		return false;
-	}
+    public Set<String> getSubTables() {
+        return this.subTables;
+    }
 
-	@Override
+    public boolean isDistTable() {
+        if (this.getSubTables() != null && !this.getSubTables().isEmpty()) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public String toString() {
         StringBuilder s = new StringBuilder();
         s.append(statement).append(", route={");

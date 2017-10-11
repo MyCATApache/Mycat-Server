@@ -82,4 +82,10 @@ public class SplitUtilTest {
         Assert.assertEquals("offer[3]", dest[3]);
     }
 
+    @Test
+    public void test5() {
+        String src = "wms_bt_channel_stock_c$00-999";
+        String [] dest = SplitUtil.split(src, ',', '$', '-');
+        Assert.assertEquals(1000, dest.length);
+    }
 }

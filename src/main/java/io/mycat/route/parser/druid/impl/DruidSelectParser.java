@@ -431,6 +431,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					sqlIdentifierExpr.setParent(from);
 					sqlIdentifierExpr.setName(node.getSubTableName());
 					SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+					from2.setAlias(from.getAlias());
 					mysqlSelectQuery.setFrom(from2);
 					node.setStatement(stmt.toString());
 	            }

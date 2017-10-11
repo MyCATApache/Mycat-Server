@@ -23,6 +23,8 @@
  */
 package io.mycat.util;
 
+import com.sun.javafx.binding.StringFormatter;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -229,23 +231,35 @@ public class SplitUtil {
         } else {
             String[] s = split(src, c1, true);
             String[] scope = split(s[1], c2, true);
+            int integerLength = scope[0].length();
             int min = Integer.parseInt(scope[0]);
             int max = Integer.parseInt(scope[scope.length - 1]);
             if (c3 == '0') {
                 for (int x = min; x <= max; x++) {
-                    list.add(new StringBuilder(s[0]).append(x).toString());
+                    String splitString = buildSubString(integerLength, x);
+                    list.add(s[0] + splitString);
                 }
             } else if (c4 == '0') {
                 for (int x = min; x <= max; x++) {
-                    list.add(new StringBuilder(s[0]).append(c3).append(x).toString());
+                    String splitString = buildSubString(integerLength, x);
+                    list.add(s[0] + c3 + splitString);
                 }
             } else {
                 for (int x = min; x <= max; x++) {
-                    list.add(new StringBuilder(s[0]).append(c3).append(x).append(c4).toString());
+                    String splitString = buildSubString(integerLength, x);
+                    list.add(s[0] + c3 + splitString + c4);
                 }
             }
         }
         return list.toArray(new String[list.size()]);
+    }
+
+    private static String buildSubString(int integerLength, int x) {
+        String splitString;
+        if (integerLength <= 1)
+            splitString = String.valueOf(x);
+        else splitString = String.format("%0" + integerLength + "d", x);
+        return splitString;
     }
 
     public static String[] split(String src, char fi, char se, char th) {

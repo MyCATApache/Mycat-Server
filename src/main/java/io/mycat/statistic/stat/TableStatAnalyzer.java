@@ -154,7 +154,7 @@ public class TableStatAnalyzer implements QueryResultListener {
 		public List<String> parseTableNames(String sql) {
 			final List<String> tables = new ArrayList<String>();
 		  try{			
-			
+
 			SQLStatement stmt = parseStmt(sql);
 			if (stmt instanceof MySqlReplaceStatement ) {
 				String table = ((MySqlReplaceStatement)stmt).getTableName().getSimpleName();
