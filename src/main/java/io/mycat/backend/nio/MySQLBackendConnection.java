@@ -491,7 +491,7 @@ public class MySQLBackendConnection extends GenalMySQLConnection implements
 	@Override
 	public String toString() {
 		return "MySQLConnection [id=" + id + ", lastTime=" + lastTime
-				+ ", schema=" + schema + ", old shema=" + oldSchema
+				+ ", schema=" + schema + ", old schema=" + oldSchema
 				+ ", borrowed=" + borrowed + ", fromSlaveDB=" + fromSlaveDB
 				+ ", threadId=" + threadId + ", charset=" + charset
 				+ ", txIsolation=" + txIsolation + ", autocommit=" + autocommit
