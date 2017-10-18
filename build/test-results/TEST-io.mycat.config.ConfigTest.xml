@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.config.ConfigTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:34" hostname="DESKTOP-T7UG6RU" time="0.036">
+<testsuite name="io.mycat.config.ConfigTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:47" hostname="liyongxian01" time="0.069">
   <properties/>
-  <testcase name="testTempReadHostAvailable" classname="io.mycat.config.ConfigTest" time="0.001"/>
-  <testcase name="testDynamicYYYYMMTable" classname="io.mycat.config.ConfigTest" time="0.0"/>
+  <testcase name="testTempReadHostAvailable" classname="io.mycat.config.ConfigTest" time="0.0"/>
   <testcase name="testReadUserBenchmark" classname="io.mycat.config.ConfigTest" time="0.0"/>
   <testcase name="testReadHostWeight" classname="io.mycat.config.ConfigTest" time="0.0"/>
-  <system-out><![CDATA[2017-05-22 15:41:34.586  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
-2017-05-22 15:41:34.586  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
-2017-05-22 15:41:34.599  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
-2017-05-22 15:41:34.599  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
-2017-05-22 15:41:34.611  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
-2017-05-22 15:41:34.611  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
-2017-05-22 15:41:34.622  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
-2017-05-22 15:41:34.622  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
+  <testcase name="testDynamicYYYYMMTable" classname="io.mycat.config.ConfigTest" time="0.001"/>
+  <system-out><![CDATA[2017-05-27 17:14:47.197  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
+2017-05-27 17:14:47.197  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
+2017-05-27 17:14:47.223  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
+2017-05-27 17:14:47.223  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
+2017-05-27 17:14:47.243  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
+2017-05-27 17:14:47.243  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
+2017-05-27 17:14:47.265  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
+2017-05-27 17:14:47.265  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

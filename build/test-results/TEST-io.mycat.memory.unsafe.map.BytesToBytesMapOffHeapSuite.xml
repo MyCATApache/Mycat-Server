@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" tests="13" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:35" hostname="DESKTOP-T7UG6RU" time="1.732">
+<testsuite name="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" tests="13" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:47" hostname="liyongxian01" time="0.971">
   <properties/>
-  <testcase name="failureToGrow" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.02"/>
-  <testcase name="iteratorTest" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.021"/>
-  <testcase name="iteratingOverDataPagesWithWastedSpace" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="1.343"/>
-  <testcase name="randomizedTestWithRecordsLargerThanPageSize" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.056"/>
-  <testcase name="failureToAllocateFirstPage" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.003"/>
-  <testcase name="initialCapacityBoundsChecking" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.001"/>
-  <testcase name="multipleValuesForSameKey" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.005"/>
-  <testcase name="destructiveIteratorTest" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.007"/>
-  <testcase name="spillInIterator" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.027"/>
-  <testcase name="testPeakMemoryUsed" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.001"/>
-  <testcase name="randomizedStressTest" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.24"/>
-  <testcase name="setAndRetrieveAKey" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.003"/>
-  <testcase name="emptyMap" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.0"/>
-  <system-out><![CDATA[2017-05-22 15:41:35.428  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
-2017-05-22 15:41:35.428  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@5a7b7: 2.0 KB
-2017-05-22 15:41:35.431  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -2048 bytes of memory were used by task 0 but are not associated with specific consumers
-2017-05-22 15:41:35.431  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
-2017-05-22 15:41:36.863  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
-2017-05-22 15:41:36.863  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@17e7e34: 1024.0 B
-2017-05-22 15:41:36.863  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -1024 bytes of memory were used by task 0 but are not associated with specific consumers
-2017-05-22 15:41:36.863  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
-2017-05-22 15:41:36.888  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 39 exist !
-2017-05-22 15:41:36.905 ERROR [Test worker] (io.mycat.memory.unsafe.map.BytesToBytesMap$MapIterator.hasNext(BytesToBytesMap.java:310)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-070010b3-0577-4c5b-9106-5ef6ce944cd0\39\7e61f4a4-c282-45d1-a471-3b484ed8a064
+  <testcase name="emptyMap" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.012"/>
+  <testcase name="iteratingOverDataPagesWithWastedSpace" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.623"/>
+  <testcase name="randomizedTestWithRecordsLargerThanPageSize" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.138"/>
+  <testcase name="failureToGrow" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.012"/>
+  <testcase name="iteratorTest" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.01"/>
+  <testcase name="randomizedStressTest" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.116"/>
+  <testcase name="setAndRetrieveAKey" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.004"/>
+  <testcase name="spillInIterator" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.023"/>
+  <testcase name="destructiveIteratorTest" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.011"/>
+  <testcase name="failureToAllocateFirstPage" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.002"/>
+  <testcase name="multipleValuesForSameKey" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.011"/>
+  <testcase name="initialCapacityBoundsChecking" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.0"/>
+  <testcase name="testPeakMemoryUsed" classname="io.mycat.memory.unsafe.map.BytesToBytesMapOffHeapSuite" time="0.002"/>
+  <system-out><![CDATA[2017-05-27 17:14:48.458  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
+2017-05-27 17:14:48.458  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@7bde83b8: 2.0 KB
+2017-05-27 17:14:48.461  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -2048 bytes of memory were used by task 0 but are not associated with specific consumers
+2017-05-27 17:14:48.461  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
+2017-05-27 17:14:48.609  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 36 exist !
+2017-05-27 17:14:48.622 ERROR [Test worker] (io.mycat.memory.unsafe.map.BytesToBytesMap$MapIterator.hasNext(BytesToBytesMap.java:310)) - Was unable to delete spill file F:\git-mycat\Mycat-Server\datanode\datenode-0cbe0004-6fa5-4145-87eb-9653358f8ed6\36\c609ac14-6abb-4de0-9171-680b009c5419
+2017-05-27 17:14:48.636  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
+2017-05-27 17:14:48.636  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@620bda7f: 1024.0 B
+2017-05-27 17:14:48.637  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -1024 bytes of memory were used by task 0 but are not associated with specific consumers
+2017-05-27 17:14:48.637  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.classload.TestDynClassLoad" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:34" hostname="DESKTOP-T7UG6RU" time="0.007">
+<testsuite name="io.mycat.classload.TestDynClassLoad" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:47" hostname="liyongxian01" time="0.015">
   <properties/>
-  <testcase name="testLoadClass" classname="io.mycat.classload.TestDynClassLoad" time="0.007"/>
-  <system-out><![CDATA[class load path /C:/Users/hqq/git/Mycat-Server/build/classes/test/
-class /C:/Users/hqq/git/Mycat-Server/build/classes/test/ file demo\test\TestClass1.class
-found C:\Users\hqq\git\Mycat-Server\build\classes\test\demo\test\TestClass1.class
+  <testcase name="testLoadClass" classname="io.mycat.classload.TestDynClassLoad" time="0.015"/>
+  <system-out><![CDATA[class load path /F:/git-mycat/Mycat-Server/build/classes/test/
+class /F:/git-mycat/Mycat-Server/build/classes/test/ file demo\test\TestClass1.class
+found F:\git-mycat\Mycat-Server\build\classes\test\demo\test\TestClass1.class
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.sequence.SequenceTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:49" hostname="DESKTOP-T7UG6RU" time="0.003">
+<testsuite name="io.mycat.sequence.SequenceTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:15:03" hostname="liyongxian01" time="0.003">
   <properties/>
-  <testcase name="testUUID" classname="io.mycat.sequence.SequenceTest" time="0.002"/>
-  <testcase name="testRandom2" classname="io.mycat.sequence.SequenceTest" time="0.0"/>
-  <testcase name="testXAXID" classname="io.mycat.sequence.SequenceTest" time="0.0"/>
+  <testcase name="testUUID" classname="io.mycat.sequence.SequenceTest" time="0.001"/>
+  <testcase name="testRandom2" classname="io.mycat.sequence.SequenceTest" time="0.001"/>
   <testcase name="testRandom" classname="io.mycat.sequence.SequenceTest" time="0.0"/>
+  <testcase name="testXAXID" classname="io.mycat.sequence.SequenceTest" time="0.0"/>
   <system-out><![CDATA[UUID Time elapsed: 1ms
 UUID Time elapsed: 0ms
-'6cf77c99ade44853a1da4376e746087a'
-Time elapsed: 0ms
 41
+Time elapsed: 0ms
+'710407bdd92c4de79bf98c7ece2a9705'
 Time elapsed: 0ms
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>

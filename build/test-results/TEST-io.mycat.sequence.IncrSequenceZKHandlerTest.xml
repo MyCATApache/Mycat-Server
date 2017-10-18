@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.sequence.IncrSequenceZKHandlerTest" tests="1" skipped="1" failures="0" errors="0" timestamp="2017-05-22T07:41:49" hostname="DESKTOP-T7UG6RU" time="0.0">
+<testsuite name="io.mycat.sequence.IncrSequenceZKHandlerTest" tests="1" skipped="1" failures="0" errors="0" timestamp="2017-05-27T09:15:03" hostname="liyongxian01" time="0.0">
   <properties/>
   <testcase name="testCorrectnessAndEfficiency" classname="io.mycat.sequence.IncrSequenceZKHandlerTest" time="0.0">
     <skipped/>

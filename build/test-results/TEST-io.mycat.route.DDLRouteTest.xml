@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.route.DDLRouteTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.092">
+<testsuite name="io.mycat.route.DDLRouteTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:58" hostname="liyongxian01" time="0.311">
   <properties/>
-  <testcase name="testDDLDefaultNode" classname="io.mycat.route.DDLRouteTest" time="0.027"/>
-  <testcase name="testSpecialCharDDL" classname="io.mycat.route.DDLRouteTest" time="0.004"/>
-  <testcase name="testTableMetaRead" classname="io.mycat.route.DDLRouteTest" time="0.0"/>
-  <testcase name="testDDL" classname="io.mycat.route.DDLRouteTest" time="0.003"/>
-  <system-out><![CDATA[2017-05-22 15:41:43.854  INFO [Test worker] (io.mycat.cache.CacheService.createLayeredPool(CacheService.java:125)) - create layer cache pool TableID2DataNodeCache of type encache ,default cache size 10000 ,default expire seconds18000
-2017-05-22 15:41:43.854  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: TESTDB_ORDERS for layered cache TableID2DataNodeCache, size 50000, expire seconds 18000
-2017-05-22 15:41:43.857  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
-2017-05-22 15:41:43.876  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
-2017-05-22 15:41:43.877  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
-2017-05-22 15:41:43.877  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
-2017-05-22 15:41:43.879  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
-2017-05-22 15:41:43.909  INFO [Test worker] (io.mycat.cache.CacheService.createLayeredPool(CacheService.java:125)) - create layer cache pool TableID2DataNodeCache of type encache ,default cache size 10000 ,default expire seconds18000
-2017-05-22 15:41:43.909  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: TESTDB_ORDERS for layered cache TableID2DataNodeCache, size 50000, expire seconds 18000
-2017-05-22 15:41:43.909  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
-2017-05-22 15:41:43.943  INFO [Test worker] (io.mycat.cache.CacheService.createLayeredPool(CacheService.java:125)) - create layer cache pool TableID2DataNodeCache of type encache ,default cache size 10000 ,default expire seconds18000
-2017-05-22 15:41:43.943  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: TESTDB_ORDERS for layered cache TableID2DataNodeCache, size 50000, expire seconds 18000
-2017-05-22 15:41:43.944  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
-2017-05-22 15:41:43.944  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
-2017-05-22 15:41:43.944  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
-2017-05-22 15:41:43.944  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+  <testcase name="testDDL" classname="io.mycat.route.DDLRouteTest" time="0.068"/>
+  <testcase name="testTableMetaRead" classname="io.mycat.route.DDLRouteTest" time="0.001"/>
+  <testcase name="testSpecialCharDDL" classname="io.mycat.route.DDLRouteTest" time="0.019"/>
+  <testcase name="testDDLDefaultNode" classname="io.mycat.route.DDLRouteTest" time="0.006"/>
+  <system-out><![CDATA[2017-05-27 17:14:58.679  INFO [Test worker] (io.mycat.cache.CacheService.createLayeredPool(CacheService.java:125)) - create layer cache pool TableID2DataNodeCache of type encache ,default cache size 10000 ,default expire seconds18000
+2017-05-27 17:14:58.679  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: TESTDB_ORDERS for layered cache TableID2DataNodeCache, size 50000, expire seconds 18000
+2017-05-27 17:14:58.688  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+2017-05-27 17:14:58.734  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+2017-05-27 17:14:58.737  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+2017-05-27 17:14:58.743  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+2017-05-27 17:14:58.901  INFO [Test worker] (io.mycat.cache.CacheService.createLayeredPool(CacheService.java:125)) - create layer cache pool TableID2DataNodeCache of type encache ,default cache size 10000 ,default expire seconds18000
+2017-05-27 17:14:58.908  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: TESTDB_ORDERS for layered cache TableID2DataNodeCache, size 50000, expire seconds 18000
+2017-05-27 17:14:58.914  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+2017-05-27 17:14:58.983  INFO [Test worker] (io.mycat.cache.CacheService.createLayeredPool(CacheService.java:125)) - create layer cache pool TableID2DataNodeCache of type encache ,default cache size 10000 ,default expire seconds18000
+2017-05-27 17:14:58.984  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: TESTDB_ORDERS for layered cache TableID2DataNodeCache, size 50000, expire seconds 18000
+2017-05-27 17:14:58.985  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+2017-05-27 17:14:58.987  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+2017-05-27 17:14:58.988  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+2017-05-27 17:14:58.989  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
+2017-05-27 17:14:58.989  INFO [Test worker] (io.mycat.server.interceptor.impl.GlobalTableUtil.consistencyInterceptor(GlobalTableUtil.java:99)) -  DDL to modify global table.
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

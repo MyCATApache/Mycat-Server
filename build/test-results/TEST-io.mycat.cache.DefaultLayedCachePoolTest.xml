@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.cache.DefaultLayedCachePoolTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:27" hostname="DESKTOP-T7UG6RU" time="2.52">
+<testsuite name="io.mycat.cache.DefaultLayedCachePoolTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:40" hostname="liyongxian01" time="2.334">
   <properties/>
-  <testcase name="testBasic" classname="io.mycat.cache.DefaultLayedCachePoolTest" time="2.52"/>
-  <system-out><![CDATA[2017-05-22 15:41:27.923  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: default for layered cache defaultLayedPool, size 1000, expire seconds 1
-2017-05-22 15:41:28.435  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: company for layered cache defaultLayedPool, size 1000, expire seconds 1
-2017-05-22 15:41:28.436  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: goods for layered cache defaultLayedPool, size 1000, expire seconds 1
+  <testcase name="testBasic" classname="io.mycat.cache.DefaultLayedCachePoolTest" time="2.334"/>
+  <system-out><![CDATA[2017-05-27 17:14:40.624  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: default for layered cache defaultLayedPool, size 1000, expire seconds 1
+2017-05-27 17:14:40.951  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: company for layered cache defaultLayedPool, size 1000, expire seconds 1
+2017-05-27 17:14:40.953  INFO [Test worker] (io.mycat.cache.DefaultLayedCachePool.createChildCache(DefaultLayedCachePool.java:80)) - create child Cache: goods for layered cache defaultLayedPool, size 1000, expire seconds 1
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

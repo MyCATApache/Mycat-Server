@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterSuite" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.002">
+<testsuite name="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterSuite" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:56" hostname="liyongxian01" time="0.006">
   <properties/>
-  <testcase name="testSortingOnlyByIntegerPrefix" classname="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterSuite" time="0.001"/>
   <testcase name="testSortingEmptyInput" classname="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterSuite" time="0.001"/>
+  <testcase name="testSortingOnlyByIntegerPrefix" classname="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterSuite" time="0.004"/>
   <system-out><![CDATA[(0)address = 16
 (0,Boba)
 (1,Pearls)

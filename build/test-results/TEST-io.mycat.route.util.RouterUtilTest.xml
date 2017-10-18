@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.route.util.RouterUtilTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:49" hostname="DESKTOP-T7UG6RU" time="0.003">
+<testsuite name="io.mycat.route.util.RouterUtilTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:15:03" hostname="liyongxian01" time="0.003">
   <properties/>
-  <testcase name="testRemoveSchemaSelect2" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
-  <testcase name="testRemoveSchemaSelect" classname="io.mycat.route.util.RouterUtilTest" time="0.001"/>
-  <testcase name="testRemoveSchemaWithHypha" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
   <testcase name="testGetCreateTableStmtTableName" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
-  <testcase name="testBatchInsert" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
+  <testcase name="testRemoveSchemaWithHypha" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
+  <testcase name="testRemoveSchemaSelect" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
   <testcase name="testRemoveSchema2" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
   <testcase name="testRemoveSchema4" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
   <testcase name="testRemoveSchema3" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
   <testcase name="testRemoveSchema" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
+  <testcase name="testRemoveSchemaSelect2" classname="io.mycat.route.util.RouterUtilTest" time="0.0"/>
+  <testcase name="testBatchInsert" classname="io.mycat.route.util.RouterUtilTest" time="0.001"/>
   <system-out><![CDATA[update test set name='abcdtestx.aa'   where id=1 and testx=123
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>

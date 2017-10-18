@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.memory.unsafe.types.UTF8StringSuite" tests="25" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.014">
+<testsuite name="io.mycat.memory.unsafe.types.UTF8StringSuite" tests="25" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:56" hostname="liyongxian01" time="0.082">
   <properties/>
-  <testcase name="trims" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.004"/>
-  <testcase name="repeat" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="levenshteinDistance" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="emptyStringTest" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="createBlankString" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="substring_index" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
-  <testcase name="pad" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="upperAndLower" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.002"/>
-  <testcase name="titleCase" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="concatTest" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
-  <testcase name="concatWsTest" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="soundex" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
-  <testcase name="substringSQL" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="findInSet" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="basicTest" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
-  <testcase name="compareTo" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="contains" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="endsWith" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
+  <testcase name="compareTo" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.007"/>
   <testcase name="indexOf" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="split" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
-  <testcase name="startsWith" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
+  <testcase name="contains" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
+  <testcase name="endsWith" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
+  <testcase name="split" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
+  <testcase name="startsWith" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
   <testcase name="substring" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
   <testcase name="reverse" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
   <testcase name="prefix" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
+  <testcase name="createBlankString" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
+  <testcase name="substring_index" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
+  <testcase name="emptyStringTest" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
+  <testcase name="levenshteinDistance" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
+  <testcase name="basicTest" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
+  <testcase name="substringSQL" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.0"/>
   <testcase name="translate" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
+  <testcase name="soundex" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
+  <testcase name="trims" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.003"/>
+  <testcase name="concatWsTest" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
+  <testcase name="concatTest" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
+  <testcase name="findInSet" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.011"/>
+  <testcase name="upperAndLower" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.029"/>
+  <testcase name="titleCase" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.002"/>
+  <testcase name="repeat" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
+  <testcase name="pad" classname="io.mycat.memory.unsafe.types.UTF8StringSuite" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

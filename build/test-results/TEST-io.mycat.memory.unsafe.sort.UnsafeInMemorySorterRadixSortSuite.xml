@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterRadixSortSuite" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:42" hostname="DESKTOP-T7UG6RU" time="0.178">
+<testsuite name="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterRadixSortSuite" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:56" hostname="liyongxian01" time="0.544">
   <properties/>
-  <testcase name="testSortingOnlyByIntegerPrefix" classname="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterRadixSortSuite" time="0.003"/>
-  <testcase name="testSortingEmptyInput" classname="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterRadixSortSuite" time="0.175"/>
-  <system-out><![CDATA[(0)address = 16
+  <testcase name="testSortingEmptyInput" classname="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterRadixSortSuite" time="0.534"/>
+  <testcase name="testSortingOnlyByIntegerPrefix" classname="io.mycat.memory.unsafe.sort.UnsafeInMemorySorterRadixSortSuite" time="0.01"/>
+  <system-out><![CDATA[2017-05-27 17:14:56.051 ERROR [Test worker] (io.mycat.memory.unsafe.utils.sort.UnsafeExternalSorter.deleteSpillFiles(UnsafeExternalSorter.java:322)) - Was unable to delete spill file F:\git-mycat\Mycat-Server\datanode\datenode-a44a04ff-4004-4b00-b7b5-4a35edc680b6\33\171676e9-be5f-4145-8973-d007952108ec
+(0)address = 16
 (0,Boba)
 (1,Pearls)
 (3,Tapioca)

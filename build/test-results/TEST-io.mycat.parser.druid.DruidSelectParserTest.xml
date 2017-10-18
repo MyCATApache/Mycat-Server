@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.parser.druid.DruidSelectParserTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.035">
+<testsuite name="io.mycat.parser.druid.DruidSelectParserTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:57" hostname="liyongxian01" time="0.079">
   <properties/>
-  <testcase name="testGroupByWithViewAlias" classname="io.mycat.parser.druid.DruidSelectParserTest" time="0.034"/>
-  <testcase name="testGroupByWithAlias" classname="io.mycat.parser.druid.DruidSelectParserTest" time="0.001"/>
+  <testcase name="testGroupByWithViewAlias" classname="io.mycat.parser.druid.DruidSelectParserTest" time="0.076"/>
+  <testcase name="testGroupByWithAlias" classname="io.mycat.parser.druid.DruidSelectParserTest" time="0.002"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

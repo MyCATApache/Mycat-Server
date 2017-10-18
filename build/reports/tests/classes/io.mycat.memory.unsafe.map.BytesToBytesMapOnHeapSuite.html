@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">2.014s</div>
+<div class="counter">1.783s</div>
 <p>duration</p>
 </div>
 </td>
@@ -79,7 +79,7 @@
 </thead>
 <tr>
 <td class="success">destructiveIteratorTest</td>
-<td>0.004s</td>
+<td>0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -99,47 +99,47 @@
 </tr>
 <tr>
 <td class="success">initialCapacityBoundsChecking</td>
-<td>0.001s</td>
+<td>0.002s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">iteratingOverDataPagesWithWastedSpace</td>
-<td>1.672s</td>
+<td>1.365s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">iteratorTest</td>
-<td>0.073s</td>
+<td>0.011s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">multipleValuesForSameKey</td>
-<td>0.005s</td>
-<td class="success">passed</td>
-</tr>
-<tr>
-<td class="success">randomizedStressTest</td>
-<td>0.222s</td>
-<td class="success">passed</td>
-</tr>
-<tr>
-<td class="success">randomizedTestWithRecordsLargerThanPageSize</td>
-<td>0.023s</td>
-<td class="success">passed</td>
-</tr>
-<tr>
-<td class="success">setAndRetrieveAKey</td>
-<td>0.001s</td>
-<td class="success">passed</td>
-</tr>
-<tr>
-<td class="success">spillInIterator</td>
 <td>0.008s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
+<td class="success">randomizedStressTest</td>
+<td>0.280s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">randomizedTestWithRecordsLargerThanPageSize</td>
+<td>0.034s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">setAndRetrieveAKey</td>
+<td>0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">spillInIterator</td>
+<td>0.072s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
 <td class="success">testPeakMemoryUsed</td>
-<td>0.001s</td>
+<td>0.002s</td>
 <td class="success">passed</td>
 </tr>
 </table>
@@ -147,16 +147,16 @@
 <div id="tab1" class="tab">
 <h2>Standard output</h2>
 <span class="code">
-<pre>2017-05-22 15:41:37.155  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
-2017-05-22 15:41:37.155  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@a945f8: 2.0 KB
-2017-05-22 15:41:37.155  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -2048 bytes of memory were used by task 0 but are not associated with specific consumers
-2017-05-22 15:41:37.155  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
-2017-05-22 15:41:38.925  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
-2017-05-22 15:41:38.926  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@ddc385: 1024.0 B
-2017-05-22 15:41:38.926  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -1024 bytes of memory were used by task 0 but are not associated with specific consumers
-2017-05-22 15:41:38.926  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
-2017-05-22 15:41:38.942  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 34 exist !
-2017-05-22 15:41:38.945 ERROR [Test worker] (io.mycat.memory.unsafe.map.BytesToBytesMap$MapIterator.hasNext(BytesToBytesMap.java:310)) - Was unable to delete spill file C:\Users\hqq\git\Mycat-Server\datanode\datenode-b95978c8-a95b-4816-8639-ae2a2886bd22\34\04720c46-b8d4-4199-a6c8-3990a6dbbb1b
+<pre>2017-05-27 17:14:50.060  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
+2017-05-27 17:14:50.060  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@3a000b53: 2.0 KB
+2017-05-27 17:14:50.061  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -2048 bytes of memory were used by task 0 but are not associated with specific consumers
+2017-05-27 17:14:50.061  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
+2017-05-27 17:14:50.414  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 0 exist !
+2017-05-27 17:14:50.428 ERROR [Test worker] (io.mycat.memory.unsafe.map.BytesToBytesMap$MapIterator.hasNext(BytesToBytesMap.java:310)) - Was unable to delete spill file F:\git-mycat\Mycat-Server\datanode\datenode-4a61c81d-c9a4-4c2b-a224-bc6211e74921\0\55e8ce5a-e158-47fc-b6f8-51a318c12a24
+2017-05-27 17:14:50.432  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
+2017-05-27 17:14:50.433  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@23ab1d4a: 1024.0 B
+2017-05-27 17:14:50.433  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -1024 bytes of memory were used by task 0 but are not associated with specific consumers
+2017-05-27 17:14:50.433  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
 </pre>
 </span>
 </div>
@@ -168,7 +168,7 @@
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="http://www.gradle.org">Gradle 2.3</a> at 2017-5-22 15:41:49</p>
+<a href="http://www.gradle.org">Gradle 2.3</a> at 2017-5-27 17:15:04</p>
 </div>
 </div>
 </body>

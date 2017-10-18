@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.route.DruidMysqlCreateTableTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:44" hostname="DESKTOP-T7UG6RU" time="0.009">
+<testsuite name="io.mycat.route.DruidMysqlCreateTableTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:59" hostname="liyongxian01" time="0.009">
   <properties/>
   <testcase name="testCreate" classname="io.mycat.route.DruidMysqlCreateTableTest" time="0.009"/>
   <system-out><![CDATA[]]></system-out>

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.migrate.MigrateUtilsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.039">
+<testsuite name="io.mycat.migrate.MigrateUtilsTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:56" hostname="liyongxian01" time="0.183">
   <properties/>
-  <testcase name="balanceExpand1" classname="io.mycat.migrate.MigrateUtilsTest" time="0.034"/>
-  <testcase name="removeAndGetRemain" classname="io.mycat.migrate.MigrateUtilsTest" time="0.0"/>
-  <testcase name="removeAndGetRemain1" classname="io.mycat.migrate.MigrateUtilsTest" time="0.0"/>
-  <testcase name="balanceExpand" classname="io.mycat.migrate.MigrateUtilsTest" time="0.004"/>
+  <testcase name="removeAndGetRemain1" classname="io.mycat.migrate.MigrateUtilsTest" time="0.058"/>
+  <testcase name="removeAndGetRemain" classname="io.mycat.migrate.MigrateUtilsTest" time="0.001"/>
+  <testcase name="balanceExpand1" classname="io.mycat.migrate.MigrateUtilsTest" time="0.104"/>
+  <testcase name="balanceExpand" classname="io.mycat.migrate.MigrateUtilsTest" time="0.018"/>
   <system-out><![CDATA[beforse  balance :
 0:0-20479,:20480
 1:20480-40959,:20480

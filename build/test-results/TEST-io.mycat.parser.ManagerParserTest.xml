@@ -1,54 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.parser.ManagerParserTest" tests="48" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:43" hostname="DESKTOP-T7UG6RU" time="0.043">
+<testsuite name="io.mycat.parser.ManagerParserTest" tests="48" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:57" hostname="liyongxian01" time="0.074">
   <properties/>
-  <testcase name="testSwitchPool" classname="io.mycat.parser.ManagerParserTest" time="0.002"/>
-  <testcase name="testReloadConfig" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
-  <testcase name="testHeartBearDetail" classname="io.mycat.parser.ManagerParserTest" time="0.005"/>
-  <testcase name="testShowWhitComment" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowSlowDataNode" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testRollbackConfig" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
-  <testcase name="testShowVariables" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testRollbackRoute" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowCollation" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testStopHeartBeat" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
-  <testcase name="testReloadUser" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowSlowSchema" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testclearSlowSchema" classname="io.mycat.parser.ManagerParserTest" time="0.002"/>
-  <testcase name="testShowSQLSlow" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testclearSlowDataNode" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testRollbackUser" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testReloadRoute" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowCommand" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowConnection" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
-  <testcase name="testShowConnectionSQL" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowBackend" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowDatabase" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowTimeStartUp" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowProcessor" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowSQLDetail" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowServer" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowDataSource" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowHeartbeat" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowTimeCurrent" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowSQLExecute" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowVersion" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
-  <testcase name="testShowDataNode" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowCollation" classname="io.mycat.parser.ManagerParserTest" time="0.008"/>
+  <testcase name="testReloadConfig" classname="io.mycat.parser.ManagerParserTest" time="0.002"/>
+  <testcase name="testRollbackUser" classname="io.mycat.parser.ManagerParserTest" time="0.002"/>
   <testcase name="testShowParser" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
   <testcase name="testShowRouter" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowServer" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowBackend" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowConnectionSQL" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowSQLDetail" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowWhitComment" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowVersion" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowConnection" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowDataNode" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowHeartbeat" classname="io.mycat.parser.ManagerParserTest" time="0.002"/>
+  <testcase name="testReloadRoute" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
+  <testcase name="testShowTimeCurrent" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testSwitchPool" classname="io.mycat.parser.ManagerParserTest" time="0.003"/>
+  <testcase name="testShowVariables" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testRollbackRoute" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testclearSlowSchema" classname="io.mycat.parser.ManagerParserTest" time="0.002"/>
+  <testcase name="testHeartBearDetail" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testclearSlowDataNode" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
+  <testcase name="testShowDatabase" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowCommand" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
+  <testcase name="testShowDataSource" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowProcessor" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowSQLSlow" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testReloadUser" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testRollbackConfig" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowSlowDataNode" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowSQLExecute" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowTimeStartUp" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testStopHeartBeat" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
   <testcase name="testShowThreadPool" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testIsSelect" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowHelp" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testSynDetail" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testShowSQL" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testStop" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testComment" classname="io.mycat.parser.ManagerParserTest" time="0.015"/>
-  <testcase name="testIsShow" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testReload" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testRollback" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testOnOff" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
-  <testcase name="testIsSet" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
-  <testcase name="testGetWhere" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testShowSlowSchema" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testIsSet" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testOnOff" classname="io.mycat.parser.ManagerParserTest" time="0.021"/>
+  <testcase name="testComment" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
   <testcase name="testSynStatus" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testSynDetail" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testGetWhere" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
+  <testcase name="testRollback" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testStop" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
+  <testcase name="testReload" classname="io.mycat.parser.ManagerParserTest" time="0.0"/>
+  <testcase name="testIsSelect" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
+  <testcase name="testShowSQL" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
+  <testcase name="testIsShow" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
+  <testcase name="testShowHelp" classname="io.mycat.parser.ManagerParserTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

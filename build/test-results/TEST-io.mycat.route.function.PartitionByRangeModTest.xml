@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.route.function.PartitionByRangeModTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-22T07:41:49" hostname="DESKTOP-T7UG6RU" time="0.013">
+<testsuite name="io.mycat.route.function.PartitionByRangeModTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:15:03" hostname="liyongxian01" time="0.016">
   <properties/>
-  <testcase name="testRange" classname="io.mycat.route.function.PartitionByRangeModTest" time="0.001"/>
+  <testcase name="testRange" classname="io.mycat.route.function.PartitionByRangeModTest" time="0.002"/>
   <testcase name="test" classname="io.mycat.route.function.PartitionByRangeModTest" time="0.001"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>

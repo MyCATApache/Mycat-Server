@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="io.mycat.buffer.TestByteBufferArena" tests="5" skipped="5" failures="0" errors="0" timestamp="2017-05-22T07:41:27" hostname="DESKTOP-T7UG6RU" time="0.0">
+<testsuite name="io.mycat.buffer.TestByteBufferArena" tests="5" skipped="5" failures="0" errors="0" timestamp="2017-05-27T09:14:40" hostname="liyongxian01" time="0.002">
   <properties/>
+  <testcase name="testAllocateDirect" classname="io.mycat.buffer.TestByteBufferArena" time="0.0">
+    <skipped/>
+  </testcase>
   <testcase name="testAllocateNullWhenOutOfMemory" classname="io.mycat.buffer.TestByteBufferArena" time="0.0">
     <skipped/>
   </testcase>
@@ -11,9 +14,6 @@
     <skipped/>
   </testcase>
   <testcase name="testExpansion" classname="io.mycat.buffer.TestByteBufferArena" time="0.0">
-    <skipped/>
-  </testcase>
-  <testcase name="testAllocateDirect" classname="io.mycat.buffer.TestByteBufferArena" time="0.0">
     <skipped/>
   </testcase>
   <system-out><![CDATA[]]></system-out>
