@@ -58,26 +58,30 @@ public class MultiNodeCoordinator implements ResponseHandler {
 			if (conn != null) {
 				conn.setResponseHandler(this);
 				//process the XA_END XA_PREPARE Command
-				MySQLConnection mysqlCon = (MySQLConnection) conn;
-				String xaTxId = null;
-				if(session.getXaTXID()!=null){
-					xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
-				}
-				if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE)
-				{
-					//recovery Log
-					participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
-					String[] cmds = new String[]{"XA END " + xaTxId,
-							"XA PREPARE " + xaTxId};
-					if (LOGGER.isDebugEnabled()) {
-						LOGGER.debug("Start execute the batch cmd : "+ cmds[0] + ";" + cmds[1]+","+
-								"current connection:"+conn.getHost()+":"+conn.getPort());
+				if(conn instanceof MySQLConnection){
+					MySQLConnection mysqlCon = (MySQLConnection) conn;
+					String xaTxId = null;
+					if(session.getXaTXID()!=null){
+						xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
 					}
-					mysqlCon.execBatchCmd(cmds);
-				} else
-				{
-					//recovery Log
-					participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
+					if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE)
+					{
+						//recovery Log
+						participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
+						String[] cmds = new String[]{"XA END " + xaTxId,
+								"XA PREPARE " + xaTxId};
+						if (LOGGER.isDebugEnabled()) {
+							LOGGER.debug("Start execute the batch cmd : "+ cmds[0] + ";" + cmds[1]+","+
+									"current connection:"+conn.getHost()+":"+conn.getPort());
+						}
+						mysqlCon.execBatchCmd(cmds);
+					} else
+					{
+						//recovery Log
+						participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
+						cmdHandler.sendCommand(session, conn);
+					}
+				}else{
 					cmdHandler.sendCommand(session, conn);
 				}
 				++started;
