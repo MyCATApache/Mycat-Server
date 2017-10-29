@@ -16,6 +16,7 @@
 	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
 
 		<property name="sequnceHandlerType">2</property>
+	<property name="subqueryRelationshipCheck">false</property> <!-- 子查询中存在关联查询的情况下,检查关联字段中是否有分片字段 .默认 false -->
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
         <!--  <property name="fakeMySQLVersion">5.6.20</property>--> <!--设置模拟的MySQL版本号-->
 	<!-- <property name="processorBufferChunk">40960</property> -->
