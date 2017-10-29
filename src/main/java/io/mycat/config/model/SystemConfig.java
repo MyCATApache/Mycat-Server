@@ -152,6 +152,8 @@ public final class SystemConfig {
 	private int mycatNodeId=1;
 	private int useCompression =0;	
 	private int useSqlStat = 1;
+	//子查询中存在关联查询的情况下,检查关联字段中是否有分片字段 .默认 false
+	private boolean subqueryRelationshipCheck = false;
 	
 	// 是否使用HandshakeV10Packet来与client进行通讯, 1:是 , 0:否(使用HandshakePacket)
 	// 使用HandshakeV10Packet为的是兼容高版本的jdbc驱动, 后期稳定下来考虑全部采用HandshakeV10Packet来通讯
@@ -944,6 +946,14 @@ public final class SystemConfig {
 
 	public void setNonePasswordLogin(int nonePasswordLogin) {
 		this.nonePasswordLogin = nonePasswordLogin;
+	}
+
+	public boolean isSubqueryRelationshipCheck() {
+		return subqueryRelationshipCheck;
+	}
+
+	public void setSubqueryRelationshipCheck(boolean subqueryRelationshipCheck) {
+		this.subqueryRelationshipCheck = subqueryRelationshipCheck;
 	}
 	
 	

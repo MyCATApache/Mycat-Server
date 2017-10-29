@@ -191,7 +191,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		if(directRoute){ //直接路由
 			if(!RouterUtil.isAllGlobalTable(ctx, schemaConf)){
 				if(rulemap.size()>1&&!checkRuleField(rulemap,visitor)){
-					String err = "In case of slice table,sql have same rules,but the relationship condition is different from rule field!";
+					String err = "In case of slice table,there is no rule field in the relationship condition!";
 					LOGGER.error(err);
 					throw new SQLSyntaxErrorException(err);
 				}
@@ -238,6 +238,10 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 */
 	private boolean checkRuleField(Map<String,RuleConfig> rulemap,MycatSchemaStatVisitor visitor){
 		
+		if(!MycatServer.getInstance().getConfig().getSystem().isSubqueryRelationshipCheck()){
+			return true;
+		}
+		
 		Set<Relationship> ships = visitor.getRelationships();
 		Iterator<Relationship> iter = ships.iterator();
 		while(iter.hasNext()){
@@ -249,19 +253,16 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				return true;
 			}
 			RuleConfig leftconfig = rulemap.get(lefttable);
-			if(leftconfig!=null){
-				if(!leftconfig.getColumn().equals(ship.getLeft().getName().toUpperCase())){
-					return false;
-				}
-			}
 			RuleConfig rightconfig = rulemap.get(righttable);
-			if(rightconfig!=null){
-				if(!rightconfig.getColumn().equals(ship.getRight().getName().toUpperCase())){
-					return false;
-				}
+			
+			if(null!=leftconfig&&null!=rightconfig
+					&&leftconfig.equals(rightconfig)
+					&&leftconfig.getColumn().equals(ship.getLeft().getName().toUpperCase())
+					&&rightconfig.getColumn().equals(ship.getRight().getName().toUpperCase())){
+				return true;
 			}
 		}
-		return true;
+		return false;
 	}
 	
 	private RouteResultset middlerResultRoute(final SchemaConfig schema,final String charset,final SQLSelect sqlselect,
