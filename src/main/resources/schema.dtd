@@ -80,7 +80,7 @@
   host NMTOKEN #REQUIRED
   url CDATA #REQUIRED
   password CDATA #REQUIRED
-  user NMTOKEN #REQUIRED
+  user CDATA #REQUIRED
   weight CDATA #IMPLIED
   usingDecrypt CDATA #IMPLIED>
 
