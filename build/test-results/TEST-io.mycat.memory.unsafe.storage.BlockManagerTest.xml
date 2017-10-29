@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.memory.unsafe.storage.BlockManagerTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:56" hostname="liyongxian01" time="0.146">
+  <properties/>
+  <testcase name="testNewDiskBlockManager" classname="io.mycat.memory.unsafe.storage.BlockManagerTest" time="0.146"/>
+  <testcase name="testNewDiskBlockWriter" classname="io.mycat.memory.unsafe.storage.BlockManagerTest" time="0.0"/>
+  <system-out><![CDATA[2017-05-27 17:14:56.652  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 57 exist !
+2017-05-27 17:14:56.652  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 57 exist !
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

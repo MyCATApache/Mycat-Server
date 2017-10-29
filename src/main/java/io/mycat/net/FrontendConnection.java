@@ -298,7 +298,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		this.setExecuteSql(sql);
 		
 		// 防火墙策略( SQL 黑名单/ 注入攻击)
-		if ( !privileges.checkFirewallSQLPolicy( user, sql ) ) {
+		if ( !privileges.checkFirewallSQLPolicy( this,user, sql ) ) {
 			writeErrMessage(ErrorCode.ERR_WRONG_USED, 
 					"The statement is unsafe SQL, reject for user '" + user + "'");
 			return;

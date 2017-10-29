@@ -23,6 +23,8 @@
  */
 package io.mycat.net.handler;
 
+import io.mycat.net.FrontendConnection;
+
 import java.util.Set;
 
 /**
@@ -82,7 +84,7 @@ public interface FrontendPrivileges {
      * @param sql
      * @return
      */
-    boolean checkFirewallSQLPolicy(String user, String sql);
+    boolean checkFirewallSQLPolicy(FrontendConnection frontendConnection,String user, String sql);
     
     
     /**

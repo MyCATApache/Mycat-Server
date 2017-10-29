@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.parser.util.PairUtilTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:58" hostname="liyongxian01" time="0.004">
+  <properties/>
+  <testcase name="testSequenceSlicing" classname="io.mycat.parser.util.PairUtilTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

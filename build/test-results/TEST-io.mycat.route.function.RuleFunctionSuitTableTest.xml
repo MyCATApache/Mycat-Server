@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.route.function.RuleFunctionSuitTableTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:15:03" hostname="liyongxian01" time="0.009">
+  <properties/>
+  <testcase name="testPartitionByPrefixPattern" classname="io.mycat.route.function.RuleFunctionSuitTableTest" time="0.001"/>
+  <testcase name="testPartitionByPattern" classname="io.mycat.route.function.RuleFunctionSuitTableTest" time="0.001"/>
+  <testcase name="testPartitionByRangeMod" classname="io.mycat.route.function.RuleFunctionSuitTableTest" time="0.001"/>
+  <testcase name="testAutoPartitionByLong" classname="io.mycat.route.function.RuleFunctionSuitTableTest" time="0.001"/>
+  <testcase name="testPartitionByDate" classname="io.mycat.route.function.RuleFunctionSuitTableTest" time="0.001"/>
+  <testcase name="testPartitionByHashMod" classname="io.mycat.route.function.RuleFunctionSuitTableTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

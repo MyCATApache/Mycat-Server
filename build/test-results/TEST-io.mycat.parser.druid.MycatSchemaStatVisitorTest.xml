@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.parser.druid.MycatSchemaStatVisitorTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:58" hostname="liyongxian01" time="0.2">
+  <properties/>
+  <testcase name="test2" classname="io.mycat.parser.druid.MycatSchemaStatVisitorTest" time="0.151"/>
+  <testcase name="test1" classname="io.mycat.parser.druid.MycatSchemaStatVisitorTest" time="0.031"/>
+  <testcase name="test4" classname="io.mycat.parser.druid.MycatSchemaStatVisitorTest" time="0.005"/>
+  <testcase name="test3" classname="io.mycat.parser.druid.MycatSchemaStatVisitorTest" time="0.001"/>
+  <system-out><![CDATA[5
+helper1.
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.memory.unsafe.memory.MycatMemoryTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:50" hostname="liyongxian01" time="0.001">
+  <properties/>
+  <testcase name="testMycatMemory" classname="io.mycat.memory.unsafe.memory.MycatMemoryTest" time="0.001"/>
+  <system-out><![CDATA[1281569587
+2017-05-27 17:14:50.998  INFO [Test worker] (io.mycat.memory.MyCatMemory.<init>(MyCatMemory.java:166)) - mycat.memory.offHeap.size: 1222MB
+1830813696
+1830813696
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

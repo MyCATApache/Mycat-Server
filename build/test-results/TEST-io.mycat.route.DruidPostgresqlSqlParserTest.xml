@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.route.DruidPostgresqlSqlParserTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:15:00" hostname="liyongxian01" time="0.022">
+  <properties/>
+  <testcase name="testPGPageSQL" classname="io.mycat.route.DruidPostgresqlSqlParserTest" time="0.012"/>
+  <testcase name="testLimitToPgPage" classname="io.mycat.route.DruidPostgresqlSqlParserTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

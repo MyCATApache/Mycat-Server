@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.memory.unsafe.map.MapSorterByValueTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:50" hostname="liyongxian01" time="0.002">
+  <properties/>
+  <testcase name="testMapSorterByValue" classname="io.mycat.memory.unsafe.map.MapSorterByValueTest" time="0.002"/>
+  <system-out><![CDATA[b 4
+c 5
+d 6
+q 23
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

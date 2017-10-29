@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.config.ConfigTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:47" hostname="liyongxian01" time="0.069">
+  <properties/>
+  <testcase name="testTempReadHostAvailable" classname="io.mycat.config.ConfigTest" time="0.0"/>
+  <testcase name="testReadUserBenchmark" classname="io.mycat.config.ConfigTest" time="0.0"/>
+  <testcase name="testReadHostWeight" classname="io.mycat.config.ConfigTest" time="0.0"/>
+  <testcase name="testDynamicYYYYMMTable" classname="io.mycat.config.ConfigTest" time="0.001"/>
+  <system-out><![CDATA[2017-05-27 17:14:47.197  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
+2017-05-27 17:14:47.197  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
+2017-05-27 17:14:47.223  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
+2017-05-27 17:14:47.223  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
+2017-05-27 17:14:47.243  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
+2017-05-27 17:14:47.243  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
+2017-05-27 17:14:47.265  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost2 is :4
+2017-05-27 17:14:47.265  INFO [Test worker] (io.mycat.backend.datasource.PhysicalDBPool.<init>(PhysicalDBPool.java:101)) - total resouces of dataHost localhost1 is :1
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

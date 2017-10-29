@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.cache.EnCachePoolTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:43" hostname="liyongxian01" time="4.032">
+  <properties/>
+  <testcase name="testBasic" classname="io.mycat.cache.EnCachePoolTest" time="4.032"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

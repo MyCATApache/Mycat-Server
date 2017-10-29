@@ -68,7 +68,8 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		this.sqlType = sqlType;
 		this.srcStatement = srcStatement;
 		this.statement = srcStatement;
-		canRunInReadDB = (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW);
+		//canRunInReadDB = (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW);
+		canRunInReadDB = (((sqlType == ServerParse.SELECT)&&(!srcStatement.toUpperCase().endsWith("UPDATE"))) || sqlType == ServerParse.SHOW);
 		hasBlanceFlag = (statement != null)
 				&& statement.startsWith("/*balance*/");
 	}

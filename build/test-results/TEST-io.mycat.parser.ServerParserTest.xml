@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.parser.ServerParserTest" tests="43" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:57" hostname="liyongxian01" time="0.069">
+  <properties/>
+  <testcase name="testIsDelete" classname="io.mycat.parser.ServerParserTest" time="0.005"/>
+  <testcase name="testIsCommit" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testIsInsert" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testIsReplace" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testIsStart" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testIsUpdate" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsKill" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testIsUse" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testLockTable" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIdentity" classname="io.mycat.parser.ServerParserTest" time="0.004"/>
+  <testcase name="testSetXAOff" classname="io.mycat.parser.ServerParserTest" time="0.009"/>
+  <testcase name="testSetXAOn" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsBegin" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsRollback" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsSetNames" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testIsSetOther" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsKillQuery" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testMycatComment" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testOldMycatComment" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsShowDatabases" classname="io.mycat.parser.ServerParserTest" time="0.004"/>
+  <testcase name="testIsShowDataSources" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testShowMycatStatus" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testShowMycatCluster" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsShowOther" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsSetAutocommitOn" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testIsSetAutocommitOff" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsCharacterSetResults" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testIsSelectDatabase" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testTxReadUncommitted" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testTxReadCommitted" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testTxSerializable" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testUnlockTable" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsSelectVersionComment" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsSelectUser" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsSelectVersion" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsStartTransaction" classname="io.mycat.parser.ServerParserTest" time="0.003"/>
+  <testcase name="testIsSavepoint" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testTxRepeatedRead" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testLastInsertId" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsSet" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testComment" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <testcase name="testIsSelect" classname="io.mycat.parser.ServerParserTest" time="0.001"/>
+  <testcase name="testIsShow" classname="io.mycat.parser.ServerParserTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

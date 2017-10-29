@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.parser.ServerParseTest" tests="22" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:57" hostname="liyongxian01" time="0.024">
+  <properties/>
+  <testcase name="testDesc" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testDescribe" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testDelete" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testInsert" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testReplace" classname="io.mycat.parser.ServerParseTest" time="0.001"/>
+  <testcase name="testMysqlComment" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testMysqlCmdComment" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testRollback" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testSet" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testKillQuery" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testHelp" classname="io.mycat.parser.ServerParseTest" time="0.001"/>
+  <testcase name="testShow" classname="io.mycat.parser.ServerParseTest" time="0.001"/>
+  <testcase name="testExplain" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testSelect" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testCall" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testKill" classname="io.mycat.parser.ServerParseTest" time="0.001"/>
+  <testcase name="testBegin" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testUpdate" classname="io.mycat.parser.ServerParseTest" time="0.001"/>
+  <testcase name="testUse" classname="io.mycat.parser.ServerParseTest" time="0.001"/>
+  <testcase name="testSavePoint" classname="io.mycat.parser.ServerParseTest" time="0.001"/>
+  <testcase name="testStart" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <testcase name="testCommit" classname="io.mycat.parser.ServerParseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

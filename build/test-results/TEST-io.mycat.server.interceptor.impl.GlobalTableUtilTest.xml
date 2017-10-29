@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.server.interceptor.impl.GlobalTableUtilTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:15:03" hostname="liyongxian01" time="0.001">
+  <properties/>
+  <testcase name="addColumnIfCreate" classname="io.mycat.server.interceptor.impl.GlobalTableUtilTest" time="0.001"/>
+  <system-out><![CDATA[CREATE TABLE retl_mark (
+	ID BIGINT AUTO_INCREMENT, 
+	CHANNEL_ID INT(11), 
+	CHANNEL_INFO varchar(128), 
+	CONSTRAINT RETL_MARK_ID PRIMARY KEY (ID), 
+	_mycat_op_time bigint COMMENT '全局表保存修改时间戳的字段名'
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARSET = utf8
+CREATE TABLE retl_mark (
+	ID BIGINT AUTO_INCREMENT, 
+	CHANNEL_ID INT(11), 
+	CHANNEL_INFO varchar(128), 
+	_MYCAT_OP_TIME int, 
+	CONSTRAINT RETL_MARK_ID PRIMARY KEY (ID)
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARSET = utf8
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

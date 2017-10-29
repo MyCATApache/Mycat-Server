@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.memory.unsafe.memory.TaskMemoryManagerSuite" tests="5" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:14:51" hostname="liyongxian01" time="0.007">
+  <properties/>
+  <testcase name="cooperativeSpilling" classname="io.mycat.memory.unsafe.memory.TaskMemoryManagerSuite" time="0.004"/>
+  <testcase name="leakedPageMemoryIsDetected" classname="io.mycat.memory.unsafe.memory.TaskMemoryManagerSuite" time="0.001"/>
+  <testcase name="encodePageNumberAndOffsetOnHeap" classname="io.mycat.memory.unsafe.memory.TaskMemoryManagerSuite" time="0.0"/>
+  <testcase name="encodePageNumberAndOffsetOffHeap" classname="io.mycat.memory.unsafe.memory.TaskMemoryManagerSuite" time="0.001"/>
+  <testcase name="offHeapConfigurationBackwardsCompatibility" classname="io.mycat.memory.unsafe.memory.TaskMemoryManagerSuite" time="0.0"/>
+  <system-out><![CDATA[2017-05-27 17:14:51.004  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.acquireExecutionMemory(DataNodeMemoryManager.java:139)) - Thread 0 released 100.0 B from io.mycat.memory.unsafe.memory.TestMemoryConsumer@1142ef5b forio.mycat.memory.unsafe.memory.TestMemoryConsumer@41704837
+2017-05-27 17:14:51.005  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.acquireExecutionMemory(DataNodeMemoryManager.java:139)) - Thread 0 released 100.0 B from io.mycat.memory.unsafe.memory.TestMemoryConsumer@41704837 forio.mycat.memory.unsafe.memory.TestMemoryConsumer@1142ef5b
+2017-05-27 17:14:51.005  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.acquireExecutionMemory(DataNodeMemoryManager.java:160)) - Thread 0 released 100.0 Bfrom itself (io.mycat.memory.unsafe.memory.TestMemoryConsumer@1142ef5b)
+2017-05-27 17:14:51.005  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.acquireExecutionMemory(DataNodeMemoryManager.java:139)) - Thread 0 released 50.0 B from io.mycat.memory.unsafe.memory.TestMemoryConsumer@41704837 forio.mycat.memory.unsafe.memory.TestMemoryConsumer@1142ef5b
+2017-05-27 17:14:51.006  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.acquireExecutionMemory(DataNodeMemoryManager.java:160)) - Thread 0 released 50.0 Bfrom itself (io.mycat.memory.unsafe.memory.TestMemoryConsumer@1142ef5b)
+2017-05-27 17:14:51.006  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.acquireExecutionMemory(DataNodeMemoryManager.java:139)) - Thread 0 released 80.0 B from io.mycat.memory.unsafe.memory.TestMemoryConsumer@1142ef5b forio.mycat.memory.unsafe.memory.TestMemoryConsumer@41704837
+2017-05-27 17:14:51.006  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.acquireExecutionMemory(DataNodeMemoryManager.java:160)) - Thread 0 released 10.0 Bfrom itself (io.mycat.memory.unsafe.memory.TestMemoryConsumer@41704837)
+2017-05-27 17:14:51.008  WARN [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.cleanUpAllAllocatedMemory(DataNodeMemoryManager.java:396)) - leak a page: io.mycat.memory.unsafe.memory.MemoryBlock@32953471 in task 0
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.route.TestSelectBetweenSqlParser" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-05-27T09:15:00" hostname="liyongxian01" time="0.012">
+  <properties/>
+  <testcase name="testBetweenSqlRoute" classname="io.mycat.route.TestSelectBetweenSqlParser" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

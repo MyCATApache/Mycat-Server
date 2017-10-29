@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="io.mycat.statistic.TestConcurrentSafety" tests="2" skipped="2" failures="0" errors="0" timestamp="2017-05-27T09:15:03" hostname="liyongxian01" time="0.0">
+  <properties/>
+  <testcase name="testQueryConditionAnalyzer" classname="io.mycat.statistic.TestConcurrentSafety" time="0.0">
+    <skipped/>
+  </testcase>
+  <testcase name="testUserSqlHighStat" classname="io.mycat.statistic.TestConcurrentSafety" time="0.0">
+    <skipped/>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

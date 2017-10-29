@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class io.mycat.memory.unsafe.map.BytesToBytesMapOnHeapSuite</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/io.mycat.memory.unsafe.map.html">io.mycat.memory.unsafe.map</a> &gt; BytesToBytesMapOnHeapSuite</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">13</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">1.783s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success" id="successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div id="tabs">
+<ul class="tabLinks">
+<li>
+<a href="#tab0">Tests</a>
+</li>
+<li>
+<a href="#tab1">Standard output</a>
+</li>
+</ul>
+<div id="tab0" class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">destructiveIteratorTest</td>
+<td>0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">emptyMap</td>
+<td>0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">failureToAllocateFirstPage</td>
+<td>0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">failureToGrow</td>
+<td>0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">initialCapacityBoundsChecking</td>
+<td>0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">iteratingOverDataPagesWithWastedSpace</td>
+<td>1.365s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">iteratorTest</td>
+<td>0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">multipleValuesForSameKey</td>
+<td>0.008s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">randomizedStressTest</td>
+<td>0.280s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">randomizedTestWithRecordsLargerThanPageSize</td>
+<td>0.034s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">setAndRetrieveAKey</td>
+<td>0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">spillInIterator</td>
+<td>0.072s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">testPeakMemoryUsed</td>
+<td>0.002s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+<div id="tab1" class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>2017-05-27 17:14:50.060  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
+2017-05-27 17:14:50.060  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@3a000b53: 2.0 KB
+2017-05-27 17:14:50.061  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -2048 bytes of memory were used by task 0 but are not associated with specific consumers
+2017-05-27 17:14:50.061  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
+2017-05-27 17:14:50.414  WARN [Test worker] (io.mycat.memory.unsafe.storage.DataNodeFileManager.getFile(DataNodeFileManager.java:112)) - 0 exist !
+2017-05-27 17:14:50.428 ERROR [Test worker] (io.mycat.memory.unsafe.map.BytesToBytesMap$MapIterator.hasNext(BytesToBytesMap.java:310)) - Was unable to delete spill file F:\git-mycat\Mycat-Server\datanode\datenode-4a61c81d-c9a4-4c2b-a224-bc6211e74921\0\55e8ce5a-e158-47fc-b6f8-51a318c12a24
+2017-05-27 17:14:50.432  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:193)) - Memory used in Thread 0
+2017-05-27 17:14:50.433  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:200)) - Acquired by io.mycat.memory.unsafe.map.BytesToBytesMap@23ab1d4a: 1024.0 B
+2017-05-27 17:14:50.433  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:205)) - -1024 bytes of memory were used by task 0 but are not associated with specific consumers
+2017-05-27 17:14:50.433  INFO [Test worker] (io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager.showMemoryUsage(DataNodeMemoryManager.java:208)) - 0 bytes of memory are used for execution and {} bytes of memory are used for storage
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="http://www.gradle.org">Gradle 2.3</a> at 2017-5-27 17:15:04</p>
+</div>
+</div>
+</body>
+</html>
