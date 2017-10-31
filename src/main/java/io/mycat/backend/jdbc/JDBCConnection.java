@@ -17,12 +17,14 @@ import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.nio.handler.ConnectionHeartBeatHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
+import io.mycat.buffer.BufferArray;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Isolations;
 import io.mycat.net.NIOProcessor;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
@@ -673,9 +675,17 @@ public class JDBCConnection implements BackendConnection {
 						BigDecimal val = rs.getBigDecimal(j);
 						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null,
 								sc.getCharset()));
+//					} else if(fieldPks.get(i).type == MysqlDefs.FIELD_TYPE_DATE ||
+//							fieldPks.get(i).type == MysqlDefs.FIELD_TYPE_NEWDATE||
+//							fieldPks.get(i).type == MysqlDefs.FIELD_TYPE_TIMESTAMP) { // field type is unsigned byte
+//						// ensure that do not use scientific notation format
+//						java.sql.Date val = rs.getDate(j);
+//						curRow.add(StringUtil.encode(val != null ? val.toString() : null,
+//								sc.getCharset()));						
 					} else {
-						   curRow.add(StringUtil.encode(rs.getString(j),
-								   sc.getCharset()));
+						//curRow.add(StringUtil.encode(rs.getString(j),sc.getCharset()));
+						Object val=rs.getObject(j);
+						curRow.add(StringUtil.encode(val != null ? val.toString() : null,sc.getCharset()));
 					}
 
 				}
@@ -717,40 +727,150 @@ public class JDBCConnection implements BackendConnection {
 		}
 	}
 
-	@Override
-	public void query(final String sql) throws UnsupportedEncodingException {
-		if(respHandler instanceof ConnectionHeartBeatHandler)
-		{
-			justForHeartbeat(sql);
-		}    else
-		{
-			throw new UnsupportedEncodingException("unsupported yet ");
-		}
-	}
-	private void justForHeartbeat(String sql)
-			  {
-
-		Statement stmt = null;
+    
+    private void ouputResultSet(String sql)
+            throws SQLException {
+        ResultSet rs = null;
+        Statement stmt = null;
 
 		try {
 			stmt = con.createStatement();
+			rs = stmt.executeQuery(sql);
+
+			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
+			
+			ResultSetUtil.resultSetToFieldPacket("utf8", fieldPks, rs, this.isSpark);
+			int colunmCount = fieldPks.size();
+
+			
+			ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
+			headerPkg.fieldCount = fieldPks.size();
+			headerPkg.packetId = ++packetId;
+			
+			BufferArray bufferArray=new BufferArray( this.processor.getBufferPool());
+			
+
+			headerPkg.write(bufferArray);
+			int headerSize=headerPkg.calcPacketSize();
+			byte[] header = new byte[headerSize+MySQLPacket.packetHeaderSize];
+			bufferArray.getCurWritingBlock().flip();
+			bufferArray.getCurWritingBlock().get(header);
+			bufferArray.getCurWritingBlock().clear();
+
+			List<byte[]> fields = new ArrayList<byte[]>(fieldPks.size());
+			Iterator<FieldPacket> itor = fieldPks.iterator();
+			while (itor.hasNext()) {
+				FieldPacket curField = itor.next();
+				curField.packetId = ++packetId;
+				curField.write(bufferArray);
+				byte[] field = new byte[curField.calcPacketSize()+MySQLPacket.packetHeaderSize];
+				bufferArray.getCurWritingBlock().flip();
+				bufferArray.getCurWritingBlock().get(field);
+				bufferArray.getCurWritingBlock().clear();
+				fields.add(field);
+			}
+			
+			EOFPacket eofPckg = new EOFPacket();
+			eofPckg.packetId = ++packetId;
+			eofPckg.write(bufferArray);
+			byte[] eof = new byte[eofPckg.calcPacketSize()+MySQLPacket.packetHeaderSize];
+			bufferArray.getCurWritingBlock().flip();
+			bufferArray.getCurWritingBlock().get(eof);
+			bufferArray.getCurWritingBlock().clear();
+			this.respHandler.fieldEofResponse(header, fields, eof, this);
+
+			// output row
+			while (rs.next()) {
+				RowDataPacket curRow = new RowDataPacket(colunmCount);
+				for (int i = 0; i < colunmCount; i++) {
+					int j = i + 1;
+					if(MysqlDefs.isBianry((byte) fieldPks.get(i).type)) {
+							curRow.add(rs.getBytes(j));
+					} else if(fieldPks.get(i).type == MysqlDefs.FIELD_TYPE_DECIMAL ||
+							fieldPks.get(i).type == (MysqlDefs.FIELD_TYPE_NEW_DECIMAL - 256)) { // field type is unsigned byte
+						// ensure that do not use scientific notation format
+						BigDecimal val = rs.getBigDecimal(j);
+						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null,"utf8"));
+					} else {
+						Object val=rs.getObject(j);
+						curRow.add(StringUtil.encode(val != null ? val.toString() : null,"utf8"));
+					}
+
+				}
+				curRow.packetId = ++packetId;
+				
+				
+				curRow.write(bufferArray);
+
+				byte[] row = new byte[curRow.calcPacketSize()+MySQLPacket.packetHeaderSize];
+				bufferArray.getCurWritingBlock().flip();
+				bufferArray.getCurWritingBlock().get(row);
+				bufferArray.getCurWritingBlock().clear();
+				this.respHandler.rowResponse(row, this);
+			}
+
+			fieldPks.clear();
+
+			// end row			
+			eofPckg = new EOFPacket();
+			eofPckg.packetId = ++packetId;
+			eofPckg.write(bufferArray);
+			eof = new byte[eofPckg.calcPacketSize()+MySQLPacket.packetHeaderSize];
+			bufferArray.getCurWritingBlock().flip();
+			bufferArray.getCurWritingBlock().get(eof);
+			bufferArray.getCurWritingBlock().clear();
+			this.respHandler.rowEofResponse(eof, this);
+			
+			
+		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+
+				}
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+
+				}
+			}
+		}
+	}
+    
+	@Override
+	public void query(final String sql) throws UnsupportedEncodingException {
+		if (respHandler instanceof ConnectionHeartBeatHandler) {
+			justForHeartbeat(sql);
+		} else {
+			try {
+				ouputResultSet(sql);
+			} catch (SQLException e) {
+				throw new UnsupportedEncodingException("unsupported yet ");
+			}
+		}
+	}
+
+	private void justForHeartbeat(String sql) {
+		Statement stmt = null;
+		try {
+			stmt = con.createStatement();
 			stmt.execute(sql);
-			if(!isAutocommit()){ //如果在写库上，如果是事务方式的连接，需要进行手动commit
-			    con.commit();
+			if (!isAutocommit()) { // 如果在写库上，如果是事务方式的连接，需要进行手动commit
+				con.commit();
 			}
 			this.respHandler.okResponse(OkPacket.OK, this);
 
-		}
-		catch (Exception e)
-		{
+		} catch (Exception e) {
 			String msg = e.getMessage();
 			ErrorPacket error = new ErrorPacket();
 			error.packetId = ++packetId;
 			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
 			error.message = msg.getBytes();
 			this.respHandler.errorResponse(error.writeToBytes(), this);
-		}
-		finally {
+		} finally {
 			if (stmt != null) {
 				try {
 					stmt.close();

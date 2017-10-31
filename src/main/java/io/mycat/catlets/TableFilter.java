@@ -354,7 +354,7 @@ public class TableFilter {
 		}	
 		if (parent==null){
         	if ((rowCount>0)&& (offset>0)){
-        		sql+=" limit"+offset+","+rowCount;
+        		sql+=" limit "+offset+","+rowCount;
         	}
         	else {
         		if (rowCount>0){
