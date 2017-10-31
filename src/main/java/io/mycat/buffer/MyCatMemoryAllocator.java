@@ -64,7 +64,8 @@ public class MyCatMemoryAllocator implements ByteBufAllocator {
                 maxOrder,
                 512,
                 256,
-                64);
+                64,
+                true);
 
 
         /**for 5.0.x
