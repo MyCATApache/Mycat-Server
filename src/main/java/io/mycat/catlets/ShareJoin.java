@@ -143,14 +143,24 @@ public class ShareJoin implements Catlet {
 			return;
 		} 
 		this.ctx=ctx;
-		String[] dataNodes =getDataNodes();
-		maxjob=dataNodes.length;
-	 
+//		String[] dataNodes =getDataNodes();
+//		maxjob=dataNodes.length;
+//
+//
+//    	//huangyiming
+//		ShareDBJoinHandler joinHandler = new ShareDBJoinHandler(this,joinParser.getJoinLkey(),sc.getSession2());
+//		ctx.executeNativeSQLSequnceJob(dataNodes, ssql, joinHandler);
+//    	EngineCtx.LOGGER.info("Catlet exec:"+getDataNode(getDataNodes())+" sql:" +ssql);
 
-    	//huangyiming
-		ShareDBJoinHandler joinHandler = new ShareDBJoinHandler(this,joinParser.getJoinLkey(),sc.getSession2());		
-		ctx.executeNativeSQLSequnceJob(dataNodes, ssql, joinHandler);
-    	EngineCtx.LOGGER.info("Catlet exec:"+getDataNode(getDataNodes())+" sql:" +ssql);
+		ShareDBJoinHandler joinHandler = new ShareDBJoinHandler(this,joinParser.getJoinLkey(),sc.getSession2());
+		maxjob=rrs.getNodes().length;
+		for (int i=0;i<rrs.getNodes().length;i++){
+			String[] dataNodes={rrs.getNodes()[i].getName()};
+			String nodeSql=rrs.getNodes()[i].getStatement().split("LIMIT")[0];
+			ctx.executeNativeSQLSequnceJob(dataNodes,nodeSql, joinHandler);
+			EngineCtx.LOGGER.info("Catlet exec:"+dataNodes[0]+" sql:" +nodeSql);
+		}
+
 
 		ctx.setAllJobFinishedListener(new AllJobFinishedListener() {
 			@Override
@@ -173,8 +183,10 @@ public class ShareJoin implements Catlet {
 	}
 	
     public void putDBRow(String id,String nid, byte[] rowData,int findex){
+		EngineCtx.LOGGER.info("完成"+id+":nid" + nid+" findex:"+findex);
     	rows.put(id, rowData);	
     	ids.put(id, nid);
+
     	joinindex=findex;
 		//ids.offer(nid);
 		int batchSize = 999;
@@ -196,7 +208,7 @@ public class ShareJoin implements Catlet {
 		 createQryJob(Integer.MAX_VALUE);
 	     ctx.endJobInput();
 	   }
-	  // EngineCtx.LOGGER.info("完成"+mjob+":" + dataNode+" failed:"+failed);
+	   EngineCtx.LOGGER.info("完成"+mjob+":" + dataNode+" failed:"+failed);
    }
    
 	//private void createQryJob(String dataNode,int batchSize) {	
@@ -245,7 +257,7 @@ public class ShareJoin implements Catlet {
 		 //childRoute=true;
 		//}
 		ctx.executeNativeSQLParallJob(getDataNodes(),sql, new ShareRowOutPutDataHandler(this,fields,joinindex,joinParser.getJoinRkey(), batchRows,ctx.getSession()));
-		EngineCtx.LOGGER.info("SQLParallJob:"+getDataNode(getDataNodes())+" sql:" + sql);		
+		EngineCtx.LOGGER.info("SQLParallJob:"+getDataNode(getDataNodes())+" sql:" + sql);
 	}  
 	public void writeHeader(String dataNode,List<byte[]> afields, List<byte[]> bfields) {
 		sendField++;
@@ -275,6 +287,7 @@ public class ShareJoin implements Catlet {
 		return allfields;
 	}
 	public void writeRow(RowDataPacket rowDataPkg){
+		//TODO :zhangzhenjiang 根据limit 设置返回数据
 		ctx.writeRow(rowDataPkg);
 	}
 	
@@ -336,6 +349,7 @@ class ShareDBJoinHandler implements SQLJobHandler {
 	@Override
 	public boolean onRowData(String dataNode, byte[] rowData) {
 		int fid=this.ctx.getFieldIndex(fields,joinkey);
+		//TODO :默认第一个字段为主键
 		String id = ResultSetUtil.getColumnValAsString(rowData, fields, 0);//主键，默认id
 		String nid = ResultSetUtil.getColumnValAsString(rowData, fields, fid);
 		// 放入结果集
