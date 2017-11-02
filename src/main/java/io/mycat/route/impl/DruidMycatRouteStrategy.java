@@ -143,7 +143,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		boolean directRoute = true;
 		Set<String> firstDataNodes = new HashSet<String>();
 		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
-		
+		Set<String> firstDbTypes = new HashSet<String>();
 		Map<String,RuleConfig> rulemap = new HashMap<>();
 		if(tconfigs!=null){	
 	        for(String tableName : tables){
