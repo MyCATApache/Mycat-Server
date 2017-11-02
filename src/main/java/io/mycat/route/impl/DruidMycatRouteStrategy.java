@@ -164,11 +164,19 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		                	continue;
 		                }
 		                firstDataNodes.addAll(tc.getDataNodes());
+		                firstDbTypes.addAll(tc.getDbTypes());
 		                rulemap.put(tc.getName(), firstRule);
 	            	 }
 	            }else{
 	                if(tc !=null){
-	                  //ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
+	                	//TODO: zhangzj如果数据库类型类型不一样就子查询处理
+
+						Set<String> dbTypes = new HashSet<String>();
+						if ( !dbTypes.equals(firstDbTypes)){
+							directRoute = false;
+							break;
+						}
+	                   	//ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
 	                    RuleConfig ruleCfg = tc.getRule();
 	                    if(ruleCfg==null){  //没有指定分片规则时,不做处理
 	                    	continue;
