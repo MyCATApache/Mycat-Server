@@ -256,7 +256,7 @@ public class ShareJoin implements Catlet {
 		  getRoute(sql);
 		 //childRoute=true;
 		//}
-		ctx.executeNativeSQLParallJob(getDataNodes(),sql, new ShareRowOutPutDataHandler(this,fields,joinindex,joinParser.getJoinRkey(), batchRows,ctx.getSession()));
+		ctx.executeNativeSQLParallJob(getDataNodes(),sql, new ShareRowOutPutDataHandler(this,fields,joinindex,joinParser.getJoinType(),joinParser.getJoinRkey(), batchRows,ctx.getSession()));
 		EngineCtx.LOGGER.info("SQLParallJob:"+getDataNode(getDataNodes())+" sql:" + sql);
 	}  
 	public void writeHeader(String dataNode,List<byte[]> afields, List<byte[]> bfields) {
@@ -377,9 +377,11 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 	private int joinL;//A表(左边)关联字段的位置
 	private int joinR;//B表(右边)关联字段的位置
 	private String joinRkey;//B表(右边)关联字段
+	private String joinType;
+	private final  Map<String, byte[]> lostARowsCopy = new ConcurrentHashMap<String, byte[]>();
 	public NonBlockingSession session;
 
-	public ShareRowOutPutDataHandler(ShareJoin ctx,List<byte[]> afields,int joini,String joinField,Map<String, byte[]> arows,NonBlockingSession session) {
+	public ShareRowOutPutDataHandler(ShareJoin ctx,List<byte[]> afields,int joini,String joinType,String joinField,Map<String, byte[]> arows,NonBlockingSession session) {
 		super();
 		this.afields = afields;
 		this.ctx = ctx;
@@ -387,6 +389,8 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 		this.joinL =joini;
 		this.joinRkey= joinField;
 		this.session = session;
+		this.joinType=joinType;
+		lostARowsCopy.putAll(arows);
 		//EngineCtx.LOGGER.info("二次查询:" +arows.size()+ " afields："+FenDBJoinHandler.getFieldNames(afields));
     }
 
@@ -409,6 +413,7 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 			RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(e.getValue(), afields);
 			String id = ByteUtil.getString(rowDataPkg.fieldValues.get(index));
 			if (id.equals(value)){
+				lostARowsCopy.remove(key);
 				return batchRowsCopy.remove(key);
 			}
 		}
@@ -462,6 +467,19 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 
 	@Override
 	public void finished(String dataNode, boolean failed, String errorMsg) {
+		if (joinType.equals("LEFT_OUTER_JOIN")) {
+			//TODO zhangzj准备添加LeftJoin的支持
+			for (Map.Entry<String, byte[]> it : lostARowsCopy.entrySet()) {
+				byte[] arow = it.getValue();
+				RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(arow, afields);//ctx.getAllFields());
+				for (int i = 1; i < bfields.size(); i++) {
+					rowDataPkg.add(null);
+					rowDataPkg.addFieldCount(1);
+				}
+				ctx.writeRow(rowDataPkg);
+
+			}
+		}
 		if(failed){
 			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
 		}
