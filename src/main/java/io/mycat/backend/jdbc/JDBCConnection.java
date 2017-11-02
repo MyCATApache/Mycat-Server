@@ -674,8 +674,8 @@ public class JDBCConnection implements BackendConnection {
 						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null,
 								sc.getCharset()));
 					} else {
-						   curRow.add(StringUtil.encode(rs.getString(j),
-								   sc.getCharset()));
+						Object val=rs.getObject(j);
+						curRow.add(StringUtil.encode(val != null ? val.toString() : null,sc.getCharset()));
 					}
 
 				}
