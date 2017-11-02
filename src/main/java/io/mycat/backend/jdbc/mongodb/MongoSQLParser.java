@@ -345,7 +345,7 @@ public class MongoSQLParser {
             }  
           }    
         }    
-		if (isok==false) {
+		if (!isok) {
 			BasicDBObject xo = new BasicDBObject();
 			xo.put(aop, aval);
 			ob.put(akey,xo);	

@@ -122,7 +122,6 @@ public class PostgresqlKnightriders {
 						sqlPacket = readParsePacket(socket);
 						for (PostgreSQLPacket p : sqlPacket) {
 							if (p instanceof DataRow) {
-								;
 								for (DataColumn c : ((DataRow) p).getColumns()) {
 									System.out.println(new String(c.getData(),
 											"utf-8"));

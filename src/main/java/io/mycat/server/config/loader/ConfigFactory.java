@@ -8,6 +8,7 @@ import io.mycat.server.config.cluster.LocalClusterSync;
 import io.mycat.server.config.cluster.ZookeeperClusterSync;
 import io.mycat.server.config.loader.zkloader.ZookeeperLoader;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -53,30 +54,13 @@ public class ConfigFactory {
 		}
 	}
 	private static void load() {
-        InputStream dtd = null;
-        InputStream xml = null;
         try {
-            dtd = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
-            xml = ConfigFactory.class.getResourceAsStream("/mycat.xml");
-            Element root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
+            Element root = LocalLoader.getRoot();
             registryAddress = loadSystem(root);
         } catch (ConfigException e) {
             throw e;
         } catch (Exception e) {
             throw new ConfigException(e);
-        } finally {
-            if (dtd != null) {
-                try {
-                    dtd.close();
-                } catch (IOException e) {
-                }
-            }
-            if (xml != null) {
-                try {
-                    xml.close();
-                } catch (IOException e) {
-                }
-            }
         }
     }
 	private static String loadSystem(Element root) throws IllegalAccessException, InvocationTargetException {
@@ -101,8 +85,9 @@ public class ConfigFactory {
         ZookeeperLoader zookeeperLoader = new ZookeeperLoader();
         zookeeperLoader.initConfig();
         return null;
-	};
+	}
+
 	private static ConfigLoader instanceLocalLoader(){
 		return new LocalLoader();
-	};
+	}
 }

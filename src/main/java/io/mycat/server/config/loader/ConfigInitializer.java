@@ -67,12 +67,12 @@ public class ConfigInitializer {
 		ConfigLoader configLoader = ConfigFactory.instanceLoader();
 
 		this.system = configLoader.getSystemConfig();
-		this.initCharsetConfig(configLoader);
 		this.users = configLoader.getUserConfigs();
 		if (loadDataHost) {
 			this.dataHosts = initDataHosts(configLoader);
 			this.dataNodes = initDataNodes(configLoader);
 		}
+		this.initCharsetConfig(configLoader);	// 需要放在 initDataHosts 后面
 		this.tableRules = configLoader.getTableRuleConfigs();
 		this.schemas = configLoader.getSchemaConfigs();
 		this.quarantine = configLoader.getQuarantineConfigs();
@@ -216,10 +216,9 @@ public class ConfigInitializer {
 					dbType, dbDriver, entry.getValue(), true);
 			readSourcesMap.put(entry.getKey(), readSources);
 		}
-		PhysicalDBPool pool = new PhysicalDBPool(conf.getName(), conf,
+		return new PhysicalDBPool(conf.getName(), conf,
 				writeSources, readSourcesMap, conf.getBalance(),
 				conf.getWriteType());
-		return pool;
 	}
 
 	private Map<String, PhysicalDBNode> initDataNodes(ConfigLoader configLoader) {
@@ -243,7 +242,8 @@ public class ConfigInitializer {
 
 	private void initCharsetConfig(ConfigLoader configLoader) {
 		this.charsetConfig = configLoader.getCharsetConfigs();
-		CharsetUtil.load(charsetConfig.getProps());
+		CharsetUtil.load(this.dataHosts, charsetConfig.getProps());
+//		CharsetUtil.asynLoad(this.dataHosts, charsetConfig.getProps());
 	}
 
 	public HostIndexConfig getHostIndexs() {

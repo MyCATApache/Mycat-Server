@@ -25,6 +25,7 @@ package io.mycat;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+
 import io.mycat.backend.PhysicalDBPool;
 import io.mycat.cache.CacheService;
 import io.mycat.net.*;
@@ -39,7 +40,9 @@ import io.mycat.server.config.loader.ConfigFactory;
 import io.mycat.server.config.node.MycatConfig;
 import io.mycat.server.config.node.SystemConfig;
 import io.mycat.server.interceptor.SQLInterceptor;
+import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.util.TimeUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +52,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -83,7 +87,7 @@ public class MycatServer {
 
 	private ClusterSync clusterSync;
 
-	public MycatServer() {
+	private MycatServer() {
 		this.config = new MycatConfig();
 		this.timer = new Timer(NAME + "Timer", true);
 		this.isOnline = new AtomicBoolean(true);
@@ -158,7 +162,7 @@ public class MycatServer {
 
 		SystemConfig system = config.getSystem();
 		int processorCount = system.getProcessors();
-
+		
 		// server startup
 		LOGGER.info("===============================================");
 		LOGGER.info(NAME + " is ready to startup ...");
@@ -217,10 +221,10 @@ public class MycatServer {
 		// server started
 		LOGGER.info(server.getName() + " is started and listening on "
 				+ server.getPort());
-		LOGGER.info("===============================================");
+		
 		// init datahost
 		config.initDatasource();
-
+		
 		long dataNodeIldeCheckPeriod = system.getDataNodeIdleCheckPeriod();
 		timer.schedule(updateTime(), 0L, TIME_UPDATE_PERIOD);
 		timer.schedule(processorCheck(), 0L, system.getProcessorCheckPeriod());
@@ -228,8 +232,11 @@ public class MycatServer {
 				dataNodeIldeCheckPeriod);
 		timer.schedule(dataNodeHeartbeat(), 0L,
 				system.getDataNodeHeartbeatPeriod());
+		if(system.isGlobalTableCheckSwitchOn())	// 全局表一致性检测是否开启
+			timer.schedule(glableTableConsistencyCheck(), 0L, 
+							system.getGlableTableCheckPeriod());
 		timer.schedule(catletClassClear(), 30000);
-
+	
 	}
 
 	private TimerTask catletClassClear() {
@@ -241,11 +248,11 @@ public class MycatServer {
 				} catch (Exception e) {
 					LOGGER.warn("catletClassClear err " + e);
 				}
-			};
+			}
 		};
 	}
-
-
+	
+	
 
 	public RouteService getRouterService() {
 		return routerService;
@@ -331,6 +338,21 @@ public class MycatServer {
 		};
 	}
 
+	//  全局表一致性检查任务
+	private TimerTask glableTableConsistencyCheck() {
+		return new TimerTask() {
+			@Override
+			public void run() {
+				timerExecutor.execute(new Runnable() {
+					@Override
+					public void run() {
+						GlobalTableUtil.consistencyCheck();
+					}
+				});
+			}
+		};
+	}
+	
 	// 数据节点定时心跳任务
 	private TimerTask dataNodeHeartbeat() {
 		return new TimerTask() {

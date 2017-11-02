@@ -106,6 +106,9 @@ public class RouterUtil {
         if (rrs.getCanRunInReadDB() != null) {
             nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
         }
+        if(rrs.getRunOnSlave() != null){
+        	nodes[0].setRunOnSlave(rrs.getRunOnSlave());
+        }
         return rrs;
     }
 
@@ -519,6 +522,9 @@ public class RouterUtil {
             if (rrs.getCanRunInReadDB() != null) {
                 node.setCanRunInReadDB(rrs.getCanRunInReadDB());
             }
+            if(rrs.getRunOnSlave() != null){
+            	nodes[0].setRunOnSlave(rrs.getRunOnSlave());
+            }
             nodes[i++] = node;
         }
         rrs.setCacheAble(cache);
@@ -545,6 +551,9 @@ public class RouterUtil {
         nodes[0] = new RouteResultsetNode(dataNode, rrs.getSqlType(), sql);
         if (rrs.getCanRunInReadDB() != null) {
             nodes[0].setCanRunInReadDB(rrs.getCanRunInReadDB());
+        }
+        if(rrs.getRunOnSlave() != null){
+        	nodes[0].setRunOnSlave(rrs.getRunOnSlave());
         }
         rrs.setNodes(nodes);
     }
@@ -1162,7 +1171,7 @@ public class RouterUtil {
                     String primaryKey = tc.getPrimaryKey();
                     processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
                 }
-                if(processedInsert==false){
+                if(!processedInsert){
                 	rrs.setFinishedRoute(true);
                     sc.getSession2().execute(rrs, ServerParse.INSERT);
                 }
@@ -1209,7 +1218,7 @@ public class RouterUtil {
 		                    sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
 						}
                     }
-                    if(processedInsert==false){
+                    if(!processedInsert){
                     	RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
                         sc.getSession2().execute(executeRrs, ServerParse.INSERT);
                     }

@@ -35,6 +35,7 @@ import io.mycat.server.config.node.DBHostConfig;
 import io.mycat.server.config.node.DataHostConfig;
 import io.mycat.server.config.node.DataNodeConfig;
 import io.mycat.server.config.node.HostIndexConfig;
+import io.mycat.server.config.node.JdbcDriver;
 import io.mycat.server.config.node.QuarantineConfig;
 import io.mycat.server.config.node.RuleConfig;
 import io.mycat.server.config.node.SchemaConfig;
@@ -62,6 +63,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -70,7 +74,7 @@ import org.w3c.dom.NodeList;
  * @author mycat
  */
 public class LocalLoader implements ConfigLoader {
-
+	private static final Logger logger = LoggerFactory.getLogger("LocalLoader");
     private  Map<String, DataHostConfig> dataHosts;
     private  Map<String, DataNodeConfig> dataNodes;
     private  Map<String, SchemaConfig> schemas;
@@ -82,7 +86,10 @@ public class LocalLoader implements ConfigLoader {
     private  CharsetConfig charsetConfig;
     private  HostIndexConfig hostIndexConfig;
     private  SequenceConfig sequenceConfig;
-
+    
+    // 为了避免原代码中频繁调用 loadRoot 去频繁读取 /mycat.dtd 和 /mycat.xml，所以将 Document 作为属性进行缓存
+    private static Document document = null;
+    
     public LocalLoader(){
     	this.system = new SystemConfig();
         this.users = new HashMap<String, UserConfig>();
@@ -95,34 +102,22 @@ public class LocalLoader implements ConfigLoader {
         this.hostIndexConfig = new HostIndexConfig();
         this.sequenceConfig = new SequenceConfig();
     }
-
-    private Element loadRoot() {
-        InputStream dtd = null;
-        InputStream xml = null;
-        Element root = null;
-        try {
-            dtd = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
-            xml = ConfigFactory.class.getResourceAsStream("/mycat.xml");
-            root = ConfigUtil.getDocument(dtd, xml).getDocumentElement();
-        } catch (ConfigException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ConfigException(e);
-        } finally {
-            if (dtd != null) {
-                try {
-                    dtd.close();
-                } catch (IOException e) { }
-            }
-            if (xml != null) {
-                try {
-                    xml.close();
-                } catch (IOException e) { }
-            }
+    
+    private static Element loadRoot() {
+        if(document == null){
+        	try(InputStream dtd = ConfigFactory.class.getResourceAsStream("/mycat.dtd");
+        		InputStream xml = ConfigFactory.class.getResourceAsStream("/mycat.xml")){
+                document = ConfigUtil.getDocument(dtd, xml);
+                return document.getDocumentElement();
+            } catch (Exception e) {
+            	logger.error(" loadRoot error: " + e.getMessage());
+                throw new ConfigException(e);
+            } 
         }
-        return root;
+        
+        return document.getDocumentElement();
     }
-
+    
     @Override
     public UserConfig getUserConfig(String user) {
     	Element root = loadRoot();
@@ -200,8 +195,11 @@ public class LocalLoader implements ConfigLoader {
 		loadSequenceConfig(root);
 		return this.sequenceConfig;
 	}
-
-
+	
+	public static Map<String, JdbcDriver> loadJdbcDriverConfig() {
+		Element root = loadRoot();
+		return loadJdbcDriverConfig(root);
+	}
 
 	private void loadUsers(Element root) {
         NodeList list = root.getElementsByTagName("user");
@@ -918,6 +916,52 @@ public class LocalLoader implements ConfigLoader {
             throw new ConfigException("loadSequenceConfig error: " + e.getMessage());
 		}
 	}
+	
+	private static Map<String, JdbcDriver> loadJdbcDriverConfig(Element root) {
+		NodeList list = root.getElementsByTagName("driver");
+        try {
+        	Map<String, JdbcDriver> jdbcDriverConfig = new HashMap<>();
+        	for(int i=0; i<list.getLength(); i++){
+        		Node node = list.item(i);
+        		if(node != null){
+        			String dbType = ((Element) node).getAttribute("dbType");
+                    String className = ((Element) node).getAttribute("className");
+                    JdbcDriver driver = new JdbcDriver(dbType, className);
+                    jdbcDriverConfig.put(dbType.toLowerCase(), driver);
+        		}
+        	}
+        	return jdbcDriverConfig;
+		} catch (Exception e) {
+			e.printStackTrace();
+            throw new ConfigException("loadJdbcDriverConfig error: " + e.getMessage());
+		}
+	}
 
+	/**
+	 * 获得 mycat.xml 解析之后的 Document 对象
+	 * @return
+	 */
+	public static Document getDocument() {
+		if(document == null)
+			loadRoot();
+		return document;
+	}
 
+	/**
+	 * 获得  mycat.xml 的根元素 <mycat></mycat>
+	 * @return
+	 */
+	public static Element getRoot() {
+		if(document == null)
+			return loadRoot();
+		return document.getDocumentElement();
+	}
+	
+	/**
+	 * 重新加载 mycat.xml
+	 */
+	public static void reLoad(){
+		document = null;
+		loadRoot();
+	}
 }

@@ -161,8 +161,7 @@ public abstract class Connection implements ClosableConnection{
 	}
 
 	private ByteBuffer allocate() {
-		ByteBuffer buffer = NetSystem.getInstance().getBufferPool().allocate();
-		return buffer;
+		return NetSystem.getInstance().getBufferPool().allocate();
 	}
 
 	private final void recycle(ByteBuffer buffer) {
@@ -210,16 +209,15 @@ public abstract class Connection implements ClosableConnection{
 		NetSystem.getInstance().addNetInBytes(got);
 
 		// 循环处理字节信息
-		int offset = readBufferOffset, length = 0, position = readBuffer
-				.position();
-		for (;;) {
+		int offset = readBufferOffset, length = 0, position = readBuffer.position();
+		while(readBuffer != null && !isClosed) {
 			length = getPacketLength(readBuffer, offset, position);
 			// LOGGER.info("message lenth "+length+" offset "+offset+" positon "+position+" capactiy "+readBuffer.capacity());
 			// System.out.println("message lenth "+length+" offset "+offset+" positon "+position);
 			if (length == -1) {
 				if (offset != 0) {
 					this.readBuffer = compactReadBuffer(readBuffer, offset);
-				} else if (!readBuffer.hasRemaining()) {
+				} else if (readBuffer != null && !readBuffer.hasRemaining()) {
 					throw new RuntimeException(
 							"invalid readbuffer capacity ,too little buffer size "
 									+ readBuffer.capacity());
@@ -229,7 +227,7 @@ public abstract class Connection implements ClosableConnection{
 			pkgTotalCount++;
 			pkgTotalSize += length;
 			// check if a complete message packge received
-			if (offset + length <= position) {
+			if (offset + length <= position && readBuffer != null) {
 				// handle this package
 				readBuffer.position(offset);
 				handle(readBuffer, offset, length);
@@ -246,7 +244,7 @@ public abstract class Connection implements ClosableConnection{
 					// if cur buffer is temper none direct byte buffer and not
 					// received large message in recent 30 seconds
 					// then change to direct buffer for performance
-					if (!readBuffer.isDirect()
+					if (readBuffer != null && !readBuffer.isDirect()
 							&& lastLargeMessageTime < lastReadTime - 30 * 1000L) {// used
 																					// temp
 																					// heap
@@ -258,7 +256,8 @@ public abstract class Connection implements ClosableConnection{
 						readBuffer = NetSystem.getInstance().getBufferPool()
 								.allocateConReadBuffer();
 					} else {
-						readBuffer.clear();
+						if (readBuffer != null)
+							readBuffer.clear();
 					}
 					// no more data ,break
 					readBufferOffset = 0;
@@ -266,7 +265,8 @@ public abstract class Connection implements ClosableConnection{
 				} else {
 					// try next package parse
 					readBufferOffset = offset;
-					readBuffer.position(position);
+					if(readBuffer != null)
+						readBuffer.position(position);
 					continue;
 				}
 			} else {
@@ -323,6 +323,7 @@ public abstract class Connection implements ClosableConnection{
 	}
 
 	private ByteBuffer compactReadBuffer(ByteBuffer buffer, int offset) {
+		if(buffer == null) return null;
 		buffer.limit(buffer.position());
 		buffer.position(offset);
 		buffer = buffer.compact();
@@ -414,18 +415,18 @@ public abstract class Connection implements ClosableConnection{
 
 	/**
 	 * asyn close (executed later in thread)
-	 * 
+	 * 该函数使用多线程异步关闭 Connection，会存在并发安全问题，暂时注释
 	 * @param reason
 	 */
-	public void asynClose(final String reason) {
-		Runnable runn = new Runnable() {
-			public void run() {
-				Connection.this.close(reason);
-			}
-		};
-		NetSystem.getInstance().getTimer().schedule(runn, 1, TimeUnit.SECONDS);
-
-	}
+//	public void asynClose(final String reason) {
+//		Runnable runn = new Runnable() {
+//			public void run() {
+//				Connection.this.close(reason);
+//			}
+//		};
+//		NetSystem.getInstance().getTimer().schedule(runn, 1, TimeUnit.SECONDS);
+//
+//	}
 
 	public boolean isClosed() {
 		return isClosed;
@@ -551,7 +552,7 @@ public abstract class Connection implements ClosableConnection{
 				if (written > 0) {
 					netOutBytes += written;
 					NetSystem.getInstance().addNetOutBytes(written);
-
+					lastWriteTime = TimeUtil.currentTimeMillis();
 				} else {
 					break;
 				}
@@ -665,7 +666,7 @@ public abstract class Connection implements ClosableConnection{
 			} catch (Throwable e) {
 			}
 			boolean closed = isSocketClosed && (!channel.isOpen());
-			if (closed == false) {
+			if (!closed) {
 				LOGGER.warn("close socket of connnection failed " + this);
 			}
 

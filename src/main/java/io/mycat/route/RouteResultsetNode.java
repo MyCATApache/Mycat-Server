@@ -32,9 +32,6 @@ import java.io.Serializable;
  * @author mycat
  */
 public final class RouteResultsetNode implements Serializable , Comparable<RouteResultsetNode> {
-	/**
-	 *
-	 */
 	private static final long serialVersionUID = 1L;
 	private final String name; // 数据节点名称
 	private String statement; // 执行的语句
@@ -42,6 +39,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private final int sqlType;
 	private volatile boolean canRunInReadDB;
 	private final boolean hasBlanceFlag;
+	
+	// 强制走 master，强制走 slave统一使用该属性来标志，true走slave，false走master
+	private Boolean runOnSlave = null;	// 默认null表示不施加影响
 
 	private int limitStart;
 	private int limitSize;
@@ -77,9 +77,34 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		this.statement = srcStatement;
 	}
 
+	/**
+	 * 在没有使用 db_type=master/slave 注解时，该函数用来判断是否可以进行负载均衡，其逻辑为：
+	 * 在mysql client, heartbeat, SQLJob等执行一些非业务SQL时，使用的是被Leader-us
+	 * 优化过的query函数，其默认是 autocommit=true; 
+	 * 
+	 * 所以如果是 select或者show语句(canRunInReadDB=true)，并且 autocommit=true(非业务sql)，
+	 * 那么就可以进行负载均衡执行sql，可以在slave上执行
+	 * 如果是select或者show语句，但是是业务sql(aotucommit=false)，但是该sql
+	 * 被 balance 注解了，那么也可以进行负载均衡，可以在slave上执行
+	 * 
+	 * @param autocommit
+	 * @return
+	 */
 	public boolean canRunnINReadDB(boolean autocommit) {
-		return canRunInReadDB && autocommit && !hasBlanceFlag
-			|| canRunInReadDB && !autocommit && hasBlanceFlag;
+		return canRunInReadDB && ( autocommit || (!autocommit && hasBlanceFlag) );
+	}
+	
+//	public boolean canRunnINReadDB(boolean autocommit) {
+//		return canRunInReadDB && autocommit && !hasBlanceFlag
+//			|| canRunInReadDB && !autocommit && hasBlanceFlag;
+//	}
+
+	public Boolean getRunOnSlave() {
+		return runOnSlave;
+	}
+
+	public void setRunOnSlave(Boolean runOnSlave) {
+		this.runOnSlave = runOnSlave;
 	}
 
 	public String getName() {
@@ -132,6 +157,10 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	public void setLoadData(LoadData loadData)
 	{
 		this.loadData = loadData;
+	}
+
+	public boolean isHasBlanceFlag() {
+		return hasBlanceFlag;
 	}
 
 	@Override

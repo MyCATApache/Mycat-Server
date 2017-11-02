@@ -169,7 +169,44 @@ public class PhysicalDBPool {
         }
 
     }
-
+    
+    public boolean getReadCon(String schema, boolean autocommit, ResponseHandler handler, 
+											Object attachment, String database)throws Exception {
+        PhysicalDatasource theNode = null;
+        
+    	if (!readSources.isEmpty()) {
+    		int index = Math.abs(random.nextInt()) % readSources.size();
+            PhysicalDatasource[] allSlaves = this.readSources.get(index);
+            
+            if (allSlaves != null) {
+            	index = Math.abs(random.nextInt()) % readSources.size();
+            	PhysicalDatasource slave = allSlaves[index];
+            	
+                for (int i=0; i<allSlaves.length; i++) {
+                    if (isAlive(slave)) {
+                        if (checkSlaveSynStatus()) {
+                            if (canSelectAsReadNode(slave)) {
+                            	theNode = slave;
+                            	break;
+                            } else {
+                                continue;
+                            }
+                        } else {
+                        	theNode = slave;
+                        	break;
+                        }
+                    }
+                    index = Math.abs(random.nextInt()) % readSources.size();
+                }
+            }
+            theNode.getConnection(schema, autocommit, handler, attachment);
+            return true;
+    	}else{
+			LOGGER.warn("readhost is empty, readSources is empty.");
+			return false;
+		}
+	} 
+    
     public int getActivedIndex() {
         return activedIndex;
     }
@@ -435,6 +472,15 @@ public class PhysicalDBPool {
         theNode.getConnection(schema, autocommit, handler, attachment);
     }
 
+    public void getReadBanlanceCon(String schema, boolean autocommit, ResponseHandler handler, 
+            								Object attachment, String database)throws Exception {
+    	PhysicalDatasource theNode = null;
+        ArrayList<PhysicalDatasource> okSources = null;
+    	okSources = getAllActiveRWSources(false, false, checkSlaveSynStatus());
+        theNode = randomSelect(okSources);
+        theNode.getConnection(schema, autocommit, handler, attachment);
+    }  
+    
     private boolean checkSlaveSynStatus() {
         return (dataHostConfig.getSlaveThreshold() != -1)
                 && (dataHostConfig.getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS);
@@ -524,7 +570,7 @@ public class PhysicalDBPool {
             PhysicalDatasource theSource = writeSources[i];
             if (isAlive(theSource)) {// write node is active
                 if (includeWriteNode) {
-	            	if (i == curActive && includeCurWriteNode == false) {
+	            	if (i == curActive && !includeCurWriteNode) {
 	                    // not include cur active source
 	                } else if (filterWithSlaveThreshold) {
 	                    if (canSelectAsReadNode(theSource)) {

@@ -45,8 +45,7 @@ public class TestCachePoolPerformance {
 				.timeToIdleSeconds(3600);
 		Cache cache = new Cache(cacheConf);
 		CacheManager.create().addCache(cache);
-		EnchachePool enCachePool = new EnchachePool(cacheConf.getName(),cache,400*10000);
-		return enCachePool;
+		return new EnchachePool(cacheConf.getName(),cache,400*10000);
 	}
 
 	public static CachePool createMapDBCachePool() {

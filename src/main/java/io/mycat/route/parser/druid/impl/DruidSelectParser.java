@@ -67,7 +67,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 
             parseOrderAggGroupMysql(schema, stmt,rrs, mysqlSelectQuery);
             //更改canRunInReadDB属性
-            if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
+            if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && !rrs.isAutocommit())
             {
                 rrs.setCanRunInReadDB(false);
             }
@@ -217,7 +217,7 @@ public class DruidSelectParser extends DefaultDruidParser {
         SQLBinaryOperator operator = expr.getOperator();
         SQLExpr right = expr.getRight();
 
-        String leftValue = null;;
+        String leftValue = null;
         if (left instanceof SQLAggregateExpr) {
             leftValue = ((SQLAggregateExpr) left).getMethodName() + "("
                     + ((SQLAggregateExpr) left).getArguments().get(0) + ")";
@@ -373,7 +373,7 @@ public class DruidSelectParser extends DefaultDruidParser {
         }
 
         //无表的select语句直接路由带任一节点
-        if(ctx.getTables() == null || ctx.getTables().size() == 0) {
+        if((ctx.getTables() == null || ctx.getTables().size() == 0)&&(ctx.getTableAliasMap()==null||ctx.getTableAliasMap().isEmpty()))  {
             rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
             rrs.setFinishedRoute(true);
             return;

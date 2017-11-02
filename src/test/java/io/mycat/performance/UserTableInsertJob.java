@@ -39,7 +39,7 @@ public class UserTableInsertJob implements Runnable {
 			stms.addBatch(sql);
 		}
 		stms.executeBatch();
-		if (this.autocommit == false) {
+		if (!this.autocommit) {
 			con.commit();
 		}
 		// stms.clearBatch();

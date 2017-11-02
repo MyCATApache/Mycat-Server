@@ -151,7 +151,13 @@ public class MySQLDetector implements
 
     public void close(String msg) {
         SQLJob curJob = sqlJob;
-        if (curJob != null && !curJob.isFinished()) {
+        // 这里应该是写反了？？
+        // node 的 heartbeat失败，会调用到SQLJob.doFinished， MySQLHeartBeat.setError
+        // 如果超过重试次数，则调用detector.quit(); 然后到达此函数，但是 SQLJob.doFinished
+        // 已经设置 finished = true，所以导致 curJob.teminate(msg) 始终无法执行
+        // 无法关闭连接
+//        if (curJob != null && !curJob.isFinished()) {
+        if (curJob != null && curJob.isFinished()) {
             curJob.teminate(msg);
             sqlJob = null;
         }

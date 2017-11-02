@@ -48,7 +48,7 @@ public class MySQLBackendConnection extends GenalMySQLConnection implements
 	private boolean fromSlaveDB;
 	private long threadId;
 	private final ResultStatus sqlResultStatus = new ResultStatus();
-	private Object attachment;
+	private Object attachment;	// RouteResultsetNode
 	private volatile ResponseHandler respHandler;
 
 	private final AtomicBoolean isQuit;
@@ -259,7 +259,7 @@ public class MySQLBackendConnection extends GenalMySQLConnection implements
 		private void updateConnectionInfo(MySQLBackendConnection conn)
 
 		{
-			conn.xaStatus = (xaStarted == true) ? 1 : 0;
+			conn.xaStatus = (xaStarted) ? 1 : 0;
 			if (schema != null) {
 				conn.schema = schema;
 				conn.oldSchema = conn.schema;
@@ -315,7 +315,7 @@ public class MySQLBackendConnection extends GenalMySQLConnection implements
 		// never executed modify sql,so auto commit
 		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB()
 				|| clientAutoCommit;
-		if (expectAutocommit == false && xaTxID != null && xaStatus == 0) {
+		if (!expectAutocommit && xaTxID != null && xaStatus == 0) {
 			clientTxIsoLation = Isolations.SERIALIZABLE;
 			xaCmd = "XA START " + xaTxID + ';';
 
@@ -453,7 +453,7 @@ public class MySQLBackendConnection extends GenalMySQLConnection implements
 	}
 
 	public void release() {
-		if (metaDataSyned == false) {// indicate connection not normalfinished
+		if (!metaDataSyned) {// indicate connection not normalfinished
 										// ,and
 										// we can't know it's syn status ,so
 										// close

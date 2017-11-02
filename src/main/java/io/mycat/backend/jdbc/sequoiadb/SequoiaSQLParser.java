@@ -357,7 +357,7 @@ public class SequoiaSQLParser {
             }  
           }    
         }    
-		if (isok==false) {
+		if (!isok) {
 			BasicBSONObject xo = new BasicBSONObject();
 			xo.put(aop, aval);
 			ob.put(akey,xo);	

@@ -43,8 +43,7 @@ public class BaseSQLExeTest {
 
 	public static Connection getCon(String url, String user, String passwd)
 			throws SQLException {
-		Connection theCon = DriverManager.getConnection(url, user, passwd);
-		return theCon;
+		return DriverManager.getConnection(url, user, passwd);
 	}
 
 	private static void testMultiNodeNormalSQL(Connection theCon)
@@ -176,7 +175,7 @@ public class BaseSQLExeTest {
 	}
 
 	public static Connection getCon(String[] args) throws Exception {
-		if (driverLoaded == false) {
+		if (!driverLoaded) {
 			Class.forName("com.mysql.jdbc.Driver");
 			driverLoaded = true;
 

@@ -7,8 +7,7 @@ import java.sql.SQLException;
 public class RollbackTest {
 	private static Connection getCon(String url, String user, String passwd)
 			throws SQLException {
-		Connection theCon = DriverManager.getConnection(url, user, passwd);
-		return theCon;
+		return DriverManager.getConnection(url, user, passwd);
 	}
 	public static void main(String[] args) {
 		

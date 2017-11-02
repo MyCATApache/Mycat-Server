@@ -49,7 +49,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 			{
 				parseOrderAggGroupMysql(schema, stmt,rrs, mysqlSelectQuery);
 				//更改canRunInReadDB属性
-				if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
+				if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && !rrs.isAutocommit())
 				{
 					rrs.setCanRunInReadDB(false);
 				}

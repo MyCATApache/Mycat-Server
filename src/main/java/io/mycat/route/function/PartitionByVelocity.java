@@ -39,7 +39,6 @@ public class PartitionByVelocity extends AbstractPartitionAlgorithm implements R
     @Override
     public Integer calculate(String columnValue) {
         String partitionSubString = VelocityUtil.evalDBRule(columnName, columnValue, rule);
-        int partition = Integer.parseInt(partitionSubString);
-        return partition;
+        return Integer.parseInt(partitionSubString);
     }
 }
