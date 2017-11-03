@@ -1,24 +1,5 @@
 package io.mycat.route.util;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.regex.Pattern;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
@@ -34,7 +15,6 @@ import com.google.common.base.Strings;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -58,6 +38,14 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.regex.Pattern;
 
 /**
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
@@ -182,9 +170,19 @@ public class RouterUtil {
 		stmt = getFixedSql(stmt);
 		String tablename = "";
 		final String upStmt = stmt.toUpperCase();
+		String rrsStmt = new String(upStmt);
 		if(upStmt.startsWith("CREATE")){
 			if (upStmt.contains("CREATE INDEX ")){
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateIndexPos(upStmt, 0));
+				/**
+				 * Date：2017年11月2日
+				 * @author SvenAugustus
+					修复oracle 语法不支持 drop index i_t_f on t_test，只有drop index i_t_f;
+				 */
+				if(!"oracle".equalsIgnoreCase(schema.getDefaultDataNodeDbType())){
+					int onInd = upStmt.indexOf("ON", 0);
+					rrsStmt= upStmt.substring(0, onInd);
+				}
 			}else {
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
 			}
@@ -225,9 +223,11 @@ public class RouterUtil {
 					}  else if(isSlotFunction){
 						nodes[i].setSlot(-1);
 					}
+					nodes[i].setStatement(rrsStmt);
 				}
 				rrs.setNodes(nodes);
 			}
+			rrs.setStatement(rrsStmt);
 			return rrs;
 		}else if(schema.getDataNode()!=null){		//默认节点ddl
 			RouteResultsetNode[] nodes = new RouteResultsetNode[1];
@@ -555,7 +555,7 @@ public class RouterUtil {
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
 //		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
 		final SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
-//      modify by yanjunli  序列获取修改为多线程方式。使用分段锁方式,一个序列一把锁。  begin		
+//      modify by yanjunli  序列获取修改为多线程方式。使用分段锁方式,一个序列一把锁。  begin
 //		MycatServer.getInstance().getSequnceProcessor().addNewSql(sessionSQLPair);
         MycatServer.getInstance().getSequenceExecutor().execute(new Runnable() {
 				@Override
@@ -690,7 +690,7 @@ public class RouterUtil {
 		}
 		return handledSQLs;
 	}
-	
+
 	  /**
 	  * 对于主键不在插入语句的fields中的SQL，需要改写。比如hotnews主键为id，插入语句为：
 	  * insert into hotnews(title) values('aaa');
@@ -699,14 +699,14 @@ public class RouterUtil {
 	  */
     public static void handleBatchInsert(ServerConnection sc, SchemaConfig schema,
             int sqlType,String origSQL, int valuesIndex,String tableName, String primaryKey) {
-    	
+
     	final String pk = "\\("+primaryKey+",";
         final String mycatSeqPrefix = "(next value for MYCATSEQ_"+tableName.toUpperCase()+",";
-    	
+
     	/*"VALUES".length() ==6 */
         String prefix = origSQL.substring(0, valuesIndex + 6);
         String values = origSQL.substring(valuesIndex + 6);
-        
+
         prefix = prefix.replaceFirst("\\(", pk);
         values = values.replaceFirst("\\(", mycatSeqPrefix);
         values =Pattern.compile(",\\s*\\(").matcher(values).replaceAll(","+mycatSeqPrefix);
@@ -788,7 +788,7 @@ public class RouterUtil {
 		}
 		return dataNode;
 	}
-	
+
 	/**
 	 * 解决getRandomDataNode方法获取错误节点的问题.
 	 * @param tc
@@ -1042,22 +1042,22 @@ public class RouterUtil {
 
 		//为全局表和单库表找路由
 		for(String tableName : tables) {
-			
+
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
-			
+
 			if(tableConfig == null) {
 				//add 如果表读取不到则先将表名从别名中读取转化后再读取
 				String alias = ctx.getTableAliasMap().get(tableName);
 				if(!StringUtil.isEmpty(alias)){
 					tableConfig = schema.getTables().get(alias.toUpperCase());
 				}
-				
+
 				if(tableConfig == null){
 					String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
 					LOGGER.warn(msg);
 					throw new SQLNonTransientException(msg);
 				}
-				
+
 			}
 			if(tableConfig.isGlobalTable()) {//全局表
 				if(tablesRouteMap.get(tableName) == null) {
@@ -1579,35 +1579,35 @@ public class RouterUtil {
 	 * @param sc
 	 * @return
 	 * @throws SQLNonTransientException
-	 * 
+	 *
 	 * 备注说明：
 	 *     edit by ding.w at 2017.4.28, 主要处理 CLIENT_MULTI_STATEMENTS(insert into ; insert into)的情况
 	 *     目前仅支持mysql,并COM_QUERY请求包中的所有insert语句要么全部是er表，要么全部不是
-	 *     
-	 *     
+	 *
+	 *
 	 */
 	public static boolean processERChildTable(final SchemaConfig schema, final String origSQL,
             final ServerConnection sc) throws SQLNonTransientException {
-	
+
 		MySqlStatementParser parser = new MySqlStatementParser(origSQL);
 		List<SQLStatement> statements = parser.parseStatementList();
-		
+
 		if(statements == null || statements.isEmpty() ) {
 			throw new SQLNonTransientException(String.format("无效的SQL语句:%s", origSQL));
 		}
-		
-		
+
+
 		boolean erFlag = false; //是否是er表
 		for(SQLStatement stmt : statements ) {
-			MySqlInsertStatement insertStmt = (MySqlInsertStatement) stmt; 
+			MySqlInsertStatement insertStmt = (MySqlInsertStatement) stmt;
 			String tableName = insertStmt.getTableName().getSimpleName().toUpperCase();
 			final TableConfig tc = schema.getTables().get(tableName);
-			
+
 			if (null != tc && tc.isChildTable()) {
 				erFlag = true;
-				
+
 				String sql = insertStmt.toString();
-				
+
 				final RouteResultset rrs = new RouteResultset(sql, ServerParse.INSERT);
 				String joinKey = tc.getJoinKey();
 				//因为是Insert语句，用MySqlInsertStatement进行parse
@@ -1633,7 +1633,7 @@ public class RouterUtil {
 					realVal = joinKeyVal.substring(1, joinKeyVal.length() - 1);
 				}
 
-				
+
 
 				// try to route by ER parent partion key
 				//如果是二级子表（父表不再有父表）,并且分片字段正好是joinkey字段，调用routeByERParentKey
@@ -1718,13 +1718,13 @@ public class RouterUtil {
 					}
 				}, MycatServer.getInstance().
 						getListeningExecutorService());
-				
+
 			} else if(erFlag) {
 				throw new SQLNonTransientException(String.format("%s包含不是ER分片的表", origSQL));
 			}
 		}
-		
-		
+
+
 		return erFlag;
 	}
 
