@@ -214,15 +214,24 @@ public class MycatPrivileges implements FrontendPrivileges {
 			WallCheckResult result = contextLocal.get().check(sql);
 			
 			// 修复 druid 防火墙在处理SHOW FULL TABLES WHERE Table_type != 'VIEW' 的时候存在的 BUG
-			List<SQLStatement> stmts =  result.getStatementList();
-			if ( !stmts.isEmpty() &&  !( stmts.get(0) instanceof SQLShowTablesStatement) ) {				
-				if ( !result.getViolations().isEmpty()) {				
-					isPassed = false;
-					ALARM.warn("Firewall to intercept the '" + user + "' unsafe SQL , errMsg:"
-							+ result.getViolations().get(0).getMessage() +
-							" \r\n " + sql);
-		        }				
-			}
+			// 此代码有问题，由于Druid WallCheck 对同一条SQL语句只做一次解析，下面代码会导致第二次拦截失效
+			// 并且 目前已经提供 ShowFullTables 来处理show full tables 命令，故对代码进行修改 
+//			List<SQLStatement> stmts =  result.getStatementList();
+//			if ( !stmts.isEmpty() &&  !( stmts.get(0) instanceof SQLShowTablesStatement) ) {				
+//				if ( !result.getViolations().isEmpty()) {				
+//					isPassed = false;
+//					ALARM.warn("Firewall to intercept the '" + user + "' unsafe SQL , errMsg:"
+//							+ result.getViolations().get(0).getMessage() +
+//							" \r\n " + sql);
+//		        }				
+//			}
+			
+			if ( !result.getViolations().isEmpty()) {				
+				isPassed = false;
+				ALARM.warn("Firewall to intercept the '" + user + "' unsafe SQL , errMsg:"
+						+ result.getViolations().get(0).getMessage() +
+						" \r\n " + sql);
+	        }	
 			
 			
 		}
