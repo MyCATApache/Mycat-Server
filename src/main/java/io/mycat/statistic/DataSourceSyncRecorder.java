@@ -82,7 +82,11 @@ public class                                                                    
                 	double wsrep_local_recv_queue_avg = Double.valueOf(resultResult.get("wsrep_local_recv_queue_avg"));
             		this.asynRecords.add(new Record(TimeUtil.currentTimeMillis(),wsrep_local_recv_queue_avg));
             	}
-            	
+                if(switchType==DataHostConfig.MGR_STATUS_SWITCH_DS) {//mgr
+                	double countTransactionsRetries = Double.valueOf(resultResult.get("COUNT_TRANSACTIONS_RETRIES"));
+            		this.asynRecords.add(new Record(TimeUtil.currentTimeMillis(), countTransactionsRetries));
+            	}
+
                 return;
             }
     	}catch(Exception e){ 

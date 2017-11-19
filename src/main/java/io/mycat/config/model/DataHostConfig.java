@@ -43,8 +43,13 @@ public class DataHostConfig {
 	public static final int DEFAULT_SWITCH_DS = 1;
 	public static final int SYN_STATUS_SWITCH_DS = 2;
 	public static final int CLUSTER_STATUS_SWITCH_DS = 3;
+	public static final int MGR_STATUS_SWITCH_DS = 4;
     private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
     private static final Pattern patternCluster = Pattern.compile("\\s*show\\s+status\\s+like\\s+'wsrep%'",Pattern.CASE_INSENSITIVE);
+	/**
+	 * pattern for <pre>select * from performance_schema.replication_connection_status where CHANNEL_NAME='group_replication_applier'</pre>
+	 */
+	private static final Pattern patternMySQLGroupReplication = Pattern.compile("\\s*select\\s+\\*\\s+from\\s+performance_schema.replication_connection_status\\s+where\\s+channel_name\\s*=\\s*'group_replication_applier'",Pattern.CASE_INSENSITIVE);
 	private String name;
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;
@@ -57,6 +62,7 @@ public class DataHostConfig {
 	private String hearbeatSQL;
     private boolean isShowSlaveSql=false;
     private boolean isShowClusterSql=false;
+    private boolean isShowMySQLGroupReplicationSql=false;
 	private String connectionInitSql;
     private int slaveThreshold = -1;
 	private final int switchType;
@@ -191,6 +197,10 @@ public class DataHostConfig {
         {
         	isShowClusterSql=true;
         }
+		Matcher mysqlGroupReplicationMatcher = patternMySQLGroupReplication.matcher(heartbeatSQL);
+        if (mysqlGroupReplicationMatcher.find()) {
+        	isShowMySQLGroupReplicationSql = true;
+		}
 	}
 
 	public String getFilters() {
@@ -207,6 +217,10 @@ public class DataHostConfig {
 
 	public boolean isShowClusterSql() {
 		return this.isShowClusterSql;
+	}
+
+	public boolean isShowMySQLGroupReplicationSql() {
+		return this.isShowMySQLGroupReplicationSql;
 	}
 
 	public void setLogTime(long logTime) {
