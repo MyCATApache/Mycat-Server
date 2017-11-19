@@ -210,7 +210,7 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 				String channelName = resultResult.get("CHANNEL_NAME");
 				String remainingDelay = resultResult.get("REMAINING_DELAY");
 				String countTransactionsRetries = resultResult.get("COUNT_TRANSACTIONS_RETRIES");
-				if ("ON".equalsIgnoreCase(serviceState)) {
+				if ("ON".equalsIgnoreCase(serviceState) && "group_replication_applier".equalsIgnoreCase(channelName)) {
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
 					heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this, null);
 				} else {
