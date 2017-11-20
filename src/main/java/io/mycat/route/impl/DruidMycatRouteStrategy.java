@@ -143,7 +143,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		boolean directRoute = true;
 		Set<String> firstDataNodes = new HashSet<String>();
 		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
-		
+		Set<String> firstDbTypes = new HashSet<String>();
 		Map<String,RuleConfig> rulemap = new HashMap<>();
 		if(tconfigs!=null){	
 	        for(String tableName : tables){
@@ -155,7 +155,14 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	                tc = schemaConf.getTables().get(tableAliasMap.get(tableName));
 	              }
 	            }
-
+				if (firstDbTypes.isEmpty()) {
+					firstDbTypes.addAll(tc.getDbTypes());
+				}else{
+					if ( !tc.getDbTypes().equals(firstDbTypes)){
+						directRoute = false;
+						break;
+					}
+				}
 	            if(index == 0){
 	            	 if(tc !=null){
 		                firstRule=  tc.getRule();
@@ -164,11 +171,12 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		                	continue;
 		                }
 		                firstDataNodes.addAll(tc.getDataNodes());
+
 		                rulemap.put(tc.getName(), firstRule);
 	            	 }
 	            }else{
 	                if(tc !=null){
-	                  //ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
+	                   	//ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
 	                    RuleConfig ruleCfg = tc.getRule();
 	                    if(ruleCfg==null){  //没有指定分片规则时,不做处理
 	                    	continue;
