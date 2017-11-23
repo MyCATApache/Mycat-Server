@@ -23,6 +23,8 @@
  */
 package io.mycat.backend.heartbeat;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,16 +32,13 @@ import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.MySQLDataSource;
 import io.mycat.config.model.DataHostConfig;
-import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
-import io.mycat.sqlengine.SQLJob;
-import io.mycat.sqlengine.SQLQueryResult;
-import io.mycat.sqlengine.SQLQueryResultListener;
+import io.mycat.sqlengine.*;
 import io.mycat.util.TimeUtil;
 
 /**
  * @author mycat
  */
-public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<String, String>>> {
+public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<List<Map<String, String>>>> {
 
 	private MySQLHeartbeat heartbeat;
 
@@ -67,8 +66,8 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 	private static final String[] MYSQL_GROUP_REPLICATION_STAUTS_COLMS = {
             "CHANNEL_NAME",
             "SERVICE_STATE",
-            "REMAINING_DELAY",
-            "COUNT_TRANSACTIONS_RETRIES"
+//            "REMAINING_DELAY",
+//            "COUNT_TRANSACTIONS_RETRIES"
 	};
 
 	public MySQLDetector(MySQLHeartbeat heartbeat) {
@@ -117,8 +116,10 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 			fetchColms = MYSQL_GROUP_REPLICATION_STAUTS_COLMS;
 		}
 
-		OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler( fetchColms, this);
-		sqlJob = new SQLJob(heartbeat.getHeartbeatSQL(), databaseName, resultHandler, ds);
+		// MGR的心跳包会返回两行
+		MultiRowSQLQueryResultHandler resultHandler = new MultiRowSQLQueryResultHandler( fetchColms, this);
+		// 使用专用的Heartbeat
+		sqlJob = new HeartbeatSQLJob(heartbeat.getHeartbeatSQL(), databaseName, resultHandler, ds);
 		sqlJob.run();
 	}
 
@@ -133,8 +134,8 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 		return isQuit.get();
 	}
 
-	@Override
-	public void onResult(SQLQueryResult<Map<String, String>> result) {
+//	@Override
+	public void onOneRowResult(SQLQueryResult<Map<String, String>> result) {
 
 		if (result.isSuccess()) {
 
@@ -202,29 +203,6 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 					heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
 				}
 				heartbeat.getAsynRecorder().set(resultResult, switchType);
-			} else if ( resultResult!=null&& !resultResult.isEmpty() && switchType==DataHostConfig.MGR_STATUS_SWITCH_DS
-                    && source.getHostConfig().isShowMySQLGroupReplicationSql()) {
-			    // heartbeat sql: select * from performance_schema.replication_connection_status where CHANNEL_NAME='group_replication_applier';
-				// mgr 节点状态判断，见：https://dev.mysql.com/doc/refman/5.7/en/group-replication-replication-applier-status.html
-				String serviceState = resultResult.get("SERVICE_STATE");
-				String channelName = resultResult.get("CHANNEL_NAME");
-				String remainingDelay = resultResult.get("REMAINING_DELAY");
-				String countTransactionsRetries = resultResult.get("COUNT_TRANSACTIONS_RETRIES");
-				if ("ON".equalsIgnoreCase(serviceState) && "group_replication_applier".equalsIgnoreCase(channelName)) {
-					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
-					heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this, null);
-				} else {
-					MySQLHeartbeat.LOGGER.warn("found MySQL group replication status err !!! "
-							+ heartbeat.getSource().getConfig()
-							+ " SERVICE_STATE: "+ serviceState
-							+ " CHANNEL_NAME: "+ channelName
-							+ " REMAINING_DELAY: "+ remainingDelay
-							+ " COUNT_TRANSACTIONS_RETRIES: "+ countTransactionsRetries
-					);
-
-					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
-					heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
-				}
 			} else {
     			heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
     		}
@@ -244,6 +222,75 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 		if (curJob != null && !curJob.isFinished()) {
 			curJob.teminate(msg);
 			sqlJob = null;
+		}
+	}
+
+	private void onMultiplyRowResult(SQLQueryResult<List<Map<String, String>>> result){
+	    // 如果失败，则直接返回失败
+		if (!result.isSuccess()) {
+            heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
+            lasstReveivedQryTime = System.currentTimeMillis();
+            heartbeat.getRecorder().set((lasstReveivedQryTime - lastSendQryTime));
+            return;
+		}
+
+        PhysicalDatasource source = heartbeat.getSource();
+        int switchType = source.getHostConfig().getSwitchType();
+        List<Map<String, String>> results = result.getResult();
+        if ( results!=null&& !results.isEmpty() && switchType==DataHostConfig.MGR_STATUS_SWITCH_DS
+                && source.getHostConfig().isShowMySQLGroupReplicationSql()) {
+            mysqlGroupReplicationHeartBeatResult(results);
+        } else {
+            heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
+        }
+        lasstReveivedQryTime = System.currentTimeMillis();
+        heartbeat.getRecorder().set((lasstReveivedQryTime - lastSendQryTime));
+	}
+
+	/**
+	 * mgr 节点状态判断，见：https://dev.mysql.com/doc/refman/5.7/en/group-replication-replication-applier-status.html <br>
+	 * 条件：
+	 * heartbeat sql: select * from performance_schema.replication_connection_status; <br>
+	 * writeType=4  <br>
+	 * @param results
+	 */
+	private void mysqlGroupReplicationHeartBeatResult(List<Map<String, String>> results){
+        for (Map<String, String> result : results) {
+            String serviceState = result.get("SERVICE_STATE");
+            String channelName = result.get("CHANNEL_NAME");
+//            String remainingDelay = result.get("REMAINING_DELAY");
+//            String countTransactionsRetries = result.get("COUNT_TRANSACTIONS_RETRIES");
+
+            if (("group_replication_applier".equalsIgnoreCase(channelName) && !"ON".equalsIgnoreCase(serviceState)) // mgr节点状态不为"ON"，那么节点不可用。
+                    || ("group_replication_recovery".equalsIgnoreCase(channelName) && !"OFF".equalsIgnoreCase(serviceState)) // 如果mgr正在恢复，那么该节点也是无法服务的。
+                    ) {
+				MySQLHeartbeat.LOGGER.warn("found MySQL group replication status err !!! "
+						+ heartbeat.getSource().getConfig()
+						+ " SERVICE_STATE: "+ serviceState
+						+ " CHANNEL_NAME: "+ channelName
+//						+ " REMAINING_DELAY: "+ remainingDelay
+//						+ " COUNT_TRANSACTIONS_RETRIES: "+ countTransactionsRetries
+				);
+
+                heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_ERROR);
+                heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
+                return;
+            }
+        }
+		heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
+		heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this, null);
+
+    }
+
+	@Override
+	public void onResult(SQLQueryResult<List<Map<String, String>>> result) {
+		List<Map<String, String>> results = result.getResult();
+		if(results.isEmpty()){
+			onOneRowResult(new SQLQueryResult<Map<String, String>>(new HashMap<String, String>(), result.isSuccess()));
+		} else if (results.size() == 1) {
+			onOneRowResult(new SQLQueryResult<Map<String, String>>(results.get(0), result.isSuccess()));
+		} else {
+            onMultiplyRowResult(result);
 		}
 	}
 }

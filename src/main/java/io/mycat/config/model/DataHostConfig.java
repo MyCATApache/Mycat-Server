@@ -47,9 +47,9 @@ public class DataHostConfig {
     private static final Pattern pattern = Pattern.compile("\\s*show\\s+slave\\s+status\\s*",Pattern.CASE_INSENSITIVE);
     private static final Pattern patternCluster = Pattern.compile("\\s*show\\s+status\\s+like\\s+'wsrep%'",Pattern.CASE_INSENSITIVE);
 	/**
-	 * pattern for <pre>select * from performance_schema.replication_connection_status where CHANNEL_NAME='group_replication_applier'</pre>
+	 * pattern for <pre>select * from performance_schema.replication_connection_status</pre>
 	 */
-	private static final Pattern patternMySQLGroupReplication = Pattern.compile("\\s*select\\s+\\*\\s+from\\s+performance_schema.replication_connection_status\\s+where\\s+channel_name\\s*=\\s*'group_replication_applier'",Pattern.CASE_INSENSITIVE);
+	private static final Pattern patternMySQLGroupReplication = Pattern.compile("\\s*select\\s+\\*\\s+from\\s+performance_schema\\.replication_connection_status", Pattern.CASE_INSENSITIVE);
 	private String name;
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;

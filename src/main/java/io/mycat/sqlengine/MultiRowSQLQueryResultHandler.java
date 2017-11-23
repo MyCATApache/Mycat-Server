@@ -1,5 +1,6 @@
 package io.mycat.sqlengine;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,11 @@ public class MultiRowSQLQueryResultHandler extends OneRawSQLQueryResultHandler{
 	public boolean onRowData(String dataNode, byte[] rowData) {
 		super.onRowData(dataNode, rowData);
 		resultRows.add(getResult());
-		
+		/*
+		* 重新创建一个result对象，否则得到的结果每一行的数据都一样<p>
+		* 如果不是每次进入该方法时重新创建一个Result。那么此处获取到的result始终是同一个map，最终resultRows的所有结果都是相同的键值对（OneRawSQLQueryResultHandler会重复替换该值），因此我们需要重新创建result
+		 */
+		result = new HashMap<String, String>();
 		return false;
 	}
 

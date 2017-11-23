@@ -13,7 +13,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	private final SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callback;
 	private final String[] fetchCols;
 	private int fieldCount = 0;
-	private Map<String, String> result = new HashMap<String, String>();
+	protected Map<String, String> result = new HashMap<String, String>();
 	public OneRawSQLQueryResultHandler(String[] fetchCols,
 			SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callBack) {
 
