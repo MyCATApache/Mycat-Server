@@ -375,56 +375,61 @@ public class MongoSQLParser {
 			  }
 		   }		
 	}
-	private void parserWhere(SQLExpr aexpr,BasicDBObject o){   
-	     if(aexpr instanceof SQLBinaryOpExpr){
-		   SQLBinaryOpExpr expr=(SQLBinaryOpExpr)aexpr;  
-		   SQLExpr exprL=expr.getLeft();
-		   if (!(exprL instanceof SQLBinaryOpExpr))
-		   {
-			   //opSQLExpr((SQLBinaryOpExpr)aexpr,o);			   
-			  if (expr.getOperator().getName().equals("=")) {  
-		        o.put(exprL.toString(), getExpValue(expr.getRight()));
-			  }
-			  else {
-				  String op="";
-				  if (expr.getOperator().getName().equals("<")) {
-					  op = "$lt";
-				  }
-				  if (expr.getOperator().getName().equals("<=")) {
-					  op = "$lte";
-				  }
-				  if (expr.getOperator().getName().equals(">")) {
-					  op = "$gt";
-				  }
-				  if (expr.getOperator().getName().equals(">=")) {
-					  op = "$gte";
-				  }
-				  
-				  if (expr.getOperator().getName().equals("!=")) {
-					  op = "$ne";
-				  }
-				  if (expr.getOperator().getName().equals("<>")) {
-					  op = "$ne";
-				  }
 
-				  parserDBObject(o,exprL.toString(),op, getExpValue(expr.getRight()));
-			  }
-			  
-		   }
-		   else {
-			 if (expr.getOperator().getName().equals("AND")) {  
-			   parserWhere(exprL,o); 
-			   parserWhere(expr.getRight(),o);
-			 }
-			 else if (expr.getOperator().getName().equals("OR")) {  
-				orWhere(exprL,expr.getRight(),o); 				
-			 }
-			 else {
-				 throw new RuntimeException("Can't identify the operation of  of where"); 
-			 }
-		   }
-	   }
-	  
+	private void parserWhere(SQLExpr aexpr, BasicDBObject o) {
+		if (aexpr instanceof SQLInListExpr) {
+			SQLInListExpr expr = (SQLInListExpr) aexpr;
+			SQLExpr exprL = expr.getExpr();
+			List<SQLExpr> exprList = expr.getTargetList();
+			BasicDBList values = new BasicDBList();
+			for (SQLExpr value : exprList) {
+				values.add(getExpValue(value));
+			}
+			parserDBObject(o, exprL.toString(), "$in", values);
+		} else if (aexpr instanceof SQLBinaryOpExpr) {
+			SQLBinaryOpExpr expr = (SQLBinaryOpExpr) aexpr;
+			SQLExpr exprL = expr.getLeft();
+			if (!(exprL instanceof SQLBinaryOpExpr) && !(exprL instanceof SQLInListExpr)) {
+				// opSQLExpr((SQLBinaryOpExpr)aexpr,o);
+				if (expr.getOperator().getName().equals("=")) {
+					o.put(exprL.toString(), getExpValue(expr.getRight()));
+				} else {
+					String op = "";
+					if (expr.getOperator().getName().equals("<")) {
+						op = "$lt";
+					}
+					if (expr.getOperator().getName().equals("<=")) {
+						op = "$lte";
+					}
+					if (expr.getOperator().getName().equals(">")) {
+						op = "$gt";
+					}
+					if (expr.getOperator().getName().equals(">=")) {
+						op = "$gte";
+					}
+
+					if (expr.getOperator().getName().equals("!=")) {
+						op = "$ne";
+					}
+					if (expr.getOperator().getName().equals("<>")) {
+						op = "$ne";
+					}
+
+					parserDBObject(o, exprL.toString(), op, getExpValue(expr.getRight()));
+				}
+
+			} else {
+				if (expr.getOperator().getName().equals("AND")) {
+					parserWhere(exprL, o);
+					parserWhere(expr.getRight(), o);
+				} else if (expr.getOperator().getName().equals("OR")) {
+					orWhere(exprL, expr.getRight(), o);
+				} else {
+					throw new RuntimeException("Can't identify the operation of  of where");
+				}
+			}
+		}
+
 	}
 	
    

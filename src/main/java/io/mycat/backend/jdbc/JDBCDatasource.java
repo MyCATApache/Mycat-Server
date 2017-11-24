@@ -23,6 +23,7 @@ public class JDBCDatasource extends PhysicalDatasource {
 	static {		
 		// 加载可能的驱动
 		List<String> drivers = Lists.newArrayList(
+				"nl.anchormen.sql4es.jdbc.ESDriver",
 				"com.mysql.jdbc.Driver", 
 				"io.mycat.backend.jdbc.mongodb.MongoDriver",
 				"io.mycat.backend.jdbc.sequoiadb.SequoiaDriver", 
