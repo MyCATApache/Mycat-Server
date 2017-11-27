@@ -32,6 +32,7 @@ public class NIOSocketWR extends SocketWR {
 		}
 	}
 
+	@Override
 	public void doNextWriteCheck() {
 
 		if (!writing.compareAndSet(false, true)) {
