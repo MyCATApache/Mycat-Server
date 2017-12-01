@@ -1,5 +1,16 @@
 package io.mycat.route.parser.druid;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.alibaba.druid.sql.ast.SQLCommentHint;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLExprImpl;
@@ -19,6 +30,7 @@ import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import com.alibaba.druid.sql.ast.expr.SQLSomeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLValuableExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
@@ -29,6 +41,7 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
@@ -41,16 +54,9 @@ import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Column;
 import com.alibaba.druid.stat.TableStat.Condition;
 import com.alibaba.druid.stat.TableStat.Mode;
+import com.alibaba.druid.stat.TableStat.Relationship;
+
 import io.mycat.route.util.RouterUtil;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Druid解析器中用来从ast语法中提取表名、条件、字段等的vistor
@@ -61,16 +67,16 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	private boolean hasOrCondition = false;
 	private List<WhereUnit> whereUnits = new CopyOnWriteArrayList<WhereUnit>();
 	private List<WhereUnit> storedwhereUnits = new CopyOnWriteArrayList<WhereUnit>();
-	private Queue<SQLSelect> subQuerys = new LinkedBlockingQueue<>();  //子查询集合
+    private Queue<SQLSelect> subQuerys = new LinkedBlockingQueue<>();  //子查询集合
 	private boolean hasChange = false; // 是否有改写sql
 	private boolean subqueryRelationOr = false;   //子查询存在关联条件的情况下，是否有 or 条件
-
+	
 	private void reset() {
 		this.conditions.clear();
 		this.whereUnits.clear();
 		this.hasOrCondition = false;
 	}
-
+	
 	public List<WhereUnit> getWhereUnits() {
 		return whereUnits;
 	}
@@ -78,7 +84,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	public boolean hasOrCondition() {
 		return hasOrCondition;
 	}
-
+	
     @Override
     public boolean visit(SQLSelectStatement x) {
         setAliasMap();
@@ -280,12 +286,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
                 SQLDeleteStatement delete = (SQLDeleteStatement) parent;
                 return delete.getTableName().getSimpleName();
             } else {
-
+                
             }
         }
         return "";
     }
-
+    
     private void setSubQueryRelationOrFlag(SQLExprImpl x){
     	MycatSubQueryVisitor subQueryVisitor = new MycatSubQueryVisitor();
     	x.accept(subQueryVisitor);
@@ -293,7 +299,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     		subqueryRelationOr = true;
     	}
     }
-
+    
     /*
      * 子查询
      * (non-Javadoc)
@@ -314,7 +320,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     	addSubQuerys(x.getSelect());
     	return super.visit(x);
     }
-
+    
     /*
      * (non-Javadoc)
      * @see com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter#visit(com.alibaba.druid.sql.ast.expr.SQLExistsExpr)
@@ -325,12 +331,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     	addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
-
+    
     @Override
     public boolean visit(SQLInListExpr x) {
     	return super.visit(x);
     }
-
+    
     /*
      *  对 in 子查询的处理
      * (non-Javadoc)
@@ -342,8 +348,8 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     	addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
-
-    /*
+    
+    /* 
      *  遇到 all 将子查询改写成  SELECT MAX(name) FROM subtest1
      *  例如:
      *        select * from subtest where id > all (select name from subtest1);
@@ -352,14 +358,14 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      *    		<>   all ----> not in
      *          =    all ----> id = 1 and id = 2
      *          other  不改写
-     */
+     */    
     @Override
     public boolean visit(SQLAllExpr x) {
     	setSubQueryRelationOrFlag(x);
-
+    	
     	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
     	SQLExpr sexpr = itemlist.get(0).getExpr();
-
+    	
 		if(x.getParent() instanceof SQLBinaryOpExpr){
 			SQLBinaryOpExpr parentExpr = (SQLBinaryOpExpr)x.getParent();
 			SQLAggregateExpr saexpr = null;
@@ -368,7 +374,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			case GreaterThanOrEqual:
 			case NotLessThan:
 				this.hasChange = true;
-				if(sexpr instanceof SQLIdentifierExpr
+				if(sexpr instanceof SQLIdentifierExpr 
 						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
 					saexpr = new SQLAggregateExpr("MAX");
 					saexpr.getArguments().add(sexpr);
@@ -391,13 +397,13 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			case LessThanOrEqual:
 			case NotGreaterThan:
 				this.hasChange = true;
-				if(sexpr instanceof SQLIdentifierExpr
+				if(sexpr instanceof SQLIdentifierExpr 
 						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
 					saexpr = new SQLAggregateExpr("MIN");
 					saexpr.getArguments().add(sexpr);
 	        		saexpr.setParent(itemlist.get(0));
 	        		itemlist.get(0).setExpr(saexpr);
-
+	        		
 	            	x.subQuery.setParent(x.getParent());
 				}
 				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
@@ -420,13 +426,13 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
 				if(x.getParent() instanceof SQLBinaryOpExpr){
 					SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
-
+					
 					if(xp.getLeft().equals(x)){
 						notInSubQueryExpr.setExpr(xp.getRight());
 					}else if(xp.getRight().equals(x)){
 						notInSubQueryExpr.setExpr(xp.getLeft());
 					}
-
+					
 					if(xp.getParent() instanceof MySqlSelectQueryBlock){
 						((MySqlSelectQueryBlock)xp.getParent()).setWhere(notInSubQueryExpr);
 					}else if(xp.getParent() instanceof SQLBinaryOpExpr){
@@ -447,8 +453,8 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
-
-    /*
+    
+    /* 
      *  遇到 some 将子查询改写成  SELECT MIN(name) FROM subtest1
      *  例如:
      *        select * from subtest where id > some (select name from subtest1);
@@ -460,12 +466,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLSomeExpr x) {
-
+    	
     	setSubQueryRelationOrFlag(x);
-
+    	
     	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
     	SQLExpr sexpr = itemlist.get(0).getExpr();
-
+    	
 		if(x.getParent() instanceof SQLBinaryOpExpr){
 			SQLBinaryOpExpr parentExpr = (SQLBinaryOpExpr)x.getParent();
 			SQLAggregateExpr saexpr = null;
@@ -474,7 +480,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			case GreaterThanOrEqual:
 			case NotLessThan:
 				this.hasChange = true;
-				if(sexpr instanceof SQLIdentifierExpr
+				if(sexpr instanceof SQLIdentifierExpr 
 						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
 					saexpr = new SQLAggregateExpr("MIN");
 					saexpr.getArguments().add(sexpr);
@@ -497,7 +503,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			case LessThanOrEqual:
 			case NotGreaterThan:
 				this.hasChange = true;
-				if(sexpr instanceof SQLIdentifierExpr
+				if(sexpr instanceof SQLIdentifierExpr 
 						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
 					saexpr = new SQLAggregateExpr("MAX");
 					saexpr.getArguments().add(sexpr);
@@ -507,7 +513,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
             	SQLQueryExpr minSubQuery = new SQLQueryExpr(x.getSubQuery());
         		x.getSubQuery().setParent(minSubQuery);
-
+            	
             	if(x.getParent() instanceof SQLBinaryOpExpr){
             		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
             			((SQLBinaryOpExpr)x.getParent()).setLeft(minSubQuery);
@@ -526,13 +532,13 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 					// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
 					if(x.getParent() instanceof SQLBinaryOpExpr){
 						SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
-
+						
 						if(xp.getLeft().equals(x)){
 							notInSubQueryExpr.setExpr(xp.getRight());
 						}else if(xp.getRight().equals(x)){
 							notInSubQueryExpr.setExpr(xp.getLeft());
 						}
-
+						
 						if(xp.getParent() instanceof MySqlSelectQueryBlock){
 							((MySqlSelectQueryBlock)xp.getParent()).setWhere(notInSubQueryExpr);
 						}else if(xp.getParent() instanceof SQLBinaryOpExpr){
@@ -554,13 +560,13 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
 				if(x.getParent() instanceof SQLBinaryOpExpr){
 					SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
-
+					
 					if(xp.getLeft().equals(x)){
 						inSubQueryExpr.setExpr(xp.getRight());
 					}else if(xp.getRight().equals(x)){
 						inSubQueryExpr.setExpr(xp.getLeft());
 					}
-
+					
 					if(xp.getParent() instanceof MySqlSelectQueryBlock){
 						((MySqlSelectQueryBlock)xp.getParent()).setWhere(inSubQueryExpr);
 					}else if(xp.getParent() instanceof SQLBinaryOpExpr){
@@ -582,7 +588,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     	return super.visit(x);
     }
 
-    /*
+    /* 
      *  遇到 any 将子查询改写成  SELECT MIN(name) FROM subtest1
      *  例如:
      *    select * from subtest where id oper any (select name from subtest1);
@@ -594,12 +600,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      */
     @Override
     public boolean visit(SQLAnyExpr x) {
-
+    	
     	setSubQueryRelationOrFlag(x);
-
+    	
     	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
     	SQLExpr sexpr = itemlist.get(0).getExpr();
-
+    	
 		if(x.getParent() instanceof SQLBinaryOpExpr){
 			SQLBinaryOpExpr parentExpr = (SQLBinaryOpExpr)x.getParent();
 			SQLAggregateExpr saexpr = null;
@@ -608,7 +614,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			case GreaterThanOrEqual:
 			case NotLessThan:
 				this.hasChange = true;
-				if(sexpr instanceof SQLIdentifierExpr
+				if(sexpr instanceof SQLIdentifierExpr 
 						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
 					saexpr = new SQLAggregateExpr("MIN");
 					saexpr.getArguments().add(sexpr);
@@ -631,7 +637,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			case LessThanOrEqual:
 			case NotGreaterThan:
 				this.hasChange = true;
-				if(sexpr instanceof SQLIdentifierExpr
+				if(sexpr instanceof SQLIdentifierExpr 
 						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
 					saexpr = new SQLAggregateExpr("MAX");
 					saexpr.getArguments().add(sexpr);
@@ -659,13 +665,13 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 					// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
 					if(x.getParent() instanceof SQLBinaryOpExpr){
 						SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
-
+						
 						if(xp.getLeft().equals(x)){
 							notInSubQueryExpr.setExpr(xp.getRight());
 						}else if(xp.getRight().equals(x)){
 							notInSubQueryExpr.setExpr(xp.getLeft());
 						}
-
+						
 						if(xp.getParent() instanceof MySqlSelectQueryBlock){
 							((MySqlSelectQueryBlock)xp.getParent()).setWhere(notInSubQueryExpr);
 						}else if(xp.getParent() instanceof SQLBinaryOpExpr){
@@ -687,13 +693,13 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
 				if(x.getParent() instanceof SQLBinaryOpExpr){
 					SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
-
+					
 					if(xp.getLeft().equals(x)){
 						inSubQueryExpr.setExpr(xp.getRight());
 					}else if(xp.getRight().equals(x)){
 						inSubQueryExpr.setExpr(xp.getLeft());
 					}
-
+					
 					if(xp.getParent() instanceof MySqlSelectQueryBlock){
 						((MySqlSelectQueryBlock)xp.getParent()).setWhere(inSubQueryExpr);
 					}else if(xp.getParent() instanceof SQLBinaryOpExpr){
@@ -714,12 +720,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		addSubQuerys(x.getSubQuery());
     	return super.visit(x);
     }
-
+    
     @Override
 	public boolean visit(SQLBinaryOpExpr x) {
         x.getLeft().setParent(x);
         x.getRight().setParent(x);
-
+        
         /*
          * fix bug 当 selectlist 存在多个子查询时, 主表没有别名的情况下.主表的查询条件 被错误的附加到子查询上.
          *  eg. select (select id from subtest2 where id = 1), (select id from subtest3 where id = 2) from subtest1 where id =4;
@@ -730,7 +736,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         if(currenttable!=null){
         	this.setCurrentTable(currenttable);
         }
-
+        
         switch (x.getOperator()) {
             case Equality:
             case LessThanOrEqualOrGreaterThan:
@@ -752,7 +758,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
             	//永真条件，where条件抛弃
             	if(!RouterUtil.isConditionAlwaysTrue(x)) {
             		hasOrCondition = true;
-
+            		
             		WhereUnit whereUnit = null;
             		if(conditions.size() > 0) {
             			whereUnit = new WhereUnit();
@@ -774,7 +780,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         }
         return true;
     }
-
+	
 	/**
 	 * 分解条件
 	 */
@@ -783,20 +789,20 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		for(WhereUnit whereUnit : whereUnits) {
 			splitUntilNoOr(whereUnit);
 		}
-
+		
 		this.storedwhereUnits.addAll(whereUnits);
-
+		
 		loopFindSubWhereUnit(whereUnits);
-
+		
 		//拆分后的条件块解析成Condition列表
 		for(WhereUnit whereUnit : storedwhereUnits) {
 			this.getConditionsFromWhereUnit(whereUnit);
 		}
-
+		
 		//多个WhereUnit组合:多层集合的组合
 		return mergedConditions();
 	}
-
+	
 	/**
 	 * 循环寻找子WhereUnit（实际是嵌套的or）
 	 * @param whereUnitList
@@ -828,12 +834,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			loopFindSubWhereUnit(subWhereUnits);
 		}
 	}
-
+	
 	private boolean isExprHasOr(SQLExpr expr) {
 		expr.accept(this);
 		return hasOrCondition;
 	}
-
+	
 	private List<List<Condition>> mergedConditions() {
 		if(storedwhereUnits.size() == 0) {
 			return new ArrayList<List<Condition>>();
@@ -842,9 +848,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			mergeOneWhereUnit(whereUnit);
 		}
 		return getMergedConditionList(storedwhereUnits);
-
+		
 	}
-
+	
 	/**
 	 * 一个WhereUnit内递归
 	 * @param whereUnit
@@ -854,7 +860,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			for(WhereUnit sub : whereUnit.getSubWhereUnit()) {
 				mergeOneWhereUnit(sub);
 			}
-
+			
 			if(whereUnit.getSubWhereUnit().size() > 1) {
 				List<List<Condition>> mergedConditionList = getMergedConditionList(whereUnit.getSubWhereUnit());
 				if(whereUnit.getOutConditions().size() > 0) {
@@ -875,7 +881,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			//do nothing
 		}
 	}
-
+	
 	/**
 	 * 条件合并：多个WhereUnit中的条件组合
 	 * @return
@@ -883,16 +889,16 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	private List<List<Condition>> getMergedConditionList(List<WhereUnit> whereUnitList) {
 		List<List<Condition>> mergedConditionList = new ArrayList<List<Condition>>();
 		if(whereUnitList.size() == 0) {
-			return mergedConditionList;
+			return mergedConditionList; 
 		}
 		mergedConditionList.addAll(whereUnitList.get(0).getConditionList());
-
+		
 		for(int i = 1; i < whereUnitList.size(); i++) {
 			mergedConditionList = merge(mergedConditionList, whereUnitList.get(i).getConditionList());
 		}
 		return mergedConditionList;
 	}
-
+	
 	/**
 	 * 两个list中的条件组合
 	 * @param list1
@@ -905,7 +911,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         } else if (list2.size() == 0) {
             return list1;
         }
-
+        
 		List<List<Condition>> retList = new ArrayList<List<Condition>>();
 		for(int i = 0; i < list1.size(); i++) {
 			for(int j = 0; j < list2.size(); j++) {
@@ -922,12 +928,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		         * &nbsp;2-1、如果当前的条件列表 是 另外一个条件列表的 超集，更新，并标识已存在</br>
 		         * &nbsp;2-2、如果当前的条件列表 是 另外一个条件列表的 子集，标识已存在</br>
 		         * 3、最后，如果被标识不存在，加入结果retList，否则丢弃。</br>
-		         *
+		         * 
 		         * @author SvenAugustus
 		         */
   			    // 合并两个条件列表的元素为一个条件列表
                 List<Condition> listTmp = mergeSqlConditionList(list1.get(i), list2.get(j));
-
+      
                 // 判定当前的条件列表 是否 另外一个条件列表的 子集
                 boolean exists = false;
                 Iterator<List<Condition>> it = retList.iterator();
@@ -956,7 +962,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		}
         return retList;
     }
-
+	
 	private void getConditionsFromWhereUnit(WhereUnit whereUnit) {
 		List<List<Condition>> retList = new ArrayList<List<Condition>>();
 		//or语句外层的条件:如where condition1 and (condition2 or condition3),condition1就会在外层条件中,因为之前提取
@@ -966,11 +972,11 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		this.conditions.clear();
 		for(SQLExpr sqlExpr : whereUnit.getSplitedExprList()) {
 			sqlExpr.accept(this);
-			//            List<Condition> conditions = new ArrayList<Condition>();
+//            List<Condition> conditions = new ArrayList<Condition>();
 //            conditions.addAll(getConditions()); conditions.addAll(outSideCondition);
           /**
            * 合并两个条件列表的元素为一个条件列表，减少不必要多的条件项</br>
-           *
+           * 
            * @author SvenAugustus
            */
           List<Condition> conditions = mergeSqlConditionList(getConditions(), outSideCondition);
@@ -978,15 +984,15 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			this.conditions.clear();
 		}
 		whereUnit.setConditionList(retList);
-
+		
 		for(WhereUnit subWhere : whereUnit.getSubWhereUnit()) {
 			getConditionsFromWhereUnit(subWhere);
 		}
 	}
-
+	
 	/**
 	 * 递归拆分OR
-	 *
+	 * 
 	 * @param whereUnit
 	 * TODO:考虑嵌套or语句，条件中有子查询、 exists等很多种复杂情况是否能兼容
 	 */
@@ -996,7 +1002,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 				for(int i = 0; i < whereUnit.getSubWhereUnit().size(); i++) {
 					splitUntilNoOr(whereUnit.getSubWhereUnit().get(i));
 				}
-			}
+			} 
 		} else {
 			SQLBinaryOpExpr expr = whereUnit.getCanSplitExpr();
 			if(expr.getOperator() == SQLBinaryOperator.BooleanOr) {
@@ -1021,7 +1027,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			whereUnit.addSplitedExpr(expr);
 		}
 	}
-
+	
 	@Override
     public boolean visit(SQLAlterTableStatement x) {
         String tableName = x.getName().toString();
@@ -1089,10 +1095,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 
         return false;
     }
-
+    
     public void endVisit(MySqlDeleteStatement x) {
     }
-
+    
     public boolean visit(SQLUpdateStatement x) {
         setAliasMap();
 
@@ -1108,7 +1114,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
             stat.incrementUpdateCount();
 
             Map<String, String> aliasMap = getAliasMap();
-
+            
             aliasMap.put(ident, ident);
             if(alias != null) {
             	aliasMap.put(alias, ident);
@@ -1122,12 +1128,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 
         return false;
     }
-
+    
     @Override
     public void endVisit(MySqlHintStatement x) {
     	super.endVisit(x);
     }
-
+    
     @Override
     public boolean visit(MySqlHintStatement x) {
     	List<SQLCommentHint> hits = x.getHints();
@@ -1140,7 +1146,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     	}
     	return true;
     }
-
+    
     private String parseSchema(List<SQLCommentHint> hits) {
     	String regx = "\\!mycat:schema\\s*=([\\s\\w]*)$";
     	for(SQLCommentHint hit : hits ) {
@@ -1153,10 +1159,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		return null;
     }
 
-	public Queue<SQLSelect> getSubQuerys() {
+    public Queue<SQLSelect> getSubQuerys() {
 		return subQuerys;
 	}
-
+	
 	private void addSubQuerys(SQLSelect sqlselect){
 		/* 多个 sqlselect 之间  , equals 和 hashcode 是相同的.去重时 都被过滤掉了. */
 		if(subQuerys.isEmpty()){
@@ -1176,20 +1182,20 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 //                  }
                 /**
                  * 修正判定逻辑，应改为全不在subQuerys中才加入<br/>
-                 *
+                 * 
                  * @author SvenAugustus
                  */
                 if(sqlSelectQueryBlockEquals(current,ssqb)){
                    exists = true;
                    break;
                 }
-            }
-        }
-        if(!exists) {
-					subQuerys.add(sqlselect);
 				}
 			}
-
+        if(!exists) {
+          subQuerys.add(sqlselect);
+		}
+	}
+	
 	/* 多个 sqlselect 之间  , equals 和 hashcode 是相同的.去重时 使用 SQLSelectQueryBlock equals 方法 */
     private boolean sqlSelectQueryBlockEquals(SQLSelectQueryBlock obj1,SQLSelectQueryBlock obj2) {
         if (obj1 == obj2) return true;
@@ -1222,12 +1228,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	public boolean isSubqueryRelationOr() {
 		return subqueryRelationOr;
 	}
-
+    
     /**
      * 判定当前的条件列表 是否 另外一个条件列表的 子集
-     *
+     * 
      * @author SvenAugustus
-     * @param current 当前的条件列表
+     * @param current 当前的条件列表 
      * @param other 另外一个条件列表
      * @return
      */
@@ -1235,7 +1241,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
       if (current == null) {
         if (other != null) {
           return false;
-}
+        }
         return true;
       }
       if (current.size() > other.size()) {
@@ -1260,10 +1266,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
       }
       return true;
     }
-
+    
     /**
      * 判定两个条件列表的元素是否内容相等
-     *
+     * 
      * @author SvenAugustus
      * @param list1
      * @param list2
@@ -1298,7 +1304,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 
     /**
      * 合并两个条件列表的元素为一个条件列表
-     *
+     * 
      * @author SvenAugustus
      * @param list1 条件列表1
      * @param list2 条件列表2
@@ -1333,10 +1339,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
       }
       return retList;
     }
-
+    
     /**
      * 判定两个条件是否相等
-     *
+     * 
      * @author SvenAugustus
      * @param obj1
      * @param obj2
