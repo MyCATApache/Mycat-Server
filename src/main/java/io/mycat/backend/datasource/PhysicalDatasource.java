@@ -229,16 +229,19 @@ public abstract class PhysicalDatasource {
 			if (validSchema(con.getSchema())) {
 				if (con.getLastTime() < hearBeatTime
 						&& heartBeatCons.size() < maxConsInOneCheck) {
-					checkListItor.remove();
-					// Heart beat check
-					con.setBorrowed(true);
-					heartBeatCons.add(con);
+					if(checkLis.remove(con)) { 
+						//如果移除成功，则放入到心跳连接中，如果移除失败，说明该连接已经被其他线程使用，忽略本次心跳检测
+						con.setBorrowed(true);
+						heartBeatCons.add(con);
+					}
 				}
 			} else if (con.getLastTime() < hearBeatTime2) {
 				// not valid schema conntion should close for idle
 				// exceed 2*conHeartBeatPeriod
-				checkListItor.remove();
-				con.close(" heart beate idle ");
+				// 同样，这里也需要先移除，避免被业务连接
+				if(checkLis.remove(con)) { 
+					con.close(" heart beate idle ");
+				}
 			}
 
 		}

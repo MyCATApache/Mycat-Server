@@ -393,7 +393,11 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 		for(Map.Entry<String,byte[]> e: batchRowsCopy.entrySet() ){
 			String key=e.getKey();
 			RowDataPacket rowDataPkg = ResultSetUtil.parseRowData(e.getValue(), afields);
-			String id = ByteUtil.getString(rowDataPkg.fieldValues.get(index));
+			byte[] columnValue = rowDataPkg.fieldValues.get(index);
+			if(columnValue == null )
+				continue;
+			
+			String id = ByteUtil.getString(columnValue);
 			if (id.equals(value)){
 				return batchRowsCopy.remove(key);
 			}
