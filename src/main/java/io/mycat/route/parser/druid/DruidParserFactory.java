@@ -83,7 +83,12 @@ public class DruidParserFactory
     {
         DruidParser parser=null;
         //先解出表，判断表所在db的类型，再根据不同db类型返回不同的解析
-        List<String> tables = parseTables(statement, visitor);
+        /**
+         * 不能直接使用visitor变量，防止污染后续sql解析
+         * @author SvenAugustus
+         */
+        SchemaStatVisitor _visitor = SchemaStatVisitorFactory.create(schema);
+        List<String> tables = parseTables(statement, _visitor);
         for (String table : tables)
         {
             Set<String> dbTypes =null;

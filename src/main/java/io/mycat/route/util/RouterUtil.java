@@ -183,7 +183,7 @@ public class RouterUtil {
 		String tablename = "";
 		final String upStmt = stmt.toUpperCase();
 		if(upStmt.startsWith("CREATE")){
-			if (upStmt.contains("CREATE INDEX ")){
+			if (upStmt.contains("CREATE INDEX ") || upStmt.contains("CREATE UNIQUE INDEX ")){
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateIndexPos(upStmt, 0));
 			}else {
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
