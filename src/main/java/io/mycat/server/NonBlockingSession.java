@@ -353,9 +353,15 @@ public class NonBlockingSession implements Session {
         RouteResultsetNode node = (RouteResultsetNode) conn.getAttachment();
 
         if (node != null) {
-            if (node.isDisctTable()) {
-                return;
-            }
+        	/*  分表 在
+        	 *    1. 没有开启事务
+        	 *    2. 读取走的从节点
+        	 *    3. 没有执行过更新sql
+        	 *    也需要释放连接
+        	 */
+//            if (node.isDisctTable()) {
+//                return;
+//            }
             if ((this.source.isAutocommit() || conn.isFromSlaveDB()
                     || !conn.isModifiedSQLExecuted()) && !this.source.isLocked()) {
                 releaseConnection((RouteResultsetNode) conn.getAttachment(), LOGGER.isDebugEnabled(), needRollback);
