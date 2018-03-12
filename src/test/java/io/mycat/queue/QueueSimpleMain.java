@@ -62,8 +62,9 @@ public class QueueSimpleMain {
             @Override
             public void run() {
                 for (;;) {
-                    if (queue.offer("A"))
+                    if (queue.offer("A")) {
                         putCount++;
+                    }
                 }
             }
         }.start();
@@ -73,8 +74,9 @@ public class QueueSimpleMain {
             public void run() {
                 for (;;) {
                     // try {
-                    if (queue.poll() != null)
+                    if (queue.poll() != null) {
                         takeCount++;
+                    }
                     // } catch (InterruptedException e) {
                     // e.printStackTrace();
                     // }

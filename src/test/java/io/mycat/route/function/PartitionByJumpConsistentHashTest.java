@@ -1,8 +1,9 @@
 package io.mycat.route.function;
 
 import junit.framework.Assert;
-
 import org.junit.Test;
+
+import io.mycat.route.function.PartitionByJumpConsistentHash;
 
 /**
  * 跳增一致性哈希分片的测试类

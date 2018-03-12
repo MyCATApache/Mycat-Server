@@ -30,6 +30,8 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 
+import io.mycat.util.StringUtil;
+
 /**
  * @author mycat
  */

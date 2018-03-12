@@ -23,68 +23,65 @@
  */
 package io.mycat.server.response;
 
-import io.mycat.net.BufferArray;
-import io.mycat.net.NetSystem;
-import io.mycat.server.Fields;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.packet.EOFPacket;
-import io.mycat.server.packet.FieldPacket;
-import io.mycat.server.packet.ResultSetHeaderPacket;
-import io.mycat.server.packet.RowDataPacket;
-import io.mycat.server.packet.util.PacketUtil;
+import java.nio.ByteBuffer;
+
+import io.mycat.backend.mysql.PacketUtil;
+import io.mycat.config.Fields;
+import io.mycat.net.mysql.EOFPacket;
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.ResultSetHeaderPacket;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.route.parser.util.ParseUtil;
+import io.mycat.server.ServerConnection;
 import io.mycat.util.LongUtil;
-import io.mycat.util.ParseUtil;
 
 /**
  * @author mycat
  */
 public class SelectIdentity {
 
-	private static final int FIELD_COUNT = 1;
-	private static final ResultSetHeaderPacket header = PacketUtil
-			.getHeader(FIELD_COUNT);
-	static {
-		byte packetId = 0;
-		header.packetId = ++packetId;
-	}
+    private static final int FIELD_COUNT = 1;
+    private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
+    static {
+        byte packetId = 0;
+        header.packetId = ++packetId;
+    }
 
-	public static void response(MySQLFrontConnection c, String stmt,
-			int aliasIndex, final String orgName) {
-		String alias = ParseUtil.parseAlias(stmt, aliasIndex);
-		if (alias == null) {
-			alias = orgName;
-		}
+    public static void response(ServerConnection c, String stmt, int aliasIndex, final String orgName) {
+        String alias = ParseUtil.parseAlias(stmt, aliasIndex);
+        if (alias == null) {
+            alias = orgName;
+        }
 
-		BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
-				.allocateArray();
+        ByteBuffer buffer = c.allocate();
 
-		// write header
-		header.write(bufferArray);
-		// write fields
-		byte packetId = header.packetId;
-		FieldPacket field = PacketUtil.getField(alias, orgName,
-				Fields.FIELD_TYPE_LONGLONG);
-		field.packetId = ++packetId;
-		field.write(bufferArray);
+        // write header
+        buffer = header.write(buffer, c,true);
 
-		// write eof
-		EOFPacket eof = new EOFPacket();
-		eof.packetId = ++packetId;
-		eof.write(bufferArray);
+        // write fields
+        byte packetId = header.packetId;
+        FieldPacket field = PacketUtil.getField(alias, orgName, Fields.FIELD_TYPE_LONGLONG);
+        field.packetId = ++packetId;
+        buffer = field.write(buffer, c,true);
 
-		// write rows
-		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-		row.add(LongUtil.toBytes(c.getLastInsertId()));
-		row.packetId = ++packetId;
-		row.write(bufferArray);
+        // write eof
+        EOFPacket eof = new EOFPacket();
+        eof.packetId = ++packetId;
+        buffer = eof.write(buffer, c,true);
 
-		// write last eof
-		EOFPacket lastEof = new EOFPacket();
-		lastEof.packetId = ++packetId;
-		lastEof.write(bufferArray);
+        // write rows
+        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
+        row.add(LongUtil.toBytes(c.getLastInsertId()));
+        row.packetId = ++packetId;
+        buffer = row.write(buffer, c,true);
 
-		// post write
-		c.write(bufferArray);
-	}
+        // write last eof
+        EOFPacket lastEof = new EOFPacket();
+        lastEof.packetId = ++packetId;
+        buffer = lastEof.write(buffer, c,true);
+
+        // post write
+        c.write(buffer);
+    }
 
 }

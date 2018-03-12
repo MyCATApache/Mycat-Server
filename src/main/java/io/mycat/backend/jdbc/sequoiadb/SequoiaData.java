@@ -7,8 +7,8 @@ import java.sql.Types;
 import java.util.HashMap;
 
 import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
-
 import com.sequoiadb.base.DBCursor;
 
 public class SequoiaData {

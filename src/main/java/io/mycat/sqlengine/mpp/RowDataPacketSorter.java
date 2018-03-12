@@ -23,23 +23,24 @@
  */
 package io.mycat.sqlengine.mpp;
 
-import io.mycat.server.packet.RowDataPacket;
-import io.mycat.util.ByteUtil;
-import io.mycat.util.CompareUtil;
-
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
+import io.mycat.memory.unsafe.utils.BytesTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.util.ByteUtil;
+
 public class RowDataPacketSorter {
 
-	private List<RowDataPacket> sorted = Collections.synchronizedList(new ArrayList<RowDataPacket>());
     private static final Logger LOGGER = LoggerFactory.getLogger(RowDataPacketSorter.class);
-    private RowDataPacket[] array, resultTemp;
     protected final OrderCol[] orderCols;
+
+    private Collection<RowDataPacket> sorted = new ConcurrentLinkedQueue<RowDataPacket>();
+    private RowDataPacket[] array, resultTemp;
     private int p1, pr, p2;
 
     public RowDataPacketSorter(OrderCol[] orderCols) {
@@ -48,11 +49,11 @@ public class RowDataPacketSorter {
     }
 
     public boolean addRow(RowDataPacket row) {
-       return this.sorted.add(row);
+        return this.sorted.add(row);
 
     }
 
-    public List<RowDataPacket> getSortedResult() {
+    public Collection<RowDataPacket> getSortedResult() {
         try {
             this.mergeSort(sorted.toArray(new RowDataPacket[sorted.size()]));
         } catch (Exception e) {
@@ -158,11 +159,11 @@ public class RowDataPacketSorter {
     }
 
     public static final int compareObject(Object l, Object r, OrderCol orderCol) {
-
+      return compareObject(( byte[])l, (byte[])r, orderCol);
+    }
+    
+    public static final int compareObject(byte[] left,byte[] right, OrderCol orderCol) {
         int colType = orderCol.getColMeta().getColType();
-        byte[] left = (byte[]) l;
-        byte[] right = (byte[]) r;
-        // System.out.println("------------" + colType);
         switch (colType) {
         case ColMeta.COL_TYPE_DECIMAL:
         case ColMeta.COL_TYPE_INT:
@@ -181,14 +182,14 @@ public class RowDataPacketSorter {
         case ColMeta.COL_TYPE_DATETIME:
         case ColMeta.COL_TYPE_NEWDATE:
         case ColMeta.COL_TYPE_BIT:
-            return ByteUtil.compareNumberByte(left, right);
+//            return BytesTools.compareTo(left,right);
+        	return ByteUtil.compareNumberByte(left, right);
         case ColMeta.COL_TYPE_VAR_STRING:
         case ColMeta.COL_TYPE_STRING:
             // ENUM和SET类型都是字符串，按字符串处理
         case ColMeta.COL_TYPE_ENUM:
         case ColMeta.COL_TYPE_SET:
-            return CompareUtil.compareString(ByteUtil.getString(left), ByteUtil.getString(right));
-
+            return BytesTools.compareTo(left,right);
             // BLOB相关类型和GEOMETRY类型不支持排序，略掉
         }
         return 0;

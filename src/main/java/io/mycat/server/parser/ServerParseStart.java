@@ -23,7 +23,7 @@
  */
 package io.mycat.server.parser;
 
-import io.mycat.util.ParseUtil;
+import io.mycat.route.parser.util.ParseUtil;
 
 /**
  * @author mycat
@@ -54,7 +54,7 @@ public final class ServerParseStart {
     }
 
     // START TRANSACTION
-    public static int transactionCheck(String stmt, int offset) {
+    static int transactionCheck(String stmt, int offset) {
         if (stmt.length() > offset + "ransaction".length()) {
             char c1 = stmt.charAt(++offset);
             char c2 = stmt.charAt(++offset);

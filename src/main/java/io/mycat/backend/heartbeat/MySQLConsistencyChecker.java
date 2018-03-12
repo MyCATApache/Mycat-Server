@@ -23,7 +23,7 @@
  */
 package io.mycat.backend.heartbeat;
 
-import io.mycat.backend.MySQLDataSource;
+import io.mycat.backend.mysql.nio.MySQLDataSource;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
 import io.mycat.sqlengine.SQLJob;
@@ -79,34 +79,44 @@ public class MySQLConsistencyChecker{
 
 	public void checkRecordCout() {
         // ["db3","db2","db1"]
-		this.jobCount.set(0);
-		beginTime = new Date().getTime();
-        String[] physicalSchemas = source.getDbPool().getSchemas();
-        for(String dbName : physicalSchemas){
-        	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null);
-        	OneRawSQLQueryResultHandler resultHandler = 
-        			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.COUNT_COLUMN}, detector);
-        	SQLJob sqlJob = new SQLJob(this.getCountSQL(), dbName, resultHandler, source);
-        	detector.setSqlJob(sqlJob);
- 		    sqlJob.run();
- 		    this.jobCount.incrementAndGet();
-        }
+		lock.lock();
+		try{
+			this.jobCount.set(0);
+			beginTime = new Date().getTime();
+	        String[] physicalSchemas = source.getDbPool().getSchemas();
+	        for(String dbName : physicalSchemas){
+	        	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null);
+	        	OneRawSQLQueryResultHandler resultHandler = 
+	        			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.COUNT_COLUMN}, detector);
+	        	SQLJob sqlJob = new SQLJob(this.getCountSQL(), dbName, resultHandler, source);
+	        	detector.setSqlJob(sqlJob);
+	 		    sqlJob.run();
+	 		    this.jobCount.incrementAndGet();
+	        }
+		}finally{
+			lock.unlock();
+		}
 	}
 	
 	public void checkMaxTimeStamp() {
         // ["db3","db2","db1"]
-		this.jobCount.set(0);
-		beginTime = new Date().getTime();
-        String[] physicalSchemas = source.getDbPool().getSchemas();
-        for(String dbName : physicalSchemas){
-        	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null);
-        	OneRawSQLQueryResultHandler resultHandler = 
-        			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.MAX_COLUMN}, detector);
-        	SQLJob sqlJob = new SQLJob(this.getMaxSQL(), dbName, resultHandler, source);
-        	detector.setSqlJob(sqlJob);
- 		    sqlJob.run();
- 		    this.jobCount.incrementAndGet();
-        }
+		lock.lock();
+		try{
+			this.jobCount.set(0);
+			beginTime = new Date().getTime();
+	        String[] physicalSchemas = source.getDbPool().getSchemas();
+	        for(String dbName : physicalSchemas){
+	        	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null);
+	        	OneRawSQLQueryResultHandler resultHandler = 
+	        			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.MAX_COLUMN}, detector);
+	        	SQLJob sqlJob = new SQLJob(this.getMaxSQL(), dbName, resultHandler, source);
+	        	detector.setSqlJob(sqlJob);
+	 		    sqlJob.run();
+	 		    this.jobCount.incrementAndGet();
+	        }
+		}finally{
+			lock.unlock();
+		}
 	}
 	
 	/**
@@ -114,20 +124,25 @@ public class MySQLConsistencyChecker{
 	 */
 	public void checkInnerColumnExist() {
         // ["db3","db2","db1"]
-		this.jobCount.set(0);
-		beginTime = new Date().getTime();
-        String[] physicalSchemas = source.getDbPool().getSchemas();
-        for(String dbName : physicalSchemas){
-        	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null, 1);
-        	OneRawSQLQueryResultHandler resultHandler = 
-        			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.INNER_COLUMN}, detector);
-        	String db = " and table_schema='" + dbName + "'";
-        	SQLJob sqlJob = new SQLJob(this.columnExistSQL + db , dbName, resultHandler, source);
-        	detector.setSqlJob(sqlJob);//table_schema='db1'
-        	LOGGER.debug(sqlJob.toString());
- 		    sqlJob.run();
- 		    this.jobCount.incrementAndGet();
-        }
+		lock.lock();
+		try{
+			this.jobCount.set(0);
+			beginTime = new Date().getTime();
+	        String[] physicalSchemas = source.getDbPool().getSchemas();
+	        for(String dbName : physicalSchemas){
+	        	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null, 1);
+	        	OneRawSQLQueryResultHandler resultHandler = 
+	        			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.INNER_COLUMN}, detector);
+	        	String db = " and table_schema='" + dbName + "'";
+	        	SQLJob sqlJob = new SQLJob(this.columnExistSQL + db , dbName, resultHandler, source);
+	        	detector.setSqlJob(sqlJob);//table_schema='db1'
+	        	LOGGER.debug(sqlJob.toString());
+	 		    sqlJob.run();
+	 		    this.jobCount.incrementAndGet();
+	        }
+		}finally{
+			lock.unlock();
+		}
 	}
 	
 	public void setResult(SQLQueryResult<Map<String, String>> result) {

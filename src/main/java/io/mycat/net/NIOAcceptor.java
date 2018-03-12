@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software;Designed and Developed mainly by many Chinese 
+ * opensource volunteers. you can redistribute it and/or modify it under the 
+ * terms of the GNU General Public License version 2 only, as published by the
+ * Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ * 
+ * Any questions about this component can be directed to it's project Web address 
+ * https://code.google.com/p/opencloudb/.
+ *
+ */
 package io.mycat.net;
 
 import java.io.IOException;
@@ -10,23 +33,28 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.mycat.util.SelectorUtil;
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import io.mycat.MycatServer;
+import io.mycat.net.factory.FrontendConnectionFactory;
 
 /**
- * @author wuzh
+ * @author mycat
  */
-public final class NIOAcceptor extends Thread {
+public final class NIOAcceptor extends Thread implements SocketAcceptor{
 	private static final Logger LOGGER = LoggerFactory.getLogger(NIOAcceptor.class);
+	private static final AcceptIdGenerator ID_GENERATOR = new AcceptIdGenerator();
+
 	private final int port;
-	private final Selector selector;
+	private volatile Selector selector;
 	private final ServerSocketChannel serverChannel;
-	private final ConnectionFactory factory;
+	private final FrontendConnectionFactory factory;
 	private long acceptCount;
 	private final NIOReactorPool reactorPool;
 
-	public NIOAcceptor(String name, String bindIp, int port,
-			ConnectionFactory factory, NIOReactorPool reactorPool)
+	public NIOAcceptor(String name, String bindIp,int port, 
+			FrontendConnectionFactory factory, NIOReactorPool reactorPool)
 			throws IOException {
 		super.setName(name);
 		this.port = port;
@@ -53,51 +81,67 @@ public final class NIOAcceptor extends Thread {
 
 	@Override
 	public void run() {
-		final Selector selector = this.selector;
+		int invalidSelectCount = 0;
 		for (;;) {
+			final Selector tSelector = this.selector;
 			++acceptCount;
 			try {
-				selector.select(1000L);
-				Set<SelectionKey> keys = selector.selectedKeys();
-				try {
-					for (SelectionKey key : keys) {
-						if (key.isValid() && key.isAcceptable()) {
-							accept();
-						} else {
-							key.cancel();
-						}
-					}
-				} finally {
-					keys.clear();
+				long start = System.nanoTime();
+			    tSelector.select(1000L);
+				long end = System.nanoTime();
+				Set<SelectionKey> keys = tSelector.selectedKeys();
+				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS )
+				{
+					invalidSelectCount++;
 				}
-			} catch (Throwable e) {
+				else
+                {
+					try {
+						for (SelectionKey key : keys) {
+							if (key.isValid() && key.isAcceptable()) {
+								accept();
+							} else {
+								key.cancel();
+							}
+						}
+					} finally {
+						keys.clear();
+						invalidSelectCount = 0;
+					}
+				}
+				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD)
+				{
+					final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
+					if (rebuildSelector != null)
+					{
+						this.selector = rebuildSelector;
+					}
+					invalidSelectCount = 0;
+				}
+			} catch (Exception e) {
 				LOGGER.warn(getName(), e);
 			}
 		}
 	}
 
-	/**
-	 * 接受新连接
-	 */
 	private void accept() {
 		SocketChannel channel = null;
 		try {
 			channel = serverChannel.accept();
 			channel.configureBlocking(false);
-			Connection c = factory.make(channel);
-			c.setDirection(Connection.Direction.in);
-			c.setId(ConnectIdGenerator.getINSTNCE().getId());
-			InetSocketAddress remoteAddr = (InetSocketAddress) channel
-					.getRemoteAddress();
-			c.setHost(remoteAddr.getHostString());
-			c.setPort(remoteAddr.getPort());
-			// 派发此连接到某个Reactor处理
+			FrontendConnection c = factory.make(channel);
+			c.setAccepted(true);
+			c.setId(ID_GENERATOR.getId());
+			NIOProcessor processor = (NIOProcessor) MycatServer.getInstance()
+					.nextProcessor();
+			c.setProcessor(processor);
+			
 			NIOReactor reactor = reactorPool.getNextReactor();
 			reactor.postRegister(c);
 
-		} catch (Throwable e) {
+		} catch (Exception e) {
+	        LOGGER.warn(getName(), e);
 			closeChannel(channel);
-			LOGGER.warn(getName(), e);
 		}
 	}
 
@@ -110,11 +154,35 @@ public final class NIOAcceptor extends Thread {
 			try {
 				socket.close();
 			} catch (IOException e) {
+		       LOGGER.error("closeChannelError", e);
 			}
 		}
 		try {
 			channel.close();
 		} catch (IOException e) {
+            LOGGER.error("closeChannelError", e);
+		}
+	}
+
+	/**
+	 * 前端连接ID生成器
+	 * 
+	 * @author mycat
+	 */
+	private static class AcceptIdGenerator {
+
+		private static final long MAX_VALUE = 0xffffffffL;
+
+		private long acceptId = 0L;
+		private final Object lock = new Object();
+
+		private long getId() {
+			synchronized (lock) {
+				if (acceptId >= MAX_VALUE) {
+					acceptId = 0L;
+				}
+				return ++acceptId;
+			}
 		}
 	}
 

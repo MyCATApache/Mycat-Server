@@ -5,43 +5,27 @@ package io.mycat.backend.jdbc.sequoiadb;
 import java.sql.Types;
 import java.util.List;
 
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLOrderBy;
-import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBooleanExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNumberExpr;
-import com.alibaba.druid.sql.ast.expr.SQLVariantRefExpr;
-import com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement;
-import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
-import com.alibaba.druid.sql.ast.statement.SQLDropTableStatement;
-import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
-import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
-import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.ast.statement.SQLTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
-import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlSelectGroupByExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
+
+import org.bson.BSONObject;
+import org.bson.BasicBSONObject;
+import org.bson.types.BasicBSONList;
+
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
+import com.alibaba.druid.sql.ast.SQLStatement;
+
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.ast.statement.*;
+import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.sql.ast.*;
 /**  
  * 功能详细描述
  * @author sohudo[http://blog.csdn.net/wind520]
@@ -128,9 +112,9 @@ public class SequoiaSQLParser {
 			BasicBSONObject gbkey = new BasicBSONObject();
 			if (groupby!=null) {
 			  for (SQLExpr gbexpr:groupby.getItems()){
-				if (gbexpr instanceof MySqlSelectGroupByExpr) {
-					SQLExpr gbyexpr=((MySqlSelectGroupByExpr) gbexpr).getExpr();		
-					gbkey.put(getFieldName2(gbyexpr), Integer.valueOf(1));
+				if (gbexpr instanceof SQLIdentifierExpr) {
+					String name =((SQLIdentifierExpr) gbexpr).getName();
+					gbkey.put(name, Integer.valueOf(1));
 				}
 			  }
 			  icount=2;
@@ -261,8 +245,9 @@ public class SequoiaSQLParser {
 	
 	private int createTable(SQLCreateTableStatement state) {		
 		//for (SQLTableSource table : state.getTableSource()){
-			if (!this._db.isCollectionExist(state.getTableSource().toString()))
-				this._db.createCollection(state.getTableSource().toString());		
+			if (!this._db.isCollectionExist(state.getTableSource().toString())) {
+				this._db.createCollection(state.getTableSource().toString());
+			}
 		return 1;		
 	}	
 	
@@ -273,7 +258,9 @@ public class SequoiaSQLParser {
 		return 0;		
 	}
 	private int getSQLExprToAsc(SQLOrderingSpecification ASC){
-		if (ASC==null ) return 1;
+		if (ASC==null ) {
+			return 1;
+		}
 		if (ASC==SQLOrderingSpecification.DESC){
 			return -1;
 		}
@@ -290,7 +277,9 @@ public class SequoiaSQLParser {
         while(position<resource.length())   
         {   
             currentChar=resource.charAt(position++);   
-            if(currentChar!=ch) buffer.append(currentChar); 
+            if(currentChar!=ch) {
+				buffer.append(currentChar);
+			}
         } 
         return buffer.toString();   
     }  
@@ -357,7 +346,7 @@ public class SequoiaSQLParser {
             }  
           }    
         }    
-		if (!isok) {
+		if (isok==false) {
 			BasicBSONObject xo = new BasicBSONObject();
 			xo.put(aop, aval);
 			ob.put(akey,xo);	
@@ -376,13 +365,24 @@ public class SequoiaSQLParser {
 			  else {
 				  //BasicBSONObject xo = new BasicBSONObject();
 				  String op="";
-				  if (expr.getOperator().getName().equals("<"))   op="$lt";
-				  if (expr.getOperator().getName().equals("<="))  op="$lte";
-				  if (expr.getOperator().getName().equals(">"))   op="$gt";
-				  if (expr.getOperator().getName().equals(">="))  op="$gte";
-				  
-				  if (expr.getOperator().getName().equals("!="))  op="$ne";
-				  if (expr.getOperator().getName().equals("<>"))  op="$ne";
+				  if (expr.getOperator().getName().equals("<")) {
+					  op="$lt";
+				  }
+				  if (expr.getOperator().getName().equals("<=")) {
+					  op = "$lte";
+				  }
+				  if (expr.getOperator().getName().equals(">")) {
+					  op = "$gt";
+				  }
+				  if (expr.getOperator().getName().equals(">=")) {
+					  op = "$gte";
+				  }
+				  if (expr.getOperator().getName().equals("!=")) {
+					  op = "$ne";
+				  }
+				  if (expr.getOperator().getName().equals("<>")) {
+					  op = "$ne";
+				  }
 				  //xo.put(op, getExpValue(expr.getRight()));
 				 // o.put(exprL.toString(),xo);
 				  parserDBObject(o,exprL.toString(),op, getExpValue(expr.getRight()));
@@ -401,13 +401,24 @@ public class SequoiaSQLParser {
 			  }
 			  else {
 				  String op="";
-				  if (expr.getOperator().getName().equals("<"))   op="$lt";
-				  if (expr.getOperator().getName().equals("<="))  op="$lte";
-				  if (expr.getOperator().getName().equals(">"))   op="$gt";
-				  if (expr.getOperator().getName().equals(">="))  op="$gte";
-				  
-				  if (expr.getOperator().getName().equals("!="))  op="$ne";
-				  if (expr.getOperator().getName().equals("<>"))  op="$ne";
+				  if (expr.getOperator().getName().equals("<")) {
+					  op = "$lt";
+				  }
+				  if (expr.getOperator().getName().equals("<=")) {
+					  op = "$lte";
+				  }
+				  if (expr.getOperator().getName().equals(">")) {
+					  op = "$gt";
+				  }
+				  if (expr.getOperator().getName().equals(">=")) {
+					  op = "$gte";
+				  }
+				  if (expr.getOperator().getName().equals("!=")) {
+					  op = "$ne";
+				  }
+				  if (expr.getOperator().getName().equals("<>")) {
+					  op = "$ne";
+				  }
 
 				  parserDBObject(o,exprL.toString(),op, getExpValue(expr.getRight()));
 			  }

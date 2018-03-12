@@ -1,9 +1,20 @@
 package io.mycat.route.parser.druid;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
+import com.alibaba.druid.stat.TableStat.Name;
+
+import io.mycat.route.util.RouterUtil;
+import io.mycat.sqlengine.mpp.ColumnRoutePair;
+import io.mycat.sqlengine.mpp.RangeValue;
 
 /**
  * druid parser result
@@ -32,6 +43,8 @@ public class DruidShardingParseInfo {
 	 * key table alias, value talbe realname;
 	 */
 	private Map<String, String> tableAliasMap = new LinkedHashMap<String, String>();
+
+	private SchemaStatVisitor visitor;
 
 	public Map<String, String> getTableAliasMap() {
 		return tableAliasMap;
@@ -77,6 +90,33 @@ public class DruidShardingParseInfo {
 	public void clear() {
 		for(RouteCalculateUnit unit : routeCalculateUnits ) {
 			unit.clear();
+		}
+	}
+	
+	public void setVisitor(SchemaStatVisitor visitor) {
+		
+		this.visitor = visitor;
+	}
+	
+	public SchemaStatVisitor getVisitor(){
+		
+		return this.visitor;
+	}
+
+	public void addTables(Map<Name, TableStat> map) {
+		
+		int dotIndex;
+		for(Name _name : map.keySet()){
+			
+			String _tableName = _name.getName().toString().toUpperCase();
+			//系统表直接跳过，路由到默认datanode
+			if(RouterUtil.isSystemSchema(_tableName)){
+				continue;
+			}
+			if((dotIndex = _tableName.indexOf('.')) != -1){
+				_tableName = _tableName.substring(dotIndex + 1);
+			}
+			addTable(_tableName);
 		}
 	}
 

@@ -23,10 +23,10 @@
  */
 package io.mycat.server.parser;
 
-import io.mycat.util.ParseUtil;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.mycat.route.parser.util.ParseUtil;
 
 /**
  * @author mycat
@@ -49,19 +49,28 @@ public final class ServerParse {
 	public static final int SAVEPOINT = 13;
 	public static final int USE = 14;
 	public static final int EXPLAIN = 15;
+	public static final int EXPLAIN2 = 151;
 	public static final int KILL_QUERY = 16;
 	public static final int HELP = 17;
 	public static final int MYSQL_CMD_COMMENT = 18;
 	public static final int MYSQL_COMMENT = 19;
 	public static final int CALL = 20;
 	public static final int DESCRIBE = 21;
+	public static final int LOCK = 22;
+	public static final int UNLOCK = 23;
     public static final int LOAD_DATA_INFILE_SQL = 99;
     public static final int DDL = 100;
-    private static final  Pattern pattern = Pattern.compile("(load)+\\s+(data)+\\s+\\w*\\s*(infile)+",Pattern.CASE_INSENSITIVE);
 
-	public static int parse(String stmt) {
-		int lenth = stmt.length();
-		for (int i = 0; i < lenth; ++i) {
+
+	public static final int MIGRATE  = 203;
+    private static final  Pattern pattern = Pattern.compile("(load)+\\s+(data)+\\s+\\w*\\s*(infile)+",Pattern.CASE_INSENSITIVE);
+    private static final  Pattern callPattern = Pattern.compile("\\w*\\;\\s*\\s*(call)+\\s+\\w*\\s*",Pattern.CASE_INSENSITIVE);
+
+    public static int parse(String stmt) {
+		int length = stmt.length();
+		//FIX BUG FOR SQL SUCH AS /XXXX/SQL
+		int rt = -1;
+		for (int i = 0; i < length; ++i) {
 			switch (stmt.charAt(i)) {
 			case ' ':
 			case '\t':
@@ -71,65 +80,123 @@ public final class ServerParse {
 			case '/':
 				// such as /*!40101 SET character_set_client = @saved_cs_client
 				// */;
-				if (i == 0 && stmt.charAt(1) == '*' && stmt.charAt(2) == '!'
-						&& stmt.charAt(lenth - 2) == '*'
-						&& stmt.charAt(lenth - 1) == '/') {
+				if (i == 0 && stmt.charAt(1) == '*' && stmt.charAt(2) == '!' && stmt.charAt(length - 2) == '*'
+						&& stmt.charAt(length - 1) == '/') {
 					return MYSQL_CMD_COMMENT;
 				}
 			case '#':
 				i = ParseUtil.comment(stmt, i);
-				if (i + 1 == lenth) {
+				if (i + 1 == length) {
 					return MYSQL_COMMENT;
 				}
 				continue;
 			case 'A':
 			case 'a':
-				return aCheck(stmt,i);
+				rt = aCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'B':
 			case 'b':
-				return beginCheck(stmt, i);
+				rt = beginCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'C':
 			case 'c':
-				return commitOrCallCheckOrCreate(stmt, i);
+				rt = commitOrCallCheckOrCreate(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'D':
 			case 'd':
-				return deleteOrdCheck(stmt, i);
+				rt = deleteOrdCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'E':
 			case 'e':
-				return explainCheck(stmt, i);
+				rt = explainCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'I':
 			case 'i':
-				return insertCheck(stmt, i);
+				rt = insertCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
+				case 'M':
+				case 'm':
+					rt = migrateCheck(stmt, i);
+					if (rt != OTHER) {
+						return rt;
+					}
+					continue;
 			case 'R':
 			case 'r':
-				return rCheck(stmt, i);
+				rt = rCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'S':
 			case 's':
-				return sCheck(stmt, i);
+				rt = sCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'T':
 			case 't':
-				return tCheck(stmt, i);
+				rt = tCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'U':
 			case 'u':
-				return uCheck(stmt, i);
+				rt = uCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'K':
 			case 'k':
-				return killCheck(stmt, i);
+				rt = killCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			case 'H':
 			case 'h':
-				return helpCheck(stmt, i);
-				case 'L':
-				case 'l':
-					return loadDataCheck(stmt, i);
+				rt = helpCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
+			case 'L':
+			case 'l':
+				rt = lCheck(stmt, i);
+				if (rt != OTHER) {
+					return rt;
+				}
+				continue;
 			default:
-				return OTHER;
+				continue;
 			}
 		}
 		return OTHER;
 	}
 
 
-	static int loadDataCheck(String stmt, int offset) {
+	static int lCheck(String stmt, int offset) {
 		if (stmt.length() > offset + 3) {
 			char c1 = stmt.charAt(++offset);
 			char c2 = stmt.charAt(++offset);
@@ -138,13 +205,133 @@ public final class ServerParse {
 					&& (c3 == 'D' || c3 == 'd')) {
 				Matcher matcher = pattern.matcher(stmt);
 				return matcher.find() ? LOAD_DATA_INFILE_SQL : OTHER;
+			} else if ((c1 == 'O' || c1 == 'o') && (c2 == 'C' || c2 == 'c')
+					&& (c3 == 'K' || c3 == 'k')){
+				return LOCK;
 			}
 		}
 
 		return OTHER;
 	}
 
+	private static int migrateCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 7) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			char c5 = stmt.charAt(++offset);
+			char c6 = stmt.charAt(++offset);
 
+
+			if ((c1 == 'i' || c1 == 'I')
+					&& (c2 == 'g' || c2 == 'G')
+					&& (c3 == 'r' || c3 == 'R')
+					&& (c4 == 'a' || c4 == 'A')
+					&& (c5 == 't' || c5 == 'T')
+					&& (c6 == 'e' || c6 == 'E'))
+					{
+				return MIGRATE;
+			}
+		}
+		return OTHER;
+	}
+	//truncate
+	private static int tCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 7) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			char c5 = stmt.charAt(++offset);
+			char c6 = stmt.charAt(++offset);
+			char c7 = stmt.charAt(++offset);
+			char c8 = stmt.charAt(++offset);
+
+			if ((c1 == 'R' || c1 == 'r')
+					&& (c2 == 'U' || c2 == 'u')
+					&& (c3 == 'N' || c3 == 'n')
+					&& (c4 == 'C' || c4 == 'c')
+					&& (c5 == 'A' || c5 == 'a')
+					&& (c6 == 'T' || c6 == 't')
+					&& (c7 == 'E' || c7 == 'e')
+					&& (c8 == ' ' || c8 == '\t' || c8 == '\r' || c8 == '\n')) {
+				return DDL;
+			}
+		}
+		return OTHER;
+	}
+	//alter table/view/...
+	private static int aCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 4) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			char c5 = stmt.charAt(++offset);
+			if ((c1 == 'L' || c1 == 'l')
+					&& (c2 == 'T' || c2 == 't')
+					&& (c3 == 'E' || c3 == 'e')
+					&& (c4 == 'R' || c4 == 'r')
+					&& (c5 == ' ' || c5 == '\t' || c5 == '\r' || c5 == '\n')) {
+				return DDL;
+			}
+		}
+		return OTHER;
+	}
+	//create table/view/...
+	private static int createCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 5) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			char c5 = stmt.charAt(++offset);
+			char c6 = stmt.charAt(++offset);
+			if ((c1 == 'R' || c1 == 'r')
+					&& (c2 == 'E' || c2 == 'e')
+					&& (c3 == 'A' || c3 == 'a')
+					&& (c4 == 'T' || c4 == 't')
+					&& (c5 == 'E' || c5 == 'e')
+					&& (c6 == ' ' || c6 == '\t' || c6 == '\r' || c6 == '\n')) {
+				return DDL;
+			}
+		}
+		return OTHER;
+	}
+	//drop
+	private static int dropCheck(String stmt, int offset) {
+		if (stmt.length() > offset + 3) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			if ((c1 == 'R' || c1 == 'r')
+					&& (c2 == 'O' || c2 == 'o')
+					&& (c3 == 'P' || c3 == 'p')
+					&& (c4 == ' ' || c4 == '\t' || c4 == '\r' || c4 == '\n')) {
+				return DDL;
+			}
+		}
+		return OTHER;
+	}
+	// delete or drop
+    static int deleteOrdCheck(String stmt, int offset){
+    	int sqlType = OTHER;
+		switch (stmt.charAt((offset + 1))) {
+		case 'E':
+		case 'e':
+			sqlType = dCheck(stmt, offset);
+			break;
+		case 'R':
+		case 'r':
+			sqlType = dropCheck(stmt, offset);
+			break;
+		default:
+			sqlType = OTHER;
+		}
+		return sqlType;
+    }
 	// HELP' '
 	static int helpCheck(String stmt, int offset) {
 		if (stmt.length() > offset + "ELP ".length()) {
@@ -161,6 +348,7 @@ public final class ServerParse {
 
 	// EXPLAIN' '
 	static int explainCheck(String stmt, int offset) {
+
 		if (stmt.length() > offset + "XPLAIN ".length()) {
 			char c1 = stmt.charAt(++offset);
 			char c2 = stmt.charAt(++offset);
@@ -175,6 +363,9 @@ public final class ServerParse {
 					&& (c7 == ' ' || c7 == '\t' || c7 == '\r' || c7 == '\n')) {
 				return (offset << 8) | EXPLAIN;
 			}
+		}
+		if(stmt != null && stmt.toLowerCase().startsWith("explain2")){
+			return (offset << 8) | EXPLAIN2;
 		}
 		return OTHER;
 	}
@@ -255,49 +446,7 @@ public final class ServerParse {
 		}
 		return OTHER;
 	}
-	//truncate
-	private static int tCheck(String stmt, int offset) {
-		if (stmt.length() > offset + 7) {
-			char c1 = stmt.charAt(++offset);
-			char c2 = stmt.charAt(++offset);
-			char c3 = stmt.charAt(++offset);
-			char c4 = stmt.charAt(++offset);
-			char c5 = stmt.charAt(++offset);
-			char c6 = stmt.charAt(++offset);
-			char c7 = stmt.charAt(++offset);
-			char c8 = stmt.charAt(++offset);
 
-			if ((c1 == 'R' || c1 == 'r')
-					&& (c2 == 'U' || c2 == 'u')
-					&& (c3 == 'N' || c3 == 'n')
-					&& (c4 == 'C' || c4 == 'c')
-					&& (c5 == 'A' || c5 == 'a')
-					&& (c6 == 't' || c6 == 't')
-					&& (c7 == 'E' || c7 == 'e')
-					&& (c8 == ' ' || c8 == '\t' || c8 == '\r' || c8 == '\n')) {
-				return DDL;
-			}
-		}
-		return OTHER;
-	}
-	//alter table/view/...
-	private static int aCheck(String stmt, int offset) {
-		if (stmt.length() > offset + 4) {
-			char c1 = stmt.charAt(++offset);
-			char c2 = stmt.charAt(++offset);
-			char c3 = stmt.charAt(++offset);
-			char c4 = stmt.charAt(++offset);
-			char c5 = stmt.charAt(++offset);
-			if ((c1 == 'L' || c1 == 'l')
-					&& (c2 == 'T' || c2 == 't')
-					&& (c3 == 'E' || c3 == 'e')
-					&& (c4 == 'R' || c4 == 'r')
-					&& (c5 == ' ' || c5 == '\t' || c5 == '\r' || c5 == '\n')) {
-				return DDL;
-			}
-		}
-		return OTHER;
-	}
 	// COMMIT
 	static int commitCheck(String stmt, int offset) {
 		if (stmt.length() > offset + 5) {
@@ -356,59 +505,6 @@ public final class ServerParse {
 		return sqlType;
 	}
 
-	//create table/view/...
-	private static int createCheck(String stmt, int offset) {
-		if (stmt.length() > offset + 5) {
-			char c1 = stmt.charAt(++offset);
-			char c2 = stmt.charAt(++offset);
-			char c3 = stmt.charAt(++offset);
-			char c4 = stmt.charAt(++offset);
-			char c5 = stmt.charAt(++offset);
-			char c6 = stmt.charAt(++offset);
-			if ((c1 == 'R' || c1 == 'r')
-					&& (c2 == 'E' || c2 == 'e')
-					&& (c3 == 'A' || c3 == 'a')
-					&& (c4 == 'T' || c4 == 't')
-					&& (c5 == 'E' || c5 == 'e')
-					&& (c6 == ' ' || c6 == '\t' || c6 == '\r' || c6 == '\n')) {
-				return DDL;
-			}
-		}
-		return OTHER;
-	}
-	//drop
-	private static int dropCheck(String stmt, int offset) {
-		if (stmt.length() > offset + 3) {
-			char c1 = stmt.charAt(++offset);
-			char c2 = stmt.charAt(++offset);
-			char c3 = stmt.charAt(++offset);
-			char c4 = stmt.charAt(++offset);
-			if ((c1 == 'R' || c1 == 'r')
-					&& (c2 == 'O' || c2 == 'o')
-					&& (c3 == 'P' || c3 == 'p')
-					&& (c4 == ' ' || c4 == '\t' || c4 == '\r' || c4 == '\n')) {
-				return DDL;
-			}
-		}
-		return OTHER;
-	}
-	// delete or drop
-    static int deleteOrdCheck(String stmt, int offset){
-    	int sqlType = OTHER;
-		switch (stmt.charAt((offset + 1))) {
-		case 'E':
-		case 'e':
-			sqlType = dCheck(stmt, offset);
-			break;
-		case 'R':
-		case 'r':
-			sqlType = dropCheck(stmt, offset);
-			break;
-		default:
-			sqlType = OTHER;
-		}
-		return sqlType;
-    }
 	// DESCRIBE or desc or DELETE' '
 	static int dCheck(String stmt, int offset) {
 		if (stmt.length() > offset + 4) {
@@ -596,6 +692,18 @@ public final class ServerParse {
 			case 'T':
 			case 't':
 				if (stmt.length() > ++offset) {
+//支持一下语句
+//  /*!mycat: sql=SELECT * FROM test where id=99 */set @pin=1;
+//                    call p_test(@pin,@pout);
+//                    select @pout;
+                    if(stmt.startsWith("/*!mycat:")||stmt.startsWith("/*#mycat:")||stmt.startsWith("/*mycat:"))
+                    {
+                        Matcher matcher = callPattern.matcher(stmt);
+                        if (matcher.find()) {
+							return CALL;
+						}
+                    }
+
 					char c = stmt.charAt(offset);
 					if (c == ' ' || c == '\r' || c == '\n' || c == '\t'
 							|| c == '/' || c == '#') {
@@ -687,6 +795,23 @@ public final class ServerParse {
 					if ((c1 == 'E' || c1 == 'e')
 							&& (c2 == ' ' || c2 == '\t' || c2 == '\r' || c2 == '\n')) {
 						return (offset << 8) | USE;
+					}
+				}
+				break;
+			case 'N':
+			case 'n':
+				if (stmt.length() > offset + 5) {
+					char c1 = stmt.charAt(++offset);
+					char c2 = stmt.charAt(++offset);
+					char c3 = stmt.charAt(++offset);
+					char c4 = stmt.charAt(++offset);
+					char c5 = stmt.charAt(++offset);
+					if ((c1 == 'L' || c1 == 'l')
+							&& (c2 == 'O' || c2 == 'o')
+							&& (c3 == 'C' || c3 == 'c')
+							&& (c4 == 'K' || c4 == 'k')
+							&& (c5 == ' ' || c5 == '\t' || c5 == '\r' || c5 == '\n')) {
+						return UNLOCK;
 					}
 				}
 				break;

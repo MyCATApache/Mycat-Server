@@ -24,10 +24,10 @@
 package io.mycat.server.response;
 
 import io.mycat.MycatServer;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.packet.ErrorPacket;
-import io.mycat.server.packet.OkPacket;
-import io.mycat.server.packet.util.PacketUtil;
+import io.mycat.backend.mysql.PacketUtil;
+import io.mycat.net.FrontendConnection;
+import io.mycat.net.mysql.ErrorPacket;
+import io.mycat.net.mysql.OkPacket;
 
 /**
  * 加入了offline状态推送，用于心跳语句。
@@ -38,9 +38,9 @@ public class Ping {
 
     private static final ErrorPacket error = PacketUtil.getShutdown();
 
-    public static void response(MySQLFrontConnection c) {
+    public static void response(FrontendConnection c) {
         if (MycatServer.getInstance().isOnline()) {
-            c.write(OkPacket.OK);
+            c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
         } else {
             error.write(c);
         }

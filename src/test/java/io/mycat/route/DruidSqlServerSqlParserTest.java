@@ -1,28 +1,34 @@
 package io.mycat.route;
 
-import io.mycat.SimpleCachePool;
-import io.mycat.cache.LayerCachePool;
-import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.server.config.loader.ConfigInitializer;
-import io.mycat.server.config.node.SchemaConfig;
-import io.mycat.server.config.node.SystemConfig;
-
 import java.sql.SQLNonTransientException;
 import java.util.Map;
 
-import junit.framework.Assert;
-
 import org.junit.Test;
+
+import io.mycat.MycatServer;
+import io.mycat.SimpleCachePool;
+import io.mycat.cache.LayerCachePool;
+import io.mycat.config.loader.SchemaLoader;
+import io.mycat.config.loader.xml.XMLSchemaLoader;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.SystemConfig;
+import io.mycat.route.factory.RouteStrategyFactory;
+import junit.framework.Assert;
 
 public class DruidSqlServerSqlParserTest
 {
 	protected Map<String, SchemaConfig> schemaMap;
 	protected LayerCachePool cachePool = new SimpleCachePool();
-    protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
+    protected RouteStrategy routeStrategy;
 
 	public DruidSqlServerSqlParserTest() {
-		ConfigInitializer confInit = new ConfigInitializer(true);
-		schemaMap = confInit.getSchemas();
+		String schemaFile = "/route/schema.xml";
+		String ruleFile = "/route/rule.xml";
+		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
+		schemaMap = schemaLoader.getSchemas();
+		MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
+        RouteStrategyFactory.init();
+        routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 	}
 
 	@Test
@@ -47,7 +53,7 @@ public class DruidSqlServerSqlParserTest
         Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals(0, rrs.getLimitStart());
         Assert.assertEquals(15, rrs.getLimitSize());
-
+		
         sql="select * from offer1 order by id desc limit 5,10" ;
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);
@@ -151,8 +157,7 @@ public class DruidSqlServerSqlParserTest
 
 
     @Test
-    public void testTopPageSQL() throws SQLNonTransientException
-    {
+    public void testTopPageSQL() throws SQLNonTransientException {
         SchemaConfig schema = schemaMap.get("sqlserverdb");
         RouteResultset rrs = null;
 

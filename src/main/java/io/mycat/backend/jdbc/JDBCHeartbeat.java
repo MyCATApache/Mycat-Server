@@ -1,15 +1,16 @@
 package io.mycat.backend.jdbc;
 
-import io.mycat.backend.HeartbeatRecorder;
-import io.mycat.backend.heartbeat.DBHeartbeat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import io.mycat.backend.heartbeat.DBHeartbeat;
+import io.mycat.statistic.HeartbeatRecorder;
 
 public class JDBCHeartbeat extends DBHeartbeat{
 	private final ReentrantLock lock;
@@ -17,17 +18,16 @@ public class JDBCHeartbeat extends DBHeartbeat{
     private final boolean heartbeatnull;
     private Long lastSendTime = System.currentTimeMillis();
     private Long lastReciveTime = System.currentTimeMillis();
-
-
-	private static final Logger logger = LoggerFactory
-			.getLogger(JDBCHeartbeat.class);
+    
+    
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
     
 	public JDBCHeartbeat(JDBCDatasource source)
 	{
 		this.source = source;
 		lock = new ReentrantLock(false);
 		this.status = INIT_STATUS;
-		this.heartbeatSQL = source.getHostConfig().getHeartbeatSQL().trim();
+		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL().trim();
 		this.heartbeatnull= heartbeatSQL.length()==0;
 	}
 
@@ -88,8 +88,9 @@ public class JDBCHeartbeat extends DBHeartbeat{
 	public void heartbeat()
 	{
 	    
-		if (isStop.get())
+		if (isStop.get()) {
 			return;
+		}
 		lastSendTime = System.currentTimeMillis();
 		lock.lock();
 		try

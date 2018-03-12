@@ -23,14 +23,14 @@
  */
 package io.mycat.cache.impl;
 
-import io.mycat.cache.CachePool;
-import io.mycat.cache.CachePoolFactory;
-
 import java.util.concurrent.TimeUnit;
 
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
+
+import io.mycat.cache.CachePool;
+import io.mycat.cache.CachePoolFactory;
 
 public class MapDBCachePooFactory extends CachePoolFactory {
 	private DB db = DBMaker.newMemoryDirectDB().cacheSize(1000).cacheLRUEnable().make();

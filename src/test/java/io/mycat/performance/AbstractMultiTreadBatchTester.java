@@ -23,12 +23,14 @@
  */
 package io.mycat.performance;
 
+import java.io.FileInputStream;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
@@ -120,7 +122,7 @@ public abstract class AbstractMultiTreadBatchTester {
 			String sqlTemplate = pros.getProperty("sql");
 			String batchSizeStr=pros.getProperty("batch");
 			String autocommitStr=pros.getProperty("autocommit");
-			boolean autocommit=autocommitStr==null?false:Boolean.valueOf(autocommitStr);
+			boolean autocommit= autocommitStr!=null && Boolean.valueOf(autocommitStr);
 			int batchSize=batchSizeStr==null?100:Integer.parseInt(batchSizeStr);
 			System.out.println("total record "+total+ " batch size:"+batchSize+" autocomit "+autocommit);
 			return createSQLTemplateJobs(total, sqlTemplate,batchSize,autocommit);

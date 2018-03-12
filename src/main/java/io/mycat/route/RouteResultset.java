@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese
- * opensource volunteers. you can redistribute it and/or modify it under the
+ * This code is free software;Designed and Developed mainly by many Chinese 
+ * opensource volunteers. you can redistribute it and/or modify it under the 
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,22 +16,24 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Any questions about this component can be directed to it's project Web address
+ * 
+ * Any questions about this component can be directed to it's project Web address 
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.route;
 
-import io.mycat.route.util.PageSQLUtil;
-import io.mycat.server.config.node.SchemaConfig;
+import com.alibaba.druid.sql.ast.SQLStatement;
+
+import io.mycat.MycatServer;
+import io.mycat.config.MycatConfig;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.route.parser.util.PageSQLUtil;
 import io.mycat.sqlengine.mpp.HavingCols;
 import io.mycat.util.FormatUtil;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author mycat
@@ -40,6 +42,9 @@ public final class RouteResultset implements Serializable {
     private String statement; // 原始语句
     private final int sqlType;
     private RouteResultsetNode[] nodes; // 路由结果节点
+    private Set<String> subTables;
+    private SQLStatement sqlStatement; 
+    
 
     private int limitStart;
     private boolean cacheAble;
@@ -66,10 +71,62 @@ public final class RouteResultset implements Serializable {
     //是否可以在从库运行,此属性主要供RouteResultsetNode获取
     private Boolean canRunInReadDB;
 
-	// 强制走 master，强制走 slave统一使用该属性来标志，true走slave，false走master
-	private Boolean runOnSlave = null;	// 默认null表示不施加影响
+    // 强制走 master，可以通过 RouteResultset的属性canRunInReadDB=false
+    // 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
+    private Boolean runOnSlave = null;	// 默认null表示不施加影响
+
+       //key=dataNode    value=slot
+    private Map<String,Integer>   dataNodeSlotMap=new HashMap<>();
+
+    private boolean selectForUpdate;
+
+    public boolean isSelectForUpdate() {
+        return selectForUpdate;
+    }
+
+    public void setSelectForUpdate(boolean selectForUpdate) {
+        this.selectForUpdate = selectForUpdate;
+    }
 	
-    public boolean isLoadData()
+	
+	 private List<String> tables;
+
+    public List<String> getTables() {
+        return tables;
+    }
+
+    public void setTables(List<String> tables) {
+        this.tables = tables;
+    }
+
+    public Map<String, Integer> getDataNodeSlotMap() {
+        return dataNodeSlotMap;
+    }
+
+    public void setDataNodeSlotMap(Map<String, Integer> dataNodeSlotMap) {
+        this.dataNodeSlotMap = dataNodeSlotMap;
+    }
+
+    public Boolean getRunOnSlave() {
+		return runOnSlave;
+	}
+
+	public void setRunOnSlave(Boolean runOnSlave) {
+		this.runOnSlave = runOnSlave;
+	}
+	  private Procedure procedure;
+
+    public Procedure getProcedure()
+    {
+        return procedure;
+    }
+
+    public void setProcedure(Procedure procedure)
+    {
+        this.procedure = procedure;
+    }
+
+	public boolean isLoadData()
     {
         return isLoadData;
     }
@@ -101,15 +158,7 @@ public final class RouteResultset implements Serializable {
         this.sqlType = sqlType;
     }
 
-    public Boolean getRunOnSlave() {
-		return runOnSlave;
-	}
-
-	public void setRunOnSlave(Boolean runOnSlave) {
-		this.runOnSlave = runOnSlave;
-	}
-
-	public void resetNodes() {
+    public void resetNodes() {
         if (nodes != null) {
             for (RouteResultsetNode node : nodes) {
                 node.resetStatement();
@@ -278,6 +327,14 @@ public final class RouteResultset implements Serializable {
 
     public void setCallStatement(boolean callStatement) {
         this.callStatement = callStatement;
+        if(nodes!=null)
+        {
+            for (RouteResultsetNode node : nodes)
+            {
+                node.setCallStatement(callStatement);
+            }
+
+        }
     }
 
     public void changeNodeSqlAfterAddLimit(SchemaConfig schemaConfig, String sourceDbType, String sql, int offset, int count, boolean isNeedConvert) {
@@ -289,7 +346,7 @@ public final class RouteResultset implements Serializable {
             for (RouteResultsetNode node : nodes)
             {
                 String dbType = dataNodeDbTypeMap.get(node.getName());
-                if (sourceDbType.equalsIgnoreCase("mysql"))
+                if (dbType.equalsIgnoreCase("mysql")) 
                 {
                     node.setStatement(sql);   //mysql之前已经加好limit
                 } else if (sqlMapCache.containsKey(dbType))
@@ -332,13 +389,44 @@ public final class RouteResultset implements Serializable {
 		return (sqlMerge != null) ? sqlMerge.getHavingCols() : null;
 	}
 
+	public void setSubTables(Set<String> subTables) {
+		this.subTables = subTables;
+	}
+
 	public void setHavings(HavingCols havings) {
 		if (havings != null) {
 			createSQLMergeIfNull().setHavingCols(havings);
 		}
 	}
 
-    @Override
+	// Added by winbill, 20160314, for having clause, Begin ==>
+	public void setHavingColsName(Object[] names) {
+		if (names != null && names.length > 0) {
+			createSQLMergeIfNull().setHavingColsName(names);
+		}
+	}
+	// Added by winbill, 20160314, for having clause, End  <==
+
+    public SQLStatement getSqlStatement() {
+		return this.sqlStatement;
+	}
+
+	public void setSqlStatement(SQLStatement sqlStatement) {
+		this.sqlStatement = sqlStatement;
+	}
+
+	public Set<String> getSubTables() {
+		return this.subTables;
+	}
+	
+	public boolean isDistTable(){
+		if(this.getSubTables()!=null && !this.getSubTables().isEmpty() ){
+			return true;
+		}
+		return false;
+	}
+
+	@Override
     public String toString() {
         StringBuilder s = new StringBuilder();
         s.append(statement).append(", route={");

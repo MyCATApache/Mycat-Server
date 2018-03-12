@@ -4,6 +4,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 //import java.util.Arrays;
+import java.util.Set;
 /**  
  * 功能详细描述
  * @author sohudo[http://blog.csdn.net/wind520]
@@ -48,9 +49,12 @@ public class MongoResultSetMetaData implements ResultSetMetaData {
 
 	@Override
 	public int getColumnCount() throws SQLException {
-		if (keySet==null) return 0;
-		else
-		  return keySet.length;
+		if (keySet==null) {
+			return 0;
+		}
+		else {
+			return keySet.length;
+		}
 	}
 
 	@Override

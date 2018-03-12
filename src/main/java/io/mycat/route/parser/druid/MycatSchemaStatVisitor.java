@@ -1,35 +1,62 @@
 package io.mycat.route.parser.druid;
 
-import io.mycat.route.util.RouterUtil;
-
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.alibaba.druid.sql.ast.SQLCommentHint;
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLExprImpl;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAllExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAnyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBetweenExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLExistsExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
+import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
+import com.alibaba.druid.sql.ast.expr.SQLSomeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLValuableExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
+import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlHintStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Column;
 import com.alibaba.druid.stat.TableStat.Condition;
 import com.alibaba.druid.stat.TableStat.Mode;
+import com.alibaba.druid.stat.TableStat.Relationship;
+
+import io.mycat.route.util.RouterUtil;
 
 /**
  * Druid解析器中用来从ast语法中提取表名、条件、字段等的vistor
@@ -40,6 +67,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	private boolean hasOrCondition = false;
 	private List<WhereUnit> whereUnits = new CopyOnWriteArrayList<WhereUnit>();
 	private List<WhereUnit> storedwhereUnits = new CopyOnWriteArrayList<WhereUnit>();
+    private Queue<SQLSelect> subQuerys = new LinkedBlockingQueue<>();  //子查询集合
+	private boolean hasChange = false; // 是否有改写sql
+	private boolean subqueryRelationOr = false;   //子查询存在关联条件的情况下，是否有 or 条件
 	
 	private void reset() {
 		this.conditions.clear();
@@ -220,11 +250,17 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         } else if(tableStats.size() == 0) {//一个表都没有，返回空串
             return "";
         } else {//多个表名
-            for(Column col : columns) {//从columns中找表名
+            for (Column col : columns.keySet())
+            {
                 if(col.getName().equals(column)) {
                     return col.getTable();
                 }
             }
+//            for(Column col : columns) {//从columns中找表名
+//                if(col.getName().equals(column)) {
+//                    return col.getTable();
+//                }
+//            }
 
             //前面没找到表名的，自己从parent中解析
 
@@ -256,16 +292,464 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         return "";
     }
     
+    private void setSubQueryRelationOrFlag(SQLExprImpl x){
+    	MycatSubQueryVisitor subQueryVisitor = new MycatSubQueryVisitor();
+    	x.accept(subQueryVisitor);
+    	if(subQueryVisitor.isRelationOr()){
+    		subqueryRelationOr = true;
+    	}
+    }
+    
+    /*
+     * 子查询
+     * (non-Javadoc)
+     * @see com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter#visit(com.alibaba.druid.sql.ast.expr.SQLQueryExpr)
+     */
+    @Override
+    public boolean visit(SQLQueryExpr x) {
+    	setSubQueryRelationOrFlag(x);
+    	addSubQuerys(x.getSubQuery());
+    	return super.visit(x);
+    }
+    /*
+     * (non-Javadoc)
+     * @see com.alibaba.druid.sql.visitor.SchemaStatVisitor#visit(com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource)
+     */
+    @Override
+    public boolean visit(SQLSubqueryTableSource x){
+    	addSubQuerys(x.getSelect());
+    	return super.visit(x);
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter#visit(com.alibaba.druid.sql.ast.expr.SQLExistsExpr)
+     */
+    @Override
+    public boolean visit(SQLExistsExpr x) {
+    	setSubQueryRelationOrFlag(x);
+    	addSubQuerys(x.getSubQuery());
+    	return super.visit(x);
+    }
+    
+    @Override
+    public boolean visit(SQLInListExpr x) {
+    	return super.visit(x);
+    }
+    
+    /*
+     *  对 in 子查询的处理
+     * (non-Javadoc)
+     * @see com.alibaba.druid.sql.visitor.SchemaStatVisitor#visit(com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr)
+     */
+    @Override
+    public boolean visit(SQLInSubQueryExpr x) {
+    	setSubQueryRelationOrFlag(x);
+    	addSubQuerys(x.getSubQuery());
+    	return super.visit(x);
+    }
+    
+    /* 
+     *  遇到 all 将子查询改写成  SELECT MAX(name) FROM subtest1
+     *  例如:
+     *        select * from subtest where id > all (select name from subtest1);
+     *    		>/>= all ----> >/>= max
+     *    		</<= all ----> </<= min
+     *    		<>   all ----> not in
+     *          =    all ----> id = 1 and id = 2
+     *          other  不改写
+     */    
+    @Override
+    public boolean visit(SQLAllExpr x) {
+    	setSubQueryRelationOrFlag(x);
+    	
+    	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
+    	SQLExpr sexpr = itemlist.get(0).getExpr();
+    	
+		if(x.getParent() instanceof SQLBinaryOpExpr){
+			SQLBinaryOpExpr parentExpr = (SQLBinaryOpExpr)x.getParent();
+			SQLAggregateExpr saexpr = null;
+			switch (parentExpr.getOperator()) {
+			case GreaterThan:
+			case GreaterThanOrEqual:
+			case NotLessThan:
+				this.hasChange = true;
+				if(sexpr instanceof SQLIdentifierExpr 
+						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
+					saexpr = new SQLAggregateExpr("MAX");
+					saexpr.getArguments().add(sexpr);
+	        		saexpr.setParent(itemlist.get(0));
+	        		itemlist.get(0).setExpr(saexpr);
+				}
+				SQLQueryExpr maxSubQuery = new SQLQueryExpr(x.getSubQuery());
+        		x.getSubQuery().setParent(x.getParent());
+        		// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+            	if(x.getParent() instanceof SQLBinaryOpExpr){
+            		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setLeft(maxSubQuery);
+            		}else if(((SQLBinaryOpExpr)x.getParent()).getRight().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setRight(maxSubQuery);
+            		}
+            	}
+            	addSubQuerys(x.getSubQuery());
+            	return super.visit(x.getSubQuery());
+			case LessThan:
+			case LessThanOrEqual:
+			case NotGreaterThan:
+				this.hasChange = true;
+				if(sexpr instanceof SQLIdentifierExpr 
+						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
+					saexpr = new SQLAggregateExpr("MIN");
+					saexpr.getArguments().add(sexpr);
+	        		saexpr.setParent(itemlist.get(0));
+	        		itemlist.get(0).setExpr(saexpr);
+	        		
+	            	x.subQuery.setParent(x.getParent());
+				}
+				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+            	SQLQueryExpr minSubQuery = new SQLQueryExpr(x.getSubQuery());
+            	if(x.getParent() instanceof SQLBinaryOpExpr){
+            		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setLeft(minSubQuery);
+            		}else if(((SQLBinaryOpExpr)x.getParent()).getRight().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setRight(minSubQuery);
+            		}
+            	}
+            	addSubQuerys(x.getSubQuery());
+            	return super.visit(x.getSubQuery());
+			 case LessThanOrGreater:
+			 case NotEqual:
+				this.hasChange = true;
+				SQLInSubQueryExpr notInSubQueryExpr = new SQLInSubQueryExpr(x.getSubQuery());
+				x.getSubQuery().setParent(notInSubQueryExpr);
+				notInSubQueryExpr.setNot(true);
+				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+				if(x.getParent() instanceof SQLBinaryOpExpr){
+					SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
+					
+					if(xp.getLeft().equals(x)){
+						notInSubQueryExpr.setExpr(xp.getRight());
+					}else if(xp.getRight().equals(x)){
+						notInSubQueryExpr.setExpr(xp.getLeft());
+					}
+					
+					if(xp.getParent() instanceof MySqlSelectQueryBlock){
+						((MySqlSelectQueryBlock)xp.getParent()).setWhere(notInSubQueryExpr);
+					}else if(xp.getParent() instanceof SQLBinaryOpExpr){
+						SQLBinaryOpExpr pp = ((SQLBinaryOpExpr)xp.getParent());
+						if(pp.getLeft().equals(xp)){
+							pp.setLeft(notInSubQueryExpr);
+						}else if(pp.getRight().equals(xp)){
+							pp.setRight(notInSubQueryExpr);
+						}
+					}
+	            }
+				addSubQuerys(x.getSubQuery());
+	            return super.visit(notInSubQueryExpr);
+			 default:
+				break;
+			}
+		}
+		addSubQuerys(x.getSubQuery());
+    	return super.visit(x);
+    }
+    
+    /* 
+     *  遇到 some 将子查询改写成  SELECT MIN(name) FROM subtest1
+     *  例如:
+     *        select * from subtest where id > some (select name from subtest1);
+     *    >/>= some ----> >/>= min
+     *    </<= some ----> </<= max
+     *    <>   some ----> not in
+     *    =    some ----> in
+     *    other  不改写
+     */
+    @Override
+    public boolean visit(SQLSomeExpr x) {
+    	
+    	setSubQueryRelationOrFlag(x);
+    	
+    	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
+    	SQLExpr sexpr = itemlist.get(0).getExpr();
+    	
+		if(x.getParent() instanceof SQLBinaryOpExpr){
+			SQLBinaryOpExpr parentExpr = (SQLBinaryOpExpr)x.getParent();
+			SQLAggregateExpr saexpr = null;
+			switch (parentExpr.getOperator()) {
+			case GreaterThan:
+			case GreaterThanOrEqual:
+			case NotLessThan:
+				this.hasChange = true;
+				if(sexpr instanceof SQLIdentifierExpr 
+						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
+					saexpr = new SQLAggregateExpr("MIN");
+					saexpr.getArguments().add(sexpr);
+	        		saexpr.setParent(itemlist.get(0));
+	        		itemlist.get(0).setExpr(saexpr);
+				}
+				SQLQueryExpr maxSubQuery = new SQLQueryExpr(x.getSubQuery());
+        		x.getSubQuery().setParent(maxSubQuery);
+        		// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+            	if(x.getParent() instanceof SQLBinaryOpExpr){
+            		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setLeft(maxSubQuery);
+            		}else if(((SQLBinaryOpExpr)x.getParent()).getRight().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setRight(maxSubQuery);
+            		}
+            	}
+            	addSubQuerys(x.getSubQuery());
+            	return super.visit(x.getSubQuery());
+			case LessThan:
+			case LessThanOrEqual:
+			case NotGreaterThan:
+				this.hasChange = true;
+				if(sexpr instanceof SQLIdentifierExpr 
+						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
+					saexpr = new SQLAggregateExpr("MAX");
+					saexpr.getArguments().add(sexpr);
+	        		saexpr.setParent(itemlist.get(0));
+	        		itemlist.get(0).setExpr(saexpr);
+				}
+				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+            	SQLQueryExpr minSubQuery = new SQLQueryExpr(x.getSubQuery());
+        		x.getSubQuery().setParent(minSubQuery);
+            	
+            	if(x.getParent() instanceof SQLBinaryOpExpr){
+            		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setLeft(minSubQuery);
+            		}else if(((SQLBinaryOpExpr)x.getParent()).getRight().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setRight(minSubQuery);
+            		}
+            	}
+            	addSubQuerys(x.getSubQuery());
+            	return super.visit(x.getSubQuery());
+			 case LessThanOrGreater:
+			 case NotEqual:
+				 this.hasChange = true;
+					SQLInSubQueryExpr notInSubQueryExpr = new SQLInSubQueryExpr(x.getSubQuery());
+					x.getSubQuery().setParent(notInSubQueryExpr);
+					notInSubQueryExpr.setNot(true);
+					// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+					if(x.getParent() instanceof SQLBinaryOpExpr){
+						SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
+						
+						if(xp.getLeft().equals(x)){
+							notInSubQueryExpr.setExpr(xp.getRight());
+						}else if(xp.getRight().equals(x)){
+							notInSubQueryExpr.setExpr(xp.getLeft());
+						}
+						
+						if(xp.getParent() instanceof MySqlSelectQueryBlock){
+							((MySqlSelectQueryBlock)xp.getParent()).setWhere(notInSubQueryExpr);
+						}else if(xp.getParent() instanceof SQLBinaryOpExpr){
+							SQLBinaryOpExpr pp = ((SQLBinaryOpExpr)xp.getParent());
+							if(pp.getLeft().equals(xp)){
+								pp.setLeft(notInSubQueryExpr);
+							}else if(pp.getRight().equals(xp)){
+								pp.setRight(notInSubQueryExpr);
+							}
+						}
+		            }
+					addSubQuerys(x.getSubQuery());
+		            return super.visit(notInSubQueryExpr);
+			 case Equality:
+				 this.hasChange = true;
+				SQLInSubQueryExpr inSubQueryExpr = new SQLInSubQueryExpr(x.getSubQuery());
+				x.getSubQuery().setParent(inSubQueryExpr);
+				inSubQueryExpr.setNot(false);
+				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+				if(x.getParent() instanceof SQLBinaryOpExpr){
+					SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
+					
+					if(xp.getLeft().equals(x)){
+						inSubQueryExpr.setExpr(xp.getRight());
+					}else if(xp.getRight().equals(x)){
+						inSubQueryExpr.setExpr(xp.getLeft());
+					}
+					
+					if(xp.getParent() instanceof MySqlSelectQueryBlock){
+						((MySqlSelectQueryBlock)xp.getParent()).setWhere(inSubQueryExpr);
+					}else if(xp.getParent() instanceof SQLBinaryOpExpr){
+						SQLBinaryOpExpr pp = ((SQLBinaryOpExpr)xp.getParent());
+						if(pp.getLeft().equals(xp)){
+							pp.setLeft(inSubQueryExpr);
+						}else if(pp.getRight().equals(xp)){
+							pp.setRight(inSubQueryExpr);
+						}
+					}
+	            }
+				addSubQuerys(x.getSubQuery());
+	            return super.visit(inSubQueryExpr);
+			 default:
+				break;
+			}
+		}
+		addSubQuerys(x.getSubQuery());
+    	return super.visit(x);
+    }
+
+    /* 
+     *  遇到 any 将子查询改写成  SELECT MIN(name) FROM subtest1
+     *  例如:
+     *    select * from subtest where id oper any (select name from subtest1);
+     *    >/>= any ----> >/>= min
+     *    </<= any ----> </<= max
+     *    <>   any ----> not in
+     *    =    some ----> in
+     *    other  不改写
+     */
+    @Override
+    public boolean visit(SQLAnyExpr x) {
+    	
+    	setSubQueryRelationOrFlag(x);
+    	
+    	List<SQLSelectItem> itemlist = ((SQLSelectQueryBlock)(x.getSubQuery().getQuery())).getSelectList();
+    	SQLExpr sexpr = itemlist.get(0).getExpr();
+    	
+		if(x.getParent() instanceof SQLBinaryOpExpr){
+			SQLBinaryOpExpr parentExpr = (SQLBinaryOpExpr)x.getParent();
+			SQLAggregateExpr saexpr = null;
+			switch (parentExpr.getOperator()) {
+			case GreaterThan:
+			case GreaterThanOrEqual:
+			case NotLessThan:
+				this.hasChange = true;
+				if(sexpr instanceof SQLIdentifierExpr 
+						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
+					saexpr = new SQLAggregateExpr("MIN");
+					saexpr.getArguments().add(sexpr);
+	        		saexpr.setParent(itemlist.get(0));
+	        		itemlist.get(0).setExpr(saexpr);
+				}
+				SQLQueryExpr maxSubQuery = new SQLQueryExpr(x.getSubQuery());
+        		x.getSubQuery().setParent(maxSubQuery);
+				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+            	if(x.getParent() instanceof SQLBinaryOpExpr){
+            		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setLeft(maxSubQuery);
+            		}else if(((SQLBinaryOpExpr)x.getParent()).getRight().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setRight(maxSubQuery);
+            		}
+            	}
+            	addSubQuerys(x.getSubQuery());
+            	return super.visit(x.getSubQuery());
+			case LessThan:
+			case LessThanOrEqual:
+			case NotGreaterThan:
+				this.hasChange = true;
+				if(sexpr instanceof SQLIdentifierExpr 
+						|| (sexpr instanceof SQLPropertyExpr&&((SQLPropertyExpr)sexpr).getOwner() instanceof SQLIdentifierExpr)){
+					saexpr = new SQLAggregateExpr("MAX");
+					saexpr.getArguments().add(sexpr);
+	        		saexpr.setParent(itemlist.get(0));
+	        		itemlist.get(0).setExpr(saexpr);
+				}
+				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+            	SQLQueryExpr minSubQuery = new SQLQueryExpr(x.getSubQuery());
+            	x.subQuery.setParent(minSubQuery);
+            	if(x.getParent() instanceof SQLBinaryOpExpr){
+            		if(((SQLBinaryOpExpr)x.getParent()).getLeft().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setLeft(minSubQuery);
+            		}else if(((SQLBinaryOpExpr)x.getParent()).getRight().equals(x)){
+            			((SQLBinaryOpExpr)x.getParent()).setRight(minSubQuery);
+            		}
+            	}
+            	addSubQuerys(x.getSubQuery());
+            	return super.visit(x.getSubQuery());
+			 case LessThanOrGreater:
+			 case NotEqual:
+				 this.hasChange = true;
+					SQLInSubQueryExpr notInSubQueryExpr = new SQLInSubQueryExpr(x.getSubQuery());
+					x.getSubQuery().setParent(notInSubQueryExpr);
+					notInSubQueryExpr.setNot(true);
+					// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+					if(x.getParent() instanceof SQLBinaryOpExpr){
+						SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
+						
+						if(xp.getLeft().equals(x)){
+							notInSubQueryExpr.setExpr(xp.getRight());
+						}else if(xp.getRight().equals(x)){
+							notInSubQueryExpr.setExpr(xp.getLeft());
+						}
+						
+						if(xp.getParent() instanceof MySqlSelectQueryBlock){
+							((MySqlSelectQueryBlock)xp.getParent()).setWhere(notInSubQueryExpr);
+						}else if(xp.getParent() instanceof SQLBinaryOpExpr){
+							SQLBinaryOpExpr pp = ((SQLBinaryOpExpr)xp.getParent());
+							if(pp.getLeft().equals(xp)){
+								pp.setLeft(notInSubQueryExpr);
+							}else if(pp.getRight().equals(xp)){
+								pp.setRight(notInSubQueryExpr);
+							}
+						}
+		            }
+					addSubQuerys(x.getSubQuery());
+		            return super.visit(notInSubQueryExpr);
+			 case Equality:
+				 this.hasChange = true;
+				SQLInSubQueryExpr inSubQueryExpr = new SQLInSubQueryExpr(x.getSubQuery());
+				x.getSubQuery().setParent(inSubQueryExpr);
+				inSubQueryExpr.setNot(false);
+				// 生成新的SQLQueryExpr 替换当前 SQLAllExpr 节点
+				if(x.getParent() instanceof SQLBinaryOpExpr){
+					SQLBinaryOpExpr xp = (SQLBinaryOpExpr)x.getParent();
+					
+					if(xp.getLeft().equals(x)){
+						inSubQueryExpr.setExpr(xp.getRight());
+					}else if(xp.getRight().equals(x)){
+						inSubQueryExpr.setExpr(xp.getLeft());
+					}
+					
+					if(xp.getParent() instanceof MySqlSelectQueryBlock){
+						((MySqlSelectQueryBlock)xp.getParent()).setWhere(inSubQueryExpr);
+					}else if(xp.getParent() instanceof SQLBinaryOpExpr){
+						SQLBinaryOpExpr pp = ((SQLBinaryOpExpr)xp.getParent());
+						if(pp.getLeft().equals(xp)){
+							pp.setLeft(inSubQueryExpr);
+						}else if(pp.getRight().equals(xp)){
+							pp.setRight(inSubQueryExpr);
+						}
+					}
+	            }
+				addSubQuerys(x.getSubQuery());
+	            return super.visit(inSubQueryExpr);
+			 default:
+				break;
+			}
+		}
+		addSubQuerys(x.getSubQuery());
+    	return super.visit(x);
+    }
+    
     @Override
 	public boolean visit(SQLBinaryOpExpr x) {
         x.getLeft().setParent(x);
         x.getRight().setParent(x);
-
+        
+        /*
+         * fix bug 当 selectlist 存在多个子查询时, 主表没有别名的情况下.主表的查询条件 被错误的附加到子查询上.
+         *  eg. select (select id from subtest2 where id = 1), (select id from subtest3 where id = 2) from subtest1 where id =4;
+         *  像这样的子查询, subtest1 的 过滤条件  id = 4 .  被 加入到  subtest3 上. 加别名的情况下正常,不加别名,就会存在这个问题.
+         *  这里设置好操作的是哪张表后,再进行判断.
+         */
+        String currenttable = x.getParent()==null?null: (String) x.getParent().getAttribute(SchemaStatVisitor.ATTR_TABLE);
+        if(currenttable!=null){
+        	this.setCurrentTable(currenttable);
+        }
+        
         switch (x.getOperator()) {
             case Equality:
             case LessThanOrEqualOrGreaterThan:
             case Is:
             case IsNot:
+            case GreaterThan:
+            case GreaterThanOrEqual:
+            case LessThan:
+            case LessThanOrEqual:
+            case NotLessThan:
+            case LessThanOrGreater:
+			case NotEqual:
+			case NotGreaterThan:
                 handleCondition(x.getLeft(), x.getOperator().name, x.getRight());
                 handleCondition(x.getRight(), x.getOperator().name, x.getLeft());
                 handleRelationship(x.getLeft(), x.getOperator().name, x.getRight());
@@ -291,11 +775,6 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
             	return false;
             case Like:
             case NotLike:
-            case NotEqual:
-            case GreaterThan:
-            case GreaterThanOrEqual:
-            case LessThan:
-            case LessThanOrEqual:
             default:
                 break;
         }
@@ -426,24 +905,63 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	 * @param list2
 	 * @return
 	 */
-	private List<List<Condition>> merge(List<List<Condition>> list1, List<List<Condition>> list2) {
-		if(list1.size() == 0) {
-			return list2;
-		} else if (list2.size() == 0) {
-			return list1;
-		}
-		
+	    private List<List<Condition>> merge(List<List<Condition>> list1, List<List<Condition>> list2) {
+        if(list1.size() == 0) {
+            return list2;
+        } else if (list2.size() == 0) {
+            return list1;
+        }
+        
 		List<List<Condition>> retList = new ArrayList<List<Condition>>();
 		for(int i = 0; i < list1.size(); i++) {
 			for(int j = 0; j < list2.size(); j++) {
-				List<Condition> listTmp = new ArrayList<Condition>();
-				listTmp.addAll(list1.get(i));
-				listTmp.addAll(list2.get(j));
-				retList.add(listTmp);
+//				List<Condition> listTmp = new ArrayList<Condition>();
+//				listTmp.addAll(list1.get(i));
+//				listTmp.addAll(list2.get(j));
+//				retList.add(listTmp);
+			    /**
+		         * 单纯做笛卡尔积运算，会导致非常多不必要的条件列表，</br>
+		         * 当whereUnit和条件相对多时，会急剧增长条件列表项，内存直线上升，导致假死状态</br>
+		         * 因此，修改算法为 </br>
+		         * 1、先合并两个条件列表的元素为一个条件列表</br>
+		         * 2、计算合并后的条件列表，在结果retList中：</br>
+		         * &nbsp;2-1、如果当前的条件列表 是 另外一个条件列表的 超集，更新，并标识已存在</br>
+		         * &nbsp;2-2、如果当前的条件列表 是 另外一个条件列表的 子集，标识已存在</br>
+		         * 3、最后，如果被标识不存在，加入结果retList，否则丢弃。</br>
+		         * 
+		         * @author SvenAugustus
+		         */
+  			    // 合并两个条件列表的元素为一个条件列表
+                List<Condition> listTmp = mergeSqlConditionList(list1.get(i), list2.get(j));
+      
+                // 判定当前的条件列表 是否 另外一个条件列表的 子集
+                boolean exists = false;
+                Iterator<List<Condition>> it = retList.iterator();
+                while (it.hasNext()) {
+                  List<Condition> result = (List<Condition>) it.next();
+                  if (result != null && listTmp != null && listTmp.size() > result.size()) {
+                    // 如果当前的条件列表 是 另外一个条件列表的 超集，更新，并标识已存在
+                    if (sqlConditionListInOther(result, listTmp)) {
+                      result.clear();
+                      result.addAll(listTmp);
+                      exists = true;
+                      break;
+                    }
+                  } else {
+                    // 如果当前的条件列表 是 另外一个条件列表的 子集，标识已存在
+                    if (sqlConditionListInOther(listTmp, result)) {
+                      exists = true;
+                      break;
+                    }
+                  }
+                }
+                if (!exists) {// 被标识不存在，加入
+                  retList.add(listTmp);
+                } // 否则丢弃
 			}
 		}
-		return retList;
-	}
+        return retList;
+    }
 	
 	private void getConditionsFromWhereUnit(WhereUnit whereUnit) {
 		List<List<Condition>> retList = new ArrayList<List<Condition>>();
@@ -454,9 +972,14 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		this.conditions.clear();
 		for(SQLExpr sqlExpr : whereUnit.getSplitedExprList()) {
 			sqlExpr.accept(this);
-			List<Condition> conditions = new ArrayList<Condition>();
-			conditions.addAll(getConditions());
-			conditions.addAll(outSideCondition);
+//            List<Condition> conditions = new ArrayList<Condition>();
+//            conditions.addAll(getConditions()); conditions.addAll(outSideCondition);
+          /**
+           * 合并两个条件列表的元素为一个条件列表，减少不必要多的条件项</br>
+           * 
+           * @author SvenAugustus
+           */
+          List<Condition> conditions = mergeSqlConditionList(getConditions(), outSideCondition);
 			retList.add(conditions);
 			this.conditions.clear();
 		}
@@ -520,7 +1043,32 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 
         return false;
     }
-	
+    public boolean visit(MySqlCreateTableStatement x) {
+        SQLName sqlName=  x.getName();
+        if(sqlName!=null)
+        {
+            String table = sqlName.toString();
+            if(table.startsWith("`"))
+            {
+                table=table.substring(1,table.length()-1);
+            }
+            setCurrentTable(table);
+        }
+        return false;
+    }
+    public boolean visit(MySqlInsertStatement x) {
+        SQLName sqlName=  x.getTableName();
+        if(sqlName!=null)
+        {
+            String table = sqlName.toString();
+            if(table.startsWith("`"))
+            {
+                table=table.substring(1,table.length()-1);
+            }
+            setCurrentTable(sqlName.toString());
+        }
+        return false;
+    }
 	// DUAL
     public boolean visit(MySqlDeleteStatement x) {
         setAliasMap();
@@ -549,5 +1097,305 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     }
     
     public void endVisit(MySqlDeleteStatement x) {
+    }
+    
+    public boolean visit(SQLUpdateStatement x) {
+        setAliasMap();
+
+        setMode(x, Mode.Update);
+
+        SQLName identName = x.getTableName();
+        if (identName != null) {
+            String ident = identName.toString();
+            String alias = x.getTableSource().getAlias();
+            setCurrentTable(ident);
+
+            TableStat stat = getTableStat(ident);
+            stat.incrementUpdateCount();
+
+            Map<String, String> aliasMap = getAliasMap();
+            
+            aliasMap.put(ident, ident);
+            if(alias != null) {
+            	aliasMap.put(alias, ident);
+            }
+        } else {
+            x.getTableSource().accept(this);
+        }
+
+        accept(x.getItems());
+        accept(x.getWhere());
+
+        return false;
+    }
+    
+    @Override
+    public void endVisit(MySqlHintStatement x) {
+    	super.endVisit(x);
+    }
+    
+    @Override
+    public boolean visit(MySqlHintStatement x) {
+    	List<SQLCommentHint> hits = x.getHints();
+    	if(hits != null && !hits.isEmpty()) {
+    		String schema = parseSchema(hits);
+    		if(schema != null ) {
+    			setCurrentTable(x, schema + ".");
+    			return true;
+    		}
+    	}
+    	return true;
+    }
+    
+    private String parseSchema(List<SQLCommentHint> hits) {
+    	String regx = "\\!mycat:schema\\s*=([\\s\\w]*)$";
+    	for(SQLCommentHint hit : hits ) {
+    		Pattern pattern = Pattern.compile(regx);
+    		Matcher m = pattern.matcher(hit.getText());
+    		if(m.matches()) {
+    			return m.group(1).trim();
+    		}
+    	}
+		return null;
+    }
+
+    public Queue<SQLSelect> getSubQuerys() {
+		return subQuerys;
+	}
+	
+	private void addSubQuerys(SQLSelect sqlselect){
+		/* 多个 sqlselect 之间  , equals 和 hashcode 是相同的.去重时 都被过滤掉了. */
+		if(subQuerys.isEmpty()){
+			subQuerys.add(sqlselect);
+			return;
+		}
+        boolean exists = false;
+		Iterator<SQLSelect> iter = subQuerys.iterator();
+		while(iter.hasNext()){
+			SQLSelect ss = iter.next();
+			if(ss.getQuery() instanceof SQLSelectQueryBlock
+					&&sqlselect.getQuery() instanceof SQLSelectQueryBlock){
+				SQLSelectQueryBlock current = (SQLSelectQueryBlock)sqlselect.getQuery();
+				SQLSelectQueryBlock ssqb = (SQLSelectQueryBlock)ss.getQuery();
+//                  if(!sqlSelectQueryBlockEquals(ssqb,current)){
+//                    subQuerys.add(sqlselect);
+//                  }
+                /**
+                 * 修正判定逻辑，应改为全不在subQuerys中才加入<br/>
+                 * 
+                 * @author SvenAugustus
+                 */
+                if(sqlSelectQueryBlockEquals(current,ssqb)){
+                   exists = true;
+                   break;
+                }
+				}
+			}
+        if(!exists) {
+          subQuerys.add(sqlselect);
+		}
+	}
+	
+	/* 多个 sqlselect 之间  , equals 和 hashcode 是相同的.去重时 使用 SQLSelectQueryBlock equals 方法 */
+    private boolean sqlSelectQueryBlockEquals(SQLSelectQueryBlock obj1,SQLSelectQueryBlock obj2) {
+        if (obj1 == obj2) return true;
+        if (obj2 == null) return false;
+        if (obj1.getClass() != obj2.getClass()) return false;
+        if (obj1.isParenthesized() ^ obj2.isParenthesized()) return false;
+        if (obj1.getDistionOption() != obj2.getDistionOption()) return false;
+        if (obj1.getFrom() == null) {
+            if (obj2.getFrom() != null) return false;
+        } else if (!obj1.getFrom().equals(obj2.getFrom())) return false;
+        if (obj1.getGroupBy() == null) {
+            if (obj2.getGroupBy() != null) return false;
+        } else if (!obj1.getGroupBy().equals(obj2.getGroupBy())) return false;
+        if (obj1.getInto() == null) {
+            if (obj2.getInto() != null) return false;
+        } else if (!obj1.getInto().equals(obj2.getInto())) return false;
+        if (obj1.getSelectList() == null) {
+            if (obj2.getSelectList() != null) return false;
+        } else if (!obj1.getSelectList().equals(obj2.getSelectList())) return false;
+        if (obj1.getWhere() == null) {
+            if (obj2.getWhere() != null) return false;
+        } else if (!obj1.getWhere().equals(obj2.getWhere())) return false;
+        return true;
+    }
+
+	public boolean isHasChange() {
+		return hasChange;
+	}
+
+	public boolean isSubqueryRelationOr() {
+		return subqueryRelationOr;
+	}
+    
+    /**
+     * 判定当前的条件列表 是否 另外一个条件列表的 子集
+     * 
+     * @author SvenAugustus
+     * @param current 当前的条件列表 
+     * @param other 另外一个条件列表
+     * @return
+     */
+    private boolean sqlConditionListInOther(List<Condition> current, List<Condition> other) {
+      if (current == null) {
+        if (other != null) {
+          return false;
+        }
+        return true;
+      }
+      if (current.size() > other.size()) {
+        return false;
+      }
+      if (other.size() == current.size()) {
+        // 判定两个条件列表的元素是否内容相等
+        return sqlConditionListEquals(current, other);
+      }
+      for (int j = 0; j < current.size(); j++) {
+        boolean exists = false;
+        for (int i = 0; i < other.size(); i++) {
+          // 判定两个条件是否相等
+          if (sqlConditionEquals(current.get(j), other.get(i))) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    /**
+     * 判定两个条件列表的元素是否内容相等
+     * 
+     * @author SvenAugustus
+     * @param list1
+     * @param list2
+     * @return
+     */
+    private boolean sqlConditionListEquals(List<Condition> list1, List<Condition> list2) {
+      if (list1 == null) {
+        if (list2 != null) {
+          return false;
+        }
+        return true;
+      }
+      if (list2.size() != list1.size()) {
+        return false;
+      }
+      int len = list1.size();
+      for (int j = 0; j < len; j++) {
+        boolean exists = false;
+        for (int i = 0; i < len; i++) {
+          // 判定两个条件是否相等
+          if (sqlConditionEquals(list2.get(j), list1.get(i))) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    /**
+     * 合并两个条件列表的元素为一个条件列表
+     * 
+     * @author SvenAugustus
+     * @param list1 条件列表1
+     * @param list2 条件列表2
+     * @return
+     */
+    private List<Condition> mergeSqlConditionList(List<Condition> list1, List<Condition> list2) {
+      if (list1 == null) {
+        list1 = new ArrayList();
+      }
+      if (list2 == null) {
+        list2 = new ArrayList();
+      }
+      List<Condition> retList = new ArrayList<Condition>();
+      if (!list1.isEmpty() && !(list1.get(0) instanceof Condition)) {
+        return retList;
+      }
+      if (!list2.isEmpty() && !(list2.get(0) instanceof Condition)) {
+        return retList;
+      }
+      retList.addAll(list1);
+      for (int j = 0; j < list2.size(); j++) {
+        boolean exists = false;
+        for (int i = 0; i < list1.size(); i++) {
+          if (sqlConditionEquals(list2.get(j), list1.get(i))) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          retList.add(list2.get(j));
+        }
+      }
+      return retList;
+    }
+    
+    /**
+     * 判定两个条件是否相等
+     * 
+     * @author SvenAugustus
+     * @param obj1
+     * @param obj2
+     * @return
+     */
+    private boolean sqlConditionEquals(Condition obj1, Condition obj2) {
+      if (obj1 == obj2) {
+        return true;
+      }
+      if (obj2 == null) {
+        return false;
+      }
+      if (obj1.getClass() != obj2.getClass()) {
+        return false;
+      }
+      Condition other = (Condition) obj2;
+      if (obj1.getColumn() == null) {
+        if (other.getColumn() != null) {
+          return false;
+        }
+      } else if (!obj1.getColumn().equals(other.getColumn())) {
+        return false;
+      }
+      if (obj1.getOperator() == null) {
+        if (other.getOperator() != null) {
+          return false;
+        }
+      } else if (!obj1.getOperator().equals(other.getOperator())) {
+        return false;
+      }
+      if (obj1.getValues() == null) {
+        if (other.getValues() != null) {
+          return false;
+        }
+      } else {
+        boolean notEquals=false;
+        for (Object val1: obj1.getValues()) {
+          for (Object val2: obj2.getValues()) {
+            if(val1==null) {
+              if(val2!=null) {
+                notEquals=true;
+                break;
+              }
+            }else if(!val1.equals(val2)) {
+              notEquals=true;
+              break;
+            }
+          }
+          if(notEquals)break;
+        }
+        if(notEquals)
+        return false;
+      }
+      return true;
     }
 }

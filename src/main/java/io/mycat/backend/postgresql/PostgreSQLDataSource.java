@@ -1,18 +1,24 @@
 package io.mycat.backend.postgresql;
 
+import io.mycat.backend.datasource.PhysicalDatasource;
+import io.mycat.backend.heartbeat.DBHeartbeat;
+import io.mycat.backend.mysql.nio.handler.ResponseHandler;
+import io.mycat.backend.postgresql.heartbeat.PostgreSQLHeartbeat;
+import io.mycat.config.model.DBHostConfig;
+import io.mycat.config.model.DataHostConfig;
+
 import java.io.IOException;
 
-import io.mycat.backend.PhysicalDatasource;
-import io.mycat.backend.heartbeat.DBHeartbeat;
-import io.mycat.backend.postgresql.heartbeat.PostgreSQLHeartbeat;
-import io.mycat.server.config.node.DBHostConfig;
-import io.mycat.server.config.node.DataHostConfig;
-import io.mycat.server.executors.ResponseHandler;
-
+/*******************
+ * PostgreSQL 后端数据源实现
+ * @author Coollf
+ *
+ */
 public class PostgreSQLDataSource extends PhysicalDatasource {
 	private final PostgreSQLBackendConnectionFactory factory;
-	
-	public PostgreSQLDataSource(DBHostConfig config, DataHostConfig hostConfig, boolean isReadNode) {
+
+	public PostgreSQLDataSource(DBHostConfig config, DataHostConfig hostConfig,
+			boolean isReadNode) {
 		super(config, hostConfig, isReadNode);
 		this.factory = new PostgreSQLBackendConnectionFactory();
 	}
@@ -23,8 +29,15 @@ public class PostgreSQLDataSource extends PhysicalDatasource {
 	}
 
 	@Override
-	public void createNewConnection(ResponseHandler handler, String schema) throws IOException {
-		factory.make(this, handler,schema);
+	public void createNewConnection(ResponseHandler handler, String schema)
+			throws IOException {
+		factory.make(this, handler, schema);
+	}
+
+	@Override
+	public boolean testConnection(String schema) throws IOException {
+		// TODO Auto-generated method stub
+		return true;
 	}
 
 }

@@ -1,25 +1,25 @@
 package io.mycat.route.handler;
 
+import java.sql.SQLNonTransientException;
+import java.util.Map;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.config.node.SchemaConfig;
-import io.mycat.server.config.node.SystemConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.sql.SQLNonTransientException;
+import io.mycat.server.ServerConnection;
 
 /**
  * 处理注释中类型为schema 的情况（按照指定schema做路由解析）
  */
 public class HintSchemaHandler implements HintHandler {
 
-	private static final Logger LOGGER = LoggerFactory
-			.getLogger(HintSchemaHandler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(HintSchemaHandler.class);
 
 	private RouteStrategy routeStrategy;
     
@@ -43,10 +43,9 @@ public class HintSchemaHandler implements HintHandler {
 	 */
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
-			int sqlType, String realSQL, String charset, MySQLFrontConnection sc,
-			LayerCachePool cachePool, String hintSQLValue)
+			int sqlType, String realSQL, String charset, ServerConnection sc,
+			LayerCachePool cachePool, String hintSQLValue,int hintSqlType, Map hintMap)
 			throws SQLNonTransientException {
-		
 	    SchemaConfig tempSchema = MycatServer.getInstance().getConfig().getSchemas().get(hintSQLValue);
 		if (tempSchema != null) {
 			return routeStrategy.route(sysConfig, tempSchema, sqlType, realSQL, charset, sc, cachePool);

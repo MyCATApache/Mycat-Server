@@ -34,6 +34,16 @@ public class ColumnRoutePair {
 	public final RangeValue rangeValue;
 	public Integer nodeId;
 
+	public int slot=-2;
+
+	public int getSlot() {
+		return slot;
+	}
+
+	public void setSlot(int slot) {
+		this.slot = slot;
+	}
+
 	public ColumnRoutePair(String colValue) {
 		super();
 		this.colValue = colValue;
@@ -68,18 +78,23 @@ public class ColumnRoutePair {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		ColumnRoutePair other = (ColumnRoutePair) obj;
 		if (colValue == null) {
-			if (other.colValue != null)
+			if (other.colValue != null) {
 				return false;
-		} else if (!colValue.equals(other.colValue))
+			}
+		} else if (!colValue.equals(other.colValue)) {
 			return false;
+		}
 
 		if (rangeValue == null) {
 			if (other.rangeValue != null) {
@@ -90,10 +105,12 @@ public class ColumnRoutePair {
 		}
 
 		if (nodeId == null) {
-			if (other.nodeId != null)
+			if (other.nodeId != null) {
 				return false;
-		} else if (!nodeId.equals(other.nodeId))
+			}
+		} else if (!nodeId.equals(other.nodeId)) {
 			return false;
+		}
 		return true;
 	}
 

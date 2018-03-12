@@ -1,7 +1,7 @@
 package io.mycat.route;
 
+import io.mycat.config.model.SchemaConfig;
 import io.mycat.server.NonBlockingSession;
-import io.mycat.server.config.node.SchemaConfig;
 
 public class SessionSQLPair {
 	public final NonBlockingSession session;

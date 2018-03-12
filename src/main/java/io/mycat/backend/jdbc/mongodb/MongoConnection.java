@@ -48,7 +48,9 @@ public class MongoConnection implements Connection {
 		if (this._schema!=null) {
 	      return this.mc.getDB(this._schema);
 		}
-		else return null;
+		else {
+			return null;
+		}
 	}
 	   
 	@Override
@@ -70,10 +72,9 @@ public class MongoConnection implements Connection {
 	}
 
 	@Override
-	public void setAutoCommit(boolean autoCommit) throws SQLException {
-		
-	    if (!autoCommit)  
-		  throw new RuntimeException("autoCommit has to be on");	
+	public void setAutoCommit(boolean autoCommit) throws SQLException {		
+	   //if (!autoCommit)  
+		//  throw new RuntimeException("autoCommit has to be on");	
 	}
 
 	@Override

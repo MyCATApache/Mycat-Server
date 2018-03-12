@@ -29,7 +29,7 @@ import org.junit.Test;
 public class PartitionByDateTest {
 
 	@Test
-	public void test() {
+	public void test()  {
 		PartitionByDate partition=new PartitionByDate();
 
 		partition.setDateFormat("yyyy-MM-dd");

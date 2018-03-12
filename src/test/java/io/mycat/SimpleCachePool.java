@@ -23,11 +23,11 @@
  */
 package io.mycat;
 
-import io.mycat.cache.CacheStatic;
-import io.mycat.cache.LayerCachePool;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import io.mycat.cache.CacheStatic;
+import io.mycat.cache.LayerCachePool;
 
 public class SimpleCachePool implements LayerCachePool {
 	private HashMap<Object, Object> cacheMap = new HashMap<Object, Object>();
@@ -75,4 +75,4 @@ public class SimpleCachePool implements LayerCachePool {
 	public long getMaxSize() {
 		return 100;
 	}
-}
+};

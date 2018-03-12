@@ -1,13 +1,5 @@
 package io.mycat.route;
 
-import io.mycat.SimpleCachePool;
-import io.mycat.cache.LayerCachePool;
-import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.server.config.loader.ConfigInitializer;
-import io.mycat.server.config.node.SchemaConfig;
-import io.mycat.server.config.node.SystemConfig;
-import io.mycat.server.parser.ServerParse;
-
 import java.sql.SQLNonTransientException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -16,27 +8,46 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import junit.framework.Assert;
-import junit.framework.TestCase;
-
+import org.junit.Before;
 import org.junit.Test;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 
+import io.mycat.MycatServer;
+import io.mycat.SimpleCachePool;
+import io.mycat.cache.LayerCachePool;
+import io.mycat.config.loader.SchemaLoader;
+import io.mycat.config.loader.xml.XMLSchemaLoader;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.SystemConfig;
+import io.mycat.route.RouteResultset;
+import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.RouteStrategy;
+import io.mycat.route.factory.RouteStrategyFactory;
+import io.mycat.server.parser.ServerParse;
+import junit.framework.Assert;
+import junit.framework.TestCase;
+
 public class DruidMysqlRouteStrategyTest extends TestCase {
     protected Map<String, SchemaConfig> schemaMap;
     protected LayerCachePool cachePool = new SimpleCachePool();
-    protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
+    protected RouteStrategy routeStrategy ;
 
     public DruidMysqlRouteStrategyTest() {
-    	ConfigInitializer confInit = new ConfigInitializer(true);
-		schemaMap = confInit.getSchemas();
+        String schemaFile = "/route/schema.xml";
+        String ruleFile = "/route/rule.xml";
+        SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
+        schemaMap = schemaLoader.getSchemas();
+        MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
+        RouteStrategyFactory.init();
+        routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
     }
 
     protected void setUp() throws Exception {
         // super.setUp();
         // schemaMap = CobarServer.getInstance().getConfig().getSchemas();
+
     }
 
 //	public void testAlias() throws Exception {
@@ -45,6 +56,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 //		RouteResultset rrs = routeStrategy.route(new SystemConfig(),schema, -1, sql, null,
 //				null, cachePool);
 //	}
+
 
     public void testRouteInsertShort() throws Exception {
         String sql = "inSErt into offer_detail (`offer_id`, gmt) values (123,now())";
@@ -90,6 +102,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
                 rrs.getNodes()[0].getStatement());
 
 
+
+
         sql = "\n" +
                 "  INSERT INTO \n" +
                 "`offer` \n" +
@@ -99,6 +113,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         schema = schemaMap.get("cndb");
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
         Assert.assertEquals(1, rrs.getNodes().length);
+
 
     }
 
@@ -125,7 +140,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
         Assert.assertEquals(3, rrs.getNodes().length);
         Assert.assertEquals(false, rrs.isCacheAble());
-
+        
      // delete of global table route to every datanode defined
         sql = "delete from company where id = 1";
         schema = schemaMap.get("TESTDB");
@@ -148,23 +163,6 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 
     }
 
-
-    /**
-     * 测试 global table 的or语句
-     *
-     *
-     * @throws Exception
-     */
-    @Test
-    public void testGlobalTableOr() throws Exception {
-        SchemaConfig schema = schemaMap.get("TESTDB");
-        String sql = "select id from company where 1 = 1 and name ='company1' or name = 'company2'" ;
-        for(int i = 0; i < 20; i++) {
-            RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
-            Assert.assertTrue(rrs.getNodes().length == 1);
-        }
-    }
-
     public void testMoreGlobalTableroute() throws Exception {
         String sql = null;
         SchemaConfig schema = schemaMap.get("TESTDB");
@@ -174,7 +172,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         schema = schemaMap.get("TESTDB");
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
         Assert.assertEquals(1, rrs.getNodes().length);
-        Assert.assertEquals(true, rrs.isCacheAble());
+        Assert.assertEquals(false, rrs.isCacheAble());   // 全局表涉及到多个节点时,不缓存路由结果
 
     }
 
@@ -344,7 +342,6 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SchemaConfig schema = schemaMap.get("cndb");
 
         String sql = "select * from independent where member='abc'";
-
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
                 cachePool);
         Assert.assertEquals(true, rrs.isCacheAble());
@@ -408,7 +405,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         }
         Assert.assertEquals(
                 true,
-                err.startsWith("parent relation column can't be updated ORDERS->CUSTOMER_ID"));
+                err.startsWith("Parent relevant column can't be updated ORDERS->CUSTOMER_ID"));
 
         // route by parent rule ,update sql
         sql = "update orders set id=1 ,name='aaa' where customer_id=2000001";
@@ -537,7 +534,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 
         String sql = null;
         RouteResultset rrs = null;
-        //SQL span multi datanode
+        //SQL span multi datanode 
         sql = "select * from orders limit 2,3";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertEquals(true, rrs.isCacheAble());
@@ -614,7 +611,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     public void testTableMetaRead() throws Exception {
         final SchemaConfig schema = schemaMap.get("cndb");
 
-        String sql = "desc offer";
+        String sql = " desc offer";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.DESCRIBE, sql, null, null,
                 cachePool);
         Assert.assertEquals(false, rrs.isCacheAble());
@@ -795,6 +792,17 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SchemaConfig schema = schemaMap.get("cndb");
         String sql = null;
         RouteResultset rrs = null;
+
+        schema = schemaMap.get("dubbo2");
+        sql = "SHOW TABLES from db_name like 'solo'";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 9, sql, null, null, cachePool);
+        Assert.assertEquals(false, rrs.isCacheAble());
+        Assert.assertEquals(-1L, rrs.getLimitSize());
+        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("SHOW TABLES like 'solo'",
+                rrs.getNodes()[0].getStatement());
+
         schema = schemaMap.get("dubbo");
         sql = "SHOW TABLES from db_name like 'solo'";
         rrs = routeStrategy.route(new SystemConfig(), schema, 9, sql, null, null, cachePool);
@@ -804,6 +812,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals("dubbo_dn", rrs.getNodes()[0].getName());
         Assert.assertEquals("SHOW TABLES like 'solo'",
                 rrs.getNodes()[0].getStatement());
+
+
 
         sql = "desc cndb.offer";
         rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null, cachePool);
@@ -927,7 +937,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(1, rrs.getNodes().length);
         Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
 
-        //insert ... on duplicate key ,partion key can't be updated
+        //insert ... on duplicate key ,sharding key can't be updated
         sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000) " +
                 "on duplicate key update name=VALUES(name),id = VALUES(id),sharding_id = VALUES(sharding_id)";
 
@@ -935,7 +945,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
             rrs = routeStrategy.route(new SystemConfig(), schema,
                     ServerParse.SELECT, sql, null, null, cachePool);
         } catch (Exception e) {
-            Assert.assertEquals("partion key can't be updated: EMPLOYEE -> SHARDING_ID", e.getMessage());
+            Assert.assertEquals("Sharding column can't be updated: EMPLOYEE -> SHARDING_ID", e.getMessage());
         }
 
 
@@ -961,7 +971,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertTrue(rrs.getMergeCols().containsKey("c"));
     }
-
+    
     /**
      * 测试between语句的路由
      *
@@ -974,7 +984,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 //    	400M1-600M=2
 //    	600M1-800M=3
 //    	800M1-1000M=4
-
+    	
         SchemaConfig schema = schemaMap.get("TESTDB");
         String sql = "select * from customer where id between 1 and 5;";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
@@ -984,24 +994,24 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         sql = "select * from customer where id between 1 and 2000001;";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertTrue(rrs.getNodes().length == 2);
-
+        
         sql = "select * from customer where id between 2000001 and 3000001;";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertTrue(rrs.getNodes().length == 1);
         Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn2"));
-
+        
         sql = "delete from customer where id between 2000001 and 3000001;";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertTrue(rrs.getNodes().length == 1);
         Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn2"));
-
+        
         sql = "update customer set name='newName' where id between 2000001 and 3000001;";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertTrue(rrs.getNodes().length == 1);
         Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn2"));
-
+        
     }
-
+    
     /**
      * 测试or语句的路由
      *
@@ -1014,7 +1024,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 //    	400M1-600M=2
 //    	600M1-800M=3
 //    	800M1-1000M=4
-
+    	
         SchemaConfig schema = schemaMap.get("TESTDB");
         String sql = "select * from customer where sharding_id=10000 or 1=1;";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
@@ -1026,13 +1036,13 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn1"));
         Assert.assertTrue(rrs.getNodes()[1].getName().equals("dn2"));
-
+        
         sql = "select * from customer where sharding_id = 10000 or user_id = 'wangwu'";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn1"));
         Assert.assertTrue(rrs.getNodes()[1].getName().equals("dn2"));
     }
-
+    
     /**
      * 测试父子表，查询子表的语句路由到多个节点
      * @throws Exception
@@ -1046,7 +1056,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn1"));
         Assert.assertTrue(rrs.getNodes()[1].getName().equals("dn2"));
     }
-
+    
     /**
      * 测试多层or语句
      *
@@ -1061,22 +1071,68 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
 
         Assert.assertTrue(rrs.getNodes().length == 1);
-
+        
 	    sql = "select id from travelrecord "
 	    			+ " where id = 1 and ( fee=3 or days=5 or (traveldate = '2015-05-04 00:00:07.375' "
 	    			+ " and (user_id=2 or fee=days or fee = 0))) and name = 'zhangsan' or id = 2000001" ;
 	    rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
-
+	
 	    Assert.assertTrue(rrs.getNodes().length == 2);
-
+	    
 	    sql = "select id from travelrecord "
     			+ " where id = 1 and ( fee=3 or days=5 or (traveldate = '2015-05-04 00:00:07.375' "
     			+ " and (user_id=2 or fee=days or fee = 0))) and name = 'zhangsan' or id = 2000001 or id = 4000001" ;
 	    rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
-
+	
 	    Assert.assertTrue(rrs.getNodes().length == 3);
     }
+    
+    /**
+     * 测试 global table 的or语句
+     * 
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testGlobalTableOr() throws Exception {
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        String sql = "select id from company where 1 = 1 and name ='company1' or name = 'company2'" ;
+        for(int i = 0; i < 20; i++) {
+        	RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+            Assert.assertTrue(rrs.getNodes().length == 1);
+        }
+    }
+    
+    /**
+     * 测试别名路由
+     *
+     * @throws Exception
+     */
+    public void testAlias() throws Exception {
 
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        RouteResultset rrs = null;
+        //不支持childtable 批量插入
+        //update 全局表
+        String sql = "update company a set name = '' where a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+
+        Assert.assertEquals(3, rrs.getNodes().length);
+
+        //update带别名时的路由
+        sql = "update travelrecord a set name = '' where a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+        Assert.assertEquals(1, rrs.getNodes().length);
+        
+        //别名大小写路由
+        sql = "select * from travelrecord A where a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+        Assert.assertEquals(1, rrs.getNodes().length);
+    }
+    
     private String formatSql(String sql) {
         MySqlStatementParser parser = new MySqlStatementParser(sql);
         SQLStatement stmt = parser.parseStatement();

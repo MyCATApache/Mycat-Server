@@ -1,5 +1,7 @@
 package io.mycat.backend.jdbc.mongodb;
 
+import com.mongodb.DBCursor;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -28,12 +30,15 @@ public class MongoStatement implements Statement
         this._concurrency = concurrency;
         this._holdability = holdability;
 
-        if (this._type != 0)
-          throw new UnsupportedOperationException("type not supported yet");
-        if (this._concurrency != 0)
-           throw new UnsupportedOperationException("concurrency not supported yet");
-        if (this._holdability != 0)
-           throw new UnsupportedOperationException("holdability not supported yet");
+        if (this._type != 0) {
+			throw new UnsupportedOperationException("type not supported yet");
+		}
+        if (this._concurrency != 0) {
+			throw new UnsupportedOperationException("concurrency not supported yet");
+		}
+        if (this._holdability != 0) {
+			throw new UnsupportedOperationException("holdability not supported yet");
+		}
     }
 
 	@Override
@@ -52,12 +57,11 @@ public class MongoStatement implements Statement
 	public ResultSet executeQuery(String sql) throws SQLException {
 		  
 		MongoData mongo= new MongoSQLParser(this._conn.getDB(), sql).query();		
-        if (this._fetchSize > 0) {
+        if ((this._fetchSize > 0)
+				&& (mongo.getCursor()!=null)) {
         	//设置每次网络请求的最大记录数
-        	if (mongo.getCursor()!=null) {
         	mongo.getCursor().batchSize(this._fetchSize);
-        	}
-        }	
+        }
         /* 
         if (this._maxRows > 0)
         {

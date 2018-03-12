@@ -23,38 +23,36 @@
  */
 package io.mycat.server.response;
 
-import io.mycat.MycatServer;
-import io.mycat.net.BufferArray;
-import io.mycat.net.NetSystem;
-import io.mycat.server.Alarms;
-import io.mycat.server.Fields;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.config.cluster.MycatClusterConfig;
-import io.mycat.server.config.cluster.MycatNode;
-import io.mycat.server.config.cluster.MycatNodeConfig;
-import io.mycat.server.config.node.MycatConfig;
-import io.mycat.server.config.node.SchemaConfig;
-import io.mycat.server.packet.EOFPacket;
-import io.mycat.server.packet.FieldPacket;
-import io.mycat.server.packet.ResultSetHeaderPacket;
-import io.mycat.server.packet.RowDataPacket;
-import io.mycat.server.packet.util.PacketUtil;
-import io.mycat.util.IntegerUtil;
-import io.mycat.util.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import io.mycat.MycatServer;
+import io.mycat.backend.mysql.PacketUtil;
+import io.mycat.config.Alarms;
+import io.mycat.config.Fields;
+import io.mycat.config.MycatCluster;
+import io.mycat.config.MycatConfig;
+import io.mycat.config.MycatNode;
+import io.mycat.config.model.MycatNodeConfig;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.net.mysql.EOFPacket;
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.ResultSetHeaderPacket;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.server.ServerConnection;
+import io.mycat.util.IntegerUtil;
+import io.mycat.util.StringUtil;
 
 /**
  * @author mycat
  */
 public class ShowMyCATCluster {
 
-    private static final Logger alarm = LoggerFactory
-            .getLogger("alarm");
+    private static final Logger alarm = LoggerFactory.getLogger("alarm");
 
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
@@ -71,41 +69,40 @@ public class ShowMyCATCluster {
         eof.packetId = ++packetId;
     }
 
-    public static void response(MySQLFrontConnection c) {
-		BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
-				.allocateArray();
+    public static void response(ServerConnection c) {
+        ByteBuffer buffer = c.allocate();
 
         // write header
-         header.write(bufferArray);
+        buffer = header.write(buffer, c,true);
 
         // write field
         for (FieldPacket field : fields) {
-            field.write(bufferArray);
+            buffer = field.write(buffer, c,true);
         }
 
         // write eof
-        eof.write(bufferArray);
+        buffer = eof.write(buffer, c,true);
 
         // write rows
         byte packetId = eof.packetId;
         for (RowDataPacket row : getRows(c)) {
             row.packetId = ++packetId;
-             row.write(bufferArray);
+            buffer = row.write(buffer, c,true);
         }
 
         // last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
-         lastEof.write(bufferArray);
+        buffer = lastEof.write(buffer, c,true);
 
         // post write
-        c.write(bufferArray);
+        c.write(buffer);
     }
 
-    private static List<RowDataPacket> getRows(MySQLFrontConnection c) {
+    private static List<RowDataPacket> getRows(ServerConnection c) {
         List<RowDataPacket> rows = new LinkedList<RowDataPacket>();
         MycatConfig config = MycatServer.getInstance().getConfig();
-        MycatClusterConfig cluster = config.getCluster();
+        MycatCluster cluster = config.getCluster();
         Map<String, SchemaConfig> schemas = config.getSchemas();
         SchemaConfig schema = (c.getSchema() == null) ? null : schemas.get(c.getSchema());
 

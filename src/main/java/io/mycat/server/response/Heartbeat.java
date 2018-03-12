@@ -23,54 +23,51 @@
  */
 package io.mycat.server.response;
 
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
-import io.mycat.server.ErrorCode;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.packet.ErrorPacket;
-import io.mycat.server.packet.HeartbeatPacket;
-import io.mycat.server.packet.OkPacket;
+import io.mycat.config.ErrorCode;
+import io.mycat.net.mysql.ErrorPacket;
+import io.mycat.net.mysql.HeartbeatPacket;
+import io.mycat.net.mysql.OkPacket;
+import io.mycat.server.ServerConnection;
 import io.mycat.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public class Heartbeat {
 
-	public static final Logger HEARTBEAT = LoggerFactory
-			.getLogger("heartbeat");
+    private static final Logger HEARTBEAT = LoggerFactory.getLogger("heartbeat");
 
-	public static void response(MySQLFrontConnection c, byte[] data) {
-		HeartbeatPacket hp = new HeartbeatPacket();
-		hp.read(data);
-		if (MycatServer.getInstance().isOnline()) {
-			OkPacket ok = new OkPacket();
-			ok.packetId = 1;
-			ok.affectedRows = hp.id;
-			ok.serverStatus = 2;
-			ok.write(c);
-			if (HEARTBEAT.isInfoEnabled()) {
-				HEARTBEAT.info(responseMessage("OK", c, hp.id));
-			}
-		} else {
-			ErrorPacket error = new ErrorPacket();
-			error.packetId = 1;
-			error.errno = ErrorCode.ER_SERVER_SHUTDOWN;
-			error.message = String.valueOf(hp.id).getBytes();
-			error.write(c);
-			if (HEARTBEAT.isInfoEnabled()) {
-				HEARTBEAT.info(responseMessage("ERROR", c, hp.id));
-			}
-		}
-	}
+    public static void response(ServerConnection c, byte[] data) {
+        HeartbeatPacket hp = new HeartbeatPacket();
+        hp.read(data);
+        if (MycatServer.getInstance().isOnline()) {
+            OkPacket ok = new OkPacket();
+            ok.packetId = 1;
+            ok.affectedRows = hp.id;
+            ok.serverStatus = 2;
+            ok.write(c);
+            if (HEARTBEAT.isInfoEnabled()) {
+                HEARTBEAT.info(responseMessage("OK", c, hp.id));
+            }
+        } else {
+            ErrorPacket error = new ErrorPacket();
+            error.packetId = 1;
+            error.errno = ErrorCode.ER_SERVER_SHUTDOWN;
+            error.message = String.valueOf(hp.id).getBytes();
+            error.write(c);
+            if (HEARTBEAT.isInfoEnabled()) {
+                HEARTBEAT.info(responseMessage("ERROR", c, hp.id));
+            }
+        }
+    }
 
-	private static String responseMessage(String action,
-			MySQLFrontConnection c, long id) {
-		return new StringBuilder("RESPONSE:").append(action).append(", id=")
-				.append(id).append(", host=").append(c.getHost())
-				.append(", port=").append(c.getPort()).append(", time=")
-				.append(TimeUtil.currentTimeMillis()).toString();
-	}
+    private static String responseMessage(String action, ServerConnection c, long id) {
+        return new StringBuilder("RESPONSE:").append(action).append(", id=").append(id).append(", host=")
+                .append(c.getHost()).append(", port=").append(c.getPort()).append(", time=")
+                .append(TimeUtil.currentTimeMillis()).toString();
+    }
 
 }

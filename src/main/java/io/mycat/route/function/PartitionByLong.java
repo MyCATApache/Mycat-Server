@@ -23,6 +23,7 @@
  */
 package io.mycat.route.function;
 
+import io.mycat.config.model.rule.RuleAlgorithm;
 import io.mycat.route.util.PartitionUtil;
 
 public final class PartitionByLong extends AbstractPartitionAlgorithm implements RuleAlgorithm {
@@ -54,14 +55,28 @@ public final class PartitionByLong extends AbstractPartitionAlgorithm implements
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		long key = Long.parseLong(columnValue);
-		return partitionUtil.partition(key);
+	public Integer calculate(String columnValue)  {
+//		columnValue = NumberParseUtil.eliminateQoute(columnValue);
+		try {
+			long key = Long.parseLong(columnValue);
+			return partitionUtil.partition(key);
+		} catch (NumberFormatException e){
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
+		}
 	}
 	
 	@Override
-	public Integer[] calculateRange(String beginValue, String endValue) {
+	public Integer[] calculateRange(String beginValue, String endValue)  {
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
 	}
 
+//	@Override
+//	public int getPartitionCount() {
+//		int nPartition = 0;
+//		for(int i = 0; i < count.length; i++) {
+//			nPartition += count[i];
+//		}
+//		return nPartition;
+//	}
+	
 }

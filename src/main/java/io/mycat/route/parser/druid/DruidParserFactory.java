@@ -1,19 +1,5 @@
 package io.mycat.route.parser.druid;
 
-import io.mycat.route.parser.druid.impl.DefaultDruidParser;
-import io.mycat.route.parser.druid.impl.DruidAlterTableParser;
-import io.mycat.route.parser.druid.impl.DruidCreateTableParser;
-import io.mycat.route.parser.druid.impl.DruidDeleteParser;
-import io.mycat.route.parser.druid.impl.DruidInsertParser;
-import io.mycat.route.parser.druid.impl.DruidSelectDb2Parser;
-import io.mycat.route.parser.druid.impl.DruidSelectOracleParser;
-import io.mycat.route.parser.druid.impl.DruidSelectParser;
-import io.mycat.route.parser.druid.impl.DruidSelectPostgresqlParser;
-import io.mycat.route.parser.druid.impl.DruidSelectSqlServerParser;
-import io.mycat.route.parser.druid.impl.DruidUpdateParser;
-import io.mycat.server.config.node.SchemaConfig;
-import io.mycat.server.config.node.TableConfig;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -21,13 +7,29 @@ import java.util.Map;
 import java.util.Set;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLockTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
+
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.TableConfig;
+import io.mycat.route.parser.druid.impl.DefaultDruidParser;
+import io.mycat.route.parser.druid.impl.DruidAlterTableParser;
+import io.mycat.route.parser.druid.impl.DruidCreateTableParser;
+import io.mycat.route.parser.druid.impl.DruidDeleteParser;
+import io.mycat.route.parser.druid.impl.DruidInsertParser;
+import io.mycat.route.parser.druid.impl.DruidLockTableParser;
+import io.mycat.route.parser.druid.impl.DruidSelectDb2Parser;
+import io.mycat.route.parser.druid.impl.DruidSelectOracleParser;
+import io.mycat.route.parser.druid.impl.DruidSelectParser;
+import io.mycat.route.parser.druid.impl.DruidSelectPostgresqlParser;
+import io.mycat.route.parser.druid.impl.DruidSelectSqlServerParser;
+import io.mycat.route.parser.druid.impl.DruidUpdateParser;
 
 /**
  * DruidParser的工厂类
@@ -64,9 +66,11 @@ public class DruidParserFactory
         } else if (statement instanceof MySqlUpdateStatement)
         {
             parser = new DruidUpdateParser();
-        } else if (statement instanceof MySqlAlterTableStatement)
+        } else if (statement instanceof SQLAlterTableStatement)
         {
             parser = new DruidAlterTableParser();
+        } else if (statement instanceof MySqlLockTableStatement) {
+        	parser = new DruidLockTableParser();
         } else
         {
             parser = new DefaultDruidParser();
@@ -79,7 +83,12 @@ public class DruidParserFactory
     {
         DruidParser parser=null;
         //先解出表，判断表所在db的类型，再根据不同db类型返回不同的解析
-        List<String> tables = parseTables(statement, visitor);
+        /**
+         * 不能直接使用visitor变量，防止污染后续sql解析
+         * @author SvenAugustus
+         */
+        SchemaStatVisitor _visitor = SchemaStatVisitorFactory.create(schema);
+        List<String> tables = parseTables(statement, _visitor);
         for (String table : tables)
         {
             Set<String> dbTypes =null;
@@ -125,10 +134,6 @@ public class DruidParserFactory
             {
                 String key = entry.getKey();
                 String value = entry.getValue();
-                if (key != null && key.indexOf("`") >= 0)
-                {
-                    key = key.replaceAll("`", "");
-                }
                 if (value != null && value.indexOf("`") >= 0)
                 {
                     value = value.replaceAll("`", "");
@@ -136,16 +141,21 @@ public class DruidParserFactory
                 //表名前面带database的，去掉
                 if (key != null)
                 {
-                    int pos = key.indexOf(".");
+                    int pos = key.indexOf("`");
+                    if (pos > 0)
+                    {
+                        key = key.replaceAll("`", "");
+                    }
+                    pos = key.indexOf(".");
                     if (pos > 0)
                     {
                         key = key.substring(pos + 1);
                     }
-                }
 
-                if (key.equals(value))
-                {
-                    tables.add(key.toUpperCase());
+                    if (key.equals(value))
+                    {
+                        tables.add(key.toUpperCase());
+                    }
                 }
             }
 

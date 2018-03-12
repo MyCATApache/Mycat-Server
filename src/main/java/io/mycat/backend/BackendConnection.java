@@ -1,14 +1,14 @@
 package io.mycat.backend;
 
-import io.mycat.net.ClosableConnection;
-import io.mycat.route.RouteResultsetNode;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.executors.ResponseHandler;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
-public interface BackendConnection extends ClosableConnection{
+import io.mycat.backend.mysql.nio.handler.ResponseHandler;
+import io.mycat.net.ClosableConnection;
+import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.ServerConnection;
+
+public interface BackendConnection extends ClosableConnection {
 	public boolean isModifiedSQLExecuted();
 
 	public boolean isFromSlaveDB();
@@ -29,7 +29,7 @@ public interface BackendConnection extends ClosableConnection{
 
 	public void release();
 
-	public void setResponseHandler(ResponseHandler commandHandler);
+	public boolean setResponseHandler(ResponseHandler commandHandler);
 
 	public void commit();
 
@@ -39,8 +39,12 @@ public interface BackendConnection extends ClosableConnection{
 
 	// public long getThreadId();
 
-	public void execute(RouteResultsetNode node, MySQLFrontConnection source,
+
+
+	public void execute(RouteResultsetNode node, ServerConnection source,
 			boolean autocommit) throws IOException;
+
+	public void recordSql(String host, String schema, String statement);
 
 	public boolean syncAndExcute();
 
@@ -56,9 +60,6 @@ public interface BackendConnection extends ClosableConnection{
 
 	public long getId();
 
-	public void close(String reason);
+	public void discardClose(String reason);
 
-	public String getCharset();
-
-	public PhysicalDatasource getPool();
 }

@@ -1,6 +1,10 @@
 package io.mycat.backend.jdbc.sequoiadb;
 
 
+import com.sequoiadb.base.DBCursor;
+import org.bson.BSONObject;
+import org.bson.types.BasicBSONList;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -27,11 +31,6 @@ import java.util.HashMap;
 //import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import org.bson.BSONObject;
-import org.bson.types.BasicBSONList;
-
-import com.sequoiadb.base.DBCursor;
 /**  
  * 功能详细描述
  * @author sohudo[http://blog.csdn.net/wind520]
@@ -103,7 +102,9 @@ public class SequoiaResultSet implements ResultSet
 		if (isid) {
 		  fieldtype= new int[Types.VARCHAR];
 		}
-		else fieldtype= new int[this.select.length];
+		else {
+			fieldtype = new int[this.select.length];
+		}
 		
 		if (_cur!=null) {
 		  for (int i=0;i<this.select.length;i++){
@@ -162,8 +163,9 @@ public class SequoiaResultSet implements ResultSet
 	    		  _row++;	
 	    		  return true;
 	    	   }
-	    	   else
-	    		  return false;
+	    	   else {
+				   return false;
+			   }
 	        }
 	        else {
 	           if (_row!=1){
@@ -292,8 +294,9 @@ public class SequoiaResultSet implements ResultSet
 	public String getString(String columnLabel) throws SQLException {
 		
 		Object x = getObject(columnLabel);
-		if (x == null)
-		   return null;
+		if (x == null) {
+			return null;
+		}
 		return x.toString();
 	}
 
@@ -302,16 +305,18 @@ public class SequoiaResultSet implements ResultSet
 		
 		//return false;
 		Object x = getObject(columnLabel);
-		if (x == null)
-		   return false;
+		if (x == null) {
+			return false;
+		}
 		return ((Boolean)x).booleanValue();
 	}
 	
 	public Number getNumber(String columnLabel)
 	 {
 	   Number x = (Number)this._cur.get(columnLabel);
-	   if (x == null)
-	     return Integer.valueOf(0);
+	   if (x == null) {
+		   return Integer.valueOf(0);
+	   }
 	   return x;
 	 }
 	 
@@ -439,9 +444,13 @@ public class SequoiaResultSet implements ResultSet
 			 if (isSum) {
 				 return getObject(getField(1)); 
 			 }
-			 else return this._cur;
+			 else {
+				 return this._cur;
+			 }
 		 }
-		else return getObject(getField(columnIndex));
+		else {
+			 return getObject(getField(columnIndex));
+		 }
 	}
 
 	@Override
@@ -461,7 +470,9 @@ public class SequoiaResultSet implements ResultSet
 			   return  this._sum;
 		   }
 		}
-		else return this._cur.get(columnLabel);
+		else {
+			return this._cur.get(columnLabel);
+		}
 	}
 
 	@Override
@@ -569,8 +580,8 @@ public class SequoiaResultSet implements ResultSet
 	@Override
 	public void setFetchDirection(int direction) throws SQLException {
 		
-		if (direction == getFetchDirection())
-		     return;
+//		if (direction == getFetchDirection())
+//		     return;
 	}
 
 	@Override

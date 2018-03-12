@@ -26,6 +26,7 @@ package io.mycat.util;
 import java.util.Collection;
 import java.util.Iterator;
 
+import io.mycat.util.SmallSet;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
@@ -35,8 +36,9 @@ import junit.framework.TestCase;
 public class SmallSetTest extends TestCase {
 
     public void assertListEquals(Collection<? extends Object> col, Object... objects) {
-        if (objects == null)
+        if (objects == null) {
             Assert.assertTrue(col.isEmpty());
+        }
         Assert.assertEquals(objects.length, col.size());
         int i = 0;
         for (Object o : col) {

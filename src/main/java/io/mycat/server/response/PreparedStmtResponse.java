@@ -23,20 +23,20 @@
  */
 package io.mycat.server.response;
 
-import io.mycat.net.BufferArray;
-import io.mycat.net.NetSystem;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.packet.EOFPacket;
-import io.mycat.server.packet.FieldPacket;
-import io.mycat.server.packet.PreparedOkPacket;
-import io.mycat.server.packet.util.PreparedStatement;
+import java.nio.ByteBuffer;
+
+import io.mycat.backend.mysql.PreparedStatement;
+import io.mycat.net.FrontendConnection;
+import io.mycat.net.mysql.EOFPacket;
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.PreparedOkPacket;
 
 /**
  * @author mycat
  */
 public class PreparedStmtResponse {
 
-    public static void response(PreparedStatement pstmt, MySQLFrontConnection c) {
+    public static void response(PreparedStatement pstmt, FrontendConnection c) {
         byte packetId = 0;
 
         // write preparedOk packet
@@ -45,21 +45,19 @@ public class PreparedStmtResponse {
         preparedOk.statementId = pstmt.getId();
         preparedOk.columnsNumber = pstmt.getColumnsNumber();
         preparedOk.parametersNumber = pstmt.getParametersNumber();
-        BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
-				.allocateArray();
-        preparedOk.write(bufferArray);
-        
+        ByteBuffer buffer = preparedOk.write(c.allocate(), c,true);
+
         // write parameter field packet
         int parametersNumber = preparedOk.parametersNumber;
         if (parametersNumber > 0) {
             for (int i = 0; i < parametersNumber; i++) {
                 FieldPacket field = new FieldPacket();
                 field.packetId = ++packetId;
-                field.write(bufferArray);
+                buffer = field.write(buffer, c,true);
             }
             EOFPacket eof = new EOFPacket();
             eof.packetId = ++packetId;
-            eof.write(bufferArray);
+            buffer = eof.write(buffer, c,true);
         }
 
         // write column field packet
@@ -68,15 +66,15 @@ public class PreparedStmtResponse {
             for (int i = 0; i < columnsNumber; i++) {
                 FieldPacket field = new FieldPacket();
                 field.packetId = ++packetId;
-                field.write(bufferArray);
+                buffer = field.write(buffer, c,true);
             }
             EOFPacket eof = new EOFPacket();
             eof.packetId = ++packetId;
-             eof.write(bufferArray);
+            buffer = eof.write(buffer, c,true);
         }
 
         // send buffer
-        c.write(bufferArray);
+        c.write(buffer);
     }
 
 }

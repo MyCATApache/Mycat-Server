@@ -23,10 +23,10 @@
  */
 package io.mycat;
 
-import io.mycat.net.ExecutorUtil;
-
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
+
+import io.mycat.util.ExecutorUtil;
 
 /**
  * @author mycat

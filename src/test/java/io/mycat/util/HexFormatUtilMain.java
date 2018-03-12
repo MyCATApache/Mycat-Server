@@ -26,6 +26,8 @@ package io.mycat.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.mycat.util.HexFormatUtil;
+
 /**
  * @author mycat
  */

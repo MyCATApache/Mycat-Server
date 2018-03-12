@@ -23,9 +23,10 @@
  */
 package io.mycat.route.function;
 
-import junit.framework.Assert;
-
 import org.junit.Test;
+
+import io.mycat.route.function.NumberParseUtil;
+import junit.framework.Assert;
 
 public class TestNumberParseUtil {
 
