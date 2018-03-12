@@ -1,0 +1,6 @@
+# range start-end ,data node index
+0-200M=0
+200M1-400M=1
+400M1-600M=2
+#600M1-800M=3
+#800M1-1000M=4
