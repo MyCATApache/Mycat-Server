@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese
- * opensource volunteers. you can redistribute it and/or modify it under the
+ * This code is free software;Designed and Developed mainly by many Chinese 
+ * opensource volunteers. you can redistribute it and/or modify it under the 
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,18 +16,12 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Any questions about this component can be directed to it's project Web address
+ * 
+ * Any questions about this component can be directed to it's project Web address 
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.route.function;
-
-import io.mycat.server.config.loader.ConfigInitializer;
-import io.mycat.server.config.node.RuleConfig;
-
-import java.util.Map;
-import java.util.Set;
 
 import junit.framework.Assert;
 
@@ -36,32 +30,23 @@ import org.junit.Test;
 public class AutoPartitionByLongTest {
 
 	@Test
-	public void test()
-	{
-		ConfigInitializer confInit = new ConfigInitializer(true);
-        Map<String, RuleConfig> ruleConfigs = confInit.getTableRules();
-        Set<String> sets = ruleConfigs.keySet();
-        for(String ruleStr : sets){
-        	if(ruleConfigs.get(ruleStr).getFunctionName().indexOf("AutoPartitionByLong")!=-1){
-        		AbstractPartitionAlgorithm autoPartition = ruleConfigs.get(ruleStr).getRuleAlgorithm();
-        		autoPartition.init();
-        		String idVal="0";
-        		Assert.assertEquals(true, 0==autoPartition.calculate(idVal));
-
-        		idVal="2000000";
-        		Assert.assertEquals(true, 0==autoPartition.calculate(idVal));
-
-        		idVal="2000001";
-        		Assert.assertEquals(true, 1==autoPartition.calculate(idVal));
-
-        		idVal="4000000";
-        		Assert.assertEquals(true, 1==autoPartition.calculate(idVal));
-
-        		idVal="4000001";
-        		Assert.assertEquals(true, 2==autoPartition.calculate(idVal));
-        	}
-
-        }
-
+	public void test()  {
+		AutoPartitionByLong autoPartition=new AutoPartitionByLong();
+		autoPartition.setMapFile("autopartition-long.txt");
+		autoPartition.init();
+		String idVal="0";
+		Assert.assertEquals(true, 0==autoPartition.calculate(idVal));
+		
+		idVal="2000000";
+		Assert.assertEquals(true, 0==autoPartition.calculate(idVal)); 
+		
+		idVal="2000001";
+		Assert.assertEquals(true, 1==autoPartition.calculate(idVal)); 
+		
+		idVal="4000000";
+		Assert.assertEquals(true, 1==autoPartition.calculate(idVal)); 
+		
+		idVal="4000001";
+		Assert.assertEquals(true, 2==autoPartition.calculate(idVal)); 
 	}
 }

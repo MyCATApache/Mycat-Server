@@ -7,11 +7,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.mycat.backend.PhysicalDBPool;
-import io.mycat.backend.PhysicalDatasource;
+import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.backend.postgresql.PostgreSQLDataSource;
-import io.mycat.server.config.node.DataHostConfig;
+import io.mycat.config.model.DataHostConfig;
 
 public class PostgreSQLHeartbeat extends DBHeartbeat {
 
@@ -27,13 +27,12 @@ public class PostgreSQLHeartbeat extends DBHeartbeat {
 
 	private PostgreSQLDetector detector;
 
-
 	public PostgreSQLHeartbeat(PostgreSQLDataSource source) {
 		this.source = source;
 		this.lock = new ReentrantLock(false);
 		this.maxRetryCount = MAX_RETRY_COUNT;
 		this.status = INIT_STATUS;
-		this.heartbeatSQL = source.getHostConfig().getHeartbeatSQL();
+		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL();
 	}
 
 	@Override
@@ -150,8 +149,7 @@ public class PostgreSQLHeartbeat extends DBHeartbeat {
 		int switchType = source.getHostConfig().getSwitchType();
 		if (switchType == DataHostConfig.NOT_SWITCH_DS) {
 			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("not switch datasource ,for switchType is "
-						+ DataHostConfig.NOT_SWITCH_DS);
+				LOGGER.debug("not switch datasource ,for switchType is " + DataHostConfig.NOT_SWITCH_DS);
 				return;
 			}
 			return;
@@ -159,15 +157,12 @@ public class PostgreSQLHeartbeat extends DBHeartbeat {
 		PhysicalDBPool pool = this.source.getDbPool();
 		int curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
 		// read node can't switch ,only write node can switch
-		if (pool.getWriteType() == PhysicalDBPool.WRITE_ONLYONE_NODE
-				&& !source.isReadNode()
-				&& curDatasourceHB != DBHeartbeat.OK_STATUS
-				&& pool.getSources().length > 1) {
+		if (pool.getWriteType() == PhysicalDBPool.WRITE_ONLYONE_NODE && !source.isReadNode()
+				&& curDatasourceHB != DBHeartbeat.OK_STATUS && pool.getSources().length > 1) {
 			synchronized (pool) {
 				// try to see if need switch datasource
 				curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
-				if (curDatasourceHB != DBHeartbeat.INIT_STATUS
-						&& curDatasourceHB != DBHeartbeat.OK_STATUS) {
+				if (curDatasourceHB != DBHeartbeat.INIT_STATUS && curDatasourceHB != DBHeartbeat.OK_STATUS) {
 					int curIndex = pool.getActivedIndex();
 					int nextId = pool.next(curIndex);
 					PhysicalDatasource[] allWriteNodes = pool.getSources();
@@ -180,17 +175,15 @@ public class PostgreSQLHeartbeat extends DBHeartbeat {
 						int theSourceHBStatus = theSourceHB.getStatus();
 						if (theSourceHBStatus == DBHeartbeat.OK_STATUS) {
 							if (switchType == DataHostConfig.SYN_STATUS_SWITCH_DS) {
-								if (Integer.valueOf(0).equals(
-										theSourceHB.getSlaveBehindMaster())) {
+								if (Integer.valueOf(0).equals(theSourceHB.getSlaveBehindMaster())) {
 									LOGGER.info("try to switch datasource ,slave is synchronized to master "
 											+ theSource.getConfig());
 									pool.switchSource(nextId, true, reason);
 									break;
 								} else {
-									LOGGER.warn("ignored  datasource ,slave is not  synchronized to master , slave behind master :"
-											+ theSourceHB
-													.getSlaveBehindMaster()
-											+ " " + theSource.getConfig());
+									LOGGER.warn(
+											"ignored  datasource ,slave is not  synchronized to master , slave behind master :"
+													+ theSourceHB.getSlaveBehindMaster() + " " + theSource.getConfig());
 								}
 							} else {
 								// normal switch
@@ -216,27 +209,25 @@ public class PostgreSQLHeartbeat extends DBHeartbeat {
 
 	private void setError(PostgreSQLDetector detector) {
 		// should continues check error status
-				if (++errorCount < maxRetryCount) {
+		if (++errorCount < maxRetryCount) {
 
-					if (detector != null && !detector.isQuit()) {
-						heartbeat(); // error count not enough, heart beat again
-					}
-					//return;
-				}  else
-		        {
-		            if (detector != null ) {
-		                detector.quit();
-		            }
+			if (detector != null && !detector.isQuit()) {
+				heartbeat(); // error count not enough, heart beat again
+			}
+			// return;
+		} else {
+			if (detector != null) {
+				detector.quit();
+			}
 
-		            this.status = ERROR_STATUS;
-		            this.errorCount = 0;
+			this.status = ERROR_STATUS;
+			this.errorCount = 0;
 
-		        }
+		}
 	}
 
 	private void setOk(PostgreSQLDetector detector) {
-		recorder.set(detector.getLasstReveivedQryTime()
-				- detector.getLastSendQryTime());
+		recorder.set(detector.getLasstReveivedQryTime() - detector.getLastSendQryTime());
 		switch (status) {
 		case DBHeartbeat.TIMEOUT_STATUS:
 			this.status = DBHeartbeat.INIT_STATUS;

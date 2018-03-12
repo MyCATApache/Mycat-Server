@@ -23,17 +23,22 @@
  */
 package io.mycat.sqlengine.mpp;
 
-
-import io.mycat.server.packet.RowDataPacket;
-import io.mycat.util.ByteUtil;
-import io.mycat.util.LongUtil;
-
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+
+
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.util.ByteUtil;
+import io.mycat.util.CompareUtil;
+import io.mycat.util.LongUtil;
 
 /**
  * implement group function select a,count(*),sum(*) from A group by a
@@ -45,7 +50,9 @@ public class RowDataPacketGrouper {
 
 	private List<RowDataPacket> result = Collections.synchronizedList(new ArrayList<RowDataPacket>());
 	private final MergeCol[] mergCols;
+	private int[] mergeColsIndex;
 	private final int[] groupColumnIndexs;
+	private boolean ishanlderFirstRow = false;   //结果集汇聚时,是否已处理第一条记录.
 	private boolean isMergAvg=false;
 	private HavingCols havingCols;
 
@@ -54,6 +61,14 @@ public class RowDataPacketGrouper {
 		this.groupColumnIndexs = groupColumnIndexs;
 		this.mergCols = mergCols;
 		this.havingCols = havingCols;
+		
+		if(mergCols!=null&&mergCols.length>0){
+			mergeColsIndex = new int[mergCols.length];
+			for(int i = 0;i<mergCols.length;i++){
+				mergeColsIndex[i] = mergCols[i].colMeta.colIndex;
+			}
+			Arrays.sort(mergeColsIndex);
+		}
 	}
 
 	public List<RowDataPacket> getResult() {
@@ -81,36 +96,43 @@ public class RowDataPacketGrouper {
 		byte[] right = havingCols.getRight().getBytes(
 				StandardCharsets.UTF_8);
 		int index = havingCols.getColMeta().getColIndex();
+		int colType = havingCols.getColMeta().getColType();	// Added by winbill. 20160312.
 		while (it.hasNext()){
 			RowDataPacket rowDataPacket = it.next();
 			switch (havingCols.getOperator()) {
 			case "=":
-				if (eq(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (eq(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case ">":
-				if (gt(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (gt(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case "<":
-				if (lt(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (lt(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case ">=":
-				if (gt(rowDataPacket.fieldValues.get(index),right) && eq(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (gt(rowDataPacket.fieldValues.get(index),right,colType) && eq(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case "<=":
-				if (lt(rowDataPacket.fieldValues.get(index),right) && eq(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (lt(rowDataPacket.fieldValues.get(index),right,colType) && eq(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
 			case "!=":
-				if (neq(rowDataPacket.fieldValues.get(index),right)) {
+				/* Add parameter of colType, Modified by winbill. 20160312. */
+				if (neq(rowDataPacket.fieldValues.get(index),right,colType)) {
 					it.remove();
 				}
 				break;
@@ -119,21 +141,65 @@ public class RowDataPacketGrouper {
 
 	}
 
-	private boolean lt(byte[] l, byte[] r) {
-		return -1 != ByteUtil.compareNumberByte(l, r);
+	/* 
+	 * Using new compare function instead of compareNumberByte 
+	 * Modified by winbill. 20160312.
+	 */
+	private boolean lt(byte[] l, byte[] r, final int colType) {
+//		return -1 != ByteUtil.compareNumberByte(l, r);
+		return -1 != RowDataPacketGrouper.compareObject(l, r, colType);
 	}
 
-	private boolean gt(byte[] l, byte[] r) {
-		return 1 != ByteUtil.compareNumberByte(l, r);
+	private boolean gt(byte[] l, byte[] r, final int colType) {
+//		return 1 != ByteUtil.compareNumberByte(l, r, havingCol);
+		return 1 != RowDataPacketGrouper.compareObject(l, r, colType);
 	}
 
-	private boolean eq(byte[] l, byte[] r) {
-		return 0 != ByteUtil.compareNumberByte(l, r);
+	private boolean eq(byte[] l, byte[] r, final int colType) {
+//		return 0 != ByteUtil.compareNumberByte(l, r, havingCol);
+		return 0 != RowDataPacketGrouper.compareObject(l, r, colType);
 	}
 
-	private boolean neq(byte[] l, byte[] r) {
-		return 0 == ByteUtil.compareNumberByte(l, r);
+	private boolean neq(byte[] l, byte[] r, final int colType) {
+//		return 0 == ByteUtil.compareNumberByte(l, r, havingCol);
+		return 0 == RowDataPacketGrouper.compareObject(l, r, colType);
 	}
+
+	/*
+	 * Compare with the value of having column
+	 * winbill. 20160312.
+	 */
+    public static final int compareObject(byte[] left,byte[] right, final int colType) {
+        switch (colType) {
+        case ColMeta.COL_TYPE_SHORT:
+        case ColMeta.COL_TYPE_INT:
+        case ColMeta.COL_TYPE_INT24:
+		case ColMeta.COL_TYPE_LONG:
+			return CompareUtil.compareInt(ByteUtil.getInt(left), ByteUtil.getInt(right));
+        case ColMeta.COL_TYPE_LONGLONG:
+            return CompareUtil.compareLong(ByteUtil.getLong(left), ByteUtil.getLong(right));
+        case ColMeta.COL_TYPE_FLOAT:
+        case ColMeta.COL_TYPE_DOUBLE:
+        case ColMeta.COL_TYPE_DECIMAL:
+        case ColMeta.COL_TYPE_NEWDECIMAL:
+            return CompareUtil.compareDouble(ByteUtil.getDouble(left), ByteUtil.getDouble(right));
+        case ColMeta.COL_TYPE_DATE:
+        case ColMeta.COL_TYPE_TIMSTAMP:
+        case ColMeta.COL_TYPE_TIME:
+        case ColMeta.COL_TYPE_YEAR:
+        case ColMeta.COL_TYPE_DATETIME:
+        case ColMeta.COL_TYPE_NEWDATE:
+        case ColMeta.COL_TYPE_BIT:
+        case ColMeta.COL_TYPE_VAR_STRING:
+        case ColMeta.COL_TYPE_STRING:
+        // ENUM和SET类型都是字符串，按字符串处理
+        case ColMeta.COL_TYPE_ENUM:
+        case ColMeta.COL_TYPE_SET:
+            return ByteUtil.compareNumberByte(left, right);
+        // BLOB相关类型和GEOMETRY类型不支持排序，略掉
+        }
+        return 0;
+    }
 
 	public void addRow(RowDataPacket rowDataPkg) {
 		for (RowDataPacket row : result) {
@@ -152,6 +218,23 @@ public class RowDataPacketGrouper {
 		if (mergCols == null) {
 			return;
 		}
+		
+		/*
+		 * 这里进行一次判断, 在跨分片聚合的情况下,如果有一个没有记录的分片，最先返回,可能返回有null 的情况.
+		 */
+		if(!ishanlderFirstRow&&mergeColsIndex!=null&&mergeColsIndex.length>0){
+			List<byte[]> values = toRow.fieldValues;
+            for(int i=0;i<values.size();i++){
+            	if(Arrays.binarySearch(mergeColsIndex, i)>=0){
+            		continue;
+            	}
+	           if(values.get(i)==null){
+	           	   values.set(i, newRow.fieldValues.get(i));
+	           }
+            }
+            ishanlderFirstRow = true;
+		}
+		
 		for (MergeCol merg : mergCols) {
              if(merg.mergeType!=MergeCol.MERGE_AVG)
              {
@@ -165,18 +248,16 @@ public class RowDataPacketGrouper {
                  }
              }
 		}
-
-
-
-
     }
 
 	private void mergAvg(RowDataPacket toRow) {
 		if (mergCols == null) {
 			return;
 		}
+		
+		
 
-
+		Set<Integer> rmIndexSet = new HashSet<Integer>();
 		for (MergeCol merg : mergCols) {
 			if(merg.mergeType==MergeCol.MERGE_AVG)
 			{
@@ -187,12 +268,16 @@ public class RowDataPacketGrouper {
 				if (result != null)
 				{
 					toRow.fieldValues.set(merg.colMeta.avgSumIndex, result);
-					toRow.fieldValues.remove(merg.colMeta.avgCountIndex) ;
-					toRow.fieldCount=toRow.fieldCount-1;
+//					toRow.fieldValues.remove(merg.colMeta.avgCountIndex) ;
+//					toRow.fieldCount=toRow.fieldCount-1;
+					rmIndexSet.add(merg.colMeta.avgCountIndex);
 				}
 			}
 		}
-
+		for(Integer index : rmIndexSet) {
+			toRow.fieldValues.remove(index);
+			toRow.fieldCount = toRow.fieldCount - 1;
+		}
 
 
 	}
@@ -209,14 +294,17 @@ public class RowDataPacketGrouper {
 		}
 		switch (mergeType) {
 		case MergeCol.MERGE_SUM:
-			if (colType == ColMeta.COL_TYPE_NEWDECIMAL
-					|| colType == ColMeta.COL_TYPE_DOUBLE
-					|| colType == ColMeta.COL_TYPE_FLOAT
-					|| colType == ColMeta.COL_TYPE_DECIMAL) {
+			if (colType == ColMeta.COL_TYPE_DOUBLE
+				|| colType == ColMeta.COL_TYPE_FLOAT) {
 
 				Double vale = ByteUtil.getDouble(bs) + ByteUtil.getDouble(bs2);
 				return vale.toString().getBytes();
 				// return String.valueOf(vale).getBytes();
+			} else if(colType == ColMeta.COL_TYPE_NEWDECIMAL
+					|| colType == ColMeta.COL_TYPE_DECIMAL) {
+				BigDecimal d1 = new BigDecimal(new String(bs));
+				d1 = d1.add(new BigDecimal(new String(bs2)));
+				return String.valueOf(d1).getBytes();
 			}
 			// continue to count case
 		case MergeCol.MERGE_COUNT: {
@@ -247,10 +335,19 @@ public class RowDataPacketGrouper {
 			// return ByteUtil.compareNumberArray2(bs, bs2, 2);
 		}
             case MergeCol.MERGE_AVG: {
-                double aDouble = ByteUtil.getDouble(bs);
-                long s2 = Long.parseLong(new String(bs2));
-                Double vale = aDouble / s2;
-                return vale.toString().getBytes();
+            	if (colType == ColMeta.COL_TYPE_DOUBLE
+    					|| colType == ColMeta.COL_TYPE_FLOAT) {
+            		double aDouble = ByteUtil.getDouble(bs);
+            		long s2 = Long.parseLong(new String(bs2));
+            		Double vale = aDouble / s2;
+            		return vale.toString().getBytes();
+            	} else if(colType == ColMeta.COL_TYPE_NEWDECIMAL
+    					|| colType == ColMeta.COL_TYPE_DECIMAL) {
+            		BigDecimal sum = new BigDecimal(new String(bs));
+                    // mysql avg 处理精度为 sum结果的精度扩展4, 采用四舍五入
+                    BigDecimal avg = sum.divide(new BigDecimal(new String(bs2)), sum.scale() + 4, RoundingMode.HALF_UP);
+                    return avg.toString().getBytes();
+            	}
             }
 		default:
 			return null;

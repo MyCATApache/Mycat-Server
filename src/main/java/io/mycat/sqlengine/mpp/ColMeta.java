@@ -23,7 +23,9 @@
  */
 package io.mycat.sqlengine.mpp;
 
-public class ColMeta {
+import java.io.Serializable;
+
+public class ColMeta implements Serializable{
 	public static final int COL_TYPE_DECIMAL = 0;
 	public static final int COL_TYPE_INT = 1;
 	public static final int COL_TYPE_SHORT = 2;
@@ -53,6 +55,8 @@ public class ColMeta {
 	public static final int COL_TYPE_GEOMETRY = 0xff;
 	public  int colIndex;
 	public final int colType;
+	
+	public int decimals;
 
     public  int avgSumIndex;
     public  int avgCountIndex;

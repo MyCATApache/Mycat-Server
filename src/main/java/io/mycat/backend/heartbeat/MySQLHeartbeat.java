@@ -23,16 +23,16 @@
  */
 package io.mycat.backend.heartbeat;
 
-import io.mycat.backend.MySQLDataSource;
-import io.mycat.backend.PhysicalDBPool;
-import io.mycat.backend.PhysicalDatasource;
-import io.mycat.server.config.node.DataHostConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
+import io.mycat.backend.mysql.nio.MySQLDataSource;
+import io.mycat.config.model.DataHostConfig;
 
 /**
  * @author mycat
@@ -40,8 +40,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class MySQLHeartbeat extends DBHeartbeat {
 
 	private static final int MAX_RETRY_COUNT = 5;
-	public static final Logger LOGGER = LoggerFactory
-			.getLogger(MySQLHeartbeat.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(MySQLHeartbeat.class);
 
 	private final MySQLDataSource source;
 
@@ -55,7 +54,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		this.lock = new ReentrantLock(false);
 		this.maxRetryCount = MAX_RETRY_COUNT;
 		this.status = INIT_STATUS;
-		this.heartbeatSQL = source.getHostConfig().getHeartbeatSQL();
+		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL();
 	}
 
 	public MySQLDataSource getSource() {
@@ -171,9 +170,6 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	}
 
 	private void setOk(MySQLDetector detector) {
-
-		recorder.set(detector.getLasstReveivedQryTime()
-				- detector.getLastSendQryTime());
 		switch (status) {
 		case DBHeartbeat.TIMEOUT_STATUS:
 			this.status = DBHeartbeat.INIT_STATUS;
@@ -199,19 +195,17 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		// should continues check error status
 		if (++errorCount < maxRetryCount) {
 
-			if (detector != null && !detector.isQuit()) {
-				heartbeat(); // error count not enough, heart beat again
-			}
-			//return;
-		}  else
+            if (detector != null && !detector.isQuit()) {
+                heartbeat(); // error count not enough, heart beat again
+            }
+
+		}else
         {
             if (detector != null ) {
                 detector.quit();
             }
-
             this.status = ERROR_STATUS;
             this.errorCount = 0;
-
         }
 	}
 
@@ -243,8 +237,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			synchronized (pool) {
 				// try to see if need switch datasource
 				curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
-				if (curDatasourceHB != DBHeartbeat.INIT_STATUS
-						&& curDatasourceHB != DBHeartbeat.OK_STATUS) {
+				if (curDatasourceHB != DBHeartbeat.INIT_STATUS && curDatasourceHB != DBHeartbeat.OK_STATUS) {
 					int curIndex = pool.getActivedIndex();
 					int nextId = pool.next(curIndex);
 					PhysicalDatasource[] allWriteNodes = pool.getSources();
@@ -257,24 +250,20 @@ public class MySQLHeartbeat extends DBHeartbeat {
 						int theSourceHBStatus = theSourceHB.getStatus();
 						if (theSourceHBStatus == DBHeartbeat.OK_STATUS) {
 							if (switchType == DataHostConfig.SYN_STATUS_SWITCH_DS) {
-								if (Integer.valueOf(0).equals(
-										theSourceHB.getSlaveBehindMaster())) {
-									LOGGER.info("try to switch datasource ,slave is synchronized to master "
-											+ theSource.getConfig());
+								if (Integer.valueOf(0).equals( theSourceHB.getSlaveBehindMaster())) {
+									LOGGER.info("try to switch datasource ,slave is synchronized to master " + theSource.getConfig());
 									pool.switchSource(nextId, true, reason);
 									break;
 								} else {
 									LOGGER.warn("ignored  datasource ,slave is not  synchronized to master , slave behind master :"
-											+ theSourceHB
-													.getSlaveBehindMaster()
+											+ theSourceHB.getSlaveBehindMaster()
 											+ " " + theSource.getConfig());
 								}
 							} else {
 								// normal switch
-								LOGGER.info("try to switch datasource ,not checked slave synchronize status "
-										+ theSource.getConfig());
+								LOGGER.info("try to switch datasource ,not checked slave synchronize status " + theSource.getConfig());
 								pool.switchSource(nextId, true, reason);
-								break;
+                                break;
 							}
 
 						}

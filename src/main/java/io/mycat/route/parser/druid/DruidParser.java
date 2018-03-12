@@ -1,12 +1,12 @@
 package io.mycat.route.parser.druid;
 
-import io.mycat.cache.LayerCachePool;
-import io.mycat.route.RouteResultset;
-import io.mycat.server.config.node.SchemaConfig;
-
 import java.sql.SQLNonTransientException;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
+
+import io.mycat.cache.LayerCachePool;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.route.RouteResultset;
 
 /**
  * 对SQLStatement解析

@@ -84,7 +84,7 @@ public class PacketUtils {
 	}
 	
 	@Deprecated
-	public static List<PostgreSQLPacket> parsePacket(byte[] bytes, int offset,
+	private static List<PostgreSQLPacket> parsePacket(byte[] bytes, int offset,
 			int readLength) throws IOException {
 		List<PostgreSQLPacket> pgs = new ArrayList<>();
 		while (offset < readLength) {
@@ -182,8 +182,9 @@ public class PacketUtils {
 		String[][] params = paramList.toArray(new String[0][]);
 		StringBuilder details = new StringBuilder();
 		for (int i = 0; i < params.length; ++i) {
-			if (i != 0)
+			if (i != 0) {
 				details.append(", ");
+			}
 			details.append(params[i][0]);
 			details.append("=");
 			details.append(params[i][1]);
@@ -215,7 +216,7 @@ public class PacketUtils {
 			PIOUtils.Send(encodedParam, buffer);
 			PIOUtils.SendChar(0, buffer);
 		}
-		PIOUtils.Send(new byte[] { 0 }, buffer);
+		PIOUtils.Send(new byte[] { 0 }, buffer);		
 		return buffer;
 	}
 

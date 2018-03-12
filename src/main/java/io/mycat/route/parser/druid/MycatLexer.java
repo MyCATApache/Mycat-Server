@@ -1,11 +1,11 @@
 package io.mycat.route.parser.druid;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlLexer;
 import com.alibaba.druid.sql.parser.Keywords;
 import com.alibaba.druid.sql.parser.Token;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by magicdoom on 2015/3/13.

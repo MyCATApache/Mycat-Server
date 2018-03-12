@@ -25,112 +25,67 @@ package io.mycat.sqlengine.mpp;
  */
 
 import io.mycat.MycatServer;
+import io.mycat.backend.mysql.BufferUtil;
+import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
+import io.mycat.net.mysql.EOFPacket;
+import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultset;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.NonBlockingSession;
-import io.mycat.server.executors.MultiNodeQueryHandler;
-import io.mycat.server.packet.EOFPacket;
-import io.mycat.server.packet.RowDataPacket;
-import io.mycat.server.packet.util.BufferUtil;
-import io.mycat.sqlengine.tmp.RowDataSorter;
+import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.ServerConnection;
+import io.mycat.sqlengine.mpp.tmp.RowDataSorter;
 import io.mycat.util.StringUtil;
 
-import java.nio.ByteBuffer;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.log4j.Logger;
+
+
+
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
  * 
  * @author wuzhih /modify by coder_czp/2015/11/2
  * 
+ * Fixbug: mycat sql timeout and hang problem.
+ * @author Uncle-pan
+ * @since 2016-03-23
+ * 
  */
-public class DataMergeService implements Runnable {
+public class DataMergeService extends AbstractDataNodeMerge {
 
-	// 保存包和节点的关系
-	static class PackWraper {
-		byte[] data;
-		String node;
-
-	}
-
-	private int fieldCount;
-	private RouteResultset rrs;
 	private RowDataSorter sorter;
 	private RowDataPacketGrouper grouper;
-	private int MAX_MUTIL_COUNT = 20000000;
-	private BlockingQueue<PackWraper> packs;
-	private volatile boolean hasOrderBy = false;
-	private MultiNodeQueryHandler multiQueryHandler;
-	private AtomicInteger areadyAdd = new AtomicInteger();
-	private ConcurrentHashMap<String, Boolean> canDiscard;
-	public static PackWraper END_FLAG_PACK = new PackWraper();
-	private List<RowDataPacket> result = new Vector<RowDataPacket>();
+	private Map<String, LinkedList<RowDataPacket>> result = new HashMap<String, LinkedList<RowDataPacket>>();
 	private static Logger LOGGER = Logger.getLogger(DataMergeService.class);
-
+	private ConcurrentHashMap<String, Boolean> canDiscard = new ConcurrentHashMap<String, Boolean>();
 	public DataMergeService(MultiNodeQueryHandler handler, RouteResultset rrs) {
-		this.rrs = rrs;
-		this.multiQueryHandler = handler;
-		this.canDiscard = new ConcurrentHashMap<String, Boolean>();
-		// 在网络很好的情况下,数据会快速填充到队列,当数据大于MAX_MUTIL_COUNT时,等待处理线程处理
-		this.packs = new LinkedBlockingQueue<PackWraper>(MAX_MUTIL_COUNT);
+		super(handler,rrs);
+
+		for (RouteResultsetNode node : rrs.getNodes()) {
+			result.put(node.getName(), new LinkedList<RowDataPacket>());
+		}
 	}
 
-	public RouteResultset getRrs() {
-		return this.rrs;
-	}
-
-	public void outputMergeResult(NonBlockingSession session, byte[] eof) {
-		packs.add(END_FLAG_PACK);
-	}
 
 	/**
-	 * return merged data
-	 * 
-	 * @return (最多i*(offset+size)行数据)
-	 */
-	public List<RowDataPacket> getResults(byte[] eof) {
-		List<RowDataPacket> tmpResult = result;
-		if (this.grouper != null) {
-			tmpResult = grouper.getResult();
-			grouper = null;
-		}
-		if (sorter != null) {
-			// 处理grouper处理后的数据
-			if (tmpResult != null) {
-				Iterator<RowDataPacket> itor = tmpResult.iterator();
-				while (itor.hasNext()) {
-					sorter.addRow(itor.next());
-					itor.remove();
-				}
-			}
-			tmpResult = sorter.getSortedResult();
-			sorter = null;
-		}
-		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("prepare mpp merge result for " + rrs.getStatement());
-		}
-
-		return tmpResult;
-	}
-
+	 * @param columToIndx
+	 * @param fieldCount
+     */
 	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
+
 		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("field metadata inf:" + columToIndx.entrySet());
+			LOGGER.debug("field metadata keys:" + columToIndx.keySet());
+			LOGGER.debug("field metadata values:" + columToIndx.values());
 		}
+
+
 		int[] groupColumnIndexs = null;
 		this.fieldCount = fieldCount;
+
 		if (rrs.getGroupByCols() != null) {
+		
 			groupColumnIndexs = toColumnIndex(rrs.getGroupByCols(), columToIndx);
 		}
 
@@ -145,12 +100,16 @@ public class DataMergeService implements Runnable {
 		if (rrs.isHasAggrColumn()) {
 			List<MergeCol> mergCols = new LinkedList<MergeCol>();
 			Map<String, Integer> mergeColsMap = rrs.getMergeCols();
+
+
+
 			if (mergeColsMap != null) {
 				for (Map.Entry<String, Integer> mergEntry : mergeColsMap
 						.entrySet()) {
 					String colName = mergEntry.getKey().toUpperCase();
 					int type = mergEntry.getValue();
 					if (MergeCol.MERGE_AVG == type) {
+					
 						ColMeta sumColMeta = columToIndx.get(colName + "SUM");
 						ColMeta countColMeta = columToIndx.get(colName
 								+ "COUNT");
@@ -158,10 +117,12 @@ public class DataMergeService implements Runnable {
 							ColMeta colMeta = new ColMeta(sumColMeta.colIndex,
 									countColMeta.colIndex,
 									sumColMeta.getColType());
+							colMeta.decimals = sumColMeta.decimals; // 保存精度
 							mergCols.add(new MergeCol(colMeta, mergEntry
 									.getValue()));
 						}
 					} else {
+						
 						ColMeta colMeta = columToIndx.get(colName);
 						mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
 					}
@@ -176,10 +137,13 @@ public class DataMergeService implements Runnable {
 					mergCols.add(new MergeCol(fieldEntry.getValue(), result));
 				}
 			}
+
+		
 			grouper = new RowDataPacketGrouper(groupColumnIndexs,
 					mergCols.toArray(new MergeCol[mergCols.size()]),
 					rrs.getHavingCols());
 		}
+
 		if (rrs.getOrderByCols() != null) {
 			LinkedHashMap<String, Integer> orders = rrs.getOrderByCols();
 			OrderCol[] orderCols = new OrderCol[orders.size()];
@@ -189,82 +153,34 @@ public class DataMergeService implements Runnable {
 						.toUpperCase());
 				ColMeta colMeta = columToIndx.get(key);
 				if (colMeta == null) {
-					throw new java.lang.IllegalArgumentException(
+					throw new IllegalArgumentException(
 							"all columns in order by clause should be in the selected column list!"
 									+ entry.getKey());
 				}
 				orderCols[i++] = new OrderCol(colMeta, entry.getValue());
 			}
-			// sorter = new RowDataPacketSorter(orderCols);
+
 			RowDataSorter tmp = new RowDataSorter(orderCols);
 			tmp.setLimit(rrs.getLimitStart(), rrs.getLimitSize());
-			hasOrderBy = true;
 			sorter = tmp;
-		} else {
-			hasOrderBy = false;
 		}
-		MycatServer.getInstance().getListeningExecutorService().execute(this);
+
+		if (MycatServer.getInstance().
+				getConfig().getSystem().
+				getUseStreamOutput() == 1
+				&& grouper == null
+				&& sorter == null) {
+			setStreamOutputResult(true);
+		}else {
+			setStreamOutputResult(false);
+		}
 	}
 
-	/**
-	 * process new record (mysql binary data),if data can output to client
-	 * ,return true
-	 * 
-	 * @param dataNode
-	 *            DN's name (data from this dataNode)
-	 * @param rowData
-	 *            raw data
-	 */
-	public boolean onNewRecord(String dataNode, byte[] rowData) {
-		try {
-			// 对于无需排序的SQL,取前getLimitSize条就足够
-            //由于聚合函数等场景可能有误判的情况，暂时先注释
-//			if (!hasOrderBy && areadyAdd.get() >= rrs.getLimitSize()&& rrs.getLimitSize()!=-1) {
-//				packs.add(END_FLAG_PACK);
-//				return true;
-//			}
-			// 对于需要排序的数据,由于mysql传递过来的数据是有序的,
-			// 如果某个节点的当前数据已经不会进入,后续的数据也不会入堆
-			if (canDiscard.size() == rrs.getNodes().length) {
-				packs.add(END_FLAG_PACK);
-				LOGGER.info("other pack can discard,now send to client");
-				return true;
-			}
-			if (canDiscard.get(dataNode) != null) {
-				return true;
-			}
-			PackWraper data = new PackWraper();
-			data.node = dataNode;
-			data.data = rowData;
-			packs.put(data);
-			areadyAdd.getAndIncrement();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-		return false;
-	}
-
-	private static int[] toColumnIndex(String[] columns,
-			Map<String, ColMeta> toIndexMap) {
-		int[] result = new int[columns.length];
-		ColMeta curColMeta;
-		for (int i = 0; i < columns.length; i++) {
-			curColMeta = toIndexMap.get(columns[i].toUpperCase());
-			if (curColMeta == null) {
-				throw new java.lang.IllegalArgumentException(
-						"all columns in group by clause should be in the selected column list.!"
-								+ columns[i]);
-			}
-			result[i] = curColMeta.colIndex;
-		}
-		return result;
-	}
 
 	/**
 	 * release resources
 	 */
 	public void clear() {
-		hasOrderBy = false;
 		result.clear();
 		grouper = null;
 		sorter = null;
@@ -272,39 +188,119 @@ public class DataMergeService implements Runnable {
 
 	@Override
 	public void run() {
-
-		EOFPacket eofp = new EOFPacket();
-		ByteBuffer eof = ByteBuffer.allocate(9);
-		BufferUtil.writeUB3(eof, eofp.calcPacketSize());
-		eof.put(eofp.packetId);
-		eof.put(eofp.fieldCount);
-		BufferUtil.writeUB2(eof, eofp.status);
-		BufferUtil.writeUB2(eof, eofp.warningCount);
-		MySQLFrontConnection source = multiQueryHandler.getSession()
-				.getSource();
-
-		while (!Thread.interrupted()) {
-			try {
-				PackWraper pack = packs.take();
-				if (pack == END_FLAG_PACK) {
-					multiQueryHandler.outputMergeResult(source, eof.array());
+		// sort-or-group: no need for us to using multi-threads, because
+		//both sorter and group are synchronized!!
+		// @author Uncle-pan
+		// @since 2016-03-23
+		if(!running.compareAndSet(false, true)){
+			return;
+		}
+		// eof handler has been placed to "if (pack == END_FLAG_PACK){}" in for-statement
+		// @author Uncle-pan
+		// @since 2016-03-23
+		boolean nulpack = false;
+		try{
+			// loop-on-packs
+			for (; ; ) {
+				final PackWraper pack = packs.poll();
+				// async: handling row pack queue, this business thread should exit when no pack
+				// @author Uncle-pan
+				// @since 2016-03-23
+				if(pack == null){
+					nulpack = true;
 					break;
 				}
-				RowDataPacket row = new RowDataPacket(fieldCount);
-				row.read(pack.data);
+				// eof: handling eof pack and exit
+				if (pack == END_FLAG_PACK) {
+
+
+
+					final int warningCount = 0;
+					final EOFPacket eofp   = new EOFPacket();
+					final ByteBuffer eof   = ByteBuffer.allocate(9);
+					BufferUtil.writeUB3(eof, eofp.calcPacketSize());
+					eof.put(eofp.packetId);
+					eof.put(eofp.fieldCount);
+					BufferUtil.writeUB2(eof, warningCount);
+					BufferUtil.writeUB2(eof, eofp.status);
+					final ServerConnection source = multiQueryHandler.getSession().getSource();
+					final byte[] array = eof.array();
+					multiQueryHandler.outputMergeResult(source, array, getResults(array));
+					break;
+				}
+
+
+				// merge: sort-or-group, or simple add
+				final RowDataPacket row = new RowDataPacket(fieldCount);
+				row.read(pack.rowData);
+
 				if (grouper != null) {
 					grouper.addRow(row);
 				} else if (sorter != null) {
 					if (!sorter.addRow(row)) {
-						canDiscard.put(pack.node, true);
+						canDiscard.put(pack.dataNode,true);
 					}
 				} else {
-					result.add(row);
+					result.get(pack.dataNode).add(row);
 				}
-			} catch (Exception e) {
-				LOGGER.error("Merge multi data error", e);
-			}
+			}// rof
+		}catch(final Exception e){
+			multiQueryHandler.handleDataProcessException(e);
+		}finally{
+			running.set(false);
+		}
+		// try to check packs, it's possible that adding a pack after polling a null pack
+		//and before this time pointer!!
+		// @author Uncle-pan
+		// @since 2016-03-23
+		if(nulpack && !packs.isEmpty()){
+			this.run();
 		}
 	}
+	
 
+
+	/**
+	 * return merged data
+	 * @return (最多i*(offset+size)行数据)
+	 */
+	public List<RowDataPacket> getResults(byte[] eof) {
+	
+		List<RowDataPacket> tmpResult = null;
+
+		if (this.grouper != null) {
+			tmpResult = grouper.getResult();
+			grouper = null;
+		}
+
+		
+		if (sorter != null) {
+			
+			if (tmpResult != null) {
+				Iterator<RowDataPacket> itor = tmpResult.iterator();
+				while (itor.hasNext()) {
+					sorter.addRow(itor.next());
+					itor.remove();
+				}
+			}
+			tmpResult = sorter.getSortedResult();
+			sorter = null;
+		}
+
+
+		
+		//no grouper and sorter
+		if(tmpResult == null){
+			tmpResult = new LinkedList<RowDataPacket>();
+			for (RouteResultsetNode node : rrs.getNodes()) {
+				tmpResult.addAll(result.get(node.getName()));
+			}
+		}
+		
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("prepare mpp merge result for " + rrs.getStatement());
+		}
+		return tmpResult;
+	}
 }
+

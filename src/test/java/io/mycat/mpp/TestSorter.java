@@ -23,10 +23,10 @@
  */
 package io.mycat.mpp;
 
-import io.mycat.util.ByteUtil;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import io.mycat.util.ByteUtil;
 
 public class TestSorter {
 

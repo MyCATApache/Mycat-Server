@@ -2,13 +2,13 @@
 <Configuration status="WARN">
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{YYYY-MM-dd HH:mm:ss.SSS} %5p [%t] (%l) - %m%n"/>
+            <PatternLayout pattern="%d [%-5p][%t] %m %throwable{full} (%C:%F:%L) %n"/>
         </Console>
 
-        <RollingFile name="RollingFile" fileName="logs/mycat.log"
+        <RollingFile name="RollingFile" fileName="../logs/mycat.log"
                      filePattern="logs/$${date:yyyy-MM}/mycat-%d{MM-dd}-%i.log.gz">
             <PatternLayout>
-                <Pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} %5p [%t] (%l) - %m%n</Pattern>
+                <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] (%l) - %m%n</Pattern>
             </PatternLayout>
             <Policies>
                 <OnStartupTriggeringPolicy/>
@@ -18,9 +18,15 @@
         </RollingFile>
     </Appenders>
     <Loggers>
-        <logger name="org.apache.*" level="ERROR" additivity="false"/>
-        <Root level="trace">
-            <AppenderRef ref="Console"/>
-        </Root>
+        <!--<AsyncLogger name="io.mycat" level="info" includeLocation="true" additivity="false">-->
+            <!--<AppenderRef ref="Console"/>-->
+            <!--<AppenderRef ref="RollingFile"/>-->
+        <!--</AsyncLogger>-->
+        <asyncRoot level="debug" includeLocation="true">
+
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="RollingFile"/>
+
+        </asyncRoot>
     </Loggers>
 </Configuration>

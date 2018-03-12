@@ -1,11 +1,11 @@
 package io.mycat.sqlengine;
 
-import io.mycat.server.packet.FieldPacket;
-import io.mycat.server.packet.RowDataPacket;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.RowDataPacket;
 
 public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 
@@ -13,7 +13,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	private final SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callback;
 	private final String[] fetchCols;
 	private int fieldCount = 0;
-	private Map<String, String> result ;
+	private Map<String, String> result = new HashMap<String, String>();
 	public OneRawSQLQueryResultHandler(String[] fetchCols,
 			SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callBack) {
 
@@ -21,6 +21,7 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 		this.callback = callBack;
 	}
 
+	private String mark;
 	public void onHeader(String dataNode, byte[] header, List<byte[]> fields) {
 		fieldCount = fields.size();
 		fetchColPosMap = new HashMap<String, Integer>();
@@ -42,37 +43,55 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	public boolean onRowData(String dataNode, byte[] rowData) {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldCount);
 		rowDataPkg.read(rowData);
-		result = new HashMap<String, String>();
-		for (String fetchCol : fetchCols) {
-			Integer ind = fetchColPosMap.get(fetchCol);
+		String variableName = "";
+		String variableValue = "";
+		//fieldcount为2可能是select x也可能是show create table命令
+		if(fieldCount==2 && (fetchColPosMap.get("Variable_name")!=null || fetchColPosMap.get("Value")!=null)){
+			Integer ind = fetchColPosMap.get("Variable_name");
 			if (ind != null) {
 				byte[] columnData = rowDataPkg.fieldValues.get(ind);
                 String columnVal = columnData!=null?new String(columnData):null;
-                result.put(fetchCol, columnVal);
-
-			} else {
-				LOGGER.warn("cant't find column in sql query result "
-						+ fetchCol);
+                variableName = columnVal;
+            }
+			ind = fetchColPosMap.get("Value");
+			if (ind != null) {
+				byte[] columnData = rowDataPkg.fieldValues.get(ind);
+                String columnVal = columnData!=null?new String(columnData):null;
+                variableValue = columnVal;
+            }
+            result.put(variableName, variableValue);
+		}else{
+			for (String fetchCol : fetchCols) {
+				Integer ind = fetchColPosMap.get(fetchCol);
+				if (ind != null) {
+					byte[] columnData = rowDataPkg.fieldValues.get(ind);
+	                String columnVal = columnData!=null?new String(columnData):null;
+	                result.put(fetchCol, columnVal);
+				} else {
+					LOGGER.warn("cant't find column in sql query result " + fetchCol);
+				}
 			}
 		}
-        
-		// 返回false，表示还有数据要处理，数据处理没有结束;
-		// 如果返回true，连接会被SQLJob关闭：conn.close("not needed by user proc")
-		// 对应的各种资源：socketchannel,read buffer,write buffer等都会被回收，连接会被从连接池中删除
-		return false;	
+		return false;
 	}
 
 	@Override
-	public void finished(String dataNode, boolean failed) {
-		SQLQueryResult<Map<String, String>> queryResult=
-				new SQLQueryResult<Map<String, String>>(this.result, !failed, dataNode);
-	     this.callback.onResult(queryResult);
+	public void finished(String dataNode, boolean failed, String errorMsg) {
+		SQLQueryResult<Map<String, String>> queryRestl=new SQLQueryResult<Map<String, String>>(this.result,!failed, dataNode,errorMsg);
+	     this.callback.onResult(queryRestl);
 
 	}
 
+	public String getMark() {
+		return mark;
+	}
+
+	public void setMark(String mark) {
+		this.mark = mark;
+	}
+	
 	// 子类 MultiRowSQLQueryResultHandler 需要使用
 	protected Map<String, String> getResult() {
 		return result;
 	}
-
 }

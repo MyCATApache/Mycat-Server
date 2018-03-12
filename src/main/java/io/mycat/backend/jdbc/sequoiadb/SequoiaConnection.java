@@ -20,8 +20,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.base.Sequoiadb;
+import com.sequoiadb.base.CollectionSpace;
 import com.sequoiadb.exception.BaseException;
 /**  
  * 功能详细描述
@@ -51,12 +51,16 @@ public class SequoiaConnection implements Connection {
 	
 	public CollectionSpace getDB()  {
 		if (this._schema!=null) {
-			if (mc.isCollectionSpaceExist(this._schema))
+			if (mc.isCollectionSpaceExist(this._schema)) {
 				return this.mc.getCollectionSpace(this._schema);
-			else
+			}
+			else {
 				return this.mc.createCollectionSpace(this._schema);
+			}
 		}
-		else return null;
+		else {
+			return null;
+		}
 	}
 	   
 	@Override
@@ -80,8 +84,9 @@ public class SequoiaConnection implements Connection {
 	@Override
 	public void setAutoCommit(boolean autoCommit) throws SQLException {
 		
-	    if (!autoCommit)  
-		  throw new RuntimeException("autoCommit has to be on");	
+	    if (!autoCommit) {
+			throw new RuntimeException("autoCommit has to be on");
+		}
 	}
 
 	@Override

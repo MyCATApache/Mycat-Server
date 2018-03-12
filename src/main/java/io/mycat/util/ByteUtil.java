@@ -37,12 +37,14 @@ public class ByteUtil {
 	 * @return -1 means b1 < b2, or 0 means b1=b2 else return 1
 	 */
 	public static int compareNumberByte(byte[] b1, byte[] b2) {
-		if(b1 == null || b1.length == 0)
+		if(b1 == null || b1.length == 0) {
 			return -1;
-		else if(b2 == null || b2.length == 0)
+		}
+		else if(b2 == null || b2.length == 0) {
 			return 1;
+		}
 		boolean isNegetive = b1[0] == 45 || b2[0] == 45;
-		if (!isNegetive && b1.length != b2.length) {
+		if (isNegetive == false && b1.length != b2.length) {
 			return b1.length - b2.length;
 		}
 		int len = b1.length > b2.length ? b2.length : b1.length;
@@ -85,11 +87,13 @@ public class ByteUtil {
 		}
 		int len = b1.length > b2.length ? b1.length : b2.length;
 		for (int i = 0; i < len; i++) {
-			if (b1[i] != b2[i])
-				if (order == 1)
+			if (b1[i] != b2[i]) {
+				if (order == 1) {
 					return ((b1[i] & 0xff) - (b2[i] & 0xff)) > 0 ? b1 : b2;
-				else
+				} else {
 					return ((b1[i] & 0xff) - (b2[i] & 0xff)) > 0 ? b2 : b1;
+				}
+			}
 		}
 
 		return b1;
@@ -151,8 +155,8 @@ public class ByteUtil {
 	}
 
 	public static short getShort(byte[] bytes) {
-//		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
 		return Short.parseShort(new String(bytes));
+//		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
 	}
 
 	public static char getChar(byte[] bytes) {
@@ -309,6 +313,36 @@ public class ByteUtil {
     		bytes[11] = tmp[3];
     	}
     	return bytes;
+	}
+	
+	// 支持 byte dump
+	//---------------------------------------------------------------------
+	public static String dump(byte[] data, int offset, int length) {
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append(" byte dump log ");
+		sb.append(System.lineSeparator());
+		sb.append(" offset ").append( offset );
+		sb.append(" length ").append( length );
+		sb.append(System.lineSeparator());
+		int lines = (length - 1) / 16 + 1;
+		for (int i = 0, pos = 0; i < lines; i++, pos += 16) {
+			sb.append(String.format("0x%04X ", i * 16));
+			for (int j = 0, pos1 = pos; j < 16; j++, pos1++) {
+				sb.append(pos1 < length ? String.format("%02X ", data[offset + pos1]) : "   ");
+			}
+			sb.append(" ");
+			for (int j = 0, pos1 = pos; j < 16; j++, pos1++) {
+				sb.append(pos1 < length ? print(data[offset + pos1]) : '.');
+			}
+			sb.append(System.lineSeparator());
+		}
+		sb.append(length).append(" bytes").append(System.lineSeparator());
+		return sb.toString();
+	}
+
+	public static char print(byte b) {
+		return (b < 32 || b > 127) ? '.' : (char) b;
 	}
 
 }

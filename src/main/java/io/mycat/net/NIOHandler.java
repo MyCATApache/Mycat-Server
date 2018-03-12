@@ -1,49 +1,33 @@
+/*
+ * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software;Designed and Developed mainly by many Chinese 
+ * opensource volunteers. you can redistribute it and/or modify it under the 
+ * terms of the GNU General Public License version 2 only, as published by the
+ * Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ * 
+ * Any questions about this component can be directed to it's project Web address 
+ * https://code.google.com/p/opencloudb/.
+ *
+ */
 package io.mycat.net;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
 /**
- * NIOHandler是无状态的，多个连接共享一个，用于处理连接的事件，每个方法需要不阻塞，尽快返回结果
- * 
- * @author wuzh
+ * @author mycat
  */
-public interface NIOHandler<T extends Connection> {
+public interface NIOHandler {
 
-	/**
-	 * 连接建立成功的通知事件
-	 * 
-	 * @param con
-	 *            当前连接
-	 */
-	public void onConnected(T con) throws IOException;
-
-	/**
-	 * 连接失败
-	 * 
-	 * @param con
-	 *            失败的连接
-	 * @param e
-	 *            连接异常
-	 */
-	public void onConnectFailed(T con, Throwable e);
-	
-	/**
-	 * 连接关闭通知
-	 * @param con
-	 * @throws IOException
-	 */
-	public void onClosed(T con,String reason);
-
-	/**
-	 * 收到数据需要处理
-	 * 
-	 * @param con
-	 *            当前连接
-	 * @param data
-	 *            收到的数据包
-	 * @param readedLength    数据包的长度
-	 */
-	void handle(T con, ByteBuffer data,int start,int readedLength);
+    void handle(byte[] data);
 
 }

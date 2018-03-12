@@ -23,12 +23,11 @@
  */
 package io.mycat.cache;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 public class DefaultLayedCachePool implements LayerCachePool {
 	private static final Logger LOGGER = LoggerFactory

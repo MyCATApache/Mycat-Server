@@ -1,12 +1,13 @@
 package io.mycat.route.handler;
 
-import io.mycat.cache.LayerCachePool;
-import io.mycat.route.RouteResultset;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.config.node.SchemaConfig;
-import io.mycat.server.config.node.SystemConfig;
-
 import java.sql.SQLNonTransientException;
+import java.util.Map;
+
+import io.mycat.cache.LayerCachePool;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.SystemConfig;
+import io.mycat.route.RouteResultset;
+import io.mycat.server.ServerConnection;
 
 /**
  * 按照注释中包含指定类型的内容做路由解析
@@ -15,7 +16,7 @@ import java.sql.SQLNonTransientException;
 public interface HintHandler {
 
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema,
-			int sqlType, String realSQL, String charset,
-			MySQLFrontConnection sc, LayerCachePool cachePool,
-			String hintSQLValue) throws SQLNonTransientException;
+                                int sqlType, String realSQL, String charset, ServerConnection sc,
+                                LayerCachePool cachePool, String hintSQLValue, int hintSqlType, Map hintMap)
+			throws SQLNonTransientException;
 }

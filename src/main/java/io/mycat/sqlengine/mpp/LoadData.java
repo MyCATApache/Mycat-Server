@@ -1,11 +1,12 @@
 package io.mycat.sqlengine.mpp;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Created by magicdoom on 2015/3/30.
  */
-public class LoadData
+public class LoadData implements Serializable
 {
     public static final String loadDataHint="/*loaddata*/";
     private boolean isLocal;

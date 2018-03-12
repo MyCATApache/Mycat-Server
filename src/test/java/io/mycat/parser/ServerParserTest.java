@@ -23,14 +23,14 @@
  */
 package io.mycat.parser;
 
+import org.junit.Assert;
+import org.junit.Test;
+
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.parser.ServerParseSelect;
 import io.mycat.server.parser.ServerParseSet;
 import io.mycat.server.parser.ServerParseShow;
 import io.mycat.server.parser.ServerParseStart;
-
-import org.junit.Assert;
-import org.junit.Test;
 
 /**
  * @author mycat
@@ -61,6 +61,20 @@ public class ServerParserTest {
         Assert.assertEquals(ServerParse.MYSQL_COMMENT, ServerParse.parse("/*SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */"));
         Assert.assertEquals(ServerParse.MYSQL_COMMENT, ServerParse.parse("/*SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */"));
         Assert.assertEquals(ServerParse.MYSQL_COMMENT, ServerParse.parse("/*SET @saved_cs_client     = @@character_set_client */"));
+    }
+
+    @Test
+    public void testMycatComment() {
+        Assert.assertEquals(ServerParse.SELECT, 0xff & ServerParse.parse("/*#mycat:schema=DN1*/SELECT ..."));
+        Assert.assertEquals(ServerParse.UPDATE, 0xff & ServerParse.parse("/*#mycat: schema = DN1 */ UPDATE ..."));
+        Assert.assertEquals(ServerParse.DELETE, 0xff & ServerParse.parse("/*#mycat: sql = SELECT id FROM user */ DELETE ..."));
+    }
+
+    @Test
+    public void testOldMycatComment() {
+        Assert.assertEquals(ServerParse.SELECT, 0xff & ServerParse.parse("/*!mycat:schema=DN1*/SELECT ..."));
+        Assert.assertEquals(ServerParse.UPDATE, 0xff & ServerParse.parse("/*!mycat: schema = DN1 */ UPDATE ..."));
+        Assert.assertEquals(ServerParse.DELETE, 0xff & ServerParse.parse("/*!mycat: sql = SELECT id FROM user */ DELETE ..."));
     }
 
     @Test
@@ -452,6 +466,33 @@ public class ServerParserTest {
         Assert.assertEquals(ServerParseSelect.OTHER, ServerParseSelect.parse(stmt, 6));
         stmt = "select last_insert_id(#\n\r) as 'a";
         Assert.assertEquals(ServerParseSelect.OTHER, ServerParseSelect.parse(stmt, 6));
+    }
+    
+    @Test
+    public void testLockTable() {
+    	Assert.assertEquals(ServerParse.LOCK, ServerParse.parse("lock tables ttt write;"));
+    	Assert.assertEquals(ServerParse.LOCK, ServerParse.parse(" lock tables ttt read;"));
+    	Assert.assertEquals(ServerParse.LOCK, ServerParse.parse("lock tables"));
+    }
+
+    @Test
+    public void testUnlockTable() {
+    	Assert.assertEquals(ServerParse.UNLOCK, ServerParse.parse("unlock tables"));
+    	Assert.assertEquals(ServerParse.UNLOCK, ServerParse.parse(" unlock	 tables"));
+    }
+    
+    @Test
+    public void testSetXAOn() {
+    	Assert.assertEquals(ServerParseSet.XA_FLAG_ON, ServerParseSet.parse("set xa=on", 3));
+    	Assert.assertEquals(ServerParseSet.XA_FLAG_ON, ServerParseSet.parse("set xa = on", 3));
+    	Assert.assertEquals(ServerParseSet.XA_FLAG_ON, ServerParseSet.parse("set xa \t\n\r = \t\n\r on", 3));
+    }
+    
+    @Test
+    public void testSetXAOff() {
+    	Assert.assertEquals(ServerParseSet.XA_FLAG_OFF, ServerParseSet.parse("set xa=off", 3));
+    	Assert.assertEquals(ServerParseSet.XA_FLAG_OFF, ServerParseSet.parse("set xa = off", 3));
+    	Assert.assertEquals(ServerParseSet.XA_FLAG_OFF, ServerParseSet.parse("set xa \t\n\r = \t\n\r off", 3));
     }
 
 }

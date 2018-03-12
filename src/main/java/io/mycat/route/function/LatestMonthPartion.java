@@ -33,16 +33,20 @@ public class LatestMonthPartion extends AbstractPartitionAlgorithm {
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		int valueLen = columnValue.length();
-		int day = Integer.valueOf(columnValue.substring(valueLen - 4,
-				valueLen - 2));
-		int hour = Integer.valueOf(columnValue.substring(valueLen - 2));
-		return (day - 1) * splitOneDay + hour / hourSpan;
-
+	public Integer calculate(String columnValue)  {
+		try {
+			int valueLen = columnValue.length();
+			int day = Integer.parseInt(columnValue.substring(valueLen - 4,
+					valueLen - 2));
+			int hour = Integer.parseInt(columnValue.substring(valueLen - 2));
+			int dnIndex = (day - 1) * splitOneDay + hour / hourSpan;
+			return dnIndex;
+		}catch (NumberFormatException e){
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please check if the format satisfied.").toString(),e);
+		}
 	}
 
-	public Integer[] calculateRange(String beginValue, String endValue) {
+	public Integer[] calculateRange(String beginValue, String endValue)  {
 		return calculateSequenceRange(this,beginValue, endValue);
 	}
 

@@ -14,7 +14,7 @@ package io.mycat.backend.postgresql.utils;
  * @author Jeremy Wohl
  */
 
-import java.security.*;
+import java.security.MessageDigest;
 
 public class MD5Digest
 {

@@ -60,7 +60,8 @@ public class SimpleConPool {
 	}
 
 	private Connection getCon() throws SQLException {
-		return DriverManager.getConnection(url, user, password);
+		Connection theCon = DriverManager.getConnection(url, user, password);
+		return theCon;
 	}
 
 	public void returnCon(Connection con) {

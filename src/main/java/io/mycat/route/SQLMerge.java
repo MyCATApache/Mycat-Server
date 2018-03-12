@@ -23,15 +23,16 @@
  */
 package io.mycat.route;
 
-import io.mycat.sqlengine.mpp.HavingCols;
-
 import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import io.mycat.sqlengine.mpp.HavingCols;
+
 public class SQLMerge implements Serializable {
 	private LinkedHashMap<String, Integer> orderByCols;
 	private HavingCols havingCols;
+	private Object[] havingColsName;			// Added by winbill, 20160314, for having clause
 	private Map<String, Integer> mergeCols;
 	private String[] groupByCols;
 	private boolean hasAggrColumn;
@@ -74,5 +75,13 @@ public class SQLMerge implements Serializable {
 
 	public void setHavingCols(HavingCols havingCols) {
 		this.havingCols = havingCols;
+	}
+
+	public Object[] getHavingColsName() {
+		return havingColsName;
+	}
+
+	public void setHavingColsName(Object[] havingColsName) {
+		this.havingColsName = havingColsName;
 	}
 }

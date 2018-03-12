@@ -129,14 +129,4 @@ public class MySQLConsistencyHelper implements SQLQueryResultListener<SQLQueryRe
 		this.sqlJob = sqlJob;
 	}
     
-//		if(count == null){
-//    		LOGGER.warn(heartbeat.getCountSQL() + " execute failed in db: "
-//        			+ result.getDataNode() +" during global table consistency heartbeat.");
-//    	}
-//    	if(maxTimestamp == null){
-//    		LOGGER.warn(heartbeat.getMaxSQL() + " execute failed in db: "
-//        			+ result.getDataNode() +" during global table consistency heartbeat.");
-//    	}
-//    	return;
-//	}
 }

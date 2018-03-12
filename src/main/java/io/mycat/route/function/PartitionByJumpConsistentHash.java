@@ -1,5 +1,6 @@
 package io.mycat.route.function;
 
+import io.mycat.config.model.rule.RuleAlgorithm;
 
 /**
  * 跳增一致性哈希分片
@@ -21,8 +22,14 @@ public final class PartitionByJumpConsistentHash extends AbstractPartitionAlgori
     public Integer calculate(String columnValue) {
         return jumpConsistentHash(columnValue.hashCode(), totalBuckets);
     }
+    
+	@Override
+	public int getPartitionNum() {
+		int nPartition = this.totalBuckets;
+		return nPartition;
+	}
 
-    public static int jumpConsistentHash(final long key, final int buckets) {
+	public static int jumpConsistentHash(final long key, final int buckets) {
         checkBuckets(buckets);
         long k = key;
         long b = -1;

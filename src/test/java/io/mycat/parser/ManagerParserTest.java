@@ -23,15 +23,15 @@
  */
 package io.mycat.parser;
 
-import io.mycat.server.parser.ManagerParse;
-import io.mycat.server.parser.ManagerParseClear;
-import io.mycat.server.parser.ManagerParseReload;
-import io.mycat.server.parser.ManagerParseRollback;
-import io.mycat.server.parser.ManagerParseShow;
-import io.mycat.server.parser.ManagerParseStop;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import io.mycat.route.parser.ManagerParse;
+import io.mycat.route.parser.ManagerParseClear;
+import io.mycat.route.parser.ManagerParseReload;
+import io.mycat.route.parser.ManagerParseRollback;
+import io.mycat.route.parser.ManagerParseShow;
+import io.mycat.route.parser.ManagerParseStop;
 
 /**
  * @author mycat
@@ -393,6 +393,21 @@ public class ManagerParserTest {
                 0xff & ManagerParseClear.parse("CLEAR @@SLOW WHERE DATANODE= D", 5));
         Assert.assertEquals(ManagerParseClear.SLOW_DATANODE,
                 0xff & ManagerParseClear.parse("clear @@SLOW where  DATANODE= d", 5));
+    }
+    @Test
+    public void testHeartBearDetail() {
+        Assert.assertEquals(ManagerParseShow.HEARTBEAT_DETAIL,
+                0xff & ManagerParseShow.parse("show @@heartbeat.detail where name=master",5)); 
+    }
+    @Test
+    public void testSynStatus() {
+        Assert.assertEquals(ManagerParseShow.DATASOURCE_SYNC,
+                0xff & ManagerParseShow.parse("show @@datasource.synstatus",5)); 
+    }
+    @Test
+    public void testSynDetail() {
+        Assert.assertEquals(ManagerParseShow.DATASOURCE_SYNC_DETAIL,
+                0xff & ManagerParseShow.parse("show @@datasource.syndetail where name=slave",5)); 
     }
 
 }

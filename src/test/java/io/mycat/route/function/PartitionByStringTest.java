@@ -26,6 +26,8 @@ package io.mycat.route.function;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.mycat.route.function.PartitionByString;
+
 public class PartitionByStringTest {
 
 	@Test

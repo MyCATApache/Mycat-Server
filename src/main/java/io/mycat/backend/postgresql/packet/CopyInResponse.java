@@ -1,7 +1,5 @@
 package io.mycat.backend.postgresql.packet;
 
-import io.mycat.backend.postgresql.utils.PIOUtils;
-
 import java.nio.ByteBuffer;
 //		CopyInResponse (B)
 //		Byte1('G')
@@ -18,6 +16,8 @@ import java.nio.ByteBuffer;
 //		
 //		Int16[N]
 //		每个字段将要用的格式代码，目前每个都必须是零（文本）或者一（二进制）。 如果全部拷贝格式都是文本的，那么所有的都必须是零。
+
+import io.mycat.backend.postgresql.utils.PIOUtils;
 
 /***
  * 拷贝数据开始

@@ -50,7 +50,8 @@ public class TestMergeSelectPerf {
 
 	private static Connection getCon(String url, String user, String passwd)
 			throws SQLException {
-		return DriverManager.getConnection(url, user, passwd);
+		Connection theCon = DriverManager.getConnection(url, user, passwd);
+		return theCon;
 	}
 
 	public static void main(String[] args) throws Exception {

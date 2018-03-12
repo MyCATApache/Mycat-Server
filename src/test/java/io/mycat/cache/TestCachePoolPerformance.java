@@ -23,12 +23,14 @@
  */
 package io.mycat.cache;
 
+import io.mycat.cache.CachePool;
+import io.mycat.cache.CacheStatic;
+import io.mycat.cache.impl.EnchachePool;
+import io.mycat.cache.impl.MapDBCachePooFactory;
 /**
  * test cache performance ,for encache test set  VM param  -server -Xms1100M -Xmx1100M
  * for mapdb set vm param -server -Xms100M -Xmx100M -XX:MaxPermSize=1G
  */
-import io.mycat.cache.impl.EnchachePool;
-import io.mycat.cache.impl.MapDBCachePooFactory;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.config.CacheConfiguration;
@@ -45,7 +47,8 @@ public class TestCachePoolPerformance {
 				.timeToIdleSeconds(3600);
 		Cache cache = new Cache(cacheConf);
 		CacheManager.create().addCache(cache);
-		return new EnchachePool(cacheConf.getName(),cache,400*10000);
+		EnchachePool enCachePool = new EnchachePool(cacheConf.getName(),cache,400*10000);
+		return enCachePool;
 	}
 
 	public static CachePool createMapDBCachePool() {

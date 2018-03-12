@@ -1,23 +1,23 @@
 package io.mycat.sqlengine;
 
-import io.mycat.net.BufferArray;
-import io.mycat.net.NetSystem;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.NonBlockingSession;
-import io.mycat.server.packet.EOFPacket;
-import io.mycat.server.packet.ResultSetHeaderPacket;
-import io.mycat.server.packet.RowDataPacket;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import io.mycat.manager.handler.ConfFileHandler;
+import io.mycat.net.mysql.EOFPacket;
+import io.mycat.net.mysql.EmptyPacket;
+import io.mycat.net.mysql.ResultSetHeaderPacket;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.server.NonBlockingSession;
+import io.mycat.server.ServerConnection;
+
 public class EngineCtx {
-	public static final Logger LOGGER = LoggerFactory
-			.getLogger(EngineCtx.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(ConfFileHandler.class);
 	private final BatchSQLJob bachJob;
 	private AtomicInteger jobId = new AtomicInteger(0);
 	AtomicInteger packetId = new AtomicInteger(0);
@@ -26,6 +26,7 @@ public class EngineCtx {
 	private AllJobFinishedListener allJobFinishedListener;
 	private AtomicBoolean headerWrited = new AtomicBoolean();
 	private final ReentrantLock writeLock = new ReentrantLock();
+	private volatile boolean hasError = false;
 
 	public EngineCtx(NonBlockingSession session) {
 		this.bachJob = new BatchSQLJob();
@@ -78,37 +79,35 @@ public class EngineCtx {
 				writeLock.lock();
 				// write new header
 				ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
-				headerPkg.fieldCount = afields.size() + bfields.size() - 1;
+				headerPkg.fieldCount = afields.size() +bfields.size()-1;
 				headerPkg.packetId = incPackageId();
 				LOGGER.debug("packge id " + headerPkg.packetId);
-				MySQLFrontConnection sc = session.getSource();
-				BufferArray bufferArray = NetSystem.getInstance()
-						.getBufferPool().allocateArray();
-				headerPkg.write(bufferArray);
+				ServerConnection sc = session.getSource();
+				ByteBuffer buf = headerPkg.write(sc.allocate(), sc, true);
 				// wirte a fields
 				for (byte[] field : afields) {
 					field[3] = incPackageId();
-					bufferArray.write(field);
+					buf = sc.writeToBuffer(field, buf);
 				}
 				// write b field
-				for (int i = 1; i < bfields.size(); i++) {
-					byte[] bfield = bfields.get(i);
-					bfield[3] = incPackageId();
-					bufferArray.write(bfield);
+				for (int i=1;i<bfields.size();i++) {
+				  byte[] bfield = bfields.get(i);
+				  bfield[3] = incPackageId();
+				  buf = sc.writeToBuffer(bfield, buf);
 				}
 				// write field eof
 				EOFPacket eofPckg = new EOFPacket();
 				eofPckg.packetId = incPackageId();
-				eofPckg.write(bufferArray);
-				sc.write(bufferArray);
-				// LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
+				buf = eofPckg.write(buf, sc, true);
+				sc.write(buf);
+				//LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
 			} finally {
 				writeLock.unlock();
 			}
 		}
 
 	}
-
+	
 	public void writeHeader(List<byte[]> afields) {
 		if (headerWrited.compareAndSet(false, true)) {
 			try {
@@ -118,48 +117,50 @@ public class EngineCtx {
 				headerPkg.fieldCount = afields.size();// -1;
 				headerPkg.packetId = incPackageId();
 				LOGGER.debug("packge id " + headerPkg.packetId);
-				MySQLFrontConnection sc = session.getSource();
-				BufferArray bufferArray = NetSystem.getInstance()
-						.getBufferPool().allocateArray();
+				ServerConnection sc = session.getSource();
+				ByteBuffer buf = headerPkg.write(sc.allocate(), sc, true);
 				// wirte a fields
 				for (byte[] field : afields) {
 					field[3] = incPackageId();
-					bufferArray.write(field);
+					buf = sc.writeToBuffer(field, buf);
 				}
 
 				// write field eof
 				EOFPacket eofPckg = new EOFPacket();
 				eofPckg.packetId = incPackageId();
-				eofPckg.write(bufferArray);
-				sc.write(bufferArray);
-				// LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
+				buf = eofPckg.write(buf, sc, true);
+				sc.write(buf);
+				//LOGGER.info("header outputed ,packgId:" + eofPckg.packetId);
 			} finally {
 				writeLock.unlock();
 			}
 		}
 
 	}
-
+	
 	public void writeRow(RowDataPacket rowDataPkg) {
-		MySQLFrontConnection sc = session.getSource();
+		ServerConnection sc = session.getSource();
 		try {
 			writeLock.lock();
 			rowDataPkg.packetId = incPackageId();
 			// 输出完整的 记录到客户端
-			rowDataPkg.write(sc);
-			// LOGGER.info("write  row ,packgId:" + rowDataPkg.packetId);
+			ByteBuffer buf = rowDataPkg.write(sc.allocate(), sc, true);
+			sc.write(buf);
+			//LOGGER.info("write  row ,packgId:" + rowDataPkg.packetId);
 		} finally {
 			writeLock.unlock();
 		}
 	}
 
 	public void writeEof() {
-		MySQLFrontConnection sc = session.getSource();
+		ServerConnection sc = session.getSource();
 		EOFPacket eofPckg = new EOFPacket();
 		eofPckg.packetId = incPackageId();
-		eofPckg.write(sc);
+		ByteBuffer buf = eofPckg.write(sc.allocate(), sc, false);
+		sc.write(buf);
 		LOGGER.info("write  eof ,packgId:" + eofPckg.packetId);
 	}
+	
 
 	public NonBlockingSession getSession() {
 		return session;
@@ -169,10 +170,24 @@ public class EngineCtx {
 
 		boolean allFinished = bachJob.jobFinished(sqlJob);
 		if (allFinished && finished.compareAndSet(false, true)) {
-			LOGGER.info("all job finished  for front connection: "
-					+ session.getSource());
-			allJobFinishedListener.onAllJobFinished(this);
+			if(!hasError){
+				LOGGER.info("all job finished  for front connection: "
+						+ session.getSource());
+				allJobFinishedListener.onAllJobFinished(this);
+			}else{
+				LOGGER.info("all job finished with error for front connection: "
+						+ session.getSource());
+			}
 		}
 
 	}
+
+	public boolean isHasError() {
+		return hasError;
+	}
+
+	public void setHasError(boolean hasError) {
+		this.hasError = hasError;
+	}
+
 }

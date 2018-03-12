@@ -23,15 +23,15 @@
  */
 package io.mycat.server.response;
 
-import io.mycat.net.BufferArray;
-import io.mycat.net.NetSystem;
-import io.mycat.server.Fields;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.packet.EOFPacket;
-import io.mycat.server.packet.FieldPacket;
-import io.mycat.server.packet.ResultSetHeaderPacket;
-import io.mycat.server.packet.RowDataPacket;
-import io.mycat.server.packet.util.PacketUtil;
+import java.nio.ByteBuffer;
+
+import io.mycat.backend.mysql.PacketUtil;
+import io.mycat.config.Fields;
+import io.mycat.net.mysql.EOFPacket;
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.ResultSetHeaderPacket;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.server.ServerConnection;
 import io.mycat.util.LongUtil;
 
 /**
@@ -39,39 +39,35 @@ import io.mycat.util.LongUtil;
  */
 public class SessionIncrement {
 
-	private static final int FIELD_COUNT = 1;
-	private static final ResultSetHeaderPacket header = PacketUtil
-			.getHeader(FIELD_COUNT);
-	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
-	private static final EOFPacket eof = new EOFPacket();
-	static {
-		int i = 0;
-		byte packetId = 0;
-		header.packetId = ++packetId;
-		fields[i] = PacketUtil.getField("@@session.auto_increment_increment",
-				Fields.FIELD_TYPE_LONG);
-		fields[i++].packetId = ++packetId;
-		eof.packetId = ++packetId;
-	}
+    private static final int FIELD_COUNT = 1;
+    private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
+    private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
+    private static final EOFPacket eof = new EOFPacket();
+    static {
+        int i = 0;
+        byte packetId = 0;
+        header.packetId = ++packetId;
+        fields[i] = PacketUtil.getField("@@session.auto_increment_increment", Fields.FIELD_TYPE_LONG);
+        fields[i++].packetId = ++packetId;
+        eof.packetId = ++packetId;
+    }
 
-	public static void response(MySQLFrontConnection c) {
-		BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
-				.allocateArray();
-
-		header.write(bufferArray);
-		for (FieldPacket field : fields) {
-			field.write(bufferArray);
-		}
-		eof.write(bufferArray);
-		byte packetId = eof.packetId;
-		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-		row.add(LongUtil.toBytes(1));
-		row.packetId = ++packetId;
-		row.write(bufferArray);
-		EOFPacket lastEof = new EOFPacket();
-		lastEof.packetId = ++packetId;
-		lastEof.write(bufferArray);
-		c.write(bufferArray);
-	}
+    public static void response(ServerConnection c) {
+        ByteBuffer buffer = c.allocate();
+        buffer = header.write(buffer, c,true);
+        for (FieldPacket field : fields) {
+            buffer = field.write(buffer, c,true);
+        }
+        buffer = eof.write(buffer, c,true);
+        byte packetId = eof.packetId;
+        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
+        row.add(LongUtil.toBytes(1));
+        row.packetId = ++packetId;
+        buffer = row.write(buffer, c,true);
+        EOFPacket lastEof = new EOFPacket();
+        lastEof.packetId = ++packetId;
+        buffer = lastEof.write(buffer, c,true);
+        c.write(buffer);
+    }
 
 }

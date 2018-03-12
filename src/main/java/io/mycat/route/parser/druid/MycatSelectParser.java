@@ -1,6 +1,7 @@
 package io.mycat.route.parser.druid;
 
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlSelectParser;
 import com.alibaba.druid.sql.parser.SQLExprParser;
 import com.alibaba.druid.sql.parser.Token;
@@ -20,13 +21,12 @@ public class MycatSelectParser extends MySqlSelectParser
         super(sql);
     }
 
-    @Override
-    protected SQLSelectItem parseSelectItem()
-    {
-        parseTop();
-        return super.parseSelectItem();
-    }
 
+//public SQLSelectQuery query()
+//{
+//    parseTop();
+//    return super.query();
+//}
 
     public void parseTop()
     {

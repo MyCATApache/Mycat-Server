@@ -24,33 +24,38 @@
 package io.mycat.server.response;
 
 import com.google.common.base.Splitter;
-import io.mycat.net.BufferArray;
-import io.mycat.net.NetSystem;
-import io.mycat.server.Fields;
-import io.mycat.server.MySQLFrontConnection;
-import io.mycat.server.packet.EOFPacket;
-import io.mycat.server.packet.FieldPacket;
-import io.mycat.server.packet.ResultSetHeaderPacket;
-import io.mycat.server.packet.RowDataPacket;
-import io.mycat.server.packet.util.PacketUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import io.mycat.backend.BackendConnection;
+import io.mycat.backend.mysql.PacketUtil;
+import io.mycat.config.Fields;
+import io.mycat.net.mysql.EOFPacket;
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.ResultSetHeaderPacket;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.server.NonBlockingSession;
+import io.mycat.server.ServerConnection;
+import io.mycat.util.LongUtil;
+import io.mycat.util.StringUtil;
+
+import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author mycat
  */
 public final class SelectVariables
 {
-    private static final Logger LOGGER = LoggerFactory
-            .getLogger(SelectVariables.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SelectVariables.class);
 
 
-    public static void execute(MySQLFrontConnection c, String sql) {
+    public static void execute(ServerConnection c, String sql) {
 
      String subSql=   sql.substring(sql.indexOf("SELECT")+6);
     List<String>  splitVar=   Splitter.on(",").omitEmptyStrings().trimResults().splitToList(subSql) ;
@@ -69,23 +74,22 @@ public final class SelectVariables
             fields[i++].packetId = ++packetId;
         }
 
-        BufferArray bufferArray = NetSystem.getInstance().getBufferPool()
-                .allocateArray();
 
+        ByteBuffer buffer = c.allocate();
 
         // write header
-        header.write(bufferArray);
+        buffer = header.write(buffer, c,true);
 
         // write fields
         for (FieldPacket field : fields) {
-            field.write(bufferArray);
+            buffer = field.write(buffer, c,true);
         }
 
 
         EOFPacket eof = new EOFPacket();
         eof.packetId = ++packetId;
         // write eof
-        eof.write(bufferArray);
+        buffer = eof.write(buffer, c,true);
 
         // write rows
         //byte packetId = eof.packetId;
@@ -100,41 +104,43 @@ public final class SelectVariables
         }
 
         row.packetId = ++packetId;
-         row.write(bufferArray);
+        buffer = row.write(buffer, c,true);
 
 
 
         // write lastEof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
-         lastEof.write(bufferArray);
+        buffer = lastEof.write(buffer, c,true);
 
         // write buffer
-        c.write(bufferArray);
+        c.write(buffer);
     }
-
 
     private static List<String> convert(List<String> in)
     {
         List<String> out=new ArrayList<>();
         for (String s : in)
         {
-            int asIndex=s.toUpperCase().indexOf(" AS ");
+          int asIndex=s.toUpperCase().indexOf(" AS ");
             if(asIndex!=-1)
             {
                 out.add(s.substring(asIndex+4)) ;
             }
         }
-        if(out.isEmpty())
-        {
-            return in;
-        }  else
-        {
-            return out;
-        }
+         if(out.isEmpty())
+         {
+             return in;
+         }  else
+         {
+             return out;
+         }
 
 
     }
+
+
+
 
     private static final Map<String, String> variables = new HashMap<String, String>();
     static {
@@ -158,7 +164,6 @@ public final class SelectVariables
         variables.put("@@wait_timeout", "172800");
         variables.put("@@session.auto_increment_increment", "1");
 
-        //for  jdbc driver 5.1.37
         variables.put("character_set_client", "utf8");
         variables.put("character_set_connection", "utf8");
         variables.put("character_set_results", "utf8");

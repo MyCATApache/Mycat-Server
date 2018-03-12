@@ -1,8 +1,8 @@
 package io.mycat.backend.postgresql.packet;
 
-import io.mycat.backend.postgresql.utils.PIOUtils;
-
 import java.nio.ByteBuffer;
+
+import io.mycat.backend.postgresql.utils.PIOUtils;
 
 //		BindComplete (B)
 //		Byte1('2')

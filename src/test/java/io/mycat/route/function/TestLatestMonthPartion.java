@@ -7,7 +7,7 @@ import org.junit.Test;
 public class TestLatestMonthPartion {
 
 	@Test
-	public void testSetDataNodes() {
+	public void testSetDataNodes()  {
 		LatestMonthPartion partion = new LatestMonthPartion();
 		partion.setSplitOneDay(24);
 		Integer val = partion.calculate("2015020100");

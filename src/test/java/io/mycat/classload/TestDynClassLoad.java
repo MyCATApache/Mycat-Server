@@ -1,9 +1,9 @@
 package io.mycat.classload;
 
-import io.mycat.server.classloader.DynaClassLoader;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import io.mycat.config.classloader.DynaClassLoader;
 
 public class TestDynClassLoad {
 

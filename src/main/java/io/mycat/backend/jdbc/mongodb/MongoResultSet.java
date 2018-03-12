@@ -1,5 +1,9 @@
 package io.mycat.backend.jdbc.mongodb;
 
+import com.mongodb.BasicDBList;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -26,10 +30,6 @@ import java.util.HashMap;
 //import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import com.mongodb.BasicDBList;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 /**  
  * 功能详细描述
  * @author sohudo[http://blog.csdn.net/wind520]
@@ -101,7 +101,9 @@ public class MongoResultSet implements ResultSet
 		if (isid) {
 		  fieldtype= new int[Types.VARCHAR];
 		}
-		else fieldtype= new int[this.select.length];
+		else {
+			fieldtype = new int[this.select.length];
+		}
 		
 		if (_cur!=null) {
 		  for (int i=0;i<this.select.length;i++){
@@ -160,8 +162,9 @@ public class MongoResultSet implements ResultSet
 	    		  _row++;	
 	    		  return true;
 	    	   }
-	    	   else
-	    		  return false;
+	    	   else {
+				   return false;
+			   }
 	        }
 	        else {
 	           if (_row!=1){
@@ -290,8 +293,9 @@ public class MongoResultSet implements ResultSet
 	public String getString(String columnLabel) throws SQLException {
 		
 		Object x = getObject(columnLabel);
-		if (x == null)
-		   return null;
+		if (x == null) {
+			return null;
+		}
 		return x.toString();
 	}
 
@@ -300,16 +304,18 @@ public class MongoResultSet implements ResultSet
 		
 		//return false;
 		Object x = getObject(columnLabel);
-		if (x == null)
-		   return false;
+		if (x == null) {
+			return false;
+		}
 		return ((Boolean)x).booleanValue();
 	}
 	
 	public Number getNumber(String columnLabel)
 	 {
 	   Number x = (Number)this._cur.get(columnLabel);
-	   if (x == null)
-	     return Integer.valueOf(0);
+	   if (x == null) {
+		   return Integer.valueOf(0);
+	   }
 	   return x;
 	 }
 	 
@@ -376,8 +382,12 @@ public class MongoResultSet implements ResultSet
 
 	@Override
 	public Timestamp getTimestamp(String columnLabel) throws SQLException {
-		
-		return (Timestamp)getObject(columnLabel);//throw new UnsupportedOperationException();
+		Object obj = getObject(columnLabel);
+		if(obj instanceof java.util.Date){
+			java.util.Date d= (java.util.Date) obj;
+			return new Timestamp(d.getTime());
+		}
+		return (Timestamp)obj;//throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -437,9 +447,13 @@ public class MongoResultSet implements ResultSet
 			 if (isSum) {
 				 return getObject(getField(1)); 
 			 }
-			 else return this._cur;
+			 else {
+				 return this._cur;
+			 }
 		 }
-		else return getObject(getField(columnIndex));
+		else {
+			 return getObject(getField(columnIndex));
+		 }
 	}
 
 	@Override
@@ -459,7 +473,9 @@ public class MongoResultSet implements ResultSet
 			   return  this._sum;
 		   }
 		}
-		else return this._cur.get(columnLabel);
+		else {
+			return this._cur.get(columnLabel);
+		}
 	}
 
 	@Override
@@ -567,8 +583,9 @@ public class MongoResultSet implements ResultSet
 	@Override
 	public void setFetchDirection(int direction) throws SQLException {
 		
-		if (direction == getFetchDirection())
-		     return;
+		if (direction == getFetchDirection()) {
+			return;
+		}
 	}
 
 	@Override
@@ -1389,15 +1406,15 @@ public class MongoResultSet implements ResultSet
 
 	@Override
 	public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-		
-		return null;
+		Object value = getObject(columnIndex);
+		return (T) MongoEmbeddedObjectProcessor.valueMapper(getField(columnIndex), value, type);
 	}
 
 	@Override
 	public <T> T getObject(String columnLabel, Class<T> type)
 			throws SQLException {
-		
-		return null;
+		Object value = getObject(columnLabel);
+		return (T) MongoEmbeddedObjectProcessor.valueMapper(columnLabel, value, type);
 	}
 	
 	

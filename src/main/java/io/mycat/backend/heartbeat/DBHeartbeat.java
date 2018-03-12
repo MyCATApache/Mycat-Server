@@ -23,9 +23,10 @@
  */
 package io.mycat.backend.heartbeat;
 
-import io.mycat.backend.HeartbeatRecorder;
-
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.mycat.statistic.DataSourceSyncRecorder;
+import io.mycat.statistic.HeartbeatRecorder;
 
 public abstract class DBHeartbeat {
 	public static final int DB_SYN_ERROR = -1;
@@ -46,6 +47,7 @@ public abstract class DBHeartbeat {
 	protected int errorCount;
 	protected volatile int status;
 	protected final HeartbeatRecorder recorder = new HeartbeatRecorder();
+	protected final DataSourceSyncRecorder asynRecorder = new DataSourceSyncRecorder();
 
 	private volatile Integer slaveBehindMaster;
 	private volatile int dbSynStatus = DB_SYN_NORMAL;
@@ -122,6 +124,10 @@ public abstract class DBHeartbeat {
 
 	public boolean isNeedHeartbeat() {
 		return heartbeatSQL != null;
+	}
+
+	public DataSourceSyncRecorder getAsynRecorder() {
+		return this.asynRecorder;
 	}
 
 }
