@@ -70,7 +70,8 @@
 
 		<!-- XA Recovery Log日志名称 -->
 		<!--<property name="XARecoveryLogBaseName">tmlog</property>-->
-
+		<!--如果为 true的话 严格遵守隔离级别,不会在仅仅只有select语句的时候在事务中切换连接-->
+		<property name="strictTxIsolation">false</property>
 	</system>
 	
 	<!-- 全局SQL防火墙设置 -->
