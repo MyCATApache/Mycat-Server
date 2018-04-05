@@ -317,7 +317,7 @@ public class NonBlockingSession implements Session {
 	 * 执行unlock tables语句方法
 	 * @author songdabin
 	 * @date 2016-7-9
-	 * @param rrs
+	 * @param sql
 	 */
 	public void unLockTable(String sql) {
 		UnLockTablesHandler handler = new UnLockTablesHandler(this, this.source.isAutocommit(), sql);
@@ -362,9 +362,17 @@ public class NonBlockingSession implements Session {
 //            if (node.isDisctTable()) {
 //                return;
 //            }
-            if ((this.source.isAutocommit() || conn.isFromSlaveDB()
-                    || !conn.isModifiedSQLExecuted()) && !this.source.isLocked()) {
-                releaseConnection((RouteResultsetNode) conn.getAttachment(), LOGGER.isDebugEnabled(), needRollback);
+            if (MycatServer.getInstance().getConfig().getSystem().isStrictTxIsolation()) {
+                // 如果是严格隔离级别模式的话,不考虑是否已经执行了modifiedSql,直接不释放连接
+                if ((!this.source.isAutocommit() && !conn.isFromSlaveDB()) || this.source.isLocked()) {
+                    return;
+                }
+            } else {
+                if ((this.source.isAutocommit() || conn.isFromSlaveDB()
+                             || !conn.isModifiedSQLExecuted()) && !this.source.isLocked()) {
+                    releaseConnection((RouteResultsetNode) conn.getAttachment(), LOGGER.isDebugEnabled(),
+                            needRollback);
+                }
             }
         }
     }
