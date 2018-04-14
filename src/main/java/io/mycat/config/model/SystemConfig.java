@@ -962,8 +962,7 @@ public final class SystemConfig {
 		return strictTxIsolation;
 	}
 
-	public SystemConfig setStrictTxIsolation(boolean strictTxIsolation) {
+	public void setStrictTxIsolation(boolean strictTxIsolation) {
 		this.strictTxIsolation = strictTxIsolation;
-		return this;
 	}
 }
