@@ -174,6 +174,8 @@ public final class SystemConfig {
 	
 	private long glableTableCheckPeriod;
 
+	// 如果为true的话 严格遵守隔离级别,不会在仅仅只有select语句的时候在事务中切换连接
+	private boolean strictTxIsolation = false;
 	/**
 	 * Mycat 使用 Off Heap For Merge/Order/Group/Limit计算相关参数
 	 */
@@ -955,6 +957,12 @@ public final class SystemConfig {
 	public void setSubqueryRelationshipCheck(boolean subqueryRelationshipCheck) {
 		this.subqueryRelationshipCheck = subqueryRelationshipCheck;
 	}
-	
-	
+
+	public boolean isStrictTxIsolation() {
+		return strictTxIsolation;
+	}
+
+	public void setStrictTxIsolation(boolean strictTxIsolation) {
+		this.strictTxIsolation = strictTxIsolation;
+	}
 }
