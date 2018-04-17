@@ -17,10 +17,10 @@ public class QueryResult {
 	private long startTime;		//开始时间
 	private long endTime;		//结束时间
 	private int resultSize;     //结果集大小
-	
-	public QueryResult(String user, int sqlType, String sql, long sqlRows, 
-			long netInBytes, long netOutBytes, long startTime, long endTime
-			,int resultSize) {
+	private String host;
+
+	public QueryResult(String user, int sqlType, String sql, long sqlRows, long netInBytes,
+			long netOutBytes, long startTime, long endTime, int resultSize, String host) {
 		super();
 		this.user = user;
 		this.sqlType = sqlType;
@@ -30,7 +30,12 @@ public class QueryResult {
 		this.netOutBytes = netOutBytes;
 		this.startTime = startTime;
 		this.endTime = endTime;
-		this.resultSize=resultSize;
+		this.resultSize = resultSize;
+		this.host = host;
+	}
+
+	public String getHost() {
+		return host;
 	}
 
 	public String getUser() {

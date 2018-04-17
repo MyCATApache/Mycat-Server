@@ -1,14 +1,13 @@
 package io.mycat.statistic.stat;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.locks.ReentrantLock;
-
 import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
-import io.mycat.statistic.SQLRecord;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class UserSqlHighStat {
 	
@@ -21,7 +20,7 @@ public class UserSqlHighStat {
 	
 	private SqlParser sqlParser = new SqlParser();
 	
-	public void addSql(String sql, long executeTime,long startTime, long endTime ){
+	public void addSql(String sql, long executeTime,long startTime, long endTime ,String host){
     	String newSql = this.sqlParser.mergeSql(sql);
     	SqlFrequency frequency = this.sqlFrequencyMap.get(newSql);
         if ( frequency == null) {
@@ -40,6 +39,7 @@ public class UserSqlHighStat {
 			}
         } 
         frequency.setLastTime( endTime );
+        frequency.setHost(host);
         frequency.incCount();
 		//TODO 目前setExecuteTime方法由于弃用锁，所以某些参数不准确，为了性能，放弃这些参数的准确性。下一步期待更多优化
         frequency.setExecuteTime(executeTime);
