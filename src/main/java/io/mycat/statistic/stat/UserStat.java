@@ -1,12 +1,10 @@
 package io.mycat.statistic.stat;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import io.mycat.MycatServer;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.statistic.SQLRecord;
 import io.mycat.statistic.SQLRecorder;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 用户状态
@@ -138,7 +136,7 @@ public class UserStat {
 	 * @param startTime
 	 */
 	public void update(int sqlType, String sql, long sqlRows, 
-			long netInBytes, long netOutBytes, long startTime, long endTime ,int rseultSetSize) {	
+			long netInBytes, long netOutBytes, long startTime, long endTime ,int rseultSetSize,String host) {
 		
 		//before 计算最大并发数
 		//-----------------------------------------------------
@@ -165,6 +163,7 @@ public class UserStat {
 				record.executeTime = executeTime;
 				record.statement = sql;
 				record.startTime = startTime;
+				record.host = host;
 				this.sqlRecorder.add(record);
 			}
 			
@@ -173,14 +172,14 @@ public class UserStat {
 			this.sqlRwStat.add(sqlType, sql, executeTime, netInBytes, netOutBytes, startTime, endTime);
 			
 			//记录最新执行的SQL
-			this.sqlLastStat.add(sql, executeTime, startTime, endTime );
+			this.sqlLastStat.add(sql, executeTime, startTime, endTime , host);
 			
 			//记录高频SQL
-			this.sqlHighStat.addSql(sql, executeTime, startTime, endTime);
+			this.sqlHighStat.addSql(sql, executeTime, startTime, endTime, host);
 			
 			//记录SQL Select 返回超过 10000 行的 大结果集
 			if ( sqlType == ServerParse.SELECT && sqlRows > 10000 ) {
-				this.sqlLargeStat.add(sql, sqlRows, executeTime, startTime, endTime);
+				this.sqlLargeStat.add(sql, sqlRows, executeTime, startTime, endTime, host);
 			}
 			
 			//记录超过阈值的大结果集sql

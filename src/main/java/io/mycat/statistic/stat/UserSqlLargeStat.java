@@ -20,8 +20,8 @@ public class UserSqlLargeStat {
         return list;
     }
 
-    public void add(String sql, long sqlRows, long executeTime, long startTime, long endTime) {
-    	SqlLarge sqlLarge = new SqlLarge(sql, sqlRows, executeTime, startTime, endTime);
+    public void add(String sql, long sqlRows, long executeTime, long startTime, long endTime,String host) {
+    	SqlLarge sqlLarge = new SqlLarge(sql, sqlRows, executeTime, startTime, endTime,host);
     	this.add( sqlLarge );
     }
     
@@ -63,14 +63,20 @@ public class UserSqlLargeStat {
     	private long executeTime;
     	private long startTime;
     	private long endTime;
+    	private String host;
     	
-		public SqlLarge(String sql, long sqlRows, long executeTime, long startTime, long endTime) {
+		public SqlLarge(String sql, long sqlRows, long executeTime, long startTime, long endTime,String host) {
 			super();
 			this.sql = sql;
 			this.sqlRows = sqlRows;
 			this.executeTime = executeTime;
 			this.startTime = startTime;
 			this.endTime = endTime;
+			this.host = host;
+		}
+
+		public String getHost() {
+			return host;
 		}
 
 		public String getSql() {

@@ -50,7 +50,7 @@ import io.mycat.util.StringUtil;
  */
 public final class ShowSQL {
 
-    private static final int FIELD_COUNT = 5;
+    private static final int FIELD_COUNT = 6;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -74,7 +74,10 @@ public final class ShowSQL {
         
         fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
-        
+
+        fields[i] = PacketUtil.getField("IP", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i++].packetId = ++packetId;
+
         eof.packetId = ++packetId;
     }
 
@@ -132,6 +135,7 @@ public final class ShowSQL {
         row.add( LongUtil.toBytes( sql.getStartTime() ) );
         row.add( LongUtil.toBytes( sql.getExecuteTime() ) );
         row.add( StringUtil.encode( sql.getSql(), charset) );
+        row.add(StringUtil.encode( sql.getHost(),charset ));
         return row;
     }
 
