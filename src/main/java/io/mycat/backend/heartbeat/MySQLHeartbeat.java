@@ -250,8 +250,9 @@ public class MySQLHeartbeat extends DBHeartbeat {
 						int theSourceHBStatus = theSourceHB.getStatus();
 						if (theSourceHBStatus == DBHeartbeat.OK_STATUS) {
 							if (switchType == DataHostConfig.SYN_STATUS_SWITCH_DS) {
+								LOGGER.warn("switchSourceIfNeed: LagTime=" + theSourceHB.getSlaveBehindMaster());
 								if (Integer.valueOf(0).equals( theSourceHB.getSlaveBehindMaster())) {
-									LOGGER.info("try to switch datasource ,slave is synchronized to master " + theSource.getConfig());
+									LOGGER.warn("try to switch datasource ,slave is synchronized to master " + theSource.getConfig());
 									pool.switchSource(nextId, true, reason);
 									break;
 								} else {
@@ -261,7 +262,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 								}
 							} else {
 								// normal switch
-								LOGGER.info("try to switch datasource ,not checked slave synchronize status " + theSource.getConfig());
+								LOGGER.warn("try to switch datasource ,not checked slave synchronize status " + theSource.getConfig());
 								pool.switchSource(nextId, true, reason);
                                 break;
 							}

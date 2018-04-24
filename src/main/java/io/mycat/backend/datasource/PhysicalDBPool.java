@@ -207,21 +207,22 @@ public class PhysicalDBPool {
 	}
 
 	public boolean switchSource(int newIndex, boolean isAlarm, String reason) {
+		LOGGER.warn("switchSource: active=" + activedIndex + " new=" + newIndex + " alarm=" + isAlarm + " reason=" + reason);
 		if (this.writeType != PhysicalDBPool.WRITE_ONLYONE_NODE || !checkIndex(newIndex)) {
 			return false;
 		}
-		
+
 		final ReentrantLock lock = this.switchLock;
 		lock.lock();
 		try {
 			int current = activedIndex;
 			if (current != newIndex) {
-				
+
 				// switch index
 				activedIndex = newIndex;
 				
 				// init again
-				this.init(activedIndex);
+				this.init(activedIndex, reason);
 				
 				// clear all connections
 				this.getSources()[current].clearCons("switch datasource");
@@ -252,18 +253,22 @@ public class PhysicalDBPool {
 	}
 
 	public void init(int index) {
-		
+		init(index, "");
+	}
+
+	public void init(int index, String reason) {
+
 		if (!checkIndex(index)) {
 			index = 0;
 		}
-		
+
 		int active = -1;
 		for (int i = 0; i < writeSources.length; i++) {
 			int j = loop(i + index);
 			if ( initSource(j, writeSources[j]) ) {
 
                 //不切换-1时，如果主写挂了   不允许切换过去
-				boolean isNotSwitchDs = ( dataHostConfig.getSwitchType() == DataHostConfig.NOT_SWITCH_DS );
+				boolean isNotSwitchDs = ( dataHostConfig.getSwitchType() == DataHostConfig.NOT_SWITCH_DS && !"MANAGER".equals(reason));
 				if ( isNotSwitchDs && j > 0 ) {
 					break;
 				}
