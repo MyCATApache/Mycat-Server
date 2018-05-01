@@ -34,3 +34,4 @@ EXPOSE 3306
 ENTRYPOINT ["/tini"]
 
 CMD ["mycat", "console"]
+
