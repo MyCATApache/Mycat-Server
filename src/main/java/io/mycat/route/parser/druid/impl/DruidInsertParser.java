@@ -4,10 +4,8 @@ import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -317,24 +315,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 			throw new SQLNonTransientException(msg);
 		}
 	}
-//	dataNode = tableConfig.getDataNodes().get(nodeIndex);
-//	SQLInsertStatement insertStatement = (SQLInsertStatement) insertStmt;
-//	SQLExprTableSource tableSource = insertStatement.getTableSource();
-//	nodes[count] = new RouteResultsetNode(dataNode,
-//			rrs.getSqlType(),insertStmt.toString());
-////	if(node.getSubTableName()==null){
-////		String msg = " sub table not exists for " + node.getName() + " on " + tableSource;
-////		LOGGER.error("DruidMycatRouteStrategyError " + msg);
-////		throw new SQLSyntaxErrorException(msg);
-////	}
-//	
-//	//getDisTable
-//	SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
-//	sqlIdentifierExpr.setParent(tableSource.getParent());
-//	sqlIdentifierExpr.setName(tc.getDistTables().get(nodeIndex));
-//	SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
-//	insertStatement.setTableSource(from2);
-//	nodes[count].setStatement(insertStatement.toString());
+
 	/**
 	 * 寻找拆分字段在 columnList中的索引
 	 * @param insertStmt
