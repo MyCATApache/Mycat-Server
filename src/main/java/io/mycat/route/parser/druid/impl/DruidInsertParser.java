@@ -11,7 +11,10 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 
@@ -263,14 +266,38 @@ public class DruidInsertParser extends DefaultDruidParser {
 					nodeValuesMap.get(nodeIndex).add(valueClause);
 				}
 				
+
 				RouteResultsetNode[] nodes = new RouteResultsetNode[nodeValuesMap.size()];
 				int count = 0;
 				for(Map.Entry<Integer,List<ValuesClause>> node : nodeValuesMap.entrySet()) {
 					Integer nodeIndex = node.getKey();
 					List<ValuesClause> valuesList = node.getValue();
 					insertStmt.setValuesList(valuesList);
-					nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
-							rrs.getSqlType(),insertStmt.toString());
+					if(tableConfig.isDistTable()) {
+						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(0),
+								rrs.getSqlType(),insertStmt.toString());
+						if(tableConfig.getDistTables()==null){
+							String msg = " sub table not exists for " + nodes[count].getName() + " on " + tableName;
+							LOGGER.error("DruidMycatRouteStrategyError " + msg);
+							throw new SQLSyntaxErrorException(msg);
+						}
+						String subTableName = tableConfig.getDistTables().get(nodeIndex);
+						
+						nodes[count].setSubTableName(subTableName);
+						SQLInsertStatement insertStatement = (SQLInsertStatement) insertStmt;
+						SQLExprTableSource tableSource = insertStatement.getTableSource();
+						//getDisTable 修改表名称
+						SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
+						sqlIdentifierExpr.setParent(tableSource.getParent());
+						sqlIdentifierExpr.setName(subTableName);
+						SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+						insertStatement.setTableSource(from2);
+						nodes[count].setStatement(insertStatement.toString());
+					} else {
+						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
+								rrs.getSqlType(),insertStmt.toString());
+					}
+					
 					if(algorithm instanceof SlotFunction) {
 						nodes[count].setSlot(slotsMap.get(nodeIndex));
 						nodes[count].setStatement(ParseUtil.changeInsertAddSlot(nodes[count].getStatement(),nodes[count].getSlot()));
@@ -280,6 +307,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 				}
 				rrs.setNodes(nodes);
 				rrs.setFinishedRoute(true);
+
 			}
 		} else if(insertStmt.getQuery() != null) { // insert into .... select ....
 			String msg = "TODO:insert into .... select .... not supported!";
@@ -287,7 +315,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 			throw new SQLNonTransientException(msg);
 		}
 	}
-	
+
 	/**
 	 * 寻找拆分字段在 columnList中的索引
 	 * @param insertStmt
