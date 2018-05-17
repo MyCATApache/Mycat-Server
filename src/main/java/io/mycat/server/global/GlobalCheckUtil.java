@@ -133,7 +133,7 @@ public class GlobalCheckUtil {
 		}
 	}
 
-	private void saveXmlFile() {
+	public void saveXmlFile() {
 
 		CheckResult checkResult = CheckResult.getInstance();
 		Document document = DocumentHelper.createDocument();

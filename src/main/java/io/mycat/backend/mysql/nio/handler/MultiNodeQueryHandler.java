@@ -38,6 +38,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Table;
+
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
@@ -56,7 +58,9 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
+import io.mycat.server.global.GlobalCheckUtil;
 import io.mycat.server.global.xml.model.CheckResult;
+import io.mycat.server.global.xml.model.DataNode;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.AbstractDataNodeMerge;
 import io.mycat.sqlengine.mpp.ColMeta;
@@ -332,24 +336,34 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				QueryResultDispatcher.dispatchQuery(queryResult);
 			}
 
-			if (conn instanceof MySQLConnection) {
-				MySQLConnection mysqlConn = (MySQLConnection) conn;
-
-				String db = mysqlConn.getSchema();
-				
-				String current_dataNode="";
-
-				Map<String, PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
-
-				for (String dataNodeName : dataNodes.keySet()) {
-					PhysicalDBNode dataNode=dataNodes.get(dataNodeName)	;
-					if(dataNode.getDatabase().equals(db)) {
-						current_dataNode=dataNodeName;
-						break;
+			if (rrs.isGlobalTable()) {
+				if (conn instanceof MySQLConnection) {
+					
+					MySQLConnection mysqlConn = (MySQLConnection) conn;
+		
+					String db = mysqlConn.getSchema();
+					
+					String current_dataNode="";
+		
+					Map<String, PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
+		
+					for (String dataNodeName : dataNodes.keySet()) {
+						PhysicalDBNode dataNode=dataNodes.get(dataNodeName)	;
+						if(dataNode.getDatabase().equals(db)) {
+							current_dataNode=dataNodeName;
+							break;
+						}
 					}
+					DataNode datNode=CheckResult.getInstance().getDateNodeByName(current_dataNode);
+					for(String table:rrs.getTables()) {
+						
+						Long version=datNode.getTableByName(table).getVersion();
+						datNode.getTableByName(table).setVersion(++version);
+						
+					}
+		
+					GlobalCheckUtil.getInstance().saveXmlFile();
 				}
-				CheckResult.getInstance().getDateNodeByName(current_dataNode);
-
 			}
 		}
 	}
