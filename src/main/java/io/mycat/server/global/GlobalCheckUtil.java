@@ -16,8 +16,11 @@ import org.dom4j.Element;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
+import io.mycat.MycatStartup;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
@@ -27,12 +30,25 @@ import io.mycat.server.global.xml.model.DataNode;
 import io.mycat.server.global.xml.model.Table;
 
 public class GlobalCheckUtil {
+	
+	
+	 private static final Logger LOGGER = LoggerFactory.getLogger(GlobalCheckUtil.class);
+	
+	private static GlobalCheckUtil instance=new GlobalCheckUtil();
 
 	private static Map<String, TableConfig> globalTableMap = new ConcurrentHashMap<>();
 
 	public static String filePath = GlobalCheckUtil.class.getClassLoader().getResource("").getFile()
 			+ "/global_check.xml";
 
+	private GlobalCheckUtil() {
+	}
+	
+	
+	public static GlobalCheckUtil getInstance() {
+		return instance;
+	}
+	
 	static {
 		getGlobalTable();
 	}
@@ -57,14 +73,20 @@ public class GlobalCheckUtil {
 		}
 	}
 
-	public void initXmlModel() throws DocumentException {
+	public void initXmlModel()  {
 
 		File file = new File(filePath);
 		CheckResult checkResult = CheckResult.getInstance();
 		if (file.exists()) {
 
 			SAXReader reader = new SAXReader();
-			Document document = reader.read(new File(filePath));
+			Document document=null;
+			try {
+				document = reader.read(new File(filePath));
+			} catch (DocumentException e) {
+				
+				LOGGER.warn("读取全局检测文件失败");
+			}
 			Element root = document.getRootElement();
 			
 			List<Element> dataNodeEs=root.elements("dataNode");

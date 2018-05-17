@@ -23,5 +23,15 @@ public class DataNode {
 	public void setTables(List<Table> tables) {
 		this.tables = tables;
 	}
+	
+	public Table getTableByName(String tableName) {
+		for(Table table:tables) {
+			if(tableName.equals(table.getName())){
+				return table;
+			}
+		}
+		return null;
+	}
+	
 
 }
