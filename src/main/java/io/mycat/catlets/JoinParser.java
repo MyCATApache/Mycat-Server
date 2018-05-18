@@ -283,7 +283,7 @@ public class JoinParser {
 
 	private Object getExpValue(SQLExpr expr){
 		if (expr instanceof SQLIntegerExpr){
-			return ((SQLIntegerExpr)expr).getNumber().intValue();
+			return ((SQLIntegerExpr)expr).getNumber().longValue();
 		}
 		if (expr instanceof SQLNumberExpr){
 			return ((SQLNumberExpr)expr).getNumber().doubleValue();
