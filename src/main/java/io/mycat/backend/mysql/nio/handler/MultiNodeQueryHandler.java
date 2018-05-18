@@ -338,30 +338,31 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 			if (rrs.isGlobalTable()) {
 				if (conn instanceof MySQLConnection) {
-					
+
 					MySQLConnection mysqlConn = (MySQLConnection) conn;
-		
+
 					String db = mysqlConn.getSchema();
-					
-					String current_dataNode="";
-		
+
+					String current_dataNode = "";
+
 					Map<String, PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
-		
+
 					for (String dataNodeName : dataNodes.keySet()) {
-						PhysicalDBNode dataNode=dataNodes.get(dataNodeName)	;
-						if(dataNode.getDatabase().equals(db)) {
-							current_dataNode=dataNodeName;
+						PhysicalDBNode dataNode = dataNodes.get(dataNodeName);
+						if (dataNode.getDatabase().equals(db)) {
+							current_dataNode = dataNodeName;
 							break;
 						}
 					}
-					DataNode datNode=CheckResult.getInstance().getDateNodeByName(current_dataNode);
-					for(String table:rrs.getTables()) {
-						
-						Long version=datNode.getTableByName(table).getVersion();
-						datNode.getTableByName(table).setVersion(++version);
-						
+					DataNode datNode = CheckResult.getInstance().getDateNodeByName(current_dataNode);
+					for (String table : rrs.getTables()) {
+
+						int sqlHashCode = rrs.getStatement().hashCode();
+						Long version = datNode.getTableByName(table).getVersion();
+						datNode.getTableByName(table).setVersion(sqlHashCode + version);
+
 					}
-		
+
 					GlobalCheckUtil.getInstance().saveXmlFile();
 				}
 			}
