@@ -90,7 +90,7 @@ public final class ShowGlobalCheck {
 		for (DataNode dataNode : CheckResult.getInstance().getDataNodes()) {
 
 			for (Table table : dataNode.getTables()) {
-				RowDataPacket row = getRow(table.getName(), dataNode.getName(), table.getVersion().toString(), c.getCharset());
+				RowDataPacket row = getRow(table.getName(), dataNode.getName(), table.getHashCode().toString(), c.getCharset());
 				row.packetId = ++packetId;
 				buffer = row.write(buffer, c, true);
 
