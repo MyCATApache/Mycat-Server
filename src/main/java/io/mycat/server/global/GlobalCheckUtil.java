@@ -103,7 +103,7 @@ public class GlobalCheckUtil {
 			    for(Element tableE:tableEs) {
 			    	Table table=new Table();
 			    	table.setName(tableE.attribute("name").getText());
-			    	table.setVersion(new Long(tableE.getText()));
+			    	table.setHashCode(new Long(tableE.getText()));
 			    	tables.add(table);
 			    }
 			    dataNode.setTables(tables);
@@ -123,7 +123,7 @@ public class GlobalCheckUtil {
 				for (String tableName : globalTableMap.keySet()) {
 					Table table = new Table();
 					table.setName(tableName);
-					table.setVersion(0L);
+					table.setHashCode(0L);
 					tables.add(table);
 				}
 				dataNode.setTables(tables);
@@ -146,7 +146,7 @@ public class GlobalCheckUtil {
 			for (Table table : dataNode.getTables()) {
 				Element tableE = dataNodeE.addElement("table");
 				tableE.addAttribute("name", table.getName());
-				tableE.addText(table.getVersion().toString());
+				tableE.addText(table.getHashCode().toString());
 			}
 		}
 		OutputFormat format = OutputFormat.createPrettyPrint();

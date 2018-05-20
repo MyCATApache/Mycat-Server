@@ -4,7 +4,7 @@ public class Table {
 
 	private String name;
 
-	private Long version;
+	private Long hashCode;
 
 	public String getName() {
 		return name;
@@ -14,12 +14,14 @@ public class Table {
 		this.name = name;
 	}
 
-	public Long getVersion() {
-		return version;
+	public Long getHashCode() {
+		return hashCode;
 	}
 
-	public void setVersion(Long version) {
-		this.version = version;
+	public void setHashCode(Long hashCode) {
+		this.hashCode = hashCode;
 	}
+
+	
 
 }

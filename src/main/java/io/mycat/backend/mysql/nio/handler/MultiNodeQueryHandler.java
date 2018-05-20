@@ -337,33 +337,28 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			}
 
 			if (rrs.isGlobalTable()) {
-				if (conn instanceof MySQLConnection) {
+				String schema = conn.getSchema();
+				String dbhostName=conn.getPool().getDbPool().getHostName();
+				String current_dataNode = "";
+				Map<String, PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
+				for (String dataNodeName : dataNodes.keySet()) {
+					PhysicalDBNode dataNode = dataNodes.get(dataNodeName);
 					
-					MySQLConnection mysqlConn = (MySQLConnection) conn;
-		
-					String db = mysqlConn.getSchema();
-					
-					String current_dataNode="";
-		
-					Map<String, PhysicalDBNode> dataNodes = MycatServer.getInstance().getConfig().getDataNodes();
-		
-					for (String dataNodeName : dataNodes.keySet()) {
-						PhysicalDBNode dataNode=dataNodes.get(dataNodeName)	;
-						if(dataNode.getDatabase().equals(db)) {
-							current_dataNode=dataNodeName;
-							break;
-						}
+					if (dbhostName.equals(dataNode.getDbPool().getHostName())&&dataNode.getDatabase().equals(schema)) {
+						current_dataNode = dataNodeName;
+						break;
 					}
-					DataNode datNode=CheckResult.getInstance().getDateNodeByName(current_dataNode);
-					for(String table:rrs.getTables()) {
-						
-						Long version=datNode.getTableByName(table).getVersion();
-						datNode.getTableByName(table).setVersion(++version);
-						
-					}
-		
-					GlobalCheckUtil.getInstance().saveXmlFile();
 				}
+				DataNode datNode = CheckResult.getInstance().getDateNodeByName(current_dataNode);
+				for (String table : rrs.getTables()) {
+					int sqlHash = rrs.getStatement().hashCode();
+
+					Long hashCode = datNode.getTableByName(table).getHashCode();
+					hashCode = (long) new Long(hashCode + sqlHash).hashCode();
+					datNode.getTableByName(table).setHashCode(hashCode);
+
+				}
+				GlobalCheckUtil.getInstance().saveXmlFile();
 			}
 		}
 	}
