@@ -63,6 +63,7 @@ import io.mycat.manager.response.ShowVariables;
 import io.mycat.manager.response.ShowVersion;
 import io.mycat.manager.response.ShowWhiteHost;
 import io.mycat.manager.response.ShowDirectMemory;
+import io.mycat.manager.response.ShowGlobalCheck;
 import io.mycat.route.parser.ManagerParseShow;
 import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.server.handler.ShowCache;
@@ -246,6 +247,9 @@ public final class ShowHandler {
 			break;
 		case ManagerParseShow.DIRECTMEMORY_TOTAL:
 			ShowDirectMemory.execute(c,1);
+			break;
+		case ManagerParseShow.GLOBAL_CHECK:
+			ShowGlobalCheck.execute(c);
 			break;
 		default:
 			c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
