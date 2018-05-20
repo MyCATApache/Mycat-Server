@@ -354,7 +354,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					int sqlHash = rrs.getStatement().hashCode();
 
 					Long hashCode = datNode.getTableByName(table).getHashCode();
-					hashCode = (long) new Long(hashCode + sqlHash).hashCode();
+					hashCode = (long) new Long(hashCode + sqlHash);
 					datNode.getTableByName(table).setHashCode(hashCode);
 
 				}
