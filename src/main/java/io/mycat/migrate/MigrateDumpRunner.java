@@ -59,7 +59,7 @@ public class MigrateDumpRunner implements Runnable {
         File file = null;
        String spath=   querySecurePath(config);
         if(Strings.isNullOrEmpty(spath)||"NULL".equalsIgnoreCase(spath)||"empty".equalsIgnoreCase(spath)) {
-            file = new File(SystemConfig.getHomePath() + File.separator + "temp",    "dump"    );
+            file = new File(SystemConfig.getHomePath() + File.separator + "temp",    "dump" + File.separator + task.getFrom() +"_"+task.getTo()   );
                   //  task.getFrom() + "_" + task.getTo() + Thread.currentThread().getId() + System.currentTimeMillis() + "");
         }   else {
             spath+= Thread.currentThread().getId() + System.currentTimeMillis();
@@ -75,7 +75,15 @@ public class MigrateDumpRunner implements Runnable {
                     "-p"+config.getPassword(), MigrateUtils.getDatabaseFromDataNode(task.getFrom()), task.getTable(), "--single-transaction","-q","--default-character-set=utf8mb4","--hex-blob","--where="+makeWhere(task), "--master-data=1","-T"+file.getPath()
 
                     ,"--fields-enclosed-by="+encose+"\"","--fields-terminated-by=,", "--lines-terminated-by=\\n",  "--fields-escaped-by=\\\\");
-      String result=  ProcessUtil.execReturnString(args);
+
+        String result=  ProcessUtil.execReturnString(args);
+        System.out.println(args);
+        String str = " ";
+        for(String a:args) {
+      	  str = str + " " + a;
+        }
+        System.out.println(str);
+
         int logIndex = result.indexOf("MASTER_LOG_FILE='");
         int logPosIndex = result.indexOf("MASTER_LOG_POS=");
         String logFile=result.substring(logIndex +17,logIndex +17+result.substring(logIndex +17).indexOf("'")) ;
@@ -85,6 +93,9 @@ public class MigrateDumpRunner implements Runnable {
             File dataFile = new File(file, task.getTable() + ".txt");
 
             File sqlFile = new File(file, task.getTable() + ".sql");
+            if(!sqlFile.exists()){
+            	System.out.println(sqlFile.getAbsolutePath() + "not  exists");
+            }
            List<String> createTable= Files.readLines(sqlFile,Charset.forName("UTF-8")) ;
 
             exeCreateTableToDn(extractCreateSql(createTable),task.getTo(),task.getTable());
@@ -216,6 +227,6 @@ public class MigrateDumpRunner implements Runnable {
         int logPosIndex = result.indexOf("MASTER_LOG_POS=");
         String logFile=result.substring(logIndex +17,logIndex +17+result.substring(logIndex +17).indexOf("'")) ;
         String logPos=result.substring(logPosIndex +15,logPosIndex +15+result.substring(logPosIndex +15).indexOf(";")) ;
-        System.out.println();
+        System.out.println(logFile + logPos);
     }
 }
