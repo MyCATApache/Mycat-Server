@@ -1,6 +1,8 @@
 package io.mycat.config.loader.zkprocess.zktoxml.listen;
 
 import com.google.common.io.Files;
+import com.sun.media.jfxmedia.logging.Logger;
+
 import io.mycat.MycatServer;
 import io.mycat.config.model.SystemConfig;
 import org.apache.curator.framework.CuratorFramework;
@@ -39,6 +41,7 @@ public class BinDataPathChildrenCacheListener implements PathChildrenCacheListen
                 SystemConfig.getHomePath() + File.separator + "conf" ,
                 name);
         Files.write(data,file);
+       	System.out.println("收到 dataIndex文件");
         //try to reload dnindex
         if("dnindex.properties".equals(name)) {
             MycatServer.getInstance().reloadDnIndex();

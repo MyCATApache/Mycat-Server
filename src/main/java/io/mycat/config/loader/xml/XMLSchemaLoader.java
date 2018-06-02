@@ -556,6 +556,9 @@ public class XMLSchemaLoader implements SchemaLoader {
 	 */
 	private void checkRuleSuitTable(TableConfig tableConf) {
 		AbstractPartitionAlgorithm function = tableConf.getRule().getRuleAlgorithm();
+		if("rang-long".equals(tableConf.getName() )){
+			
+		}
 		int suitValue = function.suitableFor(tableConf);
 		switch(suitValue) {
 			case -1:
