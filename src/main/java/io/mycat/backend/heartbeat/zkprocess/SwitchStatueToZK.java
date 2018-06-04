@@ -39,7 +39,7 @@ public class SwitchStatueToZK{
 			}     
         	return true;
         }catch (Exception e) {
-        	LOGGER.debug(dataHost + " startSwitch err "   , e);
+        	LOGGER.error(dataHost + " startSwitch err "   , e);
 		}
         return false;
 	}
@@ -59,7 +59,7 @@ public class SwitchStatueToZK{
 			}  
             return true;
         }catch (Exception e) {
-        	LOGGER.debug(dataHost + " endSwitch err "   , e);
+        	LOGGER.error(dataHost + " endSwitch err "   , e);
             return false;
         }
         

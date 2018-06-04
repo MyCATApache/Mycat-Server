@@ -65,7 +65,7 @@ public class MycatLeaderLatch {
 	//成为leader的回调方法
 	private void isLeaderRunnable() {
 		//
-		LOGGER.error(ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID)  + " success to leader");
+		LOGGER.debug(ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID)  + " success to leader");
 		for(ManageHeartBeatChange manageHeartBeatChange: manageHeartBeatChangeSet) {
 			manageHeartBeatChange.leaderlisten();
 		}
@@ -73,7 +73,7 @@ public class MycatLeaderLatch {
 	}
 	//不再是leader的回调方法
 	private void notLeaderRunnable() {
-		LOGGER.error(ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID)  +  " fail to leader, now is slave");
+		LOGGER.debug(ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID)  +  " fail to leader, now is slave");
 		for(ManageHeartBeatChange manageHeartBeatChange: manageHeartBeatChangeSet) {
 			manageHeartBeatChange.stop();
 		}

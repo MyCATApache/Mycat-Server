@@ -77,14 +77,14 @@ public class ManageHeartBeatChange implements Runnable {
 	}
 	//收集投票结果
 	public boolean addPath(String nodePath) {
-		LOGGER.error("add vote information "  + nodePath);
+		LOGGER.debug("add vote information "  + nodePath);
 		//判断是否可以收集投票结果 如果不行直接删除
 		if(TimeUtil.currentTimeMillis() - changingFinishDate  < 2 * 60 * 1000 && statue.get() == NOT_SELECT ) {
 			try {
 				client.delete().deletingChildrenIfNeeded().forPath(nodePath);
 			} catch (Exception e) {
 				e.printStackTrace(); 
-				LOGGER.error("remove vote information error during not voting time" ,e);
+				LOGGER.error("remove vote information debug during not voting time" ,e);
 			}
 			return false;
 		}
@@ -102,7 +102,7 @@ public class ManageHeartBeatChange implements Runnable {
 	
 	//清除投票结果
 	public boolean removePath(String nodePath) {
-		LOGGER.error("remove vote Information" + nodePath);
+		LOGGER.debug("remove vote Information" + nodePath);
 		 //删除投票结果.		
 		if(statue.get() == IS_CHANGING) {
 			boolean flag =  voteSet.remove(nodePath);
@@ -126,8 +126,8 @@ public class ManageHeartBeatChange implements Runnable {
 				@Override
 				public void childEvent(CuratorFramework client, PathChildrenCacheEvent event)  {
 					// TODO Auto-generated method stub
-					LOGGER.error("event Type " + event.getType());
-//					LOGGER.error( ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID) +" is leader ? " + mycatLeaderLatch.isLeaderShip());
+					LOGGER.debug("event Type " + event.getType());
+//					LOGGER.debug( ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID) +" is leader ? " + mycatLeaderLatch.isLeaderShip());
 					if(null != event.getData()) {
 						Type type = event.getType();
 						switch(type) {
@@ -161,7 +161,7 @@ public class ManageHeartBeatChange implements Runnable {
 			changingResultNode.start();		
 			
 		} catch (Exception e) {
-			LOGGER.debug(e.getMessage());
+			LOGGER.error(e.getMessage());
 			e.printStackTrace();
 		}
 
@@ -175,6 +175,7 @@ public class ManageHeartBeatChange implements Runnable {
 			changingResultNode = null;
 			//isLeader.compareAndSet(true, false);
 		} catch (Exception e) {
+			LOGGER.error(e.getMessage());
 			e.printStackTrace();
 		}
 	}
@@ -200,7 +201,7 @@ public class ManageHeartBeatChange implements Runnable {
 		    Collection<Participant> participants = mycatLeaderLatch.getParticipants();
 			for(ChildData childData : ChildDataList) {
 				String data = new String(childData.getData());
-				LOGGER.error(childData.getPath()+ "  " + data);
+				LOGGER.debug(childData.getPath()+ "  " + data);
 				int index = data.indexOf("=");
 				Integer key =  Integer.valueOf(data.substring(index + 1));
 				String myId = data.substring(0, index);
@@ -233,7 +234,7 @@ public class ManageHeartBeatChange implements Runnable {
 			statue.set(IS_CHANGING);
 		
 			if(maxIndex != -1) { 
-				LOGGER.error("投票结果：" + dataHost + " = " + maxIndex);
+				LOGGER.debug("投票结果：" + dataHost + " = " + maxIndex);
 				//向集群写入修改的结果
 				ZKUtils.createPath(changingResultPath, "");
 				boolean result = MycatServer.getInstance().saveDataHostIndexToZk(dataHost, maxIndex);
@@ -247,16 +248,18 @@ public class ManageHeartBeatChange implements Runnable {
 							client.delete().deletingChildrenIfNeeded().forPath(childData.getPath());
 						}
 					} catch (Exception e) {
+						LOGGER.error(e.getMessage());
 						e.printStackTrace();
 					};
 				}
 				
 			} else {
-				LOGGER.error("投票错误：" + dataHost + " = " + maxIndex);				
+				LOGGER.debug("投票错误：" + dataHost + " = " + maxIndex);				
 			}
 
 			
 		} catch (Exception e) {
+			LOGGER.error(e.getMessage());
 			e.printStackTrace();
 		}
 
@@ -281,7 +284,7 @@ public class ManageHeartBeatChange implements Runnable {
 							if(!StringUtil.isEmpty(value)) {
 								count ++;								
 							}else {
-								LOGGER.error(String.format("%s 还未结束切换", participant.getId()));
+								LOGGER.debug(String.format("%s 还未结束切换", participant.getId()));
 							}
 						}
 						
@@ -292,7 +295,7 @@ public class ManageHeartBeatChange implements Runnable {
 						}						
 						int onLineNode = participants.size(); //在线的节点						
 						if(count == onLineNode ) {							 //
-							 LOGGER.error("所有节点切换完成 ,当前时间" + TimeUtil.currentTimeMillis());
+							 LOGGER.debug("所有节点切换完成 ,当前时间" + TimeUtil.currentTimeMillis());
 							 Map<String,String> propertyMap = new HashMap<>();
 							 propertyMap.put(changingFinishKey, TimeUtil.currentTimeMillis()+"");
 							 try{
@@ -319,11 +322,11 @@ public class ManageHeartBeatChange implements Runnable {
 						  	  }
 						}
 					} catch (Exception e) {
-						LOGGER.debug(e.getMessage());
+						LOGGER.error(e.getMessage());
 						e.printStackTrace();
 					}
 				} else {
-					LOGGER.error("集群切换结果的状态文件夹 已经被删除！！！");
+					LOGGER.debug("集群切换结果的状态文件夹 已经被删除！！！");
 				}					
 				
 			}

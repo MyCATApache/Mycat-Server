@@ -36,8 +36,8 @@ import io.mycat.config.Isolations;
 public final class SystemConfig {
 
 	public static final String SYS_HOME = "MYCAT_HOME";
-	private static final int DEFAULT_PORT = 8069;
-	private static final int DEFAULT_MANAGER_PORT = 9069;
+	private static final int DEFAULT_PORT = 8066;
+	private static final int DEFAULT_MANAGER_PORT = 9066;
 	private static final String DEFAULT_CHARSET = "utf8";
 
 	private static final String DEFAULT_SQL_PARSER = "druidparser";// fdbparser, druidparser
