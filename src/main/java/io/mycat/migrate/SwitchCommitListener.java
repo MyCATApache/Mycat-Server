@@ -48,9 +48,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
             PathChildrenCacheEvent event) throws Exception {
         switch (event.getType()) {
             case CHILD_ADDED:
-            case CHILD_UPDATED:
-
-                 checkCommit(event);
+                checkCommit(event);
                 break;
             default:
                 break;

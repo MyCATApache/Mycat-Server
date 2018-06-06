@@ -74,34 +74,7 @@ public class ZKUtils {
         curatorFramework.close();
         throw new RuntimeException("failed to connect to zookeeper service : " + url);
     }
-    private static void addConnectionStateListenable(){
-//    	client.getConnectionStateListenable().addListener(new ConnectionStateListener() {  
-//            public void stateChanged(CuratorFramework client, ConnectionState state) {  
-//                if (state == ConnectionState.LOST) {  
-//                    //连接丢失  
-//                	System.out.println(nodeName +  " lost session with zookeeper " );  
-//                	//myLeaderLatch.judgeIsLeader(false);  
-//                } else if (state == ConnectionState.CONNECTED) {  
-//                    //连接新建  
-//                	System.out.println(nodeName +  "connected with zookeeper " ); 
-//                	try {
-//						System.out.println(nodeName + "connected with zookeeper   " );
-//					} catch (Exception e) {
-//						e.printStackTrace();
-//					}  
-//                	
-//                } else if (state == ConnectionState.RECONNECTED) {
-//                	//myLeaderLatch.judgeIsLeader(false);  
-//                	System.out.println(nodeName + " reconnected with zookeeper ");  
-//                	
-//                	//连接重连  
-//                    for(ZkStateListener s:stateListeners){  
-//                        s.reconnected();  
-//                    }  
-//                }  
-//            }  
-//        });  
-    }
+
     public static void closeWatch(List<String> watchs) {
         for (String watch : watchs) {
             closeWatch(watch);

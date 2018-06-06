@@ -109,7 +109,7 @@ public class MigrateTaskWatch {
                 String taskID=tpath.substring(tpath.lastIndexOf("/")+1,tpath.length());
                 String lockPath=     ZKUtils.getZKBasePath()+"lock/"+taskID+".lock";
                 taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
-                taskLock.acquire(2000, TimeUnit.SECONDS);
+                taskLock.acquire(20, TimeUnit.SECONDS);
              String text = new String(ZKUtils.getConnection().getData().forPath(event.getData().getPath()), "UTF-8");
              // /migrate/taskId/* 所有的数据
             List<String> dataNodeList= ZKUtils.getConnection().getChildren().forPath(event.getData().getPath());

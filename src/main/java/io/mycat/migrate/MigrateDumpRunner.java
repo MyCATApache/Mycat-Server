@@ -77,13 +77,6 @@ public class MigrateDumpRunner implements Runnable {
                     ,"--fields-enclosed-by="+encose+"\"","--fields-terminated-by=,", "--lines-terminated-by=\\n",  "--fields-escaped-by=\\\\");
 
         String result=  ProcessUtil.execReturnString(args);
-        System.out.println(args);
-        String str = " ";
-        for(String a:args) {
-      	  str = str + " " + a;
-        }
-        System.out.println(str);
-
         int logIndex = result.indexOf("MASTER_LOG_FILE='");
         int logPosIndex = result.indexOf("MASTER_LOG_POS=");
         String logFile=result.substring(logIndex +17,logIndex +17+result.substring(logIndex +17).indexOf("'")) ;
@@ -94,7 +87,7 @@ public class MigrateDumpRunner implements Runnable {
 
             File sqlFile = new File(file, task.getTable() + ".sql");
             if(!sqlFile.exists()){
-            	System.out.println(sqlFile.getAbsolutePath() + "not  exists");
+            	LOGGER.debug(sqlFile.getAbsolutePath() + "not  exists");
             }
            List<String> createTable= Files.readLines(sqlFile,Charset.forName("UTF-8")) ;
 
