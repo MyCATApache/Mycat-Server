@@ -33,7 +33,8 @@ public class MigrateMainRunner implements Runnable {
             MycatServer.getInstance().getBusinessExecutor().submit( new MigrateDumpRunner(migrateTask,downLatch,sucessTask)) ;
         }
         try {
-            downLatch.await(2, TimeUnit.HOURS) ;
+        	//modify by jian.xie 需要等到dumprunner执行结束
+            downLatch.await() ;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
