@@ -13,10 +13,10 @@ import java.util.List;
  */
 public class MigrateTask implements Serializable {
 
-    private String from;
-    private String to;
-    private String table;
-    private List<Range> slots=new ArrayList<>();
+    private String from; //from dataNode
+    private String to;  // to dataNode
+    private String table; //
+    private List<Range> slots=new ArrayList<>(); // crc range
 
     private String method;
     private String fclass=PartitionByCRC32PreSlot.class.getName();
@@ -26,7 +26,8 @@ public class MigrateTask implements Serializable {
 
     private int slaveId;
 
-    private transient String zkpath;
+    private transient String zkpath; //mycat/mycat-cluster-1/migrate/TESTDB/411c53ae7da84e418aed1a3909926933/localhost1 
+    								//
     private transient String binlogFile;
     private transient int pos;
     private transient volatile Date lastBinlogDate;

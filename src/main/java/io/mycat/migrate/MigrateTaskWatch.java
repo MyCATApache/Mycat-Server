@@ -111,7 +111,7 @@ public class MigrateTaskWatch {
                 taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
                 taskLock.acquire(20, TimeUnit.SECONDS);
              String text = new String(ZKUtils.getConnection().getData().forPath(event.getData().getPath()), "UTF-8");
-
+             // /migrate/taskId/* 所有的数据
             List<String> dataNodeList= ZKUtils.getConnection().getChildren().forPath(event.getData().getPath());
             if(!dataNodeList.isEmpty()) {
                 if ((!Strings.isNullOrEmpty(text) )&& text.startsWith("{")) {
@@ -186,7 +186,7 @@ public class MigrateTaskWatch {
         private static String getDataHostNameFromNode(String dataNode){
             return MycatServer.getInstance().getConfig().getDataNodes().get(dataNode).getDbPool().getHostName();
         }
-
+        //将所有有相同的来源的dataNode放置到一个任务当中。
         private static   Map<String, List<MigrateTask> > mergerTaskForDataHost ( List<MigrateTask> migrateTaskList)
         {
             Map<String, List<MigrateTask> > taskMap=new HashMap<>();

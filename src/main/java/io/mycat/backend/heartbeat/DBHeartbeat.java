@@ -24,6 +24,7 @@
 package io.mycat.backend.heartbeat;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.mycat.statistic.DataSourceSyncRecorder;
 import io.mycat.statistic.HeartbeatRecorder;
@@ -44,7 +45,7 @@ public abstract class DBHeartbeat {
 	protected String heartbeatSQL;// 静态心跳语句
 	protected final AtomicBoolean isStop = new AtomicBoolean(true);
 	protected final AtomicBoolean isChecking = new AtomicBoolean(false);
-	protected int errorCount;
+	protected AtomicInteger errorCount = new AtomicInteger(0);
 	protected volatile int status;
 	protected final HeartbeatRecorder recorder = new HeartbeatRecorder();
 	protected final DataSourceSyncRecorder asynRecorder = new DataSourceSyncRecorder();
@@ -85,7 +86,7 @@ public abstract class DBHeartbeat {
 	}
 
 	public int getErrorCount() {
-		return errorCount;
+		return errorCount.get();
 	}
 
 	public HeartbeatRecorder getRecorder() {

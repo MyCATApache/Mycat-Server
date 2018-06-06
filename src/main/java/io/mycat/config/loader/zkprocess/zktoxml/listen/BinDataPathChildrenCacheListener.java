@@ -1,15 +1,17 @@
 package io.mycat.config.loader.zkprocess.zktoxml.listen;
 
-import com.google.common.io.Files;
-import io.mycat.MycatServer;
-import io.mycat.config.model.SystemConfig;
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 
-import java.io.File;
-import java.io.IOException;
+import com.google.common.io.Files;
+
+import io.mycat.MycatServer;
+import io.mycat.config.model.SystemConfig;
 
 /**
  * Created by magicdoom on 2016/10/27.

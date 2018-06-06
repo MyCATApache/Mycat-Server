@@ -48,7 +48,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
             PathChildrenCacheEvent event) throws Exception {
         switch (event.getType()) {
             case CHILD_ADDED:
-                 checkCommit(event);
+                checkCommit(event);
                 break;
             default:
                 break;
@@ -66,6 +66,8 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
             String custerName = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
            ClusterInfo clusterInfo= JSON.parseObject(ZKUtils.getConnection().getData().forPath("/mycat/"+custerName) , ClusterInfo.class);
            List<String> clusterNodeList= Splitter.on(',').omitEmptyStrings().splitToList(clusterInfo.getClusterNodes());
+           //等待所有的dataHost都导出数据完毕。 dataHost的数量== booster的数量
+           //判断条件需要进行修改  todo
              if(sucessDataHost.size()==clusterNodeList.size()){
 
                  List<String> taskDataHost= ZKUtils.getConnection().getChildren().forPath(taskPath);
