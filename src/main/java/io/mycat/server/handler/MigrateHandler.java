@@ -39,6 +39,7 @@ import io.mycat.config.Fields;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.migrate.MigrateTask;
+import io.mycat.migrate.MigrateTaskWatch;
 import io.mycat.migrate.MigrateUtils;
 import io.mycat.migrate.TaskNode;
 import io.mycat.net.mysql.*;
@@ -114,9 +115,17 @@ public final class MigrateHandler {
                     .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes,PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
 
             CuratorTransactionFinal transactionFinal=null;
-            String taskBase = ZKUtils.getZKBasePath() + "migrate/" + c.getSchema();
+            String migratePath = ZKUtils.getZKBasePath() + "migrate";
+            String taskBase = migratePath + "/" + c.getSchema();
             String taskPath = taskBase + "/" + taskID;
             CuratorFramework client= ZKUtils.getConnection();
+            // modify by jian.xie 如果migrate 启动的时候不存在，无法监听，需要这里监听一次
+            // 如果第一次没有migrate节点这里应该无法使用集群 还需优化
+            if(client.checkExists().forPath(migratePath) == null){
+            	client.create().creatingParentsIfNeeded().forPath(migratePath);
+            	// 添加监听
+                MigrateTaskWatch.start();
+            }
 
             //校验 之前同一个表的迁移任务未完成，则jzhi禁止继续
            if( client.checkExists().forPath(taskBase) !=null ) {
@@ -132,6 +141,7 @@ public final class MigrateHandler {
                }
            }
             client.create().creatingParentsIfNeeded().forPath(taskPath);
+            
             TaskNode taskNode=new TaskNode();
             taskNode.setSchema(c.getSchema());
             taskNode.setSql(stmt);
