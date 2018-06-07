@@ -31,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -56,6 +57,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.heartbeat.zkprocess.MycatLeaderLatch;
 import io.mycat.backend.mysql.nio.handler.MultiNodeCoordinator;
 import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
 import io.mycat.backend.mysql.xa.ParticipantLogEntry;
@@ -163,6 +165,8 @@ public class MycatServer {
 	private  InterProcessMutex dnindexLock;
 	private  long totalNetWorkBufferSize = 0;
 
+	private volatile MycatLeaderLatch leaderLatch;
+	
 	private final AtomicBoolean startup=new AtomicBoolean(false);
 	private MycatServer() {
 		
@@ -210,6 +214,7 @@ public class MycatServer {
 		 if(isUseZkSwitch()) {
 			 String path=     ZKUtils.getZKBasePath()+"lock/dnindex.lock";
 			 dnindexLock = new InterProcessMutex(ZKUtils.getConnection(), path);
+			 
 		 }
 
 	}
@@ -475,7 +480,7 @@ public class MycatServer {
 		heartbeatScheduler.scheduleAtFixedRate(updateTime(), 0L, TIME_UPDATE_PERIOD,TimeUnit.MILLISECONDS);
 		heartbeatScheduler.scheduleAtFixedRate(processorCheck(), 0L, system.getProcessorCheckPeriod(),TimeUnit.MILLISECONDS);
 		heartbeatScheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L, dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
-		heartbeatScheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
+		heartbeatScheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);		
 		heartbeatScheduler.scheduleAtFixedRate(dataSourceOldConsClear(), 0L, DEFAULT_OLD_CONNECTION_CLEAR_PERIOD, TimeUnit.MILLISECONDS);
 		scheduler.schedule(catletClassClear(), 30000,TimeUnit.MILLISECONDS);
        
@@ -505,6 +510,14 @@ public class MycatServer {
 		if(isUseZkSwitch()) {
 			//首次启动如果发现zk上dnindex为空，则将本地初始化上zk
 			initZkDnindex();
+			
+			leaderLatch = new  MycatLeaderLatch( "heartbeat/leader" );
+			 try {
+				leaderLatch.start();
+			} catch (Exception e) {
+				LOGGER.error(e.getMessage());
+				e.printStackTrace();
+			}
 		}
 		initRuleData();
 
@@ -683,6 +696,27 @@ public class MycatServer {
 		return prop;
 	}
 
+	
+	public synchronized boolean saveDataHostIndexToZk(String dataHost, int curIndex) {
+		boolean result = false;
+		try {			
+			
+			try {
+				dnindexLock.acquire(30,TimeUnit.SECONDS)   ;
+				String path = ZKUtils.getZKBasePath() + "bindata/dnindex.properties";
+				
+				Map<String,String> propertyMap = new HashMap<>();
+				propertyMap.put(dataHost, String.valueOf(curIndex));
+				result = ZKUtils.writeProperty( path, propertyMap);
+			} finally {
+				 dnindexLock.release();
+			}			
+		} catch (Exception e) {
+			LOGGER.warn("saveDataHostIndexToZk err:", e);
+		} 
+		return result;
+	} 
+	
 	/**
 	 * save cur datanode index to properties file
 	 *
@@ -710,30 +744,30 @@ public class MycatServer {
 			fileOut = new FileOutputStream(file);
 			dnIndexProperties.store(fileOut, "update");
 
-			if(isUseZkSwitch()) {
-				// save to  zk
-				try {
-					dnindexLock.acquire(30,TimeUnit.SECONDS)   ;
-					String path = ZKUtils.getZKBasePath() + "bindata/dnindex.properties";
-					CuratorFramework zk = ZKUtils.getConnection();
-					if(zk.checkExists().forPath(path)==null) {
-						zk.create().creatingParentsIfNeeded().forPath(path, Files.toByteArray(file));
-					} else{
-						byte[] data=	zk.getData().forPath(path);
-						ByteArrayOutputStream out=new ByteArrayOutputStream();
-						Properties properties=new Properties();
-						properties.load(new ByteArrayInputStream(data));
-						 if(!String.valueOf(curIndex).equals(properties.getProperty(dataHost))) {
-							 properties.setProperty(dataHost, String.valueOf(curIndex));
-							 properties.store(out, "update");
-							 zk.setData().forPath(path, out.toByteArray());
-						 }
-					}
-
-				}finally {
-				 dnindexLock.release();
-				}
-			}
+//			if(isUseZkSwitch()) {
+//				// save to  zk
+//				try {
+//					dnindexLock.acquire(30,TimeUnit.SECONDS)   ;
+//					String path = ZKUtils.getZKBasePath() + "bindata/dnindex.properties";
+//					CuratorFramework zk = ZKUtils.getConnection();
+//					if(zk.checkExists().forPath(path)==null) {
+//						zk.create().creatingParentsIfNeeded().forPath(path, Files.toByteArray(file));
+//					} else{
+//						byte[] data=	zk.getData().forPath(path);
+//						ByteArrayOutputStream out=new ByteArrayOutputStream();
+//						Properties properties=new Properties();
+//						properties.load(new ByteArrayInputStream(data));
+//						 if(!String.valueOf(curIndex).equals(properties.getProperty(dataHost))) {
+//							 properties.setProperty(dataHost, String.valueOf(curIndex));
+//							 properties.store(out, "update");
+//							 zk.setData().forPath(path, out.toByteArray());
+//						 }
+//					}
+//
+//				}finally {
+//				 dnindexLock.release();
+//				}
+//			}
 		} catch (Exception e) {
 			LOGGER.warn("saveDataNodeIndex err:", e);
 		} finally {
@@ -753,7 +787,7 @@ public class MycatServer {
 		return "true".equalsIgnoreCase(loadZk)   ;
 	}
 
-	private boolean isUseZkSwitch()
+	public boolean isUseZkSwitch()
 	{
 		MycatConfig mycatConfig=config;
 		boolean isUseZkSwitch=	mycatConfig.getSystem().isUseZKSwitch();
@@ -1013,8 +1047,15 @@ public class MycatServer {
 	
 	public ListeningExecutorService getListeningExecutorService() {
 		return listeningExecutorService;
+	} 
+	public ScheduledExecutorService getHeartbeatScheduler()
+	{
+		return heartbeatScheduler;
 	}
 
+	public MycatLeaderLatch getLeaderLatch() {
+		return leaderLatch;
+	}
 	public static void main(String[] args) throws Exception {
 		String path = ZKUtils.getZKBasePath() + "bindata";
 		CuratorFramework zk = ZKUtils.getConnection();

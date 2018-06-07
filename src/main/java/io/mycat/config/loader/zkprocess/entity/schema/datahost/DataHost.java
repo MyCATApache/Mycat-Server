@@ -49,12 +49,23 @@ public class DataHost implements Named {
     @XmlAttribute()
     protected String slaveIDs;
 
+    @XmlAttribute(required = true)
+    protected Integer maxRetryCount;
+    
     protected String heartbeat;
     protected String connectionInitSql;
 
     protected List<WriteHost> writeHost;
 
-    public String getHeartbeat() {
+    public Integer getMaxRetryCount() {
+		return maxRetryCount;
+	}
+
+	public void setMaxRetryCount(Integer maxRetryCount) {
+		this.maxRetryCount = maxRetryCount;
+	}
+
+	public String getHeartbeat() {
         return heartbeat;
     }
 

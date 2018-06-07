@@ -563,18 +563,18 @@ public class BinlogStream {
     }
 
     public static void main(String[] args) {
-//        BinlogStream  stream=new BinlogStream("localhost",3301,"czn","MUXmux");
-//        try {
-//            stream.setSlaveID(23511);
-//            stream.setBinglogFile("mysql-bin.000005");
-//            stream.setBinlogPos(4);
-//            stream.connect();
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        BinlogStream  stream=new BinlogStream("localhost",3306,"root","123");
+        try {
+            stream.setSlaveID(23511);
+            stream.setBinglogFile("mysql-bin.000156");
+            stream.setBinlogPos(12186);
+            stream.connect();
 
-        String sql="2'aa\"啊啊402";
-        System.out.println(sql.replace("'","\\'"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+//        String sql="2'aa\"啊啊402";
+//        System.out.println(sql.replace("'","\\'"));
     }
 }

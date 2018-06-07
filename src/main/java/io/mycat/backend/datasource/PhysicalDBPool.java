@@ -37,10 +37,14 @@ import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.heartbeat.DBHeartbeat;
+import io.mycat.backend.heartbeat.zkprocess.SwitchStatueToZK;
 import io.mycat.backend.mysql.nio.handler.GetConnectionHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.config.Alarms;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.model.DataHostConfig;
+import io.mycat.util.ZKUtils;
 
 public class PhysicalDBPool {
 	
@@ -205,9 +209,43 @@ public class PhysicalDBPool {
 			return 0;
 		}
 	}
-
+	//进行投票选择的节点.
+	private boolean switchSourceVoted(int newIndex, boolean isAlarm, String reason) {
+		if (notSwitchSource(newIndex)) {
+			return false;
+		}		
+		final ReentrantLock lock = this.switchLock;
+		if(MycatServer.getInstance().isUseZkSwitch()) {
+			lock.lock();
+			try {
+				final String myId = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+				String manageVotePath = ZKUtils.getZKBasePath() +"heartbeat/" + hostName +"/" + "voteInformation/" 
+						+ myId;
+				String data = String.format("%s=%d", myId,newIndex);
+				ZKUtils.createPath(manageVotePath, data);
+			} finally {
+				lock.unlock();
+			}
+		}		
+		return true;
+	}
+	
+	
+	
+	//判断是进行zk投票还是直接切换读写
+	public boolean switchSourceOrVoted(int newIndex, boolean isAlarm, String reason) {		
+		if(MycatServer.getInstance().isUseZkSwitch()) {
+			return switchSourceVoted( newIndex,  isAlarm,  reason); 
+		} else {
+			return switchSource( newIndex,  isAlarm,  reason);
+		}
+	} 
+	public boolean notSwitchSource(int newIndex){
+		return this.writeType != PhysicalDBPool.WRITE_ONLYONE_NODE || !checkIndex(newIndex) ;
+	}
+	
 	public boolean switchSource(int newIndex, boolean isAlarm, String reason) {
-		if (this.writeType != PhysicalDBPool.WRITE_ONLYONE_NODE || !checkIndex(newIndex)) {
+		if (notSwitchSource(newIndex)) {
 			return false;
 		}
 		
@@ -217,8 +255,16 @@ public class PhysicalDBPool {
 			int current = activedIndex;
 			if (current != newIndex) {
 				
+				if(MycatServer.getInstance().isUseZkSwitch()){
+					LOGGER.info( ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID) + 
+							"正在开始进行转换节点 " + hostName+ " = " + newIndex  );
+					SwitchStatueToZK.startSwitch(hostName);
+				}
+				
 				// switch index
 				activedIndex = newIndex;
+				
+				initSuccess = false;
 				
 				// init again
 				this.init(activedIndex);
@@ -229,7 +275,23 @@ public class PhysicalDBPool {
 				// write log
 				LOGGER.warn(switchMessage(current, newIndex, false, reason));
 				
+				if(MycatServer.getInstance().isUseZkSwitch()){
+					System.out.println("当前：" + activedIndex + " new Index "+ newIndex );
+					current =   activedIndex;
+ 					if(!isInitSuccess() || current != newIndex) {
+						LOGGER.error(String.format("%s switch to index %d error ! now index is to switch %d but %d", hostName, newIndex ,newIndex, current));
+
+						//报错 然后程序直接挂掉
+						System.exit(-1);
+					}
+					SwitchStatueToZK.endSwitch(hostName);
+				}
 				return true;
+			} else {
+				if(MycatServer.getInstance().isUseZkSwitch()) {
+					SwitchStatueToZK.startSwitch(hostName);
+					SwitchStatueToZK.endSwitch(hostName);
+				}	
 			}
 		} finally {
 			lock.unlock();

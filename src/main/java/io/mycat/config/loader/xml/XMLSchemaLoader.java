@@ -761,6 +761,8 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String filters = element.getAttribute("filters");
 			String logTimeStr = element.getAttribute("logTime");
 			String slaveIDs = element.getAttribute("slaveIDs");
+			int maxRetryCount = Integer.parseInt(element.getAttribute("maxRetryCount")) ;
+
 			long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.parseLong(logTimeStr) ;
 			//读取心跳语句
 			String heartbeatSQL = element.getElementsByTagName("heartbeat").item(0).getTextContent();
@@ -813,6 +815,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			hostConf.setFilters(filters);
 			hostConf.setLogTime(logTime);
 			hostConf.setSlaveIDs(slaveIDs);
+			hostConf.setMaxRetryCount(maxRetryCount);
 			dataHosts.put(hostConf.getName(), hostConf);
 		}
 	}
