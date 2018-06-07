@@ -87,19 +87,25 @@ public final class MigrateHandler {
 
         String table = map.get("table");
         String add = map.get("add");
-
+        String schema = "";
         if (table == null) {
             writeErrMessage(c, "table cannot be null");
             return;
         }
-
+        if (table.contains(".")) {
+            String[] split = table.split("\\.");
+            schema = split[0];
+            table = split[1];
+        }
         if (add == null) {
             writeErrMessage(c, "add cannot be null");
             return;
         }
         String taskID = getUUID();
         try {
-            String schema = c.getSchema();
+            if (StringUtil.isEmpty(schema)){
+                schema = c.getSchema();
+            }
             if (StringUtil.isEmpty(schema)) {
                 writeErrMessage(c, "No database selected");
                 return;
