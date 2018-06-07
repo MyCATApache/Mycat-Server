@@ -65,7 +65,7 @@ public class DataHostConfig {
 	private boolean tempReadHostAvailable = false;  //如果写服务挂掉, 临时读服务是否继续可用
 	private final Set<String> dataNodes; //包含的所有dataNode名字
 	private String slaveIDs;
-
+	private int maxRetryCount = 3; // 心跳失败时候重试的次数. @auth zwy
 	public DataHostConfig(String name, String dbType, String dbDriver,
 			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold, boolean tempReadHostAvailable) {
 		super();
@@ -225,4 +225,13 @@ public class DataHostConfig {
     public boolean containDataNode(String randomDn) {
         return dataNodes.contains(randomDn);
     }
+
+	public int getMaxRetryCount() {
+		return maxRetryCount;
+	}
+
+	public void setMaxRetryCount(int maxRetryCount) {
+		this.maxRetryCount = maxRetryCount;
+	}
+    
 }

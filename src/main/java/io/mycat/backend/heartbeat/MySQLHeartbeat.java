@@ -29,17 +29,20 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
+
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.MySQLDataSource;
 import io.mycat.config.model.DataHostConfig;
+import io.mycat.util.TimeUtil;
 
 /**
  * @author mycat
  */
 public class MySQLHeartbeat extends DBHeartbeat {
 
-	private static final int MAX_RETRY_COUNT = 5;
+//	private static final int MAX_RETRY_COUNT = 5;
 	public static final Logger LOGGER = LoggerFactory.getLogger(MySQLHeartbeat.class);
 
 	private final MySQLDataSource source;
@@ -52,7 +55,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	public MySQLHeartbeat(MySQLDataSource source) {
 		this.source = source;
 		this.lock = new ReentrantLock(false);
-		this.maxRetryCount = MAX_RETRY_COUNT;
+		this.maxRetryCount = source.getHostConfig().getMaxRetryCount();
 		this.status = INIT_STATUS;
 		this.heartbeatSQL = source.getHostConfig().getHearbeatSQL();
 	}
@@ -167,13 +170,17 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		if (this.status != OK_STATUS) {
 			switchSourceIfNeed("heartbeat error");
 		}
+//		String str = JSON.toJSONString(this);
+
+//		System.out.println(str);
 	}
 
 	private void setOk(MySQLDetector detector) {
 		switch (status) {
 		case DBHeartbeat.TIMEOUT_STATUS:
 			this.status = DBHeartbeat.INIT_STATUS;
-			this.errorCount = 0;
+			this.errorCount.set(0);			
+			//前一个状态为超时 当前状态为正常状态  那就马上发送一个请求 来验证状态是否恢复为Ok
 			if (isStop.get()) {
 				detector.quit();
 			} else {
@@ -181,37 +188,67 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			}
 			break;
 		case DBHeartbeat.OK_STATUS:
+			this.errorCount.set(0);
 			break;
 		default:
 			this.status = OK_STATUS;
-			this.errorCount = 0;
+			this.errorCount.set(0);;
 		}
 		if (isStop.get()) {
 			detector.quit();
 		}
 	}
-
+	//发生错误了,是否进行下一次心跳检测的策略 . 是否进行下一次心跳检测.
+	private void nextDector(MySQLDetector detector, int nextStatue) {	
+		
+		if (isStop.get()) {
+			detector.quit();
+			this.status = nextStatue;			
+		} else {  
+			// should continues check error status
+			if(errorCount.get() < maxRetryCount) {
+				//设置3秒钟之后重试.
+				if (detector != null && !detector.isQuit()) {
+	            	LOGGER.error("set Error " + errorCount + "  " +  this.source.getConfig() );
+					source.setHeartbeatRecoveryTime( TimeUtil.currentTimeMillis() + 3000);
+	               // heartbeat(); // error count not enough, heart beat again
+	            }
+			} else {
+				if (detector != null ) {
+	                detector.quit();
+	            }
+	            this.status = nextStatue;
+				this.errorCount.set(0);
+			}
+		}
+	}
 	private void setError(MySQLDetector detector) {
+		errorCount.incrementAndGet() ;
+		nextDector(detector, ERROR_STATUS);
 		// should continues check error status
-		if (++errorCount < maxRetryCount) {
-
-            if (detector != null && !detector.isQuit()) {
-                heartbeat(); // error count not enough, heart beat again
-            }
-
-		}else
-        {
-            if (detector != null ) {
-                detector.quit();
-            }
-            this.status = ERROR_STATUS;
-            this.errorCount = 0;
-        }
+//		if (errorCount.incrementAndGet() < maxRetryCount) {
+//
+//            if (detector != null && !detector.isQuit()) {
+//            	LOGGER.debug("set Error " + errorCount);
+//				source.setHeartbeatRecoveryTime( TimeUtil.currentTimeMillis() + 3000);
+//               // heartbeat(); // error count not enough, heart beat again
+//            }
+//
+//		}else
+//        {
+//            if (detector != null ) {
+//                detector.quit();
+//            }
+//            this.status = ERROR_STATUS;
+//			this.errorCount.set(0);
+//        }
 	}
 
 	private void setTimeout(MySQLDetector detector) {
 		this.isChecking.set(false);
-		status = DBHeartbeat.TIMEOUT_STATUS;
+		errorCount.incrementAndGet() ;
+		nextDector(detector, TIMEOUT_STATUS);
+		//status = DBHeartbeat.TIMEOUT_STATUS;
 	}
 
 	/**
@@ -226,6 +263,10 @@ public class MySQLHeartbeat extends DBHeartbeat {
 				return;
 			}
 			return;
+		}
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("to  switchSourceIfNeed function 进行读节点转换 "
+					);
 		}
 		PhysicalDBPool pool = this.source.getDbPool();
 		int curDatasourceHB = pool.getSource().getHeartbeat().getStatus();
@@ -252,7 +293,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 							if (switchType == DataHostConfig.SYN_STATUS_SWITCH_DS) {
 								if (Integer.valueOf(0).equals( theSourceHB.getSlaveBehindMaster())) {
 									LOGGER.info("try to switch datasource ,slave is synchronized to master " + theSource.getConfig());
-									pool.switchSource(nextId, true, reason);
+									pool.switchSourceOrVoted(nextId, true, reason);
 									break;
 								} else {
 									LOGGER.warn("ignored  datasource ,slave is not  synchronized to master , slave behind master :"
@@ -262,7 +303,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 							} else {
 								// normal switch
 								LOGGER.info("try to switch datasource ,not checked slave synchronize status " + theSource.getConfig());
-								pool.switchSource(nextId, true, reason);
+								pool.switchSourceOrVoted(nextId, true, reason);
                                 break;
 							}
 
