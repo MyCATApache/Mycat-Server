@@ -97,7 +97,12 @@ public final class MigrateHandler {
         String  taskID= getUUID();
         try
         {
-            SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(c.getSchema());
+            String schema = c.getSchema();
+            if (StringUtil.isEmpty(schema)){
+                writeErrMessage(c, "No database selected");
+                return;
+            }
+            SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(schema);
             TableConfig tableConfig = schemaConfig.getTables().get(table.toUpperCase());
             AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
             if (!(algorithm instanceof PartitionByCRC32PreSlot)) {
@@ -339,11 +344,11 @@ public final class MigrateHandler {
             if (s.contains("=")) {
                 int dindex = s.indexOf("=");
                 if (s.startsWith("-")) {
-                    String key = s.substring(1, dindex).trim();
+                    String key = s.substring(1, dindex).toLowerCase().trim();
                     String value = s.substring(dindex + 1).trim();
                     map.put(key, value);
                 } else if (s.startsWith("--")) {
-                    String key = s.substring(2, dindex).trim();
+                    String key = s.substring(2, dindex).toLowerCase().trim();
                     String value = s.substring(dindex + 1).trim();
                     map.put(key, value);
                 }
