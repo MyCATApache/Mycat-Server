@@ -79,7 +79,7 @@ public class ManageHeartBeatChange implements Runnable {
 	public boolean addPath(String nodePath) {
 		LOGGER.debug("add vote information "  + nodePath);
 		//判断是否可以收集投票结果 如果不行直接删除
-		if(TimeUtil.currentTimeMillis() - changingFinishDate  < 2 * 60 * 1000 && statue.get() == NOT_SELECT ) {
+		if(TimeUtil.currentTimeMillis() - changingFinishDate  < minTimeToSwitched && statue.get() == NOT_SELECT ) {
 			try {
 				client.delete().deletingChildrenIfNeeded().forPath(nodePath);
 			} catch (Exception e) {

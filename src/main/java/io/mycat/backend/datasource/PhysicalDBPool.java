@@ -256,7 +256,7 @@ public class PhysicalDBPool {
 			if (current != newIndex) {
 				
 				if(MycatServer.getInstance().isUseZkSwitch()){
-					System.out.println( ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID) + 
+					LOGGER.info( ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID) + 
 							"正在开始进行转换节点 " + hostName+ " = " + newIndex  );
 					SwitchStatueToZK.startSwitch(hostName);
 				}
