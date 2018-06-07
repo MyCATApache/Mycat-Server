@@ -135,7 +135,7 @@ public final class MigrateHandler {
                     .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes, PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
 
             CuratorTransactionFinal transactionFinal = null;
-            String taskBase = ZKUtils.getZKBasePath() + "migrate/" + c.getSchema();
+            String taskBase = ZKUtils.getZKBasePath() + "migrate/" + schema;
             String taskPath = taskBase + "/" + taskID;
             CuratorFramework client = ZKUtils.getConnection();
 
@@ -145,7 +145,7 @@ public final class MigrateHandler {
                 for (String child : childTaskList) {
                     TaskNode taskNode = JSON
                             .parseObject(ZKUtils.getConnection().getData().forPath(taskBase + "/" + child), TaskNode.class);
-                    if (taskNode.getSchema().equalsIgnoreCase(c.getSchema()) && table.equalsIgnoreCase(taskNode.getTable())
+                    if (taskNode.getSchema().equalsIgnoreCase(schema) && table.equalsIgnoreCase(taskNode.getTable())
                             && taskNode.getStatus() < 5) {
                         writeErrMessage(c, "table: " + table + " previous migrate task is still running,on the same time one table only one task");
                         return;
@@ -154,7 +154,7 @@ public final class MigrateHandler {
             }
             client.create().creatingParentsIfNeeded().forPath(taskPath);
             TaskNode taskNode = new TaskNode();
-            taskNode.setSchema(c.getSchema());
+            taskNode.setSchema(schema);
             taskNode.setSql(stmt);
             taskNode.setTable(table);
             taskNode.setAdd(add);
@@ -167,7 +167,7 @@ public final class MigrateHandler {
                 String key = entry.getKey();
                 List<MigrateTask> value = entry.getValue();
                 for (MigrateTask migrateTask : value) {
-                    migrateTask.setSchema(c.getSchema());
+                    migrateTask.setSchema(schema);
 
                     //分配slaveid只需要一个dataHost分配一个即可，后续任务执行模拟从节点只需要一个dataHost一个
                     String dataHost = getDataHostNameFromNode(migrateTask.getFrom());
