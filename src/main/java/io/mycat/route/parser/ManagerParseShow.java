@@ -81,6 +81,7 @@ public final class ManagerParseShow {
     public static final int DIRECTMEMORY_TOTAL = 45;
     public static final int DIRECTMEMORY_DETAILl = 46;
 
+    public static final int CHECK_GLOBAL = 47;
 
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -253,13 +254,43 @@ public final class ManagerParseShow {
             case 'A':
             case 'a':
             	 return show2CACheck(stmt, offset);
+            case 'h':
+            case 'H':
+            	 return show2CHCheck(stmt, offset);
             default:
                 return OTHER;
             }
         }
         return OTHER;
     }
- // SHOW @@CACHE
+    // SHOW @@CHECK_GLOBAL
+    private static int show2CHCheck(String stmt, int offset) {
+    	if (stmt.length() > offset + "ECK_GLOBAL".length()) {
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+            char c6 = stmt.charAt(++offset);
+            char c7 = stmt.charAt(++offset);
+            char c8 = stmt.charAt(++offset);
+            char c9 = stmt.charAt(++offset);
+            char c10 = stmt.charAt(++offset);
+            
+            if ((c1 == 'E' || c1 == 'e') && (c2 == 'C' || c2 == 'c') && (c3 == 'K' || c3 == 'k')
+                    && (c4 == '_') && (c5 == 'G' || c5 == 'g') && (c6 == 'L' || c6 == 'l')
+                    && (c7 == 'O' || c7 == 'o') && (c8 == 'B' || c8 == 'b')  && (c9 == 'A' || c9 == 'a')
+                    && (c10 == 'L' || c10 == 'l')) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return OTHER;
+                }
+                return CHECK_GLOBAL;
+            }
+        }
+        return OTHER;
+	}
+
+	// SHOW @@CACHE
     private static int show2CACheck(String stmt, int offset) {
     	String remain=stmt.substring(offset);
     	 if(remain.equalsIgnoreCase("ACHE"))
