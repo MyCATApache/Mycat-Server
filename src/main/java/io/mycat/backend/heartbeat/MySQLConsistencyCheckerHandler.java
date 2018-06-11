@@ -69,8 +69,8 @@ public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
     			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.COUNT_COLUMN}, detector);
     	SQLJob sqlJob = new SQLJob(this.getCountSQL(), dbName, resultHandler, source);
     	detector.setSqlJob(sqlJob);
-	    sqlJob.run();
 	    this.jobCount.incrementAndGet();
+	    sqlJob.run();
         	
 	}
 	//1
@@ -83,8 +83,8 @@ public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
     			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.MAX_COLUMN}, detector);
     	SQLJob sqlJob = new SQLJob(this.getMaxSQL(), dbName, resultHandler, source);
     	detector.setSqlJob(sqlJob);
-	    sqlJob.run();
 	    this.jobCount.incrementAndGet();      
+	    sqlJob.run();
 	}
 	
 	/**
@@ -102,8 +102,8 @@ public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
     	String db = " and table_schema='" + dbName + "'";
     	SQLJob sqlJob = new SQLJob(this.columnExistSQL + db , dbName, resultHandler, source);
     	detector.setSqlJob(sqlJob);//table_schema='db1'
-	    sqlJob.run();
-	    this.jobCount.incrementAndGet();      
+	    this.jobCount.incrementAndGet();
+    	sqlJob.run();
 	
 	}
 	public volatile boolean isStop = false;
@@ -111,73 +111,69 @@ public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
 	volatile SQLQueryResult<Map<String, String>> resultMap = null;
 	public void setResult(SQLQueryResult<Map<String, String>> result) {
 //		 LOGGER.debug("setResult::::::::::" + JSON.toJSONString(result));
-		lock.lock();
-		try{
-			if(isStop){
-				return ;
-			}
+		if(isStop){
+			return ;
+		}
+		if(result != null && result.isSuccess()){	
 			jobCount.decrementAndGet();
-			if(result != null && result.isSuccess()){				
-				String dataNode = result.getDataNode();
-				result.setTableName(this.getTableName());
-				if(resultMap == null) {
-					resultMap = result;
-				} else {
-					//
-					SQLQueryResult<Map<String, String>> r = resultMap;
-					Map<String, String> metaData = result.getResult();
-					for(String key : metaData.keySet()) {
-						r.getResult().put(key, metaData.get(key));
-					}
-					resultMap = r;
+			String dataNode = result.getDataNode();
+			result.setTableName(this.getTableName());
+			if(resultMap == null) {
+				resultMap = result;
+			} else {
+				//
+				SQLQueryResult<Map<String, String>> r = resultMap;
+				Map<String, String> metaData = result.getResult();
+				for(String key : metaData.keySet()) {
+					r.getResult().put(key, metaData.get(key));
 				}
-				
-			}else{
-				if(result != null && result.getResult() != null) {
-					String sql = null;				
-					final int seq = sqlSeq ;
-					if(seq == 0){
-						sql = this.getColumnExistSQL();
-					} else if(seq == 1) {
-						sql = this.getMaxSQL();
-					} else if(seq == 2) {
-						sql = this.getCountSQL();
-					} else {
-						sql = result.getErrMsg();
-					}
-					String errMsg = sql+ " execute failed in db: " + result.getDataNode()
-					 + " during global table consistency check task.";
-					LOGGER.warn(errMsg);
-					handler.onError(errMsg);
-				}
+				resultMap = r;
 			}
-			if(jobCount.get() == 0 ){
-				final int seq = ++sqlSeq ;
-				if(seq == 1){
-					this.checkMaxTimeStamp();
-				} else if(seq == 2) {
-					this.checkRecordCout();
-				} else {
-					handler.onSuccess(resultMap);
-					isStop = true;
-				}									
-			} else if(isTimeOut()){
-				String execSql = "";
+			
+		}else{
+			if(result != null && result.getResult() != null) {
+				String sql = null;				
 				final int seq = sqlSeq ;
 				if(seq == 0){
-					execSql = this.getColumnExistSQL();
+					sql = this.getColumnExistSQL();
 				} else if(seq == 1) {
-					execSql = this.getMaxSQL();
+					sql = this.getMaxSQL();
 				} else if(seq == 2) {
-					execSql = this.getCountSQL();
+					sql = this.getCountSQL();
+				} else {
+					sql = result.getErrMsg();
 				}
-				isStop = true;
-				handler.onError(String.format("sql %s time out", execSql));
+				String errMsg = sql+ " execute failed in db: " + result.getDataNode()
+				 + " during global table consistency check task.";
+				LOGGER.warn(errMsg);
+				handler.onError(errMsg);
 			}
-
-		}finally{
-			lock.unlock();
 		}
+		//任务都完成之后 进行下一个sql校验
+		if(jobCount.get() == 0 ){
+			final int seq = ++sqlSeq ;
+			if(seq == 1){
+				this.checkMaxTimeStamp();
+			} else if(seq == 2) {
+				this.checkRecordCout();
+			} else {
+				handler.onSuccess(resultMap);
+				isStop = true;
+			}									
+		} else if(isTimeOut()){
+			String execSql = "";
+			final int seq = sqlSeq ;
+			if(seq == 0){
+				execSql = this.getColumnExistSQL();
+			} else if(seq == 1) {
+				execSql = this.getMaxSQL();
+			} else if(seq == 2) {
+				execSql = this.getCountSQL();
+			}
+			isStop = true;
+			handler.onError(String.format("sql %s time out", execSql));
+		}	
+		
 	}
 	
 	

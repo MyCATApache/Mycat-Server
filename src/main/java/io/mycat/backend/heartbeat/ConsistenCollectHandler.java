@@ -5,20 +5,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.commons.math.optimization.GoalType;
-import org.apache.logging.log4j.core.util.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.druid.support.json.JSONUtils;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
@@ -34,23 +29,20 @@ import io.mycat.manager.ManagerConnection;
 import io.mycat.manager.response.CheckGlobalTable;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.sqlengine.SQLQueryResult;
-import io.mycat.util.ObjectUtil;
 
 public class ConsistenCollectHandler {
     public static final Logger LOGGER = LoggerFactory.getLogger(ConsistenCollectHandler.class);
 
-	private AtomicInteger jobCount = new AtomicInteger(0);
-	private AtomicBoolean allJobSend = new AtomicBoolean(false);
-	private AtomicBoolean isStop =new AtomicBoolean(false);
+	private AtomicBoolean isStop =new AtomicBoolean(false); //任务是否停止
 	
-	private final int retryTime ;
-	private final int dnCount ;
+	private final int retryTime ; //校验次数
+	private final int dnCount ; //节点数量
 
-	private final  long intervalTime ;
-	private final String tableName;
-	private final String schemaName;
-	private final AtomicInteger successTime;
-	private final ManagerConnection con;
+	private final  long intervalTime ; //间隔时间
+	private final String tableName; //表名
+	private final String schemaName; //dataBase
+	private final AtomicInteger successTime; //成功次数
+	private final ManagerConnection con; //session
 	public ConsistenCollectHandler(ManagerConnection c, String tableName, 
 			String schemaName, int dnCount, int retryTime, long intervalTime) {
 		this.tableName = tableName;
@@ -61,9 +53,9 @@ public class ConsistenCollectHandler {
 		this.con = c;
 		this.dnCount = dnCount;
 	}
-	private volatile ScheduledFuture<?> task;
+	private volatile ScheduledFuture<?> task; //定时发送校验的任务
 	//定时器不断的检测
-	public void startDetector(){
+	public void startDetector(){		
 		 task = MycatServer.getInstance().getScheduler()
 				.scheduleAtFixedRate(new ConsisterThread(tableName, schemaName, this),
 						0, intervalTime, TimeUnit.MILLISECONDS);
@@ -72,26 +64,30 @@ public class ConsistenCollectHandler {
 	private ReentrantLock lock = new ReentrantLock();
 	Map<String, List<SQLQueryResult<Map<String, String>>>> resultMap = new HashMap<>();
 	public void onSuccess(SQLQueryResult<Map<String, String>> result) {
-
 		if(isStop.get() == true){
 			return ;
 		}
 		lock.lock();
-		if(!resultMap.containsKey(result.getDataNode())) {
-			resultMap.put(result.getDataNode(),new ArrayList<SQLQueryResult<Map<String, String>>>());
+		try{
+			if(!resultMap.containsKey(result.getDataNode())) {
+				resultMap.put(result.getDataNode(),new ArrayList<SQLQueryResult<Map<String, String>>>());
+			}
+			resultMap.get(result.getDataNode()).add(result);
+		} finally {
+			lock.unlock();
 		}
-		resultMap.get(result.getDataNode()).add(result);
-		lock.unlock();
 		int count = successTime.incrementAndGet();
 		LOGGER.info(count + " :{}", JSON.toJSONString(result));
 		if (count == retryTime * dnCount) {
 			cancelTask();
-			String str = "";
-			for(List<SQLQueryResult<Map<String, String>>> list : resultMap.values()) {
-				str +=  JSONObject.toJSONString(list) + "\n";
+			if(LOGGER.isDebugEnabled()){
+				String str = "";
+				for(List<SQLQueryResult<Map<String, String>>> list : resultMap.values()) {
+					str +=  JSONObject.toJSONString(list) + "\n";
+				}
+				LOGGER.debug(str);
 			}
-			LOGGER.debug(str);
-			///数据的校验
+			///数据的校验 查询最大修改日期和修改时间有交集的节点。
 			List<SQLQueryResult<Map<String, String>>> unionResult = resultMap.remove(result.getDataNode());
 			List<SQLQueryResult<Map<String, String>>> tempResult = null;
 			for(List<SQLQueryResult<Map<String, String>>> list : resultMap.values()) {
@@ -102,7 +98,6 @@ public class ConsistenCollectHandler {
 					for(int i = 0 ; i < unionResult.size(); i++) {
 						Map<String, String> md2 = unionResult.get(i).getResult();
 						String md2_max_column = md2.get(GlobalTableUtil.MAX_COLUMN);
-
 						if(md1.get(GlobalTableUtil.COUNT_COLUMN).equals(md2.get(GlobalTableUtil.COUNT_COLUMN)) &&
 								(md1_max_column==null && null == md2_max_column ) 
 								|| ( md1_max_column != null && md1_max_column.equals(md2_max_column))  ) {
@@ -116,14 +111,12 @@ public class ConsistenCollectHandler {
 				if(unionResult.size() == 0){
 					break;
 				}				
-			}
-			
+			}			
 			if(unionResult.size() == 0) {
 				LOGGER.debug("check table " +tableName +" not consistence , get info" );
 				CheckGlobalTable.response(con, tableName, "No");
 			} else {
-				LOGGER.debug("check table " +tableName +"  consistence , consistence info" + JSONObject.toJSONString(unionResult));
-				System.out.println(JSONObject.toJSONString(unionResult));
+				LOGGER.debug("check table " +tableName +"  consistence , consistence info" + JSONObject.toJSONString(unionResult));				
 				CheckGlobalTable.response(con, tableName, "Yes");
 
 			}			
@@ -137,8 +130,7 @@ public class ConsistenCollectHandler {
 			task = null;
 			
 		}
-	}
-	
+	}	
 
 	public void onError(String msg) {
 		this.cancelTask();
@@ -154,23 +146,24 @@ public class ConsistenCollectHandler {
 
 }
  class ConsisterThread implements Runnable{
-	private final String tableName;
+	private final String tableName; 
 	private final String schemaName;
 	private final  ConsistenCollectHandler handler;
-	private final AtomicInteger successTime;
+	private final AtomicInteger sendTime; //
 	public ConsisterThread(String tableName, String schemaName,ConsistenCollectHandler handler) {
 		this.tableName = tableName;
 		this.schemaName = schemaName;
 		this.handler = handler;
-		successTime = new AtomicInteger(0);
+		sendTime = new AtomicInteger(0);
 	}
 	 
 	 
 	public void run() {
-		int count = successTime.incrementAndGet();
+		int count = sendTime.incrementAndGet();
+		//所有的校验最大的时间的任务发送完成
 		if (count > handler.getRetryTime()) {
 			handler.cancelTask();
-			ConsistenCollectHandler.LOGGER.info("all check job send finish");
+			ConsistenCollectHandler.LOGGER.info(" table check consistence job send finish");
 			return;
 		}
 		try {
@@ -182,7 +175,6 @@ public class ConsistenCollectHandler {
 
 			// 记录本次已经执行的datanode
 			// 多个 datanode 对应到同一个 PhysicalDatasource 只执行一次
-			Map<String, String> executedMap = new HashMap<>();
 			for (String nodeName : dataNodeList) {
 				Map<String, PhysicalDBNode> map = config.getDataNodes();
 				for (String k2 : map.keySet()) {
@@ -193,16 +185,14 @@ public class ConsistenCollectHandler {
 						PhysicalDBPool pool = dBnode.getDbPool(); // dataHost
 						Collection<PhysicalDatasource> allDS = pool.genAllDataSources();
 						for (PhysicalDatasource pds : allDS) {
+							//
 							if (pds instanceof MySQLDataSource) {
 								MySQLDataSource mds = (MySQLDataSource) pds;
-								//if (executedMap.get(pds.getName()) == null) {
-								System.out.println(dBnode.getName() + ":" + dBnode.getDatabase());
 									MySQLConsistencyChecker checker = new MySQLConsistencyCheckerHandler(dBnode, mds,
 											table.getName(), handler);
 									checker.checkMaxTimeStamp();
 									break;
-								//	executedMap.put(pds.getName(), nodeName);
-								//}
+								
 							}
 						}
 					}
@@ -213,7 +203,6 @@ public class ConsistenCollectHandler {
 			ConsistenCollectHandler.LOGGER.error("check consisten err: {}", e);
 			handler.onError("ConsisterThread err:" + e.getMessage());
 		}
-	}
-		
+	}	
 	
 }

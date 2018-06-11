@@ -147,6 +147,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
 //		conn.syncAndExcute();
+		//modify by zwy  这边 涉及到use database的返回，不能直接释放连接 需要继续处理包
 		boolean executeResponse = conn.syncAndExcute();		
 		if(executeResponse){
 			doFinished(false,null);
