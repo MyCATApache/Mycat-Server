@@ -493,7 +493,7 @@ public class MycatServer {
 		}
 		
 		if(system.getUseGlobleTableCheck() == 1){	// 全局表一致性检测是否开启
-			scheduler.scheduleAtFixedRate(glableTableConsistencyCheck(), 0L, system.getGlableTableCheckPeriod(), TimeUnit.MILLISECONDS);
+//			scheduler.scheduleAtFixedRate(glableTableConsistencyCheck(), 0L, system.getGlableTableCheckPeriod(), TimeUnit.MILLISECONDS);
 		}
 		
 		//定期清理结果集排行榜，控制拒绝策略
