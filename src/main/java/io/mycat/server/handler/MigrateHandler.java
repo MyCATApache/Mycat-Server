@@ -33,6 +33,7 @@ import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Fields;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.migrate.MigrateTask;
@@ -56,6 +57,8 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static io.mycat.config.loader.zkprocess.comm.ZkParamCfg.ZK_CFG_FLAG;
+
 /**
  * todo remove watch
  *
@@ -65,8 +68,8 @@ public final class MigrateHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger("MigrateHandler");
 
     //可以优化成多个锁
-    private static InterProcessMutex slaveIDsLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath() + "lock/slaveIDs.lock");
-    ;
+    private static final InterProcessMutex slaveIDsLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath() + "lock/slaveIDs.lock");
+    ;;
     private static final int FIELD_COUNT = 1;
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
 
@@ -101,9 +104,27 @@ public final class MigrateHandler {
             writeErrMessage(c, "add cannot be null");
             return;
         }
+        ZkConfig zkConfig = ZkConfig.getInstance();
+        boolean loadZk = "true".equalsIgnoreCase(zkConfig.getValue(ZK_CFG_FLAG));
+        boolean force = "true".equalsIgnoreCase(map.get("force"));
+        CuratorFramework zk = ZKUtils.getConnection();
+        if (!loadZk) {
+            if (!force) {
+                String msg = "";
+                msg += "Mycat can temporarily execute the migration command.If other mycat does not connect to this zookeeper, they will not be able to perceive changes in the migration task.\n";
+                msg += "You can command tas follow:\n\nmigrate -table=schema.test -add=dn2,dn3 -force=true\n\nto perform the migration.\n";
+                LOGGER.error(msg);
+                writeErrMessage(c, msg);
+                return;
+            }
+        }
+        if (zk == null) {
+            writeErrMessage(c, "Mycat is not connected to zookeeper");
+            return;
+        }
         String taskID = getUUID();
         try {
-            if (StringUtil.isEmpty(schema)){
+            if (StringUtil.isEmpty(schema)) {
                 schema = c.getSchema();
             }
             if (StringUtil.isEmpty(schema)) {
