@@ -78,8 +78,12 @@ public class MigratorConditonFilesMaker implements Runnable{
 				flushData(false);
     			for(int i=0,l=list.size();i<l;i++){
     				Map<String, Object> sf=list.get(i);
-    				String filedVal = sf.get(column).toString();
-    				Integer newIndex=alg.calculate(filedVal);
+					Object objFieldVal = sf.get(column);
+					String filedVal = objFieldVal.toString();
+					if (objFieldVal instanceof  String){
+						filedVal = "'"+filedVal+"'";
+					}
+    				Integer newIndex=alg.calculate(objFieldVal.toString());
     				total++;
     				DataNode newDn = newDnList.get(newIndex);
     				if(!srcDn.equals(newDn)){
