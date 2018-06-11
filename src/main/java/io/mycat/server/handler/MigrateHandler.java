@@ -37,6 +37,7 @@ import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.migrate.MigrateTask;
+import io.mycat.migrate.MigrateTaskWatch;
 import io.mycat.migrate.MigrateUtils;
 import io.mycat.migrate.TaskNode;
 import io.mycat.net.mysql.*;
@@ -69,9 +70,10 @@ public final class MigrateHandler {
 
     //可以优化成多个锁
     private static final InterProcessMutex slaveIDsLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath() + "lock/slaveIDs.lock");
-    ;;
     private static final int FIELD_COUNT = 1;
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
+    private static volatile boolean forceInit = false;
+
 
     static {
         fields[0] = PacketUtil.getField("TASK_ID",
@@ -116,6 +118,18 @@ public final class MigrateHandler {
                 LOGGER.error(msg);
                 writeErrMessage(c, msg);
                 return;
+            }
+            //因为loadZk在mycat启动时候没有监听zk里migrate路径，这里需要把这个监听补上
+            //借用slaveIDsLock对象作为同步锁
+            boolean changed = false;
+            synchronized (slaveIDsLock) {
+                if (!forceInit) {
+                    forceInit = true;
+                    changed = true;
+                }
+            }
+            if (changed) {
+                MigrateTaskWatch.start();
             }
         }
         if (zk == null) {
