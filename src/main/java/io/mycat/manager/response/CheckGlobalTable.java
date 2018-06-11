@@ -31,10 +31,14 @@ import java.util.Map;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.heartbeat.ConsistenCollectHandler;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Fields;
+import io.mycat.config.MycatConfig;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.TableConfig;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
@@ -51,7 +55,7 @@ import io.mycat.util.StringUtil;
 public final class CheckGlobalTable {
 
 	
-	private static final int FIELD_COUNT = 9;
+	private static final int FIELD_COUNT = 3;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -64,27 +68,12 @@ public final class CheckGlobalTable {
         fields[i] = PacketUtil.getField("ID", Fields.FIELD_TYPE_LONGLONG);
         fields[i++].packetId = ++packetId;
         
-        fields[i] = PacketUtil.getField("USER", Fields.FIELD_TYPE_VARCHAR);
+        fields[i] = PacketUtil.getField("TABLENAME", Fields.FIELD_TYPE_VARCHAR);
         fields[i++].packetId = ++packetId;
         
-        fields[i] = PacketUtil.getField("FREQUENCY", Fields.FIELD_TYPE_LONGLONG);
+        fields[i] = PacketUtil.getField("RESTULT", Fields.FIELD_TYPE_VARCHAR);
         fields[i++].packetId = ++packetId;
-        
-        fields[i] = PacketUtil.getField("AVG_TIME", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;  
-        fields[i] = PacketUtil.getField("MAX_TIME", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;
-        fields[i] = PacketUtil.getField("MIN_TIME", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;
-        fields[i] = PacketUtil.getField("EXECUTE_TIME", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;        
-        
-        fields[i] = PacketUtil.getField("LAST_TIME", Fields.FIELD_TYPE_LONGLONG);
-        fields[i++].packetId = ++packetId;
-        
-        fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
-        fields[i++].packetId = ++packetId;
-        
+                
         eof.packetId = ++packetId;
     }
     
@@ -94,12 +83,12 @@ public final class CheckGlobalTable {
         for (String s : rtn) {
             if (s.contains("=")) {
                 int dindex = s.indexOf("=");
-                if (s.startsWith("-")) {
-                    String key = s.substring(1, dindex).toLowerCase().trim();
+                if (s.startsWith("--")) {
+                    String key = s.substring(2, dindex).toLowerCase().trim();
                     String value = s.substring(dindex + 1).trim();
                     map.put(key, value);
-                } else if (s.startsWith("--")) {
-                    String key = s.substring(2, dindex).toLowerCase().trim();
+                } else if (s.startsWith("-")) {
+                    String key = s.substring(1, dindex).toLowerCase().trim();
                     String value = s.substring(dindex + 1).trim();
                     map.put(key, value);
                 }
@@ -113,43 +102,68 @@ public final class CheckGlobalTable {
     	Map<String,String> paramster = parse(stmt);
     	int retryTime = 1;
     	long intervalTime = 200 ;
-    	String tableName = paramster.get("tablename");
-    	String schemaName = paramster.get("schemaname");
-    	String retryTimeStr = paramster.get("retrytime");
-    	String intervalTimeStr = paramster.get("intervaltime");
-    	if(StringUtil.isEmpty(tableName)) {
-//    		c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, msg);
-    	}    	
-    	tableName = "e_account_subject";
+    	//"show @@CKECK_GLOBAL -SCHEMA=TESTDB -TABLE=E_ACCOUNT_SUBJECT -retrytime=2"
+//		+ " -intervaltime=20"
+    	String tableName = paramster.get("table");
+    	String schemaName = paramster.get("schema");
+    	String retryTimeStr = paramster.get("retry");
+    	String intervalTimeStr = paramster.get("interval");
+		MycatConfig config = MycatServer.getInstance().getConfig();
+		TableConfig table;
+		SchemaConfig schemaConfig = null;
+    	if(StringUtil.isEmpty(schemaName)) {
+    		c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, "schemaName is null, please add paramster  -schema=schemaname ");
+    		return;
+    	} else {
+    		schemaConfig = config.getSchemas().get(schemaName);
+    		if(schemaConfig == null){
+        		c.writeErrMessage(ErrorCode.ER_FPARSER_ERROR_IN_PARAMETER,
+        				"schemaName is null, please add paramster  -schema=schemaname ");
 
-    	schemaName = "TESTDB";
-    	ConsistenCollectHandler cHandler = new ConsistenCollectHandler(c, tableName, schemaName, retryTime, intervalTime);
+    		}
+    	} 
+    	if(StringUtil.isEmpty(tableName)) {
+    		c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, "tableName is null, please add paramster  -table=tablename ");
+    		return;
+    	} else {
+    		 table = schemaConfig.getTables().get(tableName.toUpperCase());
+
+    	}
+    	if(StringUtil.isEmpty(retryTimeStr)) {
+    		c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, "retryTime is null, please add paramster  -retry= ");
+    		return;
+    	}else {
+    		retryTime =  Integer.valueOf(retryTimeStr);
+    	}
+    	
+    	if(StringUtil.isEmpty(intervalTimeStr)) {
+    		c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, "intervalTime is null, please add paramster  -interval= ");
+    		return;
+    	} else {
+    		intervalTime = Long.valueOf(intervalTimeStr);
+    	} 
+    
+//    	tableName = "e_account_subject";
+
+//    	schemaName = "TESTDB";
+    	
+
+
+		List<String> dataNodeList = table.getDataNodes();
+		
+    	ConsistenCollectHandler cHandler = new ConsistenCollectHandler( c, tableName, schemaName, dataNodeList.size(), retryTime, intervalTime);
     	cHandler.startDetector();
-    	c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, "XXX");
+    	//c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, "XXX");
     }
 
-	private static RowDataPacket getRow(int i, String user, String sql, long count, long avgTime, long maxTime,
-			long minTime, long executTime, long lastTime, String charset) {
+	private static RowDataPacket getRow(int i, String tableName, String result,String charset) {
 		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 		row.add(LongUtil.toBytes(i));
-		row.add(StringUtil.encode(user, charset));
-		row.add(LongUtil.toBytes(count));
-		row.add(LongUtil.toBytes(avgTime));
-		row.add(LongUtil.toBytes(maxTime));
-		row.add(LongUtil.toBytes(minTime));
-		row.add(LongUtil.toBytes(executTime));
-		row.add(LongUtil.toBytes(lastTime));
-		row.add(StringUtil.encode(sql, charset));
+		row.add(StringUtil.encode(tableName, charset));
+		row.add(StringUtil.encode(result, charset));
 		return row;
-	}
-	
-	
-	
-	
-	
-	
-	
-    public static void response(String stmt, ManagerConnection c) {
+	}	
+    public static void response(ManagerConnection c,String tableName, String result) {
     	ByteBuffer buffer = c.allocate();
 
         // write header
@@ -165,25 +179,10 @@ public final class CheckGlobalTable {
 
         // write rows
         byte packetId = eof.packetId;     
-
-//        Map<String, UserStat> statMap = UserStatAnalyzer.getInstance().getUserStatMap();
-//    	for (UserStat userStat : statMap.values()) {
-//        	String user = userStat.getUser();
-//            List<SqlFrequency> list=userStat.getSqlHigh().getSqlFrequency( isClear );
-//             if ( list != null ) {
-//                int i = 1;
-//     	        for (SqlFrequency sqlFrequency : list) {
-//					if(sqlFrequency != null){
-//                        RowDataPacket row = getRow(i, user, sqlFrequency.getSql(), sqlFrequency.getCount(),
-//							sqlFrequency.getAvgTime(), sqlFrequency.getMaxTime(), sqlFrequency.getMinTime(),
-//							sqlFrequency.getExecuteTime(), sqlFrequency.getLastTime(), c.getCharset());
-//     	                row.packetId = ++packetId;
-//     	                buffer = row.write(buffer, c,true);
-//     	                i++;
-//                    }
-//                }
-//             }
-//    	}    
+        RowDataPacket row = getRow(1, tableName, result, c.getCharset());
+        row.packetId = ++packetId;
+        buffer = row.write(buffer, c, true);
+    
     	
         // write last eof
         EOFPacket lastEof = new EOFPacket();
@@ -193,5 +192,10 @@ public final class CheckGlobalTable {
         // write buffer
         c.write(buffer);
     }
-
+    public static void main(String[] args) {
+    	// show @@check_global --schema=TESTDB -table=e_account_subject -retry=40 -interval=20;
+    	Map<String, String> params = CheckGlobalTable.parse("show @@CKECK_GLOBAL -SCHEMA=TESTDB -TABLE=E_ACCOUNT_SUBJECT -retrytime=2"
+    			+ " -intervaltime=20");
+    	System.out.println(params);
+	}
 }

@@ -269,6 +269,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	}
 
 	protected void sendQueryCmd(String query) {
+		LOGGER.debug("SQL:{} {}",query, this);
 		CommandPacket packet = new CommandPacket();
 		packet.packetId = 0;
 		packet.command = MySQLPacket.COM_QUERY;
@@ -464,6 +465,7 @@ public class MySQLConnection extends BackendAIOConnection {
 				synCount);
 		// syn schema
 		if (schemaCmd != null) {
+			LOGGER.debug(schemaCmd + "{}" ,this);
 			schemaCmd.write(this);
 		}
 		// and our query sql to multi command at last
@@ -518,6 +520,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	@Override
 	public void close(String reason) {
 		if (!isClosed.get()) {
+			//bug?有可能还没pool中移除 但是已经是很close状态了
 			isQuit.set(true);
 			super.close(reason);
 			pool.connectionClosed(this);

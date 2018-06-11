@@ -491,7 +491,7 @@ public class MycatServer {
 		if(system.getUseSqlStat()==1) {
 			scheduler.scheduleAtFixedRate(recycleSqlStat(), 0L, DEFAULT_SQL_STAT_RECYCLE_PERIOD, TimeUnit.MILLISECONDS);
 		}
-		
+		System.out.println(system.getUseGlobleTableCheck());
 		if(system.getUseGlobleTableCheck() == 1){	// 全局表一致性检测是否开启
 		//	scheduler.scheduleAtFixedRate(glableTableConsistencyCheck(), 0L, system.getGlableTableCheckPeriod(), TimeUnit.MILLISECONDS);
 		}

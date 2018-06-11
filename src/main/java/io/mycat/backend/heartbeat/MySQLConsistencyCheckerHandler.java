@@ -50,7 +50,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
 	private final ConsistenCollectHandler handler;
-	private volatile int sqlSeq = 0;
+	private volatile int sqlSeq = 1;
 	private final PhysicalDBNode dbNode;
 	public MySQLConsistencyCheckerHandler(PhysicalDBNode dbNode, MySQLDataSource source,
 			String tableName ,ConsistenCollectHandler handler) {
@@ -78,7 +78,7 @@ public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
 		this.jobCount.set(0);
 		beginTime = new Date().getTime();
 		String dbName = dbNode.getDatabase();
-    	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null);
+    	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null, 0);
     	OneRawSQLQueryResultHandler resultHandler = 
     			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.MAX_COLUMN}, detector);
     	SQLJob sqlJob = new SQLJob(this.getMaxSQL(), dbName, resultHandler, source);
@@ -102,7 +102,6 @@ public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
     	String db = " and table_schema='" + dbName + "'";
     	SQLJob sqlJob = new SQLJob(this.columnExistSQL + db , dbName, resultHandler, source);
     	detector.setSqlJob(sqlJob);//table_schema='db1'
-    	LOGGER.debug(sqlJob.toString());
 	    sqlJob.run();
 	    this.jobCount.incrementAndGet();      
 	
@@ -111,7 +110,8 @@ public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
 //	volatile SQLQueryResult<Map<String, String>> record =  null;
 	volatile SQLQueryResult<Map<String, String>> resultMap = null;
 	public void setResult(SQLQueryResult<Map<String, String>> result) {
-		 LOGGER.debug("setResult::::::::::" + JSON.toJSONString(result));
+//		 LOGGER.debug("setResult::::::::::" + JSON.toJSONString(result));
+		lock.lock();
 		try{
 			if(isStop){
 				return ;
@@ -134,15 +134,21 @@ public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
 				
 			}else{
 				if(result != null && result.getResult() != null) {
-					String sql = null;
-					if(result.getResult().containsKey(GlobalTableUtil.COUNT_COLUMN))
-						sql = this.getCountSQL();
-					if(result.getResult().containsKey(GlobalTableUtil.MAX_COLUMN))
-						sql = this.getMaxSQL();
-					if(result.getResult().containsKey(GlobalTableUtil.INNER_COLUMN))
+					String sql = null;				
+					final int seq = sqlSeq ;
+					if(seq == 0){
 						sql = this.getColumnExistSQL();
-					LOGGER.warn(sql+ " execute failed in db: " + result.getDataNode()
-								 + " during global table consistency check task.");
+					} else if(seq == 1) {
+						sql = this.getMaxSQL();
+					} else if(seq == 2) {
+						sql = this.getCountSQL();
+					} else {
+						sql = result.getErrMsg();
+					}
+					String errMsg = sql+ " execute failed in db: " + result.getDataNode()
+					 + " during global table consistency check task.";
+					LOGGER.warn(errMsg);
+					handler.onError(errMsg);
 				}
 			}
 			if(jobCount.get() == 0 ){
@@ -170,6 +176,7 @@ public class MySQLConsistencyCheckerHandler extends MySQLConsistencyChecker{
 			}
 
 		}finally{
+			lock.unlock();
 		}
 	}
 	

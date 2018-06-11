@@ -87,7 +87,10 @@ public class SQLJob implements ResponseHandler, Runnable {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("con query sql:" + sql + " to con:" + conn);
 		}
-		conn.setResponseHandler(this);
+		boolean flag = conn.setResponseHandler(this);
+		if(!flag){
+			LOGGER.debug("============ SET RESPON hANDLER ERR");
+		}
 		try {
 			conn.query(sql);
 			connection = conn;
@@ -143,9 +146,15 @@ public class SQLJob implements ResponseHandler, Runnable {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		conn.syncAndExcute();
-		doFinished(false,null);
-		conn.release();
+//		conn.syncAndExcute();
+		boolean executeResponse = conn.syncAndExcute();		
+		if(executeResponse){
+			doFinished(false,null);
+			conn.release();
+		} else {
+			LOGGER.debug("syn response {}" ,conn);
+		}
+		
 	}
 
 	@Override

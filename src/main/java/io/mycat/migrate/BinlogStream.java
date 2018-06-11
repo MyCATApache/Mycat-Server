@@ -27,9 +27,8 @@ import java.util.concurrent.*;
 import static io.mycat.util.dataMigrator.DataMigratorUtil.executeQuery;
 
 public class BinlogStream {
-
+    private static String driverClassName = "com.mysql.jdbc.Driver";  
     private static Logger logger = LoggerFactory.getLogger(BinlogStream.class);
-
     private final String hostname;
     private final int port;
     private final String username;
@@ -109,7 +108,7 @@ public class BinlogStream {
 
 
     public void connect() throws IOException {
-        initTaskDate();
+        //initTaskDate();
         scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this),5,15, TimeUnit.SECONDS);
         allocateBinaryLogClient().connect();
 
@@ -246,6 +245,7 @@ public class BinlogStream {
                     if (groupEventsByTX) {
                         QueryEventData queryEventData = event.getData();
                         String query = queryEventData.getSql();
+                        System.out.println(queryEventData.getSql());
                         if ("BEGIN".equals(query)) {
                             transactionInProgress = true;
                         }   else if(!query.startsWith("#")) {
@@ -257,6 +257,7 @@ public class BinlogStream {
                     if (groupEventsByTX) {
                         transactionInProgress = false;
                     }
+               
                     break;
                 default:
                     // ignore
@@ -561,13 +562,20 @@ public class BinlogStream {
 
 
     }
-
+    {
+    	try {
+			Class.forName(driverClassName);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
     public static void main(String[] args) {
         BinlogStream  stream=new BinlogStream("localhost",3306,"root","123");
         try {
             stream.setSlaveID(23511);
-            stream.setBinglogFile("mysql-bin.000156");
-            stream.setBinlogPos(12186);
+            stream.setBinglogFile("mysql-bin.000028");
+            stream.setBinlogPos(1082);
             stream.connect();
 
         } catch (IOException e) {

@@ -14,6 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.math.optimization.GoalType;
+import org.apache.logging.log4j.core.util.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,9 +27,11 @@ import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.MySQLDataSource;
+import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.manager.ManagerConnection;
+import io.mycat.manager.response.CheckGlobalTable;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.sqlengine.SQLQueryResult;
 import io.mycat.util.ObjectUtil;
@@ -41,17 +44,22 @@ public class ConsistenCollectHandler {
 	private AtomicBoolean isStop =new AtomicBoolean(false);
 	
 	private final int retryTime ;
+	private final int dnCount ;
+
 	private final  long intervalTime ;
 	private final String tableName;
 	private final String schemaName;
 	private final AtomicInteger successTime;
+	private final ManagerConnection con;
 	public ConsistenCollectHandler(ManagerConnection c, String tableName, 
-			String schemaName,int retryTime, long intervalTime) {
+			String schemaName, int dnCount, int retryTime, long intervalTime) {
 		this.tableName = tableName;
 		this.schemaName = schemaName;
 		this.retryTime = retryTime;
 		this.intervalTime = intervalTime;
 		successTime = new AtomicInteger(0);
+		this.con = c;
+		this.dnCount = dnCount;
 	}
 	private volatile ScheduledFuture<?> task;
 	//定时器不断的检测
@@ -64,16 +72,25 @@ public class ConsistenCollectHandler {
 	private ReentrantLock lock = new ReentrantLock();
 	Map<String, List<SQLQueryResult<Map<String, String>>>> resultMap = new HashMap<>();
 	public void onSuccess(SQLQueryResult<Map<String, String>> result) {
-		int count = successTime.incrementAndGet();
-		LOGGER.info("{}", JSON.toJSONString(result));
+
+		if(isStop.get() == true){
+			return ;
+		}
 		lock.lock();
 		if(!resultMap.containsKey(result.getDataNode())) {
 			resultMap.put(result.getDataNode(),new ArrayList<SQLQueryResult<Map<String, String>>>());
 		}
 		resultMap.get(result.getDataNode()).add(result);
 		lock.unlock();
-		if (count == retryTime) {
+		int count = successTime.incrementAndGet();
+		LOGGER.info(count + " :{}", JSON.toJSONString(result));
+		if (count == retryTime * dnCount) {
 			cancelTask();
+			String str = "";
+			for(List<SQLQueryResult<Map<String, String>>> list : resultMap.values()) {
+				str +=  JSONObject.toJSONString(list) + "\n";
+			}
+			LOGGER.debug(str);
 			///数据的校验
 			List<SQLQueryResult<Map<String, String>>> unionResult = resultMap.remove(result.getDataNode());
 			List<SQLQueryResult<Map<String, String>>> tempResult = null;
@@ -81,11 +98,14 @@ public class ConsistenCollectHandler {
 				tempResult = new ArrayList<>();
 				for(SQLQueryResult<Map<String, String>> r1 : list) {
 					Map<String, String> md1 = r1.getResult();
+					String md1_max_column = md1.get(GlobalTableUtil.MAX_COLUMN);
 					for(int i = 0 ; i < unionResult.size(); i++) {
 						Map<String, String> md2 = unionResult.get(i).getResult();
+						String md2_max_column = md2.get(GlobalTableUtil.MAX_COLUMN);
+
 						if(md1.get(GlobalTableUtil.COUNT_COLUMN).equals(md2.get(GlobalTableUtil.COUNT_COLUMN)) &&
-							md1.get(GlobalTableUtil.MAX_COLUMN).equals(md2.get(GlobalTableUtil.MAX_COLUMN)) &&
-								md1.get(GlobalTableUtil.INNER_COLUMN).equals(md2.get(GlobalTableUtil.INNER_COLUMN))) {
+								(md1_max_column==null && null == md2_max_column ) 
+								|| ( md1_max_column != null && md1_max_column.equals(md2_max_column))  ) {
 							tempResult.add(r1);
 							unionResult.remove(unionResult.get(i));
 							break;
@@ -97,11 +117,15 @@ public class ConsistenCollectHandler {
 					break;
 				}				
 			}
+			
 			if(unionResult.size() == 0) {
-				LOGGER.debug("check table " +tableName +" not consistence , get info" + JSONUtils.toJSONString(resultMap));
+				LOGGER.debug("check table " +tableName +" not consistence , get info" );
+				CheckGlobalTable.response(con, tableName, "No");
 			} else {
 				LOGGER.debug("check table " +tableName +"  consistence , consistence info" + JSONObject.toJSONString(unionResult));
 				System.out.println(JSONObject.toJSONString(unionResult));
+				CheckGlobalTable.response(con, tableName, "Yes");
+
 			}			
 		}		
 	}
@@ -116,17 +140,18 @@ public class ConsistenCollectHandler {
 	}
 	
 
-	public void onError(String format) {
+	public void onError(String msg) {
 		this.cancelTask();
 		///将错误消息写回mysql端
-		if(isStop.compareAndSet(false, true)){
-			
+		if(isStop.compareAndSet(false, true)) {
+			con.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, msg);
 		}
 	}
 
 	public int getRetryTime() {
 		return retryTime;
 	}	
+
 }
  class ConsisterThread implements Runnable{
 	private final String tableName;
@@ -145,6 +170,7 @@ public class ConsistenCollectHandler {
 		int count = successTime.incrementAndGet();
 		if (count > handler.getRetryTime()) {
 			handler.cancelTask();
+			ConsistenCollectHandler.LOGGER.info("all check job send finish");
 			return;
 		}
 		try {
@@ -173,7 +199,7 @@ public class ConsistenCollectHandler {
 								System.out.println(dBnode.getName() + ":" + dBnode.getDatabase());
 									MySQLConsistencyChecker checker = new MySQLConsistencyCheckerHandler(dBnode, mds,
 											table.getName(), handler);
-									checker.checkInnerColumnExist();
+									checker.checkMaxTimeStamp();
 									break;
 								//	executedMap.put(pds.getName(), nodeName);
 								//}
