@@ -320,7 +320,7 @@ public final class MigrateHandler {
     public static void main(String[] args) {
         String sql = "migrate    -table=test  -add=dn2,dn3,dn4  " + " \n -additional=\"a=b\"";
         Map map = parse(sql);
-        System.out.println(map);
+        System.out.println();
         for (int i = 0; i < 100; i++) {
             System.out.println(i % 5);
         }

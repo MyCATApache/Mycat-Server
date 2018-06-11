@@ -48,7 +48,7 @@ import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
 
 /**
- * 切换数据节点的数据源
+ * 全局表一致性检测
  * 
  * @author mycat
  */
@@ -112,25 +112,25 @@ public final class CheckGlobalTable {
 		TableConfig table;
 		SchemaConfig schemaConfig = null;
     	if(StringUtil.isEmpty(schemaName)) {
-    		c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, "schemaName is null, please add paramster  -schema=schemaname ");
+    		c.writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, "schemaName is null, please add paramster  -schema=schemaname ");
     		return;
     	} else {
     		schemaConfig = config.getSchemas().get(schemaName);
     		if(schemaConfig == null){
-        		c.writeErrMessage(ErrorCode.ER_FPARSER_ERROR_IN_PARAMETER,
+        		c.writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
         				"schemaName is null, please add paramster  -schema=schemaname ");
 
     		}
     	} 
     	if(StringUtil.isEmpty(tableName)) {
-    		c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, "tableName is null, please add paramster  -table=tablename ");
+    		c.writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, "tableName is null, please add paramster  -table=tablename ");
     		return;
     	} else {
     		 table = schemaConfig.getTables().get(tableName.toUpperCase());
 
     	}
     	if(StringUtil.isEmpty(retryTimeStr)) {
-    		c.writeErrMessage(ErrorCode.ER_BAD_TABLE_ERROR, "retryTime is null, please add paramster  -retry= ");
+    		c.writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, "retryTime is null, please add paramster  -retry= ");
     		return;
     	}else {
     		retryTime =  Integer.valueOf(retryTimeStr);

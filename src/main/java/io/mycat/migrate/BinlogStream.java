@@ -244,7 +244,6 @@ public class BinlogStream {
                     if (groupEventsByTX) {
                         QueryEventData queryEventData = event.getData();
                         String query = queryEventData.getSql();
-                        System.out.println(queryEventData.getSql());
                         if ("BEGIN".equals(query)) {
                             transactionInProgress = true;
                         }   else if(!query.startsWith("#")) {

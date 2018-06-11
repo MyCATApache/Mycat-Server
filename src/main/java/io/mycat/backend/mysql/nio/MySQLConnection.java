@@ -518,7 +518,6 @@ public class MySQLConnection extends BackendAIOConnection {
 	@Override
 	public void close(String reason) {
 		if (!isClosed.get()) {
-			//bug?有可能还没pool中移除 但是已经是很close状态了
 			isQuit.set(true);
 			super.close(reason);
 			pool.connectionClosed(this);
