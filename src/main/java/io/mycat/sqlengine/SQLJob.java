@@ -87,10 +87,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("con query sql:" + sql + " to con:" + conn);
 		}
-		boolean flag = conn.setResponseHandler(this);
-		if(!flag){
-			LOGGER.debug("============ SET RESPON hANDLER ERR");
-		}
+		conn.setResponseHandler(this);
 		try {
 			conn.query(sql);
 			connection = conn;

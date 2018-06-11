@@ -269,7 +269,6 @@ public class MySQLConnection extends BackendAIOConnection {
 	}
 
 	protected void sendQueryCmd(String query) {
-		LOGGER.debug("SQL:{} {}",query, this);
 		CommandPacket packet = new CommandPacket();
 		packet.packetId = 0;
 		packet.command = MySQLPacket.COM_QUERY;
@@ -465,7 +464,6 @@ public class MySQLConnection extends BackendAIOConnection {
 				synCount);
 		// syn schema
 		if (schemaCmd != null) {
-			LOGGER.debug(schemaCmd + "{}" ,this);
 			schemaCmd.write(this);
 		}
 		// and our query sql to multi command at last

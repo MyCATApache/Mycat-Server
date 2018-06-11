@@ -449,7 +449,7 @@ public abstract class PhysicalDatasource {
 			String schema) {
 
 		conn.setBorrowed(true);
-		LOGGER.debug("take con {}",conn);
+
 //		if(takeConnectionContext.putIfAbsent(conn.getId(), TAKE_CONNECTION_FLAG) == null) {
 //			incrementActiveCountSafe();
 //		}
