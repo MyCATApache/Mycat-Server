@@ -122,10 +122,12 @@ public final class MigrateHandler {
             //因为loadZk在mycat启动时候没有监听zk里migrate路径，这里需要把这个监听补上
             //借用slaveIDsLock对象作为同步锁
             boolean changed = false;
-            synchronized (slaveIDsLock) {
-                if (!forceInit) {
-                    forceInit = true;
-                    changed = true;
+            if (!forceInit){
+                synchronized (slaveIDsLock) {
+                    if (!forceInit) {
+                        forceInit = true;
+                        changed = true;
+                    }
                 }
             }
             if (changed) {
