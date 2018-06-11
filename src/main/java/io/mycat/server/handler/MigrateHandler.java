@@ -114,7 +114,7 @@ public final class MigrateHandler {
             if (!force) {
                 String msg = "";
                 msg += "Mycat can temporarily execute the migration command.If other mycat does not connect to this zookeeper, they will not be able to perceive changes in the migration task.\n";
-                msg += "You can command tas follow:\n\nmigrate -table=schema.test -add=dn2,dn3 -force=true\n\nto perform the migration.\n";
+                msg += "You can command as follow:\n\nmigrate -table=schema.test -add=dn2,dn3 -force=true\n\nto perform the migration.\n";
                 LOGGER.error(msg);
                 writeErrMessage(c, msg);
                 return;
