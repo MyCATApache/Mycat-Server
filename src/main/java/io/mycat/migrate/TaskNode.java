@@ -11,6 +11,7 @@ public class TaskNode implements Serializable {
     private String schema;
     private String table;
     private String add;
+    private int timeout;
 
     public String getSql() {
         return sql;
@@ -50,5 +51,13 @@ public class TaskNode implements Serializable {
 
     public void setSchema(String schema) {
         this.schema = schema;
+    }
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
     }
 }

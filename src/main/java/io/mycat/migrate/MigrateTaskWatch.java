@@ -146,7 +146,7 @@ public class MigrateTaskWatch {
                             for (Map.Entry<String, List<MigrateTask>> stringListEntry : taskMap.entrySet()) {
                                 String key = stringListEntry.getKey();
                                 List<MigrateTask> value = stringListEntry.getValue();
-                                MycatServer.getInstance().getBusinessExecutor().submit(new MigrateMainRunner(key, value));
+                                MycatServer.getInstance().getBusinessExecutor().submit(new MigrateMainRunner(key, value,taskNode.getTimeout()));
                             }
 
                             //
