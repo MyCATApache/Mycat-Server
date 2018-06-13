@@ -92,6 +92,8 @@ public final class MigrateHandler {
 
         String table = map.get("table");
         String add = map.get("add");
+        String timeoutString = map.get("timeout");
+        int timeout = 120;// minute
         String schema = "";
         if (table == null) {
             writeErrMessage(c, "table cannot be null");
@@ -105,6 +107,17 @@ public final class MigrateHandler {
         if (add == null) {
             writeErrMessage(c, "add cannot be null");
             return;
+        }
+        if (timeoutString != null) {
+            try {
+                timeout = Integer.parseInt(timeoutString);
+                if(timeout <= 0){
+                    throw new NumberFormatException("");
+                }
+            } catch (Exception e) {
+                writeErrMessage(c, String.format("timeout:%s format is wrong,it should be 1-" + Integer.MAX_VALUE+" (unit:minute)", timeoutString));
+                return;
+            }
         }
         ZkConfig zkConfig = ZkConfig.getInstance();
         boolean loadZk = "true".equalsIgnoreCase(zkConfig.getValue(ZK_CFG_FLAG));
@@ -122,7 +135,7 @@ public final class MigrateHandler {
             //因为loadZk在mycat启动时候没有监听zk里migrate路径，这里需要把这个监听补上
             //借用slaveIDsLock对象作为同步锁
             boolean changed = false;
-            if (!forceInit){
+            if (!forceInit) {
                 synchronized (slaveIDsLock) {
                     if (!forceInit) {
                         forceInit = true;
@@ -148,12 +161,12 @@ public final class MigrateHandler {
                 return;
             }
             SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(schema);
-            if (Objects.isNull(schemaConfig)) {
+            if (schemaConfig == null) {
                 writeErrMessage(c, String.format("Unknown database '" + schema + "'", table.toUpperCase(), schema));
                 return;
             }
             TableConfig tableConfig = schemaConfig.getTables().get(table.toUpperCase());
-            if (Objects.isNull(tableConfig)) {
+            if (tableConfig == null) {
                 writeErrMessage(c, String.format("Table '%s' doesn't define in schema '%s'\n", table.toUpperCase(), schema));
                 return;
             }
@@ -196,6 +209,7 @@ public final class MigrateHandler {
             taskNode.setTable(table);
             taskNode.setAdd(add);
             taskNode.setStatus(0);
+            taskNode.setTimeout(timeout);
 
             Map<String, Integer> fromNodeSlaveIdMap = new HashMap<>();
 
