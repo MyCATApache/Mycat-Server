@@ -27,9 +27,7 @@ import java.util.concurrent.*;
 import static io.mycat.util.dataMigrator.DataMigratorUtil.executeQuery;
 
 public class BinlogStream {
-
     private static Logger logger = LoggerFactory.getLogger(BinlogStream.class);
-
     private final String hostname;
     private final int port;
     private final String username;
@@ -257,6 +255,7 @@ public class BinlogStream {
                     if (groupEventsByTX) {
                         transactionInProgress = false;
                     }
+               
                     break;
                 default:
                     // ignore
@@ -566,8 +565,8 @@ public class BinlogStream {
         BinlogStream  stream=new BinlogStream("localhost",3306,"root","123");
         try {
             stream.setSlaveID(23511);
-            stream.setBinglogFile("mysql-bin.000156");
-            stream.setBinlogPos(12186);
+            stream.setBinglogFile("mysql-bin.000028");
+            stream.setBinlogPos(1082);
             stream.connect();
 
         } catch (IOException e) {

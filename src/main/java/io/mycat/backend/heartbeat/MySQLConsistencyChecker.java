@@ -47,23 +47,23 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class MySQLConsistencyChecker{
 	public static final Logger LOGGER = LoggerFactory.getLogger(MySQLConsistencyChecker.class);
-	private final MySQLDataSource source;
-	private final ReentrantLock lock;
-	private AtomicInteger jobCount = new AtomicInteger();
-	private String countSQL;
-	private String maxSQL;
-	private String tableName;	// global table name
-	private long beginTime;
-//	private String columnExistSQL = "select count(*) as "+GlobalTableUtil.INNER_COLUMN
+	protected final MySQLDataSource source;
+	protected final ReentrantLock lock;
+	protected AtomicInteger jobCount = new AtomicInteger();
+	protected String countSQL;
+	protected String maxSQL;
+	protected String tableName;	// global table name
+	protected long beginTime;
+//	protected String columnExistSQL = "select count(*) as "+GlobalTableUtil.INNER_COLUMN
 //							+ " from information_schema.columns where column_name='"
 //							+ GlobalTableUtil.GLOBAL_TABLE_MYCAT_COLUMN + "' and table_name='";
 	
 	// 此处用到了 mysql 多行转一行 group_concat 的用法，主要是为了简化对结果的处理
 	// 得到的结果类似于：id,name,_mycat_op_time
-	private String columnExistSQL = "select group_concat(COLUMN_NAME separator ',') as "
+	protected String columnExistSQL = "select group_concat(COLUMN_NAME separator ',') as "
 			+ GlobalTableUtil.INNER_COLUMN +" from information_schema.columns where TABLE_NAME='"; //user' and TABLE_SCHEMA='db1';
 	
-	private List<SQLQueryResult<Map<String, String>>> list = new ArrayList<>();
+	protected List<SQLQueryResult<Map<String, String>>> list = new ArrayList<>();
 
 	
 	public MySQLConsistencyChecker(MySQLDataSource source, String tableName) {
