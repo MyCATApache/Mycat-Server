@@ -376,7 +376,8 @@ public class JoinParser {
 	}
 	//是否有order 排序
 	public boolean hasOrder() {
-		return tableFilter.getOrderByCols()!= null || tableFilter.getTableJoin().getOrderByCols() != null;		
+		return tableFilter.getOrderByCols().size() > 0 || tableFilter.getTableJoin().getOrderByCols().size() > 0;		
+		
 	}
 	//是否有order 排序
 	public int getOffset() {
@@ -393,21 +394,22 @@ public class JoinParser {
 		return tableFilter.getOffset() > 0 ||  tableFilter.getRowCount() > 0 ; 
 	}
 	public static void main(String[] args) {
-		String realSQL = "SELECT  B.code_value    ,  B.display_value FROM e_code_type A  LEFT JOIN e_code_def B    ON A.code_type_id = B.code_type_id WHERE A.code_type = 'question_type' AND B.code_value = \"single\"  ORDER BY display_value LIMIT 0,10";
-		JoinParser joinParser = null;
-		MySqlStatementParser parser = new MySqlStatementParser(realSQL);			
-		SQLStatement statement = parser.parseStatement();
-		if(statement instanceof SQLSelectStatement) {
-		   SQLSelectStatement st=(SQLSelectStatement)statement;
-		   SQLSelectQuery sqlSelectQuery =st.getSelect().getQuery();
-			if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
-				MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)st.getSelect().getQuery();
-				joinParser=new JoinParser(mysqlSelectQuery,realSQL);
-				joinParser.parser();
-			}	
-		}
-		
-		System.out.println(joinParser.getSql());
-		System.out.println(joinParser.getChildSQL());
+		System.out.println("会计基础".compareTo("企业会计岗位核算（广州财校）"));
+//		String realSQL = "SELECT  B.code_value    ,  B.display_value FROM e_code_type A  LEFT JOIN e_code_def B    ON A.code_type_id = B.code_type_id WHERE A.code_type = 'question_type' AND B.code_value = \"single\"  ORDER BY display_value LIMIT 0,10";
+//		JoinParser joinParser = null;
+//		MySqlStatementParser parser = new MySqlStatementParser(realSQL);			
+//		SQLStatement statement = parser.parseStatement();
+//		if(statement instanceof SQLSelectStatement) {
+//		   SQLSelectStatement st=(SQLSelectStatement)statement;
+//		   SQLSelectQuery sqlSelectQuery =st.getSelect().getQuery();
+//			if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
+//				MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)st.getSelect().getQuery();
+//				joinParser=new JoinParser(mysqlSelectQuery,realSQL);
+//				joinParser.parser();
+//			}	
+//		}
+//		
+//		System.out.println(joinParser.getSql());
+//		System.out.println(joinParser.getChildSQL());
 	}
 }

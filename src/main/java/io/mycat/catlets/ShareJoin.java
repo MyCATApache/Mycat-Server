@@ -284,13 +284,14 @@ public class ShareJoin implements Catlet {
  			}  
  		  setAllFields(afields, bfields);
 		 // EngineCtx.LOGGER.info("发送字段2:" + dataNode);		  		   
- 		   setRowDataSorterHeader(afields, bfields);			    			  		    			
 		}
-		
+	   setRowDataSorterHeader(afields, bfields);			    			  		    			
+
 	}
 
 	private void setRowDataSorterHeader(List<byte[]> afields, List<byte[]> bfields) {
-		if(!ctx.getIsStreamOutputResult() && !isInit) { 			   
+		if(!ctx.getIsStreamOutputResult() && !isInit) { 
+				EngineCtx.LOGGER.info("=============:"+Thread.currentThread().getName());		
 			   synchronized (joinParser) {
 				   if(!isInit){
 		 			  LinkedHashMap<String, Integer> orderByCols =  joinParser.getOrderByCols();
@@ -309,8 +310,8 @@ public class ShareJoin implements Catlet {
 		 			  //b 表
 		 			  for(String fileldName : childOrderByCols.keySet()) {
 		 				  ColMeta colMeta =  getCommonFieldIndex(bfields, fileldName);
-		 				  colMeta.setColIndex(colMeta.getColIndex() + orderByCols.size());
-		 				  int val = orderByCols.get(fileldName);
+		 				  colMeta.setColIndex(colMeta.getColIndex() + afields.size() -1);
+		 				  int val = childOrderByCols.get(fileldName);
 		 				  int orignIndex =  TableFilter.decodeOrignOrder(val);
 		 				  int orderType =  TableFilter.decodeOrderType(val);
 		 				  orderCols[orignIndex] = new OrderCol(colMeta, orderType);
@@ -364,7 +365,7 @@ public class ShareJoin implements Catlet {
 				start = 0;
 			}
 			
-			if (joinParser.getRowCount() < 0) {
+			if (joinParser.getRowCount() <= 0) {
 				end = results.size();
 			}
 			

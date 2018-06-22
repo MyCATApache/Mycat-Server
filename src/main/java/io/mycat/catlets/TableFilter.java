@@ -182,10 +182,10 @@ public class TableFilter {
 	
 		if (fieldInTable(fieldName)) {
 			order=unionsql(order,afield+" "+des,",");
-			//将order 类型加入到链表中.
+			//将order 类型加入到链表中. 還得看下是否使用別名 todo
 			
-			int orderType = StringUtil.isEmpty(des)||"asc".equalsIgnoreCase(des)?OrderCol.COL_ORDER_TYPE_ASC:OrderCol.COL_ORDER_TYPE_DESC;
-			orderByCols.put(fieldName, encodeOrignOrderType(index, orderType));
+			int orderType = StringUtil.isEmpty(des)||"asc".equals(des.toLowerCase().trim())?OrderCol.COL_ORDER_TYPE_ASC:OrderCol.COL_ORDER_TYPE_DESC;
+			orderByCols.put(afield, encodeOrignOrderType(index, orderType));
 		}
 		else {
 		  if (join!=null) {
@@ -210,7 +210,7 @@ public class TableFilter {
 			}
 		}
 		
-    	return true;
+    	return false;
     }
     
 	public LinkedHashMap<String, Integer> getOrderByCols(){
