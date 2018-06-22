@@ -354,7 +354,8 @@ public class ShareJoin implements Catlet {
 	}
 	
 	protected void writeEof() {		
-		if(ctx.getIsStreamOutputResult()){
+		boolean t = jointTableIsData;
+		if(ctx.getIsStreamOutputResult() || (!jointTableIsData)){
 			ctx.writeEof();
 		} else {
 			//limit 输出。
@@ -546,6 +547,7 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 			if(null == middlerResultHandler ){
 				// 
 				ctx.writeRow(rowDataPkg);
+				
 			}else{
 				
 				 if(middlerResultHandler instanceof MiddlerQueryResultHandler){

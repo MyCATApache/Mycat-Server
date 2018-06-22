@@ -496,6 +496,14 @@ public class MySQLConnection extends BackendAIOConnection {
 
 	}
 
+	@Override
+	public void query(String query, int charsetIndex) {
+		RouteResultsetNode rrn = new RouteResultsetNode("default",
+				ServerParse.SELECT, query);
+
+		synAndDoExecute(null, rrn, charsetIndex, this.txIsolation, true);
+		
+	}
 	public long getLastTime() {
 		return lastTime;
 	}
@@ -673,5 +681,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	public int getTxIsolation() {
 		return txIsolation;
 	}
+
+	
 
 }

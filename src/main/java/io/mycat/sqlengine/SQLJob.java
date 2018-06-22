@@ -12,6 +12,7 @@ import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.config.MycatConfig;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 
 /**
@@ -89,7 +90,14 @@ public class SQLJob implements ResponseHandler, Runnable {
 		}
 		conn.setResponseHandler(this);
 		try {
-			conn.query(sql);
+			if(ctx != null) {
+				ServerConnection sc = ctx.getSession().getSource();
+				//conn.setCharsetIndex(sc.getCharsetIndex());				
+				conn.query(sql ,sc.getCharsetIndex());
+			}else {
+				conn.query(sql );
+			}
+			
 			connection = conn;
 		} catch (Exception e) {// (UnsupportedEncodingException e) {
 			doFinished(true,e.getMessage());
