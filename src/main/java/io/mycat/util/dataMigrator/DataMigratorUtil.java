@@ -359,7 +359,7 @@ public class DataMigratorUtil {
   	}
   	
   	public static  <T> boolean isKeyExistIgnoreCase(Map<String,T> map,String key){
-		return map.containsKey(key.toLowerCase()) || map.containsKey(key.toUpperCase());
+		return map.containsKey(key.toLowerCase()) || map.containsKey(key.toUpperCase()) || map.containsKey(key);
 	}
 	
 	public static <T> T getValueIgnoreCase(Map<String,T> map,String key){
