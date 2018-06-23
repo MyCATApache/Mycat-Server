@@ -20,10 +20,12 @@ public class MigrateMainRunner implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(MigrateMainRunner.class);
     private String dataHost;
     private List<MigrateTask> migrateTaskList;
+    private int timeout;
 
-    public MigrateMainRunner(String dataHost, List<MigrateTask> migrateTaskList) {
+    public MigrateMainRunner(String dataHost, List<MigrateTask> migrateTaskList,int timeout) {
         this.dataHost = dataHost;
         this.migrateTaskList = migrateTaskList;
+        this.timeout = timeout;
     }
 
     @Override public void run() {
@@ -34,7 +36,7 @@ public class MigrateMainRunner implements Runnable {
         }
         try {
         	//modify by jian.xie 需要等到dumprunner执行结束 timeout需要改成用户指定的超时时间@cjw
-            downLatch.await(120,TimeUnit.MINUTES) ;
+            downLatch.await(this.timeout,TimeUnit.MINUTES) ;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

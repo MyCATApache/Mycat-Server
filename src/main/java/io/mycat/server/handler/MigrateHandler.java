@@ -33,9 +33,11 @@ import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Fields;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.migrate.MigrateTask;
+import io.mycat.migrate.MigrateTaskWatch;
 import io.mycat.migrate.MigrateUtils;
 import io.mycat.migrate.TaskNode;
 import io.mycat.net.mysql.*;
@@ -56,6 +58,8 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static io.mycat.config.loader.zkprocess.comm.ZkParamCfg.ZK_CFG_FLAG;
+
 /**
  * todo remove watch
  *
@@ -65,10 +69,11 @@ public final class MigrateHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger("MigrateHandler");
 
     //可以优化成多个锁
-    private static InterProcessMutex slaveIDsLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath() + "lock/slaveIDs.lock");
-    ;
+    private static final InterProcessMutex slaveIDsLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath() + "lock/slaveIDs.lock");
     private static final int FIELD_COUNT = 1;
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
+    private static volatile boolean forceInit = false;
+
 
     static {
         fields[0] = PacketUtil.getField("TASK_ID",
@@ -87,6 +92,8 @@ public final class MigrateHandler {
 
         String table = map.get("table");
         String add = map.get("add");
+        String timeoutString = map.get("timeout");
+        int timeout = 120;// minute
         String schema = "";
         if (table == null) {
             writeErrMessage(c, "table cannot be null");
@@ -101,9 +108,52 @@ public final class MigrateHandler {
             writeErrMessage(c, "add cannot be null");
             return;
         }
+        if (timeoutString != null) {
+            try {
+                timeout = Integer.parseInt(timeoutString);
+                if(timeout <= 0){
+                    throw new NumberFormatException("");
+                }
+            } catch (Exception e) {
+                writeErrMessage(c, String.format("timeout:%s format is wrong,it should be 1-" + Integer.MAX_VALUE+" (unit:minute)", timeoutString));
+                return;
+            }
+        }
+        ZkConfig zkConfig = ZkConfig.getInstance();
+        boolean loadZk = "true".equalsIgnoreCase(zkConfig.getValue(ZK_CFG_FLAG));
+        boolean force = "true".equalsIgnoreCase(map.get("force"));
+        CuratorFramework zk = ZKUtils.getConnection();
+        if (!loadZk) {
+            if (!force) {
+                String msg = "";
+                msg += "Mycat can temporarily execute the migration command.If other mycat does not connect to this zookeeper, they will not be able to perceive changes in the migration task.\n";
+                msg += "You can command as follow:\n\nmigrate -table=schema.test -add=dn2,dn3 -force=true\n\nto perform the migration.\n";
+                LOGGER.error(msg);
+                writeErrMessage(c, msg);
+                return;
+            }
+            //因为loadZk在mycat启动时候没有监听zk里migrate路径，这里需要把这个监听补上
+            //借用slaveIDsLock对象作为同步锁
+            boolean changed = false;
+            if (!forceInit) {
+                synchronized (slaveIDsLock) {
+                    if (!forceInit) {
+                        forceInit = true;
+                        changed = true;
+                    }
+                }
+            }
+            if (changed) {
+                MigrateTaskWatch.start();
+            }
+        }
+        if (zk == null) {
+            writeErrMessage(c, "Mycat is not connected to zookeeper");
+            return;
+        }
         String taskID = getUUID();
         try {
-            if (StringUtil.isEmpty(schema)){
+            if (StringUtil.isEmpty(schema)) {
                 schema = c.getSchema();
             }
             if (StringUtil.isEmpty(schema)) {
@@ -111,12 +161,12 @@ public final class MigrateHandler {
                 return;
             }
             SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(schema);
-            if (Objects.isNull(schemaConfig)) {
+            if (schemaConfig == null) {
                 writeErrMessage(c, String.format("Unknown database '" + schema + "'", table.toUpperCase(), schema));
                 return;
             }
             TableConfig tableConfig = schemaConfig.getTables().get(table.toUpperCase());
-            if (Objects.isNull(tableConfig)) {
+            if (tableConfig == null) {
                 writeErrMessage(c, String.format("Table '%s' doesn't define in schema '%s'\n", table.toUpperCase(), schema));
                 return;
             }
@@ -159,6 +209,7 @@ public final class MigrateHandler {
             taskNode.setTable(table);
             taskNode.setAdd(add);
             taskNode.setStatus(0);
+            taskNode.setTimeout(timeout);
 
             Map<String, Integer> fromNodeSlaveIdMap = new HashMap<>();
 
