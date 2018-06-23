@@ -22,68 +22,67 @@ public class MigrateMainRunner implements Runnable {
     private List<MigrateTask> migrateTaskList;
     private int timeout;
 
-    public MigrateMainRunner(String dataHost, List<MigrateTask> migrateTaskList,int timeout) {
+    public MigrateMainRunner(String dataHost, List<MigrateTask> migrateTaskList, int timeout) {
         this.dataHost = dataHost;
         this.migrateTaskList = migrateTaskList;
         this.timeout = timeout;
     }
 
-    @Override public void run() {
-        AtomicInteger sucessTask=new AtomicInteger(0);
-        CountDownLatch downLatch=new CountDownLatch(migrateTaskList.size()) ;
+    @Override
+    public void run() {
+        AtomicInteger sucessTask = new AtomicInteger(0);
+        CountDownLatch downLatch = new CountDownLatch(migrateTaskList.size());
         for (MigrateTask migrateTask : migrateTaskList) {
-            MycatServer.getInstance().getBusinessExecutor().submit( new MigrateDumpRunner(migrateTask,downLatch,sucessTask)) ;
+            MycatServer.getInstance().getBusinessExecutor().submit(new MigrateDumpRunner(migrateTask, downLatch, sucessTask));
         }
         try {
-        	//modify by jian.xie 需要等到dumprunner执行结束 timeout需要改成用户指定的超时时间@cjw
-            downLatch.await(this.timeout,TimeUnit.MINUTES) ;
+            //modify by jian.xie 需要等到dumprunner执行结束 timeout需要改成用户指定的超时时间@cjw
+            downLatch.await(this.timeout, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
         //同一个dataHost的任务合并执行，避免过多流量浪费
-        if(sucessTask.get()==migrateTaskList.size())
-        {
-             long binlogFileNum=-1;
-            String binlogFile="";
-             long pos=-1;
+        if (sucessTask.get() == migrateTaskList.size()) {
+            long binlogFileNum = -1;
+            String binlogFile = "";
+            long pos = -1;
             for (MigrateTask migrateTask : migrateTaskList) {
-                if(binlogFileNum==-1){
-                    binlogFileNum=Integer.parseInt(migrateTask.getBinlogFile().substring(migrateTask.getBinlogFile().lastIndexOf(".")+1)) ;
-                    binlogFile=migrateTask.getBinlogFile();
-                    pos=migrateTask.getPos();
-                }  else{
-                   int tempBinlogFileNum=Integer.parseInt(migrateTask.getBinlogFile().substring(migrateTask.getBinlogFile().lastIndexOf(".")+1)) ;
-                    if(tempBinlogFileNum<=binlogFileNum&&migrateTask.getPos()<=pos) {
-                       binlogFileNum=tempBinlogFileNum;
-                        binlogFile=migrateTask.getBinlogFile();
-                        pos=migrateTask.getPos();
+                if (binlogFileNum == -1) {
+                    binlogFileNum = Integer.parseInt(migrateTask.getBinlogFile().substring(migrateTask.getBinlogFile().lastIndexOf(".") + 1));
+                    binlogFile = migrateTask.getBinlogFile();
+                    pos = migrateTask.getPos();
+                } else {
+                    int tempBinlogFileNum = Integer.parseInt(migrateTask.getBinlogFile().substring(migrateTask.getBinlogFile().lastIndexOf(".") + 1));
+                    if (tempBinlogFileNum <= binlogFileNum && migrateTask.getPos() <= pos) {
+                        binlogFileNum = tempBinlogFileNum;
+                        binlogFile = migrateTask.getBinlogFile();
+                        pos = migrateTask.getPos();
                     }
                 }
             }
-             String taskPath=migrateTaskList.get(0).getZkpath();
-            taskPath=taskPath.substring(0,taskPath.lastIndexOf("/"));
-            String taskID=taskPath.substring(taskPath.lastIndexOf('/')+1,taskPath.length());
+            String taskPath = migrateTaskList.get(0).getZkpath();
+            taskPath = taskPath.substring(0, taskPath.lastIndexOf("/"));
+            String taskID = taskPath.substring(taskPath.lastIndexOf('/') + 1, taskPath.length());
 
-           //开始增量数据迁移
-            PhysicalDBPool dbPool= MycatServer.getInstance().getConfig().getDataHosts().get(dataHost);
+            //开始增量数据迁移
+            PhysicalDBPool dbPool = MycatServer.getInstance().getConfig().getDataHosts().get(dataHost);
             PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
             DBHostConfig config = datasource.getConfig();
-            BinlogStream  stream=new BinlogStream(config.getUrl().substring(0,config.getUrl().indexOf(":")),config.getPort(),config.getUser(),config.getPassword());
+            BinlogStream stream = new BinlogStream(config.getUrl().substring(0, config.getUrl().indexOf(":")), config.getPort(), config.getUser(), config.getPassword());
             try {
                 stream.setSlaveID(migrateTaskList.get(0).getSlaveId());
                 stream.setBinglogFile(binlogFile);
                 stream.setBinlogPos(pos);
                 stream.setMigrateTaskList(migrateTaskList);
-                BinlogStreamHoder.binlogStreamMap.put(taskID,stream);
+                BinlogStreamHoder.binlogStreamMap.put(taskID, stream);
                 stream.connect();
 
             } catch (IOException e) {
-               LOGGER.error("error:",e);
+                LOGGER.error("error:", e);
             }
 
         }
     }
-
 
 
 }

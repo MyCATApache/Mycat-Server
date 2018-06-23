@@ -14,6 +14,7 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.memory.environment.OperatingSystem;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.util.ProcessUtil;
+import io.mycat.util.StringUtil;
 import io.mycat.util.ZKUtils;
 import io.mycat.util.dataMigrator.DataMigratorUtil;
 import io.mycat.util.dataMigrator.DataNode;
@@ -72,7 +73,7 @@ public class MigrateDumpRunner implements Runnable {
                 .paramsAssignment(mysqldump,"?", "", config.getIp(), String.valueOf(config.getPort()), config.getUser(),
                 config.getPassword(),MigrateUtils.getDatabaseFromDataNode(task.getFrom()), task.getTable() , makeWhere(task), file.getPath());
             List<String> args= Arrays.asList("mysqldump", "-h"+config.getIp(), "-P"+String.valueOf(config.getPort()), "-u"+config.getUser(),
-                    "-p"+config.getPassword(), MigrateUtils.getDatabaseFromDataNode(task.getFrom()), task.getTable(), "--single-transaction","-q","--default-character-set=utf8mb4","--hex-blob","--where="+makeWhere(task), "--master-data=1","-T"+file.getPath()
+                    !StringUtil.isEmpty(config.getPassword())? "-p"+config.getPassword():"", MigrateUtils.getDatabaseFromDataNode(task.getFrom()), task.getTable(), "--single-transaction","-q","--default-character-set=utf8mb4","--hex-blob","--where="+makeWhere(task), "--master-data=1","-T"+file.getPath()
 
                     ,"--fields-enclosed-by="+encose+"\"","--fields-terminated-by=,", "--lines-terminated-by=\\n",  "--fields-escaped-by=\\\\");
 
