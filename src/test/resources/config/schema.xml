@@ -38,7 +38,7 @@
   <dataNode name="dnTest4" dataHost="localhost2" database="db4" />
   
   <dataHost name="localhost1" maxCon="500" minCon="10" balance="0"
-		dbType="mysql" dbDriver="native"  maxRetryCount="3">
+		dbType="mysql" dbDriver="native" >
 		<heartbeat>select user()</heartbeat>
 		<!-- can have multi write hosts -->
 		<writeHost host="hostM1" url="localhost:3306" user="root"
