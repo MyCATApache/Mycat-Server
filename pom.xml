@@ -189,7 +189,7 @@
 		<dependency>
 			<groupId>com.github.shyiko</groupId>
 			<artifactId>mysql-binlog-connector-java</artifactId>
-			<version>0.6.0</version>
+			<version>0.16.1</version>
 		</dependency>
 
 
