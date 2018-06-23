@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -21,11 +22,13 @@ public class MigrateMainRunner implements Runnable {
     private String dataHost;
     private List<MigrateTask> migrateTaskList;
     private int timeout;
+    private Charset charset;
 
-    public MigrateMainRunner(String dataHost, List<MigrateTask> migrateTaskList, int timeout) {
+    public MigrateMainRunner(String dataHost, List<MigrateTask> migrateTaskList, int timeout, Charset charset) {
         this.dataHost = dataHost;
         this.migrateTaskList = migrateTaskList;
         this.timeout = timeout;
+        this.charset = charset;
     }
 
     @Override
@@ -68,7 +71,7 @@ public class MigrateMainRunner implements Runnable {
             PhysicalDBPool dbPool = MycatServer.getInstance().getConfig().getDataHosts().get(dataHost);
             PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
             DBHostConfig config = datasource.getConfig();
-            BinlogStream stream = new BinlogStream(config.getUrl().substring(0, config.getUrl().indexOf(":")), config.getPort(), config.getUser(), config.getPassword());
+            BinlogStream stream = new BinlogStream(config.getUrl().substring(0, config.getUrl().indexOf(":")), config.getPort(), config.getUser(), config.getPassword(),charset);
             try {
                 stream.setSlaveID(migrateTaskList.get(0).getSlaveId());
                 stream.setBinglogFile(binlogFile);

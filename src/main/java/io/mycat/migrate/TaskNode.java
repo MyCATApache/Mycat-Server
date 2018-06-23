@@ -12,6 +12,7 @@ public class TaskNode implements Serializable {
     private String table;
     private String add;
     private int timeout;
+    private String charset;
 
     public String getSql() {
         return sql;
@@ -59,5 +60,13 @@ public class TaskNode implements Serializable {
 
     public void setTimeout(int timeout) {
         this.timeout = timeout;
+    }
+
+    public String getCharset() {
+        return charset;
+    }
+
+    public void setCharset(String charset) {
+        this.charset = charset;
     }
 }

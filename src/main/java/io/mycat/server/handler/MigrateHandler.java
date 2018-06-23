@@ -56,6 +56,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -94,6 +95,7 @@ public final class MigrateHandler {
         String table = map.get("table");
         String add = map.get("add");
         String timeoutString = map.get("timeout");
+        String charset = map.get("charset");
         int timeout = 120;// minute
         String schema = "";
         if (table == null) {
@@ -119,6 +121,13 @@ public final class MigrateHandler {
                 writeErrMessage(c, String.format("timeout:%s format is wrong,it should be 1-" + Integer.MAX_VALUE + " (unit:minute)", timeoutString));
                 return;
             }
+        }
+        if (StringUtil.isEmpty(charset)) {
+            charset = Charset.defaultCharset().name();
+        }
+        if (Charset.isSupported(charset)) {
+            writeErrMessage(c, "Not support charset " + charset);
+            return;
         }
         ZkConfig zkConfig = ZkConfig.getInstance();
         boolean loadZk = "true".equalsIgnoreCase(zkConfig.getValue(ZK_CFG_FLAG));
@@ -211,6 +220,7 @@ public final class MigrateHandler {
             taskNode.setAdd(add);
             taskNode.setStatus(0);
             taskNode.setTimeout(timeout);
+            taskNode.setCharset(charset);
 
             Map<String, Integer> fromNodeSlaveIdMap = new HashMap<>();
 
@@ -244,9 +254,9 @@ public final class MigrateHandler {
 
             String boosterDataHosts = ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_BOOSTER_DATAHOSTS);
             Set<String> dataNodes = new HashSet<>(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts));
-            LOGGER.warn("--------------------------------check dataNode-----------------------------------");
+            LOGGER.warn("--------------------------------check dataNode--------------------------------");
             for (String s : dataHostMigrateMap.keySet()) {
-                if(!dataNodes.contains(s)){
+                if (!dataNodes.contains(s)) {
                     LOGGER.warn("dataNode %s will be not participate in migration");
                 }
             }
