@@ -34,6 +34,7 @@ import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Fields;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.migrate.MigrateTask;
@@ -111,11 +112,11 @@ public final class MigrateHandler {
         if (timeoutString != null) {
             try {
                 timeout = Integer.parseInt(timeoutString);
-                if(timeout <= 0){
+                if (timeout <= 0) {
                     throw new NumberFormatException("");
                 }
             } catch (Exception e) {
-                writeErrMessage(c, String.format("timeout:%s format is wrong,it should be 1-" + Integer.MAX_VALUE+" (unit:minute)", timeoutString));
+                writeErrMessage(c, String.format("timeout:%s format is wrong,it should be 1-" + Integer.MAX_VALUE + " (unit:minute)", timeoutString));
                 return;
             }
         }
@@ -240,6 +241,16 @@ public final class MigrateHandler {
 
             //合并成dataHost级别任务
             Map<String, List<MigrateTask>> dataHostMigrateMap = mergerTaskForDataHost(allTaskList);
+
+            String boosterDataHosts = ZkConfig.getInstance().getValue(ZkParamCfg.MYCAT_BOOSTER_DATAHOSTS);
+            Set<String> dataNodes = new HashSet<>(Splitter.on(",").trimResults().omitEmptyStrings().splitToList(boosterDataHosts));
+            LOGGER.warn("--------------------------------check dataNode-----------------------------------");
+            for (String s : dataHostMigrateMap.keySet()) {
+                if(!dataNodes.contains(s)){
+                    LOGGER.warn("dataNode %s will be not participate in migration");
+                }
+            }
+
             for (Map.Entry<String, List<MigrateTask>> entry : dataHostMigrateMap.entrySet()) {
                 String key = entry.getKey();
                 List<MigrateTask> value = entry.getValue();
