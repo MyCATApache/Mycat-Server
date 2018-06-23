@@ -288,30 +288,29 @@ public class ShareJoin implements Catlet {
 	   setRowDataSorterHeader(afields, bfields);			    			  		    			
 
 	}
-
+	//设置排序结果收集齐
 	private void setRowDataSorterHeader(List<byte[]> afields, List<byte[]> bfields) {
-		if(!ctx.getIsStreamOutputResult() && !isInit) { 
-				EngineCtx.LOGGER.info("=============:"+Thread.currentThread().getName());		
+		if(!ctx.getIsStreamOutputResult() && !isInit) { 						
 			   synchronized (joinParser) {
 				   if(!isInit){
 		 			  LinkedHashMap<String, Integer> orderByCols =  joinParser.getOrderByCols();
 		 			  LinkedHashMap<String, Integer> childOrderByCols =  joinParser.getChildByCols();
 		 			  
 		 			  OrderCol[] orderCols = new OrderCol[orderByCols.size() + childOrderByCols.size()];
-		 			  //a 表
+		 			  //a 表 排序字段
 		 			  for(String fileldName : orderByCols.keySet()) {
-		 				  ColMeta colMeta =  getCommonFieldIndex(afields, fileldName);
+		 				  ColMeta colMeta =  getCommonFieldIndex(afields, fileldName); //colMeta 放置类型，字段的位置
 		 				  int val = orderByCols.get(fileldName);
-		 				  int orignIndex =  TableFilter.decodeOrignOrder(val);
-		 				  int orderType =  TableFilter.decodeOrderType(val);
-		 				  orderCols[orignIndex] = new OrderCol(colMeta, orderType);
+		 				  int orignIndex =  TableFilter.decodeOrignOrder(val); //字段在排序时候的位子
+		 				  int orderType =  TableFilter.decodeOrderType(val); //0:asc or  1:desc
+		 				  orderCols[orignIndex] = new OrderCol(colMeta, orderType); 
 		 			  }
 		 			  
 		 			  //b 表
 		 			  for(String fileldName : childOrderByCols.keySet()) {
 		 				  ColMeta colMeta =  getCommonFieldIndex(bfields, fileldName);
-		 				  colMeta.setColIndex(colMeta.getColIndex() + afields.size() -1);
-		 				  int val = childOrderByCols.get(fileldName);
+		 				  colMeta.setColIndex(colMeta.getColIndex() + afields.size() -1); // b的字段的位子 在a表字段之后 而且 少了一个joinKey 所以-1 
+ 		 				  int val = childOrderByCols.get(fileldName);
 		 				  int orignIndex =  TableFilter.decodeOrignOrder(val);
 		 				  int orderType =  TableFilter.decodeOrderType(val);
 		 				  orderCols[orignIndex] = new OrderCol(colMeta, orderType);

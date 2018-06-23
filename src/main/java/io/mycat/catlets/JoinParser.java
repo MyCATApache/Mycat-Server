@@ -73,11 +73,10 @@ public class JoinParser {
 	   parserOrderBy(mysqlQuery.getOrderBy());  // order 条件放到各个查询表中。
 	   parserLimit(); // limit 
 //	   LOGGER.info("field "+fieldAliasMap);	  	   
-	   LOGGER.info("master "+masterTable);
-	   LOGGER.info("join Lkey "+getJoinLkey()); 
-	   LOGGER.info("join Rkey "+getJoinRkey()); 	   
+//	   LOGGER.info("master "+masterTable);
+//	   LOGGER.info("join Lkey "+getJoinLkey()); 
+//	   LOGGER.info("join Rkey "+getJoinRkey()); 	   
 	   LOGGER.info("SQL: "+this.stmt);
-	   System.out.println(tableFilter.toString());
 	}
 	
 	private void parserTable(SQLTableSource table,TableFilter tFilter,boolean isOutJoin){
@@ -367,10 +366,11 @@ public class JoinParser {
 		return tableFilter.getJoinKey(false);
 	}	
 	
-	
+	//返回a表排序的字段
 	public LinkedHashMap<String, Integer> getOrderByCols(){
 		return tableFilter.getOrderByCols();
 	}
+	//返回b表排序的字段
 	public LinkedHashMap<String, Integer> getChildByCols(){
 		return tableFilter.getTableJoin().getOrderByCols();
 	}
@@ -379,11 +379,14 @@ public class JoinParser {
 		return tableFilter.getOrderByCols().size() > 0 || tableFilter.getTableJoin().getOrderByCols().size() > 0;		
 		
 	}
-	//是否有order 排序
+	/*
+	 * limit 的 start*/
 	public int getOffset() {
 		return tableFilter.getOffset();
 	}
-	
+
+	/*
+	 * limit 的 rowCount*/
 	public int getRowCount() {
 		return tableFilter.getRowCount();
 	}
@@ -393,23 +396,5 @@ public class JoinParser {
 	public boolean hasLimit() {
 		return tableFilter.getOffset() > 0 ||  tableFilter.getRowCount() > 0 ; 
 	}
-	public static void main(String[] args) {
-		System.out.println("会计基础".compareTo("企业会计岗位核算（广州财校）"));
-//		String realSQL = "SELECT  B.code_value    ,  B.display_value FROM e_code_type A  LEFT JOIN e_code_def B    ON A.code_type_id = B.code_type_id WHERE A.code_type = 'question_type' AND B.code_value = \"single\"  ORDER BY display_value LIMIT 0,10";
-//		JoinParser joinParser = null;
-//		MySqlStatementParser parser = new MySqlStatementParser(realSQL);			
-//		SQLStatement statement = parser.parseStatement();
-//		if(statement instanceof SQLSelectStatement) {
-//		   SQLSelectStatement st=(SQLSelectStatement)statement;
-//		   SQLSelectQuery sqlSelectQuery =st.getSelect().getQuery();
-//			if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
-//				MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)st.getSelect().getQuery();
-//				joinParser=new JoinParser(mysqlSelectQuery,realSQL);
-//				joinParser.parser();
-//			}	
-//		}
-//		
-//		System.out.println(joinParser.getSql());
-//		System.out.println(joinParser.getChildSQL());
-	}
+
 }

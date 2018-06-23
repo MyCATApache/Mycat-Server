@@ -495,7 +495,12 @@ public class MySQLConnection extends BackendAIOConnection {
 		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
 
 	}
-
+	/**
+	 * by zwy ,execute a query with charsetIndex
+	 * 
+	 * @param query
+	 * @throws UnsupportedEncodingException
+	 */
 	@Override
 	public void query(String query, int charsetIndex) {
 		RouteResultsetNode rrn = new RouteResultsetNode("default",

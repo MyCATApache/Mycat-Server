@@ -182,7 +182,7 @@ public class TableFilter {
 	
 		if (fieldInTable(fieldName)) {
 			order=unionsql(order,afield+" "+des,",");
-			//将order 类型加入到链表中. 還得看下是否使用別名 todo
+			//将order 类型加入到链表中. 還得看下是否使用別名
 			
 			int orderType = StringUtil.isEmpty(des)||"asc".equals(des.toLowerCase().trim())?OrderCol.COL_ORDER_TYPE_ASC:OrderCol.COL_ORDER_TYPE_DESC;
 			orderByCols.put(afield, encodeOrignOrderType(index, orderType));
@@ -415,7 +415,7 @@ public class TableFilter {
 	public int getRowCount() {
 		return rowCount;
 	}
-	//
+	
 	public static int encodeOrignOrderType(int index , int orderType) {
 		return index << 1 | orderType;
 	}
