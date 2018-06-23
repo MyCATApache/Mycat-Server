@@ -871,6 +871,16 @@ public class JDBCConnection implements BackendConnection {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void query(String sql, int charsetIndex) {
+		try {
+			query(sql);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
+		}		
+	}
 	
 	
 

@@ -52,6 +52,7 @@ import io.mycat.config.util.ConfigUtil;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.util.DecryptUtil;
 import io.mycat.util.SplitUtil;
+import io.mycat.util.StringUtil;
 
 /**
  * @author mycat
@@ -761,7 +762,13 @@ public class XMLSchemaLoader implements SchemaLoader {
 			String filters = element.getAttribute("filters");
 			String logTimeStr = element.getAttribute("logTime");
 			String slaveIDs = element.getAttribute("slaveIDs");
-			int maxRetryCount = Integer.parseInt(element.getAttribute("maxRetryCount")) ;
+			String maxRetryCountStr = element.getAttribute("maxRetryCount");
+			int maxRetryCount ;
+			if(StringUtil.isEmpty(maxRetryCountStr)){
+				maxRetryCount = 3;
+			} else {
+				maxRetryCount = Integer.valueOf(maxRetryCountStr);
+			}
 
 			long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.parseLong(logTimeStr) ;
 			//读取心跳语句

@@ -45,12 +45,12 @@
 		<heartbeat>select user()</heartbeat>
 		<!-- can have multi write hosts -->
 		<writeHost host="hostM1" url="localhost:3306" user="root"
-				   password="123456">
+				   password="123">
 			<!-- can have multi read hosts -->
-			<readHost host="hostS2" url="192.168.1.200:3306" user="root" password="xxx" />
+			<readHost host="hostS2" url="localhost:3306" user="root" password="123" />
 		</writeHost>
-		<writeHost host="hostS1" url="localhost:3316" user="root"
-				   password="123456" />
+		<writeHost host="hostS1" url="localhost:3306" user="root"
+				   password="123" />
 		<!-- <writeHost host="hostM2" url="localhost:3316" user="root" password="123456"/> -->
 	</dataHost>
 	<!--
