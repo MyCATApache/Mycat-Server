@@ -23,29 +23,33 @@ public class MigrateMainRunner implements Runnable {
     private List<MigrateTask> migrateTaskList;
     private int timeout;
     private Charset charset;
+    private boolean forceBinlog;
 
-    public MigrateMainRunner(String dataHost, List<MigrateTask> migrateTaskList, int timeout, Charset charset) {
+    public MigrateMainRunner(String dataHost, List<MigrateTask> migrateTaskList, int timeout, Charset charset,boolean forceBinlog) {
         this.dataHost = dataHost;
         this.migrateTaskList = migrateTaskList;
         this.timeout = timeout;
         this.charset = charset;
+        this.forceBinlog = forceBinlog;
     }
 
     @Override
     public void run() {
         AtomicInteger sucessTask = new AtomicInteger(0);
-        CountDownLatch downLatch = new CountDownLatch(migrateTaskList.size());
-        for (MigrateTask migrateTask : migrateTaskList) {
-            MycatServer.getInstance().getBusinessExecutor().submit(new MigrateDumpRunner(migrateTask, downLatch, sucessTask));
-        }
-        try {
-            //modify by jian.xie 需要等到dumprunner执行结束 timeout需要改成用户指定的超时时间@cjw
-            downLatch.await(this.timeout, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        if (!forceBinlog) {
+            CountDownLatch downLatch = new CountDownLatch(migrateTaskList.size());
+            for (MigrateTask migrateTask : migrateTaskList) {
+                MycatServer.getInstance().getBusinessExecutor().submit(new MigrateDumpRunner(migrateTask, downLatch, sucessTask));
+            }
+            try {
+                //modify by jian.xie 需要等到dumprunner执行结束 timeout需要改成用户指定的超时时间@cjw
+                downLatch.await(this.timeout, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
         //同一个dataHost的任务合并执行，避免过多流量浪费
-        if (sucessTask.get() == migrateTaskList.size()) {
+        if (forceBinlog||(sucessTask.get() == migrateTaskList.size())) {
             long binlogFileNum = -1;
             String binlogFile = "";
             long pos = -1;

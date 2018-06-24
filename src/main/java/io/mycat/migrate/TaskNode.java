@@ -13,6 +13,7 @@ public class TaskNode implements Serializable {
     private String add;
     private int timeout;
     private String charset;
+    private boolean forceBinlog = false;
 
     public String getSql() {
         return sql;
@@ -68,5 +69,13 @@ public class TaskNode implements Serializable {
 
     public void setCharset(String charset) {
         this.charset = charset;
+    }
+
+    public boolean isForceBinlog() {
+        return forceBinlog;
+    }
+
+    public void setForceBinlog(boolean forceBinlog) {
+        this.forceBinlog = forceBinlog;
     }
 }

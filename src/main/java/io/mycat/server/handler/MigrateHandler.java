@@ -96,6 +96,7 @@ public final class MigrateHandler {
         String add = map.get("add");
         String timeoutString = map.get("timeout");
         String charset = map.get("charset");
+        boolean forceBinlog = map.get("forceBinlog") != null;
         int timeout = 120;// minute
         String schema = "";
         if (table == null) {
@@ -221,6 +222,7 @@ public final class MigrateHandler {
             taskNode.setStatus(0);
             taskNode.setTimeout(timeout);
             taskNode.setCharset(charset);
+            taskNode.setForceBinlog(forceBinlog);
 
             Map<String, Integer> fromNodeSlaveIdMap = new HashMap<>();
 

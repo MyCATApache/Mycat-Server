@@ -132,6 +132,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
     }
 
     private void forceTableRuleToLocal() {
+
     }
 
     private void pushACKToClean(String taskPath) throws Exception {
