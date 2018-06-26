@@ -17,7 +17,7 @@ import java.util.concurrent.Semaphore;
 public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult<Map<String, String>>> {
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlExecuteListener.class);
     private MigrateTask task;
-   private String sql   ;
+    private String sql;
     private BinlogStream binlogStream;
     private Semaphore semaphore;
     private volatile SQLJob sqlJob;
@@ -30,14 +30,15 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
         this.sqlJob = sqlJob;
     }
 
-    public SqlExecuteListener(MigrateTask task, String sql, BinlogStream binlogStream,Semaphore semaphore) {
+    public SqlExecuteListener(MigrateTask task, String sql, BinlogStream binlogStream, Semaphore semaphore) {
         this.task = task;
         this.sql = sql;
         this.binlogStream = binlogStream;
-        this.semaphore=semaphore;
+        this.semaphore = semaphore;
     }
 
-    @Override public void onResult(SQLQueryResult<Map<String, String>> result) {
+    @Override
+    public void onResult(SQLQueryResult<Map<String, String>> result) {
         try {
             if (!result.isSuccess()) {
                 try {
@@ -54,27 +55,26 @@ public class SqlExecuteListener implements SQLQueryResultListener<SQLQueryResult
             }
 
             task.setHasExecute(false);
-        }finally {
+        } finally {
             semaphore.release();
         }
     }
 
 
-
-    private void pushMsgToZK(String rootZkPath,String child,int status,String msg) throws Exception {
+    private void pushMsgToZK(String rootZkPath, String child, int status, String msg) throws Exception {
         String path = rootZkPath + "/" + child;
-        TaskStatus taskStatus=new TaskStatus();
+        TaskStatus taskStatus = new TaskStatus();
         taskStatus.setMsg(msg);
         taskStatus.setStatus(status);
         task.setStatus(status);
 
-        if(ZKUtils.getConnection().checkExists().forPath(path)==null )
-        {
-            ZKUtils.getConnection().create().forPath(path, JSON.toJSONBytes(taskStatus)) ;
-        } else{
-            ZKUtils.getConnection().setData().forPath(path, JSON.toJSONBytes(taskStatus)) ;
+        if (ZKUtils.getConnection().checkExists().forPath(path) == null) {
+            ZKUtils.getConnection().create().forPath(path, JSON.toJSONBytes(taskStatus));
+        } else {
+            ZKUtils.getConnection().setData().forPath(path, JSON.toJSONBytes(taskStatus));
         }
     }
+
     public void close(String msg) {
         SQLJob curJob = sqlJob;
         if (curJob != null) {

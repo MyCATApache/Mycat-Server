@@ -1,9 +1,11 @@
 package io.mycat.migrate;
 
+import com.alibaba.fastjson.JSON;
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.config.model.DBHostConfig;
+import io.mycat.util.ZKUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +88,13 @@ public class MigrateMainRunner implements Runnable {
                 stream.connect();
 
             } catch (IOException e) {
+                try {
+                    TaskNode taskNode = JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath), TaskNode.class);
+                    taskNode.addException(e.getLocalizedMessage());
+                    ZKUtils.getConnection().setData().forPath(taskPath, JSON.toJSONBytes(taskNode));
+                }catch (Exception e1){
+                    LOGGER.error("error:",e);
+                }
                 LOGGER.error("error:", e);
             }
 

@@ -185,7 +185,6 @@ public class MigrateTaskWatch {
                 resultList.add(dataHost);
             }
 
-
             return resultList;
         }
 
@@ -205,7 +204,6 @@ public class MigrateTaskWatch {
                     taskMap.put(dataHost, Lists.newArrayList(migrateTask));
                 }
             }
-
 
             return taskMap;
         }

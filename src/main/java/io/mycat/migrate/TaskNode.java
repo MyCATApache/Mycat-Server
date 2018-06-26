@@ -7,7 +7,7 @@ import java.io.Serializable;
  */
 public class TaskNode implements Serializable {
     private String sql;
-    private int status ;    //0=init    1=start    2=prepare switch    3=commit sucess   4=error     5=clean  sucess     6=error process end
+    private int status;    //0=init    1=start    2=prepare switch    3=commit sucess   4=error     5=clean  sucess     6=error process end
     private String schema;
     private String table;
     private String add;
@@ -15,6 +15,7 @@ public class TaskNode implements Serializable {
     private String charset;
     private boolean forceBinlog = false;
     private String backupFile;
+    private String exception = "";
 
     public String getSql() {
         return sql;
@@ -86,5 +87,13 @@ public class TaskNode implements Serializable {
 
     public void setBackupFile(String backupFile) {
         this.backupFile = backupFile;
+    }
+
+    public String getException() {
+        return exception;
+    }
+
+    public void addException(String exception) {
+        this.exception = this.exception+"\n"+exception;
     }
 }
