@@ -37,6 +37,7 @@ public class MigrateMainRunner implements Runnable {
     public void run() {
         AtomicInteger sucessTask = new AtomicInteger(0);
         if (!forceBinlog) {
+            LOGGER.info("--------------------------------task created success--------------------------------");
             CountDownLatch downLatch = new CountDownLatch(migrateTaskList.size());
             for (MigrateTask migrateTask : migrateTaskList) {
                 MycatServer.getInstance().getBusinessExecutor().submit(new MigrateDumpRunner(migrateTask, downLatch, sucessTask));

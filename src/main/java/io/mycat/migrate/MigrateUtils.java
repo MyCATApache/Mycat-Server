@@ -282,7 +282,4 @@ public class MigrateUtils {
         }
         return 0;
     }
-    public void backup(){
-
-    }
 }

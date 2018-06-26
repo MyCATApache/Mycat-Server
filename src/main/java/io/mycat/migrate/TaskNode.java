@@ -14,6 +14,7 @@ public class TaskNode implements Serializable {
     private int timeout;
     private String charset;
     private boolean forceBinlog = false;
+    private String backupFile;
 
     public String getSql() {
         return sql;
@@ -77,5 +78,13 @@ public class TaskNode implements Serializable {
 
     public void setForceBinlog(boolean forceBinlog) {
         this.forceBinlog = forceBinlog;
+    }
+
+    public String getBackupFile() {
+        return backupFile;
+    }
+
+    public void setBackupFile(String backupFile) {
+        this.backupFile = backupFile;
     }
 }
