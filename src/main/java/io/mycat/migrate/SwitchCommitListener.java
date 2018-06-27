@@ -16,6 +16,7 @@ import io.mycat.config.loader.zkprocess.entity.rule.tablerule.TableRule;
 import io.mycat.config.loader.zkprocess.entity.schema.datahost.DataHost;
 import io.mycat.config.loader.zkprocess.entity.schema.datanode.DataNode;
 import io.mycat.config.loader.zkprocess.entity.schema.schema.Schema;
+import io.mycat.config.loader.zkprocess.entity.schema.schema.Table;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
 import io.mycat.config.loader.zkprocess.parse.entryparse.rule.json.FunctionJsonParse;
 import io.mycat.config.loader.zkprocess.parse.entryparse.rule.json.TableRuleJsonParse;
@@ -131,8 +132,6 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                         return;
                     }
                     //todo   清理规则     顺利拉下ruledata保证一定更新到本地
-                    if (MycatServer.getInstance().getProcessors() != null)
-                        ReloadConfig.reload();
                 } else if (taskNode.getStatus() == 3) {
                     forceTableRuleToLocal();
                     pushACKToClean(taskPath);
@@ -160,20 +159,27 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                 .getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey()).toURI());
         // 获得公共的xml转换器对象
         XmlProcessBase xmlProcess = new XmlProcessBase();
-        forceTableToLocal(localPath, xmlProcess);
-        forceRulesToLocal(localPath, xmlProcess);
+
+        try {
+            forceRulesToLocal(localPath, xmlProcess);
+            forceTableToLocal(localPath, xmlProcess);
+        } catch (Exception e) {
+            LOGGER.error("error:", e);
+        }
+        if (MycatServer.getInstance().getProcessors() != null)
+            ReloadConfig.reload();
     }
 
     private static void forceTableToLocal(Path localPath, XmlProcessBase xmlProcess) throws Exception {
+
         // 获得当前集群的名称
         String schemaPath = ZKUtils.getZKBasePath();
-        schemaPath = schemaPath + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FOW_ZK_PATH_SCHEMA.getKey();
+        schemaPath = schemaPath + ZookeeperPath.FOW_ZK_PATH_SCHEMA.getKey() + ZookeeperPath.ZK_SEPARATOR.getKey();
         // 生成xml与类的转换信息
         SchemasParseXmlImpl schemasParseXml = new SchemasParseXmlImpl(xmlProcess);
         Schemas schema = new Schemas();
         String str = "";
         // 得到schema对象的目录信息
-        schemaPath = schemaPath + "/";
         str = new String(ZKUtils.getConnection().getData().forPath(schemaPath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey()));
         SchemaJsonParse schemaJsonParse = new SchemaJsonParse();
         List<Schema> schemaList = schemaJsonParse.parseJsonToBean(str);
@@ -188,6 +194,13 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         DataHostJsonParse dataHostJsonParse = new DataHostJsonParse();
         List<DataHost> dataHostList = dataHostJsonParse.parseJsonToBean(str);
         schema.setDataHost(dataHostList);
+
+        xmlProcess.addParseClass(DataNode.class);
+        xmlProcess.addParseClass(DataHost.class);
+        xmlProcess.addParseClass(Schema.class);
+        xmlProcess.addParseClass(Schemas.class);
+        xmlProcess.initJaxbClass();
+
         schemasParseXml.parseToXmlWrite(schema, localPath.resolve("schema.xml").toString(), "schema");
     }
 
@@ -197,6 +210,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         String value = new String(ZKUtils.getConnection().getData().forPath(ZKUtils.getZKBasePath() + "rules/tableRule"), "UTF-8");
         DataInf RulesZkData = new ZkDataImpl("tableRule", value);
         TableRuleJsonParse tableRuleJsonParse = new TableRuleJsonParse();
+
         List<TableRule> tableRuleData = tableRuleJsonParse.parseJsonToBean(RulesZkData.getDataValue());
         rules.setTableRule(tableRuleData);
         // 得到function信息
@@ -206,7 +220,11 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         List<Function> functionList = functionJsonParse.parseJsonToBean(functionZkData.getDataValue());
         rules.setFunction(functionList);
 
+        xmlProcess.addParseClass(Table.class);
+        xmlProcess.addParseClass(Function.class);
+
         RuleParseXmlImpl ruleParseXml = new RuleParseXmlImpl(xmlProcess);
+        xmlProcess.initJaxbClass();
         ruleParseXml.parseToXmlWrite(rules, localPath.resolve("rule.xml").toString(), "rule");
     }
 

@@ -24,53 +24,55 @@ import java.util.concurrent.TimeUnit;
  */
 public class SwitchPrepareListener implements PathChildrenCacheListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(SwitchPrepareListener.class);
-    @Override public void childEvent(CuratorFramework curatorFramework,
-            PathChildrenCacheEvent event) throws Exception {
+
+    @Override
+    public void childEvent(CuratorFramework curatorFramework,
+                           PathChildrenCacheEvent event) throws Exception {
         switch (event.getType()) {
             case CHILD_ADDED:
-                 checkSwitch(event);
+                checkSwitch(event);
                 break;
             default:
                 break;
         }
     }
-    private void checkSwitch(PathChildrenCacheEvent event)    {
-        InterProcessMutex taskLock =null;
+
+    private void checkSwitch(PathChildrenCacheEvent event) {
+        InterProcessMutex taskLock = null;
         try {
 
-            String path=event.getData().getPath();
-            String taskPath=path.substring(0,path.lastIndexOf("/_prepare/"))  ;
-            String taskID=taskPath.substring(taskPath.lastIndexOf('/')+1,taskPath.length());
-            String lockPath=     ZKUtils.getZKBasePath()+"lock/"+taskID+".lock";
-            List<String> sucessDataHost= ZKUtils.getConnection().getChildren().forPath(path.substring(0,path.lastIndexOf('/')));
-            List<MigrateTask> allTaskList=MigrateUtils.queryAllTask(taskPath,sucessDataHost);
-            TaskNode pTaskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
+            String path = event.getData().getPath();
+            String taskPath = path.substring(0, path.lastIndexOf("/_prepare/"));
+            String taskID = taskPath.substring(taskPath.lastIndexOf('/') + 1, taskPath.length());
+            String lockPath = ZKUtils.getZKBasePath() + "lock/" + taskID + ".lock";
+            List<String> sucessDataHost = ZKUtils.getConnection().getChildren().forPath(path.substring(0, path.lastIndexOf('/')));
+            List<MigrateTask> allTaskList = MigrateUtils.queryAllTask(taskPath, sucessDataHost);
+            TaskNode pTaskNode = JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath), TaskNode.class);
 
-            ConcurrentMap<String,List<PartitionByCRC32PreSlot.Range>> tableRuleMap=
+            ConcurrentMap<String, List<PartitionByCRC32PreSlot.Range>> tableRuleMap =
                     RouteCheckRule.migrateRuleMap.containsKey(pTaskNode.getSchema().toUpperCase()) ?
-                    RouteCheckRule.migrateRuleMap.get(pTaskNode.getSchema().toUpperCase()) :
-                    new ConcurrentHashMap();
-                 tableRuleMap.put(pTaskNode.getTable().toUpperCase(),MigrateUtils.convertAllTask(allTaskList));
-            RouteCheckRule.migrateRuleMap.put(pTaskNode.getSchema().toUpperCase(),tableRuleMap);
+                            RouteCheckRule.migrateRuleMap.get(pTaskNode.getSchema().toUpperCase()) :
+                            new ConcurrentHashMap();
+            tableRuleMap.put(pTaskNode.getTable().toUpperCase(), MigrateUtils.convertAllTask(allTaskList));
+            RouteCheckRule.migrateRuleMap.put(pTaskNode.getSchema().toUpperCase(), tableRuleMap);
 
 
-            taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
+            taskLock = new InterProcessMutex(ZKUtils.getConnection(), lockPath);
             taskLock.acquire(20, TimeUnit.SECONDS);
 
-            List<String> dataHost=  ZKUtils.getConnection().getChildren().forPath(taskPath) ;
-            if(getRealSize(dataHost)==sucessDataHost.size()){
-                TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
-                  if(taskNode.getStatus()==1){
-                       taskNode.setStatus(2);  //prepare switch
-                      LOGGER.info("task switch:",new Date());
-                      ZKUtils.getConnection().setData().forPath(taskPath,JSON.toJSONBytes(taskNode))  ;
-                  }
-              }
+            List<String> dataHost = ZKUtils.getConnection().getChildren().forPath(taskPath);
+            if (getRealSize(dataHost) == sucessDataHost.size()) {
+                TaskNode taskNode = JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath), TaskNode.class);
+                if (taskNode.getStatus() == 1) {
+                    taskNode.setStatus(2);  //prepare switch
+                    LOGGER.info("task switch:", new Date());
+                    ZKUtils.getConnection().setData().forPath(taskPath, JSON.toJSONBytes(taskNode));
+                }
+            }
         } catch (Exception e) {
-            LOGGER.error("error:",e);
-        }
-        finally {
-            if(taskLock!=null){
+            LOGGER.error("error:", e);
+        } finally {
+            if (taskLock != null) {
                 try {
                     taskLock.release();
                 } catch (Exception ignored) {
@@ -80,26 +82,20 @@ public class SwitchPrepareListener implements PathChildrenCacheListener {
         }
     }
 
-    private int getRealSize(List<String> dataHosts){
-        int size=dataHosts.size();
-        Set<String> set=new HashSet(dataHosts);
-        if(set.contains("_prepare"))   {
-            size=size-1;
+    private int getRealSize(List<String> dataHosts) {
+        int size = dataHosts.size();
+        Set<String> set = new HashSet(dataHosts);
+        if (set.contains("_prepare")) {
+            size = size - 1;
         }
-        if(set.contains("_commit"))   {
-            size=size-1;
+        if (set.contains("_commit")) {
+            size = size - 1;
         }
-        if(set.contains("_clean"))   {
-            size=size-1;
+        if (set.contains("_clean")) {
+            size = size - 1;
         }
         return size;
     }
-
-
-
-
-
-
 
 
 }
