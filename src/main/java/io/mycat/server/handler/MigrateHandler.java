@@ -101,7 +101,7 @@ public final class MigrateHandler {
         String add = map.get("add");
         String timeoutString = map.get("timeout");
         String charset = map.get("charset");
-        boolean forceBinlog = map.get("forceBinlog") != null;
+        boolean forceBinlog = false;//这个命令禁止使用因为binlog stream的实现依赖mysqldump
         int timeout = 120;// minute
         String schema = "";
         if (table == null) {

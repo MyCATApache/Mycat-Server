@@ -37,9 +37,10 @@ public class MigrateMainRunner implements Runnable {
 
     @Override
     public void run() {
+        try{
         AtomicInteger sucessTask = new AtomicInteger(0);
         if (!forceBinlog) {
-            LOGGER.info("--------------------------------task created success--------------------------------");
+            LOGGER.info("migrate 中 进入 mysqldump阶段");
             CountDownLatch downLatch = new CountDownLatch(migrateTaskList.size());
             for (MigrateTask migrateTask : migrateTaskList) {
                 MycatServer.getInstance().getBusinessExecutor().submit(new MigrateDumpRunner(migrateTask, downLatch, sucessTask));
@@ -50,6 +51,8 @@ public class MigrateMainRunner implements Runnable {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+        }else {
+            LOGGER.info("migrate 中 不进入 mysqldump阶段,直接进入binlog stream");
         }
         //同一个dataHost的任务合并执行，避免过多流量浪费
         if (forceBinlog||(sucessTask.get() == migrateTaskList.size())) {
@@ -78,7 +81,7 @@ public class MigrateMainRunner implements Runnable {
             PhysicalDBPool dbPool = MycatServer.getInstance().getConfig().getDataHosts().get(dataHost);
             PhysicalDatasource datasource = dbPool.getSources()[dbPool.getActivedIndex()];
             DBHostConfig config = datasource.getConfig();
-            BinlogStream stream = new BinlogStream(config.getUrl().substring(0, config.getUrl().indexOf(":")), config.getPort(), config.getUser(), config.getPassword(),charset);
+            BinlogStream stream = new BinlogStream(config.getUrl().substring(0, config.getUrl().indexOf(":")), config.getPort(), config.getUser(), config.getPassword(), charset);
             try {
                 stream.setSlaveID(migrateTaskList.get(0).getSlaveId());
                 stream.setBinglogFile(binlogFile);
@@ -88,16 +91,23 @@ public class MigrateMainRunner implements Runnable {
                 stream.connect();
 
             } catch (IOException e) {
+                LOGGER.error("migrate 中 binlog 连接 异常");
+
                 try {
                     TaskNode taskNode = JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath), TaskNode.class);
                     taskNode.addException(e.getLocalizedMessage());
                     ZKUtils.getConnection().setData().forPath(taskPath, JSON.toJSONBytes(taskNode));
-                }catch (Exception e1){
-                    LOGGER.error("error:",e);
+                } catch (Exception e1) {
+
+                    LOGGER.error("error:", e);
                 }
                 LOGGER.error("error:", e);
             }
-
+        }
+        }catch (Exception e){
+            LOGGER.error("migrate 中 binlog 连接 异常");
+            e.printStackTrace();
+            LOGGER.error(e.getLocalizedMessage());
         }
     }
 

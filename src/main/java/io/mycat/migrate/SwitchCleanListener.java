@@ -86,6 +86,7 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
             }
 
         } catch (Exception e) {
+            LOGGER.error("migrate 中 clean 阶段异常");
             LOGGER.error("error:",e);
         }
         finally {

@@ -214,7 +214,7 @@ public class BinlogStream {
 
         @Override
         public void onEvent(Event event) {
-            logger.debug(event.toString());
+            logger.debug("----->migrate binlog event:"+event.toString());
             EventType eventType = event.getHeader().getEventType();
             switch (eventType) {
                 case TABLE_MAP:

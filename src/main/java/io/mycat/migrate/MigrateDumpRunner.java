@@ -77,7 +77,8 @@ public class MigrateDumpRunner implements Runnable {
                     !StringUtil.isEmpty(config.getPassword()) ? "-p" + config.getPassword() : "", MigrateUtils.getDatabaseFromDataNode(task.getFrom()), task.getTable(), "--single-transaction", "-q", "--default-character-set=utf8mb4", "--hex-blob", "--where=" + makeWhere(task), "--master-data=1", "-T" + file.getPath()
 
                     , "--fields-enclosed-by=" + encose + "\"", "--fields-terminated-by=,", "--lines-terminated-by=\\n", "--fields-escaped-by=\\\\");
-
+            LOGGER.info("migrate 中 mysqlsump准备执行命令,如果超长时间没有响应则可能出错");
+            LOGGER.info(args.toString());
             String result = ProcessUtil.execReturnString(args);
             int logIndex = result.indexOf("MASTER_LOG_FILE='");
             int logPosIndex = result.indexOf("MASTER_LOG_POS=");
@@ -92,13 +93,14 @@ public class MigrateDumpRunner implements Runnable {
                 LOGGER.debug(sqlFile.getAbsolutePath() + "not  exists");
             }
             List<String> createTable = Files.readLines(sqlFile, Charset.forName("UTF-8"));
-
+            LOGGER.info("migrate 中 准备自动创建新的table:"+createTable);
             exeCreateTableToDn(extractCreateSql(createTable), task.getTo(), task.getTable());
             if (dataFile.length() > 0) {
 
                 loaddataToDn(dataFile, task.getTo(), task.getTable());
             }
             pushMsgToZK(task.getZkpath(), task.getFrom() + "-" + task.getTo(), 1, "sucess", logFile, logPos);
+
             DataMigratorUtil.deleteDir(file);
             sucessTask.getAndIncrement();
         } catch (Exception e) {

@@ -122,7 +122,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                         clean(taskID, allTaskList);
                         transactionFinal.commit();
 
-                        forceTableRuleToLocal();
+                        forceTableRuleToLocal(taskPath,taskNode);
                         pushACKToClean(taskPath);
                     } catch (Exception e) {
                         taskNode.addException(e.getLocalizedMessage());
@@ -133,7 +133,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                     }
                     //todo   清理规则     顺利拉下ruledata保证一定更新到本地
                 } else if (taskNode.getStatus() == 3) {
-                    forceTableRuleToLocal();
+                    forceTableRuleToLocal(taskPath,taskNode);
                     pushACKToClean(taskPath);
                 }
 
@@ -141,6 +141,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
 
 
         } catch (Exception e) {
+            LOGGER.error("migrate 中 commit 阶段异常");
             LOGGER.error("error:", e);
         } finally {
             if (taskLock != null) {
@@ -153,7 +154,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         }
     }
 
-    private void forceTableRuleToLocal() throws Exception {
+    private void forceTableRuleToLocal(String path,TaskNode taskNode) throws Exception {
         Path localPath = Paths.get(this.getClass()
                 .getClassLoader()
                 .getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey()).toURI());
@@ -161,13 +162,16 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         XmlProcessBase xmlProcess = new XmlProcessBase();
 
         try {
-            forceRulesToLocal(localPath, xmlProcess);
             forceTableToLocal(localPath, xmlProcess);
+            forceRulesToLocal(localPath, xmlProcess);
+            //保证先有table再有rule
         } catch (Exception e) {
+            taskNode.addException(e.getLocalizedMessage());
+            //异常to  Zk
+            ZKUtils.getConnection().setData().forPath(path, JSON.toJSONBytes(taskNode));
+            LOGGER.error("migrate 中 强制更新本地文件失败");
             LOGGER.error("error:", e);
         }
-        if (MycatServer.getInstance().getProcessors() != null)
-            ReloadConfig.reload();
     }
 
     private static void forceTableToLocal(Path localPath, XmlProcessBase xmlProcess) throws Exception {
@@ -181,16 +185,21 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         String str = "";
         // 得到schema对象的目录信息
         str = new String(ZKUtils.getConnection().getData().forPath(schemaPath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey()));
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的schema的信息--------------------------------------------------\n"+str);
         SchemaJsonParse schemaJsonParse = new SchemaJsonParse();
         List<Schema> schemaList = schemaJsonParse.parseJsonToBean(str);
         schema.setSchema(schemaList);
         // 得到dataNode的信息
         str = new String(ZKUtils.getConnection().getData().forPath(schemaPath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey()));
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的dataNode的信息--------------------------------------------------");
+        LOGGER.info(str);
         DataNodeJsonParse dataNodeJsonParse = new DataNodeJsonParse();
         List<DataNode> dataNodeList = dataNodeJsonParse.parseJsonToBean(str);
         schema.setDataNode(dataNodeList);
-        // 得到dataNode的信息
+        // 得到dataHost的信息
         str = new String(ZKUtils.getConnection().getData().forPath(schemaPath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey()));
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的dataHost的信息--------------------------------------------------");
+        LOGGER.info(str);
         DataHostJsonParse dataHostJsonParse = new DataHostJsonParse();
         List<DataHost> dataHostList = dataHostJsonParse.parseJsonToBean(str);
         schema.setDataHost(dataHostList);
@@ -208,6 +217,8 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         Rules rules = new Rules();
         // tablerule信息
         String value = new String(ZKUtils.getConnection().getData().forPath(ZKUtils.getZKBasePath() + "rules/tableRule"), "UTF-8");
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的tablerule的信息--------------------------------------------------");
+        LOGGER.info(value);
         DataInf RulesZkData = new ZkDataImpl("tableRule", value);
         TableRuleJsonParse tableRuleJsonParse = new TableRuleJsonParse();
 
@@ -215,6 +226,8 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         rules.setTableRule(tableRuleData);
         // 得到function信息
         String fucValue = new String(ZKUtils.getConnection().getData().forPath(ZKUtils.getZKBasePath() + "rules/function"), "UTF-8");
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的function的信息--------------------------------------------------");
+        LOGGER.info(fucValue);
         DataInf functionZkData = new ZkDataImpl("function", fucValue);
         FunctionJsonParse functionJsonParse = new FunctionJsonParse();
         List<Function> functionList = functionJsonParse.parseJsonToBean(functionZkData.getDataValue());
