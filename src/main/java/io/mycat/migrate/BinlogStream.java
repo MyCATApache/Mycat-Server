@@ -1,4 +1,5 @@
 package io.mycat.migrate;
+
 import com.alibaba.druid.util.JdbcUtils;
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.*;
@@ -41,9 +42,8 @@ public class BinlogStream {
     private String binglogFile;
     private long binlogPos;
 
-    private Set<String> databaseSet=new HashSet<>();
-    private Map<String,Semaphore>  semaphoreMap=new ConcurrentHashMap<>();
-
+    private Set<String> databaseSet = new HashSet<>();
+    private Map<String, Semaphore> semaphoreMap = new ConcurrentHashMap<>();
 
 
     private List<MigrateTask> migrateTaskList;
@@ -55,11 +55,11 @@ public class BinlogStream {
     public void setMigrateTaskList(List<MigrateTask> migrateTaskList) {
         this.migrateTaskList = migrateTaskList;
         for (MigrateTask migrateTask : migrateTaskList) {
-            databaseSet.add(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom())) ;
-           String dataHostTo= MigrateUtils.getDataHostFromDataNode(migrateTask.getTo());
-            if(!semaphoreMap.containsKey(dataHostTo)){
-           int count=Double.valueOf( MycatServer.getInstance().getConfig().getDataHosts().get(dataHostTo).getSource().getSize()*0.8).intValue();
-                semaphoreMap.put(dataHostTo,new Semaphore(1)) ;
+            databaseSet.add(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()));
+            String dataHostTo = MigrateUtils.getDataHostFromDataNode(migrateTask.getTo());
+            if (!semaphoreMap.containsKey(dataHostTo)) {
+                int count = Double.valueOf(MycatServer.getInstance().getConfig().getDataHosts().get(dataHostTo).getSource().getSize() * 0.8).intValue();
+                semaphoreMap.put(dataHostTo, new Semaphore(1));
             }
         }
     }
@@ -91,9 +91,6 @@ public class BinlogStream {
     private volatile boolean groupEventsByTX = true;
 
 
-
-
-
     public BinlogStream(String hostname, int port, String username, String password, Charset charset) {
         this.hostname = hostname;
         this.port = port;
@@ -107,17 +104,15 @@ public class BinlogStream {
     }
 
 
-
-
     public void connect() throws IOException {
         initTaskDate();
-        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this),5,15, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this), 5, 15, TimeUnit.SECONDS);
         allocateBinaryLogClient().connect();
 
     }
 
     private void initTaskDate() {
-        Date curDate=new Date();
+        Date curDate = new Date();
         for (MigrateTask migrateTask : migrateTaskList) {
             migrateTask.setLastBinlogDate(curDate);
         }
@@ -125,7 +120,7 @@ public class BinlogStream {
 
     public void connect(long timeoutInMilliseconds) throws IOException, TimeoutException {
         initTaskDate();
-        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this),5,15, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this), 5, 15, TimeUnit.SECONDS);
         allocateBinaryLogClient().connect(timeoutInMilliseconds);
 
     }
@@ -143,14 +138,9 @@ public class BinlogStream {
     }
 
 
-
-
     public synchronized boolean isConnected() {
         return binaryLogClient != null && binaryLogClient.isConnected();
     }
-
-
-
 
 
     public synchronized void disconnect() throws IOException {
@@ -158,7 +148,7 @@ public class BinlogStream {
             binaryLogClient.disconnect();
             binaryLogClient = null;
         }
-        shutdownAndAwaitTermination( scheduler);
+        shutdownAndAwaitTermination(scheduler);
     }
 
 
@@ -184,49 +174,48 @@ public class BinlogStream {
     private final class DelegatingEventListener implements BinaryLogClient.EventListener {
 
         private final Map<Long, TableMapEventData> tablesById = new HashMap<Long, TableMapEventData>();
-        private final Map<String, Map<Integer,Map<String, Object>>> tablesColumnMap = new HashMap<>();
+        private final Map<String, Map<Integer, Map<String, Object>>> tablesColumnMap = new HashMap<>();
 
         private boolean transactionInProgress;
         private String binlogFilename;
 
 
         //当发现ddl语句时 需要更新重新取列名
-        private Map<Integer,Map<String, Object>> loadColumn(String database,String table)
-        {
-            Map<Integer,Map<String, Object>> rtn=new HashMap<>();
-            List<Map<String, Object>> list=null;
+        private Map<Integer, Map<String, Object>> loadColumn(String database, String table) {
+            Map<Integer, Map<String, Object>> rtn = new HashMap<>();
+            List<Map<String, Object>> list = null;
             Connection con = null;
             try {
-                con =  DriverManager.getConnection("jdbc:mysql://"+hostname+":"+port,username,password);
-                list = executeQuery(con, "select  COLUMN_NAME, ORDINAL_POSITION, DATA_TYPE, CHARACTER_SET_NAME from INFORMATION_SCHEMA.COLUMNS where table_name='"+table+"' and TABLE_SCHEMA='"+database+"'");
+                con = DriverManager.getConnection("jdbc:mysql://" + hostname + ":" + port, username, password);
+                list = executeQuery(con, "select  COLUMN_NAME, ORDINAL_POSITION, DATA_TYPE, CHARACTER_SET_NAME from INFORMATION_SCHEMA.COLUMNS where table_name='" + table + "' and TABLE_SCHEMA='" + database + "'");
 
             } catch (SQLException e) {
                 throw new RuntimeException(e);
-            }finally{
+            } finally {
                 JdbcUtils.close(con);
             }
             for (Map<String, Object> stringObjectMap : list) {
-                BigInteger pos= (BigInteger) stringObjectMap.get("ORDINAL_POSITION");
-                rtn.put(pos.intValue(),stringObjectMap);
+                BigInteger pos = (BigInteger) stringObjectMap.get("ORDINAL_POSITION");
+                rtn.put(pos.intValue(), stringObjectMap);
             }
             return rtn;
         }
 
         @Override
         public void onEvent(Event event) {
-            logger.debug("----->migrate binlog event:"+event.toString());
+            logger.debug("----->migrate binlog event:" + event.toString());
             EventType eventType = event.getHeader().getEventType();
             switch (eventType) {
                 case TABLE_MAP:
                     TableMapEventData tableMapEventData = event.getData();
                     tablesById.put(tableMapEventData.getTableId(), tableMapEventData);
-                    if(!tablesColumnMap.containsKey(tableMapEventData.getDatabase()+"."+tableMapEventData.getTable())) {
-                        tablesColumnMap.put(tableMapEventData.getDatabase()+"."+tableMapEventData.getTable(),loadColumn(tableMapEventData.getDatabase(),tableMapEventData.getTable())) ;
+                    if (!tablesColumnMap.containsKey(tableMapEventData.getDatabase() + "." + tableMapEventData.getTable())) {
+                        tablesColumnMap.put(tableMapEventData.getDatabase() + "." + tableMapEventData.getTable(), loadColumn(tableMapEventData.getDatabase(), tableMapEventData.getTable()));
                     }
                     break;
                 case ROTATE:
-                    RotateEventData data=    event.getData()  ;
-                    binlogFilename=data.getBinlogFilename();
+                    RotateEventData data = event.getData();
+                    binlogFilename = data.getBinlogFilename();
                     break;
                 case PRE_GA_WRITE_ROWS:
                 case WRITE_ROWS:
@@ -249,7 +238,7 @@ public class BinlogStream {
                         String query = queryEventData.getSql();
                         if ("BEGIN".equals(query)) {
                             transactionInProgress = true;
-                        }   else if(!query.startsWith("#")) {
+                        } else if (!query.startsWith("#")) {
                             handleOtherSqlEvent(event);
                         }
                     }
@@ -258,18 +247,18 @@ public class BinlogStream {
                     if (groupEventsByTX) {
                         transactionInProgress = false;
                     }
-               
+
                     break;
                 default:
                     // ignore
             }
         }
 
-        private void exeSql(MigrateTask task,String sql){
-            if(task.isHaserror())
+        private void exeSql(MigrateTask task, String sql) {
+            if (task.isHaserror())
                 return;
             task.setHasExecute(true);
-            String dataHostTo= MigrateUtils.getDataHostFromDataNode(task.getTo());
+            String dataHostTo = MigrateUtils.getDataHostFromDataNode(task.getTo());
             Semaphore semaphore = semaphoreMap.get(dataHostTo);
             try {
                 semaphore.acquire();
@@ -289,32 +278,31 @@ public class BinlogStream {
 
         private void handleOtherSqlEvent(Event event) {
             QueryEventData queryEventData = event.getData();
-            logger.debug("receve sql:",queryEventData.getSql());
-            SchemaUtil.SchemaInfo schemaInfo=SchemaUtil.parseSchema(queryEventData.getSql());
-            if(isShouldBeFilter(queryEventData.getDatabase(),schemaInfo.table))
+            logger.debug("receve sql:", queryEventData.getSql());
+            SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(queryEventData.getSql());
+            if (isShouldBeFilter(queryEventData.getDatabase(), schemaInfo.table))
                 return;
             String query = queryEventData.getSql();
             for (MigrateTask migrateTask : migrateTaskList) {
-                if(schemaInfo.table.equalsIgnoreCase(migrateTask.getTable())
-                        &&queryEventData.getDatabase().equalsIgnoreCase(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()))){
-                     exeSql(migrateTask,query);
+                if (schemaInfo.table.equalsIgnoreCase(migrateTask.getTable())
+                        && queryEventData.getDatabase().equalsIgnoreCase(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()))) {
+                    exeSql(migrateTask, query);
                 }
             }
 
 
         }
 
-        private boolean isShouldBeFilter(String database,String table)
-        {
-            if(Strings.isNullOrEmpty(database))
+        private boolean isShouldBeFilter(String database, String table) {
+            if (Strings.isNullOrEmpty(database))
                 return true;
-            if(Strings.isNullOrEmpty(table))
+            if (Strings.isNullOrEmpty(table))
                 return true;
-            if(!databaseSet.contains(database.toLowerCase())){
+            if (!databaseSet.contains(database.toLowerCase())) {
                 return true;
             }
             for (MigrateTask migrateTask : migrateTaskList) {
-                if(database.equals(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()))&&table.equalsIgnoreCase(migrateTask.getTable())){
+                if (database.equals(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom())) && table.equalsIgnoreCase(migrateTask.getTable())) {
                     return false;
                 }
             }
@@ -324,49 +312,48 @@ public class BinlogStream {
         }
 
 
-
         private void handleWriteRowsEvent(Event event) {
             WriteRowsEventData eventData = event.getData();
             TableMapEventData tableMapEvent = tablesById.get(eventData.getTableId());
-            if(isShouldBeFilter(tableMapEvent.getDatabase(),tableMapEvent.getTable()))
+            if (isShouldBeFilter(tableMapEvent.getDatabase(), tableMapEvent.getTable()))
                 return;
-            Map<Integer, Map<String, Object>> xxx=    tablesColumnMap.get(tableMapEvent.getDatabase()+"."+tableMapEvent.getTable());
-            BitSet inculudeColumn= eventData.getIncludedColumns();
-            StringBuilder sb=new StringBuilder("insert into  ");
-            sb.append(tableMapEvent.getTable())  ;
+            Map<Integer, Map<String, Object>> xxx = tablesColumnMap.get(tableMapEvent.getDatabase() + "." + tableMapEvent.getTable());
+            BitSet inculudeColumn = eventData.getIncludedColumns();
+            StringBuilder sb = new StringBuilder("insert into  ");
+            sb.append(tableMapEvent.getTable());
             sb.append("(");
-            int size=  inculudeColumn.length()   ;
+            int size = inculudeColumn.length();
             List<Serializable[]> rows = eventData.getRows();
 
-            int slot=-1;
-            for (int i = 0; i <size; i++) {
-                int column=inculudeColumn.nextSetBit(i);
-                Map<String, Object> coumnMap=   xxx.get(column+1);
+            int slot = -1;
+            for (int i = 0; i < size; i++) {
+                int column = inculudeColumn.nextSetBit(i);
+                Map<String, Object> coumnMap = xxx.get(column + 1);
                 sb.append(coumnMap.get("COLUMN_NAME"));
-                if(i!=size-1){
+                if (i != size - 1) {
                     sb.append(",");
                 }
             }
             sb.append(")  values  ");
             for (int i = 0; i < rows.size(); i++) {
-                Serializable[]  value= rows.get(i);
+                Serializable[] value = rows.get(i);
                 sb.append(" (");
-                for (int y = 0; y<size; y++) {
-                    int column=inculudeColumn.nextSetBit(y);
-                    Map<String, Object> coumnMap=   xxx.get(column+1);
-                    String dataType= (String) coumnMap.get("DATA_TYPE");
-                    String columnName= (String) coumnMap.get("COLUMN_NAME");
-                    if("_slot".equalsIgnoreCase(columnName)){
-                         slot= value[y] instanceof  BigInteger?((BigInteger) value[y]).intValue():((Integer) value[y]);
+                for (int y = 0; y < size; y++) {
+                    int column = inculudeColumn.nextSetBit(y);
+                    Map<String, Object> coumnMap = xxx.get(column + 1);
+                    String dataType = (String) coumnMap.get("DATA_TYPE");
+                    String columnName = (String) coumnMap.get("COLUMN_NAME");
+                    if ("_slot".equalsIgnoreCase(columnName)) {
+                        slot = value[y] instanceof BigInteger ? ((BigInteger) value[y]).intValue() : ((Integer) value[y]);
                     }
-                    sb.append(convertBinlogValue(value[y],dataType));
+                    sb.append(convertBinlogValue(value[y], dataType));
 
-                    if(y!=size-1){
+                    if (y != size - 1) {
                         sb.append(",");
                     }
                 }
                 sb.append(")");
-                if(i!=rows.size()-1){
+                if (i != rows.size() - 1) {
                     sb.append(",");
                 }
             }
@@ -377,120 +364,116 @@ public class BinlogStream {
 
         private void checkIfExeSql(TableMapEventData tableMapEvent, StringBuilder sb, int slot) {
             for (MigrateTask migrateTask : migrateTaskList) {
-                if(tableMapEvent.getTable().equalsIgnoreCase(migrateTask.getTable())
-                        &&tableMapEvent.getDatabase().equalsIgnoreCase(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()))){
-                    for (PartitionByCRC32PreSlot.Range range :migrateTask.getSlots()) {
-                          if(range.end>=slot&&range.start<=slot) {
-                              exeSql(migrateTask,sb.toString());
-                              return;
-                          }
+                if (tableMapEvent.getTable().equalsIgnoreCase(migrateTask.getTable())
+                        && tableMapEvent.getDatabase().equalsIgnoreCase(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()))) {
+                    for (PartitionByCRC32PreSlot.Range range : migrateTask.getSlots()) {
+                        if (range.end >= slot && range.start <= slot) {
+                            exeSql(migrateTask, sb.toString());
+                            return;
+                        }
                     }
 
                 }
             }
         }
 
-        private Object convertBinlogValue(Serializable value,String dataType){
-            if(value instanceof String )   {
-                return   "'"+((String)value).replace("'","\\'")+"'";
-            }  else  if(value instanceof byte[] )   {
+        private Object convertBinlogValue(Serializable value, String dataType) {
+            if (value instanceof String) {
+                return "'" + ((String) value).replace("'", "\\'") + "'";
+            } else if (value instanceof byte[]) {
                 //确认编码
-                return   "'"+new String((byte[]) value,charset).replace("'","\\'")+"'";
-            }else    if(value instanceof Date )   {
-                return   "'"+dateToString((Date)value,dataType)+"'";
-            }else if(("date".equalsIgnoreCase(dataType))&&value instanceof Long)
-            {
-                return   "'"+dateToStringFromUTC((Long) value)+"'";
+                return "'" + new String((byte[]) value, charset).replace("'", "\\'") + "'";
+            } else if (value instanceof Date) {
+                return "'" + dateToString((Date) value, dataType) + "'";
+            } else if (("date".equalsIgnoreCase(dataType)) && value instanceof Long) {
+                return "'" + dateToStringFromUTC((Long) value) + "'";
                 //mariadb   date
 
-            }
-            else if("datetime".equalsIgnoreCase(dataType)&&value instanceof Long)
-            {
-                return   "'"+datetimeToStringFromUTC((Long) value)+"'";
+            } else if ("datetime".equalsIgnoreCase(dataType) && value instanceof Long) {
+                return "'" + datetimeToStringFromUTC((Long) value) + "'";
                 //mariadb   date
 
-            }   else if(("timestamp".equalsIgnoreCase(dataType))&&value instanceof Long)
-            {
-                return   "'"+dateToString((Long) value)+"'";
+            } else if (("timestamp".equalsIgnoreCase(dataType)) && value instanceof Long) {
+                return "'" + dateToString((Long) value) + "'";
                 //mariadb   date
 
-            }
-            else{
-               return value;
+            } else {
+                return value;
             }
         }
 
-        private String dateToStringFromUTC(Long date){
+        private String dateToStringFromUTC(Long date) {
             DateTime dt = new DateTime(date, DateTimeZone.UTC);
             return dt.toString(DateUtil.DATE_PATTERN_ONLY_DATE);
         }
 
-        private String datetimeToStringFromUTC(Long date){
+        private String datetimeToStringFromUTC(Long date) {
             DateTime dt = new DateTime(date, DateTimeZone.UTC);
             return dt.toString(DateUtil.DATE_PATTERN_FULL);
         }
-        private String dateToString(Long date){
+
+        private String dateToString(Long date) {
             DateTime dt = new DateTime(date);
             return dt.toString(DateUtil.DATE_PATTERN_FULL);
         }
-        private String dateToString(Date date,String dateType){
-            if("timestamp".equalsIgnoreCase(dateType))
-            {
+
+        private String dateToString(Date date, String dateType) {
+            if ("timestamp".equalsIgnoreCase(dateType)) {
                 DateTime dt = new DateTime(date);
                 return dt.toString(DateUtil.DATE_PATTERN_FULL);
-            }  else    if("datetime".equalsIgnoreCase(dateType))   {
-                DateTime dt = new DateTime(date,DateTimeZone.UTC);
+            } else if ("datetime".equalsIgnoreCase(dateType)) {
+                DateTime dt = new DateTime(date, DateTimeZone.UTC);
                 return dt.toString(DateUtil.DATE_PATTERN_FULL);
-            }else    if("date".equalsIgnoreCase(dateType))   {
-                DateTime dt = new DateTime(date,DateTimeZone.UTC);
+            } else if ("date".equalsIgnoreCase(dateType)) {
+                DateTime dt = new DateTime(date, DateTimeZone.UTC);
                 return dt.toString(DateUtil.DATE_PATTERN_ONLY_DATE);
-            }  else
-            {
+            } else {
                 DateTime dt = new DateTime(date);
                 return dt.toString(DateUtil.DATE_PATTERN_FULL);
             }
 
         }
+
         private void handleUpdateRowsEvent(Event event) {
             UpdateRowsEventData eventData = event.getData();
             TableMapEventData tableMapEvent = tablesById.get(eventData.getTableId());
-            if(isShouldBeFilter(tableMapEvent.getDatabase(),tableMapEvent.getTable()))
+            if (isShouldBeFilter(tableMapEvent.getDatabase(), tableMapEvent.getTable()))
                 return;
-            Map<Integer, Map<String, Object>> xxx=    tablesColumnMap.get(tableMapEvent.getDatabase()+"."+tableMapEvent.getTable());
-            BitSet inculudeColumn= eventData.getIncludedColumns();
-            StringBuilder sba=new StringBuilder("update ");
-            sba.append(tableMapEvent.getTable())  ;
+            Map<Integer, Map<String, Object>> xxx = tablesColumnMap.get(tableMapEvent.getDatabase() + "." + tableMapEvent.getTable());
+            BitSet inculudeColumn = eventData.getIncludedColumns();
+            StringBuilder sba = new StringBuilder("update ");
+            sba.append(tableMapEvent.getTable());
             sba.append(" set ");
-            int size=  inculudeColumn.length()   ;
+            int size = inculudeColumn.length();
 
             List<Map.Entry<Serializable[], Serializable[]>> rows = eventData.getRows();
             for (Map.Entry<Serializable[], Serializable[]> row : rows) {
-                StringBuilder sb=new StringBuilder(sba);
-                int slot=-1;
-                Map.Entry<Serializable[], Serializable[]> rowMap=     row ;
-                Serializable[] value=   rowMap.getValue();
-                Serializable[] key=   rowMap.getKey();
-                for (int i = 0; i <size; i++) {
-                    int column=inculudeColumn.nextSetBit(i);
-                    Map<String, Object> coumnMap=   xxx.get(column+1);
+                StringBuilder sb = new StringBuilder(sba);
+                int slot = -1;
+                Map.Entry<Serializable[], Serializable[]> rowMap = row;
+                Serializable[] value = rowMap.getValue();
+                Serializable[] key = rowMap.getKey();
+                for (int i = 0; i < size; i++) {
+                    int column = inculudeColumn.nextSetBit(i);
+                    Map<String, Object> coumnMap = xxx.get(column + 1);
                     sb.append(coumnMap.get("COLUMN_NAME"));
                     sb.append("=");
-                    String dataType= (String) coumnMap.get("DATA_TYPE");
-                    sb.append(convertBinlogValue(value[i],dataType));
+                    String dataType = (String) coumnMap.get("DATA_TYPE");
+                    sb.append(convertBinlogValue(value[i], dataType));
 
-                    if(i!=size-1){
+                    if (i != size - 1) {
                         sb.append(",");
                     }
                 }
                 sb.append(" where ");
 
-                BitSet includedColumnsBeforeUpdate= eventData.getIncludedColumnsBeforeUpdate();
-                for (int i = 0; i <size; i++) {
-                    int column=includedColumnsBeforeUpdate.nextSetBit(i);
-                    Map<String, Object> coumnMap=   xxx.get(column+1);
+                BitSet includedColumnsBeforeUpdate = eventData.getIncludedColumnsBeforeUpdate();
+                for (int i = 0; i < size; i++) {
+                    int column = includedColumnsBeforeUpdate.nextSetBit(i);
+                    Map<String, Object> coumnMap = xxx.get(column + 1);
                     sb.append(coumnMap.get("COLUMN_NAME"));
                     Serializable value1 = key[i];
-                    if(value1==null){
+                    if (value1 == null) {
                         sb.append(" is null");
                     } else {
                         sb.append("=");
@@ -498,18 +481,17 @@ public class BinlogStream {
 
                         sb.append(convertBinlogValue(value1, dataType));
                     }
-                    String columnName= (String) coumnMap.get("COLUMN_NAME");
-                    if("_slot".equalsIgnoreCase(columnName)){
-                        slot= value1 instanceof  BigInteger?((BigInteger) value1).intValue():((Integer) value1);
+                    String columnName = (String) coumnMap.get("COLUMN_NAME");
+                    if ("_slot".equalsIgnoreCase(columnName)) {
+                        slot = value1 instanceof BigInteger ? ((BigInteger) value1).intValue() : ((Integer) value1);
                     }
-                    if(i!=size-1){
+                    if (i != size - 1) {
                         sb.append(" and ");
                     }
                 }
 
-                checkIfExeSql(tableMapEvent,sb,slot);
+                checkIfExeSql(tableMapEvent, sb, slot);
             }
-
 
 
         }
@@ -517,43 +499,43 @@ public class BinlogStream {
         private void handleDeleteRowsEvent(Event event) {
             DeleteRowsEventData eventData = event.getData();
             TableMapEventData tableMapEvent = tablesById.get(eventData.getTableId());
-            if(isShouldBeFilter(tableMapEvent.getDatabase(),tableMapEvent.getTable()))
+            if (isShouldBeFilter(tableMapEvent.getDatabase(), tableMapEvent.getTable()))
                 return;
-            Map<Integer, Map<String, Object>> xxx=    tablesColumnMap.get(tableMapEvent.getDatabase()+"."+tableMapEvent.getTable());
-            BitSet inculudeColumn= eventData.getIncludedColumns();
-            StringBuilder sba=new StringBuilder("delete from ");
-            sba.append(tableMapEvent.getTable())  ;
+            Map<Integer, Map<String, Object>> xxx = tablesColumnMap.get(tableMapEvent.getDatabase() + "." + tableMapEvent.getTable());
+            BitSet inculudeColumn = eventData.getIncludedColumns();
+            StringBuilder sba = new StringBuilder("delete from ");
+            sba.append(tableMapEvent.getTable());
             sba.append(" where ");
-            int size=  inculudeColumn.length()   ;
+            int size = inculudeColumn.length();
             List<Serializable[]> rows = eventData.getRows();
             for (Serializable[] row : rows) {
-                StringBuilder sb=new StringBuilder(sba);
-                Serializable[]  value=     row  ;
+                StringBuilder sb = new StringBuilder(sba);
+                Serializable[] value = row;
 
 
-                int slot=-1;
-                for (int i = 0; i <size; i++) {
-                    int column=inculudeColumn.nextSetBit(i);
-                    Map<String, Object> coumnMap=   xxx.get(column+1);
+                int slot = -1;
+                for (int i = 0; i < size; i++) {
+                    int column = inculudeColumn.nextSetBit(i);
+                    Map<String, Object> coumnMap = xxx.get(column + 1);
                     sb.append(coumnMap.get("COLUMN_NAME"));
                     Serializable value1 = value[i];
-                    if(value1==null){
+                    if (value1 == null) {
                         sb.append(" is null");
-                    }     else {
+                    } else {
                         sb.append("=");
                         String dataType = (String) coumnMap.get("DATA_TYPE");
 
                         sb.append(convertBinlogValue(value1, dataType));
                     }
-                    String columnName= (String) coumnMap.get("COLUMN_NAME");
-                    if("_slot".equalsIgnoreCase(columnName)){
-                        slot= value1 instanceof  BigInteger?((BigInteger) value1).intValue():((Integer) value1);
+                    String columnName = (String) coumnMap.get("COLUMN_NAME");
+                    if ("_slot".equalsIgnoreCase(columnName)) {
+                        slot = value1 instanceof BigInteger ? ((BigInteger) value1).intValue() : ((Integer) value1);
                     }
-                    if(i!=size-1){
+                    if (i != size - 1) {
                         sb.append(" and ");
                     }
                 }
-                checkIfExeSql(tableMapEvent,sb,slot);
+                checkIfExeSql(tableMapEvent, sb, slot);
 
             }
 
@@ -561,11 +543,10 @@ public class BinlogStream {
         }
 
 
-
     }
 
     public static void main(String[] args) {
-        BinlogStream  stream=new BinlogStream("localhost",3306,"root","123",Charset.defaultCharset());
+        BinlogStream stream = new BinlogStream("localhost", 3306, "root", "123", Charset.defaultCharset());
         try {
             stream.setSlaveID(23511);
             stream.setBinglogFile("mysql-bin.000028");
