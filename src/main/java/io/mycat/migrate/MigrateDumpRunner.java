@@ -77,7 +77,7 @@ public class MigrateDumpRunner implements Runnable {
                     !StringUtil.isEmpty(config.getPassword()) ? "-p" + config.getPassword() : "", MigrateUtils.getDatabaseFromDataNode(task.getFrom()), task.getTable(), "--single-transaction", "-q", "--default-character-set=utf8mb4", "--hex-blob", "--where=" + makeWhere(task), "--master-data=1", "-T" + file.getPath()
 
                     , "--fields-enclosed-by=" + encose + "\"", "--fields-terminated-by=,", "--lines-terminated-by=\\n", "--fields-escaped-by=\\\\");
-            LOGGER.info("migrate 中 mysqlsump准备执行命令,如果超长时间没有响应则可能出错");
+            LOGGER.info("migrate 中 mysqldump准备执行命令,如果超长时间没有响应则可能出错");
             LOGGER.info(args.toString());
             String result = ProcessUtil.execReturnString(args);
             int logIndex = result.indexOf("MASTER_LOG_FILE='");
