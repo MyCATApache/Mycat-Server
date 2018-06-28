@@ -16,6 +16,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -146,7 +147,7 @@ public class MigrateTaskWatch {
                             for (Map.Entry<String, List<MigrateTask>> stringListEntry : taskMap.entrySet()) {
                                 String key = stringListEntry.getKey();
                                 List<MigrateTask> value = stringListEntry.getValue();
-                                MycatServer.getInstance().getBusinessExecutor().submit(new MigrateMainRunner(key, value,taskNode.getTimeout()));
+                                MycatServer.getInstance().getBusinessExecutor().submit(new MigrateMainRunner(key, value,taskNode.getTimeout(), Charset.forName(taskNode.getCharset()),taskNode.isForceBinlog()));
                             }
 
                             //
@@ -184,7 +185,6 @@ public class MigrateTaskWatch {
                 resultList.add(dataHost);
             }
 
-
             return resultList;
         }
 
@@ -204,7 +204,6 @@ public class MigrateTaskWatch {
                     taskMap.put(dataHost, Lists.newArrayList(migrateTask));
                 }
             }
-
 
             return taskMap;
         }

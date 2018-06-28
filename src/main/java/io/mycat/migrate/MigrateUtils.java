@@ -62,7 +62,7 @@ public class MigrateUtils {
                     List<Range> moveList = getPartAndRemove(allMoveList, needMove);
                     MigrateTask task = new MigrateTask();
                     if (i >= oldDataNodes.size()) {
-                        throw new RuntimeException(String.format("crc32slot_%s.properties does not match schema table dataNode.",table.toUpperCase()));
+                        throw new RuntimeException(String.format("crc32slot_%s.properties does not match schema table dataNode.", table.toUpperCase()));
                     }
                     task.setFrom(oldDataNodes.get(i));
                     task.setTo(newDataNode);
@@ -76,10 +76,7 @@ public class MigrateUtils {
             if (allMoveList.size() > 0) {
                 throw new RuntimeException("some slot has not moved to");
             }
-
-
         }
-
         return newNodeTask;
     }
 

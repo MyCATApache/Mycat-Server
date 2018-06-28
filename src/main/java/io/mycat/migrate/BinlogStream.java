@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -34,6 +35,7 @@ public class BinlogStream {
     private final String password;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private BinaryLogClient binaryLogClient;
+    private Charset charset;
 
     private long slaveID;
     private String binglogFile;
@@ -92,11 +94,12 @@ public class BinlogStream {
 
 
 
-    public BinlogStream(String hostname, int port, String username, String password) {
+    public BinlogStream(String hostname, int port, String username, String password, Charset charset) {
         this.hostname = hostname;
         this.port = port;
         this.username = username;
         this.password = password;
+        this.charset = charset;
     }
 
     public void setGroupEventsByTX(boolean groupEventsByTX) {
@@ -167,7 +170,7 @@ public class BinlogStream {
                 pool.shutdownNow(); // Cancel currently executing tasks
                 // Wait a while for tasks to respond to being cancelled
                 if (!pool.awaitTermination(60, TimeUnit.SECONDS))
-                    System.err.println("Pool did not terminate");
+                    logger.warn("Pool did not terminate");
             }
         } catch (InterruptedException ie) {
             // (Re-)Cancel if current thread also interrupted
@@ -211,7 +214,7 @@ public class BinlogStream {
 
         @Override
         public void onEvent(Event event) {
-            logger.debug(event.toString());
+            logger.debug("----->migrate binlog event:"+event.toString());
             EventType eventType = event.getHeader().getEventType();
             switch (eventType) {
                 case TABLE_MAP:
@@ -391,8 +394,8 @@ public class BinlogStream {
             if(value instanceof String )   {
                 return   "'"+((String)value).replace("'","\\'")+"'";
             }  else  if(value instanceof byte[] )   {
-                //todo 需要确认编码
-                return   "'"+new String((byte[]) value).replace("'","\\'")+"'";
+                //确认编码
+                return   "'"+new String((byte[]) value,charset).replace("'","\\'")+"'";
             }else    if(value instanceof Date )   {
                 return   "'"+dateToString((Date)value,dataType)+"'";
             }else if(("date".equalsIgnoreCase(dataType))&&value instanceof Long)
@@ -562,7 +565,7 @@ public class BinlogStream {
     }
 
     public static void main(String[] args) {
-        BinlogStream  stream=new BinlogStream("localhost",3306,"root","123");
+        BinlogStream  stream=new BinlogStream("localhost",3306,"root","123",Charset.defaultCharset());
         try {
             stream.setSlaveID(23511);
             stream.setBinglogFile("mysql-bin.000028");

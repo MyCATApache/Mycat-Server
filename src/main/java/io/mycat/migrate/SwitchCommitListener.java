@@ -6,12 +6,32 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import io.mycat.MycatServer;
+import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
+import io.mycat.config.loader.zkprocess.entity.Rules;
+import io.mycat.config.loader.zkprocess.entity.Schemas;
+import io.mycat.config.loader.zkprocess.entity.rule.function.Function;
+import io.mycat.config.loader.zkprocess.entity.rule.tablerule.TableRule;
+import io.mycat.config.loader.zkprocess.entity.schema.datahost.DataHost;
+import io.mycat.config.loader.zkprocess.entity.schema.datanode.DataNode;
+import io.mycat.config.loader.zkprocess.entity.schema.schema.Schema;
+import io.mycat.config.loader.zkprocess.entity.schema.schema.Table;
+import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
+import io.mycat.config.loader.zkprocess.parse.entryparse.rule.json.FunctionJsonParse;
+import io.mycat.config.loader.zkprocess.parse.entryparse.rule.json.TableRuleJsonParse;
+import io.mycat.config.loader.zkprocess.parse.entryparse.rule.xml.RuleParseXmlImpl;
+import io.mycat.config.loader.zkprocess.parse.entryparse.schema.json.DataHostJsonParse;
+import io.mycat.config.loader.zkprocess.parse.entryparse.schema.json.DataNodeJsonParse;
+import io.mycat.config.loader.zkprocess.parse.entryparse.schema.json.SchemaJsonParse;
+import io.mycat.config.loader.zkprocess.parse.entryparse.schema.xml.SchemasParseXmlImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.ClusterInfo;
+import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
+import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleConfig;
+import io.mycat.manager.response.ReloadConfig;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.route.function.TableRuleAware;
 import io.mycat.util.ZKUtils;
@@ -26,6 +46,8 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,8 +98,6 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                     taskNode.setStatus(3);
                     //开始切换 且个节点已经禁止写入并且无原有写入在执行
                     try {
-
-
                         CuratorTransactionFinal transactionFinal = null;
                         check(taskID, allTaskList);
                         SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(taskNode.getSchema());
@@ -102,16 +122,18 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                         clean(taskID, allTaskList);
                         transactionFinal.commit();
 
-                        forceTableRuleToLocal();
+                        forceTableRuleToLocal(taskPath,taskNode);
                         pushACKToClean(taskPath);
                     } catch (Exception e) {
-                        //todo 异常to  Zk
+                        taskNode.addException(e.getLocalizedMessage());
+                        //异常to  Zk
+                        ZKUtils.getConnection().setData().forPath(taskPath, JSON.toJSONBytes(taskNode));
                         LOGGER.error("error:", e);
+                        return;
                     }
                     //todo   清理规则     顺利拉下ruledata保证一定更新到本地
-
                 } else if (taskNode.getStatus() == 3) {
-                    forceTableRuleToLocal();
+                    forceTableRuleToLocal(taskPath,taskNode);
                     pushACKToClean(taskPath);
                 }
 
@@ -119,6 +141,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
 
 
         } catch (Exception e) {
+            LOGGER.error("migrate 中 commit 阶段异常");
             LOGGER.error("error:", e);
         } finally {
             if (taskLock != null) {
@@ -131,7 +154,91 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         }
     }
 
-    private void forceTableRuleToLocal() {
+    private void forceTableRuleToLocal(String path,TaskNode taskNode) throws Exception {
+        Path localPath = Paths.get(this.getClass()
+                .getClassLoader()
+                .getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey()).toURI());
+        // 获得公共的xml转换器对象
+        XmlProcessBase xmlProcess = new XmlProcessBase();
+
+        try {
+            forceTableToLocal(localPath, xmlProcess);
+            forceRulesToLocal(localPath, xmlProcess);
+            //保证先有table再有rule
+        } catch (Exception e) {
+            taskNode.addException(e.getLocalizedMessage());
+            //异常to  Zk
+            ZKUtils.getConnection().setData().forPath(path, JSON.toJSONBytes(taskNode));
+            LOGGER.error("migrate 中 强制更新本地文件失败");
+            LOGGER.error("error:", e);
+        }
+    }
+
+    private static void forceTableToLocal(Path localPath, XmlProcessBase xmlProcess) throws Exception {
+
+        // 获得当前集群的名称
+        String schemaPath = ZKUtils.getZKBasePath();
+        schemaPath = schemaPath + ZookeeperPath.FOW_ZK_PATH_SCHEMA.getKey() + ZookeeperPath.ZK_SEPARATOR.getKey();
+        // 生成xml与类的转换信息
+        SchemasParseXmlImpl schemasParseXml = new SchemasParseXmlImpl(xmlProcess);
+        Schemas schema = new Schemas();
+        String str = "";
+        // 得到schema对象的目录信息
+        str = new String(ZKUtils.getConnection().getData().forPath(schemaPath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey()));
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的schema的信息--------------------------------------------------\n"+str);
+        SchemaJsonParse schemaJsonParse = new SchemaJsonParse();
+        List<Schema> schemaList = schemaJsonParse.parseJsonToBean(str);
+        schema.setSchema(schemaList);
+        // 得到dataNode的信息
+        str = new String(ZKUtils.getConnection().getData().forPath(schemaPath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey()));
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的dataNode的信息--------------------------------------------------");
+        LOGGER.info(str);
+        DataNodeJsonParse dataNodeJsonParse = new DataNodeJsonParse();
+        List<DataNode> dataNodeList = dataNodeJsonParse.parseJsonToBean(str);
+        schema.setDataNode(dataNodeList);
+        // 得到dataHost的信息
+        str = new String(ZKUtils.getConnection().getData().forPath(schemaPath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey()));
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的dataHost的信息--------------------------------------------------");
+        LOGGER.info(str);
+        DataHostJsonParse dataHostJsonParse = new DataHostJsonParse();
+        List<DataHost> dataHostList = dataHostJsonParse.parseJsonToBean(str);
+        schema.setDataHost(dataHostList);
+
+        xmlProcess.addParseClass(DataNode.class);
+        xmlProcess.addParseClass(DataHost.class);
+        xmlProcess.addParseClass(Schema.class);
+        xmlProcess.addParseClass(Schemas.class);
+        xmlProcess.initJaxbClass();
+
+        schemasParseXml.parseToXmlWrite(schema, localPath.resolve("schema.xml").toString(), "schema");
+    }
+
+    private static void forceRulesToLocal(Path localPath, XmlProcessBase xmlProcess) throws Exception {
+        Rules rules = new Rules();
+        // tablerule信息
+        String value = new String(ZKUtils.getConnection().getData().forPath(ZKUtils.getZKBasePath() + "rules/tableRule"), "UTF-8");
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的tablerule的信息--------------------------------------------------");
+        LOGGER.info(value);
+        DataInf RulesZkData = new ZkDataImpl("tableRule", value);
+        TableRuleJsonParse tableRuleJsonParse = new TableRuleJsonParse();
+
+        List<TableRule> tableRuleData = tableRuleJsonParse.parseJsonToBean(RulesZkData.getDataValue());
+        rules.setTableRule(tableRuleData);
+        // 得到function信息
+        String fucValue = new String(ZKUtils.getConnection().getData().forPath(ZKUtils.getZKBasePath() + "rules/function"), "UTF-8");
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的function的信息--------------------------------------------------");
+        LOGGER.info(fucValue);
+        DataInf functionZkData = new ZkDataImpl("function", fucValue);
+        FunctionJsonParse functionJsonParse = new FunctionJsonParse();
+        List<Function> functionList = functionJsonParse.parseJsonToBean(functionZkData.getDataValue());
+        rules.setFunction(functionList);
+
+        xmlProcess.addParseClass(Table.class);
+        xmlProcess.addParseClass(Function.class);
+
+        RuleParseXmlImpl ruleParseXml = new RuleParseXmlImpl(xmlProcess);
+        xmlProcess.initJaxbClass();
+        ruleParseXml.parseToXmlWrite(rules, localPath.resolve("rule.xml").toString(), "rule");
     }
 
     private void pushACKToClean(String taskPath) throws Exception {
