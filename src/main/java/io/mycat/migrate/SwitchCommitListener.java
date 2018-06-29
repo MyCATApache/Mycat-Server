@@ -29,9 +29,9 @@ import io.mycat.config.loader.zkprocess.zookeeper.ClusterInfo;
 import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleConfig;
-import io.mycat.manager.response.ReloadConfig;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.route.function.TableRuleAware;
 import io.mycat.util.ZKUtils;
@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -122,7 +123,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                         clean(taskID, allTaskList);
                         transactionFinal.commit();
 
-                        forceTableRuleToLocal(taskPath,taskNode);
+                        forceTableRuleToLocal(taskPath, taskNode);
                         pushACKToClean(taskPath);
                     } catch (Exception e) {
                         taskNode.addException(e.getLocalizedMessage());
@@ -133,7 +134,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
                     }
                     //todo   清理规则     顺利拉下ruledata保证一定更新到本地
                 } else if (taskNode.getStatus() == 3) {
-                    forceTableRuleToLocal(taskPath,taskNode);
+                    forceTableRuleToLocal(taskPath, taskNode);
                     pushACKToClean(taskPath);
                 }
 
@@ -154,7 +155,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         }
     }
 
-    private void forceTableRuleToLocal(String path,TaskNode taskNode) throws Exception {
+    private void forceTableRuleToLocal(String path, TaskNode taskNode) throws Exception {
         Path localPath = Paths.get(this.getClass()
                 .getClassLoader()
                 .getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey()).toURI());
@@ -165,6 +166,7 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
             forceTableToLocal(localPath, xmlProcess);
             forceRulesToLocal(localPath, xmlProcess);
             //保证先有table再有rule
+            forceRuleDataToLocal(taskNode);
         } catch (Exception e) {
             taskNode.addException(e.getLocalizedMessage());
             //异常to  Zk
@@ -172,6 +174,20 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
             LOGGER.error("migrate 中 强制更新本地文件失败");
             LOGGER.error("error:", e);
         }
+    }
+
+    private void forceRuleDataToLocal(TaskNode taskNode) throws Exception {
+        SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(taskNode.getSchema());
+        TableConfig tableConfig = schemaConfig.getTables().get(taskNode.getTable().toUpperCase());
+        RuleConfig ruleConfig = tableConfig.getRule();
+        String ruleName = ((TableRuleAware) ruleConfig.getRuleAlgorithm()).getRuleName() + ".properties";
+        String rulePath = ZKUtils.getZKBasePath() + "ruledata/" + ruleName;
+        CuratorFramework zk = ZKUtils.getConnection();
+        byte[] ruleData = zk.getData().forPath(rulePath);
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的ruleData的信息--------------------------------------------------\n");
+        LOGGER.info(new String(ruleData));
+        Path file = Paths.get(SystemConfig.getHomePath(), "conf", "ruledata");
+        Files.write(file.resolve(ruleName), ruleData);
     }
 
     private static void forceTableToLocal(Path localPath, XmlProcessBase xmlProcess) throws Exception {
@@ -185,7 +201,8 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
         String str = "";
         // 得到schema对象的目录信息
         str = new String(ZKUtils.getConnection().getData().forPath(schemaPath + ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey()));
-        LOGGER.info("-----------------------------------从zookeeper中拉取的新的schema的信息--------------------------------------------------\n"+str);
+        LOGGER.info("-----------------------------------从zookeeper中拉取的新的schema的信息--------------------------------------------------");
+        LOGGER.info(str);
         SchemaJsonParse schemaJsonParse = new SchemaJsonParse();
         List<Schema> schemaList = schemaJsonParse.parseJsonToBean(str);
         schema.setSchema(schemaList);
