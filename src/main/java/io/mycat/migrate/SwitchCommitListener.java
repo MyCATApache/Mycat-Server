@@ -32,6 +32,7 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleConfig;
+import io.mycat.manager.response.ReloadConfig;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 import io.mycat.route.function.TableRuleAware;
 import io.mycat.util.ZKUtils;
@@ -167,6 +168,8 @@ public class SwitchCommitListener implements PathChildrenCacheListener {
             forceRulesToLocal(localPath, xmlProcess);
             //保证先有table再有rule
             forceRuleDataToLocal(taskNode);
+            ReloadConfig.reload();
+            LOGGER.error("migrate 中 reload 配置成功");
         } catch (Exception e) {
             taskNode.addException(e.getLocalizedMessage());
             //异常to  Zk
