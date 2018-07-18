@@ -25,14 +25,13 @@ package io.mycat;
 
 
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.model.SystemConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.mycat.config.loader.zkprocess.comm.ZkConfig;
-import io.mycat.config.model.SystemConfig;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @author mycat
@@ -44,6 +43,7 @@ public final class MycatStartup {
         //use zk ?
         ZkConfig.getInstance().initZk();
         try {
+            //读取home环境变量的值
             String home = SystemConfig.getHomePath();
             if (home == null) {
                 System.out.println(SystemConfig.SYS_HOME + "  is not set.");

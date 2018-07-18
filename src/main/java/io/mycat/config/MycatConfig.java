@@ -23,13 +23,6 @@
  */
 package io.mycat.config;
 
-import java.io.IOException;
-import java.net.StandardSocketOptions;
-import java.nio.channels.NetworkChannel;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
-
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.config.model.FirewallConfig;
@@ -39,8 +32,20 @@ import io.mycat.config.model.UserConfig;
 import io.mycat.net.AbstractConnection;
 import io.mycat.util.TimeUtil;
 
+import java.io.IOException;
+import java.net.StandardSocketOptions;
+import java.nio.channels.NetworkChannel;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+
+
 /**
- * @author mycat
+ * @author jiaqing.xu@hand-china.com
+ * @date 2018/7/17 20:42
+ * @param
+ * @return
+ * @description mycat的配置器对象
  */
 public class MycatConfig {
 	
@@ -66,6 +71,13 @@ public class MycatConfig {
 	private int status;
 	private final ReentrantLock lock;
 
+	/**
+	 * @author jiaqing.xu@hand-china.com
+	 * @date 2018/7/17 20:44
+	 * @param
+	 * @return
+	 * @description 在构造器中读取配置文件
+	 */
 	public MycatConfig() {
 		
 		//读取schema.xml，rule.xml和server.xml
