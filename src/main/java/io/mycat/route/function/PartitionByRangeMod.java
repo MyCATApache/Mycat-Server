@@ -23,13 +23,13 @@
  */
 package io.mycat.route.function;
 
+import io.mycat.config.model.rule.RuleAlgorithm;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.util.LinkedList;
-
-import io.mycat.config.model.rule.RuleAlgorithm;
 
 /**
  * 先进行范围分片计算出分片组，组内再取模

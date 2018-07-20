@@ -1,75 +1,56 @@
 package io.mycat.route.parser.druid;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import com.alibaba.druid.sql.ast.SQLCommentHint;
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLExprImpl;
-import com.alibaba.druid.sql.ast.SQLName;
-import com.alibaba.druid.sql.ast.SQLObject;
-import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAllExpr;
-import com.alibaba.druid.sql.ast.expr.SQLAnyExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBetweenExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
-import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
-import com.alibaba.druid.sql.ast.expr.SQLExistsExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
-import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
-import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
-import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
-import com.alibaba.druid.sql.ast.expr.SQLSomeExpr;
-import com.alibaba.druid.sql.ast.expr.SQLValuableExpr;
-import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
-import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
-import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
-import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLSelect;
-import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
-import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlHintStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
+import com.alibaba.druid.sql.ast.*;
+import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.sql.ast.statement.*;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Column;
 import com.alibaba.druid.stat.TableStat.Condition;
 import com.alibaba.druid.stat.TableStat.Mode;
-import com.alibaba.druid.stat.TableStat.Relationship;
-
 import io.mycat.route.util.RouterUtil;
 
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
- * Druid解析器中用来从ast语法中提取表名、条件、字段等的vistor
- * @author wang.dw
  *
+ * Druid 解析器中用来从ast语法中提取表名、条件、字段等的vistor
+ *
+ * Druid相关资料：
+ * 语法分析类 -- com.alibaba.druid.sql.parser.SQLParser
+ * 词法分析类 -- com.alibaba.druid.sql.parser.Lexer
+ * druid 解析器可以参考 https://www.jianshu.com/p/437aa22ea3ca 方便理解
+ * SQL Parser -- https://github.com/alibaba/druid/wiki/SQL-Parser
+ * Druid_SQL_AST -- https://github.com/alibaba/druid/wiki/Druid_SQL_AST
+ * SQL_Schema_Repository -- https://github.com/alibaba/druid/wiki/SQL_Schema_Repository
+ *
+ * @author wang.dw
  */
 public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	private boolean hasOrCondition = false;
+	/**
+	 * 所有的Where条件单元
+	 */
 	private List<WhereUnit> whereUnits = new CopyOnWriteArrayList<WhereUnit>();
 	private List<WhereUnit> storedwhereUnits = new CopyOnWriteArrayList<WhereUnit>();
-    private Queue<SQLSelect> subQuerys = new LinkedBlockingQueue<>();  //子查询集合
-	private boolean hasChange = false; // 是否有改写sql
-	private boolean subqueryRelationOr = false;   //子查询存在关联条件的情况下，是否有 or 条件
+    /**
+	 * 子查询集合
+	 */
+	private Queue<SQLSelect> subQuerys = new LinkedBlockingQueue<>();
+	/**
+	 * 是否有改写sql
+	 */
+	private boolean hasChange = false; 
+	/**
+	 * 子查询存在关联条件的情况下，是否有 or 条件
+	 */
+	private boolean subqueryRelationOr = false; 
 	
 	private void reset() {
 		this.conditions.clear();
@@ -292,6 +273,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         return "";
     }
     
+	/**
+	 * 设置子查询关系或标识
+	 * @param x
+	 */
     private void setSubQueryRelationOrFlag(SQLExprImpl x){
     	MycatSubQueryVisitor subQueryVisitor = new MycatSubQueryVisitor();
     	x.accept(subQueryVisitor);
@@ -321,10 +306,11 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     	return super.visit(x);
     }
     
-    /*
-     * (non-Javadoc)
-     * @see com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter#visit(com.alibaba.druid.sql.ast.expr.SQLExistsExpr)
-     */
+	/**
+	 * exist 表达式处理
+	 * (non-Javadoc)
+	 * @see com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter#visit(com.alibaba.druid.sql.ast.expr.SQLExistsExpr)
+	 */
     @Override
     public boolean visit(SQLExistsExpr x) {
     	setSubQueryRelationOrFlag(x);
@@ -332,6 +318,11 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     	return super.visit(x);
     }
     
+	/**
+	 * in 表达式处理
+	 * @param x
+	 * @return
+	 */
     @Override
     public boolean visit(SQLInListExpr x) {
     	return super.visit(x);
@@ -721,6 +712,11 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     	return super.visit(x);
     }
     
+	/**
+	 * SQL二元操作表达式处理
+	 * @param x
+	 * @return
+	 */
     @Override
 	public boolean visit(SQLBinaryOpExpr x) {
         x.getLeft().setParent(x);
@@ -791,7 +787,8 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		}
 		
 		this.storedwhereUnits.addAll(whereUnits);
-		
+
+		//上面的拆分不完整，所以需要循环寻找子WhereUnit（实际是嵌套的or）
 		loopFindSubWhereUnit(whereUnits);
 		
 		//拆分后的条件块解析成Condition列表
@@ -998,32 +995,44 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	 */
 	private void splitUntilNoOr(WhereUnit whereUnit) {
 		if(whereUnit.isFinishedParse()) {
+			// 当前的Where条件单元完成解析
 			if(whereUnit.getSubWhereUnit().size() > 0) {
 				for(int i = 0; i < whereUnit.getSubWhereUnit().size(); i++) {
 					splitUntilNoOr(whereUnit.getSubWhereUnit().get(i));
 				}
-			} 
+			}
 		} else {
+			// 当前的Where条件单元未完成解析 继续解析
+
+			// 获取还能继续再分的表达式:可能还有or关键字
 			SQLBinaryOpExpr expr = whereUnit.getCanSplitExpr();
 			if(expr.getOperator() == SQLBinaryOperator.BooleanOr) {
+				// 还有or关键字
 //				whereUnit.addSplitedExpr(expr.getRight());
 				addExprIfNotFalse(whereUnit, expr.getRight());
 				if(expr.getLeft() instanceof SQLBinaryOpExpr) {
+					// SQL二元操作表达式
 					whereUnit.setCanSplitExpr((SQLBinaryOpExpr)expr.getLeft());
 					splitUntilNoOr(whereUnit);
 				} else {
 					addExprIfNotFalse(whereUnit, expr.getLeft());
 				}
 			} else {
+				// 没有or关键字
 				addExprIfNotFalse(whereUnit, expr);
 				whereUnit.setFinishedParse(true);
 			}
 		}
-    }
+	}
 
+	/**
+	 * 如果条件不是假，添加表达式
+	 * @param whereUnit
+	 * @param expr
+	 */
 	private void addExprIfNotFalse(WhereUnit whereUnit, SQLExpr expr) {
 		//非永假条件加入路由计算
-		if(!RouterUtil.isConditionAlwaysFalse(expr)) {
+		if(!RouterUtil.isConditionAlwaysFalse(expr)) { // 判断条件是否永假的
 			whereUnit.addSplitedExpr(expr);
 		}
 	}

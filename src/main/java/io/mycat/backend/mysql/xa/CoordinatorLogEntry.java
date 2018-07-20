@@ -3,6 +3,7 @@ package io.mycat.backend.mysql.xa;
 import java.io.Serializable;
 
 /**
+ * 协调日志
  * Created by zhangchao on 2016/10/17.
  */
 public class CoordinatorLogEntry implements Serializable {

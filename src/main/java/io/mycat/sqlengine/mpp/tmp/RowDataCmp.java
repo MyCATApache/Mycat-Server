@@ -1,10 +1,10 @@
 package io.mycat.sqlengine.mpp.tmp;
 
-import java.util.Comparator;
-
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.sqlengine.mpp.OrderCol;
 import io.mycat.sqlengine.mpp.RowDataPacketSorter;
+
+import java.util.Comparator;
 
 /**
  * 

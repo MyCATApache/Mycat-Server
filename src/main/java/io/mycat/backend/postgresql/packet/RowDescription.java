@@ -1,9 +1,9 @@
 package io.mycat.backend.postgresql.packet;
 
+import io.mycat.backend.postgresql.utils.PIOUtils;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
-import io.mycat.backend.postgresql.utils.PIOUtils;
 
 //		RowDescription (B)
 //		Byte1('T')

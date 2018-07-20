@@ -23,14 +23,11 @@
  */
 package io.mycat.util;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
 import junit.framework.Assert;
-
 import org.junit.Test;
 
-import io.mycat.util.StringUtil;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 /**
  * @author mycat

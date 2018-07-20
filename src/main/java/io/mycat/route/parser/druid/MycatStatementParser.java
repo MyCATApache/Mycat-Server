@@ -6,35 +6,37 @@ import com.alibaba.druid.sql.ast.expr.SQLLiteralExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLoadDataInFileStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.sql.parser.*;
+import com.alibaba.druid.sql.parser.Lexer;
+import com.alibaba.druid.sql.parser.ParserException;
+import com.alibaba.druid.sql.parser.SQLExprParser;
+import com.alibaba.druid.sql.parser.Token;
 import com.alibaba.druid.util.JdbcConstants;
 
 /**
+ * Mycat语句解析器
+ * 继承了 com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser
+ *
  * Created by nange on 2015/3/13.
  */
-public class MycatStatementParser extends MySqlStatementParser
-{
+public class MycatStatementParser extends MySqlStatementParser {
     private static final String LOW_PRIORITY   = "LOW_PRIORITY";
     private static final String LOCAL          = "LOCAL";
     private static final String IGNORE         = "IGNORE";
     private static final String CHARACTER      = "CHARACTER";
-    public MycatStatementParser(String sql)
-    {
+
+    protected SQLExprParser selectExprParser;
+
+    public MycatStatementParser(String sql) {
         super(sql);
         selectExprParser = new MycatExprParser(sql);
     }
 
-    public MycatStatementParser(Lexer lexer)
-    {
+    public MycatStatementParser(Lexer lexer) {
         super(lexer);
         selectExprParser = new MycatExprParser(lexer);
     }
-
-    protected SQLExprParser selectExprParser;
     @Override
-    public SQLSelectStatement parseSelect()
-    {
-
+    public SQLSelectStatement parseSelect() {
         MycatSelectParser selectParser = new MycatSelectParser(this.selectExprParser);
         return new SQLSelectStatement(selectParser.select(), JdbcConstants.MYSQL);
     }
@@ -42,14 +44,12 @@ public class MycatStatementParser extends MySqlStatementParser
 
     //此处注释掉，以修正后端jdbc方式时，delete语句解析出错的情况
     //
-//    public SQLSelectParser createSQLSelectParser()
-//    {
+//    public SQLSelectParser createSQLSelectParser() {
 //        return new MycatSelectParser(this.selectExprParser);
 //    }
 
     @Override
-    protected MySqlLoadDataInFileStatement parseLoadDataInFile()
-    {
+    protected MySqlLoadDataInFileStatement parseLoadDataInFile() {
         acceptIdentifier("DATA");
 
         LoadDataStatement stmt = new LoadDataStatement();

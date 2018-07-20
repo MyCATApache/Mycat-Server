@@ -1,7 +1,5 @@
 package io.mycat.route.impl.middlerResultStrategy;
 
-import java.util.List;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLExprImpl;
 import com.alibaba.druid.sql.ast.SQLObject;
@@ -16,11 +14,25 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 
+import java.util.List;
+
+/**
+ * SQL查询中间结果处理
+ */
 public class SQLQueryResultHandler implements RouteMiddlerReaultHandler {
 
+	/**
+	 * 路由中间结果处理
+	 * @param statement
+	 * @param sqlselect
+	 * @param parent
+	 * @param param
+	 * @return
+	 */
 	@Override
 	public String dohandler(SQLStatement statement, SQLSelect sqlselect, SQLObject parent, List param) {
 		if(parent.getParent() instanceof SQLBinaryOpExpr){
+			// sql二元操作表达式
 			SQLBinaryOpExpr pp = (SQLBinaryOpExpr)parent.getParent();
 			SQLExprImpl listExpr = null;
 			if(null==param||param.isEmpty()){

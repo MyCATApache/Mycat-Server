@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,12 +16,18 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.net;
+
+import io.mycat.MycatServer;
+import io.mycat.net.factory.FrontendConnectionFactory;
+import io.mycat.util.SelectorUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -33,13 +39,8 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Set;
 
-import io.mycat.util.SelectorUtil;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.MycatServer;
-import io.mycat.net.factory.FrontendConnectionFactory;
-
 /**
+ * NIO接收器
  * @author mycat
  */
 public final class NIOAcceptor extends Thread implements SocketAcceptor{
@@ -53,8 +54,8 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 	private long acceptCount;
 	private final NIOReactorPool reactorPool;
 
-	public NIOAcceptor(String name, String bindIp,int port, 
-			FrontendConnectionFactory factory, NIOReactorPool reactorPool)
+	public NIOAcceptor(String name, String bindIp,int port,
+					   FrontendConnectionFactory factory, NIOReactorPool reactorPool)
 			throws IOException {
 		super.setName(name);
 		this.port = port;
@@ -63,7 +64,7 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 		this.serverChannel.configureBlocking(false);
 		/** 设置TCP属性 */
 		serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-		serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, 1024 * 16 * 2);
+		serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, 1024 * 16 * 2); // 32KB
 		// backlog=100
 		serverChannel.bind(new InetSocketAddress(bindIp, port), 100);
 		this.serverChannel.register(selector, SelectionKey.OP_ACCEPT);
@@ -71,6 +72,7 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 		this.reactorPool = reactorPool;
 	}
 
+	@Override
 	public int getPort() {
 		return port;
 	}
@@ -87,15 +89,12 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 			++acceptCount;
 			try {
 				long start = System.nanoTime();
-			    tSelector.select(1000L);
+				tSelector.select(1000L);
 				long end = System.nanoTime();
 				Set<SelectionKey> keys = tSelector.selectedKeys();
-				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS )
-				{
+				if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS ) {
 					invalidSelectCount++;
-				}
-				else
-                {
+				} else {
 					try {
 						for (SelectionKey key : keys) {
 							if (key.isValid() && key.isAcceptable()) {
@@ -109,11 +108,9 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 						invalidSelectCount = 0;
 					}
 				}
-				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD)
-				{
+				if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD) {
 					final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
-					if (rebuildSelector != null)
-					{
+					if (rebuildSelector != null) {
 						this.selector = rebuildSelector;
 					}
 					invalidSelectCount = 0;
@@ -127,20 +124,19 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 	private void accept() {
 		SocketChannel channel = null;
 		try {
-			channel = serverChannel.accept();
+			channel = serverChannel.accept(); // 管理器的管理请求 或 服务器的SQL请求
 			channel.configureBlocking(false);
 			FrontendConnection c = factory.make(channel);
 			c.setAccepted(true);
 			c.setId(ID_GENERATOR.getId());
-			NIOProcessor processor = (NIOProcessor) MycatServer.getInstance()
-					.nextProcessor();
+			NIOProcessor processor = (NIOProcessor) MycatServer.getInstance().nextProcessor();
 			c.setProcessor(processor);
-			
+
 			NIOReactor reactor = reactorPool.getNextReactor();
 			reactor.postRegister(c);
 
 		} catch (Exception e) {
-	        LOGGER.warn(getName(), e);
+			LOGGER.warn(getName(), e);
 			closeChannel(channel);
 		}
 	}
@@ -154,19 +150,19 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 			try {
 				socket.close();
 			} catch (IOException e) {
-		       LOGGER.error("closeChannelError", e);
+				LOGGER.error("closeChannelError", e);
 			}
 		}
 		try {
 			channel.close();
 		} catch (IOException e) {
-            LOGGER.error("closeChannelError", e);
+			LOGGER.error("closeChannelError", e);
 		}
 	}
 
 	/**
 	 * 前端连接ID生成器
-	 * 
+	 *
 	 * @author mycat
 	 */
 	private static class AcceptIdGenerator {

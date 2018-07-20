@@ -23,17 +23,17 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
+import io.mycat.backend.BackendConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.backend.BackendConnection;
-
 /**
- * wuzh
- * 
+ * 获取连接处理器 -- 响应处理器
+ *
  * @author mycat
  * 
  */
@@ -52,8 +52,7 @@ public class GetConnectionHandler implements ResponseHandler {
 		this.total = totalNumber;
 	}
 
-	public String getStatusInfo()
-	{
+	public String getStatusInfo() {
 		return "finished "+ finishedCount.get()+" success "+successCons.size()+" target count:"+this.total;
 	}
 	public boolean finished() {

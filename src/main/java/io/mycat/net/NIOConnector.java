@@ -23,6 +23,11 @@
  */
 package io.mycat.net;
 
+import io.mycat.MycatServer;
+import io.mycat.util.SelectorUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -31,16 +36,11 @@ import java.nio.channels.SocketChannel;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.mycat.MycatServer;
 import java.util.concurrent.atomic.AtomicLong;
 
-import io.mycat.util.SelectorUtil;
-
 /**
+ * NIO线程连接器
+ *
  * @author mycat
  */
 public final class NIOConnector extends Thread implements SocketConnector {
@@ -49,6 +49,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 
 	private final String name;
 	private volatile Selector selector;
+	// 连接阻塞队列
 	private final BlockingQueue<AbstractConnection> connectQueue;
 	private long connectCount;
 	private final NIOReactorPool reactorPool;

@@ -24,12 +24,11 @@
 package io.mycat.net.handler;
 
 /**
- * load data infile
+ * 从文件中加载数据的处理程序
  * 
  * @author magicdoom
  */
-public interface LoadDataInfileHandler
-{
+public interface LoadDataInfileHandler {
 
     void start(String sql);
 
@@ -41,6 +40,7 @@ public interface LoadDataInfileHandler
 
     byte getLastPackId();
 
+    // 开始加载数据
     boolean isStartLoadData();
 
 }

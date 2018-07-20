@@ -1,15 +1,14 @@
 package io.mycat.config.loader.zkprocess.entity;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.mycat.config.loader.zkprocess.entity.schema.datahost.DataHost;
+import io.mycat.config.loader.zkprocess.entity.schema.datanode.DataNode;
+import io.mycat.config.loader.zkprocess.entity.schema.schema.Schema;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import io.mycat.config.loader.zkprocess.entity.schema.datahost.DataHost;
-import io.mycat.config.loader.zkprocess.entity.schema.datanode.DataNode;
-import io.mycat.config.loader.zkprocess.entity.schema.schema.Schema;
+import java.util.ArrayList;
+import java.util.List;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(namespace = "http://io.mycat/", name = "schema")

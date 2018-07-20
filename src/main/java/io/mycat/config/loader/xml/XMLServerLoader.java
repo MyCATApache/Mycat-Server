@@ -23,35 +23,23 @@
  */
 package io.mycat.config.loader.xml;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
-import io.mycat.config.Versions;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
 import com.alibaba.druid.wall.WallConfig;
-
-import io.mycat.config.model.ClusterConfig;
-import io.mycat.config.model.FirewallConfig;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.config.model.UserConfig;
-import io.mycat.config.model.UserPrivilegesConfig;
+import io.mycat.config.Versions;
+import io.mycat.config.model.*;
 import io.mycat.config.util.ConfigException;
 import io.mycat.config.util.ConfigUtil;
 import io.mycat.config.util.ParameterMapping;
 import io.mycat.util.DecryptUtil;
 import io.mycat.util.SplitUtil;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * @author mycat

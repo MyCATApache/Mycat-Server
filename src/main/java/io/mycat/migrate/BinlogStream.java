@@ -42,8 +42,9 @@ public class BinlogStream {
     private String binglogFile;
     private long binlogPos;
 
-    private Set<String> databaseSet = new HashSet<>();
-    private Map<String, Semaphore> semaphoreMap = new ConcurrentHashMap<>();
+    private Set<String> databaseSet=new HashSet<>();
+    private Map<String,Semaphore>  semaphoreMap=new ConcurrentHashMap<>();
+
 
 
     private List<MigrateTask> migrateTaskList;
@@ -55,11 +56,11 @@ public class BinlogStream {
     public void setMigrateTaskList(List<MigrateTask> migrateTaskList) {
         this.migrateTaskList = migrateTaskList;
         for (MigrateTask migrateTask : migrateTaskList) {
-            databaseSet.add(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom()));
-            String dataHostTo = MigrateUtils.getDataHostFromDataNode(migrateTask.getTo());
-            if (!semaphoreMap.containsKey(dataHostTo)) {
-                int count = Double.valueOf(MycatServer.getInstance().getConfig().getDataHosts().get(dataHostTo).getSource().getSize() * 0.8).intValue();
-                semaphoreMap.put(dataHostTo, new Semaphore(1));
+            databaseSet.add(MigrateUtils.getDatabaseFromDataNode(migrateTask.getFrom())) ;
+           String dataHostTo= MigrateUtils.getDataHostFromDataNode(migrateTask.getTo());
+            if(!semaphoreMap.containsKey(dataHostTo)){
+           int count=Double.valueOf( MycatServer.getInstance().getConfig().getDataHosts().get(dataHostTo).getSource().getSize()*0.8).intValue();
+                semaphoreMap.put(dataHostTo,new Semaphore(1)) ;
             }
         }
     }
@@ -106,13 +107,13 @@ public class BinlogStream {
 
     public void connect() throws IOException {
         initTaskDate();
-        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this), 5, 15, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this),5,15, TimeUnit.SECONDS);
         allocateBinaryLogClient().connect();
 
     }
 
     private void initTaskDate() {
-        Date curDate = new Date();
+        Date curDate=new Date();
         for (MigrateTask migrateTask : migrateTaskList) {
             migrateTask.setLastBinlogDate(curDate);
         }
@@ -120,7 +121,7 @@ public class BinlogStream {
 
     public void connect(long timeoutInMilliseconds) throws IOException, TimeoutException {
         initTaskDate();
-        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this), 5, 15, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(new BinlogIdleCheck(this),5,15, TimeUnit.SECONDS);
         allocateBinaryLogClient().connect(timeoutInMilliseconds);
 
     }
@@ -148,7 +149,7 @@ public class BinlogStream {
             binaryLogClient.disconnect();
             binaryLogClient = null;
         }
-        shutdownAndAwaitTermination(scheduler);
+        shutdownAndAwaitTermination( scheduler);
     }
 
 
@@ -174,7 +175,7 @@ public class BinlogStream {
     private final class DelegatingEventListener implements BinaryLogClient.EventListener {
 
         private final Map<Long, TableMapEventData> tablesById = new HashMap<Long, TableMapEventData>();
-        private final Map<String, Map<Integer, Map<String, Object>>> tablesColumnMap = new HashMap<>();
+        private final Map<String, Map<Integer,Map<String, Object>>> tablesColumnMap = new HashMap<>();
 
         private boolean transactionInProgress;
         private String binlogFilename;

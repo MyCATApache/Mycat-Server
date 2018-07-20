@@ -23,17 +23,17 @@
  */
 package io.mycat.backend.mysql.nio;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
-import java.nio.channels.NetworkChannel;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.net.NIOConnector;
 import io.mycat.net.factory.BackendConnectionFactory;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
+import java.nio.channels.NetworkChannel;
 
 /**
  * @author mycat

@@ -20,18 +20,12 @@ package io.mycat.memory.unsafe.utils;
 
 
 import com.google.common.annotations.VisibleForTesting;
-
 import io.mycat.memory.unsafe.Platform;
 import sun.misc.Unsafe;
 
 import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.IllegalCharsetNameException;
-import java.nio.charset.UnsupportedCharsetException;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility class that handles byte arrays, conversions to/from other types,

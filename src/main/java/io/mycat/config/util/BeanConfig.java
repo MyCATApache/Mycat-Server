@@ -23,11 +23,11 @@
  */
 package io.mycat.config.util;
 
+import io.mycat.util.ObjectUtil;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
-
-import io.mycat.util.ObjectUtil;
 
 /**
  * @author mycat

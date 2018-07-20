@@ -1,19 +1,16 @@
 package io.mycat.route;
 
-import java.sql.SQLNonTransientException;
-import java.util.Map;
-
-import org.junit.Test;
-
 import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
 import io.mycat.route.factory.RouteStrategyFactory;
-import junit.framework.Assert;
+import org.junit.Test;
+
+import java.sql.SQLNonTransientException;
+import java.util.Map;
 
 @SuppressWarnings("deprecation")
 public class DruidMysqlSqlSubqueriesParserTest

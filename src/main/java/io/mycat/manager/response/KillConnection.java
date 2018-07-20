@@ -23,11 +23,6 @@
  */
 package io.mycat.manager.response;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.FrontendConnection;
@@ -35,6 +30,11 @@ import io.mycat.net.NIOConnection;
 import io.mycat.net.NIOProcessor;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.util.SplitUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author mycat

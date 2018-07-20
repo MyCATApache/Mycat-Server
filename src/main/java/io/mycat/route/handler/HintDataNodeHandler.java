@@ -1,10 +1,5 @@
 package io.mycat.route.handler;
 
-import java.sql.SQLNonTransientException;
-import java.util.Map;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.cache.LayerCachePool;
@@ -13,8 +8,14 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.server.ServerConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLNonTransientException;
+import java.util.Map;
 
 /**
+ * Hint datanode 处理器
  * 处理注释中类型为datanode 的情况
  * 
  * @author zhuam

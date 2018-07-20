@@ -23,14 +23,6 @@
  */
 package io.mycat.server;
 
-import java.io.IOException;
-import java.nio.channels.NetworkChannel;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
@@ -45,8 +37,17 @@ import io.mycat.server.response.Ping;
 import io.mycat.server.util.SchemaUtil;
 import io.mycat.util.SplitUtil;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.channels.NetworkChannel;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
+ * 前端服务器连接 SQL请求
+ *
  * @author mycat
  */
 public class ServerConnection extends FrontendConnection {
@@ -54,12 +55,19 @@ public class ServerConnection extends FrontendConnection {
 			.getLogger(ServerConnection.class);
 	private static final long AUTH_TIMEOUT = 15 * 1000L;
 
+	// 事务隔离级别
 	private volatile int txIsolation;
+	// 自动提交标识
 	private volatile boolean autocommit;
-	private volatile boolean preAcStates; //上一个ac状态,默认为true
+	//上一个ac状态,默认为true
+	private volatile boolean preAcStates;
+	// 事务中断标识
 	private volatile boolean txInterrupted;
+	// 事务中断信息
 	private volatile String txInterrputMsg = "";
+	// 最后插入id
 	private long lastInsertId;
+	// 非阻塞Session 中间结果路由使用
 	private NonBlockingSession session;
 	/**
 	 * 标志是否执行了lock tables语句，并处于lock状态
@@ -148,6 +156,11 @@ public class ServerConnection extends FrontendConnection {
 		Heartbeat.response(this, data);
 	}
 
+	/**
+	 * 执行sql
+	 * @param sql
+	 * @param type
+	 */
 	public void execute(String sql, int type) {
 		//连接状态检查
 		if (this.isClosed()) {
@@ -165,6 +178,7 @@ public class ServerConnection extends FrontendConnection {
 		String db = this.schema;
 		boolean isDefault = true;
 		if (db == null) {
+			// 检测默认逻辑库 数据库
 			db = SchemaUtil.detectDefaultDb(sql, type);
 			if (db == null) {
 				writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
@@ -184,12 +198,11 @@ public class ServerConnection extends FrontendConnection {
 		if (ServerParse.SELECT == type 
 				&& sql.contains("mysql") 
 				&& sql.contains("proc")) {
-			
+			// 解析逻辑库 数据库
 			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
 			if (schemaInfo != null 
 					&& "mysql".equalsIgnoreCase(schemaInfo.schema)
 					&& "proc".equalsIgnoreCase(schemaInfo.table)) {
-				
 				// 兼容MySQLWorkbench
 				MysqlProcHandler.handle(sql, this);
 				return;
@@ -198,41 +211,60 @@ public class ServerConnection extends FrontendConnection {
 		
 		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(db);
 		if (schema == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
-					"Unknown MyCAT Database '" + db + "'");
+			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "Unknown MyCAT Database '" + db + "'");
 			return;
 		}
 
 		//fix navicat   SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage` FROM INFORMATION_SCHEMA.PROFILING WHERE QUERY_ID= GROUP BY STATE ORDER BY SEQ
-		if(ServerParse.SELECT == type &&sql.contains(" INFORMATION_SCHEMA.PROFILING ")&&sql.contains("CONCAT(ROUND(SUM(DURATION)/"))
-		{
+		if(ServerParse.SELECT == type
+				&& sql.contains(" INFORMATION_SCHEMA.PROFILING ")
+				&& sql.contains("CONCAT(ROUND(SUM(DURATION)/")) {
 			InformationSchemaProfiling.response(this);
 			return;
 		}
 		
-		/* 当已经设置默认schema时，可以通过在sql中指定其它schema的方式执行
+		/**
+		 * 当已经设置默认schema时，可以通过在sql中指定其它schema的方式执行
 		 * 相关sql，已经在mysql客户端中验证。
 		 * 所以在此处增加关于sql中指定Schema方式的支持。
 		 */
-		if (isDefault && schema.isCheckSQLSchema() && isNormalSql(type)) {
+		if (isDefault
+				&& schema.isCheckSQLSchema()
+				&& isNormalSql(type)) {
 			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
-			if (schemaInfo != null && schemaInfo.schema != null && !schemaInfo.schema.equals(db)) {
+			if (schemaInfo != null
+					&& schemaInfo.schema != null
+					&& !schemaInfo.schema.equals(db)) {
+				// 获取另一个逻辑库 数据库配置
 				SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(schemaInfo.schema);
-				if (schemaConfig != null)
+				if (schemaConfig != null) {
 					schema = schemaConfig;
+				}
 			}
 		}
-
 		routeEndExecuteSQL(sql, type, schema);
-
 	}
-	
+
+	/**
+	 * 是否是普通SQL
+	 * @param type
+	 * @return
+	 */
 	private boolean isNormalSql(int type) {
-		return ServerParse.SELECT==type||ServerParse.INSERT==type||ServerParse.UPDATE==type||ServerParse.DELETE==type||ServerParse.DDL==type;
+		return ServerParse.SELECT==type
+				|| ServerParse.INSERT==type
+				|| ServerParse.UPDATE==type
+				|| ServerParse.DELETE==type
+				|| ServerParse.DDL==type;
 	}
 
+	/**
+	 * 路由
+	 * @param sql
+	 * @param type
+	 * @return
+	 */
     public RouteResultset routeSQL(String sql, int type) {
-
 		// 检查当前使用的DB
 		String db = this.schema;
 		if (db == null) {
@@ -256,7 +288,6 @@ public class ServerConnection extends FrontendConnection {
 					.getRouterservice()
 					.route(MycatServer.getInstance().getConfig().getSystem(),
 							schema, type, sql, this.charset, this);
-
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
 			LOGGER.warn(s.append(this).append(sql).toString() + " err:" + e.toString(),e);
@@ -268,8 +299,12 @@ public class ServerConnection extends FrontendConnection {
 	}
 
 
-
-
+	/**
+	 * 路由结束并执行SQL
+	 * @param sql
+	 * @param type
+	 * @param schema
+	 */
 	public void routeEndExecuteSQL(String sql, final int type, final SchemaConfig schema) {
 		// 路由计算
 		RouteResultset rrs = null;
@@ -277,8 +312,7 @@ public class ServerConnection extends FrontendConnection {
 			rrs = MycatServer
 					.getInstance()
 					.getRouterservice()
-					.route(MycatServer.getInstance().getConfig().getSystem(),
-							schema, type, sql, this.charset, this);
+					.route(MycatServer.getInstance().getConfig().getSystem(), schema, type, sql, this.charset, this);
 
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
@@ -289,9 +323,8 @@ public class ServerConnection extends FrontendConnection {
 		}
 		if (rrs != null) {
 			// session执行
-			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
+			session.execute(rrs, rrs.isSelectForUpdate() ? ServerParse.UPDATE:type);
 		}
-		
  	}
 
 	/**
@@ -374,8 +407,7 @@ public class ServerConnection extends FrontendConnection {
 	public void close(String reason) {
 		super.close(reason);
 		session.terminate();
-		if(getLoadDataInfileHandler()!=null)
-		{
+		if(getLoadDataInfileHandler()!=null) {
 			getLoadDataInfileHandler().clear();
 		}
 	}

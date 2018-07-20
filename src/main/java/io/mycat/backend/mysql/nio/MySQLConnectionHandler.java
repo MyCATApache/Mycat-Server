@@ -23,11 +23,6 @@
  */
 package io.mycat.backend.mysql.nio;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.backend.mysql.ByteUtil;
 import io.mycat.backend.mysql.nio.handler.LoadDataResponseHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
@@ -36,6 +31,11 @@ import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.RequestFilePacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * life cycle: from connection establish to close <br/>
@@ -75,6 +75,10 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 		return source;
 	}
 
+	/**
+	 * 处理MySQL连接数据
+	 * @param data
+	 */
 	@Override
 	public void handle(byte[] data) {
 		offerData(data, source.getProcessor().getExecutor());

@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * 迁移主线程器
  * Created by magicdoom on 2016/12/8.
  */
 public class MigrateMainRunner implements Runnable {

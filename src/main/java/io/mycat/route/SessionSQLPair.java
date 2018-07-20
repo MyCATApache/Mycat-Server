@@ -3,6 +3,9 @@ package io.mycat.route;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.server.NonBlockingSession;
 
+/**
+ * 会话sql信息
+ */
 public class SessionSQLPair {
 	public final NonBlockingSession session;
 	

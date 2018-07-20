@@ -1,16 +1,6 @@
 package io.mycat.config.loader.zkprocess.xmltozk.listen;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.apache.curator.framework.CuratorFramework;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.fastjson.util.IOUtils;
-
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
@@ -21,6 +11,14 @@ import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
 import io.mycat.config.loader.zkprocess.parse.entryparse.cache.json.EhcacheJsonParse;
 import io.mycat.config.loader.zkprocess.parse.entryparse.cache.xml.EhcacheParseXmlImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * 进行从ecache.xml加载到zk中加载
@@ -94,6 +92,11 @@ public class EcachesxmlTozkLoader extends ZkMultLoader implements NotiflyService
         parseEcacheXMl = new EhcacheParseXmlImpl(xmlParseBase);
     }
 
+    /**
+     * 需要将本地配置同步到zk
+     * @return
+     * @throws Exception
+     */
     @Override
     public boolean notiflyProcess() throws Exception {
         // 1,读取本地的xml文件
@@ -111,7 +114,7 @@ public class EcachesxmlTozkLoader extends ZkMultLoader implements NotiflyService
      * 将xml文件的信息写入到zk中
     * 方法描述
     * @param basePath 基本路径
-    * @param schema schema文件的信息
+    * @param ehcache 文件的信息
     * @throws Exception 异常信息
     * @创建日期 2016年9月17日
     */

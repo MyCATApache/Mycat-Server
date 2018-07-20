@@ -1,19 +1,14 @@
 package io.mycat.util.dataMigrator.dataIOImpl;
 
+import io.mycat.util.dataMigrator.*;
+import io.mycat.util.exception.DataMigratorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.mycat.util.dataMigrator.DataIO;
-import io.mycat.util.dataMigrator.DataMigrator;
-import io.mycat.util.dataMigrator.DataMigratorUtil;
-import io.mycat.util.dataMigrator.DataNode;
-import io.mycat.util.dataMigrator.TableMigrateInfo;
-import io.mycat.util.exception.DataMigratorException;
 
 /**
  * mysql导入导出实现类

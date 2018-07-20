@@ -23,14 +23,14 @@
  */
 package io.mycat.manager.response;
 
-import java.util.Map;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.route.parser.ManagerParseSwitch;
 import io.mycat.route.parser.util.Pair;
+
+import java.util.Map;
 
 /**
  * 切换数据节点的数据源

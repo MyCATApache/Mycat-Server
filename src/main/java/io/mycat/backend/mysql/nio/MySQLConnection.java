@@ -23,13 +23,11 @@
  */
 package io.mycat.backend.mysql.nio;
 
-import io.mycat.backend.mysql.xa.TxState;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.CharsetUtil;
 import io.mycat.backend.mysql.SecurityUtil;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
+import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.config.Capabilities;
 import io.mycat.config.Isolations;
 import io.mycat.net.BackendAIOConnection;
@@ -39,6 +37,8 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.TimeUtil;
 import io.mycat.util.exception.UnknownTxIsolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.channels.NetworkChannel;
@@ -686,7 +686,5 @@ public class MySQLConnection extends BackendAIOConnection {
 	public int getTxIsolation() {
 		return txIsolation;
 	}
-
-	
 
 }

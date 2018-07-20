@@ -30,6 +30,7 @@ import io.mycat.server.parser.ServerParseSelect;
 import io.mycat.server.response.*;
 
 /**
+ * Select 语句处理器
  * @author mycat
  */
 public final class SelectHandler {

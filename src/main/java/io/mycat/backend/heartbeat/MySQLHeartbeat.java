@@ -23,19 +23,17 @@
  */
 package io.mycat.backend.heartbeat;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import com.alibaba.fastjson.JSON;
-
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.MySQLDataSource;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author mycat
@@ -170,9 +168,6 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		if (this.status != OK_STATUS) {
 			switchSourceIfNeed("heartbeat error");
 		}
-//		String str = JSON.toJSONString(this);
-
-//		System.out.println(str);
 	}
 
 	private void setOk(MySQLDetector detector) {
@@ -198,6 +193,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			detector.quit();
 		}
 	}
+
 	//发生错误了,是否进行下一次心跳检测的策略 . 是否进行下一次心跳检测.
 	private void nextDector(MySQLDetector detector, int nextStatue) {	
 		

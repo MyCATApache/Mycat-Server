@@ -1,9 +1,9 @@
 package io.mycat.sqlengine;
 
+import io.mycat.MycatServer;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import io.mycat.MycatServer;
 
 public class BatchSQLJob {
 

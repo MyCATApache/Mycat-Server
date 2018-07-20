@@ -6,6 +6,7 @@ package io.mycat.sqlengine.mpp;
  */
 
 /**
+ * 数据封包
  * 一行数据是从哪个节点来的。
  * 通过dataNode查找对应的sorter，
  * 将数据放到对应的datanode的sorter，

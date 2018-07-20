@@ -1,9 +1,9 @@
 package io.mycat.sqlengine.mpp.model;
 
+import io.mycat.net.mysql.RowDataPacket;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import io.mycat.net.mysql.RowDataPacket;
 
 public class RangRowDataPacket {
 	public static final int DATA_TYPE_ALL = 100;

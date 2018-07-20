@@ -24,8 +24,6 @@
 package io.mycat.server.handler;
 
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
 import io.mycat.net.mysql.EOFPacket;
@@ -33,20 +31,22 @@ import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.server.ServerConnection;
 
-public class MysqlProcHandler
-{
+import java.nio.ByteBuffer;
+
+/**
+ * Mysql Proc 语句处理器
+ */
+public class MysqlProcHandler {
     private static final int FIELD_COUNT = 2;
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
 
-    static
-    {
+    static {
         fields[0] = PacketUtil.getField("name",
                 Fields.FIELD_TYPE_VAR_STRING);
         fields[1] = PacketUtil.getField("type", Fields.FIELD_TYPE_VAR_STRING);
     }
 
-    public static void handle(String stmt, ServerConnection c)
-    {
+    public static void handle(String stmt, ServerConnection c) {
 
         ByteBuffer buffer = c.allocate();
 
@@ -56,8 +56,7 @@ public class MysqlProcHandler
         buffer = header.write(buffer, c, true);
 
         // write fields
-        for (FieldPacket field : fields)
-        {
+        for (FieldPacket field : fields) {
             field.packetId = ++packetId;
             buffer = field.write(buffer, c, true);
         }
@@ -77,6 +76,4 @@ public class MysqlProcHandler
         c.write(buffer);
 
     }
-
-
 }

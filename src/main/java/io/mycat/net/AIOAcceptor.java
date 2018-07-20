@@ -23,22 +23,20 @@
  */
 package io.mycat.net;
 
+import io.mycat.MycatServer;
+import io.mycat.net.factory.FrontendConnectionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.nio.channels.AsynchronousServerSocketChannel;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
-import java.nio.channels.NetworkChannel;
+import java.nio.channels.*;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.MycatServer;
-import io.mycat.net.factory.FrontendConnectionFactory;
-
 /**
+ * AIO接收器
+ *
  * @author mycat
  */
 public final class AIOAcceptor implements SocketAcceptor,
@@ -107,6 +105,11 @@ public final class AIOAcceptor implements SocketAcceptor,
 
 	}
 
+	/**
+	 * 操作完成时调用。
+	 * @param result
+	 * @param id
+	 */
 	@Override
 	public void completed(AsynchronousSocketChannel result, Long id) {
 		accept(result, id);
@@ -115,6 +118,11 @@ public final class AIOAcceptor implements SocketAcceptor,
 
 	}
 
+	/**
+	 * 操作失败时调用。
+	 * @param exc
+	 * @param id
+	 */
 	@Override
 	public void failed(Throwable exc, Long id) {
 		LOGGER.info("acception connect failed:" + exc);

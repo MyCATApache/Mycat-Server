@@ -23,17 +23,18 @@
  */
 package io.mycat.net.mysql;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.buffer.BufferArray;
 import io.mycat.net.FrontendConnection;
 
+import java.nio.ByteBuffer;
+
 /**
- * From Server To Client, at the end of a series of Field Packets, and at the
- * end of a series of Data Packets.With prepared statements, EOF Packet can also
- * end parameter information, which we'll describe later.
+ * 结束包 MySQL内部协议
+ *
+ * 从服务器到客户端，在一系列字段数据包的末尾，在一系列数据包的末尾。
+ * 有了准备好的语句，EOF包还可以结束参数信息，我们稍后将对此进行描述。
  * 
  * <pre>
  * Bytes                 Name

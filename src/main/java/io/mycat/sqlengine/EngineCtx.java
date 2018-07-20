@@ -1,29 +1,30 @@
 package io.mycat.sqlengine;
 
+import io.mycat.manager.handler.ConfFileHandler;
+import io.mycat.net.mysql.EOFPacket;
+import io.mycat.net.mysql.ResultSetHeaderPacket;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.route.RouteResultset;
+import io.mycat.server.NonBlockingSession;
+import io.mycat.server.ServerConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.manager.handler.ConfFileHandler;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.EmptyPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.route.RouteResultset;
-import io.mycat.server.NonBlockingSession;
-import io.mycat.server.ServerConnection;
-//
-//任务的进行的调用，
-//向mysqlClient 写数据。
+/**
+ * 引擎上下文
+ */
 public class EngineCtx {
 	public static final Logger LOGGER = LoggerFactory.getLogger(ConfFileHandler.class);
-	private final BatchSQLJob bachJob; 
+	private final BatchSQLJob bachJob;
 	private AtomicInteger jobId = new AtomicInteger(0);
 	AtomicInteger packetId = new AtomicInteger(0);
+	// 当前会话
 	private final NonBlockingSession session;
 	private AtomicBoolean finished = new AtomicBoolean(false);
 	private AllJobFinishedListener allJobFinishedListener;
@@ -56,7 +57,6 @@ public class EngineCtx {
 			SQLJob job = new SQLJob(jobId.incrementAndGet(), sql, dataNode,
 					jobHandler, this);
 			bachJob.addJob(job, false);
-
 		}
 	}
 
@@ -80,12 +80,11 @@ public class EngineCtx {
 			SQLJob job = new SQLJob(jobId.incrementAndGet(), sql, dataNode,
 					jobHandler, this);
 			bachJob.addJob(job, true);
-
 		}
 	}
 
 	/**
-	 * set no more jobs created
+	 * 不再创建SQL任务
 	 */
 	public void endJobInput() {
 		bachJob.setNoMoreJobInput(true);
@@ -124,7 +123,6 @@ public class EngineCtx {
 				writeLock.unlock();
 			}
 		}
-
 	}
 	
 	public void writeHeader(List<byte[]> afields) {
@@ -154,7 +152,6 @@ public class EngineCtx {
 				writeLock.unlock();
 			}
 		}
-
 	}
 	
 	public void writeRow(RowDataPacket rowDataPkg) {
@@ -187,7 +184,7 @@ public class EngineCtx {
 	//单个sqlJob任务完成之后调用的。
 	//全部任务完成之后 回调allJobFinishedListener 这个函数。
 	public void onJobFinished(SQLJob sqlJob) {
-		
+
 		boolean allFinished = bachJob.jobFinished(sqlJob);
 		if (allFinished && finished.compareAndSet(false, true)) {
 			if(!hasError){

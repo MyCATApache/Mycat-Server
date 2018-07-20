@@ -5,7 +5,8 @@ import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.NonBlockingSession;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -15,14 +16,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
+ * 抽象数据节点合并
  * Created by zagnix on 2016/7/6.
  */
 public abstract class AbstractDataNodeMerge implements Runnable{
 
 
-    private static Logger LOGGER = Logger.getLogger(AbstractDataNodeMerge.class);
+    private static Logger LOGGER = LoggerFactory.getLogger(AbstractDataNodeMerge.class);
     /**
-     *row 有多少col
+     * row 有多少col
      */
     protected int fieldCount;
 
@@ -43,7 +45,6 @@ public abstract class AbstractDataNodeMerge implements Runnable{
     /**
      * 是否执行流式结果集输出
      */
-
     protected boolean isStreamOutputResult = false;
 
     /**
@@ -70,7 +71,8 @@ public abstract class AbstractDataNodeMerge implements Runnable{
     }
 
     /**
-     * Add a row pack, and may be wake up a business thread to work if not running.
+     * 添加一个行数据包，如果不运行，可能会唤醒业务线程工作。
+     *
      * @param pack row pack
      * @return true wake up a business thread, otherwise false
      *
@@ -82,13 +84,14 @@ public abstract class AbstractDataNodeMerge implements Runnable{
         if(running.get()){
             return false;
         }
+        // 唤醒业务线程
         final MycatServer server = MycatServer.getInstance();
         server.getBusinessExecutor().execute(this);
         return true;
     }
 
     /**
-     * 处理新进来每个row数据，通过PackWraper进行封装，
+     * 处理新进来每个row数据（mysql二进制数据），通过PackWraper进行封装，
      * 投递到队列中进行后续处理即可。
      * process new record (mysql binary data),if data can output to client
      * ,return true
@@ -134,6 +137,11 @@ public abstract class AbstractDataNodeMerge implements Runnable{
 
     public abstract void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) throws IOException;
 
+    /**
+     * 输出合并结果
+     * @param session
+     * @param eof
+     */
     public void outputMergeResult(NonBlockingSession session, byte[] eof) {
         addPack(END_FLAG_PACK);
     }

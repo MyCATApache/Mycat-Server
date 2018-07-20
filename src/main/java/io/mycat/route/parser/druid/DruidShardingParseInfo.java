@@ -1,23 +1,18 @@
 package io.mycat.route.parser.druid;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Name;
-
 import io.mycat.route.util.RouterUtil;
-import io.mycat.sqlengine.mpp.ColumnRoutePair;
-import io.mycat.sqlengine.mpp.RangeValue;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * druid parser result
+ * Druid解析结果
+ *
  * @author wang.dw
  *
  */
@@ -40,7 +35,7 @@ public class DruidShardingParseInfo {
 //	private RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit(this); 
 
 	/**
-	 * key table alias, value talbe realname;
+	 * 表别名与表真实名映射，key是表别名，value是表真实名
 	 */
 	private Map<String, String> tableAliasMap = new LinkedHashMap<String, String>();
 

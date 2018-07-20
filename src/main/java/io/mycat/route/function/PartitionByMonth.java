@@ -1,14 +1,15 @@
 package io.mycat.route.function;
 
+import io.mycat.config.model.rule.RuleAlgorithm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-
-import io.mycat.config.model.rule.RuleAlgorithm;
-import org.apache.log4j.Logger;
 
 /**
  * 例子 按月份列分区 ，每个自然月一个分片，格式 between操作解析的范例
@@ -18,7 +19,7 @@ import org.apache.log4j.Logger;
  */
 public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 		RuleAlgorithm {
-	private static final Logger LOGGER = Logger.getLogger(PartitionByDate.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(PartitionByDate.class);
 	private String sBeginDate;
 	private String dateFormat;
 	private String sEndDate;
@@ -108,13 +109,9 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 			Calendar partitionTime = Calendar.getInstance();
 			SimpleDateFormat format = new SimpleDateFormat(dateFormat);
 			partitionTime.setTime(format.parse(beginValue));
-			startPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
-					* 12 + partitionTime.get(Calendar.MONTH)
-					- beginDate.get(Calendar.MONTH));
+			startPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR)) * 12 + partitionTime.get(Calendar.MONTH) - beginDate.get(Calendar.MONTH));
 			partitionTime.setTime(format.parse(endValue));
-			endPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
-					* 12 + partitionTime.get(Calendar.MONTH)
-					- beginDate.get(Calendar.MONTH));
+			endPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR)) * 12 + partitionTime.get(Calendar.MONTH) - beginDate.get(Calendar.MONTH));
 
 			List<Integer> list = new ArrayList<>();
 

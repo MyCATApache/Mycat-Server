@@ -18,21 +18,21 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
+ * ruledata目录监听器
+ * zk的 /mycat/clusterId/ruledata下有变化回调
  * Created by magicdoom on 2016/10/27.
  */
 public class RuleDataPathChildrenCacheListener implements PathChildrenCacheListener {
     @Override public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
         ChildData data = event.getData();
         switch (event.getType()) {
-
-            case CHILD_ADDED:
-
+            case CHILD_ADDED: // zk向 ruledata 添加节点
                 add(data.getPath().substring(data.getPath().lastIndexOf("/")+1),event.getData().getData()) ;
                 break;
-            case CHILD_REMOVED:
+            case CHILD_REMOVED: // zk向 ruledata 删除节点
                 delete(data.getPath().substring(data.getPath().lastIndexOf("/")+1),event.getData().getData()); ;
                 break;
-            case CHILD_UPDATED:
+            case CHILD_UPDATED: // zk向 ruledata 更新节点
                 add(data.getPath().substring(data.getPath().lastIndexOf("/")+1),event.getData().getData()) ;
                 break;
             default:

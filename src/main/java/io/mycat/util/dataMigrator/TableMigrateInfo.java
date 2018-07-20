@@ -1,18 +1,12 @@
 package io.mycat.util.dataMigrator;
 
+import com.alibaba.druid.util.JdbcUtils;
+import io.mycat.route.function.AbstractPartitionAlgorithm;
+
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.alibaba.druid.util.JdbcUtils;
-
-import io.mycat.route.function.AbstractPartitionAlgorithm;
 
 
 /**

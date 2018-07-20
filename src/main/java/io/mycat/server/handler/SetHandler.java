@@ -23,21 +23,6 @@
  */
 package io.mycat.server.handler;
 
-import static io.mycat.server.parser.ServerParseSet.AUTOCOMMIT_OFF;
-import static io.mycat.server.parser.ServerParseSet.AUTOCOMMIT_ON;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CLIENT;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CONNECTION;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_RESULTS;
-import static io.mycat.server.parser.ServerParseSet.NAMES;
-import static io.mycat.server.parser.ServerParseSet.TX_READ_COMMITTED;
-import static io.mycat.server.parser.ServerParseSet.TX_READ_UNCOMMITTED;
-import static io.mycat.server.parser.ServerParseSet.TX_REPEATED_READ;
-import static io.mycat.server.parser.ServerParseSet.TX_SERIALIZABLE;
-import static io.mycat.server.parser.ServerParseSet.XA_FLAG_OFF;
-import static io.mycat.server.parser.ServerParseSet.XA_FLAG_ON;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Isolations;
 import io.mycat.net.mysql.OkPacket;
@@ -45,9 +30,13 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParseSet;
 import io.mycat.server.response.CharacterSet;
 import io.mycat.util.SetIgnoreUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static io.mycat.server.parser.ServerParseSet.*;
 
 /**
- * SET 语句处理
+ * SET 语句处理器
  * 
  * @author mycat
  * @author zhuam

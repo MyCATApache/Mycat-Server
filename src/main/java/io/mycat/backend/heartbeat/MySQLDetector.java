@@ -23,10 +23,6 @@
  */
 package io.mycat.backend.heartbeat;
 
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.MySQLDataSource;
 import io.mycat.config.model.DataHostConfig;
@@ -35,6 +31,9 @@ import io.mycat.sqlengine.SQLJob;
 import io.mycat.sqlengine.SQLQueryResult;
 import io.mycat.sqlengine.SQLQueryResultListener;
 import io.mycat.util.TimeUtil;
+
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author mycat
@@ -132,7 +131,9 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
             int switchType = source.getHostConfig().getSwitchType();
             Map<String, String> resultResult = result.getResult();
           
-			if ( resultResult!=null&& !resultResult.isEmpty() &&switchType == DataHostConfig.SYN_STATUS_SWITCH_DS
+			if ( resultResult!=null
+					&& !resultResult.isEmpty()
+					&& switchType == DataHostConfig.SYN_STATUS_SWITCH_DS // 基于 MySQL 主从同步的状态决定是否切换
 					&& source.getHostConfig().isShowSlaveSql()) {
 				
 				String Slave_IO_Running  = resultResult != null ? resultResult.get("Slave_IO_Running") : null;
@@ -164,7 +165,9 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 				heartbeat.getAsynRecorder().set(resultResult, switchType);
 				heartbeat.setResult(MySQLHeartbeat.OK_STATUS, this,  null);
 				
-            } else if ( resultResult!=null&& !resultResult.isEmpty() && switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS
+            } else if ( resultResult!=null
+					&& !resultResult.isEmpty()
+					&& switchType==DataHostConfig.CLUSTER_STATUS_SWITCH_DS // 基于集群状态决定是否切换
             		&& source.getHostConfig().isShowClusterSql() ) {
             	
 				//String Variable_name = resultResult != null ? resultResult.get("Variable_name") : null;
