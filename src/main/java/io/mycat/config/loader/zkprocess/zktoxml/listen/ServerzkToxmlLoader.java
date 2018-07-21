@@ -22,6 +22,7 @@ import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDirectoryImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 import io.mycat.manager.response.ReloadConfig;
+import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,8 +102,7 @@ public class ServerzkToxmlLoader extends ZkMultLoader implements NotiflyService 
         this.zookeeperListen = zookeeperListen;
 
         // 获得当前集群的名称
-        String serverPath = zookeeperListen.getBasePath();
-        serverPath = serverPath + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SERVER.getKey();
+        String serverPath = ZKUtils.getZKBasePath() + ZookeeperPath.FLOW_ZK_PATH_SERVER.getKey();
 
         currZkPath = serverPath;
         // 将当前自己注册为事件接收对象

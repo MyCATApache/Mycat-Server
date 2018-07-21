@@ -673,6 +673,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 		String user = node.getAttribute("user");
 		String password = node.getAttribute("password");
 		String usingDecrypt = node.getAttribute("usingDecrypt");
+		boolean useSSL = Boolean.valueOf(node.getAttribute("useSSL"));
 		String passwordEncryty= DecryptUtil.DBHostDecrypt(usingDecrypt, nodeHost, user, password);
 		
 		String weightStr = node.getAttribute("weight");
@@ -702,7 +703,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 			port = url.getPort();
 		}
 
-		DBHostConfig conf = new DBHostConfig(nodeHost, ip, port, nodeUrl, user, passwordEncryty,password);
+		DBHostConfig conf = new DBHostConfig(nodeHost, ip, port, nodeUrl, user, passwordEncryty,password,useSSL);
 		conf.setDbType(dbType);
 		conf.setMaxCon(maxCon);
 		conf.setMinCon(minCon);

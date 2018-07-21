@@ -1097,7 +1097,6 @@ public class MycatServer {
 		return aio;
 	}
 
-	
 	public ListeningExecutorService getListeningExecutorService() {
 		return listeningExecutorService;
 	} 
@@ -1111,10 +1110,10 @@ public class MycatServer {
 	public static void main(String[] args) throws Exception {
 		String path = ZKUtils.getZKBasePath() + "bindata";
 		CuratorFramework zk = ZKUtils.getConnection();
-        if(zk.checkExists().forPath(path)==null);
+		if(zk.checkExists().forPath(path)==null);
 
-		byte[] data=	zk.getData().forPath(path);
+		byte[] data = zk.getData().forPath(path);
 		System.out.println(data.length);
 	}
-	
+
 }

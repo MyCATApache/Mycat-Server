@@ -57,14 +57,14 @@ public class ZktoXmlMain {
      * 方法描述
      * @throws Exception
      * @创建日期 2016年9月21日
-    */
+     */
     public static void loadZktoFile() throws Exception {
 
-        // 得到集群名称
-        String custerName = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
+        // 得到集群名称 集群的id
+        String clusterId = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
         // 得到基本路径
-        String basePath = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey();
-        basePath = basePath + ZookeeperPath.ZK_SEPARATOR.getKey() + custerName;
+        String basePath = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey()
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + clusterId;
         ZKLISTENER.setBasePath(basePath);
 
         // 获得zk的连接信息

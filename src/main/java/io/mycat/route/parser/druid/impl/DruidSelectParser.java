@@ -1,18 +1,13 @@
 package io.mycat.route.parser.druid.impl;
 
 import com.alibaba.druid.sql.SQLUtils;
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLName;
-import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
-import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.*;
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.db2.ast.stmt.DB2SelectQueryBlock;
 import com.alibaba.druid.sql.dialect.db2.visitor.DB2OutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
@@ -50,21 +45,20 @@ public class DruidSelectParser extends DefaultDruidParser {
 	// 是否需要解析排序参数
 	protected boolean isNeedParseOrderAgg=true;
 
-    @Override
+	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) {
 		SQLSelectStatement selectStmt = (SQLSelectStatement)stmt;
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
 
-				 parseOrderAggGroupMysql(schema, stmt,rrs, mysqlSelectQuery);
-				 //更改canRunInReadDB属性
-				 if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false)
-				 {
-					 rrs.setCanRunInReadDB(false);
-				 }
+			parseOrderAggGroupMysql(schema, stmt,rrs, mysqlSelectQuery);
+			//更改canRunInReadDB属性
+			if ((mysqlSelectQuery.isForUpdate() || mysqlSelectQuery.isLockInShareMode()) && rrs.isAutocommit() == false) {
+				rrs.setCanRunInReadDB(false);
+			}
 
-		} else if (sqlSelectQuery instanceof MySqlUnionQuery) { 
+		} else if (sqlSelectQuery instanceof SQLUnionQuery) {
 //			MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;
 //			MySqlSelectQueryBlock left = (MySqlSelectQueryBlock)unionQuery.getLeft();
 //			MySqlSelectQueryBlock right = (MySqlSelectQueryBlock)unionQuery.getLeft();
@@ -76,8 +70,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 		stmt.accept(visitor);
 //		rrs.setGroupByCols((String[])visitor.getGroupByColumns().toArray());
 		if(!isNeedParseOrderAgg) {
-            return;
-        }
+			return;
+		}
 		Map<String, String> aliaColumns = parseAggGroupCommon(schema, stmt, rrs, mysqlSelectQuery);
 
 		//setOrderByCols
@@ -326,7 +320,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			Map<String, Map<String, Set<ColumnRoutePair>>> allConditions = getAllConditions();
 			boolean isNeedAddLimit = isNeedAddLimit(schema, rrs, mysqlSelectQuery, allConditions);
 			if(isNeedAddLimit) {
-				Limit limit = new Limit();
+				SQLLimit limit = new SQLLimit();
 				limit.setRowCount(new SQLIntegerExpr(limitSize));
 				mysqlSelectQuery.setLimit(limit);
 				rrs.setLimitSize(limitSize);
@@ -334,7 +328,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				rrs.changeNodeSqlAfterAddLimit(schema, getCurentDbType(), sql, 0, limitSize, true);
 
 			}
-			Limit limit = mysqlSelectQuery.getLimit();
+			SQLLimit limit = mysqlSelectQuery.getLimit();
 			if(limit != null&&!isNeedAddLimit) {
 				SQLIntegerExpr offset = (SQLIntegerExpr)limit.getOffset();
 				SQLIntegerExpr count = (SQLIntegerExpr)limit.getRowCount();
@@ -348,7 +342,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				}
 
 				if(isNeedChangeLimit(rrs)) {
-					Limit changedLimit = new Limit();
+					SQLLimit changedLimit = new SQLLimit();
 					changedLimit.setRowCount(new SQLIntegerExpr(limitStart + limitSize));
 
 					if(offset != null) {
@@ -414,7 +408,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 
 		//无表的select语句直接路由带任一节点
-        if((ctx.getTables() == null || ctx.getTables().size() == 0)&&(ctx.getTableAliasMap()==null||ctx.getTableAliasMap().isEmpty())) {
+		if((ctx.getTables() == null || ctx.getTables().size() == 0)) {
 			rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
 			rrs.setFinishedRoute(true);
 			return;
@@ -433,17 +427,16 @@ public class DruidSelectParser extends DefaultDruidParser {
 				break;
 			}
 		}
-		
-		if(nodeSet.size() == 0) {
 
-            Collection<String> stringCollection= ctx.getTableAliasMap().values() ;
-            for (String table : stringCollection) {
-                if(table!=null&&table.toLowerCase().contains("information_schema.")) {
-                    rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
-                    rrs.setFinishedRoute(true);
-                    return;
-                }
-            }
+		if(nodeSet.size() == 0) {
+			Collection<String> stringCollection= ctx.getTables();
+			for (String table : stringCollection) {
+				if(table!=null&&table.toLowerCase().contains("information_schema.")) {
+					rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
+					rrs.setFinishedRoute(true);
+					return;
+				}
+			}
 			String msg = " find no Route:" + ctx.getSql();
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);

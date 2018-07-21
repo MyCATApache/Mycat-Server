@@ -13,6 +13,7 @@ import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDirectoryImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 import io.mycat.manager.response.ReloadConfig;
+import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,8 +92,7 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
         this.zookeeperListen = zookeeperListen;
 
         // 获得当前集群的名称
-        String schemaPath = zookeeperListen.getBasePath();
-        schemaPath = schemaPath + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
+        String schemaPath = ZKUtils.getZKBasePath() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
 
         currZkPath = schemaPath;
         // 将当前自己注册为事件接收对象

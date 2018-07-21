@@ -6,7 +6,6 @@ import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
@@ -149,15 +148,14 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			int index = 0;
 			RuleConfig firstRule = null;
 			for(String tableName : tables){
-	            TableConfig tc =  tconfigs.get(tableName); // 获取slq中表的配置
-	            if(tc == null){
-	              //add 别名中取
-	              Map<String, String> tableAliasMap = ctx.getTableAliasMap();
-	              if(tableAliasMap !=null && tableAliasMap.get(tableName) !=null){
-	                tc = schemaConf.getTables().get(tableAliasMap.get(tableName));
-	              }
-	            }
-
+				TableConfig tc =  tconfigs.get(tableName); // 获取slq中表的配置
+//				if(tc == null){
+//					//add 别名中取
+//					Map<String, String> tableAliasMap = ctx.getTableAliasMap();
+//					if(tableAliasMap !=null && tableAliasMap.get(tableName) !=null){
+//						tc = schemaConf.getTables().get(tableAliasMap.get(tableName));
+//					}
+//				}
 				if(index == 0){
 					if(tc !=null){
 						firstRule = tc.getRule();
@@ -425,8 +423,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		/**
 		 * 没有from的select语句或其他
 		 */
-        if((ctx.getTables() == null || ctx.getTables().size() == 0)&&(ctx.getTableAliasMap()==null||ctx.getTableAliasMap().isEmpty())) {
-		    return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), druidParser.getCtx().getSql());
+		if((ctx.getTables() == null || ctx.getTables().size() == 0)) {
+			return RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), druidParser.getCtx().getSql());
 		}
 
 		if(druidParser.getCtx().getRouteCalculateUnits().size() == 0) {
@@ -553,7 +551,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 */
 	private void checkUnSupportedStatement(SQLStatement statement) throws SQLSyntaxErrorException {
 		//不支持replace语句
-		if(statement instanceof MySqlReplaceStatement) {
+		if(statement instanceof SQLReplaceStatement) {
 			throw new SQLSyntaxErrorException(" ReplaceStatement can't be supported,use insert into ...on duplicate key update... instead ");
 		}
 	}

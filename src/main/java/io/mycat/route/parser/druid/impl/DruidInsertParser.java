@@ -276,7 +276,13 @@ public class DruidInsertParser extends DefaultDruidParser {
 				for(Map.Entry<Integer,List<ValuesClause>> node : nodeValuesMap.entrySet()) {
 					Integer nodeIndex = node.getKey();
 					List<ValuesClause> valuesList = node.getValue();
-					insertStmt.setValuesList(valuesList);
+
+					List<ValuesClause> insertValuesList = insertStmt.getValuesList();
+					insertValuesList.clear();
+					for(ValuesClause value : valuesList){
+						insertStmt.addValueCause(value);
+					}
+
 					if(tableConfig.isDistTable()) {
 						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(0),
 								rrs.getSqlType(),insertStmt.toString());

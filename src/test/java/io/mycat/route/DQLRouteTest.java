@@ -4,6 +4,7 @@ import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Condition;
 import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
@@ -84,15 +85,11 @@ public class DQLRouteTest {
 			mergedConditionList.add(visitor.getConditions());
 		}
 
-		if (visitor.getAliasMap() != null) {
-			for (Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
-				String key = entry.getKey();
-				String value = entry.getValue();
+		if (visitor.getTables() != null) {
+			for (Map.Entry<TableStat.Name, TableStat> entry : visitor.getTables().entrySet()) {
+				String key = entry.getKey().getName();
 				if (key != null && key.indexOf("`") >= 0) {
 					key = key.replaceAll("`", "");
-				}
-				if (value != null && value.indexOf("`") >= 0) {
-					value = value.replaceAll("`", "");
 				}
 				// 表名前面带database的，去掉
 				if (key != null) {
@@ -101,17 +98,8 @@ public class DQLRouteTest {
 						key = key.substring(pos + 1);
 					}
 				}
-
-				if (key.equals(value)) {
-					ctx.addTable(key.toUpperCase());
-				}
-				// else {
-				// tableAliasMap.put(key, value);
-				// }
-				tableAliasMap.put(key.toUpperCase(), value);
+				ctx.addTable(key.toUpperCase());
 			}
-			visitor.getAliasMap().putAll(tableAliasMap);
-			ctx.setTableAliasMap(tableAliasMap);
 		}
 
 		//利用反射机制单元测试DefaultDruidParser类的私有方法buildRouteCalculateUnits

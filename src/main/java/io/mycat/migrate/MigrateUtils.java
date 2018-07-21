@@ -250,8 +250,13 @@ public class MigrateUtils {
         DBHostConfig config = datasource.getConfig();
         Connection con = null;
         try {
-            con = DriverManager
-                    .getConnection("jdbc:mysql://" + config.getUrl() + "/" + dbNode.getDatabase(), config.getUser(), config.getPassword());
+            String url = "jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase();
+            if(config.isUseSSL()){
+                url += url.contains("?") ? "&useSSL=true" : "?useSSL=true";
+            }else{
+                url += url.contains("?") ? "&useSSL=false" : "?useSSL=false";
+            }
+            con =  DriverManager.getConnection(url,config.getUser(),config.getPassword());
 
             JdbcUtils.execute(con, sql, new ArrayList<>());
 
@@ -268,13 +273,19 @@ public class MigrateUtils {
         DBHostConfig config = datasource.getConfig();
         Connection con = null;
         try {
-            con = DriverManager.getConnection("jdbc:mysql://" + config.getUrl() + "/" + dbNode.getDatabase(), config.getUser(), config.getPassword());
+            String url = "jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase();
+            if(config.isUseSSL()){
+                url += url.contains("?") ? "&useSSL=true" : "?useSSL=true";
+            }else{
+                url += url.contains("?") ? "&useSSL=false" : "?useSSL=false";
+            }
+            con =  DriverManager.getConnection(url,config.getUser(),config.getPassword());
 
             List<Map<String, Object>> result = JdbcUtils.executeQuery(con, sql, new ArrayList<>());
             if (result.size() == 1) {
                 return (long) result.get(0).get("count");
             }
-        } finally {
+        } finally{
             JdbcUtils.close(con);
         }
         return 0;

@@ -5,6 +5,7 @@ import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.*;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.parser.druid.impl.*;
@@ -112,15 +113,9 @@ public class DruidParserFactory {
         List<String> tables = new ArrayList<>();
         stmt.accept(schemaStatVisitor);
 
-        if (schemaStatVisitor.getAliasMap() != null) {  // 获取别名映射 包含表名的别名和字段名的别名
-            for (Map.Entry<String, String> entry : schemaStatVisitor.getAliasMap().entrySet())
-            {
-                String key = entry.getKey();
-                String value = entry.getValue();
-                if (value != null && value.indexOf("`") >= 0)
-                {
-                    value = value.replaceAll("`", "");
-                }
+        if (schemaStatVisitor.getTables() != null) { // 获取别名映射 包含表名的别名和字段名的别名
+            for (Map.Entry<TableStat.Name, TableStat> entry : schemaStatVisitor.getTables().entrySet()) {
+                String key = entry.getKey().getName();
                 //表名前面带database的，去掉
                 if (key != null) {
                     int pos = key.indexOf("`");
@@ -131,11 +126,7 @@ public class DruidParserFactory {
                     if (pos > 0) {
                         key = key.substring(pos + 1);
                     }
-
-                    if (key.equals(value))
-                    {
-                        tables.add(key.toUpperCase());
-                    }
+                    tables.add(key.toUpperCase()); // 表名转为大写
                 }
             }
         }

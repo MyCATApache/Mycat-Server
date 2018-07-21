@@ -61,22 +61,19 @@ public class OthermsgTozkLoader extends ZkMultLoader implements NotiflyService {
         ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), line);
         LOGGER.info("OthermsgTozkLoader zookeeper mkdir " + line + " success");
 
+        String sequences = currZkPath
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
         // 添加序列目录信息
-        String seqLine = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
-        seqLine = seqLine + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INSTANCE.getKey();
+        String seqLine = sequences
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INSTANCE.getKey();
         ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), seqLine);
 
-        String seqLeader = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
-        seqLeader = seqLeader + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_LEADER.getKey();
+        String seqLeader = sequences
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_LEADER.getKey();
         ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), seqLeader);
 
-        String incrSeq = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
-        incrSeq = incrSeq + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INCREMENT_SEQ.getKey();
+        String incrSeq = sequences
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INCREMENT_SEQ.getKey();
         ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), incrSeq);
 
         LOGGER.info("OthermsgTozkLoader zookeeper mkdir " + seqLine + " success");

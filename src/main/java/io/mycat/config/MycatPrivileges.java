@@ -24,13 +24,10 @@
 package io.mycat.config;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
-import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
+import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.wall.WallCheckResult;
 import com.alibaba.druid.wall.WallProvider;
 import io.mycat.MycatServer;
@@ -271,7 +268,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 					SQLStatementParser parser = new MycatStatementParser(sql);			
 					SQLStatement stmt = parser.parseStatement();
 					
-					if (stmt instanceof MySqlReplaceStatement || stmt instanceof SQLInsertStatement ) {
+					if (stmt instanceof SQLReplaceStatement || stmt instanceof SQLInsertStatement ) {
 						index = 0;
 					} else if (stmt instanceof SQLUpdateStatement ) {
 						index = 1;
@@ -282,12 +279,13 @@ public class MycatPrivileges implements FrontendPrivileges {
 					}
 					
 					if ( index > -1) {
-						
 						SchemaStatVisitor schemaStatVisitor = new MycatSchemaStatVisitor();
 						stmt.accept(schemaStatVisitor);
-						String key = schemaStatVisitor.getCurrentTable();
-						if ( key != null ) {
-							
+						if ( schemaStatVisitor.getTables() != null
+								&& !schemaStatVisitor.getTables().isEmpty() ) {
+
+							Map.Entry<TableStat.Name, TableStat> entry = schemaStatVisitor.getTables().entrySet().iterator().next();
+							String key = entry.getKey().getName();
 							if (key.contains("`")) {
 								key = key.replaceAll("`", "");
 							}

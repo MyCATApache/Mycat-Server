@@ -1,6 +1,7 @@
 package io.mycat.route.parser.druid.impl;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLLimit;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
@@ -9,7 +10,6 @@ import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelect;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.oracle.parser.OracleStatementParser;
 import com.alibaba.druid.util.JdbcConstants;
@@ -18,7 +18,6 @@ import io.mycat.route.RouteResultset;
 
 import java.util.List;
 import java.util.Map;
-
 
 /**
  * Druid Oracle Select 解析器
@@ -32,7 +31,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 		//从mysql解析过来
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
-			MySqlSelectQueryBlock.Limit limit=mysqlSelectQuery.getLimit();
+			SQLLimit limit=mysqlSelectQuery.getLimit();
 			if(limit==null) {
 				//使用oracle的解析，否则会有部分oracle语法识别错误
 				OracleStatementParser oracleParser = new OracleStatementParser(getCtx().getSql());
@@ -56,7 +55,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 
 	protected void parseOrderAggGroupOracle(SQLStatement stmt, RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery, SchemaConfig schema) {
 		Map<String, String> aliaColumns = parseAggGroupCommon(schema, stmt,rrs, mysqlSelectQuery);
-		OracleSelect oracleSelect= (OracleSelect) mysqlSelectQuery.getParent();
+		SQLSelect oracleSelect= (SQLSelect) mysqlSelectQuery.getParent();
 		if(oracleSelect.getOrderBy() != null) {
 			List<SQLSelectOrderByItem> orderByItems = oracleSelect.getOrderBy().getItems();
 			rrs.setOrderByCols(buildOrderByCols(orderByItems,aliaColumns));
@@ -122,7 +121,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 								rrs.setLimitSize(firstrownum);
 								mysqlSelectQuery = (OracleSelectQueryBlock) subSelect;
 								if(orderBy!=null) {
-								    OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
+									SQLSelect oracleSelect= (SQLSelect) subSelect.getParent();
 									oracleSelect.setOrderBy(orderBy);
 								}
 								parseOrderAggGroupOracle(stmt,rrs, mysqlSelectQuery, schema);
@@ -165,7 +164,7 @@ public class DruidSelectOracleParser extends DruidSelectParser {
 							if(small!=null&&larger!=null) {
 								setLimitIFChange(stmt, rrs, schema, small, firstrownum, lastrownum);
 								if(orderBy!=null) {
-									OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
+									SQLSelect oracleSelect= (SQLSelect) subSelect.getParent();
 									oracleSelect.setOrderBy(orderBy);
 								}
 								parseOrderAggGroupOracle(stmt,rrs, (OracleSelectQueryBlock) subSelect, schema);

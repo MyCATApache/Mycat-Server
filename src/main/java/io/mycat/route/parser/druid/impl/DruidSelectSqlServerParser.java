@@ -1,6 +1,7 @@
 package io.mycat.route.parser.druid.impl;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLLimit;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
@@ -9,7 +10,6 @@ import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelect;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerTop;
 import com.alibaba.druid.sql.dialect.sqlserver.parser.SQLServerStatementParser;
@@ -37,7 +37,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 		//从mysql解析过来
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
 			MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)selectStmt.getSelect().getQuery();
-			MySqlSelectQueryBlock.Limit limit=mysqlSelectQuery.getLimit();
+			SQLLimit limit=mysqlSelectQuery.getLimit();
 			if(limit==null) {
 				sqlserverParse(schema, rrs);
 			}
@@ -69,7 +69,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 	private void parseOrderAggGroupSqlServer(SchemaConfig schema, SQLStatement stmt, RouteResultset rrs, SQLServerSelectQueryBlock mysqlSelectQuery) {
 		Map<String, String> aliaColumns = parseAggGroupCommon(schema, stmt,rrs, mysqlSelectQuery);
 
-		SQLServerSelect oracleSelect= (SQLServerSelect) mysqlSelectQuery.getParent();
+		SQLSelect oracleSelect= (SQLSelect) mysqlSelectQuery.getParent();
 		if(oracleSelect.getOrderBy() != null) {
 			List<SQLSelectOrderByItem> orderByItems = oracleSelect.getOrderBy().getItems();
 			rrs.setOrderByCols(buildOrderByCols(orderByItems,aliaColumns));
@@ -135,7 +135,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 						int lastrownum =subTop;
 						setLimitIFChange(stmt, rrs, schema, one, firstrownum, lastrownum);
 						if(orderBy!=null) {
-                             SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
+							SQLSelect oracleSelect= (SQLSelect) subSelect.getParent();
 							oracleSelect.setOrderBy(orderBy);
 						}
 						parseOrderAggGroupSqlServer(schema, stmt,rrs, (SQLServerSelectQueryBlock) subSelect);
@@ -151,7 +151,7 @@ public class DruidSelectSqlServerParser extends DruidSelectParser {
 							rrs.setLimitSize(firstrownum);
 							sqlserverSelectQuery = (SQLServerSelectQueryBlock) subSelect;    //为了继续解出order by 等
 							if(orderBy!=null) {
-								SQLServerSelect oracleSelect= (SQLServerSelect) subSelect.getParent();
+								SQLSelect oracleSelect= (SQLSelect) subSelect.getParent();
 								oracleSelect.setOrderBy(orderBy);
 							}
 							parseOrderAggGroupSqlServer(schema, stmt,rrs, sqlserverSelectQuery);

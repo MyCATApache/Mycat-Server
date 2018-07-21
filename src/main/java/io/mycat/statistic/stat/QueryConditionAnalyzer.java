@@ -181,7 +181,7 @@ public class QueryConditionAnalyzer implements QueryResultListener {
 				MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
 				stmt.accept(visitor);
 				
-				String currentTable = visitor.getCurrentTable();
+				String currentTable = visitor.getTables().keySet().iterator().next().getName();
 				if ( tableName.equalsIgnoreCase( currentTable ) ) {
 					
 					List<Condition> conditions = visitor.getConditions();

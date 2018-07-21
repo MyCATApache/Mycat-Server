@@ -44,7 +44,7 @@ public class DBHostConfig {
 	// 密文
     private final String encryptPassword;
     // ssl
-//    private final boolean useSSL;
+    private final boolean useSSL;
     // 最大连接数
 	private int maxCon ;
 	// 最小连接数
@@ -67,7 +67,7 @@ public class DBHostConfig {
 	}
 
 	public DBHostConfig(String hostName, String ip, int port, String url,
-			String user, String password,String encryptPassword) {
+			String user, String password,String encryptPassword, boolean useSSL) {
 		super();
 		this.hostName = hostName;
 		this.ip = ip;
@@ -76,6 +76,11 @@ public class DBHostConfig {
 		this.user = user;
 		this.password = password;
 		this.encryptPassword = encryptPassword;
+		this.useSSL = useSSL;
+	}
+
+	public boolean isUseSSL() {
+		return useSSL;
 	}
 
 	public long getIdleTimeout() {

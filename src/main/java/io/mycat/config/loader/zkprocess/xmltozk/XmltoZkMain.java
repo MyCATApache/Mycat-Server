@@ -22,15 +22,16 @@ import javax.xml.bind.JAXBException;
  */
 public class XmltoZkMain {
     private static final Logger LOGGER = LoggerFactory.getLogger(XmltoZkMain.class);
+
     public static void main(String[] args) throws JAXBException, InterruptedException {
         // 加载zk总服务
         ZookeeperProcessListen zkListen = new ZookeeperProcessListen();
 
         // 得到集群名称
-        String custerName = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
+        String clusterId = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
         // 得到基本路径
-        String basePath = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey();
-        basePath = basePath + ZookeeperPath.ZK_SEPARATOR.getKey() + custerName;
+        String basePath = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey()
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + clusterId;
         zkListen.setBasePath(basePath);
 
         // 获得zk的连接信息

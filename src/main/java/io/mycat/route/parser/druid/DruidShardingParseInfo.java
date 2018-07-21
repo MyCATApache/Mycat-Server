@@ -6,7 +6,6 @@ import com.alibaba.druid.stat.TableStat.Name;
 import io.mycat.route.util.RouterUtil;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,17 +36,17 @@ public class DruidShardingParseInfo {
 	/**
 	 * 表别名与表真实名映射，key是表别名，value是表真实名
 	 */
-	private Map<String, String> tableAliasMap = new LinkedHashMap<String, String>();
+//	private Map<String, String> tableAliasMap = new LinkedHashMap<String, String>();
 
 	private SchemaStatVisitor visitor;
 
-	public Map<String, String> getTableAliasMap() {
-		return tableAliasMap;
-	}
+//	public Map<String, String> getTableAliasMap() {
+//		return tableAliasMap;
+//	}
 
-	public void setTableAliasMap(Map<String, String> tableAliasMap) {
-		this.tableAliasMap = tableAliasMap;
-	}
+//	public void setTableAliasMap(Map<String, String> tableAliasMap) {
+//		this.tableAliasMap = tableAliasMap;
+//	}
 
 	public String getSql() {
 		return sql;

@@ -17,7 +17,7 @@
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
 		<version.template.file>version.txt.template</version.template.file>
 		<version.file>version.txt</version.file>
-		<version.druid>1.0.26</version.druid>
+		<version.druid>1.1.10</version.druid>
 	</properties>
 	<scm>
 		<connection>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</connection>

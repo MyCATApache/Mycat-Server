@@ -11,6 +11,7 @@ import com.alibaba.druid.sql.dialect.db2.ast.stmt.DB2SelectQueryBlock;
 import com.alibaba.druid.sql.dialect.db2.parser.DB2StatementParser;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.oracle.parser.OracleStatementParser;
 import com.alibaba.druid.sql.dialect.postgresql.ast.stmt.PGSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.postgresql.parser.PGSQLStatementParser;
@@ -38,6 +39,13 @@ public class PageSQLUtil {
         if (JdbcConstants.ORACLE.equalsIgnoreCase(dbType)) { // Oracle数据库
             OracleStatementParser oracleParser = new OracleStatementParser(sql);
             SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
+            // druid 新版将分页查询直接生产为以下方式，表示跳过5行取后10行，如果改为新的方式就需要做版本兼容，同时需要修改mycat相关的分页属性(limitStart，limitSize)
+            // oracleStmt = SELECT * FROM offer ORDER BY id DESC OFFSET 5 ROWS FETCH FIRST 10 ROWS ONLY
+            // return SQLUtils.toSQLString(oracleStmt.getSelect(), dbType);
+            // 因为目前的Mycat使用的是旧的oracle分页方式(在Oracle 12c之前的版本)，所以需要将limit设为空，
+            // 利用 PagerUtils.limit 方法生产旧的分页查询方式如下，ROWNUM是个伪列，是随着结果集生成的，返回的第一行分配的是1，第二行是2等等，生成的结果是依次递加的，没有1就不会有2
+            // SELECT XX.*, ROWNUM AS RN FROM (SELECT * FROM offer ORDER BY id DESC ) XX WHERE ROWNUM <= 15
+            ((OracleSelectQueryBlock)oracleStmt.getSelect().getQuery()).setLimit(null);
             return PagerUtils.limit(oracleStmt.getSelect(), JdbcConstants.ORACLE, offset, count);
         } else if (JdbcConstants.SQL_SERVER.equalsIgnoreCase(dbType)) { // SQLServer数据库
             SQLServerStatementParser sqlServerParser = new SQLServerStatementParser(sql);
@@ -53,9 +61,6 @@ public class PageSQLUtil {
                         from.setAlias(null);
                     }
                 }
-                SQLOrderBy newOrderBy=new SQLOrderBy(new SQLIdentifierExpr("(select 0)"));
-                select.setOrderBy(newOrderBy);
-
             }
             return 	PagerUtils.limit(select, JdbcConstants.SQL_SERVER, offset, count)  ;
         } else if (JdbcConstants.DB2.equalsIgnoreCase(dbType)) { // DB2数据库
