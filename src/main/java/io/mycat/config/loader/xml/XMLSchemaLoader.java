@@ -374,7 +374,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 					  RuleConfig rule= tableRuleConfig.getRule();
 					  if(rule.getRuleAlgorithm() instanceof TableRuleAware)  {
 						  tableRuleConfig = (TableRuleConfig) ObjectUtil.copyObject(tableRuleConfig);
-						  tableRules.remove(tableRuleConfig.getName())   ;
+						  //tableRules.remove(tableRuleConfig.getName())   ;
 						  String newRuleName = tableRuleConfig.getName() + "_" + tableName;
 						  tableRuleConfig. setName(newRuleName);
 						  TableRuleAware tableRuleAware= (TableRuleAware) tableRuleConfig.getRule().getRuleAlgorithm();
