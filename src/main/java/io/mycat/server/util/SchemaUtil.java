@@ -84,6 +84,10 @@ public class SchemaUtil {
      */
     private static SchemaInfo parseTables(SQLStatement stmt, SchemaStatVisitor schemaStatVisitor) {
         stmt.accept(schemaStatVisitor);
+        if(schemaStatVisitor.getTables() == null
+                || schemaStatVisitor.getTables().isEmpty()){
+            return null;
+        }
         // 获取当前表
         String key = schemaStatVisitor.getTables().keySet().iterator().next().getName();// druid 1.1.3 没有这个方法
         if (key != null && key.contains("`")) {
@@ -96,7 +100,11 @@ public class SchemaUtil {
             if (pos > 0) {
                 schemaInfo.schema = key.substring(0, pos);
                 schemaInfo.table = key.substring(pos + 1);
-            } else {
+            } else if(schemaStatVisitor.getRepository().getDefaultSchemaName()!=null
+                    && schemaStatVisitor.getRepository().getDefaultSchemaName().length()>0){
+                schemaInfo.schema = schemaStatVisitor.getRepository().getDefaultSchemaName();
+                schemaInfo.table = key;
+            }else{
                 schemaInfo.table = key;
             }
             return schemaInfo;

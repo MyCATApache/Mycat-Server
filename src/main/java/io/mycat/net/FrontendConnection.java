@@ -363,6 +363,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 			return;
 		}
 
+		LOGGER.info("--- sql: "+sql );
 		this.query( sql );
 	}
 

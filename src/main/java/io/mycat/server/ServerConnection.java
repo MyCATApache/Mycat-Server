@@ -175,8 +175,21 @@ public class ServerConnection extends FrontendConnection {
 		}
 
 		// 检查当前使用的DB
-		String db = this.schema;
+//		String db = this.
+//			SchemaUtil.SchemaInfo schemaInfo ;
+		String db = null;
 		boolean isDefault = true;
+		SchemaUtil.SchemaInfo schemaInfo = null;
+		if(ServerParse.SELECT == type){
+			schemaInfo = SchemaUtil.parseSchema(sql);
+			if(schemaInfo!=null && schemaInfo.schema!=null){
+				db = schemaInfo.schema;
+				isDefault = false;
+			}
+		}
+		if(db==null){
+			db = this.schema;
+		}
 		if (db == null) {
 			// 检测默认逻辑库 数据库
 			db = SchemaUtil.detectDefaultDb(sql, type);
@@ -199,7 +212,7 @@ public class ServerConnection extends FrontendConnection {
 				&& sql.contains("mysql") 
 				&& sql.contains("proc")) {
 			// 解析逻辑库 数据库
-			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
+//			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
 			if (schemaInfo != null 
 					&& "mysql".equalsIgnoreCase(schemaInfo.schema)
 					&& "proc".equalsIgnoreCase(schemaInfo.table)) {
@@ -217,8 +230,8 @@ public class ServerConnection extends FrontendConnection {
 
 		//fix navicat   SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage` FROM INFORMATION_SCHEMA.PROFILING WHERE QUERY_ID= GROUP BY STATE ORDER BY SEQ
 		if(ServerParse.SELECT == type
-				&& sql.contains(" INFORMATION_SCHEMA.PROFILING ")
-				&& sql.contains("CONCAT(ROUND(SUM(DURATION)/")) {
+				&& sql.toUpperCase().contains(" INFORMATION_SCHEMA.PROFILING ")
+				&& sql.toUpperCase().trim().contains("CONCAT(ROUND(SUM(DURATION)/")) {
 			InformationSchemaProfiling.response(this);
 			return;
 		}
@@ -228,10 +241,11 @@ public class ServerConnection extends FrontendConnection {
 		 * 相关sql，已经在mysql客户端中验证。
 		 * 所以在此处增加关于sql中指定Schema方式的支持。
 		 */
-		if (isDefault
-				&& schema.isCheckSQLSchema()
+		if (
+//				isDefault &&
+				schema.isCheckSQLSchema()
 				&& isNormalSql(type)) {
-			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
+//			SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
 			if (schemaInfo != null
 					&& schemaInfo.schema != null
 					&& !schemaInfo.schema.equals(db)) {

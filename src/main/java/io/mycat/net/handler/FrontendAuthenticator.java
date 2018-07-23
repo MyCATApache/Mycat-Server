@@ -114,6 +114,7 @@ public class FrontendAuthenticator implements NIOHandler {
             failure(ErrorCode.ER_DBACCESS_DENIED_ERROR, s);
             break;
         default:
+
             success(auth);
         }
     }
