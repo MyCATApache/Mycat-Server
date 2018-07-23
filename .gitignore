@@ -4,6 +4,7 @@
 .gradle
 bin/
 tmp/
+!/src/main/java/io/mycat/sqlengine/mpp/tmp/
 *.tmp
 *.bak
 *.swp
