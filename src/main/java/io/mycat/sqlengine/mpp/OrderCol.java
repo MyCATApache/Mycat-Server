@@ -23,8 +23,17 @@
  */
 package io.mycat.sqlengine.mpp;
 
+/**
+ * 排序列
+ */
 public class OrderCol {
+	/**
+	 * 排序方式
+	 */
 	public final int orderType;
+	/**
+	 * 列元素
+	 */
 	public final ColMeta colMeta;
 
 	public static final int COL_ORDER_TYPE_ASC = 0; // ASC

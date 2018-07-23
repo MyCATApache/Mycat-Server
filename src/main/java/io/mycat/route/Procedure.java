@@ -1,40 +1,37 @@
 package io.mycat.route;
 
-import com.google.common.base.*;
+import com.google.common.base.Joiner;
 
 import java.io.Serializable;
 import java.sql.Types;
 import java.util.*;
 
 /**
+ * 过程
+ *
  * Created by magicdoom on 2016/3/24.
  *
- *
  * 1.no return
-
- ok
-
-
- 2.simple
-
- ok
- row
- eof
-
-
- 3.list
-
-
- row
- row
- row
- row
- eof
- ok
-
+ *
+ * ok
+ *
+ * 2.simple
+ *
+ * ok
+ * row
+ * eof
+ *
+ * 3.list
+ *
+ * row
+ * row
+ * row
+ * row
+ * eof
+ * ok
+ *
  */
-public class Procedure implements Serializable
-{
+public class Procedure implements Serializable {
     private String originSql;
     private String name;
     private String callSql;
@@ -50,29 +47,26 @@ public class Procedure implements Serializable
     }
     public boolean isResultSimpleValue()
     {
-        return selectSql!=null&&!isResultList;
+        return selectSql!=null && !isResultList;
     }
     public boolean isResultNothing()
     {
-        return selectSql==null&&!isResultList;
+        return selectSql==null && !isResultList;
     }
     public void setResultList(boolean resultList)
     {
         isResultList = resultList;
     }
 
-    public String toPreCallSql(String dbType)
-    {
+    public String toPreCallSql(String dbType) {
         StringBuilder sb=new StringBuilder();
         sb.append("{ call ")  ;
         sb.append(this.getName()).append("(") ;
-        Collection<ProcedureParameter> paramters=    this.getParamterMap().values();
+        Collection<ProcedureParameter> paramters = this.getParamterMap().values();
         int j=0;
-        for (ProcedureParameter paramter : paramters)
-        {
-
+        for (ProcedureParameter paramter : paramters) {
             String name="?";
-            String joinStr=  j==this.getParamterMap().size()-1?name:name+"," ;
+            String joinStr = j==this.getParamterMap().size()-1 ? name : name+"," ;
             sb.append(joinStr);
             j++;
         }
@@ -80,26 +74,23 @@ public class Procedure implements Serializable
         return sb.toString();
     }
 
-    public String toChangeCallSql(String dbType)
-    {
+    public String toChangeCallSql(String dbType) {
         StringBuilder sb=new StringBuilder();
-        sb.append("call ")  ;
+        sb.append("call ") ;
         sb.append(this.getName()).append("(") ;
         Collection<ProcedureParameter> paramters=    this.getParamterMap().values();
         int j=0;
-        for (ProcedureParameter paramter : paramters)
-        {
-            Object value=paramter.getValue()!=null&& Types.VARCHAR==paramter.getJdbcType() ?"'"+paramter.getValue()+"'":paramter.getValue();
-             String name=paramter.getValue()==null?paramter.getName():String.valueOf(value);
-            String joinStr=  j==this.getParamterMap().size()-1?name:name+"," ;
+        for (ProcedureParameter paramter : paramters) {
+            Object value = paramter.getValue()!=null && Types.VARCHAR==paramter.getJdbcType() ? "'"+paramter.getValue()+"'" : paramter.getValue();
+            String name = paramter.getValue()==null ? paramter.getName() : String.valueOf(value);
+            String joinStr = j==this.getParamterMap().size()-1 ? name : name+"," ;
             sb.append(joinStr);
             j++;
         }
         sb.append(")")  ;
-        if(isResultSimpleValue())
-        {
+        if(isResultSimpleValue()) {
             sb.append(";select ");
-          sb.append(  Joiner.on(",").join(selectColumns)  );
+            sb.append(  Joiner.on(",").join(selectColumns)  );
         }
         return sb.toString();
     }

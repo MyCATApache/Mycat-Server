@@ -16,11 +16,11 @@
  */
 package io.mycat.parser;
 
-import static org.junit.Assert.assertEquals;
 import io.mycat.MycatServer;
 import io.mycat.server.interceptor.impl.DefaultSqlInterceptor;
-
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestEscapeProcess {
 

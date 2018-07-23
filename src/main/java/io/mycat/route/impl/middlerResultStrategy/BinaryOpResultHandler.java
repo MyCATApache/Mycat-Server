@@ -1,23 +1,28 @@
 package io.mycat.route.impl.middlerResultStrategy;
 
-import java.util.List;
-
 import com.alibaba.druid.sql.ast.SQLExprImpl;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
-import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
-import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
-import com.alibaba.druid.sql.ast.expr.SQLListExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
-import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
+import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLSelect;
 
+import java.util.List;
+
+/**
+ * SQL二元操作中间结果处理
+ */
 public class BinaryOpResultHandler implements RouteMiddlerReaultHandler {
 
+	/**
+	 * 处理中间结果
+	 * @param statement
+	 * @param sqlselect
+	 * @param parent
+	 * @param param
+	 * @return
+	 */
 	@Override
 	public String dohandler(SQLStatement statement, SQLSelect sqlselect, SQLObject parent, List param) {
-		
 		SQLBinaryOpExpr pp = (SQLBinaryOpExpr)parent;
 		if(pp.getLeft() instanceof SQLQueryExpr){
 			SQLQueryExpr left = (SQLQueryExpr)pp.getLeft();

@@ -17,12 +17,10 @@
 
 package io.mycat.memory.unsafe;
 
-import io.mycat.memory.unsafe.utils.BytesTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Cleaner;
 import sun.misc.Unsafe;
-import sun.nio.ch.DirectBuffer;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;

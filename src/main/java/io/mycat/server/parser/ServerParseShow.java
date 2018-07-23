@@ -23,10 +23,10 @@
  */
 package io.mycat.server.parser;
 
+import io.mycat.route.parser.util.ParseUtil;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import io.mycat.route.parser.util.ParseUtil;
 
 /**
  * @author mycat

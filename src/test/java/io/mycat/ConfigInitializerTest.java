@@ -23,9 +23,8 @@
  */
 package io.mycat;
 
-import org.junit.Test;
-
 import io.mycat.config.ConfigInitializer;
+import org.junit.Test;
 
 /**
  * @author mycat

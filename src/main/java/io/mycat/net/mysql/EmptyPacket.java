@@ -24,6 +24,8 @@
 package io.mycat.net.mysql;
 
 /**
+ * 空包 MySQL内部协议
+ *
  * @author mycat暂时只发现在load data infile时用到
  */
 public class EmptyPacket extends MySQLPacket {

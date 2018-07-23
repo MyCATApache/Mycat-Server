@@ -23,23 +23,32 @@
  */
 package io.mycat.manager;
 
-import java.io.IOException;
-import java.nio.channels.NetworkChannel;
-
 import io.mycat.MycatServer;
 import io.mycat.config.MycatPrivileges;
 import io.mycat.net.FrontendConnection;
 import io.mycat.net.factory.FrontendConnectionFactory;
 
+import java.io.IOException;
+import java.nio.channels.NetworkChannel;
+
 /**
+ * 前端管理器连接工厂 管理请求
  * @author mycat
  */
 public class ManagerConnectionFactory extends FrontendConnectionFactory {
 
+    /**
+     * 获取前端连接
+     * @param channel
+     * @return
+     * @throws IOException
+     */
     @Override
     protected FrontendConnection getConnection(NetworkChannel channel) throws IOException {
         ManagerConnection c = new ManagerConnection(channel);
+        // 设置连接参数
         MycatServer.getInstance().getConfig().setSocketParams(c, true);
+        // 设置MyCat前端权限
         c.setPrivileges(MycatPrivileges.instance());
         c.setQueryHandler(new ManagerQueryHandler(c));
         return c;

@@ -1,16 +1,14 @@
 package io.mycat.backend.mysql;
 
-import java.io.*;
-import java.util.List;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.net.BackendAIOConnection;
 import io.mycat.net.mysql.BinaryPacket;
-import io.mycat.net.mysql.CommandPacket;
-import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.sqlengine.mpp.LoadData;
+
+import java.io.*;
+import java.util.List;
 
 /**
  * Created by nange on 2015/3/31.

@@ -1,9 +1,9 @@
 package io.mycat.memory.unsafe.ringbuffer.producer;
 
 import io.mycat.memory.unsafe.ringbuffer.common.Cursored;
-import io.mycat.memory.unsafe.ringbuffer.common.sequence.Sequence;
 import io.mycat.memory.unsafe.ringbuffer.common.Sequenced;
 import io.mycat.memory.unsafe.ringbuffer.common.barrier.SequenceBarrier;
+import io.mycat.memory.unsafe.ringbuffer.common.sequence.Sequence;
 
 /**
  * @author lmax.Disruptor

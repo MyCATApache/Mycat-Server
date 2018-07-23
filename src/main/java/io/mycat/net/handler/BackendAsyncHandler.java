@@ -23,9 +23,9 @@
  */
 package io.mycat.net.handler;
 
-import java.util.concurrent.Executor;
-
 import io.mycat.net.NIOHandler;
+
+import java.util.concurrent.Executor;
 
 /**
  * @author mycat

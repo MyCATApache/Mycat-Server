@@ -23,16 +23,15 @@
  */
 package io.mycat.sqlengine.mpp;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import io.mycat.memory.unsafe.utils.BytesTools;
+import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.util.ByteUtil;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class RowDataPacketSorter {
 

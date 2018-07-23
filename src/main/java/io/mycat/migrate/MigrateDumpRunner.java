@@ -146,9 +146,15 @@ public class MigrateDumpRunner implements Runnable {
         DBHostConfig config = datasource.getConfig();
         Connection con = null;
         try {
-            con = DriverManager.getConnection("jdbc:mysql://" + config.getUrl() + "/" + dbNode.getDatabase(), config.getUser(), config.getPassword());
-            JdbcUtils.execute(con, sql, new ArrayList<>());
-        } finally {
+            String url = "jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase();
+            if(config.isUseSSL()){
+                url += url.contains("?") ? "&useSSL=true" : "?useSSL=true";
+            }else{
+                url += url.contains("?") ? "&useSSL=false" : "?useSSL=false";
+            }
+            con =  DriverManager.getConnection(url,config.getUser(),config.getPassword());
+            JdbcUtils.execute(con,sql, new ArrayList<>());
+        } finally{
             JdbcUtils.close(con);
         }
     }
@@ -177,10 +183,16 @@ public class MigrateDumpRunner implements Runnable {
         DBHostConfig config = datasource.getConfig();
         Connection con = null;
         try {
-            con = DriverManager.getConnection("jdbc:mysql://" + config.getUrl() + "/" + dbNode.getDatabase(), config.getUser(), config.getPassword());
-            String sql = "load data local infile '" + loaddataFile.getPath().replace("\\", "//") + "' replace into table " + table + " character set 'utf8mb4'  fields terminated by ','  enclosed by '\"'  ESCAPED BY '\\\\'  lines terminated by '\\n'";
-            JdbcUtils.execute(con, sql, new ArrayList<>());
-        } finally {
+            String url = "jdbc:mysql://"+config.getUrl()+"/"+dbNode.getDatabase();
+            if(config.isUseSSL()){
+                url += url.contains("?") ? "&useSSL=true" : "?useSSL=true";
+            }else{
+                url += url.contains("?") ? "&useSSL=false" : "?useSSL=false";
+            }
+            con =  DriverManager.getConnection(url,config.getUser(),config.getPassword());
+            String sql = "load data local infile '"+loaddataFile.getPath().replace("\\","//")+"' replace into table "+table+" character set 'utf8mb4'  fields terminated by ','  enclosed by '\"'  ESCAPED BY '\\\\'  lines terminated by '\\n'";
+            JdbcUtils.execute(con,sql, new ArrayList<>());
+        } finally{
             JdbcUtils.close(con);
         }
     }
@@ -199,12 +211,19 @@ public class MigrateDumpRunner implements Runnable {
         return Joiner.on(" or  ").join(whereList);
     }
 
-    private static String querySecurePath(DBHostConfig config) {
-        List<Map<String, Object>> list = null;
+    private static String querySecurePath(DBHostConfig config  )  {
+        List<Map<String, Object>> list=null;
         String path = null;
         Connection con = null;
         try {
-            con = DriverManager.getConnection("jdbc:mysql://" + config.getUrl(), config.getUser(), config.getPassword());
+            String url = "jdbc:mysql://"+config.getUrl();
+            if(config.isUseSSL()){
+                url += url.contains("?") ? "&useSSL=true" : "?useSSL=true";
+            }else{
+                url += url.contains("?") ? "&useSSL=false" : "?useSSL=false";
+            }
+
+            con =  DriverManager.getConnection(url,config.getUser(),config.getPassword());
             list = executeQuery(con, "show variables like 'secure_file_priv'");
             if (list != null && list.size() == 1)
                 path = (String) list.get(0).get("Value");

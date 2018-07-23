@@ -23,16 +23,15 @@
  */
 package io.mycat.config.model;
 
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import com.alibaba.druid.sql.ast.SQLDataType;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.util.SplitUtil;
 
+import java.util.*;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 /**
+ * 逻辑表配置
  * @author mycat
  */
 public class TableConfig {
@@ -40,13 +39,21 @@ public class TableConfig {
 	public static final int TYPE_GLOBAL_DEFAULT = 0;
 	private final String name;
 	private final String primaryKey;
+	// 自动递增标识
 	private final boolean autoIncrement;
+	// 需要添加limit标识
 	private final boolean needAddLimit;
+	// 数据库类型
 	private final Set<String> dbTypes;
+	// 表类型
 	private final int tableType;
+	// 分片节点
 	private final ArrayList<String> dataNodes;
+	// 分片子表
 	private final ArrayList<String> distTables;
+	// 分片规则
 	private final RuleConfig rule;
+	// 分片列 分片字段
 	private final String partitionColumn;
 	private final boolean ruleRequired;
 	private final TableConfig parentTC;
@@ -54,7 +61,7 @@ public class TableConfig {
 	private final String joinKey;
 	private final String parentKey;
 	private final String locateRTableKeySql;
-	// only has one level of parent
+	// only has one level of parent 只有一级父母
 	private final boolean secondLevel;
 	private final boolean partionKeyIsPrimaryKey;
 	private final Random rand = new Random();

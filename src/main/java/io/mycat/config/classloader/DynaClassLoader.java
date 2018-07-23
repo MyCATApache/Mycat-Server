@@ -1,26 +1,30 @@
 package io.mycat.config.classloader;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 /**
+ * 动态类加载器
+ *
  * used for mycat's catlet class loader ,catlet's class file is stored in
  * Mycat_home/catlet dir
+ *
+ * 用于mycat的catlet类加载器，catlet的类文件存储在 Mycat_home/catlet 目录中
  * 
  * @author wuzhih
  * 
  */
 public class DynaClassLoader {
 	private static final Logger LOGGER = LoggerFactory.getLogger("DynaClassLoader");
-	/** key- class full name */
+	/**
+	 * key- class full name
+	 * key是类全名
+	 */
 	private static Map<String, DynaClass> loadedDynaClassMap = new ConcurrentHashMap<String, DynaClass>();
 	private final String extClassHome;
 	private final MyDynaClassLoader myClassLoader;
@@ -36,10 +40,15 @@ public class DynaClassLoader {
 				+ classCheckSeconds + " seconds");
 	}
 
+	/**
+	 * 获取类的实例
+	 * @param className
+	 * @return
+	 * @throws Exception
+	 */
 	public Object getInstanceofClass(String className) throws Exception {
 		DynaClass dynaClass = loadedDynaClassMap.get(className);
-		boolean needReload = (dynaClass == null || (dynaClass
-				.needReloadClass(classCheckMilis) && checkChanged(dynaClass)));
+		boolean needReload = (dynaClass == null || (dynaClass.needReloadClass(classCheckMilis) && checkChanged(dynaClass)));
 		Class<?> newClass = null;
 		if (needReload) {
 			newClass = myClassLoader.loadClass(className);
@@ -53,7 +62,6 @@ public class DynaClassLoader {
 			if (val == null) {
 				val = dynaClass.realClass.newInstance();
 				dynaClass.classObj = val;
-
 			}
 			return val;
 		} else {
@@ -64,7 +72,7 @@ public class DynaClassLoader {
 	/**
 	 * 加载某个类的字节码
 	 * 
-	 * @param c
+	 * @param path
 	 * @return
 	 * @throws IOException
 	 */
@@ -86,6 +94,12 @@ public class DynaClassLoader {
 		}
 	}
 
+	/**
+	 * 检查动态类是否改变了
+	 * @param dynaClass
+	 * @return
+	 * @throws IOException
+	 */
 	private boolean checkChanged(DynaClass dynaClass) throws IOException {
 		boolean isChanged = false;
 		File f = new File(dynaClass.filePath);
@@ -104,8 +118,7 @@ public class DynaClassLoader {
 	}
 
 	class MyDynaClassLoader extends ClassLoader {
-		public MyDynaClassLoader() {
-		}
+		public MyDynaClassLoader() {}
 
 		public MyDynaClassLoader(ClassLoader parentLoader) {
 			super(parentLoader);
@@ -114,13 +127,14 @@ public class DynaClassLoader {
 		/**
 		 * 加载某个类
 		 * 
-		 * @param c
+		 * @param name
 		 * @return
 		 * @throws ClassNotFoundException
 		 * @throws IOException
 		 */
 		public Class<?> loadClass(String name) throws ClassNotFoundException {
-			if (name.startsWith("java") || name.startsWith("sun")
+			if (name.startsWith("java")
+					|| name.startsWith("sun")
 					|| name.startsWith("io.mycat")) {
 				return super.loadClass(name);
 			}
@@ -144,8 +158,7 @@ public class DynaClassLoader {
 				Class<?> cNew = null;
 				if (dynaClass.isJar) {
 					cNew =dynaClass.realClass;
-				}
-				else {
+				} else {
 				   byte[] content;
 				   try {
 					 content = loadFile(dynaClass.filePath);
@@ -159,9 +172,15 @@ public class DynaClassLoader {
 				loadedDynaClassMap.put(name, dynaClass);
 				return cNew;
 			}
-
 		}
 
+		/**
+		 * 搜索类文件
+		 * @param classpath
+		 * @param fileName
+		 * @return
+		 * @throws Exception
+		 */
 		private DynaClass searchFile(String classpath, String fileName) throws Exception {
 			DynaClass dynCls = null;
 			String path = fileName.replace('.', File.separatorChar) + ".class";
@@ -174,8 +193,7 @@ public class DynaClassLoader {
 				dynCls = new DynaClass(f.getPath());
 				dynCls.lastModified = f.lastModified();
 				return dynCls;
-			}
-			else {
+			} else {
 				path = fileName.replace('.', File.separatorChar) + ".jar";
 				//classpath="D:\\code\\mycat\\Mycat-Server\\catlet\\";
 				System.out.println("jar " + classpath + " file " + path);
@@ -187,23 +205,21 @@ public class DynaClassLoader {
 				     dynCls.realClass=JarLoader.loadJar(classpath+"/"+path,fileName);	
 					 dynCls.isJar=true;
 					 return dynCls;
-				  }
-				  catch(Exception err) {
+				  } catch(Exception err) {
 					  return null;
 				  }
-
 				}
 				return null;
 			}
-			
 		}
-
 	}
 
+	/**
+	 * 清除没有使用的类
+	 */
 	public void clearUnUsedClass() {
 		long deadTime = System.currentTimeMillis() - 30 * 60 * 1000L;
-		Iterator<Map.Entry<String, DynaClass>> itor = loadedDynaClassMap
-				.entrySet().iterator();
+		Iterator<Map.Entry<String, DynaClass>> itor = loadedDynaClassMap.entrySet().iterator();
 		while (itor.hasNext()) {
 			Map.Entry<String, DynaClass> entry = itor.next();
 			DynaClass dyCls = entry.getValue();
@@ -216,12 +232,36 @@ public class DynaClassLoader {
 	}
 }
 
+/**
+ * 动态类
+ */
 class DynaClass {
+	/**
+	 * 文件路径
+	 */
 	public final String filePath;
+	/**
+	 * 最后修改时间
+	 */
 	public volatile long lastModified;
+	/**
+	 * 真实的类
+	 */
 	public Class<?> realClass;
+	/**
+	 * 类对象
+	 */
 	public Object classObj;
+	/**
+	 * 是否jar文件标识
+	 */
     public boolean isJar=false;
+
+	/**
+	 * 是否需求重新加载类
+	 * @param classCheckMilis
+	 * @return
+	 */
 	public boolean needReloadClass(long classCheckMilis) {
 		if (lastModified + classCheckMilis < System.currentTimeMillis()) {
 			return true;

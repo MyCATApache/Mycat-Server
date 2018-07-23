@@ -29,7 +29,6 @@ import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.memory.unsafe.storage.DataNodeDiskManager;
 import io.mycat.memory.unsafe.storage.SerializerManager;
 
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 

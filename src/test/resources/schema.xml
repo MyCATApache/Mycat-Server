@@ -16,19 +16,22 @@
 <!DOCTYPE mycat:schema SYSTEM "schema.dtd">
 <mycat:schema xmlns:mycat="http://io.mycat/">
 
-  <!-- schema定义 -->
-  <schema name="dbtest">
-    <table name="tb2" dataNode="dnTest2,dnTest3" rule="rule1" />
-  </schema>
+    <!-- 逻辑库配置 schema定义 -->
+    <schema name="dbtest">
+        <!-- 逻辑表配置 name为表名 dataNode为表对应的分片 rule为分片规则 -->
+        <table name="tb2" dataNode="dnTest2,dnTest3" rule="rule1" />
+    </schema>
 
-  <!-- 数据节点定义，数据节点由数据源和其他一些参数组织而成。 -->
+    <!-- 配置分片 数据节点定义，数据节点由数据源和其他一些参数组织而成。 -->
   <dataNode name="dnTest1" dataHost="localhost1" database="db1" /> 
   <dataNode name="dnTest2" dataHost="localhost1" database="db2" />
   <dataNode name="dnTest3" dataHost="localhost1" database="db3" />
-<dataHost name="localhost1" maxCon="500" minCon="10" balance="0"
-		dbType="mysql" dbDriver="native" >
-		<heartbeat>select user()</heartbeat>
-		<!-- can have multi write hosts -->
+    <!-- 配置物理库分片映射 -->
+<dataHost name="localhost1" maxCon="500" minCon="10" balance="0" dbType="mysql" dbDriver="native" >
+        <!-- heartbeat代表Mycat物理库心跳检测的语句 -->
+        <heartbeat>select 1</heartbeat>
+        <!-- can have multi write hosts -->
+        <!-- writeHost代表一个逻辑主机（dataHost）对应的后端的物理主机映射 -->
 		<writeHost host="hostM1" url="localhost:3306" user="root"
 			password="123456">
 			<!-- can have multi read hosts -->

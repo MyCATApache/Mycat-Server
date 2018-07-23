@@ -14,11 +14,11 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 表结构结果处理
+ * 用于检查数据表结果的一致性
  *
  * @author Hash Zhang
  * @version 1.0

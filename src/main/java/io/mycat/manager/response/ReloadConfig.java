@@ -23,18 +23,9 @@
  */
 package io.mycat.manager.response;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
@@ -53,6 +44,14 @@ import io.mycat.config.util.DnPropertyUtil;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.NIOProcessor;
 import io.mycat.net.mysql.OkPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author mycat
@@ -220,6 +219,10 @@ public final class ReloadConfig {
 		}
 	}
 
+	/**
+	 * 重新加载配置
+	 * @return
+	 */
     public static boolean reload() {
     	
     	/**

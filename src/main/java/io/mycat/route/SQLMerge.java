@@ -23,18 +23,39 @@
  */
 package io.mycat.route;
 
+import io.mycat.sqlengine.mpp.HavingCols;
+
 import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import io.mycat.sqlengine.mpp.HavingCols;
-
+/**
+ * SQL合并
+ */
 public class SQLMerge implements Serializable {
+	/**
+	 * order by 列
+	 */
 	private LinkedHashMap<String, Integer> orderByCols;
+	/**
+	 * having 列
+	 */
 	private HavingCols havingCols;
+	/**
+	 * having 列名
+	 */
 	private Object[] havingColsName;			// Added by winbill, 20160314, for having clause
+	/**
+	 * 合并列
+	 */
 	private Map<String, Integer> mergeCols;
+	/**
+	 * group by 列
+	 */
 	private String[] groupByCols;
+	/**
+	 * 是否有sql count列
+	 */
 	private boolean hasAggrColumn;
 
 	public LinkedHashMap<String, Integer> getOrderByCols() {

@@ -1,6 +1,5 @@
 package demo.test;
 
-import java.util.Arrays;
 
 public class ByteArrayToHexArray {
 	public static String buqi(String hexStr){

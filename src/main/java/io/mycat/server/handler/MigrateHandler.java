@@ -68,8 +68,8 @@ import java.util.concurrent.TimeUnit;
 import static io.mycat.config.loader.zkprocess.comm.ZkParamCfg.ZK_CFG_FLAG;
 
 /**
+ * Migrate 语句处理器 迁移
  * todo remove watch
- *
  * @author nange
  */
 public final class MigrateHandler {
@@ -79,21 +79,17 @@ public final class MigrateHandler {
     private static final InterProcessMutex slaveIDsLock = new InterProcessMutex(ZKUtils.getConnection(), ZKUtils.getZKBasePath() + "lock/slaveIDs.lock");
     private static final int FIELD_COUNT = 1;
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
-    private static volatile boolean forceInit = false;
-
-
+	private static volatile boolean forceInit = false;
     static {
         fields[0] = PacketUtil.getField("TASK_ID",
                 Fields.FIELD_TYPE_VAR_STRING);
 
     }
-
-    private static String getUUID() {
+    private static String getUUID(){
         String s = UUID.randomUUID().toString();
         //去掉“-”符号
-        return s.substring(0, 8) + s.substring(9, 13) + s.substring(14, 18) + s.substring(19, 23) + s.substring(24);
+        return s.substring(0,8)+s.substring(9,13)+s.substring(14,18)+s.substring(19,23)+s.substring(24);
     }
-
     public static void handle(String stmt, ServerConnection c) {
         Map<String, String> map = parse(stmt);
 
@@ -263,7 +259,6 @@ public final class MigrateHandler {
 
             transactionFinal = client.inTransaction().setData().forPath(taskPath, JSON.toJSONBytes(taskNode)).and();
 
-
             //合并成dataHost级别任务
             Map<String, List<MigrateTask>> dataHostMigrateMap = mergerTaskForDataHost(allTaskList);
 
@@ -281,10 +276,10 @@ public final class MigrateHandler {
             }
 
             for (Map.Entry<String, List<MigrateTask>> entry : dataHostMigrateMap.entrySet()) {
-                String key = entry.getKey();
-                List<MigrateTask> value = entry.getValue();
-                String path = taskPath + "/" + key;
-                transactionFinal = transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and();
+                String key=entry.getKey();
+                List<MigrateTask> value=entry.getValue();
+                String path= taskPath + "/" + key;
+                transactionFinal=   transactionFinal.create().forPath(path, JSON.toJSONBytes(value)).and()  ;
             }
             transactionFinal.commit();
         } catch (Exception e) {
@@ -304,109 +299,104 @@ public final class MigrateHandler {
         // write header
         ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
         byte packetId = header.packetId;
-        buffer = header.write(buffer, c, true);
+        buffer = header.write(buffer, c,true);
 
         // write fields
         for (FieldPacket field : fields) {
             field.packetId = ++packetId;
-            buffer = field.write(buffer, c, true);
+            buffer = field.write(buffer, c,true);
         }
 
         // write eof
         EOFPacket eof = new EOFPacket();
         eof.packetId = ++packetId;
-        buffer = eof.write(buffer, c, true);
+        buffer = eof.write(buffer, c,true);
 
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(StringUtil.encode(taskID, c.getCharset()));
         row.packetId = ++packetId;
-        buffer = row.write(buffer, c, true);
+        buffer = row.write(buffer, c,true);
 
         // write last eof
         EOFPacket lastEof = new EOFPacket();
         lastEof.packetId = ++packetId;
-        buffer = lastEof.write(buffer, c, true);
+        buffer = lastEof.write(buffer, c,true);
 
         // post write
         c.write(buffer);
     }
 
 
-    private static String getDataHostNameFromNode(String dataNode) {
+    private static String getDataHostNameFromNode(String dataNode){
         return MycatServer.getInstance().getConfig().getDataNodes().get(dataNode).getDbPool().getHostName();
     }
 
     private static Map<String, List<MigrateTask>> mergerTaskForDataHost(List<MigrateTask> migrateTaskList) {
         Map<String, List<MigrateTask>> taskMap = new HashMap<>();
         for (MigrateTask migrateTask : migrateTaskList) {
-            String dataHost = getDataHostNameFromNode(migrateTask.getFrom());
-            if (taskMap.containsKey(dataHost)) {
+            String dataHost=getDataHostNameFromNode(migrateTask.getFrom());
+            if(taskMap.containsKey(dataHost)) {
                 taskMap.get(dataHost).add(migrateTask);
             } else {
-                taskMap.put(dataHost, Lists.newArrayList(migrateTask));
+                taskMap.put(dataHost, Lists.newArrayList(migrateTask)) ;
             }
         }
-
-
         return taskMap;
     }
 
-    private static int getSlaveIdFromZKForDataNode(String dataNode) {
-        PhysicalDBNode dbNode = MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
-        String slaveIDs = dbNode.getDbPool().getSlaveIDs();
-        if (Strings.isNullOrEmpty(slaveIDs))
-            throw new RuntimeException("dataHost:" + dbNode.getDbPool().getHostName() + " do not config the salveIDs field");
+    private  static int   getSlaveIdFromZKForDataNode(String dataNode) {
+        PhysicalDBNode dbNode= MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
+        String slaveIDs= dbNode.getDbPool().getSlaveIDs();
+        if(Strings.isNullOrEmpty(slaveIDs))
+            throw new RuntimeException("dataHost:"+dbNode.getDbPool().getHostName()+" do not config the salveIDs field");
 
-        List<Integer> allSlaveIDList = parseSlaveIDs(slaveIDs);
+        List<Integer> allSlaveIDList=  parseSlaveIDs(slaveIDs);
 
-        String taskPath = ZKUtils.getZKBasePath() + "slaveIDs/" + dbNode.getDbPool().getHostName();
+        String taskPath = ZKUtils.getZKBasePath() + "slaveIDs/" +dbNode.getDbPool().getHostName();
         try {
             slaveIDsLock.acquire(30, TimeUnit.SECONDS);
-            Set<Integer> zkSlaveIdsSet = new HashSet<>();
-            if (ZKUtils.getConnection().checkExists().forPath(taskPath) != null) {
+            Set<Integer> zkSlaveIdsSet=new HashSet<>();
+            if(ZKUtils.getConnection().checkExists().forPath(taskPath)!=null  ) {
                 List<String> zkHasSlaveIDs = ZKUtils.getConnection().getChildren().forPath(taskPath);
                 for (String zkHasSlaveID : zkHasSlaveIDs) {
                     zkSlaveIdsSet.add(Integer.parseInt(zkHasSlaveID));
                 }
             }
             for (Integer integer : allSlaveIDList) {
-                if (!zkSlaveIdsSet.contains(integer)) {
-                    ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(taskPath + "/" + integer);
+                if(!zkSlaveIdsSet.contains(integer))    {
+                    ZKUtils.getConnection().create().creatingParentsIfNeeded().forPath(taskPath+"/"+integer);
                     return integer;
                 }
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
+        }   finally {
             try {
                 slaveIDsLock.release();
             } catch (Exception e) {
-                LOGGER.error("error:", e);
+                LOGGER.error("error:",e);
             }
         }
-
-        throw new RuntimeException("cannot get the slaveID  for dataHost :" + dbNode.getDbPool().getHostName());
+        throw new RuntimeException("cannot get the slaveID  for dataHost :"+dbNode.getDbPool().getHostName());
     }
 
-    private static List<Integer> parseSlaveIDs(String slaveIDs) {
-        List<Integer> allSlaveList = new ArrayList<>();
-        List<String> stringList = Splitter.on(",").omitEmptyStrings().trimResults().splitToList(slaveIDs);
+    private  static List<Integer>  parseSlaveIDs(String slaveIDs) {
+        List<Integer> allSlaveList=new ArrayList<>();
+        List<String> stringList=  Splitter.on(",").omitEmptyStrings().trimResults().splitToList(slaveIDs);
         for (String id : stringList) {
-            if (id.contains("-")) {
-                List<String> idRangeList = Splitter.on("-").omitEmptyStrings().trimResults().splitToList(id);
-                if (idRangeList.size() != 2)
-                    throw new RuntimeException(id + "slaveIds range must be 2  size");
-                for (int i = Integer.parseInt(idRangeList.get(0)); i <= Integer.parseInt(idRangeList.get(1)); i++) {
+            if(id.contains("-")) {
+                List<String> idRangeList=   Splitter.on("-").omitEmptyStrings().trimResults().splitToList(id) ;
+                if(idRangeList.size()!=2)
+                    throw new RuntimeException(id+"slaveIds range must be 2  size");
+                for(int i=Integer.parseInt(idRangeList.get(0));i<=Integer.parseInt(idRangeList.get(1));i++) {
                     allSlaveList.add(i);
                 }
-
             } else {
                 allSlaveList.add(Integer.parseInt(id));
             }
         }
         return allSlaveList;
     }
-
 
     private static OkPacket getOkPacket() {
         OkPacket packet = new OkPacket();
@@ -428,7 +418,7 @@ public final class MigrateHandler {
             System.out.println(i % 5);
         }
 
-        TaskNode taskNode = new TaskNode();
+        TaskNode taskNode=new TaskNode();
         taskNode.setSql(sql);
 
 

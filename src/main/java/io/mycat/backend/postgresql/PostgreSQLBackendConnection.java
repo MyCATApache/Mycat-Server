@@ -1,13 +1,5 @@
 package io.mycat.backend.postgresql;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.channels.NetworkChannel;
-import java.nio.channels.SocketChannel;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import io.mycat.backend.jdbc.ShowVariables;
 import io.mycat.backend.mysql.CharsetUtil;
 import io.mycat.backend.mysql.nio.MySQLConnectionHandler;
@@ -23,6 +15,14 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.exception.UnknownTxIsolationException;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.channels.NetworkChannel;
+import java.nio.channels.SocketChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /*************************************************************
  * PostgreSQL Native Connection impl

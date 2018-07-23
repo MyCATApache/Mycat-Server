@@ -23,11 +23,13 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
-import java.util.List;
-
 import io.mycat.backend.BackendConnection;
 
+import java.util.List;
+
 /**
+ * 响应处理程序
+ *
  * @author mycat
  * @author mycat
  */
@@ -79,7 +81,7 @@ public interface ResponseHandler {
 	void writeQueueAvailable();
 
 	/**
-	 * on connetion close event
+	 * 在连接关闭事件
 	 */
 	void connectionClose(BackendConnection conn, String reason);
 

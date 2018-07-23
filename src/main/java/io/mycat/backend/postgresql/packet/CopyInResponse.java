@@ -1,23 +1,24 @@
 package io.mycat.backend.postgresql.packet;
 
+import io.mycat.backend.postgresql.utils.PIOUtils;
+
 import java.nio.ByteBuffer;
+
 //		CopyInResponse (B)
 //		Byte1('G')
 //		标识这条消息是一条 Start Copy In （开始拷贝进入）响应消息。 前端现在必须发送一条拷贝入数据。（如果还没准备好做这些事情， 那么发送一条 CopyFail 消息）。
-//		
+//
 //		Int32
 //		以字节记的消息内容的长度，包括长度本身。
-//		
+//
 //		Int8
 //		0 表示全部的 COPY 格式都是文本的（数据行由换行符分隔，字段由分隔字符分隔等等）。 1 表示全部 COPY 格式都是二进制的（类似 DataRow 格式）。 参阅 COPY	获取更多信息。
-//		
+//
 //		Int16
 //		数据中要拷贝的字段数（由下面的 N 解释）。
-//		
+//
 //		Int16[N]
 //		每个字段将要用的格式代码，目前每个都必须是零（文本）或者一（二进制）。 如果全部拷贝格式都是文本的，那么所有的都必须是零。
-
-import io.mycat.backend.postgresql.utils.PIOUtils;
 
 /***
  * 拷贝数据开始

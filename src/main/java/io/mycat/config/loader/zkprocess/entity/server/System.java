@@ -1,14 +1,13 @@
 package io.mycat.config.loader.zkprocess.entity.server;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.mycat.config.loader.zkprocess.entity.Propertied;
+import io.mycat.config.loader.zkprocess.entity.Property;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlType;
-
-import io.mycat.config.loader.zkprocess.entity.Propertied;
-import io.mycat.config.loader.zkprocess.entity.Property;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 系统信息

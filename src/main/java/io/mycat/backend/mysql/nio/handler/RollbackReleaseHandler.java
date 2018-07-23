@@ -23,11 +23,11 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
-import java.util.List;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.backend.BackendConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * @author mycat

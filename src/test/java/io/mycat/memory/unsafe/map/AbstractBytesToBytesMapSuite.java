@@ -23,14 +23,11 @@ import io.mycat.memory.unsafe.memory.TestMemoryManager;
 import io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager;
 import io.mycat.memory.unsafe.storage.DataNodeDiskManager;
 import io.mycat.memory.unsafe.storage.SerializerManager;
-import io.mycat.memory.unsafe.utils.JavaUtils;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-
 
 import java.io.File;
 import java.io.IOException;
@@ -40,7 +37,6 @@ import java.util.*;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Answers.RETURNS_SMART_NULLS;
 
 
 public abstract class AbstractBytesToBytesMapSuite {

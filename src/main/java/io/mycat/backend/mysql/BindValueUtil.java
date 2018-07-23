@@ -23,9 +23,9 @@
  */
 package io.mycat.backend.mysql;
 
-import java.io.UnsupportedEncodingException;
-
 import io.mycat.config.Fields;
+
+import java.io.UnsupportedEncodingException;
 
 /**
  * @author mycat

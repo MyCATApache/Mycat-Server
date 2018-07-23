@@ -1,10 +1,5 @@
 package io.mycat.manager.response;
 
-import java.nio.ByteBuffer;
-import java.text.DecimalFormat;
-import java.util.List;
-import java.util.Map;
-
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
 import io.mycat.manager.ManagerConnection;
@@ -16,6 +11,10 @@ import io.mycat.statistic.stat.TableStat;
 import io.mycat.statistic.stat.TableStatAnalyzer;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
+
+import java.nio.ByteBuffer;
+import java.text.DecimalFormat;
+import java.util.List;
 
 public class ShowSQLSumTable {
 	

@@ -23,6 +23,11 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
+import io.mycat.backend.BackendConnection;
+import io.mycat.net.mysql.ErrorPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -31,13 +36,9 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.backend.BackendConnection;
-import io.mycat.net.mysql.ErrorPacket;
-
 /**
  * heartbeat check for mysql connections
+ * MySQL连接的心跳检查
  * 
  * @author wuzhih
  * 
@@ -68,7 +69,7 @@ public class ConnectionHeartBeatHandler implements ResponseHandler {
 	}
 
 	/**
-	 * remove timeout connections
+	 * 删除超时连接
 	 */
 	public void abandTimeOuttedConns() {
 		if (allCons.isEmpty()) {

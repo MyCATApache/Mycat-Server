@@ -25,7 +25,6 @@ import io.mycat.memory.unsafe.Platform;
 import io.mycat.memory.unsafe.array.ByteArrayMethods;
 import io.mycat.memory.unsafe.hash.Murmur3_x86_32;
 
-
 import javax.annotation.Nonnull;
 import java.io.Externalizable;
 import java.io.IOException;

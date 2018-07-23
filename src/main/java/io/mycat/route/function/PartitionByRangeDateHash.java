@@ -1,10 +1,9 @@
 package io.mycat.route.function;
 
 import com.google.common.hash.Hashing;
-
 import io.mycat.config.model.rule.RuleAlgorithm;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

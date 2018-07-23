@@ -22,7 +22,6 @@ import io.mycat.memory.unsafe.Platform;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Random;

@@ -23,13 +23,11 @@
  */
 package io.mycat.parser.util;
 
-import junit.framework.TestCase;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import io.mycat.route.parser.util.Pair;
 import io.mycat.route.parser.util.PairUtil;
+import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * @author mycat

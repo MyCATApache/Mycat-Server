@@ -23,13 +23,13 @@
  */
 package io.mycat.route.function;
 
+import io.mycat.config.model.rule.RuleAlgorithm;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.mycat.config.model.rule.RuleAlgorithm;
 
 /**
  * number column partion by Mod operator

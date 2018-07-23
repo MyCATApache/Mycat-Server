@@ -1,14 +1,13 @@
 package io.mycat.config.loader.zkprocess.entity;
 
-import java.util.List;
+import io.mycat.config.loader.zkprocess.entity.server.System;
+import io.mycat.config.loader.zkprocess.entity.server.user.User;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import io.mycat.config.loader.zkprocess.entity.server.System;
-import io.mycat.config.loader.zkprocess.entity.server.user.User;
+import java.util.List;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(namespace = "http://io.mycat/", name = "server")

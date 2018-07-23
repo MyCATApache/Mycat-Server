@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 
 /**
+ * MySQL信息 MySQL内部协议
  * @author mycat
  */
 public class MySQLMessage {
@@ -199,8 +200,7 @@ public class MySQLMessage {
 
     public byte[] readBytesWithLength() {
         int length = (int) readLength();
-        if(length==NULL_LENGTH)
-        {
+        if(length==NULL_LENGTH) {
             return null;
         }
         if (length <= 0) {

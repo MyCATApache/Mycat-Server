@@ -1,23 +1,17 @@
 package io.mycat.route.parser.druid;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import io.mycat.MycatServer;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.SessionSQLPair;
-import io.mycat.route.sequence.handler.DistributedSequenceHandler;
-import io.mycat.route.sequence.handler.IncrSequenceMySQLHandler;
-import io.mycat.route.sequence.handler.IncrSequencePropHandler;
-import io.mycat.route.sequence.handler.IncrSequenceTimeHandler;
-import io.mycat.route.sequence.handler.IncrSequenceZKHandler;
-import io.mycat.route.sequence.handler.SequenceHandler;
+import io.mycat.route.sequence.handler.*;
 import io.mycat.util.TimeUtil;
+
+import java.io.UnsupportedEncodingException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 使用Druid解析器实现对Sequence处理
@@ -64,8 +58,10 @@ public class DruidSequenceHandler {
 
     /**
      * 根据原sql获取可执行的sql
+     * 主要是获取下一个id
      *
-     * @param sql
+     * @param pair
+     * @param charset
      * @return
      * @throws UnsupportedEncodingException
      */
@@ -79,7 +75,8 @@ public class DruidSequenceHandler {
 				lock.lock();
 				try {
                 	matcher = pattern.matcher(executeSql);
-                	while(matcher.find()){            
+                	while(matcher.find()){
+                	    // 获取下一个id
                 		long value = sequenceHandler.nextId(tableName.toUpperCase());
                         executeSql = executeSql.replaceFirst(matcher.group(1), " "+Long.toString(value));
                         pair.session.getSource().setLastWriteTime(TimeUtil.currentTimeMillis());

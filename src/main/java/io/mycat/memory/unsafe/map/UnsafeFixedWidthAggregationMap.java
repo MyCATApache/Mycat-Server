@@ -25,8 +25,8 @@ import io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager;
 import io.mycat.memory.unsafe.row.StructType;
 import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.memory.unsafe.utils.sort.UnsafeKVExternalSorter;
-import org.apache.log4j.Logger;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -36,7 +36,7 @@ import java.io.IOException;
  * This map supports a maximum of 2 billion keys.
  */
 public final class UnsafeFixedWidthAggregationMap {
-    private static Logger LOGGER = Logger.getLogger(UnsafeFixedWidthAggregationMap.class);
+    private static Logger LOGGER = LoggerFactory.getLogger(UnsafeFixedWidthAggregationMap.class);
 
   /**
    * An empty aggregation buffer, encoded in UnsafeRow format. When inserting a new key into the

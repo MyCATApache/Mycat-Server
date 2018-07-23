@@ -1,14 +1,6 @@
 package io.mycat.config.loader.zkprocess.zktoxml.listen;
 
-import java.io.File;
-import java.util.List;
-
 import io.mycat.MycatServer;
-import io.mycat.manager.response.ReloadConfig;
-import org.apache.curator.framework.CuratorFramework;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
@@ -27,6 +19,14 @@ import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
 import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDirectoryImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import io.mycat.manager.response.ReloadConfig;
+import io.mycat.util.ZKUtils;
+import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.List;
 
 /**
  * 进行schema的文件从zk中加载
@@ -97,8 +97,7 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements NotiflyService
         this.zookeeperListen = zookeeperListen;
 
         // 获得当前集群的名称
-        String schemaPath = zookeeperListen.getBasePath();
-        schemaPath = schemaPath + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FOW_ZK_PATH_SCHEMA.getKey();
+        String schemaPath = ZKUtils.getZKBasePath() + ZookeeperPath.FOW_ZK_PATH_SCHEMA.getKey();
 
         currZkPath = schemaPath;
         // 将当前自己注册为事件接收对象
@@ -108,6 +107,11 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements NotiflyService
         this.parseSchemaXmlService = new SchemasParseXmlImpl(xmlParseBase);
     }
 
+    /**
+     * 处理通知，zk配置更新 需要从zk中拉取配置到本地
+     * @return
+     * @throws Exception
+     */
     @Override
     public boolean notiflyProcess() throws Exception {
         // 1,将集群schema目录下的所有集群按层次结构加载出来
@@ -150,21 +154,21 @@ public class SchemaszkToxmlLoader extends ZkMultLoader implements NotiflyService
     private Schemas zktoSchemasBean(ZkDirectoryImpl zkDirectory) {
         Schemas schema = new Schemas();
 
-        // 得到schema对象的目录信息
+        // 得到schema对象的目录信息 schema
         DataInf schemaZkDirectory = this.getZkData(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey());
         List<Schema> schemaList = parseJsonSchema.parseJsonToBean(schemaZkDirectory.getDataValue());
         schema.setSchema(schemaList);
 
         this.zookeeperListen.watchPath(currZkPath, ZookeeperPath.FLOW_ZK_PATH_SCHEMA_SCHEMA.getKey());
 
-        // 得到dataNode的信息
+        // 得到dataNode的信息 dataNode
         DataInf dataNodeZkDirectory = this.getZkData(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey());
         List<DataNode> dataNodeList = parseJsonDataNode.parseJsonToBean(dataNodeZkDirectory.getDataValue());
         schema.setDataNode(dataNodeList);
 
         this.zookeeperListen.watchPath(currZkPath, ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATANODE.getKey());
 
-        // 得到dataNode的信息
+        // 得到dataHost的信息 dataHost
         DataInf dataHostZkDirectory = this.getZkData(zkDirectory, ZookeeperPath.FLOW_ZK_PATH_SCHEMA_DATAHOST.getKey());
         List<DataHost> dataHostList = parseJsonDataHost.parseJsonToBean(dataHostZkDirectory.getDataValue());
         schema.setDataHost(dataHostList);

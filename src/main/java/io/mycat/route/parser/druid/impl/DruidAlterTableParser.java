@@ -1,23 +1,18 @@
 package io.mycat.route.parser.druid.impl;
 
-import java.sql.SQLNonTransientException;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
-
-
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
-
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.util.StringUtil;
 
+import java.sql.SQLNonTransientException;
+
 /**
- * alter table 语句解析
- * @author wang.dw
+ * Druid 修改表解析器
  *
+ * @author wang.dw
  */
 public class DruidAlterTableParser extends DefaultDruidParser {
 	@Override

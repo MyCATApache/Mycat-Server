@@ -1,7 +1,5 @@
 package io.mycat.manager.response;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.backend.mysql.nio.MySQLConnection;
@@ -16,6 +14,8 @@ import io.mycat.util.IntegerUtil;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
 import io.mycat.util.TimeUtil;
+
+import java.nio.ByteBuffer;
 
 /**
  * 查询 reload @@config_all 后产生的后端连接（待回收）
