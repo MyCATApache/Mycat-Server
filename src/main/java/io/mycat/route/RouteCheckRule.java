@@ -1,10 +1,8 @@
 package io.mycat.route;
 
-import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.route.function.PartitionByCRC32PreSlot.Range;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 

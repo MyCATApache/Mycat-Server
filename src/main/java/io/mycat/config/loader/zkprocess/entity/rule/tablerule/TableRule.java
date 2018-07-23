@@ -1,12 +1,8 @@
 package io.mycat.config.loader.zkprocess.entity.rule.tablerule;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlType;
-
 import io.mycat.config.loader.zkprocess.entity.Named;
+
+import javax.xml.bind.annotation.*;
 
 /**
  * * <tableRule name="rule1">

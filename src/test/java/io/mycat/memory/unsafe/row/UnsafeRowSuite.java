@@ -2,12 +2,11 @@ package io.mycat.memory.unsafe.row;
 
 
 import junit.framework.Assert;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 import java.math.BigDecimal;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Created by zagnix on 2016/6/10.

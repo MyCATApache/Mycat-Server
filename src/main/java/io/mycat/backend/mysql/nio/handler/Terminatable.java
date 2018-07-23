@@ -24,8 +24,13 @@
 package io.mycat.backend.mysql.nio.handler;
 
 /**
+ * 可终止
  * @author mycat
  */
 public interface Terminatable {
+    /**
+     * 终止
+     * @param runnable
+     */
     void terminate(Runnable runnable);
 }

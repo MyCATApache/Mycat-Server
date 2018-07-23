@@ -35,22 +35,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 前端查询处理器管理器
+ *
  * @author mycat
  */
 public class ManagerQueryHandler implements FrontendQueryHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ManagerQueryHandler.class);
+    // 转移
     private static final int SHIFT = 8;
+    // 前端连接管理器
     private final ManagerConnection source;
+    // 是否只读标志
     protected Boolean readOnly;
 
     public ManagerQueryHandler(ManagerConnection source) {
         this.source = source;
     }
 
+    /**
+     * 设置是否只读
+     * @param readOnly
+     */
+    @Override
     public void setReadOnly(Boolean readOnly) {
         this.readOnly = readOnly;
     }
 
+    /**
+     * 执行SQL查询
+     * @param sql
+     */
     @Override
     public void query(String sql) {
         ManagerConnection c = this.source;

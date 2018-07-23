@@ -23,11 +23,11 @@
  */
 package io.mycat;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import io.mycat.cache.CacheStatic;
 import io.mycat.cache.LayerCachePool;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class SimpleCachePool implements LayerCachePool {
 	private HashMap<Object, Object> cacheMap = new HashMap<Object, Object>();

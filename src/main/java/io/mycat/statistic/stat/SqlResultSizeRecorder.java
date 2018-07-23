@@ -1,8 +1,8 @@
 package io.mycat.statistic.stat;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 大结果集 SQL

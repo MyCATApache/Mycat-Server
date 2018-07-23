@@ -23,12 +23,12 @@
  */
 package io.mycat.server.handler;
 
-import io.mycat.config.ErrorCode;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.parser.ServerParseStart;
 
 /**
+ * Start 语句处理器
  * @author mycat
  */
 public final class StartHandler {
@@ -37,11 +37,9 @@ public final class StartHandler {
     public static void handle(String stmt, ServerConnection c, int offset) {
         switch (ServerParseStart.parse(stmt, offset)) {
         case ServerParseStart.TRANSACTION:
-            if (c.isAutocommit())
-            {
+            if (c.isAutocommit()) {
                 c.write(c.writeToBuffer(AC_OFF, c.allocate()));
-            }else
-            {
+            }else {
                 c.getSession2().commit() ;
             }
             c.setAutocommit(false);

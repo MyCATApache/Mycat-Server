@@ -23,10 +23,9 @@
  */
 package io.mycat.cache.impl;
 
-import org.mapdb.HTreeMap;
-
 import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheStatic;
+import org.mapdb.HTreeMap;
 
 public class MapDBCachePool implements CachePool {
 

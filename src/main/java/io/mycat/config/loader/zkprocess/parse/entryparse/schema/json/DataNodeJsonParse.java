@@ -1,13 +1,12 @@
 package io.mycat.config.loader.zkprocess.parse.entryparse.schema.json;
 
-import java.lang.reflect.Type;
-import java.util.List;
-
 import com.google.gson.reflect.TypeToken;
-
 import io.mycat.config.loader.zkprocess.entity.schema.datanode.DataNode;
 import io.mycat.config.loader.zkprocess.parse.JsonProcessBase;
 import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
+
+import java.lang.reflect.Type;
+import java.util.List;
 
 /**
  * 进行将datanode数据与json的转化

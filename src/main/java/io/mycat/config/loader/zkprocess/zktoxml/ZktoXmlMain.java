@@ -1,9 +1,17 @@
 package io.mycat.config.loader.zkprocess.zktoxml;
 
-import java.util.Set;
-
+import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
+import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
+import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
+import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
 import io.mycat.config.loader.zkprocess.zktoxml.command.CommandPathListener;
 import io.mycat.config.loader.zkprocess.zktoxml.listen.*;
+import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import io.mycat.manager.handler.ZKHandler;
+import io.mycat.migrate.MigrateTaskWatch;
+import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
@@ -13,34 +21,25 @@ import org.apache.zookeeper.CreateMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.mycat.config.loader.console.ZookeeperPath;
-import io.mycat.config.loader.zkprocess.comm.ZkConfig;
-import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
-import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
-import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
-import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
-import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
-import io.mycat.manager.handler.ZKHandler;
-import io.mycat.migrate.MigrateTaskWatch;
-import io.mycat.util.ZKUtils;
+import java.util.Set;
 
 /**
- * 将xk的信息转换为xml文件的操作
-* 源文件名：ZktoxmlMain.java
-* 文件版本：1.0.0
-* 创建作者：liujun
-* 创建日期：2016年9月20日
-* 修改作者：liujun
-* 修改日期：2016年9月20日
-* 文件描述：TODO
-* 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
-*/
+ * 将zk的信息转换为xml文件的操作
+ * 源文件名：ZktoxmlMain.java
+ * 文件版本：1.0.0
+ * 创建作者：liujun
+ * 创建日期：2016年9月20日
+ * 修改作者：liujun
+ * 修改日期：2016年9月20日
+ * 文件描述：TODO
+ * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
+ */
 public class ZktoXmlMain {
 
     /**
      * 日志
-    * @字段说明 LOGGER
-    */
+     * @字段说明 LOGGER
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkMultLoader.class);
 
     /**
@@ -55,8 +54,8 @@ public class ZktoXmlMain {
 
     /**
      * 将zk数据放到到本地
-    * 方法描述
-     * @throws Exception 
+     * 方法描述
+     * @throws Exception
      * @创建日期 2016年9月21日
     */
     public static void loadZktoFile() throws Exception {
@@ -83,7 +82,7 @@ public class ZktoXmlMain {
         // rule文件加载
         // new RuleszkToxmlLoader(zkListen, zkConn, xmlProcess);
         ZKUtils.addChildPathCache(ZKUtils.getZKBasePath() + "rules", new RuleFunctionCacheListener());
-        // 将序列配制信息加载
+        // 将序列配置信息加载
         new SequenceTopropertiesLoader(ZKLISTENER, zkConn, xmlProcess);
 
         // 进行ehcache转换
@@ -111,11 +110,12 @@ public class ZktoXmlMain {
         // 接收zk发送过来的命令
         runCommandWatch(zkConn, ZKUtils.getZKBasePath() + ZKHandler.ZK_NODE_PATH);
 
+        // 开启迁移任务观察
         MigrateTaskWatch.start();
     }
 
     private static void loadZkWatch(Set<String> setPaths, final CuratorFramework zkConn,
-            final ZookeeperProcessListen zkListen) throws Exception {
+                                    final ZookeeperProcessListen zkListen) throws Exception {
 
         if (null != setPaths && !setPaths.isEmpty()) {
             for (String path : setPaths) {
@@ -130,13 +130,12 @@ public class ZktoXmlMain {
 
     /**
      * 进行命令的监听操作
-    * 方法描述
-    * @param zkConn zk的连接信息
-    * @param path 路径信息
-    * @param ZKLISTENER 监控路径信息
-    * @throws Exception
-    * @创建日期 2016年9月20日
-    */
+     * 方法描述
+     * @param zkConn zk的连接信息
+     * @param path 路径信息
+     * @throws Exception
+     * @创建日期 2016年9月20日
+     */
     @SuppressWarnings("resource")
     private static void runCommandWatch(final CuratorFramework zkConn, final String path) throws Exception {
 
@@ -152,33 +151,35 @@ public class ZktoXmlMain {
 
     /**
      * 创建临时节点测试
-    * 方法描述
-    * @param parent
-    * @param node
-    * @param zkConn
-    * @throws Exception
-    * @创建日期 2016年9月20日
-    */
+     * 方法描述
+     * @param parent
+     * @param node
+     * @param zkConn
+     * @param type
+     * @throws Exception
+     * @创建日期 2016年9月20日
+     */
     private static void createTempNode(String parent, String node, final CuratorFramework zkConn, String type)
             throws Exception {
 
         String path = ZKPaths.makePath(parent, node);
 
-        zkConn.create().withMode(CreateMode.EPHEMERAL).inBackground().forPath(path, type.getBytes("UTF-8"));
-
+        if(zkConn!=null && type!=null){
+            zkConn.create().withMode(CreateMode.EPHEMERAL).inBackground().forPath(path, type.getBytes("UTF-8"));
+        }
     }
 
     /**
      * 进行zk的watch操作
-    * 方法描述
-    * @param zkConn zk的连接信息
-    * @param path 路径信息
-    * @param zkListen 监控路径信息
-    * @throws Exception
-    * @创建日期 2016年9月20日
-    */
+     * 方法描述
+     * @param zkConn zk的连接信息
+     * @param path 路径信息
+     * @param zkListen 监控路径信息
+     * @throws Exception
+     * @创建日期 2016年9月20日
+     */
     private static NodeCache runWatch(final CuratorFramework zkConn, final String path,
-            final ZookeeperProcessListen zkListen) throws Exception {
+                                      final ZookeeperProcessListen zkListen) throws Exception {
         final NodeCache cache = new NodeCache(zkConn, path);
 
         NodeCacheListener listen = new NodeCacheListener() {

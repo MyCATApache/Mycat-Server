@@ -1,11 +1,11 @@
 package io.mycat.sqlengine;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 当SQLJob的结果有多行时，利用该处理器进行处理

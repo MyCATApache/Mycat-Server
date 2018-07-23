@@ -1,10 +1,8 @@
 package io.mycat.parser;
 
-import junit.framework.Assert;
-
-import org.junit.Test;
-
 import io.mycat.server.parser.ServerParse;
+import junit.framework.Assert;
+import org.junit.Test;
 
 public class ServerParseTest {
 	/**

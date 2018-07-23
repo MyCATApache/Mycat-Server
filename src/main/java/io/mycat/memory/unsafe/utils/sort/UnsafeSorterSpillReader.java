@@ -23,7 +23,6 @@ import io.mycat.memory.unsafe.Platform;
 import io.mycat.memory.unsafe.storage.ConnectionId;
 import io.mycat.memory.unsafe.storage.SerializerManager;
 
-
 import java.io.*;
 
 /**

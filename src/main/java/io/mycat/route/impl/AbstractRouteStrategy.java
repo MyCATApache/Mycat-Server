@@ -1,10 +1,5 @@
 package io.mycat.route.impl;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
@@ -15,25 +10,33 @@ import io.mycat.route.util.RouterUtil;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.LoadData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+
+/**
+ * 抽象路由策略
+ */
 public abstract class AbstractRouteStrategy implements RouteStrategy {
-	
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRouteStrategy.class);
 
 	@Override
 	public RouteResultset route(SystemConfig sysConfig, SchemaConfig schema, int sqlType, String origSQL,
-			String charset, ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
-
+								String charset, ServerConnection sc, LayerCachePool cachePool) throws SQLNonTransientException {
 		//对应schema标签checkSQLschema属性，把表示schema的字符去掉
 		if (schema.isCheckSQLSchema()) {
+			// 已检查SQL逻辑库数据库，去掉SQL的逻辑库数据库
 			origSQL = RouterUtil.removeSchema(origSQL, schema.getName());
 		}
 
 		/**
-     * 处理一些路由之前的逻辑
-     * 全局序列号，父子表插入
-     */
-		if ( beforeRouteProcess(schema, sqlType, origSQL, sc) ) {
+		 * 处理一些路由之前的逻辑
+		 * 全局序列号，父子表插入
+		 */
+		if (beforeRouteProcess(schema, sqlType, origSQL, sc)) {
 			return null;
 		}
 
@@ -52,13 +55,14 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		 * 优化debug loaddata输出cache的日志会极大降低性能
 		 */
 		if (LOGGER.isDebugEnabled() && origSQL.startsWith(LoadData.loadDataHint)) {
+			// 设置路有结果集不需要缓存
 			rrs.setCacheAble(false);
 		}
 
-        /**
-         * rrs携带ServerConnection的autocommit状态用于在sql解析的时候遇到
-         * select ... for update的时候动态设定RouteResultsetNode的canRunInReadDB属性
-         */
+		/**
+		 * rrs携带ServerConnection的autocommit状态用于在sql解析的时候遇到
+		 * select ... for update的时候动态设定RouteResultsetNode的canRunInReadDB属性
+		 */
 		if (sc != null ) {
 			rrs.setAutocommit(sc.isAutocommit());
 		}
@@ -74,6 +78,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		 * 检查是否有分片
 		 */
 		if (schema.isNoSharding() && ServerParse.SHOW != sqlType) {
+			// 不是分片 并且不是show类型sql
 			rrs = RouterUtil.routeToSingleNode(rrs, schema.getDataNode(), stmt);
 		} else {
 			RouteResultset returnedSet = routeSystemInfo(schema, sqlType, stmt, rrs);
@@ -91,7 +96,6 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	 */
 	private boolean beforeRouteProcess(SchemaConfig schema, int sqlType, String origSQL, ServerConnection sc)
 			throws SQLNonTransientException {
-		
 		return RouterUtil.processWithMycatSeq(schema, sqlType, origSQL, sc)
 				|| (sqlType == ServerParse.INSERT && RouterUtil.processERChildTable(schema, origSQL, sc))
 				|| (sqlType == ServerParse.INSERT && RouterUtil.processInsert(schema, sqlType, origSQL, sc));
@@ -99,18 +103,38 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 
 	/**
 	 * 通过解析AST语法树类来寻找路由
+	 * @param schema 逻辑库配置
+	 * @param stmt sql语句
+	 * @param rrs 路由结果集
+	 * @param charset 字符编码
+	 * @param cachePool 缓存池
+	 * @param sqlType sql类型
+	 * @param sc 前端的服务器连接
+	 * @return 路由结果集
+	 * @throws SQLNonTransientException
 	 */
 	public abstract RouteResultset routeNormalSqlWithAST(SchemaConfig schema, String stmt, RouteResultset rrs,
-			String charset, LayerCachePool cachePool,int sqlType,ServerConnection sc) throws SQLNonTransientException;
+														 String charset, LayerCachePool cachePool,int sqlType,ServerConnection sc) throws SQLNonTransientException;
 
 	/**
 	 * 路由信息指令, 如 SHOW、SELECT@@、DESCRIBE
+	 * @param schema 逻辑库配置
+	 * @param sqlType sql类型
+	 * @param stmt sql语句
+	 * @param rrs 路由结果集
+	 * @return 路由结果集
+	 * @throws SQLSyntaxErrorException
 	 */
 	public abstract RouteResultset routeSystemInfo(SchemaConfig schema, int sqlType, String stmt, RouteResultset rrs)
 			throws SQLSyntaxErrorException;
 
 	/**
 	 * 解析 Show 之类的语句
+	 * @param schema 逻辑库配置
+	 * @param rrs 路由结果集
+	 * @param stmt sql语句
+	 * @return 路由结果集
+	 * @throws SQLNonTransientException
 	 */
 	public abstract RouteResultset analyseShowSQL(SchemaConfig schema, RouteResultset rrs, String stmt)
 			throws SQLNonTransientException;

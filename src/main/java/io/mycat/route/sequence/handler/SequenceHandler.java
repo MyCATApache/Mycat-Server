@@ -31,6 +31,11 @@ package io.mycat.route.sequence.handler;
  */
 public interface SequenceHandler {
 
+	/**
+	 * 下一个id
+	 * @param prefixName
+	 * @return
+	 */
 	public long nextId(String prefixName);
 
 }

@@ -1,9 +1,5 @@
 package io.mycat.route.parser.druid.impl;
 
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -18,9 +14,12 @@ import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelect;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
 import com.alibaba.druid.util.JdbcConstants;
-
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
+
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -154,33 +153,24 @@ public class DruidSelectDb2Parser extends DruidSelectOracleParser
         {
             parseNativeSql(stmt,rrs,mysqlSelectQuery,schema);
         }
-        if(isNeedParseOrderAgg)
-        {
+        if(isNeedParseOrderAgg) {
             parseOrderAggGroupOracle(stmt,rrs,  mysqlSelectQuery, schema);
         }
     }
 
 
     private static final  Pattern pattern = Pattern.compile("FETCH(?:\\s)+FIRST(?:\\s)+(\\d+)(?:\\s)+ROWS(?:\\s)+ONLY",Pattern.CASE_INSENSITIVE);
-    protected void parseNativeSql(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery,SchemaConfig schema)
-    {
-
+    protected void parseNativeSql(SQLStatement stmt,RouteResultset rrs, OracleSelectQueryBlock mysqlSelectQuery,SchemaConfig schema) {
         Matcher matcher = pattern.matcher(getCtx().getSql());
-        while (matcher.find())
-        {
+        while (matcher.find()) {
 
-          String  row=    matcher.group(1);
+            String  row=    matcher.group(1);
             rrs.setLimitStart(0);
             rrs.setLimitSize(Integer.parseInt(row));
         }
     }
 
-    protected String getCurentDbType()
-    {
+    protected String getCurentDbType() {
         return JdbcConstants.DB2;
     }
-
-
-
-
 }

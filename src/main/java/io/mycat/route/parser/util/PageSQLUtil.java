@@ -21,32 +21,35 @@ import com.alibaba.druid.util.JdbcConstants;
 import java.util.List;
 
 /**
+ * SQL分页工具
  * Created by magicdoom on 2015/3/15.
  */
-public class PageSQLUtil
-{
-    public static String convertLimitToNativePageSql(String dbType, String sql, int offset, int count)
-    {
-        if (JdbcConstants.ORACLE.equalsIgnoreCase(dbType))
-        {
+public class PageSQLUtil {
+
+    /**
+     * 将limit转成本地支持的数据库方言的分页sql
+     * @param dbType
+     * @param sql
+     * @param offset
+     * @param count
+     * @return
+     */
+    public static String convertLimitToNativePageSql(String dbType, String sql, int offset, int count) {
+        if (JdbcConstants.ORACLE.equalsIgnoreCase(dbType)) { // Oracle数据库
             OracleStatementParser oracleParser = new OracleStatementParser(sql);
             SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
             return PagerUtils.limit(oracleStmt.getSelect(), JdbcConstants.ORACLE, offset, count);
-        } else if (JdbcConstants.SQL_SERVER.equalsIgnoreCase(dbType))
-        {
-            SQLServerStatementParser oracleParser = new SQLServerStatementParser(sql);
-            SQLSelectStatement sqlserverStmt = (SQLSelectStatement) oracleParser.parseStatement();
+        } else if (JdbcConstants.SQL_SERVER.equalsIgnoreCase(dbType)) { // SQLServer数据库
+            SQLServerStatementParser sqlServerParser = new SQLServerStatementParser(sql);
+            SQLSelectStatement sqlserverStmt = (SQLSelectStatement) sqlServerParser.parseStatement();
             SQLSelect select = sqlserverStmt.getSelect();
-            SQLOrderBy orderBy=  select.getOrderBy() ;
-            if(orderBy==null)
-            {
-                SQLSelectQuery sqlSelectQuery=      select.getQuery();
-                if(sqlSelectQuery instanceof SQLServerSelectQueryBlock)
-                {
-                    SQLServerSelectQueryBlock sqlServerSelectQueryBlock= (SQLServerSelectQueryBlock) sqlSelectQuery;
-                    SQLTableSource from=       sqlServerSelectQueryBlock.getFrom();
-                    if("limit".equalsIgnoreCase(from.getAlias()))
-                    {
+            SQLOrderBy orderBy = select.getOrderBy() ;
+            if(orderBy == null) {
+                SQLSelectQuery sqlSelectQuery = select.getQuery();
+                if(sqlSelectQuery instanceof SQLServerSelectQueryBlock) {
+                    SQLServerSelectQueryBlock sqlServerSelectQueryBlock = (SQLServerSelectQueryBlock) sqlSelectQuery;
+                    SQLTableSource from = sqlServerSelectQueryBlock.getFrom();
+                    if("limit".equalsIgnoreCase(from.getAlias())) {
                         from.setAlias(null);
                     }
                 }
@@ -54,23 +57,18 @@ public class PageSQLUtil
                 select.setOrderBy(newOrderBy);
 
             }
-
             return 	PagerUtils.limit(select, JdbcConstants.SQL_SERVER, offset, count)  ;
-        }
-        else if (JdbcConstants.DB2.equalsIgnoreCase(dbType))
-        {
+        } else if (JdbcConstants.DB2.equalsIgnoreCase(dbType)) { // DB2数据库
             DB2StatementParser db2Parser = new DB2StatementParser(sql);
             SQLSelectStatement db2Stmt = (SQLSelectStatement) db2Parser.parseStatement();
 
             return limitDB2(db2Stmt.getSelect(), JdbcConstants.DB2, offset, count);
-        }  else if (JdbcConstants.POSTGRESQL.equalsIgnoreCase(dbType))
-        {
+        }  else if (JdbcConstants.POSTGRESQL.equalsIgnoreCase(dbType)) { // PostgreSQL数据库
             PGSQLStatementParser pgParser = new PGSQLStatementParser(sql);
             SQLSelectStatement pgStmt = (SQLSelectStatement) pgParser.parseStatement();
             SQLSelect select = pgStmt.getSelect();
             SQLSelectQuery query= select.getQuery();
-            if(query instanceof PGSelectQueryBlock)
-            {
+            if(query instanceof PGSelectQueryBlock) {
                 PGSelectQueryBlock pgSelectQueryBlock= (PGSelectQueryBlock) query;
                 pgSelectQueryBlock.setOffset(null);
                 pgSelectQueryBlock.setLimit(null);
@@ -78,14 +76,12 @@ public class PageSQLUtil
             }
             return PagerUtils.limit(select, JdbcConstants.POSTGRESQL, offset, count);
 
-        }  else if (JdbcConstants.MYSQL.equalsIgnoreCase(dbType))
-        {
+        }  else if (JdbcConstants.MYSQL.equalsIgnoreCase(dbType)) { // MySQL数据库
             MySqlStatementParser pgParser = new MySqlStatementParser(sql);
             SQLSelectStatement pgStmt = (SQLSelectStatement) pgParser.parseStatement();
             SQLSelect select = pgStmt.getSelect();
             SQLSelectQuery query= select.getQuery();
-            if(query instanceof MySqlSelectQueryBlock)
-            {
+            if(query instanceof MySqlSelectQueryBlock) {
                 MySqlSelectQueryBlock pgSelectQueryBlock= (MySqlSelectQueryBlock) query;
                 pgSelectQueryBlock.setLimit(null);
             }
@@ -95,8 +91,7 @@ public class PageSQLUtil
         return sql;
 
     }
-    private static String limitDB2(SQLSelect select, String dbType, int offset, int count)
-    {
+    private static String limitDB2(SQLSelect select, String dbType, int offset, int count) {
         SQLSelectQuery query = select.getQuery();
 
         SQLBinaryOpExpr gt = new SQLBinaryOpExpr(new SQLIdentifierExpr("ROWNUM"), //
@@ -109,18 +104,15 @@ public class PageSQLUtil
                 JdbcConstants.DB2);
         SQLBinaryOpExpr pageCondition = new SQLBinaryOpExpr(gt, SQLBinaryOperator.BooleanAnd, lteq, JdbcConstants.DB2);
 
-        if (query instanceof SQLSelectQueryBlock)
-        {
+        if (query instanceof SQLSelectQueryBlock) {
             DB2SelectQueryBlock queryBlock = (DB2SelectQueryBlock) query;
 
             List<SQLSelectItem> selectItemList = queryBlock.getSelectList();
-            for (int i = 0; i < selectItemList.size(); i++)
-            {
+            for (int i = 0; i < selectItemList.size(); i++) {
                 SQLSelectItem sqlSelectItem = selectItemList.get(i);
                 SQLExpr expr = sqlSelectItem.getExpr();
                 String alias = sqlSelectItem.getAlias();
-                if (expr instanceof SQLAllColumnExpr && alias == null)
-                {
+                if (expr instanceof SQLAllColumnExpr && alias == null) {
                     //未加别名会报语法错误
                     sqlSelectItem.setExpr(new SQLPropertyExpr(new SQLIdentifierExpr("XXYY"), "*"));
                     queryBlock.getFrom().setAlias("XXYY");
@@ -160,8 +152,7 @@ public class PageSQLUtil
 
         countQueryBlock.setFrom(new SQLSubqueryTableSource(select, "XX"));
 
-        if (offset <= 0)
-        {
+        if (offset <= 0) {
             return SQLUtils.toSQLString(countQueryBlock, dbType);
         }
 

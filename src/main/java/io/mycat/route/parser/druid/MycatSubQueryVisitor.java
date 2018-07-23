@@ -9,7 +9,12 @@ import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 public class MycatSubQueryVisitor extends MySqlSchemaStatVisitor{
 	
 	private boolean relationOr;
-	
+
+	/**
+	 * SQL二元操作表达式处理
+	 * @param x
+	 * @return
+	 */
 	@Override
 	public boolean visit(SQLBinaryOpExpr x) {
 

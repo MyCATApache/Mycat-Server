@@ -23,43 +23,66 @@
  */
 package io.mycat.route;
 
-import java.io.Serializable;
-import java.util.Map;
-import java.util.Set;
-
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.LoadData;
 
+import java.io.Serializable;
+import java.util.Map;
+
 /**
+ * 路由结果集节点
  * @author mycat
  */
 public final class RouteResultsetNode implements Serializable , Comparable<RouteResultsetNode> {
-	/**
-	 *
-	 */
+
 	private static final long serialVersionUID = 1L;
-	private final String name; // 数据节点名称
-	private String statement; // 执行的语句
+	/**
+	 * 数据节点名称
+	 */
+	private final String name;
+	/**
+	 * 执行的语句
+	 */
+	private String statement;
+	/**
+	 * 原来的语句
+	 */
 	private final String srcStatement;
 	private final int sqlType;
 	private volatile boolean canRunInReadDB;
 	private final boolean hasBlanceFlag;
-    private boolean callStatement = false; // 处理call关键字
+	/**
+	 * 处理call关键字
+	 */
+    private boolean callStatement = false;
 	private int limitStart;
 	private int limitSize;
-	private int totalNodeSize =0; //方便后续jdbc批量获取扩展
-   private Procedure procedure;
+	/**
+	 * 方便后续jdbc批量获取扩展
+	 */
+	private int totalNodeSize = 0;
+   	private Procedure procedure;
 	private LoadData loadData;
+	/**
+	 * 路由结果集
+	 */
 	private RouteResultset source;
-	
-	// 强制走 master，可以通过 RouteResultset的属性canRunInReadDB(false)
-	// 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
-	private Boolean runOnSlave = null;	// 默认null表示不施加影响, true走slave,false走master
-	
-	private String subTableName; // 分表的表名
 
-	//迁移算法用     -2代表不是slot分片  ，-1代表扫描所有分片
-	private int slot=-2;
+	/**
+	 * 默认null表示不施加影响, true走slave,false走master
+	 * 强制走 master，可以通过 RouteResultset的属性canRunInReadDB(false)
+	 * 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
+	 */
+	private Boolean runOnSlave = null;
+	/**
+	 * 分表的表名
+	 */
+	private String subTableName;
+
+	/**
+	 * 迁移算法用 -2代表不是slot分片，-1代表扫描所有分片
+	 */
+	private int slot = -2;
 	
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
 		this.name = name;
@@ -69,8 +92,7 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		this.srcStatement = srcStatement;
 		this.statement = srcStatement;
 		canRunInReadDB = (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW);
-		hasBlanceFlag = (statement != null)
-				&& statement.startsWith("/*balance*/");
+		hasBlanceFlag = (statement != null) && statement.startsWith("/*balance*/");
 	}
 
 	public Boolean getRunOnSlave() {
@@ -83,7 +105,8 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	public void setRunOnSlave(Boolean runOnSlave) {
 		this.runOnSlave = runOnSlave;
 	}
-	  private Map hintMap;
+
+	private Map hintMap;
 
     public Map getHintMap()
     {
@@ -130,7 +153,8 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 //		return canRunInReadDB && autocommit && !hasBlanceFlag
 //			|| canRunInReadDB && !autocommit && hasBlanceFlag;
 //	}
-  public Procedure getProcedure()
+
+	public Procedure getProcedure()
     {
         return procedure;
     }
@@ -157,7 +181,8 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
     {
         this.callStatement = callStatement;
     }
-	public String getName() {
+
+    public String getName() {
 		return name;
 	}
 
@@ -194,8 +219,11 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		return totalNodeSize;
 	}
 
-	public void setTotalNodeSize(int totalNodeSize)
-	{
+	/**
+	 * 设置总数节点
+	 * @param totalNodeSize
+	 */
+	public void setTotalNodeSize(int totalNodeSize) {
 		this.totalNodeSize = totalNodeSize;
 	}
 
@@ -260,13 +288,13 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	public boolean isModifySQL() {
 		return !canRunInReadDB;
 	}
+
 	public boolean isDisctTable() {
 		if(subTableName!=null && !subTableName.equals("")){
 			return true;
-		};
+		}
 		return false;
 	}
-	
 
 	@Override
 	public int compareTo(RouteResultsetNode obj) {

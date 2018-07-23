@@ -1,16 +1,15 @@
 package io.mycat.util.dataMigrator;
 
+import com.alibaba.druid.util.JdbcUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.druid.util.JdbcUtils;
 
 /**
  * 清理数据扩容缩容后的冗余数据

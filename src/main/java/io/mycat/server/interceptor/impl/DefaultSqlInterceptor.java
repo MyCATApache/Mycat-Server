@@ -4,12 +4,16 @@ import io.mycat.MycatServer;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.server.interceptor.SQLInterceptor;
 
+/**
+ * 默认SQL拦截器
+ */
 public class DefaultSqlInterceptor implements SQLInterceptor {
 	private static final char ESCAPE_CHAR = '\\';
 
 	private static final int TARGET_STRING_LENGTH = 2;
 
 	/**
+	 * 处理转义字符
 	 * mysql driver对'转义与\',解析前改为foundationdb parser支持的'' add by sky
 	 * 
 	 * @param sql
@@ -47,13 +51,16 @@ public class DefaultSqlInterceptor implements SQLInterceptor {
 	@Override
 	public String interceptSQL(String sql, int sqlType) {
 		if("fdbparser".equals(MycatServer.getInstance().getConfig().getSystem().getDefaultSqlParser())) {
+			//如果默认的sql解析器是fdbparser 需要处理转义字符
 			sql = processEscape(sql);
 		}
 		
 		// 全局表一致性 sql 改写拦截
 		SystemConfig system = MycatServer.getInstance().getConfig().getSystem();
-		if(system != null && system.getUseGlobleTableCheck() == 1) // 全局表一致性检测是否开启
+		if(system != null && system.getUseGlobleTableCheck() == 1) {
+			// 全局表一致性检测是否开启
 			sql = GlobalTableUtil.interceptSQL(sql, sqlType);
+		}
 		
 		// other interceptors put in here ....
 		

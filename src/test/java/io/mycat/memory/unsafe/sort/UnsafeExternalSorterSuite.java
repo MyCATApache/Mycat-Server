@@ -23,7 +23,6 @@ import io.mycat.memory.unsafe.memory.TestMemoryManager;
 import io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager;
 import io.mycat.memory.unsafe.storage.DataNodeDiskManager;
 import io.mycat.memory.unsafe.storage.DataNodeFileManager;
-import io.mycat.memory.unsafe.storage.DiskRowWriter;
 import io.mycat.memory.unsafe.storage.SerializerManager;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import io.mycat.memory.unsafe.utils.sort.*;
@@ -33,11 +32,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.LinkedList;
 
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.*;

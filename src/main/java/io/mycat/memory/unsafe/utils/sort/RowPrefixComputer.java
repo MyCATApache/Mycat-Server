@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 import java.io.UnsupportedEncodingException;
 
 /**
+ * 行前缀计算器
  * Created by zagnix on 2016/6/20.
  */
 public class RowPrefixComputer extends UnsafeExternalRowSorter.PrefixComputer {

@@ -1,21 +1,11 @@
 package io.mycat.route.parser.druid.impl;
 
-import java.sql.SQLNonTransientException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat.Condition;
-
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
@@ -25,12 +15,21 @@ import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.sqlengine.mpp.RangeValue;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
+ * 默认 Druid 解析
  * 对SQLStatement解析
  * 主要通过visitor解析和statement解析：有些类型的SQLStatement通过visitor解析足够了，
- *  有些只能通过statement解析才能得到所有信息
- *  有些需要通过两种方式解析才能得到完整信息
+ * 有些只能通过statement解析才能得到所有信息，有些需要通过两种方式解析才能得到完整信息
+ *
  * @author wang.dw
  *
  */
@@ -54,11 +53,18 @@ public class DefaultDruidParser implements DruidParser {
 	}
 	
 	/**
+	 * 解析
 	 * 使用MycatSchemaStatVisitor解析,得到tables、tableAliasMap、conditions等
 	 * @param schema
+	 * @param rrs
 	 * @param stmt
+	 * @param originSql
+	 * @param cachePool
+	 * @param schemaStatVisitor
+	 * @throws SQLNonTransientException
 	 */
-	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool,MycatSchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException {
+	@Override
+	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql, LayerCachePool cachePool, MycatSchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException {
 		ctx = new DruidShardingParseInfo();
 		//设置为原始sql，如果有需要改写sql的，可以通过修改SQLStatement中的属性，然后调用SQLStatement.toString()得到改写的sql
 		ctx.setSql(originSql);
@@ -80,8 +86,13 @@ public class DefaultDruidParser implements DruidParser {
 	}
 	
 	/**
+	 * statement方式解析
 	 * 子类可覆盖（如果visitorParse解析得不到表名、字段等信息的，就通过覆盖该方法来解析）
 	 * 子类覆盖该方法一般是将SQLStatement转型后再解析（如转型为MySqlInsertStatement）
+	 * @param schema
+	 * @param rrs
+	 * @param stmt
+	 * @throws SQLNonTransientException
 	 */
 	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
@@ -89,7 +100,12 @@ public class DefaultDruidParser implements DruidParser {
 	}
 	
 	/**
-	 * 改写sql：如insert是
+	 * 改写sql：加limit，加group by、加order by如有些没有加limit的可以通过该方法增加
+	 * @param schema
+	 * @param rrs
+	 * @param stmt
+	 * @param cachePool
+	 * @throws SQLNonTransientException
 	 */
 	@Override
 	public void changeSql(SchemaConfig schema, RouteResultset rrs,
@@ -100,11 +116,15 @@ public class DefaultDruidParser implements DruidParser {
 	/**
 	 * 子类可覆盖（如果该方法解析得不到表名、字段等信息的，就覆盖该方法，覆盖成空方法，然后通过statementPparse去解析）
 	 * 通过visitor解析：有些类型的Statement通过visitor解析得不到表名、
+	 *
+	 * @param rrs
 	 * @param stmt
+	 * @param visitor
+	 * @throws SQLNonTransientException
 	 */
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt,MycatSchemaStatVisitor visitor) throws SQLNonTransientException{
-
+	public void visitorParse(RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor) throws SQLNonTransientException{
+		// 使用visitor来访问AST
 		stmt.accept(visitor);
 		ctx.setVisitor(visitor);
 
@@ -212,7 +232,12 @@ public class DefaultDruidParser implements DruidParser {
 		}
 		return false;
 	}
-	
+
+	/**
+	 * 获取解析到的信息
+	 * @return
+	 */
+	@Override
 	public DruidShardingParseInfo getCtx() {
 		return ctx;
 	}

@@ -23,22 +23,15 @@
  */
 package io.mycat.sqlengine.mpp;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.CompareUtil;
 import io.mycat.util.LongUtil;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 /**
  * implement group function select a,count(*),sum(*) from A group by a

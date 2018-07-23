@@ -23,12 +23,11 @@
  */
 package io.mycat.util;
 
-import java.util.Collection;
-import java.util.Iterator;
-
-import io.mycat.util.SmallSet;
 import junit.framework.Assert;
 import junit.framework.TestCase;
+
+import java.util.Collection;
+import java.util.Iterator;
 
 /**
  * @author mycat

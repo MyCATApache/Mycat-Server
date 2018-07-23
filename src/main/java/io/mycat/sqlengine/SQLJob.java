@@ -1,9 +1,5 @@
 package io.mycat.sqlengine;
 
-import java.util.List;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
@@ -14,9 +10,15 @@ import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
+ * SQL任务
  * asyn execute in EngineCtx or standalone (EngineCtx=null)
+ * 在 EngineCtx 或 单独(EngineCtx=null) 异步执行
  * 
  * @author wuzhih
  * 
@@ -34,8 +36,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 	private final int id;
 	private volatile boolean finished;
 
-	public SQLJob(int id, String sql, String dataNode,
-			SQLJobHandler jobHandler, EngineCtx ctx) {
+	public SQLJob(int id, String sql, String dataNode, SQLJobHandler jobHandler, EngineCtx ctx) {
 		super();
 		this.id = id;
 		this.sql = sql;
@@ -45,8 +46,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 		this.ds = null;
 	}
 
-	public SQLJob(String sql, String databaseName, SQLJobHandler jobHandler,
-			PhysicalDatasource ds) {
+	public SQLJob(String sql, String databaseName, SQLJobHandler jobHandler, PhysicalDatasource ds) {
 		super();
 		this.id = 0;
 		this.sql = sql;
@@ -57,12 +57,14 @@ public class SQLJob implements ResponseHandler, Runnable {
 
 	}
 
+	/**
+	 * 执行SQL查询
+	 */
 	public void run() {
 		try {
 			if (ds == null) {
-				RouteResultsetNode node = new RouteResultsetNode(
-						dataNodeOrDatabase, ServerParse.SELECT, sql);
-				// create new connection
+				RouteResultsetNode node = new RouteResultsetNode( dataNodeOrDatabase, ServerParse.SELECT, sql);
+				// 创建新连接
 				MycatConfig conf = MycatServer.getInstance().getConfig();
 				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
 				dn.getConnection(dn.getDatabase(), true, node, this, node);
@@ -76,8 +78,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 	}
 
 	public void teminate(String reason) {
-		LOGGER.info("terminate this job reason:" + reason + " con:"
-				+ connection + " sql " + this.sql);
+		LOGGER.info("terminate this job reason:" + reason + " con:" + connection + " sql " + this.sql);
 		if (connection != null) {
 			connection.close(reason);
 		}
@@ -102,7 +103,6 @@ public class SQLJob implements ResponseHandler, Runnable {
 		} catch (Exception e) {// (UnsupportedEncodingException e) {
 			doFinished(true,e.getMessage());
 		}
-
 	}
 
 	public boolean isFinished() {
@@ -131,20 +131,15 @@ public class SQLJob implements ResponseHandler, Runnable {
 		ErrorPacket errPg = new ErrorPacket();
 		errPg.read(err);
 		
-		String errMsg = "error response errno:" + errPg.errno + ", " + new String(errPg.message)
-				+ " from of sql :" + sql + " at con:" + conn;
+		String errMsg = "error response errno:" + errPg.errno + ", " + new String(errPg.message) + " from of sql :" + sql + " at con:" + conn;
 		
 		// @see https://dev.mysql.com/doc/refman/5.6/en/error-messages-server.html
 		// ER_SPECIFIC_ACCESS_DENIED_ERROR
 		if ( errPg.errno == 1227  ) {
 			LOGGER.warn( errMsg );	
-			
 		}  else {
 			LOGGER.info( errMsg );
 		}
-		
-		
-		
 		doFinished(true,errMsg);
 		conn.release();
 	}
@@ -177,7 +172,6 @@ public class SQLJob implements ResponseHandler, Runnable {
 			doFinished(false,null);
 			conn.close("not needed by user proc");
 		}
-
 	}
 
 	@Override

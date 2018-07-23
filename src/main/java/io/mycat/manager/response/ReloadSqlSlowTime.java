@@ -1,13 +1,13 @@
 package io.mycat.manager.response;
 
-import java.util.Map;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.statistic.stat.UserStat;
 import io.mycat.statistic.stat.UserStatAnalyzer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 public class ReloadSqlSlowTime {
 	private static final Logger logger = LoggerFactory.getLogger(ReloadSqlSlowTime.class);

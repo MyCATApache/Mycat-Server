@@ -1,12 +1,12 @@
 package io.mycat.route.parser.druid;
 
+import io.mycat.sqlengine.mpp.ColumnRoutePair;
+import io.mycat.sqlengine.mpp.RangeValue;
+
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-
-import io.mycat.sqlengine.mpp.ColumnRoutePair;
-import io.mycat.sqlengine.mpp.RangeValue;
 
 /**
  * 路由计算单元

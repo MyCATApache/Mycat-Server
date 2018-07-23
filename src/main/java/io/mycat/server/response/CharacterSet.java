@@ -23,18 +23,16 @@
  */
 package io.mycat.server.response;
 
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CLIENT;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CONNECTION;
-import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_RESULTS;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.config.ErrorCode;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParseSet;
 import io.mycat.util.SetIgnoreUtil;
 import io.mycat.util.SplitUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static io.mycat.server.parser.ServerParseSet.*;
 
 /**
  * 字符集属性设置

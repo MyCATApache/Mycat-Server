@@ -23,16 +23,15 @@
  */
 package io.mycat.statistic;
 
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
+import io.mycat.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.mycat.util.TimeUtil;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
+ * 心跳记录
  * 记录最近3个时段的平均响应时间，默认1，10，30分钟。
  * 
  * @author mycat
@@ -165,7 +164,5 @@ public class HeartbeatRecorder {
 		public void setTime(long time) {
 			this.time = time;
 		}
-        
-        
     }
 }

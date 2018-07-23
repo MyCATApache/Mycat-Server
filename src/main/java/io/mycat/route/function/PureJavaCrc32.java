@@ -18,9 +18,9 @@ package io.mycat.route.function;
  * limitations under the License.
  */
 
-        import java.util.HashSet;
-        import java.util.Set;
-        import java.util.zip.Checksum;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.zip.Checksum;
 
 /**
  * A pure-java implementation of the CRC32 checksum that uses
