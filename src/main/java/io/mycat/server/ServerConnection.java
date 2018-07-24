@@ -205,11 +205,13 @@ public class ServerConnection extends FrontendConnection {
 		String table = null;
 		SchemaConfig schemaConfig = null;
 		TableConfig tableConfig = null;
-		if(schemaInfo!=null
-				&& schemaInfo.schema!=null
-				&& schemaInfo.table!=null){
-			schema = schemaInfo.schema;
-			table = schemaInfo.table;
+		if(schemaInfo!=null){
+			if(schemaInfo.schema!=null){
+				schema = schemaInfo.schema;
+			}
+			if(schemaInfo.table!=null){
+				table = schemaInfo.table;
+			}
 		}
 		if(schema == null && table == null){
 			// 设置操作 如
