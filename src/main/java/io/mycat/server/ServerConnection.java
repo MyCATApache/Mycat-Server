@@ -199,9 +199,12 @@ public class ServerConnection extends FrontendConnection {
 		// 11. 是否包含数据表。如果是走5；如果不是走11
 
 		// 分析sql
+		Map<String, SchemaConfig> schemaConfigMap = MycatServer.getInstance().getConfig().getSchemas();
 		SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
 		String schema = null;
 		String table = null;
+		SchemaConfig schemaConfig = null;
+		TableConfig tableConfig = null;
 		if(schemaInfo!=null
 				&& schemaInfo.schema!=null
 				&& schemaInfo.table!=null){
@@ -219,9 +222,17 @@ public class ServerConnection extends FrontendConnection {
 			// show create table `表名`;
 			// SHOW DATABASES;
 			// 等
+			schema = SchemaUtil.detectDefaultDb(sql, type);
+			if(schema != null){
+				schemaConfig = schemaConfigMap.get(schema);
+				if(schemaConfig!=null){
+					routeEndExecuteSQL(sql, type, schemaConfig);
+					return;
+				}
+			}
+			MysqlInformationSchemaHandler.handle(sql, this);
 			return;
 		}
-		Map<String, SchemaConfig> schemaConfigMap = MycatServer.getInstance().getConfig().getSchemas();
 		if(schemaConfigMap==null || schemaConfigMap.size()==0){
 			// Mycat没有逻辑库配置
 			String msg = "Mycat has no configuration information";
@@ -229,8 +240,6 @@ public class ServerConnection extends FrontendConnection {
 			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, msg);
 			return;
 		}
-		SchemaConfig schemaConfig = null;
-		TableConfig tableConfig = null;
 		if(schema!=null){
 			if(ArrayUtil.arraySearch(mysqlSelfDbs,schema.toLowerCase())){
 				// MySQL自带数据库的查询
@@ -240,6 +249,18 @@ public class ServerConnection extends FrontendConnection {
 					MysqlProcHandler.handle(sql, this);
 					return;
 				}else if("information_schema".equalsIgnoreCase(schema)){
+					if(ServerParse.SELECT == type
+							&& "profiling".equalsIgnoreCase(table)
+							&& sql.toUpperCase().trim().contains("CONCAT(ROUND(SUM(DURATION)/")){
+						//fix navicat
+						// SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage`
+						// FROM INFORMATION_SCHEMA.PROFILING
+						// WHERE QUERY_ID=
+						// GROUP BY STATE
+						// ORDER BY SEQ
+						InformationSchemaProfiling.response(this);
+						return;
+					}
 					// TODO fix navicat
 					// SELECT action_order, event_object_table, trigger_name, event_manipulation, event_object_table, definer, action_statement, action_timing
 					// FROM information_schema.triggers
@@ -255,18 +276,7 @@ public class ServerConnection extends FrontendConnection {
 					// UNION SELECT COUNT(*)
 					// FROM information_schema.ROUTINES
 					// WHERE ROUTINE_SCHEMA = '数据库名'
-					if(ServerParse.SELECT == type
-							&& "profiling".equalsIgnoreCase(table)
-							&& sql.toUpperCase().trim().contains("CONCAT(ROUND(SUM(DURATION)/")){
-						//fix navicat
-						// SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage`
-						// FROM INFORMATION_SCHEMA.PROFILING
-						// WHERE QUERY_ID=
-						// GROUP BY STATE
-						// ORDER BY SEQ
-						InformationSchemaProfiling.response(this);
-						return;
-					}
+					MysqlInformationSchemaHandler.handle(sql, this);
 					return;
 				}else{
 					// 兼容PhpAdmin's, 支持对MySQL元数据的模拟返回
@@ -288,7 +298,9 @@ public class ServerConnection extends FrontendConnection {
 			if(schema!=null){
 				if(schemaConfig==null){
 					schemaConfig = schemaConfigMap.get(schema);
-					tableConfig = schemaConfig.getTables().get(table);
+				}
+				if(schemaConfig!=null){
+					tableConfig = schemaConfig.getTables().get(table.toUpperCase());
 				}
 			}else{
 				for(String schemaKey : schemaConfigMap.keySet()){
