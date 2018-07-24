@@ -89,7 +89,7 @@ public class SchemaUtil {
             return null;
         }
         // 获取当前表
-        String key = schemaStatVisitor.getTables().keySet().iterator().next().getName();// druid 1.1.3 没有这个方法
+        String key = schemaStatVisitor.getTables().keySet().iterator().next().getName(); // 这里可能有问题
         if (key != null && key.contains("`")) {
             key = key.replaceAll("`", "");
         }
