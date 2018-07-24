@@ -368,14 +368,13 @@ public class XMLSchemaLoader implements SchemaLoader {
                     //对于实现TableRuleAware的function进行特殊处理  根据每个表新建个实例
                     RuleConfig rule = tableRuleConfig.getRule();
                     if (rule.getRuleAlgorithm() instanceof TableRuleAware) {
+                        //因为ObjectUtil.copyObject是深拷贝,所以会把crc32的算法也拷贝一份状态,而不是公用一个分片数
                         tableRuleConfig = (TableRuleConfig) ObjectUtil.copyObject(tableRuleConfig);
-                        //tableRules.remove(tableRuleConfig.getName())   ;
-                        String newRuleName = tableRuleConfig.getName() + "_" + schemaName + "_" + tableName;
+                        String name = tableRuleConfig.getName();
+                        String newRuleName = getNewRuleName(schemaName, tableName, name);
                         tableRuleConfig.setName(newRuleName);
                         TableRuleAware tableRuleAware = (TableRuleAware) tableRuleConfig.getRule().getRuleAlgorithm();
                         tableRuleAware.setRuleName(newRuleName);
-                        tableRuleAware.setTableName(tableName);
-                        tableRuleConfig.getRule().getRuleAlgorithm().init();
                         tableRules.put(newRuleName, tableRuleConfig);
                     }
                 }
@@ -385,7 +384,12 @@ public class XMLSchemaLoader implements SchemaLoader {
                         getDbType(dataNode),
                         (tableRuleConfig != null) ? tableRuleConfig.getRule() : null,
                         ruleRequired, null, false, null, null, subTables);
-
+                //因为需要等待TableConfig构造完毕才可以拿到dataNode节点数量,所以Rule构造延后到此处 @cjw
+                if ((tableRuleConfig != null) && (tableRuleConfig.getRule().getRuleAlgorithm() instanceof TableRuleAware)) {
+                    AbstractPartitionAlgorithm newRuleAlgorithm = tableRuleConfig.getRule().getRuleAlgorithm();
+                    ((TableRuleAware)newRuleAlgorithm).setTableConfig(table);
+                    newRuleAlgorithm.init();
+                }
                 checkDataNodeExists(table.getDataNodes());
                 // 检查分片表分片规则配置是否合法
                 if (table.getRule() != null) {
@@ -410,6 +414,10 @@ public class XMLSchemaLoader implements SchemaLoader {
             }
         }
         return tables;
+    }
+
+    private String getNewRuleName(String schemaName, String tableName, String name) {
+        return name + "_" + schemaName + "_" + tableName;
     }
 
     /**
