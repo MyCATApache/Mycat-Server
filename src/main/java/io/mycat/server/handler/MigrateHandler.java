@@ -187,12 +187,23 @@ public final class MigrateHandler {
                 writeErrMessage(c, "table: " + table + " rule is not be PartitionByCRC32PreSlot");
                 return;
             }
-
             Map<Integer, List<Range>> integerListMap = ((PartitionByCRC32PreSlot) algorithm).getRangeMap();
             integerListMap = (Map<Integer, List<Range>>) ObjectUtil.copyObject(integerListMap);
 
             ArrayList<String> oldDataNodes = tableConfig.getDataNodes();
+            Map<String, PhysicalDBNode> allDataNodes = MycatServer.getInstance().getConfig().getDataNodes();
             List<String> newDataNodes = Splitter.on(",").omitEmptyStrings().trimResults().splitToList(add);
+            for (String newDataNode : newDataNodes) {
+                if (tableConfig.getDataNodes().contains(newDataNode)) {
+                    writeErrMessage(c, "The dataNode " + newDataNode+" that needs to be added already exists\n");
+                    return;
+                }
+                if(!allDataNodes.containsKey(newDataNode)){
+                    writeErrMessage(c, "The dataNode " + newDataNode+" does not exist\n");
+                    return;
+                }
+            }
+
             Map<String, List<MigrateTask>> tasks = MigrateUtils
                     .balanceExpand(table, integerListMap, oldDataNodes, newDataNodes, PartitionByCRC32PreSlot.DEFAULT_SLOTS_NUM);
 
