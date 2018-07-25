@@ -24,11 +24,16 @@
 package io.mycat.server;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.BackendConnection;
+import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
+import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.handler.MysqlInformationSchemaHandler;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
@@ -36,6 +41,10 @@ import io.mycat.server.response.Heartbeat;
 import io.mycat.server.response.InformationSchemaProfiling;
 import io.mycat.server.response.Ping;
 import io.mycat.server.util.SchemaUtil;
+import io.mycat.sqlengine.AllJobFinishedListener;
+import io.mycat.sqlengine.EngineCtx;
+import io.mycat.sqlengine.MultiRowSQLQueryResultHandler;
+import io.mycat.sqlengine.SQLJobHandler;
 import io.mycat.util.ArrayUtil;
 import io.mycat.util.SplitUtil;
 import io.mycat.util.TimeUtil;
@@ -44,7 +53,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -162,108 +173,141 @@ public class ServerConnection extends FrontendConnection {
 	}
 
 	/**
+	 * 获取后端数据库连接
+	 * @param schema
+	 * @return
+	 */
+	private BackendConnection getBackendConnection(String dataHosts, String schema){
+		BackendConnection con = MycatServer.getInstance().getConfig()
+				.getDataHosts().get(dataHosts).getSource().getConMap().tryTakeCon(schema, autocommit);
+		if(con==null){
+			return null;
+		}
+		return con;
+	}
+
+	/**
+	 * MySQL自带数据库（information_schema,mysql,performance_schema,sys）的操作
+	 * 或是类似SET NAMES utf8mb4;USE `数据库名`;select @@character_set_databased的操作
+	 * 需要发到关联的所有MySQL执行并返回结果
+	 * @param sql
+	 * @param type
+	 */
+	private void doDBSelfTableOpt(final String sql, final int type){
+		if(this.schema!=null){
+			SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(this.schema);
+			if(schemaConfig!=null){
+				// 由于利用SDLJob执行有bug 所以采用以下方式
+				routeEndExecuteSQL(sql, type, schemaConfig); // 由于利用SDLJob执行有bug 所以采用这个方式。这个方式虽然逻辑上有问题 但是可以达到将sql发送给所有的mysql执行 后续再想办法优化
+				return;
+			}
+		}
+		MysqlInformationSchemaHandler.handle(sql, this);
+	}
+
+	/**
 	 * 执行sql
 	 * @param sql
 	 * @param type
 	 */
 	public void execute(String sql, int type) {
-		//连接状态检查
-		if (this.isClosed()) {
-			LOGGER.warn("ignore execute, server connection is closed " + this);
-			return;
-		}
-		// 事务状态检查
-		if (txInterrupted) {
-			writeErrMessage(ErrorCode.ER_YES,
-					"Transaction error, need to rollback." + txInterrputMsg);
-			return;
-		}
+        //连接状态检查
+        if (this.isClosed()) {
+            LOGGER.warn("ignore execute, server connection is closed " + this);
+            return;
+        }
+        // 事务状态检查
+        if (txInterrupted) {
+            writeErrMessage(ErrorCode.ER_YES,
+                    "Transaction error, need to rollback." + txInterrputMsg);
+            return;
+        }
 
-		// TODO 以下逻辑有问题，需要改为以下方式
-		// 1. 应先分析sql
-		// 2. 是否包含数据库。如果是走3；如果不是走11
-		// 3. 是否有相对应的逻辑库配置。如果是走4；如果不是走7
-		// 4. 是否包含数据表。如果是走5；如果不是走10
-		// 5. 是否有对应的逻辑表配置。如果是走6；如果不是走9
-		// 6. 路由分析并发给相应的MySQL执行并返回结果
-		// 7. 是否是MySQL自带数据库（information_schema,mysql,performance_schema,sys）的操作
-		//    或是类似SET NAMES utf8mb4;USE `数据库名`;select @@character_set_databased的操作。如果是走8；如果不是走9
-		// 8. 发到关联的所有MySQL执行并返回结果
-		// 9. 返回提示不支持信息
-		// 10. 是否对数据库进行操作。如果是走8；如果不是走9
-		// 11. 是否包含数据表。如果是走5；如果不是走11
+        // TODO 以下逻辑有问题，需要改为以下方式
+        // 1. 应先分析sql
+        // 2. 是否包含数据库。如果是走3；如果不是走11
+        // 3. 是否有相对应的逻辑库配置。如果是走4；如果不是走7
+        // 4. 是否包含数据表。如果是走5；如果不是走10
+        // 5. 是否有对应的逻辑表配置。如果是走6；如果不是走9
+        // 6. 路由分析并发给相应的MySQL执行并返回结果
+        // 7. 是否是MySQL自带数据库（information_schema,mysql,performance_schema,sys）的操作
+        //    或是类似SET NAMES utf8mb4;USE `数据库名`;select @@character_set_databased的操作。如果是走8；如果不是走9
+        // 8. 发到关联的所有MySQL执行并返回结果
+        // 9. 返回提示不支持信息
+        // 10. 是否对数据库进行操作。如果是走8；如果不是走9
+        // 11. 是否包含数据表。如果是走5；如果不是走11
 
-		// 分析sql
-		Map<String, SchemaConfig> schemaConfigMap = MycatServer.getInstance().getConfig().getSchemas();
-		SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
-		String schema = null;
-		String table = null;
-		SchemaConfig schemaConfig = null;
-		TableConfig tableConfig = null;
-		if(schemaInfo!=null){
-			if(schemaInfo.schema!=null){
-				schema = schemaInfo.schema;
-			}
-			if(schemaInfo.table!=null){
-				table = schemaInfo.table;
-			}
-		}
-		if(schema == null && table == null){
-			// 设置操作 如
-			// select @@collation_database;
-			// SET NAMES utf8mb4;
-			// SHOW VARIABLES LIKE 'lower_case_%';
-			// SHOW FULL TABLES WHERE Table_Type != 'VIEW';
-			// SHOW TABLE STATUS;
-			// show table status like '表名';
-			// show create table `表名`;
-			// SHOW DATABASES;
-			// 等
-			schema = SchemaUtil.detectDefaultDb(sql, type);
-			if(schema != null){
-				schemaConfig = schemaConfigMap.get(schema);
-				if(schemaConfig!=null){
-					routeEndExecuteSQL(sql, type, schemaConfig);
-					return;
-				}
-			}
-			MysqlInformationSchemaHandler.handle(sql, this);
-			return;
-		}
-		if(schemaConfigMap==null || schemaConfigMap.size()==0){
-			// Mycat没有逻辑库配置
-			String msg = "Mycat has no configuration information";
-			LOGGER.warn(msg);
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, msg);
-			return;
-		}
-		if(schema!=null){
-			if(ArrayUtil.arraySearch(mysqlSelfDbs,schema.toLowerCase())){
-				// MySQL自带数据库的查询
-				if ("mysql".equalsIgnoreCase(schema)
-						&& "proc".equalsIgnoreCase(table)) {
-					// 兼容MySQLWorkbench
-					MysqlProcHandler.handle(sql, this);
-					return;
-				}else if("information_schema".equalsIgnoreCase(schema)){
-					if(ServerParse.SELECT == type
-							&& "profiling".equalsIgnoreCase(table)
-							&& sql.toUpperCase().trim().contains("CONCAT(ROUND(SUM(DURATION)/")){
-						//fix navicat
-						// SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage`
-						// FROM INFORMATION_SCHEMA.PROFILING
-						// WHERE QUERY_ID=
-						// GROUP BY STATE
-						// ORDER BY SEQ
-						InformationSchemaProfiling.response(this);
-						return;
-					}
-					// TODO fix navicat
+        // 分析sql
+        Map<String, SchemaConfig> schemaConfigMap = MycatServer.getInstance().getConfig().getSchemas();
+        SchemaUtil.SchemaInfo schemaInfo = SchemaUtil.parseSchema(sql);
+        String schema = null;
+        String table = null;
+        SchemaConfig schemaConfig = null;
+        TableConfig tableConfig = null;
+        if(schemaInfo!=null){
+            if(schemaInfo.schema!=null){
+                schema = schemaInfo.schema;
+            }
+            if(schemaInfo.table!=null){
+                table = schemaInfo.table;
+            }
+        }
+        if(schema == null && table == null){
+            // 设置操作 如
+            // select @@collation_database;
+            // SET NAMES utf8mb4;
+            // SHOW VARIABLES LIKE 'lower_case_%';
+            // SHOW FULL TABLES WHERE Table_Type != 'VIEW';
+            // SHOW TABLE STATUS;
+            // show table status like '表名';
+            // show create table `表名`;
+            // SHOW DATABASES;
+            // 等
+//            schema = SchemaUtil.detectDefaultDb(sql, type);
+//            if(schema != null){
+//                schemaConfig = schemaConfigMap.get(schema);
+//                if(schemaConfig!=null){
+//                    routeEndExecuteSQL(sql, type, schemaConfig);
+//                    return;
+//                }
+//            }
+//            MysqlInformationSchemaHandler.handle(sql, this);
+			doDBSelfTableOpt(sql, type);
+            return;
+        }
+        if(schemaConfigMap==null || schemaConfigMap.size()==0){
+            // Mycat没有逻辑库配置
+            String msg = "Mycat has no configuration information";
+            LOGGER.warn(msg);
+            writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, msg);
+            return;
+        }
+        if(schema!=null){
+            if(ArrayUtil.arraySearch(mysqlSelfDbs,schema.toLowerCase())){
+                // MySQL自带数据库的查询
+                if ("mysql".equalsIgnoreCase(schema)
+                        && "proc".equalsIgnoreCase(table)) {
+                    // 兼容MySQLWorkbench
+                    MysqlProcHandler.handle(sql, this);
+                    return;
+                }else if("information_schema".equalsIgnoreCase(schema)){
+                    if(ServerParse.SELECT == type
+                            && "profiling".equalsIgnoreCase(table)
+                            && sql.toUpperCase().trim().contains("CONCAT(ROUND(SUM(DURATION)/")){
+                        //fix navicat
+                        // SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage`
+                        // FROM INFORMATION_SCHEMA.PROFILING
+                        // WHERE QUERY_ID=
+                        // GROUP BY STATE
+                        // ORDER BY SEQ
+                        InformationSchemaProfiling.response(this);
+                        return;
+                    }
+					// fix navicat
 					// SELECT action_order, event_object_table, trigger_name, event_manipulation, event_object_table, definer, action_statement, action_timing
 					// FROM information_schema.triggers
 					// WHERE BINARY event_object_schema = '数据库名' AND BINARY event_object_table = '数据表名'
 					// ORDER BY event_object_table
-					//
 					// SELECT COUNT(*)
 					// FROM information_schema.TABLES
 					// WHERE TABLE_SCHEMA = '数据库名'
@@ -273,72 +317,73 @@ public class ServerConnection extends FrontendConnection {
 					// UNION SELECT COUNT(*)
 					// FROM information_schema.ROUTINES
 					// WHERE ROUTINE_SCHEMA = '数据库名'
-					MysqlInformationSchemaHandler.handle(sql, this);
-					return;
-				}else{
-					// 兼容PhpAdmin's, 支持对MySQL元数据的模拟返回
-					MysqlInformationSchemaHandler.handle(sql, this);
-					return;
-				}
-			} else {
-				schemaConfig = schemaConfigMap.get(schema);
-				if(schemaConfig==null){
-					// 不在Mycat逻辑库配置里 不支持的数据库
-					String msg = "Mycat does not support this schema:" + schema;
-					LOGGER.warn(msg);
-					writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, msg);
-					return;
-				}
-			}
-		}
-		if(table!=null){
-			if(schema!=null){
-				if(schemaConfig==null){
-					schemaConfig = schemaConfigMap.get(schema);
-				}
-				if(schemaConfig!=null){
-					tableConfig = schemaConfig.getTables().get(table.toUpperCase());
-				}
-			}else{
-				for(String schemaKey : schemaConfigMap.keySet()){
-					Map<String, TableConfig> tableConfigMap = schemaConfigMap.get(schemaKey).getTables();
-					if(tableConfigMap==null || tableConfigMap.size()==0){
-						continue;
-					}
-					for(String tableKey : tableConfigMap.keySet()){
-						TableConfig itemConfig = tableConfigMap.get(tableKey);
-						if(tableKey.equalsIgnoreCase(table) && itemConfig!=null){
-							schemaConfig = schemaConfigMap.get(schemaKey);
-							schema = schemaKey;
-							tableConfig = itemConfig;
-							break;
-						}
-					}
-					if(tableConfig!=null){
-						break;
-					}
-				}
-			}
-		}
-		if(schema == null){
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
-			return;
-		}
-		if (schemaConfig == null) {
-			String msg = "Unknown MyCAT Database '" + schema + "'";
-			LOGGER.warn(msg);
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, msg);
-			return;
-		}
-		if(tableConfig==null){
-			// 不在Mycat的逻辑表配置里 不支持的数据表
-			String msg = "Mycat does not support this table:" + table;
-			LOGGER.warn(msg);
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, msg);
-			return;
-		}
-		this.schema = schema;
-		routeEndExecuteSQL(sql, type, schemaConfig);
+//            		MysqlInformationSchemaHandler.handle(sql, this);
+					doDBSelfTableOpt(sql, type);
+                    return;
+                }else{
+                    // 兼容PhpAdmin's, 支持对MySQL元数据的模拟返回
+                    MysqlInformationSchemaHandler.handle(sql, this);
+                    return;
+                }
+            } else {
+                schemaConfig = schemaConfigMap.get(schema);
+                if(schemaConfig==null){
+                    // 不在Mycat逻辑库配置里 不支持的数据库
+                    String msg = "Mycat does not support this schema:" + schema;
+                    LOGGER.warn(msg);
+                    writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, msg);
+                    return;
+                }
+            }
+        }
+        if(table!=null){
+            if(schema!=null){
+                if(schemaConfig==null){
+                    schemaConfig = schemaConfigMap.get(schema);
+                }
+                if(schemaConfig!=null){
+                    tableConfig = schemaConfig.getTables().get(table.toUpperCase());
+                }
+            }else{
+                for(String schemaKey : schemaConfigMap.keySet()){
+                    Map<String, TableConfig> tableConfigMap = schemaConfigMap.get(schemaKey).getTables();
+                    if(tableConfigMap==null || tableConfigMap.size()==0){
+                        continue;
+                    }
+                    for(String tableKey : tableConfigMap.keySet()){
+                        TableConfig itemConfig = tableConfigMap.get(tableKey);
+                        if(tableKey.equalsIgnoreCase(table) && itemConfig!=null){
+                            schemaConfig = schemaConfigMap.get(schemaKey);
+                            schema = schemaKey;
+                            tableConfig = itemConfig;
+                            break;
+                        }
+                    }
+                    if(tableConfig!=null){
+                        break;
+                    }
+                }
+            }
+        }
+        if(schema == null){
+            writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
+            return;
+        }
+        if (schemaConfig == null) {
+            String msg = "Unknown MyCAT Database '" + schema + "'";
+            LOGGER.warn(msg);
+            writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, msg);
+            return;
+        }
+        if(tableConfig==null){
+            // 不在Mycat的逻辑表配置里 不支持的数据表
+            String msg = "Mycat does not support this table:" + table;
+            LOGGER.warn(msg);
+            writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, msg);
+            return;
+        }
+        this.schema = schema;
+        routeEndExecuteSQL(sql, type, schemaConfig);
 	}
 
 	/**
@@ -538,4 +583,39 @@ public class ServerConnection extends FrontendConnection {
 		this.preAcStates = preAcStates;
 	}
 
+}
+
+class DirectDBHandler implements SQLJobHandler {
+	private static final Logger LOGGER = LoggerFactory
+			.getLogger(DirectDBHandler.class);
+
+	private final EngineCtx ctx;
+	private final String[] dataNodes;
+	private List<byte[]> fields;
+
+	public DirectDBHandler(EngineCtx ctx, String[] dataNodes){
+		this.ctx = ctx;
+		this.dataNodes = dataNodes;
+	}
+
+	@Override
+	public void onHeader(String dataNode, byte[] header, List<byte[]> fields) {
+		this.fields = fields;
+	}
+
+	@Override
+	public boolean onRowData(String dataNode, byte[] rowData) {
+		return false;
+	}
+
+	@Override
+	public void finished(String dataNode, boolean failed, String errorMsg) {
+		if(failed){
+			String msg = "dataNode:"+dataNode+" error:"+errorMsg;
+			LOGGER.error(msg);
+			ctx.getSession().getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
+		}else{
+			ctx.endJobInput();
+		}
+	}
 }
