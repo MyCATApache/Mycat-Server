@@ -591,8 +591,11 @@ public class JDBCConnection implements BackendConnection {
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(sql);
 
+			final String charset = sc.getCharset();
+			final ResultSet tempRS = rs;
+
 			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
+			ResultSetUtil.resultSetToFieldPacket(charset, fieldPks, tempRS,
 					this.isSpark);
 			int colunmCount = fieldPks.size();
 			ByteBuffer byteBuf = sc.allocate();
@@ -627,21 +630,19 @@ public class JDBCConnection implements BackendConnection {
 			this.respHandler.fieldEofResponse(header, fields, eof, this);
 
 			// output row
-			while (rs.next()) {
+			while (tempRS.next()) {
 				RowDataPacket curRow = new RowDataPacket(colunmCount);
 				for (int i = 0; i < colunmCount; i++) {
 					int j = i + 1;
 					if(MysqlDefs.isBianry((byte) fieldPks.get(i).type)) {
-						curRow.add(rs.getBytes(j));
+						curRow.add(tempRS.getBytes(j));
 					} else if(fieldPks.get(i).type == MysqlDefs.FIELD_TYPE_DECIMAL ||
 							fieldPks.get(i).type == (MysqlDefs.FIELD_TYPE_NEW_DECIMAL - 256)) { // field type is unsigned byte
 						// ensure that do not use scientific notation format
-						BigDecimal val = rs.getBigDecimal(j);
-						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null,
-								sc.getCharset()));
+						BigDecimal val = tempRS.getBigDecimal(j);
+						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null, charset));
 					} else {
-						curRow.add(StringUtil.encode(rs.getString(j),
-								sc.getCharset()));
+						curRow.add(StringUtil.encode(tempRS.getString(j), charset));
 					}
 
 				}
