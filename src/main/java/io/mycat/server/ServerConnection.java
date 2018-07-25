@@ -24,11 +24,16 @@
 package io.mycat.server;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.BackendConnection;
+import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
+import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.handler.MysqlInformationSchemaHandler;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
@@ -36,6 +41,10 @@ import io.mycat.server.response.Heartbeat;
 import io.mycat.server.response.InformationSchemaProfiling;
 import io.mycat.server.response.Ping;
 import io.mycat.server.util.SchemaUtil;
+import io.mycat.sqlengine.AllJobFinishedListener;
+import io.mycat.sqlengine.EngineCtx;
+import io.mycat.sqlengine.MultiRowSQLQueryResultHandler;
+import io.mycat.sqlengine.SQLJobHandler;
 import io.mycat.util.ArrayUtil;
 import io.mycat.util.SplitUtil;
 import io.mycat.util.TimeUtil;
@@ -44,7 +53,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -162,6 +173,39 @@ public class ServerConnection extends FrontendConnection {
 	}
 
 	/**
+	 * 获取后端数据库连接
+	 * @param schema
+	 * @return
+	 */
+	private BackendConnection getBackendConnection(String dataHosts, String schema){
+		BackendConnection con = MycatServer.getInstance().getConfig()
+				.getDataHosts().get(dataHosts).getSource().getConMap().tryTakeCon(schema, autocommit);
+		if(con==null){
+			return null;
+		}
+		return con;
+	}
+
+	/**
+	 * MySQL自带数据库（information_schema,mysql,performance_schema,sys）的操作
+	 * 或是类似SET NAMES utf8mb4;USE `数据库名`;select @@character_set_databased的操作
+	 * 需要发到关联的所有MySQL执行并返回结果
+	 * @param sql
+	 * @param type
+	 */
+	private void doDBSelfTableOpt(final String sql, final int type){
+		if(this.schema!=null){
+			SchemaConfig schemaConfig = MycatServer.getInstance().getConfig().getSchemas().get(this.schema);
+			if(schemaConfig!=null){
+				// 由于利用SDLJob执行有bug 所以采用以下方式
+				routeEndExecuteSQL(sql, type, schemaConfig); // 由于利用SDLJob执行有bug 所以采用这个方式。这个方式虽然逻辑上有问题 但是可以达到将sql发送给所有的mysql执行 后续再想办法优化
+				return;
+			}
+		}
+		MysqlInformationSchemaHandler.handle(sql, this);
+	}
+
+	/**
 	 * 执行sql
 	 * @param sql
 	 * @param type
@@ -219,15 +263,16 @@ public class ServerConnection extends FrontendConnection {
             // show create table `表名`;
             // SHOW DATABASES;
             // 等
-            schema = SchemaUtil.detectDefaultDb(sql, type);
-            if(schema != null){
-                schemaConfig = schemaConfigMap.get(schema);
-                if(schemaConfig!=null){
-                    routeEndExecuteSQL(sql, type, schemaConfig);
-                    return;
-                }
-            }
-            MysqlInformationSchemaHandler.handle(sql, this);
+//            schema = SchemaUtil.detectDefaultDb(sql, type);
+//            if(schema != null){
+//                schemaConfig = schemaConfigMap.get(schema);
+//                if(schemaConfig!=null){
+//                    routeEndExecuteSQL(sql, type, schemaConfig);
+//                    return;
+//                }
+//            }
+//            MysqlInformationSchemaHandler.handle(sql, this);
+			doDBSelfTableOpt(sql, type);
             return;
         }
         if(schemaConfigMap==null || schemaConfigMap.size()==0){
@@ -258,22 +303,22 @@ public class ServerConnection extends FrontendConnection {
                         InformationSchemaProfiling.response(this);
                         return;
                     }
-                    // TODO fix navicat
-                    // SELECT action_order, event_object_table, trigger_name, event_manipulation, event_object_table, definer, action_statement, action_timing
-                    // FROM information_schema.triggers
-                    // WHERE BINARY event_object_schema = '数据库名' AND BINARY event_object_table = '数据表名'
-                    // ORDER BY event_object_table
-                    //
-                    // SELECT COUNT(*)
-                    // FROM information_schema.TABLES
-                    // WHERE TABLE_SCHEMA = '数据库名'
-                    // UNION SELECT COUNT(*)
-                    // FROM information_schema.COLUMNS
-                    // WHERE TABLE_SCHEMA = '数据库名'
-                    // UNION SELECT COUNT(*)
-                    // FROM information_schema.ROUTINES
-                    // WHERE ROUTINE_SCHEMA = '数据库名'
-                    MysqlInformationSchemaHandler.handle(sql, this);
+					// fix navicat
+					// SELECT action_order, event_object_table, trigger_name, event_manipulation, event_object_table, definer, action_statement, action_timing
+					// FROM information_schema.triggers
+					// WHERE BINARY event_object_schema = '数据库名' AND BINARY event_object_table = '数据表名'
+					// ORDER BY event_object_table
+					// SELECT COUNT(*)
+					// FROM information_schema.TABLES
+					// WHERE TABLE_SCHEMA = '数据库名'
+					// UNION SELECT COUNT(*)
+					// FROM information_schema.COLUMNS
+					// WHERE TABLE_SCHEMA = '数据库名'
+					// UNION SELECT COUNT(*)
+					// FROM information_schema.ROUTINES
+					// WHERE ROUTINE_SCHEMA = '数据库名'
+//            		MysqlInformationSchemaHandler.handle(sql, this);
+					doDBSelfTableOpt(sql, type);
                     return;
                 }else{
                     // 兼容PhpAdmin's, 支持对MySQL元数据的模拟返回
@@ -538,4 +583,39 @@ public class ServerConnection extends FrontendConnection {
 		this.preAcStates = preAcStates;
 	}
 
+}
+
+class DirectDBHandler implements SQLJobHandler {
+	private static final Logger LOGGER = LoggerFactory
+			.getLogger(DirectDBHandler.class);
+
+	private final EngineCtx ctx;
+	private final String[] dataNodes;
+	private List<byte[]> fields;
+
+	public DirectDBHandler(EngineCtx ctx, String[] dataNodes){
+		this.ctx = ctx;
+		this.dataNodes = dataNodes;
+	}
+
+	@Override
+	public void onHeader(String dataNode, byte[] header, List<byte[]> fields) {
+		this.fields = fields;
+	}
+
+	@Override
+	public boolean onRowData(String dataNode, byte[] rowData) {
+		return false;
+	}
+
+	@Override
+	public void finished(String dataNode, boolean failed, String errorMsg) {
+		if(failed){
+			String msg = "dataNode:"+dataNode+" error:"+errorMsg;
+			LOGGER.error(msg);
+			ctx.getSession().getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, errorMsg);
+		}else{
+			ctx.endJobInput();
+		}
+	}
 }

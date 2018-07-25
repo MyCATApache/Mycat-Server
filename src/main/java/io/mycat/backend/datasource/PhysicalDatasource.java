@@ -94,14 +94,16 @@ public abstract class PhysicalDatasource {
 	
 	// 当前存活的总连接数,为什么不直接使用activeCount,主要是因为连接的创建是异步完成的
 	//private volatile AtomicInteger totalConnection = new AtomicInteger(0);
-	
+
 	/**
 	 * 由于在Mycat中，returnCon被多次调用（与takeCon并没有成对调用）导致activeCount、totalConnection容易出现负数
 	 */
 	//private static final String TAKE_CONNECTION_FLAG = "1";
 	//private ConcurrentMap<Long /* ConnectionId */, String /* 常量1*/> takeConnectionContext = new ConcurrentHashMap<>();
 
-	
+	public ConMap getConMap() {
+		return conMap;
+	}
 
 	public PhysicalDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
