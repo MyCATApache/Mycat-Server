@@ -59,7 +59,12 @@
 			<algorithm>latestMonth</algorithm>
 		</rule>
 	</tableRule>
-	
+	<tableRule name="crc32slot">
+		<rule>
+			<columns>id</columns>
+			<algorithm>crc32slot</algorithm>
+		</rule>
+	</tableRule>
 	<tableRule name="auto-sharding-rang-mod">
 		<rule>
 			<columns>id</columns>
@@ -95,7 +100,9 @@
 		<!-- how many data nodes -->
 		<property name="count">3</property>
 	</function>
-
+	<function name="crc32slot"
+			  class="io.mycat.route.function.PartitionByCRC32PreSlot">
+	</function>
 	<function name="func1" class="io.mycat.route.function.PartitionByLong">
 		<property name="partitionCount">8</property>
 		<property name="partitionLength">128</property>
