@@ -75,7 +75,8 @@ public class DefaultDruidParser implements DruidParser {
 		statementParse(schema, rrs, stmt);
 
         //检测ctx中的表是否在配置的逻辑库中存在，不存在的删除
-        if(ctx.getTables()!=null && ctx.getTables().size()>0){
+        if(ctx.getTables()!=null && ctx.getTables().size()>0
+				&& schema!=null && schema.getTables()!=null && schema.getTables().size()>0){
             List<String> tables = new ArrayList<String>();
             for(String table : ctx.getTables()){
                 if(schema.getTables().get(table.toUpperCase()) != null){
