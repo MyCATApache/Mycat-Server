@@ -235,8 +235,8 @@ public class ServerConnection extends FrontendConnection {
 
 		//fix navicat   SELECT STATE AS `State`, ROUND(SUM(DURATION),7) AS `Duration`, CONCAT(ROUND(SUM(DURATION)/*100,3), '%') AS `Percentage` FROM INFORMATION_SCHEMA.PROFILING WHERE QUERY_ID= GROUP BY STATE ORDER BY SEQ
 		if(ServerParse.SELECT == type
-				&& sql.contains(" INFORMATION_SCHEMA.PROFILING ")
-				&& sql.contains("CONCAT(ROUND(SUM(DURATION)/")) {
+				&& sql.toUpperCase().contains(" INFORMATION_SCHEMA.PROFILING ")
+				&& sql.toUpperCase().trim().contains("CONCAT(ROUND(SUM(DURATION)/")) {
 			InformationSchemaProfiling.response(this);
 			return;
 		}
