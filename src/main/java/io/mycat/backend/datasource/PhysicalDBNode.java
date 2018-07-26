@@ -69,7 +69,7 @@ public class PhysicalDBNode {
 		PhysicalDatasource ds = this.dbPool.findDatasouce(exitsCon);
 		if (ds == null) {
 			throw new RuntimeException(
-					"can't find exits connection,maybe fininshed " + exitsCon);
+					"can't find existing connection,maybe fininshed " + exitsCon);
 		} else {
 			ds.getConnection(schema,autocommit, handler, attachment);
 		}
