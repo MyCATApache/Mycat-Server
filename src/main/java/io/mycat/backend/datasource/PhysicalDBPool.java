@@ -102,7 +102,7 @@ public class PhysicalDBPool {
 		this.readSources = readSources;
 		this.allDs = this.genAllDataSources();
 		
-		LOGGER.info("total resouces of dataHost " + this.hostName + " is :" + allDs.size());
+		LOGGER.info("total resources of dataHost " + this.hostName + " is :" + allDs.size());
 		
 		setDataSourceProps();
 	}
@@ -451,9 +451,9 @@ public class PhysicalDBPool {
 	 * @param reason
 	 */
 	public void clearDataSources(String reason) {
-		LOGGER.info("clear datasoure of pool " + this.hostName);
+		LOGGER.info("clear datasource of pool " + this.hostName);
 		for (PhysicalDatasource source : this.allDs) {			
-			LOGGER.info("clear datasoure of pool  " + this.hostName + " ds:" + source.getConfig());
+			LOGGER.info("clear datasource of pool  " + this.hostName + " ds:" + source.getConfig());
 			source.clearCons(reason);
 			source.stopHeartbeat();
 		}
