@@ -431,7 +431,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if(nodeSet.size() == 0) {
 			Collection<String> stringCollection= ctx.getTables();
 			for (String table : stringCollection) {
-				if(table!=null&&table.toLowerCase().contains("information_schema.")) {
+				if(table!=null
+						&& table.toLowerCase().contains("information_schema.")/* TODO 这里有问题 升级druid后解析的table没有库名 */) {
 					rrs = RouterUtil.routeToSingleNode(rrs, schema.getRandomDataNode(), ctx.getSql());
 					rrs.setFinishedRoute(true);
 					return;

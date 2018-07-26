@@ -13,7 +13,9 @@ import io.mycat.route.parser.druid.DruidParser;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
+import io.mycat.server.ServerConnection;
 import io.mycat.sqlengine.mpp.RangeValue;
+import io.mycat.util.ArrayUtil;
 import io.mycat.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,7 +153,10 @@ public class DefaultDruidParser implements DruidParser {
 		}
 		
 		if(visitor.getTables() != null) {
-			ctx.addTables(visitor.getTables());
+			String schema = visitor.getRepository().getDefaultSchemaName();
+			if(schema==null || !ArrayUtil.arraySearch(ServerConnection.mysqlSelfDbs,schema.toLowerCase())){
+				ctx.addTables(visitor.getTables());
+			}
 		}
 		ctx.setRouteCalculateUnits(this.buildRouteCalculateUnits(visitor, mergedConditionList));
 	}

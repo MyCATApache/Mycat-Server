@@ -58,7 +58,6 @@ import java.io.IOException;
 import java.nio.channels.NetworkChannel;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -91,7 +90,7 @@ public class ServerConnection extends FrontendConnection {
 	 */
 	private volatile boolean isLocked = false;
 
-	private final String[] mysqlSelfDbs = {"information_schema","mysql","performance_schema","sys"};
+	public static final String[] mysqlSelfDbs = {"information_schema","mysql","performance_schema","sys"};
 	
 	public ServerConnection(NetworkChannel channel)
 			throws IOException {
@@ -145,8 +144,7 @@ public class ServerConnection extends FrontendConnection {
 		}
 	}
 
-	public boolean isTxInterrupted()
-	{
+	public boolean isTxInterrupted() {
 		return txInterrupted;
 	}
 	public NonBlockingSession getSession2() {
@@ -275,15 +273,6 @@ public class ServerConnection extends FrontendConnection {
             // show create table `表名`;
             // SHOW DATABASES;
             // 等
-//            schema = SchemaUtil.detectDefaultDb(sql, type);
-//            if(schema != null){
-//                schemaConfig = schemaConfigMap.get(schema);
-//                if(schemaConfig!=null){
-//                    routeEndExecuteSQL(sql, type, schemaConfig);
-//                    return;
-//                }
-//            }
-//            MysqlInformationSchemaHandler.handle(sql, this);
 			doDBSelfTableOpt(sql, type);
             return;
         }
@@ -329,7 +318,6 @@ public class ServerConnection extends FrontendConnection {
 					// UNION SELECT COUNT(*)
 					// FROM information_schema.ROUTINES
 					// WHERE ROUTINE_SCHEMA = '数据库名'
-//            		MysqlInformationSchemaHandler.handle(sql, this);
 					doDBSelfTableOpt(sql, type);
                     return;
                 }else{

@@ -1558,6 +1558,7 @@ public class RouterUtil {
 	 * @return
 	 */
 	public static boolean isSystemSchema(String tableName) {
+        /* TODO 这里有问题 升级druid后解析的table没有库名 */
 		// 以information_schema， mysql开头的是系统表
 		if (tableName.startsWith("INFORMATION_SCHEMA.")
 				|| tableName.startsWith("MYSQL.")

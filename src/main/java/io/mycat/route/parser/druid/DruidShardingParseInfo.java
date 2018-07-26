@@ -104,7 +104,7 @@ public class DruidShardingParseInfo {
 			
 			String _tableName = _name.getName().toString().toUpperCase();
 			//系统表直接跳过，路由到默认datanode
-			if(RouterUtil.isSystemSchema(_tableName)){
+			if(RouterUtil.isSystemSchema(_tableName)){/* TODO 这里有问题 升级druid后解析的table没有库名 */
 				continue;
 			}
 			if((dotIndex = _tableName.indexOf('.')) != -1){
