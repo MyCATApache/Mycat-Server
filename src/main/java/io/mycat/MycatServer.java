@@ -23,37 +23,9 @@
  */
 package io.mycat;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-
-import io.mycat.buffer.NettyBufferPool;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -67,6 +39,7 @@ import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.buffer.BufferPool;
 import io.mycat.buffer.DirectByteBufferPool;
+import io.mycat.buffer.NettyBufferPool;
 import io.mycat.cache.CacheService;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.classloader.DynaClassLoader;
@@ -78,14 +51,7 @@ import io.mycat.config.model.TableConfig;
 import io.mycat.config.table.structure.MySQLTableStructureDetector;
 import io.mycat.manager.ManagerConnectionFactory;
 import io.mycat.memory.MyCatMemory;
-import io.mycat.net.AIOAcceptor;
-import io.mycat.net.AIOConnector;
-import io.mycat.net.NIOAcceptor;
-import io.mycat.net.NIOConnector;
-import io.mycat.net.NIOProcessor;
-import io.mycat.net.NIOReactorPool;
-import io.mycat.net.SocketAcceptor;
-import io.mycat.net.SocketConnector;
+import io.mycat.net.*;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
@@ -103,6 +69,23 @@ import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;
 import io.mycat.util.ZKUtils;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author mycat
@@ -114,7 +97,7 @@ public class MycatServer {
 	private static final long TIME_UPDATE_PERIOD = 20L;
 	private static final long DEFAULT_SQL_STAT_RECYCLE_PERIOD = 5 * 1000L;
 	private static final long DEFAULT_OLD_CONNECTION_CLEAR_PERIOD = 5 * 1000L;
-	
+	//mycat实例对象
 	private static final MycatServer INSTANCE = new MycatServer();
 	private static final Logger LOGGER = LoggerFactory.getLogger("MycatServer");
 	private static final Repository fileRepository = new FileSystemRepository();
@@ -146,6 +129,13 @@ public class MycatServer {
 	 */
 	private MyCatMemory myCatMemory = null;
 
+	/**
+	 * @author jiaqing.xu@hand-china.com
+	 * @date 2018/7/17 20:26
+	 * @param
+	 * @return
+	 * @description 单例模式返回INSTANCE实例对象
+	 */
 	public static final MycatServer getInstance() {
 		return INSTANCE;
 	}
@@ -303,6 +293,13 @@ public class MycatServer {
 		return config;
 	}
 
+	/**
+	 * @author jiaqing.xu@hand-china.com
+	 * @date 2018/7/17 20:27
+	 * @param
+	 * @return
+	 * @description 启动之前的方法
+	 */
 	public void beforeStart() {
 		String home = SystemConfig.getHomePath();
 
@@ -310,12 +307,22 @@ public class MycatServer {
 		//ZkConfig.instance().initZk();
 	}
 
+	/**
+	 * @author jiaqing.xu@hand-china.com
+	 * @date 2018/7/17 20:27
+	 * @param
+	 * @return
+	 * @description 正式开始启动服务
+	 */
 	public void startup() throws IOException {
 
+	    //系统配置对象
 		SystemConfig system = config.getSystem();
+		//处理器数目
 		int processorCount = system.getProcessors();
 		
 		//init RouteStrategyFactory first
+        //初始化路由策略工厂 设置默认的sql解析器
 		RouteStrategyFactory.init();
 
 		// server startup
@@ -335,6 +342,7 @@ public class MycatServer {
 		LOGGER.info("sysconfig params:" + system.toString());
 
 		// startup manager
+        //启动管理连接工厂
 		ManagerConnectionFactory mf = new ManagerConnectionFactory();
 		ServerConnectionFactory sf = new ServerConnectionFactory();
 		SocketAcceptor manager = null;

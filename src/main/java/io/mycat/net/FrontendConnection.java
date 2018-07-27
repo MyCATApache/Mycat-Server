@@ -90,34 +90,42 @@ public abstract class FrontendConnection extends AbstractConnection {
 		this.handler = new FrontendAuthenticator(this);
 	}
 
+	@Override
 	public long getId() {
 		return id;
 	}
 
+	@Override
 	public void setId(long id) {
 		this.id = id;
 	}
 
+	@Override
 	public String getHost() {
 		return host;
 	}
 
+	@Override
 	public void setHost(String host) {
 		this.host = host;
 	}
 
+	@Override
 	public int getPort() {
 		return port;
 	}
 
+	@Override
 	public void setPort(int port) {
 		this.port = port;
 	}
 
+	@Override
 	public int getLocalPort() {
 		return localPort;
 	}
 
+	@Override
 	public void setLocalPort(int localPort) {
 		this.localPort = localPort;
 	}
@@ -126,6 +134,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		this.isAccepted = isAccepted;
 	}
 
+	@Override
 	public void setProcessor(NIOProcessor processor) {
 		super.setProcessor(processor);
 		processor.addFrontend(this);

@@ -23,17 +23,6 @@
  */
 package io.mycat.backend.datasource;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.ConMap;
@@ -48,8 +37,24 @@ import io.mycat.config.Alarms;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * @author jiaqing.xu@hand-china.com
+ * @date 2018/7/16 11:13
+ * @param
+ * @return
+ * @description 物理数据源
+ */
 public abstract class PhysicalDatasource {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(PhysicalDatasource.class);
