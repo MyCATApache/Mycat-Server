@@ -8,6 +8,7 @@ import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.route.function.ReloadFunction;
+import io.mycat.util.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
@@ -58,17 +59,17 @@ public class RuleDataPathChildrenCacheListener implements PathChildrenCacheListe
     }
 
     private void add(String name,byte[] data) throws IOException {
-        File file = new File(
-                SystemConfig.getHomePath() + File.separator + "conf" + File.separator + "ruledata",
-                name);
+        String parentPath = SystemConfig.getHomePath() + File.separator + "conf" + File.separator + "ruledata";
+        FileUtils.mkDirectory(parentPath);
+        File file = new File(parentPath,name);
         Files.write(data,file);
         reloadRuleData(name);
     }
 
     private void delete(String name,byte[] data) throws IOException {
-        File file = new File(
-                SystemConfig.getHomePath() + File.separator + "conf" + File.separator + "ruledata",
-                name);
+        String parentPath = SystemConfig.getHomePath() + File.separator + "conf" + File.separator + "ruledata";
+        FileUtils.mkDirectory(parentPath);
+        File file = new File(parentPath,name);
         if(file.exists())
          file.delete();
     }
