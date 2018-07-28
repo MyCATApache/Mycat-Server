@@ -110,7 +110,7 @@ public class ByteBufferArena implements BufferPool {
             }else {
                 memoryUsage.put(threadId, (long) reqCapacity);
             }
-            if (sharedOptsCount.contains(thread)) {
+            if (sharedOptsCount.containsKey(thread)) {
                 int currentCount = sharedOptsCount.get(thread);
                 currentCount++;
                 sharedOptsCount.put(thread,currentCount);
@@ -149,7 +149,7 @@ public class ByteBufferArena implements BufferPool {
             if (memoryUsage.containsKey(threadId)){
                 memoryUsage.put(threadId,memoryUsage.get(thread.getId())-size);
             }
-            if (sharedOptsCount.contains(thread)) {
+            if (sharedOptsCount.containsKey(thread)) {
                 int currentCount = sharedOptsCount.get(thread);
                 currentCount--;
                 sharedOptsCount.put(thread,currentCount);
