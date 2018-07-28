@@ -9,6 +9,8 @@ MyCAT is an Open-Source software, “a large database cluster” oriented to ent
 
 Mycat’s target is to smoothly migrate the current stand-alone database and applications to cloud side with low cost and to solve the bottleneck problem caused by the rapid growth of data storage and business scale.
 
+加入MyCAT开发志愿者队伍,联系QQ:294712221
+
 * [Getting Started](https://github.com/MyCATApache/Mycat-doc/tree/master/en)
 * [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/blob/master/MyCat_In_Action_%E4%B8%AD%E6%96%87%E7%89%88.doc)
 
@@ -52,7 +54,7 @@ Mycat 简单demo，具体参考Mycat权威指南
 
 官网 : mycat.io
 qq官方群：106088787
-Mycat权威指南官方下载：http://songwie.com/attached/file/mycat_1.5.2.pdf
+Mycat权威指南官方下载：https://github.com/MyCATApache/Mycat-Server/blob/4135f25df8239d52d220529cbf7cb697ede40e12/mycat-definitive-guide.pdf
 wiki：<a href="https://github.com/MyCATApache/Mycat-Server/wiki"> wiki</a>
 
 # Mycat前世今生

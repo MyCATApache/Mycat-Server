@@ -102,7 +102,7 @@ public class PhysicalDBPool {
 		this.readSources = readSources;
 		this.allDs = this.genAllDataSources();
 		
-		LOGGER.info("total resouces of dataHost " + this.hostName + " is :" + allDs.size());
+		LOGGER.info("total resources of dataHost " + this.hostName + " is :" + allDs.size());
 		
 		setDataSourceProps();
 	}
@@ -362,7 +362,7 @@ public class PhysicalDBPool {
 	private boolean initSource(int index, PhysicalDatasource ds) {
 		int initSize = ds.getConfig().getMinCon();
 		
-		LOGGER.info("init backend myqsl source ,create connections total " + initSize + " for " + ds.getName() + " index :" + index);
+		LOGGER.info("init backend mysql source ,create connections total " + initSize + " for " + ds.getName() + " index :" + index);
 		
 		CopyOnWriteArrayList<BackendConnection> list = new CopyOnWriteArrayList<BackendConnection>();
 		GetConnectionHandler getConHandler = new GetConnectionHandler(list, initSize);
@@ -451,9 +451,9 @@ public class PhysicalDBPool {
 	 * @param reason
 	 */
 	public void clearDataSources(String reason) {
-		LOGGER.info("clear datasours of pool " + this.hostName);
+		LOGGER.info("clear datasource of pool " + this.hostName);
 		for (PhysicalDatasource source : this.allDs) {			
-			LOGGER.info("clear datasoure of pool  " + this.hostName + " ds:" + source.getConfig());
+			LOGGER.info("clear datasource of pool  " + this.hostName + " ds:" + source.getConfig());
 			source.clearCons(reason);
 			source.stopHeartbeat();
 		}
