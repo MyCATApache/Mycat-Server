@@ -23,15 +23,20 @@
  */
 package io.mycat.sqlengine.mpp;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.TreeSet;
+
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.CompareUtil;
 import io.mycat.util.LongUtil;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
 
 /**
  * implement group function select a,count(*),sum(*) from A group by a
@@ -250,7 +255,7 @@ public class RowDataPacketGrouper {
 		
 		
 
-		Set<Integer> rmIndexSet = new HashSet<Integer>();
+		TreeSet<Integer> rmIndexSet = new TreeSet<Integer>();
 		for (MergeCol merg : mergCols) {
 			if(merg.mergeType==MergeCol.MERGE_AVG)
 			{
@@ -267,7 +272,8 @@ public class RowDataPacketGrouper {
 				}
 			}
 		}
-		for(Integer index : rmIndexSet) {
+		// remove by index from large to small, to make sure each element deleted correctly
+		for(int index : rmIndexSet.descendingSet()) {
 			toRow.fieldValues.remove(index);
 			toRow.fieldCount = toRow.fieldCount - 1;
 		}

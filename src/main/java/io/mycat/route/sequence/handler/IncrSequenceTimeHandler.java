@@ -97,9 +97,11 @@ public class IncrSequenceTimeHandler implements SequenceHandler {
 		public synchronized long nextId() {
 			long timestamp = timeGen();
 			if (timestamp < lastTimestamp) {
-				String errorMessage = "Clock moved backwards.  Refusing to generate id for "+ (lastTimestamp - timestamp) + " milliseconds";
-				LOGGER.error(errorMessage);
-				throw new RuntimeException(errorMessage);
+			try {
+				throw new Exception("Clock moved backwards.  Refusing to generate id for "+ (lastTimestamp - timestamp) + " milliseconds");
+			} catch (Exception e) {
+				LOGGER.error("error",e);
+			}
 			}
 
 			if (lastTimestamp == timestamp) {
