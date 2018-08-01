@@ -54,7 +54,7 @@ Mycat 简单demo，具体参考Mycat权威指南
 
 官网 : mycat.io
 qq官方群：106088787
-Mycat权威指南官方下载：http://songwie.com/attached/file/mycat_1.5.2.pdf
+Mycat权威指南官方下载：https://github.com/MyCATApache/Mycat-Server/blob/4135f25df8239d52d220529cbf7cb697ede40e12/mycat-definitive-guide.pdf
 wiki：<a href="https://github.com/MyCATApache/Mycat-Server/wiki"> wiki</a>
 
 # Mycat前世今生

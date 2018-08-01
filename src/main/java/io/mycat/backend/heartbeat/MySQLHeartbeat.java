@@ -23,17 +23,16 @@
  */
 package io.mycat.backend.heartbeat;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.MySQLDataSource;
 import io.mycat.config.model.DataHostConfig;
-import io.mycat.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author mycat
@@ -120,13 +119,17 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	 */
 	public void heartbeat() {
 		final ReentrantLock lock = this.lock;
-		lock.lock();
+		if(!lock.tryLock()){
+			return;
+		}
 		try {
 			if (isChecking.compareAndSet(false, true)) {
 				MySQLDetector detector = this.detector;
 				if (detector == null || detector.isQuit()) {
 					try {
 						detector = new MySQLDetector(this);
+						//由于没有设置导致无限循环. modifyBy zwy  todo 对应修改其他的心跳机制.
+						detector.setHeartbeatTimeout(this.getHeartbeatTimeout());
 						detector.heartbeat();
 					} catch (Exception e) {
 						LOGGER.warn(source.getConfig().toString(), e);
@@ -135,7 +138,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 					}
 					this.detector = detector;
 				} else {
-					detector.heartbeat();
+						detector.heartbeat();
 				}
 			} else {
 				MySQLDetector detector = this.detector;
@@ -206,7 +209,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 				//设置3秒钟之后重试.
 				if (detector != null && !detector.isQuit()) {
 	            	LOGGER.error("set Error " + errorCount + "  " +  this.source.getConfig() );
-					source.setHeartbeatRecoveryTime( TimeUtil.currentTimeMillis() + 3000);
+				//	source.setHeartbeatRecoveryTime( TimeUtil.currentTimeMillis() + 3000);
 	               // heartbeat(); // error count not enough, heart beat again
 	            }
 			} else {
