@@ -431,6 +431,11 @@ public class MySQLConnection extends BackendAIOConnection {
 		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn + (xaCmd!=null?1:0);
 		if (synCount == 0 && this.xaStatus != TxState.TX_STARTED_STATE) {
 			// not need syn connection
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("not need syn connection :\n" + this+"\n to send query cmd:\n"+rrn.getStatement()
+						+"\n in pool\n"
+				+this.getPool().getConfig());
+			}
 			sendQueryCmd(rrn.getStatement());
 			return;
 		}

@@ -108,7 +108,7 @@ public final class RouteResultset implements Serializable {
 		return runOnSlave;
 	}
     public String getRunOnSlaveDebugInfo() {
-        return runOnSlave == null?" default ":Boolean.toString(runOnSlave);
+        return runOnSlave == null?"default":Boolean.toString(runOnSlave);
     }
 	public void setRunOnSlave(Boolean runOnSlave) {
 		this.runOnSlave = runOnSlave;
