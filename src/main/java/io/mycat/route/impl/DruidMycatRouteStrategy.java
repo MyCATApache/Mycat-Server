@@ -785,6 +785,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				} else {
 					pos++;
 				}
+			} else {
+				pos++;
 			}
 		}
 
