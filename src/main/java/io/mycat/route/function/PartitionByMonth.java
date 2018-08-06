@@ -1,14 +1,12 @@
 package io.mycat.route.function;
 
+import io.mycat.config.model.rule.RuleAlgorithm;
+import io.mycat.util.StringUtil;
+import org.apache.log4j.Logger;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.List;
-
-import io.mycat.config.model.rule.RuleAlgorithm;
-import org.apache.log4j.Logger;
+import java.util.*;
 
 /**
  * 例子 按月份列分区 ，每个自然月一个分片，格式 between操作解析的范例
@@ -20,7 +18,10 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 		RuleAlgorithm {
 	private static final Logger LOGGER = Logger.getLogger(PartitionByDate.class);
 	private String sBeginDate;
-	private String dateFormat;
+    /** 默认格式 */
+    private String dateFormat = "yyyy-MM-dd";
+    /** 场景 */
+    private int scene = -1;
 	private String sEndDate;
 	private Calendar beginDate;
 	private Calendar endDate;
@@ -31,15 +32,16 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 	@Override
 	public void init() {
 		try {
+			if (StringUtil.isEmpty(sBeginDate) && StringUtil.isEmpty(sEndDate)) {
+				nPartition = 11;
+				scene = 1;
+				initFormatter();
+				return;
+			}
 			beginDate = Calendar.getInstance();
 			beginDate.setTime(new SimpleDateFormat(dateFormat)
 					.parse(sBeginDate));
-			formatter = new ThreadLocal<SimpleDateFormat>() {
-				@Override
-				protected SimpleDateFormat initialValue() {
-					return new SimpleDateFormat(dateFormat);
-				}
-			};
+			initFormatter();
 			if(sEndDate!=null&&!sEndDate.equals("")) {
 				endDate = Calendar.getInstance();
 				endDate.setTime(new SimpleDateFormat(dateFormat).parse(sEndDate));
@@ -55,6 +57,15 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 		} catch (ParseException e) {
 			throw new java.lang.IllegalArgumentException(e);
 		}
+	}
+
+	private void initFormatter() {
+		formatter = new ThreadLocal<SimpleDateFormat>() {
+            @Override
+            protected SimpleDateFormat initialValue() {
+                return new SimpleDateFormat(dateFormat);
+            }
+        };
 	}
 
 	/**
@@ -80,6 +91,11 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 	@Override
 	public Integer calculate(String columnValue)  {
 		try {
+			if (scene == 1) {
+				Calendar curTime = Calendar.getInstance();
+				curTime.setTime(formatter.get().parse(columnValue));
+				return curTime.get(Calendar.MONTH);
+			}
 			int targetPartition;
 			Calendar curTime = Calendar.getInstance();
 			curTime.setTime(formatter.get().parse(columnValue));
@@ -104,6 +120,34 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 	@Override
 	public Integer[] calculateRange(String beginValue, String endValue) {
 		try {
+			if (scene == 1) {
+				Calendar beginTime = Calendar.getInstance();
+				beginTime.setTime(formatter.get().parse(beginValue));
+
+				Calendar endTime = Calendar.getInstance();
+				endTime.setTime(formatter.get().parse(endValue));
+				int startMonth = beginTime.get(Calendar.MONTH);
+				int n = (endTime.get(Calendar.YEAR) - beginTime.get(Calendar.YEAR)) * 12
+						+ (endTime.get(Calendar.MONTH) - startMonth);
+				if (n < 0) {
+					// 没有节点被路由到返回null
+					return null;
+				}
+				List<Integer> list = new ArrayList<>(12);
+				int startNode = startMonth;
+				int curNod = startNode;
+				while (startNode <= n) {
+					if (startNode > 11) {
+						curNod = 11 % startNode;
+					}else{
+						curNod = startNode;
+					}
+					if (Collections.frequency(list, curNod) < 1)
+						list.add(curNod);
+					startNode++;
+				}
+				return (list.toArray(new Integer[list.size()]));
+			}
 			int startPartition, endPartition;
 			Calendar partitionTime = Calendar.getInstance();
 			SimpleDateFormat format = new SimpleDateFormat(dateFormat);
