@@ -161,12 +161,14 @@ public final class RouteResultset implements Serializable {
     }
 
     public Boolean getRunOnSlave() {
-        return runOnSlave;
+		return runOnSlave;
+	}
+    public String getRunOnSlaveDebugInfo() {
+        return runOnSlave == null?"default":Boolean.toString(runOnSlave);
     }
-
-    public void setRunOnSlave(Boolean runOnSlave) {
-        this.runOnSlave = runOnSlave;
-    }
+	public void setRunOnSlave(Boolean runOnSlave) {
+		this.runOnSlave = runOnSlave;
+	}
 
     public Procedure getProcedure() {
         return procedure;

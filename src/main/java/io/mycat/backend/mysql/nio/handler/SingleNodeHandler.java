@@ -161,9 +161,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		this.isRunning = true;
 		this.packetId = 0;
 		final BackendConnection conn = session.getTarget(node);
-		LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
+		LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlaveDebugInfo());
 		node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
-		LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
+		LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlaveDebugInfo());
 		 
 		if (session.tryExistsCon(conn, node)) {
 			_execute(conn);
@@ -172,9 +172,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 
 			MycatConfig conf = MycatServer.getInstance().getConfig();
 						
-			LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
+			LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlaveDebugInfo());
 			node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
-			LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
+			LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlaveDebugInfo());
 			 		
 			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
 			dn.getConnection(dn.getDatabase(), sc.isAutocommit(), node, this, node);

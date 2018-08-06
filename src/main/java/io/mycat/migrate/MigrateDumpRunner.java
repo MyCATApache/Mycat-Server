@@ -105,7 +105,7 @@ public class MigrateDumpRunner implements Runnable {
             sucessTask.getAndIncrement();
         } catch (Exception e) {
             try {
-                pushMsgToZK(task.getZkpath(), task.getFrom() + "-" + task.getTo(), 0, e.getMessage(), "", "");
+                pushMsgToZK(task.getZkpath(), task.getFrom() + "-" + task.getTo(), 0, e.getLocalizedMessage(), "", "");
             } catch (Exception e1) {
             }
             LOGGER.error("error:", e);
@@ -161,6 +161,7 @@ public class MigrateDumpRunner implements Runnable {
 
 
     private void pushMsgToZK(String rootZkPath, String child, int status, String msg, String binlogFile, String pos) throws Exception {
+        LOGGER.error(msg);
         String path = rootZkPath + "/" + child;
         TaskStatus taskStatus = new TaskStatus();
         taskStatus.setMsg(msg);
@@ -190,9 +191,16 @@ public class MigrateDumpRunner implements Runnable {
                 url += url.contains("?") ? "&useSSL=false" : "?useSSL=false";
             }
             con =  DriverManager.getConnection(url,config.getUser(),config.getPassword());
-            String sql = "load data local infile '"+loaddataFile.getPath().replace("\\","//")+"' replace into table "+table+" character set 'utf8mb4'  fields terminated by ','  enclosed by '\"'  ESCAPED BY '\\\\'  lines terminated by '\\n'";
-            JdbcUtils.execute(con,sql, new ArrayList<>());
-        } finally{
+            String sql = "load data local infile '" + loaddataFile.getPath().replace("\\", "//") + "' replace into table " + table + " character set 'utf8mb4'  fields terminated by ','  enclosed by '\"'  ESCAPED BY '\\\\'  lines terminated by '\\n'";
+            JdbcUtils.execute(con, sql, new ArrayList<>());
+        }
+        catch (Exception e){
+            try {
+                pushMsgToZK(task.getZkpath(), task.getFrom() + "-" + task.getTo(), 0, e.getLocalizedMessage(), "", "");
+            } catch (Exception e1) {
+            }
+        }
+        finally {
             JdbcUtils.close(con);
         }
     }
