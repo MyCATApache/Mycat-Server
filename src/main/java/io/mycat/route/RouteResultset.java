@@ -24,9 +24,6 @@
 package io.mycat.route;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
-
-import io.mycat.MycatServer;
-import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.parser.util.PageSQLUtil;
 import io.mycat.sqlengine.mpp.HavingCols;
@@ -110,7 +107,9 @@ public final class RouteResultset implements Serializable {
     public Boolean getRunOnSlave() {
 		return runOnSlave;
 	}
-
+    public String getRunOnSlaveDebugInfo() {
+        return runOnSlave == null?"default":Boolean.toString(runOnSlave);
+    }
 	public void setRunOnSlave(Boolean runOnSlave) {
 		this.runOnSlave = runOnSlave;
 	}
