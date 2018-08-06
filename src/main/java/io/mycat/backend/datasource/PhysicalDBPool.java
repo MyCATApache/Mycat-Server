@@ -311,7 +311,7 @@ public class PhysicalDBPool {
 				LOGGER.warn(switchMessage(current, newIndex, false, reason));
 				
 				if(MycatServer.getInstance().isUseZkSwitch()){
-					System.out.println("当前：" + activedIndex + " new Index "+ newIndex );
+					LOGGER.info("当前：" + activedIndex + " new Index "+ newIndex );
 					current =   activedIndex;
  					if(!isInitSuccess() || current != newIndex) {
 						LOGGER.error(String.format("%s switch to index %d error ! now index is to switch %d but %d", hostName, newIndex ,newIndex, current));
