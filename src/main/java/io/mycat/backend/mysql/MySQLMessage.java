@@ -135,9 +135,6 @@ public class MySQLMessage {
     }
 
     public long readLength() {
-        if(data==null || position>=data.length){
-            return NULL_LENGTH;
-        }
         int length = data[position++] & 0xff;
         switch (length) {
         case 251:
@@ -201,8 +198,12 @@ public class MySQLMessage {
         }
     }
 
+    /**
+     * 通过长度获取对应的数据
+     * @return
+     */
     public byte[] readBytesWithLength() {
-        int length = (int) readLength();
+        int length = (int) readLength();// 长度
         if(length==NULL_LENGTH) {
             return null;
         }
@@ -210,7 +211,7 @@ public class MySQLMessage {
             return EMPTY_BYTES;
         }
 
-        byte[] ab = new byte[length];
+        byte[] ab = new byte[length];// 对应的数据
         System.arraycopy(data, position, ab, 0, ab.length);
         position += length;
         return ab;
