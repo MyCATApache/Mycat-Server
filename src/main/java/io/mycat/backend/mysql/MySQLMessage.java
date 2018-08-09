@@ -135,6 +135,9 @@ public class MySQLMessage {
     }
 
     public long readLength() {
+        if(data==null || position>=data.length){
+            return NULL_LENGTH;
+        }
         int length = data[position++] & 0xff;
         switch (length) {
         case 251:
