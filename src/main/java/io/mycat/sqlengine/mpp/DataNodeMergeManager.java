@@ -430,7 +430,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
                 int nullnum = 0;
                 for (int i = 0; i < fieldCount; i++) {
-                    byte[] colValue = mm.readBytesWithLength();
+                    byte[] colValue = mm.readBytesWithLength(); //如果mysql的表结构不一致，会导致数据解析有问题
                     if (colValue != null) {
                         unsafeRowWriter.write(i, colValue);
                     } else {
