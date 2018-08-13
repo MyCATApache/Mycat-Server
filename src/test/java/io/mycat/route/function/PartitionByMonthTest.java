@@ -111,12 +111,12 @@ public class PartitionByMonthTest {
 				Arrays.toString(partition.calculateRange("2013-01-01", "2014-04-03")),
 				Arrays.toString(scene.calculateRange("2013-01-01", "2014-04-03"))
 		);
-//		Assert.assertEquals(
-//				// []
-//				Arrays.toString(partition.calculateRange("2015-01-01", "2014-04-03")),
-//				// null
-//				Arrays.toString(scene.calculateRange("2015-01-01", "2014-04-03"))
-//		);
+		Assert.assertEquals(
+				// []
+				Arrays.toString(partition.calculateRange("2015-01-01", "2014-04-03")),
+				// []
+				Arrays.toString(scene.calculateRange("2015-01-01", "2014-04-03"))
+		);
 	}
 	@Test
 	public void sence1(){
