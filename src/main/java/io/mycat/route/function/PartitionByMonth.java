@@ -10,18 +10,18 @@ import java.util.*;
 
 /**
  * 例子 按月份列分区 ，每个自然月一个分片，格式 between操作解析的范例
- * 
+ *
  * @author wzh
- * 
+ *
  */
 public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 		RuleAlgorithm {
 	private static final Logger LOGGER = Logger.getLogger(PartitionByDate.class);
 	private String sBeginDate;
-    /** 默认格式 */
-    private String dateFormat = "yyyy-MM-dd";
-    /** 场景 */
-    private int scene = -1;
+	/** 默认格式 */
+	private String dateFormat = "yyyy-MM-dd";
+	/** 场景 */
+	private int scene = -1;
 	private String sEndDate;
 	private Calendar beginDate;
 	private Calendar endDate;
@@ -33,20 +33,24 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 	public void init() {
 		try {
 			if (StringUtil.isEmpty(sBeginDate) && StringUtil.isEmpty(sEndDate)) {
-				nPartition = 11;
+				nPartition = 12;
 				scene = 1;
 				initFormatter();
+				beginDate = Calendar.getInstance();
+				beginDate.set(Calendar.MONTH, 0);
+				endDate = Calendar.getInstance();
+				endDate.set(Calendar.MONTH, 11);
 				return;
 			}
 			beginDate = Calendar.getInstance();
 			beginDate.setTime(new SimpleDateFormat(dateFormat)
-					.parse(sBeginDate));
+									  .parse(sBeginDate));
 			initFormatter();
 			if(sEndDate!=null&&!sEndDate.equals("")) {
 				endDate = Calendar.getInstance();
 				endDate.setTime(new SimpleDateFormat(dateFormat).parse(sEndDate));
 				nPartition = ((endDate.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR)) * 12
-								+ endDate.get(Calendar.MONTH) - beginDate.get(Calendar.MONTH)) + 1;
+						+ endDate.get(Calendar.MONTH) - beginDate.get(Calendar.MONTH)) + 1;
 
 				if (nPartition <= 0) {
 					throw new java.lang.IllegalArgumentException("Incorrect time range for month partitioning!");
@@ -120,62 +124,40 @@ public class PartitionByMonth extends AbstractPartitionAlgorithm implements
 	@Override
 	public Integer[] calculateRange(String beginValue, String endValue) {
 		try {
-			if (scene == 1) {
-				Calendar beginTime = Calendar.getInstance();
-				beginTime.setTime(formatter.get().parse(beginValue));
-
-				Calendar endTime = Calendar.getInstance();
-				endTime.setTime(formatter.get().parse(endValue));
-				int startMonth = beginTime.get(Calendar.MONTH);
-				int n = (endTime.get(Calendar.YEAR) - beginTime.get(Calendar.YEAR)) * 12
-						+ (endTime.get(Calendar.MONTH) - startMonth);
-				if (n < 0) {
-					// 没有节点被路由到返回null
-					return null;
-				}
-				List<Integer> list = new ArrayList<>(12);
-				int startNode = startMonth;
-				int curNod = startNode;
-				while (startNode <= n) {
-					if (startNode > 11) {
-						curNod = 11 % startNode;
-					}else{
-						curNod = startNode;
-					}
-					if (Collections.frequency(list, curNod) < 1)
-						list.add(curNod);
-					startNode++;
-				}
-				return (list.toArray(new Integer[list.size()]));
-			}
-			int startPartition, endPartition;
-			Calendar partitionTime = Calendar.getInstance();
-			SimpleDateFormat format = new SimpleDateFormat(dateFormat);
-			partitionTime.setTime(format.parse(beginValue));
-			startPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
-					* 12 + partitionTime.get(Calendar.MONTH)
-					- beginDate.get(Calendar.MONTH));
-			partitionTime.setTime(format.parse(endValue));
-			endPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
-					* 12 + partitionTime.get(Calendar.MONTH)
-					- beginDate.get(Calendar.MONTH));
-
-			List<Integer> list = new ArrayList<>();
-
-			while (startPartition <= endPartition) {
-				Integer nodeValue = reCalculatePartition(startPartition);
-				if (Collections.frequency(list, nodeValue) < 1)
-					list.add(nodeValue);
-				startPartition++;
-			}
-			int size = list.size();
-			return (list.toArray(new Integer[size]));
+			return doCalculateRange(beginValue, endValue,beginDate);
 		} catch (ParseException e) {
 			LOGGER.error("error",e);
 			return new Integer[0];
 		}
 	}
-	
+
+	private Integer[] doCalculateRange(String beginValue, String endValue,Calendar beginDate) throws ParseException {
+		int startPartition, endPartition;
+		Calendar partitionTime = Calendar.getInstance();
+		SimpleDateFormat format = new SimpleDateFormat(dateFormat);
+		partitionTime.setTime(format.parse(beginValue));
+		startPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
+				* 12 + partitionTime.get(Calendar.MONTH)
+				- beginDate.get(Calendar.MONTH));
+		partitionTime.setTime(format.parse(endValue));
+		endPartition = ((partitionTime.get(Calendar.YEAR) - beginDate.get(Calendar.YEAR))
+				* 12 + partitionTime.get(Calendar.MONTH)
+				- beginDate.get(Calendar.MONTH));
+
+		List<Integer> list = new ArrayList<>();
+
+		while (startPartition <= endPartition) {
+			Integer nodeValue = reCalculatePartition(startPartition);
+			if (Collections.frequency(list, nodeValue) < 1)
+				list.add(nodeValue);
+			startPartition++;
+		}
+		int size = list.size();
+		// 当在场景1： "2015-01-01", "2014-04-03" 范围出现的时候
+		// 是应该返回null 还是返回 [] ?
+		return (list.toArray(new Integer[size]));
+	}
+
 	@Override
 	public int getPartitionNum() {
 		int nPartition = this.nPartition;
