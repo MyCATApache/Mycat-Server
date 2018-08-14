@@ -80,7 +80,7 @@ public final class ManagerParseShow {
 	public static final int WHITE_HOST_SET = 44;
     public static final int DIRECTMEMORY_TOTAL = 45;
     public static final int DIRECTMEMORY_DETAILl = 46;
-
+    public static final int GLOBAL_CHECK = 47;
 
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -144,7 +144,10 @@ public final class ManagerParseShow {
                     return show2VCheck(stmt, offset);
                 case 'W':
                 case 'w':
-                    return show2WCheck(stmt, offset);                    
+                    return show2WCheck(stmt, offset);
+                case 'G':
+                case 'g':
+                    return show2GCheck(stmt, offset);
                 default:
                     return OTHER;
                 }
@@ -794,6 +797,21 @@ public final class ManagerParseShow {
                     return show2WhiteCheck(stmt, offset);
                 }
                 return WHITE_HOST;
+            }
+        }
+        return OTHER;
+    }
+    // SHOW @@global_check全局检测
+    static int show2GCheck(String stmt, int offset) {
+        if (stmt.length() > offset + "lobal".length()) {
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+            if ((c1 == 'L' || c1 == 'l') && (c2 == 'O' || c2 == 'o') && (c3 == 'B' || c3 == 'b')
+                    && (c4 == 'A' || c4 == 'a') && (c5 == 'L' || c5 == 'l') ) {
+                return GLOBAL_CHECK;
             }
         }
         return OTHER;

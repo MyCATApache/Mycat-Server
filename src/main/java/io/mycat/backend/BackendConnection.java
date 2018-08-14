@@ -3,6 +3,7 @@ package io.mycat.backend;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
+import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.net.ClosableConnection;
 import io.mycat.route.RouteResultsetNode;
@@ -61,5 +62,8 @@ public interface BackendConnection extends ClosableConnection {
 	public long getId();
 
 	public void discardClose(String reason);
+	
+	
+	public PhysicalDatasource getPool();
 
 }

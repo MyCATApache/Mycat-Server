@@ -89,6 +89,7 @@ import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.route.sequence.handler.SequenceHandler;
 import io.mycat.server.ServerConnectionFactory;
+import io.mycat.server.global.GlobalCheckUtil;
 import io.mycat.server.interceptor.SQLInterceptor;
 import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
@@ -301,7 +302,8 @@ public class MycatServer {
 	public void beforeStart() {
 		String home = SystemConfig.getHomePath();
 
-
+		GlobalCheckUtil globalCheckUtil=GlobalCheckUtil.getInstance();
+		globalCheckUtil.initXmlModel();
 		//ZkConfig.instance().initZk();
 	}
 
