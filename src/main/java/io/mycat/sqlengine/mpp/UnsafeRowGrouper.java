@@ -655,8 +655,12 @@ public class UnsafeRowGrouper {
 					 case ColMeta.COL_TYPE_INT:
 					 case ColMeta.COL_TYPE_LONG:
 					 case ColMeta.COL_TYPE_INT24:
-						 left = BytesTools.int2Bytes(toRow.getInt(index));
-						 right = BytesTools.int2Bytes(newRow.getInt(index));
+						 if (!toRow.isNullAt(index)) {
+						 	left = BytesTools.int2Bytes(toRow.getInt(index));
+						 }
+						 if (!newRow.isNullAt(index)) {
+						 	right = BytesTools.int2Bytes(newRow.getInt(index));
+						 }
 						 break;
 					 case ColMeta.COL_TYPE_SHORT:
 						 left = BytesTools.short2Bytes(toRow.getShort(index));
