@@ -768,16 +768,17 @@ public class UnsafeRowGrouper {
 							 bufferHolder.reset();
 							 for (int i = 0; i < toRow.numFields(); i++) {
 
-								 if (!toRow.isNullAt(i) && i != index) {
-									 unsafeRowWriter.write(i, toRow.getBinary(i));
-								 } else if (!toRow.isNullAt(i) && i == index) {
+								 if (i == index) {
 									 unsafeRowWriter.write(i,result);
+								 } else if (!toRow.isNullAt(i)) {
+									 unsafeRowWriter.write(i, toRow.getBinary(i));
 								 } else if (toRow.isNullAt(i)){
 									 unsafeRow.setNullAt(i);
 								 }
 							 }
 							 unsafeRow.setTotalSize(bufferHolder.totalSize());
 							 aggregationMap.put(key, unsafeRow);
+							 toRow = unsafeRow;
 							 break;
 						 default:
 							 break;
