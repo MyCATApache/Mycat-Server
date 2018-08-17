@@ -23,13 +23,14 @@
  */
 package io.mycat.manager;
 
-import java.io.IOException;
-import java.nio.channels.NetworkChannel;
-
 import io.mycat.net.FrontendConnection;
 import io.mycat.util.TimeUtil;
 
+import java.io.IOException;
+import java.nio.channels.NetworkChannel;
+
 /**
+ * 前端管理器连接 管理请求
  * @author mycat
  */
 public class ManagerConnection extends FrontendConnection {
@@ -39,11 +40,17 @@ public class ManagerConnection extends FrontendConnection {
 		super(channel);
 	}
 
+	/**
+	 * 是否空闲超时
+	 * @return
+	 */
 	@Override
 	public boolean isIdleTimeout() {
 		if (isAuthenticated) {
+			// 已认证
 			return super.isIdleTimeout();
 		} else {
+			// 未认证
 			return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime,
 					lastReadTime) + AUTH_TIMEOUT;
 		}

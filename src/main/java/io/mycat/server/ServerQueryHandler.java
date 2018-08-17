@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese
- * opensource volunteers. you can redistribute it and/or modify it under the
+ * This code is free software;Designed and Developed mainly by many Chinese 
+ * opensource volunteers. you can redistribute it and/or modify it under the 
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,22 +16,24 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Any questions about this component can be directed to it's project Web address
+ * 
+ * Any questions about this component can be directed to it's project Web address 
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.server;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.net.handler.FrontendQueryHandler;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.server.handler.*;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
+ * 前端服务器查询处理器
+ *
  * @author mycat
  */
 public class ServerQueryHandler implements FrontendQueryHandler {
@@ -51,7 +53,6 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 
 	@Override
 	public void query(String sql) {
-
 		ServerConnection c = this.source;
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug(new StringBuilder().append(c).append(sql).toString());
@@ -59,14 +60,14 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		//
 		int rs = ServerParse.parse(sql);
 		int sqlType = rs & 0xff;
-
+		
 		switch (sqlType) {
-		//explain sql
 		case ServerParse.EXPLAIN:
+			//explain sql
 			ExplainHandler.handle(sql, c, rs >>> 8);
 			break;
-		//explain2 datanode=? sql=?
 		case ServerParse.EXPLAIN2:
+			//explain2 datanode=? sql=?
 			Explain2Handler.handle(sql, c, rs >>> 8);
 			break;
 		case ServerParse.SET:
@@ -84,15 +85,15 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 		case ServerParse.BEGIN:
 			BeginHandler.handle(sql, c);
 			break;
-		//不支持oracle的savepoint事务回退点
 		case ServerParse.SAVEPOINT:
+			//不支持oracle的savepoint事务回退点
 			SavepointHandler.handle(sql, c);
 			break;
 		case ServerParse.KILL:
 			KillHandler.handle(sql, rs >>> 8, c);
 			break;
-		//不支持KILL_Query
 		case ServerParse.KILL_QUERY:
+			//不支持KILL_Query
 			LOGGER.warn(new StringBuilder().append("Unsupported command:").append(sql).toString());
 			c.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,"Unsupported command");
 			break;
@@ -100,9 +101,11 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 			UseHandler.handle(sql, c, rs >>> 8);
 			break;
 		case ServerParse.COMMIT:
+			// 事务提交
 			c.commit();
 			break;
 		case ServerParse.ROLLBACK:
+			// 事务回滚
 			c.rollback();
 			break;
 		case ServerParse.HELP:
@@ -116,6 +119,7 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			break;
         case ServerParse.LOAD_DATA_INFILE_SQL:
+        	// 从文件加载数据开始
             c.loadDataInfileStart(sql);
             break;
 		case ServerParse.MIGRATE: {
@@ -135,9 +139,11 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 			break;
 		}
 		case ServerParse.LOCK:
+			// 锁表
         	c.lockTable(sql);
         	break;
         case ServerParse.UNLOCK:
+			// 解锁表
         	c.unLockTable(sql);
         	break;
 		default:

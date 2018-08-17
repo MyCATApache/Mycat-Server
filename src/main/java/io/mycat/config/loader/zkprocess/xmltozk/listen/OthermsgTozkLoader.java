@@ -1,15 +1,14 @@
 package io.mycat.config.loader.zkprocess.xmltozk.listen;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.utils.ZKPaths;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.utils.ZKPaths;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 其他一些信息加载到zk中
@@ -50,6 +49,11 @@ public class OthermsgTozkLoader extends ZkMultLoader implements NotiflyService {
 
     }
 
+    /**
+     * 处理通知
+     * @return
+     * @throws Exception
+     */
     @Override
     public boolean notiflyProcess() throws Exception {
         // 添加line目录，用作集群中节点，在线的基本目录信息

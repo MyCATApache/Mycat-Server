@@ -1,10 +1,9 @@
 package io.mycat.memory.unsafe.ringbuffer.producer;
 
-import io.mycat.memory.unsafe.ringbuffer.common.sequence.Sequence;
 import io.mycat.memory.unsafe.ringbuffer.common.barrier.SequenceBarrier;
+import io.mycat.memory.unsafe.ringbuffer.common.sequence.Sequence;
 import io.mycat.memory.unsafe.ringbuffer.common.sequence.SequenceGroups;
 import io.mycat.memory.unsafe.ringbuffer.common.waitStrategy.WaitStrategy;
-import io.mycat.memory.unsafe.ringbuffer.exception.InsufficientCapacityException;
 import io.mycat.memory.unsafe.ringbuffer.utils.Util;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;

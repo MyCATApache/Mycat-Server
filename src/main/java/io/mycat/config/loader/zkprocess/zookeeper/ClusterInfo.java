@@ -1,6 +1,7 @@
 package io.mycat.config.loader.zkprocess.zookeeper;
 
 /**
+ * 集群信息
  * Created by magicdoom on 2016/12/21.
  */
 public class ClusterInfo {

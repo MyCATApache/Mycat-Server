@@ -1,17 +1,11 @@
 package io.mycat.backend.jdbc.mongodb;
 
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.Properties;
-import java.util.logging.Logger;
-
+import com.mongodb.MongoClientURI;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoClientURI;
+import java.sql.*;
+import java.util.Properties;
+import java.util.logging.Logger;
 /**  
  * 功能详细描述
  * @author sohudo[http://blog.csdn.net/wind520]

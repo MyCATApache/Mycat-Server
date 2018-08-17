@@ -1,10 +1,6 @@
 package io.mycat.backend.mysql.nio.handler;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import com.esotericsoftware.minlog.Log;
+import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
 import io.mycat.backend.mysql.xa.ParticipantLogEntry;
@@ -12,13 +8,15 @@ import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.backend.mysql.xa.recovery.impl.InMemoryRepository;
-import io.mycat.net.BackendAIOConnection;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.backend.BackendConnection;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.sqlcmd.SQLCtrlCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MultiNodeCoordinator implements ResponseHandler {
 	private static final Logger LOGGER = LoggerFactory

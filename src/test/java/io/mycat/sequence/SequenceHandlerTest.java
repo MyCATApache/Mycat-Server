@@ -23,12 +23,9 @@
  */
 package io.mycat.sequence;
 
-import junit.framework.Assert;
-
-import org.junit.Test;
-
 import io.mycat.route.sequence.handler.IncrSequencePropHandler;
 import io.mycat.route.sequence.handler.SequenceHandler;
+import junit.framework.Assert;
 
 /**
  * 全局序列号单元测试

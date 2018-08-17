@@ -1,14 +1,13 @@
 package io.mycat.config.loader.zkprocess.entity.schema.schema;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.mycat.config.loader.zkprocess.entity.Named;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlType;
-
-import io.mycat.config.loader.zkprocess.entity.Named;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 

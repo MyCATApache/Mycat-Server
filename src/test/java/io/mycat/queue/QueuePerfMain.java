@@ -23,11 +23,11 @@
  */
 package io.mycat.queue;
 
+import jsr166y.LinkedTransferQueue;
+
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import jsr166y.LinkedTransferQueue;
 
 /**
  * Queue 性能测试

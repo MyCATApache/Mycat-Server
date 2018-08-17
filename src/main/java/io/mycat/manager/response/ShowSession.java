@@ -1,8 +1,5 @@
 package io.mycat.manager.response;
 
-import java.nio.ByteBuffer;
-import java.util.Collection;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.PacketUtil;
@@ -17,6 +14,9 @@ import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.StringUtil;
+
+import java.nio.ByteBuffer;
+import java.util.Collection;
 
 /**
  * show front session detail info

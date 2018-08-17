@@ -23,15 +23,6 @@
  */
 package io.mycat.net.handler;
 
-import java.nio.ByteBuffer;
-import java.security.NoSuchAlgorithmException;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.SecurityUtil;
 import io.mycat.config.Capabilities;
@@ -43,6 +34,14 @@ import io.mycat.net.NIOProcessor;
 import io.mycat.net.mysql.AuthPacket;
 import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.net.mysql.QuitPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 前端认证处理器
@@ -60,9 +59,13 @@ public class FrontendAuthenticator implements NIOHandler {
         this.source = source;
     }
 
+    /**
+     * 处理Mycat认证数据
+     * @param data
+     */
     @Override
     public void handle(byte[] data) {
-        // check quit packet
+        // 检查退出包
         if (data.length == QuitPacket.QUIT.length && data[4] == MySQLPacket.COM_QUIT) {
             source.close("quit packet");
             return;
@@ -71,36 +74,37 @@ public class FrontendAuthenticator implements NIOHandler {
         AuthPacket auth = new AuthPacket();
         auth.read(data);
 
-        //huangyiming add
+        // huangyiming add
         int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();
         //如果无密码登陆则跳过密码验证这个步骤
         boolean skipPassWord = false;
         String defaultUser = "";
         if(nopassWordLogin == 1){
+            // 无密码登录
         	skipPassWord = true;
         	Map<String, UserConfig> userMaps =  MycatServer.getInstance().getConfig().getUsers();
         	if(!userMaps.isEmpty()){
-        		setDefaultAccount(auth, userMaps);
+        		setDefaultAccount(auth, userMaps);//找默认用户
         	}
         }
-        // check user
+        // 检查user
         if (!checkUser(auth.user, source.getHost())) {
         	failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "' with host '" + source.getHost()+ "'");
         	return;
         }
-        // check password
+        // 检查password
         if (!skipPassWord && !checkPassword(auth.password, auth.user)) {
         	failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because password is error ");
         	return;
         }
         
-        // check degrade
+        // 检查服务是否降级
         if ( isDegrade( auth.user ) ) {
         	 failure(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + auth.user + "', because service be degraded ");
              return;
         }
         
-        // check schema
+        // 检查schema
         switch (checkSchema(auth.database, auth.user)) {
         case ErrorCode.ER_BAD_DB_ERROR:
             failure(ErrorCode.ER_BAD_DB_ERROR, "Unknown database '" + auth.database + "'");
@@ -132,7 +136,7 @@ public class FrontendAuthenticator implements NIOHandler {
 	}
     
     //TODO: add by zhuam
-    //前端 connection 达到该用户设定的阀值后, 立马降级拒绝连接
+    //前端 connection 达到该用户设定的阀值后, 立马降级拒绝连接，即检查服务是否降级
     protected boolean isDegrade(String user) {
     	
     	int benchmark = source.getPrivileges().getBenchmark(user);
@@ -209,6 +213,10 @@ public class FrontendAuthenticator implements NIOHandler {
         }
     }
 
+    /**
+     * 认证成功
+     * @param auth
+     */
     protected void success(AuthPacket auth) {
         source.setAuthenticated(true);
         source.setUser(auth.user);
@@ -230,12 +238,16 @@ public class FrontendAuthenticator implements NIOHandler {
         source.write(source.writeToBuffer(AUTH_OK, buffer));
         boolean clientCompress = Capabilities.CLIENT_COMPRESS==(Capabilities.CLIENT_COMPRESS & auth.clientFlags);
         boolean usingCompress= MycatServer.getInstance().getConfig().getSystem().getUseCompression()==1 ;
-        if(clientCompress&&usingCompress)
-        {
+        if(clientCompress&&usingCompress) {
             source.setSupportCompress(true);
         }
     }
 
+    /**
+     * 认证失败
+     * @param errno
+     * @param info
+     */
     protected void failure(int errno, String info) {
         LOGGER.error(source.toString() + info);
         source.writeErrMessage((byte) 2, errno, info);

@@ -23,14 +23,9 @@
  */
 package io.mycat.parser;
 
+import io.mycat.server.parser.*;
 import org.junit.Assert;
 import org.junit.Test;
-
-import io.mycat.server.parser.ServerParse;
-import io.mycat.server.parser.ServerParseSelect;
-import io.mycat.server.parser.ServerParseSet;
-import io.mycat.server.parser.ServerParseShow;
-import io.mycat.server.parser.ServerParseStart;
 
 /**
  * @author mycat

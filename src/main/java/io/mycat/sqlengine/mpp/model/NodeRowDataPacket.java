@@ -1,10 +1,10 @@
 package io.mycat.sqlengine.mpp.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultsetNode;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class NodeRowDataPacket {
 

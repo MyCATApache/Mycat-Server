@@ -25,11 +25,7 @@ package io.mycat.manager.handler;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.ManagerConnection;
-import io.mycat.manager.response.ReloadConfig;
-import io.mycat.manager.response.ReloadQueryCf;
-import io.mycat.manager.response.ReloadSqlSlowTime;
-import io.mycat.manager.response.ReloadUser;
-import io.mycat.manager.response.ReloadUserStat;
+import io.mycat.manager.response.*;
 import io.mycat.route.parser.ManagerParseReload;
 import io.mycat.route.parser.util.ParseUtil;
 

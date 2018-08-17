@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,14 +16,12 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.net;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.CharsetUtil;
@@ -32,13 +30,11 @@ import io.mycat.config.Capabilities;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Versions;
 import io.mycat.net.handler.*;
-import io.mycat.net.mysql.ErrorPacket;
-import io.mycat.net.mysql.HandshakePacket;
-import io.mycat.net.mysql.HandshakeV10Packet;
-import io.mycat.net.mysql.MySQLPacket;
-import io.mycat.net.mysql.OkPacket;
+import io.mycat.net.mysql.*;
 import io.mycat.util.CompressUtil;
 import io.mycat.util.RandomUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -50,36 +46,49 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * 前端连接（客户端）
+ *
  * @author mycat
  */
 public abstract class FrontendConnection extends AbstractConnection {
-	
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(FrontendConnection.class);
 
+	protected long id;
+	protected String host;
+	protected int port;
+	protected int localPort;
+	// 空闲超时时间
 	protected long idleTimeout;
 	protected byte[] seed;
 	protected String user;
+	// 逻辑库 数据库
 	protected String schema;
+	// 要执行的SQL
 	protected String executeSql;
 
+	// 权限
 	protected FrontendPrivileges privileges;
+	// 前端查询处理器
 	protected FrontendQueryHandler queryHandler;
+	// 前端SQL预处理处理器
 	protected FrontendPrepareHandler prepareHandler;
+	// 从文件加载数据
 	protected LoadDataInfileHandler loadDataInfileHandler;
 	protected boolean isAccepted;
+	// 是否已认证标志
 	protected boolean isAuthenticated;
 
 	public FrontendConnection(NetworkChannel channel) throws IOException {
 		super(channel);
 		InetSocketAddress localAddr = (InetSocketAddress) channel.getLocalAddress();
 		InetSocketAddress remoteAddr = null;
-		if (channel instanceof SocketChannel) {
-			remoteAddr = (InetSocketAddress) ((SocketChannel) channel).getRemoteAddress();	
-			
-		} else if (channel instanceof AsynchronousSocketChannel) {
+		if (channel instanceof SocketChannel) { // NIO
+			remoteAddr = (InetSocketAddress) ((SocketChannel) channel).getRemoteAddress();
+		} else if (channel instanceof AsynchronousSocketChannel) { // AIO
 			remoteAddr = (InetSocketAddress) ((AsynchronousSocketChannel) channel).getRemoteAddress();
 		}
-		
+
 		this.host = remoteAddr.getHostString();
 		this.port = localAddr.getPort();
 		this.localPort = remoteAddr.getPort();
@@ -203,9 +212,12 @@ public abstract class FrontendConnection extends AbstractConnection {
 		err.message = encodeString(msg, charset);
 		err.write(this);
 	}
-	
+
+	/**
+	 * mysql_select_db，选择数据库
+	 * @param data
+	 */
 	public void initDB(byte[] data) {
-		
 		MySQLMessage mm = new MySQLMessage(data);
 		mm.position(5);
 		String db = mm.readString();
@@ -215,12 +227,12 @@ public abstract class FrontendConnection extends AbstractConnection {
 			writeErrMessage(ErrorCode.ER_BAD_DB_ERROR, "Unknown database '" + db + "'");
 			return;
 		}
-		
+
 		if (!privileges.userExists(user, host)) {
 			writeErrMessage(ErrorCode.ER_ACCESS_DENIED_ERROR, "Access denied for user '" + user + "'");
 			return;
 		}
-		
+
 		Set<String> schemas = privileges.getUserSchemas(user);
 		if (schemas == null || schemas.size() == 0 || schemas.contains(db)) {
 			this.schema = db;
@@ -231,7 +243,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 	}
 
-
+	/**
+	 * 从文件加载数据开始
+	 * @param sql
+	 */
 	public void loadDataInfileStart(String sql) {
 		if (loadDataInfileHandler != null) {
 			try {
@@ -240,12 +255,15 @@ public abstract class FrontendConnection extends AbstractConnection {
 				LOGGER.error("load data error", e);
 				writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.getMessage());
 			}
-
 		} else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "load data infile sql is not  unsupported!");
 		}
 	}
 
+	/**
+	 * 从文件加载数据
+	 * @param data
+	 */
 	public void loadDataInfileData(byte[] data) {
 		if (loadDataInfileHandler != null) {
 			try {
@@ -257,9 +275,12 @@ public abstract class FrontendConnection extends AbstractConnection {
 		} else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "load data infile  data is not  unsupported!");
 		}
-
 	}
 
+	/**
+	 * 从文件加载数据结束
+	 * @param packID
+	 */
 	public void loadDataInfileEnd(byte packID) {
 		if (loadDataInfileHandler != null) {
 			try {
@@ -272,62 +293,67 @@ public abstract class FrontendConnection extends AbstractConnection {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "load data infile end is not  unsupported!");
 		}
 	}
-	
-	
+
+	/**
+	 * SQL查询
+	 * @param sql
+	 */
 	public void query(String sql) {
-		
 		if (sql == null || sql.length() == 0) {
 			writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Empty SQL");
 			return;
 		}
-		
+
 		if (LOGGER.isDebugEnabled()) {
+			// TODO 添加配置是否打印sql，修改日志级别
 			LOGGER.debug(new StringBuilder().append(this).append(" ").append(sql).toString());
 		}
-		
+
 		// remove last ';'
 		if (sql.endsWith(";")) {
 			sql = sql.substring(0, sql.length() - 1);
 		}
-		
+
 		// 记录SQL
 		this.setExecuteSql(sql);
-		
+
 		// 防火墙策略( SQL 黑名单/ 注入攻击)
 		if ( !privileges.checkFirewallSQLPolicy( user, sql ) ) {
-			writeErrMessage(ErrorCode.ERR_WRONG_USED, 
+			writeErrMessage(ErrorCode.ERR_WRONG_USED,
 					"The statement is unsafe SQL, reject for user '" + user + "'");
 			return;
-		}		
-		
+		}
+
 		// DML 权限检查
 		try {
 			boolean isPassed = privileges.checkDmlPrivilege(user, schema, sql);
 			if ( !isPassed ) {
-				writeErrMessage(ErrorCode.ERR_WRONG_USED, 
+				writeErrMessage(ErrorCode.ERR_WRONG_USED,
 						"The statement DML privilege check is not passed, reject for user '" + user + "'");
 				return;
 			}
-		 } catch( com.alibaba.druid.sql.parser.ParserException e1) {
-	        	writeErrMessage(ErrorCode.ERR_WRONG_USED,  e1.getMessage());
-	        	LOGGER.error("parse exception", e1 );
-				return;
-	     }
-		
+		} catch( com.alibaba.druid.sql.parser.ParserException e1) {
+			writeErrMessage(ErrorCode.ERR_WRONG_USED,  e1.getMessage());
+			LOGGER.error("parse exception", e1 );
+			return;
+		}
+
 		// 执行查询
-		if (queryHandler != null) {			
+		if (queryHandler != null) {
 			queryHandler.setReadOnly(privileges.isReadOnly(user));
 			queryHandler.query(sql);
-			
 		} else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Query unsupported!");
-		}		
+		}
 	}
-	
+
+	/**
+	 * mysql_real_query sql查询
+	 * @param data
+	 */
 	public void query(byte[] data) {
-		
 		// 取得语句
-		String sql = null;		
+		String sql = null;
 		try {
 			MySQLMessage mm = new MySQLMessage(data);
 			mm.position(5);
@@ -335,11 +361,15 @@ public abstract class FrontendConnection extends AbstractConnection {
 		} catch (UnsupportedEncodingException e) {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
 			return;
-		}		
-		
+		}
+
 		this.query( sql );
 	}
 
+	/**
+	 * mysql_stmt_prepare 语句预处理
+	 * @param data
+	 */
 	public void stmtPrepare(byte[] data) {
 		if (prepareHandler != null) {
 			// 取得语句
@@ -357,17 +387,21 @@ public abstract class FrontendConnection extends AbstractConnection {
 				writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Empty SQL");
 				return;
 			}
-			
+
 			// 记录SQL
 			this.setExecuteSql(sql);
-			
-			// 执行预处理
+
+			// 设置预处理SQL
 			prepareHandler.prepare(sql);
 		} else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
 		}
 	}
-	
+
+	/**
+	 * mysql_stmt_send_long_data 语句发送长数据
+	 * @param data
+	 */
 	public void stmtSendLongData(byte[] data) {
 		if(prepareHandler != null) {
 			prepareHandler.sendLongData(data);
@@ -375,7 +409,11 @@ public abstract class FrontendConnection extends AbstractConnection {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
 		}
 	}
-	
+
+	/**
+	 * mysql_stmt_reset 语句重设
+	 * @param data
+	 */
 	public void stmtReset(byte[] data) {
 		if(prepareHandler != null) {
 			prepareHandler.reset(data);
@@ -384,6 +422,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 	}
 
+	/**
+	 * mysql_stmt_execute 语句执行
+	 * @param data
+	 */
 	public void stmtExecute(byte[] data) {
 		if (prepareHandler != null) {
 			prepareHandler.execute(data);
@@ -392,6 +434,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 	}
 
+	/**
+	 * mysql_stmt_close 语句关闭
+	 * @param data
+	 */
 	public void stmtClose(byte[] data) {
 		if (prepareHandler != null) {
 			prepareHandler.close( data );
@@ -400,14 +446,25 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 	}
 
+	/**
+	 * mysql_ping ping检测
+	 */
 	public void ping() {
 		write(writeToBuffer(OkPacket.OK, allocate()));
 	}
 
+	/**
+	 * Mycat heartbeat 心跳检测
+	 * @param data
+	 */
 	public void heartbeat(byte[] data) {
 		write(writeToBuffer(OkPacket.OK, allocate()));
 	}
 
+	/**
+	 * mysql_kill 不支持
+	 * @param data
+	 */
 	public void kill(byte[] data) {
 		writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Unknown command");
 	}
@@ -419,7 +476,6 @@ public abstract class FrontendConnection extends AbstractConnection {
 	@Override
 	public void register() throws IOException {
 		if (!isClosed.get()) {
-
 			// 生成认证数据
 			byte[] rand1 = RandomUtil.randomBytes(8);
 			byte[] rand2 = RandomUtil.randomBytes(12);
@@ -465,15 +521,14 @@ public abstract class FrontendConnection extends AbstractConnection {
 
 	@Override
 	public void handle(final byte[] data) {
-
-		if (isSupportCompress()) {			
+		if (isSupportCompress()) {
 			List<byte[]> packs = CompressUtil.decompressMysqlPacket(data, decompressUnfinishedDataQueue);
 			for (byte[] pack : packs) {
 				if (pack.length != 0) {
 					rawHandle(pack);
 				}
 			}
-			
+
 		} else {
 			rawHandle(data);
 		}
@@ -496,6 +551,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 		handler.handle(data);
 	}
 
+	/**
+	 * 获得服务器功能
+	 * @return
+	 */
 	protected int getServerCapabilities() {
 		int flag = 0;
 		flag |= Capabilities.CLIENT_LONG_PASSWORD;
@@ -507,9 +566,9 @@ public abstract class FrontendConnection extends AbstractConnection {
 		if (usingCompress) {
 			flag |= Capabilities.CLIENT_COMPRESS;
 		}
-		
+
 		flag |= Capabilities.CLIENT_ODBC;
-		 flag |= Capabilities.CLIENT_LOCAL_FILES;
+		flag |= Capabilities.CLIENT_LOCAL_FILES;
 		flag |= Capabilities.CLIENT_IGNORE_SPACE;
 		flag |= Capabilities.CLIENT_PROTOCOL_41;
 		flag |= Capabilities.CLIENT_INTERACTIVE;
@@ -518,12 +577,12 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_TRANSACTIONS;
 		// flag |= ServerDefs.CLIENT_RESERVED;
 		flag |= Capabilities.CLIENT_SECURE_CONNECTION;
-        flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
-        flag |= Capabilities.CLIENT_MULTI_RESULTS;
-        boolean useHandshakeV10 = MycatServer.getInstance().getConfig().getSystem().getUseHandshakeV10() == 1;
-        if(useHandshakeV10) {
-        	flag |= Capabilities.CLIENT_PLUGIN_AUTH;
-        }
+		flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
+		flag |= Capabilities.CLIENT_MULTI_RESULTS;
+		boolean useHandshakeV10 = MycatServer.getInstance().getConfig().getSystem().getUseHandshakeV10() == 1;
+		if(useHandshakeV10) {
+			flag |= Capabilities.CLIENT_PLUGIN_AUTH;
+		}
 		return flag;
 	}
 
@@ -558,6 +617,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 	}
 
+	/**
+	 * mysql_close 退出
+	 * @param reason
+	 */
 	@Override
 	public void close(String reason) {
 		super.close(isAuthenticated ? reason : "");

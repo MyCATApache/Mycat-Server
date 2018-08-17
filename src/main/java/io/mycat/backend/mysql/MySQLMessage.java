@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 
 /**
+ * MySQL信息 MySQL内部协议
  * @author mycat
  */
 public class MySQLMessage {
@@ -197,17 +198,20 @@ public class MySQLMessage {
         }
     }
 
+    /**
+     * 通过长度获取对应的数据
+     * @return
+     */
     public byte[] readBytesWithLength() {
-        int length = (int) readLength();
-        if(length==NULL_LENGTH)
-        {
+        int length = (int) readLength();// 长度
+        if(length==NULL_LENGTH) {
             return null;
         }
         if (length <= 0) {
             return EMPTY_BYTES;
         }
 
-        byte[] ab = new byte[length];
+        byte[] ab = new byte[length];// 对应的数据
         System.arraycopy(data, position, ab, 0, ab.length);
         position += length;
         return ab;

@@ -1,11 +1,5 @@
 package io.mycat.config;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.Test;
-
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.jdbc.JDBCDatasource;
@@ -13,14 +7,14 @@ import io.mycat.backend.mysql.nio.MySQLDataSource;
 import io.mycat.config.loader.ConfigLoader;
 import io.mycat.config.loader.xml.XMLConfigLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
-import io.mycat.config.model.DBHostConfig;
-import io.mycat.config.model.DataHostConfig;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.config.model.TableConfig;
-import io.mycat.config.model.UserConfig;
+import io.mycat.config.model.*;
 import io.mycat.config.util.ConfigException;
 import junit.framework.Assert;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ConfigTest {
 	

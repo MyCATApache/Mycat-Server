@@ -1,27 +1,21 @@
 package io.mycat.manager.response;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Fields;
 import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.UserConfig;
-import io.mycat.config.util.ConfigException;
 import io.mycat.manager.ManagerConnection;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.net.mysql.*;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public final class ShowWhiteHost {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ShowWhiteHost.class);

@@ -1,44 +1,16 @@
 package io.mycat.server.interceptor.impl;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLName;
-import com.alibaba.druid.sql.ast.SQLOrderBy;
-import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
-import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.*;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
-import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
-import com.alibaba.druid.sql.ast.statement.SQLCharacterDataType;
-import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
-import com.alibaba.druid.sql.ast.statement.SQLConstraint;
-import com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement;
-import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
-import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
-import com.alibaba.druid.sql.ast.statement.SQLTableElement;
-import com.alibaba.druid.sql.ast.statement.SQLTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.fastjson.JSON;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -51,8 +23,17 @@ import io.mycat.config.model.TableConfig;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.SQLQueryResult;
 import io.mycat.util.StringUtil;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
+ * 全局表工具
  * @author digdeep@126.com
  * 全局表一致性检查 和 拦截
  */
@@ -78,7 +59,13 @@ public class GlobalTableUtil{
 	static {
 		getGlobalTable();	// 初始化 globalTableMap
 	}
-	
+
+	/**
+	 * 拦截sql
+	 * @param sql
+	 * @param sqlType
+	 * @return
+	 */
 	public static String interceptSQL(String sql, int sqlType){
 		return GlobalTableUtil.consistencyInterceptor(sql, sqlType);
 	}
@@ -571,7 +558,10 @@ public class GlobalTableUtil{
 			}
 		}
 	}
-	
+
+	/**
+	 * 一致性检查
+	 */
 	public static void consistencyCheck() {
 		MycatConfig config = MycatServer.getInstance().getConfig();
 		for(String key : globalTableMap.keySet()){
@@ -594,8 +584,7 @@ public class GlobalTableUtil{
 							if(pds instanceof MySQLDataSource){
 								MySQLDataSource mds = (MySQLDataSource)pds;
 								if(executedMap.get(pds.getName()) == null){
-									MySQLConsistencyChecker checker = 
-											new MySQLConsistencyChecker(mds, table.getName());
+									MySQLConsistencyChecker checker = new MySQLConsistencyChecker(mds, table.getName());
 									
 									isInnerColumnCheckFinished = 0;
 									checker.checkInnerColumnExist();

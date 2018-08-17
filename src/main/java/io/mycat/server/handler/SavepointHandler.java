@@ -27,6 +27,7 @@ import io.mycat.config.ErrorCode;
 import io.mycat.server.ServerConnection;
 
 /**
+ * Savepoint 语句处理器
  * @author mycat
  */
 public final class SavepointHandler {

@@ -26,8 +26,6 @@ package io.mycat.route.util;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.mycat.route.util.PartitionUtil;
-
 /**
  * @author mycat()
  */

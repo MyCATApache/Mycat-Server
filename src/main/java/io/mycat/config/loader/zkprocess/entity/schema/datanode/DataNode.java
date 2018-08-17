@@ -1,11 +1,11 @@
 package io.mycat.config.loader.zkprocess.entity.schema.datanode;
 
+import io.mycat.config.loader.zkprocess.entity.Named;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlType;
-
-import io.mycat.config.loader.zkprocess.entity.Named;
 
 /**
  * <dataNode name="dn1" dataHost="localhost1" database="db1" />

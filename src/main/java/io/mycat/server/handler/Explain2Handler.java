@@ -23,10 +23,6 @@
  */
 package io.mycat.server.handler;
 
-import java.nio.ByteBuffer;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.backend.mysql.nio.handler.SingleNodeHandler;
 import io.mycat.config.Fields;
@@ -39,8 +35,13 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
 
 /**
+ * Explain2 语句处理器
  * @author rainbow
  */
 public class Explain2Handler {

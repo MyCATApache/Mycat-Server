@@ -23,21 +23,39 @@
  */
 package io.mycat.config.model;
 
+/**
+ * 数据库主机配置
+ */
 public class DBHostConfig {
-	
-	private long idleTimeout = SystemConfig.DEFAULT_IDLE_TIMEOUT; // 连接池中连接空闲超时时间
+
+	// 连接池中连接空闲超时时间
+	private long idleTimeout = SystemConfig.DEFAULT_IDLE_TIMEOUT;
+	// 主机名称
 	private final String hostName;
+	// IP
 	private final String ip;
+	// 端口
 	private final int port;
 	private final String url;
+	// 用户
 	private final String user;
+	// 密码
 	private final String password;
-    private final String encryptPassword; //密文
+	// 密文
+    private final String encryptPassword;
+    // ssl
+//    private final boolean useSSL;
+    // 最大连接数
 	private int maxCon ;
+	// 最小连接数
 	private int minCon ;
+	// 数据库类型
 	private String dbType;
+	//
 	private String filters="mergeStat";
+	//
 	private long logTime = 300000;
+	// 权重
 	private int weight;				
 
 	public String getDbType() {

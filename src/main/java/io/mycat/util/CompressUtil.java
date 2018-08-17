@@ -1,7 +1,6 @@
 package io.mycat.util;
 
 import com.google.common.collect.Lists;
-
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.net.AbstractConnection;
@@ -139,17 +138,15 @@ public class CompressUtil {
 		byte packetId = msg.read();		   //压缩的包号
 		int oldLen = msg.readUB3();		   //压缩前的长度
 		
-		//未压缩, 直接返回
 		if ( packetLength == data.length - 4 ) {
+			//未压缩, 直接返回
 			return Lists.newArrayList(data);
-			
-		//压缩不成功的, 直接返回	
-		} else if (oldLen == 0) {			
+		} else if (oldLen == 0) {
+			//压缩不成功的, 直接返回
 			byte[] readBytes = msg.readBytes();
 			return splitPack(readBytes, decompressUnfinishedDataQueue);
-		
-		//解压
-		} else {			
+		} else {
+			//解压
 			byte[] de = decompress(data, 7, data.length - 7);
 			return splitPack(de, decompressUnfinishedDataQueue);
 		}

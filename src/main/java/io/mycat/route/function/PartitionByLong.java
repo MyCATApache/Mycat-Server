@@ -26,6 +26,9 @@ package io.mycat.route.function;
 import io.mycat.config.model.rule.RuleAlgorithm;
 import io.mycat.route.util.PartitionUtil;
 
+/**
+ * 根据长度分片
+ */
 public final class PartitionByLong extends AbstractPartitionAlgorithm implements RuleAlgorithm {
 	protected int[] count;
 	protected int[] length;

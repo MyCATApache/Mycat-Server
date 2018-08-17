@@ -23,15 +23,9 @@
  */
 package io.mycat.config.loader;
 
-import java.util.Map;
+import io.mycat.config.model.*;
 
-import io.mycat.config.model.ClusterConfig;
-import io.mycat.config.model.DataHostConfig;
-import io.mycat.config.model.DataNodeConfig;
-import io.mycat.config.model.FirewallConfig;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.config.model.UserConfig;
+import java.util.Map;
 
 /**
  * @author mycat

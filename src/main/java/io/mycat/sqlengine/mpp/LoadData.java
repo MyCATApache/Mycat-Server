@@ -6,17 +6,16 @@ import java.util.List;
 /**
  * Created by magicdoom on 2015/3/30.
  */
-public class LoadData implements Serializable
-{
+public class LoadData implements Serializable {
     public static final String loadDataHint="/*loaddata*/";
     private boolean isLocal;
     private List<String> data;
     private String fileName;
-    private  String charset;
-    private  String lineTerminatedBy;
+    private String charset;
+    private String lineTerminatedBy;
     private String fieldTerminatedBy;
-    private  String enclose;
-    private  String escape;
+    private String enclose;
+    private String escape;
 
     public String getEscape()
     {

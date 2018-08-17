@@ -24,6 +24,7 @@
 package io.mycat.net.mysql;
 
 /**
+ * Ping包 MySQL内部协议
  * @author mycat
  */
 public class PingPacket extends MySQLPacket {

@@ -1,17 +1,10 @@
 package io.mycat.catlets;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-
 import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
 import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
 import io.mycat.cache.LayerCachePool;
@@ -35,6 +28,12 @@ import io.mycat.sqlengine.mpp.OrderCol;
 import io.mycat.sqlengine.mpp.tmp.RowDataSorter;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.ResultSetUtil;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 /**  
  * 功能详细描述:分片join
  * @author sohudo[http://blog.csdn.net/wind520]
@@ -269,8 +268,6 @@ public class ShareJoin implements Catlet {
 		  getRoute(sql);
 		 //childRoute=true;
 		//}
-		 
-		 //
 		ctx.executeNativeSQLParallJob(getDataNodes(),sql, new ShareRowOutPutDataHandler(this,fields,joinindex,joinParser.getJoinRkey(), batchRows,ctx.getSession()));
 		EngineCtx.LOGGER.info("SQLParallJob:"+getDataNode(getDataNodes())+" sql:" + sql);		
 	}  
@@ -544,9 +541,7 @@ class ShareRowOutPutDataHandler implements SQLJobHandler {
 			// huangyiming add
 			MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
 			if(null == middlerResultHandler ){
-				// 
 				ctx.writeRow(rowDataPkg);
-				
 			}else{
 				
 				 if(middlerResultHandler instanceof MiddlerQueryResultHandler){

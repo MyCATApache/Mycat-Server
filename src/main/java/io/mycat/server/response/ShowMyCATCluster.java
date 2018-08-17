@@ -23,20 +23,9 @@
  */
 package io.mycat.server.response;
 
-import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
-import io.mycat.config.Alarms;
-import io.mycat.config.Fields;
-import io.mycat.config.MycatCluster;
-import io.mycat.config.MycatConfig;
-import io.mycat.config.MycatNode;
+import io.mycat.config.*;
 import io.mycat.config.model.MycatNodeConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.mysql.EOFPacket;
@@ -46,6 +35,13 @@ import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.IntegerUtil;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author mycat

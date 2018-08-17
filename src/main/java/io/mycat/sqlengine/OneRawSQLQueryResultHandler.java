@@ -1,12 +1,15 @@
 package io.mycat.sqlengine;
 
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.RowDataPacket;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.RowDataPacket;
-
+/**
+ * 一行SQL查询结果处理
+ */
 public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 
 	private Map<String, Integer> fetchColPosMap;
@@ -14,14 +17,14 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	private final String[] fetchCols;
 	private int fieldCount = 0;
 	private Map<String, String> result = new HashMap<String, String>();
-	public OneRawSQLQueryResultHandler(String[] fetchCols,
-			SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callBack) {
-
+	private String mark;
+	
+	public OneRawSQLQueryResultHandler(String[] fetchCols, SQLQueryResultListener<SQLQueryResult<Map<String, String>>> callBack) {
 		this.fetchCols = fetchCols;
 		this.callback = callBack;
 	}
 
-	private String mark;
+	@Override
 	public void onHeader(String dataNode, byte[] header, List<byte[]> fields) {
 		fieldCount = fields.size();
 		fetchColPosMap = new HashMap<String, Integer>();
@@ -36,7 +39,6 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 				}
 			}
 		}
-
 	}
 
 	@Override
@@ -79,7 +81,6 @@ public class OneRawSQLQueryResultHandler implements SQLJobHandler {
 	public void finished(String dataNode, boolean failed, String errorMsg) {
 		SQLQueryResult<Map<String, String>> queryRestl=new SQLQueryResult<Map<String, String>>(this.result,!failed, dataNode,errorMsg);
 	     this.callback.onResult(queryRestl);
-
 	}
 
 	public String getMark() {

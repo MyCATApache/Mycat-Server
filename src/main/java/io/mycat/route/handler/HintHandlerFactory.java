@@ -2,8 +2,10 @@ package io.mycat.route.handler;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.FutureTask;
 
+/**
+ * Hint sql 处理器工厂
+ */
 public class HintHandlerFactory {
 	
 	private static volatile boolean isInit = false;
@@ -11,8 +13,7 @@ public class HintHandlerFactory {
 	 //sql注释的类型处理handler 集合，现在支持两种类型的处理：sql,schema
     private static Map<String,HintHandler> hintHandlerMap = new HashMap<String,HintHandler>();
 
-    private HintHandlerFactory() {
-    }
+    private HintHandlerFactory() { }
     
     private static void init() {
         hintHandlerMap.put("sql",new HintSQLHandler());
@@ -26,8 +27,12 @@ public class HintHandlerFactory {
         hintHandlerMap.put("db_type", new HintMasterDBHandler());
         isInit = true;	// 修复多次初始化的bug
     }
-    
-    // 双重校验锁 fix 线程安全问题
+
+    /**
+     * 双重校验锁 fix 线程安全问题
+     * @param hintType
+     * @return
+     */
     public static HintHandler getHintHandler(String hintType) {
     	if(!isInit) {
     		synchronized(HintHandlerFactory.class){

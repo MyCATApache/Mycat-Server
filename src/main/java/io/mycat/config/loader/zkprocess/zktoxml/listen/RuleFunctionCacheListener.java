@@ -15,15 +15,8 @@ import io.mycat.config.loader.zkprocess.parse.entryparse.rule.json.FunctionJsonP
 import io.mycat.config.loader.zkprocess.parse.entryparse.rule.json.TableRuleJsonParse;
 import io.mycat.config.loader.zkprocess.parse.entryparse.rule.xml.RuleParseXmlImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
-import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.config.model.TableConfig;
-import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.manager.response.ReloadConfig;
-import io.mycat.route.function.AbstractPartitionAlgorithm;
-import io.mycat.route.function.ReloadFunction;
 import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -37,23 +30,31 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
+ * rules（分片规则）目录监听器
+ * zk的 /mycat/clusterId/rules下有变化回调
  * Created by magicdoom on 2016/10/27.
  */
 public class RuleFunctionCacheListener implements PathChildrenCacheListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(RuleFunctionCacheListener.class);
-    @Override public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
+
+    /**
+     * zk事件
+     * @param client
+     * @param event
+     * @throws Exception
+     */
+    @Override
+    public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
         ChildData data = event.getData();
         switch (event.getType()) {
-
-            case CHILD_ADDED:
+            case CHILD_ADDED: // zk向 rules 添加节点
                 addOrUpdate();
                 break;
-            case CHILD_UPDATED:
+            case CHILD_UPDATED: // zk向 rules 更新节点
                 addOrUpdate();
                 break;
             default:
@@ -72,38 +73,40 @@ public class RuleFunctionCacheListener implements PathChildrenCacheListener {
         }
     }
 
-    private void addOrUpdate()
-  {
-      Rules Rules = null;
-      try {
-          Rules = this.zktoRulesBean();
-      } catch (Exception e) {
-          LOGGER.error("error",e);
-      }
+    private void addOrUpdate() {
+        Rules rules = null;
+        try {
+            // 从zk中获取信息并转成对象
+            rules = this.zktoRulesBean();
+        } catch (Exception e) {
+            LOGGER.error("error",e);
+        }
 
-      LOGGER.info("RuleszkToxmlLoader notiflyProcess zk to object  zk Rules Object  :" + Rules);
+        LOGGER.info("RuleszkToxmlLoader notiflyProcess zk to object  zk Rules Object  :" + rules);
 
-      // 将mapfile信息写入到文件 中
-      writeMapFileAddFunction(Rules.getFunction());
+        // 将mapfile信息写入到文件 中
+        writeMapFileAddFunction(rules.getFunction());
 
-      LOGGER.info("RuleszkToxmlLoader notiflyProcess write mapFile is success ");
+        LOGGER.info("RuleszkToxmlLoader notiflyProcess write mapFile is success ");
 
-      // 数配制信息写入文件
-      String path = RuleszkToxmlLoader.class.getClassLoader().getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey())
-              .getPath();
-      path = new File(path).getPath() + File.separator;
-      path = path + WRITEPATH;
+        //将配置信息写入文件
+        String path = RuleszkToxmlLoader.class.getClassLoader().getResource(ZookeeperPath.ZK_LOCAL_WRITE_PATH.getKey()).getPath();
+        path = new File(path).getPath() + File.separator;
+        path = path + WRITEPATH;
 
-      LOGGER.info("RuleszkToxmlLoader notiflyProcess zk to object writePath :" + path);
+        LOGGER.info("RuleszkToxmlLoader notiflyProcess zk to object writePath :" + path);
 
-      this.parseRulesXMl.parseToXmlWrite(Rules, path, "rule");
+        // 将对象转为xml写入文件
+        this.parseRulesXMl.parseToXmlWrite(rules, path, "rule");
 
-      LOGGER.info("RuleszkToxmlLoader notiflyProcess zk to object zk Rules      write :" + path + " is success");
+        LOGGER.info("RuleszkToxmlLoader notiflyProcess zk to object zk Rules      write :" + path + " is success");
 
-      if (MycatServer.getInstance().getProcessors() != null)
-          ReloadConfig.reload();
+        if (MycatServer.getInstance().getProcessors() != null){
+            // 重新加载配置
+            ReloadConfig.reload();
+        }
 
-  }
+    }
 
 
     private static final String WRITEPATH = "rule.xml";
@@ -126,32 +129,31 @@ public class RuleFunctionCacheListener implements PathChildrenCacheListener {
      */
     private ParseJsonServiceInf<List<Function>> parseJsonFunctionService = new FunctionJsonParse();
 
-
+    /**
+     * 从zk中加载并转为对象
+     * @return
+     * @throws Exception
+     */
     private Rules zktoRulesBean() throws Exception {
-        Rules Rules = new Rules();
+        Rules rules = new Rules();
 
         // tablerule信息
-     String value=  new String( ZKUtils.getConnection().getData().forPath(ZKUtils.getZKBasePath()+"rules/tableRule"),"UTF-8") ;
-        DataInf RulesZkData = new ZkDataImpl("tableRule",value);
-        List<TableRule> tableRuleData = parseJsonTableRuleService.parseJsonToBean(RulesZkData.getDataValue());
-        Rules.setTableRule(tableRuleData);
-
-
+        String value = new String( ZKUtils.getConnection().getData().forPath(ZKUtils.getZKBasePath()+"rules/tableRule"),"UTF-8") ;
+        DataInf rulesZkData = new ZkDataImpl("tableRule",value);
+        List<TableRule> tableRuleData = parseJsonTableRuleService.parseJsonToBean(rulesZkData.getDataValue());
+        rules.setTableRule(tableRuleData);
 
         // 得到function信息
         String fucValue=  new String( ZKUtils.getConnection().getData().forPath(ZKUtils.getZKBasePath()+"rules/function"),"UTF-8") ;
         DataInf functionZkData =new ZkDataImpl("function",fucValue) ;
         List<Function> functionList = parseJsonFunctionService.parseJsonToBean(functionZkData.getDataValue());
-        Rules.setFunction(functionList);
+        rules.setFunction(functionList);
 
-
-
-        return Rules;
+        return rules;
     }
 
-
     /**
-     *  读取序列配制文件便利店
+     *  将配置写入到本地磁盘中
      * 方法描述
      * @param functionList
      * @创建日期 2016年9月18日
@@ -188,6 +190,7 @@ public class RuleFunctionCacheListener implements PathChildrenCacheListener {
                 // 将对应的数据信息写入到磁盘中
                 if (!writeData.isEmpty()) {
                     for (Property writeMsg : writeData) {
+                        //将配置写入到本地磁盘中
                         this.writeMapFile(writeMsg.getName(), writeMsg.getValue());
                     }
                 }
@@ -204,7 +207,7 @@ public class RuleFunctionCacheListener implements PathChildrenCacheListener {
     }
 
     /**
-     * 读取 mapFile文件的信息
+     * 将配置写入到本地磁盘中
      * 方法描述
      * @param name 名称信息
      * @return
