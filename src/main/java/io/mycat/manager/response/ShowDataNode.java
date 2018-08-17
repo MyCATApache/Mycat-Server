@@ -39,6 +39,7 @@ import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
 import io.mycat.config.MycatConfig;
+import io.mycat.config.MycatPrivileges;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.mysql.EOFPacket;
@@ -134,7 +135,12 @@ public final class ShowDataNode {
 		Map<String, PhysicalDBNode> dataNodes = conf.getDataNodes();
 		List<String> keys = new ArrayList<String>();
 		if (StringUtil.isEmpty(name)) {
-			keys.addAll(dataNodes.keySet());
+			for(String key : dataNodes.keySet()){
+				MycatPrivileges myCatprivileges = (MycatPrivileges)( c.getPrivileges());
+				if(myCatprivileges.checkDataNodeDmlPrivilege(c.getUser(), key, c.getExecuteSql())) {
+					keys.add(key);
+				}
+			}
 		} else {
 			SchemaConfig sc = conf.getSchemas().get(name);
 			if (null != sc) {
