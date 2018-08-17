@@ -657,8 +657,12 @@ public class UnsafeRowGrouper {
 					 case ColMeta.COL_TYPE_INT:
 					 case ColMeta.COL_TYPE_LONG:
 					 case ColMeta.COL_TYPE_INT24:
-						 left = BytesTools.int2Bytes(toRow.getInt(index));
-						 right = BytesTools.int2Bytes(newRow.getInt(index));
+						 if (!toRow.isNullAt(index)) {
+						 	left = BytesTools.int2Bytes(toRow.getInt(index));
+						 }
+						 if (!newRow.isNullAt(index)) {
+						 	right = BytesTools.int2Bytes(newRow.getInt(index));
+						 }
 						 break;
 					 case ColMeta.COL_TYPE_SHORT:
 						 left = BytesTools.short2Bytes(toRow.getShort(index));
@@ -766,16 +770,17 @@ public class UnsafeRowGrouper {
 							 bufferHolder.reset();
 							 for (int i = 0; i < toRow.numFields(); i++) {
 
-								 if (!toRow.isNullAt(i) && i != index) {
-									 unsafeRowWriter.write(i, toRow.getBinary(i));
-								 } else if (!toRow.isNullAt(i) && i == index) {
+								 if (i == index) {
 									 unsafeRowWriter.write(i,result);
+								 } else if (!toRow.isNullAt(i)) {
+									 unsafeRowWriter.write(i, toRow.getBinary(i));
 								 } else if (toRow.isNullAt(i)){
 									 unsafeRow.setNullAt(i);
 								 }
 							 }
 							 unsafeRow.setTotalSize(bufferHolder.totalSize());
 							 aggregationMap.put(key, unsafeRow);
+							 toRow = unsafeRow;
 							 break;
 						 default:
 							 break;
