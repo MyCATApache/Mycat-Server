@@ -74,6 +74,14 @@ public class DruidMysqlSqlParserTest
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+
+        sql = "select * from offer order by id desc limit 10 offset 5";
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+                null, cachePool);
+        Assert.assertEquals(5, rrs.getLimitStart());
+        Assert.assertEquals(10, rrs.getLimitSize());
+        Assert.assertEquals(5, rrs.getNodes()[0].getLimitStart());
+        Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
 	}
 
 	@Test
