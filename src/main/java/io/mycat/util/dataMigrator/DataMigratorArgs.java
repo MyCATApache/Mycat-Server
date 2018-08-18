@@ -1,9 +1,9 @@
 package io.mycat.util.dataMigrator;
 
-import java.io.File;
-
 import io.mycat.config.model.SystemConfig;
 import io.mycat.util.cmd.CmdArgs;
+
+import java.io.File;
 
 
 

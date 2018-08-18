@@ -23,23 +23,24 @@
  */
 package io.mycat.statistic;
 
+import io.mycat.config.model.DataHostConfig;
+import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.config.model.DataHostConfig;
-import io.mycat.util.TimeUtil;
-
 /**
+ * 数据源同步记录
  * 记录最近3个时段的平均响应时间，默认1，10，30分钟。
  * 
  * @author songwie
  */
-public class                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          DataSourceSyncRecorder {
+public class DataSourceSyncRecorder {
 
     private Map<String, String> records;
     private final List<Record> asynRecords;//value,time
@@ -145,7 +146,5 @@ public class                                                                    
 		public void setTime(long time) {
 			this.time = time;
 		}
-        
-        
     }
 }

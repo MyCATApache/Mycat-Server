@@ -23,16 +23,14 @@
  */
 package io.mycat.manager.handler;
 
-import static io.mycat.route.parser.ManagerParseSelect.SESSION_AUTO_INCREMENT;
-import static io.mycat.route.parser.ManagerParseSelect.VERSION_COMMENT;
-import static io.mycat.route.parser.ManagerParseSelect.SESSION_TX_READ_ONLY;
-
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.manager.response.SelectSessionAutoIncrement;
 import io.mycat.manager.response.SelectSessionTxReadOnly;
 import io.mycat.manager.response.SelectVersionComment;
 import io.mycat.route.parser.ManagerParseSelect;
+
+import static io.mycat.route.parser.ManagerParseSelect.*;
 
 /**
  * @author mycat

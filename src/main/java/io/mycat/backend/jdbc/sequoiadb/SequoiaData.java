@@ -1,15 +1,14 @@
 package io.mycat.backend.jdbc.sequoiadb;
 
+import com.sequoiadb.base.DBCursor;
+import org.bson.BSONObject;
+import org.bson.types.BasicBSONList;
+
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.HashMap;
-
-import org.bson.BSONObject;
-import org.bson.BasicBSONObject;
-import org.bson.types.BasicBSONList;
-import com.sequoiadb.base.DBCursor;
 
 public class SequoiaData {
 	

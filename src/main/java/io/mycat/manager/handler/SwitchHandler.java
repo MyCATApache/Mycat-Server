@@ -23,12 +23,12 @@
  */
 package io.mycat.manager.handler;
 
-import static io.mycat.route.parser.ManagerParseSwitch.DATASOURCE;
-
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.manager.response.SwitchDataSource;
 import io.mycat.route.parser.ManagerParseSwitch;
+
+import static io.mycat.route.parser.ManagerParseSwitch.DATASOURCE;
 
 /**
  * @author mycat

@@ -33,7 +33,6 @@ import io.mycat.memory.unsafe.row.BufferHolder;
 import io.mycat.memory.unsafe.row.StructType;
 import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.memory.unsafe.row.UnsafeRowWriter;
-
 import io.mycat.memory.unsafe.utils.BytesTools;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import io.mycat.memory.unsafe.utils.sort.UnsafeExternalRowSorter;
@@ -47,13 +46,14 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
-import java.text.NumberFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Created by zagnix on 2016/6/26.
+ * 非安全的行分组器
+ *
+ * Created by zagnix on6/6/26.
  *
  * implement group function select a,count(*),sum(*) from A group by a
  *
@@ -66,6 +66,9 @@ public class UnsafeRowGrouper {
 	private final MergeCol[] mergCols;
         private String[] sortColumnsByIndex = null;
  	private final String[] columns;
+	/**
+	 * 合并平均值标志
+	 */
 	private boolean isMergAvg=false;
 	private HavingCols havingCols;
 	private UnsafeRow groupKey = null;
@@ -396,7 +399,6 @@ public class UnsafeRowGrouper {
     }
 
 	private void filterHaving(@Nonnull UnsafeExternalRowSorter sorter){
-
         if (havingCols.getColMeta() == null || aggregationMap == null) {
 			return;
 		}
@@ -655,8 +657,12 @@ public class UnsafeRowGrouper {
 					 case ColMeta.COL_TYPE_INT:
 					 case ColMeta.COL_TYPE_LONG:
 					 case ColMeta.COL_TYPE_INT24:
-						 left = BytesTools.int2Bytes(toRow.getInt(index));
-						 right = BytesTools.int2Bytes(newRow.getInt(index));
+						 if (!toRow.isNullAt(index)) {
+						 	left = BytesTools.int2Bytes(toRow.getInt(index));
+						 }
+						 if (!newRow.isNullAt(index)) {
+						 	right = BytesTools.int2Bytes(newRow.getInt(index));
+						 }
 						 break;
 					 case ColMeta.COL_TYPE_SHORT:
 						 left = BytesTools.short2Bytes(toRow.getShort(index));
@@ -764,16 +770,17 @@ public class UnsafeRowGrouper {
 							 bufferHolder.reset();
 							 for (int i = 0; i < toRow.numFields(); i++) {
 
-								 if (!toRow.isNullAt(i) && i != index) {
-									 unsafeRowWriter.write(i, toRow.getBinary(i));
-								 } else if (!toRow.isNullAt(i) && i == index) {
+								 if (i == index) {
 									 unsafeRowWriter.write(i,result);
+								 } else if (!toRow.isNullAt(i)) {
+									 unsafeRowWriter.write(i, toRow.getBinary(i));
 								 } else if (toRow.isNullAt(i)){
 									 unsafeRow.setNullAt(i);
 								 }
 							 }
 							 unsafeRow.setTotalSize(bufferHolder.totalSize());
 							 aggregationMap.put(key, unsafeRow);
+							 toRow = unsafeRow;
 							 break;
 						 default:
 							 break;
@@ -783,6 +790,11 @@ public class UnsafeRowGrouper {
 		}
     }
 
+	/**
+	 * 合并平均值
+	 * @param toRow
+	 * @throws UnsupportedEncodingException
+	 */
 	private void mergAvg(UnsafeRow toRow) throws UnsupportedEncodingException {
 
 		if (mergCols == null) {

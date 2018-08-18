@@ -25,35 +25,125 @@ package io.mycat.sqlengine.mpp;
 
 import java.io.Serializable;
 
+/**
+ * 列元素
+ */
 public class ColMeta implements Serializable{
+	/**
+	 * decimal（小数） 类型
+	 */
 	public static final int COL_TYPE_DECIMAL = 0;
+	/**
+	 * int 类型
+	 */
 	public static final int COL_TYPE_INT = 1;
+	/**
+	 * short 类型
+	 */
 	public static final int COL_TYPE_SHORT = 2;
+	/**
+	 * long 类型
+	 */
 	public static final int COL_TYPE_LONG = 3;
+	/**
+	 * float 类型
+	 */
 	public static final int COL_TYPE_FLOAT = 4;
+	/**
+	 * double 类型
+	 */
 	public static final int COL_TYPE_DOUBLE = 5;
+	/**
+	 * null 类型
+	 */
 	public static final int COL_TYPE_NULL = 6;
+	/**
+	 * timstamp 类型
+	 */
 	public static final int COL_TYPE_TIMSTAMP = 7;
+	/**
+	 * longlong 类型
+	 */
 	public static final int COL_TYPE_LONGLONG = 8;
+	/**
+	 * int24 类型
+	 */
 	public static final int COL_TYPE_INT24 = 9;
+	/**
+	 * date 类型
+	 */
 	public static final int COL_TYPE_DATE = 0x0a;
+	/**
+	 * datetime 类型
+	 */
 	public static final int COL_TYPE_DATETIME=0X0C;
+	/**
+	 * time 类型
+	 */
 	public static final int COL_TYPE_TIME = 0x0b;
+	/**
+	 * year 类型
+	 */
 	public static final int COL_TYPE_YEAR = 0x0d;
+	/**
+	 * newdate 类型
+	 */
 	public static final int COL_TYPE_NEWDATE = 0x0e;
+	/**
+	 * var char 类型
+	 */
 	public static final int COL_TYPE_VACHAR = 0x0f;
+	/**
+	 * bit 类型
+	 */
 	public static final int COL_TYPE_BIT = 0x10;
+	/**
+	 * newdecimal 类型
+	 */
 	public static final int COL_TYPE_NEWDECIMAL = 0xf6;
+	/**
+	 * enum 类型
+	 */
 	public static final int COL_TYPE_ENUM = 0xf7;
+	/**
+	 * set 类型
+	 */
 	public static final int COL_TYPE_SET = 0xf8;
+	/**
+	 * tiny blob 类型
+	 */
 	public static final int COL_TYPE_TINY_BLOB = 0xf9;
+	/**
+	 * tiny/medium blob 类型
+	 */
 	public static final int COL_TYPE_TINY_TYPE_MEDIUM_BLOB = 0xfa;
+	/**
+	 * tiny/long blob 类型
+	 */
 	public static final int COL_TYPE_TINY_TYPE_LONG_BLOB = 0xfb;
+	/**
+	 * blob 类型
+	 */
 	public static final int COL_TYPE_BLOB = 0xfc;
+	/**
+	 * var string 类型
+	 */
 	public static final int COL_TYPE_VAR_STRING = 0xfd;
+	/**
+	 * string 类型
+	 */
 	public static final int COL_TYPE_STRING = 0xfe;
+	/**
+	 * geometry 类型
+	 */
 	public static final int COL_TYPE_GEOMETRY = 0xff;
+	/**
+	 * 字段索引
+	 */
 	public  int colIndex;
+	/**
+	 * 字段类型
+	 */
 	public final int colType;
 	
 	public int decimals;

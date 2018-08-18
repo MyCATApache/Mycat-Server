@@ -1,7 +1,6 @@
 package io.mycat.server.response;
 
 import com.google.common.base.Strings;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;

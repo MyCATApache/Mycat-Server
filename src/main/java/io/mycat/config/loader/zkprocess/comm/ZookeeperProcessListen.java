@@ -1,17 +1,12 @@
 package io.mycat.config.loader.zkprocess.comm;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
+import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.mycat.config.loader.console.ZookeeperPath;
-import io.mycat.config.loader.zkprocess.console.ZkNofiflyCfg;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * 进行zookeeper操作的监控器器父类信息
@@ -75,7 +70,6 @@ public class ZookeeperProcessListen {
     * 方法描述
     * @param key
     * @param path
-    * @param cacheNotiflySercie
     * @创建日期 2016年9月19日
     */
     public void watchPath(String key, String path) {
@@ -112,11 +106,9 @@ public class ZookeeperProcessListen {
     * @创建日期 2016年9月19日
     */
     public Set<String> getWatchPath() {
-
         if (watchToListenMap.isEmpty()) {
             this.watchToParse();
         }
-
         return watchToListenMap.keySet();
     }
 
@@ -129,15 +121,12 @@ public class ZookeeperProcessListen {
      */
     public boolean notifly(String key) {
         boolean result = false;
-
         if (null != key && !"".equals(key)) {
-
-            // 进行配制加载所有
             if (ZkNofiflyCfg.ZK_NOTIFLY_LOAD_ALL.getKey().equals(key)) {
+                // 进行配制加载所有
                 this.notiflyAll();
-            }
-            // 如果是具体的单独更新，则进行单业务的业务刷新
-            else {
+            }else {
+                // 如果是具体的单独更新，则进行单业务的业务刷新
                 String watchListen = watchToListenMap.get(key);
 
                 if (null != watchListen) {
@@ -162,14 +151,10 @@ public class ZookeeperProcessListen {
      * 进行通知所有缓存进行更新操作
      */
     private void notiflyAll() {
-
         Iterator<Entry<String, NotiflyService>> notiflyIter = listenCache.entrySet().iterator();
-
         Entry<String, NotiflyService> item = null;
-
         while (notiflyIter.hasNext()) {
             item = notiflyIter.next();
-
             // 进行缓存更新通知操作
             if (null != item.getValue()) {
                 try {

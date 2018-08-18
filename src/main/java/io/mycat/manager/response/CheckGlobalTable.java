@@ -23,14 +23,8 @@
  */
 package io.mycat.manager.response;
 
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.heartbeat.ConsistenCollectHandler;
 import io.mycat.backend.mysql.PacketUtil;
@@ -46,6 +40,11 @@ import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
+
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 全局表一致性检测

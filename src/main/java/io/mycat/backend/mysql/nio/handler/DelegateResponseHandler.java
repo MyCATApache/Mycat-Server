@@ -23,9 +23,9 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
-import java.util.List;
-
 import io.mycat.backend.BackendConnection;
+
+import java.util.List;
 
 /**
  * @author mycat

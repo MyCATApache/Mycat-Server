@@ -23,10 +23,9 @@
  */
 package io.mycat.mysql;
 
+import io.mycat.backend.mysql.MySQLMessage;
 import org.junit.Assert;
 import org.junit.Test;
-
-import io.mycat.backend.mysql.MySQLMessage;
 
 /**
  * @author mycat

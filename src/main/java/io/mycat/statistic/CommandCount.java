@@ -24,6 +24,7 @@
 package io.mycat.statistic;
 
 /**
+ * 命令统计
  * @author mycat
  */
 public class CommandCount {

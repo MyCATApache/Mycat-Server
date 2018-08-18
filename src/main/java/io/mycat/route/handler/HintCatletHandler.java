@@ -1,10 +1,5 @@
 package io.mycat.route.handler;
 
-import java.sql.SQLNonTransientException;
-import java.util.Map;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.catlets.Catlet;
@@ -13,9 +8,15 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.ServerConnection;
 import io.mycat.sqlengine.EngineCtx;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLNonTransientException;
+import java.util.Map;
 
 /**
- * 处理注释中类型为catlet 的情况,每个catlet为一个用户自定义Java代码类，用于进行复杂查询SQL（只能是查询SQL）的自定义执行过程，
+ * Hint catlet 处理器 支持跨分片复杂SQL
+ * 处理注释中类型为catlet 的情况，每个catlet为一个用户自定义Java代码类，用于进行复杂查询SQL（只能是查询SQL）的自定义执行过程，
  * 目前主要用于跨分片Join的人工智能编码
  */
 public class HintCatletHandler implements HintHandler {
@@ -31,9 +32,11 @@ public class HintCatletHandler implements HintHandler {
 	 * @param sqlType
 	 * @param realSQL
 	 * @param charset
-	 * @param info
+	 * @param sc
 	 * @param cachePool
 	 * @param hintSQLValue
+	 * @param hintSqlType
+	 * @param hintMap
 	 * @return
 	 * @throws SQLNonTransientException
 	 */
@@ -49,8 +52,7 @@ public class HintCatletHandler implements HintHandler {
 					+ realSQL);
 		}
 		try {
-			Catlet catlet = (Catlet) MycatServer.getInstance()
-					.getCatletClassLoader().getInstanceofClass(cateletClass);
+			Catlet catlet = (Catlet) MycatServer.getInstance().getCatletClassLoader().getInstanceofClass(cateletClass);
 			catlet.route(sysConfig, schema, sqlType, realSQL,charset, sc, cachePool);
 			catlet.processSQL(realSQL, new EngineCtx(sc.getSession2()));
 		} catch (Exception e) {

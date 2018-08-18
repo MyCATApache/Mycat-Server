@@ -1,12 +1,9 @@
 package io.mycat.migrate;
 
 import com.google.common.collect.Lists;
-import io.mycat.migrate.MigrateTask;
-import io.mycat.migrate.MigrateUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.util.*;
 
 import static io.mycat.route.function.PartitionByCRC32PreSlot.Range;

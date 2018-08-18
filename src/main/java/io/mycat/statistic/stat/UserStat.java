@@ -1,12 +1,11 @@
 package io.mycat.statistic.stat;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import io.mycat.MycatServer;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.statistic.SQLRecord;
 import io.mycat.statistic.SQLRecorder;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 用户状态

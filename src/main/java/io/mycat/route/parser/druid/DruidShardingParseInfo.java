@@ -1,23 +1,17 @@
 package io.mycat.route.parser.druid;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Name;
-
 import io.mycat.route.util.RouterUtil;
-import io.mycat.sqlengine.mpp.ColumnRoutePair;
-import io.mycat.sqlengine.mpp.RangeValue;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
- * druid parser result
+ * Druid解析结果
+ *
  * @author wang.dw
  *
  */
@@ -40,19 +34,19 @@ public class DruidShardingParseInfo {
 //	private RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit(this); 
 
 	/**
-	 * key table alias, value talbe realname;
+	 * 表别名与表真实名映射，key是表别名，value是表真实名
 	 */
-	private Map<String, String> tableAliasMap = new LinkedHashMap<String, String>();
+//	private Map<String, String> tableAliasMap = new LinkedHashMap<String, String>();
 
 	private SchemaStatVisitor visitor;
 
-	public Map<String, String> getTableAliasMap() {
-		return tableAliasMap;
-	}
+//	public Map<String, String> getTableAliasMap() {
+//		return tableAliasMap;
+//	}
 
-	public void setTableAliasMap(Map<String, String> tableAliasMap) {
-		this.tableAliasMap = tableAliasMap;
-	}
+//	public void setTableAliasMap(Map<String, String> tableAliasMap) {
+//		this.tableAliasMap = tableAliasMap;
+//	}
 
 	public String getSql() {
 		return sql;
@@ -110,7 +104,7 @@ public class DruidShardingParseInfo {
 			
 			String _tableName = _name.getName().toString().toUpperCase();
 			//系统表直接跳过，路由到默认datanode
-			if(RouterUtil.isSystemSchema(_tableName)){
+			if(RouterUtil.isSystemSchema(_tableName)){/* TODO 这里有问题 升级druid后解析的table没有库名 */
 				continue;
 			}
 			if((dotIndex = _tableName.indexOf('.')) != -1){

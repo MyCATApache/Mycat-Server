@@ -1,21 +1,11 @@
 package io.mycat.route.parser.druid.impl;
 
-import java.sql.SQLNonTransientException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat.Condition;
-
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
@@ -23,14 +13,23 @@ import io.mycat.route.parser.druid.DruidParser;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
+import io.mycat.server.ServerConnection;
 import io.mycat.sqlengine.mpp.RangeValue;
+import io.mycat.util.ArrayUtil;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
+ * 默认 Druid 解析
  * 对SQLStatement解析
  * 主要通过visitor解析和statement解析：有些类型的SQLStatement通过visitor解析足够了，
- *  有些只能通过statement解析才能得到所有信息
- *  有些需要通过两种方式解析才能得到完整信息
+ * 有些只能通过statement解析才能得到所有信息，有些需要通过两种方式解析才能得到完整信息
+ *
  * @author wang.dw
  *
  */
@@ -41,24 +40,31 @@ public class DefaultDruidParser implements DruidParser {
 	 */
 	protected DruidShardingParseInfo ctx;
 	
-	private Map<String,String> tableAliasMap = new HashMap<String,String>();
+//	private Map<String,String> tableAliasMap = new HashMap<String,String>();
 
 	private List<Condition> conditions = new ArrayList<Condition>();
 	
-	public Map<String, String> getTableAliasMap() {
-		return tableAliasMap;
-	}
+//	public Map<String, String> getTableAliasMap() {
+//		return tableAliasMap;
+//	}
 
 	public List<Condition> getConditions() {
 		return conditions;
 	}
-	
+
 	/**
+	 * 解析
 	 * 使用MycatSchemaStatVisitor解析,得到tables、tableAliasMap、conditions等
 	 * @param schema
+	 * @param rrs
 	 * @param stmt
+	 * @param originSql
+	 * @param cachePool
+	 * @param schemaStatVisitor
+	 * @throws SQLNonTransientException
 	 */
-	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql,LayerCachePool cachePool,MycatSchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException {
+	@Override
+	public void parser(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, String originSql, LayerCachePool cachePool, MycatSchemaStatVisitor schemaStatVisitor) throws SQLNonTransientException {
 		ctx = new DruidShardingParseInfo();
 		//设置为原始sql，如果有需要改写sql的，可以通过修改SQLStatement中的属性，然后调用SQLStatement.toString()得到改写的sql
 		ctx.setSql(originSql);
@@ -67,6 +73,7 @@ public class DefaultDruidParser implements DruidParser {
 
 		//通过Statement解析
 		statementParse(schema, rrs, stmt);
+
 	}
 	
 	/**
@@ -80,8 +87,13 @@ public class DefaultDruidParser implements DruidParser {
 	}
 	
 	/**
+	 * statement方式解析
 	 * 子类可覆盖（如果visitorParse解析得不到表名、字段等信息的，就通过覆盖该方法来解析）
 	 * 子类覆盖该方法一般是将SQLStatement转型后再解析（如转型为MySqlInsertStatement）
+	 * @param schema
+	 * @param rrs
+	 * @param stmt
+	 * @throws SQLNonTransientException
 	 */
 	@Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
@@ -89,7 +101,12 @@ public class DefaultDruidParser implements DruidParser {
 	}
 	
 	/**
-	 * 改写sql：如insert是
+	 * 改写sql：加limit，加group by、加order by如有些没有加limit的可以通过该方法增加
+	 * @param schema
+	 * @param rrs
+	 * @param stmt
+	 * @param cachePool
+	 * @throws SQLNonTransientException
 	 */
 	@Override
 	public void changeSql(SchemaConfig schema, RouteResultset rrs,
@@ -100,11 +117,15 @@ public class DefaultDruidParser implements DruidParser {
 	/**
 	 * 子类可覆盖（如果该方法解析得不到表名、字段等信息的，就覆盖该方法，覆盖成空方法，然后通过statementPparse去解析）
 	 * 通过visitor解析：有些类型的Statement通过visitor解析得不到表名、
+	 *
+	 * @param rrs
 	 * @param stmt
+	 * @param visitor
+	 * @throws SQLNonTransientException
 	 */
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt,MycatSchemaStatVisitor visitor) throws SQLNonTransientException{
-
+	public void visitorParse(RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor) throws SQLNonTransientException{
+		// 使用visitor来访问AST
 		stmt.accept(visitor);
 		ctx.setVisitor(visitor);
 
@@ -131,36 +152,11 @@ public class DefaultDruidParser implements DruidParser {
 			rrs.setStatement(ctx.getSql());
 		}
 		
-		if(visitor.getAliasMap() != null) {
-			for(Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
-				String key = entry.getKey();
-				String value = entry.getValue();
-				if(key != null && key.indexOf("`") >= 0) {
-					key = key.replaceAll("`", "");
-				}
-				if(value != null && value.indexOf("`") >= 0) {
-					value = value.replaceAll("`", "");
-				}
-				//表名前面带database的，去掉
-				if(key != null) {
-					int pos = key.indexOf(".");
-					if(pos> 0) {
-						key = key.substring(pos + 1);
-					}
-					
-					tableAliasMap.put(key.toUpperCase(), value);
-				}
-				
-
-//				else {
-//					tableAliasMap.put(key, value);
-//				}
-
+		if(visitor.getTables() != null) {
+			String schema = visitor.getRepository().getDefaultSchemaName();
+			if(schema==null || !ArrayUtil.arraySearch(ServerConnection.mysqlSelfDbs,schema.toLowerCase())){
+				ctx.addTables(visitor.getTables());
 			}
-			ctx.addTables(visitor.getTables());
-			
-			visitor.getAliasMap().putAll(tableAliasMap);
-			ctx.setTableAliasMap(tableAliasMap);
 		}
 		ctx.setRouteCalculateUnits(this.buildRouteCalculateUnits(visitor, mergedConditionList));
 	}
@@ -176,26 +172,29 @@ public class DefaultDruidParser implements DruidParser {
 					continue;  
 				}
 				if(checkConditionValues(values)) {
-					String columnName = StringUtil.removeBackquote(condition.getColumn().getName().toUpperCase());
-					String tableName = StringUtil.removeBackquote(condition.getColumn().getTable().toUpperCase());
-					
-					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(tableName) != null 
-							&& !visitor.getAliasMap().get(tableName).equals(tableName)) {
-						tableName = visitor.getAliasMap().get(tableName);
-					}
+					String columnName = StringUtil.removeBackquote(condition.getColumn().getName());
+					String tableName = StringUtil.removeBackquote(condition.getColumn().getTable());
 
-					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(StringUtil.removeBackquote(condition.getColumn().getTable().toUpperCase())) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
-						continue;
+					if(visitor.getTables() != null
+							&& !visitor.containsTable(tableName)) {
+						//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
+						String upColumnName = StringUtil.removeBackquote(condition.getColumn().getName().toUpperCase());
+						String upTableName = StringUtil.removeBackquote(condition.getColumn().getTable().toUpperCase());
+
+						if(!visitor.containsTable(upTableName)){
+							continue;
+						}
 					}
 					
 					String operator = condition.getOperator();
 					
 					//只处理between ,in和=3中操作符
-					if(operator.equals("between")) {
+					if(operator.equalsIgnoreCase("between")) {
 						RangeValue rv = new RangeValue(values.get(0), values.get(1), RangeValue.EE);
-								routeCalculateUnit.addShardingExpr(tableName.toUpperCase(), columnName, rv);
-					} else if(operator.equals("=") || operator.toLowerCase().equals("in")){ //只处理=号和in操作符,其他忽略
-								routeCalculateUnit.addShardingExpr(tableName.toUpperCase(), columnName, values.toArray());
+						routeCalculateUnit.addShardingExpr(tableName.toUpperCase(), columnName, rv);
+					} else if(operator.equals("=") || operator.equalsIgnoreCase("in")){
+						//只处理=号和in操作符,其他忽略
+						routeCalculateUnit.addShardingExpr(tableName.toUpperCase(), columnName, values.toArray());
 					}
 				}
 			}
@@ -212,7 +211,12 @@ public class DefaultDruidParser implements DruidParser {
 		}
 		return false;
 	}
-	
+
+	/**
+	 * 获取解析到的信息
+	 * @return
+	 */
+	@Override
 	public DruidShardingParseInfo getCtx() {
 		return ctx;
 	}

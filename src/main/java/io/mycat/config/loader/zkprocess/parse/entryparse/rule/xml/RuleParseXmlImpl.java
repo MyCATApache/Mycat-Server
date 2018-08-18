@@ -1,16 +1,14 @@
 package io.mycat.config.loader.zkprocess.parse.entryparse.rule.xml;
 
-import java.io.IOException;
-
-import javax.xml.bind.JAXBException;
-import javax.xml.stream.XMLStreamException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.config.loader.zkprocess.entity.Rules;
 import io.mycat.config.loader.zkprocess.parse.ParseXmlServiceInf;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.xml.bind.JAXBException;
+import javax.xml.stream.XMLStreamException;
+import java.io.IOException;
 
 /**
  * rule.xml与javabean之间的转化

@@ -23,12 +23,14 @@
  */
 package io.mycat.net.mysql;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.net.FrontendConnection;
 
+import java.nio.ByteBuffer;
+
 /**
+ * 预处理正常包 MySQL内部协议
+ *
  * <pre>
  * From server to client, in response to prepared statement initialization packet. 
  * It is made up of: 

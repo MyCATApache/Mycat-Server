@@ -34,10 +34,8 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.sqlengine.mpp.tmp.RowDataSorter;
 import io.mycat.util.StringUtil;
-
-import org.apache.log4j.Logger;
-
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -58,7 +56,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 	private RowDataSorter sorter;
 	private RowDataPacketGrouper grouper;
 	private Map<String, LinkedList<RowDataPacket>> result = new HashMap<String, LinkedList<RowDataPacket>>();
-	private static Logger LOGGER = Logger.getLogger(DataMergeService.class);
+	private static Logger LOGGER = LoggerFactory.getLogger(DataMergeService.class);
 	private ConcurrentHashMap<String, Boolean> canDiscard = new ConcurrentHashMap<String, Boolean>();
 	public DataMergeService(MultiNodeQueryHandler handler, RouteResultset rrs) {
 		super(handler,rrs);

@@ -23,14 +23,15 @@
  */
 package io.mycat.config;
 
+import io.mycat.config.model.ClusterConfig;
+import io.mycat.config.model.MycatNodeConfig;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.mycat.config.model.ClusterConfig;
-import io.mycat.config.model.MycatNodeConfig;
-
 /**
+ * Mycat集群
  * @author mycat
  */
 public final class MycatCluster {

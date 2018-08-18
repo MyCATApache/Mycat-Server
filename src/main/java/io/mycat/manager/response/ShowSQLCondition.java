@@ -1,10 +1,5 @@
 package io.mycat.manager.response;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
 import io.mycat.manager.ManagerConnection;
@@ -15,6 +10,11 @@ import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.statistic.stat.QueryConditionAnalyzer;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
+
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * SQL 查询条件 值统计

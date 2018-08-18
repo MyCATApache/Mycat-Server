@@ -23,10 +23,10 @@
  */
 package io.mycat.server.parser;
 
+import io.mycat.route.parser.util.ParseUtil;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import io.mycat.route.parser.util.ParseUtil;
 
 /**
  * @author mycat
@@ -66,7 +66,13 @@ public final class ServerParse {
     private static final  Pattern pattern = Pattern.compile("(load)+\\s+(data)+\\s+\\w*\\s*(infile)+",Pattern.CASE_INSENSITIVE);
     private static final  Pattern callPattern = Pattern.compile("\\w*\\;\\s*\\s*(call)+\\s+\\w*\\s*",Pattern.CASE_INSENSITIVE);
 
-    public static int parse(String stmt) {
+	/**
+	 * sql解析
+	 * 对字符进行过滤
+	 * @param stmt
+	 * @return
+	 */
+	public static int parse(String stmt) {
 		int length = stmt.length();
 		//FIX BUG FOR SQL SUCH AS /XXXX/SQL
 		int rt = -1;

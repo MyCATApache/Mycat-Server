@@ -1,14 +1,13 @@
 package io.mycat.config.loader.zkprocess.parse;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import io.mycat.config.loader.zkprocess.entity.Schemas;
+import io.mycat.config.loader.zkprocess.entity.schema.datanode.DataNode;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import io.mycat.config.loader.zkprocess.entity.Schemas;
-import io.mycat.config.loader.zkprocess.entity.schema.datanode.DataNode;
 
 /**
  * json数据与实体类的类的信息 

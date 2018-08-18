@@ -1,11 +1,14 @@
 package io.mycat.route.impl.middlerResultStrategy;
 
-import java.util.List;
-
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelect;
 
+import java.util.List;
+
+/**
+ * 路由中间结果处理
+ */
 public interface RouteMiddlerReaultHandler {
 	
 	/**
@@ -15,6 +18,6 @@ public interface RouteMiddlerReaultHandler {
 	 * @param param
 	 * @return
 	 */
-	String dohandler(SQLStatement statement,SQLSelect sqlselect,SQLObject parent,List param);
+	String dohandler(SQLStatement statement, SQLSelect sqlselect, SQLObject parent, List param);
 
 }

@@ -23,18 +23,20 @@
  */
 package io.mycat.net.mysql;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.backend.mysql.StreamUtil;
 import io.mycat.config.Capabilities;
 import io.mycat.net.BackendAIOConnection;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+
 /**
- * From client to server during initial handshake.
+ * 认证包 MySQL内部协议
+ *
+ * 从客户端到服务器的初始握手。
  * 
  * <pre>
  * Bytes                        Name

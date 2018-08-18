@@ -23,8 +23,6 @@
  */
 package io.mycat.manager.response;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
@@ -37,6 +35,8 @@ import io.mycat.util.FormatUtil;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
 import io.mycat.util.TimeUtil;
+
+import java.nio.ByteBuffer;
 
 /**
  * 服务器状态报告

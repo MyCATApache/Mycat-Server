@@ -1,8 +1,8 @@
 package io.mycat.backend.postgresql.packet;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.postgresql.utils.PIOUtils;
+
+import java.nio.ByteBuffer;
 
 public class ParseComplete extends PostgreSQLPacket {
 	private char marker = PacketMarker.B_ParseComplete.getValue();

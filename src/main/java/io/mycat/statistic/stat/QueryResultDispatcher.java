@@ -1,12 +1,11 @@
 package io.mycat.statistic.stat;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.slf4j.Logger; 
+import io.mycat.MycatServer;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.mycat.MycatServer;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * SQL执行后的派发  QueryResult 事件

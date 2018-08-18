@@ -2,14 +2,11 @@ package io.mycat.route.parser.druid.impl;
 
 import com.alibaba.druid.util.JdbcConstants;
 
-public class DruidSelectPostgresqlParser extends DruidSelectParser
-{
-
-
-    protected String getCurentDbType()
-    {
+/**
+ * Druid PostgreSQL Select 解析器
+ */
+public class DruidSelectPostgresqlParser extends DruidSelectParser {
+    protected String getCurentDbType() {
         return JdbcConstants.POSTGRESQL;
     }
-
-
 }

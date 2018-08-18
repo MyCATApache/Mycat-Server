@@ -4,7 +4,6 @@ import io.mycat.memory.unsafe.ringbuffer.common.barrier.SequenceBarrier;
 import io.mycat.memory.unsafe.ringbuffer.common.sequence.Sequence;
 import io.mycat.memory.unsafe.ringbuffer.common.waitStrategy.WaitStrategy;
 import io.mycat.memory.unsafe.ringbuffer.exception.AlertException;
-import io.mycat.memory.unsafe.ringbuffer.exception.TimeoutException;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
