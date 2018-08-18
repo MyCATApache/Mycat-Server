@@ -96,30 +96,23 @@
 
 	<user name="root" defaultAccount="true">
 		<property name="password">123456</property>
-		<property name="schemas">testdb</property>
+		<property name="schemas">TESTDB</property>
 		
-		<privileges check="true">
-			<schema name="testdb" dml="0010" >
-				<table name="user" dml="1111"></table>
-				<table name="user1" dml="0010"></table>
+		<!-- 表级 DML 权限设置 -->
+		<!-- 		
+		<privileges check="false">
+			<schema name="TESTDB" dml="0110" >
+				<table name="tb01" dml="0000"></table>
+				<table name="tb02" dml="1111"></table>
 			</schema>
-			<dataNode name="testDN1" dml="1111"></dataNode>
-			<dataNode name="testDN2" dml="0000"></dataNode>
-		</privileges>
+		</privileges>		
+		 -->
 	</user>
 
 	<user name="user">
 		<property name="password">user</property>
-		<property name="schemas">testdb</property>
+		<property name="schemas">TESTDB</property>
 		<property name="readOnly">true</property>
-		<privileges check="true">
-			<schema name="testdb" dml="0010" >
-				<table name="user" dml="1111"></table>
-				<table name="user1" dml="0010"></table>
-			</schema>
-			<dataNode name="testDN1" dml="1111"></dataNode>
-			<dataNode name="testDN2" dml="0010"></dataNode>
-		</privileges>
 	</user>
 
 </mycat:server>
