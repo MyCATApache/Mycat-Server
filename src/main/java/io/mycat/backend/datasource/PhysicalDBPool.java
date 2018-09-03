@@ -684,7 +684,6 @@ public class PhysicalDBPool {
 		}		
 		boolean isSync = dbSynStatus == DBHeartbeat.DB_SYN_NORMAL;
 		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();	
-		isNotDelay = false;
 		return isSync && isNotDelay;
 	}
 

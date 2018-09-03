@@ -15,10 +15,10 @@ public class LogUtil {
 	public static final Logger LOGGER = LoggerFactory.getLogger(LogUtil.class);
 
 	/**
-	 * save cur datanode index to properties file
+	 *  將消息寫入到logs\switch.log中
 	 *
 	 * @param
-	 * @param curIndex
+	 * @param msg
 	 */
 	public synchronized static void writeDataSourceLog(String msg) {
 		File file = new File(SystemConfig.getHomePath(), "logs" + File.separator + "switch.log");

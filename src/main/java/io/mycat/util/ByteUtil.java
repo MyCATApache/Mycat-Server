@@ -344,12 +344,7 @@ public class ByteUtil {
 	public static char print(byte b) {
 		return (b < 32 || b > 127) ? '.' : (char) b;
 	}
-	public static void print(byte[] b1) {
-		 for(byte b : b1){
-			   System.out.print(b +",");
-		   }
-		 System.out.println(";");
-	}
+
 	/*
 	 * 返回小数点的位置
 	 * @return 找不到 ,其他都是小数点的位置
@@ -373,6 +368,10 @@ public class ByteUtil {
 		}
 		return false;
 	}
+	/*
+	 * @比較        對於b1取0 到b1End進行比較
+	 *          對於b2取0 到b2End進行比較
+	 * */
 	public static int compareNumberByte(byte[] b1, int b1End, byte[] b2, int b2End) {
 		if(b1 == null || b1.length == 0) {
 			return -1;
@@ -420,6 +419,12 @@ public class ByteUtil {
             }
 		}
 	}
+	/*
+	 * double類型的b1 b2進行比較
+	 * 首先:判斷是否是科學計數法 是直接創建Double對象進行比較
+	 *      否則利用byte進行比較 
+	 *         先判斷整數位 再判斷小數位
+	 * */
 	public static int compareDouble(byte[] b1, byte[] b2) {
 		if(b1 == null || b1.length == 0) {
 			return -1;
@@ -433,9 +438,11 @@ public class ByteUtil {
 		}
 		int d1 = getDot(b1);
 		int d2 = getDot(b2);
+		//判斷整數位
 		int result = compareNumberByte(b1, d1, b2, d2);
 		//符号相等
 		if(result == 0){
+			//判斷小數位
 			boolean isNegetive = b1[0] == 45 || b2[0] == 45; // 45 表示负数符号
 			int xsLen1 = b1.length - d1;
 			int xsLen2 = b2.length - d2;
@@ -458,43 +465,6 @@ public class ByteUtil {
 		}
 		return result;
 	}
-	/*
-	9.140526529005655E-4, 3.4374091024375053
-	9.733278635293274E-4, 9.297342614501103
-	0.7049586190246426, 5.81683389122567E-4
-	 */
-   public static double getRadnomDouble(){
-	   int rd=Math.random()>0.5?-1:1;
-	   double p1 = Math.random() * 100000L  ;
-	   p1 = Math.round( p1 );
-	   p1= p1 /10000;
-	   p1= p1 * rd;
-	   return p1;
-   }
-   public static void main(String[] args) {
-//	   boolean result1 = compareDouble("9.140526529005655E10".getBytes() , Double.toString(10).getBytes()) > 0 ;
-//	   System.out.println(compareDouble(Double.toString(-1.2).getBytes() , Double.toString(-1.21).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(-1).getBytes() , Double.toString(-1).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(2.12).getBytes() , Double.toString(1.23).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(2.14).getBytes() , Double.toString(2.13).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(2.11).getBytes() , Double.toString(-2.11).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(-2.117).getBytes() , Double.toString(-2.13).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(-0.117).getBytes() , Double.toString(-0.117).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(-0.117).getBytes() , Double.toString(-0.1178).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(2.117).getBytes() , Double.toString(2.13).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(0.117).getBytes() , Double.toString(0.117).getBytes()));
-//	   System.out.println(compareDouble(Double.toString(0.117).getBytes() , Double.toString(0.1178).getBytes()));
-//	   System.out.println(result1);
-	   for(int i= 0; i < 1000000000; i++) {
-		   double p1 = getRadnomDouble();
-		   double p2 = getRadnomDouble();
 
-		   boolean result = compareDouble(Double.toString(p1).getBytes() , Double.toString(p2).getBytes()) > 0 ;
-		   if( p1 > p2 != result) {
-			   System.out.println(p1 + ", "+ p2);
-		   }
-		  // System.out.println(p1 + ", "+ p2 + " " + result);
-	   }
 
-   }
 }

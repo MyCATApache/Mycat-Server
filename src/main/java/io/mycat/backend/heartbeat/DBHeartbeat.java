@@ -131,7 +131,10 @@ public abstract class DBHeartbeat {
 	public DataSourceSyncRecorder getAsynRecorder() {
 		return this.asynRecorder;
 	}
-	
+	/*
+	 * 
+	 * @desc 將心跳的狀態寫入到日誌中
+	 * */
 	protected void writeStatusMsg(String dataHost, String dataSourceName,int nextstatus) {
 		if(status != nextstatus) {
 			StringBuilder msg = new StringBuilder("");
@@ -140,7 +143,10 @@ public abstract class DBHeartbeat {
 			LogUtil.writeDataSourceLog(msg.toString());
 		}
 	}
-	
+	/*
+	 * 
+	 * @return 獲取對應狀態的字符串狀態
+	 * */
 	protected String getMsg(int status) {
 		switch (status) {
 		case DBHeartbeat.INIT_STATUS:
