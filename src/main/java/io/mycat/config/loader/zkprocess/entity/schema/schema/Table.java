@@ -45,6 +45,8 @@ public class Table implements Named {
     @XmlAttribute
     protected String type;
 
+    @XmlAttribute
+    protected String subTables;
     /**
      * 子节点信息
     * @字段说明 childTable
@@ -133,8 +135,17 @@ public class Table implements Named {
     public void setType(String type) {
         this.type = type;
     }
+    
+    
+    public String getSubTables() {
+		return subTables;
+	}
 
-    @Override
+	public void setSubTables(String subTables) {
+		this.subTables = subTables;
+	}
+
+	@Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("Table [name=");
