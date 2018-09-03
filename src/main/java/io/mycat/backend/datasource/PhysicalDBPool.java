@@ -44,6 +44,7 @@ import io.mycat.config.Alarms;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.model.DataHostConfig;
+import io.mycat.util.LogUtil;
 import io.mycat.util.ZKUtils;
 
 public class PhysicalDBPool {
@@ -223,6 +224,7 @@ public class PhysicalDBPool {
 						+ myId;
 				String data = String.format("%s=%d", myId,newIndex);
 				ZKUtils.createPath(manageVotePath, data);
+				LogUtil.writeDataSourceLog(String.format("[%s 發生投票: %s]", myId, this.getSources()[newIndex].getName()));
 			} finally {
 				lock.unlock();
 			}
@@ -273,9 +275,10 @@ public class PhysicalDBPool {
 				this.getSources()[current].clearCons("switch datasource");
 				
 				// write log
-				LOGGER.warn(switchMessage(current, newIndex, false, reason));
-				
-				if(MycatServer.getInstance().isUseZkSwitch()){
+				String msg = switchMessage(current, newIndex, false, reason);
+				LOGGER.warn(msg);
+				LogUtil.writeDataSourceLog(msg);
+				if(MycatServer.getInstance().isUseZkSwitch()) {
 					System.out.println("当前：" + activedIndex + " new Index "+ newIndex );
 					current =   activedIndex;
  					if(!isInitSuccess() || current != newIndex) {
@@ -304,8 +307,8 @@ public class PhysicalDBPool {
 		if (alarm) {
 			s.append(Alarms.DATANODE_SWITCH);
 		}
-		s.append("[Host=").append(hostName).append(",result=[").append(current).append("->");
-		s.append(newIndex).append("],reason=").append(reason).append(']');
+		s.append("[Host=").append(hostName).append(",result=[").append(this.getSources()[current].getName()).append("->");
+		s.append(this.getSources()[newIndex].getName()).append("],reason=").append(reason).append(']');
 		return s.toString();
 	}
 
@@ -680,7 +683,8 @@ public class PhysicalDBPool {
 			return false;
 		}		
 		boolean isSync = dbSynStatus == DBHeartbeat.DB_SYN_NORMAL;
-		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();		
+		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();	
+		isNotDelay = false;
 		return isSync && isNotDelay;
 	}
 
