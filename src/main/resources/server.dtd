@@ -24,7 +24,7 @@ name NMTOKEN #REQUIRED
 defaultAccount NMTOKEN #IMPLIED
 >
  
-<!ELEMENT privileges (schema)*>
+<!ELEMENT privileges (schema*,dataNode*)>
 <!ATTLIST privileges check NMTOKEN #REQUIRED>
 
 <!ELEMENT schema (table)*>
@@ -34,6 +34,12 @@ defaultAccount NMTOKEN #IMPLIED
 
 <!ELEMENT table (name*)>
 <!ATTLIST table
+  name CDATA #REQUIRED
+  dml CDATA #REQUIRED
+  ext CDATA #IMPLIED>
+
+<!ELEMENT dataNode (name*)>
+<!ATTLIST dataNode
   name CDATA #REQUIRED
   dml CDATA #REQUIRED
   ext CDATA #IMPLIED>

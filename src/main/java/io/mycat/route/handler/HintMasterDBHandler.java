@@ -82,7 +82,7 @@ public class HintMasterDBHandler implements HintHandler {
 			rrs.setRunOnSlave(true);
 		}
 		
-		LOGGER.debug("rrs.getRunOnSlave():" + rrs.getRunOnSlave());
+		LOGGER.debug("rrs.getRunOnSlave():" + rrs.getRunOnSlaveDebugInfo());
 		return rrs;
 	}
 

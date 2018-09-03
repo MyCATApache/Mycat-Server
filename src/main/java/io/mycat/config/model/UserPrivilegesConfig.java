@@ -6,16 +6,20 @@ import java.util.Map;
 
 /**
  * 用户 SQL 权限配置
- * 
+ *
  * @author zhuam
  *
  */
 public class UserPrivilegesConfig {
 	
 	private boolean check = false;
-	
+
+	/** 库级权限 */
 	private Map<String, SchemaPrivilege> schemaPrivileges = new HashMap<String, SchemaPrivilege>();
-	
+
+	/** dataNode权限 */
+	private Map<String, DataNodePrivilege> dataNodePrivileges = new HashMap<String, DataNodePrivilege>();
+
 	public boolean isCheck() {
 		return check;
 	}
@@ -29,10 +33,17 @@ public class UserPrivilegesConfig {
 	}
 	
 	public SchemaPrivilege getSchemaPrivilege(String schemaName) {
-		SchemaPrivilege schemaPrivilege = schemaPrivileges.get( schemaName );
-		return schemaPrivilege;
+		return schemaPrivileges.get( schemaName );
 	}
-	
+
+	public void addDataNodePrivileges(String dataNodeName, DataNodePrivilege privilege) {
+		this.dataNodePrivileges.put(dataNodeName, privilege);
+	}
+
+	public DataNodePrivilege getDataNodePrivilege(String dataNodeName) {
+		return dataNodePrivileges.get(dataNodeName);
+	}
+
 	/**
 	 * 库级权限
 	 */
@@ -81,7 +92,33 @@ public class UserPrivilegesConfig {
 
 		private String name;
 		private int[] dml = new int[] { 0, 0, 0, 0 };
-		
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+		public int[] getDml() {
+			return dml;
+		}
+
+		public void setDml(int[] dml) {
+			this.dml = dml;
+		}
+
+	}
+
+	/**
+	 * dataNode权限
+	 */
+	public static class DataNodePrivilege {
+
+		private String name;
+		private int[] dml = new int[] { 0, 0, 0, 0 };
+
 		public String getName() {
 			return name;
 		}
