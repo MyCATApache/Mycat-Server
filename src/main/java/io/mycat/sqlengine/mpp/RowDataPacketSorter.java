@@ -176,11 +176,7 @@ public class RowDataPacketSorter {
         case ColMeta.COL_TYPE_LONG:
         case ColMeta.COL_TYPE_LONGLONG:
         case ColMeta.COL_TYPE_INT24:
-<<<<<<< HEAD
-=======
-        case ColMeta.COL_TYPE_NEWDECIMAL:
-        // 因为mysql的日期也是数字字符串方式表达，因此可以跟整数等一起对待
->>>>>>> upstream/1.6
+
         case ColMeta.COL_TYPE_DATE:
         case ColMeta.COL_TYPE_TIMSTAMP:
         case ColMeta.COL_TYPE_TIME:
