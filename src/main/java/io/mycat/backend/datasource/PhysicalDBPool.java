@@ -33,6 +33,7 @@ import io.mycat.config.Alarms;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.model.DataHostConfig;
+import io.mycat.util.LogUtil;
 import io.mycat.util.ZKUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -253,6 +254,7 @@ public class PhysicalDBPool {
 						+ myId;
 				String data = String.format("%s=%d", myId,newIndex);
 				ZKUtils.createPath(manageVotePath, data);
+				LogUtil.writeDataSourceLog(String.format("[%s 發生投票: %s]", myId, this.getSources()[newIndex].getName()));
 			} finally {
 				lock.unlock();
 			}
@@ -308,10 +310,11 @@ public class PhysicalDBPool {
 				this.getSources()[current].clearCons("switch datasource");
 				
 				// write log
-				LOGGER.warn(switchMessage(current, newIndex, false, reason));
-				
-				if(MycatServer.getInstance().isUseZkSwitch()){
-					LOGGER.info("当前：" + activedIndex + " new Index "+ newIndex );
+				String msg = switchMessage(current, newIndex, false, reason);
+				LOGGER.warn(msg);
+				LogUtil.writeDataSourceLog(msg);
+				if(MycatServer.getInstance().isUseZkSwitch()) {
+					LOGGER.warn(switchMessage(current, newIndex, false, reason));				
 					current =   activedIndex;
  					if(!isInitSuccess() || current != newIndex) {
 						LOGGER.error(String.format("%s switch to index %d error ! now index is to switch %d but %d", hostName, newIndex ,newIndex, current));
@@ -339,8 +342,8 @@ public class PhysicalDBPool {
 		if (alarm) {
 			s.append(Alarms.DATANODE_SWITCH);
 		}
-		s.append("[Host=").append(hostName).append(",result=[").append(current).append("->");
-		s.append(newIndex).append("],reason=").append(reason).append(']');
+		s.append("[Host=").append(hostName).append(",result=[").append(this.getSources()[current].getName()).append("->");
+		s.append(this.getSources()[newIndex].getName()).append("],reason=").append(reason).append(']');
 		return s.toString();
 	}
 

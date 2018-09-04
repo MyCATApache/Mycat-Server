@@ -165,15 +165,17 @@ public class RowDataPacketSorter {
         int colType = orderCol.getColMeta().getColType();
         switch (colType) {
         case ColMeta.COL_TYPE_DECIMAL:
+        case ColMeta.COL_TYPE_FLOAT:
+        case ColMeta.COL_TYPE_DOUBLE:
+        case ColMeta.COL_TYPE_NEWDECIMAL:
+            // 因为mysql的日期也是数字字符串方式表达，因此可以跟整数等一起对待
+        	return ByteUtil.compareDouble(left, right);
         case ColMeta.COL_TYPE_INT:
         case ColMeta.COL_TYPE_SHORT:
         case ColMeta.COL_TYPE_LONG:
-        case ColMeta.COL_TYPE_FLOAT:
-        case ColMeta.COL_TYPE_DOUBLE:
         case ColMeta.COL_TYPE_LONGLONG:
         case ColMeta.COL_TYPE_INT24:
-        case ColMeta.COL_TYPE_NEWDECIMAL:
-        // 因为mysql的日期也是数字字符串方式表达，因此可以跟整数等一起对待
+
         case ColMeta.COL_TYPE_DATE:
         case ColMeta.COL_TYPE_TIMSTAMP:
         case ColMeta.COL_TYPE_TIME:
