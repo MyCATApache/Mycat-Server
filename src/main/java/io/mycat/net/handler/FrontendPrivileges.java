@@ -89,6 +89,15 @@ public interface FrontendPrivileges {
      * 检查 SQL 语句的 DML 权限
      * @return
      */
-    boolean checkDmlPrivilege(String user, String schema, String sql);   
+    boolean checkDmlPrivilege(String user, String schema, String sql);
+
+    /**
+     * 检查针对 DataNode 的 SQL 语句的 DML 权限
+     * @param user
+     * @param dataNode
+     * @param sql
+     * @return
+     */
+    boolean checkDataNodeDmlPrivilege(String user, String dataNode, String sql);
 
 }
