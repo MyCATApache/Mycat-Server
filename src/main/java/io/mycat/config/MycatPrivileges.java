@@ -267,7 +267,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 					
 					SQLStatementParser parser = new MycatStatementParser(sql);			
 					SQLStatement stmt = parser.parseStatement();
-					
+
 					if (stmt instanceof SQLReplaceStatement || stmt instanceof SQLInsertStatement ) {
 						index = 0;
 					} else if (stmt instanceof SQLUpdateStatement ) {
@@ -277,7 +277,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 					} else if (stmt instanceof SQLDeleteStatement ) {
 						index = 3;
 					}
-					
+
 					if ( index > -1) {
 						SchemaStatVisitor schemaStatVisitor = new MycatSchemaStatVisitor();
 						stmt.accept(schemaStatVisitor);
@@ -335,6 +335,38 @@ public class MycatPrivileges implements FrontendPrivileges {
 		}
 		
 		return isPassed;
-	}	
-	
+	}
+
+	@Override
+	public boolean checkDataNodeDmlPrivilege(String user, String dataNode, String sql) {
+		if (dataNode == null) {
+			return true;
+		}
+
+		boolean isPassed = false;
+
+		MycatConfig conf = MycatServer.getInstance().getConfig();
+		UserConfig userConfig = conf.getUsers().get(user);
+		if (userConfig != null) {
+
+			UserPrivilegesConfig userPrivilege = userConfig.getPrivilegesConfig();
+			if (userPrivilege != null && userPrivilege.isCheck()) {
+
+				UserPrivilegesConfig.DataNodePrivilege dataNodePrivilege = userPrivilege.getDataNodePrivilege(dataNode);
+				if (dataNodePrivilege != null) {
+
+					if (sql != null && sql.length() == 5 && sql.equalsIgnoreCase("begin")) {
+						return true;
+					}
+
+					//获取 dataNode 的 select 权限, 此处不需要检测空值, 无设置则自动继承父级权限
+					if (dataNodePrivilege.getDml()[2] > 0) {
+						isPassed = true;
+					}
+				}
+			}
+		}
+		return isPassed;
+	}
+
 }

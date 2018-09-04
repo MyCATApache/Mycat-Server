@@ -29,6 +29,7 @@ import io.mycat.statistic.HeartbeatRecorder;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.mycat.util.LogUtil;
 
 /**
  * 数据库心跳
@@ -162,5 +163,34 @@ public abstract class DBHeartbeat {
 	public DataSourceSyncRecorder getAsynRecorder() {
 		return this.asynRecorder;
 	}
-
+	/*
+	 * 
+	 * @desc 將心跳的狀態寫入到日誌中
+	 * */
+	protected void writeStatusMsg(String dataHost, String dataSourceName,int nextstatus) {
+		if(status != nextstatus) {
+			StringBuilder msg = new StringBuilder("");
+			msg.append("[dataHost=").append(dataHost).append(", dataSource=").append(dataSourceName)
+			.append(",statue=").append(getMsg(status)).append(" -> ").append(getMsg(nextstatus)).append("]");
+			LogUtil.writeDataSourceLog(msg.toString());
+		}
+	}
+	/*
+	 * 
+	 * @return 獲取對應狀態的字符串狀態
+	 * */
+	protected String getMsg(int status) {
+		switch (status) {
+		case DBHeartbeat.INIT_STATUS:
+			return "init status";
+		case DBHeartbeat.TIMEOUT_STATUS:
+			return "timeout status";
+		case DBHeartbeat.OK_STATUS:
+			return "ok status";
+		case DBHeartbeat.ERROR_STATUS:
+			return "error status";	
+		default:
+			return "unknown status";	
+		}
+	}
 }

@@ -176,6 +176,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	private void setOk(MySQLDetector detector) {
 		switch (status) {
 		case DBHeartbeat.TIMEOUT_STATUS:
+			writeStatusMsg(source.getDbPool().getHostName(), source.getName() ,DBHeartbeat.INIT_STATUS);
 			this.status = DBHeartbeat.INIT_STATUS;
 			this.errorCount.set(0);			
 			//前一个状态为超时 当前状态为正常状态  那就马上发送一个请求 来验证状态是否恢复为Ok
@@ -189,6 +190,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 			this.errorCount.set(0);
 			break;
 		default:
+			writeStatusMsg(source.getDbPool().getHostName(), source.getName() ,DBHeartbeat.OK_STATUS);
 			this.status = OK_STATUS;
 			this.errorCount.set(0);;
 		}
@@ -202,6 +204,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 		
 		if (isStop.get()) {
 			detector.quit();
+			writeStatusMsg(source.getDbPool().getHostName(), source.getName() ,DBHeartbeat.OK_STATUS);
 			this.status = nextStatue;			
 		} else {  
 			// should continues check error status
@@ -216,11 +219,14 @@ public class MySQLHeartbeat extends DBHeartbeat {
 				if (detector != null ) {
 	                detector.quit();
 	            }
-	            this.status = nextStatue;
+				writeStatusMsg(source.getDbPool().getHostName(), source.getName() ,nextStatue);
+				this.status = nextStatue;	            
 				this.errorCount.set(0);
 			}
 		}
 	}
+
+
 	private void setError(MySQLDetector detector) {
 		errorCount.incrementAndGet() ;
 		nextDector(detector, ERROR_STATUS);
