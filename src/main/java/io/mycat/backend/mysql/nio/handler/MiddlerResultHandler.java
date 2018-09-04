@@ -1,8 +1,8 @@
 package io.mycat.backend.mysql.nio.handler;
 
-import java.util.List;
-
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+
+import java.util.List;
 
 /**
  * 中间结果处理器

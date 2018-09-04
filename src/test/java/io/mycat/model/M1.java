@@ -23,9 +23,9 @@
  */
 package io.mycat.model;
 
-import java.util.concurrent.BlockingQueue;
-
 import jsr166y.LinkedTransferQueue;
+
+import java.util.concurrent.BlockingQueue;
 
 /**
  * @author mycat

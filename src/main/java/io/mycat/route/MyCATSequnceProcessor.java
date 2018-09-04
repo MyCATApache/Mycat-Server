@@ -1,12 +1,14 @@
 package io.mycat.route;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.config.ErrorCode;
 import io.mycat.route.parser.druid.DruidSequenceHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * Mycat全局序列号处理器
+ */
 public class MyCATSequnceProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MyCATSequnceProcessor.class);
 	
@@ -22,8 +24,7 @@ public class MyCATSequnceProcessor {
 		return InnerMyCATSequnceProcessor.INSTANCE;
 	}
 	
-	private MyCATSequnceProcessor() {
-	}
+	private MyCATSequnceProcessor() { }
 
 	/**
 	 *  锁的粒度控制到序列级别.一个序列一把锁.

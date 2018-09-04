@@ -24,6 +24,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 /**
+ * 内存消费者
+ * DataNodeMemoryManager的内存消费者，它支持溢出。
+ * 注意：这仅支持分配/溢出Tungsten内存。
+ *
  * An memory consumer of DataNodeMemoryManager, which support spilling.
  * Note: this only supports allocation / spilling of Tungsten memory.
  */

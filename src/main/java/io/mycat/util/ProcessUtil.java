@@ -1,12 +1,9 @@
 package io.mycat.util;
 
-import io.mycat.migrate.MigrateUtils;
-import io.mycat.util.dataMigrator.DataMigratorUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 
 public class ProcessUtil

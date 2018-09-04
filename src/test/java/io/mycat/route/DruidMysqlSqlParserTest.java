@@ -1,10 +1,5 @@
 package io.mycat.route;
 
-import java.sql.SQLNonTransientException;
-import java.util.Map;
-
-import org.junit.Test;
-
 import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
@@ -15,6 +10,10 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.parser.ServerParse;
 import junit.framework.Assert;
+import org.junit.Test;
+
+import java.sql.SQLNonTransientException;
+import java.util.Map;
 
 public class DruidMysqlSqlParserTest
 {
@@ -74,6 +73,16 @@ public class DruidMysqlSqlParserTest
         Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
         Assert.assertEquals(10, rrs.getNodes()[0].getLimitSize());
         Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+
+        sql = "select * from offer order by id desc limit 10 offset 5";
+        rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+                null, cachePool);
+        Assert.assertEquals(5, rrs.getLimitStart());
+        Assert.assertEquals(10, rrs.getLimitSize());
+        Assert.assertEquals(0, rrs.getNodes()[0].getLimitStart());
+        Assert.assertEquals(15, rrs.getNodes()[0].getLimitSize());
+        Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("dn2", rrs.getNodes()[1].getName());
 	}
 
 	@Test

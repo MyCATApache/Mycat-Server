@@ -23,11 +23,6 @@
  */
 package io.mycat.manager.response;
 
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -39,6 +34,11 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.mysql.OkPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author mycat

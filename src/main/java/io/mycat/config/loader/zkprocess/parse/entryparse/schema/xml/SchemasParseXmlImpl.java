@@ -1,16 +1,14 @@
 package io.mycat.config.loader.zkprocess.parse.entryparse.schema.xml;
 
-import java.io.IOException;
-
-import javax.xml.bind.JAXBException;
-import javax.xml.stream.XMLStreamException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.config.loader.zkprocess.entity.Schemas;
 import io.mycat.config.loader.zkprocess.parse.ParseXmlServiceInf;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.xml.bind.JAXBException;
+import javax.xml.stream.XMLStreamException;
+import java.io.IOException;
 
 /**
  * schema.xml与javabean之间的转化
@@ -43,7 +41,6 @@ public class SchemasParseXmlImpl implements ParseXmlServiceInf<Schemas> {
     * @param parseBase
     */
     public SchemasParseXmlImpl(XmlProcessBase parseBase) {
-
         this.parseBean = parseBase;
         // 添加xml的转换的实体类信息
         parseBean.addParseClass(Schemas.class);
@@ -51,9 +48,7 @@ public class SchemasParseXmlImpl implements ParseXmlServiceInf<Schemas> {
 
     @Override
     public Schemas parseXmlToBean(String path) {
-
         Schemas schema = null;
-
         try {
             schema = (Schemas) this.parseBean.baseParseXmlToBean(path);
         } catch (JAXBException e) {

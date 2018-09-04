@@ -23,11 +23,11 @@
  */
 package io.mycat.manager.response;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.mysql.OkPacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat

@@ -23,14 +23,16 @@
  */
 package io.mycat.net.mysql;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.net.FrontendConnection;
 
+import java.nio.ByteBuffer;
+
 /**
- * From server to client during initial handshake.
+ * 握手包 MySQL内部协议
+ *
+ * 从服务器到客户端，在最初的握手过程中。
  * 
  * <pre>
  * Bytes                        Name

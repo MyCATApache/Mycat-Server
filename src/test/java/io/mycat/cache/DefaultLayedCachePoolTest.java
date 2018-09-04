@@ -23,13 +23,9 @@
  */
 package io.mycat.cache;
 
-import junit.framework.Assert;
-
-import org.junit.Test;
-
-import io.mycat.cache.CacheStatic;
-import io.mycat.cache.DefaultLayedCachePool;
 import io.mycat.cache.impl.EnchachePooFactory;
+import junit.framework.Assert;
+import org.junit.Test;
 
 public class  DefaultLayedCachePoolTest {
 

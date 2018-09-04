@@ -4,6 +4,8 @@
 .gradle
 bin/
 tmp/
+!/src/main/assembly/bin/
+!/src/main/java/io/mycat/sqlengine/mpp/tmp/
 *.tmp
 *.bak
 *.swp
@@ -111,3 +113,5 @@ hs_err_pid*
 /RUNNING_PID
 .DS_Store
 /target/
+/datanode/
+/conf/

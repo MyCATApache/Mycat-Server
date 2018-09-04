@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ConcurrentModificationException;
@@ -20,6 +19,12 @@ public class SelectorUtil {
 
     public static final long MIN_SELECT_TIME_IN_NANO_SECONDS = 500000L;
 
+    /**
+     * 重建选择器
+     * @param oldSelector
+     * @return
+     * @throws IOException
+     */
     public static Selector rebuildSelector(final Selector oldSelector) throws IOException {
         final Selector newSelector;
         try {

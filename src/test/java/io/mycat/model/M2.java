@@ -23,11 +23,11 @@
  */
 package io.mycat.model;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-
 import io.mycat.util.ExecutorUtil;
 import jsr166y.LinkedTransferQueue;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @author mycat

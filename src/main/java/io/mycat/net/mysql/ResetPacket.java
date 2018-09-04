@@ -3,6 +3,8 @@ package io.mycat.net.mysql;
 import io.mycat.backend.mysql.MySQLMessage;
 
 /**
+ * 重设包 MySQL内部协议
+ *
  * <pre>
  * 
  * COM_STMT_RESET resets the data of a prepared statement which was accumulated with COM_STMT_SEND_LONG_DATA commands and closes the cursor if it was opened with COM_STMT_EXECUTE

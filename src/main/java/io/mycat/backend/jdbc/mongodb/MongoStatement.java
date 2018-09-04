@@ -1,12 +1,6 @@
 package io.mycat.backend.jdbc.mongodb;
 
-import com.mongodb.DBCursor;
-
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
+import java.sql.*;
 /**  
  * 功能详细描述
  * @author sohudo[http://blog.csdn.net/wind520]

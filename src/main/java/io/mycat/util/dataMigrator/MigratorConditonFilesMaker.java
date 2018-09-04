@@ -1,5 +1,11 @@
 package io.mycat.util.dataMigrator;
 
+import com.alibaba.druid.util.JdbcUtils;
+import io.mycat.route.function.AbstractPartitionAlgorithm;
+import io.mycat.util.CollectionUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
@@ -7,14 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.druid.util.JdbcUtils;
-
-import io.mycat.route.function.AbstractPartitionAlgorithm;
-import io.mycat.util.CollectionUtil;
 
 /**
  * 对具体某个节点重新路由 生成导出数据所依赖的中间文件

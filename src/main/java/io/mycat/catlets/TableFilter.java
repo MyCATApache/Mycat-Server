@@ -1,15 +1,14 @@
 package io.mycat.catlets;
 
+import io.mycat.sqlengine.mpp.OrderCol;
+import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import com.alibaba.druid.sql.SQLUtils;
-
-import io.mycat.sqlengine.mpp.OrderCol;
-import io.mycat.util.StringUtil;
 /**  
  * 功能详细描述:分片join,单独的语句
  * @author sohudo[http://blog.csdn.net/wind520]
@@ -442,5 +441,4 @@ public class TableFilter {
 				+ ", joinKey=" + joinKey + ", join=" + join + ", offset=" + offset + ", rowCount=" + rowCount
 				+ ", outJoin=" + outJoin + ", allField=" + allField + "]";
 	}	
-	
 }

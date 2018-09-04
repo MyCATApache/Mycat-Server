@@ -1,16 +1,16 @@
 package io.mycat.route.function;
 
 
+import io.mycat.config.model.rule.RuleAlgorithm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-
-import org.apache.log4j.Logger;
-
-import io.mycat.config.model.rule.RuleAlgorithm;
 
 /**
  * 例子 按月份列分区 ，每个自然月一个分片，格式 between操作解析的范例
@@ -20,7 +20,7 @@ import io.mycat.config.model.rule.RuleAlgorithm;
  */
 public class PartitionByMonthAndHistory extends AbstractPartitionAlgorithm implements
         RuleAlgorithm {
-    private static final Logger LOGGER = Logger.getLogger(PartitionByMonth.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PartitionByMonth.class);
     private String sBeginDate;
     private String dateFormat;
     private String sEndDate;
@@ -129,7 +129,7 @@ public class PartitionByMonthAndHistory extends AbstractPartitionAlgorithm imple
             int size = list.size();
             return (list.toArray(new Integer[size]));
         } catch (ParseException e) {
-            LOGGER.error(e);
+            LOGGER.error("ParseException",e);
             return new Integer[0];
         }
     }

@@ -25,7 +25,8 @@ package io.mycat.cache;
 
 /**
  * simple cache pool for implement
- * 
+ * 实现简单的缓存池
+ *
  * @author wuzhih
  * 
  */

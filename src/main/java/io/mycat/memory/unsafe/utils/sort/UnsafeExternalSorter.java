@@ -1,9 +1,6 @@
-
-
 package io.mycat.memory.unsafe.utils.sort;
 
 import com.google.common.annotations.VisibleForTesting;
-
 import io.mycat.MycatServer;
 import io.mycat.memory.unsafe.Platform;
 import io.mycat.memory.unsafe.array.LongArray;
@@ -23,14 +20,21 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 /**
+ * 非安全的外部排序器
  * External sorter based on {@link UnsafeInMemorySorter}.
  */
 public final class UnsafeExternalSorter extends MemoryConsumer {
 
   private final Logger logger = LoggerFactory.getLogger(UnsafeExternalSorter.class);
 
+  /**
+   * 前缀比较器，用于排序
+   */
   @Nullable
   private final PrefixComparator prefixComparator;
+  /**
+   * 记录比较器，用于数据排序
+   */
   @Nullable
   private final RecordComparator recordComparator;
 

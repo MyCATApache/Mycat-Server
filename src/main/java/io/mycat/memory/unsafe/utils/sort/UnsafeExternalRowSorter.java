@@ -33,136 +33,152 @@ import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * 非安全的外部行排序器
+ */
 public final class UnsafeExternalRowSorter {
 
     private final Logger logger = LoggerFactory.getLogger(UnsafeExternalSorter.class);
 
-  private long numRowsInserted = 0;
-  private final StructType schema;
-  private final PrefixComputer prefixComputer;
-  private final UnsafeExternalSorter sorter;
-  private final  PrefixComparator prefixComparator;
-  private final RecordComparator recordComparator;
+    private long numRowsInserted = 0;
+    private final StructType schema;
+    /**
+     * 前缀计算器
+     */
+    private final PrefixComputer prefixComputer;
+    /**
+     * 非安全的外部排序器
+     */
+    private final UnsafeExternalSorter sorter;
+    /**
+     * 前缀比较器，用于排序
+     */
+    private final  PrefixComparator prefixComparator;
+    /**
+     * 记录比较器，用于数据排序
+     */
+    private final RecordComparator recordComparator;
+
+    /**
+     * 前缀计算器
+     */
+    public abstract static class PrefixComputer {
+        protected abstract long computePrefix(UnsafeRow row) throws UnsupportedEncodingException;
+    }
+
+    public UnsafeExternalRowSorter(DataNodeMemoryManager dataNodeMemoryManager,
+                                   @Nonnull MyCatMemory myCatMemory,
+                                   StructType schema,
+                                   PrefixComparator prefixComparator,
+                                   PrefixComputer prefixComputer,
+                                   long pageSizeBytes,
+                                   boolean canUseRadixSort,
+                                   boolean enableSort) throws IOException {
+        this.schema = schema;
+        this.prefixComputer = prefixComputer;
+        this.prefixComparator = prefixComparator;
+        this.recordComparator =  new RowComparator(schema);
+        sorter = UnsafeExternalSorter.create(
+                dataNodeMemoryManager,
+                myCatMemory.getBlockManager(),
+                myCatMemory.getSerializerManager(),
+                recordComparator,
+                prefixComparator,
+                myCatMemory.getConf().getSizeAsBytes("mycat.pointer.array.len","1K"),
+                pageSizeBytes,
+                canUseRadixSort,
+                enableSort);
+    }
 
 
-  public abstract static class PrefixComputer {
-    protected abstract long computePrefix(UnsafeRow row) throws UnsupportedEncodingException;
-  }
+    public void insertRow(UnsafeRow row) throws IOException {
+        final long prefix = prefixComputer.computePrefix(row);
 
-  public UnsafeExternalRowSorter(DataNodeMemoryManager dataNodeMemoryManager,
-                                 @Nonnull MyCatMemory myCatMemory,
-                                 StructType schema,
-                                 PrefixComparator prefixComparator,
-                                 PrefixComputer prefixComputer,
-                                 long pageSizeBytes,
-                                 boolean canUseRadixSort,
-                                 boolean enableSort) throws IOException {
-    this.schema = schema;
-    this.prefixComputer = prefixComputer;
-      this.prefixComparator = prefixComparator;
-      this.recordComparator =  new RowComparator(schema);
-    sorter = UnsafeExternalSorter.create(
-            dataNodeMemoryManager,
-            myCatMemory.getBlockManager(),
-           myCatMemory.getSerializerManager(),
-            recordComparator,
-      prefixComparator,
-      myCatMemory.getConf().getSizeAsBytes("mycat.pointer.array.len","1K"),
-      pageSizeBytes,
-      canUseRadixSort,
-      enableSort);
-  }
+        sorter.insertRecord(
+                row.getBaseObject(),
+                row.getBaseOffset(),
+                row.getSizeInBytes(),
+                prefix);
 
-
-  public void insertRow(UnsafeRow row) throws IOException {
-    final long prefix = prefixComputer.computePrefix(row);
-
-      sorter.insertRecord(
-      row.getBaseObject(),
-      row.getBaseOffset(),
-      row.getSizeInBytes(),
-      prefix);
-
-    numRowsInserted++;
-  }
+        numRowsInserted++;
+    }
     /**
      * Return total rows
      */
     public long getNumRowsInserted() {
         return numRowsInserted;
     }
-  /**
-   * Return the peak memory used so far, in bytes.
-   */
-  public long getPeakMemoryUsage() {
-    return sorter.getPeakMemoryUsedBytes();
-  }
-
-  /**
-   * @return the total amount of time spent sorting data (in-memory only).
-   */
-  public long getSortTimeNanos() {
-    return sorter.getSortTimeNanos();
-  }
-
-  public void cleanupResources() {
-      sorter.cleanupResources();
-  }
-
-  public Iterator<UnsafeRow> sort() throws IOException {
-    try {
-      final UnsafeSorterIterator sortedIterator = sorter.getSortedIterator();
-      if (!sortedIterator.hasNext()) {
-        cleanupResources();
-      }
-
-      return new AbstractScalaRowIterator<UnsafeRow>() {
-
-        private final int numFields = schema.length();
-        private UnsafeRow row = new UnsafeRow(numFields);
-
-        @Override
-        public boolean hasNext() {
-          return sortedIterator.hasNext();
-        }
-
-        @Override
-        public UnsafeRow next() {
-          try {
-            sortedIterator.loadNext();
-            row.pointTo(sortedIterator.getBaseObject(), sortedIterator.getBaseOffset(), sortedIterator.getRecordLength());
-            if (!hasNext()) {
-              UnsafeRow copy = row.copy(); // so that we don't have dangling pointers to freed page
-              row = null; // so that we don't keep references to the base object
-              cleanupResources();
-              return copy;
-            } else {
-              return row;
-            }
-          } catch (IOException e) {
-            cleanupResources();
-            // Scala iterators don't declare any checked exceptions, so we need to use this hack
-            // to re-throw the exception:
-            Platform.throwException(e);
-          }
-          throw new RuntimeException("Exception should have been re-thrown in next()");
-        }
-
-        @Override
-        public void remove() {
-
-        }
-      };
-    } catch (IOException e) {
-      cleanupResources();
-      throw e;
+    /**
+     * Return the peak memory used so far, in bytes.
+     */
+    public long getPeakMemoryUsage() {
+        return sorter.getPeakMemoryUsedBytes();
     }
-  }
+
+    /**
+     * @return the total amount of time spent sorting data (in-memory only).
+     */
+    public long getSortTimeNanos() {
+        return sorter.getSortTimeNanos();
+    }
+
+    public void cleanupResources() {
+        sorter.cleanupResources();
+    }
+
+    public Iterator<UnsafeRow> sort() throws IOException {
+        try {
+            final UnsafeSorterIterator sortedIterator = sorter.getSortedIterator();
+            if (!sortedIterator.hasNext()) {
+                cleanupResources();
+            }
+
+            return new AbstractScalaRowIterator<UnsafeRow>() {
+
+                private final int numFields = schema.length();
+                private UnsafeRow row = new UnsafeRow(numFields);
+
+                @Override
+                public boolean hasNext() {
+                    return sortedIterator.hasNext();
+                }
+
+                @Override
+                public UnsafeRow next() {
+                    try {
+                        sortedIterator.loadNext();
+                        row.pointTo(sortedIterator.getBaseObject(), sortedIterator.getBaseOffset(), sortedIterator.getRecordLength());
+                        if (!hasNext()) {
+                            UnsafeRow copy = row.copy(); // 这样我们就没有悬挂指向释放页面的指针
+                            row = null; // 这样我们就不会保留对基础对象的引用
+                            cleanupResources();
+                            return copy;
+                        } else {
+                            return row;
+                        }
+                    } catch (IOException e) {
+                        cleanupResources();
+                        // Scala迭代器不声明任何已检查的异常，因此我们需要使用此hack来重新抛出异常：
+                        Platform.throwException(e);
+                    }
+                    throw new RuntimeException("Exception should have been re-thrown in next()");
+                }
+
+                @Override
+                public void remove() {
+
+                }
+            };
+        } catch (IOException e) {
+            cleanupResources();
+            throw e;
+        }
+    }
 
 
-  public UnsafeSorterIterator getRowUnsafeSorterIterator() throws IOException{
-    return sorter.getSortedIterator();
-  }
+    public UnsafeSorterIterator getRowUnsafeSorterIterator() throws IOException{
+        return sorter.getSortedIterator();
+    }
 
 
     public Iterator<UnsafeRow> mergerSort(List<UnsafeSorterIterator> list) throws IOException {
@@ -199,8 +215,8 @@ public final class UnsafeExternalRowSorter {
                                 sortedIterator.getBaseOffset(),
                                 sortedIterator.getRecordLength());
                         if (!hasNext()) {
-                            UnsafeRow copy = row.copy(); // so that we don't have dangling pointers to freed page
-                            row = null; // so that we don't keep references to the base object
+                            UnsafeRow copy = row.copy(); // 这样我们就没有悬挂指向释放页面的指针
+                            row = null; // 这样我们就不会保留对基础对象的引用
                             cleanupResources();
                             return copy;
                         } else {
@@ -208,8 +224,7 @@ public final class UnsafeExternalRowSorter {
                         }
                     } catch (IOException e) {
                         cleanupResources();
-                        // Scala iterators don't declare any checked exceptions, so we need to use this hack
-                        // to re-throw the exception:
+                        // Scala迭代器不声明任何已检查的异常，因此我们需要使用此hack来重新抛出异常：
                         Platform.throwException(e);
                     }
                     throw new RuntimeException("Exception should have been re-thrown in next()");
@@ -227,81 +242,78 @@ public final class UnsafeExternalRowSorter {
     }
 
 
-  public Iterator<UnsafeRow> sort(Iterator<UnsafeRow> inputIterator) throws IOException {
+    public Iterator<UnsafeRow> sort(Iterator<UnsafeRow> inputIterator) throws IOException {
 
-    while (inputIterator.hasNext()) {
-      insertRow(inputIterator.next());
-    }
-
-    return sort();
-  }
-
-
-
-  private static final class RowComparator extends RecordComparator {
-    private final int numFields;
-    private final UnsafeRow row1;
-    private final UnsafeRow row2;
-    private final StructType schema;
-
-    RowComparator(StructType schema) {
-
-      assert schema.length()>=0;
-
-      this.schema = schema;
-      this.numFields = schema.length();
-      this.row1 = new UnsafeRow(numFields);
-      this.row2 = new UnsafeRow(numFields);
-    }
-
-    @Override
-    public int compare(Object baseObj1, long baseOff1, Object baseObj2, long baseOff2) {
-      OrderCol[] orderCols =  schema.getOrderCols();
-
-      if(orderCols == null){
-          return 0;
-      }
-
-      /**取出一行数据*/
-      row1.pointTo(baseObj1, baseOff1, -1);
-      row2.pointTo(baseObj2, baseOff2, -1);
-      int cmp = 0;
-      int len = orderCols.length;
-
-      int type = OrderCol.COL_ORDER_TYPE_ASC; /**升序*/
-
-      for (int i = 0; i < len; i++) {
-        int colIndex = orderCols[i].colMeta.colIndex;
-        /**取出一行数据中的列值，进行大小比对*/
-        byte[] left = null;
-        byte[] right = null;
-
-
-
-          if(!row1.isNullAt(colIndex)) {
-              left = row1.getBinary(colIndex);
-          }else {
-              left = new byte[1];
-              left[0] = UnsafeRow.NULL_MARK;
-          }
-
-
-          if(!row2.isNullAt(colIndex)) {
-              right = row2.getBinary(colIndex);
-          }else {
-              right = new byte[1];
-              right[0] = UnsafeRow.NULL_MARK;
-          }
-
-        if (orderCols[i].orderType == type) {
-          cmp = RowDataPacketSorter.compareObject(left, right, orderCols[i]);
-        } else {
-          cmp = RowDataPacketSorter.compareObject(right, left, orderCols[i]);
+        while (inputIterator.hasNext()) {
+            insertRow(inputIterator.next());
         }
-        if (cmp != 0)
-          return cmp;
-      }
-      return cmp;
+
+        return sort();
     }
-  }
+
+
+
+    private static final class RowComparator extends RecordComparator {
+        private final int numFields;
+        private final UnsafeRow row1;
+        private final UnsafeRow row2;
+        private final StructType schema;
+
+        RowComparator(StructType schema) {
+
+            assert schema.length()>=0;
+
+            this.schema = schema;
+            this.numFields = schema.length();
+            this.row1 = new UnsafeRow(numFields);
+            this.row2 = new UnsafeRow(numFields);
+        }
+
+        @Override
+        public int compare(Object baseObj1, long baseOff1, Object baseObj2, long baseOff2) {
+            OrderCol[] orderCols =  schema.getOrderCols();
+
+            if(orderCols == null){
+                return 0;
+            }
+
+            /**取出一行数据*/
+            row1.pointTo(baseObj1, baseOff1, -1);
+            row2.pointTo(baseObj2, baseOff2, -1);
+            int cmp = 0;
+            int len = orderCols.length;
+
+            int type = OrderCol.COL_ORDER_TYPE_ASC; /**升序*/
+
+            for (int i = 0; i < len; i++) {
+                int colIndex = orderCols[i].colMeta.colIndex;
+                /**取出一行数据中的列值，进行大小比对*/
+                byte[] left = null;
+                byte[] right = null;
+
+                if(!row1.isNullAt(colIndex)) {
+                    left = row1.getBinary(colIndex);
+                }else {
+                    left = new byte[1];
+                    left[0] = UnsafeRow.NULL_MARK;
+                }
+
+                if(!row2.isNullAt(colIndex)) {
+                    right = row2.getBinary(colIndex);
+                }else {
+                    right = new byte[1];
+                    right[0] = UnsafeRow.NULL_MARK;
+                }
+
+                if (orderCols[i].orderType == type) {
+                    cmp = RowDataPacketSorter.compareObject(left, right, orderCols[i]);
+                } else {
+                    cmp = RowDataPacketSorter.compareObject(right, left, orderCols[i]);
+                }
+                if (cmp != 0)
+                    return cmp;
+            }
+            return cmp;
+        }
+    }
 }

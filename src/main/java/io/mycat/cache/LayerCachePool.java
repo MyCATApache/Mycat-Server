@@ -26,7 +26,7 @@ package io.mycat.cache;
 import java.util.Map;
 
 /**
- * Layered cache pool
+ * 分层缓存池
  * 
  * @author wuzhih
  * 
@@ -39,6 +39,8 @@ public interface LayerCachePool extends CachePool {
 
 	/**
 	 * get all cache static, name is cache name
+	 * 获取所有缓存静态，名称是缓存名称
+	 *
 	 * @return map of CacheStatic
 	 */
 	public Map<String, CacheStatic> getAllCacheStatic();

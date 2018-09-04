@@ -3,7 +3,8 @@ package io.mycat.net.mysql;
 import io.mycat.backend.mysql.MySQLMessage;
 
 /**
- * 
+ * 长数据包 MySQL内部协议
+ *
  * <pre>
  * 
  * COM_STMT_SEND_LONG_DATA sends the data for a column. Repeating to send it, appends the data to the parameter.

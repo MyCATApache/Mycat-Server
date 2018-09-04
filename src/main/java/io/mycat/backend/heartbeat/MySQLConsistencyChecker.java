@@ -28,11 +28,8 @@ import io.mycat.server.interceptor.impl.GlobalTableUtil;
 import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
 import io.mycat.sqlengine.SQLJob;
 import io.mycat.sqlengine.SQLQueryResult;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.alibaba.fastjson.JSON;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -43,6 +40,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
+ * MySQL一致性检查器
+ * 目前检查标准是基于数据表的总记录数，不一致时使用最大的mycat操作时间（_mycat_op_time）的记录覆盖其他的表
+ *
  * @author digdeep@126.com
  */
 public class MySQLConsistencyChecker{
@@ -50,7 +50,9 @@ public class MySQLConsistencyChecker{
 	protected final MySQLDataSource source;
 	protected final ReentrantLock lock;
 	protected AtomicInteger jobCount = new AtomicInteger();
+	// 查询 数据表的总记录数 SQL
 	protected String countSQL;
+	// 查询 最大的_mycat_op_time SQL
 	protected String maxSQL;
 	protected String tableName;	// global table name
 	protected long beginTime;
@@ -70,13 +72,14 @@ public class MySQLConsistencyChecker{
 		this.source = source;
 		this.lock = new ReentrantLock(false);
 		this.tableName = tableName;
-		this.countSQL = " select count(*) as "+GlobalTableUtil.COUNT_COLUMN+" from " 
-							+ this.tableName;
-		this.maxSQL = " select max("+GlobalTableUtil.GLOBAL_TABLE_MYCAT_COLUMN+") as "+
-						GlobalTableUtil.MAX_COLUMN+" from " + this.tableName;
+		this.countSQL = "select count(*) as "+GlobalTableUtil.COUNT_COLUMN+" from " + this.tableName;
+		this.maxSQL = "select max("+GlobalTableUtil.GLOBAL_TABLE_MYCAT_COLUMN+") as "+ GlobalTableUtil.MAX_COLUMN+" from " + this.tableName;
 		this.columnExistSQL += this.tableName +"' ";
 	}
 
+	/**
+	 * 检查记录数
+	 */
 	public void checkRecordCout() {
         // ["db3","db2","db1"]
 		lock.lock();
@@ -86,8 +89,7 @@ public class MySQLConsistencyChecker{
 	        String[] physicalSchemas = source.getDbPool().getSchemas();
 	        for(String dbName : physicalSchemas){
 	        	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null);
-	        	OneRawSQLQueryResultHandler resultHandler = 
-	        			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.COUNT_COLUMN}, detector);
+	        	OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.COUNT_COLUMN}, detector);
 	        	SQLJob sqlJob = new SQLJob(this.getCountSQL(), dbName, resultHandler, source);
 	        	detector.setSqlJob(sqlJob);
 	 		    sqlJob.run();
@@ -97,7 +99,11 @@ public class MySQLConsistencyChecker{
 			lock.unlock();
 		}
 	}
-	
+
+	/**
+	 * 检查最大mycat操作时间
+	 * 检查数据不一致后调用
+	 */
 	public void checkMaxTimeStamp() {
         // ["db3","db2","db1"]
 		lock.lock();
@@ -107,8 +113,7 @@ public class MySQLConsistencyChecker{
 	        String[] physicalSchemas = source.getDbPool().getSchemas();
 	        for(String dbName : physicalSchemas){
 	        	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null);
-	        	OneRawSQLQueryResultHandler resultHandler = 
-	        			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.MAX_COLUMN}, detector);
+	        	OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.MAX_COLUMN}, detector);
 	        	SQLJob sqlJob = new SQLJob(this.getMaxSQL(), dbName, resultHandler, source);
 	        	detector.setSqlJob(sqlJob);
 	 		    sqlJob.run();
@@ -121,6 +126,7 @@ public class MySQLConsistencyChecker{
 	
 	/**
 	 * check inner column exist or not
+	 * 检查内部列是否存在
 	 */
 	public void checkInnerColumnExist() {
         // ["db3","db2","db1"]
@@ -131,8 +137,7 @@ public class MySQLConsistencyChecker{
 	        String[] physicalSchemas = source.getDbPool().getSchemas();
 	        for(String dbName : physicalSchemas){
 	        	MySQLConsistencyHelper detector = new MySQLConsistencyHelper(this, null, 1);
-	        	OneRawSQLQueryResultHandler resultHandler = 
-	        			new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.INNER_COLUMN}, detector);
+	        	OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[] {GlobalTableUtil.INNER_COLUMN}, detector);
 	        	String db = " and table_schema='" + dbName + "'";
 	        	SQLJob sqlJob = new SQLJob(this.columnExistSQL + db , dbName, resultHandler, source);
 	        	detector.setSqlJob(sqlJob);//table_schema='db1'

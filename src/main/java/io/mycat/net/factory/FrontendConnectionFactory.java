@@ -23,17 +23,20 @@
  */
 package io.mycat.net.factory;
 
+import io.mycat.MycatServer;
+import io.mycat.net.FrontendConnection;
+
 import java.io.IOException;
 import java.net.StandardSocketOptions;
 import java.nio.channels.NetworkChannel;
 
-import io.mycat.MycatServer;
-import io.mycat.net.FrontendConnection;
-
 /**
+ * 前端连接工程
+ *
  * @author mycat
  */
 public abstract class FrontendConnectionFactory {
+
 	protected abstract FrontendConnection getConnection(NetworkChannel channel)
 			throws IOException;
 
@@ -42,10 +45,9 @@ public abstract class FrontendConnectionFactory {
 		channel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
 
 		FrontendConnection c = getConnection(channel);
+		// 设置连接参数
 		MycatServer.getInstance().getConfig().setSocketParams(c, true);
 		return c;
 	}
-
-	
 
 }

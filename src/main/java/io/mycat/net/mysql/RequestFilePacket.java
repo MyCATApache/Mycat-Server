@@ -23,34 +23,31 @@
  */
 package io.mycat.net.mysql;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.net.FrontendConnection;
 
+import java.nio.ByteBuffer;
+
 /**
+ * 请求文件包 MySQL内部协议
+ *
  * load data local infile 向客户端请求发送文件用
  */
-public class RequestFilePacket extends MySQLPacket
-{
+public class RequestFilePacket extends MySQLPacket {
     public static final byte FIELD_COUNT = (byte) 251;
     public byte command = FIELD_COUNT;
     public byte[] fileName;
 
 
     @Override
-    public ByteBuffer write(ByteBuffer buffer, FrontendConnection c, boolean writeSocketIfFull)
-    {
+    public ByteBuffer write(ByteBuffer buffer, FrontendConnection c, boolean writeSocketIfFull) {
         int size = calcPacketSize();
         buffer = c.checkWriteBuffer(buffer, c.getPacketHeaderSize() + size, writeSocketIfFull);
         BufferUtil.writeUB3(buffer, size);
         buffer.put(packetId);
         buffer.put(command);
-        if (fileName != null)
-        {
-
+        if (fileName != null) {
             buffer.put(fileName);
-
         }
 
         c.write(buffer);

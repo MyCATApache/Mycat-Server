@@ -23,9 +23,6 @@
  */
 package io.mycat.server.handler;
 
-import java.nio.ByteBuffer;
-import java.util.Map;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.cache.CachePool;
@@ -40,6 +37,9 @@ import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
+
+import java.nio.ByteBuffer;
+import java.util.Map;
 
 public class ShowCache {
 

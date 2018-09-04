@@ -23,10 +23,9 @@
  */
 package io.mycat.util;
 
+import io.mycat.sqlengine.mpp.LoadData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.mycat.sqlengine.mpp.LoadData;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;

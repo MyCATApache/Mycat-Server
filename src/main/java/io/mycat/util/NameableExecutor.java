@@ -29,6 +29,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 可命名线程池执行器
+ *
  * @author mycat
  */
 public class NameableExecutor extends ThreadPoolExecutor {

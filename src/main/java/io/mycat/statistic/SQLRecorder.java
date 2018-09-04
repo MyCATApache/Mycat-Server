@@ -23,10 +23,10 @@
  */
 package io.mycat.statistic;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * SQL统计排序记录器

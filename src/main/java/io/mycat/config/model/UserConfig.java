@@ -26,6 +26,8 @@ package io.mycat.config.model;
 import java.util.Set;
 
 /**
+ * 用户配置
+ *
  * @author mycat
  */
 public class UserConfig {

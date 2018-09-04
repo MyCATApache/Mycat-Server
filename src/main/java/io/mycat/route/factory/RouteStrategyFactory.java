@@ -1,14 +1,12 @@
 package io.mycat.route.factory;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import io.mycat.MycatServer;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.impl.DruidMycatRouteStrategy;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * 路由策略工厂类
@@ -35,30 +33,18 @@ public class RouteStrategyFactory {
 		config.setDefaultSqlParser(defaultSqlParser);
 		isInit = true;
 	}
-	private RouteStrategyFactory() {
-	    
-	}
 
-	
+	/**
+	 * 获取默认路由策略
+	 * @return
+	 */
 	public static RouteStrategy getRouteStrategy() {
-//		if(!isInit) {
-//			synchronized(RouteStrategyFactory.class){
-//				if(!isInit){
-//					init();
-//				}
-//			}
-//		}
 		return defaultStrategy;
 	}
 	
 	public static RouteStrategy getRouteStrategy(String parserType) {
-//		if(!isInit) {
-//			synchronized(RouteStrategyFactory.class){
-//				if(!isInit){
-//					init();
-//				}
-//			}
-//		}
 		return strategyMap.get(parserType);
 	}
+
+	private RouteStrategyFactory() {}
 }

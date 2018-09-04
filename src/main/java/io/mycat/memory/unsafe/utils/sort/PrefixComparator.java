@@ -18,6 +18,9 @@
 package io.mycat.memory.unsafe.utils.sort;
 
 /**
+ * 前缀比较器，用于排序
+ * 比较前缀排序中的8字节键前缀。 子类可以实现特定于类型的比较，例如字符串的字典比较。
+ *
  * Compares 8-byte key prefixes in prefix sort. Subclasses may implement type-specific
  * comparisons, such as lexicographic comparison for strings.
  */

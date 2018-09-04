@@ -1,16 +1,6 @@
 package io.mycat.config.loader.zkprocess.zktoxml.listen;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.io.File;
-import java.io.IOException;
-
-import org.apache.curator.framework.CuratorFramework;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.io.Files;
-
 import io.mycat.MycatServer;
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
@@ -23,6 +13,15 @@ import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDataImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkDirectoryImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
 import io.mycat.manager.response.ReloadConfig;
+import io.mycat.util.ZKUtils;
+import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * 进行从sequence加载到zk中加载
@@ -93,8 +92,7 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
         this.zookeeperListen = zookeeperListen;
 
         // 获得当前集群的名称
-        String schemaPath = zookeeperListen.getBasePath();
-        schemaPath = schemaPath + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
+        String schemaPath = ZKUtils.getZKBasePath() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
 
         currZkPath = schemaPath;
         // 将当前自己注册为事件接收对象
@@ -102,6 +100,11 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
 
     }
 
+    /**
+     * 处理通知，zk配置更新
+     * @return
+     * @throws Exception
+     */
     @Override
     public boolean notiflyProcess() throws Exception {
 
@@ -143,9 +146,6 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
 
     /**
      * 将xml文件的信息写入到zk中
-    * 方法描述
-    * @param basePath 基本路径
-    * @param schema schema文件的信息
     * @throws Exception 异常信息
     * @创建日期 2016年9月17日
     */
@@ -199,7 +199,7 @@ public class SequenceTopropertiesLoader extends ZkMultLoader implements NotiflyS
      * 将xml文件的信息写入到zk中
      * 方法描述
      * @param basePath 基本路径
-     * @param schema schema文件的信息
+     * @param name name文件的信息
      * @throws Exception 异常信息
      * @创建日期 2016年9月17日
      */

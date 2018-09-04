@@ -10,12 +10,10 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.parser.ServerParse;
+import junit.framework.Assert;
+import org.junit.Test;
 
 import java.util.Map;
-
-import junit.framework.Assert;
-
-import org.junit.Test;
 
 public class HintDBTypeTest {
 	protected Map<String, SchemaConfig> schemaMap;

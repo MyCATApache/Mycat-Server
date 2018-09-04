@@ -16,8 +16,7 @@ import java.util.List;
 public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm ,Serializable {
 
 	@Override
-	public void init() {
-	}
+	public void init() { }
 
 	/**
 	 * 返回所有被路由到的节点的编号

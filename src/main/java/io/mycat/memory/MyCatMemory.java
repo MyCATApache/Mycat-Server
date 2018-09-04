@@ -4,14 +4,14 @@ package io.mycat.memory;
 import com.google.common.annotations.VisibleForTesting;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.memory.unsafe.Platform;
-import io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager;
 import io.mycat.memory.unsafe.memory.mm.MemoryManager;
 import io.mycat.memory.unsafe.memory.mm.ResultMergeMemoryManager;
 import io.mycat.memory.unsafe.storage.DataNodeDiskManager;
 import io.mycat.memory.unsafe.storage.SerializerManager;
 import io.mycat.memory.unsafe.utils.JavaUtils;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by zagnix on 2016/6/2.
@@ -25,7 +25,7 @@ import org.apache.log4j.Logger;
  */
 
 public class MyCatMemory {
-	private static Logger LOGGER = Logger.getLogger(MyCatMemory.class);
+	private static Logger LOGGER = LoggerFactory.getLogger(MyCatMemory.class);
 
 	public final  static double DIRECT_SAFETY_FRACTION  = 0.7;
 	private final long systemReserveBufferSize;
@@ -61,13 +61,10 @@ public class MyCatMemory {
 		this.conf = new MycatPropertyConf();
 		numCores = Runtime.getRuntime().availableProcessors();
 
-		this.systemReserveBufferSize = JavaUtils.
-				byteStringAsBytes(system.getSystemReserveMemorySize());
-		this.memoryPageSize = JavaUtils.
-				byteStringAsBytes(system.getMemoryPageSize());
+		this.systemReserveBufferSize = JavaUtils.byteStringAsBytes(system.getSystemReserveMemorySize());
+		this.memoryPageSize = JavaUtils.byteStringAsBytes(system.getMemoryPageSize());
 
-		this.spillsFileBufferSize = JavaUtils.
-				byteStringAsBytes(system.getSpillsFileBufferSize());
+		this.spillsFileBufferSize = JavaUtils.byteStringAsBytes(system.getSpillsFileBufferSize());
 
 		/**
 		 * 目前merge，order by ，limit 没有使用On Heap内存
@@ -76,8 +73,7 @@ public class MyCatMemory {
 
 		assert maxOnHeapMemory > 0;
 
-		resultSetBufferSize =
-				(long)((Platform.getMaxDirectMemory()-2*totalNetWorkBufferSize)*DIRECT_SAFETY_FRACTION);
+		resultSetBufferSize = (long)((Platform.getMaxDirectMemory()-2*totalNetWorkBufferSize)*DIRECT_SAFETY_FRACTION);
 
 		assert resultSetBufferSize > 0;
 
@@ -119,12 +115,9 @@ public class MyCatMemory {
 		conf.set("mycat.pointer.array.len","1k")
 			.set("mycat.memory.offHeap.size", JavaUtils.bytesToString2(resultSetBufferSize));
 
-		LOGGER.info("mycat.memory.offHeap.size: " +
-				JavaUtils.bytesToString2(resultSetBufferSize));
+		LOGGER.info("mycat.memory.offHeap.size: " + JavaUtils.bytesToString2(resultSetBufferSize));
 
-		resultMergeMemoryManager =
-				new ResultMergeMemoryManager(conf,numCores,maxOnHeapMemory);
-
+		resultMergeMemoryManager = new ResultMergeMemoryManager(conf,numCores,maxOnHeapMemory);
 
 		serializerManager = new SerializerManager();
 

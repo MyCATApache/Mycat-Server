@@ -1,11 +1,11 @@
 package io.mycat.backend.postgresql.packet;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
 import io.mycat.backend.postgresql.utils.MD5Digest;
 import io.mycat.backend.postgresql.utils.PIOUtils;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 
 //PasswordMessage (F)
 //Byte1('p')

@@ -23,17 +23,6 @@
  */
 package io.mycat.backend.datasource;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.heartbeat.DBHeartbeat;
@@ -46,52 +35,90 @@ import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.LogUtil;
 import io.mycat.util.ZKUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * 物理数据库池
+ */
 public class PhysicalDBPool {
-	
+
 	protected static final Logger LOGGER = LoggerFactory.getLogger(PhysicalDBPool.class);
-	
+
+	/**
+	 * 不开启读写分离机制，所有读操作都发送到当前可用的 writeHost 上
+ 	 */
 	public static final int BALANCE_NONE = 0;
+	/**
+	 * 全部的 readHost 与 stand by writeHost 参与 select 语句的负载均衡，
+	 * 简单的说，当双主双从模式(M1->S1，M2->S2，并且 M1 与 M2 互为主备)，正常情况下，M2,S1,S2 都参与 select 语句的负载均衡。
+	 */
 	public static final int BALANCE_ALL_BACK = 1;
+	/**
+	 * 所有读操作都随机的在 writeHost、readhost 上分发
+	 */
 	public static final int BALANCE_ALL = 2;
-    public static final int BALANCE_ALL_READ = 3;
-    
+	/**
+	 * 所有读请求随机的分发到 wiriterHost 对应的 readhost 执行，writerHost 不负担读压力，
+	 * 注意 balance=3 只在 1.4 及其以后版本有，1.3 没有
+	 */
+	public static final int BALANCE_ALL_READ = 3;
+
+	/**
+	 * 只有一个写节点
+	 * 所有写操作发送到配置的第一个 writeHost，第一个挂了切到还生存的第二个 writeHost，
+	 * 重新启动后已切换后的为准，切换记录在配置文件中:dnindex.properties .
+	 */
 	public static final int WRITE_ONLYONE_NODE = 0;
+	/**
+	 * 随机写节点
+	 * 所有写操作都随机的发送到配置的 writeHost，1.5 以后废弃不推荐
+	 */
 	public static final int WRITE_RANDOM_NODE = 1;
 	public static final int WRITE_ALL_NODE = 2;
-	
+
 	public static final long LONG_TIME = 300000;
 	public static final int WEIGHT = 0;
 
 	private final String hostName;
-	
+
+	// 写物理数据源
 	protected PhysicalDatasource[] writeSources;
+	// 读物理数据源
 	protected Map<Integer, PhysicalDatasource[]> readSources;
-	
+
 	protected volatile int activedIndex;
+	// 初始化成功标志
 	protected volatile boolean initSuccess;
-	
+
 	protected final ReentrantLock switchLock = new ReentrantLock();
 	private final Collection<PhysicalDatasource> allDs;
+	// 负载均衡类型
 	private final int banlance;
+	// 写类型
 	private final int writeType;
 	private final Random random = new Random();
 	private final Random wnrandom = new Random();
 	private String[] schemas;
 	private final DataHostConfig dataHostConfig;
+	// 从节点ID
 	private String slaveIDs;
 
 	public PhysicalDBPool(String name, DataHostConfig conf,
-			PhysicalDatasource[] writeSources,
-			Map<Integer, PhysicalDatasource[]> readSources, int balance,
-			int writeType) {
-		
+						  PhysicalDatasource[] writeSources,
+						  Map<Integer, PhysicalDatasource[]> readSources, int balance,
+						  int writeType) {
+
 		this.hostName = name;
 		this.dataHostConfig = conf;
 		this.writeSources = writeSources;
 		this.banlance = balance;
 		this.writeType = writeType;
-		
+
 		Iterator<Map.Entry<Integer, PhysicalDatasource[]>> entryItor = readSources.entrySet().iterator();
 		while (entryItor.hasNext()) {
 			PhysicalDatasource[] values = entryItor.next().getValue();
@@ -99,12 +126,12 @@ public class PhysicalDBPool {
 				entryItor.remove();
 			}
 		}
-		
+
 		this.readSources = readSources;
 		this.allDs = this.genAllDataSources();
-		
-		LOGGER.info("total resources of dataHost " + this.hostName + " is :" + allDs.size());
-		
+
+		LOGGER.info("total resouces of dataHost " + this.hostName + " is :" + allDs.size());
+
 		setDataSourceProps();
 	}
 
@@ -122,10 +149,10 @@ public class PhysicalDBPool {
 		for (PhysicalDatasource ds : this.allDs) {
 			if ((ds.isReadNode() == exitsCon.isFromSlaveDB())
 					&& ds.isMyConnection(exitsCon)) {
-					return ds;
+				return ds;
 			}
 		}
-		
+
 		LOGGER.warn("can't find connection in pool " + this.hostName + " con:"	+ exitsCon);
 		return null;
 	}
@@ -144,43 +171,46 @@ public class PhysicalDBPool {
 
 	/**
 	 * all write datanodes
+	 * 获取所有写分片节点
 	 * @return
 	 */
 	public PhysicalDatasource[] getSources() {
 		return writeSources;
 	}
-	
+
+	/**
+	 * 根据写类型获取一个写分片节点
+	 * @return
+	 */
 	public PhysicalDatasource getSource() {
-		
 		switch (writeType) {
-			case WRITE_ONLYONE_NODE: {
+			case WRITE_ONLYONE_NODE: { // 只有一个写节点
 				return writeSources[activedIndex];
 			}
-			case WRITE_RANDOM_NODE: {
-	
+			case WRITE_RANDOM_NODE: { // 随机写节点
 				int index = Math.abs(wnrandom.nextInt(Integer.MAX_VALUE)) % writeSources.length;
 				PhysicalDatasource result = writeSources[index];
 				if (!this.isAlive(result)) {
-					
-					// find all live nodes
+					// 节点不在线
+					// 查找所有在线节点
 					ArrayList<Integer> alives = new ArrayList<Integer>(writeSources.length - 1);
 					for (int i = 0; i < writeSources.length; i++) {
 						if (i != index
 								&& this.isAlive(writeSources[i])) {
-								alives.add(i);
+							alives.add(i);
 						}
 					}
-					
+
 					if (alives.isEmpty()) {
+						// 没有在线节点
 						result = writeSources[0];
-					} else {						
-						// random select one
+					} else {
+						// 随机选择一个在线节点
 						index = Math.abs(wnrandom.nextInt(Integer.MAX_VALUE)) % alives.size();
 						result = writeSources[alives.get(index)];
-	
+
 					}
 				}
-				
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("select write source " + result.getName()
 							+ " for dataHost:" + this.getHostName());
@@ -220,7 +250,7 @@ public class PhysicalDBPool {
 			lock.lock();
 			try {
 				final String myId = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
-				String manageVotePath = ZKUtils.getZKBasePath() +"heartbeat/" + hostName +"/" + "voteInformation/" 
+				String manageVotePath = ZKUtils.getZKBasePath() +"heartbeat/" + hostName +"/" + "voteInformation/"
 						+ myId;
 				String data = String.format("%s=%d", myId,newIndex);
 				ZKUtils.createPath(manageVotePath, data);
@@ -231,8 +261,6 @@ public class PhysicalDBPool {
 		}		
 		return true;
 	}
-	
-	
 	
 	//判断是进行zk投票还是直接切换读写
 	public boolean switchSourceOrVoted(int newIndex, boolean isAlarm, String reason) {		
@@ -245,7 +273,14 @@ public class PhysicalDBPool {
 	public boolean notSwitchSource(int newIndex){
 		return this.writeType != PhysicalDBPool.WRITE_ONLYONE_NODE || !checkIndex(newIndex) ;
 	}
-	
+
+    /**
+     * 切换源
+     * @param newIndex
+     * @param isAlarm
+     * @param reason
+     * @return
+     */
 	public boolean switchSource(int newIndex, boolean isAlarm, String reason) {
 		if (notSwitchSource(newIndex)) {
 			return false;
@@ -316,18 +351,20 @@ public class PhysicalDBPool {
 		return i < writeSources.length ? i : (i - writeSources.length);
 	}
 
+	/**
+	 * 初始化
+	 * @param index
+	 */
 	public void init(int index) {
-		
 		if (!checkIndex(index)) {
 			index = 0;
 		}
-		
+
 		int active = -1;
 		for (int i = 0; i < writeSources.length; i++) {
 			int j = loop(i + index);
 			if ( initSource(j, writeSources[j]) ) {
-
-                //不切换-1时，如果主写挂了   不允许切换过去
+				//不切换-1时，如果主写挂了不允许切换过去
 				boolean isNotSwitchDs = ( dataHostConfig.getSwitchType() == DataHostConfig.NOT_SWITCH_DS );
 				if ( isNotSwitchDs && j > 0 ) {
 					break;
@@ -345,7 +382,7 @@ public class PhysicalDBPool {
 				}
 			}
 		}
-		
+
 		if (!checkIndex(active)) {
 			initSuccess = false;
 			StringBuilder s = new StringBuilder();
@@ -354,6 +391,11 @@ public class PhysicalDBPool {
 		}
 	}
 
+	/**
+	 * 检测索引是否有效
+	 * @param i
+	 * @return
+	 */
 	private boolean checkIndex(int i) {
 		return i >= 0 && i < writeSources.length;
 	}
@@ -362,11 +404,17 @@ public class PhysicalDBPool {
 		return new StringBuilder().append(hostName).append(" index:").append(index).append(info).toString();
 	}
 
+	/**
+	 * 初始化数据库
+	 * @param index
+	 * @param ds
+	 * @return
+	 */
 	private boolean initSource(int index, PhysicalDatasource ds) {
 		int initSize = ds.getConfig().getMinCon();
-		
-		LOGGER.info("init backend mysql source ,create connections total " + initSize + " for " + ds.getName() + " index :" + index);
-		
+
+		LOGGER.info("init backend myqsl source ,create connections total " + initSize + " for " + ds.getName() + " index :" + index);
+
 		CopyOnWriteArrayList<BackendConnection> list = new CopyOnWriteArrayList<BackendConnection>();
 		GetConnectionHandler getConHandler = new GetConnectionHandler(list, initSize);
 		// long start = System.currentTimeMillis();
@@ -381,7 +429,7 @@ public class PhysicalDBPool {
 		}
 		long timeOut = System.currentTimeMillis() + 60 * 1000;
 
-		// waiting for finish
+		// 等待完成
 		while (!getConHandler.finished() && (System.currentTimeMillis() < timeOut)) {
 			try {
 				Thread.sleep(100);
@@ -397,9 +445,10 @@ public class PhysicalDBPool {
 		return !list.isEmpty();
 	}
 
+	/**
+	 * 执行心跳
+	 */
 	public void doHeartbeat() {
-
-
 		if (writeSources == null || writeSources.length == 0) {
 			return;
 		}
@@ -418,31 +467,34 @@ public class PhysicalDBPool {
 	}
 
 	/**
-	 * back physical connection heartbeat check
+	 * 后端物理连接心跳检查
 	 */
 	public void heartbeatCheck(long ildCheckPeriod) {
-		
 		for (PhysicalDatasource ds : allDs) {
 			// only readnode or all write node or writetype=WRITE_ONLYONE_NODE
 			// and current write node will check
 			if (ds != null
 					&& (ds.getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS)
 					&& (ds.isReadNode()
-							|| (this.writeType != WRITE_ONLYONE_NODE) 
-							|| (this.writeType == WRITE_ONLYONE_NODE 
-							&& ds == this.getSource()))) {
-				
+                        || (this.writeType != WRITE_ONLYONE_NODE)
+                        || (this.writeType == WRITE_ONLYONE_NODE && ds == this.getSource()))) {
 				ds.heatBeatCheck(ds.getConfig().getIdleTimeout(), ildCheckPeriod);
 			}
 		}
 	}
 
+	/**
+	 * 开始心跳
+	 */
 	public void startHeartbeat() {
 		for (PhysicalDatasource source : this.allDs) {
 			source.startHeartbeat();
 		}
 	}
 
+	/**
+	 * 停止心跳
+	 */
 	public void stopHeartbeat() {
 		for (PhysicalDatasource source : this.allDs) {
 			source.stopHeartbeat();
@@ -450,27 +502,30 @@ public class PhysicalDBPool {
 	}
 
 	/**
-	 *  强制清除 dataSources
+	 * 强制清除 dataSources
 	 * @param reason
 	 */
 	public void clearDataSources(String reason) {
-		LOGGER.info("clear datasource of pool " + this.hostName);
-		for (PhysicalDatasource source : this.allDs) {			
-			LOGGER.info("clear datasource of pool  " + this.hostName + " ds:" + source.getConfig());
+		LOGGER.info("clear datasours of pool " + this.hostName);
+		for (PhysicalDatasource source : this.allDs) {
+			LOGGER.info("clear datasoure of pool  " + this.hostName + " ds:" + source.getConfig());
 			source.clearCons(reason);
 			source.stopHeartbeat();
 		}
 	}
 
+	/**
+	 * 返回所有数据源，包括写和读
+	 * @return
+	 */
 	public Collection<PhysicalDatasource> genAllDataSources() {
-		
 		LinkedList<PhysicalDatasource> allSources = new LinkedList<PhysicalDatasource>();
 		for (PhysicalDatasource ds : writeSources) {
 			if (ds != null) {
 				allSources.add(ds);
 			}
 		}
-		
+
 		for (PhysicalDatasource[] dataSources : this.readSources.values()) {
 			for (PhysicalDatasource ds : dataSources) {
 				if (ds != null) {
@@ -487,6 +542,7 @@ public class PhysicalDBPool {
 
 	/**
 	 * return connection for read balance
+	 * 根据负载均衡类型获取连接
 	 *
 	 * @param handler
 	 * @param attachment
@@ -494,38 +550,38 @@ public class PhysicalDBPool {
 	 * @throws Exception
 	 */
 	public void getRWBanlanceCon(String schema, boolean autocommit,
-			ResponseHandler handler, Object attachment, String database) throws Exception {
-		
+								 ResponseHandler handler, Object attachment, String database) throws Exception {
+
 		PhysicalDatasource theNode = null;
 		ArrayList<PhysicalDatasource> okSources = null;
 		switch (banlance) {
-		case BALANCE_ALL_BACK: {			
-			// all read nodes and the standard by masters
-			okSources = getAllActiveRWSources(true, false, checkSlaveSynStatus());
-			if (okSources.isEmpty()) {
-				theNode = this.getSource();
-				
-			} else {
-				theNode = randomSelect(okSources);
+			case BALANCE_ALL_BACK: {
+				// all read nodes and the standard by masters
+				okSources = getAllActiveRWSources(true, false, checkSlaveSynStatus());
+				if (okSources.isEmpty()) {
+					theNode = this.getSource();
+
+				} else {
+					theNode = randomSelect(okSources);
+				}
+				break;
 			}
-			break;
+			case BALANCE_ALL: {
+				okSources = getAllActiveRWSources(true, true, checkSlaveSynStatus());
+				theNode = randomSelect(okSources);
+				break;
+			}
+			case BALANCE_ALL_READ: {
+				okSources = getAllActiveRWSources(false, false, checkSlaveSynStatus());
+				theNode = randomSelect(okSources);
+				break;
+			}
+			case BALANCE_NONE:
+			default:
+				// return default write data source
+				theNode = this.getSource();
 		}
-		case BALANCE_ALL: {
-			okSources = getAllActiveRWSources(true, true, checkSlaveSynStatus());
-			theNode = randomSelect(okSources);
-			break;
-		}
-        case BALANCE_ALL_READ: {
-            okSources = getAllActiveRWSources(false, false, checkSlaveSynStatus());
-            theNode = randomSelect(okSources);
-            break;
-        }
-		case BALANCE_NONE:
-		default:
-			// return default write data source
-			theNode = this.getSource();
-		}
-		
+
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("select read source " + theNode.getName() + " for dataHost:" + this.getHostName());
 		}
@@ -543,8 +599,8 @@ public class PhysicalDBPool {
 	 * @param database
 	 * @throws Exception
 	 */
-    public void getReadBanlanceCon(String schema, boolean autocommit, ResponseHandler handler, 
-											Object attachment, String database)throws Exception {
+	public void getReadBanlanceCon(String schema, boolean autocommit, ResponseHandler handler,
+								   Object attachment, String database)throws Exception {
 		PhysicalDatasource theNode = null;
 		ArrayList<PhysicalDatasource> okSources = null;
 		okSources = getAllActiveRWSources(false, false, checkSlaveSynStatus());
@@ -553,21 +609,21 @@ public class PhysicalDBPool {
 		theNode.setReadCount();
 		theNode.getConnection(schema, autocommit, handler, attachment);
 	}
-    
-    /**
-     * 从 writeHost 下面的 readHost中随机获取一个 connection, 用于slave注解
-     * @param schema
-     * @param autocommit
-     * @param handler
-     * @param attachment
-     * @param database
-     * @return
-     * @throws Exception
-     */
-    public boolean getReadCon(String schema, boolean autocommit, ResponseHandler handler, 
-									Object attachment, String database)throws Exception {
+
+	/**
+	 * 从 writeHost 下面的 readHost中随机获取一个 connection, 用于slave注解
+	 * @param schema
+	 * @param autocommit
+	 * @param handler
+	 * @param attachment
+	 * @param database
+	 * @return
+	 * @throws Exception
+	 */
+	public boolean getReadCon(String schema, boolean autocommit, ResponseHandler handler,
+							  Object attachment, String database)throws Exception {
 		PhysicalDatasource theNode = null;
-		
+
 		LOGGER.debug("!readSources.isEmpty() " + !readSources.isEmpty());
 		if (!readSources.isEmpty()) {
 			int index = Math.abs(random.nextInt(Integer.MAX_VALUE)) % readSources.size();
@@ -576,7 +632,7 @@ public class PhysicalDBPool {
 			if (allSlaves != null) {
 				index = Math.abs(random.nextInt(Integer.MAX_VALUE)) % readSources.size();
 				PhysicalDatasource slave = allSlaves[index];
-				
+
 				for (int i=0; i<allSlaves.length; i++) {
 					LOGGER.debug("allSlaves.length i:::::: " + i);
 					if (isAlive(slave)) {
@@ -608,133 +664,134 @@ public class PhysicalDBPool {
 			LOGGER.warn("readhost is empty, readSources is empty.");
 			return false;
 		}
-	} 
-    
+	}
+
 	private boolean checkSlaveSynStatus() {
 		return ( dataHostConfig.getSlaveThreshold() != -1 )
 				&& (dataHostConfig.getSwitchType() == DataHostConfig.SYN_STATUS_SWITCH_DS);
 	}
 
-	
+
 	/**
 	 * TODO: modify by zhuam
-	 * 
+	 *
 	 * 随机选择，按权重设置随机概率。
-     * 在一个截面上碰撞的概率高，但调用量越大分布越均匀，而且按概率使用权重后也比较均匀，有利于动态调整提供者权重。
+	 * 在一个截面上碰撞的概率高，但调用量越大分布越均匀，而且按概率使用权重后也比较均匀，有利于动态调整提供者权重。
 	 * @param okSources
 	 * @return
 	 */
 	public PhysicalDatasource randomSelect(ArrayList<PhysicalDatasource> okSources) {
-		
+
 		if (okSources.isEmpty()) {
 			return this.getSource();
-			
-		} else {		
-			
+
+		} else {
+
 			int length = okSources.size(); 	// 总个数
-	        int totalWeight = 0; 			// 总权重
-	        boolean sameWeight = true; 		// 权重是否都一样
-	        for (int i = 0; i < length; i++) {	        	
-	            int weight = okSources.get(i).getConfig().getWeight();
-	            totalWeight += weight; 		// 累计总权重	            
-	            if (sameWeight && i > 0 
-	            		&& weight != okSources.get(i-1).getConfig().getWeight() ) {	  // 计算所有权重是否一样          		            	
-	                sameWeight = false; 	
-	            }
-	        }
-	        
-	        if (totalWeight > 0 && !sameWeight ) {
-	            
-	        	// 如果权重不相同且权重大于0则按总权重数随机
-	            int offset = random.nextInt(totalWeight);
-	            
-	            // 并确定随机值落在哪个片断上
-	            for (int i = 0; i < length; i++) {
-	                offset -= okSources.get(i).getConfig().getWeight();
-	                if (offset < 0) {
-	                    return okSources.get(i);
-	                }
-	            }
-	        }
-	        
-	        // 如果权重相同或权重为0则均等随机
-	        return okSources.get( random.nextInt(length) );	
-	        
+			int totalWeight = 0; 			// 总权重
+			boolean sameWeight = true; 		// 权重是否都一样
+			for (int i = 0; i < length; i++) {
+				int weight = okSources.get(i).getConfig().getWeight();
+				totalWeight += weight; 		// 累计总权重
+				if (sameWeight && i > 0
+						&& weight != okSources.get(i-1).getConfig().getWeight() ) {	  // 计算所有权重是否一样
+					sameWeight = false;
+				}
+			}
+
+			if (totalWeight > 0 && !sameWeight ) {
+
+				// 如果权重不相同且权重大于0则按总权重数随机
+				int offset = random.nextInt(totalWeight);
+
+				// 并确定随机值落在哪个片断上
+				for (int i = 0; i < length; i++) {
+					offset -= okSources.get(i).getConfig().getWeight();
+					if (offset < 0) {
+						return okSources.get(i);
+					}
+				}
+			}
+
+			// 如果权重相同或权重为0则均等随机
+			return okSources.get( random.nextInt(length) );
+
 			//int index = Math.abs(random.nextInt()) % okSources.size();
 			//return okSources.get(index);
 		}
 	}
-	
-	//
-    public int getBalance() {
-        return banlance;
-    }
-    
+
+	// 获取负载均衡类型
+	public int getBalance() {
+		return banlance;
+	}
+
+	// 是否还在线
 	private boolean isAlive(PhysicalDatasource theSource) {
 		return (theSource.getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS);
 	}
 
 	private boolean canSelectAsReadNode(PhysicalDatasource theSource) {
-		
+
 		Integer slaveBehindMaster = theSource.getHeartbeat().getSlaveBehindMaster();
 		int dbSynStatus = theSource.getHeartbeat().getDbSynStatus();
-		
+
 		if ( slaveBehindMaster == null || dbSynStatus == DBHeartbeat.DB_SYN_ERROR) {
 			return false;
-		}		
+		}
 		boolean isSync = dbSynStatus == DBHeartbeat.DB_SYN_NORMAL;
-		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();	
+		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();
 		return isSync && isNotDelay;
 	}
 
 	/**
-     * return all backup write sources
-     * 
-     * @param includeWriteNode if include write nodes
-     * @param includeCurWriteNode if include current active write node. invalid when <code>includeWriteNode<code> is false
-     * @param filterWithSlaveThreshold
-     *
-     * @return
-     */
+	 * return all backup write sources
+	 *
+	 * @param includeWriteNode if include write nodes
+	 * @param includeCurWriteNode if include current active write node. invalid when <code>includeWriteNode<code> is false
+	 * @param filterWithSlaveThreshold
+	 *
+	 * @return
+	 */
 	private ArrayList<PhysicalDatasource> getAllActiveRWSources(
-    		boolean includeWriteNode, boolean includeCurWriteNode, boolean filterWithSlaveThreshold) {
-		
+			boolean includeWriteNode, boolean includeCurWriteNode, boolean filterWithSlaveThreshold) {
+
 		int curActive = activedIndex;
 		ArrayList<PhysicalDatasource> okSources = new ArrayList<PhysicalDatasource>(this.allDs.size());
-		
+
 		for (int i = 0; i < this.writeSources.length; i++) {
 			PhysicalDatasource theSource = writeSources[i];
 			if (isAlive(theSource)) {// write node is active
-                
-				if (includeWriteNode) {					
+
+				if (includeWriteNode) {
 					boolean isCurWriteNode = ( i == curActive );
 					if ( isCurWriteNode && includeCurWriteNode == false) {
 						// not include cur active source
-					} else if (filterWithSlaveThreshold && theSource.isSalveOrRead() ) {	
+					} else if (filterWithSlaveThreshold && theSource.isSalveOrRead() ) {
 						boolean selected = canSelectAsReadNode(theSource);
 						if ( selected ) {
 							okSources.add(theSource);
 						} else {
 							continue;
-						}							
+						}
 					} else {
 						okSources.add(theSource);
 					}
-                }
-                
-				if (!readSources.isEmpty()) {					
+				}
+
+				if (!readSources.isEmpty()) {
 					// check all slave nodes
 					PhysicalDatasource[] allSlaves = this.readSources.get(i);
 					if (allSlaves != null) {
 						for (PhysicalDatasource slave : allSlaves) {
-							if (isAlive(slave)) {								
+							if (isAlive(slave)) {
 								if (filterWithSlaveThreshold) {
 									boolean selected = canSelectAsReadNode(slave);
 									if ( selected ) {
 										okSources.add(slave);
 									} else {
 										continue;
-									}									
+									}
 								} else {
 									okSources.add(slave);
 								}
@@ -742,33 +799,33 @@ public class PhysicalDBPool {
 						}
 					}
 				}
-				
+
 			} else {
-				
-				// TODO : add by zhuam	
-			    // 如果写节点不OK, 也要保证临时的读服务正常
+
+				// TODO : add by zhuam
+				// 如果写节点不OK, 也要保证临时的读服务正常
 				if ( this.dataHostConfig.isTempReadHostAvailable()
 						&& !readSources.isEmpty()) {
-				
-						// check all slave nodes
-						PhysicalDatasource[] allSlaves = this.readSources.get(i);
-						if (allSlaves != null) {
-							for (PhysicalDatasource slave : allSlaves) {
-								if (isAlive(slave)) {
-									
-									if (filterWithSlaveThreshold) {									
-										if (canSelectAsReadNode(slave)) {
-											okSources.add(slave);
-										} else {
-											continue;
-										}
-										
-									} else {
+
+					// check all slave nodes
+					PhysicalDatasource[] allSlaves = this.readSources.get(i);
+					if (allSlaves != null) {
+						for (PhysicalDatasource slave : allSlaves) {
+							if (isAlive(slave)) {
+
+								if (filterWithSlaveThreshold) {
+									if (canSelectAsReadNode(slave)) {
 										okSources.add(slave);
+									} else {
+										continue;
 									}
+
+								} else {
+									okSources.add(slave);
 								}
 							}
 						}
+					}
 				}
 			}
 
@@ -776,7 +833,7 @@ public class PhysicalDBPool {
 		return okSources;
 	}
 
-    public String[] getSchemas() {
+	public String[] getSchemas() {
 		return schemas;
 	}
 

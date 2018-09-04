@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import java.util.Map;
 
 /**
+ * 结构类型
  * Created by zagnix on 2016/6/6.
  */
 public class StructType {

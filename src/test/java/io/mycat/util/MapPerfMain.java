@@ -23,13 +23,9 @@
  */
 package io.mycat.util;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.UUID;
-
 import org.junit.Assert;
+
+import java.util.*;
 
 /**
  * @author mycat

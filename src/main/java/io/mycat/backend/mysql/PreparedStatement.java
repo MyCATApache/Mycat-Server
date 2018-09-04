@@ -29,14 +29,27 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * 预处理语句
  * @author mycat, CrazyPig
  */
 public class PreparedStatement {
 
     private long id;
+    /**
+     * sql语句
+     */
     private String statement;
+    /**
+     * 列数
+     */
     private int columnsNumber;
+    /**
+     * 参数格式
+     */
     private int parametersNumber;
+    /**
+     * 参数类型
+     */
     private int[] parametersType;
     /**
      * 存放COM_STMT_SEND_LONG_DATA命令发送过来的字节数据

@@ -6,6 +6,9 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.server.ServerConnection;
 import io.mycat.sqlengine.EngineCtx;
 /**
+ * mycat catlet，用于执行sql并将结果返回给客户端，有些类似于数据库的过程。
+ * 必须实现为无状态类，并且可以并发地处理多个SQL
+ *
  * mycat catlet ,used to execute sql and return result to client,some like
  * database's procedure.
  * must implemented as a stateless class and can process many SQL concurrently 
@@ -15,8 +18,8 @@ import io.mycat.sqlengine.EngineCtx;
  */
 public interface Catlet {
 
-	/*
-	 * execute sql in EngineCtx and return result to client
+	/**
+	 * 在EngineCtx中执行sql并将结果返回给客户端
 	 */
 	void processSQL(String sql, EngineCtx ctx);
 	

@@ -23,25 +23,26 @@
  */
 package io.mycat.net.mysql;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.buffer.BufferArray;
 import io.mycat.net.FrontendConnection;
 
+import java.nio.ByteBuffer;
+
 /**
- * From server to client after command, if no error and result set -- that is,
- * if the command was a query which returned a result set. The Result Set Header
- * Packet is the first of several, possibly many, packets that the server sends
- * for result sets. The order of packets for a result set is:
+ * 结果集标头数据包 MySQL内部协议
+ *
+ * 在命令之后从服务器到客户端，如果没有错误和结果集——也就是说，如果命令是返回结果集的查询。
+ * 结果集头包是服务器为结果集发送的几个(可能是多个)包中的第一个。
+ * 结果集的数据包顺序为:
  * 
  * <pre>
- * (Result Set Header Packet)   the number of columns
- * (Field Packets)              column descriptors
- * (EOF Packet)                 marker: end of Field Packets
- * (Row Data Packets)           row contents
- * (EOF Packet)                 marker: end of Data Packets
+ * (Result Set Header Packet)   列数
+ * (Field Packets)              列描述符
+ * (EOF Packet)                 标记:字段数据包的末端
+ * (Row Data Packets)           行内容
+ * (EOF Packet)                 标记:数据包的末端
  * 
  * Bytes                        Name
  * -----                        ----

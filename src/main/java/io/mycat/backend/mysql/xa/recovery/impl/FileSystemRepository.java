@@ -1,8 +1,12 @@
 package io.mycat.backend.mysql.xa.recovery.impl;
 
 import io.mycat.MycatServer;
-import io.mycat.backend.mysql.xa.*;
-import io.mycat.backend.mysql.xa.recovery.*;
+import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
+import io.mycat.backend.mysql.xa.Deserializer;
+import io.mycat.backend.mysql.xa.Serializer;
+import io.mycat.backend.mysql.xa.VersionedFile;
+import io.mycat.backend.mysql.xa.recovery.DeserialisationException;
+import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SystemConfig;
 import org.slf4j.Logger;
@@ -17,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * 文件库 用于恢复数据
  * Created by zhangchao on 2016/10/13.
  */
 public class FileSystemRepository implements Repository{

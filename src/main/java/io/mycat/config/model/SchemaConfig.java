@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,50 +16,62 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.config.model;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 /**
+ * 逻辑库配置
+ *
  * @author mycat
  */
 public class SchemaConfig {
 	private final Random random = new Random();
+	// 逻辑库 数据库 名
 	private final String name;
+	// 逻辑表配置
+	// key为逻辑表，value为逻辑表配置
 	private final Map<String, TableConfig> tables;
+	// 不分片标志
 	private final boolean noSharding;
+	// 分片节点
 	private final String dataNode;
 	private final Set<String> metaDataNodes;
+	// 所有的分片节点
 	private final Set<String> allDataNodes;
 	/**
 	 * when a select sql has no limit condition ,and default max limit to
 	 * prevent memory problem when return a large result set
+	 *
+	 * 当select sql没有限制条件时，以及默认的最大限制，以防止在返回大型结果集时出现内存问题
 	 */
 	private final int defaultMaxLimit;
+	// 检测SQL逻辑库数据库标志
 	private final boolean checkSQLSchema;
-	private  boolean needSupportMultiDBType=false;
+	// 是否支持多数据库类型
+	private  boolean needSupportMultiDBType = false;
 	private  String defaultDataNodeDbType;
 	/**
 	 * key is join relation ,A.ID=B.PARENT_ID value is Root Table ,if a->b*->c*
 	 * ,then A is root table
+	 *
+	 * key是连接关系，value是根表，假设a->b*->c*，那么a是根表
 	 */
 	private final Map<String, TableConfig> joinRel2TableMap = new HashMap<String, TableConfig>();
 	private final String[] allDataNodeStrArr;
-
+	/**
+	 * 数据节点数据库类型
+	 */
 	private  Map<String,String> dataNodeDbTypeMap=new HashMap<>();
 
 	public SchemaConfig(String name, String dataNode,
-			Map<String, TableConfig> tables, int defaultMaxLimit,
-			boolean checkSQLschema) {
+						Map<String, TableConfig> tables, int defaultMaxLimit,
+						boolean checkSQLschema) {
 		this.name = name;
 		this.dataNode = dataNode;
 		this.checkSQLSchema = checkSQLschema;
@@ -88,11 +100,14 @@ public class SchemaConfig {
 		return defaultDataNodeDbType;
 	}
 
-	public void setDefaultDataNodeDbType(String defaultDataNodeDbType)
-	{
+	public void setDefaultDataNodeDbType(String defaultDataNodeDbType) {
 		this.defaultDataNodeDbType = defaultDataNodeDbType;
 	}
 
+	/**
+	 * 是否检测SQL逻辑库数据库
+	 * @return
+	 */
 	public boolean isCheckSQLSchema() {
 		return checkSQLSchema;
 	}
@@ -102,7 +117,6 @@ public class SchemaConfig {
 	}
 
 	private void buildJoinMap(Map<String, TableConfig> tables2) {
-
 		if (tables == null || tables.isEmpty()) {
 			return;
 		}
@@ -117,18 +131,14 @@ public class SchemaConfig {
 				joinRel2TableMap.put(joinRel1, rootTc);
 				joinRel2TableMap.put(joinRel2, rootTc);
 			}
-
 		}
-
 	}
 
-	public boolean isNeedSupportMultiDBType()
-	{
+	public boolean isNeedSupportMultiDBType() {
 		return needSupportMultiDBType;
 	}
 
-	public void setNeedSupportMultiDBType(boolean needSupportMultiDBType)
-	{
+	public void setNeedSupportMultiDBType(boolean needSupportMultiDBType) {
 		this.needSupportMultiDBType = needSupportMultiDBType;
 	}
 
@@ -160,8 +170,7 @@ public class SchemaConfig {
 		return allDataNodes;
 	}
 
-	public Map<String, String> getDataNodeDbTypeMap()
-	{
+	public Map<String, String> getDataNodeDbTypeMap() {
 		return dataNodeDbTypeMap;
 	}
 
@@ -191,7 +200,6 @@ public class SchemaConfig {
 				set.add(tc.getDataNodes().get(0));
 			}
 		}
-
 		return set;
 	}
 
