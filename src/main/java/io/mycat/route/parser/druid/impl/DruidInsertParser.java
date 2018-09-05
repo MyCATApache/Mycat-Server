@@ -321,8 +321,10 @@ public class DruidInsertParser extends DefaultDruidParser {
 			SQLCharExpr charExpr = (SQLCharExpr)expr;
 			shardingValue = charExpr.getText();
 		} else if (expr instanceof SQLMethodInvokeExpr) {
-			SQLMethodInvokeExpr charExpr = (SQLMethodInvokeExpr)expr;
-			shardingValue = tryInvokeSQLMethod(charExpr);
+			SQLMethodInvokeExpr methodInvokeExpr = (SQLMethodInvokeExpr)expr;
+			shardingValue = tryInvokeSQLMethod(methodInvokeExpr);
+		} else {
+			shardingValue = expr.toString();
 		}
 		return shardingValue;
 	}
