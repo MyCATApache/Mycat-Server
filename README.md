@@ -1,3 +1,34 @@
+# 个人博客
+
+-------
+
+![](http://www.yunai.me/images/common/wechat_mp.jpeg)
+
+> 🙂🙂🙂关注**微信公众号：【芋艿的后端小屋】**有福利：  
+> 1. RocketMQ / MyCAT / Sharding-JDBC **所有**源码分析文章列表  
+> 2. RocketMQ / MyCAT / Sharding-JDBC **中文注释源码 GitHub 地址**  
+> 3. 您对于源码的疑问每条留言**都**将得到**认真**回复。**甚至不知道如何读源码也可以请教噢**。  
+> 4. **新的**源码解析文章**实时**收到通知。**每周更新一篇左右**。
+
+-------
+
+# 联系方式
+
+* QQ : 7685413
+* 微信 : wangwenbin-server
+* 掘金-Java交流群 : 217878901
+* 知识星球：![知识星球](http://www.iocoder.cn/images/Architecture/2017_12_29/01.png)
+
+* 数据库中间件 **MyCAT**
+    * [《MyCAT 源码分析 —— 为什么阅读 MyCAT 源码？》](http://www.iocoder.cn/MyCAT/why-read-MyCAT-source-code?github&1603)
+    * [《MyCAT 源码分析 —— 调试环境搭建》](http://www.iocoder.cn/MyCAT/build-debugging-environment?github&1603)
+    * [《MyCAT 源码分析 —— 【单库单表】插入》](http://www.iocoder.cn/MyCAT/single-db-single-table-insert?github&1603)
+    * [《MyCAT 源码分析 —— 【单库单表】查询》](http://www.iocoder.cn/MyCAT/single-db-single-table-select?github&1603)
+    * [《MyCAT 源码解析 —— 分片结果合并（一）》](http://www.iocoder.cn/MyCAT/sharding-result-merge-first?github&1603)
+    * [《MyCAT 源码分析  —— 跨库两表Join》](http://www.iocoder.cn/MyCAT/two-table-share-join?github&1603)
+    * [《MyCAT 源码分析  —— XA分布式事务》](http://www.iocoder.cn/MyCAT/xa-distributed-transaction?github&1603)
+    * [《MyCAT 源码分析  —— PreparedStatement 重新入门》](http://www.iocoder.cn/MyCAT/what-is-PreparedStatement?github&1603)
+    * [《MyCAT 源码分析  —— SQL ON MongoDB》](http://www.iocoder.cn/MyCAT/connect-mongodb?github&1603)
 
 # [MyCAT](http://mycat.io/)
 [![GitHub issues](https://img.shields.io/github/issues/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/issues)
