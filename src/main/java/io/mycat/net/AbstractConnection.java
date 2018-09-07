@@ -433,6 +433,12 @@ public abstract class AbstractConnection implements NIOConnection {
 		} else {
 			writeQueue.offer(buffer);
 		}
+		
+		if(isClosed()) {
+			LOGGER.warn("write err:{}", this);
+			this.close("found this connection has close , try to reClean the connection");
+			throw new RuntimeException("writeNotSend but found connnection close err:" + this);
+		}
 	}
 
 
