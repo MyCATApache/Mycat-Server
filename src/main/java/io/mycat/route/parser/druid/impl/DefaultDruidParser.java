@@ -1,21 +1,12 @@
 package io.mycat.route.parser.druid.impl;
 
-import java.sql.SQLNonTransientException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat.Condition;
-
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
@@ -23,8 +14,18 @@ import io.mycat.route.parser.druid.DruidParser;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
+import io.mycat.route.parser.druid.SqlMethodInvocationHandler;
+import io.mycat.route.parser.druid.SqlMethodInvocationHandlerFactory;
 import io.mycat.sqlengine.mpp.RangeValue;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 对SQLStatement解析
@@ -44,6 +45,8 @@ public class DefaultDruidParser implements DruidParser {
 	private Map<String,String> tableAliasMap = new HashMap<String,String>();
 
 	private List<Condition> conditions = new ArrayList<Condition>();
+
+	protected SqlMethodInvocationHandler invocationHandler;
 	
 	public Map<String, String> getTableAliasMap() {
 		return tableAliasMap;
@@ -52,7 +55,11 @@ public class DefaultDruidParser implements DruidParser {
 	public List<Condition> getConditions() {
 		return conditions;
 	}
-	
+
+	public DefaultDruidParser() {
+		invocationHandler = SqlMethodInvocationHandlerFactory.getForMysql();
+	}
+
 	/**
 	 * 使用MycatSchemaStatVisitor解析,得到tables、tableAliasMap、conditions等
 	 * @param schema
@@ -215,5 +222,16 @@ public class DefaultDruidParser implements DruidParser {
 	
 	public DruidShardingParseInfo getCtx() {
 		return ctx;
+	}
+
+	public void setInvocationHandler(SqlMethodInvocationHandler invocationHandler) {
+		this.invocationHandler = invocationHandler;
+	}
+
+	/**
+	 * 尝试解析某些SQL函数，如now(), sysdate()等
+	 */
+	protected String tryInvokeSQLMethod(SQLMethodInvokeExpr expr) throws SQLNonTransientException {
+		return invocationHandler.invoke(expr);
 	}
 }

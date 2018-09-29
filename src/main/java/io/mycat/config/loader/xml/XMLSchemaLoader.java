@@ -773,8 +773,12 @@ public class XMLSchemaLoader implements SchemaLoader {
             } else {
                 maxRetryCount = Integer.valueOf(maxRetryCountStr);
             }
-
             long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.parseLong(logTimeStr);
+			
+            String notSwitch =  element.getAttribute("notSwitch");
+			if(StringUtil.isEmpty(notSwitch)) {
+				notSwitch = DataHostConfig.CAN_SWITCH_DS;
+			}
             //读取心跳语句
             String heartbeatSQL = element.getElementsByTagName("heartbeat").item(0).getTextContent();
             //读取 初始化sql配置,用于oracle
@@ -826,6 +830,7 @@ public class XMLSchemaLoader implements SchemaLoader {
             hostConf.setFilters(filters);
             hostConf.setLogTime(logTime);
             hostConf.setSlaveIDs(slaveIDs);
+			hostConf.setNotSwitch(notSwitch);
             hostConf.setMaxRetryCount(maxRetryCount);
             dataHosts.put(hostConf.getName(), hostConf);
         }

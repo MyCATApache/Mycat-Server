@@ -117,7 +117,18 @@ public class ServerConnection extends FrontendConnection {
 			this.txInterrputMsg = txInterrputMsg;
 		}
 	}
-
+	
+	/**
+	 * 
+	 * 清空食事务中断
+	 * */
+	public void clearTxInterrupt() {
+		if (!autocommit && txInterrupted) {
+			txInterrupted = false;
+			this.txInterrputMsg = "";
+		}
+	}
+	
 	public boolean isTxInterrupted()
 	{
 		return txInterrupted;
@@ -299,8 +310,10 @@ public class ServerConnection extends FrontendConnection {
 	 */
 	public void commit() {
 		if (txInterrupted) {
-			writeErrMessage(ErrorCode.ER_YES,
-					"Transaction error, need to rollback.");
+			LOGGER.warn("receive commit ,but found err message in Transaction {}",this);
+			this.rollback();
+//			writeErrMessage(ErrorCode.ER_YES,
+//					"Transaction error, need to rollback.");
 		} else {
 			session.commit();
 		}
@@ -397,9 +410,12 @@ public class ServerConnection extends FrontendConnection {
 	}
 	@Override
 	public String toString() {
+		
 		return "ServerConnection [id=" + id + ", schema=" + schema + ", host="
 				+ host + ", user=" + user + ",txIsolation=" + txIsolation
-				+ ", autocommit=" + autocommit + ", schema=" + schema + "]";
+				+ ", autocommit=" + autocommit + ", schema=" + schema+ ", executeSql=" + executeSql + "]" +
+				this.getSession2();
+		
 	}
 
 	public boolean isPreAcStates() {
