@@ -675,19 +675,20 @@ public class XMLSchemaLoader implements SchemaLoader {
 	}
 
 	private DBHostConfig createDBHostConf(String dataHost, Element node,
-			String dbType, String dbDriver, int maxCon, int minCon, String filters, long logTime) {
-		
+										  String dbType, String dbDriver, int maxCon, int minCon, String filters, long logTime) {
+
 		String nodeHost = node.getAttribute("host");
 		String nodeUrl = node.getAttribute("url");
 		String user = node.getAttribute("user");
 		String password = node.getAttribute("password");
 		String usingDecrypt = node.getAttribute("usingDecrypt");
 		boolean useSSL = Boolean.valueOf(node.getAttribute("useSSL"));
-		String passwordEncryty= DecryptUtil.DBHostDecrypt(usingDecrypt, nodeHost, user, password);
-		
+
+		String passwordEncryty = DecryptUtil.DBHostDecrypt(usingDecrypt, nodeHost, user, password);
+
 		String weightStr = node.getAttribute("weight");
-		int weight = "".equals(weightStr) ? PhysicalDBPool.WEIGHT : Integer.parseInt(weightStr) ;
-		
+		int weight = "".equals(weightStr) ? PhysicalDBPool.WEIGHT : Integer.parseInt(weightStr);
+
 		String ip = null;
 		int port = 0;
 		if (empty(nodeHost) || empty(nodeUrl) || empty(user)) {
@@ -718,7 +719,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 		conf.setMinCon(minCon);
 		conf.setFilters(filters);
 		conf.setLogTime(logTime);
-		conf.setWeight(weight); 	//新增权重
+		conf.setWeight(weight);    //新增权重
 		return conf;
 	}
 
@@ -726,121 +727,126 @@ public class XMLSchemaLoader implements SchemaLoader {
 	 * 加载所有的DataHost
 	 * @param root
 	 */
-	private void loadDataHosts(Element root) {
-		NodeList list = root.getElementsByTagName("dataHost");
-		for (int i = 0, n = list.getLength(); i < n; ++i) {
+    private void loadDataHosts(Element root) {
+        NodeList list = root.getElementsByTagName("dataHost");
+        for (int i = 0, n = list.getLength(); i < n; ++i) {
+
+            Element element = (Element) list.item(i);
+            String name = element.getAttribute("name");
+            //判断是否重复
+            if (dataHosts.containsKey(name)) {
+                throw new ConfigException("dataHost name " + name + "duplicated!");
+            }
+            //读取最大连接数
+            int maxCon = Integer.parseInt(element.getAttribute("maxCon"));
+            //读取最小连接数
+            int minCon = Integer.parseInt(element.getAttribute("minCon"));
+            /**
+             * 读取负载均衡配置
+             * 1. balance="0", 不开启分离机制，所有读操作都发送到当前可用的 writeHost 上。
+             * 2. balance="1"，全部的 readHost 和 stand by writeHost 参不 select 的负载均衡
+             * 3. balance="2"，所有读操作都随机的在 writeHost、readhost 上分发。
+             * 4. balance="3"，所有读请求随机的分发到 wiriterHost 对应的 readhost 执行，writerHost 不负担读压力
+             */
+            int balance = Integer.parseInt(element.getAttribute("balance"));
+            /**
+             * 读取切换类型
+             * -1 表示不自动切换
+             * 1 默认值，自动切换
+             * 2 基于MySQL主从同步的状态决定是否切换
+             * 心跳询句为 show slave status
+             * 3 基于 MySQL galary cluster 的切换机制
+             */
+            String switchTypeStr = element.getAttribute("switchType");
+            int switchType = switchTypeStr.equals("") ? -1 : Integer.parseInt(switchTypeStr);
+            //读取从延迟界限
+            String slaveThresholdStr = element.getAttribute("slaveThreshold");
+            int slaveThreshold = slaveThresholdStr.equals("") ? -1 : Integer.parseInt(slaveThresholdStr);
+
+            //如果 tempReadHostAvailable 设置大于 0 则表示写主机如果挂掉， 临时的读服务依然可用
+            String tempReadHostAvailableStr = element.getAttribute("tempReadHostAvailable");
+            boolean tempReadHostAvailable = !tempReadHostAvailableStr.equals("") && Integer.parseInt(tempReadHostAvailableStr) > 0;
+            /**
+             * 读取 写类型
+             * 这里只支持 0 - 所有写操作仅配置的第一个 writeHost
+             */
+            String writeTypStr = element.getAttribute("writeType");
+            int writeType = "".equals(writeTypStr) ? PhysicalDBPool.WRITE_ONLYONE_NODE : Integer.parseInt(writeTypStr);
+
+
+            String dbDriver = element.getAttribute("dbDriver");
+            String dbType = element.getAttribute("dbType");
+            String filters = element.getAttribute("filters");
+            String logTimeStr = element.getAttribute("logTime");
+            String slaveIDs = element.getAttribute("slaveIDs");
+            String maxRetryCountStr = element.getAttribute("maxRetryCount");
+            int maxRetryCount;
+            if (StringUtil.isEmpty(maxRetryCountStr)) {
+                maxRetryCount = 3;
+            } else {
+                maxRetryCount = Integer.valueOf(maxRetryCountStr);
+            }
+            long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.parseLong(logTimeStr);
 			
-			Element element = (Element) list.item(i);
-			String name = element.getAttribute("name");
-			//判断是否重复
-			if (dataHosts.containsKey(name)) {
-				throw new ConfigException("dataHost name " + name + "duplicated!");
+            String notSwitch =  element.getAttribute("notSwitch");
+			if(StringUtil.isEmpty(notSwitch)) {
+				notSwitch = DataHostConfig.CAN_SWITCH_DS;
 			}
-			//读取最大连接数
-			int maxCon = Integer.parseInt(element.getAttribute("maxCon"));
-			//读取最小连接数
-			int minCon = Integer.parseInt(element.getAttribute("minCon"));
-			/**
-			 * 读取负载均衡配置
-			 * 1. balance="0", 不开启分离机制，所有读操作都发送到当前可用的 writeHost 上。
-			 * 2. balance="1"，全部的 readHost 和 stand by writeHost 参不 select 的负载均衡
-			 * 3. balance="2"，所有读操作都随机的在 writeHost、readhost 上分发。
-			 * 4. balance="3"，所有读请求随机的分发到 wiriterHost 对应的 readhost 执行，writerHost 不负担读压力
-			 */
-			int balance = Integer.parseInt(element.getAttribute("balance"));
-			/**
-			 * 读取切换类型
-			 * -1 表示不自动切换
-			 * 1 默认值，自动切换
-			 * 2 基于MySQL主从同步的状态决定是否切换
-			 * 心跳询句为 show slave status
-			 * 3 基于 MySQL galary cluster 的切换机制
-			 */
-			String switchTypeStr = element.getAttribute("switchType");
-			int switchType = switchTypeStr.equals("") ? -1 : Integer.parseInt(switchTypeStr);
-			//读取从延迟界限
-			String slaveThresholdStr = element.getAttribute("slaveThreshold");
-			int slaveThreshold = slaveThresholdStr.equals("") ? -1 : Integer.parseInt(slaveThresholdStr);
-			
-			//如果 tempReadHostAvailable 设置大于 0 则表示写主机如果挂掉， 临时的读服务依然可用
-			String tempReadHostAvailableStr = element.getAttribute("tempReadHostAvailable");
-			boolean tempReadHostAvailable = !tempReadHostAvailableStr.equals("") && Integer.parseInt(tempReadHostAvailableStr) > 0;
-			/**
-			 * 读取 写类型
-			 * 这里只支持 0 - 所有写操作仅配置的第一个 writeHost
-			 */
-			String writeTypStr = element.getAttribute("writeType");
-			int writeType = "".equals(writeTypStr) ? PhysicalDBPool.WRITE_ONLYONE_NODE : Integer.parseInt(writeTypStr);
+            //读取心跳语句
+            String heartbeatSQL = element.getElementsByTagName("heartbeat").item(0).getTextContent();
+            //读取 初始化sql配置,用于oracle
+            NodeList connectionInitSqlList = element.getElementsByTagName("connectionInitSql");
+            String initConSQL = null;
+            if (connectionInitSqlList.getLength() > 0) {
+                initConSQL = connectionInitSqlList.item(0).getTextContent();
+            }
+            //读取writeHost
+            NodeList writeNodes = element.getElementsByTagName("writeHost");
+            DBHostConfig[] writeDbConfs = new DBHostConfig[writeNodes.getLength()];
+            Map<Integer, DBHostConfig[]> readHostsMap = new HashMap<Integer, DBHostConfig[]>(2);
+            Set<String> writeHostNameSet = new HashSet<String>(writeNodes.getLength());
+            for (int w = 0; w < writeDbConfs.length; w++) {
+                Element writeNode = (Element) writeNodes.item(w);
+                writeDbConfs[w] = createDBHostConf(name, writeNode, dbType, dbDriver, maxCon, minCon, filters, logTime);
+                if (writeHostNameSet.contains(writeDbConfs[w].getHostName())) {
+                    throw new ConfigException("writeHost " + writeDbConfs[w].getHostName() + " duplicated!");
+                } else {
+                    writeHostNameSet.add(writeDbConfs[w].getHostName());
+                }
+                NodeList readNodes = writeNode.getElementsByTagName("readHost");
+                //读取对应的每一个readHost
+                if (readNodes.getLength() != 0) {
+                    DBHostConfig[] readDbConfs = new DBHostConfig[readNodes.getLength()];
+                    Set<String> readHostNameSet = new HashSet<String>(readNodes.getLength());
+                    for (int r = 0; r < readDbConfs.length; r++) {
+                        Element readNode = (Element) readNodes.item(r);
+                        readDbConfs[r] = createDBHostConf(name, readNode, dbType, dbDriver, maxCon, minCon, filters, logTime);
+                        if (readHostNameSet.contains(readDbConfs[r].getHostName())) {
+                            throw new ConfigException("readHost " + readDbConfs[r].getHostName() + " duplicated!");
+                        } else {
+                            readHostNameSet.add(readDbConfs[r].getHostName());
+                        }
+                    }
+                    readHostsMap.put(w, readDbConfs);
+                }
+            }
 
+            DataHostConfig hostConf = new DataHostConfig(name, dbType, dbDriver,
+                    writeDbConfs, readHostsMap, switchType, slaveThreshold, tempReadHostAvailable);
 
-			String dbDriver = element.getAttribute("dbDriver");
-			String dbType = element.getAttribute("dbType");
-			String filters = element.getAttribute("filters");
-			String logTimeStr = element.getAttribute("logTime");
-			String slaveIDs = element.getAttribute("slaveIDs");
-			String maxRetryCountStr = element.getAttribute("maxRetryCount");
-			int maxRetryCount ;
-			if(StringUtil.isEmpty(maxRetryCountStr)){
-				maxRetryCount = 3;
-			} else {
-				maxRetryCount = Integer.valueOf(maxRetryCountStr);
-			}
-
-			long logTime = "".equals(logTimeStr) ? PhysicalDBPool.LONG_TIME : Long.parseLong(logTimeStr) ;
-			//读取心跳语句
-			String heartbeatSQL = element.getElementsByTagName("heartbeat").item(0).getTextContent();
-			//读取 初始化sql配置,用于oracle
-			NodeList connectionInitSqlList = element.getElementsByTagName("connectionInitSql");
-			String initConSQL = null;
-			if (connectionInitSqlList.getLength() > 0) {
-				initConSQL = connectionInitSqlList.item(0).getTextContent();
-			}
-			//读取writeHost
-			NodeList writeNodes = element.getElementsByTagName("writeHost");
-			DBHostConfig[] writeDbConfs = new DBHostConfig[writeNodes.getLength()];
-			Map<Integer, DBHostConfig[]> readHostsMap = new HashMap<Integer, DBHostConfig[]>(2);
-			Set<String> writeHostNameSet = new HashSet<String>(writeNodes.getLength());
-			for (int w = 0; w < writeDbConfs.length; w++) {
-				Element writeNode = (Element) writeNodes.item(w);
-				writeDbConfs[w] = createDBHostConf(name, writeNode, dbType, dbDriver, maxCon, minCon,filters,logTime);
-				if(writeHostNameSet.contains(writeDbConfs[w].getHostName())) {
-					throw new ConfigException("writeHost " + writeDbConfs[w].getHostName() + " duplicated!");
-				} else {
-					writeHostNameSet.add(writeDbConfs[w].getHostName());
-				}
-				NodeList readNodes = writeNode.getElementsByTagName("readHost");
-				//读取对应的每一个readHost
-				if (readNodes.getLength() != 0) {
-					DBHostConfig[] readDbConfs = new DBHostConfig[readNodes.getLength()];
-					Set<String> readHostNameSet = new HashSet<String>(readNodes.getLength());
-					for (int r = 0; r < readDbConfs.length; r++) {
-						Element readNode = (Element) readNodes.item(r);
-						readDbConfs[r] = createDBHostConf(name, readNode, dbType, dbDriver, maxCon, minCon,filters, logTime);
-						if(readHostNameSet.contains(readDbConfs[r].getHostName())) {
-							throw new ConfigException("readHost " + readDbConfs[r].getHostName() + " duplicated!");
-						} else {
-							readHostNameSet.add(readDbConfs[r].getHostName());
-						}
-					}
-					readHostsMap.put(w, readDbConfs);
-				}
-			}
-
-			DataHostConfig hostConf = new DataHostConfig(name, dbType, dbDriver, 
-					writeDbConfs, readHostsMap, switchType, slaveThreshold, tempReadHostAvailable);		
-			
-			hostConf.setMaxCon(maxCon);
-			hostConf.setMinCon(minCon);
-			hostConf.setBalance(balance);
-			hostConf.setWriteType(writeType);
-			hostConf.setHearbeatSQL(heartbeatSQL);
-			hostConf.setConnectionInitSql(initConSQL);
-			hostConf.setFilters(filters);
-			hostConf.setLogTime(logTime);
-			hostConf.setSlaveIDs(slaveIDs);
-			hostConf.setMaxRetryCount(maxRetryCount);
-			dataHosts.put(hostConf.getName(), hostConf);
-		}
-	}
+            hostConf.setMaxCon(maxCon);
+            hostConf.setMinCon(minCon);
+            hostConf.setBalance(balance);
+            hostConf.setWriteType(writeType);
+            hostConf.setHearbeatSQL(heartbeatSQL);
+            hostConf.setConnectionInitSql(initConSQL);
+            hostConf.setFilters(filters);
+            hostConf.setLogTime(logTime);
+            hostConf.setSlaveIDs(slaveIDs);
+			hostConf.setNotSwitch(notSwitch);
+            hostConf.setMaxRetryCount(maxRetryCount);
+            dataHosts.put(hostConf.getName(), hostConf);
+        }
+    }
 
 }

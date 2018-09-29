@@ -261,7 +261,9 @@ public class MySQLHeartbeat extends DBHeartbeat {
 	 */
 	private void switchSourceIfNeed(String reason) {
 		int switchType = source.getHostConfig().getSwitchType();
-		if (switchType == DataHostConfig.NOT_SWITCH_DS) {
+		String notSwitch = source.getHostConfig().getNotSwitch();
+		if (notSwitch.equals(DataHostConfig.FOVER_NOT_SWITCH_DS) 
+				|| switchType == DataHostConfig.NOT_SWITCH_DS) {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("not switch datasource ,for switchType is "
 						+ DataHostConfig.NOT_SWITCH_DS);

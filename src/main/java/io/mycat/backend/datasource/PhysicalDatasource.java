@@ -23,6 +23,18 @@
  */
 package io.mycat.backend.datasource;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.ConMap;
@@ -37,16 +49,6 @@ import io.mycat.config.Alarms;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.TimeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -490,32 +492,36 @@ public abstract class PhysicalDatasource {
 		return conn;
 	}
 
-	/**
-	 * 创建新连接
-	 * @param handler
-	 * @param attachment
-	 * @param schema
-	 * @throws IOException
-	 */
-	private void createNewConnection(final ResponseHandler handler, final Object attachment, final String schema) throws IOException {
-		// 异步创建连接
+	private void createNewConnection(final ResponseHandler handler,
+			final Object attachment, final String schema) throws IOException {		
+		// aysn create connection
+		final AtomicBoolean hasError = new AtomicBoolean(false);
+
 		MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
 			public void run() {
 				try {
 					createNewConnection(new DelegateResponseHandler(handler) {
 						@Override
 						public void connectionError(Throwable e, BackendConnection conn) {
-							//decrementTotalConnectionsSafe(); // 如果创建连接失败，将当前连接数减1
-							handler.connectionError(e, conn);
+							if(hasError.compareAndSet(false, true)) {
+								handler.connectionError(e, conn);
+							} else {
+								LOGGER.info("connection connectionError ");
+							}
 						}
 
 						@Override
 						public void connectionAcquired(BackendConnection conn) {
+							LOGGER.info("connection id is "+conn.getId());
 							takeCon(conn, handler, attachment, schema);
 						}
 					}, schema);
 				} catch (IOException e) {
-					handler.connectionError(e, null);
+					if(hasError.compareAndSet(false, true)) {
+						handler.connectionError(e, null);
+					} else {
+						LOGGER.info("connection connectionError ");
+					}
 				}
 			}
 		});

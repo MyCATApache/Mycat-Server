@@ -6,6 +6,7 @@ import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
@@ -176,11 +177,13 @@ public class DruidInsertParser extends DefaultDruidParser {
 			if(partitionColumn.equalsIgnoreCase(StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString()))) {//找到分片字段
 				isFound = true;
 				String column = StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString());
-				
-				String value = StringUtil.removeBackquote(insertStmt.getValues().getValues().get(i).toString());
-				
+
+				String shardingValue = getShardingValue(insertStmt.getValues().getValues().get(i));
+				insertStmt.getValues().getValues().set(i,new SQLCharExpr(shardingValue));
+				ctx.setSql(insertStmt.toString());
+
 				RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
-				routeCalculateUnit.addShardingExpr(tableName, column, value);
+				routeCalculateUnit.addShardingExpr(tableName, column, shardingValue);
 				ctx.addRouteCalculateUnit(routeCalculateUnit);
 				//mycat是单分片键，找到了就返回
 				break;
@@ -244,15 +247,9 @@ public class DruidInsertParser extends DefaultDruidParser {
 						throw new SQLNonTransientException(msg);
 					}
 					SQLExpr expr = valueClause.getValues().get(shardingColIndex);
-					String shardingValue = null;
-					if(expr instanceof SQLIntegerExpr) {
-						SQLIntegerExpr intExpr = (SQLIntegerExpr)expr;
-						shardingValue = intExpr.getNumber() + "";
-					} else if (expr instanceof SQLCharExpr) {
-						SQLCharExpr charExpr = (SQLCharExpr)expr;
-						shardingValue = charExpr.getText();
-					}
-					
+					String shardingValue = getShardingValue(expr);
+					valueClause.getValues().set(shardingColIndex, new SQLCharExpr(shardingValue));
+
 					Integer nodeIndex = algorithm.calculate(shardingValue); // 通过表的分片算法计算分片节点
 					if(algorithm instanceof SlotFunction){
 						slotsMap.put(nodeIndex,((SlotFunction) algorithm).slotValue()) ;
@@ -269,7 +266,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 					}
 					nodeValuesMap.get(nodeIndex).add(valueClause);
 				}
-				
+
 
 				RouteResultsetNode[] nodes = new RouteResultsetNode[nodeValuesMap.size()];
 				int count = 0;
@@ -325,6 +322,22 @@ public class DruidInsertParser extends DefaultDruidParser {
 		}
 	}
 
+	private String getShardingValue(SQLExpr expr) throws SQLNonTransientException {
+		String shardingValue = null;
+		if(expr instanceof SQLIntegerExpr) {
+			SQLIntegerExpr intExpr = (SQLIntegerExpr)expr;
+			shardingValue = intExpr.getNumber() + "";
+		} else if (expr instanceof SQLCharExpr) {
+			SQLCharExpr charExpr = (SQLCharExpr)expr;
+			shardingValue = charExpr.getText();
+		} else if (expr instanceof SQLMethodInvokeExpr) {
+			SQLMethodInvokeExpr methodInvokeExpr = (SQLMethodInvokeExpr)expr;
+			shardingValue = tryInvokeSQLMethod(methodInvokeExpr);
+		} else {
+			shardingValue = expr.toString();
+		}
+		return shardingValue;
+	}
 	/**
 	 * 寻找拆分字段在 columnList中的索引
 	 * @param insertStmt
