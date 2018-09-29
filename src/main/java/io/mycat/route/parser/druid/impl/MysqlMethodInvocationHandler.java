@@ -3,8 +3,8 @@ package io.mycat.route.parser.druid.impl;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntervalExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlIntervalExpr;
 import io.mycat.route.parser.druid.SqlMethodInvocationHandler;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.lang.time.DateUtils;
@@ -75,10 +75,10 @@ public class MysqlMethodInvocationHandler implements SqlMethodInvocationHandler 
             if (p2 instanceof SQLIntegerExpr) {
                 delta = (Integer) ((SQLIntegerExpr) p2).getNumber();
                 unit = "DAY";
-            } else if (p2 instanceof MySqlIntervalExpr) {
-                SQLIntegerExpr value = (SQLIntegerExpr) ((MySqlIntervalExpr) p2).getValue();
+            } else if (p2 instanceof SQLIntervalExpr) {
+                SQLIntegerExpr value = (SQLIntegerExpr) ((SQLIntervalExpr) p2).getValue();
                 delta = (Integer) value.getNumber();
-                unit = ((MySqlIntervalExpr) p2).getUnit().name();
+                unit = ((SQLIntervalExpr) p2).getUnit().name();
             } else {
                 throwSyntaxError(p2);
             }
