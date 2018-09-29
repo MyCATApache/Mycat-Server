@@ -138,7 +138,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	private String user;
 	private String password;
 	private Object attachment;
-	private ResponseHandler respHandler;
+	private volatile ResponseHandler respHandler;
 
 	private final AtomicBoolean isQuit;
 	private volatile StatusSync statusSync;
@@ -537,12 +537,20 @@ public class MySQLConnection extends BackendAIOConnection {
 	public void close(String reason) {
 		if (!isClosed.get()) {
 			isQuit.set(true);
+			ResponseHandler tmpRespHandlers= respHandler;
+			setResponseHandler(null);
 			super.close(reason);
 			pool.connectionClosed(this);
-			if (this.respHandler != null) {
-				this.respHandler.connectionClose(this, reason);
-				respHandler = null;
+			if (tmpRespHandlers != null) {
+				tmpRespHandlers.connectionClose(this, reason);
 			}
+			if( this.handler instanceof MySQLConnectionAuthenticator) {
+				((MySQLConnectionAuthenticator) this.handler).connectionError(this, new Throwable(reason));
+				
+			}
+		} else {
+			//主要起一个清理资源的作用
+			super.close(reason);
 		}
 	}
 

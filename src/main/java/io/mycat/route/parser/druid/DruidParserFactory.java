@@ -9,7 +9,11 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.parser.druid.impl.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * DruidParser的工厂类
@@ -87,6 +91,7 @@ public class DruidParserFactory {
             }
             if (dbTypes.contains("oracle")) {
                 parser = new DruidSelectOracleParser();
+                ((DruidSelectOracleParser)parser).setInvocationHandler(SqlMethodInvocationHandlerFactory.getForOracle());
                 break;
             } else if (dbTypes.contains("db2")) {
                 parser = new DruidSelectDb2Parser();
@@ -96,6 +101,7 @@ public class DruidParserFactory {
                 break;
             } else if (dbTypes.contains("postgresql")) {
                 parser = new DruidSelectPostgresqlParser();
+                ((DruidSelectPostgresqlParser)parser).setInvocationHandler(SqlMethodInvocationHandlerFactory.getForPgsql());
                 break;
             }
         }
