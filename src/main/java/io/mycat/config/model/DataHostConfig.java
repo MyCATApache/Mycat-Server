@@ -83,6 +83,11 @@ public class DataHostConfig {
 	// 从节点ID
 	private String slaveIDs;
 	private int maxRetryCount = 3; // 心跳失败时候重试的次数. @auth zwy
+	public static final String FOVER_NOT_SWITCH_DS = "1";
+	public static final String CAN_SWITCH_DS = "0";
+
+	private String notSwitch = CAN_SWITCH_DS;
+	
 	public DataHostConfig(String name, String dbType, String dbDriver,
 			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold, boolean tempReadHostAvailable) {
 		super();
@@ -245,5 +250,13 @@ public class DataHostConfig {
 	public void setMaxRetryCount(int maxRetryCount) {
 		this.maxRetryCount = maxRetryCount;
 	}
-    
+
+	public String getNotSwitch() {
+		return notSwitch;
+	}
+
+	public void setNotSwitch(String notSwitch) {
+		this.notSwitch = notSwitch;
+	}
+	
 }

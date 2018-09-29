@@ -130,6 +130,16 @@ public final class SystemConfig {
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
 	public static final int SEQUENCEHANDLER_ZK_DISTRIBUTED = 3;
 	public static final int SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT = 4;
+	
+	
+	private final int DEFAULT_SEQUNCE_MYSQL_RETRY_COUT=4;  //mysql全局序列默认重试次数
+	private final long DEFAULT_SEQUNCE_MYSQL_WATI_TIME=10 * 1000;//mysql db方式默认等待时间
+
+	private int sequnceMySqlRetryCount = DEFAULT_SEQUNCE_MYSQL_RETRY_COUT;
+	private long sequnceMySqlWaitTime = DEFAULT_SEQUNCE_MYSQL_WATI_TIME;
+	
+	
+	
 	/*
 	 * 注意！！！ 目前mycat支持的MySQL版本，如果后续有新的MySQL版本,请添加到此数组， 对于MySQL的其他分支，
 	 * 比如MariaDB目前版本号已经到10.1.x，但是其驱动程序仍然兼容官方的MySQL,因此这里版本号只需要MySQL官方的版本号即可。
@@ -968,5 +978,21 @@ public final class SystemConfig {
 
 	public void setStrictTxIsolation(boolean strictTxIsolation) {
 		this.strictTxIsolation = strictTxIsolation;
+	}
+	
+	public int getSequnceMySqlRetryCount() {
+		return sequnceMySqlRetryCount;
+	}
+
+	public void setSequnceMySqlRetryCount(int sequnceMySqlRetryCount) {
+		this.sequnceMySqlRetryCount = sequnceMySqlRetryCount;
+	}
+
+	public long getSequnceMySqlWaitTime() {
+		return sequnceMySqlWaitTime;
+	}
+
+	public void setSequnceMySqlWaitTime(long sequnceMySqlWaitTime) {
+		this.sequnceMySqlWaitTime = sequnceMySqlWaitTime;
 	}
 }

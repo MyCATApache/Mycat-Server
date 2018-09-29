@@ -177,27 +177,48 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		MycatConfig conf = MycatServer.getInstance().getConfig();
 		startTime = System.currentTimeMillis();
 		LOGGER.debug("rrs.getRunOnSlave()-" + rrs.getRunOnSlaveDebugInfo());
-		for (final RouteResultsetNode node : rrs.getNodes()) {
-			BackendConnection conn = session.getTarget(node);
-			if (session.tryExistsCon(conn, node)) {
-				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlaveDebugInfo());
-				node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
-				LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlaveDebugInfo());
-				_execute(conn, node);
-			} else {
-				// create new connection
-				LOGGER.debug("node.getRunOnSlave()1-" + node.getRunOnSlaveDebugInfo());
-				node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
-				LOGGER.debug("node.getRunOnSlave()2-" + node.getRunOnSlaveDebugInfo());
-				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
-				dn.getConnection(dn.getDatabase(), autocommit, node, this, node);
-				// 注意该方法不仅仅是获取连接，获取新连接成功之后，会通过层层回调，最后回调到本类 的connectionAcquired
-				// 这是通过 上面方法的 this 参数的层层传递完成的。
-				// connectionAcquired 进行执行操作:
-				// session.bindConnection(node, conn);
-				// _execute(conn, node);
+		//todo 增加处理如果超过最大链接的处理。是zwy 2018.07
+		int start = 0;
+		try {
+			for (final RouteResultsetNode node : rrs.getNodes()) {
+				BackendConnection conn = session.getTarget(node);
+				if (session.tryExistsCon(conn, node)) {
+					if(LOGGER.isDebugEnabled()) {
+						LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
+			            LOGGER.debug(new StringBuilder(this.toString()).append(session.getSource()).append(rrs).toString());
+					}
+					node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解	
+					if(LOGGER.isDebugEnabled()) {
+						LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
+					}
+					_execute(conn, node);
+				} else {
+					// create new connection
+					//LOGGER.debug("node.getRunOnSlave()1-" + node.getRunOnSlave());
+					node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
+					//LOGGER.debug("node.getRunOnSlave()2-" + node.getRunOnSlave());
+					PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
+					dn.getConnection(dn.getDatabase(), autocommit, node, this, node);
+					// 注意该方法不仅仅是获取连接，获取新连接成功之后，会通过层层回调，最后回调到本类 的connectionAcquired
+					// 这是通过 上面方法的 this 参数的层层传递完成的。
+					// connectionAcquired 进行执行操作:
+					// session.bindConnection(node, conn);
+					// _execute(conn, node); 
+				}
+				start++;
 			}
-
+		}catch (Exception e) {
+			ServerConnection source = session.getSource();
+            int len = rrs.getNodes().length - start;
+            for(int i = 0 ; i < len ; i++) {
+            	//flag = this.decrementCountBy(1);
+            	 this.connectionError(e, null);
+            }
+            LOGGER.error(new StringBuilder(this.toString()).append(source).append(rrs).toString(), e);
+           // this.connectionError(e, null);
+           // if(flag) {
+           //     LOGGER.error(new StringBuilder(this.toString()).append(source).append(rrs).toString(), e);
+            //}
 		}
 	}
 
@@ -218,6 +239,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		final RouteResultsetNode node = (RouteResultsetNode) conn
 				.getAttachment();
 		session.bindConnection(node, conn);
+		if(errorRepsponsed.get()) {
+			ServerConnection source = session.getSource();			
+			LOGGER.warn(new StringBuilder(this.toString()).append(source).append(rrs).toString(), "connectionAcquired",conn);
+			this.connectionClose(conn, "find error, so close this connection");
+			return ;
+		}
 		_execute(conn, node);
 	}
 
@@ -272,6 +299,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			} finally {
 				lock.unlock();
 			}
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug(this.toString() +"on row okResponse " + conn + "  "+ errorRepsponsed.get() +"  "+nodeCount);
+			}
 			// 对于存储过程，其比较特殊，查询结果返回EndRow报文以后，还会再返回一个OK报文，才算结束
 			boolean isEndPacket = isCallProcedure ? decrementOkCountBy(1): decrementCountBy(1);
 			if (isEndPacket && isCanClose2Client) {
@@ -304,8 +334,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 						ok.insertId = insertId;
 						source.setLastInsertId(insertId);
 					}
-
-					ok.write(source);
+					//  判断是否已经报错返回给前台了 2018.07 
+					if(source.canResponse()) {
+						ok.write(source);
+					}
 				} catch (Exception e) {
 					handleDataProcessException(e);
 				} finally {
@@ -329,7 +361,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	@Override
 	public void rowEofResponse(final byte[] eof, BackendConnection conn) {
 		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("on row end reseponse " + conn);
+			LOGGER.debug(this.toString() +"on row end reseponse " + conn + "  "+ errorRepsponsed.get() +"  "+nodeCount);
 		}
 
 		this.netOutBytes += eof.length;
@@ -386,7 +418,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					}
 					if(  middlerResultHandler ==null ){
 						//middlerResultHandler.secondEexcute();
-						source.write(eof);
+						if(source.canResponse()) {
+							source.write(eof);
+						}
 					}
  				} finally {
 					lock.unlock();
@@ -511,7 +545,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			/**
 			 * 真正的开始把Writer Buffer的数据写入到channel 中
 			 */
-			session.getSource().write(byteBuffer);
+			if(source.canResponse()) {
+				source.write(byteBuffer);
+			}
+			
 		}
 
 
@@ -586,7 +623,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("last packet id:" + packetId);
 			}
-			source.write(source.writeToBuffer(eof, buffer));
+			if(source.canResponse()) {
+				source.write(source.writeToBuffer(eof, buffer));
+			}
 
 		} catch (Exception e) {
 			handleDataProcessException(e);
@@ -598,8 +637,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
-								 byte[] eof, BackendConnection conn) {
-
+			byte[] eof, BackendConnection conn) {
+		
+		//10个连接有一个连接错误怎么办哦。
+		if (errorRepsponsed.get()|| this.isFail()) {
+			// the connection has been closed or set to "txInterrupt" properly
+			//in tryErrorFinished() method! If we close it here, it can
+			// lead to tx error such as blocking rollback tx for ever.
+			// @author Uncle-pan
+			// @since 2016-03-25
+			// conn.close(this.error);
+			return;
+		}
+		
 		//huangyiming add
 		this.header = header;
 		this.fields = fields;
@@ -747,20 +797,33 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	public void handleDataProcessException(Exception e) {
 		if (!errorRepsponsed.get()) {
 			this.error = e.toString();
-			LOGGER.warn("caught exception ", e);
+			LOGGER.warn(this.toString() +" caught exception ", e);
 			setFail(e.toString());
-			this.tryErrorFinished(true);
+			//判断是否全部返回
+			boolean finished = false;
+			lock.lock();
+			try {
+				finished = (this.nodeCount == 0);
+
+			} finally {
+				lock.unlock();
+			}
+			this.tryErrorFinished(finished);
 		}
 	}
 
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
-		if (errorRepsponsed.get()) {
-			// 连接已关闭或在tryErrorFinished（）方法中正确设置为“txInterrupt”！
-			// 如果我们在这里关闭连接，它可能导致tx错误，例如会永远打断tx回滚。
+
+ 		if (errorRepsponsed.get()||this.isFail()) {
+			// the connection has been closed or set to "txInterrupt" properly
+			//in tryErrorFinished() method! If we close it here, it can
+			// lead to tx error such as blocking rollback tx for ever.
 			// @author Uncle-pan
 			// @since 2016-03-25
 			//conn.close(error);
+			// 连接已关闭或在tryErrorFinished（）方法中正确设置为“txInterrupt”！
+			// 如果我们在这里关闭连接，它可能导致tx错误，例如会永远打断tx回滚。
 			return;
 		}
 
