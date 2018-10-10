@@ -89,6 +89,7 @@ public class PartitionByRangeModTest
         String ruleFile = "/route/rule.xml";
         SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
         schemaMap = schemaLoader.getSchemas();
+        RouteStrategyFactory.init();
     }
 
     @Test
