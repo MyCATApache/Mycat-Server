@@ -1,11 +1,11 @@
 package io.mycat.route.parser.druid;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.stat.TableStat.Condition;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Where条件单元
@@ -42,21 +42,29 @@ public class WhereUnit {
 	 * 还能继续再分的表达式:可能还有or关键字
 	 */
 	private SQLBinaryOpExpr canSplitExpr;
-	
+
+	/**
+	 * 分割表达式列表
+	 */
 	private List<SQLExpr> splitedExprList = new ArrayList<SQLExpr>();
 	
 	private List<List<Condition>> conditionList = new ArrayList<List<Condition>>();
 	
 	/**
+	 * 外部条件
 	 * whereExpr并不是一个where的全部，有部分条件在outConditions
 	 */
 	private List<Condition> outConditions = new ArrayList<Condition>();
 
 	/**
+	 * 子Where条件单元
 	 * 按照or拆分后的条件片段中可能还有or语句，这样的片段实际上是嵌套的or语句，将其作为内层子whereUnit，不管嵌套多少层，循环处理
 	 */
 	private List<WhereUnit> subWhereUnits = new ArrayList<WhereUnit>();
-	
+
+	/**
+	 * 是否完成解析标志
+	 */
 	private boolean finishedParse = false;
 	
 	public List<Condition> getOutConditions() {

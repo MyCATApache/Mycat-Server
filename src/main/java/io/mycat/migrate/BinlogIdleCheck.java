@@ -66,9 +66,7 @@ public class BinlogIdleCheck implements Runnable {
 
 
         try {
-        	byte[] taskNodeStr = ZKUtils.getConnection().getData().forPath(taskPath);
-        	System.out.println(new String(taskNodeStr));
-            TaskNode taskNode = JSON.parseObject(taskNodeStr,TaskNode.class);
+            TaskNode taskNode = JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
             if(taskNode.getStatus()>=3){
                     binlogStream.disconnect();
             }

@@ -23,11 +23,7 @@
  */
 package io.mycat.util;
 
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.RandomAccess;
+import java.util.*;
 
 public class CircularArrayList<E>
         extends AbstractList<E> implements RandomAccess {

@@ -28,10 +28,10 @@ import io.mycat.memory.unsafe.row.UnsafeRowWriter;
 import io.mycat.memory.unsafe.utils.BytesTools;
 import io.mycat.sqlengine.mpp.ColMeta;
 import io.mycat.sqlengine.mpp.OrderCol;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
@@ -47,7 +47,7 @@ public class UnsafeFixedWidthAggregationMapSuite {
 
   private final Random rand = new Random(42);
 
-  private static Logger LOGGER = Logger.getLogger(UnsafeFixedWidthAggregationMapSuite.class);
+  private static Logger LOGGER = LoggerFactory.getLogger(UnsafeFixedWidthAggregationMapSuite.class);
   @Test
   public void testAggregateMap() throws NoSuchFieldException, IllegalAccessException, IOException {
     /**

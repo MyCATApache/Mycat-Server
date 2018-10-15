@@ -3,8 +3,8 @@ package io.mycat.backend.jdbc.mongodb;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+
 //import java.util.Arrays;
-import java.util.Set;
 /**  
  * 功能详细描述
  * @author sohudo[http://blog.csdn.net/wind520]

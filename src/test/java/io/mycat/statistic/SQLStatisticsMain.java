@@ -23,9 +23,6 @@
  */
 package io.mycat.statistic;
 
-import io.mycat.statistic.SQLRecord;
-import io.mycat.statistic.SQLRecorder;
-
 /**
  * @author mycat
  */

@@ -1,15 +1,6 @@
 package io.mycat.config.loader.zkprocess.xmltozk.listen;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-
-import org.apache.curator.framework.CuratorFramework;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.fastjson.util.IOUtils;
-
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
@@ -25,36 +16,43 @@ import io.mycat.config.loader.zkprocess.parse.entryparse.server.json.SystemJsonP
 import io.mycat.config.loader.zkprocess.parse.entryparse.server.json.UserJsonParse;
 import io.mycat.config.loader.zkprocess.parse.entryparse.server.xml.ServerParseXmlImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 
 /**
  * 进行从server.xml加载到zk中加载
-* 源文件名：SchemasLoader.java
-* 文件版本：1.0.0
-* 创建作者：liujun
-* 创建日期：2016年9月15日
-* 修改作者：liujun
-* 修改日期：2016年9月15日
-* 文件描述：TODO
-* 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
-*/
+ * 源文件名：SchemasLoader.java
+ * 文件版本：1.0.0
+ * 创建作者：liujun
+ * 创建日期：2016年9月15日
+ * 修改作者：liujun
+ * 修改日期：2016年9月15日
+ * 文件描述：TODO
+ * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
+ */
 public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService {
 
     /**
      * 日志
-    * @字段说明 LOGGER
-    */
+     * @字段说明 LOGGER
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerxmlTozkLoader.class);
 
     /**
-     * 当前文件中的zkpath信息 
-    * @字段说明 currZkPath
-    */
+     * 当前文件中的zkpath信息
+     * @字段说明 currZkPath
+     */
     private final String currZkPath;
 
     /**
      * server文件的路径信息
-    * @字段说明 SCHEMA_PATH
-    */
+     * @字段说明 SCHEMA_PATH
+     */
     private static final String SERVER_PATH = ZookeeperPath.ZK_LOCAL_CFG_PATH.getKey() + "server.xml";
 
     /**
@@ -65,14 +63,14 @@ public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService 
 
     /**
      * server的xml的转换信息
-    * @字段说明 parseServerXMl
-    */
+     * @字段说明 parseServerXMl
+     */
     private ParseXmlServiceInf<Server> parseServerXMl;
 
     /**
      * system信息
-    * @字段说明 parseJsonSchema
-    */
+     * @字段说明 parseJsonSchema
+     */
     private ParseJsonServiceInf<System> parseJsonSystem = new SystemJsonParse();
 
     /**
@@ -82,7 +80,7 @@ public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService 
     private ParseJsonServiceInf<List<User>> parseJsonUser = new UserJsonParse();
 
     public ServerxmlTozkLoader(ZookeeperProcessListen zookeeperListen, CuratorFramework curator,
-            XmlProcessBase xmlParseBase) {
+                               XmlProcessBase xmlParseBase) {
 
         this.setCurator(curator);
 
@@ -121,10 +119,10 @@ public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService 
 
     /**
      * 写入集群节点的信息
-    * 方法描述
-    * @throws Exception
-    * @创建日期 2016年9月17日
-    */
+     * 方法描述
+     * @throws Exception
+     * @创建日期 2016年9月17日
+     */
     private void writeClusterNode(String basePath) throws Exception {
         // 1，读取集群节点信息
         String[] zkNodes = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTER_NODES)
@@ -151,32 +149,35 @@ public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService 
 
     /**
      * 将xml文件的信息写入到zk中
-    * 方法描述
-    * @param basePath 基本路径
-    * @param schema schema文件的信息
-    * @throws Exception 异常信息
-    * @创建日期 2016年9月17日
-    */
+     * 方法描述
+     * @param basePath 基本路径
+     * @param server 文件的信息
+     * @throws Exception 异常信息
+     * @创建日期 2016年9月17日
+     */
     private void xmlTozkServerJson(String basePath, Server server) throws Exception {
-        // 设置默认的节点信息
+        // 设置默认的节点信息 default
         String defaultSystem = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SERVER_DEFAULT.getKey();
         String defaultSystemValue = this.parseJsonSystem.parseBeanToJson(server.getSystem());
         this.checkAndwriteString(basePath, defaultSystem, defaultSystemValue);
 
-        // 设置用户信息
+        // 设置用户信息 user
         String userStr = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SERVER_USER.getKey();
         String userValueStr = this.parseJsonUser.parseBeanToJson(server.getUser());
         this.checkAndwriteString(basePath, userStr, userValueStr);
+
+        // TODO 添加 Mycat 防火墙配置同步 FLOW_ZK_PATH_SERVER_FIREWALL
     }
 
     /**
      * 将xml文件的信息写入到zk中
-    * 方法描述
-    * @param basePath 基本路径
-    * @param schema schema文件的信息
-    * @throws Exception 异常信息
-    * @创建日期 2016年9月17日
-    */
+     * 方法描述
+     * @param basePath 基本路径
+     * @param node 节点名
+     * @param server 文件的信息
+     * @throws Exception 异常信息
+     * @创建日期 2016年9月17日
+     */
     private void xmlTozkClusterNodeJson(String basePath, String node, Server server) throws Exception {
         // 设置集群中的节点信息
         basePath = basePath + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SERVER_CLUSTER.getKey();
@@ -186,11 +187,11 @@ public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService 
 
     /**
      * 读取 properties配制文件的信息
-    * 方法描述
-    * @param name 名称信息
-    * @return
-    * @创建日期 2016年9月18日
-    */
+     * 方法描述
+     * @param name 名称信息
+     * @return
+     * @创建日期 2016年9月18日
+     */
     private String readProperties(String name) {
 
         String path = ZookeeperPath.ZK_LOCAL_CFG_PATH.getKey() + name;

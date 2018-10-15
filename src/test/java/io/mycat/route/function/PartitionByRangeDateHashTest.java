@@ -1,7 +1,6 @@
 package io.mycat.route.function;
 
 import com.google.common.hash.Hashing;
-
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
@@ -11,7 +10,6 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
-
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -76,6 +74,7 @@ public class PartitionByRangeDateHashTest
         String ruleFile = "/route/rule.xml";
         SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
         schemaMap = schemaLoader.getSchemas();
+        RouteStrategyFactory.init();
     }
 
     @Test

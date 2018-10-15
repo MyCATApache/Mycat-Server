@@ -1,15 +1,14 @@
 package io.mycat.cache.impl;
 
 
-import java.io.File;
-
-import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
-
+import io.mycat.cache.CachePool;
+import io.mycat.cache.CachePoolFactory;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.Options;
 
-import io.mycat.cache.CachePool;
-import io.mycat.cache.CachePoolFactory;
+import java.io.File;
+
+import static org.iq80.leveldb.impl.Iq80DBFactory.factory;
 
 public class LevelDBCachePooFactory extends CachePoolFactory {
 

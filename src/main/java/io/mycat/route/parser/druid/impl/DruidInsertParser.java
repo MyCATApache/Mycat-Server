@@ -32,6 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Druid Insert 解析器
+ */
 public class DruidInsertParser extends DefaultDruidParser {
 	@Override
 	public void visitorParse(RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor) throws SQLNonTransientException {
@@ -209,6 +212,8 @@ public class DruidInsertParser extends DefaultDruidParser {
 	}
 	
 	/**
+	 * 解析批量插入数据
+	 * 根据分片表的分片规则，生成对应的分片节点sql
 	 * insert into .... select .... 或insert into table() values (),(),....
 	 * @param schema
 	 * @param rrs
@@ -222,7 +227,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 			//字段列数
 			int columnNum = insertStmt.getColumns().size();
 			int shardingColIndex = getShardingColIndex(insertStmt, partitionColumn);
-			if(shardingColIndex == -1) {
+			if(shardingColIndex == -1) { // 在columnList中找不到分片列（字段）
 				String msg = "bad insert sql (sharding column:"+ partitionColumn + " not provided," + insertStmt;
 				LOGGER.warn(msg);
 				throw new SQLNonTransientException(msg);
@@ -245,7 +250,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 					String shardingValue = getShardingValue(expr);
 					valueClause.getValues().set(shardingColIndex, new SQLCharExpr(shardingValue));
 
-					Integer nodeIndex = algorithm.calculate(shardingValue);
+					Integer nodeIndex = algorithm.calculate(shardingValue); // 通过表的分片算法计算分片节点
 					if(algorithm instanceof SlotFunction){
 						slotsMap.put(nodeIndex,((SlotFunction) algorithm).slotValue()) ;
 					}
@@ -268,7 +273,13 @@ public class DruidInsertParser extends DefaultDruidParser {
 				for(Map.Entry<Integer,List<ValuesClause>> node : nodeValuesMap.entrySet()) {
 					Integer nodeIndex = node.getKey();
 					List<ValuesClause> valuesList = node.getValue();
-					insertStmt.setValuesList(valuesList);
+
+					List<ValuesClause> insertValuesList = insertStmt.getValuesList();
+					insertValuesList.clear();
+					for(ValuesClause value : valuesList){
+						insertStmt.addValueCause(value);
+					}
+
 					if(tableConfig.isDistTable()) {
 						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(0),
 								rrs.getSqlType(),insertStmt.toString());
@@ -290,8 +301,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 						insertStatement.setTableSource(from2);
 						nodes[count].setStatement(insertStatement.toString());
 					} else {
-						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
-								rrs.getSqlType(),insertStmt.toString());
+						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex), rrs.getSqlType(), insertStmt.toString());
 					}
 					
 					if(algorithm instanceof SlotFunction) {

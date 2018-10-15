@@ -23,17 +23,10 @@
  */
 package io.mycat.server.handler;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.regex.Pattern;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
@@ -51,8 +44,15 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.util.SchemaUtil;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.regex.Pattern;
 
 /**
+ * Explain 语句处理器
  * @author mycat
  */
 public class ExplainHandler {
@@ -70,7 +70,7 @@ public class ExplainHandler {
 
 	public static void handle(String stmt, ServerConnection c, int offset) {
 		stmt = stmt.substring(offset).trim();
-
+		//获取路由结果集
 		RouteResultset rrs = getRouteResultset(c, stmt);
 		if (rrs == null) {
 			return;
@@ -119,68 +119,73 @@ public class ExplainHandler {
 		return row;
 	}
 
-	private static RouteResultset getRouteResultset(ServerConnection c,
-			String stmt) {
+	/**
+	 * 获取路由结果集
+	 * @param c
+	 * @param stmt
+	 * @return
+	 */
+	private static RouteResultset getRouteResultset(ServerConnection c, String stmt) {
 		String db = c.getSchema();
         int sqlType = ServerParse.parse(stmt) & 0xff;
 		if (db == null) {
+			// 检测默认逻辑库 数据库
             db = SchemaUtil.detectDefaultDb(stmt, sqlType);
 
-            if(db==null)
-            {
+            if(db==null) {
                 c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR, "No database selected");
                 return null;
             }
 		}
-		SchemaConfig schema = MycatServer.getInstance().getConfig()
-				.getSchemas().get(db);
+		SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(db);
 		if (schema == null) {
-			c.writeErrMessage(ErrorCode.ER_BAD_DB_ERROR, "Unknown database '"
-					+ db + "'");
+			c.writeErrMessage(ErrorCode.ER_BAD_DB_ERROR, "Unknown database '" + db + "'");
 			return null;
 		}
 		try {
-
-            if(ServerParse.INSERT==sqlType&&isMycatSeq(stmt, schema))
-            {
+            if(ServerParse.INSERT == sqlType
+					&& isMycatSeq(stmt, schema)) {
                 c.writeErrMessage(ErrorCode.ER_PARSE_ERROR, "insert sql using mycat seq,you must provide primaryKey value for explain");
                 return null;
             }
             SystemConfig system = MycatServer.getInstance().getConfig().getSystem();
-            return MycatServer.getInstance().getRouterservice()
-					.route(system,schema, sqlType, stmt, c.getCharset(), c);
+            return MycatServer.getInstance().getRouterservice().route(system,schema, sqlType, stmt, c.getCharset(), c);
 		} catch (Exception e) {
 			StringBuilder s = new StringBuilder();
 			logger.warn(s.append(c).append(stmt).toString()+" error:"+ e);
 			String msg = e.getMessage();
-			c.writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e
-					.getClass().getSimpleName() : msg);
+			c.writeErrMessage(ErrorCode.ER_PARSE_ERROR, msg == null ? e.getClass().getSimpleName() : msg);
 			return null;
 		}
 	}
 
-    private static boolean isMycatSeq(String stmt, SchemaConfig schema)
-    {
+	/**
+	 * 是否使用Mycat的seq
+	 * @param stmt
+	 * @param schema
+	 * @return
+	 */
+    private static boolean isMycatSeq(String stmt, SchemaConfig schema) {
         if(pattern.matcher(stmt).find()) {
 			return true;
 		}
-        SQLStatementParser parser =new MySqlStatementParser(stmt);
+        SQLStatementParser parser = new MySqlStatementParser(stmt);
         MySqlInsertStatement statement = (MySqlInsertStatement) parser.parseStatement();
-        String tableName=   statement.getTableName().getSimpleName();
-        TableConfig tableConfig= schema.getTables().get(tableName.toUpperCase());
+        String tableName = statement.getTableName().getSimpleName();
+        TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
         if(tableConfig==null) {
+        	// 没有表配置
 			return false;
 		}
-        if(tableConfig.isAutoIncrement())
-        {
+        if(tableConfig.isAutoIncrement()) {
+        	// 主键自动递增
             boolean isHasIdInSql=false;
             String primaryKey = tableConfig.getPrimaryKey();
             List<SQLExpr> columns = statement.getColumns();
-            for (SQLExpr column : columns)
-            {
+            for (SQLExpr column : columns) {
                 String columnName = column.toString();
-                if(primaryKey.equalsIgnoreCase(columnName))
-                {
+                if(primaryKey.equalsIgnoreCase(columnName)) {
+                	// sql语句包含主键
                     isHasIdInSql = true;
                     break;
                 }
@@ -189,8 +194,6 @@ public class ExplainHandler {
 				return true;
 			}
         }
-
-
         return false;
     }
 

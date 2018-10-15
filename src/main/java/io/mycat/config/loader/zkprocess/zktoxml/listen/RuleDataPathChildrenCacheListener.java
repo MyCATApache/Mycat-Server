@@ -21,6 +21,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.Map;
 
 /**
+ * ruledata目录监听器
+ * zk的 /mycat/clusterId/ruledata下有变化回调
  * Created by magicdoom on 2016/10/27.
  */
 public class RuleDataPathChildrenCacheListener implements PathChildrenCacheListener {
@@ -28,17 +30,14 @@ public class RuleDataPathChildrenCacheListener implements PathChildrenCacheListe
     public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
         ChildData data = event.getData();
         switch (event.getType()) {
-
-            case CHILD_ADDED:
-
-                add(data.getPath().substring(data.getPath().lastIndexOf("/") + 1), event.getData().getData());
+            case CHILD_ADDED: // zk向 ruledata 添加节点
+                add(data.getPath().substring(data.getPath().lastIndexOf("/")+1),event.getData().getData()) ;
                 break;
-            case CHILD_REMOVED:
-                delete(data.getPath().substring(data.getPath().lastIndexOf("/") + 1), event.getData().getData());
-                ;
+            case CHILD_REMOVED: // zk向 ruledata 删除节点
+                delete(data.getPath().substring(data.getPath().lastIndexOf("/")+1),event.getData().getData()); ;
                 break;
-            case CHILD_UPDATED:
-                add(data.getPath().substring(data.getPath().lastIndexOf("/") + 1), event.getData().getData());
+            case CHILD_UPDATED: // zk向 ruledata 更新节点
+                add(data.getPath().substring(data.getPath().lastIndexOf("/")+1),event.getData().getData()) ;
                 break;
             default:
                 break;
@@ -61,7 +60,7 @@ public class RuleDataPathChildrenCacheListener implements PathChildrenCacheListe
         }
     }
 
-    private void add(String name, byte[] data) throws IOException {
+    private void add(String name,byte[] data) throws IOException {
         Path ruledataPath = Paths.get(SystemConfig.getHomePath(), "conf", "ruledata");
         if (!Files.exists(ruledataPath)) {
             Files.createDirectory(ruledataPath);
@@ -71,7 +70,7 @@ public class RuleDataPathChildrenCacheListener implements PathChildrenCacheListe
         reloadRuleData(name);
     }
 
-    private void delete(String name, byte[] data) throws IOException {
+    private void delete(String name,byte[] data) throws IOException {
         File file = new File(
                 SystemConfig.getHomePath() + File.separator + "conf" + File.separator + "ruledata",
                 name);

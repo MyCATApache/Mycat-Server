@@ -23,10 +23,10 @@
  */
 package io.mycat.config.model;
 
+import io.mycat.config.Isolations;
+
 import java.io.File;
 import java.io.IOException;
-
-import io.mycat.config.Isolations;
 
 /**
  * 系统基础配置项
@@ -46,8 +46,8 @@ public final class SystemConfig {
 	private static final short DEFAULT_BUFFER_POOL_PAGE_NUMBER = 64;
 	private int processorBufferLocalPercent;
 	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime().availableProcessors();
-	private int frontSocketSoRcvbuf = 1024 * 1024;
-	private int frontSocketSoSndbuf = 4 * 1024 * 1024;
+	private int frontSocketSoRcvbuf = 1024 * 1024; // 1M
+	private int frontSocketSoSndbuf = 4 * 1024 * 1024; // 4M
 	private int backSocketSoRcvbuf = 4 * 1024 * 1024;// mysql 5.6
 														// net_buffer_length
 														// defaut 4M
@@ -56,7 +56,7 @@ public final class SystemConfig {
 	private final static String MEMORY_PAGE_SIZE = "1m";
 	private final static String SPILLS_FILE_BUFFER_SIZE = "2K";
 	private final static String DATANODE_SORTED_TEMP_DIR = "datanode";
-	private int backSocketSoSndbuf = 1024 * 1024;
+	private int backSocketSoSndbuf = 1024 * 1024; // 1M
 	private int frontSocketNoDelay = 1; // 0=false
 	private int backSocketNoDelay = 1; // 1=true
 	public static final int DEFAULT_POOL_SIZE = 128;// 保持后端数据通道的默认最大值
@@ -80,7 +80,7 @@ public final class SystemConfig {
 	private int serverPort;
 	private int managerPort;
 	private String charset;
-	private int processors;
+	private int processors; // 处理器个数
 	private int processorExecutor;
 	private int timerExecutor;
 	private int managerExecutor;
@@ -89,6 +89,7 @@ public final class SystemConfig {
 	// sql execute timeout (second)
 	private long sqlExecuteTimeout = 300;
 	private long processorCheckPeriod;
+	// 分片节点空闲检查周期
 	private long dataNodeIdleCheckPeriod;
 	private long dataNodeHeartbeatPeriod;
 	private String clusterHeartbeatUser;
@@ -120,7 +121,7 @@ public final class SystemConfig {
 	//sql次数阈值并且符合超过大结果集阈值maxResultSet的所有sql
 	//默认值0
 	private int  flowControlRejectStrategy=0;
-	//清理大结果集记录周期
+	//清理大结果集记录周期 10分钟
 	private long clearBigSqLResultSetMapMs=10*60*1000;
 
 	private int defaultMaxLimit = DEFAULT_MAX_LIMIT;
@@ -145,6 +146,7 @@ public final class SystemConfig {
 	 */
 	public static final String[] MySQLVersions = { "5.5", "5.6", "5.7" };
 	private int sequnceHandlerType = SEQUENCEHANDLER_LOCALFILE;
+	// 默认sql拦截器
 	private String sqlInterceptor = "io.mycat.server.interceptor.impl.DefaultSqlInterceptor";
 	private String sqlInterceptorType = "select";
 	private String sqlInterceptorFile = System.getProperty("user.dir")+"/logs/sql.txt";
@@ -155,6 +157,7 @@ public final class SystemConfig {
 	public static final int MUTINODELIMIT_PATCH_SIZE = 100;
 	private int mutiNodePatchSize = MUTINODELIMIT_PATCH_SIZE;
 
+	// 默认SQL分析器
 	private String defaultSqlParser = DEFAULT_SQL_PARSER;
 	private int usingAIO = 0;
 	private int packetHeaderSize = 4;
@@ -188,16 +191,12 @@ public final class SystemConfig {
 	private boolean strictTxIsolation = false;
 	/**
 	 * Mycat 使用 Off Heap For Merge/Order/Group/Limit计算相关参数
-	 */
-
-
-	/**
-	 * 是否启用Off Heap for Merge  1-启用，0-不启用
+	 * 是否启用Off Heap for Merge/Order/Group/Limit  1-启用，0-不启用
 	 */
 	private int useOffHeapForMerge;
 
 	/**
-	 *页大小,对应MemoryBlock的大小，单位为M
+	 * 页大小，对应MemoryBlock的大小，分片数据合并也和这个相关，单位为M
 	 */
 	private String memoryPageSize;
 
@@ -444,7 +443,12 @@ public final class SystemConfig {
 		this.defaultMaxLimit = defaultMaxLimit;
 	}
 
+	/**
+	 * 获取工程主目录
+	 * @return
+	 */
 	public static String getHomePath() {
+		// 通过配置获取
 		String home = System.getProperty(SystemConfig.SYS_HOME);
 		if (home != null
 				&& home.endsWith(File.pathSeparator)) {

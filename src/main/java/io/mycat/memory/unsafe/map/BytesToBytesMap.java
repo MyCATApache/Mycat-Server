@@ -19,7 +19,6 @@ package io.mycat.memory.unsafe.map;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.Closeables;
-
 import io.mycat.memory.unsafe.Platform;
 import io.mycat.memory.unsafe.array.ByteArrayMethods;
 import io.mycat.memory.unsafe.array.LongArray;

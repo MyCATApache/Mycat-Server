@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
@@ -41,11 +40,7 @@ import io.mycat.backend.mysql.LoadDataUtil;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
-import io.mycat.net.mysql.BinaryRowDataPacket;
-import io.mycat.net.mysql.ErrorPacket;
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.net.mysql.*;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
@@ -59,6 +54,7 @@ import io.mycat.statistic.stat.QueryResultDispatcher;
 import io.mycat.util.ResultSetUtil;
 import io.mycat.util.StringUtil;
 /**
+ * 单节点处理器
  * @author mycat
  */
 public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDataResponseHandler {

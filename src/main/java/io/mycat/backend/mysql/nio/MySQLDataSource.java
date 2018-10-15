@@ -23,14 +23,6 @@
  */
 package io.mycat.backend.mysql.nio;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.security.NoSuchAlgorithmException;
-
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.backend.heartbeat.MySQLHeartbeat;
@@ -39,14 +31,11 @@ import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.config.Capabilities;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
-import io.mycat.net.mysql.AuthPacket;
-import io.mycat.net.mysql.BinaryPacket;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.ErrorPacket;
-import io.mycat.net.mysql.HandshakePacket;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net.mysql.QuitPacket;
-import io.mycat.net.mysql.Reply323Packet;
+import io.mycat.net.mysql.*;
+
+import java.io.*;
+import java.net.Socket;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * @author mycat

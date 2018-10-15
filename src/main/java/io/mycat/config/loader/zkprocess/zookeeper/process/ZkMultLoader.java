@@ -1,61 +1,58 @@
 package io.mycat.config.loader.zkprocess.zookeeper.process;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
+import com.google.gson.Gson;
+import io.mycat.config.loader.console.ZookeeperPath;
+import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
+import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
-import io.mycat.config.loader.console.ZookeeperPath;
-import io.mycat.config.loader.zkprocess.zookeeper.DataInf;
-import io.mycat.config.loader.zkprocess.zookeeper.DiretoryInf;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * 进行zk获取数据类信息
-* 源文件名：AbstractLoader.java
-* 文件版本：1.0.0
-* 创建作者：liujun
-* 创建日期：2016年9月15日
-* 修改作者：liujun
-* 修改日期：2016年9月15日
-* 文件描述：TODO
-* 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
-*/
+ * 源文件名：AbstractLoader.java
+ * 文件版本：1.0.0
+ * 创建作者：liujun
+ * 创建日期：2016年9月15日
+ * 修改作者：liujun
+ * 修改日期：2016年9月15日
+ * 文件描述：TODO
+ * 版权所有：Copyright 2016 zjhz, Inc. All Rights Reserved.
+ */
 public class ZkMultLoader {
 
     /**
      * 日志
-    * @字段说明 LOGGER
-    */
+     * @字段说明 LOGGER
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(ZkMultLoader.class);
 
     /**
      * zk连接信息
-    * @字段说明 curator
-    */
+     * @字段说明 curator
+     */
     private CuratorFramework curator;
 
     /**
      * 进行数据转换操作
-    * @字段说明 gson
-    */
+     * @字段说明 gson
+     */
     private Gson gson = new Gson();
 
     /**
-     * 得到树形节点信息
-    * 方法描述
-    * @param path
-    * @param zkDirectory
-    * @throws Exception
-    * @创建日期 2016年9月15日
-    */
+     * 获取树目录
+     * @param path
+     * @param zkDirectory
+     * @throws Exception
+     * @创建日期 2016年9月15日
+     */
     public void getTreeDirectory(String path, String name, DiretoryInf zkDirectory) throws Exception {
 
         boolean check = this.checkPathExists(path);
@@ -77,9 +74,7 @@ public class ZkMultLoader {
                 for (String childPath : childPathList) {
                     this.getTreeDirectory(path + ZookeeperPath.ZK_SEPARATOR.getKey() + childPath, childPath, directory);
                 }
-            }
-            // 添加当前的数据节点信息
-            else {
+            } else { // 添加当前的数据节点信息
                 zkDirectory.add(new ZkDataImpl(name, currDate));
             }
         }
@@ -87,15 +82,14 @@ public class ZkMultLoader {
 
     /**
      * 检查文件是否存在
-    * 方法描述
-    * @param path
-    * @return
-    * @创建日期 2016年9月21日
-    */
+     * 方法描述
+     * @param path
+     * @return
+     * @创建日期 2016年9月21日
+     */
     protected boolean checkPathExists(String path) {
         try {
             Stat state = this.curator.checkExists().forPath(path);
-
             if (null != state) {
                 return true;
             }
@@ -106,7 +100,7 @@ public class ZkMultLoader {
     }
 
     /**
-     * get data from zookeeper and convert to string with check not null.
+     * 从zookeeper获取数据并将其转换为字符串，但不能为空。
      */
     protected String getDataToString(String path) throws Exception {
         byte[] raw = curator.getData().forPath(path);
@@ -116,8 +110,8 @@ public class ZkMultLoader {
     }
 
     /**
-     * get child node name list based on path from zookeeper.
-     * @throws Exception 
+     * 根据zookeeper的路径获取子节点名称列表
+     * @throws Exception
      */
     protected List<String> getChildNames(String path) throws Exception {
         return curator.getChildren().forPath(path);
@@ -139,16 +133,12 @@ public class ZkMultLoader {
         LOGGER.debug("ZkMultLoader write file :" + nodePath + ", value :" + value);
 
         curator.setData().inBackground().forPath(nodePath, value.getBytes());
-
     }
 
     /**
      * 创建配制信息
      * 方法描述
-     * @param configKey 配制的当前路径名称信息
-     * @param filterInnerMap  最终的信息是否为map
-     * @param configDirectory 配制的目录
-     * @param restDirectory 子目录信息
+     * @param path
      * @创建日期 2016年9月11日
      */
     public boolean createPath(String path) {
@@ -176,7 +166,7 @@ public class ZkMultLoader {
     }
 
     /**
-     * raw byte data to string
+     * 原始字节数据到字符串
      */
     protected String byteToString(byte[] raw) {
         // return empty json {}.
@@ -188,12 +178,12 @@ public class ZkMultLoader {
 
     /**
      * 通过名称数据节点信息
-    * 方法描述
-    * @param zkDirectory
-    * @param name
-    * @return
-    * @创建日期 2016年9月16日
-    */
+     * 方法描述
+     * @param zkDirectory
+     * @param name
+     * @return
+     * @创建日期 2016年9月16日
+     */
     protected DataInf getZkData(DiretoryInf zkDirectory, String name) {
         List<Object> list = zkDirectory.getSubordinateInfo();
 

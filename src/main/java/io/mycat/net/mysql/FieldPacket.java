@@ -23,18 +23,18 @@
  */
 package io.mycat.net.mysql;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.buffer.BufferArray;
 import io.mycat.net.FrontendConnection;
 
+import java.nio.ByteBuffer;
+
 /**
- * From Server To Client, part of Result Set Packets. One for each column in the
- * result set. Thus, if the value of field_columns in the Result Set Header
- * Packet is 3, then the Field Packet occurs 3 times.
- * 
+ * 字段包 MySQL内部协议
+ *
+ * 从服务器到客户端，结果集包的一部分。因此，如果结果集头包中的field_columns的值为3，则字段包发生3次。
+ *
  * <pre>
  * Bytes                      Name
  * -----                      ----

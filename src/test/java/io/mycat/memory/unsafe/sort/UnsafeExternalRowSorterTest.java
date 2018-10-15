@@ -1,7 +1,6 @@
 package io.mycat.memory.unsafe.sort;
 
 import io.mycat.memory.MyCatMemory;
-import io.mycat.memory.unsafe.array.ByteArrayMethods;
 import io.mycat.memory.unsafe.memory.mm.DataNodeMemoryManager;
 import io.mycat.memory.unsafe.memory.mm.MemoryManager;
 import io.mycat.memory.unsafe.row.BufferHolder;
@@ -10,7 +9,6 @@ import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.memory.unsafe.row.UnsafeRowWriter;
 import io.mycat.memory.unsafe.storage.DataNodeDiskManager;
 import io.mycat.memory.unsafe.storage.SerializerManager;
-import io.mycat.memory.unsafe.utils.BytesTools;
 import io.mycat.memory.unsafe.utils.MycatPropertyConf;
 import io.mycat.memory.unsafe.utils.sort.PrefixComparator;
 import io.mycat.memory.unsafe.utils.sort.PrefixComparators;
@@ -18,19 +16,13 @@ import io.mycat.memory.unsafe.utils.sort.RowPrefixComputer;
 import io.mycat.memory.unsafe.utils.sort.UnsafeExternalRowSorter;
 import io.mycat.sqlengine.mpp.ColMeta;
 import io.mycat.sqlengine.mpp.OrderCol;
-import io.mycat.util.ExecutorUtil;
-import io.mycat.util.NameableExecutor;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import java.io.IOException;
-
-import java.lang.reflect.Array;
 import java.util.*;
-import java.util.concurrent.Future;
 
 /**
  * Created by zagnix on 2016/6/19.

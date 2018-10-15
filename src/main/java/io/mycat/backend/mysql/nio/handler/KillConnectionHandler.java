@@ -23,17 +23,17 @@
  */
 package io.mycat.backend.mysql.nio.handler;
 
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.net.mysql.CommandPacket;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.server.NonBlockingSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.UnsupportedEncodingException;
+import java.util.List;
 
 /**
  * @author mycat

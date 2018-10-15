@@ -1,14 +1,6 @@
 package io.mycat.config.loader.zkprocess.xmltozk.listen;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.apache.curator.framework.CuratorFramework;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.fastjson.util.IOUtils;
-
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
@@ -16,6 +8,12 @@ import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * 进行从sequence加载到zk中加载
@@ -119,7 +117,7 @@ public class SequenceTozkLoader extends ZkMultLoader implements NotiflyService {
      * 将xml文件的信息写入到zk中
     * 方法描述
     * @param basePath 基本路径
-    * @param schema schema文件的信息
+    * @param name 文件名
     * @throws Exception 异常信息
     * @创建日期 2016年9月17日
     */
@@ -148,7 +146,7 @@ public class SequenceTozkLoader extends ZkMultLoader implements NotiflyService {
                 // 读取当前集群中特有的节点的信息
                 String clusterSequence = this.readSequenceCfg(nodeName);
 
-                // 如果配制了特定节点的信息,则将往上入zk中
+                // 如果配置了特定节点的信息,则将往上入zk中
                 if (null != clusterSequence) {
                     String seqclusterZkPath = culsterPath + nodeName;
                     this.checkAndwriteString(basePath, seqclusterZkPath, clusterSequence);

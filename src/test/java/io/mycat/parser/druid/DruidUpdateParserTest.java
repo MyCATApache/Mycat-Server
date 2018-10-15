@@ -13,7 +13,6 @@ import io.mycat.route.parser.druid.impl.DruidUpdateParser;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLNonTransientException;
 import java.util.ArrayList;

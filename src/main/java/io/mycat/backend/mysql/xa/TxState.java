@@ -1,6 +1,7 @@
 package io.mycat.backend.mysql.xa;
 
 /**
+ * 事务状态
  * Created by zhangchao on 2016/10/13.
  */
 public class TxState {

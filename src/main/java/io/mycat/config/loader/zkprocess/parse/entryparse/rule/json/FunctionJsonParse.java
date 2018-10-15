@@ -1,13 +1,12 @@
 package io.mycat.config.loader.zkprocess.parse.entryparse.rule.json;
 
-import java.lang.reflect.Type;
-import java.util.List;
-
 import com.google.gson.reflect.TypeToken;
-
 import io.mycat.config.loader.zkprocess.entity.rule.function.Function;
 import io.mycat.config.loader.zkprocess.parse.JsonProcessBase;
 import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
+
+import java.lang.reflect.Type;
+import java.util.List;
 
 /**
  * 进行Function节点的转换

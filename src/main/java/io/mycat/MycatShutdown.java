@@ -26,6 +26,7 @@ package io.mycat;
 import java.util.Date;
 
 /**
+ * Mycat关机程序入口
  * @author mycat
  */
 public final class MycatShutdown {

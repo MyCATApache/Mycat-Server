@@ -1,13 +1,12 @@
 package io.mycat.config.loader.zkprocess.parse.entryparse.server.json;
 
-import java.lang.reflect.Type;
-import java.util.List;
-
 import com.google.gson.reflect.TypeToken;
-
 import io.mycat.config.loader.zkprocess.entity.server.user.User;
 import io.mycat.config.loader.zkprocess.parse.JsonProcessBase;
 import io.mycat.config.loader.zkprocess.parse.ParseJsonServiceInf;
+
+import java.lang.reflect.Type;
+import java.util.List;
 
 /**
  * 进行datahost节点的转换

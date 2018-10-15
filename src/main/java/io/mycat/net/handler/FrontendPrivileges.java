@@ -26,7 +26,7 @@ package io.mycat.net.handler;
 import java.util.Set;
 
 /**
- * 权限提供者
+ * 前端权限提供者
  * 
  * @author mycat
  */

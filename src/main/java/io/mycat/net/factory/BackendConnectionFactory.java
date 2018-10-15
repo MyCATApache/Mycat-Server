@@ -23,12 +23,12 @@
  */
 package io.mycat.net.factory;
 
+import io.mycat.MycatServer;
+
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.SocketChannel;
-
-import io.mycat.MycatServer;
 
 /**
  * @author mycat

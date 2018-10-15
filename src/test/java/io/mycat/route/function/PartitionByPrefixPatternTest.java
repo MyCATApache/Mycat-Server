@@ -24,7 +24,6 @@
 package io.mycat.route.function;
 
 import junit.framework.Assert;
-
 import org.junit.Test;
 
 public class PartitionByPrefixPatternTest {

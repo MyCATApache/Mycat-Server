@@ -1,14 +1,14 @@
 package io.mycat.util.rehasher;
 
+import io.mycat.util.StringUtil;
+import io.mycat.util.cmd.CmdArgs;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-
-import io.mycat.util.StringUtil;
-import io.mycat.util.cmd.CmdArgs;
 
 public class RehashCmdArgs {
 	public static final String JDBC_DRIVER="jdbcDriver";

@@ -13,9 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 /**
  * Created by Hash Zhang on 2016/4/29.
  * Modified by Hash Zhang on 2016/5/25 add testGroupByWithViewAlias.
@@ -55,11 +52,11 @@ public class DruidSelectParserTest {
 
     public Object invokeGroupBy(String functionColumn) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Map<String, String> aliaColumns = new TreeMap<>();
-        SQLIdentifierExpr sqlExpr = mock(SQLIdentifierExpr.class);
-        SQLIdentifierExpr expr = mock(SQLIdentifierExpr.class);
+        SQLIdentifierExpr sqlExpr = new SQLIdentifierExpr();
+        SQLIdentifierExpr expr = new SQLIdentifierExpr();
         List<SQLExpr> groupByItems = new ArrayList<>();
         groupByItems.add(sqlExpr);
-        when((sqlExpr).getName()).thenReturn(functionColumn);
+        sqlExpr.setName(functionColumn);
         Class c = DruidSelectParser.class;
         Method method = c.getDeclaredMethod("buildGroupByCols", new Class[]{List.class, Map.class});
         method.setAccessible(true);

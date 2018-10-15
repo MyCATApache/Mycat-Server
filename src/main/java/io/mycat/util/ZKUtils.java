@@ -1,22 +1,16 @@
 package io.mycat.util;
 
 import io.mycat.MycatServer;
+import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
-import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
-import org.apache.curator.retry.RetryForever;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.io.Files;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,8 +20,15 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.*;
 
+/**
+ * zk工具
+ * 用于连接zk服务，监听子节点的变化情况
+ */
 public class ZKUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(ZKUtils.class);
+
+    // Curator是Netflix开源的一套ZooKeeper客户端框架。Curator框架提供了一套高级的API， 简化了ZooKeeper的操作。
+    // 它增加了很多使用ZooKeeper开发的特性，可以处理ZooKeeper集群复杂的连接管理和重试机制。
     static CuratorFramework curatorFramework = null;
     static ConcurrentMap<String, PathChildrenCache> watchMap = new ConcurrentHashMap<>();
 
@@ -43,16 +44,34 @@ public class ZKUtils {
         }));
     }
 
+    /**
+     * 获取zk基本路径 basePath + ZookeeperPath.ZK_SEPARATOR.getKey()
+     * @return
+     */
     public static String getZKBasePath() {
-        String clasterID = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
+        /*
+         basePath = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey()
+         + ZookeeperPath.ZK_SEPARATOR.getKey() + ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID)
+        */
 
-        return "/mycat/" + clasterID + "/";
+        String clusterId = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_CLUSTERID);
+
+        return ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_BASE.getKey()
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + clusterId + ZookeeperPath.ZK_SEPARATOR.getKey();
     }
 
+    /**
+     * 获取连接
+     * @return
+     */
     public static CuratorFramework getConnection() {
         return curatorFramework;
     }
 
+    /**
+     * 创建zk连接
+     * @return
+     */
     private static CuratorFramework createConnection() {
         String url = ZkConfig.getInstance().getZkURL();
 
@@ -75,12 +94,20 @@ public class ZKUtils {
         throw new RuntimeException("failed to connect to zookeeper service : " + url);
     }
 
+    /**
+     * 关闭观察
+     * @param watchs
+     */
     public static void closeWatch(List<String> watchs) {
         for (String watch : watchs) {
             closeWatch(watch);
         }
     }
 
+    /**
+     * 关闭观察
+     * @param path
+     */
     public static void closeWatch(String path) {
         PathChildrenCache childrenCache = watchMap.get(path);
         if (childrenCache != null) {
@@ -92,10 +119,14 @@ public class ZKUtils {
         }
     }
 
+    /**
+     * 添加子节点缓存并监听子节点的变化情况
+     * @param path
+     * @param listener
+     */
     public static void addChildPathCache(String path, PathChildrenCacheListener listener) {
         NameableExecutor businessExecutor = MycatServer.getInstance().getBusinessExecutor();
         ExecutorService executor = businessExecutor == null ? Executors.newFixedThreadPool(5) : businessExecutor;
-
         try {
             /**
              * 监听子节点的变化情况
@@ -108,7 +139,6 @@ public class ZKUtils {
             throw new RuntimeException(e);
         }
     }
-    
 
   //写数据到某个路径底下
   	public static boolean writeProperty( String path, Map<String, String> propertyMap) throws Exception {

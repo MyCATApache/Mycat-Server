@@ -1,11 +1,10 @@
 package io.mycat.performance;
 
+import junit.framework.Assert;
+import org.junit.Test;
+
 import java.util.Arrays;
 import java.util.LinkedList;
-
-import junit.framework.Assert;
-
-import org.junit.Test;
 
 public class TestRandomDataUtil {
 

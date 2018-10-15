@@ -1,9 +1,9 @@
 package io.mycat.sqlengine.mpp.tmp;
 
+import io.mycat.net.mysql.RowDataPacket;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import io.mycat.net.mysql.RowDataPacket;
 
 /**
  * 最大堆排序，适用于顺序排序

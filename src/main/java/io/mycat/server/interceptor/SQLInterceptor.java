@@ -1,6 +1,7 @@
 package io.mycat.server.interceptor;
 /**
  * used for interceptor sql before execute ,can modify sql befor execute
+ * 在SQL执行前拦截器，可以在SQL执行前修改
  * @author wuzhih
  *
  */

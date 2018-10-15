@@ -1,23 +1,23 @@
 package io.mycat.net.mysql;
 
 
-import java.nio.ByteBuffer;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.config.Fields;
 import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.net.FrontendConnection;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.DateUtil;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 /**
+ * 二进制行数据包 MySQL内部协议
  * ProtocolBinary::ResultsetRow:
  * row of a binary resultset (COM_STMT_EXECUTE)
 

@@ -1,8 +1,8 @@
 package io.mycat.sqlengine.mpp.tmp;
 
-import java.util.List;
-
 import io.mycat.net.mysql.RowDataPacket;
+
+import java.util.List;
 
 /**
  * @author coderczp-2014-12-17

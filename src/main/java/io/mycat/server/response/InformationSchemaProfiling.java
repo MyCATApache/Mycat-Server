@@ -9,9 +9,10 @@ import io.mycat.server.ServerConnection;
 
 import java.nio.ByteBuffer;
 
-
-public class InformationSchemaProfiling
-{
+/**
+ * Information_Schema分析
+ */
+public class InformationSchemaProfiling {
 
     private static final int FIELD_COUNT = 3;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
@@ -24,8 +25,6 @@ public class InformationSchemaProfiling
 	 * @param c
 	 */
 	public static void response(ServerConnection c) {
-
-
         int i = 0;
         byte packetId = 0;
         header.packetId = ++packetId;
@@ -61,14 +60,6 @@ public class InformationSchemaProfiling
 
         // post write
         c.write(buffer);
-		
-		
+
     }
-
-
-
-
-
-
-	
 }

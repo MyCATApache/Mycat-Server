@@ -32,6 +32,7 @@ import io.mycat.server.ServerConnection;
 import io.mycat.util.StringUtil;
 
 /**
+ * Kill 语句处理器
  * @author mycat
  */
 public class KillHandler {
@@ -57,7 +58,7 @@ public class KillHandler {
                 return;
             }
 
-            // get connection and close it
+            // 获得连接并关闭它
             FrontendConnection fc = null;
             NIOProcessor[] processors = MycatServer.getInstance().getProcessors();
             for (NIOProcessor p : processors) {

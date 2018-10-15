@@ -22,6 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 迁移任务观察
  * ......./migrate/schemal/taskid/datahost   [任务数据]
  * Created by magicdoom on 2016/9/28.
  */
@@ -40,13 +41,14 @@ public class MigrateTaskWatch {
         }catch (Exception e){
             throw new RuntimeException(e);
         }
+		// 添加zk监听子节点的变化情况
         ZKUtils.addChildPathCache(migratePath, new PathChildrenCacheListener() {
             @Override
             public void childEvent(CuratorFramework curatorFramework,
                                    PathChildrenCacheEvent fevent) throws Exception {
 
                 switch (fevent.getType()) {
-                    case CHILD_ADDED:
+                    case CHILD_ADDED: // 有子节点添加
                         LOGGER.info("table CHILD_ADDED: " + fevent.getData().getPath());
                         ZKUtils.addChildPathCache(fevent.getData().getPath(), new TaskPathChildrenCacheListener());
                         break;
@@ -57,7 +59,6 @@ public class MigrateTaskWatch {
         });
 
     }
-
 
     private static class TaskPathChildrenCacheListener implements PathChildrenCacheListener {
         @Override
@@ -184,7 +185,6 @@ public class MigrateTaskWatch {
                 }
                 resultList.add(dataHost);
             }
-
             return resultList;
         }
 
@@ -204,10 +204,7 @@ public class MigrateTaskWatch {
                     taskMap.put(dataHost, Lists.newArrayList(migrateTask));
                 }
             }
-
             return taskMap;
         }
-
-
     }
 }

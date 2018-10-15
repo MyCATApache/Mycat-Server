@@ -23,6 +23,10 @@
  */
 package io.mycat.net;
 
+import io.mycat.util.SelectorUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
@@ -31,14 +35,11 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import io.mycat.util.SelectorUtil;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 /**
  * 网络事件反应器
  * 
  * <p>
- * Catch exceptions such as OOM so that the reactor can keep running for response client!
+ * 捕获OOM等异常，以便反应堆可以继续运行响应客户端！
  * </p>
  * @since 2016-03-30
  * 
@@ -95,12 +96,9 @@ public final class NIOReactor {
 					long end = System.nanoTime();
 					register(tSelector);
 					keys = tSelector.selectedKeys();
-					if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS )
-					{
+					if (keys.size() == 0 && (end - start) < SelectorUtil.MIN_SELECT_TIME_IN_NANO_SECONDS ) {
 						invalidSelectCount++;
-					}
-					else
-					{
+					} else {
 						invalidSelectCount = 0;
 						for (SelectionKey key : keys) {
 							AbstractConnection con = null;
@@ -110,6 +108,7 @@ public final class NIOReactor {
 									con = (AbstractConnection) att;
 									if (key.isValid() && key.isReadable()) {
 										try {
+											//异步读
 											con.asynRead();
 										} catch (IOException e) {
 											con.close("program err:" + e.toString());
@@ -121,6 +120,7 @@ public final class NIOReactor {
 										}
 									}
 									if (key.isValid() && key.isWritable()) {
+										//执行下一个写检查
 										con.doNextWriteCheck();
 									}
 								} else {
@@ -133,8 +133,7 @@ public final class NIOReactor {
 							} catch (Exception e) {
 								LOGGER.warn(con + " " + e);
 							} catch (final Throwable e) {
-								// Catch exceptions such as OOM and close connection if exists
-								//so that the reactor can keep running!
+								// 捕获异常，如OOM和关闭连接（如果存在），以便反应堆可以继续运行！
 								// @author Uncle-pan
 								// @since 2016-03-30
 								if (con != null) {
@@ -145,11 +144,9 @@ public final class NIOReactor {
 							}
 						}
 					}
-					if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD)
-					{
+					if (invalidSelectCount > SelectorUtil.REBUILD_COUNT_THRESHOLD) {
 						final Selector rebuildSelector = SelectorUtil.rebuildSelector(this.selector);
-						if (rebuildSelector != null)
-						{
+						if (rebuildSelector != null) {
 							this.selector = rebuildSelector;
 						}
 						invalidSelectCount = 0;
@@ -165,7 +162,6 @@ public final class NIOReactor {
 					if (keys != null) {
 						keys.clear();
 					}
-
 				}
 			}
 		}
