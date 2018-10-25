@@ -187,11 +187,21 @@ public class RouterUtil {
 		}
 		tablename = tablename.toUpperCase();
 
+		//判断 是否配置了默认的table 2018-10-24 添加
+		TableConfig tc = null;
+		Map<String, TableConfig> tables = schema.getTables();
 		if (schema.getTables().containsKey(tablename)){
+			tc=tables.get(tablename);
+		}else if(schema.getTables().containsKey("*")){
+			tc=tables.get("*");
+		}else{
+			//both tablename and defaultnode null
+			LOGGER.error("table not in schema----"+tablename);
+			throw new SQLSyntaxErrorException("op table not in schema----"+tablename);
+		}
+		if (tc != null){
 			if(ServerParse.DDL==sqlType){
 				List<String> dataNodes = new ArrayList<>();
-				Map<String, TableConfig> tables = schema.getTables();
-				TableConfig tc=tables.get(tablename);
 				if (tables != null && (tc  != null)) {
 					dataNodes = tc.getDataNodes();
 				}
@@ -1074,7 +1084,11 @@ public class RouterUtil {
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
 
 			if(tableConfig == null) {
-				continue;
+				//判断是否配置了默认table 2018-10-24添加
+				tableConfig = schema.getTables().get('*');
+				if(tableConfig == null){
+					continue;
+				}
 //				String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
 //				LOGGER.warn(msg);
 //				throw new SQLNonTransientException(msg);
@@ -1113,6 +1127,10 @@ public class RouterUtil {
 		if(retNodesSet != null && retNodesSet.size() > 0) {
 			String tableName = tables.get(0);
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
+			//判断是否配置默认table 2018-10-24
+			if(tableConfig == null){
+				tableConfig = schema.getTables().get("*");
+			}
 			if(tableConfig.isDistTable()){
 				routeToDistTableNode(tableName,schema, rrs, ctx.getSql(), tablesAndConditions, cachePool, isSelect);
 				return rrs;
@@ -1150,9 +1168,13 @@ public class RouterUtil {
 
 		TableConfig tc = schema.getTables().get(tableName);
 		if(tc == null) {
-			String msg = "can't find table define in schema " + tableName + " schema:" + schema.getName();
-			LOGGER.warn(msg);
-			throw new SQLNonTransientException(msg);
+			//判断是否配置了默认table 2018-10-24添加
+			tc = schema.getTables().get("*");
+			if(tc == null) {
+				String msg = "can't find table define in schema " + tableName + " schema:" + schema.getName();
+				LOGGER.warn(msg);
+				throw new SQLNonTransientException(msg);
+			}
 		}
 
 		if(tc.isDistTable()){
@@ -1314,16 +1336,20 @@ public class RouterUtil {
 			String tableName = entry.getKey().toUpperCase();
 			TableConfig tableConfig = schema.getTables().get(tableName);
 			if(tableConfig == null) {
-				String msg = "can't find table define in schema "
-						+ tableName + " schema:" + schema.getName();
-				LOGGER.warn(msg);
-				throw new SQLNonTransientException(msg);
+				//判断 是否配置了默认table
+				tableConfig = schema.getTables().get("*");
+				if(tableConfig == null) {
+					String msg = "can't find table define in schema "
+							+ tableName + " schema:" + schema.getName();
+					LOGGER.warn(msg);
+					throw new SQLNonTransientException(msg);
+				}
 			}
 			if(tableConfig.getDistTables()!=null && tableConfig.getDistTables().size()>0){
 				routeToDistTableNode(tableName,schema,rrs,sql, tablesAndConditions, cachePool,isSelect);
 			}
 			//全局表或者不分库的表略过（全局表后面再计算）
-			if(tableConfig.isGlobalTable() || schema.getTables().get(tableName).getDataNodes().size() == 1) {
+			if(tableConfig.isGlobalTable() || tableConfig.getDataNodes().size() == 1) {
 				continue;
 			} else {//非全局表：分库表、childTable、其他
 				Map<String, Set<ColumnRoutePair>> columnsMap = entry.getValue();

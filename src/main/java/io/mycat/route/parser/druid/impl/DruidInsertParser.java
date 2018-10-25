@@ -57,6 +57,11 @@ public class DruidInsertParser extends DefaultDruidParser {
 		}
 
 		TableConfig tc = schema.getTables().get(tableName);
+		
+		//判断是否配置了默认table 2018-10-24添加
+		if(tc == null) {
+			tc = schema.getTables().get("*");
+		}
 		if(tc == null) {
 			String msg = "can't find table define in schema "
 					+ tableName + " schema:" + schema.getName();
