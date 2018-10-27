@@ -34,7 +34,7 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 	private String sNaturalDay;
 	//是否自然日分区
 	private boolean bNaturalDay;
-	//自然日差额最少是28天
+	//自然日差额最少
 	private static final int naturalLimitDay =28;
 	//开启自然日模式
 	private static final String  naturalDayOpen ="1";
