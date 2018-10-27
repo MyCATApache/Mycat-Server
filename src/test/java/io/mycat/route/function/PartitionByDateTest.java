@@ -66,7 +66,7 @@ public class PartitionByDateTest {
 		Assert.assertEquals(true, 2 == partition.calculate("2014-03-11"));
 		Assert.assertEquals(true, 3 == partition.calculate("2014-03-20"));
 
-//测试默认
+        //测试默认1
 		partition.setDateFormat("yyyy-MM-dd");
 		partition.setsBeginDate("2014-01-01");
 		partition.setsEndDate("2014-01-31");
