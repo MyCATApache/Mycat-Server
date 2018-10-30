@@ -12,7 +12,7 @@ import io.mycat.config.model.rule.RuleAlgorithm;
  * 例子 按日期列分区  格式 between操作解析的范例
  * 
  * @author lxy
- * 
+ * @author Sean
  */
 public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleAlgorithm {
 	private static final Logger LOGGER = LoggerFactory.getLogger(PartitionByDate.class);
@@ -28,19 +28,39 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 	private int nCount;
 
 	private ThreadLocal<SimpleDateFormat> formatter;
-	
-	private static final long oneDay = 86400000;
 
+	private static final long oneDay = 86400000;
+	//支持自然日分区属性
+	private String sNaturalDay;
+	//是否自然日分区
+	private boolean bNaturalDay;
+	//自然日差额最少
+	private static final int naturalLimitDay =28;
+	//开启自然日模式
+	private static final String  naturalDayOpen ="1";
+
+	private String oldsPartionDay;
 	@Override
 	public void init() {
 		try {
-			partionTime = Integer.parseInt(sPartionDay) * oneDay;
-			
-			beginDate = new SimpleDateFormat(dateFormat).parse(sBeginDate).getTime();
-
-			if(sEndDate!=null&&!sEndDate.equals("")){
+			//Support  Natural Day
+			if(naturalDayOpen.equals(sNaturalDay)){
+				bNaturalDay =true;
+				oldsPartionDay=sPartionDay;
+				sPartionDay="1";
+			}
+			if(sBeginDate!=null&&!sBeginDate.equals("")) {
+				partionTime = Integer.parseInt(sPartionDay) * oneDay;
+				beginDate = new SimpleDateFormat(dateFormat).parse(sBeginDate).getTime();
+			}
+			if(sEndDate!=null&&!sEndDate.equals("")&&beginDate>0){
 			    endDate = new SimpleDateFormat(dateFormat).parse(sEndDate).getTime();
-			    nCount = (int) ((endDate - beginDate) / partionTime) + 1;
+				nCount = (int) ((endDate - beginDate) / partionTime) + 1;
+				if(bNaturalDay&&nCount<naturalLimitDay){
+					bNaturalDay =false;
+					partionTime = Integer.parseInt(oldsPartionDay) * oneDay;
+					nCount = (int) ((endDate - beginDate) / partionTime) + 1;
+				}
 			}
 			formatter = new ThreadLocal<SimpleDateFormat>() {
 				@Override
@@ -56,11 +76,17 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 	@Override
 	public Integer calculate(String columnValue)  {
 		try {
+			int targetPartition ;
+			if(bNaturalDay){
+				Calendar curTime = Calendar.getInstance();
+				curTime.setTime(formatter.get().parse(columnValue));
+				targetPartition = curTime.get(Calendar.DAY_OF_MONTH);
+				return  targetPartition-1;
+			}
 			long targetTime = formatter.get().parse(columnValue).getTime();
-			int targetPartition = (int) ((targetTime - beginDate) / partionTime);
-
-			if(targetTime>endDate && nCount!=0){
-				targetPartition = targetPartition%nCount;
+			targetPartition = (int) ((targetTime - beginDate) / partionTime);
+			if(targetTime>endDate && nCount!=0) {
+				targetPartition = targetPartition % nCount;
 			}
 			return targetPartition;
 
@@ -121,4 +147,11 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 		this.sEndDate = sEndDate;
 	}
 
+	public String getsNaturalDay() {
+		return sNaturalDay;
+	}
+
+	public void setsNaturalDay(String sNaturalDay) {
+		this.sNaturalDay = sNaturalDay;
+	}
 }

@@ -10,9 +10,16 @@
 <!DOCTYPE mycat:rule SYSTEM "rule.dtd">
 <mycat:rule xmlns:mycat="http://io.mycat/">
 	<tableRule name="rule1">
+	<rule>
+		<columns>id</columns>
+		<algorithm>func1</algorithm>
+	</rule>
+</tableRule>
+
+	<tableRule name="sharding-by-date">
 		<rule>
-			<columns>id</columns>
-			<algorithm>func1</algorithm>
+			<columns>createTime</columns>
+			<algorithm>partbyday</algorithm>
 		</rule>
 	</tableRule>
 
@@ -119,6 +126,16 @@
 		class="io.mycat.route.function.PartitionByMonth">
 		<property name="dateFormat">yyyy-MM-dd</property>
 		<property name="sBeginDate">2015-01-01</property>
+	</function>
+
+
+	<function name="partbyday"
+			  class="io.mycat.route.function.PartitionByDate">
+		<property name="dateFormat">yyyy-MM-dd</property>
+		<property name="sNaturalDay">0</property>
+		<property name="sBeginDate">2014-01-01</property>
+		<property name="sEndDate">2014-01-31</property>
+		<property name="sPartionDay">10</property>
 	</function>
 	
 	<function name="rang-mod" class="io.mycat.route.function.PartitionByRangeMod">
