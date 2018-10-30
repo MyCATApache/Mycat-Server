@@ -51,6 +51,21 @@ public class JDBCConnection implements BackendConnection {
 	private final long startTime;
 	private long lastTime;
 	private boolean isSpark = false;
+	
+	//.net连接mycat,后端sqlserver支持2018-10-29---------------
+	public static Map<String, String> sqlmap = new HashMap<>();
+	static{
+		sqlmap.put("SELECT TIMEDIFF(NOW(), UTC_TIMESTAMP())", "SELECT DATEDIFF(HH,GETUTCDATE(),GETDATE())");
+		sqlmap.put("SELECT TIMEDIFF(CURTIME(),UTC_TIME))", "SELECT DATEDIFF(HH,GETUTCDATE(),GETDATE())");
+	}
+	
+	private String sqlServerToMysql(String sql) {
+		if(sqlmap.get(sql) != null){
+			return sqlmap.get(sql);
+		}
+		return sql;
+	}
+	//--------------------------------------------
 
 	private NIOProcessor processor;
 
@@ -285,11 +300,17 @@ public class JDBCConnection implements BackendConnection {
 				con.setAutoCommit(autocommit);
 			}
 			int sqlType = rrn.getSqlType();
+			
+			if("sqlserver".equalsIgnoreCase(getDbType())){
+				//.net连接mycat,后端sqlserver支持2018-10-29---------------
+				orgin = sqlServerToMysql(orgin);
+			}
+			
 			if(rrn.isCallStatement()&&"oracle".equalsIgnoreCase(getDbType())) {
 				//存储过程暂时只支持oracle
 				ouputCallStatement(rrn,sc,orgin);
-			}  else
-			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
+			}
+			else if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
 				if ((sqlType == ServerParse.SHOW) && (!dbType.equals("MYSQL"))) {
 					// showCMD(sc, orgin);
 					//ShowVariables.execute(sc, orgin);
