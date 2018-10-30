@@ -819,8 +819,12 @@ public class RouterUtil {
 		table = table.toUpperCase();
 		String dataNode = null;
 		Map<String, TableConfig> tables = schema.getTables();
-		TableConfig tc;
-		if (tables != null && (tc = tables.get(table)) != null) {
+		TableConfig tc = tables.get(table);
+		//判断是否配置了默认table 2018-10-30
+		if(tc == null){
+			tc = tables.get("*");
+		}
+		if (tables != null && tc != null) {
 			dataNode = getAliveRandomDataNode(tc);
 		}
 		return dataNode;
