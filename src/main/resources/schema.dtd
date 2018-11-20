@@ -56,7 +56,6 @@
   name NMTOKEN #REQUIRED
   balance CDATA #REQUIRED
   maxRetryCount CDATA #IMPLIED
-  maxRetryCount CDATA #IMPLIED
   writeType CDATA #IMPLIED
   switchType  CDATA #IMPLIED
   notSwitch CDATA #IMPLIED  
