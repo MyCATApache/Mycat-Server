@@ -1,6 +1,7 @@
 package io.mycat.backend.mysql.xa.recovery.impl;
 
 import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
+import io.mycat.backend.mysql.xa.ParticipantLogEntry;
 import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.backend.mysql.xa.recovery.Repository;
 
@@ -19,6 +20,7 @@ public class InMemoryRepository implements Repository {
 
 
     private boolean closed = true;
+    long count = 0 ;
     @Override
     public void init() {
         closed=false;
@@ -26,9 +28,31 @@ public class InMemoryRepository implements Repository {
 
     @Override
     public synchronized void put(String id, CoordinatorLogEntry coordinatorLogEntry) {
+    	count++ ;
+    	if(count > 1000){
+    		count = 0;
+    		clear();
+    		
+    	}
         storage.put(id, coordinatorLogEntry);
     }
-
+    private void clear() {
+    	Collection<CoordinatorLogEntry>  checkpointContent = storage.values();;
+    	for (CoordinatorLogEntry coordinatorLogEntry : checkpointContent) {
+    		ParticipantLogEntry[] participants = coordinatorLogEntry.participants;
+        	boolean hasAllFinish = true;
+        	for(int i = 0 ; i < participants.length; i++) {
+        		if(participants[i].txState != TxState.TX_ROLLBACKED_STATE 
+        				&& participants[i].txState != TxState.TX_COMMITED_STATE) {
+        			hasAllFinish = false;
+        			break;
+        		}
+        	}
+        	if(hasAllFinish) {
+            	storage.remove(coordinatorLogEntry.id);
+        	}
+        }
+    }
     @Override
     public synchronized CoordinatorLogEntry get(String coordinatorId) {
         return storage.get(coordinatorId);

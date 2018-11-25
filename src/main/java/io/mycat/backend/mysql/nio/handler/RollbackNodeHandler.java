@@ -26,7 +26,10 @@ package io.mycat.backend.mysql.nio.handler;
 import java.util.List;
 
 import io.mycat.backend.mysql.nio.MySQLConnection;
+import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.config.ErrorCode;
+import io.mycat.net.mysql.OkPacket;
+
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
@@ -120,8 +123,12 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 					MySQLConnection mysqlCon = (MySQLConnection) conn;
 					String xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
 					//exeBatch cmd issue : the 2nd package can not receive the response
-					mysqlCon.execCmd("XA END " + xaTxId  + ";");
-					mysqlCon.execCmd("XA ROLLBACK " + xaTxId + ";");
+//					mysqlCon.execCmd("XA END " + xaTxId  + ";");
+//					mysqlCon.execCmd("XA ROLLBACK " + xaTxId + ";");
+					 String[] cmds = new String[]{"XA END " + xaTxId  + "",
+							 " XA ROLLBACK " + xaTxId + ";"};
+					   mysqlCon.execBatchCmd(cmds);
+					
 				}else {
 					//modify by zwy
 					if(!conn.isClosedOrQuit()) {
@@ -146,6 +153,17 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
+//		System.out.println("receive ok packet");
+		
+		if(session.getXaTXID()!=null) {
+			//xa
+			if( conn instanceof  MySQLConnection) {
+				MySQLConnection mysqlCon = (MySQLConnection) conn;
+				if (!mysqlCon.batchCmdFinished()) {
+					return;
+				}
+			}			
+		}		
 		if (decrementCountBy(1)) {
 			// clear all resources
 			session.clearResources(false);
@@ -154,9 +172,11 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			if (this.isFail() || session.closed()) {
 				tryErrorFinished(true);
 			} else {
-
 		        if(session.getSource().canResponse()) {
-					session.getSource().write(ok);
+		        	OkPacket okPacket = new OkPacket();
+		        	okPacket.read(ok);
+		        	okPacket.packetId = 1;
+					session.getSource().write(okPacket.writeToBytes());
 				}
 			}
 		}

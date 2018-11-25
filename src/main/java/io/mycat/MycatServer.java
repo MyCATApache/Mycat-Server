@@ -985,7 +985,7 @@ public class MycatServer {
                 for (int j = 0; j < coordinatorLogEntry.participants.length; j++) {
                     ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
                     //XA rollback
-                    String xacmd = "XA ROLLBACK " + coordinatorLogEntry.id + ';';
+                    String xacmd = "XA ROLLBACK " + coordinatorLogEntry.id  +",'"+ participantLogEntry.resourceName+"'" + ';';
                     OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0], new XARollbackCallback());
                     outloop:
                     for (SchemaConfig schema : MycatServer.getInstance().getConfig().getSchemas().values()) {
