@@ -217,6 +217,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 						}
 						inMemoryRepository.put(xaTxId,coordinatorLogEntry);
 						fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
+						mysqlCon.setXaStatus(TxState.TX_PREPARED_STATE);
 
 						
 						//wait all nodes prepare and send all nodes prepare 
@@ -227,7 +228,6 @@ public class MultiNodeCoordinator implements ResponseHandler {
 //						}
 //						
 //						//send commit
-//						mysqlCon.setXaStatus(TxState.TX_PREPARED_STATE);
 //						mysqlCon.execCmd(cmd);	
 						//wait all nodes prepare and send all nodes prepare 
 						if(prepareCount.decrementAndGet() == 0) {
@@ -246,9 +246,9 @@ public class MultiNodeCoordinator implements ResponseHandler {
 										if(session.getXaTXID()!=null){
 											xaTxId = session.getXaTXID() +",'"+ backMysqlCon.getSchema()+"'";
 										}
-										if (mysqlCon.getXaStatus() == TxState.TX_PREPARED_STATE)
+										if (backMysqlCon.getXaStatus() == TxState.TX_PREPARED_STATE)
 										{
-											String cmd = "XA COMMIT " + xaTxId +",'"+mysqlCon.getSchema()+"'";
+											String cmd = "XA COMMIT " + xaTxId ;
 											if (LOGGER.isDebugEnabled()) {
 												LOGGER.debug("Start execute the  cmd : "+ cmd+
 														" current connection:"+conn.getHost()+":"+conn.getPort());
