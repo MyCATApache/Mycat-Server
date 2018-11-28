@@ -15,7 +15,6 @@ public class CoordinatorLogEntry implements Serializable {
 
     public final ParticipantLogEntry[] participants;
 
-
     public CoordinatorLogEntry(String coordinatorId,
                                ParticipantLogEntry[] participantDetails) {
         this(coordinatorId, false, participantDetails, null);

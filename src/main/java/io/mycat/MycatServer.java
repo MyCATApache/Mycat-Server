@@ -995,7 +995,7 @@ public class MycatServer {
                 ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
                 if (participantLogEntry.txState == TxState.TX_PREPARED_STATE || participantLogEntry.txState == TxState.TX_STARTED_STATE) {
                     needRollback = true;
-                    break;
+//                    break;
                 }
                 if (participantLogEntry.txState == TxState.TX_COMMITED_STATE) {
                 	hasCommit = true;

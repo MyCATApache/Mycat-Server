@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
@@ -15,6 +16,7 @@ import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.backend.mysql.xa.recovery.impl.InMemoryRepository;
+import io.mycat.config.ErrorCode;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
@@ -27,6 +29,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 	public static final Repository inMemoryRepository = new InMemoryRepository();
 	private final AtomicInteger runningCount = new AtomicInteger(0);
 	private final AtomicInteger prepareCount = new AtomicInteger(0);
+	protected volatile int coorXaStatus;
 
 	private final AtomicInteger faileCount = new AtomicInteger(0);
 	private volatile int nodeCount;
@@ -34,7 +37,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 	private SQLCtrlCommand cmdHandler;
 	private final AtomicBoolean failed = new AtomicBoolean(false);
 	protected volatile String error;
-
+    
 	public MultiNodeCoordinator(NonBlockingSession session) {
 		this.session = session;
 	}
@@ -44,14 +47,20 @@ public class MultiNodeCoordinator implements ResponseHandler {
 		this.cmdHandler = cmdHandler;
 		final int initCount = session.getTargetCount();
 		runningCount.set(initCount);
-//		prepareCount.set(initCount);;
 		nodeCount = initCount;
 		failed.set(false);
 		faileCount.set(0);
+		//XA statue init
 		if(prepareCount.get() != 0){
 			//System.out.println("prepareCount :" + prepareCount.get());
 		}
 		prepareCount.set(0);
+		if(session.getXaTXID()!=null){
+			coorXaStatus = TxState.TX_STARTED_STATE;
+		} else {
+			coorXaStatus = -1;
+		}
+		
 		//recovery nodes log
 		ParticipantLogEntry[] participantLogEntry = new ParticipantLogEntry[initCount];
 		// 执行
@@ -104,7 +113,6 @@ public class MultiNodeCoordinator implements ResponseHandler {
 			fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
 		}
 		if (started < nodeCount) {
-//			prepareCount.set(started);
 			runningCount.set(started);
 			LOGGER.warn("some connection failed to execute "
 					+ (nodeCount - started));
@@ -135,30 +143,45 @@ public class MultiNodeCoordinator implements ResponseHandler {
 //		faileCount.incrementAndGet();
 		ErrorPacket errorPacket = new ErrorPacket();
 		errorPacket.read(err);
+		String msg = new String(errorPacket.message);
 		if (LOGGER.isInfoEnabled()){
 
 			LOGGER.info("errorResponse from {} msg: {}", conn, new String(errorPacket.message));
 		}
+		// to do xa prepare failure rollback 
 		
-		//replayCommit prepare statue replay commit
 		if(conn instanceof MySQLConnection) {
 			MySQLConnection mysqlCon = (MySQLConnection) conn;
-			if(mysqlCon.getXaStatus() == TxState.TX_PREPARED_STATE) {
-				String xaTxId = session.getXaTXID();
-				if (xaTxId != null) {
-					xaTxId += ",'"+mysqlCon.getSchema()+"'";
-					String cmd = "XA COMMIT " + xaTxId;
-					if (LOGGER.isInfoEnabled()) {
-						LOGGER.info("Replay Commit execute the cmd :" + cmd + ",current host:" +
-								mysqlCon.getHost() + ":" + mysqlCon.getPort());
+			if(coorXaStatus == TxState.TX_STARTED_STATE) {
+				this.setFail(msg);
+				// 1 pc prepare failure to rollback 
+				LOGGER.error("XA prepare failure in :xa end;xa prepare; XA id is:" +session.getXaTXID() + " errmsg {},current conn:{}", msg ,conn);
+				if(mysqlCon.batchCmdFinished()) {
+					if(prepareCount.decrementAndGet() == 0) {
+						this.tryErrorFinished(true);
 					}
-					mysqlCon.execCmd(cmd);					
 					return ;
 				}
-			}
-			
-		}
-
+			}	
+			//replayCommit prepare statue replay commit
+			if(coorXaStatus == TxState.TX_PREPARED_STATE) {
+			//	if(mysqlCon.getXaStatus() == TxState.TX_PREPARED_STATE) {
+				String xaTxId = session.getXaTXID();
+				if (xaTxId != null) {
+					xaTxId += ",'" + mysqlCon.getSchema() + "'";
+					String cmd = "XA COMMIT " + xaTxId;
+					if (LOGGER.isInfoEnabled()) {
+						LOGGER.info("Replay Commit execute the cmd :" + cmd + ",current host:" + mysqlCon.getHost()
+								+ ":" + mysqlCon.getPort());
+					}
+					mysqlCon.execCmd(cmd);
+					return;
+				}
+			}			
+		}		
+		
+		//if some commit and some failure , print error info and return failure info  and then release back connection 
+		
 		//release connection
 		if (this.cmdHandler.releaseConOnErr()) {
 			session.releaseConnection(conn);
@@ -167,36 +190,19 @@ public class MultiNodeCoordinator implements ResponseHandler {
 		}
 		
 		//
-		this.setFail(new String(errorPacket.message));
+		this.setFail(msg);
 		if (this.finished()) {
 			this.tryErrorFinished(true);
 		}
 
 	}
-//	/*
-//	 *  check all nodes txStatue is all equal of txStaue
-//	 * */
-//	private boolean checkAllTxStatue(int txStatue) {
-//		boolean flag = true;
-//		String xaTxId = session.getXaTXID();		
-//		CoordinatorLogEntry coordinatorLogEntry = inMemoryRepository.get(xaTxId);
-//		for(int i=0; i<coordinatorLogEntry.participants.length;i++){
-//			LOGGER.debug("[In Memory CoordinatorLogEntry]"+coordinatorLogEntry.participants[i]);
-//			if(coordinatorLogEntry.participants[i].txState != txStatue){
-//				flag = false;
-//				break;
-//			}
-//		}
-//		
-//		
-//		return flag;
-//	}
+
 	
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
 		//process the XA Transatcion 2pc commit
 		if(conn instanceof MySQLConnection)
-		{
+		{   
 			MySQLConnection mysqlCon = (MySQLConnection) conn;
 			switch (mysqlCon.getXaStatus())
 			{
@@ -220,17 +226,15 @@ public class MultiNodeCoordinator implements ResponseHandler {
 						mysqlCon.setXaStatus(TxState.TX_PREPARED_STATE);
 
 						
-						//wait all nodes prepare and send all nodes prepare 
-//						String cmd = "XA COMMIT " + xaTxId +",'"+mysqlCon.getSchema()+"'";
-//						if (LOGGER.isDebugEnabled()) {
-//							LOGGER.debug("Start execute the cmd :"+cmd+",current host:"+
-//									mysqlCon.getHost()+":"+mysqlCon.getPort());
-//						}
-//						
-//						//send commit
-//						mysqlCon.execCmd(cmd);	
-						//wait all nodes prepare and send all nodes prepare 
+						//wait all nodes prepare and send all nodes prepare  
 						if(prepareCount.decrementAndGet() == 0) {
+							//判断是否有错误
+							if(faileCount.get() > 0) {
+								this.tryErrorFinished(true);
+								return ;
+							}							
+							
+							coorXaStatus = TxState.TX_PREPARED_STATE; //进入prepare状态 
 							for (RouteResultsetNode rrn : session.getTargetKeys()) {														
 								if (rrn == null) {
 									LOGGER.error("null is contained in RoutResultsetNodes, source = "
@@ -282,7 +286,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 					//	LOGGER.error("Wrong XA status flag!");
 			}
 		}
-
+		
 		if (this.cmdHandler.relaseConOnOK()) {
 			session.releaseConnection(conn);
 		} else {
@@ -334,8 +338,34 @@ public class MultiNodeCoordinator implements ResponseHandler {
 			LOGGER.info("errorResponse from {} msg: {}", conn, reason);
 		}
 		
-		//todo 重新创建 连接 重新进行提交 conn 是prepare阶段的时候
+		if(session.getXaTXID() != null) {
+			if(conn instanceof MySQLConnection) {
+				MySQLConnection mysqlCon = (MySQLConnection) conn;
+				if(coorXaStatus == TxState.TX_STARTED_STATE) {
+					this.setFail(reason);
+					// 1 pc prepare failure to rollback 
+					LOGGER.error("XA prepare failure in :xa end;xa prepare; XA id is:" +session.getXaTXID() + " errmsg {},current conn:{}", reason ,conn);
+					if(prepareCount.decrementAndGet() == 0) {
+						this.tryErrorFinished(true);
+					}
+					return ;
+					
+				}	
+				//replayCommit prepare statue replay commit
+				//todo 重新创建 连接 重新进行提交 conn 是prepare阶段的时候
+				if(coorXaStatus == TxState.TX_PREPARED_STATE) {
+					String xaTxId = session.getXaTXID();
+					if (xaTxId != null) {
+						xaTxId += ",'" + mysqlCon.getSchema() + "'";
+						String cmd = "XA COMMIT " + xaTxId;
+						LOGGER.error("XA Comit failure in :"+cmd+" errmsg {},current conn:{}", reason ,conn);
+//						mysqlCon.execCmd(cmd);
+						//return;
+					}
 
+				}			
+			}
+		}
 		//release connection
 		if (this.cmdHandler.releaseConOnErr()) {
 			session.releaseConnection(conn);
@@ -364,7 +394,13 @@ public class MultiNodeCoordinator implements ResponseHandler {
 	}
 	protected void tryErrorFinished(boolean allEnd) {
 		if (allEnd && !session.closed()) {		
-
+			// xa error auto rollback 
+			if(coorXaStatus == TxState.TX_STARTED_STATE ) {
+				LOGGER.info("{} found failure in xa ,so to rollback ,reason :{}",this, this.error);
+				session.rollback();
+				return ;
+			} 
+			
 			// clear session resources,release all
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug(this.toString()+"error all end ,clear session resource ");
@@ -376,10 +412,13 @@ public class MultiNodeCoordinator implements ResponseHandler {
 //			session.closeAndClearResources(error);
 			
 			ErrorPacket errPkg = new ErrorPacket();
-			errPkg.errno = 1;
+			errPkg.packetId= 1;
+			errPkg.errno =  ErrorCode.ER_UNKNOWN_ERROR;
 			errPkg.message = (this.error).getBytes();
+			session.setAutoCommitStatus();
 			cmdHandler.errorResponse(session, errPkg.writeToBytes(), this.nodeCount,
 					this.faileCount.get());
+			session.getSource().clearTxInterrupt();
 			//if (cmdHandler.isAutoClearSessionCons()) {
 			//}
 
