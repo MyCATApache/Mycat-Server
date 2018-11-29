@@ -24,10 +24,8 @@
 package io.mycat.config.model;
 
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import com.alibaba.druid.sql.ast.SQLDataType;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.util.SplitUtil;
@@ -63,10 +61,13 @@ public class TableConfig {
 	private volatile String tableStructureSQL;
 	private volatile Map<String,List<String>> dataNodeTableStructureSQLMap;
 	private ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock(false);
-
+	//mutileRoute
+	private final boolean isMutilRoute;
+	private final RuleConfig subTableRule;
+	private final String subPartitionColumn;
 
 	public TableConfig(String name, String primaryKey, boolean autoIncrement,boolean needAddLimit, int tableType,
-			String dataNode,Set<String> dbType, RuleConfig rule, boolean ruleRequired,
+			String dataNode,Set<String> dbType, io.mycat.config.model.rule.TableRuleConfig tableRuleConfig, boolean ruleRequired,
 			TableConfig parentTC, boolean isChildTable, String joinKey,
 			String parentKey,String subTables) {
 		if (name == null) {
@@ -79,7 +80,7 @@ public class TableConfig {
 		this.needAddLimit=needAddLimit;
 		this.tableType = tableType;
 		this.dbTypes=dbType;
-		if (ruleRequired && rule == null) {
+		if (ruleRequired && tableRuleConfig == null) {
 			throw new IllegalArgumentException("ruleRequired but rule is null");
 		}
 
@@ -107,8 +108,11 @@ public class TableConfig {
 			this.distTables = new ArrayList<String>();
 		}	
 		
-		this.rule = rule;
+		this.rule = tableRuleConfig.getRule();
+		this.subTableRule = tableRuleConfig.getSubTableRule();
+		this.isMutilRoute = subTableRule != null; //有subTableRule时,认是多级路由
 		this.partitionColumn = (rule == null) ? null : rule.getColumn();
+		this.subPartitionColumn = isMutilRoute ? subTableRule.getColumn() : null ;
 		partionKeyIsPrimaryKey=(partitionColumn==null)?primaryKey==null:partitionColumn.equals(primaryKey);
 		this.ruleRequired = ruleRequired;
 		this.childTable = isChildTable;
@@ -264,7 +268,7 @@ public class TableConfig {
 	}
 
 	public boolean isDistTable(){
-		if(this.distTables!=null && !this.distTables.isEmpty() ){
+		if(this.distTables!=null && !this.distTables.isEmpty() && !isMutilRoute){
 			return true;
 		}
 		return false;
@@ -301,5 +305,17 @@ public class TableConfig {
 
 	public void setDataNodeTableStructureSQLMap(Map<String, List<String>> dataNodeTableStructureSQLMap) {
 		this.dataNodeTableStructureSQLMap = dataNodeTableStructureSQLMap;
+	}
+
+	public boolean isMutilRoute() {
+		return isMutilRoute;
+	}
+
+	public RuleConfig getSubTableRule() {
+		return subTableRule;
+	}
+
+	public String getSubPartitionColumn() {
+		return subPartitionColumn;
 	}
 }

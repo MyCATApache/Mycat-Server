@@ -387,7 +387,7 @@ public class XMLSchemaLoader implements SchemaLoader {
 				TableConfig table = new TableConfig(tableName, primaryKey,
 						autoIncrement, needAddLimit, tableType, dataNode,
 						getDbType(dataNode),
-						(tableRuleConfig != null) ? tableRuleConfig.getRule() : null,
+						tableRuleConfig ,
 						ruleRequired, null, false, null, null,subTables);
 				
 				checkDataNodeExists(table.getDataNodes());

@@ -32,7 +32,22 @@ public class TableRuleConfig implements Serializable {
     private  String name;
     private final RuleConfig rule;
 
-    public TableRuleConfig(String name, RuleConfig rule) {
+    private final RuleConfig subTableRule;
+
+//    public TableRuleConfig(String name, RuleConfig rule) {
+//        if (name == null) {
+//            throw new IllegalArgumentException("name is null");
+//        }
+//        this.name = name;
+//        if (rule == null) {
+//            throw new IllegalArgumentException("no rule is found");
+//        }
+//        this.rule =rule;
+//        this.subTableRule = null;
+//    }
+
+    public TableRuleConfig(String name, RuleConfig rule,
+            RuleConfig subTableRule) {
         if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
@@ -41,6 +56,7 @@ public class TableRuleConfig implements Serializable {
             throw new IllegalArgumentException("no rule is found");
         }
         this.rule =rule;
+        this.subTableRule = subTableRule;
     }
 
     public String getName() {
@@ -58,4 +74,7 @@ public class TableRuleConfig implements Serializable {
         return rule;
     }
 
+    public RuleConfig getSubTableRule() {
+        return subTableRule;
+    }
 }

@@ -30,10 +30,12 @@ public class TableRule implements Named {
 
     @XmlElement(required = true, name = "rule")
     protected Rule rule;
+
+    @XmlElement(required = false, name = "subTableRule")
+    protected SubTableRule subTableRule;
     
     @XmlAttribute(required = true)
     protected String name;
-
     public Rule getRule() {
         return rule;
     }
@@ -52,15 +54,22 @@ public class TableRule implements Named {
         return this;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("TableRule [rule=");
-        builder.append(rule);
-        builder.append(", name=");
-        builder.append(name);
-        builder.append("]");
-        return builder.toString();
+    public SubTableRule getSubTableRule() {
+        return subTableRule;
     }
-    
+
+    public void setSubTableRule(
+            SubTableRule subTableRule) {
+        this.subTableRule = subTableRule;
+    }
+
+    @Override
+    public String  toString() {
+        final StringBuffer sb = new StringBuffer("TableRule{");
+        sb.append("rule=").append(rule);
+        sb.append(", subTableRule=").append(subTableRule);
+        sb.append(", name='").append(name).append('\'');
+        sb.append('}');
+        return sb.toString();
+    }
 }

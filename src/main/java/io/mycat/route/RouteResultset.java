@@ -80,6 +80,7 @@ public final class RouteResultset implements Serializable {
 
     private boolean selectForUpdate;
 
+    private boolean isMutilRoute;
     public boolean isSelectForUpdate() {
         return selectForUpdate;
     }
@@ -426,7 +427,15 @@ public final class RouteResultset implements Serializable {
 		return false;
 	}
 
-	@Override
+    public boolean isMutilRoute() {
+        return isMutilRoute;
+    }
+
+    public void setMutilRoute(boolean mutilRoute) {
+        isMutilRoute = mutilRoute;
+    }
+
+    @Override
     public String toString() {
         StringBuilder s = new StringBuilder();
         s.append(statement).append(", route={");

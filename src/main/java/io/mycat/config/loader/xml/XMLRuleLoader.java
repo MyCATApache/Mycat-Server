@@ -133,28 +133,37 @@ public class XMLRuleLoader {
 					throw new ConfigException("table rule " + name
 							+ " duplicated!");
 				}
-				//获取rule标签
-				NodeList ruleNodes = e.getElementsByTagName("rule");
-				int length = ruleNodes.getLength();
-				if (length > 1) {
-					throw new ConfigException("only one rule can defined :"
-							+ name);
-				}
-				//目前只处理第一个，未来可能有多列复合逻辑需求
-				//RuleConfig是保存着rule与function对应关系的对象
-				RuleConfig rule = loadRule((Element) ruleNodes.item(0));
-				String funName = rule.getFunctionName();
-				//判断function是否存在，获取function
-				AbstractPartitionAlgorithm func = functions.get(funName);
-				if (func == null) {
-					throw new ConfigException("can't find function of name :"
-							+ funName);
-				}
-				rule.setRuleAlgorithm(func);
+				RuleConfig rule = loadRuleConfig(e,"rule");
+				RuleConfig subTableRule = loadRuleConfig(e,"subTableRule");
 				//保存到tableRules
-				tableRules.put(name, new TableRuleConfig(name, rule));
+				tableRules.put(name, new TableRuleConfig(name, rule,subTableRule));
 			}
 		}
+	}
+
+	private RuleConfig loadRuleConfig(Element e,String tagName) throws SQLSyntaxErrorException {
+		//获取rule标签
+		NodeList ruleNodes = e.getElementsByTagName(tagName);
+		int length = ruleNodes.getLength();
+		if(length == 0){
+			return null;
+		}
+		if (length > 1) {
+			throw new ConfigException("only one "+tagName+" can defined :"
+					+  e.getAttribute("name"));
+		}
+		//目前只处理第一个，未来可能有多列复合逻辑需求
+		//RuleConfig是保存着rule与function对应关系的对象
+		RuleConfig rule = loadRule((Element) ruleNodes.item(0));
+		String funName = rule.getFunctionName();
+		//判断function是否存在，获取function
+		AbstractPartitionAlgorithm func = functions.get(funName);
+		if (func == null) {
+			throw new ConfigException("can't find function of name :"
+					+ funName);
+		}
+		rule.setRuleAlgorithm(func);
+		return rule;
 	}
 
 	private RuleConfig loadRule(Element element) throws SQLSyntaxErrorException {

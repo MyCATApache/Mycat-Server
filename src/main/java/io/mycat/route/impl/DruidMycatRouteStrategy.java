@@ -233,7 +233,6 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	/**
 	 * 子查询中存在关联查询的情况下,检查关联字段是否是分片字段
 	 * @param rulemap
-	 * @param ships
 	 * @return
 	 */
 	private boolean checkRuleField(Map<String,RuleConfig> rulemap,MycatSchemaStatVisitor visitor){
@@ -439,7 +438,12 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		 *  subTables="t_order$1-2,t_order3"
 		 *目前分表 1.6 开始支持 幵丏 dataNode 在分表条件下只能配置一个，分表条件下不支持join。
 		 */
-		if(rrs.isDistTable()){
+		if(rrs.isDistTable() && !schema.isMutilRoute()){
+			return this.routeDisTable(statement,rrs);
+		}
+
+
+		if(schema.isMutilRoute()){
 			return this.routeDisTable(statement,rrs);
 		}
 		return rrs;

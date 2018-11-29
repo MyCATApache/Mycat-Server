@@ -25,6 +25,7 @@ package io.mycat.config.model;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -56,6 +57,7 @@ public class SchemaConfig {
 	private final String[] allDataNodeStrArr;
 
 	private  Map<String,String> dataNodeDbTypeMap=new HashMap<>();
+	private boolean isMutilRoute ;
 
 	public SchemaConfig(String name, String dataNode,
 			Map<String, TableConfig> tables, int defaultMaxLimit,
@@ -81,8 +83,20 @@ public class SchemaConfig {
 		} else {
 			this.allDataNodeStrArr = null;
 		}
+
+		isMutilRoute = this.hasMutilRoute();
 	}
 
+	//table中有一个存在mutilRoute就算有多级路由
+	private boolean hasMutilRoute(){
+		Iterator<TableConfig> it = this.tables.values().iterator();
+		while (it.hasNext()){
+			if(it.next().isMutilRoute()){
+				return true;
+			}
+		}
+		return false;
+	}
 	public String getDefaultDataNodeDbType()
 	{
 		return defaultDataNodeDbType;
@@ -215,4 +229,7 @@ public class SchemaConfig {
 		return ((str == null) || (str.length() == 0));
 	}
 
+	public boolean isMutilRoute() {
+		return isMutilRoute;
+	}
 }

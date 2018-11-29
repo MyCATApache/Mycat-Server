@@ -16,12 +16,15 @@
 <!ELEMENT mycat:rule (tableRule*,function*)>
 <!ATTLIST mycat:rule xmlns:mycat CDATA #FIXED "http://io.mycat/">
 
-<!ELEMENT tableRule (rule+)>
+<!ELEMENT tableRule (rule+,subTableRule*)>
 <!ATTLIST tableRule name CDATA #REQUIRED>
 
 <!ELEMENT rule (columns,algorithm)>
+<!ELEMENT subTableRule (columns,algorithm)>
 <!ELEMENT columns (#PCDATA)>
 <!ELEMENT algorithm (#PCDATA)>
+
+
 
 <!ELEMENT function (property*)>
 <!ATTLIST function name CDATA #REQUIRED>
