@@ -57,12 +57,11 @@ public class MultiNodeCoordinator implements ResponseHandler {
 		prepareCount.set(0);
 		if(session.getXaTXID()!=null){
 			coorXaStatus = TxState.TX_STARTED_STATE;
+			writeRecoverLog(initCount); 
 		} else {
 			coorXaStatus = -1;
 		}
 		
-		//recovery nodes log
-		ParticipantLogEntry[] participantLogEntry = new ParticipantLogEntry[initCount];
 		// 执行
 		int started = 0;
 		for (RouteResultsetNode rrn : session.getTargetKeys()) {
@@ -84,19 +83,19 @@ public class MultiNodeCoordinator implements ResponseHandler {
 					if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE)
 					{
 						//recovery Log
-						participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
+//						participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
 						String[] cmds = new String[]{"XA END " + xaTxId,
 								"XA PREPARE " + xaTxId};
 						if (LOGGER.isDebugEnabled()) {
 							LOGGER.debug("Start execute the batch cmd : "+ cmds[0] + ";" + cmds[1]+","+
 									"current connection:"+conn.getHost()+":"+conn.getPort());
 						}
-						prepareCount.incrementAndGet();
+//						prepareCount.incrementAndGet();
 						mysqlCon.execBatchCmd(cmds);
 					} else
 					{
 						//recovery Log
-						participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
+//						participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
 						cmdHandler.sendCommand(session, conn);
 					}
 				}else{
@@ -106,12 +105,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 			}
 		}
 
-		//xa recovery log
-		if(session.getXaTXID()!=null) {
-			CoordinatorLogEntry coordinatorLogEntry = new CoordinatorLogEntry(session.getXaTXID(), false, participantLogEntry);
-			inMemoryRepository.put(session.getXaTXID(), coordinatorLogEntry);
-			fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
-		}
+		
 		if (started < nodeCount) {
 			runningCount.set(started);
 			LOGGER.warn("some connection failed to execute "
@@ -122,6 +116,44 @@ public class MultiNodeCoordinator implements ResponseHandler {
 			 */
 			failed.set(true);
 		}
+	}
+
+	private void writeRecoverLog(int initCount) {
+		// 执行
+		int started = 0;
+		//recovery nodes log
+		ParticipantLogEntry[] participantLogEntry = new ParticipantLogEntry[initCount];
+		for (RouteResultsetNode rrn : session.getTargetKeys()) {
+			if (rrn == null) {
+				LOGGER.error("null is contained in RoutResultsetNodes, source = "
+						+ session.getSource());
+				continue;
+			}
+			final BackendConnection conn = session.getTarget(rrn);
+			if (conn != null) {
+				//process the XA_END XA_PREPARE Command
+				if(conn instanceof MySQLConnection){
+					MySQLConnection mysqlCon = (MySQLConnection) conn;
+					String xaTxId = null;
+					if(session.getXaTXID()!=null){
+						xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
+					}
+					if (mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE)
+					{
+						//recovery Log
+						participantLogEntry[started] = new ParticipantLogEntry(xaTxId,conn.getHost(),0,conn.getSchema(),((MySQLConnection) conn).getXaStatus());
+						prepareCount.incrementAndGet();
+					}
+				}
+			}
+			started++;
+		}
+		//xa recovery log
+//		if(session.getXaTXID()!=null) {
+			CoordinatorLogEntry coordinatorLogEntry = new CoordinatorLogEntry(session.getXaTXID(), false, participantLogEntry);
+			inMemoryRepository.put(session.getXaTXID(), coordinatorLogEntry);
+			fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
+//		}		
 	}
 
 	private boolean finished() {
@@ -146,7 +178,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 		String msg = new String(errorPacket.message);
 		if (LOGGER.isInfoEnabled()){
 
-			LOGGER.info("errorResponse from {} msg: {}", conn, new String(errorPacket.message));
+			LOGGER.info("======================" + "errorResponse from {} msg: {}", conn, new String(errorPacket.message));
 		}
 		// to do xa prepare failure rollback 
 		
@@ -200,6 +232,8 @@ public class MultiNodeCoordinator implements ResponseHandler {
 	
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
+		LOGGER.info("======================" + "okResponse from {} ", conn);
+
 		//process the XA Transatcion 2pc commit
 		if(conn instanceof MySQLConnection)
 		{   
@@ -335,7 +369,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 	public void connectionClose(BackendConnection conn, String reason) {
 //		faileCount.incrementAndGet();
 		if (LOGGER.isInfoEnabled()){
-			LOGGER.info("errorResponse from {} msg: {}", conn, reason);
+			LOGGER.info("======================" + "connectionClose from {} msg: {}", conn, reason);
 		}
 		
 		if(session.getXaTXID() != null) {

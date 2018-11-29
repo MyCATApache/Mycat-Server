@@ -101,6 +101,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 		} finally {
 			lock.unlock();
 		}
+		boolean writeCheckPoint = false;
 		for (final RouteResultsetNode node : session.getTargetKeys()) {
 			if (node == null) {
 					LOGGER.error("null is contained in RoutResultsetNodes, source = "
@@ -112,10 +113,12 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			if (conn != null) {
 				boolean isClosed=conn.isClosedOrQuit();
 				    if(isClosed)
-					{
+					{				    	
+				    	this.setFail("receive rollback,but find backend con is closed or quit");
 					//	session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
 					//			"receive rollback,but find backend con is closed or quit");
 						LOGGER.error( conn+"receive rollback,but fond backend con is closed or quit");
+						continue;
 					}
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("rollback job run for " + conn);
@@ -134,10 +137,11 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 					String xaTxId = session.getXaTXID();
 					CoordinatorLogEntry coordinatorLogEntry = MultiNodeCoordinator.inMemoryRepository.get(xaTxId);
 					if(coordinatorLogEntry != null) {
+						writeCheckPoint = true;
 						//已经prepare的修改recover log
 						for(int i=0; i<coordinatorLogEntry.participants.length;i++){
 							if(coordinatorLogEntry.participants[i].resourceName.equals(conn.getSchema())){
-								coordinatorLogEntry.participants[i].txState = TxState.TX_COMMITED_STATE;
+								coordinatorLogEntry.participants[i].txState = TxState.TX_ROLLBACKED_STATE;
 							}
 						}
 						MultiNodeCoordinator.inMemoryRepository.put(xaTxId,coordinatorLogEntry);
@@ -167,7 +171,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 				}
 			}
 		}
-		if(session.getXaTXID() != null) {
+		if(writeCheckPoint) {
 			MultiNodeCoordinator.fileRepository.writeCheckpoint(MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
 
 		}
