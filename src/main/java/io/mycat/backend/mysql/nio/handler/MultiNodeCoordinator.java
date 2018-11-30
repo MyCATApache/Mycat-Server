@@ -232,7 +232,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 	
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		LOGGER.info("======================" + "okResponse from {} ", conn);
+//		LOGGER.info("======================" + "okResponse from {} ", conn);
 
 		//process the XA Transatcion 2pc commit
 		if(conn instanceof MySQLConnection)
