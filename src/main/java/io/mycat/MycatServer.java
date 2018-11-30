@@ -23,9 +23,34 @@
  */
 package io.mycat;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -34,6 +59,7 @@ import io.mycat.backend.mysql.nio.handler.MultiNodeCoordinator;
 import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
 import io.mycat.backend.mysql.xa.ParticipantLogEntry;
 import io.mycat.backend.mysql.xa.TxState;
+import io.mycat.backend.mysql.xa.XACommitkCallback;
 import io.mycat.backend.mysql.xa.XARollbackCallback;
 import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
@@ -51,7 +77,14 @@ import io.mycat.config.model.TableConfig;
 import io.mycat.config.table.structure.MySQLTableStructureDetector;
 import io.mycat.manager.ManagerConnectionFactory;
 import io.mycat.memory.MyCatMemory;
-import io.mycat.net.*;
+import io.mycat.net.AIOAcceptor;
+import io.mycat.net.AIOConnector;
+import io.mycat.net.NIOAcceptor;
+import io.mycat.net.NIOConnector;
+import io.mycat.net.NIOProcessor;
+import io.mycat.net.NIOReactorPool;
+import io.mycat.net.SocketAcceptor;
+import io.mycat.net.SocketConnector;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
@@ -69,23 +102,6 @@ import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;
 import io.mycat.util.ZKUtils;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author mycat
@@ -974,37 +990,48 @@ public class MycatServer {
         for (int i = 0; i < coordinatorLogEntries.length; i++) {
             CoordinatorLogEntry coordinatorLogEntry = coordinatorLogEntries[i];
             boolean needRollback = false;
+            boolean hasCommit = false;
             for (int j = 0; j < coordinatorLogEntry.participants.length; j++) {
                 ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
-                if (participantLogEntry.txState == TxState.TX_PREPARED_STATE) {
+                if (participantLogEntry.txState == TxState.TX_PREPARED_STATE || participantLogEntry.txState == TxState.TX_STARTED_STATE) {
                     needRollback = true;
                     break;
                 }
+                if (participantLogEntry.txState == TxState.TX_COMMITED_STATE) {
+                	hasCommit = true;
+                }
             }
+            //补充提交 prepare 状态的提交。
             if (needRollback) {
-                for (int j = 0; j < coordinatorLogEntry.participants.length; j++) {
-                    ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
-                    //XA rollback
-                    String xacmd = "XA ROLLBACK " + coordinatorLogEntry.id  +",'"+ participantLogEntry.resourceName+"'" + ';';
-                    OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0], new XARollbackCallback());
-                    outloop:
-                    for (SchemaConfig schema : MycatServer.getInstance().getConfig().getSchemas().values()) {
-                        for (TableConfig table : schema.getTables().values()) {
-                            for (String dataNode : table.getDataNodes()) {
-                                PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
-                                if (dn.getDbPool().getSource().getConfig().getIp().equals(participantLogEntry.uri)
-                                        && dn.getDatabase().equals(participantLogEntry.resourceName)) {
-                                    //XA STATE ROLLBACK
-                                    participantLogEntry.txState = TxState.TX_ROLLBACKED_STATE;
-                                    SQLJob sqlJob = new SQLJob(xacmd, dn.getDatabase(), resultHandler, dn.getDbPool().getSource());
-                                    sqlJob.run();
-                                    LOGGER.debug(String.format("[XA ROLLBACK] [%s] Host:[%s] schema:[%s]", xacmd, dn.getName(), dn.getDatabase()));
-                                    break outloop;
+            	
+            	//1 can rollback
+            	if(!hasCommit) {
+                    for (int j = 0; j < coordinatorLogEntry.participants.length; j++) {
+                        ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
+                        //XA rollback
+                        String xacmd = "XA ROLLBACK " + coordinatorLogEntry.id  +",'"+ participantLogEntry.resourceName+"'" + ';';
+                        OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0], new XARollbackCallback());
+                        outloop:
+                        for (SchemaConfig schema : MycatServer.getInstance().getConfig().getSchemas().values()) {
+                            for (TableConfig table : schema.getTables().values()) {
+                                for (String dataNode : table.getDataNodes()) {
+                                    PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
+                                    if (dn.getDbPool().getSource().getConfig().getIp().equals(participantLogEntry.uri)
+                                            && dn.getDatabase().equals(participantLogEntry.resourceName)) {
+                                        //XA STATE ROLLBACK
+                                        participantLogEntry.txState = TxState.TX_ROLLBACKED_STATE;
+                                        SQLJob sqlJob = new SQLJob(xacmd, dn.getDatabase(), resultHandler, dn.getDbPool().getSource());
+                                        sqlJob.run();
+                                        LOGGER.debug(String.format("[XA ROLLBACK] [%s] Host:[%s] schema:[%s]", xacmd, dn.getName(), dn.getDatabase()));
+                                        break outloop;
+                                    }
                                 }
                             }
                         }
                     }
-                }
+            	}  else {
+                    LOGGER.debug( "some has commit in {}",coordinatorLogEntry);
+            	}      	
             }
         }
 

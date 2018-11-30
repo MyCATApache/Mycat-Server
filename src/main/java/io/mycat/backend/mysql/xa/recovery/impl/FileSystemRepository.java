@@ -206,18 +206,18 @@ public class FileSystemRepository implements Repository{
 
             rwChannel = file.openNewVersionForNioWriting();
             for (CoordinatorLogEntry coordinatorLogEntry : checkpointContent) {
-            	long len = checkpointContent.size();
-            	ParticipantLogEntry[] participants = coordinatorLogEntry.participants;
-            	boolean hasFinish = true;
-            	for(int i = 0 ; i < participants.length; i++) {
-            		if(participants[i].txState != TxState.TX_ROLLBACKED_STATE 
-            				&& participants[i].txState != TxState.TX_COMMITED_STATE) {
-            			hasFinish = false;
-            		}
-            	}
-            	if(!hasFinish){
-                    write(coordinatorLogEntry, false);
-            	}            	
+//            	long len = checkpointContent.size();
+//            	ParticipantLogEntry[] participants = coordinatorLogEntry.participants;
+//            	boolean hasFinish = true;
+//            	for(int i = 0 ; i < participants.length; i++) {
+//            		if(participants[i].txState != TxState.TX_ROLLBACKED_STATE 
+//            				&& participants[i].txState != TxState.TX_COMMITED_STATE) {
+//            			hasFinish = false;
+//            		}
+//            	}
+//            	if(!hasFinish){
+                write(coordinatorLogEntry, false);
+//            	}            	
             }
             rwChannel.force(false);
             file.discardBackupVersion();

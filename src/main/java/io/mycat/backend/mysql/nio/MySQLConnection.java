@@ -597,7 +597,8 @@ public class MySQLConnection extends BackendAIOConnection {
 		metaDataSyned = true;
 		attachment = null;
 		statusSync = null;
-		modifiedSQLExecuted = false;
+		modifiedSQLExecuted = false;		
+		xaStatus = TxState.TX_INITIALIZE_STATE;
 		setResponseHandler(null);
 		pool.releaseChannel(this);
 	}

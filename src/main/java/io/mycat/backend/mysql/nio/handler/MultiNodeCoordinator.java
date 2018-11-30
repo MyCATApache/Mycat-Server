@@ -48,6 +48,10 @@ public class MultiNodeCoordinator implements ResponseHandler {
 		nodeCount = initCount;
 		failed.set(false);
 		faileCount.set(0);
+		if(prepareCount.get() != 0){
+			//System.out.println("prepareCount :" + prepareCount.get());
+		}
+		prepareCount.set(0);
 		//recovery nodes log
 		ParticipantLogEntry[] participantLogEntry = new ParticipantLogEntry[initCount];
 		// 执行
@@ -148,7 +152,8 @@ public class MultiNodeCoordinator implements ResponseHandler {
 						LOGGER.info("Replay Commit execute the cmd :" + cmd + ",current host:" +
 								mysqlCon.getHost() + ":" + mysqlCon.getPort());
 					}
-					mysqlCon.execCmd(cmd);
+					mysqlCon.execCmd(cmd);					
+					return ;
 				}
 			}
 			
@@ -165,32 +170,27 @@ public class MultiNodeCoordinator implements ResponseHandler {
 		this.setFail(new String(errorPacket.message));
 		if (this.finished()) {
 			this.tryErrorFinished(true);
-//			cmdHandler.errorResponse(session, err, this.nodeCount,
-//					this.faileCount.get());
-//			if (cmdHandler.isAutoClearSessionCons()) {
-//				session.clearResources(session.getSource().isTxInterrupted());
-//			}
 		}
 
 	}
-	/*
-	 *  check all nodes txStatue is all equal of txStaue
-	 * */
-	private boolean checkAllTxStatue(int txStatue) {
-		boolean flag = true;
-		String xaTxId = session.getXaTXID();		
-		CoordinatorLogEntry coordinatorLogEntry = inMemoryRepository.get(xaTxId);
-		for(int i=0; i<coordinatorLogEntry.participants.length;i++){
-			LOGGER.debug("[In Memory CoordinatorLogEntry]"+coordinatorLogEntry.participants[i]);
-			if(coordinatorLogEntry.participants[i].txState != txStatue){
-				flag = false;
-				break;
-			}
-		}
-		
-		
-		return flag;
-	}
+//	/*
+//	 *  check all nodes txStatue is all equal of txStaue
+//	 * */
+//	private boolean checkAllTxStatue(int txStatue) {
+//		boolean flag = true;
+//		String xaTxId = session.getXaTXID();		
+//		CoordinatorLogEntry coordinatorLogEntry = inMemoryRepository.get(xaTxId);
+//		for(int i=0; i<coordinatorLogEntry.participants.length;i++){
+//			LOGGER.debug("[In Memory CoordinatorLogEntry]"+coordinatorLogEntry.participants[i]);
+//			if(coordinatorLogEntry.participants[i].txState != txStatue){
+//				flag = false;
+//				break;
+//			}
+//		}
+//		
+//		
+//		return flag;
+//	}
 	
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
@@ -239,7 +239,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 								}
 								final BackendConnection backConn = session.getTarget(rrn);
 								if (conn != null) {
-									conn.setResponseHandler(this);
+//									conn.setResponseHandler(this);
 									//process the XA_END XA_PREPARE Command
 									if(conn instanceof MySQLConnection){
 										MySQLConnection backMysqlCon = (MySQLConnection) backConn;
@@ -290,7 +290,6 @@ public class MultiNodeCoordinator implements ResponseHandler {
 					false);
 		}
 		if (this.finished()) {
-			cmdHandler.okResponse(session, ok);
 			if (cmdHandler.isAutoClearSessionCons()) {
 				session.clearResources(false);
 			}
@@ -303,6 +302,8 @@ public class MultiNodeCoordinator implements ResponseHandler {
 			if(session.getSource().isPreAcStates()){
 				session.getSource().setAutocommit(true);
 			}
+			cmdHandler.okResponse(session, ok);
+
 		}
 	}
 
@@ -368,15 +369,19 @@ public class MultiNodeCoordinator implements ResponseHandler {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug(this.toString()+"error all end ,clear session resource ");
 			}
+			//释放连接
+			session.clearResources(session.getSource().isTxInterrupted());
 
+			//关闭所有的错误后端连接 清理资源
+//			session.closeAndClearResources(error);
+			
 			ErrorPacket errPkg = new ErrorPacket();
 			errPkg.errno = 1;
 			errPkg.message = (this.error).getBytes();
 			cmdHandler.errorResponse(session, errPkg.writeToBytes(), this.nodeCount,
 					this.faileCount.get());
-			if (cmdHandler.isAutoClearSessionCons()) {
-				session.clearResources(session.getSource().isTxInterrupted());
-			}
+			//if (cmdHandler.isAutoClearSessionCons()) {
+			//}
 
 		}
 
