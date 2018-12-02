@@ -82,8 +82,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		middlerResultHandler.put(SQLExistsExpr.class, new SQLExistsResultHandler());
 		middlerResultHandler.put(SQLAllExpr.class, new SQLAllResultHandler());
 	}
-	
-	
+
+
 	@Override
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
 			String stmt, RouteResultset rrs,String charset,
@@ -438,17 +438,65 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		 *  subTables="t_order$1-2,t_order3"
 		 *目前分表 1.6 开始支持 幵丏 dataNode 在分表条件下只能配置一个，分表条件下不支持join。
 		 */
-		if(rrs.isDistTable() && !schema.isMutilRoute()){
-			return this.routeDisTable(statement,rrs);
-		}
-
-
+//		if(rrs.isDistTable() && !schema.isMutilRoute()){
+//			return this.routeDisTable(statement,rrs);
+//		}
+//
+//
 		if(schema.isMutilRoute()){
+			return this.routeMutil(schema,statement,rrs);
+		}
+		if(rrs.isDistTable()){
 			return this.routeDisTable(statement,rrs);
 		}
 		return rrs;
 	}
-	
+
+	/**
+	 * 多级路由
+	 * @param schemaConfig
+	 * @param statement
+	 * @param rrs
+	 * @return
+	 */
+	private RouteResultset routeMutil(SchemaConfig schemaConfig,SQLStatement statement, RouteResultset rrs)
+			throws SQLSyntaxErrorException {
+		if(!schemaConfig.isMutilRoute()){
+			return rrs;
+		}
+		if(statement instanceof SQLInsertStatement) {
+			SQLInsertStatement insertStatement = (SQLInsertStatement) statement;
+			SQLExprTableSource tableSource = insertStatement.getTableSource();
+			for (RouteResultsetNode node : rrs.getNodes()) {
+				SQLExprTableSource from2 = getDisTable(tableSource, node);
+				insertStatement.setTableSource(from2);
+				node.setStatement(insertStatement.toString());
+			}
+		}
+		SQLTableSource tableSource;
+		if(statement instanceof SQLDeleteStatement) {
+			SQLDeleteStatement deleteStatement = (SQLDeleteStatement) statement;
+			tableSource = deleteStatement.getTableSource();
+			for (RouteResultsetNode node : rrs.getNodes()) {
+				SQLExprTableSource from2 = getDisTable(tableSource, node);
+				deleteStatement.setTableSource(from2);
+				node.setStatement(deleteStatement.toString());
+			}
+		}
+		if(statement instanceof SQLUpdateStatement) {
+			SQLUpdateStatement updateStatement = (SQLUpdateStatement) statement;
+			tableSource = updateStatement.getTableSource();
+			for (RouteResultsetNode node : rrs.getNodes()) {
+				SQLExprTableSource from2 = getDisTable(tableSource, node);
+				updateStatement.setTableSource(from2);
+				node.setStatement(updateStatement.toString());
+			}
+		}
+
+		return rrs;
+
+	}
+
 	private SQLExprTableSource getDisTable(SQLTableSource tableSource,RouteResultsetNode node) throws SQLSyntaxErrorException{
 		if(node.getSubTableName()==null){
 			String msg = " sub table not exists for " + node.getName() + " on " + tableSource;

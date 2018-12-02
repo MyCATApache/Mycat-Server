@@ -358,6 +358,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
                 routeCalculateUnit.addShardingExpr(tableName, getPartitionColumn(), parseFieldString(value,loadData.getEnclose()));
                 ctx.addRouteCalculateUnit(routeCalculateUnit);
+
+                String subPartitionColumn = getPartitionColumn();
+                if(null != subPartitionColumn){
+                    RouteCalculateUnit subRouteCalculateUnit = new RouteCalculateUnit();
+                    subRouteCalculateUnit.addShardingExpr(tableName,subPartitionColumn , parseFieldString(value,loadData.getEnclose()));
+                    ctx.addRouteCalculateUnit(routeCalculateUnit);
+                }
+
                 try
                 {
                 	SortedSet<RouteResultsetNode> nodeSet = new TreeSet<RouteResultsetNode>();
@@ -815,7 +823,17 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             		}
         		return pColumn;
         	}
-
+    private String getSubPartitionColumn(){
+        String pColumn;
+        if (tableConfig.isSecondLevel()
+                && tableConfig.getParentTC().getSubPartitionColumn()
+                .equals(tableConfig.getParentKey())) {
+            pColumn = tableConfig.getJoinKey();
+        }else {
+            pColumn = tableConfig.getSubPartitionColumn();
+        }
+        return pColumn;
+    }
     /**
      * 删除目录及其所有子目录和文件
      *

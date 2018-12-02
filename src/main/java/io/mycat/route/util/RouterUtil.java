@@ -1097,9 +1097,9 @@ public class RouterUtil {
 				routeToDistTableNode(tableName,schema, rrs, ctx.getSql(), tablesAndConditions, cachePool, isSelect);
 				return rrs;
 			}
-			if(tableConfig.isMutilRoute()){
-				routeToMutilDistTableNode(tableName,schema, rrs, ctx.getSql(), tablesAndConditions, cachePool, isSelect);
-			}
+//			if(tableConfig.isMutilRoute()){
+//				routeToMutilDistTableNode(tableName,schema, rrs, ctx.getSql(), tablesAndConditions, cachePool, isSelect);
+//			}
 			if(retNodesSet.size() > 1 && isAllGlobalTable(ctx, schema)) {
 				// mulit routes ,not cache route result
 				if (isSelect) {
@@ -1300,13 +1300,42 @@ public class RouterUtil {
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
-		String partionCol = tableConfig.getSubPartitionColumn();
-//		String primaryKey = tableConfig.getPrimaryKey();
-		boolean isLoadData=false;
+
+
+		String partitionColum = tableConfig.getPartitionColumn();
+		List<String> dataNodes = new ArrayList<>();
+		//计算dn节点
+		for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
+			boolean isFoundPartitionValue = partitionColum != null && entry.getValue().get(partitionColum) != null;
+			if(isFoundPartitionValue){
+				Map<String, Set<ColumnRoutePair>> columnsMap = entry.getValue();
+				Set<ColumnRoutePair> partitionValue = columnsMap.get(partitionColum);
+
+				for(ColumnRoutePair pair : partitionValue) {
+					AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
+					if(pair.colValue != null) {
+						Integer tableIndex = algorithm.calculate(pair.colValue);
+						if(tableIndex == null) {
+							String msg = "can't find any valid datanode :" + tableConfig.getName()
+									+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
+							LOGGER.warn(msg);
+							throw new SQLNonTransientException(msg);
+						}
+						String dn = tableConfig.getDataNodes().get(tableIndex);
+						dataNodes.add(dn);
+					}
+				}
+			} else {
+				dataNodes.addAll(tableConfig.getDataNodes());
+			}
+		}
+
+		String subPartionCol = tableConfig.getSubPartitionColumn();
+
 
 		Set<String> tablesRouteSet = new HashSet<String>();
 
-		List<String> dataNodes = tableConfig.getDataNodes();
+
 		//所有节点的分表逻辑是一样的,所以就取一个就可以了
 		String dataNode = dataNodes.get(0);
 
@@ -1317,10 +1346,10 @@ public class RouterUtil {
 		}
 
 		for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
-			boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
+
 			Map<String, Set<ColumnRoutePair>> columnsMap = entry.getValue();
 
-			Set<ColumnRoutePair> partitionValue = columnsMap.get(partionCol);
+			Set<ColumnRoutePair> partitionValue = columnsMap.get(subPartionCol);
 			if(partitionValue == null || partitionValue.size() == 0) {
 				tablesRouteSet.addAll(tableConfig.getDistTables());
 			} else {
@@ -1363,12 +1392,12 @@ public class RouterUtil {
 		//所有的dn都改写sql
 		RouteResultsetNode[] nodes = new RouteResultsetNode[subTables.length * dataNodes.size()];
 		Map<String,Integer> dataNodeSlotMap=	rrs.getDataNodeSlotMap();
+		int nodeIndex = 0;
 		for(int i=0;i<subTables.length;i++){
 			String table = String.valueOf(subTables[i]);
 			String changeSql = orgSql;
-			for(int dataNodeIndex = 0;dataNodeIndex < dataNodes.size();dataNodeIndex++){
-				int nodeIndex = (i+1) * dataNodeIndex;
-				String _dataNode = dataNodes.get(nodeIndex);
+			for(int dataNodeIndex = 0;dataNodeIndex < dataNodes.size();dataNodeIndex++,nodeIndex++){
+				String _dataNode = dataNodes.get(dataNodeIndex);
 				nodes[nodeIndex] = new RouteResultsetNode(_dataNode, rrs.getSqlType(), changeSql);//rrs.getStatement()
 				nodes[nodeIndex].setSubTableName(table);
 				nodes[nodeIndex].setSource(rrs);
@@ -1417,6 +1446,9 @@ public class RouterUtil {
 			if(tableConfig.isMutilRoute()){
 				routeToMutilDistTableNode(tableName,schema,rrs,sql, tablesAndConditions, cachePool,isSelect);
 			}
+//			if(tableConfig.isDistTable() && !tableConfig.isMutilRoute()){
+//				routeToDistTableNode(tableName,schema,rrs,sql, tablesAndConditions, cachePool,isSelect);
+//			}
 			//全局表或者不分库的表略过（全局表后面再计算）
 			if(tableConfig.isGlobalTable() || schema.getTables().get(tableName).getDataNodes().size() == 1) {
 				continue;

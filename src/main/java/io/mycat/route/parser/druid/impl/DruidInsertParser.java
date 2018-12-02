@@ -189,6 +189,19 @@ public class DruidInsertParser extends DefaultDruidParser {
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
+		if(schema.isMutilRoute()){
+			for (TableConfig tableConfig:schema.getTables().values()){
+				String subPartitionColumn = tableConfig.getSubPartitionColumn();
+				for(int i = 0; i < insertStmt.getColumns().size(); i++) {
+					if(subPartitionColumn.equalsIgnoreCase(StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString()))) {//找到分片字段
+						String column = StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString());
+						String value = StringUtil.removeBackquote(insertStmt.getValues().getValues().get(i).toString());
+						ctx.getRouteCalculateUnits().get(0).addShardingExpr(tableName, column, value);
+						break;
+					}
+				}
+			}
+		}
 		// insert into .... on duplicateKey 
 		//such as :INSERT INTO TABLEName (a,b,c) VALUES (1,2,3) ON DUPLICATE KEY UPDATE b=VALUES(b); 
 		//INSERT INTO TABLEName (a,b,c) VALUES (1,2,3) ON DUPLICATE KEY UPDATE c=c+1;
@@ -296,6 +309,18 @@ public class DruidInsertParser extends DefaultDruidParser {
 					} else {
 						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
 								rrs.getSqlType(),insertStmt.toString());
+						if(tableConfig.isMutilRoute()){//多级路由修改表名
+							String subTableName = tableConfig.getDistTables().get(nodeIndex);
+							nodes[count].setSubTableName(subTableName);
+							SQLExprTableSource tableSource = ((SQLInsertStatement) insertStmt).getTableSource();
+							//getDisTable 修改表名称
+							SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
+							sqlIdentifierExpr.setParent(tableSource.getParent());
+							sqlIdentifierExpr.setName(subTableName);
+							SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+							((SQLInsertStatement) insertStmt).setTableSource(from2);
+							nodes[count].setStatement(((SQLInsertStatement) insertStmt).toString());
+						}
 					}
 					
 					if(algorithm instanceof SlotFunction) {

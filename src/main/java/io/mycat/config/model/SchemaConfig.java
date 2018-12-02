@@ -57,6 +57,9 @@ public class SchemaConfig {
 	private final String[] allDataNodeStrArr;
 
 	private  Map<String,String> dataNodeDbTypeMap=new HashMap<>();
+	/**
+	 * 是否为多级路由
+	 */
 	private boolean isMutilRoute ;
 
 	public SchemaConfig(String name, String dataNode,
