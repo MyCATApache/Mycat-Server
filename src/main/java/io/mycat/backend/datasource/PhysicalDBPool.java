@@ -37,10 +37,15 @@ import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.heartbeat.DBHeartbeat;
+import io.mycat.backend.heartbeat.zkprocess.SwitchStatueToZK;
 import io.mycat.backend.mysql.nio.handler.GetConnectionHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.config.Alarms;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
 import io.mycat.config.model.DataHostConfig;
+import io.mycat.util.LogUtil;
+import io.mycat.util.ZKUtils;
 
 public class PhysicalDBPool {
 	
@@ -98,7 +103,7 @@ public class PhysicalDBPool {
 		this.readSources = readSources;
 		this.allDs = this.genAllDataSources();
 		
-		LOGGER.info("total resouces of dataHost " + this.hostName + " is :" + allDs.size());
+		LOGGER.info("total resources of dataHost " + this.hostName + " is :" + allDs.size());
 		
 		setDataSourceProps();
 	}
@@ -205,9 +210,44 @@ public class PhysicalDBPool {
 			return 0;
 		}
 	}
-
+	//进行投票选择的节点.
+	private boolean switchSourceVoted(int newIndex, boolean isAlarm, String reason) {
+		if (notSwitchSource(newIndex)) {
+			return false;
+		}		
+		final ReentrantLock lock = this.switchLock;
+		if(MycatServer.getInstance().isUseZkSwitch()) {
+			lock.lock();
+			try {
+				final String myId = ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID);
+				String manageVotePath = ZKUtils.getZKBasePath() +"heartbeat/" + hostName +"/" + "voteInformation/" 
+						+ myId;
+				String data = String.format("%s=%d", myId,newIndex);
+				ZKUtils.createPath(manageVotePath, data);
+				LogUtil.writeDataSourceLog(String.format("[%s 發生投票: %s]", myId, this.getSources()[newIndex].getName()));
+			} finally {
+				lock.unlock();
+			}
+		}		
+		return true;
+	}
+	
+	
+	
+	//判断是进行zk投票还是直接切换读写
+	public boolean switchSourceOrVoted(int newIndex, boolean isAlarm, String reason) {		
+		if(MycatServer.getInstance().isUseZkSwitch()) {
+			return switchSourceVoted( newIndex,  isAlarm,  reason); 
+		} else {
+			return switchSource( newIndex,  isAlarm,  reason);
+		}
+	} 
+	public boolean notSwitchSource(int newIndex){
+		return this.writeType != PhysicalDBPool.WRITE_ONLYONE_NODE || !checkIndex(newIndex) ;
+	}
+	
 	public boolean switchSource(int newIndex, boolean isAlarm, String reason) {
-		if (this.writeType != PhysicalDBPool.WRITE_ONLYONE_NODE || !checkIndex(newIndex)) {
+		if (notSwitchSource(newIndex)) {
 			return false;
 		}
 		
@@ -217,8 +257,16 @@ public class PhysicalDBPool {
 			int current = activedIndex;
 			if (current != newIndex) {
 				
+				if(MycatServer.getInstance().isUseZkSwitch()){
+					LOGGER.info( ZkConfig.getInstance().getValue(ZkParamCfg.ZK_CFG_MYID) + 
+							"正在开始进行转换节点 " + hostName+ " = " + newIndex  );
+					SwitchStatueToZK.startSwitch(hostName);
+				}
+				
 				// switch index
 				activedIndex = newIndex;
+				
+				initSuccess = false;
 				
 				// init again
 				this.init(activedIndex);
@@ -227,9 +275,26 @@ public class PhysicalDBPool {
 				this.getSources()[current].clearCons("switch datasource");
 				
 				// write log
-				LOGGER.warn(switchMessage(current, newIndex, false, reason));
-				
+				String msg = switchMessage(current, newIndex, false, reason);
+				LOGGER.warn(msg);
+				LogUtil.writeDataSourceLog(msg);
+				if(MycatServer.getInstance().isUseZkSwitch()) {
+					LOGGER.warn(switchMessage(current, newIndex, false, reason));				
+					current =   activedIndex;
+ 					if(!isInitSuccess() || current != newIndex) {
+						LOGGER.error(String.format("%s switch to index %d error ! now index is to switch %d but %d", hostName, newIndex ,newIndex, current));
+
+						//报错 然后程序直接挂掉
+						System.exit(-1);
+					}
+					SwitchStatueToZK.endSwitch(hostName);
+				}
 				return true;
+			} else {
+				if(MycatServer.getInstance().isUseZkSwitch()) {
+					SwitchStatueToZK.startSwitch(hostName);
+					SwitchStatueToZK.endSwitch(hostName);
+				}	
 			}
 		} finally {
 			lock.unlock();
@@ -242,8 +307,8 @@ public class PhysicalDBPool {
 		if (alarm) {
 			s.append(Alarms.DATANODE_SWITCH);
 		}
-		s.append("[Host=").append(hostName).append(",result=[").append(current).append("->");
-		s.append(newIndex).append("],reason=").append(reason).append(']');
+		s.append("[Host=").append(hostName).append(",result=[").append(this.getSources()[current].getName()).append("->");
+		s.append(this.getSources()[newIndex].getName()).append("],reason=").append(reason).append(']');
 		return s.toString();
 	}
 
@@ -300,7 +365,7 @@ public class PhysicalDBPool {
 	private boolean initSource(int index, PhysicalDatasource ds) {
 		int initSize = ds.getConfig().getMinCon();
 		
-		LOGGER.info("init backend myqsl source ,create connections total " + initSize + " for " + ds.getName() + " index :" + index);
+		LOGGER.info("init backend mysql source ,create connections total " + initSize + " for " + ds.getName() + " index :" + index);
 		
 		CopyOnWriteArrayList<BackendConnection> list = new CopyOnWriteArrayList<BackendConnection>();
 		GetConnectionHandler getConHandler = new GetConnectionHandler(list, initSize);
@@ -389,9 +454,9 @@ public class PhysicalDBPool {
 	 * @param reason
 	 */
 	public void clearDataSources(String reason) {
-		LOGGER.info("clear datasours of pool " + this.hostName);
+		LOGGER.info("clear datasource of pool " + this.hostName);
 		for (PhysicalDatasource source : this.allDs) {			
-			LOGGER.info("clear datasoure of pool  " + this.hostName + " ds:" + source.getConfig());
+			LOGGER.info("clear datasource of pool  " + this.hostName + " ds:" + source.getConfig());
 			source.clearCons(reason);
 			source.stopHeartbeat();
 		}
@@ -618,7 +683,7 @@ public class PhysicalDBPool {
 			return false;
 		}		
 		boolean isSync = dbSynStatus == DBHeartbeat.DB_SYN_NORMAL;
-		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();		
+		boolean isNotDelay = slaveBehindMaster < this.dataHostConfig.getSlaveThreshold();	
 		return isSync && isNotDelay;
 	}
 

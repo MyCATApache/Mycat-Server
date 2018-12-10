@@ -111,7 +111,7 @@ public class IncrSequenceTimeHandler implements SequenceHandler {
 					timestamp = tilNextMillis(lastTimestamp);
 				}
 			} else {
-				sequence = 0;
+				sequence = timestamp & 1;
 			}
 			lastTimestamp = timestamp;
 			// ID偏移组合生成最终的ID，并返回ID

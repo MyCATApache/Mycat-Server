@@ -1,20 +1,16 @@
 package io.mycat.route.parser.druid.impl;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-
 import io.mycat.backend.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
@@ -28,6 +24,13 @@ import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.StringUtil;
+
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DruidInsertParser extends DefaultDruidParser {
 	@Override
@@ -171,11 +174,13 @@ public class DruidInsertParser extends DefaultDruidParser {
 			if(partitionColumn.equalsIgnoreCase(StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString()))) {//找到分片字段
 				isFound = true;
 				String column = StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString());
-				
-				String value = StringUtil.removeBackquote(insertStmt.getValues().getValues().get(i).toString());
-				
+
+				String shardingValue = getShardingValue(insertStmt.getValues().getValues().get(i));
+				insertStmt.getValues().getValues().set(i,new SQLCharExpr(shardingValue));
+				ctx.setSql(insertStmt.toString());
+
 				RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
-				routeCalculateUnit.addShardingExpr(tableName, column, value);
+				routeCalculateUnit.addShardingExpr(tableName, column, shardingValue);
 				ctx.addRouteCalculateUnit(routeCalculateUnit);
 				//mycat是单分片键，找到了就返回
 				break;
@@ -237,15 +242,9 @@ public class DruidInsertParser extends DefaultDruidParser {
 						throw new SQLNonTransientException(msg);
 					}
 					SQLExpr expr = valueClause.getValues().get(shardingColIndex);
-					String shardingValue = null;
-					if(expr instanceof SQLIntegerExpr) {
-						SQLIntegerExpr intExpr = (SQLIntegerExpr)expr;
-						shardingValue = intExpr.getNumber() + "";
-					} else if (expr instanceof SQLCharExpr) {
-						SQLCharExpr charExpr = (SQLCharExpr)expr;
-						shardingValue = charExpr.getText();
-					}
-					
+					String shardingValue = getShardingValue(expr);
+					valueClause.getValues().set(shardingColIndex, new SQLCharExpr(shardingValue));
+
 					Integer nodeIndex = algorithm.calculate(shardingValue);
 					if(algorithm instanceof SlotFunction){
 						slotsMap.put(nodeIndex,((SlotFunction) algorithm).slotValue()) ;
@@ -262,15 +261,39 @@ public class DruidInsertParser extends DefaultDruidParser {
 					}
 					nodeValuesMap.get(nodeIndex).add(valueClause);
 				}
-				
+
+
 				RouteResultsetNode[] nodes = new RouteResultsetNode[nodeValuesMap.size()];
 				int count = 0;
 				for(Map.Entry<Integer,List<ValuesClause>> node : nodeValuesMap.entrySet()) {
 					Integer nodeIndex = node.getKey();
 					List<ValuesClause> valuesList = node.getValue();
 					insertStmt.setValuesList(valuesList);
-					nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
-							rrs.getSqlType(),insertStmt.toString());
+					if(tableConfig.isDistTable()) {
+						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(0),
+								rrs.getSqlType(),insertStmt.toString());
+						if(tableConfig.getDistTables()==null){
+							String msg = " sub table not exists for " + nodes[count].getName() + " on " + tableName;
+							LOGGER.error("DruidMycatRouteStrategyError " + msg);
+							throw new SQLSyntaxErrorException(msg);
+						}
+						String subTableName = tableConfig.getDistTables().get(nodeIndex);
+						
+						nodes[count].setSubTableName(subTableName);
+						SQLInsertStatement insertStatement = (SQLInsertStatement) insertStmt;
+						SQLExprTableSource tableSource = insertStatement.getTableSource();
+						//getDisTable 修改表名称
+						SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
+						sqlIdentifierExpr.setParent(tableSource.getParent());
+						sqlIdentifierExpr.setName(subTableName);
+						SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+						insertStatement.setTableSource(from2);
+						nodes[count].setStatement(insertStatement.toString());
+					} else {
+						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(nodeIndex),
+								rrs.getSqlType(),insertStmt.toString());
+					}
+					
 					if(algorithm instanceof SlotFunction) {
 						nodes[count].setSlot(slotsMap.get(nodeIndex));
 						nodes[count].setStatement(ParseUtil.changeInsertAddSlot(nodes[count].getStatement(),nodes[count].getSlot()));
@@ -280,6 +303,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 				}
 				rrs.setNodes(nodes);
 				rrs.setFinishedRoute(true);
+
 			}
 		} else if(insertStmt.getQuery() != null) { // insert into .... select ....
 			String msg = "TODO:insert into .... select .... not supported!";
@@ -287,7 +311,23 @@ public class DruidInsertParser extends DefaultDruidParser {
 			throw new SQLNonTransientException(msg);
 		}
 	}
-	
+
+	private String getShardingValue(SQLExpr expr) throws SQLNonTransientException {
+		String shardingValue = null;
+		if(expr instanceof SQLIntegerExpr) {
+			SQLIntegerExpr intExpr = (SQLIntegerExpr)expr;
+			shardingValue = intExpr.getNumber() + "";
+		} else if (expr instanceof SQLCharExpr) {
+			SQLCharExpr charExpr = (SQLCharExpr)expr;
+			shardingValue = charExpr.getText();
+		} else if (expr instanceof SQLMethodInvokeExpr) {
+			SQLMethodInvokeExpr methodInvokeExpr = (SQLMethodInvokeExpr)expr;
+			shardingValue = tryInvokeSQLMethod(methodInvokeExpr);
+		} else {
+			shardingValue = expr.toString();
+		}
+		return shardingValue;
+	}
 	/**
 	 * 寻找拆分字段在 columnList中的索引
 	 * @param insertStmt

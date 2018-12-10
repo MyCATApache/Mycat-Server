@@ -12,6 +12,7 @@ import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.config.MycatConfig;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 
 /**
@@ -89,7 +90,14 @@ public class SQLJob implements ResponseHandler, Runnable {
 		}
 		conn.setResponseHandler(this);
 		try {
-			conn.query(sql);
+			if(ctx != null) {
+				ServerConnection sc = ctx.getSession().getSource();
+				//conn.setCharsetIndex(sc.getCharsetIndex());				
+				conn.query(sql ,sc.getCharsetIndex());
+			}else {
+				conn.query(sql );
+			}
+			
 			connection = conn;
 		} catch (Exception e) {// (UnsupportedEncodingException e) {
 			doFinished(true,e.getMessage());
@@ -143,9 +151,16 @@ public class SQLJob implements ResponseHandler, Runnable {
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		conn.syncAndExcute();
-		doFinished(false,null);
-		conn.release();
+//		conn.syncAndExcute();
+		//modify by zwy  这边 涉及到use database的返回，不能直接释放连接 需要继续处理包
+		boolean executeResponse = conn.syncAndExcute();		
+		if(executeResponse){
+			doFinished(false,null);
+			conn.release();
+		} else {
+			LOGGER.debug("syn response {}" ,conn);
+		}
+		
 	}
 
 	@Override

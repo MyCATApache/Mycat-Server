@@ -23,6 +23,18 @@
  */
 package io.mycat.backend.datasource;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.ConMap;
@@ -37,18 +49,6 @@ import io.mycat.config.Alarms;
 import io.mycat.config.model.DBHostConfig;
 import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.TimeUtil;
-
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 public abstract class PhysicalDatasource {
@@ -79,16 +79,16 @@ public abstract class PhysicalDatasource {
 	 *   
 	 */
 	// 当前活动连接
-	private volatile AtomicInteger activeCount = new AtomicInteger(0);
+	//private volatile AtomicInteger activeCount = new AtomicInteger(0);
 	
 	// 当前存活的总连接数,为什么不直接使用activeCount,主要是因为连接的创建是异步完成的
-	private volatile AtomicInteger totalConnection = new AtomicInteger(0);
+	//private volatile AtomicInteger totalConnection = new AtomicInteger(0);
 	
 	/**
 	 * 由于在Mycat中，returnCon被多次调用（与takeCon并没有成对调用）导致activeCount、totalConnection容易出现负数
 	 */
-	private static final String TAKE_CONNECTION_FLAG = "1";
-	private ConcurrentMap<Long /* ConnectionId */, String /* 常量1*/> takeConnectionContext = new ConcurrentHashMap<>();
+	//private static final String TAKE_CONNECTION_FLAG = "1";
+	//private ConcurrentMap<Long /* ConnectionId */, String /* 常量1*/> takeConnectionContext = new ConcurrentHashMap<>();
 
 	
 
@@ -196,17 +196,17 @@ public abstract class PhysicalDatasource {
 	 * 该方法也不是非常精确，因为该操作也不是一个原子操作,相对getIdleCount高效与准确一些
 	 * @return
 	 */
-	public int getIdleCountSafe() {
-		return getTotalConnectionsSafe() - getActiveCountSafe();
-	}
+//	public int getIdleCountSafe() {
+//		return getTotalConnectionsSafe() - getActiveCountSafe();
+//	}
 	
 	/**
 	 * 是否需要继续关闭空闲连接
 	 * @return
 	 */
-	private boolean needCloseIdleConnection() {
-		return getIdleCountSafe() > hostConfig.getMinCon();
-	}
+//	private boolean needCloseIdleConnection() {
+//		return getIdleCountSafe() > hostConfig.getMinCon();
+//	}
 
 	private boolean validSchema(String schema) {
 		String theSchema = schema;
@@ -229,16 +229,19 @@ public abstract class PhysicalDatasource {
 			if (validSchema(con.getSchema())) {
 				if (con.getLastTime() < hearBeatTime
 						&& heartBeatCons.size() < maxConsInOneCheck) {
-					checkListItor.remove();
-					// Heart beat check
-					con.setBorrowed(true);
-					heartBeatCons.add(con);
+					if(checkLis.remove(con)) { 
+						//如果移除成功，则放入到心跳连接中，如果移除失败，说明该连接已经被其他线程使用，忽略本次心跳检测
+						con.setBorrowed(true);
+						heartBeatCons.add(con);
+					}
 				}
 			} else if (con.getLastTime() < hearBeatTime2) {
 				// not valid schema conntion should close for idle
 				// exceed 2*conHeartBeatPeriod
-				checkListItor.remove();
-				con.close(" heart beate idle ");
+				// 同样，这里也需要先移除，避免被业务连接
+				if(checkLis.remove(con)) { 
+					con.close(" heart beate idle ");
+				}
 			}
 
 		}
@@ -293,8 +296,8 @@ public abstract class PhysicalDatasource {
 
 		// check if there has timeouted heatbeat cons
 		conHeartBeatHanler.abandTimeOuttedConns();
-		int idleCons = getIdleCountSafe();
-		int activeCons = this.getActiveCountSafe();
+		int idleCons = getIdleCount();
+		int activeCons = this.getActiveCount();
 		int createCount = (hostConfig.getMinCon() - idleCons) / 3;
 		// create if idle too little
 		if ((createCount > 0) && (idleCons + activeCons < size)
@@ -303,7 +306,7 @@ public abstract class PhysicalDatasource {
 		} else if (idleCons > hostConfig.getMinCon()) {
 			closeByIdleMany(idleCons - hostConfig.getMinCon());
 		} else {
-			int activeCount = this.getActiveCountSafe();
+			int activeCount = this.getActiveCount();
 			if (activeCount > size) {
 				StringBuilder s = new StringBuilder();
 				s.append(Alarms.DEFAULT).append("DATASOURCE EXCEED [name=")
@@ -332,38 +335,55 @@ public abstract class PhysicalDatasource {
 	 */
 	private void closeByIdleMany(int ildeCloseCount) {
 		LOGGER.info("too many ilde cons ,close some for datasouce  " + name);
-		
-		Iterator<ConQueue> conQueueIt = conMap.getAllConQueue().iterator();
-		ConQueue queue = null;
-		if(conQueueIt.hasNext()) {
-			queue = conQueueIt.next();
-		}
-		
-		for(int i = 0; i < ildeCloseCount; i ++ ) {
-			
-			if(!needCloseIdleConnection() || queue == null) {
-				break; //如果当时空闲连接数没有超过最小配置连接数，则结束本次连接关闭
-			}
-			
-			LOGGER.info("cur conns:" + getTotalConnectionsSafe() );
-			
-			BackendConnection idleCon = queue.takeIdleCon(false);
-			
-			while(idleCon == null && conQueueIt.hasNext()) {
-				queue = conQueueIt.next();
-				idleCon = queue.takeIdleCon(false);
-			}
-			
-			if(idleCon == null) { 
+		List<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(
+				ildeCloseCount);
+		for (ConQueue queue : conMap.getAllConQueue()) {
+			readyCloseCons.addAll(queue.getIdleConsToClose(ildeCloseCount));
+			if (readyCloseCons.size() >= ildeCloseCount) {
 				break;
 			}
-			
-			if (idleCon.isBorrowed() ) {
+		}
+
+		for (BackendConnection idleCon : readyCloseCons) {
+			if (idleCon.isBorrowed()) {
 				LOGGER.warn("find idle con is using " + idleCon);
 			}
 			idleCon.close("too many idle con");
-			
 		}
+		
+//		LOGGER.info("too many ilde cons ,close some for datasouce  " + name);
+//		
+//		Iterator<ConQueue> conQueueIt = conMap.getAllConQueue().iterator();
+//		ConQueue queue = null;
+//		if(conQueueIt.hasNext()) {
+//			queue = conQueueIt.next();
+//		}
+//		
+//		for(int i = 0; i < ildeCloseCount; i ++ ) {
+//			
+//			if(!needCloseIdleConnection() || queue == null) {
+//				break; //如果当时空闲连接数没有超过最小配置连接数，则结束本次连接关闭
+//			}
+//			
+//			LOGGER.info("cur conns:" + getTotalConnectionsSafe() );
+//			
+//			BackendConnection idleCon = queue.takeIdleCon(false);
+//			
+//			while(idleCon == null && conQueueIt.hasNext()) {
+//				queue = conQueueIt.next();
+//				idleCon = queue.takeIdleCon(false);
+//			}
+//			
+//			if(idleCon == null) { 
+//				break;
+//			}
+//			
+//			if (idleCon.isBorrowed() ) {
+//				LOGGER.warn("find idle con is using " + idleCon);
+//			}
+//			idleCon.close("too many idle con");
+//			
+//		}
 		
 	}
 
@@ -378,27 +398,13 @@ public abstract class PhysicalDatasource {
 
 		final String[] schemas = dbPool.getSchemas();
 		for (int i = 0; i < createCount; i++) {
-			if (exceedMaxConnections()) {
+			if (this.getActiveCount() + this.getIdleCount() >= size) {
 				break;
 			}
 			try {
 				// creat new connection
-				
-				int curTotalConnection = this.totalConnection.get();
-				while(curTotalConnection + 1 <= size) {
-					
-					if (this.totalConnection.compareAndSet(curTotalConnection, curTotalConnection + 1)) {
-						String schema = schemas[i % schemas.length];
-						LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
-						this.createNewConnection(simpleHandler, null, schema);
-						return;
-					}
-					
-					curTotalConnection = this.totalConnection.get(); //CAS更新失败，则重新判断当前连接是否超过最大连接数
-					
-				}
-				
-				
+				this.createNewConnection(simpleHandler, null, schemas[i
+						% schemas.length]);
 			} catch (IOException e) {
 				LOGGER.warn("create connection err " + e);
 			}
@@ -444,10 +450,10 @@ public abstract class PhysicalDatasource {
 			String schema) {
 
 		conn.setBorrowed(true);
-		
-		if(takeConnectionContext.putIfAbsent(conn.getId(), TAKE_CONNECTION_FLAG) == null) {
-			incrementActiveCountSafe();
-		}
+
+//		if(takeConnectionContext.putIfAbsent(conn.getId(), TAKE_CONNECTION_FLAG) == null) {
+//			incrementActiveCountSafe();
+//		}
 		
 		
 		if (!conn.getSchema().equals(schema)) {
@@ -465,23 +471,33 @@ public abstract class PhysicalDatasource {
 	private void createNewConnection(final ResponseHandler handler,
 			final Object attachment, final String schema) throws IOException {		
 		// aysn create connection
+		final AtomicBoolean hasError = new AtomicBoolean(false);
+
 		MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
 			public void run() {
 				try {
 					createNewConnection(new DelegateResponseHandler(handler) {
 						@Override
 						public void connectionError(Throwable e, BackendConnection conn) {
-							//decrementTotalConnectionsSafe(); // 如果创建连接失败，将当前连接数减1
-							handler.connectionError(e, conn);
+							if(hasError.compareAndSet(false, true)) {
+								handler.connectionError(e, conn);
+							} else {
+								LOGGER.info("connection connectionError ");
+							}
 						}
 
 						@Override
 						public void connectionAcquired(BackendConnection conn) {
+							LOGGER.info("connection id is "+conn.getId());
 							takeCon(conn, handler, attachment, schema);
 						}
 					}, schema);
 				} catch (IOException e) {
-					handler.connectionError(e, null);
+					if(hasError.compareAndSet(false, true)) {
+						handler.connectionError(e, null);
+					} else {
+						LOGGER.info("connection connectionError ");
+					}
 				}
 			}
 		});
@@ -499,31 +515,31 @@ public abstract class PhysicalDatasource {
 			return;	
 			
 		} else { // this.getActiveCount并不是线程安全的（严格上说该方法获取数量不准确），
-			int curTotalConnection = this.totalConnection.get();
-			while(curTotalConnection + 1 <= size) {
-				
-				if (this.totalConnection.compareAndSet(curTotalConnection, curTotalConnection + 1)) {
-					LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
-					createNewConnection(handler, attachment, schema);
-					return;
-				}
-				
-				curTotalConnection = this.totalConnection.get(); //CAS更新失败，则重新判断当前连接是否超过最大连接数
-				
-			}
-			
-			// 如果后端连接不足，立即失败,故直接抛出连接数超过最大连接异常
-			LOGGER.error("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
-			throw new IOException("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
-			
-//			int activeCons = this.getActiveCount();// 当前最大活动连接
-//			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
-//				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
-//				throw new IOException("the max activeConnnections size can not be max than maxconnections");
-//			} else { // create connection
-//				LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
-//				createNewConnection(handler, attachment, schema);
+//			int curTotalConnection = this.totalConnection.get();
+//			while(curTotalConnection + 1 <= size) {
+//				
+//				if (this.totalConnection.compareAndSet(curTotalConnection, curTotalConnection + 1)) {
+//					LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
+//					createNewConnection(handler, attachment, schema);
+//					return;
+//				}
+//				
+//				curTotalConnection = this.totalConnection.get(); //CAS更新失败，则重新判断当前连接是否超过最大连接数
+//				
 //			}
+//			
+//			// 如果后端连接不足，立即失败,故直接抛出连接数超过最大连接异常
+//			LOGGER.error("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
+//			throw new IOException("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
+			
+			int activeCons = this.getActiveCount();// 当前最大活动连接
+			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
+				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
+				throw new IOException("the max activeConnnections size can not be max than maxconnections");
+			} else { // create connection
+				LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
+				createNewConnection(handler, attachment, schema);
+			}
 		}
 	}
 	
@@ -531,33 +547,33 @@ public abstract class PhysicalDatasource {
 	 * 是否超过最大连接数
 	 * @return
 	 */
-	private boolean exceedMaxConnections() {
-		return this.totalConnection.get() + 1 > size;
-	}
-	
-	public int decrementActiveCountSafe() {
-		return this.activeCount.decrementAndGet();
-	}
-	
-	public int incrementActiveCountSafe() {
-		return this.activeCount.incrementAndGet();
-	}
-	
-	public int getActiveCountSafe() {
-		return this.activeCount.get();
-	}
-	
-	public int getTotalConnectionsSafe() {
-		return this.totalConnection.get();
-	}
-	
-	public int decrementTotalConnectionsSafe() {
-		return this.totalConnection.decrementAndGet();
-	}
-	
-	public int incrementTotalConnectionSafe() {
-		return this.totalConnection.incrementAndGet();
-	}
+//	private boolean exceedMaxConnections() {
+//		return this.totalConnection.get() + 1 > size;
+//	}
+//	
+//	public int decrementActiveCountSafe() {
+//		return this.activeCount.decrementAndGet();
+//	}
+//	
+//	public int incrementActiveCountSafe() {
+//		return this.activeCount.incrementAndGet();
+//	}
+//	
+//	public int getActiveCountSafe() {
+//		return this.activeCount.get();
+//	}
+//	
+//	public int getTotalConnectionsSafe() {
+//		return this.totalConnection.get();
+//	}
+//	
+//	public int decrementTotalConnectionsSafe() {
+//		return this.totalConnection.decrementAndGet();
+//	}
+//	
+//	public int incrementTotalConnectionSafe() {
+//		return this.totalConnection.incrementAndGet();
+//	}
 
 	private void returnCon(BackendConnection c) {
 		
@@ -573,9 +589,9 @@ public abstract class PhysicalDatasource {
 			ok = queue.getManCommitCons().offer(c);
 		}
 		
-		if(c.getId() > 0 && takeConnectionContext.remove(c.getId(), TAKE_CONNECTION_FLAG) ) {
-			decrementActiveCountSafe();
-		}
+//		if(c.getId() > 0 && takeConnectionContext.remove(c.getId(), TAKE_CONNECTION_FLAG) ) {
+//			decrementActiveCountSafe();
+//		}
 		
 		if(!ok) {
 			LOGGER.warn("can't return to pool ,so close con " + c);
@@ -599,7 +615,7 @@ public abstract class PhysicalDatasource {
 			queue.removeCon(conn);
 		}
 		
-		decrementTotalConnectionsSafe(); 
+//		decrementTotalConnectionsSafe(); 
 	}
 
 	/**

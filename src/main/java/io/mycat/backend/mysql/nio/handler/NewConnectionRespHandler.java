@@ -43,6 +43,7 @@ public class NewConnectionRespHandler implements ResponseHandler{
 		//
 		LOGGER.info("connectionAcquired "+conn);
 		
+		conn.release(); //  NewConnectionRespHandler 因为这个是由于空闲连接数低于配置，需要新建连接，但再新建连接的时候，
 		
 	}
 

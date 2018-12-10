@@ -24,9 +24,11 @@
 package io.mycat.backend.heartbeat;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.mycat.statistic.DataSourceSyncRecorder;
 import io.mycat.statistic.HeartbeatRecorder;
+import io.mycat.util.LogUtil;
 
 public abstract class DBHeartbeat {
 	public static final int DB_SYN_ERROR = -1;
@@ -44,7 +46,7 @@ public abstract class DBHeartbeat {
 	protected String heartbeatSQL;// 静态心跳语句
 	protected final AtomicBoolean isStop = new AtomicBoolean(true);
 	protected final AtomicBoolean isChecking = new AtomicBoolean(false);
-	protected int errorCount;
+	protected AtomicInteger errorCount = new AtomicInteger(0);
 	protected volatile int status;
 	protected final HeartbeatRecorder recorder = new HeartbeatRecorder();
 	protected final DataSourceSyncRecorder asynRecorder = new DataSourceSyncRecorder();
@@ -85,7 +87,7 @@ public abstract class DBHeartbeat {
 	}
 
 	public int getErrorCount() {
-		return errorCount;
+		return errorCount.get();
 	}
 
 	public HeartbeatRecorder getRecorder() {
@@ -129,5 +131,34 @@ public abstract class DBHeartbeat {
 	public DataSourceSyncRecorder getAsynRecorder() {
 		return this.asynRecorder;
 	}
-
+	/*
+	 * 
+	 * @desc 將心跳的狀態寫入到日誌中
+	 * */
+	protected void writeStatusMsg(String dataHost, String dataSourceName,int nextstatus) {
+		if(status != nextstatus) {
+			StringBuilder msg = new StringBuilder("");
+			msg.append("[dataHost=").append(dataHost).append(", dataSource=").append(dataSourceName)
+			.append(",statue=").append(getMsg(status)).append(" -> ").append(getMsg(nextstatus)).append("]");
+			LogUtil.writeDataSourceLog(msg.toString());
+		}
+	}
+	/*
+	 * 
+	 * @return 獲取對應狀態的字符串狀態
+	 * */
+	protected String getMsg(int status) {
+		switch (status) {
+		case DBHeartbeat.INIT_STATUS:
+			return "init status";
+		case DBHeartbeat.TIMEOUT_STATUS:
+			return "timeout status";
+		case DBHeartbeat.OK_STATUS:
+			return "ok status";
+		case DBHeartbeat.ERROR_STATUS:
+			return "error status";	
+		default:
+			return "unknown status";	
+		}
+	}
 }

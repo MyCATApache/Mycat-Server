@@ -33,7 +33,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
+import java.util.TreeSet;
 
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.util.ByteUtil;
@@ -257,7 +257,7 @@ public class RowDataPacketGrouper {
 		
 		
 
-		Set<Integer> rmIndexSet = new HashSet<Integer>();
+		TreeSet<Integer> rmIndexSet = new TreeSet<Integer>();
 		for (MergeCol merg : mergCols) {
 			if(merg.mergeType==MergeCol.MERGE_AVG)
 			{
@@ -274,7 +274,8 @@ public class RowDataPacketGrouper {
 				}
 			}
 		}
-		for(Integer index : rmIndexSet) {
+		// remove by index from large to small, to make sure each element deleted correctly
+		for(int index : rmIndexSet.descendingSet()) {
 			toRow.fieldValues.remove(index);
 			toRow.fieldCount = toRow.fieldCount - 1;
 		}

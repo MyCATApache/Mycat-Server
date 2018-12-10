@@ -547,4 +547,14 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		return "PostgreSQLBackendConnection [id=" + id + ", host=" + host + ", port=" + port + ", localPort="
 				+ localPort + "]";
 	}
+
+	@Override
+	public void query(String sql, int charsetIndex) {
+		try {
+			query(sql);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
+		}
+	}
 }

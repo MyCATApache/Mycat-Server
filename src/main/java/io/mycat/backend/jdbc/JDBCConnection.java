@@ -30,6 +30,9 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 
+private InsertSqlBinary4PgRewriter insertSqlBinary4PgRewriter = new InsertSqlBinary4PgRewriter();
+private UpdateSqlBinary4PgRewriter updateSqlBinary4PgRewriter = new UpdateSqlBinary4PgRewriter();
+
 public class JDBCConnection implements BackendConnection {
 	protected static final Logger LOGGER = LoggerFactory
 			.getLogger(JDBCConnection.class);
@@ -56,8 +59,7 @@ public class JDBCConnection implements BackendConnection {
 
 	private NIOProcessor processor;
 	
-	private InsertSqlBinary4PgRewriter insertSqlBinary4PgRewriter = new InsertSqlBinary4PgRewriter();
-	private UpdateSqlBinary4PgRewriter updateSqlBinary4PgRewriter = new UpdateSqlBinary4PgRewriter();
+	
 	
 	public NIOProcessor getProcessor() {
         return processor;
@@ -319,7 +321,7 @@ public class JDBCConnection implements BackendConnection {
 					ouputResultSet(sc, orgin);
 				}
 			} else {
-				//如果Backend数据库类型是postgresql且SQL语句中存在"X'"或"_binary'", 则需要改写SQL
+        //如果Backend数据库类型是postgresql且SQL语句中存在"X'"或"_binary'", 则需要改写SQL
 				if ("postgresql".equalsIgnoreCase(dbType) &&
 						(orgin.indexOf("X'") >= 0 || orgin.indexOf("_binary'") >= 0)) {
 					switch (sqlType) {
@@ -332,7 +334,6 @@ public class JDBCConnection implements BackendConnection {
 					}
 				}
 				executeddl(sc, orgin);
-
 			}
 
 		} catch (SQLException e) {
@@ -884,6 +885,16 @@ public class JDBCConnection implements BackendConnection {
 	public void discardClose(String reason) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void query(String sql, int charsetIndex) {
+		try {
+			query(sql);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
+		}		
 	}
 	
 	

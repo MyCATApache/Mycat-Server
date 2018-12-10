@@ -5,7 +5,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,7 +67,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	private boolean hasOrCondition = false;
 	private List<WhereUnit> whereUnits = new CopyOnWriteArrayList<WhereUnit>();
 	private List<WhereUnit> storedwhereUnits = new CopyOnWriteArrayList<WhereUnit>();
-	private List<SQLSelect> subQuerys = new CopyOnWriteArrayList<>();  //子查询集合
+    private Queue<SQLSelect> subQuerys = new LinkedBlockingQueue<>();  //子查询集合
 	private boolean hasChange = false; // 是否有改写sql
 	private boolean subqueryRelationOr = false;   //子查询存在关联条件的情况下，是否有 or 条件
 	
@@ -903,24 +905,63 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	 * @param list2
 	 * @return
 	 */
-	private List<List<Condition>> merge(List<List<Condition>> list1, List<List<Condition>> list2) {
-		if(list1.size() == 0) {
-			return list2;
-		} else if (list2.size() == 0) {
-			return list1;
-		}
-		
+	    private List<List<Condition>> merge(List<List<Condition>> list1, List<List<Condition>> list2) {
+        if(list1.size() == 0) {
+            return list2;
+        } else if (list2.size() == 0) {
+            return list1;
+        }
+        
 		List<List<Condition>> retList = new ArrayList<List<Condition>>();
 		for(int i = 0; i < list1.size(); i++) {
 			for(int j = 0; j < list2.size(); j++) {
-				List<Condition> listTmp = new ArrayList<Condition>();
-				listTmp.addAll(list1.get(i));
-				listTmp.addAll(list2.get(j));
-				retList.add(listTmp);
+//				List<Condition> listTmp = new ArrayList<Condition>();
+//				listTmp.addAll(list1.get(i));
+//				listTmp.addAll(list2.get(j));
+//				retList.add(listTmp);
+			    /**
+		         * 单纯做笛卡尔积运算，会导致非常多不必要的条件列表，</br>
+		         * 当whereUnit和条件相对多时，会急剧增长条件列表项，内存直线上升，导致假死状态</br>
+		         * 因此，修改算法为 </br>
+		         * 1、先合并两个条件列表的元素为一个条件列表</br>
+		         * 2、计算合并后的条件列表，在结果retList中：</br>
+		         * &nbsp;2-1、如果当前的条件列表 是 另外一个条件列表的 超集，更新，并标识已存在</br>
+		         * &nbsp;2-2、如果当前的条件列表 是 另外一个条件列表的 子集，标识已存在</br>
+		         * 3、最后，如果被标识不存在，加入结果retList，否则丢弃。</br>
+		         * 
+		         * @author SvenAugustus
+		         */
+  			    // 合并两个条件列表的元素为一个条件列表
+                List<Condition> listTmp = mergeSqlConditionList(list1.get(i), list2.get(j));
+      
+                // 判定当前的条件列表 是否 另外一个条件列表的 子集
+                boolean exists = false;
+                Iterator<List<Condition>> it = retList.iterator();
+                while (it.hasNext()) {
+                  List<Condition> result = (List<Condition>) it.next();
+                  if (result != null && listTmp != null && listTmp.size() > result.size()) {
+                    // 如果当前的条件列表 是 另外一个条件列表的 超集，更新，并标识已存在
+                    if (sqlConditionListInOther(result, listTmp)) {
+                      result.clear();
+                      result.addAll(listTmp);
+                      exists = true;
+                      break;
+                    }
+                  } else {
+                    // 如果当前的条件列表 是 另外一个条件列表的 子集，标识已存在
+                    if (sqlConditionListInOther(listTmp, result)) {
+                      exists = true;
+                      break;
+                    }
+                  }
+                }
+                if (!exists) {// 被标识不存在，加入
+                  retList.add(listTmp);
+                } // 否则丢弃
 			}
 		}
-		return retList;
-	}
+        return retList;
+    }
 	
 	private void getConditionsFromWhereUnit(WhereUnit whereUnit) {
 		List<List<Condition>> retList = new ArrayList<List<Condition>>();
@@ -931,9 +972,14 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		this.conditions.clear();
 		for(SQLExpr sqlExpr : whereUnit.getSplitedExprList()) {
 			sqlExpr.accept(this);
-			List<Condition> conditions = new ArrayList<Condition>();
-			conditions.addAll(getConditions());
-			conditions.addAll(outSideCondition);
+//            List<Condition> conditions = new ArrayList<Condition>();
+//            conditions.addAll(getConditions()); conditions.addAll(outSideCondition);
+          /**
+           * 合并两个条件列表的元素为一个条件列表，减少不必要多的条件项</br>
+           * 
+           * @author SvenAugustus
+           */
+          List<Condition> conditions = mergeSqlConditionList(getConditions(), outSideCondition);
 			retList.add(conditions);
 			this.conditions.clear();
 		}
@@ -1113,7 +1159,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		return null;
     }
 
-	public List<SQLSelect> getSubQuerys() {
+    public Queue<SQLSelect> getSubQuerys() {
 		return subQuerys;
 	}
 	
@@ -1123,6 +1169,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 			subQuerys.add(sqlselect);
 			return;
 		}
+        boolean exists = false;
 		Iterator<SQLSelect> iter = subQuerys.iterator();
 		while(iter.hasNext()){
 			SQLSelect ss = iter.next();
@@ -1130,11 +1177,22 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 					&&sqlselect.getQuery() instanceof SQLSelectQueryBlock){
 				SQLSelectQueryBlock current = (SQLSelectQueryBlock)sqlselect.getQuery();
 				SQLSelectQueryBlock ssqb = (SQLSelectQueryBlock)ss.getQuery();
-
-				if(!sqlSelectQueryBlockEquals(ssqb,current)){
-					subQuerys.add(sqlselect);
+//                  if(!sqlSelectQueryBlockEquals(ssqb,current)){
+//                    subQuerys.add(sqlselect);
+//                  }
+                /**
+                 * 修正判定逻辑，应改为全不在subQuerys中才加入<br/>
+                 * 
+                 * @author SvenAugustus
+                 */
+                if(sqlSelectQueryBlockEquals(current,ssqb)){
+                   exists = true;
+                   break;
+                }
 				}
 			}
+        if(!exists) {
+          subQuerys.add(sqlselect);
 		}
 	}
 	
@@ -1170,4 +1228,174 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	public boolean isSubqueryRelationOr() {
 		return subqueryRelationOr;
 	}
+    
+    /**
+     * 判定当前的条件列表 是否 另外一个条件列表的 子集
+     * 
+     * @author SvenAugustus
+     * @param current 当前的条件列表 
+     * @param other 另外一个条件列表
+     * @return
+     */
+    private boolean sqlConditionListInOther(List<Condition> current, List<Condition> other) {
+      if (current == null) {
+        if (other != null) {
+          return false;
+        }
+        return true;
+      }
+      if (current.size() > other.size()) {
+        return false;
+      }
+      if (other.size() == current.size()) {
+        // 判定两个条件列表的元素是否内容相等
+        return sqlConditionListEquals(current, other);
+      }
+      for (int j = 0; j < current.size(); j++) {
+        boolean exists = false;
+        for (int i = 0; i < other.size(); i++) {
+          // 判定两个条件是否相等
+          if (sqlConditionEquals(current.get(j), other.get(i))) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    /**
+     * 判定两个条件列表的元素是否内容相等
+     * 
+     * @author SvenAugustus
+     * @param list1
+     * @param list2
+     * @return
+     */
+    private boolean sqlConditionListEquals(List<Condition> list1, List<Condition> list2) {
+      if (list1 == null) {
+        if (list2 != null) {
+          return false;
+        }
+        return true;
+      }
+      if (list2.size() != list1.size()) {
+        return false;
+      }
+      int len = list1.size();
+      for (int j = 0; j < len; j++) {
+        boolean exists = false;
+        for (int i = 0; i < len; i++) {
+          // 判定两个条件是否相等
+          if (sqlConditionEquals(list2.get(j), list1.get(i))) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    /**
+     * 合并两个条件列表的元素为一个条件列表
+     * 
+     * @author SvenAugustus
+     * @param list1 条件列表1
+     * @param list2 条件列表2
+     * @return
+     */
+    private List<Condition> mergeSqlConditionList(List<Condition> list1, List<Condition> list2) {
+      if (list1 == null) {
+        list1 = new ArrayList();
+      }
+      if (list2 == null) {
+        list2 = new ArrayList();
+      }
+      List<Condition> retList = new ArrayList<Condition>();
+      if (!list1.isEmpty() && !(list1.get(0) instanceof Condition)) {
+        return retList;
+      }
+      if (!list2.isEmpty() && !(list2.get(0) instanceof Condition)) {
+        return retList;
+      }
+      retList.addAll(list1);
+      for (int j = 0; j < list2.size(); j++) {
+        boolean exists = false;
+        for (int i = 0; i < list1.size(); i++) {
+          if (sqlConditionEquals(list2.get(j), list1.get(i))) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          retList.add(list2.get(j));
+        }
+      }
+      return retList;
+    }
+    
+    /**
+     * 判定两个条件是否相等
+     * 
+     * @author SvenAugustus
+     * @param obj1
+     * @param obj2
+     * @return
+     */
+    private boolean sqlConditionEquals(Condition obj1, Condition obj2) {
+      if (obj1 == obj2) {
+        return true;
+      }
+      if (obj2 == null) {
+        return false;
+      }
+      if (obj1.getClass() != obj2.getClass()) {
+        return false;
+      }
+      Condition other = (Condition) obj2;
+      if (obj1.getColumn() == null) {
+        if (other.getColumn() != null) {
+          return false;
+        }
+      } else if (!obj1.getColumn().equals(other.getColumn())) {
+        return false;
+      }
+      if (obj1.getOperator() == null) {
+        if (other.getOperator() != null) {
+          return false;
+        }
+      } else if (!obj1.getOperator().equals(other.getOperator())) {
+        return false;
+      }
+      if (obj1.getValues() == null) {
+        if (other.getValues() != null) {
+          return false;
+        }
+      } else {
+        boolean notEquals=false;
+        for (Object val1: obj1.getValues()) {
+          for (Object val2: obj2.getValues()) {
+            if(val1==null) {
+              if(val2!=null) {
+                notEquals=true;
+                break;
+              }
+            }else if(!val1.equals(val2)) {
+              notEquals=true;
+              break;
+            }
+          }
+          if(notEquals)break;
+        }
+        if(notEquals)
+        return false;
+      }
+      return true;
+    }
 }

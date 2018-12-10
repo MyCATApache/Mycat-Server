@@ -26,10 +26,12 @@ package io.mycat.backend.mysql.nio.handler;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -57,7 +59,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	private volatile String dataNode;
 	private AtomicInteger finished = new AtomicInteger(0);
 	protected final ReentrantLock lock = new ReentrantLock();
-	
+	private volatile ServerConnection sc; 
 	public String execute(String schema, String sql, List<String> dataNodes, ServerConnection sc) {
 		
 		String key = schema + ":" + sql;
@@ -72,7 +74,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 		long startTime = System.currentTimeMillis();
 		long endTime = startTime + 5 * 60 * 1000L;
 		MycatConfig conf = MycatServer.getInstance().getConfig();
-
+		this.sc = sc;
 		LOGGER.debug("find child node with sql:" + sql);
 		for (String dn : dataNodes) {
 			if (dataNode != null) {
@@ -81,7 +83,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 			PhysicalDBNode mysqlDN = conf.getDataNodes().get(dn);
 			try {
 				if (LOGGER.isDebugEnabled()) {
-					LOGGER.debug("execute in datanode " + dn);
+					LOGGER.debug(sc + "execute in datanode " + dn);
 				}
 				RouteResultsetNode node = new RouteResultsetNode(dn, ServerParse.SELECT, sql);
 				node.setRunOnSlave(false);	// 获取 子表节点，最好走master为好
@@ -114,6 +116,10 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 		}
 		if (dataNode != null) {
 			cache.putIfAbsent(key, dataNode);
+		}
+		if(System.currentTimeMillis() > endTime) {
+			LOGGER.error("timeout when executing fetch sql  " + sql);
+
 		}
 		return dataNode;
 		
@@ -211,7 +217,8 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 		err.read(data);
 		LOGGER.warn("errorResponse " + err.errno + " "
 				+ new String(err.message));
-		conn.release();
+		releaseConnection(conn);
+		LOGGER.warn(this.sc + " connection release " + conn + " errorResponse" );
 
 	}
 
@@ -220,7 +227,8 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 		boolean executeResponse = conn.syncAndExcute();
 		if (executeResponse) {
 			finished.incrementAndGet();
-			conn.release();
+			//conn.release();
+			releaseConnection(conn);
 		}
 
 	}
@@ -228,8 +236,8 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
 		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("received rowResponse response," + getColumn(row)
-					+ " from  " + conn);
+			LOGGER.debug(this.sc + "received rowResponse response," + getColumn(row)
+			+ " from  " + conn);
 		}
 		if (result == null) {
 			result = getColumn(row);
@@ -251,7 +259,8 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		finished.incrementAndGet();
-		conn.release();
+		//conn.release();
+		releaseConnection(conn);
 	}
 
 	private void executeException(BackendConnection c, Throwable e) {
@@ -268,7 +277,7 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-
+		finished.incrementAndGet();
 		LOGGER.warn("connection closed " + conn + " reason:" + reason);
 	}
 
@@ -277,5 +286,20 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 			byte[] eof, BackendConnection conn) {
 
 	}
-
+	private void releaseConnection(BackendConnection conn) {
+		if(this.sc  != null ) {
+			Map<RouteResultsetNode, BackendConnection> target = sc.getSession2().getTargetMap();
+			for(BackendConnection backConn :target.values()) {
+				if(backConn != null && backConn.equals(conn)) {
+					return ;
+				}
+			}
+//			if(sc.getSession2().tryExistsCon(conn, node)) {
+//				_execute(conn, node, sc);
+//			} else {
+//				mysqlDN.getConnection(mysqlDN.getDatabase(), sc.isAutocommit(), node, this, node);
+//			}
+		}
+		conn.release();
+	}
 }
