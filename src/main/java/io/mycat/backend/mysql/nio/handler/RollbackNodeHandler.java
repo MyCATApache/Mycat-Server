@@ -172,7 +172,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			}
 		}
 		if(writeCheckPoint) {
-			MultiNodeCoordinator.fileRepository.writeCheckpoint(MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
+			MultiNodeCoordinator.fileRepository.writeCheckpoint(session.getXaTXID(), MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
 
 		}
 

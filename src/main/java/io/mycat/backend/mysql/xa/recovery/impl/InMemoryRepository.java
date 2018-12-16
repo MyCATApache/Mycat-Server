@@ -1,5 +1,6 @@
 package io.mycat.backend.mysql.xa.recovery.impl;
 
+import io.mycat.backend.mysql.nio.handler.MultiNodeCoordinator;
 import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
 import io.mycat.backend.mysql.xa.ParticipantLogEntry;
 import io.mycat.backend.mysql.xa.TxState;
@@ -31,12 +32,12 @@ public class InMemoryRepository implements Repository {
     	count++ ;
     	if(count > 1000){
     		count = 0;
-    		clear();
+    		clear(id);
     		
     	}
         storage.put(id, coordinatorLogEntry);
     }
-    private void clear() {
+    private void clear(String id) {
     	Collection<CoordinatorLogEntry>  checkpointContent = storage.values();;
     	for (CoordinatorLogEntry coordinatorLogEntry : checkpointContent) {
     		ParticipantLogEntry[] participants = coordinatorLogEntry.participants;
@@ -48,8 +49,9 @@ public class InMemoryRepository implements Repository {
         			break;
         		}
         	}
-        	if(hasAllFinish) {
+        	if(hasAllFinish && !id.equals(coordinatorLogEntry.id)) {
             	storage.remove(coordinatorLogEntry.id);
+//            	((FileSystemRepository)MultiNodeCoordinator.fileRepository).writeStorage.remove(id);
         	}
         }
     }
@@ -83,7 +85,7 @@ public class InMemoryRepository implements Repository {
     }
 
     @Override
-    public void writeCheckpoint(
+    public void writeCheckpoint( String id,
             Collection<CoordinatorLogEntry> checkpointContent) {
         storage.clear();
         for (CoordinatorLogEntry coordinatorLogEntry : checkpointContent) {

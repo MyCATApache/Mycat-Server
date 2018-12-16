@@ -152,7 +152,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 //		if(session.getXaTXID()!=null) {
 			CoordinatorLogEntry coordinatorLogEntry = new CoordinatorLogEntry(session.getXaTXID(), false, participantLogEntry);
 			inMemoryRepository.put(session.getXaTXID(), coordinatorLogEntry);
-			fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
+			fileRepository.writeCheckpoint(session.getXaTXID(), inMemoryRepository.getAllCoordinatorLogEntries());
 //		}		
 	}
 
@@ -250,18 +250,19 @@ public class MultiNodeCoordinator implements ResponseHandler {
 						//recovery log
 						CoordinatorLogEntry coordinatorLogEntry = inMemoryRepository.get(xaTxId);
 						for(int i=0; i<coordinatorLogEntry.participants.length;i++){
-							LOGGER.debug("[In Memory CoordinatorLogEntry]"+coordinatorLogEntry.participants[i]);
+							//LOGGER.debug("[In Memory CoordinatorLogEntry]"+coordinatorLogEntry.participants[i]);
 							if(coordinatorLogEntry.participants[i].resourceName.equals(conn.getSchema())){
 								coordinatorLogEntry.participants[i].txState = TxState.TX_PREPARED_STATE;
 							}
 						}
 						inMemoryRepository.put(xaTxId,coordinatorLogEntry);
-						fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
+//						fileRepository.writeCheckpoint(xaTxId, inMemoryRepository.getAllCoordinatorLogEntries());
 						mysqlCon.setXaStatus(TxState.TX_PREPARED_STATE);
 
 						
 						//wait all nodes prepare and send all nodes prepare  
 						if(prepareCount.decrementAndGet() == 0) {
+							fileRepository.writeCheckpoint(xaTxId, inMemoryRepository.getAllCoordinatorLogEntries());
 							//判断是否有错误
 							if(faileCount.get() > 0) {
 								this.tryErrorFinished(true);
@@ -310,7 +311,7 @@ public class MultiNodeCoordinator implements ResponseHandler {
 						}
 					}
 					inMemoryRepository.put(xaTxId,coordinatorLogEntry);
-					fileRepository.writeCheckpoint(inMemoryRepository.getAllCoordinatorLogEntries());
+					fileRepository.writeCheckpoint(xaTxId, inMemoryRepository.getAllCoordinatorLogEntries());
 
 					//XA reset status now
 					mysqlCon.setXaStatus(TxState.TX_INITIALIZE_STATE);
