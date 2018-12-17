@@ -221,7 +221,7 @@ mysql -uroot -proot -P8066 -h127.0.0.1
 ## 配置：
 --bin  启动目录
 
---conf 配置文件存放配置文件：
+--conf 配置目录存放配置文件：
 
       --server.xml：是Mycat服务器参数调整和用户授权的配置文件。
 
