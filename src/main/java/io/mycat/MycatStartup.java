@@ -51,7 +51,8 @@ public final class MycatStartup {
             }
             // init
             MycatServer server = MycatServer.getInstance();
-            server.beforeStart();
+            //这个方法执行的代码，上面SystemConfig.getHomePath()已经执行过了，建议注释掉。
+            //server.beforeStart();
 
             // startup
             server.startup();
