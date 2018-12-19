@@ -48,23 +48,24 @@
         <!ATTLIST dataNode dataHost CDATA #REQUIRED>
         <!ATTLIST dataNode database CDATA #REQUIRED>
 
-        <!ELEMENT dataHost (heartbeat,(connectionInitSql*),(writeHost+))>
-        <!ATTLIST dataHost
-                balance CDATA #REQUIRED
-                maxCon CDATA #REQUIRED
-                minCon CDATA #REQUIRED
-                name NMTOKEN #REQUIRED
-                balance CDATA #REQUIRED
-		maxRetryCount CDATA #IMPLIED
-                writeType CDATA #IMPLIED
-                switchType  CDATA #IMPLIED
-                slaveThreshold  CDATA #IMPLIED
-                tempReadHostAvailable CDATA #IMPLIED
-                dbType CDATA #REQUIRED
-                filters CDATA #IMPLIED
-                logTime CDATA #IMPLIED
-                slaveIDs CDATA #IMPLIED
-                dbDriver CDATA #REQUIRED>
+<!ELEMENT dataHost (heartbeat,(connectionInitSql*),(writeHost+))>
+<!ATTLIST dataHost
+  balance CDATA #REQUIRED
+  maxCon CDATA #REQUIRED
+  minCon CDATA #REQUIRED
+  name NMTOKEN #REQUIRED
+  balance CDATA #REQUIRED
+  maxRetryCount CDATA #IMPLIED
+  writeType CDATA #IMPLIED
+  switchType  CDATA #IMPLIED
+  notSwitch CDATA #IMPLIED  
+  slaveThreshold  CDATA #IMPLIED
+  tempReadHostAvailable CDATA #IMPLIED
+  dbType CDATA #REQUIRED
+  filters CDATA #IMPLIED
+  logTime CDATA #IMPLIED
+    slaveIDs CDATA #IMPLIED
+  dbDriver CDATA #REQUIRED>
 
         <!ELEMENT writeHost (readHost)*>
         <!ATTLIST writeHost
