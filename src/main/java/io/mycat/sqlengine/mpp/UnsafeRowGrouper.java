@@ -700,6 +700,7 @@ public class UnsafeRowGrouper {
 					 case ColMeta.COL_TYPE_STRING:
 					 case ColMeta.COL_TYPE_ENUM:
 					 case ColMeta.COL_TYPE_SET:
+					 case ColMeta.COL_TYPE_DECIMAL:
 						 left = toRow.getBinary(index);
 						 right = newRow.getBinary(index);
 						 break;
@@ -753,6 +754,7 @@ public class UnsafeRowGrouper {
 						 case ColMeta.COL_TYPE_STRING:
 						 case ColMeta.COL_TYPE_ENUM:
 						 case ColMeta.COL_TYPE_SET:
+					     case ColMeta.COL_TYPE_DECIMAL:
 							 aggregationMap.free();
 							 DataNodeMemoryManager dataNodeMemoryManager =
 									 new DataNodeMemoryManager(memoryManager,Thread.currentThread().getId());
