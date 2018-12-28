@@ -21,7 +21,8 @@ https://github.com/MyCATApache/Mycat2
 
 
 * [Getting Started](https://github.com/MyCATApache/Mycat-doc/tree/master/en)
-* [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/blob/master/MyCat_In_Action_%E4%B8%AD%E6%96%87%E7%89%88.doc)
+* [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/tree/master/%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97)
+
 
 ## Features
 
@@ -220,7 +221,7 @@ mysql -uroot -proot -P8066 -h127.0.0.1
 ## 配置：
 --bin  启动目录
 
---conf 配置文件存放配置文件：
+--conf 配置目录存放配置文件：
 
       --server.xml：是Mycat服务器参数调整和用户授权的配置文件。
 
