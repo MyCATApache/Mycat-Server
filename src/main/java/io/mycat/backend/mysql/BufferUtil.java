@@ -75,7 +75,11 @@ public class BufferUtil {
     }
 
     public static final void writeLength(ByteBuffer buffer, long l) {
-        if (l < 251) {
+    	if(l < 0) {
+    		 buffer.put((byte) 254);
+             writeLong(buffer, l);
+     	} else  
+     		if (l < 251) {
             buffer.put((byte) l);
         } else if (l < 0x10000L) {
             buffer.put((byte) 252);
@@ -98,7 +102,8 @@ public class BufferUtil {
         int length = src.length;
         if (length < 251) {
             buffer.put((byte) length);
-        } else if (length < 0x10000L) {
+        } else 
+        	if (length < 0x10000L) {
             buffer.put((byte) 252);
             writeUB2(buffer, length);
         } else if (length < 0x1000000L) {
@@ -120,7 +125,9 @@ public class BufferUtil {
     }
 
     public static final int getLength(long length) {
-        if (length < 251) {
+    	if(length < 0){
+    		return 9;
+    	} else if (length < 251) {
             return 1;
         } else if (length < 0x10000L) {
             return 3;
