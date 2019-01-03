@@ -60,7 +60,7 @@ public class Deserializer {
 
 
             CoordinatorLogEntry actual = new CoordinatorLogEntry(header.get("id"),Boolean.valueOf(header.get("wasCommitted")),
-            		participantLogEntries,header.get("superiorCoordinatorId"), Long.valueOf(header.get("createTime")));
+                    participantLogEntries,header.get("superiorCoordinatorId"), Long.valueOf(header.get("createTime")));
             return actual;
         } catch (Exception unexpectedEOF) {
             throw new DeserialisationException(coordinatorLogEntryStr);

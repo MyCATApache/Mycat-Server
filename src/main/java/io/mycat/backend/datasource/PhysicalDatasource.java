@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +66,11 @@ public abstract class PhysicalDatasource {
 	private final DataHostConfig hostConfig;
 	private final ConnectionHeartBeatHandler conHeartBeatHanler = new ConnectionHeartBeatHandler();
 	private PhysicalDBPool dbPool;
+	private volatile long totalConnectionCount = 0L;
+	//判断是否需要同步 increamentCount
+	private LongAdder increamentCount = new LongAdder();
+	private long preIncrementCount = 0;
+
 	
 	// 添加DataSource读计数
 	private AtomicLong readCount = new AtomicLong(0);
@@ -415,6 +421,23 @@ public abstract class PhysicalDatasource {
 	public int getActiveCount() {
 		return this.conMap.getActiveCountForDs(this);
 	}
+
+	public long getTotalCount() {
+		return totalConnectionCount + increamentCount.intValue();
+	}
+
+	public void calcTotalCount() {
+		//当连接数增量开始变化的时候，先直接用increamentCount记录连接数，当一秒钟内不再有新增了之后，开始同步 totalConnectionCount
+		if (preIncrementCount == increamentCount.longValue()) {
+			long total = this.conMap.getTotalCountForDs(this);
+			long inc = increamentCount.sumThenReset() - preIncrementCount;
+			totalConnectionCount = total + inc;
+			preIncrementCount = 0;
+
+		} else {
+			preIncrementCount = increamentCount.longValue();
+		}
+	}
 	
 	
 
@@ -531,14 +554,18 @@ public abstract class PhysicalDatasource {
 //			// 如果后端连接不足，立即失败,故直接抛出连接数超过最大连接异常
 //			LOGGER.error("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
 //			throw new IOException("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
-			
-			int activeCons = this.getActiveCount();// 当前最大活动连接
-			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
+
+
+			// 当前最大连接
+			long activeCons = increamentCount.longValue()+totalConnectionCount;
+			if (activeCons < size) {// 下一个连接大于最大连接数
+				//提前increamentCount的操作
+				increamentCount.increment();
+				LOGGER.info("no ilde connection in pool "+System.identityHashCode(this)+" ,create new connection for "	+ this.name + " of schema " + schema + " totalConnectionCount: " + totalConnectionCount + " increamentCount: "+increamentCount);
+				createNewConnection(handler, attachment, schema);
+			} else { // create connection
 				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
 				throw new IOException("the max activeConnnections size can not be max than maxconnections");
-			} else { // create connection
-				LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
-				createNewConnection(handler, attachment, schema);
 			}
 		}
 	}

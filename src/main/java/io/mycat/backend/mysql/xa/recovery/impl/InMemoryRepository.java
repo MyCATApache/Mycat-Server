@@ -32,7 +32,7 @@ public class InMemoryRepository implements Repository {
     	count++ ;
     	if(count > 1000){
     		count = 0;
-    		clear(id);
+            clear(id);
     		
     	}
         storage.put(id, coordinatorLogEntry);
@@ -49,9 +49,9 @@ public class InMemoryRepository implements Repository {
         			break;
         		}
         	}
-        	if(hasAllFinish && !id.equals(coordinatorLogEntry.id)) {
+            if(hasAllFinish && !id.equals(coordinatorLogEntry.id)) {
             	storage.remove(coordinatorLogEntry.id);
-//            	((FileSystemRepository)MultiNodeCoordinator.fileRepository).writeStorage.remove(id);
+//                ((FileSystemRepository)MultiNodeCoordinator.fileRepository).writeStorage.remove(id);
         	}
         }
     }

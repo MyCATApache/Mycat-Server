@@ -30,6 +30,7 @@ import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SystemConfig;
 
+
 /**
  * Created by zhangchao on 2016/10/13.
  */
@@ -39,7 +40,7 @@ public class FileSystemRepository implements Repository{
     private VersionedFile file;
     private FileChannel rwChannel = null;
     private  Map<String, String > writeStorage = new HashMap<String, String>();
- 
+
     public FileSystemRepository()  {
            init();
     }
@@ -217,34 +218,34 @@ public class FileSystemRepository implements Repository{
     }
 
     @Override
-    public synchronized void writeCheckpoint(String id, 
-            Collection<CoordinatorLogEntry> checkpointContent)
+    public synchronized void writeCheckpoint(String id,
+                                             Collection<CoordinatorLogEntry> checkpointContent)
              {
 
         try {
-        	if(rwChannel == null) {
-            	initChannelIfNecessary();
-        	}
+            if(rwChannel == null) {
+                initChannelIfNecessary();
+            }
 //            closeOutput();
 //            rwChannel = file.openNewVersionForNioWriting();
 
             //判断xaId这条记录是否被修改
             boolean isUpdate = true;
             for (CoordinatorLogEntry coordinatorLogEntry : checkpointContent) {
-            	if(coordinatorLogEntry.id.equals(id)) {
-            		isUpdate = checkForUpdate(id, coordinatorLogEntry);
+                if(coordinatorLogEntry.id.equals(id)) {
+                    isUpdate = checkForUpdate(id, coordinatorLogEntry);
                     break;
-            	}
+                }
             }
             if(isUpdate == false ){
-            	return ;
+                return ;
             }
             //清空所有的缓存
             writeStorage.clear();
             rwChannel.position(0);
             long writeSize = 0 ;
             for (CoordinatorLogEntry coordinatorLogEntry : checkpointContent) {
-            	writeSize += write(coordinatorLogEntry, false);
+                writeSize += write(coordinatorLogEntry, false);
             }
 //            logger.info("xaId {} writeCheckpoint {}",id, writeStorage.get(id));
             rwChannel.truncate(writeSize);
@@ -260,18 +261,18 @@ public class FileSystemRepository implements Repository{
     }
 
     private boolean checkForUpdate(String id, CoordinatorLogEntry coordinatorLogEntry) {
-    	String backCoordinatorLogEntryStr = writeStorage.get(id);
+        String backCoordinatorLogEntryStr = writeStorage.get(id);
         String str = serializer.toJSON(coordinatorLogEntry);
-    	if(null == backCoordinatorLogEntryStr || !str.equals(backCoordinatorLogEntryStr)) {
+        if(null == backCoordinatorLogEntryStr || !str.equals(backCoordinatorLogEntryStr)) {
             writeStorage.put(id, str);
             return true;
-    	}
-    	return false;
-	}
-    
-    
+        }
+        return false;
+    }
 
-	/**
+
+
+    /**
      * create the log base dir
      * @param baseDir
      */
