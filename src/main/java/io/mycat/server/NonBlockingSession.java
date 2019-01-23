@@ -435,7 +435,7 @@ public class NonBlockingSession implements Session {
     }
 
     public boolean tryExistsCon(final BackendConnection conn, RouteResultsetNode node) {
-        if (conn == null) {
+        if (conn == null || conn.isClosed()) {
             return false;
         }
 
