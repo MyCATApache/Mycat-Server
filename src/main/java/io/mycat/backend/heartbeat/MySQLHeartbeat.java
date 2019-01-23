@@ -132,6 +132,12 @@ public class MySQLHeartbeat extends DBHeartbeat {
 						detector.setHeartbeatTimeout(this.getHeartbeatTimeout());
 						detector.heartbeat();
 					} catch (Exception e) {
+						/**
+						 * TODO 目前发现如果后端心跳状态检测有异常，仅仅是修改了状态，但没有进行处理。
+						 * 这样会导致，后端的Mysql回收了该连接，但是Mycat这边没回收。造成以下问题：
+						 * 1、导致Mycat的后端连接没有释放，一直增长；
+						 * 2、前端请求过来后，使用到该连接时就有有其他的异常出现；
+						 */
 						LOGGER.warn(source.getConfig().toString(), e);
 						setResult(ERROR_STATUS, detector, null);
 						return;
