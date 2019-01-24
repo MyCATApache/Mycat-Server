@@ -115,6 +115,9 @@ public class JDBCHeartbeat extends DBHeartbeat{
 			 * 这样会导致，后端的Mysql回收了该连接，但是Mycat这边没回收。造成以下问题：
 			 * 1、导致Mycat的后端连接没有释放，一直增长；
 			 * 2、前端请求过来后，使用到该连接时就有有其他的异常出现；
+			 *
+			 * 补充 从 io.mycat.route.util.RouterUtil的getAliveRandomDataNode方法里，
+			 * 有对后端Mysql连接状态的判断，这样的话，上诉的问题应该是其他地方造成的。
 			 */
 		    logger.error("JDBCHeartBeat error",ex);
 			status = ERROR_STATUS;

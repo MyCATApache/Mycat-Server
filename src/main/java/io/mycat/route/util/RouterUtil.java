@@ -829,10 +829,10 @@ public class RouterUtil {
 			for (String randomDn : randomDns) {
 				PhysicalDBNode physicalDBNode = mycatConfig.getDataNodes().get(randomDn);
 				if (physicalDBNode != null) {
-					if (physicalDBNode.getDbPool().getSource().isAlive()) {
+					if (physicalDBNode.getDbPool().getSource().isAlive()) { // 判断后端Mysql连接是否正常
 						for (PhysicalDBPool pool : MycatServer.getInstance().getConfig().getDataHosts().values()) {
 							PhysicalDatasource source = pool.getSource();
-							if (source.getHostConfig().containDataNode(randomDn) && pool.getSource().isAlive()) {
+							if (source.getHostConfig().containDataNode(randomDn) && pool.getSource().isAlive()) { // 判断后端Mysql连接是否正常 并且是否包含该数据库
 								return randomDn;
 							}
 						}
@@ -859,13 +859,13 @@ public class RouterUtil {
 		if (mycatConfig != null) {
 			PhysicalDBNode physicalDBNode = mycatConfig.getDataNodes().get(randomDn);
 			if (physicalDBNode != null) {
-				if (physicalDBNode.getDbPool().getSource().isAlive()) {
+				if (physicalDBNode.getDbPool().getSource().isAlive()) { // 判断后端Mysql连接是否正常
 					for (PhysicalDBPool pool : MycatServer.getInstance().getConfig().getDataHosts().values()) {
 						if (pool.getSource().getHostConfig().containDataNode(randomDn)) {
 							continue;
 						}
 
-						if (pool.getSource().isAlive()) {
+						if (pool.getSource().isAlive()) { // 判断后端Mysql连接是否正常
 							return pool.getSource().getHostConfig().getRandomDataNode();
 						}
 					}

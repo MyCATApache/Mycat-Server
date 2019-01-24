@@ -435,6 +435,7 @@ public class NonBlockingSession implements Session {
     }
 
     public boolean tryExistsCon(final BackendConnection conn, RouteResultsetNode node) {
+        // 这里需要判断已有的连接是否关闭，如果连接关闭了，则不能使用，需要创建新的连接
         if (conn == null || conn.isClosed()) {
             return false;
         }

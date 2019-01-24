@@ -133,10 +133,13 @@ public class MySQLHeartbeat extends DBHeartbeat {
 						detector.heartbeat();
 					} catch (Exception e) {
 						/**
-						 * TODO 目前发现如果后端心跳状态检测有异常，仅仅是修改了状态，但没有进行处理。
+						 * 目前发现如果后端心跳状态检测有异常，仅仅是修改了状态，但没有进行处理。
 						 * 这样会导致，后端的Mysql回收了该连接，但是Mycat这边没回收。造成以下问题：
 						 * 1、导致Mycat的后端连接没有释放，一直增长；
 						 * 2、前端请求过来后，使用到该连接时就有有其他的异常出现；
+						 *
+						 * 补充 从 io.mycat.route.util.RouterUtil的getAliveRandomDataNode方法里，
+						 * 有对后端Mysql连接状态的判断，这样的话，上诉的问题应该是其他地方造成的。
 						 */
 						LOGGER.warn(source.getConfig().toString(), e);
 						setResult(ERROR_STATUS, detector, null);

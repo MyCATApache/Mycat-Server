@@ -682,6 +682,10 @@ public abstract class PhysicalDatasource {
 		return config;
 	}
 
+	/**
+	 * 判断后端Mysql连接是否正常
+	 * @return
+	 */
 	public boolean isAlive() {
 		return getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS;
 	}
