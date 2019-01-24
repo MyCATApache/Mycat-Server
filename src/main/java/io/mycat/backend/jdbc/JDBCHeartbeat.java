@@ -1,6 +1,5 @@
 package io.mycat.backend.jdbc;
 
-import com.sun.xml.internal.bind.v2.TODO;
 import io.mycat.backend.heartbeat.DBHeartbeat;
 import io.mycat.statistic.HeartbeatRecorder;
 import org.slf4j.Logger;
