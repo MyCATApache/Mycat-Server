@@ -21,7 +21,8 @@ https://github.com/MyCATApache/Mycat2
 
 
 * [Getting Started](https://github.com/MyCATApache/Mycat-doc/tree/master/en)
-* [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/blob/master/MyCat_In_Action_%E4%B8%AD%E6%96%87%E7%89%88.doc)
+* [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/tree/master/%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97)
+
 
 ## Features
 
@@ -220,7 +221,7 @@ mysql -uroot -proot -P8066 -h127.0.0.1
 ## 配置：
 --bin  启动目录
 
---conf 配置文件存放配置文件：
+--conf 配置目录存放配置文件：
 
       --server.xml：是Mycat服务器参数调整和用户授权的配置文件。
 
@@ -243,8 +244,8 @@ mysql -uroot -proot -P8066 -h127.0.0.1
 
 ## 逻辑库配置：
 ### 配置server.xml
-添加两个mycat逻辑库：user,pay:
-system 参数是所有的mycat参数配置，比如添加解析器：defaultSqlParser，其他类推
+添加两个mycat逻辑库：user,pay  
+system 参数是所有的mycat参数配置，比如添加解析器：defaultSqlParser，其他类推  
 user 是用户参数。
 
 	<system>
@@ -327,7 +328,7 @@ dataHost是实际的物理库配置地址，可以配置多主主从等其他配
 
 ## 配置逻辑库（schema）
 
-Mycat作为一个中间件，实现mysql协议那么对前端应用连接来说就是一个数据库，也就有数据库的配置，mycat的数据库配置是在schema.xml中配置，配置好后映射到server.xml里面的用户就可以了。
+Mycat作为一个中间件，实现mysql协议，那么对前端应用连接来说就是一个数据库，也就有数据库的配置，mycat的数据库配置是在schema.xml中配置，配置好后映射到server.xml里面的用户就可以了。
 
 	<?xml version="1.0" encoding="UTF-8"?>
 	<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
@@ -427,7 +428,7 @@ algorithm 是规则对应的切分规则：映射到function 的name。
 
 function 配置是分片规则的配置。
 
-name 为切分规则的名称，名字人员取，但是需要与tableRule 中匹配。
+name 为切分规则的名称，名字任意取，但是需要与tableRule 中匹配。
 
 class 是切分规则对应的切分类，写死，需要哪种规则则配置哪种，例如本例子是按小时分片：org.opencloudb.route.function.LatestMonthPartion
 
