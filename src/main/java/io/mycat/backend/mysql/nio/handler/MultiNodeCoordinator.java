@@ -293,6 +293,8 @@ public class MultiNodeCoordinator implements ResponseHandler {
 														" current connection:"+conn.getHost()+":"+conn.getPort());
 											}
 											backMysqlCon.execCmd(cmd);
+										} else {
+											LOGGER.info("{} not in PREPARED_STATE", backMysqlCon);
 										}
 									}
 								}
@@ -323,7 +325,9 @@ public class MultiNodeCoordinator implements ResponseHandler {
 		}
 		
 		if (this.cmdHandler.relaseConOnOK()) {
-			session.releaseConnection(conn);
+			if(prepareCount.get() == 0) {
+				session.releaseConnection(conn);
+			}
 		} else {
 			session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(),
 					false);
