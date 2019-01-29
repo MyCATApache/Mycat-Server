@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.mycat</groupId>
 	<artifactId>Mycat-server</artifactId>
-	<version>1.6.5-release</version>
+	<version>1.6.7.1-release</version>
 	<packaging>jar</packaging>
 	<name>Mycat-server</name>
 	<description>The project of Mycat-server</description>
@@ -111,17 +111,17 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
-            <version>2.7</version>
+            <version>2.5</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.7</version>
+            <version>2.5</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-1.2-api</artifactId>
-            <version>2.7</version>
+            <version>2.5</version>
         </dependency>
 		<dependency>
 			<groupId>com.univocity</groupId>
@@ -134,15 +134,9 @@
 		<dependency>
 			<groupId>com.sequoiadb</groupId>
 			<artifactId>sequoiadb-driver</artifactId>
-			<version>2.6.0</version>
+			<version>1.12</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/postgresql/postgresql -->
-		<dependency>
-		    <groupId>postgresql</groupId>
-		    <artifactId>postgresql</artifactId>
-		    <version>9.1-901-1.jdbc4</version>
-		</dependency>
-		
+
 
 		<!--DOM4J FOR XML -->
 		<dependency>
@@ -195,7 +189,7 @@
 		<dependency>
 			<groupId>com.github.shyiko</groupId>
 			<artifactId>mysql-binlog-connector-java</artifactId>
-			<version>0.6.0</version>
+			<version>0.16.1</version>
 		</dependency>
 
 
@@ -237,11 +231,6 @@
 			<artifactId>netty-buffer</artifactId>
 			<version>4.1.9.Final</version>
 		</dependency>
-		
-		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
-
-	
-
 	</dependencies>
 
 
