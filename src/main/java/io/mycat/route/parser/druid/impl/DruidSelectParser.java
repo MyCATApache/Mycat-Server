@@ -12,6 +12,9 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
@@ -28,12 +31,14 @@ import com.alibaba.druid.sql.ast.expr.SQLNumericLiteralExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.db2.ast.stmt.DB2SelectQueryBlock;
 import com.alibaba.druid.sql.dialect.db2.visitor.DB2OutputVisitor;
@@ -70,6 +75,7 @@ import io.mycat.util.ObjectUtil;
 import io.mycat.util.StringUtil;
 
 public class DruidSelectParser extends DefaultDruidParser {
+	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 
     protected boolean isNeedParseOrderAgg=true;
@@ -424,22 +430,64 @@ public class DruidSelectParser extends DefaultDruidParser {
 			}
 			
 			if(rrs.isDistTable()){
-				SQLTableSource from = mysqlSelectQuery.getFrom();
-
-				for (RouteResultsetNode node : rrs.getNodes()) {
-					SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
-					sqlIdentifierExpr.setParent(from);
-					sqlIdentifierExpr.setName(node.getSubTableName());
-					SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
-					from2.setAlias(from.getAlias());
-					mysqlSelectQuery.setFrom(from2);
-					node.setStatement(stmt.toString());
-	            }
+				MySqlSelectQueryBlock query = (MySqlSelectQueryBlock) selectStmt.getSelect().getQuery();
+				SQLTableSource from2 = query.getFrom();
+				if (from2 instanceof SQLSubqueryTableSource) {
+					SQLSubqueryTableSource from = (SQLSubqueryTableSource) from2;
+					MySqlSelectQueryBlock query2 = (MySqlSelectQueryBlock) from.getSelect().getQuery();
+					sqlRoute(rrs, selectStmt, mysqlSelectQuery, query2);
+				} else {
+					sqlRoute(rrs, selectStmt, mysqlSelectQuery, query);
+				}
+				logger.info("执行sql： " + selectStmt.toString());
 			}
 			
 			rrs.setCacheAble(isNeedCache(schema, rrs, mysqlSelectQuery, allConditions));
 		}
 		
+	}
+	private void sqlRoute(RouteResultset rrs, SQLSelectStatement selectStmt, MySqlSelectQueryBlock mysqlSelectQuery,
+			MySqlSelectQueryBlock query) throws SQLNonTransientException {
+		SQLTableSource from2 = query.getFrom();
+		SQLExprTableSource left2 = (SQLExprTableSource) getExpr(from2);
+		String alias = left2.getAlias();
+		
+		left2.setAlias(alias);
+		
+		SQLTableSource from1 = mysqlSelectQuery.getFrom();
+
+		for (RouteResultsetNode node : rrs.getNodes()) {
+			/*
+			SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+			from2.setAlias(alias);
+			*/
+			SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
+			sqlIdentifierExpr.setParent(from1);
+			sqlIdentifierExpr.setName(node.getSubTableName());
+			left2.setExpr(sqlIdentifierExpr);
+			
+			//mysqlSelectQuery.setFrom(left2);
+			node.setStatement(selectStmt.toString());
+		}
+	}
+	
+	private SQLTableSource getExpr(SQLTableSource source) throws SQLNonTransientException {
+		if (source instanceof SQLExprTableSource) {
+			return source;
+		} else if (source instanceof SQLJoinTableSource) {
+			SQLJoinTableSource joinsource = (SQLJoinTableSource) source;
+			SQLTableSource right = joinsource.getRight();
+			
+			if (right instanceof SQLJoinTableSource) {
+				
+			} else {
+				
+			}
+			
+			return getExpr(joinsource.getLeft());
+		} else {
+			throw new SQLNonTransientException(ErrorCode.ER_PARSE_ERROR + " - " + "sql不支持");
+		}
 	}
 	
 	/**
