@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +31,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
 import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -1183,30 +1183,10 @@ public class RouterUtil {
 			throws SQLNonTransientException {
 
 		List<String> tables = ctx.getTables();
-
-		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
-			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
-		}
-
-		//只有一个表的
-		if(tables.size() == 1) {
-			return RouterUtil.tryRouteForOneTable(schema, ctx, routeUnit, tables.get(0), rrs, isSelect, cachePool);
-		}
-
-		Set<String> retNodesSet = new HashSet<String>();
+		
 		//每个表对应的路由映射
 		Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
-
-		//分库解析信息不为空
-		Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions = routeUnit.getTablesAndConditions();
-		if(tablesAndConditions != null && tablesAndConditions.size() > 0) {
-			//为分库表找路由
-			RouterUtil.findRouteWithcConditionsForTables(schema, rrs, tablesAndConditions, tablesRouteMap, ctx.getSql(), cachePool, isSelect);
-			if(rrs.isFinishedRoute()) {
-				return rrs;
-			}
-		}
-
+		
 		//为全局表和单库表找路由
 		for(String tableName : tables) {
 			
@@ -1235,7 +1215,39 @@ public class RouterUtil {
 				tablesRouteMap.put(tableName, new HashSet<String>());
 				tablesRouteMap.get(tableName).addAll(tableConfig.getDataNodes());
 			}
+			
+			if(tableConfig.getDistTables().size() > 0) {
+				Map<String, List<String>> subTablesmap = rrs.getSubTableMaps();
+				if (subTablesmap == null) {
+					subTablesmap = Maps.newHashMap();
+					rrs.setSubTableMaps(subTablesmap);
+				}
+				
+				subTablesmap.put(tableName.toUpperCase(), tableConfig.getDistTables());
+			}
 		}
+
+		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
+			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
+		}
+
+		//只有一个表的
+		if(tables.size() == 1) {
+			return RouterUtil.tryRouteForOneTable(schema, ctx, routeUnit, tables.get(0), rrs, isSelect, cachePool);
+		}
+
+		Set<String> retNodesSet = new HashSet<String>();
+
+		//分库解析信息不为空
+		Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions = routeUnit.getTablesAndConditions();
+		if(tablesAndConditions != null && tablesAndConditions.size() > 0) {
+			//为分库表找路由
+			RouterUtil.findRouteWithcConditionsForTables(schema, rrs, tablesAndConditions, tablesRouteMap, ctx.getSql(), cachePool, isSelect);
+			if(rrs.isFinishedRoute()) {
+				return rrs;
+			}
+		}
+
 
 		boolean isFirstAdd = true;
 		for(Map.Entry<String, Set<String>> entry : tablesRouteMap.entrySet()) {
@@ -1261,7 +1273,7 @@ public class RouterUtil {
 			String tableName = tables.get(0);
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
 			if(tableConfig.isDistTable()){
-				routeToDistTableNode(tableName,schema, rrs, ctx.getSql(), tablesAndConditions, cachePool, isSelect);
+				routeToDistTableNode(schema, rrs, ctx.getSql(), tablesAndConditions, cachePool, isSelect);
 				return rrs;
 			}
 
@@ -1307,7 +1319,7 @@ public class RouterUtil {
 		}
 
 		if(tc.isDistTable()){
-			return routeToDistTableNode(tableName,schema,rrs,ctx.getSql(), routeUnit.getTablesAndConditions(), cachePool,isSelect);
+			return routeToDistTableNode(schema,rrs,ctx.getSql(), routeUnit.getTablesAndConditions(), cachePool,isSelect);
 		}
 
 		if(tc.isGlobalTable()) {//全局表
@@ -1346,10 +1358,12 @@ public class RouterUtil {
 		}
 	}
 
-	private static RouteResultset routeToDistTableNode(String tableName, SchemaConfig schema, RouteResultset rrs,
+	private static RouteResultset routeToDistTableNode(SchemaConfig schema, RouteResultset rrs,
 			String orgSql, Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
 			LayerCachePool cachePool, boolean isSelect) throws SQLNonTransientException {
-
+		List<String> tables = rrs.getTables();
+		
+		String tableName = tables.get(0);
 		TableConfig tableConfig = schema.getTables().get(tableName);
 		if(tableConfig == null) {
 			String msg = "can't find table define in schema " + tableName + " schema:" + schema.getName();
@@ -1432,6 +1446,18 @@ public class RouterUtil {
 			String changeSql = orgSql;
 			nodes[i] = new RouteResultsetNode(dataNode, rrs.getSqlType(), changeSql);//rrs.getStatement()
 			nodes[i].setSubTableName(table);
+			
+			Map<String, List<String>> subTableMaps = rrs.getSubTableMaps();
+			if(subTableMaps != null) {
+				for (String tableSource : subTableMaps.keySet()) {
+					Map<String, String> subTableNames = nodes[i].getSubTableNames();
+					if (subTableNames == null) {
+						subTableNames = Maps.newHashMap();
+						nodes[i].setSubTableNames(subTableNames);
+					}
+					subTableNames.put(tableSource, subTableMaps.get(tableSource).get(i));
+				}
+			}
 			nodes[i].setSource(rrs);
 			if(rrs.getDataNodeSlotMap().containsKey(dataNode)){
 				nodes[i].setSlot(rrs.getDataNodeSlotMap().get(dataNode));
@@ -1472,7 +1498,7 @@ public class RouterUtil {
 				throw new SQLNonTransientException(msg);
 			}
 			if(tableConfig.getDistTables()!=null && tableConfig.getDistTables().size()>0){
-				routeToDistTableNode(tableName,schema,rrs,sql, tablesAndConditions, cachePool,isSelect);
+				routeToDistTableNode(schema,rrs,sql, tablesAndConditions, cachePool,isSelect);
 			}
 			//全局表或者不分库的表略过（全局表后面再计算）
 			if(tableConfig.isGlobalTable() || schema.getTables().get(tableName).getDataNodes().size() == 1) {

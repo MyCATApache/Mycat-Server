@@ -27,6 +27,8 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.util.Strings;
+
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.LoadData;
 
@@ -57,6 +59,7 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private Boolean runOnSlave = null;	// 默认null表示不施加影响, true走slave,false走master
 	
 	private String subTableName; // 分表的表名
+	private Map<String, String> subTableNames;//分表的表名集合
 
 	//迁移算法用     -2代表不是slot分片  ，-1代表扫描所有分片
 	private int slot=-2;
@@ -71,6 +74,14 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		canRunInReadDB = (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW);
 		hasBlanceFlag = (statement != null)
 				&& statement.startsWith("/*balance*/");
+	}
+
+	public Map<String, String> getSubTableNames() {
+		return subTableNames;
+	}
+
+	public void setSubTableNames(Map<String, String> subTableNames) {
+		this.subTableNames = subTableNames;
 	}
 
 	public Boolean getRunOnSlave() {
@@ -287,6 +298,10 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			return c;
 		}else{
 			if(c==0){
+				/*String subTableName2 = obj.subTableName;
+				if (Strings.isBlank(subTableName2)) {
+					return 1;
+				}*/
 				return this.subTableName.compareTo(obj.subTableName);
 			}
 			return c;
