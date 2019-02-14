@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAllExpr;
@@ -492,9 +493,15 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		if(statement instanceof SQLUpdateStatement) {
 			SQLUpdateStatement updateStatement = (SQLUpdateStatement) statement;
 			tableSource = updateStatement.getTableSource();
+			
+			String alias = tableSource.getAlias();
+			SQLExprTableSource exprSource = (SQLExprTableSource) tableSource;
+			SQLIdentifierExpr expr = (SQLIdentifierExpr) exprSource.getExpr();
+			alias = alias == null ? expr.getName() : alias;
+			
 			for (RouteResultsetNode node : rrs.getNodes()) {
 				SQLExprTableSource from2 = getDisTable(tableSource, node);
-				from2.setAlias(updateStatement.getTableSource().getAlias());
+				from2.setAlias(alias);
 				updateStatement.setTableSource(from2);
 				node.setStatement(updateStatement.toString());
 	        }
