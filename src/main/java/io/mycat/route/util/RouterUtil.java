@@ -1388,44 +1388,35 @@ public class RouterUtil {
 			throw new SQLNonTransientException(msg);
         }
         String dataNode = dataNodes.get(0);
-
+        
+        RouteResultsetNode[] nodes = null;
 		//主键查找缓存暂时不实现
         if(tablesAndConditions.isEmpty()){
         	List<String> subTables = tableConfig.getDistTables();
         	tablesRouteSet.addAll(subTables);
-        }
+        	
+        	nodes = getNode(rrs, orgSql, tablesRouteSet, dataNode, false, tableName);
+        } else {
 
-		for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
-			boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
-			Map<String, Set<ColumnRoutePair>> columnsMap = entry.getValue();
-
-			Set<ColumnRoutePair> partitionValue = columnsMap.get(partionCol);
-			if(partitionValue == null || partitionValue.size() == 0) {
-				tablesRouteSet.addAll(tableConfig.getDistTables());
-			} else {
-				for(ColumnRoutePair pair : partitionValue) {
-					AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
-					if(pair.colValue != null) {
-						Integer tableIndex = algorithm.calculate(pair.colValue);
-						if(tableIndex == null) {
-							String msg = "can't find any valid datanode :" + tableConfig.getName()
-									+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
-							LOGGER.warn(msg);
-							throw new SQLNonTransientException(msg);
-						}
-						String subTable = tableConfig.getDistTables().get(tableIndex);
-						if(subTable != null) {
-							tablesRouteSet.add(subTable);
-							if(algorithm instanceof SlotFunction){
-								rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
+			for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
+				boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
+				Map<String, Set<ColumnRoutePair>> columnsMap = entry.getValue();
+	
+				Set<ColumnRoutePair> partitionValue = columnsMap.get(partionCol);
+				if(partitionValue == null || partitionValue.size() == 0) {
+					tablesRouteSet.addAll(tableConfig.getDistTables());
+				} else {
+					for(ColumnRoutePair pair : partitionValue) {
+						AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
+						if(pair.colValue != null) {
+							Integer tableIndex = algorithm.calculate(pair.colValue);
+							if(tableIndex == null) {
+								String msg = "can't find any valid datanode :" + tableConfig.getName()
+										+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
+								LOGGER.warn(msg);
+								throw new SQLNonTransientException(msg);
 							}
-						}
-					}
-					if(pair.rangeValue != null) {
-						Integer[] tableIndexs = algorithm
-								.calculateRange(pair.rangeValue.beginValue.toString(), pair.rangeValue.endValue.toString());
-						for(Integer idx : tableIndexs) {
-							String subTable = tableConfig.getDistTables().get(idx);
+							String subTable = tableConfig.getDistTables().get(tableIndex);
 							if(subTable != null) {
 								tablesRouteSet.add(subTable);
 								if(algorithm instanceof SlotFunction){
@@ -1433,11 +1424,35 @@ public class RouterUtil {
 								}
 							}
 						}
+						if(pair.rangeValue != null) {
+							Integer[] tableIndexs = algorithm
+									.calculateRange(pair.rangeValue.beginValue.toString(), pair.rangeValue.endValue.toString());
+							for(Integer idx : tableIndexs) {
+								String subTable = tableConfig.getDistTables().get(idx);
+								if(subTable != null) {
+									tablesRouteSet.add(subTable);
+									if(algorithm instanceof SlotFunction){
+										rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
+									}
+								}
+							}
+						}
 					}
 				}
 			}
-		}
+			
+			nodes = getNode(rrs, orgSql, tablesRouteSet, dataNode, true, tableName);
+        }
+		
+		rrs.setNodes(nodes);
+		rrs.setSubTables(tablesRouteSet);
+		rrs.setFinishedRoute(true);
 
+		return rrs;
+	}
+
+	private static RouteResultsetNode[] getNode(RouteResultset rrs, String orgSql, Set<String> tablesRouteSet,
+			String dataNode, boolean is, String tableName) {
 		Object[] subTables =  tablesRouteSet.toArray();
 		RouteResultsetNode[] nodes = new RouteResultsetNode[subTables.length];
 	   Map<String,Integer> dataNodeSlotMap=	rrs.getDataNodeSlotMap();
@@ -1447,17 +1462,45 @@ public class RouterUtil {
 			nodes[i] = new RouteResultsetNode(dataNode, rrs.getSqlType(), changeSql);//rrs.getStatement()
 			nodes[i].setSubTableName(table);
 			
-			Map<String, List<String>> subTableMaps = rrs.getSubTableMaps();
-			if(subTableMaps != null) {
-				for (String tableSource : subTableMaps.keySet()) {
-					Map<String, String> subTableNames = nodes[i].getSubTableNames();
-					if (subTableNames == null) {
-						subTableNames = Maps.newHashMap();
-						nodes[i].setSubTableNames(subTableNames);
+			if (is) {
+				Map<String, List<String>> subTableMaps = rrs.getSubTableMaps();
+				if(subTableMaps != null) {
+					List<String> list = subTableMaps.get(tableName);
+					int index = 0;
+					for (String subTable : list) {
+						if (table.equals(subTable)) {
+							break;
+						}
+						index++;
 					}
-					subTableNames.put(tableSource, subTableMaps.get(tableSource).get(i));
+					for (String tableSource : subTableMaps.keySet()) {
+						Map<String, String> subTableNames = nodes[i].getSubTableNames();
+						if (subTableNames == null) {
+							subTableNames = Maps.newHashMap();
+							nodes[i].setSubTableNames(subTableNames);
+						}
+						if (tableSource.equals(tableName)) {
+							subTableNames.put(tableSource, table);
+						} else {
+							subTableNames.put(tableSource, subTableMaps.get(tableSource).get(index));
+						}
+						
+					}
+				}
+			} else {
+				Map<String, List<String>> subTableMaps = rrs.getSubTableMaps();
+				if(subTableMaps != null) {
+					for (String tableSource : subTableMaps.keySet()) {
+						Map<String, String> subTableNames = nodes[i].getSubTableNames();
+						if (subTableNames == null) {
+							subTableNames = Maps.newHashMap();
+							nodes[i].setSubTableNames(subTableNames);
+						}
+						subTableNames.put(tableSource, subTableMaps.get(tableSource).get(i));
+					}
 				}
 			}
+			
 			nodes[i].setSource(rrs);
 			if(rrs.getDataNodeSlotMap().containsKey(dataNode)){
 				nodes[i].setSlot(rrs.getDataNodeSlotMap().get(dataNode));
@@ -1472,11 +1515,7 @@ public class RouterUtil {
 				nodes[0].setRunOnSlave(rrs.getRunOnSlave());
 			}
 		}
-		rrs.setNodes(nodes);
-		rrs.setSubTables(tablesRouteSet);
-		rrs.setFinishedRoute(true);
-
-		return rrs;
+		return nodes;
 	}
 
 	/**
