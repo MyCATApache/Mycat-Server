@@ -60,19 +60,20 @@ public final class SystemConfig {
 	private int frontSocketNoDelay = 1; // 0=false
 	private int backSocketNoDelay = 1; // 1=true
 	public static final int DEFAULT_POOL_SIZE = 128;// 保持后端数据通道的默认最大值
-	public static final long DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000L;
+	public static final long  DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000L;
 	private static final long DEFAULT_PROCESSOR_CHECK_PERIOD = 1 * 1000L;
 	private static final long DEFAULT_DATANODE_IDLE_CHECK_PERIOD = 5 * 60 * 1000L; //连接空闲检查
 	private static final long DEFAULT_DATANODE_HEARTBEAT_PERIOD = 10 * 1000L;  //心跳检查周期
 	private static final long DEFAULT_CLUSTER_HEARTBEAT_PERIOD = 5 * 1000L;
 	private static final long DEFAULT_CLUSTER_HEARTBEAT_TIMEOUT = 10 * 1000L;
-	private static final int DEFAULT_CLUSTER_HEARTBEAT_RETRY = 10;
-	private static final int DEFAULT_MAX_LIMIT = 100;
-	private static final String DEFAULT_CLUSTER_HEARTBEAT_USER = "_HEARTBEAT_USER_";
-	private static final String DEFAULT_CLUSTER_HEARTBEAT_PASS = "_HEARTBEAT_PASS_";
-	private static final int DEFAULT_PARSER_COMMENT_VERSION = 50148;
-	private static final int DEFAULT_SQL_RECORD_COUNT = 10;
+	private static final int  DEFAULT_CLUSTER_HEARTBEAT_RETRY = 10;
+	private static final int  DEFAULT_MAX_LIMIT = 100;
+	private static final String  DEFAULT_CLUSTER_HEARTBEAT_USER = "_HEARTBEAT_USER_";
+	private static final String  DEFAULT_CLUSTER_HEARTBEAT_PASS = "_HEARTBEAT_PASS_";
+	private static final int     DEFAULT_PARSER_COMMENT_VERSION = 50148;
+	private static final int     DEFAULT_SQL_RECORD_COUNT = 10;
 	private static final boolean DEFAULT_USE_ZK_SWITCH = false;
+	private static final int     DEFAULT_MAX_PREPAREDSTMT_COUNT = 16382;
 	private int maxStringLiteralLength = 65535;
 	private int frontWriteQueueSize = 2048;
 	private String bindIp = "0.0.0.0";
@@ -100,6 +101,11 @@ public final class SystemConfig {
 	private int txIsolation;
 	private int parserCommentVersion;
 	private int sqlRecordCount;
+
+	/**
+	 * 预处理占位符最大数量
+	 */
+	private int maxPreparedStmtCount;
 
 	// a page size
 	private int bufferPoolPageSize;
@@ -293,6 +299,16 @@ public final class SystemConfig {
 		this.dataNodeSortedTempDir = System.getProperty("user.dir");
 		this.XARecoveryLogBaseDir = SystemConfig.getHomePath()+"/tmlogs/";
 		this.XARecoveryLogBaseName ="tmlog";
+
+		this.maxPreparedStmtCount = DEFAULT_MAX_PREPAREDSTMT_COUNT;
+	}
+
+	public void setMaxPreparedStmtCount(int maxPreparedStmtCount){
+		this.maxPreparedStmtCount = maxPreparedStmtCount;
+	}
+
+	public int getMaxPreparedStmtCount(){
+		return this.maxPreparedStmtCount;
 	}
 
 	public String getDataNodeSortedTempDir() {

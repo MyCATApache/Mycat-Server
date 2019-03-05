@@ -96,6 +96,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private byte[] header = null;
 	private List<byte[]> fields = null;
 
+	// by kaiz : 为了解决Mybatis获取由Mycat生成自增主键时，MySQL返回的Last_insert_id为最大值的问题；
+	//		当逻辑表设置了autoIncrement='false'时，MyCAT会将ok packet当中的最小last insert id记录下来，返回给应用
+	// 		当逻辑表设置了autoIncrement='true'时，MyCAT会将ok packet当中的最大的last insert id记录下来，然后减掉affected rows的数量后，返回给应用
+
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 								 boolean autocommit, NonBlockingSession session) {
 
@@ -292,10 +296,20 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				} else {
 					affectedRows = ok.affectedRows;
 				}
+
 				if (ok.insertId > 0) {
-					insertId = (insertId == 0) ? ok.insertId : Math.min(
-							insertId, ok.insertId);
+					if (rrs.getAutoIncrement()) {
+						insertId = (insertId == 0) ? ok.insertId : Math.max(
+								insertId, ok.insertId);
+					} else {
+                        insertId = (insertId == 0) ? ok.insertId : Math.min(
+                                insertId, ok.insertId);
+					}
 				}
+
+
+			} catch (Exception e) {
+				e.printStackTrace();
 			} finally {
 				lock.unlock();
 			}
@@ -331,7 +345,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					ok.affectedRows = affectedRows;
 					ok.serverStatus = source.isAutocommit() ? 2 : 1;
 					if (insertId > 0) {
-						ok.insertId = insertId;
+						ok.insertId = rrs.getAutoIncrement() ? (insertId - affectedRows + 1) : insertId;
 						source.setLastInsertId(insertId);
 					}
 					//  判断是否已经报错返回给前台了 2018.07 

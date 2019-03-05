@@ -131,27 +131,35 @@ public class XMLServerLoader {
             Node node = list.item(i);
             if (node instanceof Element) {
                 Element e = (Element) node;
-                String host = e.getAttribute("host").trim();
+                String hostStr = e.getAttribute("host").trim();
                 String userStr = e.getAttribute("user").trim();
-                if (this.firewall.existsHost(host)) {
-                    throw new ConfigException("host duplicated : " + host);
+                String []hosts = hostStr.split(",");
+                for (String host : hosts) {
+                    host = host.trim();
+                    if (this.firewall.existsHost(host)) {
+                        throw new ConfigException("host duplicated : " + host);
+                    }
                 }
                 String []users = userStr.split(",");
                 List<UserConfig> userConfigs = new ArrayList<UserConfig>();
                 for(String user : users){
+                    user = user.trim();
                 	UserConfig uc = this.users.get(user);
                     if (null == uc) {
-                        throw new ConfigException("[user: " + user + "] doesn't exist in [host: " + host + "]");
+                        throw new ConfigException("[user: " + user + "] doesn't exist in [host: " + hostStr + "]");
                     }
                     if (uc.getSchemas() == null || uc.getSchemas().size() == 0) {
-                        throw new ConfigException("[host: " + host + "] contains one root privileges user: " + user);
+                        throw new ConfigException("[host: " + hostStr + "] contains one root privileges user: " + user);
                     }
                     userConfigs.add(uc);
                 }
-                if(host.contains("*")||host.contains("%")){
-                    whitehostMask.put(FirewallConfig.getMaskPattern(host),userConfigs);
-                }else{
-                    whitehost.put(host, userConfigs);
+                for (String host : hosts) {
+                    host = host.trim();
+                    if (host.contains("*") || host.contains("%")) {
+                        whitehostMask.put(FirewallConfig.getMaskPattern(host), userConfigs);
+                    } else {
+                        whitehost.put(host, userConfigs);
+                    }
                 }
             }
         }
