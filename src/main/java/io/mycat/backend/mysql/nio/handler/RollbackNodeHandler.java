@@ -26,7 +26,11 @@ package io.mycat.backend.mysql.nio.handler;
 import java.util.List;
 
 import io.mycat.backend.mysql.nio.MySQLConnection;
+import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
+import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.config.ErrorCode;
+import io.mycat.net.mysql.OkPacket;
+
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
@@ -56,7 +60,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			decrementCountToZero();
 			return;
 		}
-		
+		int start = 0 ;
 		boolean hasClose = false;
 		for (final RouteResultsetNode node : session.getTargetKeys()) {
 			if (node == null) {
@@ -70,12 +74,14 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 				boolean isClosed=conn.isClosedOrQuit();
 				if(isClosed) {
 					hasClose = true;
-					break;
+//					break;
+				} else {
+					start ++;
 				}
 			}
 		}
-		//有连接已被关闭 直接关闭所有的连接
-		if(hasClose ) {
+		//有连接已被关闭 直接关闭所有的连接， 非xa模式下 ，xa prepare状态下需要rollback
+		if(hasClose && session.getXaTXID() == null) {
 			LOGGER.warn("find close back conn close ,so close all back connection"
 					+ session.getSource());
 			session.setAutoCommitStatus(); //一定是先恢复状态 在写消息
@@ -87,10 +93,15 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 		
 		// 执行
 		//modify by zwy
-//		int closeCount = 0;
 		
 		// 执行
-	//	int started = 0;
+		lock.lock();
+		try {
+			reset(start);
+		} finally {
+			lock.unlock();
+		}
+		boolean writeCheckPoint = false;
 		for (final RouteResultsetNode node : session.getTargetKeys()) {
 			if (node == null) {
 					LOGGER.error("null is contained in RoutResultsetNodes, source = "
@@ -102,10 +113,12 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			if (conn != null) {
 				boolean isClosed=conn.isClosedOrQuit();
 				    if(isClosed)
-					{
+					{				    	
+				    	this.setFail("receive rollback,but find backend con is closed or quit");
 					//	session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
 					//			"receive rollback,but find backend con is closed or quit");
 						LOGGER.error( conn+"receive rollback,but fond backend con is closed or quit");
+						continue;
 					}
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("rollback job run for " + conn);
@@ -115,13 +128,40 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 				}
 				conn.setResponseHandler(RollbackNodeHandler.this);
 
-				//support the XA rollback
+				//support the XA rollback 
+				//to do to write xa recover log and judge xa statue to judge if send xa end 
 				if(session.getXaTXID()!=null && conn instanceof  MySQLConnection) {
 					MySQLConnection mysqlCon = (MySQLConnection) conn;
-					String xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
+					
+					//recovery log
+					String xaTxId = session.getXaTXID();
+					CoordinatorLogEntry coordinatorLogEntry = MultiNodeCoordinator.inMemoryRepository.get(xaTxId);
+					if(coordinatorLogEntry != null) {
+						writeCheckPoint = true;
+						//已经prepare的修改recover log
+						for(int i=0; i<coordinatorLogEntry.participants.length;i++){
+							if(coordinatorLogEntry.participants[i].resourceName.equals(conn.getSchema())){
+								coordinatorLogEntry.participants[i].txState = TxState.TX_ROLLBACKED_STATE;
+							}
+						}
+						MultiNodeCoordinator.inMemoryRepository.put(xaTxId,coordinatorLogEntry);
+					}
+					
+					xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
 					//exeBatch cmd issue : the 2nd package can not receive the response
-					mysqlCon.execCmd("XA END " + xaTxId  + ";");
-					mysqlCon.execCmd("XA ROLLBACK " + xaTxId + ";");
+//					mysqlCon.execCmd("XA END " + xaTxId  + ";");
+//					mysqlCon.execCmd("XA ROLLBACK " + xaTxId + ";");		
+					if(mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE ){
+						 String[] cmds = new String[]{"XA END " + xaTxId  + "",
+								 " XA ROLLBACK " + xaTxId + ";"};
+						   mysqlCon.execBatchCmd(cmds);
+					} else if(mysqlCon.getXaStatus() == TxState.TX_PREPARED_STATE ){						
+						 String[] cmds = new String[]{" XA ROLLBACK " + xaTxId + ";"};						   
+						 mysqlCon.execBatchCmd(cmds);
+					} else {
+						LOGGER.warn("{} xaStat is {} ,to rollback is error" ,mysqlCon, mysqlCon.getXaStatus());
+					}			
+					mysqlCon.setXaStatus(TxState.TX_ROLLBACKED_STATE);
 				}else {
 					//modify by zwy
 					if(!conn.isClosedOrQuit()) {
@@ -129,23 +169,28 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 						//++started;
 					}
 				}
-
-
-				//++started;
 			}
 		}
+		if(writeCheckPoint) {
+			MultiNodeCoordinator.fileRepository.writeCheckpoint(session.getXaTXID(), MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
 
-//		if (started < initCount && decrementCountBy(initCount - started)) {
-//			/**
-//			 * assumption: only caused by front-end connection close. <br/>
-//			 * Otherwise, packet must be returned to front-end
-//			 */
-//			session.clearResources(true);
-//		}
+		}
+
 	}
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
+		
+		if(session.getXaTXID()!=null) {
+			//xa 
+			if( conn instanceof  MySQLConnection) {
+				MySQLConnection mysqlCon = (MySQLConnection) conn;
+				if (!mysqlCon.batchCmdFinished()) { 
+					// 
+					return;
+				}
+			}			
+		}		
 		if (decrementCountBy(1)) {
 			// clear all resources
 			session.clearResources(false);
@@ -154,9 +199,11 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			if (this.isFail() || session.closed()) {
 				tryErrorFinished(true);
 			} else {
-
 		        if(session.getSource().canResponse()) {
-					session.getSource().write(ok);
+		        	OkPacket okPacket = new OkPacket();
+		        	okPacket.read(ok);
+		        	okPacket.packetId = 1;
+					session.getSource().write(okPacket.writeToBytes());
 				}
 			}
 		}
@@ -211,8 +258,7 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 		}
 	}
 	protected void tryErrorFinished(boolean allEnd) {
-		if (allEnd && !session.closed()) {
-			
+		if (allEnd && !session.closed()) {		
 			
 			
 			// clear session resources,release all

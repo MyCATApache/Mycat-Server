@@ -16,7 +16,11 @@ import java.util.Map;
  */
 public class RouterUtilTest {
 
-
+	public static void main(String[] args) {
+        String sql = "insert into hotnews(title,name) values('test1',\"name\"),('(test)',\"(test)\"),('\\\"',\"\\'\"),(\")\",\"\\\"\\')\");";
+        List<String> values = RouterUtil.handleBatchInsert(sql, sql.toUpperCase().indexOf("VALUES"));
+		System.out.println(values);
+	}	
 
     @Test
     public void testBatchInsert()  {

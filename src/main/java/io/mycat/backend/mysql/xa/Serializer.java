@@ -17,6 +17,8 @@ public class Serializer {
         strBuilder.append(START_OBJECT);
         strBuilder.append(QUOTE).append("id").append(QUOTE).append(":").append(QUOTE).append(coordinatorLogEntry.id).append(QUOTE);
         strBuilder.append(PROPERTY_SEPARATOR);
+        strBuilder.append(QUOTE).append("createTime").append(QUOTE).append(":").append(QUOTE).append(coordinatorLogEntry.createTime).append(QUOTE);
+        strBuilder.append(PROPERTY_SEPARATOR);
         //strBuilder.append(QUOTE).append("wasCommitted").append(QUOTE).append(":").append(coordinatorLogEntry.wasCommitted);
         //strBuilder.append(PROPERTY_SEPARATOR);
 

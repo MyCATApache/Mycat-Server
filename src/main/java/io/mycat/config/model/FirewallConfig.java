@@ -69,6 +69,9 @@ public final class FirewallConfig {
 	public static Pattern getMaskPattern(String host){
 		return Pattern.compile(host.replaceAll("\\.","\\\\.").replaceAll("[*]","[0-9]*").replaceAll("%","[0-9]*"));
 	}
+	public static String getHost(Pattern maskPattern){
+		return maskPattern.pattern().replaceAll("\\\\.","\\.").replaceAll("\\[0-9\\]","");
+	}
     private List<String> blacklist;
     private boolean check = false;
     
