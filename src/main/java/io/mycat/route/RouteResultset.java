@@ -131,6 +131,7 @@ public final class RouteResultset implements Serializable {
      * 是否是 selectForUpdate
      */
     private boolean selectForUpdate;
+    private boolean autoIncrement;
 
     private List<String> tables;
 
@@ -502,4 +503,11 @@ public final class RouteResultset implements Serializable {
         return s.toString();
     }
 
+    public void setAutoIncrement(boolean b) {
+        autoIncrement = b;
+    }
+
+    public boolean getAutoIncrement() {
+        return autoIncrement;
+    }
 }

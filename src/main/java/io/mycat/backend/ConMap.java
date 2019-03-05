@@ -140,13 +140,28 @@ public class ConMap {
         }
         return total;
     }
+    public int getTotalCountForDs(PhysicalDatasource dataSouce) {
+        int total = 0;
+        for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
+            for (BackendConnection con : processor.getBackends().values()) {
+                if (con instanceof MySQLConnection) {
+                    MySQLConnection mysqlCon = (MySQLConnection) con;
+                    if (mysqlCon.getPool() == dataSouce && !mysqlCon.isClosed()) {
+                        total++;
+                    }
 
-	/**
-	 * 清空连接
-	 * @param reason
-	 * @param dataSouce
-	 */
-	public void clearConnections(String reason, PhysicalDatasource dataSouce) {
+                } else if (con instanceof JDBCConnection) {
+                    JDBCConnection jdbcCon = (JDBCConnection) con;
+                    if (jdbcCon.getPool() == dataSouce && !jdbcCon.isClosed()) {
+                        total++;
+                    }
+                }
+            }
+        }
+        return total;
+    }
+
+    public void clearConnections(String reason, PhysicalDatasource dataSouce) {
         for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
             ConcurrentMap<Long, BackendConnection> map = processor.getBackends();
             Iterator<Entry<Long, BackendConnection>> itor = map.entrySet().iterator();
@@ -158,7 +173,7 @@ public class ConMap {
                         con.close(reason);
                         itor.remove();
                     }
-                }else if((con instanceof JDBCConnection)
+                } else if((con instanceof JDBCConnection)
 						&& (((JDBCConnection) con).getPool() == dataSouce)){
                         con.close(reason);
                         itor.remove();
