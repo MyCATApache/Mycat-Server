@@ -76,6 +76,7 @@ public final class RouteResultset implements Serializable {
     private Map<String,Integer>   dataNodeSlotMap=new HashMap<>();
 
     private boolean selectForUpdate;
+    private boolean autoIncrement;
 
     public boolean isSelectForUpdate() {
         return selectForUpdate;
@@ -439,4 +440,11 @@ public final class RouteResultset implements Serializable {
         return s.toString();
     }
 
+    public void setAutoIncrement(boolean b) {
+        autoIncrement = b;
+    }
+
+    public boolean getAutoIncrement() {
+        return autoIncrement;
+    }
 }
