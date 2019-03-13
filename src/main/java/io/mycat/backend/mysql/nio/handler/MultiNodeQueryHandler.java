@@ -546,6 +546,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
  					 String str =  ResultSetUtil.getColumnValAsString(data, fields, 0);
  					 //真的需要数据合并的时候才合并
  					 if(rrs.isHasAggrColumn()){
+						 // 有sql sum、count、平均值函数列
  						 middlerResultHandler.getResult().clear();
  						 if(str !=null){
   							 middlerResultHandler.add(str);
@@ -770,6 +771,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 						ColMeta colMeta = new ColMeta(i, fieldPkg.type);
 						colMeta.decimals = fieldPkg.decimals;
+
+						// TODO 这里有问题，如果列是 COUNT(DISTINCT 字段名) AS 别名，在后续的 io.mycat.sqlengine.mpp.DataNodeMergeManager 或 io.mycat.sqlengine.mpp.DataMergeService 的 onRowMetaData 方法里有问题
 						columToIndx.put(fieldName, colMeta);
 					}
 				} else {
