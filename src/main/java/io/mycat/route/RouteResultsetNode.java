@@ -25,7 +25,6 @@ package io.mycat.route;
 
 import java.io.Serializable;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.util.Strings;
 
@@ -298,11 +297,12 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			return c;
 		}else{
 			if(c==0){
-				/*String subTableName2 = obj.subTableName;
-				if (Strings.isBlank(subTableName2)) {
+				String subTableName = obj.subTableName;
+				
+				if (Strings.isBlank(subTableName)) {
 					return 1;
-				}*/
-				return this.subTableName.compareTo(obj.subTableName);
+				}
+				return this.subTableName.compareTo(subTableName);
 			}
 			return c;
 		}
