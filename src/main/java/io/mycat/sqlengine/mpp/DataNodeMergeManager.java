@@ -157,7 +157,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
         }
 
         if (rrs.isHasAggrColumn()) {
-            // 有sql count列
+            // 有sql sum、count、平均值函数列
             List<MergeCol> mergCols = new LinkedList<MergeCol>();
             Map<String, Integer> mergeColsMap = rrs.getMergeCols();
 
@@ -186,7 +186,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             // 不添加别名合并列
             for (Map.Entry<String, ColMeta> fieldEntry : columToIndx.entrySet()) {
                 String colName = fieldEntry.getKey();
-                int result = MergeCol.tryParseAggCol(colName);
+                int result = MergeCol.tryParseAggCol(colName); // TODO 这里处理有问题，如果列是 COUNT(DISTINCT 字段名) AS 别名，则 colName 是别名，无法获得正确的结果
                 if (result != MergeCol.MERGE_UNSUPPORT && result != MergeCol.MERGE_NOMERGE) {
                     mergCols.add(new MergeCol(fieldEntry.getValue(), result));
                 }

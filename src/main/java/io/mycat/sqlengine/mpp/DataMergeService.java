@@ -83,11 +83,12 @@ public class DataMergeService extends AbstractDataNodeMerge {
 		this.fieldCount = fieldCount;
 
 		if (rrs.getGroupByCols() != null) {
-		
+			// 有 group by
 			groupColumnIndexs = toColumnIndex(rrs.getGroupByCols(), columToIndx);
 		}
 
 		if (rrs.getHavingCols() != null) {
+			// 有 having
 			ColMeta colMeta = columToIndx.get(rrs.getHavingCols().getLeft()
 					.toUpperCase());
 			if (colMeta != null) {
@@ -96,6 +97,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 		}
 
 		if (rrs.isHasAggrColumn()) {
+			// 有sql sum、count、平均值函数列
 			List<MergeCol> mergCols = new LinkedList<MergeCol>();
 			Map<String, Integer> mergeColsMap = rrs.getMergeCols();
 
@@ -129,7 +131,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 			// add no alias merg column
 			for (Map.Entry<String, ColMeta> fieldEntry : columToIndx.entrySet()) {
 				String colName = fieldEntry.getKey();
-				int result = MergeCol.tryParseAggCol(colName);
+				int result = MergeCol.tryParseAggCol(colName); // TODO 这里处理有问题，如果列是 COUNT(DISTINCT 字段名) AS 别名，则 colName 是别名，无法获得正确的结果
 				if (result != MergeCol.MERGE_UNSUPPORT
 						&& result != MergeCol.MERGE_NOMERGE) {
 					mergCols.add(new MergeCol(fieldEntry.getValue(), result));
@@ -143,6 +145,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 		}
 
 		if (rrs.getOrderByCols() != null) {
+			// 有 order by
 			LinkedHashMap<String, Integer> orders = rrs.getOrderByCols();
 			OrderCol[] orderCols = new OrderCol[orders.size()];
 			int i = 0;

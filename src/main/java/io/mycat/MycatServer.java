@@ -23,18 +23,35 @@
  */
 package io.mycat;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import io.mycat.backend.datasource.PhysicalDatasource;
+import io.mycat.backend.mysql.xa.*;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.heartbeat.zkprocess.MycatLeaderLatch;
 import io.mycat.backend.mysql.nio.handler.MultiNodeCoordinator;
-import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
-import io.mycat.backend.mysql.xa.ParticipantLogEntry;
-import io.mycat.backend.mysql.xa.TxState;
-import io.mycat.backend.mysql.xa.XARollbackCallback;
 import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.buffer.BufferPool;
@@ -51,7 +68,14 @@ import io.mycat.config.model.TableConfig;
 import io.mycat.config.table.structure.MySQLTableStructureDetector;
 import io.mycat.manager.ManagerConnectionFactory;
 import io.mycat.memory.MyCatMemory;
-import io.mycat.net.*;
+import io.mycat.net.AIOAcceptor;
+import io.mycat.net.AIOConnector;
+import io.mycat.net.NIOAcceptor;
+import io.mycat.net.NIOConnector;
+import io.mycat.net.NIOProcessor;
+import io.mycat.net.NIOReactorPool;
+import io.mycat.net.SocketAcceptor;
+import io.mycat.net.SocketConnector;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
@@ -69,23 +93,6 @@ import io.mycat.util.ExecutorUtil;
 import io.mycat.util.NameableExecutor;
 import io.mycat.util.TimeUtil;
 import io.mycat.util.ZKUtils;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.locks.InterProcessMutex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author mycat
@@ -97,6 +104,7 @@ public class MycatServer {
     private static final long TIME_UPDATE_PERIOD = 20L;
     private static final long DEFAULT_SQL_STAT_RECYCLE_PERIOD = 5 * 1000L;
     private static final long DEFAULT_OLD_CONNECTION_CLEAR_PERIOD = 5 * 1000L;
+    private static final long DEFAULT_DATANODE_CALC_ACTIVECOUNT = 1000L;
 
     private static final MycatServer INSTANCE = new MycatServer();
     private static final Logger LOGGER = LoggerFactory.getLogger("MycatServer");
@@ -478,8 +486,8 @@ public class MycatServer {
         heartbeatScheduler.scheduleAtFixedRate(dataNodeConHeartBeatCheck(dataNodeIldeCheckPeriod), 0L, dataNodeIldeCheckPeriod,TimeUnit.MILLISECONDS);
         heartbeatScheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(),TimeUnit.MILLISECONDS);
         heartbeatScheduler.scheduleAtFixedRate(dataSourceOldConsClear(), 0L, DEFAULT_OLD_CONNECTION_CLEAR_PERIOD, TimeUnit.MILLISECONDS);
-
-        scheduler.schedule(catletClassClear(), 30000,TimeUnit.MILLISECONDS);
+        heartbeatScheduler.scheduleAtFixedRate(dataNodeCalcActiveCons(), 0L, DEFAULT_DATANODE_CALC_ACTIVECOUNT, TimeUnit.MILLISECONDS);
+        scheduler.schedule(catletClassClear(), 30000, TimeUnit.MILLISECONDS);
 
         if(system.getCheckTableConsistency()==1) { // 不同分片表结构一致性检测是否开启
             scheduler.scheduleAtFixedRate(tableStructureCheck(), 0L, system.getCheckTableConsistencyPeriod(), TimeUnit.MILLISECONDS);
@@ -494,14 +502,19 @@ public class MycatServer {
         }
 
         //定期清理结果集排行榜，控制拒绝策略
-        scheduler.scheduleAtFixedRate(resultSetMapClear(),0L,  system.getClearBigSqLResultSetMapMs(),TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(resultSetMapClear(), 0L, system.getClearBigSqLResultSetMapMs(), TimeUnit.MILLISECONDS);
 
+        //xa 事务定时检查 是否全部提交 或者部分提交  部分回滚, 进行补充提交补充回滚.
+        scheduler.scheduleAtFixedRate(xaTaskCheck(), 0L, 10 * 1000, TimeUnit.MILLISECONDS);
 //        new Thread(tableStructureCheck()).start();
 
         //XA Init recovery Log XA初始化回复日志
         LOGGER.info("===============================================");
         LOGGER.info("Perform XA recovery log ...");
-        performXARecoveryLog(); // 检查并回滚数据
+        CoordinatorLogEntry[] coordinatorLogEntries = getCoordinatorLogEntries();
+        putXARecoveryLogToMemory(coordinatorLogEntries);
+        performXARecoveryLog(coordinatorLogEntries); // 检查并回滚数据
+        LOGGER.info("Perform XA recovery log end...");
 
         if(isUseZkSwitch()) {
             // 首次启动如果发现zk上dnindex为空，则将本地初始化上zk
@@ -511,7 +524,7 @@ public class MycatServer {
             try {
                 leaderLatch.start();
             } catch (Exception e) {
-                LOGGER.error(e.getMessage());
+                LOGGER.error(e.getMessage(), e);
                 e.printStackTrace();
             }
         }
@@ -976,11 +989,29 @@ public class MycatServer {
         };
     }
 
-    /**
-     * 定时清理保存SqlStat中的数据
-     * @return
-     */
-    private Runnable recycleSqlStat(){
+    //by kaiz : 定时计算datanode active connection
+    private Runnable dataNodeCalcActiveCons() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                timerExecutor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        Map<String, PhysicalDBPool> nodes = config.getDataHosts();
+                        for (PhysicalDBPool node : nodes.values()) {
+                            Collection<PhysicalDatasource> dataSources = node.getAllDataSources();
+                            for(PhysicalDatasource ds : dataSources) {
+                                ds.calcTotalCount();
+                            }
+                        }
+                    }
+                });
+            }
+        };
+    }
+
+    //定时清理保存SqlStat中的数据
+    private Runnable recycleSqlStat() {
         return new Runnable() {
             @Override
             public void run() {
@@ -995,11 +1026,34 @@ public class MycatServer {
         };
     }
 
-    /**
-     * 定时检查不同分片表结构一致性
-     * @return
-     */
-    private Runnable tableStructureCheck(){
+    //定时清理xa任务 对超过阈值的xa任务回滚或者提交
+    private Runnable xaTaskCheck() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                Collection<CoordinatorLogEntry> coordinatorLogEntries = MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries();
+                long sqlTimeout = MycatServer.getInstance().getConfig().getSystem().getSqlExecuteTimeout() * 1000L;
+
+                List<CoordinatorLogEntry> CoordinatorLogEntryList = null;
+                long currentTime = TimeUtil.currentTimeMillis();
+                for(CoordinatorLogEntry coordinatorLogEntry : coordinatorLogEntries) {
+                    //超过执行时间20秒 进行重试
+                    if(currentTime >  sqlTimeout + 20 * 1000 + coordinatorLogEntry.createTime){
+                        if(CoordinatorLogEntryList == null) {
+                            CoordinatorLogEntryList = new ArrayList<CoordinatorLogEntry>();
+                        }
+                        CoordinatorLogEntryList.add(coordinatorLogEntry);
+                    }
+                }
+                if(CoordinatorLogEntryList != null) {
+                    performXARecoveryLog((CoordinatorLogEntry[])CoordinatorLogEntryList.toArray());
+                }
+            }
+        };
+    }
+
+    //定时检查不同分片表结构一致性
+    private Runnable tableStructureCheck() {
         return new MySQLTableStructureDetector();
     }
 
@@ -1021,57 +1075,88 @@ public class MycatServer {
         };
     }
 
+    private void putXARecoveryLogToMemory(CoordinatorLogEntry[] coordinatorLogEntries) {
+        //init into in memory cached
+        for (int i = 0; i < coordinatorLogEntries.length; i++) {
+            MultiNodeCoordinator.inMemoryRepository.put(coordinatorLogEntries[i].id, coordinatorLogEntries[i]);
+            //discard the recovery log
+            MultiNodeCoordinator.fileRepository.writeCheckpoint(coordinatorLogEntries[i].id, MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
+        }
+    }
 
-    /**
-     * XA恢复日志检查 回滚数据
-     */
-    private void performXARecoveryLog() {
-        //获取恢复日志
-        CoordinatorLogEntry[] coordinatorLogEntries = getCoordinatorLogEntries();
-
-        for(int i=0; i<coordinatorLogEntries.length; i++){
+    //XA recovery log check
+    private void performXARecoveryLog(CoordinatorLogEntry[] coordinatorLogEntries) {
+        //fetch the recovery log
+        for (int i = 0; i < coordinatorLogEntries.length; i++) {
             CoordinatorLogEntry coordinatorLogEntry = coordinatorLogEntries[i];
-            boolean needRollback = false;// 是否需要回滚
-            for(int j=0; j<coordinatorLogEntry.participants.length; j++) {
+            boolean needRollback = false;
+            boolean hasCommit = false;
+            //检查xa事务是否完成 ,处于部分commit 或者部分prepare中
+            for (int j = 0; j < coordinatorLogEntry.participants.length; j++) {
                 ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
-                if (participantLogEntry.txState == TxState.TX_PREPARED_STATE){
+                if (participantLogEntry.txState == TxState.TX_PREPARED_STATE || participantLogEntry.txState == TxState.TX_STARTED_STATE) {
                     needRollback = true;
-                    break;
+                }
+                if (participantLogEntry.txState == TxState.TX_COMMITED_STATE) {
+                	hasCommit = true;
                 }
             }
-            if(needRollback){// 需要回滚
-                for(int j=0; j<coordinatorLogEntry.participants.length; j++){
-                    ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
-                    //XA rollback
-                    String xacmd = "XA ROLLBACK "+ coordinatorLogEntry.id +';';
-                    OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler( new String[0], new XARollbackCallback());
-                    outloop:
-                    for (SchemaConfig schema : MycatServer.getInstance().getConfig().getSchemas().values()) { // 数据库
-                        for (TableConfig table : schema.getTables().values()) { // 数据表
-                            for (String dataNode : table.getDataNodes()) { // 数据节点
-                                PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(dataNode); // 物理数据库节点
-                                if (dn.getDbPool().getSource().getConfig().getIp().equals(participantLogEntry.uri)
-                                        && dn.getDatabase().equals(participantLogEntry.resourceName)) {
-                                    //XA STATE ROLLBACK
-                                    participantLogEntry.txState = TxState.TX_ROLLBACKED_STATE;
-                                    SQLJob sqlJob = new SQLJob(xacmd, dn.getDatabase(), resultHandler, dn.getDbPool().getSource());
-                                    sqlJob.run();
-                                    LOGGER.debug(String.format("[XA ROLLBACK] [%s] Host:[%s] schema:[%s]", xacmd, dn.getName(), dn.getDatabase()));
-                                    break outloop;
-                                }
-                            }
+            //补充提交 prepare 状态的提交, xa commit or xa rollback
+            if (needRollback) {
+                //1 can rollback
+            	if(!hasCommit) {
+                    for (int j = 0; j < coordinatorLogEntry.participants.length; j++) {
+                        ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
+                        if (participantLogEntry.txState == TxState.TX_COMMITED_STATE || participantLogEntry.txState == TxState.TX_ROLLBACKED_STATE) {
+                            continue;
+                        }                         //XA rollback
+                        String xacmd = "XA ROLLBACK " + coordinatorLogEntry.id  +",'"+ participantLogEntry.resourceName+"'" + ';';
+                        LOGGER.debug("send xaCmd : {}", xacmd);
+                        OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0], new XARollbackCallback(coordinatorLogEntry.id,
+                                participantLogEntry
+                        ));
+                        //xa cmd send
+                        sendXaCmd(participantLogEntry, xacmd, resultHandler);
+                    }
+            	}  else {
+                    LOGGER.debug( "some has commit in {}",coordinatorLogEntry);
+                    for (int j = 0; j < coordinatorLogEntry.participants.length; j++) {
+                        ParticipantLogEntry participantLogEntry = coordinatorLogEntry.participants[j];
+                        if (participantLogEntry.txState == TxState.TX_COMMITED_STATE || participantLogEntry.txState == TxState.TX_ROLLBACKED_STATE) {
+                            continue;
                         }
+                        //XA commit
+                        String xacmd = "XA COMMIT " + coordinatorLogEntry.id  +",'"+ participantLogEntry.resourceName+"'" + ';';
+                        LOGGER.debug("send xaCmd : {}", xacmd);
+                        OneRawSQLQueryResultHandler resultHandler = new OneRawSQLQueryResultHandler(new String[0], new XACommitCallback(coordinatorLogEntry.id,
+                                participantLogEntry
+                        ));
+                        //xa cmd send
+                        sendXaCmd(participantLogEntry, xacmd, resultHandler);
+                    }
+            	}      	
+            }
+        }
+   }
+
+    private void sendXaCmd(ParticipantLogEntry participantLogEntry, String xacmd,
+                           OneRawSQLQueryResultHandler resultHandler) {
+        for (SchemaConfig schema : MycatServer.getInstance().getConfig().getSchemas().values()) {
+            for (TableConfig table : schema.getTables().values()) {
+                for (String dataNode : table.getDataNodes()) {
+                    PhysicalDBNode dn = MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
+                    if (dn.getDbPool().getSource().getConfig().getIp().equals(participantLogEntry.uri)
+                            && dn.getDatabase().equals(participantLogEntry.resourceName)) {
+                        //XA STATE ROLLBACK
+                        SQLJob sqlJob = new SQLJob(xacmd, dn.getDatabase(), resultHandler, dn.getDbPool().getSource());
+                        sqlJob.run();
+                        LOGGER.debug(String.format("[XA cmd] [%s] Host:[%s] schema:[%s]", xacmd, dn.getName(), dn.getDatabase()));
+//                                        break outloop;
+                        return;
                     }
                 }
             }
         }
-
-        //init into in memory cached 初始化进入内存缓存
-        for(int i=0;i<coordinatorLogEntries.length;i++){
-            MultiNodeCoordinator.inMemoryRepository.put(coordinatorLogEntries[i].id,coordinatorLogEntries[i]);
-        }
-        //discard the recovery log 丢弃恢复日志
-        MultiNodeCoordinator.fileRepository.writeCheckpoint(MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
     }
 
     /**

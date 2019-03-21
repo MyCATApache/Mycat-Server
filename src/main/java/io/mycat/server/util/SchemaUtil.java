@@ -2,6 +2,8 @@ package io.mycat.server.util;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.dialect.sqlserver.parser.SQLServerStatementParser;
+import com.alibaba.druid.sql.dialect.sqlserver.visitor.SQLServerSchemaStatVisitor;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import io.mycat.MycatServer;
@@ -18,14 +20,23 @@ import java.util.regex.Pattern;
  * Created by magicdoom on 2016/1/26.
  */
 public class SchemaUtil {
+    private final static Pattern MycatSeqPattern = Pattern.compile("(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+", Pattern.CASE_INSENSITIVE);
     /**
      * 解析逻辑库 数据库
      * @param sql
      * @return
      */
     public static SchemaInfo parseSchema(String sql) {
-        SQLStatementParser parser = new MySqlStatementParser(sql);
-        return parseTables(parser.parseStatement(),new MycatSchemaStatVisitor()  );
+        Matcher matcher = MycatSeqPattern.matcher(sql);
+        SQLStatementParser parser;
+        if(matcher.find()){
+            parser = new SQLServerStatementParser(sql);
+            return parseTables(parser.parseStatement(),new SQLServerSchemaStatVisitor());
+        }else{
+            parser = new MySqlStatementParser(sql);
+            return parseTables(parser.parseStatement(),new MycatSchemaStatVisitor());
+        }
+
     }
 
     /**

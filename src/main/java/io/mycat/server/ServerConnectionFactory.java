@@ -53,9 +53,7 @@ public class ServerConnectionFactory extends FrontendConnectionFactory {
         c.setQueryHandler(new ServerQueryHandler(c));
         // 设置从文件加载数据处理器
         c.setLoadDataInfileHandler(new ServerLoadDataInfileHandler(c));
-        // 设置SQL预处理处理器
-        c.setPrepareHandler(new ServerPrepareHandler(c));
-        // 设置事务隔离级别
+        c.setPrepareHandler(new ServerPrepareHandler(c,sys.getMaxPreparedStmtCount()));
         c.setTxIsolation(sys.getTxIsolation());
         // 设置Session 非阻塞Session
         c.setSession2(new NonBlockingSession(c));
