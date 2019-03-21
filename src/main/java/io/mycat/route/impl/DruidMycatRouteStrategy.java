@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLAllExpr;
@@ -473,17 +474,34 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		if(statement instanceof SQLDeleteStatement) {
 			SQLDeleteStatement deleteStatement = (SQLDeleteStatement) statement;
 			tableSource = deleteStatement.getTableSource();
+			SQLTableSource from = deleteStatement.getFrom();
 			for (RouteResultsetNode node : rrs.getNodes()) {
 				SQLExprTableSource from2 = getDisTable(tableSource, node);
-				deleteStatement.setTableSource(from2);
+				
+				if (from == null) {
+					from2.setAlias(tableSource.toString());
+					deleteStatement.setFrom(from2);
+				} else {
+					String alias = from.getAlias();
+					from2.setAlias(alias);
+					deleteStatement.setFrom(from2);
+				}
+				
 				node.setStatement(deleteStatement.toString());
 	        }
 		}
 		if(statement instanceof SQLUpdateStatement) {
 			SQLUpdateStatement updateStatement = (SQLUpdateStatement) statement;
 			tableSource = updateStatement.getTableSource();
+			
+			String alias = tableSource.getAlias();
+			SQLExprTableSource exprSource = (SQLExprTableSource) tableSource;
+			SQLIdentifierExpr expr = (SQLIdentifierExpr) exprSource.getExpr();
+			alias = alias == null ? expr.getName() : alias;
+			
 			for (RouteResultsetNode node : rrs.getNodes()) {
 				SQLExprTableSource from2 = getDisTable(tableSource, node);
+				from2.setAlias(alias);
 				updateStatement.setTableSource(from2);
 				node.setStatement(updateStatement.toString());
 	        }

@@ -1133,6 +1133,17 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(1, rrs.getNodes().length);
     }
     
+    public void testGroupAlias() throws Exception {
+
+        SchemaConfig schema = schemaMap.get("TESTDB");
+        RouteResultset rrs = null;
+        //别名大小写路由
+        String sql = "select * from travelrecord A group by a.id = 1;";
+        rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
+                    cachePool);
+        Assert.assertEquals(1, rrs.getNodes().length);
+    }
+    
     private String formatSql(String sql) {
         MySqlStatementParser parser = new MySqlStatementParser(sql);
         SQLStatement stmt = parser.parseStatement();
