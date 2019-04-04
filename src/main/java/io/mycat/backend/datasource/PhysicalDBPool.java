@@ -23,6 +23,25 @@
  */
 package io.mycat.backend.datasource;
 
+import io.mycat.MycatServer;
+import io.mycat.backend.BackendConnection;
+import io.mycat.backend.heartbeat.DBHeartbeat;
+import io.mycat.backend.heartbeat.zkprocess.SwitchStatueToZK;
+import io.mycat.backend.loadbalance.LeastActiveLoadBalance;
+import io.mycat.backend.loadbalance.LoadBalance;
+import io.mycat.backend.loadbalance.RandomLoadBalance;
+import io.mycat.backend.loadbalance.WeightedRoundRobinLoadBalance;
+import io.mycat.backend.mysql.nio.handler.GetConnectionHandler;
+import io.mycat.backend.mysql.nio.handler.ResponseHandler;
+import io.mycat.config.Alarms;
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
+import io.mycat.config.model.DataHostConfig;
+import io.mycat.util.LogUtil;
+import io.mycat.util.ZKUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -32,21 +51,6 @@ import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.MycatServer;
-import io.mycat.backend.BackendConnection;
-import io.mycat.backend.heartbeat.DBHeartbeat;
-import io.mycat.backend.heartbeat.zkprocess.SwitchStatueToZK;
-import io.mycat.backend.mysql.nio.handler.GetConnectionHandler;
-import io.mycat.backend.mysql.nio.handler.ResponseHandler;
-import io.mycat.config.Alarms;
-import io.mycat.config.loader.zkprocess.comm.ZkConfig;
-import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
-import io.mycat.config.model.DataHostConfig;
-import io.mycat.util.LogUtil;
-import io.mycat.util.ZKUtils;
-
 public class PhysicalDBPool {
 	
 	protected static final Logger LOGGER = LoggerFactory.getLogger(PhysicalDBPool.class);
@@ -55,7 +59,11 @@ public class PhysicalDBPool {
 	public static final int BALANCE_ALL_BACK = 1;
 	public static final int BALANCE_ALL = 2;
     public static final int BALANCE_ALL_READ = 3;
-    
+
+	public static final int RANDOM = 0;
+	public static final int WEIGHTED_ROUND_ROBIN = 1;
+	public static final int LEAST_ACTIVE = 2;
+
 	public static final int WRITE_ONLYONE_NODE = 0;
 	public static final int WRITE_RANDOM_NODE = 1;
 	public static final int WRITE_ALL_NODE = 2;
@@ -80,6 +88,7 @@ public class PhysicalDBPool {
 	private String[] schemas;
 	private final DataHostConfig dataHostConfig;
 	private String slaveIDs;
+	private LoadBalance loadBalance;
 
 	public PhysicalDBPool(String name, DataHostConfig conf,
 			PhysicalDatasource[] writeSources,
@@ -91,6 +100,18 @@ public class PhysicalDBPool {
 		this.writeSources = writeSources;
 		this.banlance = balance;
 		this.writeType = writeType;
+
+		switch (dataHostConfig.getBalanceType()) {
+			case WEIGHTED_ROUND_ROBIN:
+				loadBalance = new WeightedRoundRobinLoadBalance();
+				break;
+			case LEAST_ACTIVE:
+				loadBalance = new LeastActiveLoadBalance();
+				break;
+			default:
+				loadBalance = new RandomLoadBalance();
+				break;
+		}
 		
 		Iterator<Map.Entry<Integer, PhysicalDatasource[]>> entryItor = readSources.entrySet().iterator();
 		while (entryItor.hasNext()) {
@@ -629,39 +650,39 @@ public class PhysicalDBPool {
 		if (okSources.isEmpty()) {
 			return this.getSource();
 			
-		} else {		
-			
-			int length = okSources.size(); 	// 总个数
-	        int totalWeight = 0; 			// 总权重
-	        boolean sameWeight = true; 		// 权重是否都一样
-	        for (int i = 0; i < length; i++) {	        	
-	            int weight = okSources.get(i).getConfig().getWeight();
-	            totalWeight += weight; 		// 累计总权重	            
-	            if (sameWeight && i > 0 
-	            		&& weight != okSources.get(i-1).getConfig().getWeight() ) {	  // 计算所有权重是否一样          		            	
-	                sameWeight = false; 	
-	            }
-	        }
-	        
-	        if (totalWeight > 0 && !sameWeight ) {
-	            
-	        	// 如果权重不相同且权重大于0则按总权重数随机
-	            int offset = random.nextInt(totalWeight);
-	            
-	            // 并确定随机值落在哪个片断上
-	            for (int i = 0; i < length; i++) {
-	                offset -= okSources.get(i).getConfig().getWeight();
-	                if (offset < 0) {
-	                    return okSources.get(i);
-	                }
-	            }
-	        }
-	        
-	        // 如果权重相同或权重为0则均等随机
-	        return okSources.get( random.nextInt(length) );	
-	        
-			//int index = Math.abs(random.nextInt()) % okSources.size();
-			//return okSources.get(index);
+		} else {
+			return loadBalance.doSelect(hostName, okSources);
+//			int length = okSources.size(); 	// 总个数
+//	        int totalWeight = 0; 			// 总权重
+//	        boolean sameWeight = true; 		// 权重是否都一样
+//	        for (int i = 0; i < length; i++) {
+//	            int weight = okSources.get(i).getConfig().getWeight();
+//	            totalWeight += weight; 		// 累计总权重
+//	            if (sameWeight && i > 0
+//	            		&& weight != okSources.get(i-1).getConfig().getWeight() ) {	  // 计算所有权重是否一样
+//	                sameWeight = false;
+//	            }
+//	        }
+//
+//	        if (totalWeight > 0 && !sameWeight ) {
+//
+//	        	// 如果权重不相同且权重大于0则按总权重数随机
+//	            int offset = random.nextInt(totalWeight);
+//
+//	            // 并确定随机值落在哪个片断上
+//	            for (int i = 0; i < length; i++) {
+//	                offset -= okSources.get(i).getConfig().getWeight();
+//	                if (offset < 0) {
+//	                    return okSources.get(i);
+//	                }
+//	            }
+//	        }
+//
+//	        // 如果权重相同或权重为0则均等随机
+//	        return okSources.get( random.nextInt(length) );
+//
+//			//int index = Math.abs(random.nextInt()) % okSources.size();
+//			//return okSources.get(index);
 		}
 	}
 	
