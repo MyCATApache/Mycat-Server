@@ -42,11 +42,11 @@ public class RouterUtilTest {
         List<List<String>> valueArray = (List<List<String>>) valueArrayAndSuffixStr[0];
         String suffixStr = (String) valueArrayAndSuffixStr[1];
         Assert.assertTrue(valueArray.size() == 5);
-        Assert.assertTrue(valueArray.get(0).equals(new ArrayList<String>(Arrays.asList("'test1'", "\"name\""))));
-        Assert.assertTrue(valueArray.get(1).equals(new ArrayList<String>(Arrays.asList("'(test)'", "\"(test)\""))));
-        Assert.assertTrue(valueArray.get(2).equals(new ArrayList<String>(Arrays.asList("'\\\"'", "\"\\'\""))));
-        Assert.assertTrue(valueArray.get(3).equals(new ArrayList<String>(Arrays.asList("\")\"", "\"\\\"\\')\""))));
-        Assert.assertTrue(valueArray.get(4).equals(new ArrayList<String>(Arrays.asList("left(upper('test'), 2)", "\"left(upper('test'), 2)\""))));
+        Assert.assertTrue(valueArray.get(0).equals(new ArrayList<>(Arrays.asList("'test1'", "\"name\""))));
+        Assert.assertTrue(valueArray.get(1).equals(new ArrayList<>(Arrays.asList("'(test)'", "\"(test)\""))));
+        Assert.assertTrue(valueArray.get(2).equals(new ArrayList<>(Arrays.asList("'\\\"'", "\"\\'\""))));
+        Assert.assertTrue(valueArray.get(3).equals(new ArrayList<>(Arrays.asList("\")\"", "\"\\\"\\')\""))));
+        Assert.assertTrue(valueArray.get(4).equals(new ArrayList<>(Arrays.asList("left(upper('test'), 2)", "\"left(upper('test'), 2)\""))));
         Assert.assertTrue(suffixStr.equals("on duplicate key update name = values(name)"));
     }
     
