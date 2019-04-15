@@ -771,12 +771,13 @@ public class RouterUtil {
         String valueStr = origSQL.substring(valuesIndex + 6);// 6 values 长度为6
         String preStr = origSQL.substring(0, valuesIndex );// 6 values 长度为6
         int pos = 0 ;
-        int flag  = -1;
+        int flag  = 4;
         int len = valueStr.length();
         StringBuilder currentValue = new StringBuilder();
 //        int colNum = 2; //
         char c ;
         List<String> curList = new ArrayList<>();
+		int parenCount = 0;
         for( ;pos < len; pos ++) {
             c = valueStr.charAt(pos);
             if(flag == 1  || flag == 2) {
@@ -804,23 +805,36 @@ public class RouterUtil {
                 currentValue.append(c);
                 flag = 2;
             } else if (c == '(') {
-                curList = new ArrayList<>();
-                flag = 0;
-            } else if(flag == 4 ) {
-                if(c == ',') {
-                    flag = 0;
-                    continue;
-                }
-            } else if(c == ',') {
+            	if (flag == 4) {
+					curList = new ArrayList<>();
+					flag = 0;
+				} else {
+					currentValue.append(c);
+					flag = 6;
+					parenCount++;
+				}
+            } else if (flag == 4) {
+				continue;
+			} else if (flag == 6) {
+				currentValue.append(c);
+				if (c == '(') {
+					parenCount++;
+				} else if (c == ')') {
+					parenCount--;
+				}
+				if (parenCount == 0) {
+					flag = 0;
+				}
+			} else if(c == ',') {
 //                System.out.println(currentValue);
                 curList.add(currentValue.toString());
                 currentValue.delete(0, currentValue.length());
             } else if(c == ')'){
-                flag = 4;
+				flag = 4;
 //                System.out.println(currentValue);
-                curList.add(currentValue.toString());
-                currentValue.delete(0, currentValue.length());
-                valueArray.add(curList);
+				curList.add(currentValue.toString());
+				currentValue.delete(0, currentValue.length());
+				valueArray.add(curList);
             }  else {
                 currentValue.append(c);
             }
