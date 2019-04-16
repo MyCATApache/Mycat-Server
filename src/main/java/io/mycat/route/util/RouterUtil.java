@@ -830,7 +830,7 @@ public class RouterUtil {
 					parenCount++;
 				}
             } else if (flag == 4) {
-                if (c == 'o') {
+                if (c == 'o' || c == 'O') {
                     String suffixStr = valuesAndSuffixStr.substring(pos);
                     return new Object[]{valueArray, suffixStr};
                 }
