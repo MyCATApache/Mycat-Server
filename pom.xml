@@ -23,7 +23,7 @@
 		<developerConnection>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</developerConnection>
 		<url>scm:git:ssh://apachemycat@github.com/MyCATApache/Mycat-Server.git</url>
 	</scm>
-	<repositories>
+	<!-- repositories>
 		<repository>
 			<id>nexus</id>
 			<name>local private nexus</name>
@@ -41,7 +41,7 @@
 			<name>Internal Snapshots</name>
 			<url>http://nexus.mycat.io/content/repositories/snapshots</url>
 		</snapshotRepository>
-	</distributionManagement>
+	</distributionManagement -->
 	<dependencies>
 		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava-parent</artifactId> 
 			<version>18.0</version> </dependency> -->
@@ -552,7 +552,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-scm-plugin</artifactId>
-				<version>1.9.2</version>
+				<version>1.11.2</version>
 				<configuration>
 					<providerImplementations>
 						<git>jgit</git>
@@ -562,7 +562,7 @@
 					<dependency>
 						<groupId>org.apache.maven.scm</groupId>
 						<artifactId>maven-scm-provider-jgit</artifactId>
-						<version>1.9.2</version>
+						<version>1.11.2</version>
 					</dependency>
 				</dependencies>
 			</plugin>
@@ -570,7 +570,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>buildnumber-maven-plugin</artifactId>
-				<version>1.3</version>
+				<version>1.4</version>
 				<executions>
 					<execution>
 						<phase>validate</phase>
@@ -593,7 +593,7 @@
 					</providerImplementations>
 
 				</configuration>
-				<dependencies>
+				<!-- dependencies>
 					<dependency>
 						<groupId>org.apache.maven.scm</groupId>
 						<artifactId>maven-scm-provider-gitexe</artifactId>
@@ -604,7 +604,7 @@
 						<artifactId>svnkit</artifactId>
 						<version>RELEASE</version>
 					</dependency>
-				</dependencies>
+				</dependencies -->
 
 			</plugin>
 
