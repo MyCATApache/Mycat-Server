@@ -15,10 +15,6 @@ Mycat’s target is to smoothly migrate the current stand-alone database and app
 https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid
 
 
-MyCAT2.0开发中
-https://github.com/MyCATApache/Mycat2
-
-
 
 * [Getting Started](https://github.com/MyCATApache/Mycat-doc/tree/master/en)
 * [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/tree/master/%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97)
@@ -63,7 +59,7 @@ There are some documents in Mycat-doc project on github at [Mycat-doc](https://g
 Mycat 简单demo，具体参考Mycat权威指南
 
 官网 : mycat.io
-qq官方群：106088787
+qq官方群：332702697
 Mycat权威指南官方下载：https://github.com/MyCATApache/Mycat-Server/blob/4135f25df8239d52d220529cbf7cb697ede40e12/mycat-definitive-guide.pdf
 wiki：<a href="https://github.com/MyCATApache/Mycat-Server/wiki"> wiki</a>
 
