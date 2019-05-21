@@ -1,5 +1,9 @@
 
 # [MyCAT](http://mycat.io/)
+
+重要通告，腾讯没有正式通知Mycat社区就突然关闭Mycat原先官网群，对Mycat开源社区造成重大影响，我们希望腾讯能给出合理解释并尽快恢复官网群， 在此之前，Mycat启用新的官网群,qq群:332702697
+
+
 [![GitHub issues](https://img.shields.io/github/issues/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/issues)
 [![GitHub forks](https://img.shields.io/github/forks/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/network)
 [![GitHub stars](https://img.shields.io/github/stars/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/stargazers)
