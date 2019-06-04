@@ -1,5 +1,9 @@
 
 # [MyCAT](http://mycat.io/)
+
+重要通告，腾讯没有正式通知Mycat社区就突然关闭Mycat原先官网群，对Mycat开源社区造成重大影响，我们希望腾讯能给出合理解释并尽快恢复官网群， 在此之前，Mycat启用新的官网群,qq群:332702697
+
+
 [![GitHub issues](https://img.shields.io/github/issues/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/issues)
 [![GitHub forks](https://img.shields.io/github/forks/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/network)
 [![GitHub stars](https://img.shields.io/github/stars/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/stargazers)
@@ -63,7 +67,7 @@ There are some documents in Mycat-doc project on github at [Mycat-doc](https://g
 Mycat 简单demo，具体参考Mycat权威指南
 
 官网 : mycat.io
-qq官方群：106088787
+qq官方群：332702697
 Mycat权威指南官方下载：https://github.com/MyCATApache/Mycat-Server/blob/4135f25df8239d52d220529cbf7cb697ede40e12/mycat-definitive-guide.pdf
 wiki：<a href="https://github.com/MyCATApache/Mycat-Server/wiki"> wiki</a>
 
