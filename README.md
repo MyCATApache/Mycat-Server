@@ -13,8 +13,6 @@ MyCAT is an Open-Source software, “a large database cluster” oriented to ent
 
 Mycat’s target is to smoothly migrate the current stand-alone database and applications to cloud side with low cost and to solve the bottleneck problem caused by the rapid growth of data storage and business scale.
 
-加入MyCAT开发志愿者队伍,联系QQ:294712221
-
 更新Druid 1.1.10版本的分支独立维护在
 https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid
 
