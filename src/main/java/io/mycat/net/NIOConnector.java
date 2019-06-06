@@ -24,6 +24,7 @@
 package io.mycat.net;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -161,8 +162,13 @@ public final class NIOConnector extends Thread implements SocketConnector {
 
 	private boolean finishConnect(AbstractConnection c, SocketChannel channel)
 			throws IOException {
+		String remoteAddress = channel.getRemoteAddress().toString();
 		if (channel.isConnectionPending()) {
-			channel.finishConnect();
+			try {
+				channel.finishConnect();
+			} catch (ConnectException e) {
+				throw new RuntimeException(remoteAddress, e);
+			}
 
 			c.setLocalPort(channel.socket().getLocalPort());
 			return true;
