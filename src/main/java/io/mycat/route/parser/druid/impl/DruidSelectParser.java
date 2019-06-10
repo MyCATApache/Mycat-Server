@@ -69,7 +69,6 @@ import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.MycatStatementParser;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
-import io.mycat.route.parser.util.WildcardUtil;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.HavingCols;
@@ -246,7 +245,6 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if(mysqlSelectQuery.getGroupBy() != null) {
 			List<SQLExpr> groupByItems = mysqlSelectQuery.getGroupBy().getItems();
 			String[] groupByCols = buildGroupByCols(groupByItems,aliaColumns);
-			WildcardUtil.wildcards(groupByCols);
 			rrs.setGroupByCols(groupByCols);
 			rrs.setHavings(buildGroupByHaving(mysqlSelectQuery.getGroupBy().getHaving(),aliaColumns));
 			rrs.setHasAggrColumn(true);
@@ -504,7 +502,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			
 			SQLIdentifierExpr expr = (SQLIdentifierExpr) ((SQLExprTableSource) right).getExpr();
 			alias = Strings.isBlank(alias) ? expr.getName() : alias;
-			String subTableName = subTableNames.get(WildcardUtil.wildcard(expr.getName().toUpperCase()));
+			String subTableName = subTableNames.get(subTableName(expr.getName().toUpperCase()));
 			if (Strings.isNotBlank(subTableName)) {
 				String tableName = expr.getName();
 				alias = Strings.isBlank(alias) ? tableName : alias;
@@ -520,7 +518,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			
 			SQLIdentifierExpr expr = (SQLIdentifierExpr) exprTableSource.getExpr();
 			alias = Strings.isBlank(alias) ? expr.getName() : alias;
-			String subTableName = subTableNames.get(WildcardUtil.wildcard(expr.getName().toUpperCase()));
+			String subTableName = subTableNames.get(subTableName(expr.getName().toUpperCase()));
 			if (Strings.isNotBlank(subTableName)) {
 				String tableName = expr.getName();
 				alias = Strings.isBlank(alias) ? tableName : alias;
@@ -530,6 +528,11 @@ public class DruidSelectParser extends DefaultDruidParser {
 			
 		}
 	}
+	
+	private String subTableName(String tableName) {
+		return tableName.replaceAll("`", "");
+	}
+	
 	
 	/**
 	 * 获取所有的条件：因为可能被or语句拆分成多个RouteCalculateUnit，条件分散了
