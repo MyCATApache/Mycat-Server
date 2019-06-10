@@ -498,40 +498,24 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if (source instanceof SQLJoinTableSource) {
 			SQLJoinTableSource joinsource = (SQLJoinTableSource) source;
 			SQLTableSource right = joinsource.getRight();
-			String alias = right.getAlias();
 			
 			SQLIdentifierExpr expr = (SQLIdentifierExpr) ((SQLExprTableSource) right).getExpr();
-			alias = Strings.isBlank(alias) ? expr.getName() : alias;
-			String subTableName = subTableNames.get(subTableName(expr.getName().toUpperCase()));
+			String subTableName = subTableNames.get(expr.getName().toUpperCase());
 			if (Strings.isNotBlank(subTableName)) {
-				String tableName = expr.getName();
-				alias = Strings.isBlank(alias) ? tableName : alias;
-				right.setAlias(alias);
-				
 				expr.setName(subTableName);
 			}
 			
 			repairExpr(joinsource.getLeft(), node);
 		} else if (source instanceof SQLExprTableSource) {
 			SQLExprTableSource exprTableSource = (SQLExprTableSource) source;
-			String alias = exprTableSource.getAlias();
-			
 			SQLIdentifierExpr expr = (SQLIdentifierExpr) exprTableSource.getExpr();
-			alias = Strings.isBlank(alias) ? expr.getName() : alias;
-			String subTableName = subTableNames.get(subTableName(expr.getName().toUpperCase()));
+			String subTableName = subTableNames.get(expr.getName().toUpperCase());
 			if (Strings.isNotBlank(subTableName)) {
-				String tableName = expr.getName();
-				alias = Strings.isBlank(alias) ? tableName : alias;
-				exprTableSource.setAlias(alias);
 				expr.setName(subTableName);
 			}
 			
 			System.out.println("end");
 		}
-	}
-	
-	private String subTableName(String tableName) {
-		return tableName.replaceAll("`", "");
 	}
 	
 	
