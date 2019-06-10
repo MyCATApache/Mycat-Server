@@ -293,10 +293,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 		if(tmpResult == null){
 			tmpResult = new LinkedList<RowDataPacket>();
 			for (RouteResultsetNode node : rrs.getNodes()) {
-				LinkedList<RowDataPacket> remove = result.remove(node.getName());
-				if (remove != null) {
-					tmpResult.addAll(remove);
-				}
+				tmpResult.addAll(result.get(node.getName()));
 			}
 		}
 		
