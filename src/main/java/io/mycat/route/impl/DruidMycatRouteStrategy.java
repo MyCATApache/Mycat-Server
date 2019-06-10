@@ -473,19 +473,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		if(statement instanceof SQLDeleteStatement) {
 			SQLDeleteStatement deleteStatement = (SQLDeleteStatement) statement;
 			tableSource = deleteStatement.getTableSource();
-			SQLTableSource from = deleteStatement.getFrom();
 			for (RouteResultsetNode node : rrs.getNodes()) {
 				SQLExprTableSource from2 = getDisTable(tableSource, node);
-				
-				if (from == null) {
-					from2.setAlias(tableSource.toString());
-					deleteStatement.setFrom(from2);
-				} else {
-					String alias = from.getAlias();
-					from2.setAlias(alias);
-					deleteStatement.setFrom(from2);
-				}
-				
+				deleteStatement.setTableSource(from2);
 				node.setStatement(deleteStatement.toString());
 	        }
 		}
@@ -494,7 +484,6 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			tableSource = updateStatement.getTableSource();
 			for (RouteResultsetNode node : rrs.getNodes()) {
 				SQLExprTableSource from2 = getDisTable(tableSource, node);
-				from2.setAlias(updateStatement.getTableSource().getAlias());
 				updateStatement.setTableSource(from2);
 				node.setStatement(updateStatement.toString());
 	        }
