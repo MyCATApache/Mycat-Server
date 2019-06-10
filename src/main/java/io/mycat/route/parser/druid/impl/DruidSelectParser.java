@@ -502,23 +502,15 @@ public class DruidSelectParser extends DefaultDruidParser {
 			SQLTableSource right = joinsource.getRight();
 			String alias = right.getAlias();
 			
-			if(right instanceof SQLExprTableSource) {
-				SQLIdentifierExpr expr = (SQLIdentifierExpr) ((SQLExprTableSource) right).getExpr();
-				alias = Strings.isBlank(alias) ? expr.getName() : alias;
-				String subTableName = subTableNames.get(WildcardUtil.wildcard(expr.getName().toUpperCase()));
-				if (Strings.isNotBlank(subTableName)) {
-					String tableName = expr.getName();
-					alias = Strings.isBlank(alias) ? tableName : alias;
-					right.setAlias(alias);
-					
-					expr.setName(subTableName);
-				}
-			} 
-			
-			if (right instanceof SQLSubqueryTableSource) {
-				SQLSubqueryTableSource from = (SQLSubqueryTableSource) right;
-				MySqlSelectQueryBlock query2 = (MySqlSelectQueryBlock) from.getSelect().getQuery();
-				repairExpr(query2.getFrom(), node);
+			SQLIdentifierExpr expr = (SQLIdentifierExpr) ((SQLExprTableSource) right).getExpr();
+			alias = Strings.isBlank(alias) ? expr.getName() : alias;
+			String subTableName = subTableNames.get(WildcardUtil.wildcard(expr.getName().toUpperCase()));
+			if (Strings.isNotBlank(subTableName)) {
+				String tableName = expr.getName();
+				alias = Strings.isBlank(alias) ? tableName : alias;
+				right.setAlias(alias);
+				
+				expr.setName(subTableName);
 			}
 			
 			repairExpr(joinsource.getLeft(), node);
