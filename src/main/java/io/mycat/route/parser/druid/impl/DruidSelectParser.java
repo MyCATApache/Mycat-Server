@@ -526,6 +526,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				expr.setName(subTableName);
 			}
 			
+			System.out.println("end");
 		}
 	}
 	
