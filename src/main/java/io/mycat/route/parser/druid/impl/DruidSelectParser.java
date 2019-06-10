@@ -1,7 +1,6 @@
 package io.mycat.route.parser.druid.impl;
 
 import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -13,7 +12,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.logging.log4j.util.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
@@ -46,7 +46,6 @@ import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
@@ -54,7 +53,6 @@ import com.alibaba.druid.sql.dialect.oracle.visitor.OracleOutputVisitor;
 import com.alibaba.druid.sql.dialect.postgresql.ast.stmt.PGSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.postgresql.visitor.PGOutputVisitor;
 import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
 import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
@@ -67,7 +65,6 @@ import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
-import io.mycat.route.parser.druid.MycatStatementParser;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
@@ -78,6 +75,8 @@ import io.mycat.util.ObjectUtil;
 import io.mycat.util.StringUtil;
 
 public class DruidSelectParser extends DefaultDruidParser {
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+
 
     protected boolean isNeedParseOrderAgg=true;
 
@@ -431,44 +430,23 @@ public class DruidSelectParser extends DefaultDruidParser {
 			}
 			
 			if(rrs.isDistTable()){
-				
-				for (RouteResultsetNode node : rrs.getNodes()) {
-					String sql = selectStmt.toString();
-					SQLStatementParser parser = null;
-					if (schema.isNeedSupportMultiDBType()) {
-						parser = new MycatStatementParser(sql);
-					} else {
-						parser = new MySqlStatementParser(sql); 
-					}
-					
-					SQLSelectStatement newStmt = null;
-					try {
-						newStmt = (SQLSelectStatement) parser.parseStatement();
-					} catch (Exception t) {
-				        LOGGER.error("DruidMycatRouteStrategyError", t);
-						throw new SQLSyntaxErrorException(t);
-					}
-					
-					MySqlSelectQueryBlock query = (MySqlSelectQueryBlock) newStmt.getSelect().getQuery();
-					SQLTableSource from2 = query.getFrom();
-					if (from2 instanceof SQLSubqueryTableSource) {
-						SQLSubqueryTableSource from = (SQLSubqueryTableSource) from2;
-						MySqlSelectQueryBlock query2 = (MySqlSelectQueryBlock) from.getSelect().getQuery();
-						repairExpr(query2.getFrom(), node);
-						node.setStatement(newStmt.toString());
-					} else {
-						repairExpr(from2, node);
-						node.setStatement(newStmt.toString());
-					}
+				MySqlSelectQueryBlock query = (MySqlSelectQueryBlock) selectStmt.getSelect().getQuery();
+				SQLTableSource from2 = query.getFrom();
+				if (from2 instanceof SQLSubqueryTableSource) {
+					SQLSubqueryTableSource from = (SQLSubqueryTableSource) from2;
+					MySqlSelectQueryBlock query2 = (MySqlSelectQueryBlock) from.getSelect().getQuery();
+					sqlRoute(rrs, selectStmt, mysqlSelectQuery, query2);
+				} else {
+					sqlRoute(rrs, selectStmt, mysqlSelectQuery, query);
 				}
-				
+				logger.info("执行sql： " + selectStmt.toString());
 			}
 			
 			rrs.setCacheAble(isNeedCache(schema, rrs, mysqlSelectQuery, allConditions));
 		}
 		
 	}
-	/*private void sqlRoute(RouteResultset rrs, SQLSelectStatement selectStmt, MySqlSelectQueryBlock mysqlSelectQuery,
+	private void sqlRoute(RouteResultset rrs, SQLSelectStatement selectStmt, MySqlSelectQueryBlock mysqlSelectQuery,
 			MySqlSelectQueryBlock query) throws SQLNonTransientException {
 		SQLTableSource from2 = query.getFrom();
 		SQLExprTableSource left2 = (SQLExprTableSource) getExpr(from2);
@@ -477,47 +455,40 @@ public class DruidSelectParser extends DefaultDruidParser {
 		left2.setAlias(alias);
 		
 		SQLTableSource from1 = mysqlSelectQuery.getFrom();
-		
+
 		for (RouteResultsetNode node : rrs.getNodes()) {
-			SQLSelectStatement newStmt = new SQLSelectStatement();
-			try {
-				BeanUtils.copyProperties(selectStmt, newStmt);
-			} catch (Exception e) {
-				throw new SQLNonTransientException(ErrorCode.ER_PARSE_ERROR + " - " + "copy exception");
-			}
+			/*
+			SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+			from2.setAlias(alias);
+			*/
+			SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
+			sqlIdentifierExpr.setParent(from1);
+			sqlIdentifierExpr.setName(node.getSubTableName());
+			left2.setExpr(sqlIdentifierExpr);
 			
-			repairExpr(from2, node);
 			//mysqlSelectQuery.setFrom(left2);
 			node.setStatement(selectStmt.toString());
 		}
-	}*/
+	}
 	
-	private void repairExpr(SQLTableSource source, RouteResultsetNode node) throws SQLNonTransientException {
-		Map<String, String> subTableNames = node.getSubTableNames();
-		
-		if (source instanceof SQLJoinTableSource) {
+	private SQLTableSource getExpr(SQLTableSource source) throws SQLNonTransientException {
+		if (source instanceof SQLExprTableSource) {
+			return source;
+		} else if (source instanceof SQLJoinTableSource) {
 			SQLJoinTableSource joinsource = (SQLJoinTableSource) source;
 			SQLTableSource right = joinsource.getRight();
 			
-			SQLIdentifierExpr expr = (SQLIdentifierExpr) ((SQLExprTableSource) right).getExpr();
-			String subTableName = subTableNames.get(expr.getName().toUpperCase());
-			if (Strings.isNotBlank(subTableName)) {
-				expr.setName(subTableName);
+			if (right instanceof SQLJoinTableSource) {
+				
+			} else {
+				
 			}
 			
-			repairExpr(joinsource.getLeft(), node);
-		} else if (source instanceof SQLExprTableSource) {
-			SQLExprTableSource exprTableSource = (SQLExprTableSource) source;
-			SQLIdentifierExpr expr = (SQLIdentifierExpr) exprTableSource.getExpr();
-			String subTableName = subTableNames.get(expr.getName().toUpperCase());
-			if (Strings.isNotBlank(subTableName)) {
-				expr.setName(subTableName);
-			}
-			
-			System.out.println("end");
+			return getExpr(joinsource.getLeft());
+		} else {
+			throw new SQLNonTransientException(ErrorCode.ER_PARSE_ERROR + " - " + "sql不支持");
 		}
 	}
-	
 	
 	/**
 	 * 获取所有的条件：因为可能被or语句拆分成多个RouteCalculateUnit，条件分散了
