@@ -412,6 +412,7 @@ public class MySQLConnection extends BackendAIOConnection {
 			// never executed modify sql,so auto commit
 			expectAutocommit = (!modifiedSQLExecuted || isFromSlaveDB() || clientAutoCommit);
 		}
+		expectAutocommit = true;
 		
 		if (expectAutocommit == false && xaTxID != null && xaStatus == TxState.TX_INITIALIZE_STATE) {
 			//clientTxIsoLation = Isolations.SERIALIZABLE;
