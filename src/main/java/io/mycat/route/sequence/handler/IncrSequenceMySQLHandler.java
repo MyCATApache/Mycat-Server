@@ -302,6 +302,9 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 		//((SequenceVal) conn.getAttachment()).dbfinished = true;
 		((SequenceVal) conn.getAttachment()).setDbfinished();
 		LOGGER.warn("connection closed " + conn + " reason:" + reason);
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
+		}
 	}
 
 	@Override

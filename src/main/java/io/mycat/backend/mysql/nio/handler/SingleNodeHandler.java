@@ -531,7 +531,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		err.message = StringUtil.encode(reason, session.getSource()
 				.getCharset());
 		this.backConnectionErr(err, conn);
-
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
+		}
 	}
 
 	public void clearResources() {

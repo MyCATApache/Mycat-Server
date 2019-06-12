@@ -188,6 +188,9 @@ public class SQLJob implements ResponseHandler, Runnable {
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
 		doFinished(true,reason);
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
+		}
 	}
 
 	public int getId() {

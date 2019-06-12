@@ -541,7 +541,7 @@ public class MySQLConnection extends BackendAIOConnection {
 			ResponseHandler tmpRespHandlers= respHandler;
 			setResponseHandler(null);
 			super.close(reason);
-			pool.connectionClosed(this);
+			pool.conQueueRemove(this);
 			if (tmpRespHandlers != null) {
 				tmpRespHandlers.connectionClose(this, reason);
 			}

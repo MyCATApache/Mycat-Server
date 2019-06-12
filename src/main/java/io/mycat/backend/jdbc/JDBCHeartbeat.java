@@ -97,31 +97,41 @@ public class JDBCHeartbeat extends DBHeartbeat{
 			isChecking.set(true);
 
 			// source.getConnection() 获取到新的连接，需要释放
-			try (Connection c = source.getConnection())
-			{
-				try (Statement s = c.createStatement())
-				{
-					s.execute(heartbeatSQL);
-					s.closeOnCompletion();
-				}
-				c.close();
-			}
-			status = OK_STATUS;
-			if(logger.isDebugEnabled()){
-			    logger.debug("JDBCHeartBeat con query sql: "+heartbeatSQL);
-			}
+            Connection c = null;
+            Statement s = null;
+            try {
+                c = source.getConnection();
+                s = c.createStatement();
+                s.execute(heartbeatSQL);
+
+                status = OK_STATUS;
+                if(logger.isDebugEnabled()){
+                    logger.debug("JDBCHeartBeat con query sql: "+heartbeatSQL);
+                }
+            } catch (Exception e){
+                // 抛出异常由外层catch处理
+                throw e;
+            }finally {
+                try{
+                    if(s!=null){
+                        s.closeOnCompletion();
+                    }
+                }catch (Exception e){
+                    // 抛出异常由外层catch处理
+                    throw e;
+                }
+                try {
+                    if (c != null) {
+                        c.close();
+                    }
+                }catch (Exception e){
+                    // 抛出异常由外层catch处理
+                    throw e;
+                }
+            }
 			
 		} catch (Exception ex)
 		{
-			/**
-			 * TODO 目前发现如果后端心跳状态检测有异常，仅仅是修改了状态，但没有进行处理。
-			 * 这样会导致，后端的Mysql回收了该连接，但是Mycat这边没回收。造成以下问题：
-			 * 1、导致Mycat的后端连接没有释放，一直增长；
-			 * 2、前端请求过来后，使用到该连接时就有有其他的异常出现；
-			 *
-			 * 补充 从 io.mycat.route.util.RouterUtil的getAliveRandomDataNode方法里，
-			 * 有对后端Mysql连接状态的判断，这样的话，上诉的问题应该是其他地方造成的。
-			 */
 		    logger.error("JDBCHeartBeat error",ex);
 			status = ERROR_STATUS;
 		} finally

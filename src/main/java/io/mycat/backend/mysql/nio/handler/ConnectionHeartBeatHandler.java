@@ -49,6 +49,11 @@ public class ConnectionHeartBeatHandler implements ResponseHandler {
 	protected final ReentrantLock lock = new ReentrantLock();
 	private final ConcurrentHashMap<Long, HeartBeatCon> allCons = new ConcurrentHashMap<Long, HeartBeatCon>();
 
+	/**
+	 * 心跳检查，如果执行异常会关闭
+	 * @param conn
+	 * @param sql
+	 */
 	public void doHeartBeat(BackendConnection conn, String sql) {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("do heartbeat for con " + conn);
@@ -64,6 +69,7 @@ public class ConnectionHeartBeatHandler implements ResponseHandler {
 
 			}
 		} catch (Exception e) {
+			// 执行异常会关闭
 			executeException(conn, e);
 		}
 	}
@@ -145,7 +151,11 @@ public class ConnectionHeartBeatHandler implements ResponseHandler {
 	private void executeException(BackendConnection c, Throwable e) {
 		removeFinished(c);
 		LOGGER.warn("executeException   ", e);
-		c.close("heatbeat exception:" + e);
+
+		if(!c.isClosedOrQuit()){
+			// 关闭连接
+			c.close("heatbeat exception:" + e);
+		}
 
 	}
 

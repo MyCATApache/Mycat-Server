@@ -130,8 +130,9 @@ public class UnLockTablesHandler extends MultiNodeHandler implements ResponseHan
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-		// TODO Auto-generated method stub
-
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
+		}
 	}
 
 }

@@ -266,8 +266,9 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	private void executeException(BackendConnection c, Throwable e) {
 		finished.incrementAndGet();
 		LOGGER.warn("executeException   " + e);
-		c.close("exception:" + e);
-
+		if(!c.isClosedOrQuit()){
+			c.close("exception:" + e);
+		}
 	}
 
 	@Override
@@ -279,6 +280,9 @@ public class FetchStoreNodeOfChildTableHandler implements ResponseHandler {
 	public void connectionClose(BackendConnection conn, String reason) {
 		finished.incrementAndGet();
 		LOGGER.warn("connection closed " + conn + " reason:" + reason);
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
+		}
 	}
 
 	@Override
