@@ -449,7 +449,7 @@ public abstract class PhysicalDatasource {
 			long inc = increamentCount.sumThenReset() - preIncrementCount;
 			totalConnectionCount = total + inc;
 			preIncrementCount = 0;
-
+			LOGGER.info("connection number totalConnectionCount:" + totalConnectionCount + " total:"+total + " inc:"+inc);
 		} else {
 			preIncrementCount = increamentCount.longValue();
 		}
@@ -597,7 +597,7 @@ public abstract class PhysicalDatasource {
 				LOGGER.info("no ilde connection in pool "+System.identityHashCode(this)+" ,create new connection for "	+ this.name + " of schema " + schema + " totalConnectionCount: " + totalConnectionCount + " increamentCount: "+increamentCount);
 				createNewConnection(handler, attachment, schema);
 			} else { // create connection
-				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
+				LOGGER.error("the max activeConnnections size can not be max than maxconnections totalConnectionCount:"+totalConnectionCount+" activeCons:"+activeCons+" size:"+size);
 				throw new IOException("the max activeConnnections size can not be max than maxconnections");
 			}
 		}

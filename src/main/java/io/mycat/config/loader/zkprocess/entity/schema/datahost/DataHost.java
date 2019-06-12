@@ -29,6 +29,8 @@ public class DataHost implements Named {
     @XmlAttribute(required = true)
     protected Integer balance;
     @XmlAttribute(required = true)
+    protected Integer balanceType;
+    @XmlAttribute(required = true)
     protected Integer maxCon;
     @XmlAttribute(required = true)
     protected Integer minCon;
@@ -131,6 +133,14 @@ public class DataHost implements Named {
         this.balance = balance;
     }
 
+    public Integer getBalanceType() {
+        return balanceType;
+    }
+
+    public void setBalanceType(Integer balanceType) {
+        this.balanceType = balanceType;
+    }
+
     public String getDbType() {
         return dbType;
     }
@@ -176,6 +186,8 @@ public class DataHost implements Named {
         StringBuilder builder = new StringBuilder();
         builder.append("DataHost [balance=");
         builder.append(balance);
+        builder.append(", balanceType=");
+        builder.append(balanceType);
         builder.append(", maxCon=");
         builder.append(maxCon);
         builder.append(", minCon=");

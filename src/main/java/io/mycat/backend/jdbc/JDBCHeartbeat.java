@@ -96,12 +96,15 @@ public class JDBCHeartbeat extends DBHeartbeat{
 		{
 			isChecking.set(true);
 
+			// source.getConnection() 获取到新的连接，需要释放
 			try (Connection c = source.getConnection())
 			{
 				try (Statement s = c.createStatement())
 				{
 					s.execute(heartbeatSQL);
+					s.closeOnCompletion();
 				}
+				c.close();
 			}
 			status = OK_STATUS;
 			if(logger.isDebugEnabled()){

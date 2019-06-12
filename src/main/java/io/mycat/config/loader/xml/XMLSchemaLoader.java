@@ -750,6 +750,14 @@ public class XMLSchemaLoader implements SchemaLoader {
              */
             int balance = Integer.parseInt(element.getAttribute("balance"));
             /**
+             * 负载均衡配置
+             * 1. balanceType=0, 随机
+             * 2. balanceType=1，加权轮询
+             * 3. balanceType=2，最少活跃
+             */
+            String balanceTypeStr = element.getAttribute("balanceType");
+            int balanceType = balanceTypeStr.equals("") ? 0 : Integer.parseInt(balanceTypeStr);
+            /**
              * 读取切换类型
              * -1 表示不自动切换
              * 1 默认值，自动切换
@@ -837,6 +845,7 @@ public class XMLSchemaLoader implements SchemaLoader {
             hostConf.setMaxCon(maxCon);
             hostConf.setMinCon(minCon);
             hostConf.setBalance(balance);
+            hostConf.setBalanceType(balanceType);
             hostConf.setWriteType(writeType);
             hostConf.setHearbeatSQL(heartbeatSQL);
             hostConf.setConnectionInitSql(initConSQL);

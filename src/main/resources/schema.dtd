@@ -41,6 +41,7 @@
         <!ATTLIST childTable parentKey NMTOKEN #REQUIRED>
         <!ATTLIST childTable primaryKey NMTOKEN #IMPLIED>
         <!ATTLIST childTable autoIncrement NMTOKEN #IMPLIED>
+        <!ATTLIST childTable needAddLimit NMTOKEN #IMPLIED>
 
 
         <!ELEMENT dataNode (property*)>
@@ -55,6 +56,7 @@
   minCon CDATA #REQUIRED
   name NMTOKEN #REQUIRED
   balance CDATA #REQUIRED
+  balanceType CDATA #IMPLIED
   maxRetryCount CDATA #IMPLIED
   writeType CDATA #IMPLIED
   switchType  CDATA #IMPLIED

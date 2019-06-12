@@ -42,7 +42,7 @@
 			<!--
 			off heap for merge/order/group/limit      1开启   0关闭
 		-->
-		<property name="useOffHeapForMerge">1</property>
+		<property name="useOffHeapForMerge">0</property>
 
 		<!--
 			单位为m
