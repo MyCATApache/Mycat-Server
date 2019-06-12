@@ -464,9 +464,9 @@ public class NonBlockingSession implements Session {
             conn.setAttachment(node);
             return true;
         } else {
-            // slavedb connection and can't use anymore ,release it
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("release slave connection,can't be used in trasaction  "
+            // Previous connection and can't use anymore ,release it
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Release previous connection,can't be used in trasaction  "
                         + conn + " for " + node);
             }
             releaseConnection(node, LOGGER.isDebugEnabled(), false);

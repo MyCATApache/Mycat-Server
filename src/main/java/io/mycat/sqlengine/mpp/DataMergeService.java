@@ -291,9 +291,15 @@ public class DataMergeService extends AbstractDataNodeMerge {
 		
 		//no grouper and sorter
 		if(tmpResult == null){
-			tmpResult = new LinkedList<RowDataPacket>();
+			tmpResult = new LinkedList<>();
+      /**
+       * 每次移除dataNode,防止一个dataNode重复发送多次结果集
+       */
 			for (RouteResultsetNode node : rrs.getNodes()) {
-				tmpResult.addAll(result.get(node.getName()));
+				LinkedList<RowDataPacket> remove = result.remove(node.getName());
+				if (remove != null){
+					tmpResult.addAll(remove);
+				}
 			}
 		}
 		

@@ -238,7 +238,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		long resId = this.responseSqlId.get();
 		if(this.executeSqlId > resId) {
 			boolean t = this.responseSqlId.compareAndSet(resId, this.executeSqlId); 
-			if(t && LOGGER.isDebugEnabled()) {
+			if(false) {
 				StackTraceElement stack[] = Thread.currentThread().getStackTrace();  
 				StringBuilder sb = new StringBuilder();
                 for(int i=0;i<stack.length;i++){

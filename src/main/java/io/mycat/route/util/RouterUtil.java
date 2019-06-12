@@ -642,7 +642,12 @@ public class RouterUtil {
 		if(valuesIndex + "VALUES".length() <= firstLeftBracketIndex) {
 			throw new SQLSyntaxErrorException("insert must provide ColumnList");
 		}
-		List<List<String>> vauleList = parseSqlValue(origSQL , valuesIndex);
+		Object[] vauleArrayAndSuffixStr = parseSqlValueArrayAndSuffixStr(origSQL , valuesIndex);
+        List<List<String>> vauleArray = (List<List<String>>) vauleArrayAndSuffixStr[0];
+        String suffixStr = null;
+        if (vauleArrayAndSuffixStr.length > 1) {
+            suffixStr = (String) vauleArrayAndSuffixStr[1];
+        }
 		//两种情况处理 1 有主键的 id ,但是值为null 进行改下
 		//            2 没有主键的 需要插入 进行改写
 		
@@ -653,7 +658,7 @@ public class RouterUtil {
 
 		if(pkStart == -1){
 			processedInsert = true;
-			handleBatchInsert(sc, schema, sqlType,origSQL, valuesIndex, tableName, primaryKey, vauleList);
+			handleBatchInsert(sc, schema, sqlType,origSQL, valuesIndex, tableName, primaryKey, vauleArray, suffixStr);
 		} else {
 			//判断 主键id的值是否为null
 			if(pkStart != -1) {
@@ -666,7 +671,7 @@ public class RouterUtil {
 						pkIndex ++;
 					}
 				}
-				processedInsert  = handleBatchInsertWithPK(sc, schema, sqlType,origSQL, valuesIndex, tableName, primaryKey, vauleList , pkIndex);
+				processedInsert  = handleBatchInsertWithPK(sc, schema, sqlType,origSQL, valuesIndex, tableName, primaryKey, vauleArray, suffixStr, pkIndex);
 			}
 		}
 		return processedInsert;
@@ -674,36 +679,38 @@ public class RouterUtil {
 
 	private static boolean handleBatchInsertWithPK(ServerConnection sc, SchemaConfig schema, int sqlType,
 			String origSQL, int valuesIndex, String tableName, String primaryKey, List<List<String>> vauleList,
-			int pkIndex) {
-		boolean processedInsert = false;
+			String suffixStr, int pkIndex) {
+        boolean processedInsert = false;
 //	  	final String pk = "\\("+primaryKey+",";
-	      final String mycatSeqPrefix = "next value for MYCATSEQ_"+tableName.toUpperCase() ;
+        final String mycatSeqPrefix = "next value for MYCATSEQ_"+tableName.toUpperCase() ;
 	  	
 	  	/*"VALUES".length() ==6 */
-	      String prefix = origSQL.substring(0, valuesIndex + 6);
+        String prefix = origSQL.substring(0, valuesIndex + 6);
 //	      
 	      
-	      StringBuilder sb = new StringBuilder("");
-	      for(List<String> list : vauleList) {	    	    	  
-	    	  sb.append("(");
-	    	  String pkValue = list.get(pkIndex).trim().toLowerCase();
-	    	  //null值替换为 next value for MYCATSEQ_tableName
-	    	  if("null".equals(pkValue.trim())) {
-	    		  list.set(pkIndex, mycatSeqPrefix);
-	    		  processedInsert = true;
-	    	  }
-	    	  for(String val : list) {
-	    		  sb.append(val).append(",");
-	    	  }
-		      sb.setCharAt(sb.length() - 1, ')');
-	    	  sb.append(",");
-	      }
-	      sb.setCharAt(sb.length() - 1, ' ');;
-	     if(processedInsert) {
-	 	    processSQL(sc, schema,prefix+sb.toString(), sqlType);
- 
-	     }
-		return processedInsert;
+        StringBuilder sb = new StringBuilder("");
+        for(List<String> list : vauleList) {
+            sb.append("(");
+            String pkValue = list.get(pkIndex).trim().toLowerCase();
+            //null值替换为 next value for MYCATSEQ_tableName
+            if("null".equals(pkValue.trim())) {
+                list.set(pkIndex, mycatSeqPrefix);
+                processedInsert = true;
+            }
+            for(String val : list) {
+                sb.append(val).append(",");
+            }
+            sb.setCharAt(sb.length() - 1, ')');
+            sb.append(",");
+        }
+        sb.setCharAt(sb.length() - 1, ' ');
+        if (suffixStr != null) {
+            sb.append(suffixStr);
+        }
+        if(processedInsert) {
+            processSQL(sc, schema,prefix+sb.toString(), sqlType);
+        }
+        return processedInsert;
 	}
 
 	public static List<String> handleBatchInsert(String origSQL, int valuesIndex) {
@@ -765,77 +772,93 @@ public class RouterUtil {
 	  *	[")", "\"\')"],
 	  *	[ 1,  null]
 	  * 值结果的解析
-	  */	
-    public  static List<List<String>> parseSqlValue(String origSQL,int valuesIndex ) {
+	  */
+     public static Object[] parseSqlValueArrayAndSuffixStr(String origSQL, int valuesIndex) {
         List<List<String>> valueArray = new ArrayList<>();
-        String valueStr = origSQL.substring(valuesIndex + 6);// 6 values 长度为6
-        String preStr = origSQL.substring(0, valuesIndex );// 6 values 长度为6
+        String valuesAndSuffixStr = origSQL.substring(valuesIndex + 6);// 6 values 长度为6
         int pos = 0 ;
-        int flag  = -1;
-        int len = valueStr.length();
+        int flag  = 4;
+        int len = valuesAndSuffixStr.length();
         StringBuilder currentValue = new StringBuilder();
 //        int colNum = 2; //
         char c ;
         List<String> curList = new ArrayList<>();
+		int parenCount = 0;
         for( ;pos < len; pos ++) {
-            c = valueStr.charAt(pos);
-            if(flag == 1  || flag == 2) {
+            c = valuesAndSuffixStr.charAt(pos);
+            if (flag == 1  || flag == 2) {
                 currentValue.append(c);
-                if(c == '\\') {
-                    char nextCode = valueStr.charAt(pos + 1);
-                    if(nextCode == '\'' || nextCode == '\"') {
+                if (c == '\\') {
+                    char nextCode = valuesAndSuffixStr.charAt(pos + 1);
+                    if (nextCode == '\'' || nextCode == '\"') {
                         currentValue.append(nextCode);
                         pos++;
                         continue;
                     }
                 }
-                if(c == '\"' && flag == 1) {
+                if (c == '\"' && flag == 1) {
                     flag = 0;
                     continue;
                 }
-                if(c == '\'' && flag == 2) {
+                if (c == '\'' && flag == 2) {
                     flag = 0;
                     continue;
                 }
-            }  else if(c == '\"'){
+            } else if (flag == 5) {
+                currentValue.append(c);
+                if (c == '(') {
+                    parenCount++;
+                } else if (c == ')') {
+                    parenCount--;
+                }
+                if (parenCount == 0) {
+                    flag = 0;
+                }
+            } else if (c == '\"'){
                 currentValue.append(c);
                 flag = 1;
             } else if (c == '\'') {
                 currentValue.append(c);
                 flag = 2;
             } else if (c == '(') {
-                curList = new ArrayList<>();
-                flag = 0;
-            } else if(flag == 4 ) {
-                if(c == ',') {
-                    flag = 0;
-                    continue;
+            	if (flag == 4) {
+					curList = new ArrayList<>();
+					flag = 0;
+				} else {
+					currentValue.append(c);
+					flag = 5;
+					parenCount++;
+				}
+            } else if (flag == 4) {
+                if (c == 'o' || c == 'O') {
+                    String suffixStr = valuesAndSuffixStr.substring(pos);
+                    return new Object[]{valueArray, suffixStr};
                 }
-            } else if(c == ',') {
+				continue;
+			} else if (c == ',') {
 //                System.out.println(currentValue);
                 curList.add(currentValue.toString());
                 currentValue.delete(0, currentValue.length());
-            } else if(c == ')'){
-                flag = 4;
+            } else if (c == ')'){
+				flag = 4;
 //                System.out.println(currentValue);
-                curList.add(currentValue.toString());
-                currentValue.delete(0, currentValue.length());
-                valueArray.add(curList);
+				curList.add(currentValue.toString());
+				currentValue.delete(0, currentValue.length());
+				valueArray.add(curList);
             }  else {
                 currentValue.append(c);
             }
         }
-        return valueArray;
-    }  
-	
-	  /**
+        return new Object[]{valueArray};
+    }
+    /**
 	  * 对于主键不在插入语句的fields中的SQL，需要改写。比如hotnews主键为id，插入语句为：
 	  * insert into hotnews(title) values('aaa');
 	  * 需要改写成：
 	  * insert into hotnews(id, title) values(next value for MYCATSEQ_hotnews,'aaa');
 	  */
 	  public static void handleBatchInsert(ServerConnection sc, SchemaConfig schema,
-	          int sqlType,String origSQL, int valuesIndex,String tableName, String primaryKey , List<List<String>> vauleList) {
+	          int sqlType,String origSQL, int valuesIndex,String tableName, String primaryKey , List<List<String>> vauleList, String suffixStr) {
 	  	
 	  	final String pk = "\\("+primaryKey+",";
 	      final String mycatSeqPrefix = "(next value for MYCATSEQ_"+tableName.toUpperCase()+"";
@@ -853,7 +876,10 @@ public class RouterUtil {
 	    	  }
 	    	  sb.append("),");
 	      }
-	      sb.setCharAt(sb.length() - 1, ' ');;
+	      sb.setCharAt(sb.length() - 1, ' ');
+	      if (suffixStr != null) {
+              sb.append(suffixStr);
+          }
 	      processSQL(sc, schema,prefix+sb.toString(), sqlType);
 	  }
 //	  /**
