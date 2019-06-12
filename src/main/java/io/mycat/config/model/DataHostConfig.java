@@ -62,6 +62,7 @@ public class DataHostConfig {
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;
 	private int balance = PhysicalDBPool.BALANCE_NONE;
+	private int balanceType = PhysicalDBPool.RANDOM;
 	private int writeType = PhysicalDBPool.WRITE_ONLYONE_NODE;
 	private final String dbType;
 	private final String dbDriver;
@@ -176,6 +177,14 @@ public class DataHostConfig {
 
 	public void setBalance(int balance) {
 		this.balance = balance;
+	}
+
+	public int getBalanceType() {
+		return balanceType;
+	}
+
+	public void setBalanceType(int balanceType) {
+		this.balanceType = balanceType;
 	}
 
 	public String getDbType() {
