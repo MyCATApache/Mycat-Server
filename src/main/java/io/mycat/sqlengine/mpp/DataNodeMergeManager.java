@@ -424,9 +424,11 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                  *构造一行row，将对应的col填充.
                  */
                 MySQLMessage mm = new MySQLMessage(pack.rowData);
+                
+                unsafeRowWriter.grow((mm.getRowLength(fieldCount) + 1 ) / 2);
                 mm.readUB3();
                 mm.read();
-
+                
                 int nullnum = 0;
                 for (int i = 0; i < fieldCount; i++) {
                     byte[] colValue = mm.readBytesWithLength();
