@@ -111,7 +111,7 @@ public class SplitUtilTest {
         Assert.assertArrayEquals(new String[] {}, SplitUtil.split("", '0', '0', '0', '0'));
         Assert.assertArrayEquals(new String[] {"0-1-2"}, SplitUtil.split("0-1-2", '3', ' ', '0', '0'));
         Assert.assertArrayEquals(new String[] {"011"}, SplitUtil.split("0-1-2", '-', ' ', '1', '0'));
-        Assert.assertArrayEquals(new String[] {"0111"}, SplitUtil.split("0-1-2", '-', ' ', '1', '1'));}
+        Assert.assertArrayEquals(new String[] {"0111"}, SplitUtil.split("0-1-2", '-', ' ', '1', '1'));
     }
 
     @Test
