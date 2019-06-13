@@ -161,7 +161,7 @@ public final class NIOConnector extends Thread implements SocketConnector {
 
 	private boolean finishConnect(AbstractConnection c, SocketChannel channel)
 			throws IOException {
-		if (channel.isConnectionPending()) {
+		if (channel.finishConnect()) {
 			channel.finishConnect();
 
 			c.setLocalPort(channel.socket().getLocalPort());
