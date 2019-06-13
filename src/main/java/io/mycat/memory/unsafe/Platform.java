@@ -17,6 +17,7 @@
 
 package io.mycat.memory.unsafe;
 
+import io.mycat.MycatServer;
 import io.mycat.memory.unsafe.utils.BytesTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,7 @@ public final class Platform {
     public static final boolean littleEndian = ByteOrder.nativeOrder()
             .equals(ByteOrder.LITTLE_ENDIAN);
 
+    public static final long sqlTimeout =  MycatServer.getInstance().getConfig().getSystem().getSqlExecuteTimeout() * 1000L;
     static {
         boolean _unaligned;
         // use reflection to access unaligned field
@@ -293,12 +295,19 @@ public final class Platform {
         } else {
             srcOffset += length;
             dstOffset += length;
-            while (length > 0) {
+            while (length > 0) {  // if backend db run time out ,this will be endless loop
                 long size = Math.min(length, UNSAFE_COPY_THRESHOLD);
+                long lbegin = System.currentTimeMillis();
                 srcOffset -= size;
                 dstOffset -= size;
                 _UNSAFE.copyMemory(src, srcOffset, dst, dstOffset, size);
                 length -= size;
+                long l = System.currentTimeMillis() - lbegin;
+                if(l > sqlTimeout) {   // when sql run timeout,break the loop
+                    logger.error("copyMemory timeout.loop(seconds):" + String.valueOf(l / 1000));
+
+                    break;
+                }
             }
 
         }
