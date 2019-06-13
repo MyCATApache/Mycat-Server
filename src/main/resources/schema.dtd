@@ -41,6 +41,7 @@
 <!ATTLIST childTable parentKey NMTOKEN #REQUIRED>
 <!ATTLIST childTable primaryKey NMTOKEN #IMPLIED>
 <!ATTLIST childTable autoIncrement NMTOKEN #IMPLIED>
+  <!ATTLIST childTable needAddLimit NMTOKEN #IMPLIED>
 
 
 <!ELEMENT dataNode (property*)>
