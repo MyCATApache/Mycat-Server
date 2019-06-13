@@ -285,12 +285,19 @@ public final class Platform {
         // Check if dstOffset is before or after srcOffset to determine if we should copy
         // forward or backwards. This is necessary in case src and dst overlap.
         if (dstOffset < srcOffset) {
-            while (length > 0) {
+            while (length > 0) {  // if backend db run time out ,this will be endless loop
                 long size = Math.min(length, UNSAFE_COPY_THRESHOLD);
+                long lbegin = System.currentTimeMillis();
                 _UNSAFE.copyMemory(src, srcOffset, dst, dstOffset, size);
                 length -= size;
                 srcOffset += size;
                 dstOffset += size;
+                long l = System.currentTimeMillis() - lbegin;
+                if(l > sqlTimeout) {   // when sql run timeout,break the loop
+                    logger.error("copyMemory timeout.loop(seconds):" + String.valueOf(l / 1000));
+
+                    break;
+                }
             }
         } else {
             srcOffset += length;
