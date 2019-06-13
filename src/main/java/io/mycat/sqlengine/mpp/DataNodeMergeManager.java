@@ -425,7 +425,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                  *构造一行row，将对应的col填充.
                  */
                 MySQLMessage mm = new MySQLMessage(pack.rowData);
-                
+                // 一次性增长到一行row所需要的内存，避免在 write 多次增长消耗cpu
                 unsafeRowWriter.grow((mm.getRowLength(fieldCount) + 1 ) / 2);
                 mm.readUB3();
                 mm.read();
