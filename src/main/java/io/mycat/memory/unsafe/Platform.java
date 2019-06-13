@@ -17,6 +17,7 @@
 
 package io.mycat.memory.unsafe;
 
+import io.mycat.MycatServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Cleaner;
@@ -59,6 +60,7 @@ public final class Platform {
     public static final boolean littleEndian = ByteOrder.nativeOrder()
             .equals(ByteOrder.LITTLE_ENDIAN);
 
+    public static final long sqlTimeout =  MycatServer.getInstance().getConfig().getSystem().getSqlExecuteTimeout() * 1000L;
     static {
         boolean _unaligned;
         // use reflection to access unaligned field
@@ -284,22 +286,36 @@ public final class Platform {
         // forward or backwards. This is necessary in case src and dst overlap.
         //  检查dstOffset是否在srcOffset之前或之后，以确定我们是应该向前还是向后复制。 这在src和dst重叠的情况下是必要的。
         if (dstOffset < srcOffset) {
-            while (length > 0) {
+            while (length > 0) {  // if backend db run time out ,this will be endless loop
                 long size = Math.min(length, UNSAFE_COPY_THRESHOLD);
+                long lbegin = System.currentTimeMillis();
                 _UNSAFE.copyMemory(src, srcOffset, dst, dstOffset, size);
                 length -= size;
                 srcOffset += size;
                 dstOffset += size;
+                long l = System.currentTimeMillis() - lbegin;
+                if(l > sqlTimeout) {   // when sql run timeout,break the loop
+                    logger.error("copyMemory timeout.loop(seconds):" + String.valueOf(l / 1000));
+
+                    break;
+                }
             }
         } else {
             srcOffset += length;
             dstOffset += length;
-            while (length > 0) {
+            while (length > 0) {  // if backend db run time out ,this will be endless loop
                 long size = Math.min(length, UNSAFE_COPY_THRESHOLD);
+                long lbegin = System.currentTimeMillis();
                 srcOffset -= size;
                 dstOffset -= size;
                 _UNSAFE.copyMemory(src, srcOffset, dst, dstOffset, size);
                 length -= size;
+                long l = System.currentTimeMillis() - lbegin;
+                if(l > sqlTimeout) {   // when sql run timeout,break the loop
+                    logger.error("copyMemory timeout.loop(seconds):" + String.valueOf(l / 1000));
+
+                    break;
+                }
             }
 
         }
