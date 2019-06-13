@@ -247,6 +247,7 @@ public final class Platform {
      * Uses internal JDK APIs to allocate a DirectByteBuffer while ignoring the JVM's
      * MaxDirectMemorySize limit (the default limit is too low and we do not want to require users
      * to increase it).
+     * 使用内部JDK API来分配DirectByteBuffer，同时忽略JVM的MaxDirectMemorySize限制（默认限制太低，我们不希望要求用户增加它）。
      */
     @SuppressWarnings("unchecked")
     public static ByteBuffer allocateDirectBuffer(int size) {
@@ -276,10 +277,12 @@ public final class Platform {
         _UNSAFE.setMemory(address, size, value);
     }
 
+    // TODO 本方法相当耗cpu资源，常常导致cpu使用率飙升
     public static void copyMemory(
             Object src, long srcOffset, Object dst, long dstOffset, long length) {
         // Check if dstOffset is before or after srcOffset to determine if we should copy
         // forward or backwards. This is necessary in case src and dst overlap.
+        //  检查dstOffset是否在srcOffset之前或之后，以确定我们是应该向前还是向后复制。 这在src和dst重叠的情况下是必要的。
         if (dstOffset < srcOffset) {
             while (length > 0) {
                 long size = Math.min(length, UNSAFE_COPY_THRESHOLD);
