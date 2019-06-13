@@ -174,7 +174,14 @@ public class UnsafeRowWriter {
     }
     write(ordinal, input, 0, input.length);
   }
+  
+  public void grow( int numBytes) {
+	  final int roundedSize = ByteArrayMethods.roundNumberOfBytesToNearestWord(numBytes);
 
+	  // grow the global buffer before writing data.
+	  holder.grow(roundedSize);
+  }
+  
   public void write(int ordinal, byte[] input, int offset, int numBytes) {
     final int roundedSize = ByteArrayMethods.roundNumberOfBytesToNearestWord(numBytes);
 
