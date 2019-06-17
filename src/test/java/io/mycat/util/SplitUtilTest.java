@@ -23,7 +23,7 @@
  */
 package io.mycat.util;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.junit.Test;
 
@@ -80,6 +80,46 @@ public class SplitUtilTest {
         Assert.assertEquals("offer[1]", dest[1]);
         Assert.assertEquals("offer[2]", dest[2]);
         Assert.assertEquals("offer[3]", dest[3]);
+    }
+
+    @Test
+    public void test5() {
+        Assert.assertNull(SplitUtil.split(null, '\u0000'));
+        Assert.assertArrayEquals(new String[] {}, SplitUtil.split("", '/'));
+        Assert.assertArrayEquals(new String[] {}, SplitUtil.split("/", '/'));
+        Assert.assertArrayEquals(new String[] {"/"}, SplitUtil.split("/", '\"'));
+        Assert.assertArrayEquals(new String[] {"/"}, SplitUtil.split("/\"", '\"'));
+    }
+
+    @Test
+    public void test6() {
+        Assert.assertNull(SplitUtil.split(null, "1", 1));
+        Assert.assertArrayEquals(new String[] {}, SplitUtil.split("", "foo", 1));
+        Assert.assertArrayEquals(new String[] {}, SplitUtil.split(" ", null, 1));
+        Assert.assertArrayEquals(new String[] {"foo bar"}, SplitUtil.split("foo bar", null, 1));
+        Assert.assertArrayEquals(new String[] {"foo", "bar"}, SplitUtil.split("foo bar", null, 2));
+        Assert.assertArrayEquals(new String[] {}, SplitUtil.split("1", "1", 1));
+        Assert.assertArrayEquals(new String[] {"foo1bar"}, SplitUtil.split("foo1bar", "1", 1));
+        Assert.assertArrayEquals(new String[] {"foo", "bar"}, SplitUtil.split("foo1bar", "1", 2));
+        Assert.assertArrayEquals(new String[] {"foo11bar"}, SplitUtil.split("foo11bar", "11", 1));
+        Assert.assertArrayEquals(new String[] {"foo", "bar"}, SplitUtil.split("foo11bar", "11", 2));
+    }
+
+    @Test
+    public void test7() {
+        Assert.assertNull(SplitUtil.split(null, '0', '0', '0', '0'));
+        Assert.assertArrayEquals(new String[] {}, SplitUtil.split("", '0', '0', '0', '0'));
+        Assert.assertArrayEquals(new String[] {"0-1-2"}, SplitUtil.split("0-1-2", '3', ' ', '0', '0'));
+        Assert.assertArrayEquals(new String[] {"011"}, SplitUtil.split("0-1-2", '-', ' ', '1', '0'));
+        Assert.assertArrayEquals(new String[] {"0111"}, SplitUtil.split("0-1-2", '-', ' ', '1', '1'));
+    }
+
+    @Test
+    public void test8() {
+        Assert.assertArrayEquals(new String[] {"foo"}, SplitUtil.splitByByteSize("foo", 1));
+        Assert.assertArrayEquals(new String[] {"f"}, SplitUtil.splitByByteSize("f", 2));
+        Assert.assertArrayEquals(new String[] {"fo", "o"}, SplitUtil.splitByByteSize("foo", 2));
+        Assert.assertArrayEquals(new String[] {"fo", "ob", "ar"}, SplitUtil.splitByByteSize("foobar", 2));
     }
 
 }
