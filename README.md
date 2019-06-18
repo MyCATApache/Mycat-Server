@@ -1,9 +1,7 @@
 
 # [MyCAT](http://mycat.io/)
 
-Mycat官网群,qq群:332702697
-
-Mycat开发志愿者群,qq群:106088787
+Mycat官网群,qq群:106088787
 
 [![GitHub issues](https://img.shields.io/github/issues/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/issues)
 [![GitHub forks](https://img.shields.io/github/forks/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/network)
