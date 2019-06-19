@@ -1,7 +1,7 @@
 package io.mycat.route.parser.util;
 
 public class WildcardUtil {
- 
+  
   public static String wildcard(String name) {
     if (name.startsWith("`")) {
       name = name.replaceAll("`", "");
