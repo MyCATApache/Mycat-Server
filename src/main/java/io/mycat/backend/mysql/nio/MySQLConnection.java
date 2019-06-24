@@ -138,7 +138,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	private String user;
 	private String password;
 	private Object attachment;
-	private ResponseHandler respHandler;
+	private volatile ResponseHandler respHandler;
 
 	private final AtomicBoolean isQuit;
 	private volatile StatusSync statusSync;
@@ -388,7 +388,10 @@ public class MySQLConnection extends BackendAIOConnection {
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
-		String xaTXID = sc.getSession2().getXaTXID();
+		String xaTXID = null;
+		if(sc.getSession2().getXaTXID()!=null){
+			xaTXID = sc.getSession2().getXaTXID()+",'"+getSchema()+"'";
+		}
 		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(),
 				autocommit);
 	}
@@ -400,9 +403,15 @@ public class MySQLConnection extends BackendAIOConnection {
 
 		boolean conAutoComit = this.autocommit;
 		String conSchema = this.schema;
-		// never executed modify sql,so auto commit
-		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB()
-				|| clientAutoCommit;
+		boolean strictTxIsolation = MycatServer.getInstance().getConfig().getSystem().isStrictTxIsolation();
+		boolean expectAutocommit = false;
+		// 如果在非自动提交情况下,如果需要严格保证事务级别,则需做下列判断
+		if (strictTxIsolation) {
+			expectAutocommit = isFromSlaveDB() || clientAutoCommit;
+		} else {
+			// never executed modify sql,so auto commit
+			expectAutocommit = (!modifiedSQLExecuted || isFromSlaveDB() || clientAutoCommit);
+		}
 		if (expectAutocommit == false && xaTxID != null && xaStatus == TxState.TX_INITIALIZE_STATE) {
 			//clientTxIsoLation = Isolations.SERIALIZABLE;
 			xaCmd = "XA START " + xaTxID + ';';
@@ -419,9 +428,15 @@ public class MySQLConnection extends BackendAIOConnection {
 		}
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
 		int autoCommitSyn = (conAutoComit == expectAutocommit) ? 0 : 1;
-		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn;
-		if (synCount == 0 && this.xaStatus != TxState.TX_STARTED_STATE) {
+		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn + (xaCmd!=null?1:0);
+//		if (synCount == 0 && this.xaStatus != TxState.TX_STARTED_STATE) {
+		if (synCount == 0 ) {
 			// not need syn connection
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("not need syn connection :\n" + this+"\n to send query cmd:\n"+rrn.getStatement()
+						+"\n in pool\n"
+				+this.getPool().getConfig());
+			}
 			sendQueryCmd(rrn.getStatement());
 			return;
 		}
@@ -476,7 +491,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	/**
 	 * by wuzh ,execute a query and ignore transaction settings for performance
 	 * 
-	 * @param sql
+	 * @param query
 	 * @throws UnsupportedEncodingException
 	 */
 	public void query(String query) throws UnsupportedEncodingException {
@@ -486,7 +501,20 @@ public class MySQLConnection extends BackendAIOConnection {
 		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
 
 	}
+	/**
+	 * by zwy ,execute a query with charsetIndex
+	 * 
+	 * @param query
+	 * @throws UnsupportedEncodingException
+	 */
+	@Override
+	public void query(String query, int charsetIndex) {
+		RouteResultsetNode rrn = new RouteResultsetNode("default",
+				ServerParse.SELECT, query);
 
+		synAndDoExecute(null, rrn, charsetIndex, this.txIsolation, true);
+		
+	}
 	public long getLastTime() {
 		return lastTime;
 	}
@@ -510,12 +538,20 @@ public class MySQLConnection extends BackendAIOConnection {
 	public void close(String reason) {
 		if (!isClosed.get()) {
 			isQuit.set(true);
+			ResponseHandler tmpRespHandlers= respHandler;
+			setResponseHandler(null);
 			super.close(reason);
 			pool.connectionClosed(this);
-			if (this.respHandler != null) {
-				this.respHandler.connectionClose(this, reason);
-				respHandler = null;
+			if (tmpRespHandlers != null) {
+				tmpRespHandlers.connectionClose(this, reason);
 			}
+			if( this.handler instanceof MySQLConnectionAuthenticator) {
+				((MySQLConnectionAuthenticator) this.handler).connectionError(this, new Throwable(reason));
+				
+			}
+		} else {
+			//主要起一个清理资源的作用
+			super.close(reason);
 		}
 	}
 
@@ -562,7 +598,8 @@ public class MySQLConnection extends BackendAIOConnection {
 		metaDataSyned = true;
 		attachment = null;
 		statusSync = null;
-		modifiedSQLExecuted = false;
+		modifiedSQLExecuted = false;		
+		xaStatus = TxState.TX_INITIALIZE_STATE;
 		setResponseHandler(null);
 		pool.releaseChannel(this);
 	}
@@ -664,5 +701,7 @@ public class MySQLConnection extends BackendAIOConnection {
 	public int getTxIsolation() {
 		return txIsolation;
 	}
+
+	
 
 }

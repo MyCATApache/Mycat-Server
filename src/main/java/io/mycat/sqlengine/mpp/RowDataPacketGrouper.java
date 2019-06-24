@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.util.ByteUtil;
@@ -49,7 +50,9 @@ public class RowDataPacketGrouper {
 
 	private List<RowDataPacket> result = Collections.synchronizedList(new ArrayList<RowDataPacket>());
 	private final MergeCol[] mergCols;
+	private int[] mergeColsIndex;
 	private final int[] groupColumnIndexs;
+	private boolean ishanlderFirstRow = false;   //结果集汇聚时,是否已处理第一条记录.
 	private boolean isMergAvg=false;
 	private HavingCols havingCols;
 
@@ -58,6 +61,14 @@ public class RowDataPacketGrouper {
 		this.groupColumnIndexs = groupColumnIndexs;
 		this.mergCols = mergCols;
 		this.havingCols = havingCols;
+		
+		if(mergCols!=null&&mergCols.length>0){
+			mergeColsIndex = new int[mergCols.length];
+			for(int i = 0;i<mergCols.length;i++){
+				mergeColsIndex[i] = mergCols[i].colMeta.colIndex;
+			}
+			Arrays.sort(mergeColsIndex);
+		}
 	}
 
 	public List<RowDataPacket> getResult() {
@@ -207,6 +218,23 @@ public class RowDataPacketGrouper {
 		if (mergCols == null) {
 			return;
 		}
+		
+		/*
+		 * 这里进行一次判断, 在跨分片聚合的情况下,如果有一个没有记录的分片，最先返回,可能返回有null 的情况.
+		 */
+		if(!ishanlderFirstRow&&mergeColsIndex!=null&&mergeColsIndex.length>0){
+			List<byte[]> values = toRow.fieldValues;
+            for(int i=0;i<values.size();i++){
+            	if(Arrays.binarySearch(mergeColsIndex, i)>=0){
+            		continue;
+            	}
+	           if(values.get(i)==null){
+	           	   values.set(i, newRow.fieldValues.get(i));
+	           }
+            }
+            ishanlderFirstRow = true;
+		}
+		
 		for (MergeCol merg : mergCols) {
              if(merg.mergeType!=MergeCol.MERGE_AVG)
              {
@@ -220,18 +248,16 @@ public class RowDataPacketGrouper {
                  }
              }
 		}
-
-
-
-
     }
 
 	private void mergAvg(RowDataPacket toRow) {
 		if (mergCols == null) {
 			return;
 		}
+		
+		
 
-		Set<Integer> rmIndexSet = new HashSet<Integer>();
+		TreeSet<Integer> rmIndexSet = new TreeSet<Integer>();
 		for (MergeCol merg : mergCols) {
 			if(merg.mergeType==MergeCol.MERGE_AVG)
 			{
@@ -248,7 +274,8 @@ public class RowDataPacketGrouper {
 				}
 			}
 		}
-		for(Integer index : rmIndexSet) {
+		// remove by index from large to small, to make sure each element deleted correctly
+		for(int index : rmIndexSet.descendingSet()) {
 			toRow.fieldValues.remove(index);
 			toRow.fieldCount = toRow.fieldCount - 1;
 		}

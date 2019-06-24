@@ -37,7 +37,6 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
     private void checkSwitch(PathChildrenCacheEvent event)    {
         InterProcessMutex taskLock =null;
         try {
-
             String path=event.getData().getPath();
             String taskPath=path.substring(0,path.lastIndexOf("/_clean/"))  ;
             String taskID=taskPath.substring(taskPath.lastIndexOf('/')+1,taskPath.length());
@@ -62,17 +61,12 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
                 }
                 ZKUtils.closeWatch(needToCloseWatch);
 
-
                 taskLock=	 new InterProcessMutex(ZKUtils.getConnection(), lockPath);
                 taskLock.acquire(20, TimeUnit.SECONDS);
                     TaskNode taskNode= JSON.parseObject(ZKUtils.getConnection().getData().forPath(taskPath),TaskNode.class);
                     if(taskNode.getStatus()==3){
                         taskNode.setStatus(5);  //clean sucess
-
                         //释放slaveIDs
-
-
-
                         for (String dataHostName : dataHosts) {
                             if("_prepare".equals(dataHostName)||"_commit".equals(dataHostName)||"_clean".equals(dataHostName))
                                 continue;
@@ -85,11 +79,6 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
                             }
                         }
 
-
-
-
-
-
                         ZKUtils.getConnection().setData().forPath(taskPath,JSON.toJSONBytes(taskNode))  ;
                         LOGGER.info("task end",new Date());
                     }
@@ -97,6 +86,7 @@ public class SwitchCleanListener implements PathChildrenCacheListener {
             }
 
         } catch (Exception e) {
+            LOGGER.error("migrate 中 clean 阶段异常");
             LOGGER.error("error:",e);
         }
         finally {

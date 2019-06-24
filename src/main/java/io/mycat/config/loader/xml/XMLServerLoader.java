@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -143,27 +143,35 @@ public class XMLServerLoader {
             Node node = list.item(i);
             if (node instanceof Element) {
                 Element e = (Element) node;
-                String host = e.getAttribute("host").trim();
+                String hostStr = e.getAttribute("host").trim();
                 String userStr = e.getAttribute("user").trim();
-                if (this.firewall.existsHost(host)) {
-                    throw new ConfigException("host duplicated : " + host);
+                String []hosts = hostStr.split(",");
+                for (String host : hosts) {
+                    host = host.trim();
+                    if (this.firewall.existsHost(host)) {
+                        throw new ConfigException("host duplicated : " + host);
+                    }
                 }
                 String []users = userStr.split(",");
                 List<UserConfig> userConfigs = new ArrayList<UserConfig>();
                 for(String user : users){
+                    user = user.trim();
                 	UserConfig uc = this.users.get(user);
                     if (null == uc) {
-                        throw new ConfigException("[user: " + user + "] doesn't exist in [host: " + host + "]");
+                        throw new ConfigException("[user: " + user + "] doesn't exist in [host: " + hostStr + "]");
                     }
                     if (uc.getSchemas() == null || uc.getSchemas().size() == 0) {
-                        throw new ConfigException("[host: " + host + "] contains one root privileges user: " + user);
+                        throw new ConfigException("[host: " + hostStr + "] contains one root privileges user: " + user);
                     }
                     userConfigs.add(uc);
                 }
-                if(host.contains("*")||host.contains("%")){
-                    whitehostMask.put(FirewallConfig.getMaskPattern(host),userConfigs);
-                }else{
-                    whitehost.put(host, userConfigs);
+                for (String host : hosts) {
+                    host = host.trim();
+                    if (host.contains("*") || host.contains("%")) {
+                        whitehostMask.put(FirewallConfig.getMaskPattern(host), userConfigs);
+                    } else {
+                        whitehost.put(host, userConfigs);
+                    }
                 }
             }
         }
@@ -198,12 +206,16 @@ public class XMLServerLoader {
             if (node instanceof Element) {
                 Element e = (Element) node;
                 String name = e.getAttribute("name");
+                //huangyiming add  
+                String defaultAccount = e.getAttribute("defaultAccount");
+
                 UserConfig user = new UserConfig();
                 Map<String, Object> props = ConfigUtil.loadElements(e);
                 String password = (String)props.get("password");
                 String usingDecrypt = (String)props.get("usingDecrypt");
                 String passwordDecrypt = DecryptUtil.mycatDecrypt(usingDecrypt,name,password);
                 user.setName(name);
+                user.setDefaultAccount(Boolean.parseBoolean(defaultAccount));
                 user.setPassword(passwordDecrypt);
                 user.setEncryptPassword(password);
 
@@ -216,6 +228,7 @@ public class XMLServerLoader {
 				if (null != readOnly) {
 					user.setReadOnly(Boolean.parseBoolean(readOnly));
 				}
+
 
 				String schemas = (String) props.get("schemas");
                 if (schemas != null) {
@@ -288,6 +301,28 @@ public class XMLServerLoader {
 
 				privilegesConfig.addSchemaPrivilege(name1, schemaPrivilege);
 			}
+
+            // 获取 dataNode 权限
+            NodeList dataNodes = privilegesNode.getElementsByTagName("dataNode");
+            int dataNodeLength = dataNodes.getLength();
+
+            for(int k = 0; k < dataNodeLength; k++){
+                UserPrivilegesConfig.DataNodePrivilege dataNodePrivilege = new UserPrivilegesConfig.DataNodePrivilege();
+
+                Element dataNode = (Element) dataNodes.item(k);
+                String dataNodeName = dataNode.getAttribute("name");
+                String dataNodeDml = dataNode.getAttribute("dml");
+
+                int[] dataNodeDmlArray = new int[ dataNodeDml.length() ];
+                for(int offset2 = 0; offset2 < dataNodeDml.length(); offset2++ ) {
+                    dataNodeDmlArray[offset2] =  Character.getNumericValue( dataNodeDml.charAt( offset2 ) );
+                }
+
+                dataNodePrivilege.setName( dataNodeName );
+                dataNodePrivilege.setDml( dataNodeDmlArray );
+
+                privilegesConfig.addDataNodePrivileges(dataNodeName, dataNodePrivilege);
+            }
 		}
 
 		userConfig.setPrivilegesConfig(privilegesConfig);

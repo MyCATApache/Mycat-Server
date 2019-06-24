@@ -375,7 +375,80 @@ public class MongoSQLParser {
 			  }
 		   }		
 	}
-	private void parserWhere(SQLExpr aexpr,BasicDBObject o){   
+
+	private void parserWhere(SQLExpr aexpr,BasicDBObject o){
+
+		if(aexpr instanceof SQLBinaryOpExpr){
+			SQLBinaryOpExpr expr=(SQLBinaryOpExpr)aexpr;
+			//处理AND和OR
+			if (expr.getOperator().getName().equals("AND")) {
+				parserWhere(expr.getLeft(),o);
+				parserWhere(expr.getRight(),o);
+			}
+			else if (expr.getOperator().getName().equals("OR")) {
+				orWhere(expr.getLeft(),expr.getRight(),o);
+			} else {
+				SQLExpr exprL=expr.getLeft();
+				if (!(exprL instanceof SQLBinaryOpExpr)){
+					if (expr.getOperator().getName().equals("=")) {
+						o.put(exprL.toString(), getExpValue(expr.getRight()));
+
+					}else if(("like").equals(expr.getOperator().getName().toLowerCase())){
+						//处理like以及正则转换
+						String likeString="";
+						try{
+							likeString=("%"+String.valueOf(getExpValue(expr.getRight()))+"%")
+									.replace("%%","")
+									.replace("%","^");
+						}catch (Exception e){
+							throw new RuntimeException("like SQL error");
+						}
+
+						parserDBObject(o,exprL.toString(),"$regex", likeString);
+
+					} else {
+						String op="";
+						if (expr.getOperator().getName().equals("<")) {
+							op = "$lt";
+						}
+						if (expr.getOperator().getName().equals("<=")) {
+							op = "$lte";
+						}
+						if (expr.getOperator().getName().equals(">")) {
+							op = "$gt";
+						}
+						if (expr.getOperator().getName().equals(">=")) {
+							op = "$gte";
+						}
+						if (expr.getOperator().getName().equals("!=")) {
+							op = "$ne";
+						}
+						if (expr.getOperator().getName().equals("<>")) {
+							op = "$ne";
+						}
+
+						parserDBObject(o,exprL.toString(),op, getExpValue(expr.getRight()));
+					}
+				}
+			}
+		}else if(aexpr instanceof  SQLInListExpr){
+			//处理IN和NOT IN
+			SQLInListExpr expr= (SQLInListExpr)aexpr;
+			List<SQLExpr> exprList= expr.getTargetList();
+			BasicDBList dbObject= new BasicDBList();
+			for(SQLExpr e:exprList){
+				dbObject.add(getExpValue(e));
+			}
+			String op="$in";
+			if(expr.isNot()){
+				op="$nin";
+			}
+			parserDBObject(o,expr.getExpr().toString(),op, dbObject);
+		}
+	}
+
+
+	private void parserWhereOLD(SQLExpr aexpr,BasicDBObject o){
 	     if(aexpr instanceof SQLBinaryOpExpr){
 		   SQLBinaryOpExpr expr=(SQLBinaryOpExpr)aexpr;  
 		   SQLExpr exprL=expr.getLeft();

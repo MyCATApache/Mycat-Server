@@ -55,6 +55,14 @@
             <algorithm>rang-mod</algorithm>
         </rule>
     </tableRule>
+    
+    <tableRule name="partitionByMod">
+    	<rule>
+    		<columns>id</columns>
+    		<algorithm>partitionByMod</algorithm>
+    	</rule>
+    </tableRule>
+    
     <tableRule name="rangeDateHash">
         <rule>
             <columns>col_date</columns>
@@ -67,6 +75,17 @@
 			<algorithm>crc32slot</algorithm>
 		</rule>
 	</tableRule>
+	
+	<tableRule name="mod-long">
+		<rule>
+			<columns>id</columns>
+			<algorithm>mod-long</algorithm>
+		</rule>
+	</tableRule>
+	
+	<function name="partitionByMod" class="io.mycat.route.function.PartitionByMod">
+		<property name="count">2</property>
+	</function>
 	<function name="func1"
 		class="io.mycat.route.function.PartitionByFileMap">
 		<property name="defaultNode">0</property>
@@ -112,6 +131,10 @@
 
 	<function name="crc32slot"
 			  class="io.mycat.route.function.PartitionByCRC32PreSlot">
-		<property name="count">2</property><!-- 要分片的数据库节点数量，必须指定，否则没法分片 -->
+	</function>
+	
+	<function name="mod-long" class="io.mycat.route.function.PartitionByMod">
+			<!-- how many data nodes -->
+			<property name="count">2</property>
 	</function>
 </mycat:rule>

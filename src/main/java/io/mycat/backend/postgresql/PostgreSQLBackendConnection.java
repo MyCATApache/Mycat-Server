@@ -227,7 +227,10 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
-		String xaTXID = sc.getSession2().getXaTXID();
+		String xaTXID = null;
+		if(sc.getSession2().getXaTXID()!=null){
+			xaTXID = sc.getSession2().getXaTXID() +",'"+getSchema()+"'";
+		}
 		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(), autocommit);
 	}
 
@@ -543,5 +546,15 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 	public String toString() {
 		return "PostgreSQLBackendConnection [id=" + id + ", host=" + host + ", port=" + port + ", localPort="
 				+ localPort + "]";
+	}
+
+	@Override
+	public void query(String sql, int charsetIndex) {
+		try {
+			query(sql);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
+		}
 	}
 }

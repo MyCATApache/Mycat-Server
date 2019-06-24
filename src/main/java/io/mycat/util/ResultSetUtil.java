@@ -59,6 +59,10 @@ public class ResultSetUtil {
 				int javaType = MysqlDefs.javaTypeDetect(
 						metaData.getColumnType(j), fieldPacket.decimals);
 				fieldPacket.type = (byte) (MysqlDefs.javaTypeMysql(javaType) & 0xff);
+				if(MysqlDefs.isBianry((byte) fieldPacket.type)) {
+					// 63 represent binary character set
+					fieldPacket.charsetIndex = 63;
+				}
 				fieldPks.add(fieldPacket);
 				//values+=metaData.getColumnLabel(j)+"|"+metaData.getColumnName(j)+"  ";
 			}
@@ -80,7 +84,8 @@ public class ResultSetUtil {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldValues.size());
 		rowDataPkg.read(row);
 		byte[] columnData = rowDataPkg.fieldValues.get(columnIndex);
-		return new String(columnData);
+		//columnData 为空时,直接返回null
+		return columnData==null?null:new String(columnData);
 	}
 
 	public static byte[] getColumnVal(byte[] row, List<byte[]> fieldValues,

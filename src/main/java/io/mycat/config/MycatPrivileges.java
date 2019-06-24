@@ -104,17 +104,20 @@ public class MycatPrivileges implements FrontendPrivileges {
     @Override
     public Set<String> getUserSchemas(String user) {
         MycatConfig conf = MycatServer.getInstance().getConfig();
+        
         UserConfig uc = conf.getUsers().get(user);
         if (uc != null) {
             return uc.getSchemas();
         } else {
             return null;
         }
-    }
+    
+     }
     
     @Override
     public Boolean isReadOnly(String user) {
         MycatConfig conf = MycatServer.getInstance().getConfig();
+       
         UserConfig uc = conf.getUsers().get(user);
         if (uc != null) {
             return uc.isReadOnly();
@@ -158,6 +161,7 @@ public class MycatPrivileges implements FrontendPrivileges {
         if ((whitehost == null || whitehost.size() == 0)&&(whitehostMask == null || whitehostMask.size() == 0)) {
         	Map<String, UserConfig> users = mycatConfig.getUsers();
         	isPassed = users.containsKey(user);
+        	
         } else {
         	List<UserConfig> list = whitehost.get(host);
 			Set<Pattern> patterns = whitehostMask.keySet();
@@ -210,15 +214,24 @@ public class MycatPrivileges implements FrontendPrivileges {
 			WallCheckResult result = contextLocal.get().check(sql);
 			
 			// 修复 druid 防火墙在处理SHOW FULL TABLES WHERE Table_type != 'VIEW' 的时候存在的 BUG
-			List<SQLStatement> stmts =  result.getStatementList();
-			if ( !stmts.isEmpty() &&  !( stmts.get(0) instanceof SQLShowTablesStatement) ) {				
-				if ( !result.getViolations().isEmpty()) {				
-					isPassed = false;
-					ALARM.warn("Firewall to intercept the '" + user + "' unsafe SQL , errMsg:"
-							+ result.getViolations().get(0).getMessage() +
-							" \r\n " + sql);
-		        }				
-			}
+			// 此代码有问题，由于Druid WallCheck 对同一条SQL语句只做一次解析，下面代码会导致第二次拦截失效
+			// 并且 目前已经提供 ShowFullTables 来处理show full tables 命令，故对代码进行修改 
+//			List<SQLStatement> stmts =  result.getStatementList();
+//			if ( !stmts.isEmpty() &&  !( stmts.get(0) instanceof SQLShowTablesStatement) ) {				
+//				if ( !result.getViolations().isEmpty()) {				
+//					isPassed = false;
+//					ALARM.warn("Firewall to intercept the '" + user + "' unsafe SQL , errMsg:"
+//							+ result.getViolations().get(0).getMessage() +
+//							" \r\n " + sql);
+//		        }				
+//			}
+			
+			if ( !result.getViolations().isEmpty()) {				
+				isPassed = false;
+				ALARM.warn("Firewall to intercept the '" + user + "' unsafe SQL , errMsg:"
+						+ result.getViolations().get(0).getMessage() +
+						" \r\n " + sql);
+	        }	
 			
 			
 		}
@@ -249,10 +262,18 @@ public class MycatPrivileges implements FrontendPrivileges {
 					int index = -1;
 					
 					//TODO 此处待优化，寻找更优SQL 解析器
+					
+					//修复bug
+					// https://github.com/alibaba/druid/issues/1309
+					//com.alibaba.druid.sql.parser.ParserException: syntax error, error in :'begin',expect END, actual EOF begin
+					if ( sql != null && sql.length() == 5 && sql.equalsIgnoreCase("begin") ) {
+						return true;
+					}
+					
 					SQLStatementParser parser = new MycatStatementParser(sql);			
 					SQLStatement stmt = parser.parseStatement();
-					
-					if (stmt instanceof MySqlReplaceStatement || stmt instanceof SQLInsertStatement ) {		
+
+					if (stmt instanceof MySqlReplaceStatement || stmt instanceof SQLInsertStatement ) {
 						index = 0;
 					} else if (stmt instanceof SQLUpdateStatement ) {
 						index = 1;
@@ -261,7 +282,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 					} else if (stmt instanceof SQLDeleteStatement ) {
 						index = 3;
 					}
-					
+
 					if ( index > -1) {
 						
 						SchemaStatVisitor schemaStatVisitor = new MycatSchemaStatVisitor();
@@ -318,6 +339,38 @@ public class MycatPrivileges implements FrontendPrivileges {
 		}
 		
 		return isPassed;
-	}	
-	
+	}
+
+	@Override
+	public boolean checkDataNodeDmlPrivilege(String user, String dataNode, String sql) {
+		if (dataNode == null) {
+			return true;
+		}
+
+		boolean isPassed = false;
+
+		MycatConfig conf = MycatServer.getInstance().getConfig();
+		UserConfig userConfig = conf.getUsers().get(user);
+		if (userConfig != null) {
+
+			UserPrivilegesConfig userPrivilege = userConfig.getPrivilegesConfig();
+			if (userPrivilege != null && userPrivilege.isCheck()) {
+
+				UserPrivilegesConfig.DataNodePrivilege dataNodePrivilege = userPrivilege.getDataNodePrivilege(dataNode);
+				if (dataNodePrivilege != null) {
+
+					if (sql != null && sql.length() == 5 && sql.equalsIgnoreCase("begin")) {
+						return true;
+					}
+
+					//获取 dataNode 的 select 权限, 此处不需要检测空值, 无设置则自动继承父级权限
+					if (dataNodePrivilege.getDml()[2] > 0) {
+						isPassed = true;
+					}
+				}
+			}
+		}
+		return isPassed;
+	}
+
 }

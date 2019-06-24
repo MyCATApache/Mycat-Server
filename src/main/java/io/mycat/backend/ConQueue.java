@@ -37,10 +37,12 @@ public class ConQueue {
 		this.executeCount++;
 	}
 
-	public void removeCon(BackendConnection con) {
-		if (!autoCommitCons.remove(con)) {
-			manCommitCons.remove(con);
+	public boolean removeCon(BackendConnection con) {
+		boolean removed = autoCommitCons.remove(con);
+		if (!removed) {
+			return manCommitCons.remove(con);
 		}
+		return removed;
 	}
 
 	public boolean isSameCon(BackendConnection con) {
@@ -65,13 +67,13 @@ public class ConQueue {
 				count);
 		while (!manCommitCons.isEmpty() && readyCloseCons.size() < count) {
 			BackendConnection theCon = manCommitCons.poll();
-			if (theCon != null) {
+			if (theCon != null&&!theCon.isBorrowed()) {
 				readyCloseCons.add(theCon);
 			}
 		}
 		while (!autoCommitCons.isEmpty() && readyCloseCons.size() < count) {
 			BackendConnection theCon = autoCommitCons.poll();
-			if (theCon != null) {
+			if (theCon != null&&!theCon.isBorrowed()) {
 				readyCloseCons.add(theCon);
 			}
 

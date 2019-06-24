@@ -67,7 +67,10 @@ public final class FirewallConfig {
     private Map<String, List<UserConfig>> whitehost;//具体host的白名单
 	private Map<Pattern, List<UserConfig>> whitehostMask;//网段的白名单
 	public static Pattern getMaskPattern(String host){
-		return Pattern.compile(host.replaceAll(".","\\.").replaceAll("[*]","[0-9]*").replaceAll("%","[0-9]*"));
+		return Pattern.compile(host.replaceAll("\\.","\\\\.").replaceAll("[*]","[0-9]*").replaceAll("%","[0-9]*"));
+	}
+	public static String getHost(Pattern maskPattern){
+		return maskPattern.pattern().replaceAll("\\\\.","\\.").replaceAll("\\[0-9\\]","");
 	}
     private List<String> blacklist;
     private boolean check = false;

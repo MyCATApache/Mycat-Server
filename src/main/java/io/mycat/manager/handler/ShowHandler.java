@@ -25,6 +25,7 @@ package io.mycat.manager.handler;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.manager.ManagerConnection;
+import io.mycat.manager.response.CheckGlobalTable;
 import io.mycat.manager.response.ShowBackend;
 import io.mycat.manager.response.ShowBackendOld;
 import io.mycat.manager.response.ShowCollation;
@@ -246,6 +247,9 @@ public final class ShowHandler {
 			break;
 		case ManagerParseShow.DIRECTMEMORY_TOTAL:
 			ShowDirectMemory.execute(c,1);
+			break;
+		case ManagerParseShow.CHECK_GLOBAL:
+			CheckGlobalTable.execute(c, stmt);
 			break;
 		default:
 			c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");

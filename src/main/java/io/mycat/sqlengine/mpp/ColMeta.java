@@ -76,6 +76,9 @@ public class ColMeta implements Serializable{
 		return colIndex;
 	}
 
+	public void setColIndex(int colIndex) {
+		this.colIndex = colIndex;
+	}
 	public int getColType() {
 		return colType;
 	}

@@ -173,10 +173,13 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
         schema = MycatServer.getInstance().getConfig()
                 .getSchemas().get(serverConnection.getSchema());
+        if (schema == null){
+            throw new RuntimeException("please sql:use schema  before load data");
+        }
         tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
         tableName = statement.getTableName().getSimpleName().toUpperCase();
         tableConfig = schema.getTables().get(tableName);
-      if(  tableConfig.getRule().getRuleAlgorithm() instanceof SlotFunction){
+      if(  tableConfig.getRule() != null && tableConfig.getRule().getRuleAlgorithm() instanceof SlotFunction){
           shoudAddSlot=true;
       }
         tempPath = SystemConfig.getHomePath() + File.separator + "temp" + File.separator + serverConnection.getId() + File.separator;

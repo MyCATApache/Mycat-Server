@@ -26,6 +26,8 @@ package io.mycat.route.function;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 public class PartitionByMonthTest {
 
 	@Test
@@ -84,5 +86,52 @@ public class PartitionByMonthTest {
 		Assert.assertEquals(true, 11 == partition.calculate("2015-12-11"));
 		Assert.assertEquals(true, 11 == partition.calculate("2016-12-31"));
 
+	}
+
+	/**
+	 * 范围对比
+	 */
+	@Test
+	public void sence1CalculateRangeContrastTest(){
+		// 场景1：无开始/结束时间，节点数量必须是12个，从1月~12月
+		PartitionByMonth partition = new PartitionByMonth();
+		partition.setDateFormat("yyyy-MM-dd");
+        partition.setsBeginDate("2013-01-01");
+        partition.setsEndDate("2013-12-01");
+		partition.init();
+
+		PartitionByMonth scene = new PartitionByMonth();
+		scene.setDateFormat("yyyy-MM-dd");
+		scene.init();
+		Assert.assertEquals(
+				Arrays.toString(partition.calculateRange("2014-01-01", "2014-04-03")),
+				Arrays.toString(scene.calculateRange("2014-01-01", "2014-04-03"))
+		);
+		Assert.assertEquals(
+				Arrays.toString(partition.calculateRange("2013-01-01", "2014-04-03")),
+				Arrays.toString(scene.calculateRange("2013-01-01", "2014-04-03"))
+		);
+		Assert.assertEquals(
+				// []
+				Arrays.toString(partition.calculateRange("2015-01-01", "2014-04-03")),
+				// []
+				Arrays.toString(scene.calculateRange("2015-01-01", "2014-04-03"))
+		);
+	}
+	@Test
+	public void sence1(){
+		PartitionByMonth scene = new PartitionByMonth();
+		scene.setDateFormat("yyyy-MM-dd");
+		scene.init();
+
+		Assert.assertEquals(true, 0 == scene.calculate("2014-01-01"));
+		Assert.assertEquals(true, 0 == scene.calculate("2014-01-10"));
+		Assert.assertEquals(true, 0 == scene.calculate("2014-01-31"));
+		Assert.assertEquals(true, 1 == scene.calculate("2014-02-01"));
+		Assert.assertEquals(true, 1 == scene.calculate("2014-02-28"));
+		Assert.assertEquals(true, 2 == scene.calculate("2014-03-1"));
+		Assert.assertEquals(true, 11 == scene.calculate("2014-12-31"));
+		Assert.assertEquals(true, 0 == scene.calculate("2015-01-31"));
+		Assert.assertEquals(true, 11 == scene.calculate("2015-12-31"));
 	}
 }

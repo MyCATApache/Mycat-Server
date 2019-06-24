@@ -2,7 +2,9 @@ package io.mycat.route.impl;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
+import java.util.List;
 
+import io.mycat.config.model.TableConfig;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
@@ -78,8 +80,22 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 		} else {
 			RouteResultset returnedSet = routeSystemInfo(schema, sqlType, stmt, rrs);
 			if (returnedSet == null) {
-				rrs = routeNormalSqlWithAST(schema, stmt, rrs, charset, cachePool);
+				rrs = routeNormalSqlWithAST(schema, stmt, rrs, charset, cachePool,sqlType,sc);
 			}
+		}
+
+		if (rrs.getSqlType()==ServerParse.INSERT && rrs.getTables()!=null && rrs.getTables().size()!=0) {
+			List<String> tables = rrs.getTables();
+			boolean isAutoIncrement = false;
+			for (String tableName: tables) {
+				if (schema.getTables()!=null && schema.getTables().get(tableName)!=null) {
+					TableConfig tableConfig = schema.getTables().get(tableName);
+					if (tableConfig.isAutoIncrement()) {
+						isAutoIncrement = true;
+					}
+				}
+			}
+			rrs.setAutoIncrement(isAutoIncrement);
 		}
 
 		return rrs;
@@ -101,7 +117,7 @@ public abstract class AbstractRouteStrategy implements RouteStrategy {
 	 * 通过解析AST语法树类来寻找路由
 	 */
 	public abstract RouteResultset routeNormalSqlWithAST(SchemaConfig schema, String stmt, RouteResultset rrs,
-			String charset, LayerCachePool cachePool) throws SQLNonTransientException;
+			String charset, LayerCachePool cachePool,int sqlType,ServerConnection sc) throws SQLNonTransientException;
 
 	/**
 	 * 路由信息指令, 如 SHOW、SELECT@@、DESCRIBE

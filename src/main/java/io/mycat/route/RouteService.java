@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import io.mycat.route.function.PartitionByCRC32PreSlot;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.cache.CachePool;
 import io.mycat.cache.CacheService;
@@ -39,6 +39,7 @@ import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.factory.RouteStrategyFactory;
+import io.mycat.route.function.PartitionByCRC32PreSlot;
 import io.mycat.route.handler.HintHandler;
 import io.mycat.route.handler.HintHandlerFactory;
 import io.mycat.route.handler.HintSQLHandler;
@@ -190,6 +191,7 @@ public class RouteService {
 			}
 			//注解支持的'!'不被mysql单库兼容，
 			//注解支持的'#'不被mybatis兼容
+			//注解支持的':'不被hibernate兼容
 			//考虑用mycat字符前缀标志Hintsql:"/** mycat: */"
 			if(sql.charAt(j)=='m'){
 				j--;
@@ -198,7 +200,7 @@ public class RouteService {
 				return -1;        // false
 			}
 			if(sql.charAt(++j) == 'm' && sql.charAt(++j) == 'y' && sql.charAt(++j) == 'c'
-				&& sql.charAt(++j) == 'a' && sql.charAt(++j) == 't' && sql.charAt(++j) == ':') {
+				&& sql.charAt(++j) == 'a' && sql.charAt(++j) == 't' && (sql.charAt(++j) == ':' || sql.charAt(j) == '#')) {
 				return j + 1;    // true，同时返回注解部分的长度
 			}
 		}

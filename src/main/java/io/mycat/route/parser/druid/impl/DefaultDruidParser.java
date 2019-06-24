@@ -1,20 +1,12 @@
 package io.mycat.route.parser.druid.impl;
 
-import java.sql.SQLNonTransientException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat.Condition;
-
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
@@ -22,8 +14,18 @@ import io.mycat.route.parser.druid.DruidParser;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
+import io.mycat.route.parser.druid.SqlMethodInvocationHandler;
+import io.mycat.route.parser.druid.SqlMethodInvocationHandlerFactory;
 import io.mycat.sqlengine.mpp.RangeValue;
 import io.mycat.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 对SQLStatement解析
@@ -43,6 +45,8 @@ public class DefaultDruidParser implements DruidParser {
 	private Map<String,String> tableAliasMap = new HashMap<String,String>();
 
 	private List<Condition> conditions = new ArrayList<Condition>();
+
+	protected SqlMethodInvocationHandler invocationHandler;
 	
 	public Map<String, String> getTableAliasMap() {
 		return tableAliasMap;
@@ -51,7 +55,11 @@ public class DefaultDruidParser implements DruidParser {
 	public List<Condition> getConditions() {
 		return conditions;
 	}
-	
+
+	public DefaultDruidParser() {
+		invocationHandler = SqlMethodInvocationHandlerFactory.getForMysql();
+	}
+
 	/**
 	 * 使用MycatSchemaStatVisitor解析,得到tables、tableAliasMap、conditions等
 	 * @param schema
@@ -63,11 +71,19 @@ public class DefaultDruidParser implements DruidParser {
 		ctx.setSql(originSql);
 		//通过visitor解析
 		visitorParse(rrs,stmt,schemaStatVisitor);
+
 		//通过Statement解析
 		statementParse(schema, rrs, stmt);
-		
-		//改写sql：如insert语句主键自增长的可以
-		changeSql(schema, rrs, stmt,cachePool);
+	}
+	
+	/**
+	 * 是否终止解析,子类可覆盖此方法控制解析进程.
+	 * 存在子查询的情况下,如果子查询需要先执行获取返回结果后,进一步改写sql后,再执行 在这种情况下,不再需要statement 和changeSql 解析。增加此模板方法
+	 * @param schemaStatVisitor
+	 * @return
+	 */
+	public boolean afterVisitorParser(RouteResultset rrs, SQLStatement stmt,MycatSchemaStatVisitor schemaStatVisitor){
+		return false;
 	}
 	
 	/**
@@ -117,6 +133,11 @@ public class DefaultDruidParser implements DruidParser {
 			mergedConditionList.add(visitor.getConditions());
 		}
 		
+		if(visitor.isHasChange()){	// 在解析的过程中子查询被改写了.需要更新ctx.
+			ctx.setSql(stmt.toString());
+			rrs.setStatement(ctx.getSql());
+		}
+		
 		if(visitor.getAliasMap() != null) {
 			for(Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
 				String key = entry.getKey();
@@ -159,7 +180,7 @@ public class DefaultDruidParser implements DruidParser {
 			for(Condition condition : conditionList.get(i)) {
 				List<Object> values = condition.getValues();
 				if(values.size() == 0) {
-					break;
+					continue;  
 				}
 				if(checkConditionValues(values)) {
 					String columnName = StringUtil.removeBackquote(condition.getColumn().getName().toUpperCase());
@@ -201,5 +222,16 @@ public class DefaultDruidParser implements DruidParser {
 	
 	public DruidShardingParseInfo getCtx() {
 		return ctx;
+	}
+
+	public void setInvocationHandler(SqlMethodInvocationHandler invocationHandler) {
+		this.invocationHandler = invocationHandler;
+	}
+
+	/**
+	 * 尝试解析某些SQL函数，如now(), sysdate()等
+	 */
+	protected String tryInvokeSQLMethod(SQLMethodInvokeExpr expr) throws SQLNonTransientException {
+		return invocationHandler.invoke(expr);
 	}
 }

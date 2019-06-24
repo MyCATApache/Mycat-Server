@@ -41,21 +41,22 @@ public class NewConnectionRespHandler implements ResponseHandler{
 	@Override
 	public void connectionAcquired(BackendConnection conn) {
 		//
-		conn.release();
 		LOGGER.info("connectionAcquired "+conn);
 		
+		conn.release(); //  NewConnectionRespHandler 因为这个是由于空闲连接数低于配置，需要新建连接，但再新建连接的时候，
 		
 	}
 
 	@Override
 	public void errorResponse(byte[] err, BackendConnection conn) {
 		LOGGER.warn("caught error resp: " + conn + " " + new String(err));
+		conn.release();
 	}
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
 		LOGGER.info("okResponse: " + conn );
-		
+		conn.release();
 	}
 
 	@Override
@@ -74,7 +75,7 @@ public class NewConnectionRespHandler implements ResponseHandler{
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		LOGGER.info("rowEofResponse: " + conn );
-		
+		conn.release();
 	}
 
 	@Override

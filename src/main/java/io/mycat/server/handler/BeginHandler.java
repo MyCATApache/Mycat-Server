@@ -34,12 +34,12 @@ public final class BeginHandler {
     public static void handle(String stmt, ServerConnection c) {
         if (c.isAutocommit())
         {
-            c.setAutocommit(false);
             c.write(c.writeToBuffer(AC_OFF, c.allocate()));
         }else
         {
             c.getSession2().commit() ;
         }
+        c.setAutocommit(false);
     }
 
 }

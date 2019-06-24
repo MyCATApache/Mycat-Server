@@ -120,6 +120,15 @@ public class SwitchPrepareCheckRunner implements Runnable {
                     scheduledExecutorService.schedule(this,3, TimeUnit.SECONDS);
                 }
             } catch (Exception e) {
+                try {
+                    LOGGER.error("migrate 中 switch prepare 阶段异常");
+
+                    taskNode.addException(e.getLocalizedMessage());
+                    //异常to  Zk
+                    ZKUtils.getConnection().setData().forPath(taskPath, JSON.toJSONBytes(taskNode));
+                }catch (Exception e1){
+                    LOGGER.error("error:",e);
+                }
                 LOGGER.error("error:",e);
             }
         }

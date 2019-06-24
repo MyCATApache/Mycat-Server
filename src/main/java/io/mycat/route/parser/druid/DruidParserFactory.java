@@ -1,11 +1,5 @@
 package io.mycat.route.parser.druid;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
@@ -15,21 +9,15 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLockTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
-
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
-import io.mycat.route.parser.druid.impl.DefaultDruidParser;
-import io.mycat.route.parser.druid.impl.DruidAlterTableParser;
-import io.mycat.route.parser.druid.impl.DruidCreateTableParser;
-import io.mycat.route.parser.druid.impl.DruidDeleteParser;
-import io.mycat.route.parser.druid.impl.DruidInsertParser;
-import io.mycat.route.parser.druid.impl.DruidLockTableParser;
-import io.mycat.route.parser.druid.impl.DruidSelectDb2Parser;
-import io.mycat.route.parser.druid.impl.DruidSelectOracleParser;
-import io.mycat.route.parser.druid.impl.DruidSelectParser;
-import io.mycat.route.parser.druid.impl.DruidSelectPostgresqlParser;
-import io.mycat.route.parser.druid.impl.DruidSelectSqlServerParser;
-import io.mycat.route.parser.druid.impl.DruidUpdateParser;
+import io.mycat.route.parser.druid.impl.*;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * DruidParser的工厂类
@@ -83,7 +71,12 @@ public class DruidParserFactory
     {
         DruidParser parser=null;
         //先解出表，判断表所在db的类型，再根据不同db类型返回不同的解析
-        List<String> tables = parseTables(statement, visitor);
+        /**
+         * 不能直接使用visitor变量，防止污染后续sql解析
+         * @author SvenAugustus
+         */
+        SchemaStatVisitor _visitor = SchemaStatVisitorFactory.create(schema);
+        List<String> tables = parseTables(statement, _visitor);
         for (String table : tables)
         {
             Set<String> dbTypes =null;
@@ -99,6 +92,7 @@ public class DruidParserFactory
             if (dbTypes.contains("oracle"))
             {
                 parser = new DruidSelectOracleParser();
+                ((DruidSelectOracleParser)parser).setInvocationHandler(SqlMethodInvocationHandlerFactory.getForOracle());
                 break;
             } else if (dbTypes.contains("db2"))
             {
@@ -111,6 +105,7 @@ public class DruidParserFactory
             } else if (dbTypes.contains("postgresql"))
             {
                 parser = new DruidSelectPostgresqlParser();
+                ((DruidSelectPostgresqlParser)parser).setInvocationHandler(SqlMethodInvocationHandlerFactory.getForPgsql());
                 break;
             }
         }

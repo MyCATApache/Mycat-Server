@@ -61,6 +61,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 	static {
 		Builder escapeBuilder = Escapers.builder();
 		escapeBuilder.addEscape('\'', "\\'");
+		escapeBuilder.addEscape('\"', "\\\"");
 		escapeBuilder.addEscape('$', "\\$");
 		varcharEscaper = escapeBuilder.build();
 	}
@@ -69,12 +70,14 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     private volatile long pstmtId;
     private Map<String, PreparedStatement> pstmtForSql;
     private Map<Long, PreparedStatement> pstmtForId;
+    private int maxPreparedStmtCount;
 
-    public ServerPrepareHandler(ServerConnection source) {
+    public ServerPrepareHandler(ServerConnection source,int maxPreparedStmtCount) {
         this.source = source;
         this.pstmtId = 0L;
         this.pstmtForSql = new HashMap<String, PreparedStatement>();
         this.pstmtForId = new HashMap<Long, PreparedStatement>();
+        this.maxPreparedStmtCount = maxPreparedStmtCount;
     }
 
     @Override
@@ -86,6 +89,10 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
         	// 解析获取字段个数和参数个数
         	int columnCount = getColumnCount(sql);
         	int paramCount = getParamCount(sql);
+        	if(paramCount > maxPreparedStmtCount){
+				source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM, "Prepared statement contains too many placeholders");
+				return;
+			}
             pstmt = new PreparedStatement(++pstmtId, sql, columnCount, paramCount);
             pstmtForSql.put(pstmt.getStatement(), pstmt);
             pstmtForId.put(pstmt.getId(), pstmt);
@@ -271,7 +278,6 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             	break;
     		}
     	}
-    	
     	return sb.toString();
     }
 

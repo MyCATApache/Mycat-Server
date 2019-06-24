@@ -17,7 +17,16 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLNumericLiteralExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
@@ -26,11 +35,20 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
+import com.alibaba.druid.sql.dialect.db2.ast.stmt.DB2SelectQueryBlock;
+import com.alibaba.druid.sql.dialect.db2.visitor.DB2OutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.oracle.visitor.OracleOutputVisitor;
+import com.alibaba.druid.sql.dialect.postgresql.ast.stmt.PGSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.postgresql.visitor.PGOutputVisitor;
+import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
+import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
 import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
@@ -41,6 +59,7 @@ import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
@@ -151,16 +170,31 @@ public class DruidSelectParser extends DefaultDruidParser {
                     isNeedChangeSql=true;
                     aggrColumns.put(colName, mergeType);
                     rrs.setHasAggrColumn(true);
-                } else
-				if (MergeCol.MERGE_UNSUPPORT != mergeType)
-				{
+                } else if (MergeCol.MERGE_UNSUPPORT != mergeType){
+					String aggColName = null;
+					StringBuilder sb = new StringBuilder();
+					if(mysqlSelectQuery instanceof MySqlSelectQueryBlock) {
+						expr.accept(new MySqlOutputVisitor(sb));
+					} else if(mysqlSelectQuery instanceof OracleSelectQueryBlock) {
+						expr.accept(new OracleOutputVisitor(sb));
+					} else if(mysqlSelectQuery instanceof PGSelectQueryBlock){
+						expr.accept(new PGOutputVisitor(sb));
+					} else if(mysqlSelectQuery instanceof SQLServerSelectQueryBlock) {
+						expr.accept(new SQLASTOutputVisitor(sb));
+					} else if(mysqlSelectQuery instanceof DB2SelectQueryBlock) {
+						expr.accept(new DB2OutputVisitor(sb));
+					}
+					aggColName = sb.toString();
+
 					if (item.getAlias() != null && item.getAlias().length() > 0)
 					{
 						aggrColumns.put(item.getAlias(), mergeType);
+						aliaColumns.put(aggColName,item.getAlias());
 					} else
 					{   //如果不加，jdbc方式时取不到正确结果   ;修改添加别名
 							item.setAlias(method + i);
 							aggrColumns.put(method + i, mergeType);
+							aliaColumns.put(aggColName, method + i);
                             isNeedChangeSql=true;
 					}
 					rrs.setHasAggrColumn(true);
@@ -205,7 +239,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			List<SQLExpr> groupByItems = mysqlSelectQuery.getGroupBy().getItems();
 			String[] groupByCols = buildGroupByCols(groupByItems,aliaColumns);
 			rrs.setGroupByCols(groupByCols);
-			rrs.setHavings(buildGroupByHaving(mysqlSelectQuery.getGroupBy().getHaving()));
+			rrs.setHavings(buildGroupByHaving(mysqlSelectQuery.getGroupBy().getHaving(),aliaColumns));
 			rrs.setHasAggrColumn(true);
 			rrs.setHavingColsName(havingColsName.toArray()); // Added by winbill, 20160314, for having clause
 		}
@@ -220,7 +254,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		return aliaColumns;
 	}
 
-	private HavingCols buildGroupByHaving(SQLExpr having){
+	private HavingCols buildGroupByHaving(SQLExpr having,Map<String, String> aliaColumns ){
 		if (having == null) {
 			return null;
 		}
@@ -234,6 +268,11 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if (left instanceof SQLAggregateExpr) {
 			leftValue = ((SQLAggregateExpr) left).getMethodName() + "("
 					+ ((SQLAggregateExpr) left).getArguments().get(0) + ")";
+			String aggrColumnAlias = getAliaColumn(aliaColumns,leftValue);
+			if(aggrColumnAlias != null) { // having聚合函数存在别名
+				expr.setLeft(new SQLIdentifierExpr(aggrColumnAlias));
+				leftValue = aggrColumnAlias;
+			}
 		} else if (left instanceof SQLIdentifierExpr) {
 			leftValue = ((SQLIdentifierExpr) left).getName();
 		}
@@ -278,6 +317,30 @@ public class DruidSelectParser extends DefaultDruidParser {
 			return item.toString();
 		}
 	}
+	
+	/**
+	 * 现阶段目标为 有一个只涉及到一张表的子查询时,先执行子查询,获得返回结果后,改写原有sql继续执行,得到最终结果.
+	 * 在这种情况下,原sql不需要继续解析.
+	 * 使用catlet 的情况也不再继续解析.
+	 */
+	@Override
+	public boolean afterVisitorParser(RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor) {
+		int subQuerySize = visitor.getSubQuerys().size();
+		
+		if(subQuerySize==0&&ctx.getTables().size()==2){ //两表关联,考虑使用catlet
+		    if(ctx.getVisitor().getConditions() !=null && ctx.getVisitor().getConditions().size()>0){
+		    	return true;
+			}
+		}else if(subQuerySize==1){     //只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行 TODO 后期可能会考虑多个.
+			SQLSelectQuery sqlSelectQuery = visitor.getSubQuerys().iterator().next().getQuery();
+			if(((MySqlSelectQueryBlock)sqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
+				return true;
+			}
+		}
+		
+		return super.afterVisitorParser(rrs, stmt, visitor);
+	}
+	
 	/**
 	 * 改写sql：需要加limit的加上
 	 */
@@ -368,6 +431,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 					sqlIdentifierExpr.setParent(from);
 					sqlIdentifierExpr.setName(node.getSubTableName());
 					SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+					from2.setAlias(from.getAlias());
 					mysqlSelectQuery.setFrom(from2);
 					node.setStatement(stmt.toString());
 	            }
@@ -503,7 +567,10 @@ public class DruidSelectParser extends DefaultDruidParser {
 						&& ctx.getRouteCalculateUnit().getTablesAndConditions().get(tableName).get(primaryKey) != null 
 						&& tc.getDataNodes().size() > 1) {//有主键条件
 					return false;
-				} 
+				}
+			//全局表不缓存 
+			}else if(RouterUtil.isAllGlobalTable(ctx, schema)){
+				return false;
 			}
 			return true;
 		}

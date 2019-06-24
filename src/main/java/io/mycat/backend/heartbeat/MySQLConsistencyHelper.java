@@ -68,7 +68,7 @@ public class MySQLConsistencyHelper implements SQLQueryResultListener<SQLQueryRe
     public void onResult(SQLQueryResult<Map<String, String>> result) {
     	// {"dataNode":"db2","result":{"max_timestamp":"1450423751170"},"success":true}
     	// {"dataNode":"db3","result":{"count(*)":"1"},"success":true}
-    	LOGGER.debug("resultresultresultresult:" + JSON.toJSONString(result));
+//    	LOGGER.debug("result:" + JSON.toJSONString(result));
     	Map<String, String> rowMap = null;
     	String count = null; String innerCol = null;
     	String maxTimestamp = null;

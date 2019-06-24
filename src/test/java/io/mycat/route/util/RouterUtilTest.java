@@ -6,6 +6,8 @@ import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +18,11 @@ import java.util.Map;
  */
 public class RouterUtilTest {
 
-
+	public static void main(String[] args) {
+        String sql = "insert into hotnews(title,name) values('test1',\"name\"),('(test)',\"(test)\"),('\\\"',\"\\'\"),(\")\",\"\\\"\\')\");";
+        List<String> values = RouterUtil.handleBatchInsert(sql, sql.toUpperCase().indexOf("VALUES"));
+		System.out.println(values);
+	}	
 
     @Test
     public void testBatchInsert()  {
@@ -27,8 +33,23 @@ public class RouterUtilTest {
         Assert.assertTrue(values.get(2).equals("insert into hotnews(title,name) values('\\\"',\"\\'\")"));
         Assert.assertTrue(values.get(3).equals("insert into hotnews(title,name) values(\")\",\"\\\"\\')\")"));
     }
-
-
+    
+    @Test
+    public void testParseSqlValueArrayAndSuffixStr()  {
+        String sql = "insert into hotnews(title,name) values('test1',\"name\"),('(test)',\"(test)\"),('\\\"',\"\\'\"),(\")\",\"\\\"\\')\"),(left(upper('test'), 2),\"left(upper('test'), 2)\") on duplicate key update name = values(name)";
+        Object[] valueArrayAndSuffixStr = RouterUtil.parseSqlValueArrayAndSuffixStr(sql, sql.toUpperCase().indexOf("VALUES"));
+        Assert.assertTrue(valueArrayAndSuffixStr.length == 2);
+        List<List<String>> valueArray = (List<List<String>>) valueArrayAndSuffixStr[0];
+        String suffixStr = (String) valueArrayAndSuffixStr[1];
+        Assert.assertTrue(valueArray.size() == 5);
+        Assert.assertTrue(valueArray.get(0).equals(new ArrayList<>(Arrays.asList("'test1'", "\"name\""))));
+        Assert.assertTrue(valueArray.get(1).equals(new ArrayList<>(Arrays.asList("'(test)'", "\"(test)\""))));
+        Assert.assertTrue(valueArray.get(2).equals(new ArrayList<>(Arrays.asList("'\\\"'", "\"\\'\""))));
+        Assert.assertTrue(valueArray.get(3).equals(new ArrayList<>(Arrays.asList("\")\"", "\"\\\"\\')\""))));
+        Assert.assertTrue(valueArray.get(4).equals(new ArrayList<>(Arrays.asList("left(upper('test'), 2)", "\"left(upper('test'), 2)\""))));
+        Assert.assertTrue(suffixStr.equals("on duplicate key update name = values(name)"));
+    }
+    
     @Test
     public void testRemoveSchema()  {
         String sql = "update test set name='abcdtestx.aa'   where id=1 and testx=123";
