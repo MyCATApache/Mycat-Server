@@ -57,7 +57,6 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	private Boolean runOnSlave = null;	// 默认null表示不施加影响, true走slave,false走master
 	
 	private String subTableName; // 分表的表名
-	private Map<String, String> subTableNames;//分表的表名集合
 
 	//迁移算法用     -2代表不是slot分片  ，-1代表扫描所有分片
 	private int slot=-2;
@@ -74,15 +73,7 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 				&& statement.startsWith("/*balance*/");
 	}
 
-	public Map<String, String> getSubTableNames() {
-      return subTableNames;
-    }
-  
-    public void setSubTableNames(Map<String, String> subTableNames) {
-      this.subTableNames = subTableNames;
-    }
-
-    public Boolean getRunOnSlave() {
+	public Boolean getRunOnSlave() {
 		return runOnSlave;
 	}
 	public String getRunOnSlaveDebugInfo() {
