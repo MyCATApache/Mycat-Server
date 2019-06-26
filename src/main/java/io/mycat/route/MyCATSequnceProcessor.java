@@ -12,7 +12,7 @@ public class MyCATSequnceProcessor {
 	
 	//使用Druid解析器实现sequence处理  @兵临城下
 	private static final DruidSequenceHandler sequenceHandler = new DruidSequenceHandler(MycatServer
-			.getInstance().getConfig().getSystem().getSequnceHandlerType());
+			.getInstance().getConfig().getSystem().getSequnceHandlerType(),MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerPattern());
 	
 	private static class InnerMyCATSequnceProcessor{
 		private static MyCATSequnceProcessor INSTANCE = new MyCATSequnceProcessor();
