@@ -1010,7 +1010,7 @@ public final class SystemConfig {
 	}
 
 	public String getSequnceHandlerPattern() {
-		return sequnceHandlerPattern;
+		return sequnceHandlerPattern==null?SEQUENCEHANDLER_PATTERN:sequnceHandlerPattern;
 	}
 	public void setSequnceHandlerPattern(String sequnceHandlerPattern) {
 		this.sequnceHandlerPattern = sequnceHandlerPattern;
