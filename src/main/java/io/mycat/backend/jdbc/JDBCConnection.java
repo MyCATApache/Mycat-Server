@@ -724,7 +724,7 @@ public class JDBCConnection implements BackendConnection {
 			justForHeartbeat(sql);
 		}    else
 		{
-			throw new UnsupportedEncodingException("unsupported yet ");
+			throw new UnsupportedOperationException("global seq is not unsupported in jdbc driver yet ");
 		}
 	}
 	private void justForHeartbeat(String sql)
