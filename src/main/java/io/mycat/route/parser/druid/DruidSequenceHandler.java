@@ -27,7 +27,7 @@ import io.mycat.util.TimeUtil;
  */
 public class DruidSequenceHandler {
     private final SequenceHandler sequenceHandler;
-    
+
     /**
      * 分段锁
      */
@@ -38,9 +38,10 @@ public class DruidSequenceHandler {
      */
     private final static String MATCHED_FEATURE = "NEXT VALUE FOR MYCATSEQ_";
 
-    private final static Pattern pattern = Pattern.compile("(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+", Pattern.CASE_INSENSITIVE);
+    private final  Pattern pattern;
 
-    public DruidSequenceHandler(int seqHandlerType) {
+    public DruidSequenceHandler(int seqHandlerType,String sequnceHandlerPattern) {
+      this.pattern =  Pattern.compile(sequnceHandlerPattern, Pattern.CASE_INSENSITIVE);
         switch (seqHandlerType) {
             case SystemConfig.SEQUENCEHANDLER_MYSQLDB:
                 sequenceHandler = IncrSequenceMySQLHandler.getInstance();
@@ -79,7 +80,7 @@ public class DruidSequenceHandler {
 				lock.lock();
 				try {
                 	matcher = pattern.matcher(executeSql);
-                	while(matcher.find()){            
+                	while(matcher.find()){
                 		long value = sequenceHandler.nextId(tableName.toUpperCase());
                         executeSql = executeSql.replaceFirst(matcher.group(1), " "+Long.toString(value));
                         pair.session.getSource().setLastWriteTime(TimeUtil.currentTimeMillis());
@@ -91,9 +92,9 @@ public class DruidSequenceHandler {
         }
         return executeSql;
     }
-    
+
     /*
-     * 获取分段锁 
+     * 获取分段锁
      * @param name
      * @return
      */

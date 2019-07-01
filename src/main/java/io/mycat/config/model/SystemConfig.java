@@ -100,6 +100,7 @@ public final class SystemConfig {
 	private int txIsolation;
 	private int parserCommentVersion;
 	private int sqlRecordCount;
+	private String sequnceHandlerPattern = SEQUENCEHANDLER_PATTERN;
 
 	/**
 	 * 预处理占位符最大数量
@@ -135,7 +136,7 @@ public final class SystemConfig {
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
 	public static final int SEQUENCEHANDLER_ZK_DISTRIBUTED = 3;
 	public static final int SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT = 4;
-	
+	public static final String SEQUENCEHANDLER_PATTERN = "(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+";
 	
 	private final int DEFAULT_SEQUNCE_MYSQL_RETRY_COUT=4;  //mysql全局序列默认重试次数
 	private final long DEFAULT_SEQUNCE_MYSQL_WATI_TIME=10 * 1000;//mysql db方式默认等待时间
@@ -1006,5 +1007,12 @@ public final class SystemConfig {
 
 	public void setSequnceMySqlWaitTime(long sequnceMySqlWaitTime) {
 		this.sequnceMySqlWaitTime = sequnceMySqlWaitTime;
+	}
+
+	public String getSequnceHandlerPattern() {
+		return sequnceHandlerPattern==null?SEQUENCEHANDLER_PATTERN:sequnceHandlerPattern;
+	}
+	public void setSequnceHandlerPattern(String sequnceHandlerPattern) {
+		this.sequnceHandlerPattern = sequnceHandlerPattern;
 	}
 }
