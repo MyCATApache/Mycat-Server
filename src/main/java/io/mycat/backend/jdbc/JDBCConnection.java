@@ -621,11 +621,8 @@ public class JDBCConnection implements BackendConnection {
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(sql);
 
-			final String charset = sc.getCharset();
-			final ResultSet tempRS = rs;
-
 			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-			ResultSetUtil.resultSetToFieldPacket(charset, fieldPks, tempRS,
+			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
 					this.isSpark);
 			int colunmCount = fieldPks.size();
 			ByteBuffer byteBuf = sc.allocate();
@@ -663,19 +660,21 @@ public class JDBCConnection implements BackendConnection {
 			}
 
 			// output row
-			while (tempRS.next()) {
+			while (rs.next()) {
 				RowDataPacket curRow = new RowDataPacket(colunmCount);
 				for (int i = 0; i < colunmCount; i++) {
 					int j = i + 1;
 					if(MysqlDefs.isBianry((byte) fieldPks.get(i).type)) {
-						curRow.add(tempRS.getBytes(j));
+						curRow.add(rs.getBytes(j));
 					} else if(fieldPks.get(i).type == MysqlDefs.FIELD_TYPE_DECIMAL ||
 							fieldPks.get(i).type == (MysqlDefs.FIELD_TYPE_NEW_DECIMAL - 256)) { // field type is unsigned byte
 						// ensure that do not use scientific notation format
-						BigDecimal val = tempRS.getBigDecimal(j);
-						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null, charset));
+						BigDecimal val = rs.getBigDecimal(j);
+						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null,
+								sc.getCharset()));
 					} else {
-						curRow.add(StringUtil.encode(tempRS.getString(j), charset));
+						curRow.add(StringUtil.encode(rs.getString(j),
+								sc.getCharset()));
 					}
 
 				}
@@ -728,11 +727,10 @@ public class JDBCConnection implements BackendConnection {
 		if(respHandler instanceof ConnectionHeartBeatHandler) {
 			justForHeartbeat(sql);
 		} else {
-			throw new UnsupportedEncodingException("unsupported yet ");
+			throw new UnsupportedOperationException("global seq is not unsupported in jdbc driver yet ");
 		}
 	}
-	private void justForHeartbeat(String sql)
-	{
+	private void justForHeartbeat(String sql) {
 
 		Statement stmt = null;
 
@@ -887,6 +885,6 @@ public class JDBCConnection implements BackendConnection {
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
-		}		
+		}
 	}
 }
