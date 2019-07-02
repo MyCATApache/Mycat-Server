@@ -68,12 +68,13 @@ import io.mycat.sqlengine.mpp.MergeCol;
 import io.mycat.sqlengine.mpp.OrderCol;
 import io.mycat.util.ObjectUtil;
 import io.mycat.util.StringUtil;
+import java.util.regex.Pattern;
 
 public class DruidSelectParser extends DefaultDruidParser {
 
 
-    protected boolean isNeedParseOrderAgg=true;
-
+	protected boolean isNeedParseOrderAgg=true;
+	static final Pattern BACK_QUOTE = Pattern.compile("`");
     @Override
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) {
 		SQLSelectStatement selectStmt = (SQLSelectStatement)stmt;
@@ -655,8 +656,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 			return alia;
 		}
 	}
-	
+
 	private String[] buildGroupByCols(List<SQLExpr> groupByItems,Map<String, String> aliaColumns) {
+
 		String[] groupByCols = new String[groupByItems.size()]; 
 		for(int i= 0; i < groupByItems.size(); i++) {
             SQLExpr sqlExpr = groupByItems.get(i);
@@ -694,7 +696,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				//此步骤得到的column必须是不带.的，有别名的用别名，无别名的用字段名
 				column=column.substring(dotIndex+1) ;
 			}
-			groupByCols[i] = getAliaColumn(aliaColumns,column);//column;
+			groupByCols[i] = BACK_QUOTE.matcher(getAliaColumn(aliaColumns,column)).replaceAll("");//column;
 		}
 		return groupByCols;
 	}
