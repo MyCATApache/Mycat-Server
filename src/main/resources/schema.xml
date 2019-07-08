@@ -2,7 +2,7 @@
 <!DOCTYPE mycat:schema SYSTEM "schema.dtd">
 <mycat:schema xmlns:mycat="http://io.mycat/">
 
-	<schema name="TESTDB" checkSQLschema="false" sqlMaxLimit="100">
+	<schema name="TESTDB" checkSQLschema="true" sqlMaxLimit="100">
 		<!-- auto sharding by id (long) -->
 		<table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
 
