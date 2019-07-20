@@ -701,7 +701,4 @@ public class MySQLConnection extends BackendAIOConnection {
 	public int getTxIsolation() {
 		return txIsolation;
 	}
-
-	
-
 }

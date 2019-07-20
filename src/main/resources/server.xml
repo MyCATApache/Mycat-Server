@@ -37,7 +37,8 @@
 		<!--<property name="processorExecutor">16</property>-->
 		<!--
 			<property name="serverPort">8066</property> <property name="managerPort">9066</property> 
-			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property> 
+			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property>
+			<property name="dataNodeIdleCheckPeriod">300000</property> 5 * 60 * 1000L; //连接空闲检查
 			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property> -->
 		<!--分布式事务开关，0为不过滤分布式事务，1为过滤分布式事务（如果分布式事务内只涉及全局表，则不过滤），2为不过滤分布式事务,但是记录分布式事务日志-->
 		<property name="handleDistributedTransactions">0</property>
