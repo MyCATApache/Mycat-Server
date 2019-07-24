@@ -19,7 +19,7 @@ public class NIOSocketWR extends SocketWR {
 	private final SocketChannel channel;
 	private final AtomicBoolean writing = new AtomicBoolean(false);
 	protected static final Logger LOGGER = LoggerFactory.getLogger(NIOSocketWR.class);
-	public static final ByteBuffer EMPTY_BYTEBUFFER  = ByteBuffer.allocate(0);
+	public static final ByteBuffer EMPTY_BYTEBUFFER  = ByteBuffer.allocate(1);
 	public NIOSocketWR(AbstractConnection con) {
 		this.con = con;
 		this.channel = (SocketChannel) con.channel;
@@ -77,6 +77,8 @@ public class NIOSocketWR extends SocketWR {
 		} catch (IOException e) {
 			LOGGER.error("",e);
 			return false;
+		}finally {
+			EMPTY_BYTEBUFFER.position(0);
 		}
 	}
 
