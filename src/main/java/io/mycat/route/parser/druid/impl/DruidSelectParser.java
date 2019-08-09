@@ -1,5 +1,8 @@
 package io.mycat.route.parser.druid.impl;
 
+import com.alibaba.druid.sql.ast.statement.SQLCreateViewStatement.Column;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
+import com.alibaba.druid.sql.visitor.SQLASTVisitor;
 import java.sql.SQLNonTransientException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -426,7 +429,20 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 			if(rrs.isDistTable()){
 				SQLTableSource from = mysqlSelectQuery.getFrom();
-
+				String orgTable = from.toString();
+				SQLExpr where = mysqlSelectQuery.getWhere();
+				List<SQLIdentifierExpr> exprs = new ArrayList<>(3);
+				if (where != null){
+						where.accept(new MySqlASTVisitorAdapter() {
+							@Override
+							public void endVisit(SQLIdentifierExpr x) {
+								if (orgTable.equalsIgnoreCase(x.getName())) {
+									exprs.add(x);
+								}
+								super.endVisit(x);
+							}
+						});
+				}
 				for (RouteResultsetNode node : rrs.getNodes()) {
 					SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
 					sqlIdentifierExpr.setParent(from);
@@ -434,6 +450,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 					SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
 					from2.setAlias(from.getAlias());
 					mysqlSelectQuery.setFrom(from2);
+					for (SQLIdentifierExpr expr : exprs) {
+						expr.setName(node.getSubTableName());
+					}
 					node.setStatement(stmt.toString());
 					if(!getCurentDbType().equalsIgnoreCase("mysql")) {
 						Limit _limit = mysqlSelectQuery.getLimit();
