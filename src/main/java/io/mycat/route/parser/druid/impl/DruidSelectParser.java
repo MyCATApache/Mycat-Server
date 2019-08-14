@@ -456,12 +456,15 @@ public class DruidSelectParser extends DefaultDruidParser {
 					node.setStatement(stmt.toString());
 					if(!getCurentDbType().equalsIgnoreCase("mysql")) {
 						Limit _limit = mysqlSelectQuery.getLimit();
-						SQLIntegerExpr offset = (SQLIntegerExpr)_limit.getOffset();
-						SQLIntegerExpr count = (SQLIntegerExpr)_limit.getRowCount();
-						if(offset != null && count!= null) {
-							String nativeSql = PageSQLUtil.convertLimitToNativePageSql(getCurentDbType(), node.getStatement(),
-									offset.getNumber().intValue(), count.getNumber().intValue());
-							node.setStatement(nativeSql);
+						if (_limit != null) {
+							SQLIntegerExpr offset = (SQLIntegerExpr) _limit.getOffset();
+							SQLIntegerExpr count = (SQLIntegerExpr) _limit.getRowCount();
+							if (offset != null && count != null) {
+								String nativeSql = PageSQLUtil
+										.convertLimitToNativePageSql(getCurentDbType(), node.getStatement(),
+												offset.getNumber().intValue(), count.getNumber().intValue());
+								node.setStatement(nativeSql);
+							}
 						}
 					}
 				}
