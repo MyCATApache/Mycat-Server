@@ -223,7 +223,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 	private void executeException(BackendConnection c, Exception e) {
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.errno = ErrorCode.ERR_FOUND_EXCEPION;
+		err.errno = ErrorCode.ERR_FOUND_EXCEPTION;
 		err.message = StringUtil.encode(e.toString(), session.getSource().getCharset());
 
 		this.backConnectionErr(err, c);
