@@ -1,6 +1,6 @@
-BuildTime  2019-05-07 03:38:29
-GitVersion   208e4905681133fbf794eb2186f9b338ebefe8d3
-MavenVersion 1.6.7.1-release
+BuildTime  2019-08-09 13:06:12
+GitVersion   2f9343919e35d0fc7c33acdb2085d80edcc701b8
+MavenVersion 1.6.7.3-release
 GitUrl https://github.com/MyCATApache/Mycat-Server.git
 MyCatSite http://www.mycat.org.cn
 QQGroup 106088787

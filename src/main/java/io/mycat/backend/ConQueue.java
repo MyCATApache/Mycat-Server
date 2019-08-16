@@ -18,6 +18,12 @@ public class ConQueue {
 
 		}
 		BackendConnection con = f1.poll();
+
+		while (con  != null && !con.checkAlive()){
+			con.close("channel is closed");
+			con = f1.poll();
+		}
+
 		if (con == null || con.isClosedOrQuit()) {
 			con = f2.poll();
 		}

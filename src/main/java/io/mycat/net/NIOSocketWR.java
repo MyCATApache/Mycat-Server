@@ -8,6 +8,8 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NIOSocketWR extends SocketWR {
 	private SelectionKey processKey;
@@ -16,7 +18,8 @@ public class NIOSocketWR extends SocketWR {
 	private final AbstractConnection con;
 	private final SocketChannel channel;
 	private final AtomicBoolean writing = new AtomicBoolean(false);
-
+	protected static final Logger LOGGER = LoggerFactory.getLogger(NIOSocketWR.class);
+	public static final ByteBuffer EMPTY_BYTEBUFFER  = ByteBuffer.allocate(1);
 	public NIOSocketWR(AbstractConnection con) {
 		this.con = con;
 		this.channel = (SocketChannel) con.channel;
@@ -65,6 +68,18 @@ public class NIOSocketWR extends SocketWR {
 			writing.set(false);
 		}
 
+	}
+
+	@Override
+	public boolean checkAlive() {
+		try {
+			return 	channel.read(EMPTY_BYTEBUFFER) == 0;
+		} catch (IOException e) {
+			LOGGER.error("",e);
+			return false;
+		}finally {
+			EMPTY_BYTEBUFFER.position(0);
+		}
 	}
 
 	private boolean write0() throws IOException {

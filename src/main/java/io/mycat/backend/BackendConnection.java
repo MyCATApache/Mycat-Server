@@ -64,4 +64,6 @@ public interface BackendConnection extends ClosableConnection {
 
 	public void query(String sql, int charsetIndex);
 
+	public boolean checkAlive();
+
 }
