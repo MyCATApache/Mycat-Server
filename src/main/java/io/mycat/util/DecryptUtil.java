@@ -53,7 +53,19 @@ public class DecryptUtil {
 	public static final String DEFAULT_PUBLIC_KEY_STRING = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKHGwq7q2RmwuRgKxBypQHw0mYu4BQZ3eMsTrdK8E6igRcxsobUC7uT0SoxIjl1WveWniCASejoQtn/BY6hVKWsCAwEAAQ==";
 
 	public static void main(String[] args) throws Exception {
-		String password = args[0];
+	  System.out.println("dataHost加密格式\n"
+        + "1:hostM1:root:123456\n"
+        + "1代表是否开启\n"
+        + "hostM1是<writeHost host=\"hostM1\" \n"
+        + "root是user=\"root\"\n"
+        + "123456是 password=明文密码(123456)\n"
+        + "\n"
+        + "对应writeHost配置\n"
+        + "\t\t<writeHost host=\"hostM1\" url=\"localhost:3306\" user=\"root\"\n"
+        + "\t\t\t\t   password=\"BpkNIjF7LfzS1C76HT7B1bJgmGIDtPihqIvHBlC92L1IFqsMfoJEMk1EkxSzjasWB4GWoUcODYO4AaJstdAp5w==\" usingDecrypt=\"1\">\n"
+        + "\t\t\t<!-- can have multi read hosts -->\n"
+        + "\t\t</writeHost>\n");
+		String password = "1:hostM1:root:123456";
 		System.out.println(encrypt(password));
 	}
 	
