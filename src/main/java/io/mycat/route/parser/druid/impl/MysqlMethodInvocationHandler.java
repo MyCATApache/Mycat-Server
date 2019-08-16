@@ -2,6 +2,8 @@ package io.mycat.route.parser.druid.impl;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLDateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlIntervalExpr;
@@ -13,6 +15,8 @@ import java.sql.SQLNonTransientException;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * mysql函数调用
@@ -21,6 +25,7 @@ import java.util.List;
  * @version 2018/9/3
  */
 public class MysqlMethodInvocationHandler implements SqlMethodInvocationHandler {
+    protected static final Logger LOGGER = LoggerFactory.getLogger(MysqlMethodInvocationHandler.class);
     private final String[] SUPPORT_PATTERNS = {
             "yyyy-MM-dd HH:mm:ss",
             "yyyy-MM-dd",
@@ -55,7 +60,7 @@ public class MysqlMethodInvocationHandler implements SqlMethodInvocationHandler 
 
     private SQLExpr invokeNow() {
         String time = DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss");
-        return new SQLCharExpr(time);
+        return new SQLIdentifierExpr(time);
     }
 
     private SQLExpr invokeAddDate(SQLMethodInvokeExpr expr, boolean negative) throws SQLNonTransientException {
@@ -100,9 +105,9 @@ public class MysqlMethodInvocationHandler implements SqlMethodInvocationHandler 
                     return null;
                 }
                 String ret = DateFormatUtils.format(result, "yyyy-MM-dd HH:mm:ss");
-                return new SQLCharExpr(ret);
+                return new SQLIdentifierExpr(ret);
             } catch (ParseException e) {
-                e.printStackTrace();
+                LOGGER.error("",e);
             }
         }
         return null;
