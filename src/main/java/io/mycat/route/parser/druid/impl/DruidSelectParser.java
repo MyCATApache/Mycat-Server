@@ -1,5 +1,6 @@
 package io.mycat.route.parser.druid.impl;
 
+import io.mycat.route.parser.util.PageSQLUtil;
 import java.sql.SQLNonTransientException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -351,7 +352,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 		tryRoute(schema, rrs, cachePool);
 
 		rrs.copyLimitToNodes();
-		
+
 		SQLSelectStatement selectStmt = (SQLSelectStatement)stmt;
 		SQLSelectQuery sqlSelectQuery = selectStmt.getSelect().getQuery();
 		if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
@@ -435,6 +436,12 @@ public class DruidSelectParser extends DefaultDruidParser {
 					from2.setAlias(from.getAlias());
 					mysqlSelectQuery.setFrom(from2);
 					node.setStatement(stmt.toString());
+					if(!getCurentDbType().equalsIgnoreCase("mysql")) {
+						String nativeSql = PageSQLUtil
+								.convertLimitToNativePageSql(getCurentDbType(), node.getStatement(),
+										0, ((SQLIntegerExpr)mysqlSelectQuery.getLimit().getRowCount()).getNumber().intValue());
+						node.setStatement(nativeSql);
+					}
 	            }
 			}
 			
