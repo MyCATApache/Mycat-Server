@@ -2,6 +2,7 @@ package io.mycat.route.parser.druid;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -65,9 +66,9 @@ import io.mycat.route.util.RouterUtil;
  */
 public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	private boolean hasOrCondition = false;
-	private List<WhereUnit> whereUnits = new CopyOnWriteArrayList<WhereUnit>();
-	private List<WhereUnit> storedwhereUnits = new CopyOnWriteArrayList<WhereUnit>();
-    private Queue<SQLSelect> subQuerys = new LinkedBlockingQueue<>();  //子查询集合
+	private List<WhereUnit> whereUnits = new ArrayList<WhereUnit>();
+	private List<WhereUnit> storedwhereUnits = new ArrayList<>();
+    private Queue<SQLSelect> subQuerys = new LinkedList<>();  //子查询集合
 	private boolean hasChange = false; // 是否有改写sql
 	private boolean subqueryRelationOr = false;   //子查询存在关联条件的情况下，是否有 or 条件
 	
