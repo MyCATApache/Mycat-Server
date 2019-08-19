@@ -29,6 +29,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import com.google.common.escape.Escaper;
@@ -67,14 +68,13 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 	}
 	
     private ServerConnection source;
-    private volatile long pstmtId;
+    private static final AtomicLong PSTMT_ID_GENERATOR = new AtomicLong(0);
     private Map<String, PreparedStatement> pstmtForSql;
     private Map<Long, PreparedStatement> pstmtForId;
     private int maxPreparedStmtCount;
 
     public ServerPrepareHandler(ServerConnection source,int maxPreparedStmtCount) {
         this.source = source;
-        this.pstmtId = 0L;
         this.pstmtForSql = new HashMap<String, PreparedStatement>();
         this.pstmtForId = new HashMap<Long, PreparedStatement>();
         this.maxPreparedStmtCount = maxPreparedStmtCount;
@@ -93,7 +93,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 				source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM, "Prepared statement contains too many placeholders");
 				return;
 			}
-            pstmt = new PreparedStatement(++pstmtId, sql, columnCount, paramCount);
+            pstmt = new PreparedStatement(PSTMT_ID_GENERATOR.incrementAndGet(), sql, columnCount, paramCount);
             pstmtForSql.put(pstmt.getStatement(), pstmt);
             pstmtForId.put(pstmt.getId(), pstmt);
         }
