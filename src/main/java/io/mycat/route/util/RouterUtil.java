@@ -1210,6 +1210,11 @@ public class RouterUtil {
 
 		List<String> tables = ctx.getTables();
 
+
+		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
+			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
+		}
+
 		//每个表对应的路由映射
 		Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
 
@@ -1253,9 +1258,6 @@ public class RouterUtil {
 			}
 		}
 
-		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
-			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
-		}
 
 		//只有一个表的
 		if(tables.size() == 1) {
