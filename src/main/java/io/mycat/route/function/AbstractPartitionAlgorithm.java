@@ -3,6 +3,7 @@ package io.mycat.route.function;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleAlgorithm;
 
+import io.mycat.util.StringUtil;
 import java.io.Serializable;
 import java.util.List;
 
@@ -38,8 +39,8 @@ public abstract class AbstractPartitionAlgorithm implements RuleAlgorithm ,Seria
 	 */
 	public static Integer[] calculateSequenceRange(AbstractPartitionAlgorithm algorithm, String beginValue, String endValue)  {
 		Integer begin = 0, end = 0;
-		begin = algorithm.calculate(beginValue);
-		end = algorithm.calculate(endValue);
+		begin = algorithm.calculate(StringUtil.removeBackquote(beginValue));
+		end = algorithm.calculate(StringUtil.removeBackquote(endValue));
 
 		if(begin == null || end == null){
 			return new Integer[0];

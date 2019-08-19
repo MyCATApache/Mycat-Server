@@ -114,7 +114,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 			try {
 				pstmt.appendLongData(paramId, packet.getLongData());
 			} catch (IOException e) {
-				source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPION, e.getMessage());
+				source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPTION, e.getMessage());
 			}
 		}
 	}
@@ -132,7 +132,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 			pstmt.resetLongData();
 			source.write(OkPacket.OK);
 		} else {
-			source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPION, "can not reset prepare statement : " + pstmtForId.get(pstmtId));
+			source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPTION, "can not reset prepare statement : " + pstmtForId.get(pstmtId));
 		}
 	} 
     

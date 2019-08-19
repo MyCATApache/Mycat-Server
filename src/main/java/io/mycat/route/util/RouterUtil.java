@@ -1160,7 +1160,7 @@ public class RouterUtil {
 		AbstractPartitionAlgorithm algorithm = rule.getRuleAlgorithm();
 		for (ColumnRoutePair colPair : colRoutePairSet) {
 			if (colPair.colValue != null) {
-				Integer nodeIndx = algorithm.calculate(colPair.colValue);
+				Integer nodeIndx = algorithm.calculate(StringUtil.removeBackquote(colPair.colValue));
 				if (nodeIndx == null) {
 					throw new IllegalArgumentException(
 							"can't find datanode for sharding column:" + col
@@ -1436,7 +1436,7 @@ public class RouterUtil {
 					for(ColumnRoutePair pair : partitionValue) {
 						AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
 						if(pair.colValue != null) {
-							Integer tableIndex = algorithm.calculate(pair.colValue);
+							Integer tableIndex = algorithm.calculate(StringUtil.removeBackquote(pair.colValue));
 							if(tableIndex == null) {
 								String msg = "can't find any valid datanode :" + tableConfig.getName()
 										+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
@@ -1453,7 +1453,7 @@ public class RouterUtil {
 						}
 						if(pair.rangeValue != null) {
 							Integer[] tableIndexs = algorithm
-									.calculateRange(pair.rangeValue.beginValue.toString(), pair.rangeValue.endValue.toString());
+									.calculateRange(StringUtil.removeBackquote(pair.rangeValue.beginValue.toString()),StringUtil.removeBackquote(pair.rangeValue.endValue.toString()));
 							for(Integer idx : tableIndexs) {
 								String subTable = tableConfig.getDistTables().get(idx);
 								if(subTable != null) {
@@ -1626,7 +1626,7 @@ public class RouterUtil {
 						for(ColumnRoutePair pair : partitionValue) {
 							AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
 							if(pair.colValue != null) {
-								Integer nodeIndex = algorithm.calculate(pair.colValue);
+								Integer nodeIndex = algorithm.calculate(StringUtil.removeBackquote(pair.colValue));
 								if(nodeIndex == null) {
 									String msg = "can't find any valid datanode :" + tableConfig.getName()
 											+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;

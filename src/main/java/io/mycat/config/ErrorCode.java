@@ -41,7 +41,7 @@ public interface ErrorCode {
     public static final int ERR_NOT_SUPPORTED = 3010;
     public static final int ERR_MULTI_NODE_FAILED = 3011;
     public static final int ERR_WRONG_USED = 3012;
-    public static final int ERR_FOUND_EXCEPION = 3344;
+    public static final int ERR_FOUND_EXCEPTION = 3344;
 	// mysql error code
     public static final int ER_HASHCHK = 1000;
     public static final int ER_NISAMCHK = 1001;
