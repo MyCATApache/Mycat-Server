@@ -1,11 +1,5 @@
 package io.mycat.route;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.Test;
-
 import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.CacheService;
@@ -15,13 +9,15 @@ import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
-import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteService;
-import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.server.parser.ServerParse;
 import junit.framework.Assert;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class DDLRouteTest {
 	protected Map<String, SchemaConfig> schemaMap;

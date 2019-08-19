@@ -1,10 +1,5 @@
 package demo.catlets;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import io.mycat.cache.LayerCachePool;
 import io.mycat.catlets.Catlet;
 import io.mycat.config.model.SchemaConfig;
@@ -16,6 +11,11 @@ import io.mycat.sqlengine.EngineCtx;
 import io.mycat.sqlengine.SQLJobHandler;
 import io.mycat.util.ByteUtil;
 import io.mycat.util.ResultSetUtil;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MyHellowJoin implements Catlet {
 
@@ -38,8 +38,6 @@ public class MyHellowJoin implements Catlet {
 	public void route(SystemConfig sysConfig, SchemaConfig schema, int sqlType,
 			String realSQL, String charset, ServerConnection sc,
 			LayerCachePool cachePool) {
-		
-		
 	}
 }
 

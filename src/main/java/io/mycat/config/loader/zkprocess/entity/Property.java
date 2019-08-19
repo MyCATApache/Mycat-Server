@@ -1,12 +1,7 @@
 package io.mycat.config.loader.zkprocess.entity;
 
+import javax.xml.bind.annotation.*;
 import java.util.Objects;
-
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.XmlValue;
 
 /**
  * 键值对信息

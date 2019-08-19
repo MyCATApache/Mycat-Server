@@ -1,15 +1,10 @@
 package io.mycat.backend.jdbc.sequoiadb;
 
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
+import org.slf4j.LoggerFactory;
+
+import java.sql.*;
 import java.util.Properties;
 import java.util.logging.Logger;
-
-import org.slf4j.LoggerFactory;
 
 /**  
  * 功能详细描述

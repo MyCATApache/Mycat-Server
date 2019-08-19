@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -33,49 +33,109 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
+ * 路由结果集
+ *
  * @author mycat
  */
 public final class RouteResultset implements Serializable {
-    private String statement; // 原始语句
+    /**
+     * 原始语句
+     */
+    private String statement;
+    /**
+     * sql类型
+     */
     private final int sqlType;
-    private RouteResultsetNode[] nodes; // 路由结果节点
+    /**
+     * 路由结果节点
+     */
+    private RouteResultsetNode[] nodes;
+    /**
+     * 子表
+     */
     private Set<String> subTables;
-    private SQLStatement sqlStatement; 
-    
+    /**
+     * sql语句对象
+     */
+    private SQLStatement sqlStatement;
 
+    /**
+     * limit开始位置
+     */
     private int limitStart;
+    /**
+     * 是否缓存标志
+     */
     private boolean cacheAble;
-    // used to store table's ID->datanodes cache
-    // format is table.primaryKey
+    /**
+     * 主键
+     * 用于存储缓存 表ID->datanodes
+     * 格式是 table.primaryKey
+     *
+     * used to store table's ID->datanodes cache
+     * format is table.primaryKey
+     */
     private String primaryKey;
-    // limit output total
+    /**
+     * limit的大小
+     */
     private int limitSize;
+    /**
+     * SQL合并
+     */
     private SQLMerge sqlMerge;
 
-    private boolean callStatement = false; // 处理call关键字
+    /**
+     * 处理call关键字
+     */
+    private boolean callStatement = false;
 
-    // 是否为全局表，只有在insert、update、delete、ddl里会判断并修改。默认不是全局表，用于修正全局表修改数据的反馈。
+    /**
+     * 是否为全局表，只有在insert、update、delete、ddl里会判断并修改。默认不是全局表，用于修正全局表修改数据的反馈。
+     */
     private boolean globalTableFlag = false;
 
-    //是否完成了路由
+    /**
+     * 是否完成了路由
+     */
     private boolean isFinishedRoute = false;
 
-    //是否自动提交，此属性主要用于记录ServerConnection上的autocommit状态
+    /**
+     * 是否自动提交，此属性主要用于记录ServerConnection上的autocommit状态
+     */
     private boolean autocommit = true;
 
+    /**
+     * 是否加载数据
+     */
     private boolean isLoadData=false;
 
-    //是否可以在从库运行,此属性主要供RouteResultsetNode获取
+    /**
+     * 是否可以在从库运行,此属性主要供RouteResultsetNode获取
+     */
     private Boolean canRunInReadDB;
 
-    // 强制走 master，可以通过 RouteResultset的属性canRunInReadDB=false
-    // 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
-    private Boolean runOnSlave = null;	// 默认null表示不施加影响
+    /**
+     * 默认null表示不施加影响
+     * 强制走 master，可以通过 RouteResultset的属性canRunInReadDB=false
+     * 传给 RouteResultsetNode 来实现，但是 强制走 slave需要增加一个属性来实现:
+     */
+    private Boolean runOnSlave = null;
 
-       //key=dataNode    value=slot
+    /**
+     * key=dataNode    value=slot
+     */
     private Map<String,Integer>   dataNodeSlotMap=new HashMap<>();
 
+    /**
+     * 是否是 selectForUpdate
+     */
     private boolean selectForUpdate;
+    private boolean autoIncrement;
+
+    private List<String> tables;
+
+    private Procedure procedure;
 
     public boolean isSelectForUpdate() {
         return selectForUpdate;
@@ -84,9 +144,6 @@ public final class RouteResultset implements Serializable {
     public void setSelectForUpdate(boolean selectForUpdate) {
         this.selectForUpdate = selectForUpdate;
     }
-	
-	
-	 private List<String> tables;
 
     public List<String> getTables() {
         return tables;
@@ -113,25 +170,20 @@ public final class RouteResultset implements Serializable {
 	public void setRunOnSlave(Boolean runOnSlave) {
 		this.runOnSlave = runOnSlave;
 	}
-	  private Procedure procedure;
 
-    public Procedure getProcedure()
-    {
+    public Procedure getProcedure() {
         return procedure;
     }
 
-    public void setProcedure(Procedure procedure)
-    {
+    public void setProcedure(Procedure procedure) {
         this.procedure = procedure;
     }
 
-	public boolean isLoadData()
-    {
+    public boolean isLoadData() {
         return isLoadData;
     }
 
-    public void setLoadData(boolean isLoadData)
-    {
+    public void setLoadData(boolean isLoadData) {
         this.isLoadData = isLoadData;
     }
 
@@ -157,6 +209,9 @@ public final class RouteResultset implements Serializable {
         this.sqlType = sqlType;
     }
 
+    /**
+     * 重设节点 还原sql语句
+     */
     public void resetNodes() {
         if (nodes != null) {
             for (RouteResultsetNode node : nodes) {
@@ -165,22 +220,19 @@ public final class RouteResultset implements Serializable {
         }
     }
 
+    /**
+     * 复制limit参数到节点
+     */
     public void copyLimitToNodes() {
-
-        if(nodes!=null)
-        {
-            for (RouteResultsetNode node : nodes)
-            {
-                if(node.getLimitSize()==-1&&node.getLimitStart()==0)
-                {
+        if(nodes!=null) {
+            for (RouteResultsetNode node : nodes) {
+                if(node.getLimitSize()==-1&&node.getLimitStart()==0) {
                     node.setLimitStart(limitStart);
                     node.setLimitSize(limitSize);
                 }
             }
-
         }
     }
-
 
     public SQLMerge getSqlMerge() {
         return sqlMerge;
@@ -190,10 +242,18 @@ public final class RouteResultset implements Serializable {
         return cacheAble;
     }
 
+    /**
+     * 设置是否要缓存
+     * @param cacheAble
+     */
     public void setCacheAble(boolean cacheAble) {
         this.cacheAble = cacheAble;
     }
 
+    /**
+     * 是否需要合并
+     * @return
+     */
     public boolean needMerge() {
         return limitSize > 0 || sqlMerge != null;
     }
@@ -202,6 +262,10 @@ public final class RouteResultset implements Serializable {
         return sqlType;
     }
 
+    /**
+     * 是否有sql count列
+     * @return
+     */
     public boolean isHasAggrColumn() {
         return (sqlMerge != null) && sqlMerge.isHasAggrColumn();
     }
@@ -221,6 +285,10 @@ public final class RouteResultset implements Serializable {
         return sqlMerge;
     }
 
+    /**
+     * 获取合并列
+     * @return
+     */
     public Map<String, Integer> getMergeCols() {
         return (sqlMerge != null) ? sqlMerge.getMergeCols() : null;
     }
@@ -246,8 +314,8 @@ public final class RouteResultset implements Serializable {
     }
 
     /**
+     * 返回主键项，第一个是表名，第二个是主键
      * return primary key items ,first is table name ,seconds is primary key
-     *
      * @return
      */
     public String[] getPrimaryKeyItems() {
@@ -276,12 +344,10 @@ public final class RouteResultset implements Serializable {
         if (mergeCols != null && !mergeCols.isEmpty()) {
             createSQLMergeIfNull().setMergeCols(mergeCols);
         }
-
     }
 
     public LinkedHashMap<String, Integer> getOrderByCols() {
         return (sqlMerge != null) ? sqlMerge.getOrderByCols() : null;
-
     }
 
     public String getStatement() {
@@ -293,14 +359,11 @@ public final class RouteResultset implements Serializable {
     }
 
     public void setNodes(RouteResultsetNode[] nodes) {
-        if(nodes!=null)
-        {
-           int nodeSize=nodes.length;
-            for (RouteResultsetNode node : nodes)
-            {
+        if(nodes!=null) {
+            int nodeSize=nodes.length;
+            for (RouteResultsetNode node : nodes) {
                 node.setTotalNodeSize(nodeSize);
             }
-
         }
         this.nodes = nodes;
     }
@@ -326,45 +389,42 @@ public final class RouteResultset implements Serializable {
 
     public void setCallStatement(boolean callStatement) {
         this.callStatement = callStatement;
-        if(nodes!=null)
-        {
-            for (RouteResultsetNode node : nodes)
-            {
+        if(nodes!=null) {
+            for (RouteResultsetNode node : nodes) {
                 node.setCallStatement(callStatement);
             }
-
         }
     }
 
+    /**
+     * 添加limit后修改节点SQL
+     * @param schemaConfig
+     * @param sourceDbType
+     * @param sql
+     * @param offset
+     * @param count
+     * @param isNeedConvert
+     */
     public void changeNodeSqlAfterAddLimit(SchemaConfig schemaConfig, String sourceDbType, String sql, int offset, int count, boolean isNeedConvert) {
-        if (nodes != null)
-        {
-
+        if (nodes != null) {
             Map<String, String> dataNodeDbTypeMap = schemaConfig.getDataNodeDbTypeMap();
             Map<String, String> sqlMapCache = new HashMap<>();
-            for (RouteResultsetNode node : nodes)
-            {
+            for (RouteResultsetNode node : nodes) {
                 String dbType = dataNodeDbTypeMap.get(node.getName());
-                if (dbType.equalsIgnoreCase("mysql")) 
-                {
+                if (dbType.equalsIgnoreCase("mysql")) { // mysql数据库
                     node.setStatement(sql);   //mysql之前已经加好limit
-                } else if (sqlMapCache.containsKey(dbType))
-                {
+                } else if (sqlMapCache.containsKey(dbType)) {
                     node.setStatement(sqlMapCache.get(dbType));
-                } else if(isNeedConvert)
-                {
-                    String nativeSql = PageSQLUtil.convertLimitToNativePageSql(dbType, sql, offset, count);
+                } else if(isNeedConvert) { //需要覆盖
+                    String nativeSql = PageSQLUtil.convertLimitToNativePageSql(dbType, sql, offset, count); // 将limit转成本地支持的数据库方言的分页sql
                     sqlMapCache.put(dbType, nativeSql);
                     node.setStatement(nativeSql);
                 }  else {
                     node.setStatement(sql);
                 }
-
                 node.setLimitStart(offset);
                 node.setLimitSize(count);
             }
-
-
         }
     }
 
@@ -384,48 +444,52 @@ public final class RouteResultset implements Serializable {
         this.canRunInReadDB = canRunInReadDB;
     }
 
-	public HavingCols getHavingCols() {
-		return (sqlMerge != null) ? sqlMerge.getHavingCols() : null;
-	}
+    public HavingCols getHavingCols() {
+        return (sqlMerge != null) ? sqlMerge.getHavingCols() : null;
+    }
 
-	public void setSubTables(Set<String> subTables) {
-		this.subTables = subTables;
-	}
+    public void setSubTables(Set<String> subTables) {
+        this.subTables = subTables;
+    }
 
-	public void setHavings(HavingCols havings) {
-		if (havings != null) {
-			createSQLMergeIfNull().setHavingCols(havings);
-		}
-	}
+    public void setHavings(HavingCols havings) {
+        if (havings != null) {
+            createSQLMergeIfNull().setHavingCols(havings);
+        }
+    }
 
-	// Added by winbill, 20160314, for having clause, Begin ==>
-	public void setHavingColsName(Object[] names) {
-		if (names != null && names.length > 0) {
-			createSQLMergeIfNull().setHavingColsName(names);
-		}
-	}
-	// Added by winbill, 20160314, for having clause, End  <==
+    // Added by winbill, 20160314, for having clause, Begin ==>
+    public void setHavingColsName(Object[] names) {
+        if (names != null && names.length > 0) {
+            createSQLMergeIfNull().setHavingColsName(names);
+        }
+    }
+    // Added by winbill, 20160314, for having clause, End  <==
 
     public SQLStatement getSqlStatement() {
-		return this.sqlStatement;
-	}
+        return this.sqlStatement;
+    }
 
-	public void setSqlStatement(SQLStatement sqlStatement) {
-		this.sqlStatement = sqlStatement;
-	}
+    public void setSqlStatement(SQLStatement sqlStatement) {
+        this.sqlStatement = sqlStatement;
+    }
 
-	public Set<String> getSubTables() {
-		return this.subTables;
-	}
-	
-	public boolean isDistTable(){
-		if(this.getSubTables()!=null && !this.getSubTables().isEmpty() ){
-			return true;
-		}
-		return false;
-	}
+    public Set<String> getSubTables() {
+        return this.subTables;
+    }
 
-	@Override
+    /**
+     * 路由结果集中是否有不同表 -- 子表
+     * @return
+     */
+    public boolean isDistTable(){
+        if(this.getSubTables()!=null && !this.getSubTables().isEmpty() ){
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public String toString() {
         StringBuilder s = new StringBuilder();
         s.append(statement).append(", route={");
@@ -439,4 +503,11 @@ public final class RouteResultset implements Serializable {
         return s.toString();
     }
 
+    public void setAutoIncrement(boolean b) {
+        autoIncrement = b;
+    }
+
+    public boolean getAutoIncrement() {
+        return autoIncrement;
+    }
 }

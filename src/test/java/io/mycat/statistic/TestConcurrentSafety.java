@@ -1,7 +1,10 @@
 package io.mycat.statistic;
 
 import io.mycat.server.parser.ServerParse;
-import io.mycat.statistic.stat.*;
+import io.mycat.statistic.stat.QueryConditionAnalyzer;
+import io.mycat.statistic.stat.QueryResult;
+import io.mycat.statistic.stat.SqlFrequency;
+import io.mycat.statistic.stat.UserSqlHighStat;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;

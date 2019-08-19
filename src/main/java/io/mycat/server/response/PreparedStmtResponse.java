@@ -23,23 +23,29 @@
  */
 package io.mycat.server.response;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.backend.mysql.PreparedStatement;
 import io.mycat.net.FrontendConnection;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.PreparedOkPacket;
 
+import java.nio.ByteBuffer;
+
 /**
+ * 预处理语句响应
  * @author mycat
  */
 public class PreparedStmtResponse {
 
+    /**
+     * 响应
+     * @param pstmt
+     * @param c
+     */
     public static void response(PreparedStatement pstmt, FrontendConnection c) {
         byte packetId = 0;
 
-        // write preparedOk packet
+        // 写预处理的OK包
         PreparedOkPacket preparedOk = new PreparedOkPacket();
         preparedOk.packetId = ++packetId;
         preparedOk.statementId = pstmt.getId();
@@ -47,7 +53,7 @@ public class PreparedStmtResponse {
         preparedOk.parametersNumber = pstmt.getParametersNumber();
         ByteBuffer buffer = preparedOk.write(c.allocate(), c,true);
 
-        // write parameter field packet
+        // 写参数字段包
         int parametersNumber = preparedOk.parametersNumber;
         if (parametersNumber > 0) {
             for (int i = 0; i < parametersNumber; i++) {
@@ -60,7 +66,7 @@ public class PreparedStmtResponse {
             buffer = eof.write(buffer, c,true);
         }
 
-        // write column field packet
+        // 写列字段包
         int columnsNumber = preparedOk.columnsNumber;
         if (columnsNumber > 0) {
             for (int i = 0; i < columnsNumber; i++) {
@@ -73,7 +79,7 @@ public class PreparedStmtResponse {
             buffer = eof.write(buffer, c,true);
         }
 
-        // send buffer
+        // 发送缓冲区
         c.write(buffer);
     }
 

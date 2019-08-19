@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,25 +16,27 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.cache;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 /**
  * cache service for other component default using memory cache encache
- * 
+ * 默认缓存服务使用内存缓存encache的其他组件
+ *
  * @author wuzhih
- * 
+ *
  */
 public class CacheService {
 	private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
@@ -120,7 +122,7 @@ public class CacheService {
 	}
 
 	private void createLayeredPool(String cacheName, String type, int size,
-			int expireSeconds) {
+								   int expireSeconds) {
 		checkExists(cacheName);
 		logger.info("create layer cache pool " + cacheName + " of type " + type
 				+ " ,default cache size " + size + " ,default expire seconds"
@@ -147,7 +149,7 @@ public class CacheService {
 	}
 
 	private void createPool(String poolName, String type, int cacheSize,
-			int expireSeconds) {
+							int expireSeconds) {
 		checkExists(poolName);
 		CachePoolFactory cacheFact = getCacheFact(type);
 		CachePool cachePool = cacheFact.createCachePool(poolName, cacheSize,
@@ -167,7 +169,8 @@ public class CacheService {
 
 	/**
 	 * get cache pool by name ,caller should cache result
-	 * 
+	 * 按名称获取缓存池，调用者应缓存结果
+	 *
 	 * @param poolName
 	 * @return CachePool
 	 */

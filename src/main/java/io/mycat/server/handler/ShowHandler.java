@@ -30,6 +30,7 @@ import io.mycat.server.response.*;
 import io.mycat.util.StringUtil;
 
 /**
+ * Show 语句处理器
  * @author mycat
  */
 public final class ShowHandler {

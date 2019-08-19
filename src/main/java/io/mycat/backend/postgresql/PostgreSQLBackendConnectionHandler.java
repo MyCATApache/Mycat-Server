@@ -1,47 +1,26 @@
 package io.mycat.backend.postgresql;
 
+import com.alibaba.fastjson.JSON;
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.backend.postgresql.PostgreSQLBackendConnection.BackendConnectionState;
-import io.mycat.backend.postgresql.packet.AuthenticationPacket;
+import io.mycat.backend.postgresql.packet.*;
 import io.mycat.backend.postgresql.packet.AuthenticationPacket.AuthType;
-import io.mycat.backend.postgresql.packet.BackendKeyData;
-import io.mycat.backend.postgresql.packet.CommandComplete;
-import io.mycat.backend.postgresql.packet.CopyInResponse;
-import io.mycat.backend.postgresql.packet.CopyOutResponse;
-import io.mycat.backend.postgresql.packet.DataRow;
-import io.mycat.backend.postgresql.packet.EmptyQueryResponse;
-import io.mycat.backend.postgresql.packet.ErrorResponse;
-import io.mycat.backend.postgresql.packet.NoticeResponse;
-import io.mycat.backend.postgresql.packet.NotificationResponse;
-import io.mycat.backend.postgresql.packet.ParameterStatus;
-import io.mycat.backend.postgresql.packet.PasswordMessage;
-import io.mycat.backend.postgresql.packet.PostgreSQLPacket;
-import io.mycat.backend.postgresql.packet.ReadyForQuery;
 import io.mycat.backend.postgresql.packet.ReadyForQuery.TransactionState;
-import io.mycat.backend.postgresql.packet.RowDescription;
 import io.mycat.backend.postgresql.utils.PacketUtils;
 import io.mycat.backend.postgresql.utils.PgPacketApaterUtils;
 import io.mycat.buffer.BufferArray;
 import io.mycat.config.ErrorCode;
 import io.mycat.net.handler.BackendAsyncHandler;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.ErrorPacket;
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.net.mysql.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.fastjson.JSON;
 
 public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	static class SelectResponse {

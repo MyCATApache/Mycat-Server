@@ -1,15 +1,6 @@
 package io.mycat.server.response;
 
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.google.common.base.Strings;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
@@ -25,6 +16,14 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.util.SchemaUtil;
 import io.mycat.util.StringUtil;
+
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * show tables impl
@@ -147,7 +146,10 @@ public class ShowTables {
                 }
             };
 
-
+            //如果设置了默认table，前端不显示
+            if(tableSet.contains("*")){
+            	tableSet.remove("*");
+            }
 
         }
         return tableSet;

@@ -1,7 +1,5 @@
 package io.mycat.route.parser.druid.impl;
 
-import java.sql.SQLNonTransientException;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
@@ -9,7 +7,6 @@ import com.alibaba.druid.sql.ast.statement.SQLCharacterDataType;
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
-
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
@@ -18,7 +15,11 @@ import io.mycat.route.function.SlotFunction;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.util.StringUtil;
 
+import java.sql.SQLNonTransientException;
 
+/**
+ * Druid 创建表解析器
+ */
 public class DruidCreateTableParser extends DefaultDruidParser {
 
 	@Override

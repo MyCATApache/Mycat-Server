@@ -24,6 +24,7 @@
 package io.mycat.config.model.rule;
 
 /**
+ * 分片算法
  * @author mycat
  */
 public interface RuleAlgorithm {

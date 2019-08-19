@@ -23,6 +23,15 @@
  */
 package io.mycat.net;
 
+import io.mycat.MycatServer;
+import io.mycat.backend.BackendConnection;
+import io.mycat.buffer.BufferPool;
+import io.mycat.statistic.CommandCount;
+import io.mycat.util.NameableExecutor;
+import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -31,18 +40,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.mycat.buffer.BufferPool;
-
-import org.slf4j.Logger; 
-import org.slf4j.LoggerFactory;
-
-import io.mycat.MycatServer;
-import io.mycat.backend.BackendConnection;
-import io.mycat.statistic.CommandCount;
-import io.mycat.util.NameableExecutor;
-import io.mycat.util.TimeUtil;
-
 /**
+ * NIO处理器
  * @author mycat
  */
 public final class NIOProcessor {
@@ -55,7 +54,9 @@ public final class NIOProcessor {
 	private final ConcurrentMap<Long, FrontendConnection> frontends;
 	private final ConcurrentMap<Long, BackendConnection> backends;
 	private final CommandCount commands;
+	// 网络流入字节大小
 	private long netInBytes;
+	// 网络流出字节大小
 	private long netOutBytes;
 	
 	// TODO: add by zhuam
@@ -158,8 +159,7 @@ public final class NIOProcessor {
 
 	// 前端连接检查
 	private void frontendCheck() {
-		Iterator<Entry<Long, FrontendConnection>> it = frontends.entrySet()
-				.iterator();
+		Iterator<Entry<Long, FrontendConnection>> it = frontends.entrySet().iterator();
 		while (it.hasNext()) {
 			FrontendConnection c = it.next().getValue();
 
@@ -177,7 +177,7 @@ public final class NIOProcessor {
 				it.remove();
 				this.frontendsLength.decrementAndGet();
 			} else {
-				// very important ,for some data maybe not sent
+				// 非常重要，因为有些数据可能没有发送。
 				checkConSendQueue(c);
 				c.idleCheck();
 			}
@@ -185,7 +185,7 @@ public final class NIOProcessor {
 	}
 
 	private void checkConSendQueue(AbstractConnection c) {
-		// very important ,for some data maybe not sent
+		// 非常重要，因为有些数据可能没有发送。
 		if (!c.writeQueue.isEmpty()) {
 			c.getSocketWR().doNextWriteCheck();
 		}
@@ -214,7 +214,7 @@ public final class NIOProcessor {
 				it.remove();
 
 			} else {
-				// very important ,for some data maybe not sent
+				// 非常重要，因为有些数据可能没有发送。
 				if (c instanceof AbstractConnection) {
 					checkConSendQueue((AbstractConnection) c);
 				}

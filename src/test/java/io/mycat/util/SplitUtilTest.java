@@ -24,10 +24,7 @@
 package io.mycat.util;
 
 import junit.framework.Assert;
-
 import org.junit.Test;
-
-import io.mycat.util.SplitUtil;
 
 /**
  * @author mycat

@@ -1,7 +1,6 @@
 package io.mycat.server.response;
 
 import com.google.common.base.Strings;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.ErrorCode;
@@ -149,8 +148,10 @@ public class ShowFullTables
 
                 }
             };
-
-
+            //如果设置了默认table，前端不显示
+            if(tableSet.contains("*")){
+            	tableSet.remove("*");
+            }
 
         }
         return tableSet;

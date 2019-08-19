@@ -1,11 +1,11 @@
-
-
 package io.mycat.memory.unsafe.utils.sort;
 
 import com.google.common.primitives.UnsignedLongs;
 import io.mycat.memory.unsafe.types.ByteArray;
 
-
+/**
+ * 前缀比较器
+ */
 public class PrefixComparators {
   private PrefixComparators() {}
 

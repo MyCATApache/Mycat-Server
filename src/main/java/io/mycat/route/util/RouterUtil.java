@@ -5,6 +5,7 @@ import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,7 +35,6 @@ import com.google.common.base.Strings;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
@@ -60,6 +60,7 @@ import io.mycat.sqlengine.mpp.LoadData;
 import io.mycat.util.StringUtil;
 
 /**
+ * 路由工具
  * 从ServerRouterUtil中抽取的一些公用方法，路由解析工具类
  * @author wang.dw
  *
@@ -75,53 +76,52 @@ public class RouterUtil {
 	 * @param schema  	数据库名
 	 * @return 			执行语句
 	 * @author mycat
-     *
-     * @modification 修正移除schema的方法
-     * @date 2016/12/29
-     * @modifiedBy Hash Zhang
-     *
+	 *
+	 * @modification 修正移除schema的方法
+	 * @date 2016/12/29
+	 * @modifiedBy Hash Zhang
+	 *
 	 */
 	public static String removeSchema(String stmt, String schema) {
-        final String upStmt = stmt.toUpperCase();
-        final String upSchema = schema.toUpperCase() + ".";
-        final String upSchema2 = new StringBuilder("`").append(schema.toUpperCase()).append("`.").toString();
-        int strtPos = 0;
-        int indx = 0;
+		final String upStmt = stmt.toUpperCase();
+		final String upSchema = schema.toUpperCase() + ".";
+		final String upSchema2 = new StringBuilder("`").append(schema.toUpperCase()).append("`.").toString();
+		int strtPos = 0;
+		int indx = 0;
 
-        int indx1 = upStmt.indexOf(upSchema, strtPos);
-        int indx2 = upStmt.indexOf(upSchema2, strtPos);
-        boolean flag = indx1 < indx2 ? indx1 == -1 : indx2 != -1;
-        indx = !flag ? indx1 > 0 ? indx1 : indx2 : indx2 > 0 ? indx2 : indx1;
-        if (indx < 0) {
-            return stmt;
-        }
+		int indx1 = upStmt.indexOf(upSchema, strtPos);
+		int indx2 = upStmt.indexOf(upSchema2, strtPos);
+		boolean flag = indx1 < indx2 ? indx1 == -1 : indx2 != -1;
+		indx = !flag ? indx1 > 0 ? indx1 : indx2 : indx2 > 0 ? indx2 : indx1;
+		if (indx < 0) {
+			return stmt;
+		}
 
-        int firstE = upStmt.indexOf("'");
-        int endE = upStmt.lastIndexOf("'");
+		int firstE = upStmt.indexOf("'");
+		int endE = upStmt.lastIndexOf("'");
 
-        StringBuilder sb = new StringBuilder();
-        while (indx > 0) {
-            sb.append(stmt.substring(strtPos, indx));
+		StringBuilder sb = new StringBuilder();
+		while (indx > 0) {
+			sb.append(stmt.substring(strtPos, indx));
 
-            if (flag) {
-                strtPos = indx + upSchema2.length();
-            } else {
-                strtPos = indx + upSchema.length();
-            }
-            if (indx > firstE && indx < endE && countChar(stmt, indx) % 2 == 1) {
-                sb.append(stmt.substring(indx, indx + schema.length() + 1));
-            }
-            indx1 = upStmt.indexOf(upSchema, strtPos);
-            indx2 = upStmt.indexOf(upSchema2, strtPos);
-            flag = indx1 < indx2 ? indx1 == -1 : indx2 != -1;
-            indx = !flag ? indx1 > 0 ? indx1 : indx2 : indx2 > 0 ? indx2 : indx1;
-        }
-        sb.append(stmt.substring(strtPos));
-        return sb.toString();
-    }
+			if (flag) {
+				strtPos = indx + upSchema2.length();
+			} else {
+				strtPos = indx + upSchema.length();
+			}
+			if (indx > firstE && indx < endE && countChar(stmt, indx) % 2 == 1) {
+				sb.append(stmt.substring(indx, indx + schema.length() + 1));
+			}
+			indx1 = upStmt.indexOf(upSchema, strtPos);
+			indx2 = upStmt.indexOf(upSchema2, strtPos);
+			flag = indx1 < indx2 ? indx1 == -1 : indx2 != -1;
+			indx = !flag ? indx1 > 0 ? indx1 : indx2 : indx2 > 0 ? indx2 : indx1;
+		}
+		sb.append(stmt.substring(strtPos));
+		return sb.toString();
+	}
 
-	private static int countChar(String sql,int end)
-	{
+	private static int countChar(String sql,int end) {
 		int count=0;
 		boolean skipChar = false;
 		for (int i = 0; i < end; i++) {
@@ -140,15 +140,15 @@ public class RouterUtil {
 	/**
 	 * 获取第一个节点作为路由
 	 *
-	 * @param rrs		          数据路由集合
-	 * @param dataNode  	数据库所在节点
-	 * @param stmt   		执行语句
-	 * @return 				数据路由集合
+	 * @param rrs 数据路由集合
+	 * @param dataNode 数据库所在节点
+	 * @param stmt 执行语句
+	 * @return 数据路由集合
 	 *
 	 * @author mycat
 	 */
 	public static RouteResultset routeToSingleNode(RouteResultset rrs,
-			String dataNode, String stmt) {
+												   String dataNode, String stmt) {
 		if (dataNode == null) {
 			return rrs;
 		}
@@ -169,8 +169,6 @@ public class RouterUtil {
 
 		return rrs;
 	}
-
-
 
 	/**
 	 * 修复DDL路由
@@ -201,11 +199,21 @@ public class RouterUtil {
 		}
 		tablename = tablename.toUpperCase();
 
+		//判断 是否配置了默认的table 2018-10-24 添加
+		TableConfig tc = null;
+		Map<String, TableConfig> tables = schema.getTables();
 		if (schema.getTables().containsKey(tablename)){
+			tc=tables.get(tablename);
+		}else if(schema.getTables().containsKey("*")){
+			tc=tables.get("*");
+		}else{
+			//both tablename and defaultnode null
+			LOGGER.error("table not in schema----"+tablename);
+			throw new SQLSyntaxErrorException("op table not in schema----"+tablename);
+		}
+		if (tc != null){
 			if(ServerParse.DDL==sqlType){
 				List<String> dataNodes = new ArrayList<>();
-				Map<String, TableConfig> tables = schema.getTables();
-				TableConfig tc=tables.get(tablename);
 				if (tables != null && (tc  != null)) {
 					dataNodes = tc.getDataNodes();
 				}
@@ -213,9 +221,9 @@ public class RouterUtil {
 				Iterator<String> iterator1 = dataNodes.iterator();
 				int nodeSize = dataNodes.size();
 				RouteResultsetNode[] nodes = new RouteResultsetNode[nodeSize];
-				 if(isSlotFunction){
-					 stmt=changeCreateTable(schema,tablename,stmt);
-				 }
+				if(isSlotFunction){
+					stmt=changeCreateTable(schema,tablename,stmt);
+				}
 				for(int i=0;i<nodeSize;i++){
 					String name = iterator1.next();
 					nodes[i] = new RouteResultsetNode(name, sqlType, stmt);
@@ -255,10 +263,8 @@ public class RouterUtil {
 					column.setComment(new SQLCharExpr("自动迁移算法slot,禁止修改"));
 					((SQLCreateTableStatement) insertStatement).getTableElementList().add(column);
 					return insertStatement.toString();
-
 				}
 			}
-
 		}
 		return sql;
 	}
@@ -311,7 +317,6 @@ public class RouterUtil {
 		}
 		return tableName;
 	}
-
 
 	/**
 	 * 获取show语句table名字
@@ -448,7 +453,6 @@ public class RouterUtil {
 		}
 	}
 
-
 	/**
 	 * 获取DROP语句中前关键字位置和占位个数表名位置
 	 *
@@ -459,7 +463,6 @@ public class RouterUtil {
 	 * @return int[]关键字位置和占位个数
 	 * @author aStoneGod
 	 */
-
 	public static int[] getDropIndexPos(String upStmt, int start) {
 		String token1 = "DROP ";
 		String token2 = " INDEX ";
@@ -539,8 +542,16 @@ public class RouterUtil {
 		return tabInd;
 	}
 
+	/**
+	 * 处理Mycat的全局序列号
+	 * @param schema
+	 * @param sqlType
+	 * @param origSQL
+	 * @param sc
+	 * @return true表示有Mycat的全局序列号并已处理，false表示没有Mycat的全局序列号
+	 */
 	public static boolean processWithMycatSeq(SchemaConfig schema, int sqlType,
-	                                          String origSQL, ServerConnection sc) {
+											  String origSQL, ServerConnection sc) {
 		// check if origSQL is with global sequence
 		// @micmiu it is just a simple judgement
 		//对应本地文件配置方式：insert into table1(id,name) values(next value for MYCATSEQ_GLOBAL,‘test’);
@@ -555,40 +566,44 @@ public class RouterUtil {
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
 //		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
 		final SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
-//      modify by yanjunli  序列获取修改为多线程方式。使用分段锁方式,一个序列一把锁。  begin		
+//      modify by yanjunli  序列获取修改为多线程方式。使用分段锁方式,一个序列一把锁。  begin
 //		MycatServer.getInstance().getSequnceProcessor().addNewSql(sessionSQLPair);
-        MycatServer.getInstance().getSequenceExecutor().execute(new Runnable() {
-				@Override
-				public void run() {
-					MycatServer.getInstance().getSequnceProcessor().executeSeq(sessionSQLPair);
-				}
-		 });
+		MycatServer.getInstance().getSequenceExecutor().execute(new Runnable() {
+			@Override
+			public void run() {
+				MycatServer.getInstance().getSequnceProcessor().executeSeq(sessionSQLPair);
+			}
+		});
 //      modify   序列获取修改为多线程方式。使用分段锁方式,一个序列一把锁。  end
 //		}
 	}
 
 	public static boolean processInsert(SchemaConfig schema, int sqlType,
-	                                    String origSQL, ServerConnection sc) throws SQLNonTransientException {
+										String origSQL, ServerConnection sc) throws SQLNonTransientException {
 		String tableName = StringUtil.getTableName(origSQL).toUpperCase();
 		TableConfig tableConfig = schema.getTables().get(tableName);
-		boolean processedInsert=false;
+		boolean processedInsert = false;
 		//判断是有自增字段
 		if (null != tableConfig && tableConfig.isAutoIncrement()) {
 			String primaryKey = tableConfig.getPrimaryKey();
-			processedInsert=processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey);
+			processedInsert = processInsert(sc,schema,sqlType,origSQL,tableName,primaryKey);
 		}
 		return processedInsert;
 	}
-
-	private static boolean isPKInFields(String origSQL,String primaryKey,int firstLeftBracketIndex,int firstRightBracketIndex){
+	/*
+	 *  找到返回主键的的位置 
+	 *  找不到返回 -1
+	 * */
+	private static int isPKInFields(String origSQL,String primaryKey,int firstLeftBracketIndex,int firstRightBracketIndex){
 
 		if (primaryKey == null) {
 			throw new RuntimeException("please make sure the primaryKey's config is not null in schemal.xml");
 		}
 
 		boolean isPrimaryKeyInFields = false;
+		int  pkStart = 0;
 		String upperSQL = origSQL.substring(firstLeftBracketIndex, firstRightBracketIndex + 1).toUpperCase();
-		for (int pkOffset = 0, primaryKeyLength = primaryKey.length(), pkStart = 0;;) {
+		for (int pkOffset = 0, primaryKeyLength = primaryKey.length();;) {
 			pkStart = upperSQL.indexOf(primaryKey, pkOffset);
 			if (pkStart >= 0 && pkStart < firstRightBracketIndex) {
 				char pkSide = upperSQL.charAt(pkStart - 1);
@@ -604,11 +619,16 @@ public class RouterUtil {
 				break;
 			}
 		}
-		return isPrimaryKeyInFields;
+		if (isPrimaryKeyInFields) {
+			return firstLeftBracketIndex + pkStart;
+		} else {
+			return  -1;
+		}
+		
 	}
 
 	public static boolean processInsert(ServerConnection sc,SchemaConfig schema,
-			int sqlType,String origSQL,String tableName,String primaryKey) throws SQLNonTransientException {
+										int sqlType,String origSQL,String tableName,String primaryKey) throws SQLNonTransientException {
 
 		int firstLeftBracketIndex = origSQL.indexOf("(");
 		int firstRightBracketIndex = origSQL.indexOf(")");
@@ -632,11 +652,67 @@ public class RouterUtil {
 		if(valuesIndex + "VALUES".length() <= firstLeftBracketIndex) {
 			throw new SQLSyntaxErrorException("insert must provide ColumnList");
 		}
+		List<List<String>> vauleList = parseSqlValue(origSQL , valuesIndex);
+		//两种情况处理 1 有主键的 id ,但是值为null 进行改下
+		//            2 没有主键的 需要插入 进行改写
+		
 		//如果主键不在插入语句的fields中，则需要进一步处理
-		boolean processedInsert=!isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
-		if(processedInsert){
-			handleBatchInsert(sc, schema, sqlType,origSQL, valuesIndex,tableName,primaryKey);
+		boolean processedInsert= false;
+		int pkStart = isPKInFields(origSQL,primaryKey,firstLeftBracketIndex,firstRightBracketIndex);
+
+
+		if(pkStart == -1){
+			processedInsert = true;
+			handleBatchInsert(sc, schema, sqlType,origSQL, valuesIndex, tableName, primaryKey, vauleList);
+		} else {
+			//判断 主键id的值是否为null
+			if(pkStart != -1) {
+				String subPrefix = origSQL.substring(0, pkStart);
+				char c; 
+				int pkIndex = 0;
+				for(int index = 0, len = subPrefix.length(); index < len; index++) {
+					c = subPrefix.charAt(index);
+					if(c == ',') {
+						pkIndex ++;
+					}
+				}
+				processedInsert  = handleBatchInsertWithPK(sc, schema, sqlType,origSQL, valuesIndex, tableName, primaryKey, vauleList , pkIndex);
+			}
 		}
+		return processedInsert;
+	}
+
+	private static boolean handleBatchInsertWithPK(ServerConnection sc, SchemaConfig schema, int sqlType,
+			String origSQL, int valuesIndex, String tableName, String primaryKey, List<List<String>> vauleList,
+			int pkIndex) {
+		boolean processedInsert = false;
+//	  	final String pk = "\\("+primaryKey+",";
+	      final String mycatSeqPrefix = "next value for MYCATSEQ_"+tableName.toUpperCase() ;
+	  	
+	  	/*"VALUES".length() ==6 */
+	      String prefix = origSQL.substring(0, valuesIndex + 6);
+//	      
+	      
+	      StringBuilder sb = new StringBuilder("");
+	      for(List<String> list : vauleList) {	    	    	  
+	    	  sb.append("(");
+	    	  String pkValue = list.get(pkIndex).trim().toLowerCase();
+	    	  //null值替换为 next value for MYCATSEQ_tableName
+	    	  if("null".equals(pkValue.trim())) {
+	    		  list.set(pkIndex, mycatSeqPrefix);
+	    		  processedInsert = true;
+	    	  }
+	    	  for(String val : list) {
+	    		  sb.append(val).append(",");
+	    	  }
+		      sb.setCharAt(sb.length() - 1, ')');
+	    	  sb.append(",");
+	      }
+	      sb.setCharAt(sb.length() - 1, ' ');;
+	     if(processedInsert) {
+	 	    processSQL(sc, schema,prefix+sb.toString(), sqlType);
+ 
+	     }
 		return processedInsert;
 	}
 
@@ -690,6 +766,77 @@ public class RouterUtil {
 		}
 		return handledSQLs;
 	}
+	 /**
+	  * 对于插入的sql : "insert into hotnews(title,name) values('test1',\"name\"),('(test)',\"(test)\"),('\\\"',\"\\'\"),(\")\",\"\\\"\\')\")"：
+	  *  需要返回结果：
+	  *[[ 'test1', "name"],
+	  *	['(test)', "(test)"],
+	  *	['\"', "\'"],
+	  *	[")", "\"\')"],
+	  *	[ 1,  null]
+	  * 值结果的解析
+	  */	
+    public  static List<List<String>> parseSqlValue(String origSQL,int valuesIndex ) {
+        List<List<String>> valueArray = new ArrayList<>();
+        String valueStr = origSQL.substring(valuesIndex + 6);// 6 values 长度为6
+        String preStr = origSQL.substring(0, valuesIndex );// 6 values 长度为6
+        int pos = 0 ;
+        int flag  = -1;
+        int len = valueStr.length();
+        StringBuilder currentValue = new StringBuilder();
+//        int colNum = 2; //
+        char c ;
+        List<String> curList = new ArrayList<>();
+        for( ;pos < len; pos ++) {
+            c = valueStr.charAt(pos);
+            if(flag == 1  || flag == 2) {
+                currentValue.append(c);
+                if(c == '\\') {
+                    char nextCode = valueStr.charAt(pos + 1);
+                    if(nextCode == '\'' || nextCode == '\"') {
+                        currentValue.append(nextCode);
+                        pos++;
+                        continue;
+                    }
+                }
+                if(c == '\"' && flag == 1) {
+                    flag = 0;
+                    continue;
+                }
+                if(c == '\'' && flag == 2) {
+                    flag = 0;
+                    continue;
+                }
+            }  else if(c == '\"'){
+                currentValue.append(c);
+                flag = 1;
+            } else if (c == '\'') {
+                currentValue.append(c);
+                flag = 2;
+            } else if (c == '(') {
+                curList = new ArrayList<>();
+                flag = 0;
+            } else if(flag == 4 ) {
+                if(c == ',') {
+                    flag = 0;
+                    continue;
+                }
+            } else if(c == ',') {
+//                System.out.println(currentValue);
+                curList.add(currentValue.toString());
+                currentValue.delete(0, currentValue.length());
+            } else if(c == ')'){
+                flag = 4;
+//                System.out.println(currentValue);
+                curList.add(currentValue.toString());
+                currentValue.delete(0, currentValue.length());
+                valueArray.add(curList);
+            }  else {
+                currentValue.append(c);
+            }
+        }
+        return valueArray;
+    }  
 	
 	  /**
 	  * 对于主键不在插入语句的fields中的SQL，需要改写。比如hotnews主键为id，插入语句为：
@@ -697,21 +844,50 @@ public class RouterUtil {
 	  * 需要改写成：
 	  * insert into hotnews(id, title) values(next value for MYCATSEQ_hotnews,'aaa');
 	  */
-    public static void handleBatchInsert(ServerConnection sc, SchemaConfig schema,
-            int sqlType,String origSQL, int valuesIndex,String tableName, String primaryKey) {
-    	
-    	final String pk = "\\("+primaryKey+",";
-        final String mycatSeqPrefix = "(next value for MYCATSEQ_"+tableName.toUpperCase()+",";
-    	
-    	/*"VALUES".length() ==6 */
-        String prefix = origSQL.substring(0, valuesIndex + 6);
-        String values = origSQL.substring(valuesIndex + 6);
-        
-        prefix = prefix.replaceFirst("\\(", pk);
-        values = values.replaceFirst("\\(", mycatSeqPrefix);
-        values =Pattern.compile(",\\s*\\(").matcher(values).replaceAll(","+mycatSeqPrefix);
-        processSQL(sc, schema,prefix+values, sqlType);
-    }
+	  public static void handleBatchInsert(ServerConnection sc, SchemaConfig schema,
+	          int sqlType,String origSQL, int valuesIndex,String tableName, String primaryKey , List<List<String>> vauleList) {
+	  	
+	  	final String pk = "\\("+primaryKey+",";
+	      final String mycatSeqPrefix = "(next value for MYCATSEQ_"+tableName.toUpperCase()+"";
+	  	
+	  	/*"VALUES".length() ==6 */
+	      String prefix = origSQL.substring(0, valuesIndex + 6);
+//	      
+	      prefix = prefix.replaceFirst("\\(", pk);
+	      
+	      StringBuilder sb = new StringBuilder("");
+	      for(List<String> list : vauleList) {
+	    	  sb.append(mycatSeqPrefix);
+	    	  for(String val : list) {
+	    		  sb.append(",").append(val);
+	    	  }
+	    	  sb.append("),");
+	      }
+	      sb.setCharAt(sb.length() - 1, ' ');;
+	      processSQL(sc, schema,prefix+sb.toString(), sqlType);
+	  }
+//	  /**
+//	  * 对于主键不在插入语句的fields中的SQL，需要改写。比如hotnews主键为id，插入语句为：
+//	  * insert into hotnews(title) values('aaa');
+//	  * 需要改写成：
+//	  * insert into hotnews(id, title) values(next value for MYCATSEQ_hotnews,'aaa');
+//	  */
+//    public static void handleBatchInsert(ServerConnection sc, SchemaConfig schema,
+//            int sqlType,String origSQL, int valuesIndex,String tableName, String primaryKey) {
+//    	
+//    	final String pk = "\\("+primaryKey+",";
+//        final String mycatSeqPrefix = "(next value for MYCATSEQ_"+tableName.toUpperCase()+",";
+//    	
+//    	/*"VALUES".length() ==6 */
+//        String prefix = origSQL.substring(0, valuesIndex + 6);
+//        String values = origSQL.substring(valuesIndex + 6);
+//        
+//        prefix = prefix.replaceFirst("\\(", pk);
+//        values = values.replaceFirst("\\(", mycatSeqPrefix);
+//        values =Pattern.compile(",\\s*\\(").matcher(values).replaceAll(","+mycatSeqPrefix);
+//        processSQL(sc, schema,prefix+values, sqlType);
+//    }
+    
 
 	public static RouteResultset routeToMultiNode(boolean cache,RouteResultset rrs, Collection<String> dataNodes, String stmt) {
 		RouteResultsetNode[] nodes = new RouteResultsetNode[dataNodes.size()];
@@ -736,16 +912,31 @@ public class RouterUtil {
 		return rrs;
 	}
 
+	/**
+	 * 路由到多节点
+	 * @param cache
+	 * @param rrs
+	 * @param dataNodes
+	 * @param stmt
+	 * @param isGlobalTable
+	 * @return
+	 */
 	public static RouteResultset routeToMultiNode(boolean cache, RouteResultset rrs, Collection<String> dataNodes,
-			String stmt, boolean isGlobalTable) {
-
+												  String stmt, boolean isGlobalTable) {
 		rrs = routeToMultiNode(cache, rrs, dataNodes, stmt);
 		rrs.setGlobalTable(isGlobalTable);
 		return rrs;
 	}
 
+	/**
+	 * 为表元路由
+	 * @param rrs
+	 * @param schema
+	 * @param tableName
+	 * @param sql
+	 */
 	public static void routeForTableMeta(RouteResultset rrs,
-			SchemaConfig schema, String tableName, String sql) {
+										 SchemaConfig schema, String tableName, String sql) {
 		String dataNode = null;
 		if (isNoSharding(schema,tableName)) {//不分库的直接从schema中获取dataNode
 			dataNode = schema.getDataNode();
@@ -777,35 +968,40 @@ public class RouterUtil {
 	 * @author mycat
 	 */
 	private static String getMetaReadDataNode(SchemaConfig schema,
-			String table) {
+											  String table) {
 		// Table名字被转化为大写的，存储在schema
 		table = table.toUpperCase();
 		String dataNode = null;
 		Map<String, TableConfig> tables = schema.getTables();
-		TableConfig tc;
-		if (tables != null && (tc = tables.get(table)) != null) {
+		TableConfig tc = tables.get(table);
+		//判断是否配置了默认table 2018-10-30
+		if(tc == null){
+			tc = tables.get("*");
+		}
+		if (tables != null && tc != null) {
 			dataNode = getAliveRandomDataNode(tc);
 		}
 		return dataNode;
 	}
-	
+
 	/**
 	 * 解决getRandomDataNode方法获取错误节点的问题.
 	 * @param tc
 	 * @return
 	 */
 	private static String getAliveRandomDataNode(TableConfig tc) {
-		List<String> randomDns = tc.getDataNodes();
+		List<String> randomDns = (List<String>)tc.getDataNodes().clone();
 
 		MycatConfig mycatConfig = MycatServer.getInstance().getConfig();
 		if (mycatConfig != null) {
+			Collections.shuffle(randomDns);
 			for (String randomDn : randomDns) {
 				PhysicalDBNode physicalDBNode = mycatConfig.getDataNodes().get(randomDn);
 				if (physicalDBNode != null) {
-					if (physicalDBNode.getDbPool().getSource().isAlive()) {
+					if (physicalDBNode.getDbPool().getSource().isAlive()) { // 判断后端Mysql连接是否正常
 						for (PhysicalDBPool pool : MycatServer.getInstance().getConfig().getDataHosts().values()) {
 							PhysicalDatasource source = pool.getSource();
-							if (source.getHostConfig().containDataNode(randomDn) && pool.getSource().isAlive()) {
+							if (source.getHostConfig().containDataNode(randomDn) && pool.getSource().isAlive()) { // 判断后端Mysql连接是否正常 并且是否包含该数据库
 								return randomDn;
 							}
 						}
@@ -818,35 +1014,37 @@ public class RouterUtil {
 		return tc.getRandomDataNode();
 	}
 
+	/**
+	 * 获取随机分片节点
+	 * @param tc
+	 * @return
+	 */
 	@Deprecated
-    private static String getRandomDataNode(TableConfig tc) {
-        //写节点不可用，意味着读节点也不可用。
-        //直接使用下一个 dataHost
-        String randomDn = tc.getRandomDataNode();
-        MycatConfig mycatConfig = MycatServer.getInstance().getConfig();
-        if (mycatConfig != null) {
-            PhysicalDBNode physicalDBNode = mycatConfig.getDataNodes().get(randomDn);
-            if (physicalDBNode != null) {
-                if (physicalDBNode.getDbPool().getSource().isAlive()) {
-                    for (PhysicalDBPool pool : MycatServer.getInstance()
-                            .getConfig()
-                            .getDataHosts()
-                            .values()) {
-                        if (pool.getSource().getHostConfig().containDataNode(randomDn)) {
-                            continue;
-                        }
+	private static String getRandomDataNode(TableConfig tc) {
+		//写节点不可用，意味着读节点也不可用。
+		//直接使用下一个 dataHost
+		String randomDn = tc.getRandomDataNode();
+		MycatConfig mycatConfig = MycatServer.getInstance().getConfig();
+		if (mycatConfig != null) {
+			PhysicalDBNode physicalDBNode = mycatConfig.getDataNodes().get(randomDn);
+			if (physicalDBNode != null) {
+				if (physicalDBNode.getDbPool().getSource().isAlive()) { // 判断后端Mysql连接是否正常
+					for (PhysicalDBPool pool : MycatServer.getInstance().getConfig().getDataHosts().values()) {
+						if (pool.getSource().getHostConfig().containDataNode(randomDn)) {
+							continue;
+						}
 
-                        if (pool.getSource().isAlive()) {
-                            return pool.getSource().getHostConfig().getRandomDataNode();
-                        }
-                    }
-                }
-            }
-        }
+						if (pool.getSource().isAlive()) { // 判断后端Mysql连接是否正常
+							return pool.getSource().getHostConfig().getRandomDataNode();
+						}
+					}
+				}
+			}
+		}
 
-        //all fail return default
-        return randomDn;
-    }
+		//all fail return default
+		return randomDn;
+	}
 
 	/**
 	 * 根据 ER分片规则获取路由集合
@@ -859,10 +1057,9 @@ public class RouterUtil {
 	 * @throws SQLNonTransientException，IllegalShardingColumnValueException
 	 * @author mycat
 	 */
-
 	public static RouteResultset routeByERParentKey(ServerConnection sc,SchemaConfig schema,
-                                                    int sqlType,String stmt,
-			RouteResultset rrs, TableConfig tc, String joinKeyVal)
+													int sqlType,String stmt,
+													RouteResultset rrs, TableConfig tc, String joinKeyVal)
 			throws SQLNonTransientException {
 
 		// only has one parent level and ER parent key is parent
@@ -870,11 +1067,11 @@ public class RouterUtil {
 		if (tc.isSecondLevel()
 				//判断是否为二级子表（父表不再有父表）
 				&& tc.getParentTC().getPartitionColumn()
-						.equals(tc.getParentKey())) { // using
-														// parent
-														// rule to
-														// find
-														// datanode
+				.equals(tc.getParentKey())) { // using
+			// parent
+			// rule to
+			// find
+			// datanode
 			Set<ColumnRoutePair> parentColVal = new HashSet<ColumnRoutePair>(1);
 			ColumnRoutePair pair = new ColumnRoutePair(joinKeyVal);
 			parentColVal.add(pair);
@@ -898,7 +1095,7 @@ public class RouterUtil {
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleByJoinValueCalculate(RouteResultset rrs, TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet) throws SQLNonTransientException {
+													   Set<ColumnRoutePair> colRoutePairSet) throws SQLNonTransientException {
 
 		String joinValue = "";
 
@@ -915,11 +1112,11 @@ public class RouterUtil {
 		Set<String> nodeSet;
 		if (tc.isSecondLevel()
 				&& tc.getParentTC().getPartitionColumn()
-						.equals(tc.getParentKey())) { // using
-														// parent
-														// rule to
-														// find
-														// datanode
+				.equals(tc.getParentKey())) { // using
+			// parent
+			// rule to
+			// find
+			// datanode
 
 			nodeSet = ruleCalculate(tc.getParentTC(),colRoutePairSet,rrs.getDataNodeSlotMap());
 			if (nodeSet.isEmpty()) {
@@ -960,7 +1157,7 @@ public class RouterUtil {
 	 * @return dataNodeIndex -&gt; [partitionKeysValueTuple+]
 	 */
 	public static Set<String> ruleCalculate(TableConfig tc,
-			Set<ColumnRoutePair> colRoutePairSet,Map<String,Integer>   dataNodeSlotMap)  {
+											Set<ColumnRoutePair> colRoutePairSet,Map<String,Integer>   dataNodeSlotMap)  {
 		Set<String> routeNodeSet = new LinkedHashSet<String>();
 		String col = tc.getRule().getColumn();
 		RuleConfig rule = tc.getRule();
@@ -1012,7 +1209,7 @@ public class RouterUtil {
 	 * 多表路由
 	 */
 	public static RouteResultset tryRouteForTables(SchemaConfig schema, DruidShardingParseInfo ctx,
-			RouteCalculateUnit routeUnit, RouteResultset rrs, boolean isSelect, LayerCachePool cachePool)
+												   RouteCalculateUnit routeUnit, RouteResultset rrs, boolean isSelect, LayerCachePool cachePool)
 			throws SQLNonTransientException {
 
 		List<String> tables = ctx.getTables();
@@ -1042,22 +1239,18 @@ public class RouterUtil {
 
 		//为全局表和单库表找路由
 		for(String tableName : tables) {
-			
+
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
-			
+
 			if(tableConfig == null) {
-				//add 如果表读取不到则先将表名从别名中读取转化后再读取
-				String alias = ctx.getTableAliasMap().get(tableName);
-				if(!StringUtil.isEmpty(alias)){
-					tableConfig = schema.getTables().get(alias.toUpperCase());
-				}
-				
+				//判断是否配置了默认table 2018-10-24添加
+				tableConfig = schema.getTables().get('*');
 				if(tableConfig == null){
-					String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
-					LOGGER.warn(msg);
-					throw new SQLNonTransientException(msg);
+					continue;
 				}
-				
+//				String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
+//				LOGGER.warn(msg);
+//				throw new SQLNonTransientException(msg);
 			}
 			if(tableConfig.isGlobalTable()) {//全局表
 				if(tablesRouteMap.get(tableName) == null) {
@@ -1093,6 +1286,10 @@ public class RouterUtil {
 		if(retNodesSet != null && retNodesSet.size() > 0) {
 			String tableName = tables.get(0);
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
+			//判断是否配置默认table 2018-10-24
+			if(tableConfig == null){
+				tableConfig = schema.getTables().get("*");
+			}
 			if(tableConfig.isDistTable()){
 				routeToDistTableNode(tableName,schema, rrs, ctx.getSql(), tablesAndConditions, cachePool, isSelect);
 				return rrs;
@@ -1102,7 +1299,9 @@ public class RouterUtil {
 				// mulit routes ,not cache route result
 				if (isSelect) {
 					rrs.setCacheAble(false);
-					routeToSingleNode(rrs, retNodesSet.iterator().next(), ctx.getSql());
+					ArrayList<String> retNodeList = new ArrayList<String>(retNodesSet);
+					Collections.shuffle(retNodeList);//by kaiz : add shuffle
+					routeToSingleNode(rrs, retNodeList.get(0), ctx.getSql());
 				}
 				else {//delete 删除全局表的记录
 					routeToMultiNode(isSelect, rrs, retNodesSet, ctx.getSql(),true);
@@ -1114,17 +1313,15 @@ public class RouterUtil {
 
 		}
 		return rrs;
-
 	}
-
 
 	/**
 	 *
 	 * 单表路由
 	 */
 	public static RouteResultset tryRouteForOneTable(SchemaConfig schema, DruidShardingParseInfo ctx,
-			RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs, boolean isSelect,
-			LayerCachePool cachePool) throws SQLNonTransientException {
+													 RouteCalculateUnit routeUnit, String tableName, RouteResultset rrs, boolean isSelect,
+													 LayerCachePool cachePool) throws SQLNonTransientException {
 
 		if (isNoSharding(schema, tableName)) {
 			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
@@ -1132,9 +1329,13 @@ public class RouterUtil {
 
 		TableConfig tc = schema.getTables().get(tableName);
 		if(tc == null) {
-			String msg = "can't find table define in schema " + tableName + " schema:" + schema.getName();
-			LOGGER.warn(msg);
-			throw new SQLNonTransientException(msg);
+			//判断是否配置了默认table 2018-10-24添加
+			tc = schema.getTables().get("*");
+			if(tc == null) {
+				String msg = "can't find table define in schema " + tableName + " schema:" + schema.getName();
+				LOGGER.warn(msg);
+				throw new SQLNonTransientException(msg);
+			}
 		}
 
 		if(tc.isDistTable()){
@@ -1178,8 +1379,8 @@ public class RouterUtil {
 	}
 
 	private static RouteResultset routeToDistTableNode(String tableName, SchemaConfig schema, RouteResultset rrs,
-			String orgSql, Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
-			LayerCachePool cachePool, boolean isSelect) throws SQLNonTransientException {
+													   String orgSql, Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
+													   LayerCachePool cachePool, boolean isSelect) throws SQLNonTransientException {
 
 		TableConfig tableConfig = schema.getTables().get(tableName);
 		if(tableConfig == null) {
@@ -1194,23 +1395,23 @@ public class RouterUtil {
 		}
 		String partionCol = tableConfig.getPartitionColumn();
 //		String primaryKey = tableConfig.getPrimaryKey();
-        boolean isLoadData=false;
+		boolean isLoadData=false;
 
-        Set<String> tablesRouteSet = new HashSet<String>();
+		Set<String> tablesRouteSet = new HashSet<String>();
 
-        List<String> dataNodes = tableConfig.getDataNodes();
-        if(dataNodes.size()>1){
+		List<String> dataNodes = tableConfig.getDataNodes();
+		if(dataNodes.size()>1){
 			String msg = "can't suport district table  " + tableName + " schema:" + schema.getName() + " for mutiple dataNode " + dataNodes;
-        	LOGGER.warn(msg);
+			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
-        }
-        String dataNode = dataNodes.get(0);
+		}
+		String dataNode = dataNodes.get(0);
 
 		//主键查找缓存暂时不实现
-        if(tablesAndConditions.isEmpty()){
-        	List<String> subTables = tableConfig.getDistTables();
-        	tablesRouteSet.addAll(subTables);
-        }
+		if(tablesAndConditions.isEmpty()){
+			List<String> subTables = tableConfig.getDistTables();
+			tablesRouteSet.addAll(subTables);
+		}
 
 		for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
 			boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
@@ -1257,7 +1458,7 @@ public class RouterUtil {
 
 		Object[] subTables =  tablesRouteSet.toArray();
 		RouteResultsetNode[] nodes = new RouteResultsetNode[subTables.length];
-	   Map<String,Integer> dataNodeSlotMap=	rrs.getDataNodeSlotMap();
+		Map<String,Integer> dataNodeSlotMap=	rrs.getDataNodeSlotMap();
 		for(int i=0;i<nodes.length;i++){
 			String table = String.valueOf(subTables[i]);
 			String changeSql = orgSql;
@@ -1288,25 +1489,28 @@ public class RouterUtil {
 	 * 处理分库表路由
 	 */
 	public static void findRouteWithcConditionsForTables(SchemaConfig schema, RouteResultset rrs,
-			Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
-			Map<String, Set<String>> tablesRouteMap, String sql, LayerCachePool cachePool, boolean isSelect)
+														 Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
+														 Map<String, Set<String>> tablesRouteMap, String sql, LayerCachePool cachePool, boolean isSelect)
 			throws SQLNonTransientException {
-
 		//为分库表找路由
 		for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
 			String tableName = entry.getKey().toUpperCase();
 			TableConfig tableConfig = schema.getTables().get(tableName);
 			if(tableConfig == null) {
-				String msg = "can't find table define in schema "
-						+ tableName + " schema:" + schema.getName();
-				LOGGER.warn(msg);
-				throw new SQLNonTransientException(msg);
+				//判断 是否配置了默认table
+				tableConfig = schema.getTables().get("*");
+				if(tableConfig == null) {
+					String msg = "can't find table define in schema "
+							+ tableName + " schema:" + schema.getName();
+					LOGGER.warn(msg);
+					throw new SQLNonTransientException(msg);
+				}
 			}
 			if(tableConfig.getDistTables()!=null && tableConfig.getDistTables().size()>0){
 				routeToDistTableNode(tableName,schema,rrs,sql, tablesAndConditions, cachePool,isSelect);
 			}
 			//全局表或者不分库的表略过（全局表后面再计算）
-			if(tableConfig.isGlobalTable() || schema.getTables().get(tableName).getDataNodes().size() == 1) {
+			if(tableConfig.isGlobalTable() || tableConfig.getDataNodes().size() == 1) {
 				continue;
 			} else {//非全局表：分库表、childTable、其他
 				Map<String, Set<ColumnRoutePair>> columnsMap = entry.getValue();
@@ -1314,19 +1518,18 @@ public class RouterUtil {
 				String partionCol = tableConfig.getPartitionColumn();
 				String primaryKey = tableConfig.getPrimaryKey();
 				boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
-                boolean isLoadData=false;
-                if (LOGGER.isDebugEnabled()
+				boolean isLoadData=false;
+				if (LOGGER.isDebugEnabled()
 						&& sql.startsWith(LoadData.loadDataHint)||rrs.isLoadData()) {
-                     //由于load data一次会计算很多路由数据，如果输出此日志会极大降低load data的性能
-                         isLoadData=true;
-                }
-				if(entry.getValue().get(primaryKey) != null && entry.getValue().size() == 1&&!isLoadData)
-                {//主键查找
+					//由于load data一次会计算很多路由数据，如果输出此日志会极大降低load data的性能
+					isLoadData=true;
+				}
+				if(entry.getValue().get(primaryKey) != null && entry.getValue().size() == 1&&!isLoadData) {//主键查找
 					// try by primary key if found in cache
 					Set<ColumnRoutePair> primaryKeyPairs = entry.getValue().get(primaryKey);
 					if (primaryKeyPairs != null) {
 						if (LOGGER.isDebugEnabled()) {
-                                 LOGGER.debug("try to find cache by primary key ");
+							LOGGER.debug("try to find cache by primary key ");
 						}
 						String tableKey = schema.getName() + '_' + tableName;
 						boolean allFound = true;
@@ -1464,14 +1667,22 @@ public class RouterUtil {
 		}
 	}
 
+	/**
+	 * 判断SQL语句中是否都是全局表
+	 * @param ctx
+	 * @param schema
+	 * @return
+	 */
 	public static boolean isAllGlobalTable(DruidShardingParseInfo ctx, SchemaConfig schema) {
 		boolean isAllGlobal = false;
-		for(String table : ctx.getTables()) {
-			TableConfig tableConfig = schema.getTables().get(table);
-			if(tableConfig!=null && tableConfig.isGlobalTable()) {
-				isAllGlobal = true;
-			} else {
-				return false;
+		if(schema!=null){
+			for(String table : ctx.getTables()) {
+				TableConfig tableConfig = schema.getTables().get(table);
+				if(tableConfig!=null && tableConfig.isGlobalTable()) {
+					isAllGlobal = true;
+				} else {
+					return false;
+				}
 			}
 		}
 		return isAllGlobal;
@@ -1494,7 +1705,6 @@ public class RouterUtil {
 			hasRequiredValue = false;
 		} else {
 			for(Map.Entry<String, Set<ColumnRoutePair>> condition : routeUnit.getTablesAndConditions().get(tableName).entrySet()) {
-
 				String colName = condition.getKey();
 				//条件字段是拆分字段
 				if(colName.equals(tc.getPartitionColumn())) {
@@ -1535,6 +1745,7 @@ public class RouterUtil {
 	 * @return
 	 */
 	public static boolean isSystemSchema(String tableName) {
+        /* TODO 这里有问题 升级druid后解析的table没有库名 */
 		// 以information_schema， mysql开头的是系统表
 		if (tableName.startsWith("INFORMATION_SCHEMA.")
 				|| tableName.startsWith("MYSQL.")
@@ -1571,7 +1782,6 @@ public class RouterUtil {
 		return false;
 	}
 
-
 	/**
 	 * 该方法，返回是否是ER子表
 	 * @param schema
@@ -1579,35 +1789,35 @@ public class RouterUtil {
 	 * @param sc
 	 * @return
 	 * @throws SQLNonTransientException
-	 * 
+	 *
 	 * 备注说明：
 	 *     edit by ding.w at 2017.4.28, 主要处理 CLIENT_MULTI_STATEMENTS(insert into ; insert into)的情况
 	 *     目前仅支持mysql,并COM_QUERY请求包中的所有insert语句要么全部是er表，要么全部不是
-	 *     
-	 *     
+	 *
+	 *
 	 */
 	public static boolean processERChildTable(final SchemaConfig schema, final String origSQL,
-            final ServerConnection sc) throws SQLNonTransientException {
-	
+											  final ServerConnection sc) throws SQLNonTransientException {
+
 		MySqlStatementParser parser = new MySqlStatementParser(origSQL);
 		List<SQLStatement> statements = parser.parseStatementList();
-		
+
 		if(statements == null || statements.isEmpty() ) {
 			throw new SQLNonTransientException(String.format("无效的SQL语句:%s", origSQL));
 		}
-		
-		
+
+
 		boolean erFlag = false; //是否是er表
 		for(SQLStatement stmt : statements ) {
-			MySqlInsertStatement insertStmt = (MySqlInsertStatement) stmt; 
+			MySqlInsertStatement insertStmt = (MySqlInsertStatement) stmt;
 			String tableName = insertStmt.getTableName().getSimpleName().toUpperCase();
 			final TableConfig tc = schema.getTables().get(tableName);
-			
+
 			if (null != tc && tc.isChildTable()) {
 				erFlag = true;
-				
+
 				String sql = insertStmt.toString();
-				
+
 				final RouteResultset rrs = new RouteResultset(sql, ServerParse.INSERT);
 				String joinKey = tc.getJoinKey();
 				//因为是Insert语句，用MySqlInsertStatement进行parse
@@ -1633,7 +1843,7 @@ public class RouterUtil {
 					realVal = joinKeyVal.substring(1, joinKeyVal.length() - 1);
 				}
 
-				
+
 
 				// try to route by ER parent partion key
 				//如果是二级子表（父表不再有父表）,并且分片字段正好是joinkey字段，调用routeByERParentKey
@@ -1641,17 +1851,17 @@ public class RouterUtil {
 				if (theRrs != null) {
 					boolean processedInsert=false;
 					//判断是否需要全局序列号
-	                if ( sc!=null && tc.isAutoIncrement()) {
-	                    String primaryKey = tc.getPrimaryKey();
-	                    processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
-	                }
-	                if(processedInsert==false){
-	                	rrs.setFinishedRoute(true);
-	                    sc.getSession2().execute(rrs, ServerParse.INSERT);
-	                }
+					if ( sc!=null && tc.isAutoIncrement()) {
+						String primaryKey = tc.getPrimaryKey();
+						processedInsert=processInsert(sc,schema,ServerParse.INSERT,sql,tc.getName(),primaryKey);
+					}
+					if(processedInsert==false){
+						rrs.setFinishedRoute(true);
+						sc.getSession2().execute(rrs, ServerParse.INSERT);
+					}
 					// return true;
-	                //继续处理下一条
-	                continue;
+					//继续处理下一条
+					continue;
 				}
 
 				// route by sql query root parent's datanode
@@ -1671,7 +1881,6 @@ public class RouterUtil {
 						return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes(), sc);
 					}
 				});
-
 
 				Futures.addCallback(listenableFuture, new FutureCallback<String>() {
 					@Override
@@ -1693,19 +1902,19 @@ public class RouterUtil {
 						}
 						//找到分片，进行插入（和其他的一样，需要判断是否需要全局自增ID）
 						boolean processedInsert=false;
-	                    if ( sc!=null && tc.isAutoIncrement()) {
-	                        try {
-	                            String primaryKey = tc.getPrimaryKey();
+						if ( sc!=null && tc.isAutoIncrement()) {
+							try {
+								String primaryKey = tc.getPrimaryKey();
 								processedInsert=processInsert(sc,schema,ServerParse.INSERT,origSQL,tc.getName(),primaryKey);
 							} catch (SQLNonTransientException e) {
 								LOGGER.warn("sequence processInsert error,",e);
-			                    sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
+								sc.writeErrMessage(ErrorCode.ER_PARSE_ERROR , "sequence processInsert error," + e.getMessage());
 							}
-	                    }
-	                    if(processedInsert==false){
-	                    	RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
-	    					sc.getSession2().execute(executeRrs, ServerParse.INSERT);
-	                    }
+						}
+						if(processedInsert==false){
+							RouteResultset executeRrs = RouterUtil.routeToSingleNode(rrs, result, origSQL);
+							sc.getSession2().execute(executeRrs, ServerParse.INSERT);
+						}
 
 					}
 
@@ -1718,13 +1927,13 @@ public class RouterUtil {
 					}
 				}, MycatServer.getInstance().
 						getListeningExecutorService());
-				
+
 			} else if(erFlag) {
 				throw new SQLNonTransientException(String.format("%s包含不是ER分片的表", origSQL));
 			}
 		}
-		
-		
+
+
 		return erFlag;
 	}
 

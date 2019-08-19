@@ -1,7 +1,6 @@
 package io.mycat.memory.unsafe.memory.mm;
 
 import com.google.common.annotations.VisibleForTesting;
-
 import io.mycat.memory.unsafe.memory.MemoryBlock;
 import io.mycat.memory.unsafe.utils.JavaUtils;
 import org.slf4j.Logger;
@@ -13,7 +12,8 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 
-/** 
+/**
+ * 数据节点内存管理器
  * Modify by zagnix 
  * Manages the memory allocated by an individual thread.
  * <p>

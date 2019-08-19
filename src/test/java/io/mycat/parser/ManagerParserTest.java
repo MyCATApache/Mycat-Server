@@ -23,15 +23,9 @@
  */
 package io.mycat.parser;
 
+import io.mycat.route.parser.*;
 import org.junit.Assert;
 import org.junit.Test;
-
-import io.mycat.route.parser.ManagerParse;
-import io.mycat.route.parser.ManagerParseClear;
-import io.mycat.route.parser.ManagerParseReload;
-import io.mycat.route.parser.ManagerParseRollback;
-import io.mycat.route.parser.ManagerParseShow;
-import io.mycat.route.parser.ManagerParseStop;
 
 /**
  * @author mycat

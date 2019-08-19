@@ -1,9 +1,9 @@
 package io.mycat.statistic.stat;
 
+import io.mycat.server.parser.ServerParse;
+
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
-
-import io.mycat.server.parser.ServerParse;
 
 /**
  * SQL R/W 执行状态

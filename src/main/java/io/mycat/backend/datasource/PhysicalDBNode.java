@@ -23,22 +23,23 @@
  */
 package io.mycat.backend.datasource;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.route.RouteResultsetNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * 物理数据节点
+ */
 public class PhysicalDBNode {
-	protected static final Logger LOGGER = LoggerFactory
-			.getLogger(PhysicalDBNode.class);
+	protected static final Logger LOGGER = LoggerFactory.getLogger(PhysicalDBNode.class);
 
 	protected final String name;
 	protected final String database;
 	protected final PhysicalDBPool dbPool;
 
-	public PhysicalDBNode(String hostName, String database,
-			PhysicalDBPool dbPool) {
+	public PhysicalDBNode(String hostName, String database, PhysicalDBPool dbPool) {
 		this.name = hostName;
 		this.database = database;
 		this.dbPool = dbPool;
@@ -57,7 +58,7 @@ public class PhysicalDBNode {
 	}
 
 	/**
-	 * get connection from the same datasource
+	 * 从同一个数据源获取连接
 	 * 
 	 * @param exitsCon
 	 * @throws Exception
@@ -65,15 +66,12 @@ public class PhysicalDBNode {
 	public void getConnectionFromSameSource(String schema,boolean autocommit,
 			BackendConnection exitsCon, ResponseHandler handler,
 			Object attachment) throws Exception {
-
 		PhysicalDatasource ds = this.dbPool.findDatasouce(exitsCon);
 		if (ds == null) {
-			throw new RuntimeException(
-					"can't find existing connection,maybe fininshed " + exitsCon);
+			throw new RuntimeException("can't find exits connection,maybe fininshed " + exitsCon);
 		} else {
 			ds.getConnection(schema,autocommit, handler, attachment);
 		}
-
 	}
 
 	private void checkRequest(String schema){
@@ -88,7 +86,16 @@ public class PhysicalDBNode {
 			dbPool.init(dbPool.activedIndex);
 		}
 	}
-	
+
+	/**
+	 * 获取连接
+	 * @param schema
+	 * @param autoCommit
+	 * @param rrs
+	 * @param handler
+	 * @param attachment
+	 * @throws Exception
+	 */
 	public void getConnection(String schema,boolean autoCommit, RouteResultsetNode rrs,
 							ResponseHandler handler, Object attachment) throws Exception {
 		checkRequest(schema);
@@ -107,8 +114,7 @@ public class PhysicalDBNode {
 							PhysicalDatasource writeSource=dbPool.getSource();
 							//记录写节点写负载值
 							writeSource.setWriteCount();
-							writeSource.getConnection(schema,
-									autoCommit, handler, attachment);
+							writeSource.getConnection(schema, autoCommit, handler, attachment);
 							rrs.setRunOnSlave(false);
 							rrs.setCanRunInReadDB(false);
 						}
@@ -119,8 +125,7 @@ public class PhysicalDBNode {
 					PhysicalDatasource writeSource=dbPool.getSource();
 					//记录写节点写负载值
 					writeSource.setWriteCount();
-					writeSource.getConnection(schema, autoCommit,
-							handler, attachment);
+					writeSource.getConnection(schema, autoCommit, handler, attachment);
 					rrs.setCanRunInReadDB(false);
 				}
 			}else{	// 没有  /*db_type=master/slave*/ 注解，按照原来的处理方式
@@ -131,15 +136,13 @@ public class PhysicalDBNode {
 					PhysicalDatasource writeSource =dbPool.getSource();
 					//记录写节点写负载值
 					writeSource.setWriteCount();
-					writeSource.getConnection(schema, autoCommit,
-							handler, attachment);
+					writeSource.getConnection(schema, autoCommit, handler, attachment);
 				}
 			}
-		
 		} else {
 			throw new IllegalArgumentException("Invalid DataSource:" + dbPool.getActivedIndex());
-			}
 		}
+	}
 
 //	public void getConnection(String schema,boolean autoCommit, RouteResultsetNode rrs,
 //			ResponseHandler handler, Object attachment) throws Exception {

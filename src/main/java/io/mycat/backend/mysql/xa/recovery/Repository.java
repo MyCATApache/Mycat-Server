@@ -5,6 +5,7 @@ import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
 import java.util.Collection;
 
 /**
+ * 库 用于恢复数据
  * Created by zhangchao on 2016/10/13.
  */
 public interface Repository {
@@ -19,7 +20,7 @@ public interface Repository {
 
     Collection<CoordinatorLogEntry>  getAllCoordinatorLogEntries() ;
 
-    void writeCheckpoint(Collection<CoordinatorLogEntry> checkpointContent) ;
+    void writeCheckpoint(String id, Collection<CoordinatorLogEntry> checkpointContent) ;
 
     void close();
 

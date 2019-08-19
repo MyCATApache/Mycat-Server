@@ -1,28 +1,18 @@
 package io.mycat.util.dataMigrator;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
-import io.mycat.config.model.DBHostConfig;
-import io.mycat.config.model.DataHostConfig;
-import io.mycat.config.model.DataNodeConfig;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.config.model.TableConfig;
+import io.mycat.config.model.*;
 import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.config.util.ConfigException;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * 数据迁移新旧配置文件加载、对比

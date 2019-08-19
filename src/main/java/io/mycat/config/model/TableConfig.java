@@ -31,98 +31,109 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
+ * 逻辑表配置
  * @author mycat
  */
 public class TableConfig {
-    public static final int TYPE_GLOBAL_TABLE = 1;
-    public static final int TYPE_GLOBAL_DEFAULT = 0;
-    private final String name;
-    private final String primaryKey;
-    private final boolean autoIncrement;
-    private final boolean needAddLimit;
-    private final Set<String> dbTypes;
-    private final int tableType;
-    private final ArrayList<String> dataNodes;
-    private final ArrayList<String> distTables;
-    private final RuleConfig rule;
-    private final String partitionColumn;
-    private final boolean ruleRequired;
-    private final TableConfig parentTC;
-    private final boolean childTable;
-    private final String joinKey;
-    private final String parentKey;
-    private final String locateRTableKeySql;
-    // only has one level of parent
-    private final boolean secondLevel;
-    private final boolean partionKeyIsPrimaryKey;
-    private final Random rand = new Random();
+	public static final int TYPE_GLOBAL_TABLE = 1;
+	public static final int TYPE_GLOBAL_DEFAULT = 0;
+	private final String name;
+	private final String primaryKey;
+	// 自动递增标识
+	private final boolean autoIncrement;
+	// 需要添加limit标识
+	private final boolean needAddLimit;
+	// 数据库类型
+	private final Set<String> dbTypes;
+	// 表类型
+	private final int tableType;
+	// 分片节点
+	private final ArrayList<String> dataNodes;
+	// 分片子表
+	private final ArrayList<String> distTables;
+	// 分片规则
+	private final RuleConfig rule;
+	// 分片列 分片字段
+	private final String partitionColumn;
+	private final boolean ruleRequired;
+	private final TableConfig parentTC;
+	private final boolean childTable;
+	private final String joinKey;
+	private final String parentKey;
+	private final String locateRTableKeySql;
+	// only has one level of parent 只有一级父母
+	private final boolean secondLevel;
+	private final boolean partionKeyIsPrimaryKey;
+	private final Random rand = new Random();
 
-    private volatile List<SQLTableElement> tableElementList;
-    private volatile String tableStructureSQL;
-    private volatile Map<String, List<String>> dataNodeTableStructureSQLMap;
-    private ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock(false);
+	private volatile List<SQLTableElement> tableElementList;
+	private volatile String tableStructureSQL;
+	private volatile Map<String,List<String>> dataNodeTableStructureSQLMap;
+	private ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock(false);
 
-    public TableConfig(String tableName, String primaryKey, boolean autoIncrement, boolean needAddLimit, int tableType,
-                       String dataNode, Set<String> dbType, RuleConfig rule, boolean ruleRequired,
-                       TableConfig parentTC, boolean isChildTable, String joinKey,
-                       String parentKey, String subTables) {
-        if (tableName == null) {
-            throw new IllegalArgumentException("table name is null");
-        } else if (dataNode == null) {
-            throw new IllegalArgumentException("dataNode name is null");
-        }
-        this.primaryKey = primaryKey;
-        this.autoIncrement = autoIncrement;
-        this.needAddLimit = needAddLimit;
-        this.tableType = tableType;
-        this.dbTypes = dbType;
-        if (ruleRequired && rule == null) {
-            throw new IllegalArgumentException("ruleRequired but rule is null");
-        }
 
-        this.name = tableName.toUpperCase();
-        String theDataNodes[] = SplitUtil.split(dataNode, ',', '$', '-');
-        if (theDataNodes == null || theDataNodes.length <= 0) {
-            throw new IllegalArgumentException("invalid table dataNodes: " + dataNode);
-        }
-        dataNodes = new ArrayList<String>(theDataNodes.length);
-        for (String dn : theDataNodes) {
-            dataNodes.add(dn);
-        }
+	public TableConfig(String tableName, String primaryKey, boolean autoIncrement,boolean needAddLimit, int tableType,
+			String dataNode,Set<String> dbType, RuleConfig rule, boolean ruleRequired,
+			TableConfig parentTC, boolean isChildTable, String joinKey,
+			String parentKey,String subTables) {
+		if (tableName == null) {
+			throw new IllegalArgumentException("table name is null");
+		} else if (dataNode == null) {
+			throw new IllegalArgumentException("dataNode name is null");
+		}
+		this.primaryKey = primaryKey;
+		this.autoIncrement = autoIncrement;
+		this.needAddLimit=needAddLimit;
+		this.tableType = tableType;
+		this.dbTypes=dbType;
+		if (ruleRequired && rule == null) {
+			throw new IllegalArgumentException("ruleRequired but rule is null");
+		}
 
-        if (subTables != null && !subTables.equals("")) {
-            String sTables[] = SplitUtil.split(subTables, ',', '$', '-');
-            if (sTables == null || sTables.length <= 0) {
-                throw new IllegalArgumentException("invalid table subTables");
-            }
-            this.distTables = new ArrayList<String>(sTables.length);
-            for (String table : sTables) {
-                distTables.add(table);
-            }
-        } else {
-            this.distTables = new ArrayList<String>();
-        }
+		this.name = tableName.toUpperCase();
+		
+		String theDataNodes[] = SplitUtil.split(dataNode, ',', '$', '-');
+		if (theDataNodes == null || theDataNodes.length <= 0) {
+			throw new IllegalArgumentException("invalid table dataNodes: " + dataNode);
+		}
+		dataNodes = new ArrayList<String>(theDataNodes.length);
+		for (String dn : theDataNodes) {
+			dataNodes.add(dn);
+		}
+		
+		if(subTables!=null && !subTables.equals("")){
+			String sTables[] = SplitUtil.split(subTables, ',', '$', '-');
+			if (sTables == null || sTables.length <= 0) {
+				throw new IllegalArgumentException("invalid table subTables");
+			}
+			this.distTables = new ArrayList<String>(sTables.length);
+			for (String table : sTables) {
+				distTables.add(table);
+			}
+		}else{
+			this.distTables = new ArrayList<String>();
+		}	
+		
+		this.rule = rule;
+		this.partitionColumn = (rule == null) ? null : rule.getColumn();
+		partionKeyIsPrimaryKey=(partitionColumn==null)?primaryKey==null:partitionColumn.equals(primaryKey);
+		this.ruleRequired = ruleRequired;
+		this.childTable = isChildTable;
+		this.parentTC = parentTC;
+		this.joinKey = joinKey;
+		this.parentKey = parentKey;
+		if (parentTC != null) {
+			locateRTableKeySql = genLocateRootParentSQL();
+			secondLevel = (parentTC.parentTC == null);
+		} else {
+			locateRTableKeySql = null;
+			secondLevel = false;
+		}
+	}
 
-        this.rule = rule;
-        this.partitionColumn = (rule == null) ? null : rule.getColumn();
-        partionKeyIsPrimaryKey = (partitionColumn == null) ? primaryKey == null : partitionColumn.equals(primaryKey);
-        this.ruleRequired = ruleRequired;
-        this.childTable = isChildTable;
-        this.parentTC = parentTC;
-        this.joinKey = joinKey;
-        this.parentKey = parentKey;
-        if (parentTC != null) {
-            locateRTableKeySql = genLocateRootParentSQL();
-            secondLevel = (parentTC.parentTC == null);
-        } else {
-            locateRTableKeySql = null;
-            secondLevel = false;
-        }
-    }
-
-    public String getPrimaryKey() {
-        return primaryKey;
-    }
+	public String getPrimaryKey() {
+		return primaryKey;
+	}
 
     public Set<String> getDbTypes() {
         return dbTypes;

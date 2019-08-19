@@ -1,15 +1,14 @@
 package io.mycat.config.loader.zkprocess.xmltozk.listen;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.utils.ZKPaths;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
 import io.mycat.config.loader.zkprocess.parse.XmlProcessBase;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.utils.ZKPaths;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 其他一些信息加载到zk中
@@ -50,6 +49,11 @@ public class OthermsgTozkLoader extends ZkMultLoader implements NotiflyService {
 
     }
 
+    /**
+     * 处理通知
+     * @return
+     * @throws Exception
+     */
     @Override
     public boolean notiflyProcess() throws Exception {
         // 添加line目录，用作集群中节点，在线的基本目录信息
@@ -57,22 +61,19 @@ public class OthermsgTozkLoader extends ZkMultLoader implements NotiflyService {
         ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), line);
         LOGGER.info("OthermsgTozkLoader zookeeper mkdir " + line + " success");
 
+        String sequences = currZkPath
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
         // 添加序列目录信息
-        String seqLine = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
-        seqLine = seqLine + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INSTANCE.getKey();
+        String seqLine = sequences
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INSTANCE.getKey();
         ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), seqLine);
 
-        String seqLeader = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
-        seqLeader = seqLeader + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_LEADER.getKey();
+        String seqLeader = sequences
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_LEADER.getKey();
         ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), seqLeader);
 
-        String incrSeq = currZkPath + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE.getKey();
-        incrSeq = incrSeq + ZookeeperPath.ZK_SEPARATOR.getKey()
-                + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INCREMENT_SEQ.getKey();
+        String incrSeq = sequences
+                + ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_SEQUENCE_INCREMENT_SEQ.getKey();
         ZKPaths.mkdirs(this.getCurator().getZookeeperClient().getZooKeeper(), incrSeq);
 
         LOGGER.info("OthermsgTozkLoader zookeeper mkdir " + seqLine + " success");

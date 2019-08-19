@@ -23,22 +23,14 @@
  */
 package io.mycat.config.model;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import io.mycat.config.util.ConfigException;
+import io.mycat.config.util.ConfigUtil;
+import io.mycat.util.SplitUtil;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import io.mycat.config.util.ConfigException;
-import io.mycat.config.util.ConfigUtil;
-import io.mycat.util.SplitUtil;
+import java.util.*;
 
 /**
  * @author mycat

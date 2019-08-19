@@ -24,6 +24,7 @@
 package io.mycat.net.mysql;
 
 /**
+ * 退出包 MySQL内部协议
  * @author mycat
  */
 public class QuitPacket extends MySQLPacket {

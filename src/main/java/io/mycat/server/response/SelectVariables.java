@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,49 +16,39 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.server.response;
 
 import com.google.common.base.Splitter;
-
-import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
-import io.mycat.util.LongUtil;
-import io.mycat.util.StringUtil;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @author mycat
  */
-public final class SelectVariables
-{
+public final class SelectVariables {
     private static final Logger LOGGER = LoggerFactory.getLogger(SelectVariables.class);
 
-
     public static void execute(ServerConnection c, String sql) {
-
-     String subSql=   sql.substring(sql.indexOf("SELECT")+6);
-    List<String>  splitVar=   Splitter.on(",").omitEmptyStrings().trimResults().splitToList(subSql) ;
+        String subSql=   sql.substring(sql.indexOf("SELECT")+6);
+        List<String>  splitVar=   Splitter.on(",").omitEmptyStrings().trimResults().splitToList(subSql) ;
         splitVar=convert(splitVar);
         int FIELD_COUNT = splitVar.size();
         ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
@@ -67,13 +57,11 @@ public final class SelectVariables
         int i = 0;
         byte packetId = 0;
         header.packetId = ++packetId;
-        for (int i1 = 0, splitVarSize = splitVar.size(); i1 < splitVarSize; i1++)
-        {
+        for (int i1 = 0, splitVarSize = splitVar.size(); i1 < splitVarSize; i1++) {
             String s = splitVar.get(i1);
             fields[i] = PacketUtil.getField(s, Fields.FIELD_TYPE_VAR_STRING);
             fields[i++].packetId = ++packetId;
         }
-
 
         ByteBuffer buffer = c.allocate();
 
@@ -85,7 +73,6 @@ public final class SelectVariables
             buffer = field.write(buffer, c,true);
         }
 
-
         EOFPacket eof = new EOFPacket();
         eof.packetId = ++packetId;
         // write eof
@@ -95,18 +82,14 @@ public final class SelectVariables
         //byte packetId = eof.packetId;
 
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-        for (int i1 = 0, splitVarSize = splitVar.size(); i1 < splitVarSize; i1++)
-        {
+        for (int i1 = 0, splitVarSize = splitVar.size(); i1 < splitVarSize; i1++) {
             String s = splitVar.get(i1);
             String value=  variables.get(s) ==null?"":variables.get(s) ;
             row.add(value.getBytes());
-
         }
 
         row.packetId = ++packetId;
         buffer = row.write(buffer, c,true);
-
-
 
         // write lastEof
         EOFPacket lastEof = new EOFPacket();
@@ -117,30 +100,20 @@ public final class SelectVariables
         c.write(buffer);
     }
 
-    private static List<String> convert(List<String> in)
-    {
+    private static List<String> convert(List<String> in) {
         List<String> out=new ArrayList<>();
-        for (String s : in)
-        {
-          int asIndex=s.toUpperCase().indexOf(" AS ");
-            if(asIndex!=-1)
-            {
+        for (String s : in) {
+            int asIndex=s.toUpperCase().indexOf(" AS ");
+            if(asIndex!=-1) {
                 out.add(s.substring(asIndex+4)) ;
             }
         }
-         if(out.isEmpty())
-         {
-             return in;
-         }  else
-         {
-             return out;
-         }
-
-
+        if(out.isEmpty()) {
+            return in;
+        }  else {
+            return out;
+        }
     }
-
-
-
 
     private static final Map<String, String> variables = new HashMap<String, String>();
     static {
@@ -184,6 +157,4 @@ public final class SelectVariables
         variables.put("wait_timeout", "172800");
         variables.put("auto_increment_increment", "1");
     }
-    
-
 }

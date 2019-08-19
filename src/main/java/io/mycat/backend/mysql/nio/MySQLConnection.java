@@ -23,13 +23,11 @@
  */
 package io.mycat.backend.mysql.nio;
 
-import io.mycat.backend.mysql.xa.TxState;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.CharsetUtil;
 import io.mycat.backend.mysql.SecurityUtil;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
+import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.config.Capabilities;
 import io.mycat.config.Isolations;
 import io.mycat.net.BackendAIOConnection;
@@ -39,6 +37,8 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.TimeUtil;
 import io.mycat.util.exception.UnknownTxIsolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.channels.NetworkChannel;
@@ -429,7 +429,8 @@ public class MySQLConnection extends BackendAIOConnection {
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
 		int autoCommitSyn = (conAutoComit == expectAutocommit) ? 0 : 1;
 		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn + (xaCmd!=null?1:0);
-		if (synCount == 0 && this.xaStatus != TxState.TX_STARTED_STATE) {
+//		if (synCount == 0 && this.xaStatus != TxState.TX_STARTED_STATE) {
+		if (synCount == 0 ) {
 			// not need syn connection
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("not need syn connection :\n" + this+"\n to send query cmd:\n"+rrn.getStatement()
@@ -597,7 +598,8 @@ public class MySQLConnection extends BackendAIOConnection {
 		metaDataSyned = true;
 		attachment = null;
 		statusSync = null;
-		modifiedSQLExecuted = false;
+		modifiedSQLExecuted = false;		
+		xaStatus = TxState.TX_INITIALIZE_STATE;
 		setResponseHandler(null);
 		pool.releaseChannel(this);
 	}
@@ -699,7 +701,5 @@ public class MySQLConnection extends BackendAIOConnection {
 	public int getTxIsolation() {
 		return txIsolation;
 	}
-
-	
 
 }

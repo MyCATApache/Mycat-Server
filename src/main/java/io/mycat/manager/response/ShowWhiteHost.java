@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,13 +15,8 @@ import io.mycat.config.ErrorCode;
 import io.mycat.config.Fields;
 import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.UserConfig;
-import io.mycat.config.util.ConfigException;
 import io.mycat.manager.ManagerConnection;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.net.mysql.*;
 import io.mycat.util.StringUtil;
 
 public final class ShowWhiteHost {
@@ -78,6 +74,22 @@ public final class ShowWhiteHost {
             row.packetId = ++packetId;
             buffer = row.write(buffer, c,true);			
 		}
+        Map<Pattern, List<UserConfig>> map2=MycatServer.getInstance().getConfig().getFirewall().getWhitehostMask();
+        for (Pattern key : map2.keySet()) {
+            List<UserConfig> userConfigs=map2.get(key);
+            String users="";
+            for (int i = 0; i < userConfigs.size(); i++) {
+                if(i>0) {
+                    users += "," + userConfigs.get(i).getName();
+                }
+                else {
+                    users += userConfigs.get(i).getName();
+                }
+            }
+            RowDataPacket row = getRow(FirewallConfig.getHost(key), users, c.getCharset());
+            row.packetId = ++packetId;
+            buffer = row.write(buffer, c,true);
+        }
 		
         // write last eof
         EOFPacket lastEof = new EOFPacket();

@@ -1,11 +1,9 @@
 package io.mycat.server.interceptor.impl;
 
-import org.junit.Test;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-
 import junit.framework.Assert;
+import org.junit.Test;
 
 public class GlobalTableUtilTest {
 	

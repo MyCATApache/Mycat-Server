@@ -1,5 +1,15 @@
 package io.mycat.util.rehasher;
 
+import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.druid.util.JdbcUtils;
+import io.mycat.route.function.AbstractPartitionAlgorithm;
+import io.mycat.route.function.PartitionByMod;
+import io.mycat.route.function.PartitionByMurmurHash;
+import io.mycat.util.CollectionUtil;
+import io.mycat.util.exception.RehashException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -8,18 +18,6 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.druid.pool.DruidDataSource;
-import com.alibaba.druid.util.JdbcUtils;
-
-import io.mycat.route.function.AbstractPartitionAlgorithm;
-import io.mycat.route.function.PartitionByMod;
-import io.mycat.route.function.PartitionByMurmurHash;
-import io.mycat.util.CollectionUtil;
-import io.mycat.util.exception.RehashException;
 
 /**
  * 本工具依赖druid，Mycat已经包含druid，druid配置请查阅相关文档。相关参数请看RehashCmdArgs

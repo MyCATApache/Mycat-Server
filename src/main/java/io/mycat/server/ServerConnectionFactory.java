@@ -23,9 +23,6 @@
  */
 package io.mycat.server;
 
-import java.io.IOException;
-import java.nio.channels.NetworkChannel;
-
 import io.mycat.MycatServer;
 import io.mycat.config.MycatPrivileges;
 import io.mycat.config.model.SystemConfig;
@@ -34,7 +31,12 @@ import io.mycat.net.factory.FrontendConnectionFactory;
 import io.mycat.server.handler.ServerLoadDataInfileHandler;
 import io.mycat.server.handler.ServerPrepareHandler;
 
+import java.io.IOException;
+import java.nio.channels.NetworkChannel;
+
 /**
+ * 前端服务器连接工厂 SQL请求
+ *
  * @author mycat
  */
 public class ServerConnectionFactory extends FrontendConnectionFactory {
@@ -43,12 +45,17 @@ public class ServerConnectionFactory extends FrontendConnectionFactory {
     protected FrontendConnection getConnection(NetworkChannel channel) throws IOException {
         SystemConfig sys = MycatServer.getInstance().getConfig().getSystem();
         ServerConnection c = new ServerConnection(channel);
+        // 设置连接参数
         MycatServer.getInstance().getConfig().setSocketParams(c, true);
+        // 设置MyCat前端权限
         c.setPrivileges(MycatPrivileges.instance());
+        // 设置前端查询处理器
         c.setQueryHandler(new ServerQueryHandler(c));
+        // 设置从文件加载数据处理器
         c.setLoadDataInfileHandler(new ServerLoadDataInfileHandler(c));
-        c.setPrepareHandler(new ServerPrepareHandler(c));
+        c.setPrepareHandler(new ServerPrepareHandler(c,sys.getMaxPreparedStmtCount()));
         c.setTxIsolation(sys.getTxIsolation());
+        // 设置Session 非阻塞Session
         c.setSession2(new NonBlockingSession(c));
         return c;
     }

@@ -1,18 +1,6 @@
 package io.mycat.config.loader.zkprocess.xmltozk.listen;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.curator.framework.CuratorFramework;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.fastjson.util.IOUtils;
-
 import io.mycat.config.loader.console.ZookeeperPath;
 import io.mycat.config.loader.zkprocess.comm.NotiflyService;
 import io.mycat.config.loader.zkprocess.comm.ZookeeperProcessListen;
@@ -28,6 +16,16 @@ import io.mycat.config.loader.zkprocess.parse.entryparse.rule.json.FunctionJsonP
 import io.mycat.config.loader.zkprocess.parse.entryparse.rule.json.TableRuleJsonParse;
 import io.mycat.config.loader.zkprocess.parse.entryparse.rule.xml.RuleParseXmlImpl;
 import io.mycat.config.loader.zkprocess.zookeeper.process.ZkMultLoader;
+import org.apache.curator.framework.CuratorFramework;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * 进行从rule.xml加载到zk中加载
@@ -112,22 +110,22 @@ public class RulesxmlTozkLoader extends ZkMultLoader implements NotiflyService {
      * 将xml文件的信息写入到zk中
     * 方法描述
     * @param basePath 基本路径
-    * @param schema schema文件的信息
+    * @param rules 文件的信息
     * @throws Exception 异常信息
     * @创建日期 2016年9月17日
     */
-    private void xmlTozkRulesJson(String basePath, Rules Rules) throws Exception {
+    private void xmlTozkRulesJson(String basePath, Rules rules) throws Exception {
         // tablerune节点信息
         String tableRulePath = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_RULE_TABLERULE.getKey();
-        String tableRuleJson = this.parseJsonTableRuleService.parseBeanToJson(Rules.getTableRule());
+        String tableRuleJson = this.parseJsonTableRuleService.parseBeanToJson(rules.getTableRule());
         this.checkAndwriteString(basePath, tableRulePath, tableRuleJson);
 
         // 读取mapFile文件,并加入到function中
-        this.readMapFileAddFunction(Rules.getFunction());
+        this.readMapFileAddFunction(rules.getFunction());
 
         // 方法设置信息
         String functionPath = ZookeeperPath.ZK_SEPARATOR.getKey() + ZookeeperPath.FLOW_ZK_PATH_RULE_FUNCTION.getKey();
-        String functionJson = this.parseJsonFunctionService.parseBeanToJson(Rules.getFunction());
+        String functionJson = this.parseJsonFunctionService.parseBeanToJson(rules.getFunction());
         this.checkAndwriteString(basePath, functionPath, functionJson);
     }
 

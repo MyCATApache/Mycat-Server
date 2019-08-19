@@ -1,21 +1,19 @@
 package io.mycat.statistic.stat;
 
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat.Condition;
+import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
-import com.alibaba.druid.stat.TableStat.Condition;
-
-import io.mycat.server.parser.ServerParse;
 
 /**
  * 特定 SQL 查询条件的统计分析
@@ -183,7 +181,7 @@ public class QueryConditionAnalyzer implements QueryResultListener {
 				MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
 				stmt.accept(visitor);
 				
-				String currentTable = visitor.getCurrentTable();
+				String currentTable = visitor.getTables().keySet().iterator().next().getName();
 				if ( tableName.equalsIgnoreCase( currentTable ) ) {
 					
 					List<Condition> conditions = visitor.getConditions();

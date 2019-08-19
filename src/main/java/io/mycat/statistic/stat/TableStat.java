@@ -1,11 +1,11 @@
 package io.mycat.statistic.stat;
 
+import io.mycat.server.parser.ServerParse;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-
-import io.mycat.server.parser.ServerParse;
 
 /**
  * SQL统计中,统计出来每个表的读,写的TPS,分辨出当前最热的表，

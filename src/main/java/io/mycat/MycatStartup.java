@@ -24,17 +24,16 @@
 package io.mycat;
 
 
+import io.mycat.config.loader.zkprocess.comm.ZkConfig;
+import io.mycat.config.model.SystemConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.mycat.config.loader.zkprocess.comm.ZkConfig;
-import io.mycat.config.model.SystemConfig;
-
 /**
+ * Mycat启动程序入口
  * @author mycat
  */
 public final class MycatStartup {
@@ -44,6 +43,7 @@ public final class MycatStartup {
         //use zk ?
         ZkConfig.getInstance().initZk();
         try {
+            // 获取工程主目录
             String home = SystemConfig.getHomePath();
             if (home == null) {
                 System.out.println(SystemConfig.SYS_HOME + "  is not set.");

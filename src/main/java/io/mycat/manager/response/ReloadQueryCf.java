@@ -1,11 +1,11 @@
 package io.mycat.manager.response;
 
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.manager.ManagerConnection;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.statistic.stat.QueryConditionAnalyzer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ReloadQueryCf {
 	

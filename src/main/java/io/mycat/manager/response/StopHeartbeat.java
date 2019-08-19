@@ -23,10 +23,6 @@
  */
 package io.mycat.manager.response;
 
-import java.util.Map;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.manager.ManagerConnection;
@@ -35,6 +31,10 @@ import io.mycat.route.parser.ManagerParseStop;
 import io.mycat.route.parser.util.Pair;
 import io.mycat.util.FormatUtil;
 import io.mycat.util.TimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * 暂停数据节点心跳检测

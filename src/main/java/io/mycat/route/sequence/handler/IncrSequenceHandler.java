@@ -23,10 +23,10 @@
  */
 package io.mycat.route.sequence.handler;
 
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * 递增序列号处理器

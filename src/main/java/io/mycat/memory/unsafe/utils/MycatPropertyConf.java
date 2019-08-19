@@ -3,6 +3,7 @@ package io.mycat.memory.unsafe.utils;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * Mycat属性配置
  * Created by zagnix on 2016/6/2.
  */
 public class MycatPropertyConf {
@@ -13,12 +14,11 @@ public class MycatPropertyConf {
 
     }
 
-    /** Set a configuration variable. */
+    /** 设置配置变量。 */
     public MycatPropertyConf set(String key, String value) {
         set(key, value, false);
         return  this;
     }
-
 
     public MycatPropertyConf set(String key, String value, boolean silent){
 

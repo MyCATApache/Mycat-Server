@@ -4,10 +4,7 @@ import io.mycat.util.StringUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Hash Zhang
@@ -16,7 +13,11 @@ import java.util.Map;
  */
 public class RouterUtilTest {
 
-
+	public static void main(String[] args) {
+        String sql = "insert into hotnews(title,name) values('test1',\"name\"),('(test)',\"(test)\"),('\\\"',\"\\'\"),(\")\",\"\\\"\\')\");";
+        List<String> values = RouterUtil.handleBatchInsert(sql, sql.toUpperCase().indexOf("VALUES"));
+		System.out.println(values);
+	}	
 
     @Test
     public void testBatchInsert()  {

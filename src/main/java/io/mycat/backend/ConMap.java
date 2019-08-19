@@ -1,22 +1,30 @@
 package io.mycat.backend;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.jdbc.JDBCConnection;
 import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.net.NIOProcessor;
 
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+/**
+ * 连接映射
+ */
 public class ConMap {
 	
-	// key -schema
+	// key 是 逻辑库
 	private final ConcurrentHashMap<String, ConQueue> items = new ConcurrentHashMap<String, ConQueue>();
 
+	/**
+	 * 获取逻辑库连接队列
+	 * @param schema
+	 * @return
+	 */
 	public ConQueue getSchemaConQueue(String schema) {
 		ConQueue queue = items.get(schema);
 		if (queue == null) {
@@ -27,6 +35,12 @@ public class ConMap {
 		return queue;
 	}
 
+	/**
+	 * 尝试获取连接
+	 * @param schema
+	 * @param autoCommit
+	 * @return
+	 */
 	public BackendConnection tryTakeCon(final String schema, boolean autoCommit) {
 		final ConQueue queue = items.get(schema);
 		BackendConnection con = tryTakeCon(queue, autoCommit);
@@ -46,8 +60,13 @@ public class ConMap {
 
 	}
 
+	/**
+	 * 尝试获取连接
+	 * @param queue
+	 * @param autoCommit
+	 * @return
+	 */
 	private BackendConnection tryTakeCon(ConQueue queue, boolean autoCommit) {
-
 		BackendConnection con = null;
 		if (queue != null && ((con = queue.takeIdleCon(autoCommit)) != null)) {
 			return con;
@@ -61,6 +80,12 @@ public class ConMap {
 		return items.values();
 	}
 
+	/**
+	 * 获取逻辑库的活动连接数
+	 * @param schema
+	 * @param dataSouce
+	 * @return
+	 */
 	public int getActiveCountForSchema(String schema,
 			PhysicalDatasource dataSouce) {
 		int total = 0;
@@ -87,6 +112,11 @@ public class ConMap {
         return total;
     }
 
+	/**
+	 * 获取物理数据源的活动连接数
+	 * @param dataSouce
+	 * @return
+	 */
 	public int getActiveCountForDs(PhysicalDatasource dataSouce) {
 		int total = 0;
 		for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
@@ -110,6 +140,26 @@ public class ConMap {
         }
         return total;
     }
+    public int getTotalCountForDs(PhysicalDatasource dataSouce) {
+        int total = 0;
+        for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
+            for (BackendConnection con : processor.getBackends().values()) {
+                if (con instanceof MySQLConnection) {
+                    MySQLConnection mysqlCon = (MySQLConnection) con;
+                    if (mysqlCon.getPool() == dataSouce && !mysqlCon.isClosed()) {
+                        total++;
+                    }
+
+                } else if (con instanceof JDBCConnection) {
+                    JDBCConnection jdbcCon = (JDBCConnection) con;
+                    if (jdbcCon.getPool() == dataSouce && !jdbcCon.isClosed()) {
+                        total++;
+                    }
+                }
+            }
+        }
+        return total;
+    }
 
     public void clearConnections(String reason, PhysicalDatasource dataSouce) {
         for (NIOProcessor processor : MycatServer.getInstance().getProcessors()) {
@@ -123,7 +173,7 @@ public class ConMap {
                         con.close(reason);
                         itor.remove();
                     }
-                }else if((con instanceof JDBCConnection)
+                } else if((con instanceof JDBCConnection)
 						&& (((JDBCConnection) con).getPool() == dataSouce)){
                         con.close(reason);
                         itor.remove();

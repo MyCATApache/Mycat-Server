@@ -1,11 +1,5 @@
 package io.mycat.manager.handler;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.utils.ZKPaths;
-import org.apache.zookeeper.data.Stat;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.config.ErrorCode;
 import io.mycat.config.loader.zkprocess.comm.ZkConfig;
 import io.mycat.config.loader.zkprocess.comm.ZkParamCfg;
@@ -14,6 +8,11 @@ import io.mycat.config.loader.zkprocess.zktoxml.ZktoXmlMain;
 import io.mycat.manager.ManagerConnection;
 import io.mycat.manager.response.ReloadZktoXml;
 import io.mycat.util.ZKUtils;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.utils.ZKPaths;
+import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * zookeeper 实现动态配置

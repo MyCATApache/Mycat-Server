@@ -18,11 +18,11 @@
 package io.mycat.memory.unsafe.row;
 
 
-import java.math.BigDecimal;
-
 import io.mycat.memory.unsafe.Platform;
 import io.mycat.memory.unsafe.array.ByteArrayMethods;
 import io.mycat.memory.unsafe.bitset.BitSetMethods;
+
+import java.math.BigDecimal;
 
 /**
  * A helper class to write data into global row buffer using `UnsafeRow` format.

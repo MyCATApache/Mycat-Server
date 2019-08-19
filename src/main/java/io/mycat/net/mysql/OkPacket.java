@@ -23,15 +23,17 @@
  */
 package io.mycat.net.mysql;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.net.FrontendConnection;
 
+import java.nio.ByteBuffer;
+
 /**
- * From server to client in response to command, if no error and no result set.
+ * 正常包 MySQL内部协议
+ *
+ * 从服务器到客户端响应命令，如果没有错误和结果集。
  * 
  * <pre>
  * Bytes                       Name

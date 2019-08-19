@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,20 +52,38 @@ import io.mycat.config.model.DataHostConfig;
 import io.mycat.util.TimeUtil;
 
 
+/**
+ * 物理数据源
+ */
 public abstract class PhysicalDatasource {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(PhysicalDatasource.class);
 
+	// 节点主机名
 	private final String name;
+	// 最大连接数
 	private final int size;
+	// 数据库主机配置
 	private final DBHostConfig config;
+	// 连接映射
 	private final ConMap conMap = new ConMap();
+	// 数据库心跳
 	private DBHeartbeat heartbeat;
+	// 是否是读节点标志
 	private final boolean readNode;
+	// 心跳恢复时间
 	private volatile long heartbeatRecoveryTime;
+	// 节点主机
 	private final DataHostConfig hostConfig;
+	// 连接心跳处理
 	private final ConnectionHeartBeatHandler conHeartBeatHanler = new ConnectionHeartBeatHandler();
+	// 物理数据池
 	private PhysicalDBPool dbPool;
+	private volatile long totalConnectionCount = 0L;
+	//判断是否需要同步 increamentCount
+	private LongAdder increamentCount = new LongAdder();
+	private long preIncrementCount = 0;
+
 	
 	// 添加DataSource读计数
 	private AtomicLong readCount = new AtomicLong(0);
@@ -83,14 +102,16 @@ public abstract class PhysicalDatasource {
 	
 	// 当前存活的总连接数,为什么不直接使用activeCount,主要是因为连接的创建是异步完成的
 	//private volatile AtomicInteger totalConnection = new AtomicInteger(0);
-	
+
 	/**
 	 * 由于在Mycat中，returnCon被多次调用（与takeCon并没有成对调用）导致activeCount、totalConnection容易出现负数
 	 */
 	//private static final String TAKE_CONNECTION_FLAG = "1";
 	//private ConcurrentMap<Long /* ConnectionId */, String /* 常量1*/> takeConnectionContext = new ConcurrentHashMap<>();
 
-	
+	public ConMap getConMap() {
+		return conMap;
+	}
 
 	public PhysicalDatasource(DBHostConfig config, DataHostConfig hostConfig,
 			boolean isReadNode) {
@@ -108,7 +129,6 @@ public abstract class PhysicalDatasource {
 		} else {
 			return false;
 		}
-
 	}
 
 	public long getReadCount() {
@@ -157,14 +177,12 @@ public abstract class PhysicalDatasource {
 		long executeCount = 0;
 		for (ConQueue queue : conMap.getAllConQueue()) {
 			executeCount += queue.getExecuteCount();
-
 		}
 		return executeCount;
 	}
 
 	public long getExecuteCountForSchema(String schema) {
 		return conMap.getSchemaConQueue(schema).getExecuteCount();
-
 	}
 
 	public int getActiveCountForSchema(String schema) {
@@ -174,8 +192,7 @@ public abstract class PhysicalDatasource {
 	public int getIdleCountForSchema(String schema) {
 		ConQueue queue = conMap.getSchemaConQueue(schema);
 		int total = 0;
-		total += queue.getAutoCommitCons().size()
-				+ queue.getManCommitCons().size();
+		total += queue.getAutoCommitCons().size() + queue.getManCommitCons().size();
 		return total;
 	}
 
@@ -186,8 +203,7 @@ public abstract class PhysicalDatasource {
 	public int getIdleCount() {
 		int total = 0;
 		for (ConQueue queue : conMap.getAllConQueue()) {
-			total += queue.getAutoCommitCons().size()
-					+ queue.getManCommitCons().size();
+			total += queue.getAutoCommitCons().size() + queue.getManCommitCons().size();
 		}
 		return total;
 	}
@@ -210,8 +226,7 @@ public abstract class PhysicalDatasource {
 
 	private boolean validSchema(String schema) {
 		String theSchema = schema;
-		return theSchema != null && !"".equals(theSchema)
-				&& !"snyn...".equals(theSchema);
+		return theSchema != null && !"".equals(theSchema) && !"snyn...".equals(theSchema);
 	}
 
 	private void checkIfNeedHeartBeat(
@@ -243,9 +258,7 @@ public abstract class PhysicalDatasource {
 					con.close(" heart beate idle ");
 				}
 			}
-
 		}
-
 	}
 
 	public int getIndex() {
@@ -268,14 +281,18 @@ public abstract class PhysicalDatasource {
 		return false;
 	}
 
+	/**
+	 * 心跳检查
+	 * @param timeout
+	 * @param conHeartBeatPeriod
+	 */
 	public void heatBeatCheck(long timeout, long conHeartBeatPeriod) {
 //		int ildeCloseCount = hostConfig.getMinCon() * 3;
 		int maxConsInOneCheck = 5;
 		LinkedList<BackendConnection> heartBeatCons = new LinkedList<BackendConnection>();
 
 		long hearBeatTime = TimeUtil.currentTimeMillis() - conHeartBeatPeriod;
-		long hearBeatTime2 = TimeUtil.currentTimeMillis() - 2
-				* conHeartBeatPeriod;
+		long hearBeatTime2 = TimeUtil.currentTimeMillis() - 2 * conHeartBeatPeriod;
 		for (ConQueue queue : conMap.getAllConQueue()) {
 			checkIfNeedHeartBeat(heartBeatCons, queue,
 					queue.getAutoCommitCons(), hearBeatTime, hearBeatTime2);
@@ -289,36 +306,37 @@ public abstract class PhysicalDatasource {
 
 		if (!heartBeatCons.isEmpty()) {
 			for (BackendConnection con : heartBeatCons) {
-				conHeartBeatHanler
-						.doHeartBeat(con, hostConfig.getHearbeatSQL());
+				conHeartBeatHanler.doHeartBeat(con, hostConfig.getHearbeatSQL());
 			}
 		}
 
-		// check if there has timeouted heatbeat cons
+		// 检查是否有心跳超时的连接
 		conHeartBeatHanler.abandTimeOuttedConns();
 		int idleCons = getIdleCount();
 		int activeCons = this.getActiveCount();
 		int createCount = (hostConfig.getMinCon() - idleCons) / 3;
-		// create if idle too little
+
 		if ((createCount > 0) && (idleCons + activeCons < size)
 				&& (idleCons < hostConfig.getMinCon())) {
+			// 如果空闲连接过少时创建连接
 			createByIdleLitte(idleCons, createCount);
 		} else if (idleCons > hostConfig.getMinCon()) {
+			// 如果空闲连接过多时关闭连接
 			closeByIdleMany(idleCons - hostConfig.getMinCon());
 		} else {
 			int activeCount = this.getActiveCount();
 			if (activeCount > size) {
 				StringBuilder s = new StringBuilder();
-				s.append(Alarms.DEFAULT).append("DATASOURCE EXCEED [name=")
-						.append(name).append(",active=");
-				s.append(activeCount).append(",size=").append(size).append(']');
+				s.append(Alarms.DEFAULT).append("DATASOURCE EXCEED [name=").append(name)
+						.append(",active=").append(activeCount)
+						.append(",size=").append(size).append(']');
 				LOGGER.warn(s.toString());
 			}
 		}
 	}
 
 	/**
-	 * 
+	 * 关闭空闲连接 当空闲连接过多时
 	 * @param ildeCloseCount
 	 * 首先，从已创建的连接中选择本次心跳需要关闭的空闲连接数（由当前连接连接数-减去配置的最小连接数。
 	 * 然后依次关闭这些连接。由于连接空闲心跳检测与业务是同时并发的，在心跳关闭阶段，可能有连接被使用，导致需要关闭的空闲连接数减少.
@@ -335,8 +353,7 @@ public abstract class PhysicalDatasource {
 	 */
 	private void closeByIdleMany(int ildeCloseCount) {
 		LOGGER.info("too many ilde cons ,close some for datasouce  " + name);
-		List<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(
-				ildeCloseCount);
+		List<BackendConnection> readyCloseCons = new ArrayList<BackendConnection>(ildeCloseCount);
 		for (ConQueue queue : conMap.getAllConQueue()) {
 			readyCloseCons.addAll(queue.getIdleConsToClose(ildeCloseCount));
 			if (readyCloseCons.size() >= ildeCloseCount) {
@@ -387,6 +404,11 @@ public abstract class PhysicalDatasource {
 		
 	}
 
+	/**
+	 * 创建空闲连接 当空闲连接过少时
+	 * @param idleCons
+	 * @param createCount
+	 */
 	private void createByIdleLitte(int idleCons, int createCount) {
 		LOGGER.info("create connections ,because idle connection not enough ,cur is "
 				+ idleCons
@@ -402,7 +424,7 @@ public abstract class PhysicalDatasource {
 				break;
 			}
 			try {
-				// creat new connection
+				// 创建新连接
 				this.createNewConnection(simpleHandler, null, schemas[i
 						% schemas.length]);
 			} catch (IOException e) {
@@ -415,8 +437,25 @@ public abstract class PhysicalDatasource {
 	public int getActiveCount() {
 		return this.conMap.getActiveCountForDs(this);
 	}
+
+	public long getTotalCount() {
+		return totalConnectionCount + increamentCount.intValue();
+	}
+
+	public void calcTotalCount() {
+		//当连接数增量开始变化的时候，先直接用increamentCount记录连接数，当一秒钟内不再有新增了之后，开始同步 totalConnectionCount
+		if (preIncrementCount == increamentCount.longValue()) {
+			long total = this.conMap.getTotalCountForDs(this);
+			long inc = increamentCount.sumThenReset() - preIncrementCount;
+			totalConnectionCount = total + inc;
+			preIncrementCount = 0;
+
+		} else {
+			preIncrementCount = increamentCount.longValue();
+		}
+	}
 	
-	
+
 
 	public void clearCons(String reason) {
 		this.conMap.clearConnections(reason, this);
@@ -430,6 +469,9 @@ public abstract class PhysicalDatasource {
 		heartbeat.stop();
 	}
 
+	/**
+	 * 执行心跳
+	 */
 	public void doHeartbeat() {		
 		// 未到预定恢复时间，不执行心跳检测。
 		if (TimeUtil.currentTimeMillis() < heartbeatRecoveryTime) {
@@ -445,19 +487,26 @@ public abstract class PhysicalDatasource {
 		}
 	}
 
+	/**
+	 * 获取连接
+	 * @param conn
+	 * @param handler
+	 * @param attachment
+	 * @param schema
+	 * @return
+	 */
 	private BackendConnection takeCon(BackendConnection conn,
 			final ResponseHandler handler, final Object attachment,
 			String schema) {
 
 		conn.setBorrowed(true);
-
+		
 //		if(takeConnectionContext.putIfAbsent(conn.getId(), TAKE_CONNECTION_FLAG) == null) {
 //			incrementActiveCountSafe();
 //		}
 		
-		
 		if (!conn.getSchema().equals(schema)) {
-			// need do schema syn in before sql send
+			// 在sql发送之前需要做schema同步
 			conn.setSchema(schema);
 		}
 		ConQueue queue = conMap.getSchemaConQueue(schema);
@@ -503,8 +552,15 @@ public abstract class PhysicalDatasource {
 		});
 	}
 
-	public void getConnection(String schema, boolean autocommit,
-			final ResponseHandler handler, final Object attachment)
+	/**
+	 * 获取连接
+	 * @param schema
+	 * @param autocommit
+	 * @param handler
+	 * @param attachment
+	 * @throws IOException
+	 */
+	public void getConnection(String schema, boolean autocommit, final ResponseHandler handler, final Object attachment)
 			throws IOException {
 		
 		// 从当前连接map中拿取已建立好的后端连接
@@ -531,14 +587,18 @@ public abstract class PhysicalDatasource {
 //			// 如果后端连接不足，立即失败,故直接抛出连接数超过最大连接异常
 //			LOGGER.error("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
 //			throw new IOException("the max activeConnnections size can not be max than maxconnections:" + curTotalConnection);
-			
-			int activeCons = this.getActiveCount();// 当前最大活动连接
-			if (activeCons + 1 > size) {// 下一个连接大于最大连接数
+
+
+			// 当前最大连接
+			long activeCons = increamentCount.longValue()+totalConnectionCount;
+			if (activeCons < size) {// 下一个连接大于最大连接数
+				//提前increamentCount的操作
+				increamentCount.increment();
+				LOGGER.info("no ilde connection in pool "+System.identityHashCode(this)+" ,create new connection for "	+ this.name + " of schema " + schema + " totalConnectionCount: " + totalConnectionCount + " increamentCount: "+increamentCount);
+				createNewConnection(handler, attachment, schema);
+			} else { // create connection
 				LOGGER.error("the max activeConnnections size can not be max than maxconnections");
 				throw new IOException("the max activeConnnections size can not be max than maxconnections");
-			} else { // create connection
-				LOGGER.info("no ilde connection in pool,create new connection for "	+ this.name + " of schema " + schema);
-				createNewConnection(handler, attachment, schema);
 			}
 		}
 	}
@@ -575,6 +635,10 @@ public abstract class PhysicalDatasource {
 //		return this.totalConnection.incrementAndGet();
 //	}
 
+	/**
+	 * 归还连接 将连接放回队列
+	 * @param c
+	 */
 	private void returnCon(BackendConnection c) {
 		
 		c.setAttachment(null);
@@ -596,22 +660,29 @@ public abstract class PhysicalDatasource {
 		if(!ok) {
 			LOGGER.warn("can't return to pool ,so close con " + c);
 			c.close("can't return to pool ");
-			
 		}
-		
 	}
 
+	/**
+	 * 释放连接
+	 * @param c
+	 */
 	public void releaseChannel(BackendConnection c) {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("release channel " + c);
 		}
-		// release connection
+		// 释放连接
 		returnCon(c);
 	}
 
+	/**
+	 * 连接关闭
+	 * @param conn
+	 */
 	public void connectionClosed(BackendConnection conn) {
 		ConQueue queue = this.conMap.getSchemaConQueue(conn.getSchema());
 		if (queue != null ) {
+			//移除连接
 			queue.removeCon(conn);
 		}
 		
@@ -640,6 +711,10 @@ public abstract class PhysicalDatasource {
 		return config;
 	}
 
+	/**
+	 * 判断后端Mysql连接是否正常
+	 * @return
+	 */
 	public boolean isAlive() {
 		return getHeartbeat().getStatus() == DBHeartbeat.OK_STATUS;
 	}

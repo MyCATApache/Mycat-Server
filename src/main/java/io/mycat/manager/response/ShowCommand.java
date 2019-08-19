@@ -23,8 +23,6 @@
  */
 package io.mycat.manager.response;
 
-import java.nio.ByteBuffer;
-
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
@@ -36,6 +34,8 @@ import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.statistic.CommandCount;
 import io.mycat.util.LongUtil;
+
+import java.nio.ByteBuffer;
 
 /**
  * 统计各类数据包的执行次数

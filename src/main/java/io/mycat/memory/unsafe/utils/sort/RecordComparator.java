@@ -18,6 +18,9 @@
 package io.mycat.memory.unsafe.utils.sort;
 
 /**
+ * 记录比较器，用于数据排序
+ * 比较排序记录。 在整个排序键可以适合8字节前缀的情况下，这可能只返回0。
+ *
  * Compares records for ordering. In cases where the entire sorting key can fit in the 8-byte
  * prefix, this may simply return 0.
  */

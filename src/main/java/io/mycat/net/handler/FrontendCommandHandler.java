@@ -31,37 +31,37 @@ import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.statistic.CommandCount;
 
 /**
- * 前端命令处理器
+ * 前端命令处理器，处理SQL请求，分发处理
  *
  * @author mycat
  */
-public class FrontendCommandHandler implements NIOHandler
-{
+public class FrontendCommandHandler implements NIOHandler {
 
     protected final FrontendConnection source;
     protected final CommandCount commands;
 
-    public FrontendCommandHandler(FrontendConnection source)
-    {
+    public FrontendCommandHandler(FrontendConnection source) {
         this.source = source;
         this.commands = source.getProcessor().getCommands();
     }
 
+    /**
+     * 处理MySQL命令数据
+     * @param data
+     */
     @Override
-    public void handle(byte[] data)
-    {
-        if(source.getLoadDataInfileHandler()!=null&&source.getLoadDataInfileHandler().isStartLoadData())
-        {
+    public void handle(byte[] data) {
+        if(source.getLoadDataInfileHandler() != null
+                && source.getLoadDataInfileHandler().isStartLoadData()) {
+            // 在进行文件加载数据，不处理MySQL命令
             MySQLMessage mm = new MySQLMessage(data);
             int  packetLength = mm.readUB3();
-            if(packetLength+4==data.length)
-            {
+            if(packetLength+4 == data.length) {
                 source.loadDataInfileData(data);
             }
             return;
         }
-        switch (data[4])
-        {
+        switch (data[4]) {
             case MySQLPacket.COM_INIT_DB:
                 commands.doInitDB();
                 source.initDB(data);

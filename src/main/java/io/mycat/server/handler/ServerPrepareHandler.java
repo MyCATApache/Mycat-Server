@@ -23,18 +23,9 @@
  */
 package io.mycat.server.handler;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
 import com.google.common.escape.Escaper;
 import com.google.common.escape.Escapers;
 import com.google.common.escape.Escapers.Builder;
-
 import io.mycat.backend.mysql.BindValue;
 import io.mycat.backend.mysql.ByteUtil;
 import io.mycat.backend.mysql.PreparedStatement;
@@ -48,8 +39,17 @@ import io.mycat.net.mysql.ResetPacket;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.response.PreparedStmtResponse;
 import io.mycat.util.HexFormatUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
+ * 服务器预处理语句处理器
  * @author mycat, CrazyPig, zhuam
  */
 public class ServerPrepareHandler implements FrontendPrepareHandler {
@@ -68,33 +68,49 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 	
     private ServerConnection source;
     private volatile long pstmtId;
+    // 预处理语句缓存 key是sql语句
     private Map<String, PreparedStatement> pstmtForSql;
+	// 预处理语句缓存 key是语句id
     private Map<Long, PreparedStatement> pstmtForId;
+    private int maxPreparedStmtCount;
 
-    public ServerPrepareHandler(ServerConnection source) {
+    public ServerPrepareHandler(ServerConnection source,int maxPreparedStmtCount) {
         this.source = source;
         this.pstmtId = 0L;
         this.pstmtForSql = new HashMap<String, PreparedStatement>();
         this.pstmtForId = new HashMap<Long, PreparedStatement>();
+        this.maxPreparedStmtCount = maxPreparedStmtCount;
     }
 
-    @Override
+	/**
+	 * 设置预处理SQL
+	 * @param sql
+	 */
+	@Override
     public void prepare(String sql) {
-    	
+		// TODO 添加配置是否打印sql，修改日志级别
     	LOGGER.debug("use server prepare, sql: " + sql);
         PreparedStatement pstmt = null;
         if ((pstmt = pstmtForSql.get(sql)) == null) {
         	// 解析获取字段个数和参数个数
         	int columnCount = getColumnCount(sql);
         	int paramCount = getParamCount(sql);
+        	if(paramCount > maxPreparedStmtCount){
+				source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM, "Prepared statement contains too many placeholders");
+				return;
+			}
             pstmt = new PreparedStatement(++pstmtId, sql, columnCount, paramCount);
             pstmtForSql.put(pstmt.getStatement(), pstmt);
             pstmtForId.put(pstmt.getId(), pstmt);
         }
         PreparedStmtResponse.response(pstmt, source);
     }
-    
-    @Override
+
+	/**
+	 * 追加数据到指定的预处理参数
+	 * @param data
+	 */
+	@Override
 	public void sendLongData(byte[] data) {
 		LongDataPacket packet = new LongDataPacket();
 		packet.read(data);
@@ -113,6 +129,10 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 		}
 	}
 
+	/**
+	 * 重设预处理SQL
+	 * @param data
+	 */
 	@Override
 	public void reset(byte[] data) {
 		ResetPacket packet = new ResetPacket();
@@ -128,13 +148,18 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 		} else {
 			source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPION, "can not reset prepare statement : " + pstmtForId.get(pstmtId));
 		}
-	} 
-    
-    @Override
+	}
+
+	/**
+	 * 执行SQL
+	 * @param data
+	 */
+	@Override
     public void execute(byte[] data) {
         long pstmtId = ByteUtil.readUB4(data, 5);
         PreparedStatement pstmt = null;
         if ((pstmt = pstmtForId.get(pstmtId)) == null) {
+        	// 预处理SQL语句为空 可能是被关闭了
             source.writeErrMessage(ErrorCode.ER_ERROR_WHEN_EXECUTING_COMMAND, "Unknown pstmtId when executing.");
         } else {
             ExecutePacket packet = new ExecutePacket(pstmt);
@@ -155,9 +180,12 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             source.query( sql );
         }
     }
-    
-    
-    @Override
+
+	/**
+	 * 关闭预处理语句
+	 * @param data
+	 */
+	@Override
     public void close(byte[] data) {
     	long pstmtId = ByteUtil.readUB4(data, 5); // 获取prepare stmt id
     	if(LOGGER.isDebugEnabled()) {
@@ -168,22 +196,33 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     		pstmtForSql.remove(pstmt.getStatement());
     	}
     }
-    
-    @Override
+
+	/**
+	 * 清空所有预处理语句
+	 */
+	@Override
     public void clear() {
     	this.pstmtForId.clear();
     	this.pstmtForSql.clear();
     }
-    
-    // TODO 获取预处理语句中column的个数
-    private int getColumnCount(String sql) {
+
+	/**
+	 * 获取预处理语句中列的个数
+	 * @param sql
+	 * @return
+	 */
+	private int getColumnCount(String sql) {
     	int columnCount = 0;
     	// TODO ...
     	return columnCount;
     }
-    
-    // 获取预处理sql中预处理参数个数
-    private int getParamCount(String sql) {
+
+	/**
+	 * 获取预处理sql中预处理参数个数
+	 * @param sql
+	 * @return
+	 */
+	private int getParamCount(String sql) {
     	char[] cArr = sql.toCharArray();
     	int count = 0;
     	for(int i = 0; i < cArr.length; i++) {
@@ -272,7 +311,6 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             	break;
     		}
     	}
-    	
     	return sb.toString();
     }
 

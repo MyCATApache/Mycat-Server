@@ -23,35 +23,23 @@
  */
 package io.mycat.config.loader.xml;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
-import io.mycat.config.Versions;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
 import com.alibaba.druid.wall.WallConfig;
-
-import io.mycat.config.model.ClusterConfig;
-import io.mycat.config.model.FirewallConfig;
-import io.mycat.config.model.SystemConfig;
-import io.mycat.config.model.UserConfig;
-import io.mycat.config.model.UserPrivilegesConfig;
+import io.mycat.config.Versions;
+import io.mycat.config.model.*;
 import io.mycat.config.util.ConfigException;
 import io.mycat.config.util.ConfigUtil;
 import io.mycat.config.util.ParameterMapping;
 import io.mycat.util.DecryptUtil;
 import io.mycat.util.SplitUtil;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * @author mycat
@@ -143,27 +131,35 @@ public class XMLServerLoader {
             Node node = list.item(i);
             if (node instanceof Element) {
                 Element e = (Element) node;
-                String host = e.getAttribute("host").trim();
+                String hostStr = e.getAttribute("host").trim();
                 String userStr = e.getAttribute("user").trim();
-                if (this.firewall.existsHost(host)) {
-                    throw new ConfigException("host duplicated : " + host);
+                String []hosts = hostStr.split(",");
+                for (String host : hosts) {
+                    host = host.trim();
+                    if (this.firewall.existsHost(host)) {
+                        throw new ConfigException("host duplicated : " + host);
+                    }
                 }
                 String []users = userStr.split(",");
                 List<UserConfig> userConfigs = new ArrayList<UserConfig>();
                 for(String user : users){
+                    user = user.trim();
                 	UserConfig uc = this.users.get(user);
                     if (null == uc) {
-                        throw new ConfigException("[user: " + user + "] doesn't exist in [host: " + host + "]");
+                        throw new ConfigException("[user: " + user + "] doesn't exist in [host: " + hostStr + "]");
                     }
                     if (uc.getSchemas() == null || uc.getSchemas().size() == 0) {
-                        throw new ConfigException("[host: " + host + "] contains one root privileges user: " + user);
+                        throw new ConfigException("[host: " + hostStr + "] contains one root privileges user: " + user);
                     }
                     userConfigs.add(uc);
                 }
-                if(host.contains("*")||host.contains("%")){
-                    whitehostMask.put(FirewallConfig.getMaskPattern(host),userConfigs);
-                }else{
-                    whitehost.put(host, userConfigs);
+                for (String host : hosts) {
+                    host = host.trim();
+                    if (host.contains("*") || host.contains("%")) {
+                        whitehostMask.put(FirewallConfig.getMaskPattern(host), userConfigs);
+                    } else {
+                        whitehost.put(host, userConfigs);
+                    }
                 }
             }
         }

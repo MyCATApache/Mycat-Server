@@ -1,14 +1,11 @@
 package io.mycat.config.loader.zkprocess.xmltozk;
 
 import com.google.common.io.Files;
-import io.mycat.config.loader.console.ZookeeperPath;
-import io.mycat.config.loader.zkprocess.zktoxml.listen.RuleszkToxmlLoader;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.util.ZKUtils;
 import org.apache.curator.framework.CuratorFramework;
 
 import java.io.File;
-import java.nio.file.Paths;
 
 /**
  * Created by magicdoom on 2016/10/26.

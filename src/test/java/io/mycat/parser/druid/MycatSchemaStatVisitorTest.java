@@ -1,18 +1,15 @@
 package io.mycat.parser.druid;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import junit.framework.Assert;
-
-import org.junit.Test;
-
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.stat.TableStat.Condition;
-
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
+import junit.framework.Assert;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * TODO: 增加描述
@@ -65,8 +62,8 @@ public class MycatSchemaStatVisitorTest {
 		Assert.assertEquals(list.get(2).get(1).toString(), "travelrecord.traveldate = 2015-05-04 00:00:07.375");
 		Assert.assertEquals(list.get(2).get(2).toString(), "travelrecord.id = (1, 2)");
 
-		Assert.assertEquals(list.get(3).get(0).toString(), "travelrecord.fee = null");
-		Assert.assertEquals(list.get(3).get(1).toString(), "travelrecord.days = null");
+		Assert.assertEquals(list.get(3).get(0).toString(), "travelrecord.fee =");
+		Assert.assertEquals(list.get(3).get(1).toString(), "travelrecord.days =");
 		Assert.assertEquals(list.get(3).get(2).toString(), "travelrecord.traveldate = 2015-05-04 00:00:07.375");
 		Assert.assertEquals(list.get(3).get(3).toString(), "travelrecord.id = (1, 2)");
 
@@ -266,7 +263,7 @@ public class MycatSchemaStatVisitorTest {
 		statement.accept(visitor);
 
 
-		return visitor.getCurrentTable();
+		return visitor.getTables().keySet().iterator().next().getName();
 	}
 
 	private List<List<Condition>> getConditionList(String sql) {

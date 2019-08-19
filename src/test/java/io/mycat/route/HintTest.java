@@ -1,11 +1,5 @@
 package io.mycat.route;
 
-import java.util.Map;
-
-import junit.framework.Assert;
-
-import org.junit.Test;
-
 import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.CacheService;
@@ -14,11 +8,12 @@ import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
-import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteService;
-import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.parser.ServerParse;
+import junit.framework.Assert;
+import org.junit.Test;
+
+import java.util.Map;
 
 public class HintTest {
 	protected Map<String, SchemaConfig> schemaMap;

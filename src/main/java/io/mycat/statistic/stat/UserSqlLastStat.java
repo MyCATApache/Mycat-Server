@@ -1,9 +1,9 @@
 package io.mycat.statistic.stat;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 最后执行的 Sql

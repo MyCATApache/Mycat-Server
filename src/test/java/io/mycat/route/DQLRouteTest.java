@@ -1,34 +1,31 @@
 package io.mycat.route;
 
-import java.lang.reflect.Method;
-import java.sql.SQLSyntaxErrorException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.Test;
-
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
+import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
+import com.alibaba.druid.stat.TableStat;
+import com.alibaba.druid.stat.TableStat.Condition;
 import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
+import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.MycatStatementParser;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
-import io.mycat.route.factory.RouteStrategyFactory;
-
-
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
-import com.alibaba.druid.stat.TableStat.Condition;
-
 import junit.framework.Assert;
+import org.junit.Test;
+
+import java.lang.reflect.Method;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DQLRouteTest {
 
@@ -88,15 +85,11 @@ public class DQLRouteTest {
 			mergedConditionList.add(visitor.getConditions());
 		}
 
-		if (visitor.getAliasMap() != null) {
-			for (Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
-				String key = entry.getKey();
-				String value = entry.getValue();
+		if (visitor.getTables() != null) {
+			for (Map.Entry<TableStat.Name, TableStat> entry : visitor.getTables().entrySet()) {
+				String key = entry.getKey().getName();
 				if (key != null && key.indexOf("`") >= 0) {
 					key = key.replaceAll("`", "");
-				}
-				if (value != null && value.indexOf("`") >= 0) {
-					value = value.replaceAll("`", "");
 				}
 				// 表名前面带database的，去掉
 				if (key != null) {
@@ -105,17 +98,8 @@ public class DQLRouteTest {
 						key = key.substring(pos + 1);
 					}
 				}
-
-				if (key.equals(value)) {
-					ctx.addTable(key.toUpperCase());
-				}
-				// else {
-				// tableAliasMap.put(key, value);
-				// }
-				tableAliasMap.put(key.toUpperCase(), value);
+				ctx.addTable(key.toUpperCase());
 			}
-			visitor.getAliasMap().putAll(tableAliasMap);
-			ctx.setTableAliasMap(tableAliasMap);
 		}
 
 		//利用反射机制单元测试DefaultDruidParser类的私有方法buildRouteCalculateUnits

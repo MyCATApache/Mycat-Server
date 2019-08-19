@@ -1,13 +1,12 @@
 package io.mycat.route.function;
 
-import java.util.Arrays;
-
-import org.junit.Assert;
-import org.junit.Test;
-
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.util.SplitUtil;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.Arrays;
 
 /**
  * 测试分片算法定义是否符合分片表的定义, 主要测试分区数是否符合分片表分片数
