@@ -162,4 +162,10 @@ public class DefaultLayedCachePool implements LayerCachePool {
 		return maxSize;
 	}
 
+	//clear cache by cacheName
+	public void clearCache(String cacheName) {
+		LOGGER.info("clear cache :"+cacheName);
+		CachePool pool = getCache(cacheName);
+		pool.clearCache();
+	}
 }
