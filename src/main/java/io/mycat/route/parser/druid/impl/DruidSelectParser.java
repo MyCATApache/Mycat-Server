@@ -317,7 +317,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 				|| (item.getExpr() instanceof SQLIdentifierExpr) || item.getExpr() instanceof SQLBinaryOpExpr) {
 			return item.getExpr().toString();//字段别名
 		}
-		else {
+		else if (!StringUtil.isEmpty(item.getAlias())) { // add by hehuang 20181205 如果SelectItem存在别名，则认为表达式为字段名，sql语法支持常量作为字段
+			return item.getExpr().toString();
+		} else {
 			return item.toString();
 		}
 	}
