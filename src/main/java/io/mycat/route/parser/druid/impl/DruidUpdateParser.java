@@ -10,6 +10,8 @@ import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Name;
 
+import io.mycat.MycatServer;
+import io.mycat.cache.DefaultLayedCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
@@ -68,6 +70,12 @@ public class DruidUpdateParser extends DefaultDruidParser {
         if (schema.getTables().get(tableName).isGlobalTable() && ctx.getRouteCalculateUnit().getTablesAndConditions().size() > 1) {
             throw new SQLNonTransientException("global table is not supported in multi table related update " + tableName);
         }
+
+        //在解析SQL时清空该表的主键缓存
+        DefaultLayedCachePool tableID2DataNodeCache=(DefaultLayedCachePool) MycatServer.getInstance().getCacheService()
+                .getCachePool("TableID2DataNodeCache");
+        tableID2DataNodeCache.clearCache(schema.getName().toLowerCase()+"_"+tableName.toUpperCase());
+        tableID2DataNodeCache.getCacheStatic().reset();
     }
     
     /**
