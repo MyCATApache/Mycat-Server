@@ -70,6 +70,7 @@ public class RouteService {
 	public RouteResultset route(SystemConfig sysconf, SchemaConfig schema,
 			int sqlType, String stmt, String charset, ServerConnection sc)
 			throws SQLNonTransientException {
+		stmt = stmt.trim();
 		RouteResultset rrs = null;
 		String cacheKey = null;
 
