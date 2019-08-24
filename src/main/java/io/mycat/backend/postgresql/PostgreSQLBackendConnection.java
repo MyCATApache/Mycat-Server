@@ -1,11 +1,20 @@
 package io.mycat.backend.postgresql;
 
-import io.mycat.backend.BackendConnection;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.channels.NetworkChannel;
+import java.nio.channels.SocketChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import io.mycat.backend.jdbc.ShowVariables;
 import io.mycat.backend.mysql.CharsetUtil;
 import io.mycat.backend.mysql.nio.MySQLConnectionHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.backend.postgresql.packet.Query;
 import io.mycat.backend.postgresql.packet.Terminate;
+import io.mycat.backend.postgresql.utils.PIOUtils;
 import io.mycat.backend.postgresql.utils.PacketUtils;
 import io.mycat.backend.postgresql.utils.PgSqlApaterUtils;
 import io.mycat.config.Isolations;
@@ -15,22 +24,13 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.exception.UnknownTxIsolationException;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.nio.channels.NetworkChannel;
-import java.nio.channels.SocketChannel;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /*************************************************************
  * PostgreSQL Native Connection impl
  * 
  * @author Coollf
  *
  */
-public class PostgreSQLBackendConnection extends BackendAIOConnection implements
-		BackendConnection {
+public class PostgreSQLBackendConnection extends BackendAIOConnection {
 
 	public static enum BackendConnectionState {
 		closed, connected, connecting
@@ -44,9 +44,8 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		private final Integer txtIsolation;
 		private final boolean xaStarted;
 
-		public StatusSync(boolean xaStarted, String schema,
-				Integer charsetIndex, Integer txtIsolation, Boolean autocommit,
-				int synCount) {
+		public StatusSync(boolean xaStarted, String schema, Integer charsetIndex, Integer txtIsolation,
+				Boolean autocommit, int synCount) {
 			super();
 			this.xaStarted = xaStarted;
 			this.schema = schema;
@@ -94,9 +93,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	private static final Query _ROLLBACK = new Query("rollback");
 
 	private static void getCharsetCommand(StringBuilder sb, int clientCharIndex) {
-		sb.append("SET names '")
-				.append(CharsetUtil.getCharset(clientCharIndex).toUpperCase())
-				.append("';");
+		sb.append("SET names '").append(CharsetUtil.getCharset(clientCharIndex).toUpperCase()).append("';");
 	}
 
 	/**
@@ -126,13 +123,12 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 
 	private Object attachment;
 
-	private volatile boolean autocommit;
+	private volatile boolean autocommit=true;
 
 	private volatile boolean borrowed;
 
 	protected volatile String charset = "utf8";
 
-	protected volatile int charsetIndex;
 
 	/***
 	 * 当前事物ID
@@ -192,8 +188,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 
 	private volatile int xaStatus;
 
-	public PostgreSQLBackendConnection(NetworkChannel channel,
-			boolean fromSlaveDB) {
+	public PostgreSQLBackendConnection(NetworkChannel channel, boolean fromSlaveDB) {
 		super(channel);
 		this.fromSlaveDB = fromSlaveDB;
 	}
@@ -206,16 +201,37 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	}
 
 	@Override
-	public void execute(RouteResultsetNode rrn, ServerConnection sc,
-			boolean autocommit) throws IOException {
+	public void execute(RouteResultsetNode rrn, ServerConnection sc, boolean autocommit) throws IOException {	
+		int sqlType = rrn.getSqlType();
+		String orgin = rrn.getStatement();
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("{}查询任务。。。。{}", id, rrn.getStatement());
+			LOGGER.debug(orgin);
+		}		
+		
+		//FIX BUG  https://github.com/MyCATApache/Mycat-Server/issues/1185
+		if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {			
+			if (sqlType == ServerParse.SHOW) {
+				//此处进行部分SHOW 语法适配			
+				String _newSql = PgSqlApaterUtils.apater(orgin);				
+				if(_newSql.trim().substring(0,4).equalsIgnoreCase("show")){//未能适配成功
+					ShowVariables.execute(sc, orgin, this);
+					return;	
+				}
+			} else if ("SELECT CONNECTION_ID()".equalsIgnoreCase(orgin)) {
+				ShowVariables.justReturnValue(sc, String.valueOf(sc.getId()), this);
+				return;
+			}
+		}
 
-		LOGGER.warn("{}查询任务。。。。{}", id, rrn.getStatement());
 		if (!modifiedSQLExecuted && rrn.isModifySQL()) {
 			modifiedSQLExecuted = true;
 		}
-		String xaTXID = sc.getSession2().getXaTXID();
-		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(),
-				autocommit);
+		String xaTXID = null;
+		if(sc.getSession2().getXaTXID()!=null){
+			xaTXID = sc.getSession2().getXaTXID() +",'"+getSchema()+"'";
+		}
+		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(), autocommit);
 	}
 
 	@Override
@@ -225,7 +241,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 
 	private void getAutocommitCommand(StringBuilder sb, boolean autoCommit) {
 		if (autoCommit) {
-			sb.append("SET autocommit=1;");
+			sb.append(/*"SET autocommit=1;"*/"");//Fix bug  由于 PG9.0 开始不支持此选项，默认是为自动提交逻辑。
 		} else {
 			sb.append("begin transaction;");
 		}
@@ -320,18 +336,9 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		}
 	}
 
-	/**
-	 * 读取可能的Socket字节流
-	 */
-	public void onReadData(int got) throws IOException {
-		int offset = readBufferOffset + 0;
-		readBufferOffset = readBufferOffset + got;
-		readBuffer.position(offset);
-		byte[] data = new byte[got];
-		readBuffer.get(data, 0, got);
-		readBuffer.clear();
-		readBufferOffset = 0;
-		handle(data);
+	protected final int getPacketLength(ByteBuffer buffer, int offset) {
+		// Pg 协议获取包长度的方法和mysql 不一样
+		return PIOUtils.redInteger4(buffer, offset + 1) + 1;
 	}
 
 	/**********
@@ -339,8 +346,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	 */
 	@Override
 	public void query(String query) throws UnsupportedEncodingException {
-		RouteResultsetNode rrn = new RouteResultsetNode("default",
-				ServerParse.SELECT, query);
+		RouteResultsetNode rrn = new RouteResultsetNode("default", ServerParse.SELECT, query);
 		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
 	}
 
@@ -363,17 +369,15 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 	 */
 	@Override
 	public void recordSql(String host, String schema, String statement) {
-		LOGGER.debug(String.format(
-				"executed sql: host=%s,schema=%s,statement=%s", host, schema,
-				statement));
+		LOGGER.debug(String.format("executed sql: host=%s,schema=%s,statement=%s", host, schema, statement));
 	}
 
 	@Override
 	public void release() {
 		if (!metaDataSyned) {/*
-							 * indicate connection not normalfinished ,and we
-							 * can't know it's syn status ,so close it
-							 */
+								 * indicate connection not normalfinished ,and
+								 * we can't know it's syn status ,so close it
+								 */
 
 			LOGGER.warn("can't sure connection syn result,so close it " + this);
 			this.responseHandler = null;
@@ -452,16 +456,14 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		this.user = user;
 	}
 
-	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn,
-			int clientCharSetIndex, int clientTxIsoLation,
+	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn, int clientCharSetIndex, int clientTxIsoLation,
 			boolean clientAutoCommit) {
 		String xaCmd = null;
 
 		boolean conAutoComit = this.autocommit;
 		String conSchema = this.schema;
 		// never executed modify sql,so auto commit
-		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB()
-				|| clientAutoCommit;
+		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB() || clientAutoCommit;
 		if (!expectAutocommit && xaTxID != null && xaStatus == 0) {
 			clientTxIsoLation = Isolations.SERIALIZABLE;
 			xaCmd = "XA START " + xaTxID + ';';
@@ -497,26 +499,23 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 			sb.append(xaCmd);
 		}
 		if (LOGGER.isDebugEnabled()) {
-			LOGGER.debug("con need syn ,total syn cmd " + synCount
-					+ " commands " + sb.toString() + "schema change:"
+			LOGGER.debug("con need syn ,total syn cmd " + synCount + " commands " + sb.toString() + "schema change:"
 					+ ("" != null) + " con:" + this);
 		}
 
 		metaDataSyned = false;
-		statusSync = new StatusSync(xaCmd != null, conSchema,
-				clientCharSetIndex, clientTxIsoLation, expectAutocommit,
+		statusSync = new StatusSync(xaCmd != null, conSchema, clientCharSetIndex, clientTxIsoLation, expectAutocommit,
 				synCount);
-		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement()))
-				.toString();
-		LOGGER.debug("con={}, SQL:{}", this, sql);
+		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement())).toString();
+		if(LOGGER.isDebugEnabled()){
+			LOGGER.debug("con={}, SQL={}", this, sql);
+		}
 		Query query = new Query(sql);
 		ByteBuffer buf = allocate();// 申请ByetBuffer
 		query.write(buf);
 		this.write(buf);
 		metaDataSyned = true;
 	}
-
-	
 
 	public void close(String reason) {
 		if (!isClosed.get()) {
@@ -543,4 +542,19 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection implements
 		return true;
 	}
 
+	@Override
+	public String toString() {
+		return "PostgreSQLBackendConnection [id=" + id + ", host=" + host + ", port=" + port + ", localPort="
+				+ localPort + "]";
+	}
+
+	@Override
+	public void query(String sql, int charsetIndex) {
+		try {
+			query(sql);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
+		}
+	}
 }

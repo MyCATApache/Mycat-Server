@@ -15,7 +15,7 @@ public class TestDirectByteBufferPool {
 
     @Test
     public void testAllocate() {
-        int pageSize = 1024 * 1024 * 100;
+        int pageSize = 1024 ;
         int allocTimes = 1024;
         DirectByteBufferPool pool = new DirectByteBufferPool(pageSize, (short) 256, (short) 8,0);
         long start = System.currentTimeMillis();
@@ -86,7 +86,7 @@ public class TestDirectByteBufferPool {
         int i = 0;
         for (; i < allocTimes; i++) {
             byteBuffer = pool.allocate(size);
-            if (byteBuffer == null) {
+            if (byteBuffer == null||!(byteBuffer instanceof DirectBuffer) ) {
                 break;
             }
             buffs.add(byteBuffer);
@@ -110,7 +110,7 @@ public class TestDirectByteBufferPool {
         int i = 0;
         for (; i < allocTimes; i++) {
             byteBuffer = pool.allocate(size);
-            if (byteBuffer == null) {
+            if (byteBuffer == null||!(byteBuffer instanceof DirectBuffer) ) {
                 break;
             }
             buffs.add(byteBuffer);

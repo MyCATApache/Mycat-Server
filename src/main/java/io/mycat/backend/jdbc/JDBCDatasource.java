@@ -19,24 +19,30 @@ import io.mycat.net.NIOConnector;
 import io.mycat.net.NIOProcessor;
 
 public class JDBCDatasource extends PhysicalDatasource {
-	static {
+	
+	static {		
 		// 加载可能的驱动
-		List<String> drivers = Lists.newArrayList("com.mysql.jdbc.Driver", "io.mycat.backend.jdbc.mongodb.MongoDriver","io.mycat.backend.jdbc.sequoiadb.SequoiaDriver", "oracle.jdbc.OracleDriver",
-				"com.microsoft.sqlserver.jdbc.SQLServerDriver","org.apache.hive.jdbc.HiveDriver","com.ibm.db2.jcc.DB2Driver","org.postgresql.Driver");
-		for (String driver : drivers)
-		{
-			try
-			{
+		List<String> drivers = Lists.newArrayList(
+				"com.mysql.jdbc.Driver", 
+				"io.mycat.backend.jdbc.mongodb.MongoDriver",
+				"io.mycat.backend.jdbc.sequoiadb.SequoiaDriver", 
+				"oracle.jdbc.OracleDriver",
+				"com.microsoft.sqlserver.jdbc.SQLServerDriver",
+				"net.sourceforge.jtds.jdbc.Driver",
+				"org.apache.hive.jdbc.HiveDriver",
+				"com.ibm.db2.jcc.DB2Driver", 
+				"org.postgresql.Driver");
+		
+		for (String driver : drivers) {
+			try {
 				Class.forName(driver);
-			} catch (ClassNotFoundException ignored)
-			{
+			} catch (ClassNotFoundException ignored) {
 			}
 		}
 	}
-	public JDBCDatasource(DBHostConfig config, DataHostConfig hostConfig,
-			boolean isReadNode) {
+	
+	public JDBCDatasource(DBHostConfig config, DataHostConfig hostConfig, boolean isReadNode) {
 		super(config, hostConfig, isReadNode);
-
 	}
 
 	@Override
@@ -48,21 +54,18 @@ public class JDBCDatasource extends PhysicalDatasource {
 	public void createNewConnection(ResponseHandler handler,String schema) throws IOException {
 		DBHostConfig cfg = getConfig();
 		JDBCConnection c = new JDBCConnection();
-
 		c.setHost(cfg.getIp());
 		c.setPort(cfg.getPort());
 		c.setPool(this);
 		c.setSchema(schema);
 		c.setDbType(cfg.getDbType());
 		
-		NIOProcessor processor = (NIOProcessor) MycatServer.getInstance()
-                .nextProcessor();
+		NIOProcessor processor = (NIOProcessor) MycatServer.getInstance().nextProcessor();
 		c.setProcessor(processor);
 		c.setId(NIOConnector.ID_GENERATOR.getId());  //复用mysql的Backend的ID，需要在process中存储
 
 		processor.addBackend(c);
 		try {
-
 			Connection con = getConnection();
 			// c.setIdleTimeout(pool.getConfig().getIdleTimeout());
 			c.setCon(con);
@@ -71,32 +74,52 @@ public class JDBCDatasource extends PhysicalDatasource {
 		} catch (Exception e) {
 			handler.connectionError(e, c);
 		}
+	}
+	
 
+	@Override
+	public boolean testConnection(String schema) throws IOException {
+		boolean isConnected = false;	
+		
+		Connection connection = null;
+		Statement statement = null;
+		try {
+			DBHostConfig cfg = getConfig();
+			connection = DriverManager.getConnection(cfg.getUrl(), cfg.getUser(), cfg.getPassword());
+			statement = connection.createStatement();			
+			if (connection != null && statement != null) {
+				isConnected = true;
+			}			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {			
+			if (statement != null) {
+				try { statement.close(); } catch (SQLException e) {}
+			}
+			
+			if (connection != null) {
+				try { connection.close(); } catch (SQLException e) {}
+			}
+		}		
+		return isConnected;
 	}
 
-    Connection getConnection() throws SQLException
-    {
+    Connection getConnection() throws SQLException {
         DBHostConfig cfg = getConfig();
 		Connection connection = DriverManager.getConnection(cfg.getUrl(), cfg.getUser(), cfg.getPassword());
 		String initSql=getHostConfig().getConnectionInitSql();
-		if(initSql!=null&&!"".equals(initSql))
-		{     Statement statement =null;
-			try
-			{
-				 statement = connection.createStatement();
-				 statement.execute(initSql);
-			}finally
-			{
-				if(statement!=null)
-				{
+		if (initSql != null && !"".equals(initSql)) {
+			Statement statement = null;
+			try {
+				statement = connection.createStatement();
+				statement.execute(initSql);
+			} finally {
+				if (statement != null) {
 					statement.close();
 				}
 			}
 		}
 		return connection;
     }
-
-
-
-
+    
 }

@@ -35,7 +35,6 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
-import io.mycat.route.function.PartitionByRangeMod;
 
 import java.math.BigInteger;
 import java.sql.SQLNonTransientException;
@@ -45,8 +44,7 @@ public class PartitionByRangeModTest
 {
 
     @Test
-    public void test()
-    {
+    public void test()  {
         PartitionByRangeMod autoPartition = new PartitionByRangeMod();
         autoPartition.setMapFile("partition-range-mod.txt");
         autoPartition.init();
@@ -95,8 +93,7 @@ public class PartitionByRangeModTest
     }
 
     @Test
-    public void testRange() throws SQLNonTransientException
-    {
+    public void testRange() throws SQLNonTransientException {
         String sql = "select * from offer  where id between 2000000  and 4000001     order by id desc limit 100";
         SchemaConfig schema = schemaMap.get("TESTDB");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,

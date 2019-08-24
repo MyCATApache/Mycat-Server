@@ -12,6 +12,7 @@ import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.config.MycatConfig;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 
 /**
@@ -22,7 +23,7 @@ import io.mycat.server.parser.ServerParse;
  */
 public class SQLJob implements ResponseHandler, Runnable {
 	
-	public static final Logger LOGGER = LoggerFactory.getLogger(SQLJob.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(SQLJob.class);
 	
 	private final String sql;
 	private final String dataNodeOrDatabase;
@@ -69,8 +70,8 @@ public class SQLJob implements ResponseHandler, Runnable {
 				ds.getConnection(dataNodeOrDatabase, true, this, null);
 			}
 		} catch (Exception e) {
-			LOGGER.info("can't get connection for sql ,error:" + e);
-			doFinished(true);
+			LOGGER.info("can't get connection for sql ,error:" ,e);
+			doFinished(true,e.getMessage());
 		}
 	}
 
@@ -89,10 +90,17 @@ public class SQLJob implements ResponseHandler, Runnable {
 		}
 		conn.setResponseHandler(this);
 		try {
-			conn.query(sql);
+			if(ctx != null) {
+				ServerConnection sc = ctx.getSession().getSource();
+				//conn.setCharsetIndex(sc.getCharsetIndex());				
+				conn.query(sql ,sc.getCharsetIndex());
+			}else {
+				conn.query(sql );
+			}
+			
 			connection = conn;
 		} catch (Exception e) {// (UnsupportedEncodingException e) {
-			doFinished(true);
+			doFinished(true,e.getMessage());
 		}
 
 	}
@@ -101,10 +109,13 @@ public class SQLJob implements ResponseHandler, Runnable {
 		return finished;
 	}
 
-	private void doFinished(boolean failed) {
+	private void doFinished(boolean failed,String errorMsg) {
 		finished = true;
-		jobHandler.finished(dataNodeOrDatabase, failed);
+		jobHandler.finished(dataNodeOrDatabase, failed,errorMsg );
 		if (ctx != null) {
+			if(failed){
+				ctx.setHasError(true);
+			}
 			ctx.onJobFinished(this);
 		}
 	}
@@ -112,7 +123,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
 		LOGGER.info("can't get connection for sql :" + sql);
-		doFinished(true);
+		doFinished(true,e.getMessage());
 	}
 
 	@Override
@@ -133,13 +144,23 @@ public class SQLJob implements ResponseHandler, Runnable {
 		}
 		
 		
+		
+		doFinished(true,errMsg);
 		conn.release();
-		doFinished(true);
 	}
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
-		conn.syncAndExcute();
+//		conn.syncAndExcute();
+		//modify by zwy  这边 涉及到use database的返回，不能直接释放连接 需要继续处理包
+		boolean executeResponse = conn.syncAndExcute();		
+		if(executeResponse){
+			doFinished(false,null);
+			conn.release();
+		} else {
+			LOGGER.debug("syn response {}" ,conn);
+		}
+		
 	}
 
 	@Override
@@ -153,16 +174,16 @@ public class SQLJob implements ResponseHandler, Runnable {
 	public void rowResponse(byte[] row, BackendConnection conn) {
 		boolean finsihed = jobHandler.onRowData(dataNodeOrDatabase, row);
 		if (finsihed) {
+			doFinished(false,null);
 			conn.close("not needed by user proc");
-			doFinished(false);
 		}
 
 	}
 
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
+		doFinished(false,null);
 		conn.release();
-		doFinished(false);
 	}
 
 	@Override
@@ -172,7 +193,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-		doFinished(true);
+		doFinished(true,reason);
 	}
 
 	public int getId() {

@@ -67,9 +67,9 @@ public class BindValueUtil {
         case Fields.FIELD_TYPE_STRING:
         case Fields.FIELD_TYPE_VARCHAR:
             bv.value = mm.readStringWithLength(charset);
-            if (bv.value == null) {
-                bv.isNull = true;
-            }
+//            if (bv.value == null) {
+//                bv.isNull = true;
+//            }
             break;
         case Fields.FIELD_TYPE_DECIMAL:
         case Fields.FIELD_TYPE_NEW_DECIMAL:
@@ -78,6 +78,9 @@ public class BindValueUtil {
                 bv.isNull = true;
             }
             break;
+        case Fields.FIELD_TYPE_BLOB:
+        	bv.isLongData = true;
+        	break;
         default:
             throw new IllegalArgumentException("bindValue error,unsupported type:" + bv.type);
         }

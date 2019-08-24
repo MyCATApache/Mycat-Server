@@ -38,7 +38,10 @@ public interface Alarms {
     /** 数据节点的数据源发生切换 **/
     public static final String DATANODE_SWITCH   = "#!DN_SWITCH#";
     
-    /** 隔离区非法用户访问 **/
-    public static final String QUARANTINE_ATTACK = "#!QT_ATTACK#";
+    /** 防火墙非法用户访问 **/
+    public static final String FIREWALL_ATTACK = "#!QT_ATTACK#";
+   
+    /** 非法DML **/ 
+    public static final String DML_ATTACK = "#!DML_ATTACK#";
     
 }

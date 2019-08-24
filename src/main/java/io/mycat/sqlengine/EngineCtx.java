@@ -13,12 +13,15 @@ import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.EmptyPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.route.RouteResultset;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
-
+//
+//任务的进行的调用，
+//向mysqlClient 写数据。
 public class EngineCtx {
 	public static final Logger LOGGER = LoggerFactory.getLogger(ConfFileHandler.class);
-	private final BatchSQLJob bachJob;
+	private final BatchSQLJob bachJob; 
 	private AtomicInteger jobId = new AtomicInteger(0);
 	AtomicInteger packetId = new AtomicInteger(0);
 	private final NonBlockingSession session;
@@ -26,16 +29,27 @@ public class EngineCtx {
 	private AllJobFinishedListener allJobFinishedListener;
 	private AtomicBoolean headerWrited = new AtomicBoolean();
 	private final ReentrantLock writeLock = new ReentrantLock();
-
+	private volatile boolean hasError = false;
+	private volatile RouteResultset rrs;
+	private volatile boolean isStreamOutputResult = true; //是否流式输出。
 	public EngineCtx(NonBlockingSession session) {
 		this.bachJob = new BatchSQLJob();
 		this.session = session;
 	}
-
+	
+	public boolean getIsStreamOutputResult(){
+		return isStreamOutputResult;
+	}
+	public void setIsStreamOutputResult(boolean isStreamOutputResult){
+		this. isStreamOutputResult = isStreamOutputResult;
+	}
 	public byte incPackageId() {
 		return (byte) packetId.incrementAndGet();
 	}
-
+	/*
+	 * 将sql 发送到所有的dataNodes分片
+	 * 顺序执行
+	 * */
 	public void executeNativeSQLSequnceJob(String[] dataNodes, String sql,
 			SQLJobHandler jobHandler) {
 		for (String dataNode : dataNodes) {
@@ -49,12 +63,17 @@ public class EngineCtx {
 	public ReentrantLock getWriteLock() {
 		return writeLock;
 	}
-
+	/*
+	 * 所有任务完成的回调
+	 * */
 	public void setAllJobFinishedListener(
 			AllJobFinishedListener allJobFinishedListener) {
 		this.allJobFinishedListener = allJobFinishedListener;
 	}
-
+	/*
+	 * 将sql 发送到所有的dataNodes分片
+	 * 可以并行执行
+	 * */
 	public void executeNativeSQLParallJob(String[] dataNodes, String sql,
 			SQLJobHandler jobHandler) {
 		for (String dataNode : dataNodes) {
@@ -71,7 +90,8 @@ public class EngineCtx {
 	public void endJobInput() {
 		bachJob.setNoMoreJobInput(true);
 	}
-
+	//a 表和 b表的字段的信息合并在一块。
+	//向mysql client 输出。
 	public void writeHeader(List<byte[]> afields, List<byte[]> bfields) {
 		if (headerWrited.compareAndSet(false, true)) {
 			try {
@@ -164,15 +184,33 @@ public class EngineCtx {
 	public NonBlockingSession getSession() {
 		return session;
 	}
-
+	//单个sqlJob任务完成之后调用的。
+	//全部任务完成之后 回调allJobFinishedListener 这个函数。
 	public void onJobFinished(SQLJob sqlJob) {
-
+		
 		boolean allFinished = bachJob.jobFinished(sqlJob);
 		if (allFinished && finished.compareAndSet(false, true)) {
-			LOGGER.info("all job finished  for front connection: "
-					+ session.getSource());
-			allJobFinishedListener.onAllJobFinished(this);
+			if(!hasError){
+				LOGGER.info("all job finished  for front connection: "
+						+ session.getSource());
+				allJobFinishedListener.onAllJobFinished(this);
+			}else{
+				LOGGER.info("all job finished with error for front connection: "
+						+ session.getSource());
+			}
 		}
 
+	}
+
+	public boolean isHasError() {
+		return hasError;
+	}
+
+	public void setHasError(boolean hasError) {
+		this.hasError = hasError;
+	}
+	
+	public void setRouteResultset(RouteResultset rrs){
+		this.rrs = rrs;
 	}
 }

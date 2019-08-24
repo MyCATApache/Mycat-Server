@@ -148,7 +148,9 @@ public final class ShowHelp {
         helps.put("show @@syslog limit=?", "Report system mycat.log");
         helps.put("show @@white", "show mycat white host ");
         helps.put("show @@white.set=?,?", "set mycat white host,[ip,user]");
-        
+		helps.put("show @@directmemory=1 or 2", "show mycat direct memory usage");
+		helps.put("show @@check_global -SCHEMA= ? -TABLE=? -retry=? -interval=?", "check mycat global table consistency ");
+
         // switch
         helps.put("switch @@datasource name:index", "Switch dataSource");
 

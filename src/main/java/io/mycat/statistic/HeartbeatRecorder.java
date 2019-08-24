@@ -23,10 +23,12 @@
  */
 package io.mycat.statistic;
 
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.util.TimeUtil;
 
@@ -46,14 +48,14 @@ public class HeartbeatRecorder {
     private long avg1;
     private long avg2;
     private long avg3;
-    private final List<Record> records;
-    private final List<Record> recordsAll;
+    private final Queue<Record> records;
+    private final Queue<Record> recordsAll;
     
 	private static final Logger LOGGER = LoggerFactory.getLogger("DataSourceSyncRecorder");
 
     public HeartbeatRecorder() {
-        this.records = new LinkedList<Record>();
-        this.recordsAll = new LinkedList<Record>();
+        this.records = new ConcurrentLinkedQueue<Record>();
+        this.recordsAll = new ConcurrentLinkedQueue<Record>();
     }
 
     public String get() {
@@ -64,24 +66,24 @@ public class HeartbeatRecorder {
     	try{
     		long time = TimeUtil.currentTimeMillis();
             if (value < 0) {
-                recordsAll.add(new Record(0, time));
+                recordsAll.offer(new Record(0, time));
                 return;
             }
             remove(time);
             int size = records.size();
             if (size == 0) {
-                records.add(new Record(value, time));
+                records.offer(new Record(value, time));
                 avg1 = avg2 = avg3 = value;
                 return;
             }
             if (size >= MAX_RECORD_SIZE) {
-                records.remove(0);
+                records.poll();
             }
-            records.add(new Record(value, time));
-            recordsAll.add(new Record(value, time));
+            records.offer(new Record(value, time));
+            recordsAll.offer(new Record(value, time));
             calculate(time);
     	}catch(Exception e){ 
-    		LOGGER.error("record HeartbeatRecorder error " + e.getMessage());
+    		LOGGER.error("record HeartbeatRecorder error " ,e);
     	}
     }
 
@@ -89,21 +91,21 @@ public class HeartbeatRecorder {
      * 删除超过统计时间段的数据
      */
     private void remove(long time) {
-        final List<Record> records = this.records;
+        final Queue<Record> records = this.records;
         while (records.size() > 0) {
-            Record record = records.get(0);
+            Record record = records.peek();
             if (time >= record.time + AVG3_TIME) {
-                records.remove(0);
+                records.poll();
             } else {
                 break;
             }
         }
         
-        final List<Record> recordsAll = this.recordsAll;
+        final Queue<Record> recordsAll = this.recordsAll;
         while (recordsAll.size() > 0) {
-            Record record = recordsAll.get(0);
+            Record record = recordsAll.peek();
             if (time >= record.time + SWAP_TIME) {
-            	recordsAll.remove(0);
+            	recordsAll.poll();
             } else {
                 break;
             }
@@ -136,7 +138,7 @@ public class HeartbeatRecorder {
         avg3 = (v3 / c3);
     }
 
-    public List<Record> getRecordsAll() {
+    public Queue<Record> getRecordsAll() {
 		return this.recordsAll;
 	}
 

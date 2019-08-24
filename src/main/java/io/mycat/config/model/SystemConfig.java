@@ -60,18 +60,20 @@ public final class SystemConfig {
 	private int frontSocketNoDelay = 1; // 0=false
 	private int backSocketNoDelay = 1; // 1=true
 	public static final int DEFAULT_POOL_SIZE = 128;// 保持后端数据通道的默认最大值
-	public static final long DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000L;
+	public static final long  DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000L;
 	private static final long DEFAULT_PROCESSOR_CHECK_PERIOD = 1 * 1000L;
-	private static final long DEFAULT_DATANODE_IDLE_CHECK_PERIOD = 5 * 60 * 1000L;
-	private static final long DEFAULT_DATANODE_HEARTBEAT_PERIOD = 10 * 1000L;
+	private static final long DEFAULT_DATANODE_IDLE_CHECK_PERIOD = 5 * 60 * 1000L; //连接空闲检查
+	private static final long DEFAULT_DATANODE_HEARTBEAT_PERIOD = 10 * 1000L;  //心跳检查周期
 	private static final long DEFAULT_CLUSTER_HEARTBEAT_PERIOD = 5 * 1000L;
 	private static final long DEFAULT_CLUSTER_HEARTBEAT_TIMEOUT = 10 * 1000L;
-	private static final int DEFAULT_CLUSTER_HEARTBEAT_RETRY = 10;
-	private static final int DEFAULT_MAX_LIMIT = 100;
-	private static final String DEFAULT_CLUSTER_HEARTBEAT_USER = "_HEARTBEAT_USER_";
-	private static final String DEFAULT_CLUSTER_HEARTBEAT_PASS = "_HEARTBEAT_PASS_";
-	private static final int DEFAULT_PARSER_COMMENT_VERSION = 50148;
-	private static final int DEFAULT_SQL_RECORD_COUNT = 10;
+	private static final int  DEFAULT_CLUSTER_HEARTBEAT_RETRY = 10;
+	private static final int  DEFAULT_MAX_LIMIT = 100;
+	private static final String  DEFAULT_CLUSTER_HEARTBEAT_USER = "_HEARTBEAT_USER_";
+	private static final String  DEFAULT_CLUSTER_HEARTBEAT_PASS = "_HEARTBEAT_PASS_";
+	private static final int     DEFAULT_PARSER_COMMENT_VERSION = 50148;
+	private static final int     DEFAULT_SQL_RECORD_COUNT = 10;
+	private static final boolean DEFAULT_USE_ZK_SWITCH = false;
+	private static final int     DEFAULT_MAX_PREPAREDSTMT_COUNT = 16382;
 	private int maxStringLiteralLength = 65535;
 	private int frontWriteQueueSize = 2048;
 	private String bindIp = "0.0.0.0";
@@ -98,6 +100,12 @@ public final class SystemConfig {
 	private int txIsolation;
 	private int parserCommentVersion;
 	private int sqlRecordCount;
+	private String sequnceHandlerPattern = SEQUENCEHANDLER_PATTERN;
+
+	/**
+	 * 预处理占位符最大数量
+	 */
+	private int maxPreparedStmtCount;
 
 	// a page size
 	private int bufferPoolPageSize;
@@ -128,6 +136,16 @@ public final class SystemConfig {
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
 	public static final int SEQUENCEHANDLER_ZK_DISTRIBUTED = 3;
 	public static final int SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT = 4;
+	public static final String SEQUENCEHANDLER_PATTERN = "(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+";
+	
+	private final int DEFAULT_SEQUNCE_MYSQL_RETRY_COUT=4;  //mysql全局序列默认重试次数
+	private final long DEFAULT_SEQUNCE_MYSQL_WATI_TIME=10 * 1000;//mysql db方式默认等待时间
+
+	private int sequnceMySqlRetryCount = DEFAULT_SEQUNCE_MYSQL_RETRY_COUT;
+	private long sequnceMySqlWaitTime = DEFAULT_SEQUNCE_MYSQL_WATI_TIME;
+	
+	
+	
 	/*
 	 * 注意！！！ 目前mycat支持的MySQL版本，如果后续有新的MySQL版本,请添加到此数组， 对于MySQL的其他分支，
 	 * 比如MariaDB目前版本号已经到10.1.x，但是其驱动程序仍然兼容官方的MySQL,因此这里版本号只需要MySQL官方的版本号即可。
@@ -151,8 +169,15 @@ public final class SystemConfig {
 	private int mycatNodeId=1;
 	private int useCompression =0;	
 	private int useSqlStat = 1;
+	//子查询中存在关联查询的情况下,检查关联字段中是否有分片字段 .默认 false
+	private boolean subqueryRelationshipCheck = false;
+	
+	// 是否使用HandshakeV10Packet来与client进行通讯, 1:是 , 0:否(使用HandshakePacket)
+	// 使用HandshakeV10Packet为的是兼容高版本的jdbc驱动, 后期稳定下来考虑全部采用HandshakeV10Packet来通讯
+	private int useHandshakeV10 = 0;
 
-	private boolean enableDistributedTransactions = true;
+	//处理分布式事务开关，默认为不过滤分布式事务
+	private int handleDistributedTransactions = 0;
 
 	private int checkTableConsistency = 0;
 	private long checkTableConsistencyPeriod = CHECKTABLECONSISTENCYPERIOD;
@@ -166,6 +191,8 @@ public final class SystemConfig {
 	
 	private long glableTableCheckPeriod;
 
+	// 如果为true的话 严格遵守隔离级别,不会在仅仅只有select语句的时候在事务中切换连接
+	private boolean strictTxIsolation = false;
 	/**
 	 * Mycat 使用 Off Heap For Merge/Order/Group/Limit计算相关参数
 	 */
@@ -203,23 +230,30 @@ public final class SystemConfig {
 	 */
 	private String systemReserveMemorySize;
 
+	private String XARecoveryLogBaseDir;
 
+	private String XARecoveryLogBaseName;
 
 	/**
 	 * 排序时，内存不够时，将已经排序的结果集
 	 * 写入到临时目录
 	 */
 	private String dataNodeSortedTempDir;
-	public boolean isEnableDistributedTransactions() {
-		return enableDistributedTransactions;
-	}
 
-	public void setEnableDistributedTransactions(boolean enableDistributedTransactions) {
-		this.enableDistributedTransactions = enableDistributedTransactions;
-	}
+	/**
+	 * 是否启用zk切换
+	 */
+	private boolean	useZKSwitch=DEFAULT_USE_ZK_SWITCH;
 
+	
+ 	/**
+ 	 * huangyiming add
+	 * 无密码登陆标示, 0:否,1:是,默认为0
+	 */
+	private int nonePasswordLogin = DEFAULT_NONEPASSWORDLOGIN ;
 
-
+	private final static int DEFAULT_NONEPASSWORDLOGIN = 0;
+	
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
 	}
@@ -265,6 +299,18 @@ public final class SystemConfig {
 		this.useStreamOutput = 0;
 		this.systemReserveMemorySize = RESERVED_SYSTEM_MEMORY_BYTES;
 		this.dataNodeSortedTempDir = System.getProperty("user.dir");
+		this.XARecoveryLogBaseDir = SystemConfig.getHomePath()+"/tmlogs/";
+		this.XARecoveryLogBaseName ="tmlog";
+
+		this.maxPreparedStmtCount = DEFAULT_MAX_PREPAREDSTMT_COUNT;
+	}
+
+	public void setMaxPreparedStmtCount(int maxPreparedStmtCount){
+		this.maxPreparedStmtCount = maxPreparedStmtCount;
+	}
+
+	public int getMaxPreparedStmtCount(){
+		return this.maxPreparedStmtCount;
 	}
 
 	public String getDataNodeSortedTempDir() {
@@ -309,6 +355,30 @@ public final class SystemConfig {
 
 	public void setSystemReserveMemorySize(String systemReserveMemorySize) {
 		this.systemReserveMemorySize = systemReserveMemorySize;
+	}
+
+	public boolean isUseZKSwitch() {
+		return useZKSwitch;
+	}
+
+	public void setUseZKSwitch(boolean useZKSwitch) {
+		this.useZKSwitch = useZKSwitch;
+	}
+
+	public String getXARecoveryLogBaseDir() {
+		return XARecoveryLogBaseDir;
+	}
+
+	public void setXARecoveryLogBaseDir(String XARecoveryLogBaseDir) {
+		this.XARecoveryLogBaseDir = XARecoveryLogBaseDir;
+	}
+
+	public String getXARecoveryLogBaseName() {
+		return XARecoveryLogBaseName;
+	}
+
+	public void setXARecoveryLogBaseName(String XARecoveryLogBaseName) {
+		this.XARecoveryLogBaseName = XARecoveryLogBaseName;
 	}
 
 	public int getUseGlobleTableCheck() {
@@ -881,5 +951,68 @@ public final class SystemConfig {
 
 	public void setProcessorBufferPoolType(int processorBufferPoolType) {
 		this.processorBufferPoolType = processorBufferPoolType;
+	}
+
+	public int getHandleDistributedTransactions() {
+		return handleDistributedTransactions;
+	}
+
+	public void setHandleDistributedTransactions(int handleDistributedTransactions) {
+		this.handleDistributedTransactions = handleDistributedTransactions;
+	}
+
+	public int getUseHandshakeV10() {
+		return useHandshakeV10;
+	}
+
+	public void setUseHandshakeV10(int useHandshakeV10) {
+		this.useHandshakeV10 = useHandshakeV10;
+	}
+
+	public int getNonePasswordLogin() {
+		return nonePasswordLogin;
+	}
+
+	public void setNonePasswordLogin(int nonePasswordLogin) {
+		this.nonePasswordLogin = nonePasswordLogin;
+	}
+
+	public boolean isSubqueryRelationshipCheck() {
+		return subqueryRelationshipCheck;
+	}
+
+	public void setSubqueryRelationshipCheck(boolean subqueryRelationshipCheck) {
+		this.subqueryRelationshipCheck = subqueryRelationshipCheck;
+	}
+
+	public boolean isStrictTxIsolation() {
+		return strictTxIsolation;
+	}
+
+	public void setStrictTxIsolation(boolean strictTxIsolation) {
+		this.strictTxIsolation = strictTxIsolation;
+	}
+	
+	public int getSequnceMySqlRetryCount() {
+		return sequnceMySqlRetryCount;
+	}
+
+	public void setSequnceMySqlRetryCount(int sequnceMySqlRetryCount) {
+		this.sequnceMySqlRetryCount = sequnceMySqlRetryCount;
+	}
+
+	public long getSequnceMySqlWaitTime() {
+		return sequnceMySqlWaitTime;
+	}
+
+	public void setSequnceMySqlWaitTime(long sequnceMySqlWaitTime) {
+		this.sequnceMySqlWaitTime = sequnceMySqlWaitTime;
+	}
+
+	public String getSequnceHandlerPattern() {
+		return sequnceHandlerPattern==null?SEQUENCEHANDLER_PATTERN:sequnceHandlerPattern;
+	}
+	public void setSequnceHandlerPattern(String sequnceHandlerPattern) {
+		this.sequnceHandlerPattern = sequnceHandlerPattern;
 	}
 }

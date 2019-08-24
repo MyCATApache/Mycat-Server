@@ -76,10 +76,10 @@ import io.mycat.backend.mysql.PreparedStatement;
  * 
  *  values:                    for all non-NULL values, each parameters appends its value
  *                             as described in Row Data Packet: Binary (column values)
- * @see http://dev.mysql.com/doc/internals/en/execute-packet.html
+ * @see https://dev.mysql.com/doc/internals/en/com-stmt-execute.html
  * </pre>
  * 
- * @author mycat
+ * @author mycat, CrazyPig
  */
 public class ExecutePacket extends MySQLPacket {
 
@@ -108,13 +108,15 @@ public class ExecutePacket extends MySQLPacket {
 
         // 读取NULL指示器数据
         int parameterCount = values.length;
-        nullBitMap = new byte[(parameterCount + 7) / 8];
-        for (int i = 0; i < nullBitMap.length; i++) {
-            nullBitMap[i] = mm.read();
+        if(parameterCount > 0) {
+	        nullBitMap = new byte[(parameterCount + 7) / 8];
+	        for (int i = 0; i < nullBitMap.length; i++) {
+	            nullBitMap[i] = mm.read();
+	        }
+	
+	        // 当newParameterBoundFlag==1时，更新参数类型。
+	        newParameterBoundFlag = mm.read();
         }
-
-        // 当newParameterBoundFlag==1时，更新参数类型。
-        newParameterBoundFlag = mm.read();
         if (newParameterBoundFlag == (byte) 1) {
             for (int i = 0; i < parameterCount; i++) {
                 pstmt.getParametersType()[i] = mm.readUB2();
@@ -130,6 +132,9 @@ public class ExecutePacket extends MySQLPacket {
                 bv.isNull = true;
             } else {
                 BindValueUtil.read(mm, bv, charset);
+                if(bv.isLongData) {
+                	bv.value = pstmt.getLongData(i);
+                }
             }
             values[i] = bv;
         }

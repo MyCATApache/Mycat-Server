@@ -51,6 +51,7 @@ public class ManagerConnection extends FrontendConnection {
 
 	@Override
 	public void handle(final byte[] data) {
+		this.executeSqlId ++;
 		handler.handle(data);
 	}
 

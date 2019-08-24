@@ -178,6 +178,16 @@ public class ConfigComparer {
 			List<DataNode > newDN = getDataNodes(newTable,newDataNodes,newDataHosts);
 			//忽略数据节点分布没有发生变化的表
 			if(isNeedMigrate(oldDN,newDN)){
+				LOGGER.info("old table:{}",oldTable);
+				LOGGER.info("new table:{}",newTable);
+				if (oldTable.getRule()== null){
+					LOGGER.info("beacuse {} rule is null,skip it,check it is er child table",oldTable);
+					return;
+				}
+				if (newTable.getRule()==null){
+					LOGGER.info("beacuse {} rule is null,skip it,check it is er child table.",newTable);
+					return;
+				}
 				checkRuleConfig(oldTable.getRule(), newTable.getRule(),schemaName,tableName);
 				RuleConfig newRC=newTable.getRule();
 				TableMigrateInfo tmi = new TableMigrateInfo(schemaName, tableName, oldDN, newDN, newRC.getRuleAlgorithm(), newRC.getColumn());

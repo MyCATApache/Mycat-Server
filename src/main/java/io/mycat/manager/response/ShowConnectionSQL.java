@@ -35,6 +35,7 @@ import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.server.ServerConnection;
 import io.mycat.util.LongUtil;
 import io.mycat.util.StringUtil;
 import io.mycat.util.TimeUtil;
@@ -97,9 +98,14 @@ public final class ShowConnectionSQL {
         for (NIOProcessor p : MycatServer.getInstance().getProcessors()) {
             for (FrontendConnection fc : p.getFrontends().values()) {
                 if (!fc.isClosed()) {
-                    RowDataPacket row = getRow(fc, charset);
-                    row.packetId = ++packetId;
-                    buffer = row.write(buffer, c,true);
+                	if(fc.getExecuteSql()==null){
+                		continue;
+                	}
+                	if(fc instanceof ServerConnection){
+                		RowDataPacket row = getRow(fc, charset);
+                        row.packetId = ++packetId;
+                        buffer = row.write(buffer, c,true);
+                	}
                 }
             }
         }
@@ -114,6 +120,7 @@ public final class ShowConnectionSQL {
     }
 
     private static RowDataPacket getRow(FrontendConnection c, String charset) {
+    	String executeSql = c.getExecuteSql();
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add(LongUtil.toBytes(c.getId()));
         row.add(StringUtil.encode(c.getHost(), charset));
@@ -122,8 +129,8 @@ public final class ShowConnectionSQL {
         row.add(LongUtil.toBytes(c.getLastReadTime()));
         long rt = c.getLastReadTime();
         long wt = c.getLastWriteTime();
-        row.add(LongUtil.toBytes((wt > rt) ? (wt - rt) : (TimeUtil.currentTimeMillis() - rt)));
-        row.add( StringUtil.encode(c.getExecuteSql(), charset) );
+        row.add(LongUtil.toBytes(executeSql==null?0:((wt > rt) ? (wt - rt) : (TimeUtil.currentTimeMillis() - rt))));
+        row.add(StringUtil.encode(executeSql==null?"":executeSql, charset) );
         return row;
     }
 

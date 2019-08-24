@@ -13,13 +13,36 @@
  - See the License for the specific language governing permissions and
  - limitations under the License.
 -->
-<!ELEMENT mycat:server (system?,user+,cluster?,quarantine?)>
+<!ELEMENT mycat:server (system?,firewall?,user+,cluster?)>
 <!ATTLIST mycat:server xmlns:mycat CDATA #FIXED "http://io.mycat/">
 
 <!ELEMENT system (property*) >
 
-<!ELEMENT user (property+)>
-<!ATTLIST user name NMTOKEN #REQUIRED>
+<!ELEMENT user (property+,privileges*)>
+<!ATTLIST user 
+name NMTOKEN #REQUIRED
+defaultAccount NMTOKEN #IMPLIED
+>
+ 
+<!ELEMENT privileges (schema*,dataNode*)>
+<!ATTLIST privileges check NMTOKEN #REQUIRED>
+
+<!ELEMENT schema (table)*>
+<!ATTLIST schema
+  name CDATA #REQUIRED
+  dml CDATA #REQUIRED>
+
+<!ELEMENT table (name*)>
+<!ATTLIST table
+  name CDATA #REQUIRED
+  dml CDATA #REQUIRED
+  ext CDATA #IMPLIED>
+
+<!ELEMENT dataNode (name*)>
+<!ATTLIST dataNode
+  name CDATA #REQUIRED
+  dml CDATA #REQUIRED
+  ext CDATA #IMPLIED>
 
 <!ELEMENT cluster (node+,group*) >
 <!ELEMENT node (property+)>
@@ -27,7 +50,7 @@
 <!ELEMENT group (property) >
 <!ATTLIST group name NMTOKEN #REQUIRED>
 
-<!ELEMENT quarantine (whitehost*,blacklist*) >
+<!ELEMENT firewall (whitehost*,blacklist*) >
 <!ELEMENT whitehost (host*)>
 <!ELEMENT blacklist (property*)>
 <!ATTLIST blacklist check NMTOKEN #REQUIRED>

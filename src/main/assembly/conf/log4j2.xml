@@ -5,9 +5,9 @@
             <PatternLayout pattern="%d [%-5p][%t] %m %throwable{full} (%C:%F:%L) %n"/>
         </Console>
 
-        <RollingFile name="RollingFile" fileName="/logs/mycat.log"
-                     filePattern="logs/$${date:yyyy-MM}/mycat-%d{MM-dd}-%i.log.gz">
-            <PatternLayout>
+        <RollingFile name="RollingFile" fileName="${sys:MYCAT_HOME}/logs/mycat.log"
+                     filePattern="${sys:MYCAT_HOME}/logs/$${date:yyyy-MM}/mycat-%d{MM-dd}-%i.log.gz">
+        <PatternLayout>
                 <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] (%l) - %m%n</Pattern>
             </PatternLayout>
             <Policies>
@@ -24,7 +24,7 @@
         <!--</AsyncLogger>-->
         <asyncRoot level="info" includeLocation="true">
 
-            <AppenderRef ref="Console" />
+            <!--<AppenderRef ref="Console" />-->
             <AppenderRef ref="RollingFile"/>
 
         </asyncRoot>

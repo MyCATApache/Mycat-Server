@@ -23,6 +23,12 @@
  */
 package io.mycat.route.parser.util;
 
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
+import io.mycat.route.parser.druid.MycatStatementParser;
+
 /**
  * @author mycat
  */
@@ -53,6 +59,14 @@ public final class ParseUtil {
         return 0L;
     }
 
+    public static String changeInsertAddSlot(String sql,int slotValue)
+    {
+        SQLStatementParser parser = new MycatStatementParser(sql);
+        MySqlInsertStatement insert = (MySqlInsertStatement) parser.parseStatement();
+        insert.getColumns().add(new SQLIdentifierExpr("_slot") );
+        insert.getValues().getValues().add(new SQLIntegerExpr(slotValue))  ;
+        return insert.toString();
+    }
     /**
      * <code>'abc'</code>
      * 

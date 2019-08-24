@@ -41,11 +41,15 @@ public final class UseHandler {
         String schema = sql.substring(offset).trim();
         int length = schema.length();
         if (length > 0) {
-        	if(schema.endsWith(";")) {
-                schema = schema.substring(0, schema.length() - 1);
+        	//许多客户端工具断链重连后会批量发送SQL,如下:
+            //USE `TESTDB`;\nSELECT SYSDATE(),CURRENT_USER()
+            //modify by jeff.cao 2018/3/31
+            int end = schema.indexOf(";");
+            if (end > 0) {
+                schema = schema.substring(0, end - 1);
             }
-        	schema = StringUtil.replaceChars(schema, "`", null);
-        	length=schema.length();
+            schema = StringUtil.replaceChars(schema, "`", null);
+            length = schema.length();
             if (schema.charAt(0) == '\'' && schema.charAt(length - 1) == '\'') {
                 schema = schema.substring(1, length - 1);
             }

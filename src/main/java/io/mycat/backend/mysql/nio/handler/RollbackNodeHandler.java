@@ -25,7 +25,12 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
+import io.mycat.backend.mysql.nio.MySQLConnection;
+import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
+import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.config.ErrorCode;
+import io.mycat.net.mysql.OkPacket;
+
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
@@ -55,9 +60,48 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			decrementCountToZero();
 			return;
 		}
+		int start = 0 ;
+		boolean hasClose = false;
+		for (final RouteResultsetNode node : session.getTargetKeys()) {
+			if (node == null) {
+				LOGGER.error("null is contained in RoutResultsetNodes, source = "
+						+ session.getSource());
+				hasClose = true;
+				break;
+			}
+			final BackendConnection conn = session.getTarget(node);
+			if (conn != null) {
+				boolean isClosed=conn.isClosedOrQuit();
+				if(isClosed) {
+					hasClose = true;
+//					break;
+				} else {
+					start ++;
+				}
+			}
+		}
+		//有连接已被关闭 直接关闭所有的连接， 非xa模式下 ，xa prepare状态下需要rollback
+		if(hasClose && session.getXaTXID() == null) {
+			LOGGER.warn("find close back conn close ,so close all back connection"
+					+ session.getSource());
+			session.setAutoCommitStatus(); //一定是先恢复状态 在写消息
+			this.setFail("receive rollback,but find backend con is closed or quit");
+			this.tryErrorFinished(true);
 
+			return ;
+		}
+		
 		// 执行
-		int started = 0;
+		//modify by zwy
+		
+		// 执行
+		lock.lock();
+		try {
+			reset(start);
+		} finally {
+			lock.unlock();
+		}
+		boolean writeCheckPoint = false;
 		for (final RouteResultsetNode node : session.getTargetKeys()) {
 			if (node == null) {
 					LOGGER.error("null is contained in RoutResultsetNodes, source = "
@@ -69,10 +113,12 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 			if (conn != null) {
 				boolean isClosed=conn.isClosedOrQuit();
 				    if(isClosed)
-					{
-						session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
-								"receive rollback,but find backend con is closed or quit");
+					{				    	
+				    	this.setFail("receive rollback,but find backend con is closed or quit");
+					//	session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR,
+					//			"receive rollback,but find backend con is closed or quit");
 						LOGGER.error( conn+"receive rollback,but fond backend con is closed or quit");
+						continue;
 					}
 				if (LOGGER.isDebugEnabled()) {
 					LOGGER.debug("rollback job run for " + conn);
@@ -81,30 +127,84 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 					return;
 				}
 				conn.setResponseHandler(RollbackNodeHandler.this);
-				conn.rollback();
 
-				++started;
+				//support the XA rollback 
+				//to do to write xa recover log and judge xa statue to judge if send xa end 
+				if(session.getXaTXID()!=null && conn instanceof  MySQLConnection) {
+					MySQLConnection mysqlCon = (MySQLConnection) conn;
+					
+					//recovery log
+					String xaTxId = session.getXaTXID();
+					CoordinatorLogEntry coordinatorLogEntry = MultiNodeCoordinator.inMemoryRepository.get(xaTxId);
+					if(coordinatorLogEntry != null) {
+						writeCheckPoint = true;
+						//已经prepare的修改recover log
+						for(int i=0; i<coordinatorLogEntry.participants.length;i++){
+							if(coordinatorLogEntry.participants[i].resourceName.equals(conn.getSchema())){
+								coordinatorLogEntry.participants[i].txState = TxState.TX_ROLLBACKED_STATE;
+							}
+						}
+						MultiNodeCoordinator.inMemoryRepository.put(xaTxId,coordinatorLogEntry);
+					}
+					
+					xaTxId = session.getXaTXID() +",'"+ mysqlCon.getSchema()+"'";
+					//exeBatch cmd issue : the 2nd package can not receive the response
+//					mysqlCon.execCmd("XA END " + xaTxId  + ";");
+//					mysqlCon.execCmd("XA ROLLBACK " + xaTxId + ";");		
+					if(mysqlCon.getXaStatus() == TxState.TX_STARTED_STATE ){
+						 String[] cmds = new String[]{"XA END " + xaTxId  + "",
+								 " XA ROLLBACK " + xaTxId + ";"};
+						   mysqlCon.execBatchCmd(cmds);
+					} else if(mysqlCon.getXaStatus() == TxState.TX_PREPARED_STATE ){						
+						 String[] cmds = new String[]{" XA ROLLBACK " + xaTxId + ";"};						   
+						 mysqlCon.execBatchCmd(cmds);
+					} else {
+						LOGGER.warn("{} xaStat is {} ,to rollback is error" ,mysqlCon, mysqlCon.getXaStatus());
+					}			
+					mysqlCon.setXaStatus(TxState.TX_ROLLBACKED_STATE);
+				}else {
+					//modify by zwy
+					if(!conn.isClosedOrQuit()) {
+						conn.rollback();
+						//++started;
+					}
+				}
 			}
 		}
+		if(writeCheckPoint) {
+			MultiNodeCoordinator.fileRepository.writeCheckpoint(session.getXaTXID(), MultiNodeCoordinator.inMemoryRepository.getAllCoordinatorLogEntries());
 
-		if (started < initCount && decrementCountBy(initCount - started)) {
-			/**
-			 * assumption: only caused by front-end connection close. <br/>
-			 * Otherwise, packet must be returned to front-end
-			 */
-			session.clearResources(true);
 		}
+
 	}
 
 	@Override
 	public void okResponse(byte[] ok, BackendConnection conn) {
+		
+		if(session.getXaTXID()!=null) {
+			//xa 
+			if( conn instanceof  MySQLConnection) {
+				MySQLConnection mysqlCon = (MySQLConnection) conn;
+				if (!mysqlCon.batchCmdFinished()) { 
+					// 
+					return;
+				}
+			}			
+		}		
 		if (decrementCountBy(1)) {
 			// clear all resources
 			session.clearResources(false);
+			//回复之前的事务状态 by zhangwy 2018.07
+			session.setAutoCommitStatus();
 			if (this.isFail() || session.closed()) {
 				tryErrorFinished(true);
 			} else {
-				session.getSource().write(ok);
+		        if(session.getSource().canResponse()) {
+		        	OkPacket okPacket = new OkPacket();
+		        	okPacket.read(ok);
+		        	okPacket.packetId = 1;
+					session.getSource().write(okPacket.writeToBytes());
+				}
 			}
 		}
 	}
@@ -141,4 +241,37 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 
 	}
 
+	public void connectionClose(BackendConnection conn, String reason) {
+		this.setFail("closed connection:" + reason + " con:" + conn);
+		boolean finished = false;
+
+		if (finished == false) {
+			finished = this.decrementCountBy(1);
+		}
+		if (error == null) {
+			error = "back connection closed ";
+		}
+		if(finished) {
+			session.setAutoCommitStatus();
+			tryErrorFinished(finished);
+
+		}
+	}
+	protected void tryErrorFinished(boolean allEnd) {
+		if (allEnd && !session.closed()) {		
+			
+			
+			// clear session resources,release all
+			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug("error all end ,clear session resource ");
+			}
+			//关闭所有的错误后端连接 清理资源
+			session.closeAndClearResources(error);
+			//避免高并发 重新在清空一次
+			session.getSource().clearTxInterrupt();
+			//createErrPkg(this.error).write(session.getSource());
+			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, this.error);
+		}
+
+	}
 }

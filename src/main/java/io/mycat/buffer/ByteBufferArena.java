@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 仿照Netty的思路，针对MyCat内存缓冲策略优化
@@ -28,11 +29,15 @@ public class ByteBufferArena implements BufferPool {
     private final int pageSize;
     private final int chunkSize;
 
-    private final AtomicInteger capacity;
-    private final AtomicInteger size;
+    private final AtomicLong capacity;
+    private final AtomicLong size;
 
     private final ConcurrentHashMap<Thread, Integer> sharedOptsCount;
 
+    /**
+     * 记录对线程ID->该线程的所使用Direct Buffer的size
+     */
+    private final ConcurrentHashMap<Long,Long> memoryUsage;
     private final int conReadBuferChunk;
 
     public ByteBufferArena(int chunkSize, int pageSize, int chunkCount, int conReadBuferChunk) {
@@ -64,9 +69,10 @@ public class ByteBufferArena implements BufferPool {
             q[1].prevList = q[0];
             q[0].prevList = null;
 
-            capacity = new AtomicInteger(6 * chunkCount * chunkSize);
-            size = new AtomicInteger(6 * chunkCount * chunkSize);
+            capacity = new AtomicLong(6 * chunkCount * chunkSize);
+            size = new AtomicLong(6 * chunkCount * chunkSize);
             sharedOptsCount = new ConcurrentHashMap<>();
+            memoryUsage = new ConcurrentHashMap<>();
         } finally {
         }
     }
@@ -97,7 +103,14 @@ public class ByteBufferArena implements BufferPool {
 //            printList();
             capacity.addAndGet(-reqCapacity);
             final Thread thread =  Thread.currentThread();
-            if (sharedOptsCount.contains(thread)) {
+            final long threadId = thread.getId();
+
+            if (memoryUsage.containsKey(threadId)){
+                memoryUsage.put(threadId,memoryUsage.get(thread.getId())+reqCapacity);
+            }else {
+                memoryUsage.put(threadId, (long) reqCapacity);
+            }
+            if (sharedOptsCount.containsKey(thread)) {
                 int currentCount = sharedOptsCount.get(thread);
                 currentCount++;
                 sharedOptsCount.put(thread,currentCount);
@@ -118,6 +131,7 @@ public class ByteBufferArena implements BufferPool {
 
     @Override
     public void recycle(ByteBuffer byteBuffer) {
+        final long size = byteBuffer != null?byteBuffer.capacity():0;
         try {
             int i;
             for (i = 0; i < 6; i++) {
@@ -130,7 +144,12 @@ public class ByteBufferArena implements BufferPool {
                 return;
             }
             final Thread thread =  Thread.currentThread();
-            if (sharedOptsCount.contains(thread)) {
+            final long threadId = thread.getId();
+
+            if (memoryUsage.containsKey(threadId)){
+                memoryUsage.put(threadId,memoryUsage.get(thread.getId())-size);
+            }
+            if (sharedOptsCount.containsKey(thread)) {
                 int currentCount = sharedOptsCount.get(thread);
                 currentCount--;
                 sharedOptsCount.put(thread,currentCount);
@@ -150,12 +169,12 @@ public class ByteBufferArena implements BufferPool {
     }
 
     @Override
-    public int capacity() {
+    public long capacity() {
         return capacity.get();
     }
 
     @Override
-    public int size() {
+    public long size() {
         return size.get();
     }
 
@@ -181,6 +200,11 @@ public class ByteBufferArena implements BufferPool {
     @Override
     public int getChunkSize() {
         return pageSize;
+    }
+
+    @Override
+    public ConcurrentHashMap<Long, Long> getNetDirectMemoryUsage() {
+        return memoryUsage;
     }
 
     @Override

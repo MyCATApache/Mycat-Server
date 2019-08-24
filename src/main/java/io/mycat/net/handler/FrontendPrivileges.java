@@ -60,17 +60,44 @@ public interface FrontendPrivileges {
     Boolean isReadOnly(String user);
     
     /**
-     * 检查用户当系统有效使用的负载 百分比
+     * 获取设定的系统最大连接数的降级阀值
      * @param user
      * @return
      */
     int getBenchmark(String user);
     
+    
     /**
-     * 负载拒连后 的短信预警
+     * 检查防火墙策略
+     * （白名单策略）
      * @param user
+     * @param host
      * @return
      */
-    String getBenchmarkSmsTel(String user);
+    boolean checkFirewallWhiteHostPolicy(String user, String host);
+    
+    /**
+     * 检查防火墙策略
+     * (SQL黑名单及注入策略)
+     * @param sql
+     * @return
+     */
+    boolean checkFirewallSQLPolicy(String user, String sql);
+    
+    
+    /**
+     * 检查 SQL 语句的 DML 权限
+     * @return
+     */
+    boolean checkDmlPrivilege(String user, String schema, String sql);
+
+    /**
+     * 检查针对 DataNode 的 SQL 语句的 DML 权限
+     * @param user
+     * @param dataNode
+     * @param sql
+     * @return
+     */
+    boolean checkDataNodeDmlPrivilege(String user, String dataNode, String sql);
 
 }

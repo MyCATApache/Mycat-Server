@@ -1,5 +1,6 @@
 package io.mycat.util.rehasher;
 
+import io.mycat.util.StringUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -54,7 +55,7 @@ public class RehashLauncher {
                 while (!CollectionUtil.isEmpty(list)) {
         			for(int i=0,l=list.size();i<l;i++){
         				Map<String, Object> sf=list.get(i);
-        				Integer hash=alg.calculate(sf.get(args.getShardingField()).toString());
+        				Integer hash=alg.calculate(StringUtil.removeBackquote(sf.get(args.getShardingField()).toString()));
         				String host=rehashHosts[hash];
         				total++;
         				if(host.equals(hostWithDatabase)){

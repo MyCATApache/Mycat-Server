@@ -65,18 +65,23 @@ public final class ManagerParseShow {
     public static final int SLOW_DATANODE = 31;
     public static final int SLOW_SCHEMA = 32;
     public static final int BACKEND = 33;
-    public static final int CACHE = 34;
-    public static final int SESSION = 35;
-    public static final int SYSPARAM = 36;
-    public static final int SYSLOG = 37;
-    public static final int HEARTBEAT_DETAIL = 38;
-    public static final int DATASOURCE_SYNC = 39;
-    public static final int DATASOURCE_SYNC_DETAIL = 40;
-    public static final int DATASOURCE_CLUSTER = 41;
+    public static final int BACKEND_OLD = 34;
+    
+    public static final int CACHE = 35;
+    public static final int SESSION = 36;
+    public static final int SYSPARAM = 37;
+    public static final int SYSLOG = 38;
+    public static final int HEARTBEAT_DETAIL = 39;
+    public static final int DATASOURCE_SYNC = 40;
+    public static final int DATASOURCE_SYNC_DETAIL = 41;
+    public static final int DATASOURCE_CLUSTER = 42;
 
-    public static final int WHITE_HOST=42;
-    public static final int WHITE_HOST_SET=43;
+	public static final int WHITE_HOST = 43;
+	public static final int WHITE_HOST_SET = 44;
+    public static final int DIRECTMEMORY_TOTAL = 45;
+    public static final int DIRECTMEMORY_DETAILl = 46;
 
+    public static final int CHECK_GLOBAL = 47;
 
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -204,12 +209,39 @@ public final class ManagerParseShow {
             char c5 = stmt.charAt(++offset);
             char c6 = stmt.charAt(++offset);
             if ((c1 == 'A' || c1 == 'a') && (c2 == 'C' || c2 == 'c') && (c3 == 'K' || c3 == 'k')
-                    && (c4 == 'E' || c4 == 'e') && (c5 == 'N' || c5 == 'n') && (c6 == 'D' || c6 == 'd')
-                    && (stmt.length() == ++offset || ParseUtil.isEOF(stmt.charAt(offset)))) {
+                    && (c4 == 'E' || c4 == 'e') && (c5 == 'N' || c5 == 'n') && (c6 == 'D' || c6 == 'd')) {
+                
+                if (stmt.length() > ++offset) {
+                    switch (stmt.charAt(offset)) {
+                    case ';':
+                    case ' ':
+                        return BACKEND;
+                    case '.':
+                        return show2BackendOld(stmt, offset);
+                    default:
+                        return OTHER;
+                    }
+                }
                 return BACKEND;
+                
             }
         }
         return OTHER;
+    }
+    
+    static int show2BackendOld(String stmt, int offset) {
+    	  if (stmt.length() > offset + "OLD".length()) {
+              char c1 = stmt.charAt(++offset);
+              char c2 = stmt.charAt(++offset);
+              char c3 = stmt.charAt(++offset);
+              if ((c1 == 'O' || c1 == 'o') && (c2 == 'L' || c2 == 'l') && (c3 == 'D' || c3 == 'd')) {
+                  if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                      return OTHER;
+                  }
+                  return BACKEND_OLD;
+              }
+          }
+          return OTHER;
     }
 
     // SHOW @@C
@@ -222,13 +254,43 @@ public final class ManagerParseShow {
             case 'A':
             case 'a':
             	 return show2CACheck(stmt, offset);
+            case 'h':
+            case 'H':
+            	 return show2CHCheck(stmt, offset);
             default:
                 return OTHER;
             }
         }
         return OTHER;
     }
- // SHOW @@CACHE
+    // SHOW @@CHECK_GLOBAL
+    private static int show2CHCheck(String stmt, int offset) {
+    	if (stmt.length() > offset + "ECK_GLOBAL".length()) {
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+            char c6 = stmt.charAt(++offset);
+            char c7 = stmt.charAt(++offset);
+            char c8 = stmt.charAt(++offset);
+            char c9 = stmt.charAt(++offset);
+            char c10 = stmt.charAt(++offset);
+            
+            if ((c1 == 'E' || c1 == 'e') && (c2 == 'C' || c2 == 'c') && (c3 == 'K' || c3 == 'k')
+                    && (c4 == '_') && (c5 == 'G' || c5 == 'g') && (c6 == 'L' || c6 == 'l')
+                    && (c7 == 'O' || c7 == 'o') && (c8 == 'B' || c8 == 'b')  && (c9 == 'A' || c9 == 'a')
+                    && (c10 == 'L' || c10 == 'l')) {
+                if (stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                    return OTHER;
+                }
+                return CHECK_GLOBAL;
+            }
+        }
+        return OTHER;
+	}
+
+	// SHOW @@CACHE
     private static int show2CACheck(String stmt, int offset) {
     	String remain=stmt.substring(offset);
     	 if(remain.equalsIgnoreCase("ACHE"))
@@ -259,8 +321,56 @@ public final class ManagerParseShow {
                     default:
                         return OTHER;
                     }
+            }else if( (c1 == 'I'|| c1 == 'i')
+                    &&(c2 == 'R' || c2 == 'r')
+                    && (c3 == 'E' || c3 == 'e')
+                    && stmt.length() > ++offset){   /**DIRECTMEMORY**/
+                    switch (stmt.charAt(offset)) {
+                        case 'C':
+                        case 'c':
+                            return show2DirectMemoryCheck(stmt,offset);
+                        default:
+                            return OTHER;
+                    }
             }
         }
+        return OTHER;
+    }
+ // SHOW @@DIRECT_MEMORY=1 or 0
+    static int show2DirectMemoryCheck(String stmt, int offset) {
+        if (stmt.length() > offset + "TMEMORY".length()) {
+
+            char c1 = stmt.charAt(++offset);
+            char c2 = stmt.charAt(++offset);
+            char c3 = stmt.charAt(++offset);
+            char c4 = stmt.charAt(++offset);
+            char c5 = stmt.charAt(++offset);
+            char c6 = stmt.charAt(++offset);
+            char c7 = stmt.charAt(++offset);
+            char c8 = stmt.charAt(++offset);
+
+            if ((c1 == 'T' || c1 == 't')
+                    && (c2 == 'M' || c2 == 'm')
+                    && (c3 == 'E' || c3 == 'e')
+                    && (c4 == 'M' || c4 == 'm')
+                    && (c5 == 'O' || c5 == 'o')
+                    && (c6 == 'R' || c6 == 'r')
+                    && (c7 == 'Y' || c7 == 'y')
+                    && (c8 == '=' || c8 == '=')
+                    && stmt.length() > ++offset) {
+
+                switch (stmt.charAt(offset)) {
+                    case '1':
+                        return DIRECTMEMORY_TOTAL;
+                    case '2':
+                        return DIRECTMEMORY_DETAILl;
+                    default:
+                        return OTHER;
+                }
+
+            }
+        }
+
         return OTHER;
     }
     // SHOW @@DataSyn

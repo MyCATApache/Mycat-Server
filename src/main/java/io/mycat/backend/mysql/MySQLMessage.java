@@ -196,7 +196,25 @@ public class MySQLMessage {
             return ab2;
         }
     }
+    
+    public int getRowLength(int fileldCount) {
+    	int size = 0;
+    	int bak_position = position;
+    	position += 4;
+    	for(int i = 0 ; i < fileldCount; i++) {
+            int length = (int) readLength();
+            if(length == NULL_LENGTH || length <= 0)
+            {
+            	continue;
+            }
 
+            position += length;
+            size += length;
+    	}
+    	position = bak_position;
+    	return size;
+    }
+    
     public byte[] readBytesWithLength() {
         int length = (int) readLength();
         if(length==NULL_LENGTH)
@@ -298,9 +316,9 @@ public class MySQLMessage {
 
     public String readStringWithLength(String charset) throws UnsupportedEncodingException {
         int length = (int) readLength();
-        if (length <= 0) {
-            return null;
-        }
+//        if (length <= 0) {
+//            return null;
+//        }
         String s = new String(data, position, length, charset);
         position += length;
         return s;

@@ -26,12 +26,16 @@ package io.mycat.net.handler;
 /**
  * SQL预处理处理器
  * 
- * @author mycat
+ * @author mycat, CrazyPig
  */
 public interface FrontendPrepareHandler {
     
     void prepare(String sql);
+    
+    void sendLongData(byte[] data);
 
+    void reset(byte[] data);
+    
     void execute(byte[] data);
 
     void close(byte[] data);

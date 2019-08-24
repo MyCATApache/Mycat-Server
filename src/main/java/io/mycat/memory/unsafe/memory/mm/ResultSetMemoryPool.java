@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.concurrent.GuardedBy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Created by zagnix on 2016/6/6.
@@ -37,11 +39,13 @@ public class ResultSetMemoryPool extends MemoryPool {
         return "off-heap memory";
     }
 
+    public ConcurrentHashMap<Long, Long> getMemoryForConnection() {
+        return memoryForConnection;
+    }
     /**
      * Map from taskAttemptId -> memory consumption in bytes
      */
-    @GuardedBy("lock")
-    private HashMap<Long,Long> memoryForConnection = new HashMap<Long, Long>();
+    private ConcurrentHashMap<Long,Long> memoryForConnection = new ConcurrentHashMap<Long,Long>();
 
     @Override
     protected long memoryUsed() {
@@ -133,7 +137,7 @@ public class ResultSetMemoryPool extends MemoryPool {
             long memoryToFree = 0L;
 
             if (curMem < numBytes) {
-                System.out.print(
+                 LOG.error(
                         "Internal error: release called on $numBytes bytes but task only has $curMem bytes " +
                                 "of memory from the " + poolName() + "  pool");
                 memoryToFree = curMem;

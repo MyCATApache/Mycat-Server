@@ -45,7 +45,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 	private AtomicBoolean isFailed = new AtomicBoolean(false);
 	protected volatile String error;
 	protected byte packetId;
-	protected final AtomicBoolean errorRepsponsed = new AtomicBoolean(false);
+	public final AtomicBoolean errorRepsponsed = new AtomicBoolean(false);
 	
 	public MultiNodeHandler(NonBlockingSession session) {
 		if (session == null) {
@@ -63,7 +63,7 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		return isFailed.get();
 	}
 
-	private int nodeCount;
+	protected int nodeCount;
 
 	private Runnable terminateCallBack;
 
@@ -114,15 +114,20 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 	}
 
 	public void connectionError(Throwable e, BackendConnection conn) {
+		setFail("backend connect: "+e);
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug(this.toString() +"on connectionError " + conn + "  is has Error"+ errorRepsponsed.get() +"  not receive num"+nodeCount);
+		}
 		final boolean canClose = decrementCountBy(1);
 		// 需要把Throwable e的错误信息保存下来（setFail()）， 否则会导致响应 
 		//null信息，结果mysql命令行等客户端查询结果是"Query OK"！！
 		// @author Uncle-pan
 		// @since 2016-03-26
-		if(canClose){
-			setFail("backend connect: "+e);
-		}
-		LOGGER.warn("backend connect", e);
+		//if(canClose){
+		//}
+		LOGGER.warn(this + "backend connect", e);
+//		if(canClose) {
+//		}
 		this.tryErrorFinished(canClose);
 	}
 
@@ -130,11 +135,12 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
 		ErrorPacket err = new ErrorPacket();
 		err.read(data);
+		
 		String errmsg = new String(err.message);
 		this.setFail(errmsg);
-		LOGGER.warn("error response from " + conn + " err " + errmsg + " code:"
-				+ err.errno);
-
+		
+		LOGGER.warn(this.toString() +"error response from " + conn + " err " + errmsg + " code:" + err.errno);
+		
 		this.tryErrorFinished(this.decrementCountBy(1));
 	}
 
@@ -187,18 +193,17 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 			lock.unlock();
 		}
 		err.errno = ErrorCode.ER_UNKNOWN_ERROR;
-		err.message = StringUtil.encode(errmgs, session.getSource()
-				.getCharset());
+		err.message = StringUtil.encode(errmgs, session.getSource().getCharset());
 		return err;
 	}
 
 	protected void tryErrorFinished(boolean allEnd) {
 		if (allEnd && !session.closed()) {
-			if (errorRepsponsed.compareAndSet(false, true)) {
-				createErrPkg(this.error).write(session.getSource());
-			}
+			
+
 			// clear session resources,release all
 			if (LOGGER.isDebugEnabled()) {
+				LOGGER.debug(this.toString()+"error all end ,clear session resource ");
 				LOGGER.debug("error all end ,clear session resource ");
 			}
 			if (session.getSource().isAutocommit()) {
@@ -208,13 +213,19 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 				// clear resouces
 				clearResources();
 			}
-
+			if (errorRepsponsed.compareAndSet(false, true)) {
+				//createErrPkg(this.error).write(session.getSource());
+				session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, this.error);
+			}
 		}
 
 	}
 
 	public void connectionClose(BackendConnection conn, String reason) {
 		this.setFail("closed connection:" + reason + " con:" + conn);
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug(this.toString()+ "closed connection:" + reason + " con:" + conn);
+		}
 		boolean finished = false;
 		lock.lock();
 		try {

@@ -26,10 +26,13 @@ package io.mycat.route.function;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
+import io.mycat.route.function.PartitionByPrefixPattern.LongRange;
 
 /**
  * auto partition by Long
@@ -76,6 +79,20 @@ public class PartitionByPattern extends AbstractPartitionAlgorithm implements Ru
 			}
 		}
 		return rst;
+	}
+	
+	@Override
+	public int getPartitionNum() {
+//		int nPartition = this.longRongs.length;
+		/*
+		 * fix #1284 这里的统计应该统计Range的nodeIndex的distinct总数
+		 */
+		Set<Integer> distNodeIdxSet = new HashSet<Integer>();
+		for(LongRange range : longRongs) {
+			distNodeIdxSet.add(range.nodeIndx);
+		}
+		int nPartition = distNodeIdxSet.size();
+		return nPartition;
 	}
 
 	public static boolean isNumeric(String str) {

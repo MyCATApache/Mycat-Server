@@ -27,12 +27,14 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.mycat.buffer.BufferPool;
-import io.mycat.buffer.DirectByteBufferPool;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+
+import org.slf4j.Logger; 
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
@@ -44,7 +46,9 @@ import io.mycat.util.TimeUtil;
  * @author mycat
  */
 public final class NIOProcessor {
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger("NIOProcessor");
+	
 	private final String name;
 	private final BufferPool bufferPool;
 	private final NameableExecutor executor;
@@ -54,6 +58,10 @@ public final class NIOProcessor {
 	private long netInBytes;
 	private long netOutBytes;
 	
+	// TODO: add by zhuam
+	// reload @@config_all 后, 老的backends  全部移往 backends_old, 待检测任务进行销毁
+	public final static ConcurrentLinkedQueue<BackendConnection> backends_old = new ConcurrentLinkedQueue<BackendConnection>();
+
 	//前端已连接数
 	private AtomicInteger frontendsLength = new AtomicInteger(0);
 
@@ -164,7 +172,8 @@ public final class NIOProcessor {
 
 			// 清理已关闭连接，否则空闲检查。
 			if (c.isClosed()) {
-				c.cleanup();
+				// 此处在高并发情况下会存在并发问题, fixed #1072  极有可能解决了 #700
+				//c.cleanup();
 				it.remove();
 				this.frontendsLength.decrementAndGet();
 			} else {
@@ -195,11 +204,8 @@ public final class NIOProcessor {
 				continue;
 			}
 			// SQL执行超时的连接关闭
-			if (c.isBorrowed()
-					&& c.getLastTime() < TimeUtil.currentTimeMillis()
-							- sqlTimeout) {
-				LOGGER.warn("found backend connection SQL timeout ,close it "
-						+ c);
+			if (c.isBorrowed() && c.getLastTime() < TimeUtil.currentTimeMillis() - sqlTimeout) {
+				LOGGER.warn("found backend connection SQL timeout ,close it " + c);
 				c.close("sql timeout");
 			}
 

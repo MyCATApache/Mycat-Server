@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.util.ByteUtil;
-import io.mycat.util.CompareUtil;
 
 public class RowDataPacketSorter {
 
@@ -167,28 +166,32 @@ public class RowDataPacketSorter {
         int colType = orderCol.getColMeta().getColType();
         switch (colType) {
         case ColMeta.COL_TYPE_DECIMAL:
+        case ColMeta.COL_TYPE_FLOAT:
+        case ColMeta.COL_TYPE_DOUBLE:
+        case ColMeta.COL_TYPE_NEWDECIMAL:
+            // 因为mysql的日期也是数字字符串方式表达，因此可以跟整数等一起对待
+        	return ByteUtil.compareDouble(left, right);
         case ColMeta.COL_TYPE_INT:
         case ColMeta.COL_TYPE_SHORT:
         case ColMeta.COL_TYPE_LONG:
-        case ColMeta.COL_TYPE_FLOAT:
-        case ColMeta.COL_TYPE_DOUBLE:
         case ColMeta.COL_TYPE_LONGLONG:
         case ColMeta.COL_TYPE_INT24:
-        case ColMeta.COL_TYPE_NEWDECIMAL:
-            // 因为mysql的日期也是数字字符串方式表达，因此可以跟整数等一起对待
+
         case ColMeta.COL_TYPE_DATE:
         case ColMeta.COL_TYPE_TIMSTAMP:
         case ColMeta.COL_TYPE_TIME:
         case ColMeta.COL_TYPE_YEAR:
-        case ColMeta.COL_TYPE_DATETIME:
         case ColMeta.COL_TYPE_NEWDATE:
         case ColMeta.COL_TYPE_BIT:
-            return BytesTools.compareTo(left,right);
+//            return BytesTools.compareTo(left,right);
+        	return ByteUtil.compareNumberByte(left, right);
         case ColMeta.COL_TYPE_VAR_STRING:
         case ColMeta.COL_TYPE_STRING:
-            // ENUM和SET类型都是字符串，按字符串处理
+        // ENUM和SET类型都是字符串，按字符串处理
         case ColMeta.COL_TYPE_ENUM:
         case ColMeta.COL_TYPE_SET:
+        //MySQL与SQL Server的DateTime格式不同 需按字符串处理
+        case ColMeta.COL_TYPE_DATETIME:
             return BytesTools.compareTo(left,right);
             // BLOB相关类型和GEOMETRY类型不支持排序，略掉
         }

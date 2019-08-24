@@ -45,7 +45,7 @@
 		<table name="area" primaryKey="ID" type="global" dataNode="dn1,dn2,dn3" />
 		<table name="employee" primaryKey="id" dataNode="dn1,dn2"
 			rule="sharding-by-intfile" />
-		<table name="customer" dataNode="dn1,dn2" rule="auto-sharding-long">
+		<table name="customer" dataNode="dn1,dn2" rule="auto-sharding-long2">
 			<childTable name="orders" joinKey="customer_id" parentKey="id">
 				<childTable name="order_items" joinKey="order_id"
 					parentKey="id" />
@@ -62,29 +62,39 @@
 	</schema>
 
     <schema name="mysqldb"  sqlMaxLimit="100">
-        <table name="offer" dataNode="dn1,dn2" rule="offerRule" />
-        <table name="offer1" dataNode="dn1" rule="offerRule" />
+        <table name="offer" dataNode="dn1,dn2" rule="auto-sharding-long2" />
+		<table name="autoslot" dataNode="dn1,dn2" rule="crc32slot" />
+        <table name="offer1" dataNode="dn1" />
     </schema>
     <schema name="oracledb"  sqlMaxLimit="100">
-        <table name="offer" dataNode="d_oracle1,d_oracle2" rule="offerRule" />
-        <table name="offer1" dataNode="d_oracle1" rule="offerRule" />
+        <table name="offer" dataNode="d_oracle1,d_oracle2" rule="auto-sharding-long2" />
+        <table name="offer1" dataNode="d_oracle1" />
     </schema>
 
 	<schema name="db2db"  sqlMaxLimit="100">
-		<table name="offer" dataNode="db2_1,db2_2" rule="offerRule" />
-		<table name="offer1" dataNode="db2_1" rule="offerRule" />
+		<table name="offer" dataNode="db2_1,db2_2" rule="auto-sharding-long2" />
+		<table name="offer1" dataNode="db2_1" />
 	</schema>
 
 
 	<schema name="sqlserverdb"  sqlMaxLimit="100">
-		<table name="offer" dataNode="sqlserver_1,sqlserver_2" rule="offerRule" />
-		<table name="offer1" dataNode="sqlserver_1" rule="offerRule" />
+		<table name="offer" dataNode="sqlserver_1,sqlserver_2" rule="auto-sharding-long2" />
+		<table name="offer1" dataNode="sqlserver_1" />
 	</schema>
 
 
 	<schema name="pgdb"  sqlMaxLimit="100">
-		<table name="offer" dataNode="pg_1,pg_2" rule="offerRule" />
-		<table name="offer1" dataNode="pg_1" rule="offerRule" />
+		<table name="offer" dataNode="pg_1,pg_2" rule="auto-sharding-long2" />
+		<table name="offer1" dataNode="pg_1" />
+	</schema>
+	
+	<schema name="subQueries" sqlMaxLimit="100">
+		<table name="table_0" dataNode="dn1,dn2" type="global"/><!-- 全局表    -->
+		<table name="table_1" dataNode="dn1"/>          <!-- 非分片表 -->
+		<table name="subtest1" dataNode="dn1,dn2" rule="mod-long" />
+		<table name="subtest2" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
+		<table name="subtest3" dataNode="dn2,dn3" rule="mod-long" />
+		<table name="subtest4" dataNode="dn1,dn2" rule="mod-long" />
 	</schema>
 
 	<dataNode name="dn1" dataHost="localhost1" database="db1" />

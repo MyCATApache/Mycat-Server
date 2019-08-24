@@ -2,6 +2,7 @@ package io.mycat.backend.jdbc;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.*;
@@ -334,12 +335,12 @@ public class JDBCConnection implements BackendConnection {
 			ErrorPacket error = new ErrorPacket();
 			error.packetId = ++packetId;
 			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
-			error.message = msg.getBytes();
+			error.message = ((msg == null) ? e.toString().getBytes() : msg.getBytes());
 			String err = null;
 			if(error.message!=null){
 			    err = new String(error.message);
 			}
-			LOGGER.error("sql execute error, "+ err +", "+ e);
+			LOGGER.error("sql execute error, "+ err , e);
 			this.respHandler.errorResponse(error.writeToBytes(sc), this);
 		}
 		finally {
@@ -649,7 +650,6 @@ public class JDBCConnection implements BackendConnection {
 				byteBuf.get(field);
 				byteBuf.clear();
 				fields.add(field);
-				itor.remove();
 			}
 			EOFPacket eofPckg = new EOFPacket();
 			eofPckg.packetId = ++packetId;
@@ -665,8 +665,19 @@ public class JDBCConnection implements BackendConnection {
 				RowDataPacket curRow = new RowDataPacket(colunmCount);
 				for (int i = 0; i < colunmCount; i++) {
 					int j = i + 1;
-					curRow.add(StringUtil.encode(rs.getString(j),
-							sc.getCharset()));
+					if(MysqlDefs.isBianry((byte) fieldPks.get(i).type)) {
+							curRow.add(rs.getBytes(j));
+					} else if(fieldPks.get(i).type == MysqlDefs.FIELD_TYPE_DECIMAL ||
+							fieldPks.get(i).type == (MysqlDefs.FIELD_TYPE_NEW_DECIMAL - 256)) { // field type is unsigned byte
+						// ensure that do not use scientific notation format
+						BigDecimal val = rs.getBigDecimal(j);
+						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null,
+								sc.getCharset()));
+					} else {
+						   curRow.add(StringUtil.encode(rs.getString(j),
+								   sc.getCharset()));
+					}
+
 				}
 				curRow.packetId = ++packetId;
 				byteBuf = curRow.write(byteBuf, sc, false);
@@ -676,6 +687,8 @@ public class JDBCConnection implements BackendConnection {
 				byteBuf.clear();
 				this.respHandler.rowResponse(row, this);
 			}
+
+			fieldPks.clear();
 
 			// end row
 			eofPckg = new EOFPacket();
@@ -711,7 +724,7 @@ public class JDBCConnection implements BackendConnection {
 			justForHeartbeat(sql);
 		}    else
 		{
-			throw new UnsupportedEncodingException("unsupported yet ");
+			throw new UnsupportedOperationException("global seq is not unsupported in jdbc driver yet ");
 		}
 	}
 	private void justForHeartbeat(String sql)
@@ -858,7 +871,26 @@ public class JDBCConnection implements BackendConnection {
 		// TODO Auto-generated method stub
 		
 	}
-	
-	
+
+	@Override
+	public void query(String sql, int charsetIndex) {
+		try {
+			query(sql);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
+		}		
+	}
+
+	@Override
+	public boolean checkAlive() {
+		try {
+			return !con.isClosed();
+		} catch (SQLException e) {
+			LOGGER.error("connection is closed",e);
+			return false;
+		}
+	}
+
 
 }

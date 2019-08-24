@@ -25,6 +25,7 @@ package io.mycat.server.handler;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLLiteralExpr;
 import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLoadDataInFileStatement;
@@ -45,6 +46,7 @@ import io.mycat.net.mysql.BinaryPacket;
 import io.mycat.net.mysql.RequestFilePacket;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
+import io.mycat.route.function.SlotFunction;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatStatementParser;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
@@ -94,6 +96,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     private LayerCachePool tableId2DataNodeCache;
     private SchemaConfig schema;
     private boolean isStartLoadData = false;
+
+    private boolean shoudAddSlot = false;
 
     public int getPackID()
     {
@@ -169,9 +173,15 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         }
         schema = MycatServer.getInstance().getConfig()
                 .getSchemas().get(serverConnection.getSchema());
+        if (schema == null){
+            throw new RuntimeException("please sql:use schema  before load data");
+        }
         tableId2DataNodeCache = (LayerCachePool) MycatServer.getInstance().getCacheService().getCachePool("TableID2DataNodeCache");
         tableName = statement.getTableName().getSimpleName().toUpperCase();
         tableConfig = schema.getTables().get(tableName);
+      if(  tableConfig.getRule() != null && tableConfig.getRule().getRuleAlgorithm() instanceof SlotFunction){
+          shoudAddSlot=true;
+      }
         tempPath = SystemConfig.getHomePath() + File.separator + "temp" + File.separator + serverConnection.getId() + File.separator;
         tempFile = tempPath + "clientTemp.txt";
         tempByteBuffer = new ByteArrayOutputStream();
@@ -180,24 +190,22 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         if(tableConfig!=null)
         {
             String pColumn = getPartitionColumn();
-            if (pColumn != null && columns != null && columns.size() > 0)
-            {
-
-                for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++)
-                {
+            if (pColumn != null && columns != null && columns.size() > 0) {
+                for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++) {
                     String column = StringUtil.removeBackquote(columns.get(i).toString());
-                    if (pColumn.equalsIgnoreCase(column))
-                    {
+                    if (pColumn.equalsIgnoreCase(column)) {
                         partitionColumnIndex = i;
-                        break;
-
                     }
-
+                    if("_slot".equalsIgnoreCase(column)){
+                        shoudAddSlot=false;
+                    }
                 }
 
             }
         }
-
+            if(shoudAddSlot){
+                columns.add(new SQLIdentifierExpr("_slot"));
+            }
         parseLoadDataPram();
         if (statement.isLocal())
         {
@@ -316,6 +324,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         {
             //走默认节点
             RouteResultsetNode rrNode = new RouteResultsetNode(schema.getDataNode(), ServerParse.INSERT, sql);
+            rrNode.setSource(rrs);
             rrs.setNodes(new RouteResultsetNode[]{rrNode});
             return rrs;
         }
@@ -328,6 +337,10 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 String dataNode = dataNodes.get(i);
                 RouteResultsetNode rrNode = new RouteResultsetNode(dataNode, ServerParse.INSERT, sql);
                 rrsNodes[i]=rrNode;
+                if(rrs.getDataNodeSlotMap().containsKey(dataNode)){
+                    rrsNodes[i].setSlot(rrs.getDataNodeSlotMap().get(dataNode));
+                }
+                rrsNodes[i].setSource(rrs);
             }
 
             rrs.setNodes(rrsNodes);
@@ -415,6 +428,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
                 }
 
                     String jLine = joinField(line, data);
+                if(shoudAddSlot){
+                    jLine=jLine+loadData.getFieldTerminatedBy()+routeResultsetNode.getSlot();
+                }
                     if (data.getData() == null)
                     {
                         data.setData(Lists.newArrayList(jLine));
@@ -530,6 +546,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
         for (String dn : routeMap.keySet())
         {
             RouteResultsetNode rrNode = new RouteResultsetNode(dn, ServerParse.LOAD_DATA_INFILE_SQL, srcStatement);
+            rrNode.setSource(rrs);
             rrNode.setTotalNodeSize(size);
             rrNode.setStatement(srcStatement);
             LoadData newLoadData = new LoadData();
@@ -624,6 +641,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
 
             // List<String> lines = Splitter.on(loadData.getLineTerminatedBy()).omitEmptyStrings().splitToList(content);
             CsvParserSettings settings = new CsvParserSettings();
+            settings.setMaxColumns(65535);
+            settings.setMaxCharsPerColumn(65535);
             settings.getFormat().setLineSeparator(loadData.getLineTerminatedBy());
             settings.getFormat().setDelimiter(loadData.getFieldTerminatedBy().charAt(0));
             if(loadData.getEnclose()!=null)
@@ -635,6 +654,12 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             settings.getFormat().setQuoteEscape(loadData.getEscape().charAt(0));
             }
             settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
+            /*
+             *  fix bug #1074 : LOAD DATA local INFILE导入的所有Boolean类型全部变成了false
+             *  不可见字符将在CsvParser被当成whitespace过滤掉, 使用settings.trimValues(false)来避免被过滤掉
+             *  TODO : 设置trimValues(false)之后, 会引起字段值前后的空白字符无法被过滤!
+             */
+            settings.trimValues(false);
             CsvParser parser = new CsvParser(settings);
             try
             {
@@ -671,6 +696,8 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
     {
         List<SQLExpr> columns = statement.getColumns();
         CsvParserSettings settings = new CsvParserSettings();
+        settings.setMaxColumns(65535);
+        settings.setMaxCharsPerColumn(65535);
         settings.getFormat().setLineSeparator(loadData.getLineTerminatedBy());
         settings.getFormat().setDelimiter(loadData.getFieldTerminatedBy().charAt(0));
         if(loadData.getEnclose()!=null)
@@ -682,6 +709,12 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler
             settings.getFormat().setQuoteEscape(loadData.getEscape().charAt(0));
         }
         settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
+        /*
+         *  fix #1074 : LOAD DATA local INFILE导入的所有Boolean类型全部变成了false
+         *  不可见字符将在CsvParser被当成whitespace过滤掉, 使用settings.trimValues(false)来避免被过滤掉
+         *  TODO : 设置trimValues(false)之后, 会引起字段值前后的空白字符无法被过滤!
+         */
+        settings.trimValues(false);
         CsvParser parser = new CsvParser(settings);
         InputStreamReader reader = null;
         FileInputStream fileInputStream = null;

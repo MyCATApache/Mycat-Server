@@ -1,5 +1,8 @@
 
 # [MyCAT](http://mycat.io/)
+
+Mycat志愿者开发群:332702697
+
 [![GitHub issues](https://img.shields.io/github/issues/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/issues)
 [![GitHub forks](https://img.shields.io/github/forks/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/network)
 [![GitHub stars](https://img.shields.io/github/stars/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/stargazers)
@@ -9,8 +12,23 @@ MyCAT is an Open-Source software, “a large database cluster” oriented to ent
 
 Mycat’s target is to smoothly migrate the current stand-alone database and applications to cloud side with low cost and to solve the bottleneck problem caused by the rapid growth of data storage and business scale.
 
+
+
+MyCAT1.6不支持一个SQL包含多个语句,但是正在开发的2.0是支持的
+
+旧Mycat升级fastjson，把pom.xml中fastjson的版本更改即可
+
+更新Druid 1.1.10版本的分支独立维护在
+https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid
+
+MyCAT2.0开发中
+https://github.com/MyCATApache/Mycat2
+
+
+
 * [Getting Started](https://github.com/MyCATApache/Mycat-doc/tree/master/en)
-* [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/blob/master/MyCat_In_Action_%E4%B8%AD%E6%96%87%E7%89%88.doc)
+* [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/tree/master/%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97)
+
 
 ## Features
 
@@ -51,8 +69,8 @@ There are some documents in Mycat-doc project on github at [Mycat-doc](https://g
 Mycat 简单demo，具体参考Mycat权威指南
 
 官网 : mycat.io
-qq官方群：106088787
-Mycat权威指南官方下载：http://songwie.com/attached/file/mycat_1.5.2.pdf
+qq官方群：332702697
+Mycat权威指南官方下载：https://github.com/MyCATApache/Mycat-Server/blob/4135f25df8239d52d220529cbf7cb697ede40e12/mycat-definitive-guide.pdf
 wiki：<a href="https://github.com/MyCATApache/Mycat-Server/wiki"> wiki</a>
 
 # Mycat前世今生
@@ -209,20 +227,20 @@ mysql -uroot -proot -P8066 -h127.0.0.1
 ## 配置：
 --bin  启动目录
 
---conf 配置文件存放配置文件：
+--conf 配置目录存放配置文件：
 
       --server.xml：是Mycat服务器参数调整和用户授权的配置文件。
-
+    
       --schema.xml：是逻辑库定义和表以及分片定义的配置文件。
-
+    
       --rule.xml：  是分片规则的配置文件，分片规则的具体一些参数信息单独存放为文件，也在这个目录下，配置文件修改需要重启MyCAT。
-
+    
       --log4j.xml： 日志存放在logs/log中，每天一个文件，日志的配置是在conf/log4j.xml中，根据自己的需要可以调整输出级别为debug                           debug级别下，会输出更多的信息，方便排查问题。
-
+    
       --autopartition-long.txt,partition-hash-int.txt,sequence_conf.properties， sequence_db_conf.properties 分片相关的id分片规则配置文件
-
+    
       --lib	    MyCAT自身的jar包或依赖的jar包的存放目录。
-
+    
       --logs        MyCAT日志的存放目录。日志存放在logs/log中，每天一个文件
 
 下面图片描述了Mycat最重要的3大配置文件：
@@ -232,22 +250,22 @@ mysql -uroot -proot -P8066 -h127.0.0.1
 
 ## 逻辑库配置：
 ### 配置server.xml
-添加两个mycat逻辑库：user,pay:
-system 参数是所有的mycat参数配置，比如添加解析器：defaultSqlParser，其他类推
+添加两个mycat逻辑库：user,pay  
+system 参数是所有的mycat参数配置，比如添加解析器：defaultSqlParser，其他类推  
 user 是用户参数。
 
 	<system>
-
+	
 		<property name="defaultSqlParser">druidparser</property>
-
+	
 	</system>
-
+	
 	<user name="mycat">
-
+	
 		<property name="password">mycat</property>
-
+	
 		<property name="schemas">user,pay</property>
-
+	
 	</user>
 
 ### 编辑schema.xml
@@ -265,11 +283,11 @@ dataHost是实际的物理库配置地址，可以配置多主主从等其他配
     <schema name="pay"  checkSQLschema="false" sqlMaxLimit="100" dataNode="pay" >
        <table name="order" dataNode="pay1,pay2" rule="rule1"/>
     </schema>
-
+    
     <dataNode name="user" dataHost="host" database="user" />
     <dataNode name="pay1" dataHost="host" database="pay1" />
     <dataNode name="pay2" dataHost="host" database="pay2" />
-
+    
     <dataHost name="host" maxCon="1000" minCon="10" balance="0"
        writeType="0" dbType="mysql" dbDriver="native">
        <heartbeat>select 1</heartbeat>
@@ -277,8 +295,9 @@ dataHost是实际的物理库配置地址，可以配置多主主从等其他配
        <writeHost host="hostM1" url="192.168.0.2:3306" user="root" password="root" />
        <writeHost host="hostM2" url="192.168.0.3:3306" user="root" password="root" />
     </dataHost>
-    
-    
+
+
+​    
 
 # Mycat逻辑库、系统参数配置
 
@@ -302,10 +321,10 @@ dataHost是实际的物理库配置地址，可以配置多主主从等其他配
     <?xml version="1.0" encoding="UTF-8" standalone="no"?>
     <!DOCTYPE mycat:server SYSTEM "server.dtd">
     <mycat:server xmlns:mycat="http://org.opencloudb/">
-	<user name="mycat">
-		<property name="password">mycat</property>
-		<property name="schemas">TESTDB</property>
-	</user>
+    <user name="mycat">
+    	<property name="password">mycat</property>
+    	<property name="schemas">TESTDB</property>
+    </user>
      </mycat:server>
 
 
@@ -316,7 +335,7 @@ dataHost是实际的物理库配置地址，可以配置多主主从等其他配
 
 ## 配置逻辑库（schema）
 
-Mycat作为一个中间件，实现mysql协议那么对前端应用连接来说就是一个数据库，也就有数据库的配置，mycat的数据库配置是在schema.xml中配置，配置好后映射到server.xml里面的用户就可以了。
+Mycat作为一个中间件，实现mysql协议，那么对前端应用连接来说就是一个数据库，也就有数据库的配置，mycat的数据库配置是在schema.xml中配置，配置好后映射到server.xml里面的用户就可以了。
 
 	<?xml version="1.0" encoding="UTF-8"?>
 	<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
@@ -416,7 +435,7 @@ algorithm 是规则对应的切分规则：映射到function 的name。
 
 function 配置是分片规则的配置。
 
-name 为切分规则的名称，名字人员取，但是需要与tableRule 中匹配。
+name 为切分规则的名称，名字任意取，但是需要与tableRule 中匹配。
 
 class 是切分规则对应的切分类，写死，需要哪种规则则配置哪种，例如本例子是按小时分片：org.opencloudb.route.function.LatestMonthPartion
 

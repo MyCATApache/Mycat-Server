@@ -3,7 +3,7 @@
 ### 官网:[http://www.mycat.org.cn](http://www.mycat.org.cn)
 
 ### github:[https://github.com/MyCATApache](https://github.com/MyCATApache)
-##### 入门: [zh-CN: https://github.com/MyCATApache/Mycat-doc/blob/master/MyCat_In_Action_%E4%B8%AD%E6%96%87%E7%89%88.doc] [English:https://github.com/MyCATApache/Mycat-doc/tree/master/en]
+##### 入门: [zh-CN: https://github.com/MyCATApache/Mycat-doc/blob/master/history/MyCat_In_Action_%E4%B8%AD%E6%96%87%E7%89%88.doc] [English:https://github.com/MyCATApache/Mycat-doc/tree/master/en]
 
 什么是Mycat？简单的说，Mycat就是：
 

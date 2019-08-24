@@ -23,10 +23,13 @@
  */
 package io.mycat.config.model;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.Iterables;
 import io.mycat.backend.datasource.PhysicalDBPool;
 
 /**
@@ -46,6 +49,7 @@ public class DataHostConfig {
 	private int maxCon = SystemConfig.DEFAULT_POOL_SIZE;
 	private int minCon = 10;
 	private int balance = PhysicalDBPool.BALANCE_NONE;
+	private int balanceType = PhysicalDBPool.RANDOM;
 	private int writeType = PhysicalDBPool.WRITE_ONLYONE_NODE;
 	private final String dbType;
 	private final String dbDriver;
@@ -60,7 +64,14 @@ public class DataHostConfig {
 	private String filters="mergeStat";
 	private long logTime=300000;
 	private boolean tempReadHostAvailable = false;  //如果写服务挂掉, 临时读服务是否继续可用
+	private final Set<String> dataNodes; //包含的所有dataNode名字
+	private String slaveIDs;
+	private int maxRetryCount = 3; // 心跳失败时候重试的次数. @auth zwy
+	public static final String FOVER_NOT_SWITCH_DS = "1";
+	public static final String CAN_SWITCH_DS = "0";
 
+	private String notSwitch = CAN_SWITCH_DS;
+	
 	public DataHostConfig(String name, String dbType, String dbDriver,
 			DBHostConfig[] writeHosts, Map<Integer, DBHostConfig[]> readHosts,int switchType,int slaveThreshold, boolean tempReadHostAvailable) {
 		super();
@@ -72,8 +83,9 @@ public class DataHostConfig {
 		this.switchType=switchType;
 		this.slaveThreshold=slaveThreshold;
 		this.tempReadHostAvailable = tempReadHostAvailable;
+		this.dataNodes = new HashSet<>();
 	}
-	
+
 	public boolean isTempReadHostAvailable() {
 		return this.tempReadHostAvailable;
 	}
@@ -137,12 +149,28 @@ public class DataHostConfig {
 		this.minCon = minCon;
 	}
 
+	public String getSlaveIDs() {
+		return slaveIDs;
+	}
+
+	public void setSlaveIDs(String slaveIDs) {
+		this.slaveIDs = slaveIDs;
+	}
+
 	public int getBalance() {
 		return balance;
 	}
 
 	public void setBalance(int balance) {
 		this.balance = balance;
+	}
+
+	public int getBalanceType() {
+		return balanceType;
+	}
+
+	public void setBalanceType(int balanceType) {
+		this.balanceType = balanceType;
 	}
 
 	public String getDbType() {
@@ -198,4 +226,34 @@ public class DataHostConfig {
 	public void setLogTime(long logTime) {
 		this.logTime = logTime;
 	}
+
+	public void addDataNode(String name){
+		this.dataNodes.add(name);
+	}
+
+	public String getRandomDataNode() {
+		int index = (int) (Math.random() * dataNodes.size());
+		return Iterables.get(dataNodes,index);
+	}
+
+    public boolean containDataNode(String randomDn) {
+        return dataNodes.contains(randomDn);
+    }
+
+	public int getMaxRetryCount() {
+		return maxRetryCount;
+	}
+
+	public void setMaxRetryCount(int maxRetryCount) {
+		this.maxRetryCount = maxRetryCount;
+	}
+
+	public String getNotSwitch() {
+		return notSwitch;
+	}
+
+	public void setNotSwitch(String notSwitch) {
+		this.notSwitch = notSwitch;
+	}
+	
 }

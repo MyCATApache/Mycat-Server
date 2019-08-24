@@ -5,14 +5,13 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
-import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import junit.framework.Assert;
 
@@ -20,22 +19,24 @@ public class DruidDb2SqlParserTest
 {
 	protected Map<String, SchemaConfig> schemaMap;
 	protected LayerCachePool cachePool = new SimpleCachePool();
-    protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
+    protected RouteStrategy routeStrategy;
 
 	public DruidDb2SqlParserTest() {
 		String schemaFile = "/route/schema.xml";
 		String ruleFile = "/route/rule.xml";
 		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
 		schemaMap = schemaLoader.getSchemas();
+		MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
         RouteStrategyFactory.init();
+        routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 	}
 
 	@Test
 	public void testLimitToDb2Page() throws SQLNonTransientException {
 		String sql = "select * from offer order by id desc limit 5,10";
 		SchemaConfig schema = schemaMap.get("db2db");
-        RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
-                null, cachePool);
+		RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
+	                null, cachePool);        
         Assert.assertEquals(2, rrs.getNodes().length);
         Assert.assertEquals(5, rrs.getLimitStart());
         Assert.assertEquals(10, rrs.getLimitSize());

@@ -27,6 +27,10 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
 
@@ -52,9 +56,8 @@ import io.mycat.server.response.ShowFullTables;
 import io.mycat.server.response.ShowTables;
 import io.mycat.statistic.stat.QueryResult;
 import io.mycat.statistic.stat.QueryResultDispatcher;
+import io.mycat.util.ResultSetUtil;
 import io.mycat.util.StringUtil;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 /**
  * @author mycat
  */
@@ -76,6 +79,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 	private long netOutBytes;
 	private long selectRows;
 	private long affectedRows;
+	protected final AtomicBoolean errorRepsponsed = new AtomicBoolean(false);
 	
 	private boolean prepared;
 	private int fieldCount;
@@ -84,7 +88,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
     private volatile boolean isDefaultNodeShowTable;
     private volatile boolean isDefaultNodeShowFullTable;
     private  Set<String> shardingTablesSet;
-	
+	private byte[] header = null;
+	private List<byte[]> fields = null;
 	public SingleNodeHandler(RouteResultset rrs, NonBlockingSession session) {
 		this.rrs = rrs;
 		this.node = rrs.getNodes()[0];
@@ -151,9 +156,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 
 		ByteBuffer buf = buffer;
 		if (buf != null) {
-			buffer = null;
 			session.getSource().recycle(buffer);
-
+			buffer = null;
 		}
 	}
 
@@ -163,24 +167,32 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		this.isRunning = true;
 		this.packetId = 0;
 		final BackendConnection conn = session.getTarget(node);
-		
-		LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlave());
+		LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlaveDebugInfo());
 		node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
-		LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
+		LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlaveDebugInfo());
 		 
-		if (session.tryExistsCon(conn, node)) {
-			_execute(conn);
-		} else {
-			// create new connection
-
-			MycatConfig conf = MycatServer.getInstance().getConfig();
-						
-			LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
-			node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
-			LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
-			 		
-			PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
-			dn.getConnection(dn.getDatabase(), sc.isAutocommit(), node, this, node);
+		try {
+			if (session.tryExistsCon(conn, node)) {
+				_execute(conn);
+			} else {
+				// create new connection
+	
+				MycatConfig conf = MycatServer.getInstance().getConfig();
+							
+				LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
+				node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
+				LOGGER.debug("node.getRunOnSlave() " + node.getRunOnSlave());
+				 		
+				PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
+				dn.getConnection(dn.getDatabase(), sc.isAutocommit(), node, this, node);
+			}
+		}catch (Exception e) {
+			ServerConnection source = session.getSource();
+	        LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
+			//设置错误			
+	        connectionError(e, null);
+	
+	
 		}
 
 	}
@@ -211,7 +223,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 	private void executeException(BackendConnection c, Exception e) {
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
-		err.errno = ErrorCode.ERR_FOUND_EXCEPION;
+		err.errno = ErrorCode.ERR_FOUND_EXCEPTION;
 		err.message = StringUtil.encode(e.toString(), session.getSource().getCharset());
 
 		this.backConnectionErr(err, c);
@@ -221,13 +233,18 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 	public void connectionError(Throwable e, BackendConnection conn) {
 
 		endRunning();
-		ErrorPacket err = new ErrorPacket();
-		err.packetId = ++packetId;
-		err.errno = ErrorCode.ER_NEW_ABORTING_CONNECTION;
-		err.message = StringUtil.encode(e.getMessage(), session.getSource().getCharset());
+//		ErrorPacket err = new ErrorPacket();
+//		err.packetId = ++packetId;
+//		err.errno = ErrorCode.ER_NEW_ABORTING_CONNECTION;
+//		err.message = StringUtil.encode(e.getMessage(), session.getSource().getCharset());
 		
 		ServerConnection source = session.getSource();
-		source.write(err.write(allocBuffer(), source, true));
+//		source.write(err.write(allocBuffer(), source, true));
+		//modify by zwy 2018.07
+		if(errorRepsponsed.compareAndSet(false, true)) {
+//			source.setTxInterrupt(e.getMessage());
+			source.writeErrMessage(ErrorCode.ER_NEW_ABORTING_CONNECTION, e.getMessage());
+		}
 	}
 
 	@Override
@@ -253,7 +270,30 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		session.releaseConnectionIfSafe(conn, LOGGER.isDebugEnabled(), false);
 		
 		source.setTxInterrupt(errmgs);
-		errPkg.write(source);
+		
+		/**
+		 * TODO: 修复全版本BUG
+		 * 
+		 * BUG复现：
+		 * 1、MysqlClient:  SELECT 9223372036854775807 + 1;
+		 * 2、MyCatServer:  ERROR 1690 (22003): BIGINT value is out of range in '(9223372036854775807 + 1)'
+		 * 3、MysqlClient: ERROR 2013 (HY000): Lost connection to MySQL server during query
+		 * 
+		 * Fixed后
+		 * 1、MysqlClient:  SELECT 9223372036854775807 + 1;
+		 * 2、MyCatServer:  ERROR 1690 (22003): BIGINT value is out of range in '(9223372036854775807 + 1)'
+		 * 3、MysqlClient: ERROR 1690 (22003): BIGINT value is out of range in '(9223372036854775807 + 1)'
+		 * 
+		 */		
+		// 由于 pakcetId != 1 造成的问题 
+		//todo 统一调用writeErr
+		errPkg.packetId = 1;		
+		//errPkg.write(source);
+		//modify by zwy
+		if (errorRepsponsed.compareAndSet(false, true)) {
+			source.writeErrMessage(errPkg.errno, new String(errPkg.message));
+		}
+		
 		recycleResources();
 	}
 
@@ -294,11 +334,20 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 
 			if (isCanClose2Client) {
 				source.setLastInsertId(ok.insertId);
-				ok.write(source);
+				//modify by zwy 2018.07
+				if(!errorRepsponsed.get() && !session.closed() && source.canResponse()) {
+					ok.write(source);	
+				}	
 			}
             
 			this.affectedRows = ok.affectedRows;
 			
+			source.setExecuteSql(null);
+			// add by lian
+			// 解决sql统计中写操作永远为0
+			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+					rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0);
+			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 	}
 
@@ -326,7 +375,17 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		buffer = source.writeToBuffer(eof, allocBuffer());
 		int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
 		resultSize=resultSize+buffer.position();
-		source.write(buffer);
+		MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+
+		if(middlerResultHandler !=null ){
+			middlerResultHandler.secondEexcute(); 
+		} else{
+			//modify by zwy 2018.07
+			if(!errorRepsponsed.get()&& !session.closed()&& source.canResponse()) {
+				source.write(buffer);
+			}
+		}
+		source.setExecuteSql(null);
 		//TODO: add by zhuam
 		//查询结果派发
 		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
@@ -355,7 +414,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
-		
+		this.header = header;
+		this.fields = fields;
+		MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+        if(null !=middlerResultHandler ){
+			return;
+		}
 		this.netOutBytes += header.length;
 		for (int i = 0, len = fields.size(); i < len; ++i) {
 			byte[] field = fields.get(i);
@@ -376,6 +440,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			
 			buffer = source.writeToBuffer(field, buffer);
 		}
+		
+		fieldCount = fieldPackets.size();
+		
 		eof[3] = ++packetId;
 		buffer = source.writeToBuffer(eof, buffer);
 
@@ -407,6 +474,10 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 	 */
 	@Override
 	public void rowResponse(byte[] row, BackendConnection conn) {
+		//已经有错误了直接不处理返回 modify by zwy2018.07
+		if(errorRepsponsed.get()) {
+			return;
+		}
 		
 		this.netOutBytes += row.length;
 		this.selectRows++;
@@ -414,7 +485,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		if (isDefaultNodeShowTable || isDefaultNodeShowFullTable) {
 			RowDataPacket rowDataPacket = new RowDataPacket(1);
 			rowDataPacket.read(row);
-			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), conn.getCharset());
+			String table = StringUtil.decode(rowDataPacket.fieldValues.get(0), session.getSource().getCharset());
 			if (shardingTablesSet.contains(table.toUpperCase())) {
 				return;
 			}
@@ -427,10 +498,26 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
 			binRowDataPk.read(fieldPackets, rowDataPk);
 			binRowDataPk.packetId = rowDataPk.packetId;
-			binRowDataPk.write(session.getSource());
+//			binRowDataPk.write(session.getSource());
+			/*
+			 * [fix bug] : 这里不能直接将包写到前端连接,
+			 * 因为在fieldEofResponse()方法结束后buffer还没写出,
+			 * 所以这里应该将包数据顺序写入buffer(如果buffer满了就写出),然后再将buffer写出
+			 */
+			buffer = binRowDataPk.write(buffer, session.getSource(), true);
 		} else {
-			buffer = session.getSource().writeToBuffer(row, allocBuffer());
-			//session.getSource().write(row);
+
+			MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
+	        if(null ==middlerResultHandler ){
+	        	 buffer = session.getSource().writeToBuffer(row, allocBuffer());
+			}else{
+		        if(middlerResultHandler instanceof MiddlerQueryResultHandler){
+		        	byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
+					 	 String rowValue =  rv==null?"":new String(rv);
+						 middlerResultHandler.add(rowValue);	
+ 				 }
+			}
+		 
 		}
 
 	}

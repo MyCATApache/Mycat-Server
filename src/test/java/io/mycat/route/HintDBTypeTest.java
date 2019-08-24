@@ -1,5 +1,6 @@
 package io.mycat.route;
 
+import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.CacheService;
 import io.mycat.cache.LayerCachePool;
@@ -26,6 +27,7 @@ public class HintDBTypeTest {
 		String ruleFile = "/route/rule.xml";
 		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
 		schemaMap = schemaLoader.getSchemas();
+		MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
         RouteStrategyFactory.init();
         routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 	}

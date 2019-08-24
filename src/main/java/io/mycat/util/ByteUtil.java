@@ -155,7 +155,8 @@ public class ByteUtil {
 	}
 
 	public static short getShort(byte[] bytes) {
-		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
+		return Short.parseShort(new String(bytes));
+//		return (short) ((0xff & bytes[0]) | (0xff00 & (bytes[1] << 8)));
 	}
 
 	public static char getChar(byte[] bytes) {
@@ -343,5 +344,127 @@ public class ByteUtil {
 	public static char print(byte b) {
 		return (b < 32 || b > 127) ? '.' : (char) b;
 	}
+
+	/*
+	 * 返回小数点的位置
+	 * @return 找不到 ,其他都是小数点的位置
+	 * */
+	public static int getDot(byte[] array) {		
+		for(int s = 0; s < array.length; s++){
+		   if(array[s] == 46) {
+			   return s;
+		   }
+		}
+		return array.length;
+	}
+	/*
+	 * @return 返回是否是科学计数法
+	 * */
+	public static boolean hasE(byte[] array) {		
+		for(int s = 0; s < array.length; s++){
+		   if(array[s] == 'E' || array[s] == 'e') {
+			   return true;
+		   }
+		}
+		return false;
+	}
+	/*
+	 * @比較        對於b1取0 到b1End進行比較
+	 *          對於b2取0 到b2End進行比較
+	 * */
+	public static int compareNumberByte(byte[] b1, int b1End, byte[] b2, int b2End) {
+		if(b1 == null || b1.length == 0) {
+			return -1;
+		}
+		else if(b2 == null || b2.length == 0) {
+			return 1;
+		}
+		boolean isNegetive = b1[0] == 45 || b2[0] == 45; // 45 表示负数符号
+
+		//正数 长度不等 直接返回 长度 		//都是正数长度不等,直接返回长度的比较
+		if (isNegetive == false && b1End != b2End) {
+			return b1End - b2End;
+		}
+		//取短的一个
+		int len = b1End > b2End ? b2End : b1End;
+		int result = 0;
+		int index = -1;
+		for (int i = 0; i < len; i++) {
+			int b1val = b1[i];
+			int b2val = b2[i];
+			if (b1val > b2val) {
+				result = 1;
+				index = i;
+				break;
+			} else if (b1val < b2val) {
+				index = i;
+				result = -1;
+				break;
+			}
+		}		
+		if (index == 0) {
+			//正负数直接符号比较
+			// first byte compare ,数值与符号的比较 一正 一负数
+			return result;
+		} else {
+            if( b1End != b2End ) {
+            	//都是正数 长度不等, 都是负数 长度不等
+                int lenDelta = b1End - b2End;
+                return isNegetive ? 0 - lenDelta : lenDelta;
+
+            } else {
+            	//长度相等 符号相同
+            	//位数相同 直接取比较结果的 正数就是结果,否则就是比较结果取反
+                return isNegetive ? 0 - result : result;
+            }
+		}
+	}
+	/*
+	 * double類型的b1 b2進行比較
+	 * 首先:判斷是否是科學計數法 是直接創建Double對象進行比較
+	 *      否則利用byte進行比較 
+	 *         先判斷整數位 再判斷小數位
+	 * */
+	public static int compareDouble(byte[] b1, byte[] b2) {
+		if(b1 == null || b1.length == 0) {
+			return -1;
+		}
+		else if(b2 == null || b2.length == 0) {
+			return 1;
+		}
+		boolean isHasE = hasE(b1) || hasE(b2);
+		if(isHasE){			
+			return Double.valueOf(new String(b1)).compareTo( Double.valueOf(new String(b2))) ;
+		}
+		int d1 = getDot(b1);
+		int d2 = getDot(b2);
+		//判斷整數位
+		int result = compareNumberByte(b1, d1, b2, d2);
+		//符号相等
+		if(result == 0){
+			//判斷小數位
+			boolean isNegetive = b1[0] == 45 || b2[0] == 45; // 45 表示负数符号
+			int xsLen1 = b1.length - d1;
+			int xsLen2 = b2.length - d2;
+			int len = xsLen1 > xsLen2 ? xsLen2 : xsLen1; //小数位数中的 小数
+			int temp = 0;
+			for(int i = 0; i < len ; i++) {
+				temp = b1[i + d1] - b2 [i+ d2];
+				if(temp != 0){
+					break;
+				}
+			}
+			if(temp == 0){
+				//0.12 0.123 或者 -0.12 -0.123
+				int lenDelta = xsLen1 - xsLen2;
+                result = isNegetive? 0 - lenDelta : lenDelta;
+			} else{
+				//0.12 0.113 或者 -0.12 -0.113
+				result = isNegetive? 0 - temp : temp;
+			}
+		}
+		return result;
+	}
+
 
 }

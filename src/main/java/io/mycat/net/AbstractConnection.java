@@ -24,9 +24,11 @@
 package io.mycat.net;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannel;
 import java.nio.channels.NetworkChannel;
+import java.nio.channels.SocketChannel;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -81,7 +83,7 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	private long idleTimeout;
 
-	private final SocketWR socketWR;
+	protected final SocketWR socketWR;
 
 	public AbstractConnection(NetworkChannel channel) {
 		this.channel = channel;
@@ -214,6 +216,10 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	public long getLastWriteTime() {
 		return lastWriteTime;
+	}
+	
+	public void setLastWriteTime(long lasttime){
+		this.lastWriteTime = lasttime;
 	}
 
 	public long getNetInBytes() {
@@ -427,6 +433,12 @@ public abstract class AbstractConnection implements NIOConnection {
 		} else {
 			writeQueue.offer(buffer);
 		}
+		
+		if(isClosed()) {
+			LOGGER.warn("write err:{}", this);
+			this.close("found this connection has close , try to reClean the connection");
+			throw new RuntimeException("writeNotSend but found connnection close err:" + this);
+		}
 	}
 
 
@@ -509,6 +521,10 @@ public abstract class AbstractConnection implements NIOConnection {
 			if (reason.contains("connection,reason:java.net.ConnectException")) {
 				throw new RuntimeException(" errr");
 			}
+		} else {
+		    // make sure cleanup again
+		    // Fix issue#1616
+		    this.cleanup();
 		}
 	}
 
@@ -554,7 +570,7 @@ public abstract class AbstractConnection implements NIOConnection {
 		}
 	}
 	
-	protected final int getPacketLength(ByteBuffer buffer, int offset) {
+	protected int getPacketLength(ByteBuffer buffer, int offset) {
 		int headerSize = getPacketHeaderSize();
 		if ( isSupportCompress() ) {
 			headerSize = 7;
@@ -576,7 +592,17 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	private void closeSocket() {
 		if (channel != null) {
-			
+			if (channel instanceof SocketChannel) {
+				Socket socket = ((SocketChannel) channel).socket();
+				if (socket != null) {
+					try {
+						socket.close();
+					} catch (IOException e) {
+				       LOGGER.error("closeChannelError", e);
+					}
+				}
+			}
+				
 			boolean isSocketClosed = true;
 			try {
 				channel.close();
@@ -592,5 +618,9 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 	public void onConnectfinish() {
 		LOGGER.debug("连接后台真正完成");
-	}	
+	}
+
+	public boolean checkAlive(){
+	return 	socketWR.checkAlive();
+	}
 }

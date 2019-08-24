@@ -10,10 +10,16 @@
 <!DOCTYPE mycat:server SYSTEM "server.dtd">
 <mycat:server xmlns:mycat="http://io.mycat/">
 	<system>
-	<property name="useSqlStat">1</property>  <!-- 1为开启实时统计、0为关闭 -->
-	<property name="useGlobleTableCheck">1</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
-	<property name="defaultSqlParser">druidparser</property>
+	<property name="nonePasswordLogin">0</property> <!-- 0为需要密码登陆、1为不需要密码登陆 ,默认为0，设置为1则需要指定默认账户-->
+	<property name="useHandshakeV10">1</property>
+	<property name="useSqlStat">0</property>  <!-- 1为开启实时统计、0为关闭 -->
+	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
+		<property name="sqlExecuteTimeout">300</property>  <!-- SQL 执行超时 单位:秒-->
 		<property name="sequnceHandlerType">2</property>
+		<!--<property name="sequnceHandlerPattern">(?:(\s*next\s+value\s+for\s*MYCATSEQ_(\w+))(,|\)|\s)*)+</property>-->
+		<!--必须带有MYCATSEQ_或者 mycatseq_进入序列匹配流程 注意MYCATSEQ_有空格的情况-->
+		<property name="sequnceHandlerPattern">(?:(\s*next\s+value\s+for\s*MYCATSEQ_(\w+))(,|\)|\s)*)+</property>
+	<property name="subqueryRelationshipCheck">false</property> <!-- 子查询中存在关联查询的情况下,检查关联字段中是否有分片字段 .默认 false -->
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
         <!--  <property name="fakeMySQLVersion">5.6.20</property>--> <!--设置模拟的MySQL版本号-->
 	<!-- <property name="processorBufferChunk">40960</property> -->
@@ -21,7 +27,7 @@
 	<property name="processors">1</property> 
 	<property name="processorExecutor">32</property> 
 	 -->
-		<!--默认为type 0: DirectByteBufferPool | type 1 ByteBufferArena-->
+        <!--默认为type 0: DirectByteBufferPool | type 1 ByteBufferArena | type 2 NettyBufferPool -->
 		<property name="processorBufferPoolType">0</property>
 		<!--默认是65535 64K 用于sql解析时最大文本长度 -->
 		<!--<property name="maxStringLiteralLength">65535</property>-->
@@ -29,24 +35,23 @@
 		<!--<property name="backSocketNoDelay">1</property>-->
 		<!--<property name="frontSocketNoDelay">1</property>-->
 		<!--<property name="processorExecutor">16</property>-->
-		<!-- 
-			<property name="mutiNodeLimitType">1</property> 0：开启小数量级（默认） ；1：开启亿级数据排序
-	    	<property name="mutiNodePatchSize">100</property> 亿级数量排序批量
-			<property name="processors">32</property> <property name="processorExecutor">32</property> 
+		<!--
 			<property name="serverPort">8066</property> <property name="managerPort">9066</property> 
-			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property> 
+			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property>
+			<property name="dataNodeIdleCheckPeriod">300000</property> 5 * 60 * 1000L; //连接空闲检查
 			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property> -->
-		<property name="enableDistributedTransactions">false</property>
+		<!--分布式事务开关，0为不过滤分布式事务，1为过滤分布式事务（如果分布式事务内只涉及全局表，则不过滤），2为不过滤分布式事务,但是记录分布式事务日志-->
+		<property name="handleDistributedTransactions">0</property>
 		
 			<!--
-			off heap for merge/order/group/limit
+			off heap for merge/order/group/limit      1开启   0关闭
 		-->
-		<property name="useOffHeapForMerge">1</property>
+		<property name="useOffHeapForMerge">0</property>
 
 		<!--
 			单位为m
 		-->
-		<property name="memoryPageSize">1m</property>
+        <property name="memoryPageSize">64k</property>
 
 		<!--
 			单位为k
@@ -59,10 +64,53 @@
 			单位为m
 		-->
 		<property name="systemReserveMemorySize">384m</property>
+
+
+		<!--是否采用zookeeper协调切换  -->
+		<property name="useZKSwitch">false</property>
+
+		<!-- XA Recovery Log日志路径 -->
+		<!--<property name="XARecoveryLogBaseDir">./</property>-->
+
+		<!-- XA Recovery Log日志名称 -->
+		<!--<property name="XARecoveryLogBaseName">tmlog</property>-->
+		<!--如果为 true的话 严格遵守隔离级别,不会在仅仅只有select语句的时候在事务中切换连接-->
+		<property name="strictTxIsolation">false</property>
+		
+		<property name="useZKSwitch">true</property>
+		
 	</system>
-	<user name="root">
-		<property name="password">digdeep</property>
+	
+	<!-- 全局SQL防火墙设置 -->
+	<!--白名单可以使用通配符%或着*-->
+	<!--例如<host host="127.0.0.*" user="root"/>-->
+	<!--例如<host host="127.0.*" user="root"/>-->
+	<!--例如<host host="127.*" user="root"/>-->
+	<!--例如<host host="1*7.*" user="root"/>-->
+	<!--这些配置情况下对于127.0.0.1都能以root账户登录-->
+	<!--
+	<firewall>
+	   <whitehost>
+	      <host host="1*7.0.0.*" user="root"/>
+	   </whitehost>
+       <blacklist check="false">
+       </blacklist>
+	</firewall>
+	-->
+
+	<user name="root" defaultAccount="true">
+		<property name="password">123456</property>
 		<property name="schemas">TESTDB</property>
+		
+		<!-- 表级 DML 权限设置 -->
+		<!-- 		
+		<privileges check="false">
+			<schema name="TESTDB" dml="0110" >
+				<table name="tb01" dml="0000"></table>
+				<table name="tb02" dml="1111"></table>
+			</schema>
+		</privileges>		
+		 -->
 	</user>
 
 	<user name="user">
@@ -70,14 +118,5 @@
 		<property name="schemas">TESTDB</property>
 		<property name="readOnly">true</property>
 	</user>
-	<!-- 
-	<quarantine> 
-	   <whitehost>
-	      <host host="127.0.0.1" user="mycat"/>
-	      <host host="127.0.0.2" user="mycat"/>
-	   </whitehost>
-       <blacklist check="false"></blacklist>
-	</quarantine>
-	-->
 
 </mycat:server>

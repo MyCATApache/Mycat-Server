@@ -123,7 +123,7 @@ public class UnsafeInMemorySorterSuite {
     for (int i = 0; i < dataToSort.length; i++) {
 
       if (!sorter.hasSpaceForAnotherRecord()) {
-        sorter.expandPointerArray(consumer.allocateArray(sorter.getMemoryUsage() / 8 * 2));
+        sorter.expandPointerArray(consumer.allocateLongArray(sorter.getMemoryUsage() / 8 * 2));
       }
 
       // position now points to the start of a record (which holds its length).

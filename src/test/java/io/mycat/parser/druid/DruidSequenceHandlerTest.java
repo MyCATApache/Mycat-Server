@@ -17,7 +17,7 @@ public class DruidSequenceHandlerTest {
 
 	@Test
 	public void test() {
-		DruidSequenceHandler handler = new DruidSequenceHandler(SystemConfig.SEQUENCEHANDLER_LOCALFILE);
+		DruidSequenceHandler handler = new DruidSequenceHandler(SystemConfig.SEQUENCEHANDLER_LOCALFILE,SystemConfig.SEQUENCEHANDLER_PATTERN);
 		
 		String sql = "select next value for mycatseq_xxxx".toUpperCase();
 		String tableName = handler.getTableName(sql);
@@ -39,7 +39,7 @@ public class DruidSequenceHandlerTest {
 
 	@Test
 	public void test2() {
-		DruidSequenceHandler handler = new DruidSequenceHandler(SystemConfig.SEQUENCEHANDLER_LOCALFILE);
+		DruidSequenceHandler handler = new DruidSequenceHandler(SystemConfig.SEQUENCEHANDLER_LOCALFILE,SystemConfig.SEQUENCEHANDLER_PATTERN);
 		
 		String sql = "/* APPLICATIONNAME=DBEAVER 3.3.2 - MAIN CONNECTION */ SELECT NEXT VALUE FOR MYCATSEQ_XXXX".toUpperCase();
 		String tableName = handler.getTableName(sql);

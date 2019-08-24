@@ -59,13 +59,13 @@ public final class ObjectUtil {
              }
         } catch (ClassNotFoundException e)
         {
-            LOGGER.error("getStaticFieldValue", e);
+            //LOGGER.error("getStaticFieldValue", e);
         } catch (NoSuchFieldException e)
         {
-            LOGGER.error("getStaticFieldValue", e);
+           // LOGGER.error("getStaticFieldValue", e);
         } catch (IllegalAccessException e)
         {
-            LOGGER.error("getStaticFieldValue", e);
+          //  LOGGER.error("getStaticFieldValue", e);
         }
         return null;
     }
@@ -80,11 +80,11 @@ public final class ObjectUtil {
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(b.toByteArray()));
 			return ois.readObject();
 		} catch (IOException e) {
-		    LOGGER.error("copyObjectIOError", e);
+            throw new RuntimeException(e);
 		} catch (ClassNotFoundException e) {
-		    LOGGER.error("copyObjectError", e);
+            throw new RuntimeException(e);
 		}
-		return null;
+
 	}
 	
     /**

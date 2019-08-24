@@ -81,6 +81,12 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	 * 每个后台响应有唯一的连接
 	 */
 	private final PostgreSQLBackendConnection source;
+	
+	/**
+	 * 响应数据
+	 */
+	private volatile SelectResponse response = null;
+	
 	/**
 	 * 响应状态
 	 */
@@ -114,8 +120,8 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 						PasswordMessage pak = new PasswordMessage(
 								con.getUser(), con.getPassword(), aut,
 								((AuthenticationPacket) packet).getSalt());
-						ByteBuffer buffer = ByteBuffer
-								.allocate(pak.getLength() + 1);
+						
+						ByteBuffer buffer = con.allocate(); //allocate(pak.getLength() + 1);
 						pak.write(buffer);
 						
 						con.write(buffer);
@@ -138,7 +144,7 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			}
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error("error",e);
 		}
 	}
 
@@ -156,9 +162,10 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			List<PostgreSQLPacket> packets = PacketUtils.parsePacket(buf, 0,
 					readedLength);
 			if (packets == null || packets.isEmpty()) {
-				throw new RuntimeException("数据包解析出错");
+				return ;
+				//throw new RuntimeException("数据包解析出错");
 			}
-			SelectResponse response = null;
+			
 			for (PostgreSQLPacket packet : packets) {
 				if (packet instanceof ErrorResponse) {
 					doProcessErrorResponse(con, (ErrorResponse) packet);
@@ -285,11 +292,11 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			doProcessBusinessQuery(con, response, commandComplete);
 		} else {
 			OkPacket okPck = new OkPacket();
-			okPck.affectedRows = 0;
-			okPck.insertId = 0;
+			
+			okPck.affectedRows =commandComplete.getAffectedRows();
+			okPck.insertId =commandComplete.getInsertId();
 			okPck.packetId = ++packetId;
-			okPck.message = commandComplete.getCommandResponse().trim()
-					.getBytes();
+			okPck.message = commandComplete.getCommandResponse().getBytes();
 			con.getResponseHandler().okResponse(okPck.writeToBytes(), con);
 		}
 	}
@@ -375,15 +382,18 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 	 */
 	@Override
 	protected void handleData(byte[] data) {
+		ByteBuffer theBuf = null;
 		try {
+			theBuf = source.allocate();
+			theBuf.put(data);
 			switch (source.getState()) {
 			case connecting: {
-				doConnecting(source, ByteBuffer.wrap(data), 0, data.length);
+				doConnecting(source, theBuf, 0, data.length);
 				return;
 			}
 			case connected: {
 				try {
-					doHandleBusinessMsg(source, ByteBuffer.wrap(data), 0,
+					doHandleBusinessMsg(source, theBuf , 0,
 							data.length);
 				} catch (Exception e) {
 					LOGGER.warn("caught err of con " + source, e);
@@ -399,6 +409,10 @@ public class PostgreSQLBackendConnectionHandler extends BackendAsyncHandler {
 			}
 		} catch (Exception e) {
 			LOGGER.error("读取数据包出错",e);
+		}finally{
+			if(theBuf!=null){
+				source.recycle(theBuf);
+			}
 		}
 	}
 

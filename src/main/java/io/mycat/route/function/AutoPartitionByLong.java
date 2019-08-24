@@ -26,7 +26,9 @@ package io.mycat.route.function;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
@@ -52,24 +54,44 @@ public class AutoPartitionByLong extends AbstractPartitionAlgorithm implements R
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
-		long value = Long.parseLong(columnValue);
-		Integer rst = null;
-		for (LongRange longRang : this.longRongs) {
-			if (value <= longRang.valueEnd && value >= longRang.valueStart) {
-				return longRang.nodeIndx;
+	public Integer calculate(String columnValue)  {
+//		columnValue = NumberParseUtil.eliminateQoute(columnValue);
+		try {
+			long value = Long.parseLong(columnValue);
+			Integer rst = null;
+			for (LongRange longRang : this.longRongs) {
+				if (value <= longRang.valueEnd && value >= longRang.valueStart) {
+					return longRang.nodeIndx;
+				}
 			}
+			//数据超过范围，暂时使用配置的默认节点
+			if (rst == null && defaultNode >= 0) {
+				return defaultNode;
+			}
+			return rst;
+		} catch (NumberFormatException e){
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
 		}
-		//数据超过范围，暂时使用配置的默认节点
-		if(rst ==null && defaultNode>=0){
-			return defaultNode ;
-		}
-		return rst;
 	}
 	
 	@Override
-	public Integer[] calculateRange(String beginValue, String endValue) {
+	public Integer[] calculateRange(String beginValue, String endValue)  {
 		return AbstractPartitionAlgorithm.calculateSequenceRange(this, beginValue, endValue);
+	}
+
+	@Override
+	public int getPartitionNum() {
+//		int nPartition = longRongs.length;
+		
+		/*
+		 * fix #1284 这里的统计应该统计Range的nodeIndex的distinct总数
+		 */
+		Set<Integer> distNodeIdxSet = new HashSet<Integer>();
+		for(LongRange range : longRongs) {
+			distNodeIdxSet.add(range.nodeIndx);
+		}
+		int nPartition = distNodeIdxSet.size();
+		return nPartition;
 	}
 
 	private void initialize() {

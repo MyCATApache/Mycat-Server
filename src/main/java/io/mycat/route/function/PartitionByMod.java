@@ -23,14 +23,12 @@
  */
 package io.mycat.route.function;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import io.mycat.util.StringUtil;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
 
@@ -56,13 +54,25 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 	}
 
 	@Override
-	public Integer calculate(String columnValue) {
+	public Integer calculate(String columnValue)  {
+//		columnValue = NumberParseUtil.eliminateQoute(columnValue);
+		try {
+			BigInteger bigNum = new BigInteger(columnValue).abs();
+			return (bigNum.mod(BigInteger.valueOf(count))).intValue();
+		} catch (NumberFormatException e){
+			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
+		}
 
-	BigInteger bigNum = new BigInteger(columnValue).abs();
-	 return (bigNum.mod(BigInteger.valueOf(count))).intValue();
+	}
+	
+
+	@Override
+	public int getPartitionNum() {
+		int nPartition = this.count;
+		return nPartition;
 	}
 
-	private static void hashTest(){
+	private static void hashTest()  {
 		PartitionByMod hash=new PartitionByMod();
 		hash.setCount(11);
 		hash.init();
@@ -75,7 +85,7 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 		int c=0;
 		for(int i=100_0000;i<total+100_0000;i++){//假设分片键从100万开始
 			c++;
-			int h=hash.calculate(Integer.toString(i));
+			int h=hash.calculate(StringUtil.removeBackquote(Integer.toString(i)));
 			bucket[h]++;
 			List<Integer> list=hashed.get(h);
 			if(list==null){
@@ -99,7 +109,7 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 		System.out.println("****************************************************");
 		rehashTest(hashed.get(0));
 	}
-	private static void rehashTest(List<Integer> partition){
+	private static void rehashTest(List<Integer> partition)  {
 		PartitionByMod hash=new PartitionByMod();
 		hash.count=110;//分片数
 		hash.init();
@@ -110,7 +120,7 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 		int c=0;
 		for(int i:partition){//假设分片键从100万开始
 			c++;
-			int h=hash.calculate(Integer.toString(i));
+			int h=hash.calculate(StringUtil.removeBackquote(Integer.toString(i)));
 			bucket[h]++;
 		}
 		System.out.println(c+"   "+total);
@@ -122,7 +132,11 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 			System.out.println(idx+++"  "+i+"   "+(i/(double)total));
 		}
 	}
-	public static void main(String[] args) {
-		hashTest();
+	public static void main(String[] args)  {
+//		hashTest();
+		PartitionByMod partitionByMod = new PartitionByMod();
+		partitionByMod.count=8;
+		partitionByMod.calculate("\"6\"");
+		partitionByMod.calculate("\'6\'");
 	}
 }
