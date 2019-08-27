@@ -368,9 +368,10 @@ public class MycatPrivileges implements FrontendPrivileges {
 						isPassed = true;
 					}
 				}
+			} else {
+				return true;
 			}
 		}
 		return isPassed;
 	}
-
 }

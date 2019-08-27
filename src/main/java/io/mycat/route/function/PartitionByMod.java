@@ -23,6 +23,7 @@
  */
 package io.mycat.route.function;
 
+import io.mycat.util.StringUtil;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,7 +85,7 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 		int c=0;
 		for(int i=100_0000;i<total+100_0000;i++){//假设分片键从100万开始
 			c++;
-			int h=hash.calculate(Integer.toString(i));
+			int h=hash.calculate(StringUtil.removeBackquote(Integer.toString(i)));
 			bucket[h]++;
 			List<Integer> list=hashed.get(h);
 			if(list==null){
@@ -119,7 +120,7 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 		int c=0;
 		for(int i:partition){//假设分片键从100万开始
 			c++;
-			int h=hash.calculate(Integer.toString(i));
+			int h=hash.calculate(StringUtil.removeBackquote(Integer.toString(i)));
 			bucket[h]++;
 		}
 		System.out.println(c+"   "+total);

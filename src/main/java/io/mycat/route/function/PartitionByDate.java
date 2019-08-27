@@ -1,5 +1,6 @@
 package io.mycat.route.function;
 
+import io.mycat.util.StringUtil;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -78,7 +79,7 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 			Calendar cal = Calendar.getInstance();
 			List<Integer> list = new ArrayList<Integer>();
 			while(beginDate.getTime() <= endDate.getTime()){
-				Integer nodeValue = this.calculate(format.format(beginDate));
+				Integer nodeValue = this.calculate(StringUtil.removeBackquote(format.format(beginDate)));
 				if(Collections.frequency(list, nodeValue) < 1) list.add(nodeValue);
 				cal.setTime(beginDate);
 				cal.add(Calendar.DATE, 1);

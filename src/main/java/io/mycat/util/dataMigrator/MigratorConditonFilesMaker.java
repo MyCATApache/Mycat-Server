@@ -1,5 +1,6 @@
 package io.mycat.util.dataMigrator;
 
+import io.mycat.util.StringUtil;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
@@ -83,7 +84,7 @@ public class MigratorConditonFilesMaker implements Runnable{
 					if (objFieldVal instanceof  String){
 						filedVal = "'"+filedVal+"'";
 					}
-    				Integer newIndex=alg.calculate(objFieldVal.toString());
+    				Integer newIndex=alg.calculate(StringUtil.removeBackquote(objFieldVal.toString()));
     				total++;
     				DataNode newDn = newDnList.get(newIndex);
     				if(!srcDn.equals(newDn)){
