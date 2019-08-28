@@ -87,6 +87,8 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
     private UnsafeRowWriter unsafeRowWriter = null;
     private int Index = 0;
 
+    private volatile int clearStatus = ClearStatusEnum.INIT;
+
     public DataNodeMergeManager(MultiNodeQueryHandler handler, RouteResultset rrs,AtomicBoolean isMiddleResultDone) {
         super(handler,rrs);
         this.isMiddleResultDone = isMiddleResultDone;
@@ -360,6 +362,10 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
 
         try {
             for (; ; ) {
+                if(clearStatus == ClearStatusEnum.PREPARE_CLEAR
+                        || clearStatus == ClearStatusEnum.CLEARED) {
+                    break;
+                }
                 final PackWraper pack = packs.poll();
 
                 if (pack == null) {
@@ -398,12 +404,14 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                          */
                         if (globalSorter != null){
                             iters = unsafeRowGrouper.getResult(globalSorter);
-                        } else if(globalMergeResult != null){
+                        }else {
                             iters = unsafeRowGrouper.getResult(globalMergeResult);
                         }
                     }else if(globalSorter != null){
                         iters = globalSorter.sort();
-                    }else if (globalMergeResult != null){
+
+                    }else if (!isStreamOutputResult){
+
                         iters = globalMergeResult.sort();
                     }
 
@@ -429,7 +437,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                 unsafeRowWriter.grow((mm.getRowLength(fieldCount) + 1 ) / 2);
                 mm.readUB3();
                 mm.read();
-                
+
                 int nullnum = 0;
                 for (int i = 0; i < fieldCount; i++) {
                     byte[] colValue = mm.readBytesWithLength(); //如果mysql的表结构不一致，会导致数据解析有问题
@@ -460,7 +468,7 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
                     unsafeRowGrouper.addRow(unsafeRow);
                 }else if (globalSorter != null){
                     globalSorter.insertRow(unsafeRow);
-                }else if (globalMergeResult != null){
+                }else {
                     globalMergeResult.insertRow(unsafeRow);
                 }
                 unsafeRow = null;
@@ -472,7 +480,13 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
             e.printStackTrace();
             multiQueryHandler.handleDataProcessException(e);
         } finally {
-            running.set(false);
+            synchronized (this) {
+                running.set(false);
+                if(clearStatus == ClearStatusEnum.PREPARE_CLEAR){
+                    clear();
+                    return ;
+                }
+            }
             if (nulpack && !packs.isEmpty()) {
                 this.run();
             }
@@ -484,13 +498,30 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
      */
     public void clear() {
 
-        unsafeRows.clear();
-
-        synchronized (this) {
-            if (unsafeRowGrouper != null) {
-                unsafeRowGrouper.free();
-                unsafeRowGrouper = null;
+        if(clearStatus == ClearStatusEnum.INIT) {
+            synchronized (this){
+                if(clearStatus == ClearStatusEnum.INIT && running.get() == true ) {
+                    clearStatus = ClearStatusEnum.PREPARE_CLEAR;
+                }
             }
+        }
+
+        boolean flag = false;
+        synchronized (this) {
+            if(clearStatus == ClearStatusEnum.CLEARED || running.get() == true){
+                return;
+            }
+            clearStatus = ClearStatusEnum.CLEARED;
+            flag = true;
+
+        }
+        if(!flag){
+            return ;
+        }
+        unsafeRows.clear();
+        if (unsafeRowGrouper != null) {
+            unsafeRowGrouper.free();
+            unsafeRowGrouper = null;
         }
 
         if(globalSorter != null){
@@ -504,3 +535,9 @@ public class DataNodeMergeManager extends AbstractDataNodeMerge {
         }
     }
 }
+class ClearStatusEnum {
+    public static int INIT = -1;
+    public static int PREPARE_CLEAR = 1;
+    public static int CLEARED  = 2;
+}
+

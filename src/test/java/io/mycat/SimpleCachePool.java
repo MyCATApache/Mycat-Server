@@ -23,19 +23,30 @@
  */
 package io.mycat;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import io.mycat.cache.CacheStatic;
 import io.mycat.cache.LayerCachePool;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class SimpleCachePool implements LayerCachePool {
-	private HashMap<Object, Object> cacheMap = new HashMap<Object, Object>();
+	private HashMap<Object, Object> cacheMap;
+
+	public SimpleCachePool() {
+		long MAX_CACHE_SIZE = getMaxSize();
+		float factor = 0.75f;
+		int capacity = (int)Math.ceil(MAX_CACHE_SIZE / factor) + 1;
+		cacheMap =  new LinkedHashMap<Object, Object>(capacity,  factor, true) {
+			@Override
+			protected boolean removeEldestEntry(Map.Entry<Object, Object> eldest) {
+				return size() > MAX_CACHE_SIZE;
+			}};
+	}
 
 	@Override
 	public void putIfAbsent(Object key, Object value) {
 		cacheMap.put(key, value);
-
 	}
 
 	@Override
@@ -56,12 +67,14 @@ public class SimpleCachePool implements LayerCachePool {
 
 	@Override
 	public void putIfAbsent(String primaryKey, Object secondKey, Object value) {
+        primaryKey = primaryKey.toUpperCase();
 		putIfAbsent(primaryKey+"_"+secondKey,value);
 		
 	}
 
 	@Override
 	public Object get(String primaryKey, Object secondKey) {
+        primaryKey = primaryKey.toUpperCase();
 		return get(primaryKey+"_"+secondKey);
 	}
 
@@ -75,4 +88,19 @@ public class SimpleCachePool implements LayerCachePool {
 	public long getMaxSize() {
 		return 100;
 	}
+
+    @Override
+    public void clearCache(String primaryKey) {
+        primaryKey = primaryKey.toUpperCase();
+        Iterator<Map.Entry<Object, Object>> it = cacheMap.entrySet().iterator();
+        while(it.hasNext()){
+            Map.Entry<Object, Object> entry = it.next();
+            if(entry.getKey() instanceof String){
+                String key = (String)entry.getKey();
+                if(key.startsWith(primaryKey+"_")){
+                    it.remove();
+                }
+            }
+        }
+    }
 };

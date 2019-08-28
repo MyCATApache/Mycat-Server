@@ -102,4 +102,11 @@ public class EnchachePool implements CachePool {
 		return maxSize;
 	}
 
+	@Override
+	public void clearCache(String cacheName) {
+		if (cacheName != null){
+			enCache.remove(cacheName);
+		}
+	}
+
 }

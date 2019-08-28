@@ -1,9 +1,28 @@
 package io.mycat.route.impl;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.sql.ast.expr.SQLAllExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLExistsExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
+import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
@@ -11,6 +30,7 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.stat.TableStat.Relationship;
 import com.google.common.base.Strings;
+
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
 import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
@@ -23,66 +43,46 @@ import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.function.SlotFunction;
-import io.mycat.route.impl.middlerResultStrategy.*;
-import io.mycat.route.parser.druid.*;
+import io.mycat.route.impl.middlerResultStrategy.BinaryOpResultHandler;
+import io.mycat.route.impl.middlerResultStrategy.InSubQueryResultHandler;
+import io.mycat.route.impl.middlerResultStrategy.RouteMiddlerReaultHandler;
+import io.mycat.route.impl.middlerResultStrategy.SQLAllResultHandler;
+import io.mycat.route.impl.middlerResultStrategy.SQLExistsResultHandler;
+import io.mycat.route.impl.middlerResultStrategy.SQLQueryResultHandler;
+import io.mycat.route.parser.druid.DruidParser;
+import io.mycat.route.parser.druid.DruidParserFactory;
+import io.mycat.route.parser.druid.DruidShardingParseInfo;
+import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
+import io.mycat.route.parser.druid.MycatStatementParser;
+import io.mycat.route.parser.druid.RouteCalculateUnit;
 import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.*;
-
-/**
- * Mycat 的 Druid 路由策略
- */
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 
 	public static final Logger LOGGER = LoggerFactory.getLogger(DruidMycatRouteStrategy.class);
 
-	/**
-	 * 路由中间结果处理映射集合
-	 * key是类，value是路由中间结果处理
-	 */
 	private static Map<Class<?>,RouteMiddlerReaultHandler> middlerResultHandler = new HashMap<>();
 
 	static{
-		// SQL查询表达式 对应 SQL查询中间结果处理
 		middlerResultHandler.put(SQLQueryExpr.class, new SQLQueryResultHandler());
-		// SQL二元操作表达式 对应 SQL二元操作中间结果处理
-		// TODO 需要升级druid到1.1.3或更新版本
-		// SQLBinaryOpExpr有死循环问题 https://github.com/alibaba/druid/issues/1963 需要升级druid到1.1.3就解决了
 		middlerResultHandler.put(SQLBinaryOpExpr.class, new BinaryOpResultHandler());
-		// SQL子查询表达式 对应 子查询中间结果处理
 		middlerResultHandler.put(SQLInSubQueryExpr.class, new InSubQueryResultHandler());
-		// SQL Exists表达式 对应 SQL Exists中间结果处理
 		middlerResultHandler.put(SQLExistsExpr.class, new SQLExistsResultHandler());
-		// SQL ALL 表达式 对应 SQL ALL中间结果处理
 		middlerResultHandler.put(SQLAllExpr.class, new SQLAllResultHandler());
 	}
 
-	/**
-	 * 通过解析AST语法树类来寻找路由
-	 * @param schema 逻辑库配置
-	 * @param stmt sql语句
-	 * @param rrs 路由结果集
-	 * @param charset 字符编码
-	 * @param cachePool 缓存池
-	 * @param sqlType sql类型
-	 * @param sc 前端的服务器连接
-	 * @return 路由结果集
-	 * @throws SQLNonTransientException
-	 */
+
 	@Override
 	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
 												String stmt, RouteResultset rrs,String charset,
 												LayerCachePool cachePool,int sqlType,ServerConnection sc) throws SQLNonTransientException {
+
 		/**
-		 * 只有mysql时只支持mysql语法
+		 *  只有mysql时只支持mysql语法
 		 */
 		SQLStatementParser parser = null;
 		if (schema.isNeedSupportMultiDBType()) {
@@ -98,9 +98,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		 * 解析出现问题统一抛SQL语法错误
 		 */
 		try {
-			// 解析语句。 使用Parser解析生成AST，这里 SQLStatement 就是AST
 			statement = parser.parseStatement();
-			// 使用 Visitor 访问 AST
 			visitor = new MycatSchemaStatVisitor();
 		} catch (Exception t) {
 			LOGGER.error("DruidMycatRouteStrategyError", t);
@@ -108,45 +106,38 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		}
 
 		/**
-		 * 检验不支持的语句
+		 * 检验unsupported statement
 		 */
 		checkUnSupportedStatement(statement);
 
-		// 根据数据库类型、SQL语句创建对应的Druid解析器
 		DruidParser druidParser = DruidParserFactory.create(schema, statement, visitor);
-		// 执行解析
-		druidParser.parser(schema, rrs, statement, stmt, cachePool, visitor);
-		// 获取解析到的信息
-		DruidShardingParseInfo ctx =  druidParser.getCtx() ;
-		rrs.setTables(ctx.getTables());//设置相关表
+		druidParser.parser(schema, rrs, statement, stmt,cachePool,visitor);
+		DruidShardingParseInfo ctx=  druidParser.getCtx() ;
+		rrs.setTables(ctx.getTables());
 
 		if(visitor.isSubqueryRelationOr()){
-			// 在子查询中，不支持 or 条件。
 			String err = "In subQuery,the or condition is not supported.";
 			LOGGER.error(err);
 			throw new SQLSyntaxErrorException(err);
 		}
 
-		/*
-		按照以下情况路由
-			1.2.1 可以直接路由.
-       		1.2.2 两个表夸库join的sql.调用calat
-       		1.2.3 需要先执行子查询的sql.把子查询拆分出来.获取结果后,与outerquery
-		 */
+        /* 按照以下情况路由
+            1.2.1 可以直接路由.
+            1.2.2 两个表夸库join的sql.调用calat
+            1.2.3 需要先执行subquery 的sql.把subquery拆分出来.获取结果后,与outerquery
+         */
 
 		//add huangyiming 分片规则不一样的且表中带查询条件的则走Catlet
 		List<String> tables = ctx.getTables();
 		SchemaConfig schemaConf = MycatServer.getInstance().getConfig().getSchemas().get(schema.getName());
-		Set<String> firstDataNodes = new HashSet<String>();
-		Map<String, TableConfig> tconfigs = schemaConf==null ? null : schemaConf.getTables(); // 获取数据库所有的表配置
-
-		// 是否可以直接路由标志
+		int index = 0;
+		RuleConfig firstRule = null;
 		boolean directRoute = true;
-		// 表名与路由配置映射，key是表名，value是路由配置
+		Set<String> firstDataNodes = new HashSet<String>();
+		Map<String, TableConfig> tconfigs = schemaConf==null?null:schemaConf.getTables();
+
 		Map<String,RuleConfig> rulemap = new HashMap<>();
 		if(tconfigs!=null){
-			int index = 0;
-			RuleConfig firstRule = null;
 			for(String tableName : tables){
 				TableConfig tc =  tconfigs.get(tableName); // 获取slq中表的配置
 //				if(tc == null){
@@ -158,9 +149,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 //				}
 				if(index == 0){
 					if(tc !=null){
-						firstRule = tc.getRule();
+						firstRule=  tc.getRule();
+						//没有指定分片规则时,不做处理
 						if(firstRule==null){
-							//没有指定分片规则时,不做处理
 							continue;
 						}
 						firstDataNodes.addAll(tc.getDataNodes());
@@ -170,21 +161,13 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 					if(tc !=null){
 						//ER关系表的时候是可能存在字表中没有tablerule的情况,所以加上判断
 						RuleConfig ruleCfg = tc.getRule();
-						if(ruleCfg==null){
-							//没有指定分片规则时,不做处理
+						if(ruleCfg==null){  //没有指定分片规则时,不做处理
 							continue;
 						}
-						Set<String> dataNodes = new HashSet<String>();
-						dataNodes.addAll(tc.getDataNodes());
+						Set<String> dataNodes = new HashSet<>(tc.getDataNodes());
 						rulemap.put(tc.getName(), ruleCfg);
 						//如果匹配规则不相同或者分片的datanode不相同则需要走子查询处理
-						if(firstRule!=null
-								&& (
-										( ruleCfg !=null && !ruleCfg.getRuleAlgorithm().equals(firstRule.getRuleAlgorithm())) /* 路由算法不一样 */
-												|| (!dataNodes.equals(firstDataNodes)) /* 分片节点不一样 */
-									)
-								){
-							// 不能直接路由
+						if(firstRule!=null&&((ruleCfg !=null && !ruleCfg.getRuleAlgorithm().equals(firstRule.getRuleAlgorithm()) )||( !dataNodes.equals(firstDataNodes)))){
 							directRoute = false;
 							break;
 						}
@@ -197,9 +180,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		RouteResultset rrsResult = rrs;
 		if(directRoute){ //直接路由
 			if(!RouterUtil.isAllGlobalTable(ctx, schemaConf)){
-				// SQL语句中含有非全局表
-				if(rulemap.size()>1 && !checkRuleField(rulemap,visitor)){
-					// 在分片表的情况下，关系条件中没有分片键！
+				if(rulemap.size()>1&&!checkRuleField(rulemap,visitor)){
 					String err = "In case of slice table,there is no rule field in the relationship condition!";
 					LOGGER.error(err);
 					throw new SQLSyntaxErrorException(err);
@@ -208,40 +189,29 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			rrsResult = directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
 		}else{
 			int subQuerySize = visitor.getSubQuerys().size();
-			if(subQuerySize==0 && ctx.getTables().size()==2){
-				//没有子查询 两表关联,考虑使用catlet
+			if(subQuerySize==0&&ctx.getTables().size()==2){ //两表关联,考虑使用catlet
 				if(!visitor.getRelationships().isEmpty()){
-					// 存在关系
 					rrs.setCacheAble(false);
 					rrs.setFinishedRoute(true);
 					rrsResult = catletRoute(schema,ctx.getSql(),charset,sc);
 				}else{
-					// 没有关系
 					rrsResult = directRoute(rrs,ctx,schema,druidParser,statement,cachePool);
 				}
-			}else if(subQuerySize==1){
-				//只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行
-				// TODO 后期可能会考虑多个子查询的情况.
-				SQLSelect subSqlselect = visitor.getSubQuerys().iterator().next();
-				if(!visitor.getRelationships().isEmpty()){
-					// 存在关系
-					// 当 inner query  和 outer  query  有关联条件时,暂不支持
+			}else if(subQuerySize==1){     //只涉及一张表的子查询,使用  MiddlerResultHandler 获取中间结果后,改写原有 sql 继续执行 TODO 后期可能会考虑多个子查询的情况.
+				SQLSelect sqlselect = visitor.getSubQuerys().iterator().next();
+				if(!visitor.getRelationships().isEmpty()){     // 当 inner query  和 outer  query  有关联条件时,暂不支持
 					String err = "In case of slice table,sql have different rules,the relationship condition is not supported.";
 					LOGGER.error(err);
 					throw new SQLSyntaxErrorException(err);
 				}else{
-					SQLSelectQuery subSqlSelectQuery = subSqlselect.getQuery();
-					if(((MySqlSelectQueryBlock)subSqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
-						// 如 select id,name from (select id,name,age from user) temp 中的 select id,name from user
+					SQLSelectQuery sqlSelectQuery = sqlselect.getQuery();
+					if(((MySqlSelectQueryBlock)sqlSelectQuery).getFrom() instanceof SQLExprTableSource) {
 						rrs.setCacheAble(false);
 						rrs.setFinishedRoute(true);
-						// 中间结果路由
-						rrsResult = middlerResultRoute(schema,charset,subSqlselect,sqlType,statement,sc);
+						rrsResult = middlerResultRoute(schema,charset,sqlselect,sqlType,statement,sc);
 					}
 				}
 			}else if(subQuerySize >=2){
-				// TODO 后期可能会考虑多个子查询的情况.
-				//在切片表的情况下，sql有不同的规则，目前只支持一个子查询。
 				String err = "In case of slice table,sql has different rules,currently only one subQuery is supported.";
 				LOGGER.error(err);
 				throw new SQLSyntaxErrorException(err);
@@ -256,50 +226,41 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 * @param visitor
 	 * @return
 	 */
-	private boolean checkRuleField(Map<String,RuleConfig> rulemap, MycatSchemaStatVisitor visitor){
-		if(!MycatServer.getInstance().getConfig().getSystem().isSubqueryRelationshipCheck()){ // 是否检测子查询关系
+	private boolean checkRuleField(Map<String,RuleConfig> rulemap,MycatSchemaStatVisitor visitor){
+
+		if(!MycatServer.getInstance().getConfig().getSystem().isSubqueryRelationshipCheck()){
 			return true;
 		}
-		Set<Relationship> ships = visitor.getRelationships(); // 关系
+
+		Set<Relationship> ships = visitor.getRelationships();
 		Iterator<Relationship> iter = ships.iterator();
 		while(iter.hasNext()){
-			Relationship ship = iter.next(); // 关系
-			String lefttable = ship.getLeft().getTable().toUpperCase(); // 关系中左边表
-			String righttable = ship.getRight().getTable().toUpperCase(); // 关系中右边表
+			Relationship ship = iter.next();
+			String lefttable = ship.getLeft().getTable().toUpperCase();
+			String righttable = ship.getRight().getTable().toUpperCase();
 			// 如果是同一个表中的关联条件,不做处理
 			if(lefttable.equals(righttable)){
 				return true;
 			}
-			RuleConfig leftconfig = rulemap.get(lefttable); // 关系中左边表分片规则
-			RuleConfig rightconfig = rulemap.get(righttable); // 关系中右边表分片规则
+			RuleConfig leftconfig = rulemap.get(lefttable);
+			RuleConfig rightconfig = rulemap.get(righttable);
 
-			if(null!=leftconfig && null!=rightconfig
-					&& leftconfig.equals(rightconfig)
-					&& leftconfig.getColumn().equals(ship.getLeft().getName().toUpperCase())
-					&& rightconfig.getColumn().equals(ship.getRight().getName().toUpperCase())){
-				// 左右表的分配规则相同，分片规则中的字段相同
+			if(null!=leftconfig&&null!=rightconfig
+					&&leftconfig.equals(rightconfig)
+					&&leftconfig.getColumn().equals(ship.getLeft().getName().toUpperCase())
+					&&rightconfig.getColumn().equals(ship.getRight().getName().toUpperCase())){
 				return true;
 			}
 		}
 		return false;
 	}
 
-	/**
-	 * 中间结果路由
-	 * @param schema
-	 * @param charset
-	 * @param sqlselect
-	 * @param sqlType
-	 * @param statement
-	 * @param sc
-	 * @return
-	 */
 	private RouteResultset middlerResultRoute(final SchemaConfig schema,final String charset,final SQLSelect sqlselect,
 											  final int sqlType,final SQLStatement statement,final ServerConnection sc){
 
-		final String middlesql = SQLUtils.toMySqlString(sqlselect); // 转为MySQL
+		final String middlesql = SQLUtils.toMySqlString(sqlselect);
 
-		MiddlerResultHandler<String> middlerResultHandler = new MiddlerQueryResultHandler<>(new SecondHandler() {
+		MiddlerResultHandler<String> middlerResultHandler =  new MiddlerQueryResultHandler<>(new SecondHandler() {
 			@Override
 			public void doExecute(List param) {
 				sc.getSession2().setMiddlerResultHandler(null);
@@ -307,6 +268,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				// 路由计算
 				RouteResultset rrs = null;
 				try {
+
 					sqls = buildSql(statement,sqlselect,param);
 					rrs = MycatServer
 							.getInstance()
@@ -365,6 +327,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	 * @return
 	 */
 	private String buildSql(SQLStatement statement,SQLSelect sqlselect,List param){
+
 		SQLObject parent = sqlselect.getParent();
 		RouteMiddlerReaultHandler handler = middlerResultHandler.get(parent.getClass());
 		if(handler==null){
@@ -397,7 +360,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	}
 
 	/**
-	 * 直接结果路由
+	 *  直接结果路由
 	 * @param rrs
 	 * @param ctx
 	 * @param schema
@@ -436,7 +399,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		boolean isAllGlobalTable = RouterUtil.isAllGlobalTable(ctx, schema);
 		for(RouteCalculateUnit unit: druidParser.getCtx().getRouteCalculateUnits()) {
 			RouteResultset rrsTmp = RouterUtil.tryRouteForTables(schema, druidParser.getCtx(), unit, rrs, isSelect(statement), cachePool);
-			if(rrsTmp != null && rrsTmp.getNodes()!=null) {
+			if(rrsTmp != null&&rrsTmp.getNodes()!=null) {
 				for(RouteResultsetNode node :rrsTmp.getNodes()) {
 					nodeSet.add(node);
 				}
@@ -450,9 +413,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		int i = 0;
 		for (RouteResultsetNode aNodeSet : nodeSet) {
 			nodes[i] = aNodeSet;
-			if(statement instanceof MySqlInsertStatement
-					&& ctx.getTables().size()==1
-					&& schema.getTables().containsKey(ctx.getTables().get(0))) {
+			if(statement instanceof MySqlInsertStatement &&ctx.getTables().size()==1&&schema.getTables().containsKey(ctx.getTables().get(0))) {
 				RuleConfig rule = schema.getTables().get(ctx.getTables().get(0)).getRule();
 				if(rule!=null&&  rule.getRuleAlgorithm() instanceof SlotFunction){
 					aNodeSet.setStatement(ParseUtil.changeInsertAddSlot(aNodeSet.getStatement(),aNodeSet.getSlot()));
@@ -467,19 +428,12 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		 *  subTables="t_order$1-2,t_order3"
 		 *目前分表 1.6 开始支持 幵丏 dataNode 在分表条件下只能配置一个，分表条件下不支持join。
 		 */
-		if(rrs.isDistTable()){ // 路由结果集中是否有不同表
+		if(rrs.isDistTable()){
 			return this.routeDisTable(statement,rrs);
 		}
 		return rrs;
 	}
 
-	/**
-	 * 获取不同的表 -- 子表
-	 * @param tableSource
-	 * @param node
-	 * @return
-	 * @throws SQLSyntaxErrorException
-	 */
 	private SQLExprTableSource getDisTable(SQLTableSource tableSource,RouteResultsetNode node) throws SQLSyntaxErrorException{
 		if(node.getSubTableName()==null){
 			String msg = " sub table not exists for " + node.getName() + " on " + tableSource;
@@ -494,16 +448,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		return from2;
 	}
 
-	/**
-	 * 路由不同的表 -- 子表
-	 * @param statement
-	 * @param rrs
-	 * @return 路由结果集
-	 * @throws SQLSyntaxErrorException
-	 */
 	private RouteResultset routeDisTable(SQLStatement statement, RouteResultset rrs) throws SQLSyntaxErrorException{
 		SQLTableSource tableSource = null;
-		if(statement instanceof SQLInsertStatement) { // SQL Insert 语句
+		if(statement instanceof SQLInsertStatement) {
 			SQLInsertStatement insertStatement = (SQLInsertStatement) statement;
 			tableSource = insertStatement.getTableSource();
 			for (RouteResultsetNode node : rrs.getNodes()) {
@@ -512,20 +459,37 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				node.setStatement(insertStatement.toString());
 			}
 		}
-		if(statement instanceof SQLDeleteStatement) { // SQL Delete 语句
+		if(statement instanceof SQLDeleteStatement) {
 			SQLDeleteStatement deleteStatement = (SQLDeleteStatement) statement;
 			tableSource = deleteStatement.getTableSource();
+			SQLTableSource from = deleteStatement.getFrom();
 			for (RouteResultsetNode node : rrs.getNodes()) {
 				SQLExprTableSource from2 = getDisTable(tableSource, node);
-				deleteStatement.setTableSource(from2);
+
+				if (from == null) {
+					from2.setAlias(tableSource.toString());
+					deleteStatement.setFrom(from2);
+				} else {
+					String alias = from.getAlias();
+					from2.setAlias(alias);
+					deleteStatement.setFrom(from2);
+				}
+
 				node.setStatement(deleteStatement.toString());
 			}
 		}
-		if(statement instanceof SQLUpdateStatement) { // SQL Update 语句
+		if(statement instanceof SQLUpdateStatement) {
 			SQLUpdateStatement updateStatement = (SQLUpdateStatement) statement;
 			tableSource = updateStatement.getTableSource();
+
+			String alias = tableSource.getAlias();
+			SQLExprTableSource exprSource = (SQLExprTableSource) tableSource;
+			SQLIdentifierExpr expr = (SQLIdentifierExpr) exprSource.getExpr();
+			alias = alias == null ? expr.getName() : alias;
+
 			for (RouteResultsetNode node : rrs.getNodes()) {
 				SQLExprTableSource from2 = getDisTable(tableSource, node);
+				from2.setAlias(alias);
 				updateStatement.setTableSource(from2);
 				node.setStatement(updateStatement.toString());
 			}
@@ -557,12 +521,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	}
 
 	/**
-	 * 分析 Show 语句
-	 * @param schema 逻辑库配置
-	 * @param rrs 路由结果集
-	 * @param stmt sql语句
-	 * @return 路由结果集
-	 * @throws SQLNonTransientException
+	 * 分析 SHOW SQL
 	 */
 	@Override
 	public RouteResultset analyseShowSQL(SchemaConfig schema,
@@ -580,9 +539,10 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 					stmt = "SHOW TABLES" + stmt.substring(end);
 				}
 			}
-			String defaultNode = schema.getDataNode();
-			if(!Strings.isNullOrEmpty(defaultNode)) {
-				return RouterUtil.routeToSingleNode(rrs, defaultNode, stmt);
+			String defaultNode=  schema.getDataNode();
+			if(!Strings.isNullOrEmpty(defaultNode))
+			{
+				return    RouterUtil.routeToSingleNode(rrs, defaultNode, stmt);
 			}
 			return RouterUtil.routeToMultiNode(false, rrs, schema.getMetaDataNodes(), stmt);
 		}
@@ -632,112 +592,96 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	}
 
 
-//	/**
-//	 * 为一个表进行条件路由
-//	 * @param schema
-//	 * @param tablesAndConditions
-//	 * @param tablesRouteMap
-//	 * @throws SQLNonTransientException
-//	 */
-//	private static RouteResultset findRouteWithcConditionsForOneTable(SchemaConfig schema, RouteResultset rrs,
-//		Map<String, Set<ColumnRoutePair>> conditions, String tableName, String sql) throws SQLNonTransientException {
-//		boolean cache = rrs.isCacheAble();
-//	    //为分库表找路由
-//		tableName = tableName.toUpperCase();
-//		TableConfig tableConfig = schema.getTables().get(tableName);
-//		//全局表或者不分库的表略过（全局表后面再计算）
-//		if(tableConfig.isGlobalTable()) {
-//			return null;
-//		} else {//非全局表
-//			Set<String> routeSet = new HashSet<String>();
-//			String joinKey = tableConfig.getJoinKey();
-//			for(Map.Entry<String, Set<ColumnRoutePair>> condition : conditions.entrySet()) {
-//				String colName = condition.getKey();
-//				//条件字段是拆分字段
-//				if(colName.equals(tableConfig.getPartitionColumn())) {
-//					Set<ColumnRoutePair> columnPairs = condition.getValue();
+//  /**
+//   * 为一个表进行条件路由
+//   * @param schema
+//   * @param tablesAndConditions
+//   * @param tablesRouteMap
+//   * @throws SQLNonTransientException
+//   */
+//  private static RouteResultset findRouteWithcConditionsForOneTable(SchemaConfig schema, RouteResultset rrs,
+//      Map<String, Set<ColumnRoutePair>> conditions, String tableName, String sql) throws SQLNonTransientException {
+//      boolean cache = rrs.isCacheAble();
+//      //为分库表找路由
+//      tableName = tableName.toUpperCase();
+//      TableConfig tableConfig = schema.getTables().get(tableName);
+//      //全局表或者不分库的表略过（全局表后面再计算）
+//      if(tableConfig.isGlobalTable()) {
+//          return null;
+//      } else {//非全局表
+//          Set<String> routeSet = new HashSet<String>();
+//          String joinKey = tableConfig.getJoinKey();
+//          for(Map.Entry<String, Set<ColumnRoutePair>> condition : conditions.entrySet()) {
+//              String colName = condition.getKey();
+//              //条件字段是拆分字段
+//              if(colName.equals(tableConfig.getPartitionColumn())) {
+//                  Set<ColumnRoutePair> columnPairs = condition.getValue();
 //
-//					for(ColumnRoutePair pair : columnPairs) {
-//						if(pair.colValue != null) {
-//							Integer nodeIndex = tableConfig.getRule().getRuleAlgorithm().calculate(pair.colValue);
-//							if(nodeIndex == null) {
-//								String msg = "can't find any valid datanode :" + tableConfig.getName()
-//										+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
-//								LOGGER.warn(msg);
-//								throw new SQLNonTransientException(msg);
-//							}
-//							String node = tableConfig.getDataNodes().get(nodeIndex);
-//							if(node != null) {//找到一个路由节点
-//								routeSet.add(node);
-//							}
-//						}
-//						if(pair.rangeValue != null) {
-//							Integer[] nodeIndexs = tableConfig.getRule().getRuleAlgorithm()
-//									.calculateRange(pair.rangeValue.beginValue.toString(), pair.rangeValue.endValue.toString());
-//							for(Integer idx : nodeIndexs) {
-//								String node = tableConfig.getDataNodes().get(idx);
-//								if(node != null) {//找到一个路由节点
-//									routeSet.add(node);
-//								}
-//							}
-//						}
-//					}
-//				} else if(joinKey != null && joinKey.equals(colName)) {
-//					Set<String> dataNodeSet = RouterUtil.ruleCalculate(
-//							tableConfig.getParentTC(), condition.getValue());
-//					if (dataNodeSet.isEmpty()) {
-//						throw new SQLNonTransientException(
-//								"parent key can't find any valid datanode ");
-//					}
-//					if (LOGGER.isDebugEnabled()) {
-//						LOGGER.debug("found partion nodes (using parent partion rule directly) for child table to update  "
-//								+ Arrays.toString(dataNodeSet.toArray()) + " sql :" + sql);
-//					}
-//					if (dataNodeSet.size() > 1) {
-//						return RouterUtil.routeToMultiNode(rrs.isCacheAble(), rrs, schema.getAllDataNodes(), sql);
-//					} else {
-//						rrs.setCacheAble(true);
-//						return RouterUtil.routeToSingleNode(rrs, dataNodeSet.iterator().next(), sql);
-//					}
-//				} else {//条件字段不是拆分字段也不是join字段,略过
-//					continue;
+//                  for(ColumnRoutePair pair : columnPairs) {
+//                      if(pair.colValue != null) {
+//                          Integer nodeIndex = tableConfig.getRule().getRuleAlgorithm().calculate(pair.colValue);
+//                          if(nodeIndex == null) {
+//                              String msg = "can't find any valid datanode :" + tableConfig.getName()
+//                                      + " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
+//                              LOGGER.warn(msg);
+//                              throw new SQLNonTransientException(msg);
+//                          }
+//                          String node = tableConfig.getDataNodes().get(nodeIndex);
+//                          if(node != null) {//找到一个路由节点
+//                              routeSet.add(node);
+//                          }
+//                      }
+//                      if(pair.rangeValue != null) {
+//                          Integer[] nodeIndexs = tableConfig.getRule().getRuleAlgorithm()
+//                                  .calculateRange(pair.rangeValue.beginValue.toString(), pair.rangeValue.endValue.toString());
+//                          for(Integer idx : nodeIndexs) {
+//                              String node = tableConfig.getDataNodes().get(idx);
+//                              if(node != null) {//找到一个路由节点
+//                                  routeSet.add(node);
+//                              }
+//                          }
+//                      }
+//                  }
+//              } else if(joinKey != null && joinKey.equals(colName)) {
+//                  Set<String> dataNodeSet = RouterUtil.ruleCalculate(
+//                          tableConfig.getParentTC(), condition.getValue());
+//                  if (dataNodeSet.isEmpty()) {
+//                      throw new SQLNonTransientException(
+//                              "parent key can't find any valid datanode ");
+//                  }
+//                  if (LOGGER.isDebugEnabled()) {
+//                      LOGGER.debug("found partion nodes (using parent partion rule directly) for child table to update  "
+//                              + Arrays.toString(dataNodeSet.toArray()) + " sql :" + sql);
+//                  }
+//                  if (dataNodeSet.size() > 1) {
+//                      return RouterUtil.routeToMultiNode(rrs.isCacheAble(), rrs, schema.getAllDataNodes(), sql);
+//                  } else {
+//                      rrs.setCacheAble(true);
+//                      return RouterUtil.routeToSingleNode(rrs, dataNodeSet.iterator().next(), sql);
+//                  }
+//              } else {//条件字段不是拆分字段也不是join字段,略过
+//                  continue;
 //
-//				}
-//			}
-//			return RouterUtil.routeToMultiNode(cache, rrs, routeSet, sql);
+//              }
+//          }
+//          return RouterUtil.routeToMultiNode(cache, rrs, routeSet, sql);
 //
-//		}
+//      }
 //
-//	}
+//  }
 
-	/**
-	 * 路由信息指令, 如 SHOW、SELECT@@、DESCRIBE
-	 * @param schema 逻辑库配置
-	 * @param sqlType sql类型
-	 * @param stmt sql语句
-	 * @param rrs 路由结果集
-	 * @return 路由结果集
-	 * @throws SQLSyntaxErrorException
-	 */
-	@Override
 	public RouteResultset routeSystemInfo(SchemaConfig schema, int sqlType,
 										  String stmt, RouteResultset rrs) throws SQLSyntaxErrorException {
 		switch(sqlType){
-			case ServerParse.SHOW:
-				// if origSQL is like show tables
-				// 分析 Show 语句
+			case ServerParse.SHOW:// if origSQL is like show tables
 				return analyseShowSQL(schema, rrs, stmt);
-			case ServerParse.SELECT:
-				//if origSQL is like select @@
-				// 分析双@（@@）标志
+			case ServerParse.SELECT://if origSQL is like select @@
 				int index = stmt.indexOf("@@");
 				if(index > 0 && "SELECT".equals(stmt.substring(0, index).trim().toUpperCase())){
-					return analyseDoubleAtSign(schema, rrs, stmt);
+					return analyseDoubleAtSgin(schema, rrs, stmt);
 				}
 				break;
-			case ServerParse.DESCRIBE:
-				// if origSQL is meta SQL, such as describe table
-				// 分析 describe 语句
+			case ServerParse.DESCRIBE:// if origSQL is meta SQL, such as describe table
 				int ind = stmt.indexOf(' ');
 				stmt = stmt.trim();
 				return analyseDescrSQL(schema, rrs, stmt, ind + 1);
@@ -746,18 +690,18 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	}
 
 	/**
-	 * // 分析 describe 语句
 	 * 对Desc语句进行分析 返回数据路由集合
-	 *
-	 * @param schema   				数据库名
-	 * @param rrs    				数据路由集合
-	 * @param stmt   				执行语句
-	 * @param ind    				第一个' '的位置
-	 * @return RouteResultset		(数据路由集合)
+	 *   *
+	 * @param schema                数据库名
+	 * @param rrs                   数据路由集合
+	 * @param stmt                  执行语句
+	 * @param ind                   第一个' '的位置
+	 * @return RouteResultset       (数据路由集合)
 	 * @author mycat
 	 */
 	private static RouteResultset analyseDescrSQL(SchemaConfig schema,
 												  RouteResultset rrs, String stmt, int ind) {
+
 		final String MATCHED_FEATURE = "DESCRIBE ";
 		final String MATCHED2_FEATURE = "DESC ";
 		int pos = 0;
@@ -799,17 +743,16 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	}
 
 	/**
-	 * 分析双@（@@）标志
 	 * 根据执行语句判断数据路由
 	 *
-	 * @param schema     			数据库名
-	 * @param rrs		  		 	数据路由集合
-	 * @param stmt		  	 		执行sql
-	 * @return RouteResultset		数据路由集合
+	 * @param schema                数据库名
+	 * @param rrs                   数据路由集合
+	 * @param stmt                  执行sql
+	 * @return RouteResultset       数据路由集合
 	 * @throws SQLSyntaxErrorException
 	 * @author mycat
 	 */
-	private RouteResultset analyseDoubleAtSign(SchemaConfig schema,
+	private RouteResultset analyseDoubleAtSgin(SchemaConfig schema,
 											   RouteResultset rrs, String stmt) throws SQLSyntaxErrorException {
 		String upStmt = stmt.toUpperCase();
 		int atSginInd = upStmt.indexOf(" @@");

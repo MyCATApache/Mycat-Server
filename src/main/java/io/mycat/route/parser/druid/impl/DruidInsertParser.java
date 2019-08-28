@@ -178,7 +178,7 @@ public class DruidInsertParser extends DefaultDruidParser {
 				isFound = true;
 				String column = StringUtil.removeBackquote(insertStmt.getColumns().get(i).toString());
 
-				String shardingValue = getShardingValue(insertStmt.getValues().getValues().get(i));
+				String shardingValue = StringUtil.removeBackquote(getShardingValue(insertStmt.getValues().getValues().get(i)));
 				insertStmt.getValues().getValues().set(i,new SQLCharExpr(shardingValue));
 				ctx.setSql(insertStmt.toString());
 
@@ -247,10 +247,9 @@ public class DruidInsertParser extends DefaultDruidParser {
 						throw new SQLNonTransientException(msg);
 					}
 					SQLExpr expr = valueClause.getValues().get(shardingColIndex);
-					String shardingValue = getShardingValue(expr);
+					String shardingValue = StringUtil.removeBackquote(getShardingValue(expr));
 					valueClause.getValues().set(shardingColIndex, new SQLCharExpr(shardingValue));
-
-					Integer nodeIndex = algorithm.calculate(shardingValue); // 通过表的分片算法计算分片节点
+					Integer nodeIndex = algorithm.calculate(StringUtil.removeBackquote(shardingValue)); // 通过表的分片算法计算分片节点
 					if(algorithm instanceof SlotFunction){
 						slotsMap.put(nodeIndex,((SlotFunction) algorithm).slotValue()) ;
 					}
@@ -332,7 +331,14 @@ public class DruidInsertParser extends DefaultDruidParser {
 			shardingValue = charExpr.getText();
 		} else if (expr instanceof SQLMethodInvokeExpr) {
 			SQLMethodInvokeExpr methodInvokeExpr = (SQLMethodInvokeExpr)expr;
-			shardingValue = tryInvokeSQLMethod(methodInvokeExpr);
+			try {
+				shardingValue = tryInvokeSQLMethod(methodInvokeExpr);
+			}catch (Exception e){
+				LOGGER.error("",e);
+			}
+			if (shardingValue == null){
+				shardingValue = expr.toString();
+			}
 		} else {
 			shardingValue = expr.toString();
 		}

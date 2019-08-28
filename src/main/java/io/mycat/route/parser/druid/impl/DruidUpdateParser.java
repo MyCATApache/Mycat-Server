@@ -8,6 +8,9 @@ import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Name;
+
+import io.mycat.MycatServer;
+import io.mycat.cache.CachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
@@ -15,6 +18,7 @@ import io.mycat.route.util.RouterUtil;
 import io.mycat.util.StringUtil;
 
 import java.sql.SQLNonTransientException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -69,8 +73,22 @@ public class DruidUpdateParser extends DefaultDruidParser {
         if (schema.getTables().get(tableName).isGlobalTable() && ctx.getRouteCalculateUnit().getTablesAndConditions().size() > 1) {
             throw new SQLNonTransientException("global table is not supported in multi table related update " + tableName);
         }
+
+        //在解析SQL时清空该表的主键缓存
+        Map<String, CachePool> map = MycatServer.getInstance().getCacheService().getAllCachePools();
+        if(map!=null && map.size()>0){
+            Collection<CachePool> collection = map.values();
+            for(CachePool item : collection){
+                String cacheName = schema.getName() +"_" + tableName;
+                cacheName = cacheName.toUpperCase();
+                item.clearCache(cacheName);
+                if(item.getCacheStatic()!=null){
+                    item.getCacheStatic().reset();
+                }
+            }
+        }
     }
-    
+
     /**
      * 获取更新的表数
      * @author lian
@@ -78,20 +96,20 @@ public class DruidUpdateParser extends DefaultDruidParser {
      * @return
      */
     private int getUpdateTableCount(){
-    	Map<Name, TableStat> tableMap = this.ctx.getVisitor().getTables();
-    	int updateTableCount = 0;
-    	for(Name _name : tableMap.keySet()){
-    		
-    		TableStat ts = tableMap.get(_name);
-    		updateTableCount += ts.getUpdateCount();
-    	}
-    	return updateTableCount;
+        Map<Name, TableStat> tableMap = this.ctx.getVisitor().getTables();
+        int updateTableCount = 0;
+        for(Name _name : tableMap.keySet()){
+
+            TableStat ts = tableMap.get(_name);
+            updateTableCount += ts.getUpdateCount();
+        }
+        return updateTableCount;
     }
-    
+
     /*
-    * 判断字段是否在SQL AST的节点中，比如 col 在 col = 'A' 中，这里要注意，一些子句中可能会在字段前加上表的别名，
-    * 比如 t.col = 'A'，这两种情况， 操作符(=)左边被druid解析器解析成不同的对象SQLIdentifierExpr(无表别名)和
-    * SQLPropertyExpr(有表别名)
+     * 判断字段是否在SQL AST的节点中，比如 col 在 col = 'A' 中，这里要注意，一些子句中可能会在字段前加上表的别名，
+     * 比如 t.col = 'A'，这两种情况， 操作符(=)左边被druid解析器解析成不同的对象SQLIdentifierExpr(无表别名)和
+     * SQLPropertyExpr(有表别名)
      */
     private static boolean columnInExpr(SQLExpr sqlExpr, String colName) throws SQLNonTransientException {
         String column;
@@ -107,8 +125,8 @@ public class DruidUpdateParser extends DefaultDruidParser {
     }
 
     /*
-    * 当前节点是不是一个子查询
-    * IN (select...), ANY, EXISTS, ALL等关键字, IN (1,2,3...) 这种对应的是SQLInListExpr
+     * 当前节点是不是一个子查询
+     * IN (select...), ANY, EXISTS, ALL等关键字, IN (1,2,3...) 这种对应的是SQLInListExpr
      */
     private static boolean isSubQueryClause(SQLExpr sqlExpr) throws SQLNonTransientException {
         return (sqlExpr instanceof SQLInSubQueryExpr || sqlExpr instanceof SQLAnyExpr || sqlExpr instanceof SQLAllExpr
@@ -116,25 +134,25 @@ public class DruidUpdateParser extends DefaultDruidParser {
     }
 
     /*
-    * 遍历where子句的AST，寻找是否有与update子句中更新分片字段相同的条件，
-    * o 如果发现有or或者xor，然后分片字段的条件在or或者xor中的，这种情况update也无法执行，比如
-    *   update mytab set ptn_col = val, col1 = val1 where col1 = val11 or ptn_col = val；
-    *   但是下面的这种update是可以执行的
-    *   update mytab set ptn_col = val, col1 = val1 where ptn_col = val and (col1 = val11 or col2 = val2);
-    * o 如果没有发现与update子句中更新分片字段相同的条件，则update也无法执行，比如
-    *   update mytab set ptn_col = val， col1 = val1 where col1 = val11 and col2 = val22;
-    * o 如果条件之间都是and，且有与更新分片字段相同的条件，这种情况是允许执行的。比如
-    *   update mytab set ptn_col = val, col1 = val1 where ptn_col = val and col1 = val11 and col2 = val2;
-    * o 对于一些特殊的运算符，比如between，not，或者子查询，遇到这些子句现在不会去检查分片字段是否在此类子句中，
-    *  即使分片字段在此类子句中，现在也认为对应的update语句无法执行。
-    *
-    * @param whereClauseExpr   where子句的语法树AST
-    * @param column   分片字段的名字
-    * @param value    分片字段要被更新成的值
-    * @hasOR          遍历到whereClauseExpr这个节点的时候，其上层路径中是否有OR/XOR关系运算
-    *
-    * @return         true，表示update不能执行，false表示可以执行
-    */
+     * 遍历where子句的AST，寻找是否有与update子句中更新分片字段相同的条件，
+     * o 如果发现有or或者xor，然后分片字段的条件在or或者xor中的，这种情况update也无法执行，比如
+     *   update mytab set ptn_col = val, col1 = val1 where col1 = val11 or ptn_col = val；
+     *   但是下面的这种update是可以执行的
+     *   update mytab set ptn_col = val, col1 = val1 where ptn_col = val and (col1 = val11 or col2 = val2);
+     * o 如果没有发现与update子句中更新分片字段相同的条件，则update也无法执行，比如
+     *   update mytab set ptn_col = val， col1 = val1 where col1 = val11 and col2 = val22;
+     * o 如果条件之间都是and，且有与更新分片字段相同的条件，这种情况是允许执行的。比如
+     *   update mytab set ptn_col = val, col1 = val1 where ptn_col = val and col1 = val11 and col2 = val2;
+     * o 对于一些特殊的运算符，比如between，not，或者子查询，遇到这些子句现在不会去检查分片字段是否在此类子句中，
+     *  即使分片字段在此类子句中，现在也认为对应的update语句无法执行。
+     *
+     * @param whereClauseExpr   where子句的语法树AST
+     * @param column   分片字段的名字
+     * @param value    分片字段要被更新成的值
+     * @hasOR          遍历到whereClauseExpr这个节点的时候，其上层路径中是否有OR/XOR关系运算
+     *
+     * @return         true，表示update不能执行，false表示可以执行
+     */
     private boolean shardColCanBeUpdated(SQLExpr whereClauseExpr, String column, SQLExpr value, boolean hasOR)
             throws SQLNonTransientException {
         boolean canUpdate = false;
@@ -146,8 +164,8 @@ public class DruidUpdateParser extends DefaultDruidParser {
         if (whereClauseExpr instanceof SQLBinaryOpExpr) {
             SQLBinaryOpExpr nodeOpExpr = (SQLBinaryOpExpr) whereClauseExpr;
             /*
-            * 条件中有or或者xor的，如果分片字段出现在or/xor的一个子句中，则此update
-            * 语句无法执行
+             * 条件中有or或者xor的，如果分片字段出现在or/xor的一个子句中，则此update
+             * 语句无法执行
              */
             if ((nodeOpExpr.getOperator() == SQLBinaryOperator.BooleanOr) ||
                     (nodeOpExpr.getOperator() == SQLBinaryOperator.BooleanXor)) {

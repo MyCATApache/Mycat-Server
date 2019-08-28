@@ -16,6 +16,8 @@ Mycat’s target is to smoothly migrate the current stand-alone database and app
 
 MyCAT1.6不支持一个SQL包含多个语句,但是正在开发的2.0是支持的
 
+旧Mycat升级fastjson，把pom.xml中fastjson的版本更改即可
+
 更新Druid 1.1.10版本的分支独立维护在
 https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid
 

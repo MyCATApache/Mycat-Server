@@ -4,6 +4,7 @@ import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.*;
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.*;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.alibaba.druid.sql.dialect.db2.ast.stmt.DB2SelectQueryBlock;
 import com.alibaba.druid.sql.dialect.db2.visitor.DB2OutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
@@ -27,6 +28,7 @@ import io.mycat.route.RouteResultset;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
+import io.mycat.route.parser.util.PageSQLUtil;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.sqlengine.mpp.ColumnRoutePair;
 import io.mycat.sqlengine.mpp.HavingCols;
@@ -59,16 +61,16 @@ public class DruidSelectParser extends DefaultDruidParser {
 			}
 
 		} else if (sqlSelectQuery instanceof SQLUnionQuery) {
-//			MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;
-//			MySqlSelectQueryBlock left = (MySqlSelectQueryBlock)unionQuery.getLeft();
-//			MySqlSelectQueryBlock right = (MySqlSelectQueryBlock)unionQuery.getLeft();
-//			System.out.println();
+//          MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;
+//          MySqlSelectQueryBlock left = (MySqlSelectQueryBlock)unionQuery.getLeft();
+//          MySqlSelectQueryBlock right = (MySqlSelectQueryBlock)unionQuery.getLeft();
+//          System.out.println();
 		}
 	}
 	protected void parseOrderAggGroupMysql(SchemaConfig schema, SQLStatement stmt, RouteResultset rrs, MySqlSelectQueryBlock mysqlSelectQuery) {
 		MySqlSchemaStatVisitor visitor = new MySqlSchemaStatVisitor();
 		stmt.accept(visitor);
-//		rrs.setGroupByCols((String[])visitor.getGroupByColumns().toArray());
+//      rrs.setGroupByCols((String[])visitor.getGroupByColumns().toArray());
 		if(!isNeedParseOrderAgg) {
 			return;
 		}
@@ -265,6 +267,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 		if ((item.getExpr() instanceof SQLPropertyExpr)||(item.getExpr() instanceof SQLMethodInvokeExpr)
 				|| (item.getExpr() instanceof SQLIdentifierExpr) || item.getExpr() instanceof SQLBinaryOpExpr) {
 			return item.getExpr().toString();//字段别名
+		}
+		else if (!StringUtil.isEmpty(item.getAlias())) { // add by hehuang 20181205 如果SelectItem存在别名，则认为表达式为字段名，sql语法支持常量作为字段
+			return item.getExpr().toString();
 		} else {
 			return item.toString();
 		}
@@ -364,13 +369,26 @@ public class DruidSelectParser extends DefaultDruidParser {
 					ctx.setSql(sql);
 				}   else {
 					rrs.changeNodeSqlAfterAddLimit(schema,getCurentDbType(),getCtx().getSql(),rrs.getLimitStart(), rrs.getLimitSize(), true);
-					//	ctx.setSql(nativeSql);
+					//  ctx.setSql(nativeSql);
 				}
 			}
 
 			if(rrs.isDistTable()){
 				SQLTableSource from = mysqlSelectQuery.getFrom();
-
+				String orgTable = from.toString();
+				SQLExpr where = mysqlSelectQuery.getWhere();
+				List<SQLIdentifierExpr> exprs = new ArrayList<>(3);
+				if (where != null){
+					where.accept(new MySqlASTVisitorAdapter() {
+						@Override
+						public void endVisit(SQLIdentifierExpr x) {
+							if (orgTable.equalsIgnoreCase(x.getName())) {
+								exprs.add(x);
+							}
+							super.endVisit(x);
+						}
+					});
+				}
 				for (RouteResultsetNode node : rrs.getNodes()) {
 					SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
 					sqlIdentifierExpr.setParent(from);
@@ -378,7 +396,23 @@ public class DruidSelectParser extends DefaultDruidParser {
 					SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
 					from2.setAlias(from.getAlias());
 					mysqlSelectQuery.setFrom(from2);
+					for (SQLIdentifierExpr expr : exprs) {
+						expr.setName(node.getSubTableName());
+					}
 					node.setStatement(stmt.toString());
+					if(!getCurentDbType().equalsIgnoreCase("mysql")) {
+						SQLLimit _limit = mysqlSelectQuery.getLimit();
+						if (_limit != null) {
+							SQLIntegerExpr offset = (SQLIntegerExpr) _limit.getOffset();
+							SQLIntegerExpr count = (SQLIntegerExpr) _limit.getRowCount();
+							if (offset != null && count != null) {
+								String nativeSql = PageSQLUtil
+										.convertLimitToNativePageSql(getCurentDbType(), node.getStatement(),
+												offset.getNumber().intValue(), count.getNumber().intValue());
+								node.setStatement(nativeSql);
+							}
+						}
+					}
 				}
 			}
 
@@ -413,7 +447,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			rrs.setFinishedRoute(true);
 			return;
 		}
-//		RouterUtil.tryRouteForTables(schema, ctx, rrs, true, cachePool);
+//      RouterUtil.tryRouteForTables(schema, ctx, rrs, true, cachePool);
 		SortedSet<RouteResultsetNode> nodeSet = new TreeSet<RouteResultsetNode>();
 		boolean isAllGlobalTable = RouterUtil.isAllGlobalTable(ctx, schema);
 		for (RouteCalculateUnit unit : ctx.getRouteCalculateUnits()) {
@@ -488,14 +522,15 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 		TableConfig tc = schema.getTables().get(ctx.getTables().get(0));
 		if(tc==null ||(ctx.getTables().size() == 1 && tc.isGlobalTable())
-				) {//|| (ctx.getTables().size() == 1) && tc.getRule() == null && tc.getDataNodes().size() == 1
+		) {//|| (ctx.getTables().size() == 1) && tc.getRule() == null && tc.getDataNodes().size() == 1
 			return false;
 		} else {
 			//单表主键查询
 			if(ctx.getTables().size() == 1) {
 				String tableName = ctx.getTables().get(0);
 				String primaryKey = schema.getTables().get(tableName).getPrimaryKey();
-//				schema.getTables().get(ctx.getTables().get(0)).getParentKey() != null;
+
+//              schema.getTables().get(ctx.getTables().get(0)).getParentKey() != null;
 				if(ctx.getRouteCalculateUnit().getTablesAndConditions().get(tableName) != null
 						&& ctx.getRouteCalculateUnit().getTablesAndConditions().get(tableName).get(primaryKey) != null
 						&& tc.getDataNodes().size() > 1) {//有主键条件
@@ -519,7 +554,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 	 */
 	private boolean isNeedAddLimit(SchemaConfig schema, RouteResultset rrs,
 								   MySqlSelectQueryBlock mysqlSelectQuery, Map<String, Map<String, Set<ColumnRoutePair>>> allConditions) {
-//		ctx.getTablesAndConditions().get(key))
+//      ctx.getTablesAndConditions().get(key))
 		if(rrs.getLimitSize()>-1) {
 			return false;
 		}else
@@ -545,7 +580,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 			String primaryKey = schema.getTables().get(tableName).getPrimaryKey();
 
-//			schema.getTables().get(ctx.getTables().get(0)).getParentKey() != null;
+//          schema.getTables().get(ctx.getTables().get(0)).getParentKey() != null;
 			if(allConditions.get(tableName) == null) {//无条件
 				return true;
 			}

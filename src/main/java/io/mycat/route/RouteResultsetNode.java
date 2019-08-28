@@ -54,14 +54,14 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	/**
 	 * 处理call关键字
 	 */
-    private boolean callStatement = false;
+	private boolean callStatement = false;
 	private int limitStart;
 	private int limitSize;
 	/**
 	 * 方便后续jdbc批量获取扩展
 	 */
 	private int totalNodeSize = 0;
-   	private Procedure procedure;
+	private Procedure procedure;
 	private LoadData loadData;
 	/**
 	 * 路由结果集
@@ -78,12 +78,13 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	 * 分表的表名
 	 */
 	private String subTableName;
+	private Map<String, String> subTableNames;//分表的表名集合
 
 	/**
 	 * 迁移算法用 -2代表不是slot分片，-1代表扫描所有分片
 	 */
 	private int slot = -2;
-	
+
 	public RouteResultsetNode(String name, int sqlType, String srcStatement) {
 		this.name = name;
 		limitStart=0;
@@ -93,6 +94,14 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 		this.statement = srcStatement;
 		canRunInReadDB = (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW);
 		hasBlanceFlag = (statement != null) && statement.startsWith("/*balance*/");
+	}
+
+	public Map<String, String> getSubTableNames() {
+		return subTableNames;
+	}
+
+	public void setSubTableNames(Map<String, String> subTableNames) {
+		this.subTableNames = subTableNames;
 	}
 
 	public Boolean getRunOnSlave() {
@@ -111,15 +120,15 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 
 	private Map hintMap;
 
-    public Map getHintMap()
-    {
-        return hintMap;
-    }
+	public Map getHintMap()
+	{
+		return hintMap;
+	}
 
-    public void setHintMap(Map hintMap)
-    {
-        this.hintMap = hintMap;
-    }
+	public void setHintMap(Map hintMap)
+	{
+		this.hintMap = hintMap;
+	}
 
 	public void setStatement(String statement) {
 		this.statement = statement;
@@ -141,9 +150,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	 * 这里的逻辑是为了优化，实现：非业务sql可以在负载均衡走slave的效果。因为业务sql一般是非自动提交，
 	 * 而非业务sql一般默认是自动提交，比如mysql client，还有SQLJob, heartbeat都可以使用
 	 * 了Leader-us优化的query函数，该函数实现为自动提交；
-	 * 
+	 *
 	 * 在非自动提交的情况下(有事物)，除非使用了  balance 注解的情况下，才可以走slave.
-	 * 
+	 *
 	 * 当然还有一个大前提，必须是 select 或者 show 语句(canRunInReadDB=true)
 	 * @param autocommit
 	 * @return
@@ -151,16 +160,16 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	public boolean canRunnINReadDB(boolean autocommit) {
 		return canRunInReadDB && ( autocommit || (!autocommit && hasBlanceFlag) );
 	}
-	
+
 //	public boolean canRunnINReadDB(boolean autocommit) {
 //		return canRunInReadDB && autocommit && !hasBlanceFlag
 //			|| canRunInReadDB && !autocommit && hasBlanceFlag;
 //	}
 
 	public Procedure getProcedure()
-    {
-        return procedure;
-    }
+	{
+		return procedure;
+	}
 
 	public int getSlot() {
 		return slot;
@@ -171,21 +180,21 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	}
 
 	public void setProcedure(Procedure procedure)
-    {
-        this.procedure = procedure;
-    }
+	{
+		this.procedure = procedure;
+	}
 
-    public boolean isCallStatement()
-    {
-        return callStatement;
-    }
+	public boolean isCallStatement()
+	{
+		return callStatement;
+	}
 
-    public void setCallStatement(boolean callStatement)
-    {
-        this.callStatement = callStatement;
-    }
+	public void setCallStatement(boolean callStatement)
+	{
+		this.callStatement = callStatement;
+	}
 
-    public String getName() {
+	public String getName() {
 		return name;
 	}
 
@@ -311,7 +320,7 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			return 1;
 		}
 		int c = this.name.compareTo(obj.name);
-		if(!this.isDisctTable()){
+		if(!this.isDisctTable()||obj.subTableName == null){
 			return c;
 		}else{
 			if(c==0){
@@ -320,7 +329,7 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			return c;
 		}
 	}
-	
+
 	public boolean isHasBlanceFlag() {
 		return hasBlanceFlag;
 	}

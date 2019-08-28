@@ -887,4 +887,14 @@ public class JDBCConnection implements BackendConnection {
 			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
 		}
 	}
+
+	@Override
+	public boolean checkAlive() {
+		try {
+			return !con.isClosed();
+		} catch (SQLException e) {
+			LOGGER.error("connection is closed",e);
+			return false;
+		}
+	}
 }

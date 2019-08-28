@@ -48,7 +48,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 
 
     public void testRouteInsertShort() throws Exception {
-        String sql = "inSErt into offer_detail (`offer_id`, gmt) values (123,now())";
+        String sql = "inSErt into offer_detail (`offer_id`, gmt) values ('123',now())";
         SchemaConfig schema = schemaMap.get("cndb");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);
@@ -56,10 +56,10 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(false, rrs.isCacheAble());
         Assert.assertEquals(-1l, rrs.getLimitSize());
         Assert.assertEquals("detail_dn15", rrs.getNodes()[0].getName());
-        Assert.assertEquals(
-                "INSERT INTO offer_detail (`offer_id`, gmt)\nVALUES ('123', now())",
-                rrs.getNodes()[0].getStatement());
 
+        String expect = "INSERT INTO offer_detail (`offer_id`, gmt)\n" +
+                "VALUES ('123', now())";
+        Assert.assertEquals(expect, rrs.getNodes()[0].getStatement());
         sql = "inSErt into offer_detail ( gmt) values (now())";
         schema = schemaMap.get("cndb");
         try {
@@ -87,7 +87,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(-1l, rrs.getLimitSize());
         Assert.assertEquals("offer_dn12", rrs.getNodes()[0].getName());
         Assert.assertEquals(
-                "INSERT INTO offer (group_id, offer_id, member_id)\nVALUES (234, 123, 'abc')",
+                "INSERT INTO offer (group_id, offer_id, member_id)\n" +
+                        "VALUES (234, 123, 'abc')",
                 rrs.getNodes()[0].getStatement());
 
 
@@ -107,6 +108,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     }
 
     public void testGlobalTableroute() throws Exception {
+        // company 全局表，分布节点 dn1,dn2,dn3
         String sql = null;
         SchemaConfig schema = schemaMap.get("TESTDB");
         RouteResultset rrs = null;
@@ -153,6 +155,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     }
 
     public void testMoreGlobalTableroute() throws Exception {
+        // company 全局表，分布节点 dn1,dn2,dn3
+        // area 全局表，分布节点 dn1,dn2,dn3
         String sql = null;
         SchemaConfig schema = schemaMap.get("TESTDB");
         RouteResultset rrs = null;
@@ -166,6 +170,9 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     }
 
     public void testRouteMultiTables() throws Exception {
+        // company 全局表，分布节点 dn1,dn2,dn3
+        // customer 分片表，分片键为id，分布节点 dn1,dn2
+        // orders 是 customer的子表，通过customer_id与customer关联
         // company is global table ,route to 3 datanode and ignored in route
         String sql = "select * from company,customer ,orders where customer.company_id=company.id and orders.customer_id=customer.id and company.name like 'aaa' limit 10";
         SchemaConfig schema = schemaMap.get("TESTDB");
@@ -182,12 +189,14 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     public void testRouteCache() throws Exception {
         // select cache ID
         this.cachePool.putIfAbsent("TESTDB_EMPLOYEE", "88", "dn2");
+        MycatServer.getInstance().getCacheService().getAllCachePools().put("SimpleCachePool", this.cachePool);
 
+        // employee 分片表，分片键为sharding_id，分布在 dn1,dn2 10000=0 10010=1
         SchemaConfig schema = schemaMap.get("TESTDB");
         String sql = "select * from employee where id=88";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);
-        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(1, rrs.getNodes().length);//因为已经缓存了，直接通过缓存获取结果
         Assert.assertEquals(false, rrs.isCacheAble());//已经缓存了,不必再缓存了
         Assert.assertEquals(null, rrs.getPrimaryKey());
         Assert.assertEquals(-1, rrs.getLimitSize());
@@ -204,18 +213,19 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         // update cache ID found
         sql = "update employee  set name='aaa' where id=88";
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
-        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(2, rrs.getNodes().length);
         Assert.assertEquals(false, rrs.isCacheAble());
         Assert.assertEquals(null, rrs.getPrimaryKey());
-        Assert.assertEquals("dn2", rrs.getNodes()[0].getName());
+        Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("dn2", rrs.getNodes()[1].getName());
 
-        // delete cache ID found
+        // delete cache ID should be not founded
         sql = "delete from  employee  where id=88";
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
-        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(2, rrs.getNodes().length);
         Assert.assertEquals(false, rrs.isCacheAble());
-        Assert.assertEquals("dn2", rrs.getNodes()[0].getName());
-
+        Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("dn2", rrs.getNodes()[1].getName());
     }
 
     private static Map<String, RouteResultsetNode> getNodeMap(
@@ -437,6 +447,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SchemaConfig schema = schemaMap.get("cndb");
         RouteResultset rrs = null;
 
+        // cndb.offer 分片表，分片键为member_id，分布节点 offer_dn$0-127
         sql = "select * from cndb.offer where (offer_id, group_id ) In (123,234)";
         schema = schemaMap.get("cndb");
         rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null, cachePool);
@@ -488,7 +499,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SQLStatement statement = parser.parseStatement();
         Assert.assertEquals(statement.toString(), rrs.getNodes()[0].getStatement());
 
-
+        // goods 全局表，分布节点 dn1,dn2,dn3
         sql = "select * from goods";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertEquals(false, rrs.isCacheAble());
@@ -507,7 +518,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 //		Assert.assertEquals(-1, rrs.getLimitSize());
         Assert.assertEquals("select * from goods limit 2 ,3", rrs.getNodes()[0].getStatement());
 
-
+        // notpartionTable 分布节点 dn1
         sql = "select * from notpartionTable limit 2 ,3";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertEquals(true, rrs.isCacheAble());
@@ -890,7 +901,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         }
 
         //分片表批量插入正常 employee
-        sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000),(2,'testonly',10010)";
+        sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000),(2,'testonly','10010')";
         rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
                 cachePool);
         Assert.assertEquals(2, rrs.getNodes().length);
@@ -973,7 +984,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 //    	400M1-600M=2
 //    	600M1-800M=3
 //    	800M1-1000M=4
-
+        // customer 分片表，分片键为id，分布节点 dn1,dn2, 分片规则是 0-200M=0 200M1-400M=1
         SchemaConfig schema = schemaMap.get("TESTDB");
         String sql = "select * from customer where id between 1 and 5;";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
