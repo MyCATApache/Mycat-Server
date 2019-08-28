@@ -91,8 +91,15 @@ public class LevelDBPool implements CachePool {
 		
 		return maxSize;
 	}
-	
-    public  byte[] toByteArray (Object obj) {        
+
+	@Override
+	public void clearCache(String cacheName) {
+		if (cacheName != null){
+			cache.delete(toByteArray(cacheName));
+		}
+	}
+
+	public  byte[] toByteArray (Object obj) {
         byte[] bytes = null;        
         ByteArrayOutputStream bos = new ByteArrayOutputStream();        
         try {          

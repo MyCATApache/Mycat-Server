@@ -25,19 +25,29 @@ package io.mycat;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 import io.mycat.cache.CacheStatic;
 import io.mycat.cache.LayerCachePool;
 
 public class SimpleCachePool implements LayerCachePool {
-	private HashMap<Object, Object> cacheMap = new HashMap<Object, Object>();
+	private HashMap<Object, Object> cacheMap;
+
+	public SimpleCachePool() {
+		long MAX_CACHE_SIZE = getMaxSize();
+		float factor = 0.75f;
+		int capacity = (int)Math.ceil(MAX_CACHE_SIZE / factor) + 1;
+		cacheMap =  new LinkedHashMap<Object, Object>(capacity,  factor, true) {
+			@Override
+			protected boolean removeEldestEntry(Map.Entry<Object, Object> eldest) {
+				return size() > MAX_CACHE_SIZE;
+			}};
+	}
 
 	@Override
 	public void putIfAbsent(Object key, Object value) {
 		cacheMap.put(key, value);
-
 	}
 
 	@Override
