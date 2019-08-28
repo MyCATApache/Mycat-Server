@@ -75,7 +75,8 @@ public class DruidUpdateParser extends DefaultDruidParser {
         //在解析SQL时清空该表的主键缓存
         TableConfig tableConfig = schema.getTables().get(tableName);
         if (tableConfig != null && !tableConfig.primaryKeyIsPartionKey()) {
-            String cacheName = schema.getName().toLowerCase() + "_" + tableName.toUpperCase();
+            String cacheName = schema.getName() +"_" + tableName;
+            cacheName = cacheName.toUpperCase();
             for (CachePool value : MycatServer.getInstance().getCacheService().getAllCachePools().values()) {
                 value.clearCache(cacheName);
                 value.getCacheStatic().reset();
