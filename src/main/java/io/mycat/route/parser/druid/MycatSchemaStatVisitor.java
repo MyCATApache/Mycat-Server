@@ -803,8 +803,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
      * @param whereUnitList
      */
     private void loopFindSubWhereUnit(List<WhereUnit> whereUnitList) {
+        if(whereUnitList == null || whereUnitList.isEmpty()){
+            return;
+        }
         List<WhereUnit> subWhereUnits = new ArrayList<WhereUnit>();
-        for(WhereUnit whereUnit : whereUnitList) {
+        for(int i=0; i<whereUnitList.size(); i++) {
+            WhereUnit whereUnit = whereUnitList.get(i);
             if(whereUnit.getSplitedExprList().size() > 0) {
                 List<SQLExpr> removeSplitedList = new ArrayList<SQLExpr>();
                 for(SQLExpr sqlExpr : whereUnit.getSplitedExprList()) {
@@ -823,7 +827,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
                     whereUnit.getSplitedExprList().removeAll(removeSplitedList);
                 }
             }
-            subWhereUnits.addAll(whereUnit.getSubWhereUnit());
+            if(whereUnit.getSubWhereUnit()!=null && whereUnit.getSubWhereUnit().size()>0){
+                subWhereUnits.addAll(whereUnit.getSubWhereUnit());
+            }
         }
         if(subWhereUnits.size() > 0) {
             loopFindSubWhereUnit(subWhereUnits);

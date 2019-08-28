@@ -107,6 +107,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     }
 
     public void testGlobalTableroute() throws Exception {
+        // company 全局表，分布节点 dn1,dn2,dn3
         String sql = null;
         SchemaConfig schema = schemaMap.get("TESTDB");
         RouteResultset rrs = null;
@@ -153,6 +154,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     }
 
     public void testMoreGlobalTableroute() throws Exception {
+        // company 全局表，分布节点 dn1,dn2,dn3
+        // area 全局表，分布节点 dn1,dn2,dn3
         String sql = null;
         SchemaConfig schema = schemaMap.get("TESTDB");
         RouteResultset rrs = null;
@@ -166,6 +169,9 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     }
 
     public void testRouteMultiTables() throws Exception {
+        // company 全局表，分布节点 dn1,dn2,dn3
+        // customer 分片表，分片键为id，分布节点 dn1,dn2
+        // orders 是 customer的子表，通过customer_id与customer关联
         // company is global table ,route to 3 datanode and ignored in route
         String sql = "select * from company,customer ,orders where customer.company_id=company.id and orders.customer_id=customer.id and company.name like 'aaa' limit 10";
         SchemaConfig schema = schemaMap.get("TESTDB");
@@ -183,11 +189,12 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         // select cache ID
         this.cachePool.putIfAbsent("TESTDB_EMPLOYEE", "88", "dn2");
 
+        // employee 分片表，分片键为sharding_id，分布在 dn1,dn2 10000=0 10010=1
         SchemaConfig schema = schemaMap.get("TESTDB");
         String sql = "select * from employee where id=88";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);
-        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(1, rrs.getNodes().length);//因为已经缓存了，直接通过缓存获取结果
         Assert.assertEquals(false, rrs.isCacheAble());//已经缓存了,不必再缓存了
         Assert.assertEquals(null, rrs.getPrimaryKey());
         Assert.assertEquals(-1, rrs.getLimitSize());
@@ -212,7 +219,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         // delete cache ID found
         sql = "delete from  employee  where id=88";
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
-        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(2, rrs.getNodes().length);
         Assert.assertEquals(false, rrs.isCacheAble());
         Assert.assertEquals("dn2", rrs.getNodes()[0].getName());
 
@@ -437,6 +444,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SchemaConfig schema = schemaMap.get("cndb");
         RouteResultset rrs = null;
 
+        // cndb.offer 分片表，分片键为member_id，分布节点 offer_dn$0-127
         sql = "select * from cndb.offer where (offer_id, group_id ) In (123,234)";
         schema = schemaMap.get("cndb");
         rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null, cachePool);
@@ -488,7 +496,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         SQLStatement statement = parser.parseStatement();
         Assert.assertEquals(statement.toString(), rrs.getNodes()[0].getStatement());
 
-
+        // goods 全局表，分布节点 dn1,dn2,dn3
         sql = "select * from goods";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertEquals(false, rrs.isCacheAble());
@@ -507,7 +515,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 //		Assert.assertEquals(-1, rrs.getLimitSize());
         Assert.assertEquals("select * from goods limit 2 ,3", rrs.getNodes()[0].getStatement());
 
-
+        // notpartionTable 分布节点 dn1
         sql = "select * from notpartionTable limit 2 ,3";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertEquals(true, rrs.isCacheAble());
@@ -973,7 +981,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 //    	400M1-600M=2
 //    	600M1-800M=3
 //    	800M1-1000M=4
-
+        // customer 分片表，分片键为id，分布节点 dn1,dn2, 分片规则是 0-200M=0 200M1-400M=1
         SchemaConfig schema = schemaMap.get("TESTDB");
         String sql = "select * from customer where id between 1 and 5;";
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
