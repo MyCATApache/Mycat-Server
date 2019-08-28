@@ -1002,8 +1002,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         
         sql = "delete from customer where id between 2000001 and 3000001;";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
-        Assert.assertTrue(rrs.getNodes().length == 2);
-        Assert.assertTrue(rrs.getNodes()[1].getName().equals("dn2"));
+        Assert.assertTrue(rrs.getNodes().length == 1);
+        Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn2"));
         
         sql = "update customer set name='newName' where id between 2000001 and 3000001;";
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);

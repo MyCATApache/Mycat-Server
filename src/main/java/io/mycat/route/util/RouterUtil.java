@@ -1619,6 +1619,7 @@ public class RouterUtil {
 					}
 				}
 				if (isFoundPartitionValue) {//分库表
+                    tablesRouteMap.clear();
 					Set<ColumnRoutePair> partitionValue = columnsMap.get(partionCol);
 					if(partitionValue == null || partitionValue.size() == 0) {
 						if(tablesRouteMap.get(tableName) == null) {
