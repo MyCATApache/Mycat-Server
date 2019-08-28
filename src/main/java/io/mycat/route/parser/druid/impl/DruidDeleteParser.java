@@ -1,15 +1,17 @@
 package io.mycat.route.parser.druid.impl;
 
+import java.sql.SQLNonTransientException;
+import java.util.Collection;
+import java.util.Map;
+
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 
 import io.mycat.MycatServer;
-import io.mycat.cache.DefaultLayedCachePool;
+import io.mycat.cache.CachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
 import io.mycat.util.StringUtil;
-
-import java.sql.SQLNonTransientException;
 
 /**
  * Druid Delete 解析器
@@ -22,11 +24,18 @@ public class DruidDeleteParser extends DefaultDruidParser {
 		ctx.addTable(tableName);
 
 		//在解析SQL时清空该表的主键缓存
-		DefaultLayedCachePool tableID2DataNodeCache=(DefaultLayedCachePool) MycatServer.getInstance().getCacheService()
-				.getCachePool("TableID2DataNodeCache");
-		tableID2DataNodeCache.clearCache(schema.getName().toLowerCase()+"_"+tableName.toUpperCase());
-		tableID2DataNodeCache.getCacheStatic().reset();
-
+		Map<String, CachePool> map = MycatServer.getInstance().getCacheService().getAllCachePools();
+		if(map!=null && map.size()>0){
+			Collection<CachePool> collection = map.values();
+			for(CachePool item : collection){
+				String cacheName = schema.getName() + "_" + tableName;
+				cacheName = cacheName.toUpperCase();
+				item.clearCache(cacheName);
+				if(item.getCacheStatic()!=null){
+					item.getCacheStatic().reset();
+				}
+			}
+		}
 	}
 }
 

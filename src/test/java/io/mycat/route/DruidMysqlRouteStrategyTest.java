@@ -48,7 +48,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 
 
     public void testRouteInsertShort() throws Exception {
-        String sql = "inSErt into offer_detail (`offer_id`, gmt) values (123,now())";
+        String sql = "inSErt into offer_detail (`offer_id`, gmt) values ('123',now())";
         SchemaConfig schema = schemaMap.get("cndb");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);
@@ -56,10 +56,10 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(false, rrs.isCacheAble());
         Assert.assertEquals(-1l, rrs.getLimitSize());
         Assert.assertEquals("detail_dn15", rrs.getNodes()[0].getName());
-        Assert.assertEquals(
-                "INSERT INTO offer_detail (`offer_id`, gmt)\nVALUES ('123', now())",
-                rrs.getNodes()[0].getStatement());
 
+        String expect = "INSERT INTO offer_detail (`offer_id`, gmt)\n" +
+                "VALUES ('123', now())";
+        Assert.assertEquals(expect, rrs.getNodes()[0].getStatement());
         sql = "inSErt into offer_detail ( gmt) values (now())";
         schema = schemaMap.get("cndb");
         try {
@@ -87,7 +87,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(-1l, rrs.getLimitSize());
         Assert.assertEquals("offer_dn12", rrs.getNodes()[0].getName());
         Assert.assertEquals(
-                "INSERT INTO offer (group_id, offer_id, member_id)\nVALUES (234, 123, 'abc')",
+                "INSERT INTO offer (group_id, offer_id, member_id)\n" +
+                        "VALUES (234, 123, 'abc')",
                 rrs.getNodes()[0].getStatement());
 
 
@@ -188,6 +189,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
     public void testRouteCache() throws Exception {
         // select cache ID
         this.cachePool.putIfAbsent("TESTDB_EMPLOYEE", "88", "dn2");
+        MycatServer.getInstance().getCacheService().getAllCachePools().put("SimpleCachePool", this.cachePool);
 
         // employee 分片表，分片键为sharding_id，分布在 dn1,dn2 10000=0 10010=1
         SchemaConfig schema = schemaMap.get("TESTDB");
@@ -211,18 +213,19 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         // update cache ID found
         sql = "update employee  set name='aaa' where id=88";
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
-        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(2, rrs.getNodes().length);
         Assert.assertEquals(false, rrs.isCacheAble());
         Assert.assertEquals(null, rrs.getPrimaryKey());
-        Assert.assertEquals("dn2", rrs.getNodes()[0].getName());
+        Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("dn2", rrs.getNodes()[1].getName());
 
-        // delete cache ID found
+        // delete cache ID should be not founded
         sql = "delete from  employee  where id=88";
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
         Assert.assertEquals(2, rrs.getNodes().length);
         Assert.assertEquals(false, rrs.isCacheAble());
-        Assert.assertEquals("dn2", rrs.getNodes()[0].getName());
-
+        Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("dn2", rrs.getNodes()[1].getName());
     }
 
     private static Map<String, RouteResultsetNode> getNodeMap(
@@ -898,7 +901,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         }
 
         //分片表批量插入正常 employee
-        sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000),(2,'testonly',10010)";
+        sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000),(2,'testonly','10010')";
         rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
                 cachePool);
         Assert.assertEquals(2, rrs.getNodes().length);

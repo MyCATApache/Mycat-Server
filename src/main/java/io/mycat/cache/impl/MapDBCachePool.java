@@ -77,4 +77,9 @@ public class MapDBCachePool implements CachePool {
 		return maxSize;
 	}
 
+	@Override
+	public void clearCache(String cacheName) {
+		htreeMap.remove(cacheName);
+	}
+
 }

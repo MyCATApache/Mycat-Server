@@ -44,4 +44,6 @@ public interface LayerCachePool extends CachePool {
 	 * @return map of CacheStatic
 	 */
 	public Map<String, CacheStatic> getAllCacheStatic();
+
+	public void clearCache(String primaryKey);
 }

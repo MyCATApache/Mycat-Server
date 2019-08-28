@@ -97,8 +97,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private List<byte[]> fields = null;
 
 	// by kaiz : 为了解决Mybatis获取由Mycat生成自增主键时，MySQL返回的Last_insert_id为最大值的问题；
-	//		当逻辑表设置了autoIncrement='false'时，MyCAT会将ok packet当中的最小last insert id记录下来，返回给应用
-	// 		当逻辑表设置了autoIncrement='true'时，MyCAT会将ok packet当中的最大的last insert id记录下来，然后减掉affected rows的数量后，返回给应用
+	//      当逻辑表设置了autoIncrement='false'时，MyCAT会将ok packet当中的最小last insert id记录下来，返回给应用
+	//      当逻辑表设置了autoIncrement='true'时，MyCAT会将ok packet当中的最大的last insert id记录下来，然后减掉affected rows的数量后，返回给应用
 
 	public MultiNodeQueryHandler(int sqlType, RouteResultset rrs,
 								 boolean autocommit, NonBlockingSession session) {
@@ -189,9 +189,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				if (session.tryExistsCon(conn, node)) {
 					if(LOGGER.isDebugEnabled()) {
 						LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
-			            LOGGER.debug(new StringBuilder(this.toString()).append(session.getSource()).append(rrs).toString());
+						LOGGER.debug(new StringBuilder(this.toString()).append(session.getSource()).append(rrs).toString());
 					}
-					node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解	
+					node.setRunOnSlave(rrs.getRunOnSlave());    // 实现 master/slave注解
 					if(LOGGER.isDebugEnabled()) {
 						LOGGER.debug("node.getRunOnSlave()-" + node.getRunOnSlave());
 					}
@@ -199,7 +199,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				} else {
 					// create new connection
 					//LOGGER.debug("node.getRunOnSlave()1-" + node.getRunOnSlave());
-					node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
+					node.setRunOnSlave(rrs.getRunOnSlave());    // 实现 master/slave注解
 					//LOGGER.debug("node.getRunOnSlave()2-" + node.getRunOnSlave());
 					PhysicalDBNode dn = conf.getDataNodes().get(node.getName());
 					dn.getConnection(dn.getDatabase(), autocommit, node, this, node);
@@ -207,22 +207,22 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					// 这是通过 上面方法的 this 参数的层层传递完成的。
 					// connectionAcquired 进行执行操作:
 					// session.bindConnection(node, conn);
-					// _execute(conn, node); 
+					// _execute(conn, node);
 				}
 				start++;
 			}
 		}catch (Exception e) {
 			ServerConnection source = session.getSource();
-            int len = rrs.getNodes().length - start;
-            for(int i = 0 ; i < len ; i++) {
-            	//flag = this.decrementCountBy(1);
-            	 this.connectionError(e, null);
-            }
-            LOGGER.error(new StringBuilder(this.toString()).append(source).append(rrs).toString(), e);
-           // this.connectionError(e, null);
-           // if(flag) {
-           //     LOGGER.error(new StringBuilder(this.toString()).append(source).append(rrs).toString(), e);
-            //}
+			int len = rrs.getNodes().length - start;
+			for(int i = 0 ; i < len ; i++) {
+				//flag = this.decrementCountBy(1);
+				this.connectionError(e, null);
+			}
+			LOGGER.error(new StringBuilder(this.toString()).append(source).append(rrs).toString(), e);
+			// this.connectionError(e, null);
+			// if(flag) {
+			//     LOGGER.error(new StringBuilder(this.toString()).append(source).append(rrs).toString(), e);
+			//}
 		}
 	}
 
@@ -244,7 +244,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				.getAttachment();
 		session.bindConnection(node, conn);
 		if(errorRepsponsed.get()) {
-			ServerConnection source = session.getSource();			
+			ServerConnection source = session.getSource();
 			LOGGER.warn(new StringBuilder(this.toString()).append(source).append(rrs).toString(), "connectionAcquired",conn);
 			this.connectionClose(conn, "find error, so close this connection");
 			return ;
@@ -302,8 +302,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 						insertId = (insertId == 0) ? ok.insertId : Math.max(
 								insertId, ok.insertId);
 					} else {
-                        insertId = (insertId == 0) ? ok.insertId : Math.min(
-                                insertId, ok.insertId);
+						insertId = (insertId == 0) ? ok.insertId : Math.min(
+								insertId, ok.insertId);
 					}
 				}
 
@@ -348,7 +348,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 						ok.insertId = rrs.getAutoIncrement() ? (insertId - affectedRows + 1) : insertId;
 						source.setLastInsertId(insertId);
 					}
-					//  判断是否已经报错返回给前台了 2018.07 
+					//  判断是否已经报错返回给前台了 2018.07
 					if(source.canResponse()) {
 						ok.write(source);
 					}
@@ -436,7 +436,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 							source.write(eof);
 						}
 					}
- 				} finally {
+				} finally {
 					lock.unlock();
 
 				}
@@ -448,9 +448,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 				return;
 			}
-			/*else{
-				middlerResultHandler.secondEexcute();
-			}*/
+            /*else{
+                middlerResultHandler.secondEexcute();
+            }*/
 		}
 		if (execCount == rrs.getNodes().length) {
 			int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
@@ -462,12 +462,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			QueryResultDispatcher.dispatchQuery( queryResult );
 
 
-			//	add huangyiming  如果是中间过程,必须等数据合并好了再进行下一步语句的拼装
- 			if(middlerResultHandler !=null ){
- 				while (!this.isMiddleResultDone.compareAndSet(false, true)) {
- 	                Thread.yield();
- 	             }
- 				middlerResultHandler.secondEexcute();
+			//  add huangyiming  如果是中间过程,必须等数据合并好了再进行下一步语句的拼装
+			if(middlerResultHandler !=null ){
+				while (!this.isMiddleResultDone.compareAndSet(false, true)) {
+					Thread.yield();
+				}
+				middlerResultHandler.secondEexcute();
 				isMiddleResultDone.set(false);
 			}
 		}
@@ -536,37 +536,37 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			}
 			//huangyiming add  中间过程缓存起来,isMiddleResultDone是确保合并部分执行完成后才会执行secondExecute
 			MiddlerResultHandler middlerResultHandler = source.getSession2().getMiddlerResultHandler();
- 			if(null != middlerResultHandler){
- 				if(buffer.position() > 0){
- 					buffer.flip();
- 	                byte[] data = new byte[buffer.limit()];
- 	                buffer.get(data);
- 	                buffer.clear();
- 	                //如果该操作只是一个中间过程则把结果存储起来
- 					 String str =  ResultSetUtil.getColumnValAsString(data, fields, 0);
- 					 //真的需要数据合并的时候才合并
- 					 if(rrs.isHasAggrColumn()){
- 						 middlerResultHandler.getResult().clear();
- 						 if(str !=null){
-  							 middlerResultHandler.add(str);
- 						 }
- 					 }
- 				}
+			if(null != middlerResultHandler){
+				if(buffer.position() > 0){
+					buffer.flip();
+					byte[] data = new byte[buffer.limit()];
+					buffer.get(data);
+					buffer.clear();
+					//如果该操作只是一个中间过程则把结果存储起来
+					String str =  ResultSetUtil.getColumnValAsString(data, fields, 0);
+					//真的需要数据合并的时候才合并
+					if(rrs.isHasAggrColumn()){
+						middlerResultHandler.getResult().clear();
+						if(str !=null){
+							middlerResultHandler.add(str);
+						}
+					}
+				}
 				isMiddleResultDone.set(false);
-		}else{
-			ByteBuffer byteBuffer = source.writeToBuffer(eof, buffer);
+			}else{
+				ByteBuffer byteBuffer = source.writeToBuffer(eof, buffer);
 
-			/**
-			 * 真正的开始把Writer Buffer的数据写入到channel 中
-			 */
-			if(source.canResponse()) {
-				source.write(byteBuffer);
+				/**
+				 * 真正的开始把Writer Buffer的数据写入到channel 中
+				 */
+				if(source.canResponse()) {
+					source.write(byteBuffer);
+				}
+
 			}
-			
-		}
 
 
- 		} catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			handleDataProcessException(e);
 		} finally {
@@ -593,28 +593,28 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				end = results.size();
 			}
 
-//			// 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
-//			if (rrs.getOrderByCols() == null) {
-//				end = results.size();
-//				start = 0;
-//			}
+//          // 对于不需要排序的语句,返回的数据只有rrs.getLimitSize()
+//          if (rrs.getOrderByCols() == null) {
+//              end = results.size();
+//              start = 0;
+//          }
 			if (end > results.size()) {
 				end = results.size();
 			}
 
-//			for (int i = start; i < end; i++) {
-//				RowDataPacket row = results.get(i);
-//				if( prepared ) {
-//					BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
-//					binRowDataPk.read(fieldPackets, row);
-//					binRowDataPk.packetId = ++packetId;
-//					//binRowDataPk.write(source);
-//					buffer = binRowDataPk.write(buffer, session.getSource(), true);
-//				} else {
-//					row.packetId = ++packetId;
-//					buffer = row.write(buffer, source, true);
-//				}
-//			}
+//          for (int i = start; i < end; i++) {
+//              RowDataPacket row = results.get(i);
+//              if( prepared ) {
+//                  BinaryRowDataPacket binRowDataPk = new BinaryRowDataPacket();
+//                  binRowDataPk.read(fieldPackets, row);
+//                  binRowDataPk.packetId = ++packetId;
+//                  //binRowDataPk.write(source);
+//                  buffer = binRowDataPk.write(buffer, session.getSource(), true);
+//              } else {
+//                  row.packetId = ++packetId;
+//                  buffer = row.write(buffer, source, true);
+//              }
+//          }
 
 			if(prepared) {
 				for (int i = start; i < end; i++) {
@@ -651,8 +651,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 	@Override
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
-			byte[] eof, BackendConnection conn) {
-		
+								 byte[] eof, BackendConnection conn) {
+
 		//10个连接有一个连接错误怎么办哦。
 		if (errorRepsponsed.get()|| this.isFail()) {
 			// the connection has been closed or set to "txInterrupt" properly
@@ -663,14 +663,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			// conn.close(this.error);
 			return;
 		}
-		
+
 		//huangyiming add
 		this.header = header;
 		this.fields = fields;
 		MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
         /*if(null !=middlerResultHandler ){
-			return;
-		}*/
+            return;
+        }*/
 		this.netOutBytes += header.length;
 		this.netOutBytes += eof.length;
 		for (int i = 0, len = fields.size(); i < len; ++i) {
@@ -829,7 +829,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	@Override
 	public void rowResponse(final byte[] row, final BackendConnection conn) {
 
- 		if (errorRepsponsed.get()||this.isFail()) {
+		if (errorRepsponsed.get()||this.isFail()) {
 			// the connection has been closed or set to "txInterrupt" properly
 			//in tryErrorFinished() method! If we close it here, it can
 			// lead to tx error such as blocking rollback tx for ever.
@@ -854,12 +854,12 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				dataMergeSvr.onNewRecord(dataNode, row);
 
 				MiddlerResultHandler middlerResultHandler = session.getMiddlerResultHandler();
- 				if(null != middlerResultHandler ){
- 					 if(middlerResultHandler instanceof MiddlerQueryResultHandler){
- 						 byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
-						 String rowValue =  rv==null? "":new String(rv);
-						 middlerResultHandler.add(rowValue);
- 					 }
+				if(null != middlerResultHandler ){
+					if(middlerResultHandler instanceof MiddlerQueryResultHandler){
+						byte[] rv = ResultSetUtil.getColumnVal(row, fields, 0);
+						String rowValue =  rv==null? "":new String(rv);
+						middlerResultHandler.add(rowValue);
+					}
 				}
 			} else {
 				row[3] = ++packetId;
@@ -870,7 +870,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					rowDataPkg.read(row);
 					String primaryKey = new String(rowDataPkg.fieldValues.get(primaryKeyIndex));
 					LayerCachePool pool = MycatServer.getInstance().getRouterservice().getTableId2DataNodeCache();
-					pool.putIfAbsent(priamaryKeyTable, primaryKey, dataNode);
+					if (priamaryKeyTable != null){
+						pool.putIfAbsent(priamaryKeyTable.toUpperCase(), primaryKey, dataNode);
+					}
 				}
 				if( prepared ) {
 					if(rowDataPkg==null) {
