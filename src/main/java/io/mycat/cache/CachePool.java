@@ -40,4 +40,5 @@ public interface CachePool {
 	public CacheStatic getCacheStatic();
 
 	public long getMaxSize();
+	public void clearCache(String cacheName);
 }
