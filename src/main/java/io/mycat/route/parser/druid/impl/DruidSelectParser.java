@@ -270,7 +270,8 @@ public class DruidSelectParser extends DefaultDruidParser {
 		}
 		else if (!StringUtil.isEmpty(item.getAlias())) { // add by hehuang 20181205 如果SelectItem存在别名，则认为表达式为字段名，sql语法支持常量作为字段
 			return item.getExpr().toString();
-		} else {
+		}
+		else {
 			return item.toString();
 		}
 	}
