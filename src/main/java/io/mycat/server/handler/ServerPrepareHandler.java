@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -45,121 +45,123 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 服务器预处理语句处理器
  * @author mycat, CrazyPig, zhuam
  */
 public class ServerPrepareHandler implements FrontendPrepareHandler {
-	
-	private static final Logger LOGGER = LoggerFactory.getLogger(ServerPrepareHandler.class);
-	
-	private static Escaper varcharEscaper = null;
-	
-	static {
-		Builder escapeBuilder = Escapers.builder();
-		escapeBuilder.addEscape('\'', "\\'");
-		escapeBuilder.addEscape('\"', "\\\"");
-		escapeBuilder.addEscape('$', "\\$");
-		varcharEscaper = escapeBuilder.build();
-	}
-	
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServerPrepareHandler.class);
+
+    private static Escaper varcharEscaper = null;
+
+    static {
+        Builder escapeBuilder = Escapers.builder();
+        escapeBuilder.addEscape('\'', "\\'");
+        escapeBuilder.addEscape('\"', "\\\"");
+        escapeBuilder.addEscape('$', "\\$");
+        varcharEscaper = escapeBuilder.build();
+    }
+
     private ServerConnection source;
-    private volatile long pstmtId;
+    private static final AtomicLong PSTMT_ID_GENERATOR = new AtomicLong(0);
+
     // 预处理语句缓存 key是sql语句
-    private Map<String, PreparedStatement> pstmtForSql;
-	// 预处理语句缓存 key是语句id
-    private Map<Long, PreparedStatement> pstmtForId;
+//    private static final Map<String, PreparedStatement> pstmtForSql = new ConcurrentHashMap<>();
+    // 预处理语句缓存 key是语句id
+    private static final Map<Long, PreparedStatement> pstmtForId = new ConcurrentHashMap<>();
     private int maxPreparedStmtCount;
 
     public ServerPrepareHandler(ServerConnection source,int maxPreparedStmtCount) {
         this.source = source;
-        this.pstmtId = 0L;
-        this.pstmtForSql = new HashMap<String, PreparedStatement>();
-        this.pstmtForId = new HashMap<Long, PreparedStatement>();
         this.maxPreparedStmtCount = maxPreparedStmtCount;
     }
 
-	/**
-	 * 设置预处理SQL
-	 * @param sql
-	 */
-	@Override
+    /**
+     * 设置预处理SQL
+     * @param sql
+     */
+    @Override
     public void prepare(String sql) {
-		// TODO 添加配置是否打印sql，修改日志级别
-    	LOGGER.debug("use server prepare, sql: " + sql);
+        // TODO 添加配置是否打印sql，修改日志级别
+        LOGGER.debug("use server prepare, sql: " + sql);
         PreparedStatement pstmt = null;
-        if ((pstmt = pstmtForSql.get(sql)) == null) {
-        	// 解析获取字段个数和参数个数
-        	int columnCount = getColumnCount(sql);
-        	int paramCount = getParamCount(sql);
-        	if(paramCount > maxPreparedStmtCount){
-				source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM, "Prepared statement contains too many placeholders");
-				return;
-			}
-            pstmt = new PreparedStatement(++pstmtId, sql, columnCount, paramCount);
-            pstmtForSql.put(pstmt.getStatement(), pstmt);
+        if (pstmt == null) {
+            // 解析获取字段个数和参数个数
+            int columnCount = getColumnCount(sql);
+            int paramCount = getParamCount(sql);
+            if(paramCount > maxPreparedStmtCount){
+                source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM, "Prepared statement contains too many placeholders");
+                return;
+            }
+            pstmt = new PreparedStatement(PSTMT_ID_GENERATOR.incrementAndGet(), sql, columnCount, paramCount);
             pstmtForId.put(pstmt.getId(), pstmt);
+            LOGGER.info("preparestatement  parepare id:{}", pstmt.getId());
         }
         PreparedStmtResponse.response(pstmt, source);
     }
 
-	/**
-	 * 追加数据到指定的预处理参数
-	 * @param data
-	 */
-	@Override
-	public void sendLongData(byte[] data) {
-		LongDataPacket packet = new LongDataPacket();
-		packet.read(data);
-		long pstmtId = packet.getPstmtId();
-		PreparedStatement pstmt = pstmtForId.get(pstmtId);
-		if(pstmt != null) {
-			if(LOGGER.isDebugEnabled()) {
-				LOGGER.debug("send long data to prepare sql : " + pstmtForId.get(pstmtId));
-			}
-			long paramId = packet.getParamId();
-			try {
-				pstmt.appendLongData(paramId, packet.getLongData());
-			} catch (IOException e) {
-				source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPION, e.getMessage());
-			}
-		}
-	}
+    /**
+     * 追加数据到指定的预处理参数
+     * @param data
+     */
+    @Override
+    public void sendLongData(byte[] data) {
+        LongDataPacket packet = new LongDataPacket();
+        packet.read(data);
+        long pstmtId = packet.getPstmtId();
+        LOGGER.info("preparestatement  long data id:{}", pstmtId);
+        PreparedStatement pstmt = pstmtForId.get(pstmtId);
+        if(pstmt != null) {
+            if(LOGGER.isDebugEnabled()) {
+                LOGGER.debug("send long data to prepare sql : " + pstmtForId.get(pstmtId));
+            }
+            long paramId = packet.getParamId();
+            try {
+                pstmt.appendLongData(paramId, packet.getLongData());
+            } catch (IOException e) {
+                source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPTION, e.getMessage());
+            }
+        }
+    }
 
-	/**
-	 * 重设预处理SQL
-	 * @param data
-	 */
-	@Override
-	public void reset(byte[] data) {
-		ResetPacket packet = new ResetPacket();
-		packet.read(data);
-		long pstmtId = packet.getPstmtId();
-		PreparedStatement pstmt = pstmtForId.get(pstmtId);
-		if(pstmt != null) {
-			if(LOGGER.isDebugEnabled()) {
-				LOGGER.debug("reset prepare sql : " + pstmtForId.get(pstmtId));
-			}
-			pstmt.resetLongData();
-			source.write(OkPacket.OK);
-		} else {
-			source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPION, "can not reset prepare statement : " + pstmtForId.get(pstmtId));
-		}
-	}
+    /**
+     * 重设预处理SQL
+     * @param data
+     */
+    @Override
+    public void reset(byte[] data) {
+        ResetPacket packet = new ResetPacket();
+        packet.read(data);
+        long pstmtId = packet.getPstmtId();
+        LOGGER.info("preparestatement  long data id:{}", pstmtId);
+        PreparedStatement pstmt = pstmtForId.get(pstmtId);
+        if(pstmt != null) {
+            if(LOGGER.isDebugEnabled()) {
+                LOGGER.debug("reset prepare sql : " + pstmtForId.get(pstmtId));
+            }
+            pstmt.resetLongData();
+            source.write(OkPacket.OK);
+        } else {
+            source.writeErrMessage(ErrorCode.ERR_FOUND_EXCEPTION, "can not reset prepare statement : " + pstmtForId.get(pstmtId));
+        }
+    }
 
-	/**
-	 * 执行SQL
-	 * @param data
-	 */
-	@Override
+    /**
+     * 执行SQL
+     * @param data
+     */
+    @Override
     public void execute(byte[] data) {
         long pstmtId = ByteUtil.readUB4(data, 5);
         PreparedStatement pstmt = null;
+        LOGGER.info("preparestatement  execute id:{}", pstmtId);
         if ((pstmt = pstmtForId.get(pstmtId)) == null) {
-        	// 预处理SQL语句为空 可能是被关闭了
+            // 预处理SQL语句为空 可能是被关闭了
             source.writeErrMessage(ErrorCode.ER_ERROR_WHEN_EXECUTING_COMMAND, "Unknown pstmtId when executing.");
         } else {
             ExecutePacket packet = new ExecutePacket(pstmt);
@@ -175,64 +177,62 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             // 执行sql
             source.getSession2().setPrepared(true);
             if(LOGGER.isDebugEnabled()) {
-            	LOGGER.debug("execute prepare sql: " + sql);
+                LOGGER.debug("execute prepare sql: " + sql);
             }
             source.query( sql );
         }
     }
 
-	/**
-	 * 关闭预处理语句
-	 * @param data
-	 */
-	@Override
+    /**
+     * 关闭预处理语句
+     * @param data
+     */
+    @Override
     public void close(byte[] data) {
-    	long pstmtId = ByteUtil.readUB4(data, 5); // 获取prepare stmt id
-    	if(LOGGER.isDebugEnabled()) {
-    		LOGGER.debug("close prepare stmt, stmtId = " + pstmtId);
-    	}
-    	PreparedStatement pstmt = pstmtForId.remove(pstmtId);
-    	if(pstmt != null) {
-    		pstmtForSql.remove(pstmt.getStatement());
-    	}
+        long pstmtId = ByteUtil.readUB4(data, 5); // 获取prepare stmt id
+        LOGGER.info("preparestatement  close id:{}", pstmtId);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("close prepare stmt, stmtId = " + pstmtId);
+        }
+        PreparedStatement pstmt = pstmtForId.remove(pstmtId);
     }
 
-	/**
-	 * 清空所有预处理语句
-	 */
-	@Override
+    /**
+     * 清空所有预处理语句
+     */
+    @Override
     public void clear() {
-    	this.pstmtForId.clear();
-    	this.pstmtForSql.clear();
+        this.pstmtForId.clear();
+//    	this.pstmtForSql.clear();
     }
 
-	/**
-	 * 获取预处理语句中列的个数
-	 * @param sql
-	 * @return
-	 */
-	private int getColumnCount(String sql) {
-    	int columnCount = 0;
-    	// TODO ...
-    	return columnCount;
+    /**
+     * 获取预处理语句中列的个数
+     * @param sql
+     * @return
+     */
+    private int getColumnCount(String sql) {
+        int columnCount = 0;
+        // TODO ...
+        return columnCount;
     }
 
-	/**
-	 * 获取预处理sql中预处理参数个数
-	 * @param sql
-	 * @return
-	 */
-	private int getParamCount(String sql) {
-    	char[] cArr = sql.toCharArray();
-    	int count = 0;
-    	for(int i = 0; i < cArr.length; i++) {
-    		if(cArr[i] == '?') {
-    			count++;
-    		}
-    	}
-    	return count;
+    /**
+     * 获取预处理sql中预处理参数个数
+     * @param sql
+     * @return
+     */
+    private int getParamCount(String sql) {
+        char[] cArr = sql.toCharArray();
+        int count = 0;
+        for(int i = 0; i < cArr.length; i++) {
+            if(cArr[i] == '?') {
+                count++;
+            }
+        }
+        return count;
     }
-    
+
     /**
      * 组装sql语句,替换动态参数为实际参数值
      * @param pstmt
@@ -240,78 +240,78 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
      * @return
      */
     private String prepareStmtBindValue(PreparedStatement pstmt, BindValue[] bindValues) {
-    	String sql = pstmt.getStatement();
-    	int[] paramTypes = pstmt.getParametersType();
-    	
-    	StringBuilder sb = new StringBuilder();
-    	int idx = 0;
-    	for(int i = 0, len = sql.length(); i < len; i++) {
-    		char c = sql.charAt(i);
-    		if(c != '?') {
-    			sb.append(c);
-    			continue;
-    		}
-    		// 处理占位符?
-    		int paramType = paramTypes[idx];
-    		BindValue bindValue = bindValues[idx];
-    		idx++;
-    		// 处理字段为空的情况
-    		if(bindValue.isNull) {
-    			sb.append("NULL");
-    			continue;
-    		}
-    		// 非空情况, 根据字段类型获取值
-    		switch(paramType & 0xff) {
-    		case Fields.FIELD_TYPE_TINY:
-    			sb.append(String.valueOf(bindValue.byteBinding));
-    			break;
-    		case Fields.FIELD_TYPE_SHORT:
-    			sb.append(String.valueOf(bindValue.shortBinding));
-    			break;
-    		case Fields.FIELD_TYPE_LONG:
-    			sb.append(String.valueOf(bindValue.intBinding));
-    			break;
-    		case Fields.FIELD_TYPE_LONGLONG:
-    			sb.append(String.valueOf(bindValue.longBinding));
-    			break;
-    		case Fields.FIELD_TYPE_FLOAT:
-    			sb.append(String.valueOf(bindValue.floatBinding));
-    			break;
-    		case Fields.FIELD_TYPE_DOUBLE:
-    			sb.append(String.valueOf(bindValue.doubleBinding));
-    			break;
-    		case Fields.FIELD_TYPE_VAR_STRING:
-            case Fields.FIELD_TYPE_STRING:
-            case Fields.FIELD_TYPE_VARCHAR:
-            	bindValue.value = varcharEscaper.asFunction().apply(String.valueOf(bindValue.value));
-            	sb.append("'" + bindValue.value + "'");
-            	break;
-            case Fields.FIELD_TYPE_TINY_BLOB:
-            case Fields.FIELD_TYPE_BLOB:
-            case Fields.FIELD_TYPE_MEDIUM_BLOB:
-            case Fields.FIELD_TYPE_LONG_BLOB:
-            	if(bindValue.value instanceof ByteArrayOutputStream) {
-            		byte[] bytes = ((ByteArrayOutputStream) bindValue.value).toByteArray();
-            		sb.append("X'" + HexFormatUtil.bytesToHexString(bytes) + "'");
-            	} else {
-            		// 正常情况下不会走到else, 除非long data的存储方式(ByteArrayOutputStream)被修改
-            		LOGGER.warn("bind value is not a instance of ByteArrayOutputStream, maybe someone change the implement of long data storage!");
-            		sb.append("'" + bindValue.value + "'");
-            	}
-            	break;
-            case Fields.FIELD_TYPE_TIME:
-            case Fields.FIELD_TYPE_DATE:
-            case Fields.FIELD_TYPE_DATETIME:
-            case Fields.FIELD_TYPE_TIMESTAMP:
-            	sb.append("'" + bindValue.value + "'");
-            	break;
-            default:
-            	bindValue.value = varcharEscaper.asFunction().apply(String.valueOf(bindValue.value));
-            	sb.append(bindValue.value.toString());
-            	break;
-    		}
-    	}
-    	return sb.toString();
+        String sql = pstmt.getStatement();
+        int[] paramTypes = pstmt.getParametersType();
+
+        StringBuilder sb = new StringBuilder();
+        int idx = 0;
+        for(int i = 0, len = sql.length(); i < len; i++) {
+            char c = sql.charAt(i);
+            if(c != '?') {
+                sb.append(c);
+                continue;
+            }
+            // 处理占位符?
+            int paramType = paramTypes[idx];
+            BindValue bindValue = bindValues[idx];
+            idx++;
+            // 处理字段为空的情况
+            if(bindValue.isNull) {
+                sb.append("NULL");
+                continue;
+            }
+            // 非空情况, 根据字段类型获取值
+            switch(paramType & 0xff) {
+                case Fields.FIELD_TYPE_TINY:
+                    sb.append(String.valueOf(bindValue.byteBinding));
+                    break;
+                case Fields.FIELD_TYPE_SHORT:
+                    sb.append(String.valueOf(bindValue.shortBinding));
+                    break;
+                case Fields.FIELD_TYPE_LONG:
+                    sb.append(String.valueOf(bindValue.intBinding));
+                    break;
+                case Fields.FIELD_TYPE_LONGLONG:
+                    sb.append(String.valueOf(bindValue.longBinding));
+                    break;
+                case Fields.FIELD_TYPE_FLOAT:
+                    sb.append(String.valueOf(bindValue.floatBinding));
+                    break;
+                case Fields.FIELD_TYPE_DOUBLE:
+                    sb.append(String.valueOf(bindValue.doubleBinding));
+                    break;
+                case Fields.FIELD_TYPE_VAR_STRING:
+                case Fields.FIELD_TYPE_STRING:
+                case Fields.FIELD_TYPE_VARCHAR:
+                    bindValue.value = varcharEscaper.asFunction().apply(String.valueOf(bindValue.value));
+                    sb.append("'" + bindValue.value + "'");
+                    break;
+                case Fields.FIELD_TYPE_TINY_BLOB:
+                case Fields.FIELD_TYPE_BLOB:
+                case Fields.FIELD_TYPE_MEDIUM_BLOB:
+                case Fields.FIELD_TYPE_LONG_BLOB:
+                    if(bindValue.value instanceof ByteArrayOutputStream) {
+                        byte[] bytes = ((ByteArrayOutputStream) bindValue.value).toByteArray();
+                        sb.append("X'" + HexFormatUtil.bytesToHexString(bytes) + "'");
+                    } else {
+                        // 正常情况下不会走到else, 除非long data的存储方式(ByteArrayOutputStream)被修改
+                        LOGGER.warn("bind value is not a instance of ByteArrayOutputStream, maybe someone change the implement of long data storage!");
+                        sb.append("'" + bindValue.value + "'");
+                    }
+                    break;
+                case Fields.FIELD_TYPE_TIME:
+                case Fields.FIELD_TYPE_DATE:
+                case Fields.FIELD_TYPE_DATETIME:
+                case Fields.FIELD_TYPE_TIMESTAMP:
+                    sb.append("'" + bindValue.value + "'");
+                    break;
+                default:
+                    bindValue.value = varcharEscaper.asFunction().apply(String.valueOf(bindValue.value));
+                    sb.append(bindValue.value.toString());
+                    break;
+            }
+        }
+        return sb.toString();
     }
 
 }

@@ -8,6 +8,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * NIO socket的读写
@@ -19,7 +21,8 @@ public class NIOSocketWR extends SocketWR {
 	private final AbstractConnection con;
 	private final SocketChannel channel;
 	private final AtomicBoolean writing = new AtomicBoolean(false);
-
+	protected static final Logger LOGGER = LoggerFactory.getLogger(NIOSocketWR.class);
+	public static final ByteBuffer EMPTY_BYTEBUFFER  = ByteBuffer.allocate(1);
 	public NIOSocketWR(AbstractConnection con) {
 		this.con = con;
 		this.channel = (SocketChannel) con.channel;
@@ -74,6 +77,18 @@ public class NIOSocketWR extends SocketWR {
 			con.close("err:" + e);
 		} finally {
 			writing.set(false);
+		}
+	}
+
+	@Override
+	public boolean checkAlive() {
+		try {
+			return 	channel.read(EMPTY_BYTEBUFFER) == 0;
+		} catch (IOException e) {
+			LOGGER.error("",e);
+			return false;
+		}finally {
+			EMPTY_BYTEBUFFER.position(0);
 		}
 	}
 

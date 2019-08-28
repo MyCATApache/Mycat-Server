@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -29,73 +29,73 @@ package io.mycat.config;
 public interface ErrorCode {
 
 	// mycat error code
-    public static final int ERR_BAD_LOGICDB = 3000;
-    public static final int ERR_OPEN_SOCKET = 3001;
-    public static final int ERR_CONNECT_SOCKET = 3002;
-    public static final int ERR_REGISTER = 3004;
-    public static final int ERR_READ = 3005;
-    public static final int ERR_PUT_WRITE_QUEUE = 3006;
-    public static final int ERR_WRITE_BY_EVENT = 3007;
-    public static final int ERR_WRITE_BY_QUEUE = 3008;
-    public static final int ERR_HANDLE_DATA = 3009;
-    public static final int ERR_NOT_SUPPORTED = 3010;
-    public static final int ERR_MULTI_NODE_FAILED = 3011;
-    public static final int ERR_WRONG_USED = 3012;
-    public static final int ERR_FOUND_EXCEPION = 3344;
+	public static final int ERR_BAD_LOGICDB = 3000;
+	public static final int ERR_OPEN_SOCKET = 3001;
+	public static final int ERR_CONNECT_SOCKET = 3002;
+	public static final int ERR_REGISTER = 3004;
+	public static final int ERR_READ = 3005;
+	public static final int ERR_PUT_WRITE_QUEUE = 3006;
+	public static final int ERR_WRITE_BY_EVENT = 3007;
+	public static final int ERR_WRITE_BY_QUEUE = 3008;
+	public static final int ERR_HANDLE_DATA = 3009;
+	public static final int ERR_NOT_SUPPORTED = 3010;
+	public static final int ERR_MULTI_NODE_FAILED = 3011;
+	public static final int ERR_WRONG_USED = 3012;
+	public static final int ERR_FOUND_EXCEPTION = 3344;
 	// mysql error code
-    public static final int ER_HASHCHK = 1000;
-    public static final int ER_NISAMCHK = 1001;
-    public static final int ER_NO = 1002;
-    public static final int ER_YES = 1003;
-    public static final int ER_CANT_CREATE_FILE = 1004;
-    public static final int ER_CANT_CREATE_TABLE = 1005;
-    public static final int ER_CANT_CREATE_DB = 1006;
-    public static final int ER_DB_CREATE_EXISTS = 1007;
-    public static final int ER_DB_DROP_EXISTS = 1008;
-    public static final int ER_DB_DROP_DELETE = 1009;
-    public static final int ER_DB_DROP_RMDIR = 1010;
-    public static final int ER_CANT_DELETE_FILE = 1011;
-    public static final int ER_CANT_FIND_SYSTEM_REC = 1012;
-    public static final int ER_CANT_GET_STAT = 1013;
-    public static final int ER_CANT_GET_WD = 1014;
-    public static final int ER_CANT_LOCK = 1015;
-    public static final int ER_CANT_OPEN_FILE = 1016;
-    public static final int ER_FILE_NOT_FOUND = 1017;
-    public static final int ER_CANT_READ_DIR = 1018;
-    public static final int ER_CANT_SET_WD = 1019;
-    public static final int ER_CHECKREAD = 1020;
-    public static final int ER_DISK_FULL = 1021;
-    public static final int ER_DUP_KEY = 1022;
-    public static final int ER_ERROR_ON_CLOSE = 1023;
-    public static final int ER_ERROR_ON_READ = 1024;
-    public static final int ER_ERROR_ON_RENAME = 1025;
-    public static final int ER_ERROR_ON_WRITE = 1026;
-    public static final int ER_FILE_USED = 1027;
-    public static final int ER_FILSORT_ABORT = 1028;
-    public static final int ER_FORM_NOT_FOUND = 1029;
-    public static final int ER_GET_ERRNO = 1030;
-    public static final int ER_ILLEGAL_HA = 1031;
-    public static final int ER_KEY_NOT_FOUND = 1032;
-    public static final int ER_NOT_FORM_FILE = 1033;
-    public static final int ER_NOT_KEYFILE = 1034;
-    public static final int ER_OLD_KEYFILE = 1035;
-    public static final int ER_OPEN_AS_READONLY = 1036;
-    public static final int ER_OUTOFMEMORY = 1037;
-    public static final int ER_OUT_OF_SORTMEMORY = 1038;
-    public static final int ER_UNEXPECTED_EOF = 1039;
-    public static final int ER_CON_COUNT_ERROR = 1040;
-    public static final int ER_OUT_OF_RESOURCES = 1041;
-    public static final int ER_BAD_HOST_ERROR = 1042;
-    public static final int ER_HANDSHAKE_ERROR = 1043;
-    public static final int ER_DBACCESS_DENIED_ERROR = 1044;
-    public static final int ER_ACCESS_DENIED_ERROR = 1045;
-    public static final int ER_NO_DB_ERROR = 1046;
-    public static final int ER_UNKNOWN_COM_ERROR = 1047;
-    public static final int ER_BAD_NULL_ERROR = 1048;
-    public static final int ER_BAD_DB_ERROR = 1049;
-    public static final int ER_TABLE_EXISTS_ERROR = 1050;
-    public static final int ER_BAD_TABLE_ERROR = 1051;
-    public static final int ER_NON_UNIQ_ERROR = 1052;
+	public static final int ER_HASHCHK = 1000;
+	public static final int ER_NISAMCHK = 1001;
+	public static final int ER_NO = 1002;
+	public static final int ER_YES = 1003;
+	public static final int ER_CANT_CREATE_FILE = 1004;
+	public static final int ER_CANT_CREATE_TABLE = 1005;
+	public static final int ER_CANT_CREATE_DB = 1006;
+	public static final int ER_DB_CREATE_EXISTS = 1007;
+	public static final int ER_DB_DROP_EXISTS = 1008;
+	public static final int ER_DB_DROP_DELETE = 1009;
+	public static final int ER_DB_DROP_RMDIR = 1010;
+	public static final int ER_CANT_DELETE_FILE = 1011;
+	public static final int ER_CANT_FIND_SYSTEM_REC = 1012;
+	public static final int ER_CANT_GET_STAT = 1013;
+	public static final int ER_CANT_GET_WD = 1014;
+	public static final int ER_CANT_LOCK = 1015;
+	public static final int ER_CANT_OPEN_FILE = 1016;
+	public static final int ER_FILE_NOT_FOUND = 1017;
+	public static final int ER_CANT_READ_DIR = 1018;
+	public static final int ER_CANT_SET_WD = 1019;
+	public static final int ER_CHECKREAD = 1020;
+	public static final int ER_DISK_FULL = 1021;
+	public static final int ER_DUP_KEY = 1022;
+	public static final int ER_ERROR_ON_CLOSE = 1023;
+	public static final int ER_ERROR_ON_READ = 1024;
+	public static final int ER_ERROR_ON_RENAME = 1025;
+	public static final int ER_ERROR_ON_WRITE = 1026;
+	public static final int ER_FILE_USED = 1027;
+	public static final int ER_FILSORT_ABORT = 1028;
+	public static final int ER_FORM_NOT_FOUND = 1029;
+	public static final int ER_GET_ERRNO = 1030;
+	public static final int ER_ILLEGAL_HA = 1031;
+	public static final int ER_KEY_NOT_FOUND = 1032;
+	public static final int ER_NOT_FORM_FILE = 1033;
+	public static final int ER_NOT_KEYFILE = 1034;
+	public static final int ER_OLD_KEYFILE = 1035;
+	public static final int ER_OPEN_AS_READONLY = 1036;
+	public static final int ER_OUTOFMEMORY = 1037;
+	public static final int ER_OUT_OF_SORTMEMORY = 1038;
+	public static final int ER_UNEXPECTED_EOF = 1039;
+	public static final int ER_CON_COUNT_ERROR = 1040;
+	public static final int ER_OUT_OF_RESOURCES = 1041;
+	public static final int ER_BAD_HOST_ERROR = 1042;
+	public static final int ER_HANDSHAKE_ERROR = 1043;
+	public static final int ER_DBACCESS_DENIED_ERROR = 1044;
+	public static final int ER_ACCESS_DENIED_ERROR = 1045;
+	public static final int ER_NO_DB_ERROR = 1046;
+	public static final int ER_UNKNOWN_COM_ERROR = 1047;
+	public static final int ER_BAD_NULL_ERROR = 1048;
+	public static final int ER_BAD_DB_ERROR = 1049;
+	public static final int ER_TABLE_EXISTS_ERROR = 1050;
+	public static final int ER_BAD_TABLE_ERROR = 1051;
+	public static final int ER_NON_UNIQ_ERROR = 1052;
 	public static final int ER_SERVER_SHUTDOWN = 1053;
 	public static final int ER_BAD_FIELD_ERROR = 1054;
 	public static final int ER_WRONG_FIELD_WITH_GROUP = 1055;

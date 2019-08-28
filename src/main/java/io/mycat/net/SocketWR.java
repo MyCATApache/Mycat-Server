@@ -16,4 +16,5 @@ public abstract class SocketWR {
 	 * 执行下一个写检查
 	 */
 	public abstract void doNextWriteCheck() ;
+	public abstract boolean checkAlive();
 }

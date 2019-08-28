@@ -1,12 +1,14 @@
 package io.mycat.route.function;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.mycat.util.StringUtil;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 根据日期查询日志数据 冷热数据分布 ，最近n个月的到实时交易库查询，超过n个月的按照m天分片
@@ -98,13 +100,13 @@ public class PartitionByHotDate extends AbstractPartitionAlgorithm implements Ru
 			}else{
 				Integer [] re = null;
 				Integer begin = 0, end = 0;
-				end = this.calculate(beginValue);
+				end = this.calculate(StringUtil.removeBackquote(beginValue));
 				boolean hasLimit = false;
 				if(endTime-limitDate > 0){
 					endTime = limitDate;
 					hasLimit = true;
 				}
-				begin = this.calculate(formatter.get().format(endTime));
+				begin = this.calculate(StringUtil.removeBackquote(formatter.get().format(endTime)));
 				if(begin == null || end == null){
 					return re;
 				}

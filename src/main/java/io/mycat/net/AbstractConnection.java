@@ -97,7 +97,7 @@ public abstract class AbstractConnection implements NIOConnection {
     // 空闲超时时间
 	private long idleTimeout;
 
-	private final SocketWR socketWR;
+	protected final SocketWR socketWR;
 
 	public AbstractConnection(NetworkChannel channel) {
 		this.channel = channel;
@@ -653,5 +653,9 @@ public abstract class AbstractConnection implements NIOConnection {
 	}
 	public void onConnectfinish() {
 		LOGGER.debug("连接后台真正完成");
-	}	
+	}
+
+	public boolean checkAlive(){
+	return 	socketWR.checkAlive();
+	}
 }
