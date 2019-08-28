@@ -146,7 +146,10 @@ public class ShowTables {
                 }
             };
 
-
+            //如果设置了默认table，前端不显示
+            if(tableSet.contains("*")){
+            	tableSet.remove("*");
+            }
 
         }
         return tableSet;

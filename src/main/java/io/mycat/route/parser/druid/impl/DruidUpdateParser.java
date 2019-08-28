@@ -44,6 +44,10 @@ public class DruidUpdateParser extends DefaultDruidParser {
             rrs.setFinishedRoute(true);
             return;
         }
+       //判断是否配置默认table 2018-10-24
+        if(tc == null){
+        	tc = schema.getTables().get("*");
+        }
 
         String partitionColumn = tc.getPartitionColumn();
         String joinKey = tc.getJoinKey();
@@ -70,7 +74,7 @@ public class DruidUpdateParser extends DefaultDruidParser {
 //		}
 //		System.out.println();
 
-        if (schema.getTables().get(tableName).isGlobalTable() && ctx.getRouteCalculateUnit().getTablesAndConditions().size() > 1) {
+        if (tc.isGlobalTable() && ctx.getRouteCalculateUnit().getTablesAndConditions().size() > 1) {
             throw new SQLNonTransientException("global table is not supported in multi table related update " + tableName);
         }
 
@@ -221,7 +225,10 @@ public class DruidUpdateParser extends DefaultDruidParser {
     private void confirmShardColumnNotUpdated(SQLUpdateStatement update,SchemaConfig schema,String tableName,String partitionColumn,String joinKey,RouteResultset rrs) throws SQLNonTransientException {
         List<SQLUpdateSetItem> updateSetItem = update.getItems();
         if (updateSetItem != null && updateSetItem.size() > 0) {
-            boolean hasParent = (schema.getTables().get(tableName).getParentTC() != null);
+        	//判断是否配置默认table
+        	TableConfig tc = schema.getTables().get(tableName) == null ? schema.getTables().get("*") : schema.getTables().get(tableName);
+            boolean hasParent = (tc.getParentTC() != null);
+
             for (SQLUpdateSetItem item : updateSetItem) {
                 String column = StringUtil.removeBackquote(item.getColumn().toString().toUpperCase());
                 //考虑别名，前面已经限制了update分片表的个数只能有一个，所以这里别名只能是分片表的

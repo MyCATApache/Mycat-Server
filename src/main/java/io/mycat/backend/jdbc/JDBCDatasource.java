@@ -112,11 +112,11 @@ public class JDBCDatasource extends PhysicalDatasource {
 	Connection getConnection() throws SQLException {
 		DBHostConfig cfg = getConfig();
 		String url = cfg.getUrl();
-		if(cfg.isUseSSL()){
-			url += url.contains("?") ? "&useSSL=true" : "?useSSL=true";
-		}else{
-			url += url.contains("?") ? "&useSSL=false" : "?useSSL=false";
-		}
+//		if(cfg.isUseSSL()){
+//			url += url.contains("?") ? "&useSSL=true" : "?useSSL=true";
+//		}else{
+//			url += url.contains("?") ? "&useSSL=false" : "?useSSL=false";
+//		}
 		Connection connection = DriverManager.getConnection(url, cfg.getUser(), cfg.getPassword());
 		String initSql=getHostConfig().getConnectionInitSql();
 		if (initSql != null && !"".equals(initSql)) {

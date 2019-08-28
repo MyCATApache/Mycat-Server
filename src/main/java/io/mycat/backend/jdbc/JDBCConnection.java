@@ -51,8 +51,26 @@ public class JDBCConnection implements BackendConnection {
 	private final long startTime;
 	private long lastTime;
 	private boolean isSpark = false;
+	
+	//.net连接mycat,后端sqlserver支持2018-10-29---------------
+	public static Map<String, String> sqlmap = new HashMap<>();
+	static{
+		sqlmap.put("SELECT TIMEDIFF(NOW(), UTC_TIMESTAMP())", "SELECT DATEDIFF(HH,GETUTCDATE(),GETDATE())");
+		sqlmap.put("SELECT TIMEDIFF(CURTIME(),UTC_TIME))", "SELECT DATEDIFF(HH,GETUTCDATE(),GETDATE())");
+	}
+	
+	private String sqlServerToMysql(String sql) {
+		if(sqlmap.get(sql) != null){
+			return sqlmap.get(sql);
+		}
+		return sql;
+	}
+	//--------------------------------------------
 
 	private NIOProcessor processor;
+
+	private InsertSqlBinary4PgRewriter insertSqlBinary4PgRewriter = new InsertSqlBinary4PgRewriter();
+	private UpdateSqlBinary4PgRewriter updateSqlBinary4PgRewriter = new UpdateSqlBinary4PgRewriter();
 
 	public NIOProcessor getProcessor() {
 		return processor;
@@ -286,11 +304,17 @@ public class JDBCConnection implements BackendConnection {
 				con.setAutoCommit(autocommit);
 			}
 			int sqlType = rrn.getSqlType();
+			
+			if("sqlserver".equalsIgnoreCase(getDbType())){
+				//.net连接mycat,后端sqlserver支持2018-10-29---------------
+				orgin = sqlServerToMysql(orgin);
+			}
+			
 			if(rrn.isCallStatement()&&"oracle".equalsIgnoreCase(getDbType())) {
 				//存储过程暂时只支持oracle
 				ouputCallStatement(rrn,sc,orgin);
-			}  else
-			if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
+			}
+			else if (sqlType == ServerParse.SELECT || sqlType == ServerParse.SHOW) {
 				if ((sqlType == ServerParse.SHOW) && (!dbType.equals("MYSQL"))) {
 					// showCMD(sc, orgin);
 					//ShowVariables.execute(sc, orgin);
@@ -302,6 +326,18 @@ public class JDBCConnection implements BackendConnection {
 					ouputResultSet(sc, orgin);
 				}
 			} else {
+				//如果Backend数据库类型是postgresql且SQL语句中存在"X'"或"_binary'", 则需要改写SQL
+				if ("postgresql".equalsIgnoreCase(dbType) &&
+						(orgin.indexOf("X'") >= 0 || orgin.indexOf("_binary'") >= 0)) {
+					switch (sqlType) {
+						case ServerParse.INSERT:
+							orgin = insertSqlBinary4PgRewriter.rewrite(con, orgin, sc.getCharset());
+							break;
+						case ServerParse.UPDATE:
+							orgin = updateSqlBinary4PgRewriter.rewrite(con, orgin, sc.getCharset());
+							break;
+					}
+				}
 				executeddl(sc, orgin);
 			}
 

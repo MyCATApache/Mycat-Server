@@ -363,7 +363,7 @@ public class ServerConnection extends FrontendConnection {
 					}
 					for(String tableKey : tableConfigMap.keySet()){
 						TableConfig itemConfig = tableConfigMap.get(tableKey);
-						if(tableKey.equalsIgnoreCase(table) && itemConfig!=null){
+						if((tableKey.equalsIgnoreCase(table) && itemConfig!=null) || tableKey.equals("*")){
 							schemaConfig = schemaConfigMap.get(schemaKey);
 							schema = schemaKey;
 							tableConfig = itemConfig;
