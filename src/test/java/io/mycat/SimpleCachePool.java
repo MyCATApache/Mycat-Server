@@ -24,7 +24,9 @@
 package io.mycat;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import io.mycat.cache.CacheStatic;
 import io.mycat.cache.LayerCachePool;
@@ -56,12 +58,14 @@ public class SimpleCachePool implements LayerCachePool {
 
 	@Override
 	public void putIfAbsent(String primaryKey, Object secondKey, Object value) {
+        primaryKey = primaryKey.toUpperCase();
 		putIfAbsent(primaryKey+"_"+secondKey,value);
 		
 	}
 
 	@Override
 	public Object get(String primaryKey, Object secondKey) {
+        primaryKey = primaryKey.toUpperCase();
 		return get(primaryKey+"_"+secondKey);
 	}
 
@@ -75,4 +79,19 @@ public class SimpleCachePool implements LayerCachePool {
 	public long getMaxSize() {
 		return 100;
 	}
+
+    @Override
+    public void clearCache(String primaryKey) {
+        primaryKey = primaryKey.toUpperCase();
+        Iterator<Map.Entry<Object, Object>> it = cacheMap.entrySet().iterator();
+        while(it.hasNext()){
+            Map.Entry<Object, Object> entry = it.next();
+            if(entry.getKey() instanceof String){
+                String key = (String)entry.getKey();
+                if(key.startsWith(primaryKey+"_")){
+                    it.remove();
+                }
+            }
+        }
+    }
 };
