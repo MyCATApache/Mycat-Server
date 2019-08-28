@@ -342,6 +342,10 @@ public final class MysqlDefs {
 				return javaType;
 			}
 		}
+		case Types.BINARY:
+		case Types.VARBINARY: {  //Types.BINRARY makes the last mysql column type GEOMETRY, NOT BLOB or Binary
+			return Types.LONGVARBINARY;
+		}
 		default: {
 			return javaType;
 		}

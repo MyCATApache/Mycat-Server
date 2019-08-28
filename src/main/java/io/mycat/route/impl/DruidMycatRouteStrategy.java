@@ -147,6 +147,10 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 //						tc = schemaConf.getTables().get(tableAliasMap.get(tableName));
 //					}
 //				}
+				//判断是否配置默认table，从默认table中取 2018-10-24添加
+                if(tc == null){
+                	tc = schemaConf.getTables().get("*");
+                }
 				if(index == 0){
 					if(tc !=null){
 						firstRule=  tc.getRule();
