@@ -173,8 +173,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 						if(ruleCfg==null){  //没有指定分片规则时,不做处理
 							continue;
 						}
-						Set<String> dataNodes = new HashSet<String>();
-						dataNodes.addAll(tc.getDataNodes());
+						Set<String> dataNodes = new HashSet<>(tc.getDataNodes());
 						rulemap.put(tc.getName(), ruleCfg);
 						//如果匹配规则不相同或者分片的datanode不相同则需要走子查询处理
 						if(firstRule!=null&&((ruleCfg !=null && !ruleCfg.getRuleAlgorithm().equals(firstRule.getRuleAlgorithm()) )||( !dataNodes.equals(firstDataNodes)))){
