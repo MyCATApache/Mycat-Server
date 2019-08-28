@@ -521,7 +521,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		if (!isClosed.get()) {
 			isQuit.set(true);
 			super.close(reason);
-			pool.connectionClosed(this);
+			pool.conQueueRemove(this);
 			if (this.responseHandler != null) {
 				this.responseHandler.connectionClose(this, reason);
 				responseHandler = null;

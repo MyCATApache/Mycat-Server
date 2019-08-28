@@ -104,6 +104,11 @@ public class JDBCDatasource extends PhysicalDatasource {
 	}
 
 
+	/**
+	 * 获取新连接
+	 * @return
+	 * @throws SQLException
+	 */
 	Connection getConnection() throws SQLException {
 		DBHostConfig cfg = getConfig();
 		String url = cfg.getUrl();

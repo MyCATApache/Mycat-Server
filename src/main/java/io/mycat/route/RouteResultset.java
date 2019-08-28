@@ -132,6 +132,7 @@ public final class RouteResultset implements Serializable {
      */
     private boolean selectForUpdate;
     private boolean autoIncrement;
+    private Map<String, List<String>> subTableMaps;
 
     private List<String> tables;
 
@@ -162,14 +163,14 @@ public final class RouteResultset implements Serializable {
     }
 
     public Boolean getRunOnSlave() {
-		return runOnSlave;
-	}
+        return runOnSlave;
+    }
     public String getRunOnSlaveDebugInfo() {
         return runOnSlave == null?"default":Boolean.toString(runOnSlave);
     }
-	public void setRunOnSlave(Boolean runOnSlave) {
-		this.runOnSlave = runOnSlave;
-	}
+    public void setRunOnSlave(Boolean runOnSlave) {
+        this.runOnSlave = runOnSlave;
+    }
 
     public Procedure getProcedure() {
         return procedure;
@@ -509,5 +510,13 @@ public final class RouteResultset implements Serializable {
 
     public boolean getAutoIncrement() {
         return autoIncrement;
+    }
+
+    public Map<String, List<String>> getSubTableMaps() {
+        return subTableMaps;
+    }
+
+    public void setSubTableMaps(Map<String, List<String>> subTableMaps) {
+        this.subTableMaps = subTableMaps;
     }
 }

@@ -254,8 +254,9 @@ public class JDBCConnection implements BackendConnection {
 	public void commit() {
 		try {
 			con.commit();
-
-			this.respHandler.okResponse(OkPacket.OK, this);
+			if(this.respHandler!=null) {
+				this.respHandler.okResponse(OkPacket.OK, this);
+			}
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -347,7 +348,9 @@ public class JDBCConnection implements BackendConnection {
 			error.packetId = ++packetId;
 			error.errno = e.getErrorCode();
 			error.message = msg.getBytes();
-			this.respHandler.errorResponse(error.writeToBytes(sc), this);
+			if(this.respHandler!=null) {
+				this.respHandler.errorResponse(error.writeToBytes(sc), this);
+			}
 		}
 		catch (Exception e) {
 			String msg = e.getMessage();
@@ -360,7 +363,10 @@ public class JDBCConnection implements BackendConnection {
 				err = new String(error.message);
 			}
 			LOGGER.error("sql execute error, "+ err , e);
-			this.respHandler.errorResponse(error.writeToBytes(sc), this);
+
+			if(this.respHandler!=null) {
+				this.respHandler.errorResponse(error.writeToBytes(sc), this);
+			}
 		}
 		finally {
 			this.running = false;
@@ -391,7 +397,10 @@ public class JDBCConnection implements BackendConnection {
 			okPck.insertId = 0;
 			okPck.packetId = ++packetId;
 			okPck.message = " OK!".getBytes();
-			this.respHandler.okResponse(okPck.writeToBytes(sc), this);
+
+			if(this.respHandler!=null) {
+				this.respHandler.okResponse(okPck.writeToBytes(sc), this);
+			}
 		} finally {
 			if (stmt != null) {
 				try {
@@ -481,7 +490,10 @@ public class JDBCConnection implements BackendConnection {
 				byte[] eof = new byte[byteBuf.limit()];
 				byteBuf.get(eof);
 				byteBuf.clear();
-				this.respHandler.fieldEofResponse(header, fields, eof, this);
+
+				if(this.respHandler!=null) {
+					this.respHandler.fieldEofResponse(header, fields, eof, this);
+				}
 				RowDataPacket curRow = new RowDataPacket(colunmCount);
 				for (String name : procedure.getSelectColumns()) {
 					ProcedureParameter procedureParameter=   procedure.getParamterMap().get(name);
@@ -495,7 +507,10 @@ public class JDBCConnection implements BackendConnection {
 				byte[] row = new byte[byteBuf.limit()];
 				byteBuf.get(row);
 				byteBuf.clear();
-				this.respHandler.rowResponse(row, this);
+
+				if(this.respHandler!=null) {
+					this.respHandler.rowResponse(row, this);
+				}
 
 				eofPckg = new EOFPacket();
 				eofPckg.packetId = ++packetId;
@@ -507,7 +522,10 @@ public class JDBCConnection implements BackendConnection {
 				eof = new byte[byteBuf.limit()];
 				byteBuf.get(eof);
 				byteBuf.clear();
-				this.respHandler.rowEofResponse(eof, this);
+
+				if(this.respHandler!=null) {
+					this.respHandler.rowEofResponse(eof, this);
+				}
 			}
 
 
@@ -559,7 +577,10 @@ public class JDBCConnection implements BackendConnection {
 						byte[] eof = new byte[byteBuf.limit()];
 						byteBuf.get(eof);
 						byteBuf.clear();
-						this.respHandler.fieldEofResponse(header, fields, eof, this);
+
+						if(this.respHandler!=null) {
+							this.respHandler.fieldEofResponse(header, fields, eof, this);
+						}
 
 						// output row
 						while (rs.next()) {
@@ -575,7 +596,10 @@ public class JDBCConnection implements BackendConnection {
 							byte[] row = new byte[byteBuf.limit()];
 							byteBuf.get(row);
 							byteBuf.clear();
-							this.respHandler.rowResponse(row, this);
+
+							if(this.respHandler!=null) {
+								this.respHandler.rowResponse(row, this);
+							}
 						}
 						eofPckg = new EOFPacket();
 						eofPckg.packetId = ++packetId;
@@ -587,7 +611,10 @@ public class JDBCConnection implements BackendConnection {
 						eof = new byte[byteBuf.limit()];
 						byteBuf.get(eof);
 						byteBuf.clear();
-						this.respHandler.rowEofResponse(eof, this);
+
+						if(this.respHandler!=null) {
+							this.respHandler.rowEofResponse(eof, this);
+						}
 					}
 				}
 			}
@@ -596,7 +623,10 @@ public class JDBCConnection implements BackendConnection {
 				byte[] OK = new byte[] { 7, 0, 0, 1, 0, 0, 0, 2, 0, 0,
 						0 };
 				OK[3]=++packetId;
-				this.respHandler.okResponse(OK,this);
+
+				if(this.respHandler!=null) {
+					this.respHandler.okResponse(OK, this);
+				}
 			}
 			sc.recycle(byteBuf);
 		} finally {
@@ -627,11 +657,8 @@ public class JDBCConnection implements BackendConnection {
 			stmt = con.createStatement();
 			rs = stmt.executeQuery(sql);
 
-			final String charset = sc.getCharset();
-			final ResultSet tempRS = rs;
-
 			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
-			ResultSetUtil.resultSetToFieldPacket(charset, fieldPks, tempRS,
+			ResultSetUtil.resultSetToFieldPacket(sc.getCharset(), fieldPks, rs,
 					this.isSpark);
 			int colunmCount = fieldPks.size();
 			ByteBuffer byteBuf = sc.allocate();
@@ -663,22 +690,27 @@ public class JDBCConnection implements BackendConnection {
 			byte[] eof = new byte[byteBuf.limit()];
 			byteBuf.get(eof);
 			byteBuf.clear();
-			this.respHandler.fieldEofResponse(header, fields, eof, this);
+
+			if(this.respHandler!=null) {
+				this.respHandler.fieldEofResponse(header, fields, eof, this);
+			}
 
 			// output row
-			while (tempRS.next()) {
+			while (rs.next()) {
 				RowDataPacket curRow = new RowDataPacket(colunmCount);
 				for (int i = 0; i < colunmCount; i++) {
 					int j = i + 1;
 					if(MysqlDefs.isBianry((byte) fieldPks.get(i).type)) {
-						curRow.add(tempRS.getBytes(j));
+						curRow.add(rs.getBytes(j));
 					} else if(fieldPks.get(i).type == MysqlDefs.FIELD_TYPE_DECIMAL ||
 							fieldPks.get(i).type == (MysqlDefs.FIELD_TYPE_NEW_DECIMAL - 256)) { // field type is unsigned byte
 						// ensure that do not use scientific notation format
-						BigDecimal val = tempRS.getBigDecimal(j);
-						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null, charset));
+						BigDecimal val = rs.getBigDecimal(j);
+						curRow.add(StringUtil.encode(val != null ? val.toPlainString() : null,
+								sc.getCharset()));
 					} else {
-						curRow.add(StringUtil.encode(tempRS.getString(j), charset));
+						curRow.add(StringUtil.encode(rs.getString(j),
+								sc.getCharset()));
 					}
 
 				}
@@ -688,7 +720,10 @@ public class JDBCConnection implements BackendConnection {
 				byte[] row = new byte[byteBuf.limit()];
 				byteBuf.get(row);
 				byteBuf.clear();
-				this.respHandler.rowResponse(row, this);
+
+				if(this.respHandler!=null) {
+					this.respHandler.rowResponse(row, this);
+				}
 			}
 
 			fieldPks.clear();
@@ -701,7 +736,10 @@ public class JDBCConnection implements BackendConnection {
 			eof = new byte[byteBuf.limit()];
 			byteBuf.get(eof);
 			sc.recycle(byteBuf);
-			this.respHandler.rowEofResponse(eof, this);
+
+			if(this.respHandler!=null) {
+				this.respHandler.rowEofResponse(eof, this);
+			}
 		} finally {
 			if (rs != null) {
 				try {
@@ -725,11 +763,10 @@ public class JDBCConnection implements BackendConnection {
 		if(respHandler instanceof ConnectionHeartBeatHandler) {
 			justForHeartbeat(sql);
 		} else {
-			throw new UnsupportedEncodingException("unsupported yet ");
+			throw new UnsupportedOperationException("global seq is not unsupported in jdbc driver yet ");
 		}
 	}
-	private void justForHeartbeat(String sql)
-	{
+	private void justForHeartbeat(String sql) {
 
 		Statement stmt = null;
 
@@ -739,7 +776,10 @@ public class JDBCConnection implements BackendConnection {
 			if(!isAutocommit()){ //如果在写库上，如果是事务方式的连接，需要进行手动commit
 				con.commit();
 			}
-			this.respHandler.okResponse(OkPacket.OK, this);
+
+			if(this.respHandler!=null) {
+				this.respHandler.okResponse(OkPacket.OK, this);
+			}
 
 		} catch (Exception e) {
 			String msg = e.getMessage();
@@ -747,7 +787,10 @@ public class JDBCConnection implements BackendConnection {
 			error.packetId = ++packetId;
 			error.errno = ErrorCode.ER_UNKNOWN_ERROR;
 			error.message = msg.getBytes();
-			this.respHandler.errorResponse(error.writeToBytes(), this);
+
+			if(this.respHandler!=null) {
+				this.respHandler.errorResponse(error.writeToBytes(), this);
+			}
 		} finally {
 			if (stmt != null) {
 				try {
@@ -801,7 +844,9 @@ public class JDBCConnection implements BackendConnection {
 		try {
 			con.rollback();
 
-			this.respHandler.okResponse(OkPacket.OK, this);
+			if(this.respHandler!=null) {
+				this.respHandler.okResponse(OkPacket.OK, this);
+			}
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -876,6 +921,16 @@ public class JDBCConnection implements BackendConnection {
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
-		}		
+		}
+	}
+
+	@Override
+	public boolean checkAlive() {
+		try {
+			return !con.isClosed();
+		} catch (SQLException e) {
+			LOGGER.error("connection is closed",e);
+			return false;
+		}
 	}
 }

@@ -84,6 +84,9 @@ public class DelegateResponseHandler implements ResponseHandler {
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
 		target.connectionClose(conn, reason);
+        if(!conn.isClosedOrQuit()){
+            conn.close(reason);
+        }
 	}
 
 	

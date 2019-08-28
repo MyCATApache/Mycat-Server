@@ -227,6 +227,9 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug(this.toString()+ "closed connection:" + reason + " con:" + conn);
 		}
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
+		}
 		boolean finished = false;
 		lock.lock();
 		try {

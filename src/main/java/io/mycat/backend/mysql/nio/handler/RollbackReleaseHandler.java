@@ -81,7 +81,9 @@ public class RollbackReleaseHandler implements ResponseHandler {
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
+		}
 	}
 
 }

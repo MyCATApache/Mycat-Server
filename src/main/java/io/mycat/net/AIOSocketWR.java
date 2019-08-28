@@ -132,6 +132,11 @@ public class AIOSocketWR extends SocketWR {
             this.write0();
         }
     }
+
+    @Override
+    public boolean checkAlive() {
+        return channel.isOpen();
+    }
 }
 
 class AIOWriteHandler implements CompletionHandler<Integer, AIOSocketWR> {

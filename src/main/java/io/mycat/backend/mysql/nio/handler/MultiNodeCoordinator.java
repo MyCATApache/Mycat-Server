@@ -387,6 +387,9 @@ public class MultiNodeCoordinator implements ResponseHandler {
 					if(prepareCount.decrementAndGet() == 0) {
 						this.tryErrorFinished(true);
 					}
+					if(!conn.isClosedOrQuit()){
+						conn.close(reason);
+					}
 					return ;
 					
 				}	
@@ -424,6 +427,9 @@ public class MultiNodeCoordinator implements ResponseHandler {
 //			if (cmdHandler.isAutoClearSessionCons()) {
 //				session.clearResources(session.getSource().isTxInterrupted());
 //			}
+		}
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
 		}
 	}
 	//设置失败

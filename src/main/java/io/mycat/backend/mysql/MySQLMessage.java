@@ -197,6 +197,24 @@ public class MySQLMessage {
             return ab2;
         }
     }
+    
+    public int getRowLength(int fileldCount) {
+    	int size = 0;
+    	int bak_position = position;
+    	position += 4;
+    	for(int i = 0 ; i < fileldCount; i++) {
+            int length = (int) readLength();
+            if(length == NULL_LENGTH || length <= 0)
+            {
+            	continue;
+            }
+
+            position += length;
+            size += length;
+    	}
+    	position = bak_position;
+    	return size;
+    }
 
     /**
      * 通过长度获取对应的数据

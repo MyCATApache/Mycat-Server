@@ -107,6 +107,7 @@ public class DefaultLayedCachePool implements LayerCachePool {
 
 	@Override
 	public void putIfAbsent(String primaryKey, Object secondKey, Object value) {
+		primaryKey = primaryKey.toUpperCase();
 		CachePool pool = getCache(primaryKey);
 		pool.putIfAbsent(secondKey, value);
 
@@ -114,6 +115,7 @@ public class DefaultLayedCachePool implements LayerCachePool {
 
 	@Override
 	public Object get(String primaryKey, Object secondKey) {
+		primaryKey = primaryKey.toUpperCase();
 		CachePool pool = getCache(primaryKey);
 		return pool.get(secondKey);
 	}
@@ -163,4 +165,12 @@ public class DefaultLayedCachePool implements LayerCachePool {
 		return maxSize;
 	}
 
+	@Override
+	//clear cache by cacheName
+	public void clearCache(String primaryKey) {
+		primaryKey = primaryKey.toUpperCase();
+		LOGGER.info("clear cache :"+primaryKey);
+		CachePool pool = getCache(primaryKey);
+		pool.clearCache();
+	}
 }

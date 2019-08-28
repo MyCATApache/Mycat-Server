@@ -3,6 +3,7 @@ package io.mycat.util.dataMigrator;
 import com.alibaba.druid.util.JdbcUtils;
 import io.mycat.route.function.AbstractPartitionAlgorithm;
 import io.mycat.util.CollectionUtil;
+import io.mycat.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,11 +31,11 @@ public class MigratorConditonFilesMaker implements Runnable{
 	private TableMigrateInfo tableInfo;
 	private int newDnSize;
 	private int pageSize;
-	
+
 	private Map<DataNode,File> files = new HashMap<>();
-	
+
 	Map<DataNode,StringBuilder> map = new HashMap<>();//存放节点发生变化的拆分字段字符串数据 key:dn索引 value 拆分字段值,以逗号分隔
-	
+
 	public MigratorConditonFilesMaker(TableMigrateInfo tableInfo,DataNode srcDn,String tempFileDir, int pageSize){
 		this.tableInfo = tableInfo;
 		this.tempFileDir = tempFileDir;
@@ -46,53 +47,53 @@ public class MigratorConditonFilesMaker implements Runnable{
 		this.newDnSize = newDnList.size();
 		this.pageSize = pageSize;
 	}
-	
+
 	@Override
 	public void run() {
 		if(tableInfo.isError()) {
 			return;
 		}
-		
+
 		long[] count = new long[newDnSize];
-    	int page=0;
-    	List<Map<String, Object>> list=null;
-		
-    	Connection con = null;
+		int page=0;
+		List<Map<String, Object>> list=null;
+
+		Connection con = null;
 		try {
 			con = DataMigratorUtil.getMysqlConnection(srcDn);
 			//创建空的中间临时文件
 			createTempFiles();
-			
+
 			//暂时只实现mysql的分页查询
-			list = DataMigratorUtil.executeQuery(con, "select " 
-			        + column+ " from " + tableName + " limit ?,?", page++ * pageSize,
-			        pageSize);
+			list = DataMigratorUtil.executeQuery(con, "select "
+							+ column+ " from " + tableName + " limit ?,?", page++ * pageSize,
+					pageSize);
 			int total = 0; //该节点表总数据量
-			
+
 			while (!CollectionUtil.isEmpty(list)) {
 				if(tableInfo.isError()) {
 					return;
 				}
 				flushData(false);
-    			for(int i=0,l=list.size();i<l;i++){
-    				Map<String, Object> sf=list.get(i);
+				for(int i=0,l=list.size();i<l;i++){
+					Map<String, Object> sf=list.get(i);
 					Object objFieldVal = sf.get(column);
 					String filedVal = objFieldVal.toString();
 					if (objFieldVal instanceof  String){
 						filedVal = "'"+filedVal+"'";
 					}
-    				Integer newIndex=alg.calculate(objFieldVal.toString());
-    				total++;
-    				DataNode newDn = newDnList.get(newIndex);
-    				if(!srcDn.equals(newDn)){
-    					count[newIndex]++;
-    					map.get(newDn).append(filedVal+",");
-    				}
-    			}
-    			list = DataMigratorUtil.executeQuery(con, "select "
-                        + column + " from " + tableName + " limit ?,?", page++ * pageSize,
-                        pageSize);
-    		}
+					Integer newIndex=alg.calculate(StringUtil.removeBackquote(objFieldVal.toString()));
+					total++;
+					DataNode newDn = newDnList.get(newIndex);
+					if(!srcDn.equals(newDn)){
+						count[newIndex]++;
+						map.get(newDn).append(filedVal+",");
+					}
+				}
+				list = DataMigratorUtil.executeQuery(con, "select "
+								+ column + " from " + tableName + " limit ?,?", page++ * pageSize,
+						pageSize);
+			}
 			flushData(true);
 			statisticalData(total,count);
 		} catch (Exception e) {
@@ -107,7 +108,7 @@ public class MigratorConditonFilesMaker implements Runnable{
 			JdbcUtils.close(con);
 		}
 	}
-	
+
 	//创建中间临时文件
 	private void createTempFiles() throws IOException{
 		File parentFile = createDirIfNotExist();
@@ -118,8 +119,8 @@ public class MigratorConditonFilesMaker implements Runnable{
 			}
 		}
 	}
-	
-	
+
+
 	//中间临时文件 格式: srcDnName-targetDnName.txt   中间文件存在的话会被清除
 	private void createTempFile(File parentFile, DataNode dn) throws IOException {
 		File f = new File(parentFile,srcDn.getName()+"(old)"+"-"+dn.getName()+"(new).txt");
@@ -129,7 +130,7 @@ public class MigratorConditonFilesMaker implements Runnable{
 		f.createNewFile();
 		files.put(dn, f);
 	}
-	
+
 	//统计各节点数据迁移信息,并移除空文件
 	private void statisticalData(int total, long[] count){
 		tableInfo.getSize().addAndGet(total);
@@ -153,7 +154,7 @@ public class MigratorConditonFilesMaker implements Runnable{
 		Map<String, String> map = tableInfo.getDnMigrateSize();
 		map.put(srcDn.getName()+"["+total+"]", sizeList.toString());
 	}
-	
+
 	//将迁移字段值写入中间文件,数据超过1024或者要求强制才写入，避免重复打开关闭写入文件
 	private void flushData(boolean isForce) throws IOException {
 		for(DataNode dn:newDnList){
@@ -172,7 +173,7 @@ public class MigratorConditonFilesMaker implements Runnable{
 			}
 		}
 	}
-	
+
 	//创建中间临时文件父目录
 	private File createDirIfNotExist() {
 		File f = new File(tempFileDir,tableInfo.getSchemaName()+"-"+tableName);

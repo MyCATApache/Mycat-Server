@@ -7,6 +7,7 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.config.model.rule.RuleAlgorithm;
 import io.mycat.config.model.rule.RuleConfig;
+import io.mycat.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -248,7 +249,7 @@ public class PartitionByCRC32PreSlot extends AbstractPartitionAlgorithm
         int c = 0;
         for (int i = 100_0000; i < total + 100_0000; i++) {//假设分片键从100万开始
             c++;
-            int h = hash.calculate(Integer.toString(i));
+            int h = hash.calculate(StringUtil.removeBackquote(Integer.toString(i)));
             if (h >= count) {
                 System.out.println("error:" + h);
             }

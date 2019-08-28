@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,34 +16,19 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
-package io.mycat.cache;
+package io.mycat.backend.loadbalance;
 
-import java.util.Map;
+import io.mycat.backend.datasource.PhysicalDatasource;
 
-/**
- * 分层缓存池
- * 
- * @author wuzhih
- * 
- */
-public interface LayerCachePool extends CachePool {
+import java.util.ArrayList;
 
-	public void putIfAbsent(String primaryKey, Object secondKey, Object value);
+public interface LoadBalance {
 
-	public Object get(String primaryKey, Object secondKey);
+    PhysicalDatasource doSelect(String hostName, ArrayList<PhysicalDatasource> okSources);
 
-	/**
-	 * get all cache static, name is cache name
-	 * 获取所有缓存静态，名称是缓存名称
-	 *
-	 * @return map of CacheStatic
-	 */
-	public Map<String, CacheStatic> getAllCacheStatic();
-
-	public void clearCache(String primaryKey);
 }

@@ -4,8 +4,8 @@ package io.mycat.sqlengine.mpp;
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -18,8 +18,8 @@ package io.mycat.sqlengine.mpp;
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -43,13 +43,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Data merge service handle data Min,Max,AVG group 、order by 、limit
- * 
+ *
  * @author wuzhih /modify by coder_czp/2015/11/2
- * 
+ *
  * Fixbug: mycat sql timeout and hang problem.
  * @author Uncle-pan
  * @since 2016-03-23
- * 
+ *
  */
 public class DataMergeService extends AbstractDataNodeMerge {
 
@@ -70,7 +70,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 	/**
 	 * @param columToIndx
 	 * @param fieldCount
-     */
+	 */
 	public void onRowMetaData(Map<String, ColMeta> columToIndx, int fieldCount) {
 
 		if (LOGGER.isDebugEnabled()) {
@@ -109,7 +109,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 					String colName = mergEntry.getKey().toUpperCase();
 					int type = mergEntry.getValue();
 					if (MergeCol.MERGE_AVG == type) {
-					
+
 						ColMeta sumColMeta = columToIndx.get(colName + "SUM");
 						ColMeta countColMeta = columToIndx.get(colName
 								+ "COUNT");
@@ -122,7 +122,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 									.getValue()));
 						}
 					} else {
-						
+
 						ColMeta colMeta = columToIndx.get(colName);
 						mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
 					}
@@ -138,7 +138,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 				}
 			}
 
-		
+
 			grouper = new RowDataPacketGrouper(groupColumnIndexs,
 					mergCols.toArray(new MergeCol[mergCols.size()]),
 					rrs.getHavingCols());
@@ -258,7 +258,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 			this.run();
 		}
 	}
-	
+
 
 
 	/**
@@ -266,7 +266,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 	 * @return (最多i*(offset+size)行数据)
 	 */
 	public List<RowDataPacket> getResults(byte[] eof) {
-	
+
 		List<RowDataPacket> tmpResult = null;
 
 		if (this.grouper != null) {
@@ -274,9 +274,9 @@ public class DataMergeService extends AbstractDataNodeMerge {
 			grouper = null;
 		}
 
-		
+
 		if (sorter != null) {
-			
+
 			if (tmpResult != null) {
 				Iterator<RowDataPacket> itor = tmpResult.iterator();
 				while (itor.hasNext()) {
@@ -289,19 +289,26 @@ public class DataMergeService extends AbstractDataNodeMerge {
 		}
 
 
-		
+
 		//no grouper and sorter
 		if(tmpResult == null){
-			tmpResult = new LinkedList<RowDataPacket>();
+			tmpResult = new LinkedList<>();
+			/**
+			 * 每次移除dataNode,防止一个dataNode重复发送多次结果集
+			 */
 			for (RouteResultsetNode node : rrs.getNodes()) {
-				tmpResult.addAll(result.get(node.getName()));
+				LinkedList<RowDataPacket> remove = result.remove(node.getName());
+				if (remove != null){
+					tmpResult.addAll(remove);
+				}
 			}
 		}
-		
+
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("prepare mpp merge result for " + rrs.getStatement());
 		}
 		return tmpResult;
 	}
 }
+
 

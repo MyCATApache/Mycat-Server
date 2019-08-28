@@ -243,6 +243,9 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 
 	public void connectionClose(BackendConnection conn, String reason) {
 		this.setFail("closed connection:" + reason + " con:" + conn);
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
+		}
 		boolean finished = false;
 
 		if (finished == false) {

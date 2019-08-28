@@ -14,8 +14,11 @@
 	<property name="useHandshakeV10">1</property>
 	<property name="useSqlStat">0</property>  <!-- 1为开启实时统计、0为关闭 -->
 	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
-
+		<property name="sqlExecuteTimeout">300</property>  <!-- SQL 执行超时 单位:秒-->
 		<property name="sequnceHandlerType">2</property>
+		<!--<property name="sequnceHandlerPattern">(?:(\s*next\s+value\s+for\s*MYCATSEQ_(\w+))(,|\)|\s)*)+</property>-->
+		<!--必须带有MYCATSEQ_或者 mycatseq_进入序列匹配流程 注意MYCATSEQ_有空格的情况-->
+		<property name="sequnceHandlerPattern">(?:(\s*next\s+value\s+for\s*MYCATSEQ_(\w+))(,|\)|\s)*)+</property>
 	<property name="subqueryRelationshipCheck">false</property> <!-- 子查询中存在关联查询的情况下,检查关联字段中是否有分片字段 .默认 false -->
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
         <!--  <property name="fakeMySQLVersion">5.6.20</property>--> <!--设置模拟的MySQL版本号-->
@@ -34,7 +37,8 @@
 		<!--<property name="processorExecutor">16</property>-->
 		<!--
 			<property name="serverPort">8066</property> <property name="managerPort">9066</property> 
-			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property> 
+			<property name="idleTimeout">300000</property> <property name="bindIp">0.0.0.0</property>
+			<property name="dataNodeIdleCheckPeriod">300000</property> 5 * 60 * 1000L; //连接空闲检查
 			<property name="frontWriteQueueSize">4096</property> <property name="processors">32</property> -->
 		<!--分布式事务开关，0为不过滤分布式事务，1为过滤分布式事务（如果分布式事务内只涉及全局表，则不过滤），2为不过滤分布式事务,但是记录分布式事务日志-->
 		<property name="handleDistributedTransactions">0</property>
@@ -42,7 +46,7 @@
 			<!--
 			off heap for merge/order/group/limit      1开启   0关闭
 		-->
-		<property name="useOffHeapForMerge">1</property>
+		<property name="useOffHeapForMerge">0</property>
 
 		<!--
 			单位为m

@@ -1,6 +1,8 @@
 package io.mycat.route.function;
 
 import io.mycat.config.model.rule.RuleAlgorithm;
+import io.mycat.util.StringUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +80,7 @@ public class PartitionByDate extends AbstractPartitionAlgorithm implements RuleA
 			Calendar cal = Calendar.getInstance();
 			List<Integer> list = new ArrayList<Integer>();
 			while(beginDate.getTime() <= endDate.getTime()){
-				Integer nodeValue = this.calculate(format.format(beginDate));
+				Integer nodeValue = this.calculate(StringUtil.removeBackquote(format.format(beginDate)));
 				if(Collections.frequency(list, nodeValue) < 1) list.add(nodeValue);
 				cal.setTime(beginDate);
 				cal.add(Calendar.DATE, 1);

@@ -286,6 +286,7 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 //		seqVal.dbfinished = true;
 		seqVal.setDbfinished();
 		String errMgs=e.toString();
+		LOGGER.error("{}",e);
 		IncrSequenceMySQLHandler.latestErrors.put(seqVal.seqName, errMgs);
 		LOGGER.warn("executeException   " + errMgs);
 		c.close("exception:" +errMgs);
@@ -302,6 +303,9 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 		//((SequenceVal) conn.getAttachment()).dbfinished = true;
 		((SequenceVal) conn.getAttachment()).setDbfinished();
 		LOGGER.warn("connection closed " + conn + " reason:" + reason);
+		if(!conn.isClosedOrQuit()){
+			conn.close(reason);
+		}
 	}
 
 	@Override
