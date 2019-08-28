@@ -95,7 +95,7 @@ public class LevelDBPool implements CachePool {
 	@Override
 	public void clearCache(String cacheName) {
 		if (cacheName != null){
-			cache.delete(cacheName.getBytes());
+			cache.delete(toByteArray(cacheName));
 		}
 	}
 
