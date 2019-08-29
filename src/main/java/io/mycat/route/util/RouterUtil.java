@@ -199,21 +199,11 @@ public class RouterUtil {
 		}
 		tablename = tablename.toUpperCase();
 
-		//判断 是否配置了默认的table 2018-10-24 添加
-		TableConfig tc = null;
-		Map<String, TableConfig> tables = schema.getTables();
 		if (schema.getTables().containsKey(tablename)){
-			tc=tables.get(tablename);
-		}else if(schema.getTables().containsKey("*")){
-			tc=tables.get("*");
-		}else{
-			//both tablename and defaultnode null
-			LOGGER.error("table not in schema----"+tablename);
-			throw new SQLSyntaxErrorException("op table not in schema----"+tablename);
-		}
-		if (tc != null){
 			if(ServerParse.DDL==sqlType){
 				List<String> dataNodes = new ArrayList<>();
+				Map<String, TableConfig> tables = schema.getTables();
+				TableConfig tc=tables.get(tablename);
 				if (tables != null && (tc  != null)) {
 					dataNodes = tc.getDataNodes();
 				}
