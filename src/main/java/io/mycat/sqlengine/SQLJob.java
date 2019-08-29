@@ -109,7 +109,7 @@ public class SQLJob implements ResponseHandler, Runnable {
 		return finished;
 	}
 
-	private void doFinished(boolean failed,String errorMsg) {
+	protected void doFinished(boolean failed, String errorMsg) {
 		finished = true;
 		jobHandler.finished(dataNodeOrDatabase, failed,errorMsg );
 		if (ctx != null) {
