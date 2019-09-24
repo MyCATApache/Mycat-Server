@@ -1,0 +1,3 @@
+{
+    "java.format.settings.url": "${workspaceFolder}/eclipse-java-google-style.xml"
+}
