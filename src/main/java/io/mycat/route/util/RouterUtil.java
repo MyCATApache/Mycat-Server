@@ -182,6 +182,8 @@ public class RouterUtil {
 	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
 		stmt = getFixedSql(stmt);
 		String tablename = "";
+		//去除sql前面的注册,如/* ApplicationName=DBeaver 6.0.1 - Main */，这个注册会导致create table出错
+		stmt = stmt.replaceFirst("\\/\\*.*\\*\\/\\s*", "");
 		final String upStmt = stmt.toUpperCase();
 		if(upStmt.startsWith("CREATE")){
 			if (upStmt.contains("CREATE INDEX ") || upStmt.contains("CREATE UNIQUE INDEX ")){
