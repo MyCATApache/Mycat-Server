@@ -4,9 +4,9 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
-import com.alibaba.druid.sql.SQLUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.sqlengine.mpp.OrderCol;
 import io.mycat.util.StringUtil;
@@ -141,7 +141,8 @@ public class TableFilter {
 		String atable=getTablefrom(fieldName);
 		String afield=getFieldfrom(fieldName);
 		if (atable.equals(tAlia)) {
-			where=unionsql(where,afield+Operator+value,and);
+			// 修复在拼接sql的时候少空格的bug
+			where=unionsql(where,afield + " " + Operator + " " + value,and);
 		}
 		else {
 		  if (join!=null) {

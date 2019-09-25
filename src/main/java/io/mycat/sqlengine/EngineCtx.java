@@ -8,19 +8,16 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
-import io.mycat.manager.handler.ConfFileHandler;
 import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.EmptyPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
-import io.mycat.route.RouteResultset;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 //
 //任务的进行的调用，
 //向mysqlClient 写数据。
 public class EngineCtx {
-	public static final Logger LOGGER = LoggerFactory.getLogger(ConfFileHandler.class);
+	public static final Logger LOGGER = LoggerFactory.getLogger(EngineCtx.class);
 	private final BatchSQLJob bachJob; 
 	private AtomicInteger jobId = new AtomicInteger(0);
 	AtomicInteger packetId = new AtomicInteger(0);
@@ -30,7 +27,7 @@ public class EngineCtx {
 	private AtomicBoolean headerWrited = new AtomicBoolean();
 	private final ReentrantLock writeLock = new ReentrantLock();
 	private volatile boolean hasError = false;
-	private volatile RouteResultset rrs;
+	// private volatile RouteResultset rrs;
 	private volatile boolean isStreamOutputResult = true; //是否流式输出。
 	public EngineCtx(NonBlockingSession session) {
 		this.bachJob = new BatchSQLJob();
@@ -210,7 +207,7 @@ public class EngineCtx {
 		this.hasError = hasError;
 	}
 	
-	public void setRouteResultset(RouteResultset rrs){
-		this.rrs = rrs;
-	}
+	// public void setRouteResultset(RouteResultset rrs){
+	// 	this.rrs = rrs;
+	// }
 }
