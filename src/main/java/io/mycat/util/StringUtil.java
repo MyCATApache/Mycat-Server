@@ -551,6 +551,10 @@ public class StringUtil {
 	 * @return
 	 */
 	public static String removeBackquote(String str) {
+		if (str == null){
+			return str;
+		}
+		str = str.trim();
 		//删除名字中的`tablename`和'value'
 		if (str.length() >= 2) {
 			char firstChar = str.charAt(0);
