@@ -51,7 +51,7 @@ public class ZKHandler {
                 ZktoXmlMain.ZKLISTENER.notifly(ZkNofiflyCfg.ZK_NOTIFLY_LOAD_ALL.getKey());
 
                 // 执行重新加载本地配制信息
-                ReloadHandler.handle("RELOAD @@config_all", c, 7 >>> 8);
+                ReloadHandler.handle("RELOAD @@config_all", c, 6);
 
                 offset += RELOAD_FROM_ZK.length();
 
