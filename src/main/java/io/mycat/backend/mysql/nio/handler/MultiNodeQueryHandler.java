@@ -886,7 +886,9 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					rowDataPkg.read(row);
 					String primaryKey = new String(rowDataPkg.fieldValues.get(primaryKeyIndex));
 					LayerCachePool pool = MycatServer.getInstance().getRouterservice().getTableId2DataNodeCache();
-					pool.putIfAbsent(priamaryKeyTable, primaryKey, dataNode);
+					if (priamaryKeyTable != null){
+						pool.putIfAbsent(priamaryKeyTable.toUpperCase(), primaryKey, dataNode);
+					}
 				}
 				if( prepared ) {
 					if(rowDataPkg==null) {

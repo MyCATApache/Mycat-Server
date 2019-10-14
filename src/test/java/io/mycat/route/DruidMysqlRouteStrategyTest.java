@@ -59,7 +59,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
 
 
     public void testRouteInsertShort() throws Exception {
-        String sql = "inSErt into offer_detail (`offer_id`, gmt) values (123,now())";
+        String sql = "inSErt into offer_detail (`offer_id`, gmt) values ('123',now())";
         SchemaConfig schema = schemaMap.get("cndb");
         RouteResultset rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null,
                 null, cachePool);
@@ -67,10 +67,9 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(false, rrs.isCacheAble());
         Assert.assertEquals(-1l, rrs.getLimitSize());
         Assert.assertEquals("detail_dn15", rrs.getNodes()[0].getName());
-        Assert.assertEquals(
-                "inSErt into offer_detail (`offer_id`, gmt) values (123,now())",
-                rrs.getNodes()[0].getStatement());
-
+        String expect = "INSERT INTO offer_detail (`offer_id`, gmt)\n" +
+                "VALUES ('123', now())";
+        Assert.assertEquals(expect, rrs.getNodes()[0].getStatement());
         sql = "inSErt into offer_detail ( gmt) values (now())";
         schema = schemaMap.get("cndb");
         try {
@@ -87,7 +86,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(-1l, rrs.getLimitSize());
         Assert.assertEquals("detail_dn15", rrs.getNodes()[0].getName());
         Assert.assertEquals(
-                "inSErt into offer_detail (offer_id, gmt) values (123,now())",
+                "INSERT INTO offer_detail (offer_id, gmt)\nVALUES ('123', now())",
                 rrs.getNodes()[0].getStatement());
 
         sql = "insert into offer(group_id,offer_id,member_id)values(234,123,'abc')";
@@ -98,7 +97,8 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(-1l, rrs.getLimitSize());
         Assert.assertEquals("offer_dn12", rrs.getNodes()[0].getName());
         Assert.assertEquals(
-                "insert into offer(group_id,offer_id,member_id)values(234,123,'abc')",
+                "INSERT INTO offer (group_id, offer_id, member_id)\n" +
+                        "VALUES (234, 123, 'abc')",
                 rrs.getNodes()[0].getStatement());
 
 
@@ -220,13 +220,13 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(null, rrs.getPrimaryKey());
         Assert.assertEquals("dn2", rrs.getNodes()[0].getName());
 
-        // delete cache ID found
+        // delete cache ID should be not founded
         sql = "delete from  employee  where id=88";
         rrs = routeStrategy.route(new SystemConfig(), schema, -1, sql, null, null, cachePool);
-        Assert.assertEquals(1, rrs.getNodes().length);
+        Assert.assertEquals(2, rrs.getNodes().length);
         Assert.assertEquals(false, rrs.isCacheAble());
-        Assert.assertEquals("dn2", rrs.getNodes()[0].getName());
-
+        Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
+        Assert.assertEquals("dn2", rrs.getNodes()[1].getName());
     }
 
     private static Map<String, RouteResultsetNode> getNodeMap(
@@ -901,15 +901,15 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         }
 
         //分片表批量插入正常 employee
-        sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000),(2,'testonly',10010)";
+        sql = "insert into employee (id,name,sharding_id) values(1,'testonly',10000),(2,'testonly','10010')";
         rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null,
                 cachePool);
         Assert.assertEquals(2, rrs.getNodes().length);
         Assert.assertEquals(false, rrs.isCacheAble());
         Assert.assertEquals("dn1", rrs.getNodes()[0].getName());
         Assert.assertEquals("dn2", rrs.getNodes()[1].getName());
-        String node1Sql = formatSql("insert into employee (id,name,sharding_id) values(1,'testonly',10000)");
-        String node2Sql = formatSql("insert into employee (id,name,sharding_id) values(2,'testonly',10010)");
+        String node1Sql = formatSql("insert into employee (id,name,sharding_id) values(1,'testonly','10000')");
+        String node2Sql = formatSql("insert into employee (id,name,sharding_id) values(2,'testonly','10010')");
         RouteResultsetNode[] nodes = rrs.getNodes();
         Assert.assertEquals(node1Sql, nodes[0].getStatement());
         Assert.assertEquals(node2Sql, nodes[1].getStatement());

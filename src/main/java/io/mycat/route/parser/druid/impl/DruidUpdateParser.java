@@ -11,6 +11,7 @@ import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Name;
 
 import io.mycat.MycatServer;
+import io.mycat.cache.CachePool;
 import io.mycat.cache.DefaultLayedCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
@@ -72,10 +73,15 @@ public class DruidUpdateParser extends DefaultDruidParser {
         }
 
         //在解析SQL时清空该表的主键缓存
-        DefaultLayedCachePool tableID2DataNodeCache=(DefaultLayedCachePool) MycatServer.getInstance().getCacheService()
-                .getCachePool("TableID2DataNodeCache");
-        tableID2DataNodeCache.clearCache(schema.getName().toLowerCase()+"_"+tableName.toUpperCase());
-        tableID2DataNodeCache.getCacheStatic().reset();
+        TableConfig tableConfig = schema.getTables().get(tableName);
+        if (tableConfig != null && !tableConfig.primaryKeyIsPartionKey()) {
+            String cacheName = schema.getName() +"_" + tableName;
+            cacheName = cacheName.toUpperCase();
+            for (CachePool value : MycatServer.getInstance().getCacheService().getAllCachePools().values()) {
+                value.clearCache(cacheName);
+                value.getCacheStatic().reset();
+            }
+        }
     }
     
     /**

@@ -2,8 +2,8 @@
  * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,17 +16,16 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
 package io.mycat.util;
 
+import io.mycat.sqlengine.mpp.LoadData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.mycat.sqlengine.mpp.LoadData;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
@@ -551,19 +550,21 @@ public class StringUtil {
 	 * @param str
 	 * @return
 	 */
-	public static String removeBackquote(String str){
-		//删除名字中的`tablename`和'value'
-		if (str.length() > 0) {
-			StringBuilder sb = new StringBuilder(str);
-			if (sb.charAt(0) == '`'||sb.charAt(0) == '\'') {
-				sb.deleteCharAt(0);
-			}
-			if (sb.charAt(sb.length() - 1) == '`'||sb.charAt(sb.length() - 1) == '\'') {
-				sb.deleteCharAt(sb.length() - 1);
-			}
-			return sb.toString();
+	public static String removeBackquote(String str) {
+		if (str == null){
+			return str;
 		}
-		return "";
+		str = str.trim();
+		//删除名字中的`tablename`和'value'
+		if (str.length() >= 2) {
+			char firstChar = str.charAt(0);
+			int lastIndex = str.length() - 1;
+			char tailChar = str.charAt(lastIndex);
+			if ((firstChar == '`' && tailChar == '`') || (firstChar == '\'' && tailChar == '\'')) {
+				return str.substring(1, lastIndex);
+			}
+		}
+		return str;
 	}
 
 	public static String makeString(Object... args) {
@@ -596,6 +597,29 @@ public class StringUtil {
 	}
 
 	public static void main(String[] args) {
+		String s;
+		s = removeBackquote("`");
+		assert ("`".equals(s));
+		s = removeBackquote("```");
+		assert ("`".equals(s));
+		s = removeBackquote("'`'");
+		assert ("`".equals(s));
+		s = removeBackquote("``");
+		assert ("".equals(s));
+		s = removeBackquote("`qqqqq");
+		assert ("`qqqqq".equals(s));
+		s = removeBackquote("'qqqqq");
+		assert ("'qqqqq".equals(s));
+		s = removeBackquote("qqqqq`");
+		assert ("qqqqq`".equals(s));
+		s = removeBackquote("qqqqq\'");
+		assert ("qqqqq\'".equals(s));
+		s = removeBackquote("\'qqqqq\'");
+		assert ("qqqqq".equals(s));
+		s = removeBackquote("`qqqqq'");
+		assert ("`qqqqq'".equals(s));
+		s = removeBackquote("'qqqqq`");
+		assert ("'qqqqq`".equals(s));
 		System.out.println(getTableName("insert into ssd  (id) values (s)"));
 		System.out.println(getTableName("insert into    ssd(id) values (s)"));
 		System.out.println(getTableName("  insert  into    ssd(id) values (s)"));

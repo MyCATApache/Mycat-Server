@@ -96,7 +96,7 @@ public class ShareJoin implements Catlet {
 			   SQLSelectStatement st=(SQLSelectStatement)statement;
 			   SQLSelectQuery sqlSelectQuery =st.getSelect().getQuery();
 				if(sqlSelectQuery instanceof MySqlSelectQueryBlock) {
-					MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)st.getSelect().getQuery();
+					MySqlSelectQueryBlock mysqlSelectQuery = (MySqlSelectQueryBlock)sqlSelectQuery;
 					joinParser=new JoinParser(mysqlSelectQuery,realSQL);
 					joinParser.parser();
 				}	

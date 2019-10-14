@@ -118,7 +118,7 @@ public class DirectByteBufferPool implements BufferPool{
 		final long threadId = Thread.currentThread().getId();
 
 		if (memoryUsage.containsKey(threadId)) {
-			memoryUsage.put(threadId, memoryUsage.get(threadId) - size);
+			memoryUsage.put(threadId, Math.max(memoryUsage.get(threadId) - size,0));
 		}
 		if (recycled == false) {
 			LOGGER.warn("warning ,not recycled buffer " + theBuf);

@@ -182,6 +182,8 @@ public class RouterUtil {
 	public static RouteResultset routeToDDLNode(RouteResultset rrs, int sqlType, String stmt,SchemaConfig schema) throws SQLSyntaxErrorException {
 		stmt = getFixedSql(stmt);
 		String tablename = "";
+		//去除sql前面的注册,如/* ApplicationName=DBeaver 6.0.1 - Main */，这个注册会导致create table出错
+		stmt = stmt.replaceFirst("\\/\\*.*\\*\\/\\s*", "");
 		final String upStmt = stmt.toUpperCase();
 		if(upStmt.startsWith("CREATE")){
 			if (upStmt.contains("CREATE INDEX ") || upStmt.contains("CREATE UNIQUE INDEX ")){
@@ -1592,6 +1594,7 @@ public class RouterUtil {
 							LOGGER.debug("try to find cache by primary key ");
 						}
 						String tableKey = schema.getName() + '_' + tableName;
+						tableKey = tableKey.toUpperCase();
 						boolean allFound = true;
 						for (ColumnRoutePair pair : primaryKeyPairs) {//可能id in(1,2,3)多主键
 							String cacheKey = pair.colValue;
@@ -1618,6 +1621,7 @@ public class RouterUtil {
 					}
 				}
 				if (isFoundPartitionValue) {//分库表
+                    tablesRouteMap.clear();
 					Set<ColumnRoutePair> partitionValue = columnsMap.get(partionCol);
 					if(partitionValue == null || partitionValue.size() == 0) {
 						if(tablesRouteMap.get(tableName) == null) {

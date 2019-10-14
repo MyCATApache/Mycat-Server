@@ -293,10 +293,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		if (errorRepsponsed.compareAndSet(false, true)) {
 			source.writeErrMessage(errPkg.errno, new String(errPkg.message));
 		}
-		
-		//#700 source.writeErrMessage里面已经把buffer放入到写队列，写完后会释放一次。如果再次调用recycleResources释放一次，会造成2次释放。
-		//并发情况下存在buffer被2个连接同时使用的风险
-		//recycleResources();
+		recycleResources();
 	}
 
 

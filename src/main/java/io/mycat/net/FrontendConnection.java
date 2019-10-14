@@ -344,6 +344,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 		if (sql.endsWith(";")) {
 			sql = sql.substring(0, sql.length() - 1);
 		}
+		// remove like '/* ApplicationName=DBeaver 6.0.1 - Main */' tool app hints
+		if(sql.indexOf("/* ApplicationName") >=0) {
+			sql = sql.replaceFirst("\\/\\*.*\\*\\/\\s*", "");
+		}
 		
 		// 记录SQL
 		this.setExecuteSql(sql);
