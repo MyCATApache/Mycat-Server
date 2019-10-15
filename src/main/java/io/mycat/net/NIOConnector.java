@@ -75,9 +75,10 @@ public final class NIOConnector extends Thread implements SocketConnector {
 	public void run() {
 		int invalidSelectCount = 0;
 		for (;;) {
-			final Selector tSelector = this.selector;
-			++connectCount;
 			try {
+				final Selector tSelector = this.selector;
+				++connectCount;
+
 				long start = System.nanoTime();
 				tSelector.select(1000L);
 				long end = System.nanoTime();
@@ -118,6 +119,8 @@ public final class NIOConnector extends Thread implements SocketConnector {
 				}
 			} catch (Exception e) {
 				LOGGER.warn(name, e);
+			} catch (final Throwable e) {
+				LOGGER.warn("caught Throwable err: ", e);
 			}
 		}
 	}
