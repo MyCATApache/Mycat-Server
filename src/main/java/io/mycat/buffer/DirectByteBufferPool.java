@@ -1,10 +1,7 @@
 package io.mycat.buffer;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -82,16 +79,16 @@ public class DirectByteBufferPool implements BufferPool{
         final long threadId = Thread.currentThread().getId();
 
         if(byteBuf !=null){
-			synchronized (this) {
-				// 这里必须加锁，因为并发情况下如果allocate和recycle函数操作同一个数据，假设它们都先get到数据，然后allocate先put操作，
-				// recycle后进行put操作，这样allocate的put的数据就被覆盖掉
+            synchronized (this) {
+                // 这里必须加锁，因为并发情况下如果allocate和recycle函数操作同一个数据，假设它们都先get到数据，然后allocate先put操作，
+                // recycle后进行put操作，这样allocate的put的数据就被覆盖掉
 
-				if (memoryUsage.containsKey(threadId)) {
-					memoryUsage.put(threadId, memoryUsage.get(threadId) + byteBuf.capacity());
-				} else {
-					memoryUsage.put(threadId, (long) byteBuf.capacity());
-				}
-			}
+                if (memoryUsage.containsKey(threadId)) {
+                    memoryUsage.put(threadId, memoryUsage.get(threadId) + byteBuf.capacity());
+                } else {
+                    memoryUsage.put(threadId, (long) byteBuf.capacity());
+                }
+            }
         }
 
         if(byteBuf==null){
@@ -110,27 +107,27 @@ public class DirectByteBufferPool implements BufferPool{
 		final long size = theBuf.capacity();
 
 		boolean recycled = false;
-		StringBuilder relatedThreadId = new StringBuilder();
+        StringBuilder relatedThreadId = new StringBuilder();
 
 		DirectBuffer thisNavBuf = (DirectBuffer) theBuf;//
 		int chunkCount = theBuf.capacity() / chunkSize; //chunk的个数
 		DirectBuffer parentBuf = (DirectBuffer) thisNavBuf.attachment(); //page的DirectBuffer
 		int startChunk = (int) ((thisNavBuf.address() - parentBuf.address()) / chunkSize); //开始chunk的序号
 		for (int i = 0; i < allPages.length; i++) { //在所有的页面中查找当前buffer分配的
-			if ((recycled = allPages[i].recycleBuffer((ByteBuffer) parentBuf, theBuf, startChunk, chunkCount,
-					relatedThreadId) == true)) {
-				break;
-			}
-		}
+            if ((recycled = allPages[i].recycleBuffer((ByteBuffer) parentBuf, theBuf, startChunk, chunkCount,
+                    relatedThreadId) == true)) {
+                break;
+            }
+        }
 
-		final Long threadId = relatedThreadId.length() > 0 ? Long.parseLong(relatedThreadId.toString())
-				: Thread.currentThread().getId();
+        final Long threadId = relatedThreadId.length() > 0 ? Long.parseLong(relatedThreadId.toString())
+                : Thread.currentThread().getId();
 
-		synchronized (this) {
-			if (memoryUsage.containsKey(threadId)) {
-				memoryUsage.put(threadId, memoryUsage.get(threadId) - size);
-			}
-		}
+        synchronized (this) {
+            if (memoryUsage.containsKey(threadId)) {
+                memoryUsage.put(threadId, memoryUsage.get(threadId) - size);
+            }
+        }
 
 		if (recycled == false) {
 			LOGGER.warn("warning ,not recycled buffer " + theBuf);
