@@ -83,9 +83,10 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 	public void run() {
 		int invalidSelectCount = 0;
 		for (;;) {
-			final Selector tSelector = this.selector;
-			++acceptCount;
 			try {
+				final Selector tSelector = this.selector;
+				++acceptCount;
+
 				long start = System.nanoTime();
 			    tSelector.select(1000L);
 				long end = System.nanoTime();
@@ -120,6 +121,8 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 				}
 			} catch (Exception e) {
 				LOGGER.warn(getName(), e);
+			} catch (final Throwable e) {
+				LOGGER.warn("caught Throwable err: ", e);
 			}
 		}
 	}
