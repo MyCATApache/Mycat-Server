@@ -142,8 +142,7 @@ public class ShowDirectMemory {
                      * 该DIRECTMEMORY内存被结果集处理使用了
                      */
                     row.add("MergeMemoryPool".getBytes(c.getCharset()));
-                    row.add(value > 0 ?
-                            JavaUtils.bytesToString2(value).getBytes(c.getCharset()) : "0".getBytes(c.getCharset()));
+                    row.add(JavaUtils.bytesToString2(value).getBytes(c.getCharset()));
                     row.packetId = ++packetId;
                     buffer = row.write(buffer, c, true);
                 }
@@ -161,8 +160,7 @@ public class ShowDirectMemory {
                      * 该DIRECTMEMORY内存属于Buffer Pool管理的！
                      */
                     row.add("NetWorkBufferPool".getBytes(c.getCharset()));
-                    row.add(value > 0 ?
-                            JavaUtils.bytesToString2(value).getBytes(c.getCharset()) : "0".getBytes(c.getCharset()));
+                    row.add(JavaUtils.bytesToString2(value).getBytes(c.getCharset()));
                     row.packetId = ++packetId;
                     buffer = row.write(buffer, c, true);
                 }

@@ -2,7 +2,10 @@ package io.mycat.buffer;
 
 import java.nio.ByteBuffer;
 import java.util.BitSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import sun.nio.ch.DirectBuffer;
 
 /*
  * 用来保存一个一个ByteBuffer为底层存储的内存页
@@ -16,12 +19,14 @@ public class ByteBufferPage {
     private final BitSet chunkAllocateTrack; //某个chunk是否被分配
     private final AtomicBoolean allocLockStatus = new AtomicBoolean(false);  //锁
     private final long startAddress;
+    private final ConcurrentHashMap<Long, Long> relationBufferThreadId;
 
     public ByteBufferPage(ByteBuffer buf, int chunkSize) {
         super();
         this.chunkSize = chunkSize;
         chunkCount = buf.capacity() / chunkSize;
         chunkAllocateTrack = new BitSet(chunkCount);
+        relationBufferThreadId = new ConcurrentHashMap<>(chunkCount);
         this.buf = buf;
         startAddress = ((sun.nio.ch.DirectBuffer) buf).address();
     }
@@ -70,6 +75,8 @@ public class ByteBufferPage {
                 //System.out.println("offAddress " + (theBuf.address() - startAddress));
                 //设置chunk为已用
                 markChunksUsed(startChunk, theChunkCount);
+                relationBufferThreadId.put(((DirectBuffer) newBuf).address(), Thread.currentThread().getId());
+
                 return newBuf;
             } else {
                 //System.out.println("contiueCount " + contiueCount + " theChunkCount " + theChunkCount);
@@ -91,8 +98,18 @@ public class ByteBufferPage {
             chunkAllocateTrack.clear(startChunk + i);
         }
     }
-    //回收
-    public boolean recycleBuffer(ByteBuffer parent, int startChunk, int chunkCount) {
+
+    /**
+     * 回收buffer
+     * @param parent      当前要释放的buf的parent 
+     * @param recycleBuf  当前要释放的recycleBuf
+     * @param startChunk
+     * @param chunkCount
+     * @param relatedThreadId  用于返回当前要释放的recycleBuf关联的线程id
+     * @return
+     */
+    public boolean recycleBuffer(ByteBuffer parent, ByteBuffer recycleBuf, int startChunk, int chunkCount,
+            StringBuilder relatedThreadId) {
 
         if (parent == this.buf) {
         	//获取锁 必须获取成功
@@ -102,6 +119,10 @@ public class ByteBufferPage {
             //清空已用状态
             try {
                 markChunksUnused(startChunk,chunkCount);
+                Long threadId = relationBufferThreadId.remove(((DirectBuffer) recycleBuf).address());
+                if (threadId != null) {
+                    relatedThreadId.append(threadId);
+                }
             } finally {
             	//释放锁
                 allocLockStatus.set(false);
