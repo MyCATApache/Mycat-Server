@@ -174,6 +174,7 @@ public class DefaultDruidParser implements DruidParser {
 	
 	private List<RouteCalculateUnit> buildRouteCalculateUnits(SchemaStatVisitor visitor, List<List<Condition>> conditionList) {
 		List<RouteCalculateUnit> retList = new ArrayList<RouteCalculateUnit>();
+
 		//遍历condition ，找分片字段
 		for(int i = 0; i < conditionList.size(); i++) {
 			RouteCalculateUnit routeCalculateUnit = new RouteCalculateUnit();
@@ -185,13 +186,19 @@ public class DefaultDruidParser implements DruidParser {
 				if(checkConditionValues(values)) {
 					String columnName = StringUtil.removeBackquote(condition.getColumn().getName().toUpperCase());
 					String tableName = StringUtil.removeBackquote(condition.getColumn().getTable().toUpperCase());
-					
-					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(tableName) != null 
+					int index = 0;
+
+						if(visitor.getAliasMap() != null && visitor.getAliasMap().get(tableName) != null
 							&& !visitor.getAliasMap().get(tableName).equals(tableName)) {
 						tableName = visitor.getAliasMap().get(tableName);
 					}
-
-					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(StringUtil.removeBackquote(condition.getColumn().getTable().toUpperCase())) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
+					//处理schema.table的情况
+					if ((index = tableName.indexOf(".")) != -1) {
+						tableName = tableName.substring(index + 1);
+					}
+					tableName = tableName.toUpperCase();
+					//确保表名是大写
+					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(tableName) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
 						continue;
 					}
 					
