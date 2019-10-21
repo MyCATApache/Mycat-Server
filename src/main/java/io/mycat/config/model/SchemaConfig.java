@@ -28,18 +28,20 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author mycat
  */
 public class SchemaConfig {
-	private final Random random = new Random();
+//	private final Random random = new Random();
 	private final String name;
 	private final Map<String, TableConfig> tables;
 	private final boolean noSharding;
 	private final String dataNode;
 	private final Set<String> metaDataNodes;
 	private final Set<String> allDataNodes;
+	private String randomDataNode = null;
 	/**
 	 * when a select sql has no limit condition ,and default max limit to
 	 * prevent memory problem when return a large result set
@@ -59,7 +61,7 @@ public class SchemaConfig {
 
 	public SchemaConfig(String name, String dataNode,
 			Map<String, TableConfig> tables, int defaultMaxLimit,
-			boolean checkSQLschema) {
+			boolean checkSQLschema,String randomDataNode) {
 		this.name = name;
 		this.dataNode = dataNode;
 		this.checkSQLSchema = checkSQLschema;
@@ -81,6 +83,7 @@ public class SchemaConfig {
 		} else {
 			this.allDataNodeStrArr = null;
 		}
+		this.randomDataNode =randomDataNode;
 	}
 
 	public String getDefaultDataNodeDbType()
@@ -171,10 +174,13 @@ public class SchemaConfig {
 	}
 
 	public String getRandomDataNode() {
+		if (this.randomDataNode != null){
+			return this.randomDataNode;
+		}
 		if (this.allDataNodeStrArr == null) {
 			return null;
 		}
-		int index = Math.abs(random.nextInt(Integer.MAX_VALUE)) % allDataNodeStrArr.length;
+		int index = Math.abs(ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE)) % allDataNodeStrArr.length;
 		return this.allDataNodeStrArr[index];
 	}
 

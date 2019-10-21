@@ -20,6 +20,7 @@
 <!ATTLIST schema name NMTOKEN #REQUIRED>
 <!ATTLIST schema checkSQLschema NMTOKEN #IMPLIED>
 <!ATTLIST schema dataNode CDATA #IMPLIED>
+<!ATTLIST schema randomDataNode CDATA #IMPLIED>
 <!ATTLIST schema sqlMaxLimit CDATA #IMPLIED>
 
 <!ELEMENT table (property*,(childTable*))>

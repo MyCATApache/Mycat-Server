@@ -144,6 +144,7 @@ public class XMLSchemaLoader implements SchemaLoader {
             //读取各个属性
             String name = schemaElement.getAttribute("name");
             String dataNode = schemaElement.getAttribute("dataNode");
+            String randomDataNode = schemaElement.getAttribute("randomDataNode");
             String checkSQLSchemaStr = schemaElement.getAttribute("checkSQLschema");
             String sqlMaxLimitStr = schemaElement.getAttribute("sqlMaxLimit");
             int sqlMaxLimit = -1;
@@ -178,7 +179,7 @@ public class XMLSchemaLoader implements SchemaLoader {
             }
 
             SchemaConfig schemaConfig = new SchemaConfig(name, dataNode,
-                    tables, sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr));
+                    tables, sqlMaxLimit, "true".equalsIgnoreCase(checkSQLSchemaStr),randomDataNode);
 
             //设定DB类型，这对之后的sql语句路由解析有帮助
             if (defaultDbType != null) {
