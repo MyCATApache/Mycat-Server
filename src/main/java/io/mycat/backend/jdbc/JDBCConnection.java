@@ -474,8 +474,13 @@ public class JDBCConnection implements BackendConnection {
                 for (String name : procedure.getSelectColumns())
                 {
                     ProcedureParameter procedureParameter=   procedure.getParamterMap().get(name);
-                    curRow.add(StringUtil.encode(String.valueOf(stmt.getObject(procedureParameter.getIndex())),
-                            sc.getCharset()));
+					Object object = stmt.getObject(procedureParameter.getIndex());
+					if (object != null){
+						curRow.add(StringUtil.encode(String.valueOf(object),
+								sc.getCharset()));
+					}else {
+						curRow.add(null);
+					}
                 }
 
                 curRow.packetId = ++packetId;
