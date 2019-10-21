@@ -1,6 +1,7 @@
 package io.mycat.route.parser.druid;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -9,14 +10,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.mycat.MycatServer;
+import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.route.SessionSQLPair;
-import io.mycat.route.sequence.handler.DistributedSequenceHandler;
-import io.mycat.route.sequence.handler.IncrSequenceMySQLHandler;
-import io.mycat.route.sequence.handler.IncrSequencePropHandler;
-import io.mycat.route.sequence.handler.IncrSequenceTimeHandler;
-import io.mycat.route.sequence.handler.IncrSequenceZKHandler;
-import io.mycat.route.sequence.handler.SequenceHandler;
+import io.mycat.route.sequence.handler.*;
 import io.mycat.util.TimeUtil;
 
 /**
@@ -57,6 +54,17 @@ public class DruidSequenceHandler {
                 break;
             case SystemConfig.SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT:
                 sequenceHandler = IncrSequenceZKHandler.getInstance();
+                break;
+            case SystemConfig.SEQUENCEHANDLER_DEF_GLOBAL_INCREMENT:
+                try {
+                    String sequenceHanlderClass = MycatServer.getInstance().getConfig().getSystem().getSequenceHanlderClass();
+                    Class<?> aClass = Class.forName(sequenceHanlderClass);
+                    Constructor constructor=aClass.getConstructor();
+                    sequenceHandler  =(SequenceHandler) constructor.newInstance();
+                }catch (Exception e){
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
                 break;
             default:
                 throw new java.lang.IllegalArgumentException("Invalid sequnce handler type " + seqHandlerType);

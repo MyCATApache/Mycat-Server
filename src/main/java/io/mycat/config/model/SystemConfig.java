@@ -136,6 +136,8 @@ public final class SystemConfig {
 	public static final int SEQUENCEHANDLER_LOCAL_TIME = 2;
 	public static final int SEQUENCEHANDLER_ZK_DISTRIBUTED = 3;
 	public static final int SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT = 4;
+	public static final int SEQUENCEHANDLER_DEF_GLOBAL_INCREMENT = 5;
+	public static String sequenceHanlderClass = null;
 	public static final String SEQUENCEHANDLER_PATTERN = "(?:(\\s*next\\s+value\\s+for\\s*MYCATSEQ_(\\w+))(,|\\)|\\s)*)+";
 	
 	private final int DEFAULT_SEQUNCE_MYSQL_RETRY_COUT=4;  //mysql全局序列默认重试次数
@@ -1014,5 +1016,12 @@ public final class SystemConfig {
 	}
 	public void setSequnceHandlerPattern(String sequnceHandlerPattern) {
 		this.sequnceHandlerPattern = sequnceHandlerPattern;
+	}
+
+	public  String getSequenceHanlderClass() {
+		return sequenceHanlderClass;
+	}
+	public void setSequenceHanlderClass(String value) {
+		 sequenceHanlderClass = value;
 	}
 }
