@@ -83,6 +83,14 @@ public class JDBCConnection implements BackendConnection {
 	@Override
 	public void close(String reason) {
 		try {
+			try {
+				if (!isAutocommit()) {
+					rollback();
+					con.setAutoCommit(true);
+				}
+			}catch (Exception e){
+				LOGGER.error("close jdbc connection, found it is in transcation so try to rollback");
+			}
 			con.close();
 			if(processor!=null){
 			    processor.removeConnection(this);
