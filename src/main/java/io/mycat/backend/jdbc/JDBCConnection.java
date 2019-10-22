@@ -55,6 +55,7 @@ public class JDBCConnection implements BackendConnection {
 	private boolean isSpark = false;
 
 	private NIOProcessor processor;
+	private boolean setSchemaFail = false;
 	
 	
 	
@@ -295,11 +296,14 @@ public class JDBCConnection implements BackendConnection {
             syncIsolation(sc.getTxIsolation()) ;
 			if (!this.schema.equals(this.oldSchema)) {
 				con.setCatalog(schema);
-//				try{
-//					con.setSchema(schema); //add@byron to test
-//				}	catch(Throwable e){
-//					LOGGER.error("JDBC setSchema Exception for "+schema,e);
-//				}
+				if (!setSchemaFail) {
+                    try {
+                        con.setSchema(schema); //add@byron to test
+                    } catch (Throwable e) {
+                        LOGGER.error("JDBC setSchema Exception for " + schema, e);
+                        setSchemaFail = true;
+                    }
+                }
 				this.oldSchema = schema;
 			}
 			if (!this.isSpark) {
