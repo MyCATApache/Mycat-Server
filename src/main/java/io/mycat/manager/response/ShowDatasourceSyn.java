@@ -98,6 +98,12 @@ public class ShowDatasourceSyn {
 		
 		fields[i] = PacketUtil.getField("Last_IO_Error", Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
+
+		fields[i] = PacketUtil.getField("Last_SQL_Error", Fields.FIELD_TYPE_VAR_STRING);
+		fields[i++].packetId = ++packetId;
+
+		fields[i] = PacketUtil.getField("Last_SQL_Errno", Fields.FIELD_TYPE_LONG);
+		fields[i++].packetId = ++packetId;
 		
 		eof.packetId = ++packetId;
 	}
@@ -158,6 +164,8 @@ public class ShowDatasourceSyn {
 					row.add(StringUtil.encode(states.get("Slave_IO_State"),charset));
 					row.add(LongUtil.toBytes(Long.valueOf(states.get("Connect_Retry"))));
 					row.add(StringUtil.encode(states.get("Last_IO_Error"),charset));
+					row.add(StringUtil.encode(states.get("Last_SQL_Error"),charset));
+					row.add(LongUtil.toBytes(Long.valueOf(states.get("Last_SQL_Errno"))));
 
 					list.add(row);
 				}

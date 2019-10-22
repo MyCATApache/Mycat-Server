@@ -58,7 +58,9 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 			"Master_User",
 			"Master_Port", 
 			"Connect_Retry",
-			"Last_IO_Error"};
+			"Last_IO_Error",
+			"Last_SQL_Error",
+			"Last_SQL_Errno"};
 
 	private static final String[] MYSQL_CLUSTER_STAUTS_COLMS = new String[] {
 			"Variable_name",
@@ -137,15 +139,19 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 				
 				String Slave_IO_Running  = resultResult != null ? resultResult.get("Slave_IO_Running") : null;
 				String Slave_SQL_Running = resultResult != null ? resultResult.get("Slave_SQL_Running") : null;
+				String Last_SQL_Error    = resultResult != null ? resultResult.get("Last_SQL_Error") : null;
+				Last_SQL_Error = Last_SQL_Error == null ? "" : Last_SQL_Error;
 
-				if (Slave_IO_Running != null 
+				if ("".equals(Last_SQL_Error) && Slave_IO_Running != null
 						&& Slave_IO_Running.equals(Slave_SQL_Running) 
 						&& Slave_SQL_Running.equals("Yes")) {
 					
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
 					String Seconds_Behind_Master = resultResult.get( "Seconds_Behind_Master");					
-					if (null != Seconds_Behind_Master && !"".equals(Seconds_Behind_Master)) {
-						
+					if (null == Seconds_Behind_Master ){
+						MySQLHeartbeat.LOGGER.warn("Master is down but its relay log is clean.");
+						heartbeat.setSlaveBehindMaster(0);
+					}else if(!"".equals(Seconds_Behind_Master)) {
 						int Behind_Master = Integer.parseInt(Seconds_Behind_Master);
 						if ( Behind_Master >  source.getHostConfig().getSlaveThreshold() ) {
 							MySQLHeartbeat.LOGGER.warn("found MySQL master/slave Replication delay !!! "
@@ -199,6 +205,9 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 			heartbeat.getAsynRecorder().set(resultResult, switchType);
             
 		} else {
+			MySQLHeartbeat.LOGGER.warn("heart beat error: " + heartbeat.getSource().getName() + "/"
+					+ heartbeat.getSource().getHostConfig().getName() + " retry=" + heartbeat.getHeartbeatRetry()
+					+ " tmo=" + heartbeat.getHeartbeatTimeout());
 			heartbeat.setResult(MySQLHeartbeat.ERROR_STATUS, this,  null);
 		}
 		

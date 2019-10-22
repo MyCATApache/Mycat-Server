@@ -299,6 +299,7 @@ public class MySQLHeartbeat extends DBHeartbeat {
 						int theSourceHBStatus = theSourceHB.getStatus();
 						if (theSourceHBStatus == DBHeartbeat.OK_STATUS) {
 							if (switchType == DataHostConfig.SYN_STATUS_SWITCH_DS) {
+								LOGGER.warn("switchSourceIfNeed: LagTime=" + theSourceHB.getSlaveBehindMaster());
 								if (Integer.valueOf(0).equals( theSourceHB.getSlaveBehindMaster())) {
 									LOGGER.info("try to switch datasource ,slave is synchronized to master " + theSource.getConfig());
 									pool.switchSourceOrVoted(nextId, true, reason);
