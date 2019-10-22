@@ -424,7 +424,7 @@ public class JDBCConnection implements BackendConnection {
             boolean hadResults= stmt.execute();
 
             ByteBuffer byteBuf = sc.allocate();
-            if(procedure.getSelectColumns().size()>0)
+            if(procedure.getSelectColumns().size()>0&&!procedure.isResultList())
             {
                 List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
                 for (ProcedureParameter paramter : paramters)
@@ -564,8 +564,13 @@ public class JDBCConnection implements BackendConnection {
                             RowDataPacket curRow = new RowDataPacket(colunmCount);
                             for (int i = 0; i < colunmCount; i++) {
                                 int j = i + 1;
-                                curRow.add(StringUtil.encode(rs.getString(j),
-                                        sc.getCharset()));
+								Object object1 = rs.getObject(j);
+								if (object1 == null){
+									curRow.add(null);
+								}else {
+									curRow.add(StringUtil.encode(Objects.toString(object1),
+											sc.getCharset()));
+								}
                             }
                             curRow.packetId = ++packetId;
                             byteBuf = curRow.write(byteBuf, sc, false);
