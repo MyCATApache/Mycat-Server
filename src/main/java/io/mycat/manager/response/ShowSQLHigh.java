@@ -25,7 +25,7 @@ import io.mycat.util.StringUtil;
  */
 public final class ShowSQLHigh {
 	
-	private static final int FIELD_COUNT = 9;
+	private static final int FIELD_COUNT = 10;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -58,7 +58,10 @@ public final class ShowSQLHigh {
         
         fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
-        
+
+        fields[i] = PacketUtil.getField("IP", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i++].packetId = ++packetId;
+
         eof.packetId = ++packetId;
     }
 
@@ -89,7 +92,7 @@ public final class ShowSQLHigh {
 					if(sqlFrequency != null){
                         RowDataPacket row = getRow(i, user, sqlFrequency.getSql(), sqlFrequency.getCount(),
 							sqlFrequency.getAvgTime(), sqlFrequency.getMaxTime(), sqlFrequency.getMinTime(),
-							sqlFrequency.getExecuteTime(), sqlFrequency.getLastTime(), c.getCharset());
+							sqlFrequency.getExecuteTime(), sqlFrequency.getLastTime(), c.getCharset(),sqlFrequency.getHost());
      	                row.packetId = ++packetId;
      	                buffer = row.write(buffer, c,true);
      	                i++;
@@ -108,7 +111,7 @@ public final class ShowSQLHigh {
     }
 
 	private static RowDataPacket getRow(int i, String user, String sql, long count, long avgTime, long maxTime,
-			long minTime, long executTime, long lastTime, String charset) {
+			long minTime, long executTime, long lastTime, String charset,String host) {
 		RowDataPacket row = new RowDataPacket(FIELD_COUNT);
 		row.add(LongUtil.toBytes(i));
 		row.add(StringUtil.encode(user, charset));
@@ -119,6 +122,7 @@ public final class ShowSQLHigh {
 		row.add(LongUtil.toBytes(executTime));
 		row.add(LongUtil.toBytes(lastTime));
 		row.add(StringUtil.encode(sql, charset));
+        row.add(StringUtil.encode(host,charset ));
 		return row;
 	}
 

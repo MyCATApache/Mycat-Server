@@ -26,7 +26,7 @@ import io.mycat.util.StringUtil;
  */
 public class ShowSQLLarge {
 
-	 private static final int FIELD_COUNT = 5;
+	 private static final int FIELD_COUNT = 6;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -49,6 +49,9 @@ public class ShowSQLLarge {
         fields[i++].packetId = ++packetId;
 
         fields[i] = PacketUtil.getField("SQL", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i++].packetId = ++packetId;
+
+        fields[i] = PacketUtil.getField("IP", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
 
         eof.packetId = ++packetId;
@@ -77,7 +80,7 @@ public class ShowSQLLarge {
             List<UserSqlLargeStat.SqlLarge> sqls = userStat.getSqlLargeRowStat().getSqls();
             for (UserSqlLargeStat.SqlLarge sql : sqls) {
                 if (sql != null) {
-                    RowDataPacket row = getRow(user, sql, c.getCharset());
+                    RowDataPacket row = getRow(user, sql, c.getCharset(),sql.getHost());
                     row.packetId = ++packetId;
                     buffer = row.write(buffer, c,true);
                 }
@@ -97,13 +100,14 @@ public class ShowSQLLarge {
         c.write(buffer);
     }
 
-    private static RowDataPacket getRow(String user, io.mycat.statistic.stat.UserSqlLargeStat.SqlLarge sql, String charset) {
+    private static RowDataPacket getRow(String user, UserSqlLargeStat.SqlLarge sql, String charset, String host) {
         RowDataPacket row = new RowDataPacket(FIELD_COUNT);
         row.add( StringUtil.encode(user, charset) );
         row.add( LongUtil.toBytes( sql.getSqlRows() ) );
         row.add( LongUtil.toBytes(sql.getStartTime() ) );
         row.add( LongUtil.toBytes(sql.getExecuteTime() ) );
         row.add( StringUtil.encode(sql.getSql(), charset) );
+        row.add(StringUtil.encode(host,charset) );
         return row;
     }
 }

@@ -345,7 +345,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			// add by lian
 			// 解决sql统计中写操作永远为0
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-					rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0);
+					rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0, source.getHost());
 			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
 	}
@@ -388,7 +388,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		//TODO: add by zhuam
 		//查询结果派发
 		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
-				rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize);
+				rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize, source.getHost());
 		QueryResultDispatcher.dispatchQuery( queryResult );
 		
 	}

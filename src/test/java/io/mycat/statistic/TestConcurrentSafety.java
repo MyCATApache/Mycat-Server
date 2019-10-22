@@ -78,9 +78,9 @@ public class TestConcurrentSafety {
     public void testQueryConditionAnalyzer() throws InterruptedException {
 
 
-        final QueryResult qr = new QueryResult("zhuam", ServerParse.SELECT, sql, 0, 0, 0, 0, 0,0);
-        final QueryResult qr2 = new QueryResult("zhuam", ServerParse.SELECT, sql2, 0, 0, 0, 0, 0,0);
-        final QueryResult qr3 = new QueryResult("zhuam", ServerParse.SELECT, sql3, 0, 0, 0, 0, 0,0);
+        final QueryResult qr = new QueryResult("zhuam", ServerParse.SELECT, sql, 0, 0, 0, 0, 0,0,       "127.0.0.1");
+        final QueryResult qr2 = new QueryResult("zhuam", ServerParse.SELECT, sql2, 0, 0, 0, 0, 0,0,       "127.0.0.1");
+        final QueryResult qr3 = new QueryResult("zhuam", ServerParse.SELECT, sql3, 0, 0, 0, 0, 0,0,       "127.0.0.1");
 
         final QueryConditionAnalyzer analyzer = QueryConditionAnalyzer.getInstance();
         analyzer.setCf("dynamic&fnum");
@@ -149,7 +149,7 @@ public class TestConcurrentSafety {
                 @Override
                 public void run() {
                     for (int j = 0; j < LOOP_COUNT; j++) {
-                        userSqlHighStat.addSql(sql, 10L, 1L, 11L);
+                        userSqlHighStat.addSql(sql, 10L, 1L, 11L,      "127.0.0.1");
                     }
                 }
             };
@@ -158,7 +158,7 @@ public class TestConcurrentSafety {
                 @Override
                 public void run() {
                     for (int j = 0; j < LOOP_COUNT; j++) {
-                        userSqlHighStat.addSql(sql2, 10L, 1L, 11L);
+                        userSqlHighStat.addSql(sql2, 10L, 1L, 11L,      "127.0.0.1");
                     }
                 }
             };
@@ -167,7 +167,7 @@ public class TestConcurrentSafety {
                 @Override
                 public void run() {
                     for (int j = 0; j < LOOP_COUNT; j++) {
-                        userSqlHighStat.addSql(sql4, 10L, 1L, 11L);
+                        userSqlHighStat.addSql(sql4, 10L, 1L, 11L,      "127.0.0.1");
                     }
                 }
             };

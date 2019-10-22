@@ -18,7 +18,7 @@ public class UserSqlHighStat {
   private SqlParser sqlParser = new SqlParser();
   private static final Logger LOGGER = LoggerFactory.getLogger(UserSqlHighStat.class);
 
-  public void addSql(String sql, long executeTime, long startTime, long endTime) {
+  public void addSql(String sql, long executeTime, long startTime, long endTime,String host) {
     String newSql = this.sqlParser.mergeSql(sql);
     if (newSql != null) {
       this.sqlFrequencyMap.compute(newSql,
@@ -30,6 +30,7 @@ public class UserSqlHighStat {
             sqlFrequency.setLastTime(endTime);
             sqlFrequency.incCount();
             sqlFrequency.setExecuteTime(executeTime);
+            sqlFrequency.setHost(host);
             return sqlFrequency;
           });
     }

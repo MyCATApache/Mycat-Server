@@ -24,8 +24,8 @@ public class UserSqlLastStat {
 		return keyList;
 	}
 
-    public void add(String sql,  long executeTime, long startTime, long endTime ) {    	
-    	SqlLast sqlLast = new SqlLast(sql, executeTime, startTime, endTime);        	
+    public void add(String sql,  long executeTime, long startTime, long endTime,String host) {
+    	SqlLast sqlLast = new SqlLast(sql, executeTime, startTime, endTime,host);
         sqls.add(sqlLast);
     }
 
@@ -61,13 +61,15 @@ public class UserSqlLastStat {
     	private long executeTime;
     	private long startTime;
     	private long endTime;
-    	
-		public SqlLast(String sql, long executeTime, long startTime, long endTime) {
+		private String host;
+
+		public SqlLast(String sql, long executeTime, long startTime, long endTime,String host) {
 			super();
 			this.sql = sql;
 			this.executeTime = executeTime;
 			this.startTime = startTime;
 			this.endTime = endTime;
+			this.host = host;
 		}
 
 		public String getSql() {
@@ -100,6 +102,10 @@ public class UserSqlLastStat {
 				return super.equals(obj);
 			}
 		}
-	}
+
+		public String getHost() {
+			return host;
+		}
+    }
     
 }

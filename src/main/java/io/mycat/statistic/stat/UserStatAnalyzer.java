@@ -31,7 +31,11 @@ public class UserStatAnalyzer implements QueryResultListener {
     	case ServerParse.UPDATE:			
     	case ServerParse.INSERT:		
     	case ServerParse.DELETE:
-    	case ServerParse.REPLACE: 
+    	case ServerParse.REPLACE:
+			String host = query.getHost();
+			if (host==null){
+				host = "";
+			}
     		String user = query.getUser();
     		int sqlType = query.getSqlType();
     		String sql = query.getSql();
@@ -46,7 +50,7 @@ public class UserStatAnalyzer implements QueryResultListener {
                 userStat = new UserStat(user);
                 userStatMap.put(user, userStat);
             }                
-            userStat.update(sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime,resultSetSize);	
+            userStat.update(sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime,resultSetSize,host);
             break;
 		}
 	}

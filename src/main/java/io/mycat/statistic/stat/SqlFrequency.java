@@ -11,6 +11,7 @@ public class SqlFrequency implements Comparable<SqlFrequency>{
 	private long maxTime = 0;
 	private long avgTime = 0;
 	private long minTime = 0;
+	private String host;
 	
 	public String getSql() {
 		return sql;
@@ -84,5 +85,13 @@ public class SqlFrequency implements Comparable<SqlFrequency>{
 		} else {
 			return super.equals(obj);
 		}
+	}
+
+	public String getHost() {
+		return host;
+	}
+
+	public void setHost(String host) {
+		this.host = host;
 	}
 }
