@@ -1,5 +1,6 @@
 package io.mycat.route.parser.druid.impl;
 
+import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.ast.statement.SQLCreateViewStatement.Column;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.alibaba.druid.sql.visitor.SQLASTVisitor;
@@ -30,14 +31,6 @@ import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.expr.SQLNumericLiteralExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
-import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
-import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
-import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.db2.ast.stmt.DB2SelectQueryBlock;
 import com.alibaba.druid.sql.dialect.db2.visitor.DB2OutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
@@ -56,8 +49,11 @@ import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.druid.wall.spi.WallVisitorUtils;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
+import io.mycat.config.MycatConfig;
+import io.mycat.config.model.MycatNodeConfig;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
@@ -431,50 +427,69 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 			if(rrs.isDistTable()){
 				SQLTableSource from = mysqlSelectQuery.getFrom();
-				String orgTable = from.toString();
-				SQLExpr where = mysqlSelectQuery.getWhere();
-				List<SQLIdentifierExpr> exprs = new ArrayList<>(3);
-				if (where != null){
-					where.accept(new MySqlASTVisitorAdapter() {
-						@Override
-						public void endVisit(SQLIdentifierExpr x) {
-							if (orgTable.equalsIgnoreCase(x.getName())) {
-								exprs.add(x);
+				if (from instanceof SQLExprTableSource){
+					String orgTable = from.toString();
+					SQLExpr where = mysqlSelectQuery.getWhere();
+					List<SQLIdentifierExpr> exprs = new ArrayList<>(3);
+					if (where != null){
+						where.accept(new MySqlASTVisitorAdapter() {
+							@Override
+							public void endVisit(SQLIdentifierExpr x) {
+								if (orgTable.equalsIgnoreCase(x.getName())) {
+									exprs.add(x);
+								}
+								super.endVisit(x);
 							}
-							super.endVisit(x);
-						}
-					});
-				}
-				for (RouteResultsetNode node : rrs.getNodes()) {
-					SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
-					sqlIdentifierExpr.setParent(from);
-					sqlIdentifierExpr.setName(node.getSubTableName());
-					SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
-					from2.setAlias(from.getAlias());
-					mysqlSelectQuery.setFrom(from2);
-					for (SQLIdentifierExpr expr : exprs) {
-						expr.setName(node.getSubTableName());
+						});
 					}
+					for (RouteResultsetNode node : rrs.getNodes()) {
+						SQLIdentifierExpr sqlIdentifierExpr = new SQLIdentifierExpr();
+						sqlIdentifierExpr.setParent(from);
+						sqlIdentifierExpr.setName(node.getSubTableName());
+						SQLExprTableSource from2 = new SQLExprTableSource(sqlIdentifierExpr);
+						from2.setAlias(from.getAlias());
+						mysqlSelectQuery.setFrom(from2);
+						for (SQLIdentifierExpr expr : exprs) {
+							expr.setName(node.getSubTableName());
+						}
+						node.setStatement(stmt.toString());
+						fixLimit(mysqlSelectQuery, node);
+					}
+				}else if(from instanceof SQLJoinTableSource && rrs.getNodes().length==1){
+					SQLJoinTableSource from1 = (SQLJoinTableSource) (from);;
+					RouteResultsetNode node = rrs.getNodes()[0];
+					String subTableName = node.getSubTableName();
+					SQLTableSource orgin = from1.getLeft();
+					SQLExprTableSource sqlExprTableSource = new SQLExprTableSource(new SQLIdentifierExpr(subTableName));
+					sqlExprTableSource.setAlias(orgin.getAlias());
+					from1.setLeft(sqlExprTableSource);
 					node.setStatement(stmt.toString());
-					if(!getCurentDbType().equalsIgnoreCase("mysql")) {
-						Limit _limit = mysqlSelectQuery.getLimit();
-						if (_limit != null) {
-							SQLIntegerExpr offset = (SQLIntegerExpr) _limit.getOffset();
-							SQLIntegerExpr count = (SQLIntegerExpr) _limit.getRowCount();
-							if (offset != null && count != null) {
-								String nativeSql = PageSQLUtil
-										.convertLimitToNativePageSql(getCurentDbType(), node.getStatement(),
-												offset.getNumber().intValue(), count.getNumber().intValue());
-								node.setStatement(nativeSql);
-							}
-						}
-					}
+					fixLimit(mysqlSelectQuery, node);
+				}else {
+					throw new UnsupportedOperationException();
 				}
+
 			}
 
 			rrs.setCacheAble(isNeedCache(schema, rrs, mysqlSelectQuery, allConditions));
 		}
 
+	}
+
+	private void fixLimit(MySqlSelectQueryBlock mysqlSelectQuery, RouteResultsetNode node) {
+		if(!getCurentDbType().equalsIgnoreCase("mysql")) {
+			Limit _limit = mysqlSelectQuery.getLimit();
+			if (_limit != null) {
+				SQLIntegerExpr offset = (SQLIntegerExpr) _limit.getOffset();
+				SQLIntegerExpr count = (SQLIntegerExpr) _limit.getRowCount();
+				if (offset != null && count != null) {
+					String nativeSql = PageSQLUtil
+							.convertLimitToNativePageSql(getCurentDbType(), node.getStatement(),
+									offset.getNumber().intValue(), count.getNumber().intValue());
+					node.setStatement(nativeSql);
+				}
+			}
+		}
 	}
 
 	/**
