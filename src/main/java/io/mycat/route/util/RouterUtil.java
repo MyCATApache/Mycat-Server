@@ -185,9 +185,19 @@ public class RouterUtil {
 		//去除sql前面的注册,如/* ApplicationName=DBeaver 6.0.1 - Main */，这个注册会导致create table出错
 		stmt = stmt.replaceFirst("\\/\\*.*\\*\\/\\s*", "");
 		final String upStmt = stmt.toUpperCase();
+		String rrsStmt = new String(upStmt);
 		if(upStmt.startsWith("CREATE")){
 			if (upStmt.contains("CREATE INDEX ") || upStmt.contains("CREATE UNIQUE INDEX ")){
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateIndexPos(upStmt, 0));
+				/**
+				 * Date：2017年11月2日
+				 * @author SvenAugustus
+				修复oracle 语法不支持 drop index i_t_f on t_test，只有drop index i_t_f;
+				 */
+				if(!"oracle".equalsIgnoreCase(schema.getDefaultDataNodeDbType())){
+					int onInd = upStmt.indexOf("ON", 0);
+					rrsStmt= upStmt.substring(0, onInd);
+				}
 			}else {
 				tablename = RouterUtil.getTableName(stmt, RouterUtil.getCreateTablePos(upStmt, 0));
 			}
@@ -228,9 +238,11 @@ public class RouterUtil {
 					}  else if(isSlotFunction){
 						nodes[i].setSlot(-1);
 					}
+					nodes[i].setStatement(rrsStmt);
 				}
 				rrs.setNodes(nodes);
 			}
+			rrs.setStatement(rrsStmt);
 			return rrs;
 		}else if(schema.getDataNode()!=null){		//默认节点ddl
 			RouteResultsetNode[] nodes = new RouteResultsetNode[1];
