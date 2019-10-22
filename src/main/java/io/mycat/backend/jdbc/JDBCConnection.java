@@ -383,19 +383,28 @@ public class JDBCConnection implements BackendConnection {
 		Statement stmt = null;
 		try {
 			stmt = con.createStatement();
-			int count = stmt.executeUpdate(sql);
+			int count = stmt.executeUpdate(sql,Statement.RETURN_GENERATED_KEYS);
+			int lastInsertId = 0;
+			ResultSet generatedKeys = stmt.getGeneratedKeys();
+			ResultSetMetaData metaData = generatedKeys.getMetaData();
+			if (metaData.getColumnCount() == 1){
+				lastInsertId = (int) (generatedKeys.next() ? generatedKeys.getLong(1) : 0L);
+			}
 			OkPacket okPck = new OkPacket();
 			okPck.affectedRows = count;
-			okPck.insertId = 0;
+			okPck.insertId = lastInsertId;
 			okPck.packetId = ++packetId;
 			okPck.message = " OK!".getBytes();
 			this.respHandler.okResponse(okPck.writeToBytes(sc), this);
-		} finally {
+		}catch (Exception e){
+			LOGGER.error("",e);
+			throw e;
+		}finally {
 			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-
+					LOGGER.error("",e);
 				}
 			}
 		}
