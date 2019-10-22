@@ -295,6 +295,11 @@ public class JDBCConnection implements BackendConnection {
             syncIsolation(sc.getTxIsolation()) ;
 			if (!this.schema.equals(this.oldSchema)) {
 				con.setCatalog(schema);
+//				try{
+//					con.setSchema(schema); //add@byron to test
+//				}	catch(Throwable e){
+//					LOGGER.error("JDBC setSchema Exception for "+schema,e);
+//				}
 				this.oldSchema = schema;
 			}
 			if (!this.isSpark) {
