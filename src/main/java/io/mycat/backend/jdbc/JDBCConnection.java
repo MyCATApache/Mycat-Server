@@ -384,11 +384,11 @@ public class JDBCConnection implements BackendConnection {
 		try {
 			stmt = con.createStatement();
 			int count = stmt.executeUpdate(sql,Statement.RETURN_GENERATED_KEYS);
-			int lastInsertId = 0;
+			long lastInsertId = 0;
 			ResultSet generatedKeys = stmt.getGeneratedKeys();
 			ResultSetMetaData metaData = generatedKeys.getMetaData();
 			if (metaData.getColumnCount() == 1){
-				lastInsertId = (int) (generatedKeys.next() ? generatedKeys.getLong(1) : 0L);
+				lastInsertId = (generatedKeys.next() ? generatedKeys.getLong(1) : 0L);
 			}
 			OkPacket okPck = new OkPacket();
 			okPck.affectedRows = count;
