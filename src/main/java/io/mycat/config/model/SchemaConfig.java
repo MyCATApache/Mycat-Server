@@ -174,7 +174,7 @@ public class SchemaConfig {
 	}
 
 	public String getRandomDataNode() {
-		if (this.randomDataNode != null){
+		if (this.randomDataNode != null&&!"".equalsIgnoreCase(this.randomDataNode)){
 			return this.randomDataNode;
 		}
 		if (this.allDataNodeStrArr == null) {
