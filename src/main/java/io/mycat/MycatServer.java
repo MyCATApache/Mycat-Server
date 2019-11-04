@@ -28,7 +28,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -36,22 +45,28 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import io.mycat.backend.datasource.PhysicalDatasource;
-import io.mycat.backend.mysql.xa.*;
+import com.google.common.io.Files;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.io.Files;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
+import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.heartbeat.zkprocess.MycatLeaderLatch;
+import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.backend.mysql.nio.handler.MultiNodeCoordinator;
+import io.mycat.backend.mysql.nio.handler.SimpleLogHandler;
+import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
+import io.mycat.backend.mysql.xa.ParticipantLogEntry;
+import io.mycat.backend.mysql.xa.TxState;
+import io.mycat.backend.mysql.xa.XACommitCallback;
+import io.mycat.backend.mysql.xa.XARollbackCallback;
 import io.mycat.backend.mysql.xa.recovery.Repository;
 import io.mycat.backend.mysql.xa.recovery.impl.FileSystemRepository;
 import io.mycat.buffer.BufferPool;
@@ -76,6 +91,8 @@ import io.mycat.net.NIOProcessor;
 import io.mycat.net.NIOReactorPool;
 import io.mycat.net.SocketAcceptor;
 import io.mycat.net.SocketConnector;
+import io.mycat.net.mysql.CommandPacket;
+import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.route.MyCATSequnceProcessor;
 import io.mycat.route.RouteService;
 import io.mycat.route.factory.RouteStrategyFactory;
@@ -477,6 +494,9 @@ public class MycatServer {
         heartbeatScheduler.scheduleAtFixedRate(dataNodeHeartbeat(), 0L, system.getDataNodeHeartbeatPeriod(), TimeUnit.MILLISECONDS);
         heartbeatScheduler.scheduleAtFixedRate(dataSourceOldConsClear(), 0L, DEFAULT_OLD_CONNECTION_CLEAR_PERIOD, TimeUnit.MILLISECONDS);
         heartbeatScheduler.scheduleAtFixedRate(dataNodeCalcActiveCons(), 0L, DEFAULT_DATANODE_CALC_ACTIVECOUNT, TimeUnit.MILLISECONDS);
+        //fieldList
+        heartbeatScheduler.scheduleWithFixedDelay(fieldList(), 10000L, 10000, TimeUnit.MILLISECONDS);
+        //
         scheduler.schedule(catletClassClear(), 30000, TimeUnit.MILLISECONDS);
 
         if (system.getCheckTableConsistency() == 1) {
@@ -942,6 +962,39 @@ public class MycatServer {
         };
     }
 
+    private boolean init = true;
+    private Runnable fieldList() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                for (NIOProcessor p : processors) {
+                    Iterator<Entry<Long, BackendConnection>> it = p.getBackends().entrySet().iterator();
+                    while (it.hasNext()) {
+                        BackendConnection c = it.next().getValue();
+                        // 删除空连接
+                        if (c == null) {
+                            it.remove();
+                            continue;
+                        }
+                        if (c.getHost().equals("192.168.36.31") && init) {
+                            c.checkAlive();
+                            CommandPacket command = new CommandPacket();
+                            command.packetId = 0;
+                            command.command = MySQLPacket.COM_FIELD_LIST;
+                            String table = "compay ";
+                            command.arg =  table.getBytes();
+                            command.arg[table.length()-1] = (byte)0x00;
+                            c.setResponseHandler(new SimpleLogHandler());
+                            command.write((MySQLConnection) c);
+                            System.out.println("##############################################");
+                            init = false;
+                        }
+                    }
+                }
+                //init = true;
+            }
+        };
+    }
     //by kaiz : 定时计算datanode active connection
     private Runnable dataNodeCalcActiveCons() {
         return new Runnable() {

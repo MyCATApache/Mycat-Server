@@ -52,6 +52,7 @@ import io.mycat.net.mysql.HandshakePacket;
 import io.mycat.net.mysql.HandshakeV10Packet;
 import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.net.mysql.OkPacket;
+import io.mycat.server.parser.ServerParse;
 import io.mycat.util.CompressUtil;
 import io.mycat.util.RandomUtil;
 
@@ -457,6 +458,24 @@ public abstract class FrontendConnection extends AbstractConnection {
 		} else {
 			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Prepare unsupported!");
 		}
+	}
+	/** 
+	 * 用来模拟mysql协议命令中的com_field_list，方便通过发sql测试 
+	 * https://dev.mysql.com/doc/internals/en/com-field-list.html
+	 */
+	public void fieldList(byte[] data) {
+		// 取得语句
+		String sql = null;		
+		try {
+			MySQLMessage mm = new MySQLMessage(data);
+			mm.position(5);
+			sql = mm.readString(charset);
+			sql = ServerParse.COM_FIELD_LIST_FLAG + sql;
+		} catch (UnsupportedEncodingException e) {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
+			return;
+		}		
+		this.query( sql );
 	}
 
 	public void ping() {
