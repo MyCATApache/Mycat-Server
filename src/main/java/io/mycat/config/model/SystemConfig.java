@@ -295,7 +295,7 @@ public final class SystemConfig {
 		this.parserCommentVersion = DEFAULT_PARSER_COMMENT_VERSION;
 		this.sqlRecordCount = DEFAULT_SQL_RECORD_COUNT;
 		this.glableTableCheckPeriod = DEFAULT_GLOBAL_TABLE_CHECK_PERIOD;
-		this.useOffHeapForMerge = 1;
+		this.useOffHeapForMerge = 0;
 		this.memoryPageSize = MEMORY_PAGE_SIZE;
 		this.spillsFileBufferSize = SPILLS_FILE_BUFFER_SIZE;
 		this.useStreamOutput = 0;
