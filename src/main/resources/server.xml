@@ -101,7 +101,7 @@
 
 	<user name="root" defaultAccount="true">
 		<property name="password">123456</property>
-		<property name="schemas">scott</property>
+		<property name="schemas">TESTDB</property>
 		
 		<!-- 表级 DML 权限设置 -->
 		<!-- 		
@@ -116,7 +116,7 @@
 
 	<user name="user">
 		<property name="password">user</property>
-		<property name="schemas">scott</property>
+		<property name="schemas">TESTDB</property>
 		<property name="readOnly">true</property>
 	</user>
 
