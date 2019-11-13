@@ -35,8 +35,8 @@ public class UserConfig {
     private String encryptPassword; 				//密文
     private int benchmark = 0;						// 负载限制, 默认0表示不限制
     private UserPrivilegesConfig privilegesConfig;	//SQL表级的增删改查权限控制
-    
-    /**
+	private String defaultSchema;
+	/**
      * 是否无密码登陆的默认账户
      */
     private boolean defaultAccount = false;
@@ -109,11 +109,19 @@ public class UserConfig {
 		this.defaultAccount = defaultAccount;
 	}
 
+	public String getDefaultSchema() {
+		return defaultSchema;
+	}
+
+	public void setDefaultSchema(String defaultSchema) {
+		this.defaultSchema = defaultSchema;
+	}
+
 	@Override
 	public String toString() {
 		return "UserConfig [name=" + name + ", password=" + password + ", encryptPassword=" + encryptPassword
 				+ ", benchmark=" + benchmark + ", privilegesConfig=" + privilegesConfig + ", defaultAccount="
-				+ defaultAccount + ", readOnly=" + readOnly + ", schemas=" + schemas + "]";
+				+ defaultAccount + ", readOnly=" + readOnly + ", schemas=" + schemas +", defaultSchema=" + defaultSchema + "]";
 	}
 
 	 

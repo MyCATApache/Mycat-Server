@@ -178,8 +178,12 @@ public class ServerConnection extends FrontendConnection {
 		if (db == null) {
 			db = SchemaUtil.detectDefaultDb(sql, type);
 			if (db == null) {
-				writeErrMessage(ErrorCode.ERR_BAD_LOGICDB, "No MyCAT Database selected");
-				return;
+				db = MycatServer.getInstance().getConfig().getUsers().get(user).getDefaultSchema();
+				if (db == null) {
+					writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
+							"No MyCAT Database selected");
+					return ;
+				}
 			}
 			isDefault = false;
 		}
@@ -247,9 +251,16 @@ public class ServerConnection extends FrontendConnection {
 		// 检查当前使用的DB
 		String db = this.schema;
 		if (db == null) {
-			writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
-					"No MyCAT Database selected");
-			return null;
+			db = SchemaUtil.detectDefaultDb(sql, type);
+			if (db == null){
+				db = MycatServer.getInstance().getConfig().getUsers().get(user).getDefaultSchema();
+				if (db == null) {
+					writeErrMessage(ErrorCode.ERR_BAD_LOGICDB,
+							"No MyCAT Database selected");
+					return null;
+				}
+			}
+
 		}
 		SchemaConfig schema = MycatServer.getInstance().getConfig()
 				.getSchemas().get(db);

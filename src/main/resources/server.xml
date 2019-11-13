@@ -102,6 +102,8 @@
 	<user name="root" defaultAccount="true">
 		<property name="password">123456</property>
 		<property name="schemas">TESTDB</property>
+		<property name="defaultSchema">TESTDB</property>
+		<!--No MyCAT Database selected 错误前会尝试使用该schema作为schema，不设置则为null,报错 -->
 		
 		<!-- 表级 DML 权限设置 -->
 		<!-- 		
@@ -118,6 +120,7 @@
 		<property name="password">user</property>
 		<property name="schemas">TESTDB</property>
 		<property name="readOnly">true</property>
+		<property name="defaultSchema">TESTDB</property>
 	</user>
 
 </mycat:server>
