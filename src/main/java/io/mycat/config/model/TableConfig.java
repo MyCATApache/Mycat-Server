@@ -28,6 +28,7 @@ import io.mycat.config.model.rule.RuleConfig;
 import io.mycat.util.SplitUtil;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -55,7 +56,6 @@ public class TableConfig {
     // only has one level of parent
     private final boolean secondLevel;
     private final boolean partionKeyIsPrimaryKey;
-    private final Random rand = new Random();
 
     private volatile List<SQLTableElement> tableElementList;
     private volatile String tableStructureSQL;
@@ -247,7 +247,7 @@ public class TableConfig {
     }
 
     public String getRandomDataNode() {
-        int index = Math.abs(rand.nextInt(Integer.MAX_VALUE)) % dataNodes.size();
+        int index = Math.abs(ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE)) % dataNodes.size();
         return dataNodes.get(index);
     }
 
