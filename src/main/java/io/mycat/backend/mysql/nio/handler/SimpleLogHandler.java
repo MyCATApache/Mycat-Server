@@ -60,11 +60,11 @@ public class SimpleLogHandler implements ResponseHandler{
 	public void fieldEofResponse(byte[] header, List<byte[]> fields,
 			byte[] eof, BackendConnection conn) {
 		LOGGER.info("fieldEofResponse : " + conn );
-		System.out.println("SimpleLogHandler.fieldEofResponse header: " + bytesToHex(header) );
+		LOGGER.info("SimpleLogHandler.fieldEofResponse header: " + bytesToHex(header) );
 		for(byte[] field : fields) {
-			System.out.println("SimpleLogHandler.fieldEofResponse fields: " + bytesToHex(field) );
+			LOGGER.info("SimpleLogHandler.fieldEofResponse fields: " + bytesToHex(field) );
 		}
-		System.out.println("SimpleLogHandler.fieldEofResponse eof: " + bytesToHex(eof) );
+		LOGGER.info("SimpleLogHandler.fieldEofResponse eof: " + bytesToHex(eof) );
 		
 	}
 
@@ -77,7 +77,7 @@ public class SimpleLogHandler implements ResponseHandler{
 	@Override
 	public void rowEofResponse(byte[] eof, BackendConnection conn) {
 		LOGGER.info("rowEofResponse: " + conn );
-		System.out.println("SimpleLogHandler.rowEofResponse: " + bytesToHex(eof) );
+		LOGGER.info("SimpleLogHandler.rowEofResponse: " + bytesToHex(eof) );
 		
 	}
 
