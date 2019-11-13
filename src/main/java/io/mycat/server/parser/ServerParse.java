@@ -60,6 +60,8 @@ public final class ServerParse {
 	public static final int UNLOCK = 23;
     public static final int LOAD_DATA_INFILE_SQL = 99;
     public static final int DDL = 100;
+    public static final int COMMAND = 101;
+    public static final String COM_FIELD_LIST_FLAG="select @@command ";
 
 
 	public static final int MIGRATE  = 203;
@@ -720,6 +722,10 @@ public final class ServerParse {
 
 	// SELECT' '
 	static int selectCheck(String stmt, int offset) {
+		// SELECT @@command ,对应mysql协议是0x04
+		if(stmt.startsWith(COM_FIELD_LIST_FLAG)) {
+			return COMMAND;
+		}
 		if (stmt.length() > offset + 4) {
 			char c1 = stmt.charAt(++offset);
 			char c2 = stmt.charAt(++offset);

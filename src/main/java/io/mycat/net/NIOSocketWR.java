@@ -60,8 +60,8 @@ public class NIOSocketWR extends SocketWR {
 			}
 
 		} catch (IOException e) {
-			if (AbstractConnection.LOGGER.isDebugEnabled()) {
-				AbstractConnection.LOGGER.debug("caught err:", e);
+			if (AbstractConnection.LOGGER.isWarnEnabled()) {
+				AbstractConnection.LOGGER.warn("caught err:", e);
 			}
 			con.close("err:" + e);
 		} finally {
