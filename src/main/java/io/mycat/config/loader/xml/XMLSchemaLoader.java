@@ -299,8 +299,28 @@ public class XMLSchemaLoader implements SchemaLoader {
         final String schemaName = node.getAttribute("name");
         Map<String, TableConfig> tables = new TableConfigMap();
         NodeList nodeList = node.getElementsByTagName("table");
+        List<Element> list = new ArrayList<>();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Element tableElement = (Element) nodeList.item(i);
+            String tableNameElement = tableElement.getAttribute("name").toUpperCase();
+            if("true".equalsIgnoreCase(tableElement.getAttribute("splitTableNames"))){
+                String[] split = tableNameElement.split(",");
+                for (String name : split) {
+                    Element node1 = (Element)tableElement.cloneNode(true);
+                    node1.setAttribute("name",name);
+                    list.add(node1);
+                }
+            }else {
+                list.add(tableElement);
+            }
+        }
+        loadTable(schemaName, tables, list);
+        return tables;
+    }
+
+    private void loadTable(String schemaName, Map<String, TableConfig> tables,  List<Element>  nodeList) {
+        for (int i = 0; i < nodeList.size(); i++) {
+            Element tableElement = (Element) nodeList.get(i);
             String tableNameElement = tableElement.getAttribute("name").toUpperCase();
 
             //TODO:路由, 增加对动态日期表的支持
@@ -414,7 +434,6 @@ public class XMLSchemaLoader implements SchemaLoader {
                 processChildTables(tables, table, dataNode, tableElement);
             }
         }
-        return tables;
     }
 
     private String getNewRuleName(String schemaName, String tableName, String name) {

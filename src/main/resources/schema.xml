@@ -4,7 +4,7 @@
 
 	<schema name="TESTDB" checkSQLschema="true" sqlMaxLimit="100">
 		<!-- auto sharding by id (long) -->
-		<table name="travelrecord" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" />
+		<table name="travelrecord,address" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" splitTableNames ="true"/>
 		<!-- <table name="oc_call" primaryKey="ID" dataNode="dn1$0-743" rule="latest-month-calldate"
 			/> -->
 	</schema>
