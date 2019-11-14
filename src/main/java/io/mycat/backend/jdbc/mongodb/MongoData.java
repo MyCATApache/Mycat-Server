@@ -53,20 +53,24 @@ public class MongoData {
 	   else {
 	     return null;
 	   }
-   }    
-   public void setGrouyBy(DBObject gb)  {
-	  this.groupby=gb;	
-	  this.type=true;
-	  if (gb instanceof BasicDBList) {
-		Object gb2=((BasicDBList)gb).get(0);
-		if (gb2 instanceof DBObject) { 
-        for (String field :((DBObject)gb2).keySet()) {            
-          Object val = ((DBObject)gb2).get(field);	
-          setField(field,getObjectToType(val));
-        }
-	   }
-	  }
-   } 
+   }
+
+	public void setGrouyBy(DBObject gb) {
+		this.groupby = gb;
+		this.type = true;
+		if (gb instanceof BasicDBList) {
+			BasicDBList basicDBList = (BasicDBList)gb;
+			if(!basicDBList.isEmpty()){
+				Object gb2 = basicDBList.get(0);
+				if (gb2 instanceof DBObject) {
+					for (String field : ((DBObject) gb2).keySet()) {
+						Object val = ((DBObject) gb2).get(field);
+						setField(field, getObjectToType(val));
+					}
+				}
+			}
+		}
+	}
    
    public static int getObjectToType(Object ob){
 		if (ob instanceof Integer) {

@@ -6,15 +6,10 @@ import java.sql.Types;
 import java.util.List;
 
 
+import com.mongodb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -186,15 +181,20 @@ public class MongoSQLParser {
 			throw new RuntimeException("number of values and columns have to match");
 		}
 		SQLTableSource table=state.getTableSource();
-		BasicDBObject o = new BasicDBObject();
-		int i=0;
-		for(SQLExpr col : state.getColumns()) {
-			o.put(getFieldName2(col), getExpValue(state.getValues().getValues().get(i)));
-			i++;
-		}		
+		BasicDBObject[] oList = new BasicDBObject[state.getValuesList().size()];
+		int i = 0;
+		for(SQLInsertStatement.ValuesClause values : state.getValuesList()){
+			int j = 0;
+			BasicDBObject o = new BasicDBObject();
+			oList[i++] = o ;
+			for(SQLExpr col : state.getColumns()) {
+				o.put(getFieldName2(col), getExpValue(values.getValues().get(j++)));
+			}
+		}
+
 		DBCollection coll =this._db.getCollection(table.toString());
-		coll.insert(new DBObject[] { o });
-		return 1;
+		WriteResult result = coll.insert(oList);
+		return i; // 这里result.getN 总是返回0 , 所以按插入数据量返回影响行数
 	}
 	private int UpData(SQLUpdateStatement state) {
 		SQLTableSource table=state.getTableSource();
@@ -208,9 +208,9 @@ public class MongoSQLParser {
 			set.put(getFieldName2(col.getColumn()), getExpValue(col.getValue()));	
 		}
 		DBObject mod = new BasicDBObject("$set", set);
-		coll.updateMulti(query, mod);
+		WriteResult result = coll.updateMulti(query, mod);
 		//System.out.println("changs count:"+coll.getStats().size());
-		return 1;		
+		return result.getN();
 	}
 	private int DeleteDate(SQLDeleteStatement state) {
 		SQLTableSource table=state.getTableSource();
@@ -221,11 +221,9 @@ public class MongoSQLParser {
 			throw new RuntimeException("not where of sql");
 		}
 		DBObject query = parserWhere(expr);
-		
-		coll.remove(query);
-		
-		return 1;
-		
+
+		WriteResult result = coll.remove(query);
+		return result.getN();
 	}
 	private int dropTable(SQLDropTableStatement state) {		
 		for (SQLTableSource table : state.getTableSources()){
