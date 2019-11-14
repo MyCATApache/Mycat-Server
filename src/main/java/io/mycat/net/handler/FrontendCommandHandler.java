@@ -29,6 +29,8 @@ import io.mycat.net.FrontendConnection;
 import io.mycat.net.NIOHandler;
 import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.statistic.CommandCount;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 前端命令处理器
@@ -37,6 +39,7 @@ import io.mycat.statistic.CommandCount;
  */
 public class FrontendCommandHandler implements NIOHandler
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FrontendCommandHandler.class);
 
     protected final FrontendConnection source;
     protected final CommandCount commands;
@@ -111,6 +114,7 @@ public class FrontendCommandHandler implements NIOHandler
                 break;
             default:
                      commands.doOther();
+                     LOGGER.error("Unknown command:{}",new String(data));
                      source.writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR,
                              "Unknown command");
 

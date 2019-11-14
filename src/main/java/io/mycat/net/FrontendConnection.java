@@ -487,7 +487,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 	}
 
 	public void kill(byte[] data) {
-		writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Unknown command");
+		close("kill command");
 	}
 
 	public void unknown(byte[] data) {
