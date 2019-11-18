@@ -177,7 +177,7 @@ wrapper.java.additional.1=-DMYCAT_HOME=.
 
 wrapper.java.additional.2=-server
 
-wrapper.java.additional.3=-XX:MaxPermSize=64M
+#wrapper.java.additional.3=-XX:MaxPermSize=64M
 
 wrapper.java.additional.4=-XX:+AggressiveOpts
 
