@@ -18,6 +18,12 @@ MyCAT1.6不支持一个SQL包含多个语句,但是正在开发的2.0是支持�
 
 旧Mycat升级fastjson，把pom.xml中fastjson的版本更改即可
 
+全局序列号语法
+
+```sql
+INSERT INTO `travelrecord` (`id`,user_id) VALUES ('next value for MYCATSEQ_GLOBAL',"xxx");
+```
+
 更新Druid 1.1.10版本的分支独立维护在
 https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid
 
