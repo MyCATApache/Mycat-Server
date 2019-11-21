@@ -10,9 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.regex.Matcher;
 
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLObject;
@@ -38,6 +36,10 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.stat.TableStat.Relationship;
 import com.google.common.base.Strings;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
@@ -68,6 +70,7 @@ import io.mycat.route.util.RouterUtil;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
+import io.mycat.server.util.SchemaUtil;
 
 public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 
@@ -537,26 +540,48 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 	public RouteResultset analyseShowSQL(SchemaConfig schema,
 			RouteResultset rrs, String stmt) throws SQLSyntaxErrorException {
 
-		String upStmt = stmt.toUpperCase();
-		int tabInd = upStmt.indexOf(" TABLES");
-		if (tabInd > 0) {// show tables
-			int[] nextPost = RouterUtil.getSpecPos(upStmt, 0);
-			if (nextPost[0] > 0) {// remove db info
-				int end = RouterUtil.getSpecEndPos(upStmt, tabInd);
-				if (upStmt.indexOf(" FULL") > 0) {
-					stmt = "SHOW FULL TABLES" + stmt.substring(end);
+		String[] fields = SchemaUtil.parseShowTable(stmt);
+        if ("1".equals(fields[0])) {// show tables
+			String relSchema = fields[3];
+			String tableName = fields[8];
+            //
+            if (relSchema != null && !relSchema.equalsIgnoreCase(schema.getName())) {
+                schema = MycatServer.getInstance().getConfig().getSchemas().get(relSchema);
+                if (schema == null) {
+                    throw new SQLSyntaxErrorException("not found schema : " + relSchema);
+                }
+            }
+            if (StringUtils.isNotBlank(tableName) && tableName.indexOf("%") < 0) {
+                TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
+                if (tableConfig == null) {
+                    throw new SQLSyntaxErrorException(
+                            "not found table : " + tableName + " in schema " + schema.getName());
+                }
+                String relSchemaTmp = RouterUtil.getAliveRandomDataNode(tableConfig);
+                if (StringUtils.isNotBlank(relSchema)) {
+                    stmt = stmt.replaceAll(relSchema, relSchemaTmp);
+                }
+                return RouterUtil.routeToSingleNode(rrs, relSchemaTmp, stmt);
+            }
+            // remove db
+            if (StringUtils.isNotBlank(relSchema)) {
+				if(schema.getDataNode() !=null) {
+					stmt = stmt.replaceAll(relSchema, schema.getDataNode());
 				} else {
-					stmt = "SHOW TABLES" + stmt.substring(end);
+					if(fields[2] !=null ) {
+						stmt = stmt.replaceAll( fields[2] + "\\s*" + relSchema, "");
+					}
 				}
-			}
-			String defaultNode=  schema.getDataNode();
-			if(!Strings.isNullOrEmpty(defaultNode))
-			{
-				return    RouterUtil.routeToSingleNode(rrs, defaultNode, stmt);
-			}
-			return RouterUtil.routeToMultiNode(false, rrs, schema.getMetaDataNodes(), stmt);
+            }
+            //
+            String defaultNode = schema.getDataNode();
+            if (!Strings.isNullOrEmpty(defaultNode)) {
+                return RouterUtil.routeToSingleNode(rrs, defaultNode, stmt);
+            }
+            return RouterUtil.routeToMultiNode(false, rrs, schema.getMetaDataNodes(), stmt);
 		}
-
+		
+		String upStmt = stmt.toUpperCase();
 		/**
 		 *  show index or column
 		 */
