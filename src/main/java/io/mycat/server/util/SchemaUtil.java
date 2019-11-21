@@ -83,8 +83,22 @@ public class SchemaUtil {
     }
     public static String parseShowTableSchema(String sql) {
         Matcher ma = pattern.matcher(sql);
-        if (ma.matches() && ma.groupCount() >= 5) {
-            return ma.group(5);
+        // if (ma.matches() && ma.groupCount() >= 5) {
+        //     return ma.group(5);
+        // }
+        if (ma.find()) {
+            String from = ma.group(2); 
+            String relSchema = null;
+            if(from == null || from.length() <=0) {
+                // group(3) is 'where'
+                // group(4) is 'null'
+                relSchema = null;
+            } else {
+                // group(3) is schema-name
+                relSchema = ma.group(3);
+                //group(4) is 'where'
+            }
+            return relSchema;
         }
         return null;
     }
@@ -128,7 +142,7 @@ public class SchemaUtil {
     }
     //sample：SHOW FULL TABLES FROM information_schema WHERE Tables_in_information_schema LIKE 'KEY_COLUMN_USAGE'
     //注意sql中like后面会有单引号
-    private static Pattern pattern = Pattern.compile("^\\s*(SHOW)\\s+(FULL)*\\s*(TABLES)\\s+(FROM)\\s+([a-zA-Z_0-9]+)\\s*(['a-zA-Z_0-9\\s]*)", Pattern.CASE_INSENSITIVE);
+    private static Pattern pattern = Pattern.compile("^\\s*show\\s+(full )?tables \\s*(in |from )?\\s*(\\w+)*\\s*(where )?\\s*(table_type|tables_in_\\w+)*\\s*(\\= |like )?\\s*('([\\w%\\s]+)')*\\s*(;)*\\s*", Pattern.CASE_INSENSITIVE);
 
     public static void main(String[] args) {
         String sql = "SELECT name, type FROM `mysql`.`proc` as xxxx WHERE Db='base'";
