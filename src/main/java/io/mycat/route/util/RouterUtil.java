@@ -1004,7 +1004,7 @@ public class RouterUtil {
 	 * @param tc
 	 * @return
 	 */
-	private static String getAliveRandomDataNode(TableConfig tc) {
+	public static String getAliveRandomDataNode(TableConfig tc) {
 		List<String> randomDns = (List<String>)tc.getDataNodes().clone();
 
 		MycatConfig mycatConfig = MycatServer.getInstance().getConfig();
