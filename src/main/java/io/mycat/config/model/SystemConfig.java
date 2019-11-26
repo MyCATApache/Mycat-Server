@@ -145,7 +145,7 @@ public final class SystemConfig {
 
 	private int sequnceMySqlRetryCount = DEFAULT_SEQUNCE_MYSQL_RETRY_COUT;
 	private long sequnceMySqlWaitTime = DEFAULT_SEQUNCE_MYSQL_WATI_TIME;
-	
+	private int ignoreUnknownCommand = 0;//io/mycat/net/handler/FrontendCommandHandler.java:忽略未知命令
 	
 	
 	/*
@@ -1023,5 +1023,13 @@ public final class SystemConfig {
 	}
 	public void setSequenceHanlderClass(String value) {
 		 sequenceHanlderClass = value;
+	}
+
+	public int getIgnoreUnknownCommand() {
+		return ignoreUnknownCommand;
+	}
+
+	public void setIgnoreUnknownCommand(int ignoreUnknownCommand) {
+		this.ignoreUnknownCommand = ignoreUnknownCommand;
 	}
 }

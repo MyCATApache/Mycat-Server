@@ -457,7 +457,7 @@
 								</systemProperties>
 								<extraArguments>
 									<extraArgument>-server </extraArgument>
-									<extraArgument>-XX:MaxPermSize=64M</extraArgument>
+									<!--<extraArgument>-XX:MaxPermSize=64M</extraArgument>-->
 									<extraArgument>-XX:+AggressiveOpts</extraArgument>
 									<extraArgument>-XX:MaxDirectMemorySize=2G</extraArgument>
 									<!-- 远程JMX -->

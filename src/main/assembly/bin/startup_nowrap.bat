@@ -14,4 +14,4 @@ set "CURR_DIR=%cd%"
 cd ..
 set "MYCAT_HOME=%cd%"
 cd %CURR_DIR%
-"%JAVA_CMD%" -server -Xms1G -Xmx2G -XX:MaxPermSize=64M  -XX:+AggressiveOpts -XX:MaxDirectMemorySize=1G -DMYCAT_HOME=%MYCAT_HOME% -cp "..\conf;..\lib\*" io.mycat.MycatStartup
+"%JAVA_CMD%" -server -Xms1G -Xmx2G -XX:+AggressiveOpts -XX:MaxDirectMemorySize=1G -DMYCAT_HOME=%MYCAT_HOME% -cp "..\conf;..\lib\*" io.mycat.MycatStartup
