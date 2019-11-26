@@ -5,16 +5,7 @@ import com.alibaba.druid.sql.ast.statement.SQLCreateViewStatement.Column;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.alibaba.druid.sql.visitor.SQLASTVisitor;
 import java.sql.SQLNonTransientException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
@@ -455,8 +446,11 @@ public class DruidSelectParser extends DefaultDruidParser {
 						node.setStatement(stmt.toString());
 						fixLimit(mysqlSelectQuery, node);
 					}
-				}else if(from instanceof SQLJoinTableSource && rrs.getNodes().length==1){
-					SQLJoinTableSource from1 = (SQLJoinTableSource) (from);;
+				}else if(from instanceof SQLJoinTableSource){
+					SQLJoinTableSource from1 = (SQLJoinTableSource) (from);
+					if (rrs.getNodes().length > 1){
+						LOGGER.warn("The target subtable of a single library subtable cannot exceed 1,maybe a bug");
+					}
 					RouteResultsetNode node = rrs.getNodes()[0];
 					String subTableName = node.getSubTableName();
 					SQLTableSource orgin = from1.getLeft();
@@ -465,8 +459,9 @@ public class DruidSelectParser extends DefaultDruidParser {
 					from1.setLeft(sqlExprTableSource);
 					node.setStatement(stmt.toString());
 					fixLimit(mysqlSelectQuery, node);
+					rrs.setNodes(new  RouteResultsetNode[]{node});
 				}else {
-					throw new UnsupportedOperationException();
+					throw new UnsupportedOperationException("Unsupported "+from+ Arrays.asList(rrs.getNodes()));
 				}
 
 			}
