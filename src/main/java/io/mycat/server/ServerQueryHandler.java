@@ -23,6 +23,7 @@
  */
 package io.mycat.server;
 
+import io.mycat.route.RouteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,8 +132,12 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			break;
         case ServerParse.LOAD_DATA_INFILE_SQL:
-            c.loadDataInfileStart(sql);
-            break;
+			if(RouteService.isHintSql(sql) > -1){ // 目前仅支持注解 datanode,原理为直接将导入sql发送到指定mysql节点
+				c.execute(sql , ServerParse.LOAD_DATA_INFILE_SQL);
+			}else{
+				c.loadDataInfileStart(sql);
+			}
+			break;
 		case ServerParse.MIGRATE: {
 		    try {
                 MigrateHandler.handle(sql, c);
