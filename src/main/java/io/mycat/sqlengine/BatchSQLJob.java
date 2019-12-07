@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import io.mycat.MycatServer;
+import io.mycat.config.model.SystemConfig;
 
 public class BatchSQLJob {
 
@@ -15,8 +16,9 @@ public class BatchSQLJob {
 	 * parallExecute: 是否可以并行执行
 	 * */
 	public void addJob(SQLJob newJob, boolean parallExecute) {
-
-		if (parallExecute) {
+        SystemConfig system = MycatServer.getInstance().getConfig().getSystem();
+        parallExecute = parallExecute && (system.getParallExecute() == 1);
+        if (parallExecute) {
 			runJob(newJob);
 		} else {
 			waitingJobs.offer(newJob);
