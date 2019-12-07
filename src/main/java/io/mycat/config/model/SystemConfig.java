@@ -255,6 +255,8 @@ public final class SystemConfig {
 	private int nonePasswordLogin = DEFAULT_NONEPASSWORDLOGIN ;
 
 	private final static int DEFAULT_NONEPASSWORDLOGIN = 0;
+
+	private int parallExecute;
 	
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
@@ -305,6 +307,8 @@ public final class SystemConfig {
 		this.XARecoveryLogBaseName ="tmlog";
 
 		this.maxPreparedStmtCount = DEFAULT_MAX_PREPAREDSTMT_COUNT;
+		this.ignoreUnknownCommand = 0;
+		this.parallExecute = 0;
 	}
 
 	public void setMaxPreparedStmtCount(int maxPreparedStmtCount){
@@ -927,7 +931,10 @@ public final class SystemConfig {
 				+ ", usingAIO=" + usingAIO 
 				+ ", packetHeaderSize=" + packetHeaderSize 
 				+ ", maxPacketSize=" + maxPacketSize
-				+ ", mycatNodeId=" + mycatNodeId + "]";
+				+ ", mycatNodeId=" + mycatNodeId
+				+ ",ignoreUnknownCommand="+ignoreUnknownCommand
+				+ ",parallExecute="+parallExecute
+				+ "]";
 	}
 
 
@@ -1031,5 +1038,13 @@ public final class SystemConfig {
 
 	public void setIgnoreUnknownCommand(int ignoreUnknownCommand) {
 		this.ignoreUnknownCommand = ignoreUnknownCommand;
+	}
+
+	public int getParallExecute() {
+		return parallExecute;
+	}
+
+	public void setParallExecute(int parallExecute) {
+		this.parallExecute = parallExecute;
 	}
 }
