@@ -1474,12 +1474,23 @@ public class RouterUtil {
 						if(pair.rangeValue != null) {
 							Integer[] tableIndexs = algorithm
 									.calculateRange(StringUtil.removeBackquote(pair.rangeValue.beginValue.toString()),StringUtil.removeBackquote(pair.rangeValue.endValue.toString()));
-							for(Integer idx : tableIndexs) {
-								String subTable = tableConfig.getDistTables().get(idx);
-								if(subTable != null) {
-									tablesRouteSet.add(subTable);
-									if(algorithm instanceof SlotFunction){
-										rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
+							if (tableIndexs.length == 0){
+								for(String subTable  : tableConfig.getDistTables()) {
+									if(subTable != null) {
+										tablesRouteSet.add(subTable);
+										if(algorithm instanceof SlotFunction){
+											rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
+										}
+									}
+								}
+							}else {
+								for(Integer idx : tableIndexs) {
+									String subTable = tableConfig.getDistTables().get(idx);
+									if(subTable != null) {
+										tablesRouteSet.add(subTable);
+										if(algorithm instanceof SlotFunction){
+											rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
+										}
 									}
 								}
 							}
