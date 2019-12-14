@@ -23,6 +23,7 @@
  */
 package io.mycat.util;
 
+import io.mycat.MycatServer;
 import io.mycat.sqlengine.mpp.LoadData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -436,6 +437,9 @@ public class StringUtil {
 
 	public static String replaceChars(String str, String searchChars,
 			String replaceChars) {
+		if(MycatServer.getInstance().getConfig().getSystem().getRemoveSingleQuotes() != 1){
+			return str;
+		}
 		if ((str == null) || (str.length() == 0) || (searchChars == null)
 				|| (searchChars.length() == 0)) {
 			return str;

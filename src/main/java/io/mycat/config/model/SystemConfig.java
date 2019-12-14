@@ -44,6 +44,10 @@ public final class SystemConfig {
 	private static final short DEFAULT_BUFFER_CHUNK_SIZE = 4096;
 	private static final int DEFAULT_BUFFER_POOL_PAGE_SIZE = 512*1024*4;
 	private static final short DEFAULT_BUFFER_POOL_PAGE_NUMBER = 64;
+
+
+
+	private int removeSingleQuotes;
 	private int processorBufferLocalPercent;
 	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime().availableProcessors();
 	private int frontSocketSoRcvbuf = 1024 * 1024;
@@ -309,6 +313,7 @@ public final class SystemConfig {
 		this.maxPreparedStmtCount = DEFAULT_MAX_PREPAREDSTMT_COUNT;
 		this.ignoreUnknownCommand = 0;
 		this.parallExecute = 0;
+		this.removeSingleQuotes = 1;
 	}
 
 	public void setMaxPreparedStmtCount(int maxPreparedStmtCount){
@@ -934,6 +939,7 @@ public final class SystemConfig {
 				+ ", mycatNodeId=" + mycatNodeId
 				+ ",ignoreUnknownCommand="+ignoreUnknownCommand
 				+ ",parallExecute="+parallExecute
+				+ ",removeSingleQuotes="+removeSingleQuotes
 				+ "]";
 	}
 
@@ -1046,5 +1052,12 @@ public final class SystemConfig {
 
 	public void setParallExecute(int parallExecute) {
 		this.parallExecute = parallExecute;
+	}
+
+	public int getRemoveSingleQuotes() {
+		return removeSingleQuotes;
+	}
+	public void setRemoveSingleQuotes(int removeSingleQuotes) {
+		this.removeSingleQuotes = removeSingleQuotes;
 	}
 }
