@@ -47,7 +47,7 @@ public final class SystemConfig {
 
 
 
-	private int removeSingleQuotes;
+	private int removeGraveAccent;
 	private int processorBufferLocalPercent;
 	private static final int DEFAULT_PROCESSORS = Runtime.getRuntime().availableProcessors();
 	private int frontSocketSoRcvbuf = 1024 * 1024;
@@ -313,7 +313,7 @@ public final class SystemConfig {
 		this.maxPreparedStmtCount = DEFAULT_MAX_PREPAREDSTMT_COUNT;
 		this.ignoreUnknownCommand = 0;
 		this.parallExecute = 0;
-		this.removeSingleQuotes = 1;
+		this.removeGraveAccent = 1;
 	}
 
 	public void setMaxPreparedStmtCount(int maxPreparedStmtCount){
@@ -939,7 +939,7 @@ public final class SystemConfig {
 				+ ", mycatNodeId=" + mycatNodeId
 				+ ",ignoreUnknownCommand="+ignoreUnknownCommand
 				+ ",parallExecute="+parallExecute
-				+ ",removeSingleQuotes="+removeSingleQuotes
+				+ ",removeGraveAccent="+ removeGraveAccent
 				+ "]";
 	}
 
@@ -1054,10 +1054,10 @@ public final class SystemConfig {
 		this.parallExecute = parallExecute;
 	}
 
-	public int getRemoveSingleQuotes() {
-		return removeSingleQuotes;
+	public int getRemoveGraveAccent() {
+		return removeGraveAccent;
 	}
-	public void setRemoveSingleQuotes(int removeSingleQuotes) {
-		this.removeSingleQuotes = removeSingleQuotes;
+	public void setRemoveGraveAccent(int removeGraveAccent) {
+		this.removeGraveAccent = removeGraveAccent;
 	}
 }

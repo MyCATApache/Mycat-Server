@@ -437,7 +437,7 @@ public class StringUtil {
 
 	public static String replaceChars(String str, String searchChars,
 			String replaceChars) {
-		if(MycatServer.getInstance().getConfig().getSystem().getRemoveSingleQuotes() != 1){
+		if(MycatServer.getInstance().getConfig().getSystem().getRemoveGraveAccent() != 1){
 			return str;
 		}
 		if ((str == null) || (str.length() == 0) || (searchChars == null)
