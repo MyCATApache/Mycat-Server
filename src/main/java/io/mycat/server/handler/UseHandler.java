@@ -48,7 +48,7 @@ public final class UseHandler {
             if (end > 0) {
                 schema = schema.substring(0, end - 1);
             }
-            schema = StringUtil.replaceChars(schema, "`", null);
+            schema = StringUtil.replaceChars(schema, "`", null,true);
             length = schema.length();
             if (schema.charAt(0) == '\'' && schema.charAt(length - 1) == '\'') {
                 schema = schema.substring(1, length - 1);
