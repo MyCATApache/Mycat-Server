@@ -288,7 +288,6 @@ class FetchMySQLSequnceHandler implements ResponseHandler {
 		String errMgs=e.toString();
 		LOGGER.error("{}",e);
 		IncrSequenceMySQLHandler.latestErrors.put(seqVal.seqName, errMgs);
-		LOGGER.warn("executeException   " + errMgs);
 		c.close("exception:" +errMgs);
 
 	}

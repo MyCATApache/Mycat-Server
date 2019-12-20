@@ -207,14 +207,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 
 	public void writeErrMessage(int errno, String msg) {
 		if(this.canResponse()){
-			if(LOGGER.isDebugEnabled()) {
-				LOGGER.debug("{}{} write errorMsg:{} error",this, msg+ getStack());
-			}
+				LOGGER.error("{}{} write errorMsg:{} error",this, msg+ getStack());
 			writeErrMessage((byte) 1, errno, msg);
 		} else {
-			if(LOGGER.isDebugEnabled()) {
-				LOGGER.debug("{} write errorMsg:{} error",this,msg);
-			}
+				LOGGER.error("{} write errorMsg:{} error",this,msg);
 		}
 	}
 

@@ -235,8 +235,9 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
 		err.errno = ErrorCode.ERR_FOUND_EXCEPTION;
-		err.message = StringUtil.encode(e.toString(), session.getSource().getCharset());
-
+		String message = e.toString();
+		LOGGER.error(message);
+		err.message = StringUtil.encode(message, session.getSource().getCharset());
 		this.backConnectionErr(err, c);
 	}
 
@@ -542,6 +543,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		ErrorPacket err = new ErrorPacket();
 		err.packetId = ++packetId;
 		err.errno = ErrorCode.ER_ERROR_ON_CLOSE;
+		LOGGER.error(reason);
 		err.message = StringUtil.encode(reason, session.getSource()
 				.getCharset());
 		this.backConnectionErr(err, conn);
