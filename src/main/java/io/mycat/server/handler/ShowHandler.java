@@ -34,10 +34,10 @@ import io.mycat.util.StringUtil;
  */
 public final class ShowHandler {
 
-	public static void handle(String stmt, ServerConnection c, int offset) {
+	public static void handle(final String originalStmt, ServerConnection c, int offset) {
 
 		// 排除 “ ` ” 符号
-		stmt = StringUtil.replaceChars(stmt, "`", null);
+		String stmt = StringUtil.replaceChars(originalStmt, "`", null,true);
 
 		int type = ServerParseShow.parse(stmt, offset);
 		switch (type) {
@@ -57,7 +57,7 @@ public final class ShowHandler {
 			ShowMyCATCluster.response(c);
 			break;
 		default:
-			c.execute(stmt, ServerParse.SHOW);
+			c.execute(originalStmt, ServerParse.SHOW);
 		}
 	}
 
