@@ -32,7 +32,7 @@ public class ConnectionException extends RuntimeException {
 	private final String msg;
 
 	public ConnectionException(int code, String msg) {
-		super();
+		super(msg);
 		this.code = code;
 		this.msg = msg;
 	}
