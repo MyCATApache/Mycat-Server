@@ -175,6 +175,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		this.execCount = 0;
 		this.netInBytes = 0;
 		this.netOutBytes = 0;
+
+		if (rrs.isLoadData()) {
+			packetId = session.getSource().getLoadDataInfileHandler().getLastPackId();
+		}
 	}
 
 	public NonBlockingSession getSession() {
@@ -345,15 +349,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 				lock.lock();
 				try {
+					ok.packetId = ++packetId;// OK_PACKET
 					if (rrs.isLoadData()) {
-						byte lastPackId = source.getLoadDataInfileHandler()
-								.getLastPackId();
-						ok.packetId = ++lastPackId;// OK_PACKET
 						ok.message = ("Records: " + affectedRows + "  Deleted: 0  Skipped: 0  Warnings: 0")
 								.getBytes();// 此处信息只是为了控制台给人看的
 						source.getLoadDataInfileHandler().clear();
-					} else {
-						ok.packetId = ++packetId;// OK_PACKET
 					}
 
 					ok.affectedRows = affectedRows;

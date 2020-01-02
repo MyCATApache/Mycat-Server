@@ -176,7 +176,12 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 		startTime=System.currentTimeMillis();
 		ServerConnection sc = session.getSource();
 		this.isRunning = true;
-		this.packetId = 0;
+		if (rrs.isLoadData()) {
+			this.packetId = session.getSource().getLoadDataInfileHandler().getLastPackId();
+		} else {
+			this.packetId = 0;
+		}
+
 		final BackendConnection conn = session.getTarget(node);
 		LOGGER.debug("rrs.getRunOnSlave() " + rrs.getRunOnSlaveDebugInfo());
 		node.setRunOnSlave(rrs.getRunOnSlave());	// 实现 master/slave注解
@@ -327,8 +332,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			ok.read(data);
             boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());
 			if (rrs.isLoadData()) {				
-				byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
-				ok.packetId = ++lastPackId;// OK_PACKET
+				// byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
+				ok.packetId = ++packetId;// OK_PACKET
 				source.getLoadDataInfileHandler().clear();
 				
 			} else if (isCanClose2Client) {
