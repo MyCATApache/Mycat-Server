@@ -59,9 +59,14 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 
   static {
     Builder escapeBuilder = Escapers.builder();
+    escapeBuilder.addEscape('\0', "\\0");
     escapeBuilder.addEscape('\'', "\\'");
+    escapeBuilder.addEscape('\b', "\\b");
+    escapeBuilder.addEscape('\n', "\\n");
+    escapeBuilder.addEscape('\r', "\\r");
     escapeBuilder.addEscape('\"', "\\\"");
     escapeBuilder.addEscape('$', "\\$");
+    escapeBuilder.addEscape('\\', "\\\\");
     varcharEscaper = escapeBuilder.build();
   }
 
