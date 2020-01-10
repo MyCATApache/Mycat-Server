@@ -5,6 +5,7 @@ import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
 import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.NonBlockingSession;
+import io.mycat.util.StringUtil;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -118,7 +119,7 @@ public abstract class AbstractDataNodeMerge implements Runnable{
         int[] result = new int[columns.length];
         ColMeta curColMeta;
         for (int i = 0; i < columns.length; i++) {
-            curColMeta = toIndexMap.get(columns[i].toUpperCase());
+            curColMeta = toIndexMap.get(StringUtil.removeBackquote(columns[i]).toUpperCase());
             if (curColMeta == null) {
                 throw new IllegalArgumentException(
                         "all columns in group by clause should be in the selected column list.!"

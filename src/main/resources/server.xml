@@ -18,7 +18,7 @@
 	<property name="useSqlStat">0</property>  <!-- 1为开启实时统计、0为关闭 -->
 	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
 		<property name="sqlExecuteTimeout">300</property>  <!-- SQL 执行超时 单位:秒-->
-		<property name="sequnceHandlerType">1</property>
+		<property name="sequenceHandlerType">1</property>
 		<!--<property name="sequnceHandlerPattern">(?:(\s*next\s+value\s+for\s*MYCATSEQ_(\w+))(,|\)|\s)*)+</property>
 		INSERT INTO `travelrecord` (`id`,user_id) VALUES ('next value for MYCATSEQ_GLOBAL',"xxx");
 		-->
@@ -37,7 +37,7 @@
 		<property name="processorBufferPoolType">0</property>
 		<!--默认是65535 64K 用于sql解析时最大文本长度 -->
 		<!--<property name="maxStringLiteralLength">65535</property>-->
-		<!--<property name="sequnceHandlerType">0</property>-->
+		<!--<property name="sequenceHandlerType">0</property>-->
 		<!--<property name="backSocketNoDelay">1</property>-->
 		<!--<property name="frontSocketNoDelay">1</property>-->
 		<!--<property name="processorExecutor">16</property>-->

@@ -13,12 +13,10 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.catlets.Catlet;
-import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
@@ -47,22 +45,24 @@ public class BatchInsertSequence implements Catlet {
 
 	@Override
 	public void processSQL(String sql, EngineCtx ctx) {
-		try {
-			getRoute(executeSql);
-			RouteResultsetNode[] nodes = rrs.getNodes();
-			if (nodes == null || nodes.length == 0 || nodes[0].getName() == null
-					|| nodes[0].getName().equals("")) {
-				ctx.getSession().getSource().writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
-						"No dataNode found ,please check tables defined in schema:"
-								+ ctx.getSession().getSource().getSchema());
-				return;
-			} 
-			
-			sc.getSession2().execute(rrs, sqltype);//将路由好的数据执行入库
-			
-		} catch (Exception e) {
-			LOGGER.error("BatchInsertSequence.processSQL(String sql, EngineCtx ctx)",e);
-		}
+		throw new UnsupportedOperationException("batch insert is not supported because the mycat 1.6 does not support multi statements.");
+//		try {
+//
+//			getRoute(executeSql);
+//			RouteResultsetNode[] nodes = rrs.getNodes();
+//			if (nodes == null || nodes.length == 0 || nodes[0].getName() == null
+//					|| nodes[0].getName().equals("")) {
+//				ctx.getSession().getSource().writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
+//						"No dataNode found ,please check tables defined in schema:"
+//								+ ctx.getSession().getSource().getSchema());
+//				return;
+//			}
+//
+//			sc.getSession2().execute(rrs, sqltype);//将路由好的数据执行入库
+//
+//		} catch (Exception e) {
+//			LOGGER.error("BatchInsertSequence.processSQL(String sql, EngineCtx ctx)",e);
+//		}
 	}
 
 	@Override
@@ -91,7 +91,7 @@ public class BatchInsertSequence implements Catlet {
 				insert.getColumns().add(sqlIdentifierExpr);
 				
 				if(sequenceHandler == null){
-					int seqHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
+					int seqHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequenceHandlerType();
 					switch(seqHandlerType){
 						case SystemConfig.SEQUENCEHANDLER_MYSQLDB:
 							sequenceHandler = IncrSequenceMySQLHandler.getInstance();

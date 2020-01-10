@@ -69,7 +69,7 @@ public class ShowSysParam {
         paramValues.add(sysConfig.getBufferPoolPageSize() + "B");
         paramValues.add(sysConfig.getProcessorBufferLocalPercent() + "");
         paramValues.add(sysConfig.getProcessorExecutor() + "");
-        paramValues.add(sysConfig.getSequnceHandlerType() == 1 ? "数据库方式" : "本地文件方式");
+        paramValues.add(sysConfig.getSequenceHandlerType() == 1 ? "数据库方式" : "本地文件方式");
         paramValues.add(sysConfig.getPacketHeaderSize() + "B");
         paramValues.add(sysConfig.getMaxPacketSize()/1024/1024 + "M");
         paramValues.add(sysConfig.getIdleTimeout()/1000/60 + "分钟");
