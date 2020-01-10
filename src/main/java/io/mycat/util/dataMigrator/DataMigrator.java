@@ -134,6 +134,7 @@ public class DataMigrator {
 			if(!table.isError()){ //忽略已出错的拆分表
 				List<DataNodeMigrateInfo> detailList = table.getDataNodesDetail();
 				for(DataNodeMigrateInfo info:detailList){
+					LOGGER.info("{}",info);
 					executor.execute(new DataMigrateRunner(table, info.getSrc(), info.getTarget(), table.getTableName(), info.getTempFile()));
 				}
 			}
