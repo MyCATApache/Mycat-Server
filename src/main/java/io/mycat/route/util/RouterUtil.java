@@ -572,7 +572,7 @@ public class RouterUtil {
 	}
 
 	public static void processSQL(ServerConnection sc,SchemaConfig schema,String sql,int sqlType){
-//		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
+//		int sequenceHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequenceHandlerType();
 		final SessionSQLPair sessionSQLPair = new SessionSQLPair(sc.getSession2(), schema, sql, sqlType);
 //      modify by yanjunli  序列获取修改为多线程方式。使用分段锁方式,一个序列一把锁。  begin
 //		MycatServer.getInstance().getSequnceProcessor().addNewSql(sessionSQLPair);

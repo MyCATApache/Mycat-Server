@@ -13,7 +13,7 @@
 	<property name="useSqlStat">1</property>  <!-- 1为开启实时统计、0为关闭 -->
 	<property name="useGlobleTableCheck">0</property>  <!-- 1为开启全加班一致性检测、0为关闭 -->
 	<property name="defaultSqlParser">druidparser</property>
-		<property name="sequnceHandlerType">2</property>
+		<property name="sequenceHandlerType">2</property>
       <!--  <property name="useCompression">1</property>--> <!--1为开启mysql压缩协议-->
         <!--  <property name="fakeMySQLVersion">5.6.20</property>--> <!--设置模拟的MySQL版本号-->
 	<!-- <property name="processorBufferChunk">40960</property> -->
@@ -25,7 +25,7 @@
 		<property name="processorBufferPoolType">0</property>
 		<!--默认是65535 64K 用于sql解析时最大文本长度 -->
 		<!--<property name="maxStringLiteralLength">65535</property>-->
-		<!--<property name="sequnceHandlerType">0</property>-->
+		<!--<property name="sequenceHandlerType">0</property>-->
 		<!--<property name="backSocketNoDelay">1</property>-->
 		<!--<property name="frontSocketNoDelay">1</property>-->
 		<!--<property name="processorExecutor">16</property>-->

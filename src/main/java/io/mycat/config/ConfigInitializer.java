@@ -96,19 +96,19 @@ public class ConfigInitializer {
 		this.cluster = initCobarCluster(configLoader);
 		
 		//不同类型的全局序列处理器的配置加载
-		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_MYSQLDB) {
+		if (system.getSequenceHandlerType() == SystemConfig.SEQUENCEHANDLER_MYSQLDB) {
 			IncrSequenceMySQLHandler.getInstance().load();
 		}
 		
-		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_LOCAL_TIME) {
+		if (system.getSequenceHandlerType() == SystemConfig.SEQUENCEHANDLER_LOCAL_TIME) {
 			IncrSequenceTimeHandler.getInstance().load();
 		}
 		
-		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_DISTRIBUTED) {
+		if (system.getSequenceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_DISTRIBUTED) {
 			DistributedSequenceHandler.getInstance(system).load();
 		}
 		
-		if (system.getSequnceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT) {
+		if (system.getSequenceHandlerType() == SystemConfig.SEQUENCEHANDLER_ZK_GLOBAL_INCREMENT) {
 			IncrSequenceZKHandler.getInstance().load();
 		}
 		

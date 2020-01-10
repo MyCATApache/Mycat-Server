@@ -13,12 +13,10 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.catlets.Catlet;
-import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteResultsetNode;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
@@ -93,7 +91,7 @@ public class BatchInsertSequence implements Catlet {
 				insert.getColumns().add(sqlIdentifierExpr);
 				
 				if(sequenceHandler == null){
-					int seqHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequnceHandlerType();
+					int seqHandlerType = MycatServer.getInstance().getConfig().getSystem().getSequenceHandlerType();
 					switch(seqHandlerType){
 						case SystemConfig.SEQUENCEHANDLER_MYSQLDB:
 							sequenceHandler = IncrSequenceMySQLHandler.getInstance();
