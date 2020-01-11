@@ -14,9 +14,12 @@ Mycat’s target is to smoothly migrate the current stand-alone database and app
 
 
 
-MyCAT1.6不支持一个SQL包含多个语句,但是正在开发的2.0是支持的
+MyCAT1.6不支持一个SQL包含多个语句,但是正在开发的2.0是支持的,2.0功能现在处于测试状态,功能仍在完善
 
 旧Mycat升级fastjson，把pom.xml中fastjson的版本更改即可
+
+1.6的bug:
+批处理插入,多语句,堆外合拼,请大家要避开这些功能
 
 全局序列号语法
 
