@@ -35,6 +35,7 @@
 <!ATTLIST table needAddLimit NMTOKEN #IMPLIED>
 <!ATTLIST table type NMTOKEN #IMPLIED>
 <!ATTLIST table splitTableNames NMTOKEN #IMPLIED>
+<!ATTLIST table fetchStoreNodeByJdbc NMTOKEN #IMPLIED>
 
 
 <!ELEMENT childTable (property*,(childTable*))>

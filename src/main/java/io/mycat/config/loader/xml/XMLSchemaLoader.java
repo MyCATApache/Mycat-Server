@@ -341,6 +341,11 @@ public class XMLSchemaLoader implements SchemaLoader {
             if (tableElement.hasAttribute("autoIncrement")) {
                 autoIncrement = Boolean.parseBoolean(tableElement.getAttribute("autoIncrement"));
             }
+
+            boolean fetchStoreNodeByJdbc = false;
+            if (tableElement.hasAttribute("fetchStoreNodeByJdbc")) {
+                fetchStoreNodeByJdbc = Boolean.parseBoolean(tableElement.getAttribute("fetchStoreNodeByJdbc"));
+            }
             //记录是否需要加返回结果集限制，默认需要加
             boolean needAddLimit = true;
             if (tableElement.hasAttribute("needAddLimit")) {
@@ -404,7 +409,7 @@ public class XMLSchemaLoader implements SchemaLoader {
                         autoIncrement, needAddLimit, tableType, dataNode,
                         getDbType(dataNode),
                         (tableRuleConfig != null) ? tableRuleConfig.getRule() : null,
-                        ruleRequired, null, false, null, null, subTables);
+                        ruleRequired, null, false, null, null, subTables, fetchStoreNodeByJdbc);
                 //因为需要等待TableConfig构造完毕才可以拿到dataNode节点数量,所以Rule构造延后到此处 @cjw
                 if ((tableRuleConfig != null) && (tableRuleConfig.getRule().getRuleAlgorithm() instanceof TableRuleAware)) {
                     AbstractPartitionAlgorithm newRuleAlgorithm = tableRuleConfig.getRule().getRuleAlgorithm();
@@ -530,6 +535,7 @@ public class XMLSchemaLoader implements SchemaLoader {
             if (childTbElement.hasAttribute("needAddLimit")) {
                 needAddLimit = Boolean.parseBoolean(childTbElement.getAttribute("needAddLimit"));
             }
+
             String subTables = childTbElement.getAttribute("subTables");
             //子表join键，和对应的parent的键，父子表通过这个关联
             String joinKey = childTbElement.getAttribute("joinKey").toUpperCase();
@@ -538,7 +544,7 @@ public class XMLSchemaLoader implements SchemaLoader {
                     autoIncrement, needAddLimit,
                     TableConfig.TYPE_GLOBAL_DEFAULT, dataNodes,
                     getDbType(dataNodes), null, false, parentTable, true,
-                    joinKey, parentKey, subTables);
+                    joinKey, parentKey, subTables, false);
 
             if (tables.containsKey(table.getName())) {
                 throw new ConfigException("table " + table.getName() + " duplicated!");
