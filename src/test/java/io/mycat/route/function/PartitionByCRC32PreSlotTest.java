@@ -37,7 +37,7 @@ public class PartitionByCRC32PreSlotTest {
         RuleConfig rule = new RuleConfig("id", "crc32slot");
         String sb = genDataNodesString(count);
         TableConfig tableConf = new TableConfig("test", "id", true, false, -1, sb,
-                null, rule, true, null, false, null, null, null);
+                null, rule, true, null, false, null, null, null, false);
         return tableConf;
     }
 

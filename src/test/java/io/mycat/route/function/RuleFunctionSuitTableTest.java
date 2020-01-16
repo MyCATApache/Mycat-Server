@@ -26,7 +26,7 @@ public class RuleFunctionSuitTableTest {
 		RuleConfig rule = new RuleConfig("id", "auto-partition-long");
 		rule.setRuleAlgorithm(autoPartition);
 		TableConfig tableConf = new TableConfig("test", "id", true, false, -1, "dn1,dn2",
-				null, rule, true, null, false, null, null, null);
+				null, rule, true, null, false, null, null, null, false);
 		int suit1 = autoPartition.suitableFor(tableConf);
 		Assert.assertEquals(-1, suit1);
 		
@@ -55,7 +55,7 @@ public class RuleFunctionSuitTableTest {
 		RuleConfig rule2 = new RuleConfig("id", "auto-partition-long-dupl");
 		rule2.setRuleAlgorithm(autoPartition2);
 		TableConfig tableConf2 = new TableConfig("test2", "id", true, false, -1, "dn1,dn2",
-				null, rule, true, null, false, null, null, null);
+				null, rule, true, null, false, null, null, null,false);
 		Assert.assertEquals(0, autoPartition2.suitableFor(tableConf2));
 		
 		Assert.assertEquals(0, autoPartition2.calculate("500").intValue());
@@ -79,7 +79,7 @@ public class RuleFunctionSuitTableTest {
 		RuleConfig rule = new RuleConfig("col_date", "partition-date");
 		rule.setRuleAlgorithm(partition);
 		TableConfig tableConf = new TableConfig("test", "id", true, false, -1, "dn1,dn2,dn3",
-				null, rule, true, null, false, null, null, null);
+				null, rule, true, null, false, null, null, null, false);
 		int suit1 = partition.suitableFor(tableConf);
 		
 		Assert.assertEquals(-1, suit1);
@@ -115,7 +115,7 @@ public class RuleFunctionSuitTableTest {
 		RuleConfig rule = new RuleConfig("id", "partition-hash-mod");
 		rule.setRuleAlgorithm(partition);
 		TableConfig tableConf = new TableConfig("test", "id", true, false, -1, "dn1,dn2,dn3",
-				null, rule, true, null, false, null, null, null);
+				null, rule, true, null, false, null, null, null, false);
 		int suit1 = partition.suitableFor(tableConf);
 		Assert.assertEquals(0, suit1);
 		
@@ -140,7 +140,7 @@ public class RuleFunctionSuitTableTest {
 		RuleConfig rule = new RuleConfig("id", "partition-range-mod");
 		rule.setRuleAlgorithm(partition);
 		TableConfig tableConf = new TableConfig("test", "id", true, false, -1, "dn$1-10",
-				null, rule, true, null, false, null, null, null);
+				null, rule, true, null, false, null, null, null, false);
 		int suit1 = partition.suitableFor(tableConf);
 		Assert.assertEquals(-1, suit1);
 		
@@ -205,7 +205,7 @@ public class RuleFunctionSuitTableTest {
 		RuleConfig rule = new RuleConfig("id", "partition-prefix-pattern");
 		rule.setRuleAlgorithm(partition);
 		TableConfig tableConf = new TableConfig("test", "id", true, false, -1, "dn1,dn2",
-				null, rule, true, null, false, null, null, null);
+				null, rule, true, null, false, null, null, null, false);
 		int suit1 = partition.suitableFor(tableConf);
 		Assert.assertEquals(-1, suit1);
 		

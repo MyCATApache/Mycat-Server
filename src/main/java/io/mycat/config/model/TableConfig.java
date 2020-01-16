@@ -40,6 +40,7 @@ public class TableConfig {
     private final String name;
     private final String primaryKey;
     private final boolean autoIncrement;
+    private final boolean fetchStoreNodeByJdbc;
     private final boolean needAddLimit;
     private final Set<String> dbTypes;
     private final int tableType;
@@ -65,7 +66,7 @@ public class TableConfig {
     public TableConfig(String tableName, String primaryKey, boolean autoIncrement, boolean needAddLimit, int tableType,
                        String dataNode, Set<String> dbType, RuleConfig rule, boolean ruleRequired,
                        TableConfig parentTC, boolean isChildTable, String joinKey,
-                       String parentKey, String subTables) {
+                       String parentKey, String subTables, boolean fetchStoreNodeByJdbc) {
         if (tableName == null) {
             throw new IllegalArgumentException("table name is null");
         } else if (dataNode == null) {
@@ -74,6 +75,7 @@ public class TableConfig {
         this.primaryKey = primaryKey;
         this.autoIncrement = autoIncrement;
         this.needAddLimit = needAddLimit;
+        this.fetchStoreNodeByJdbc = fetchStoreNodeByJdbc;
         this.tableType = tableType;
         this.dbTypes = dbType;
         if (ruleRequired && rule == null) {
@@ -304,5 +306,9 @@ public class TableConfig {
 
     public void setDataNodeTableStructureSQLMap(Map<String, List<String>> dataNodeTableStructureSQLMap) {
         this.dataNodeTableStructureSQLMap = dataNodeTableStructureSQLMap;
+    }
+
+    public boolean getFetchStoreNodeByJdbc() {
+        return this.fetchStoreNodeByJdbc;
     }
 }

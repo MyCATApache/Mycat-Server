@@ -5,7 +5,9 @@
 	<schema name="TESTDB" checkSQLschema="true" sqlMaxLimit="100" randomDataNode="dn1">
 		<!-- auto sharding by id (long) -->
 		<!--splitTableNames 启用<table name 属性使用逗号分割配置多个表,即多个表使用这个配置-->
-		<table name="travelrecord,address" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" splitTableNames ="true"/>
+		<table name="customer" primaryKey="id" dataNode="dn1,dn2" rule="sharding-by-intfile" fetchStoreNodeByJdbc="true">
+			<childTable name="customer_addr" primaryKey="id" joinKey="customer_id" parentKey="id"> </childTable>
+		</table>
 		<!-- <table name="oc_call" primaryKey="ID" dataNode="dn1$0-743" rule="latest-month-calldate"
 			/> -->
 	</schema>
@@ -19,11 +21,11 @@
 	<dataNode	name="jdbc_dn2" dataHost="jdbchost" database="db2" />
 	<dataNode name="jdbc_dn3" 	dataHost="jdbchost" database="db3" /> -->
 	<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
-			  writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
+			  writeType="0" dbType="mysql" dbDriver="jdbc" switchType="1"  slaveThreshold="100">
 		<heartbeat>select user()</heartbeat>
 		<!-- can have multi write hosts -->
-		<writeHost host="hostM1" url="localhost:3306" user="root"
-				   password="123456">
+		<writeHost host="hostM1" url="jdbc:mysql://localhost:3306" user="root"
+				   password="root">
 		</writeHost>
 		<!-- <writeHost host="hostM2" url="localhost:3316" user="root" password="123456"/> -->
 	</dataHost>
