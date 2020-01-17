@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import io.mycat.backend.mysql.nio.handler.JDBCFetchStoreNodeOfChildTableHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1927,8 +1928,6 @@ public class RouterUtil {
 					realVal = joinKeyVal.substring(1, joinKeyVal.length() - 1);
 				}
 
-
-
 				// try to route by ER parent partion key
 				//如果是二级子表（父表不再有父表）,并且分片字段正好是joinkey字段，调用routeByERParentKey
 				RouteResultset theRrs = RouterUtil.routeByERParentKey(sc, schema, ServerParse.INSERT, sql, rrs, tc, realVal);
@@ -1960,9 +1959,16 @@ public class RouterUtil {
 						getListeningExecutorService().submit(new Callable<String>() {
 					@Override
 					public String call() throws Exception {
-						FetchStoreNodeOfChildTableHandler fetchHandler = new FetchStoreNodeOfChildTableHandler();
-//						return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes());
-						return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes(), sc);
+						if (tc.getRootParent().getFetchStoreNodeByJdbc()) {
+							JDBCFetchStoreNodeOfChildTableHandler jdbcFetchStoreNodeOfChildTableHandler =
+									new JDBCFetchStoreNodeOfChildTableHandler();
+							return jdbcFetchStoreNodeOfChildTableHandler
+									.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes());
+						} else {
+							FetchStoreNodeOfChildTableHandler fetchHandler = new FetchStoreNodeOfChildTableHandler();
+							return fetchHandler.execute(schema.getName(), findRootTBSql, tc.getRootParent().getDataNodes(), sc);
+						}
+
 					}
 				});
 

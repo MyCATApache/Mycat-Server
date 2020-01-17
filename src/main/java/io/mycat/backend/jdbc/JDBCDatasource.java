@@ -6,7 +6,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import com.alibaba.druid.pool.DruidDataSource;
 import com.google.common.collect.Lists;
 
 import io.mycat.MycatServer;
@@ -19,6 +21,8 @@ import io.mycat.net.NIOConnector;
 import io.mycat.net.NIOProcessor;
 
 public class JDBCDatasource extends PhysicalDatasource {
+
+	private DruidDataSource dataSource;
 	
 	static {		
 		// 加载可能的驱动
@@ -43,6 +47,18 @@ public class JDBCDatasource extends PhysicalDatasource {
 	
 	public JDBCDatasource(DBHostConfig config, DataHostConfig hostConfig, boolean isReadNode) {
 		super(config, hostConfig, isReadNode);
+		DBHostConfig curConfig = getConfig();
+		this.dataSource = new DruidDataSource();
+		dataSource.setUrl(curConfig.getUrl());
+		dataSource.setUsername(curConfig.getUser());
+		dataSource.setPassword(curConfig.getPassword());
+		dataSource.setMaxWait(TimeUnit.SECONDS.toMillis(1));
+		dataSource.setMaxActive(curConfig.getMaxCon());
+		dataSource.setMinIdle(curConfig.getMinCon());
+	}
+
+	public Connection getDruidConnection() throws SQLException {
+		return this.dataSource.getConnection();
 	}
 
 	@Override
