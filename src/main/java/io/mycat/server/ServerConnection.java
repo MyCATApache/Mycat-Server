@@ -36,11 +36,11 @@ import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
-import io.mycat.server.handler.MysqlInformationSchemaHandler;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.response.Heartbeat;
 import io.mycat.server.response.InformationSchemaProfiling;
+import io.mycat.server.response.InformationSchemaProfilingSqlyog;
 import io.mycat.server.response.Ping;
 import io.mycat.server.util.SchemaUtil;
 import io.mycat.util.SplitUtil;
@@ -224,7 +224,13 @@ public class ServerConnection extends FrontendConnection {
 			InformationSchemaProfiling.response(this);
 			return;
 		}
-		
+
+		//fix sqlyog select state, round(sum(duration),5) as `duration (summed) in sec` from information_schema.profiling where query_id = 0 group by state order by `duration (summed) in sec` desc
+		if(ServerParse.SELECT == type &&sql.contains(" information_schema.profiling ")&&sql.contains("duration (summed) in sec"))
+		{
+			InformationSchemaProfilingSqlyog.response(this);
+			return;
+		}
 		/* 当已经设置默认schema时，可以通过在sql中指定其它schema的方式执行
 		 * 相关sql，已经在mysql客户端中验证。
 		 * 所以在此处增加关于sql中指定Schema方式的支持。
