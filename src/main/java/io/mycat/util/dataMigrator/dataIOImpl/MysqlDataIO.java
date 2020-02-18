@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +34,16 @@ public class MysqlDataIO implements DataIO{
 		charset = DataMigrator.margs.getCharSet();
 		mysqlBin  = DataMigrator.margs.getMysqlBin();
 	}
-	
+
+    public boolean isWindows() {
+	    try {
+            return System.getProperties().getProperty("os.name", "WINDOWS").toUpperCase().indexOf("WINDOWS") != -1;
+        }catch (Throwable e){
+	        LOGGER.error("",e);
+	        return true;
+        }
+    }
+
 	@Override
 	public void importData(TableMigrateInfo table,DataNode dn,String tableName, File file) throws IOException, InterruptedException {
 		String ip = dn.getIp();
@@ -49,7 +59,8 @@ public class MysqlDataIO implements DataIO{
 		Process process = DataMigratorUtil.exeCmdByOs(loadData);
 		
 		//获取错误信息
-		InputStreamReader in = new InputStreamReader(process.getErrorStream());
+
+		InputStreamReader in = new InputStreamReader(process.getErrorStream(),isWindows()?"GBK": Charset.defaultCharset().name());
 		BufferedReader br = new BufferedReader(in);
 		String errMessage = null;  
         while ((errMessage = br.readLine()) != null) {  

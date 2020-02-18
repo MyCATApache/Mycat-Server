@@ -5,6 +5,7 @@
 	<schema name="TESTDB" checkSQLschema="true" sqlMaxLimit="100" randomDataNode="dn1">
 		<!-- auto sharding by id (long) -->
 		<!--splitTableNames 启用<table name 属性使用逗号分割配置多个表,即多个表使用这个配置-->
+		<!--fetchStoreNodeByJdbc 启用ER表使用JDBC方式获取DataNode-->
 		<table name="customer" primaryKey="id" dataNode="dn1,dn2" rule="sharding-by-intfile" fetchStoreNodeByJdbc="true">
 			<childTable name="customer_addr" primaryKey="id" joinKey="customer_id" parentKey="id"> </childTable>
 		</table>
