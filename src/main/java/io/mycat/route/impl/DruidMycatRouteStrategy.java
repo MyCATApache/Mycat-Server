@@ -502,7 +502,12 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 
 			for (RouteResultsetNode node : rrs.getNodes()) {
 				SQLExprTableSource from2 = getDisTable(tableSource, node);
-				from2.setAlias(alias);
+
+				//修复
+				// EXPLAIN UPDATE travelrecord SET user_id = 'Fred' WHERE id IN 1; => UPDATE travelrecord travelrecord SET user_id = 'Fred' WHERE id IN (1)
+				if (!from2.toString().equals(alias)){
+					from2.setAlias(alias);
+				}
 				updateStatement.setTableSource(from2);
 				node.setStatement(updateStatement.toString());
 			}
