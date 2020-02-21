@@ -255,5 +255,12 @@ public class DataHostConfig {
 	public void setNotSwitch(String notSwitch) {
 		this.notSwitch = notSwitch;
 	}
-	
+
+	public boolean isJDBCDriver() {
+		return "jdbc".equalsIgnoreCase(dbDriver);
+	}
+
+	public boolean isNativeDriver() {
+		return "native".equalsIgnoreCase(dbDriver);
+	}
 }
