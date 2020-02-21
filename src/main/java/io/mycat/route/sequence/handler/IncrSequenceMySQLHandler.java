@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +28,6 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 
 	private static final String SEQUENCE_DB_PROPS = "sequence_db_conf.properties";
 	protected static final String errSeqResult = "-999999,null";
-	protected static final String errlockSeqResult = "0,0"; //数据库lock失败 返回0, 0
-
 	protected static Map<String, String> latestErrors = new ConcurrentHashMap<String, String>();
 	private final FetchMySQLSequnceHandler mysqlSeqFetcher = new FetchMySQLSequnceHandler();
 
@@ -131,15 +127,6 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 		}
 		//设置正在获取
 		boolean isLock = seqVal.fetching.compareAndSet(false, true);
-//		//唯一的一个去获取数据。
-//		if (isLock) {
-//			seqVal.dbretVal = null;
-//			seqVal.dbfinished = false;
-//			seqVal.newValueSetted.set(false);
-//			seqVal.successFetched = false; //添加代码
-//			mysqlSeqFetcher.execute(seqVal);
-//			isLock = true;			
-//		}		
 		if(isLock) {
 			//判断当前的是否有效。
 			if(seqVal.successFetched == true) {
@@ -151,9 +138,8 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 			}
 						
 			//发起请求sql 等待到返回  或者进行
-			Long[] values = seqVal.waitFinish( mysqlSeqFetcher, 1, true); //只有一个线程可以进 并且有重试机制。
+			Long[] values = seqVal.fetchSequenceFromDB( mysqlSeqFetcher, 1, true); //只有一个线程可以进 并且有重试机制。
 			if (values == null) {
-				
 				throw new RuntimeException("can't fetch sequnce in db,sequnce :"
 						+ seqVal.seqName + " detail:"
 						+ mysqlSeqFetcher.getLastestError(seqVal.seqName));
@@ -180,8 +166,8 @@ public class IncrSequenceMySQLHandler implements SequenceHandler {
 			}
 			return this.getNextValidSeqVal(seqVal);
 		}	
-
 	}
+
 }
 
 class FetchMySQLSequnceHandler implements ResponseHandler {
