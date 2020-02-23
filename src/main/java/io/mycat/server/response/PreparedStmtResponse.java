@@ -30,12 +30,15 @@ import io.mycat.net.FrontendConnection;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.PreparedOkPacket;
+import io.mycat.server.handler.ServerPrepareHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author mycat
  */
 public class PreparedStmtResponse {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(PreparedStmtResponse.class);
     public static void response(PreparedStatement pstmt, FrontendConnection c) {
         byte packetId = 0;
 
@@ -63,8 +66,10 @@ public class PreparedStmtResponse {
         // write column field packet
         int columnsNumber = preparedOk.columnsNumber;
         if (columnsNumber > 0) {
+            String[] columnNames = pstmt.getColumnNames();
             for (int i = 0; i < columnsNumber; i++) {
                 FieldPacket field = new FieldPacket();
+                field.name= columnNames[i].getBytes();
                 field.packetId = ++packetId;
                 buffer = field.write(buffer, c,true);
             }

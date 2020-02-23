@@ -23,6 +23,16 @@
  */
 package io.mycat.backend.mysql;
 
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.parser.SQLParserUtils;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
+import com.alibaba.druid.util.JdbcUtils;
+import io.mycat.server.response.PreparedStmtResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
@@ -32,10 +42,10 @@ import java.util.Map;
  * @author mycat, CrazyPig
  */
 public class PreparedStatement {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(PreparedStatement.class);
     private long id;
     private String statement;
-    private int columnsNumber;
+    private String[] columnNames;
     private int parametersNumber;
     private int[] parametersType;
     /**
@@ -46,11 +56,38 @@ public class PreparedStatement {
      * </pre>
      */
     private Map<Long, ByteArrayOutputStream> longDataMap;
+    //获取预处理语句中column的个数
+    private static String[] getColumns(String sql) {
+        String[] columnNames;
+        try {
+            SQLStatementParser sqlStatementParser = SQLParserUtils.createSQLStatementParser(sql, JdbcUtils.MYSQL);
+            SQLStatement statement = sqlStatementParser.parseStatement();
+            if (statement instanceof SQLSelectStatement) {
+                SQLSelect select = ((SQLSelectStatement) statement).getSelect();
+                com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock query = (com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock) select.getQuery();
+                int size = query.getSelectList().size();
+                if (size == 1){
+                    if("*".equalsIgnoreCase(   query.getSelectList().get(0).toString())){
+                        throw new Exception("unsupport * in select items:"+sql);
+                    }
+                } {
+                    columnNames = new String[size];
+                    for (int i = 0; i < size; i++) {
+                        columnNames[i] = query.getSelectList().get(i).toString();
+                    }
+                    return columnNames;
+                }
 
-    public PreparedStatement(long id, String statement, int columnsNumber, int parametersNumber) {
+            }
+        }catch (Exception e){
+            LOGGER.error("can not get column count",e);
+        }
+        return new String[]{};
+    }
+    public PreparedStatement(long id, String statement, int parametersNumber) {
         this.id = id;
         this.statement = statement;
-        this.columnsNumber = columnsNumber;
+        this.columnNames = getColumns(statement);
         this.parametersNumber = parametersNumber;
         this.parametersType = new int[parametersNumber];
         this.longDataMap = new HashMap<Long, ByteArrayOutputStream>();
@@ -65,7 +102,7 @@ public class PreparedStatement {
     }
 
     public int getColumnsNumber() {
-        return columnsNumber;
+        return this.columnNames.length;
     }
 
     public int getParametersNumber() {
@@ -103,5 +140,9 @@ public class PreparedStatement {
     	} else {
     		longDataMap.get(paramId).write(data);
     	}
+    }
+
+    public String[] getColumnNames() {
+        return columnNames;
     }
 }
