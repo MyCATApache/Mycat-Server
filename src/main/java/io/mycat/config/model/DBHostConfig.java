@@ -33,6 +33,7 @@ public class DBHostConfig {
 	private final String user;
 	private final String password;
     private final String encryptPassword; //密文
+	private final boolean checkAlive;
 	private int maxCon ;
 	private int minCon ;
 	private String dbType;
@@ -49,7 +50,7 @@ public class DBHostConfig {
 	}
 
 	public DBHostConfig(String hostName, String ip, int port, String url,
-			String user, String password,String encryptPassword) {
+						String user, String password, String encryptPassword, boolean checkAlive) {
 		super();
 		this.hostName = hostName;
 		this.ip = ip;
@@ -58,6 +59,7 @@ public class DBHostConfig {
 		this.user = user;
 		this.password = password;
 		this.encryptPassword = encryptPassword;
+		this.checkAlive = checkAlive;
 	}
 
 	public long getIdleTimeout() {
@@ -139,4 +141,7 @@ public class DBHostConfig {
 		return "DBHostConfig [hostName=" + hostName + ", url=" + url + "]";
 	}
 
+	public boolean isCheckAlive() {
+		return checkAlive;
+	}
 }

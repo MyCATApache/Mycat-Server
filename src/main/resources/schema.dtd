@@ -78,7 +78,9 @@
   host NMTOKEN #REQUIRED
   password CDATA #REQUIRED
   user CDATA #REQUIRED
-  usingDecrypt CDATA #IMPLIED>
+  usingDecrypt CDATA #IMPLIED
+  checkAlive CDATA #IMPLIED
+        >
 
 <!ELEMENT heartbeat (#PCDATA)>
 <!ELEMENT connectionInitSql (#PCDATA)>

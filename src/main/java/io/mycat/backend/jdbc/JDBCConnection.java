@@ -923,7 +923,16 @@ public class JDBCConnection implements BackendConnection {
 	@Override
 	public boolean checkAlive() {
 		try {
-			return !con.isClosed();
+			if(!con.isClosed()){
+				if(pool.getConfig().isCheckAlive()){
+					try(Statement statement = con.createStatement()){
+						statement.execute(pool.getHeartbeat().getHeartbeatSQL());
+					}
+				}
+				return true;
+			}else {
+				return false;
+			}
 		} catch (SQLException e) {
 			LOGGER.error("connection is closed",e);
 			return false;

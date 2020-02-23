@@ -34,6 +34,9 @@ public class WriteHost {
     @XmlAttribute
     protected Boolean usingDecrypt;
 
+    @XmlAttribute
+    protected Boolean checkAlive;
+
     private List<ReadHost> readHost;
 
     public String getHost() {
