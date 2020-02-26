@@ -158,11 +158,16 @@ public final class ReloadConfig {
 		 *  新的 dataHosts 是否初始化成功
 		 */
 		if ( isReloadStatusOK ) {
+
+			config.getSystem().setUseSqlStat(loader.getSystem().getUseSqlStat());
+			MycatServer.getInstance().ensureSqlstatRecycleFuture();
 			
 			/**
 			 * 2.3、 在老的配置上，应用新的配置，开始准备承接任务
 			 */
 			config.reload(newUsers, newSchemas, newDataNodes, newDataHosts, newCluster, newFirewall, true);
+
+
 
 			/**
 			 * 2.4、 处理旧的资源
@@ -232,6 +237,10 @@ public final class ReloadConfig {
         Map<String, PhysicalDBPool> dataHosts = loader.getDataHosts();
         MycatCluster cluster = loader.getCluster();
         FirewallConfig firewall = loader.getFirewall();
+
+
+		MycatServer.getInstance().getConfig().getSystem().setUseSqlStat(loader.getSystem().getUseSqlStat());
+		MycatServer.getInstance().ensureSqlstatRecycleFuture();
         
         /**
          * 2、在老的配置上，应用新的配置

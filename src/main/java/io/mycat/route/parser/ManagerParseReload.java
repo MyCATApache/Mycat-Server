@@ -38,6 +38,7 @@ public final class ManagerParseReload {
     public static final int CONFIG_ALL = 5;
     public static final int SQL_SLOW = 6;
     public static final int QUERY_CF = 8;
+    public static final int SQL_STAT = 9;
        
     public static int parse(String stmt, int offset) {
         int i = offset;
@@ -180,6 +181,13 @@ public final class ManagerParseReload {
                     && (c4 == 'L' || c4 == 'l') && (c5 == 'O' || c5 == 'o') && (c6 == 'W' || c6 == 'w')
                     && stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
                     return SQL_SLOW ;
+            }
+
+            // reload @@sqlstat
+            if ((c1 == 'Q' || c1 == 'q') && (c2 == 'L' || c2 == 'l') && (c3 == 's' || c3 == 'S')
+                && (c4 == 'T' || c4 == 't') && (c5 == 'A' || c5 == 'a') && (c6 == 'T' || c6 == 't')
+                && stmt.length() > ++offset && stmt.charAt(offset) != ' ') {
+                return SQL_STAT ;
             }
 
             return OTHER;
