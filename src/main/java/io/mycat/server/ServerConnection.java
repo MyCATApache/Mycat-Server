@@ -54,6 +54,7 @@ public class ServerConnection extends FrontendConnection {
 			.getLogger(ServerConnection.class);
 	private static final long AUTH_TIMEOUT = 15 * 1000L;
 
+	private volatile  boolean txReadonly;
 	private volatile int txIsolation;
 	private volatile boolean autocommit;
 	private volatile boolean preAcStates; //上一个ac状态,默认为true
@@ -72,6 +73,7 @@ public class ServerConnection extends FrontendConnection {
 		this.txInterrupted = false;
 		this.autocommit = true;
 		this.preAcStates = true;
+		this.txReadonly = false;
 	}
 
 	@Override
@@ -98,6 +100,14 @@ public class ServerConnection extends FrontendConnection {
 
 	public void setAutocommit(boolean autocommit) {
 		this.autocommit = autocommit;
+	}
+
+	public boolean isTxReadonly() {
+		return txReadonly;
+	}
+
+	public void setTxReadonly(boolean txReadonly) {
+		this.txReadonly = txReadonly;
 	}
 
 	public long getLastInsertId() {

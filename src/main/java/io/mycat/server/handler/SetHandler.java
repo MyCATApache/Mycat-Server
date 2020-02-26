@@ -23,29 +23,32 @@
  */
 package io.mycat.server.handler;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.mycat.config.ErrorCode;
+import io.mycat.config.Isolations;
+import io.mycat.net.mysql.OkPacket;
+import io.mycat.server.ServerConnection;
+import io.mycat.server.parser.ServerParse;
+import io.mycat.server.parser.ServerParseSet;
+import io.mycat.server.response.CharacterSet;
+import io.mycat.util.SetIgnoreUtil;
+
 import static io.mycat.server.parser.ServerParseSet.AUTOCOMMIT_OFF;
 import static io.mycat.server.parser.ServerParseSet.AUTOCOMMIT_ON;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CLIENT;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CONNECTION;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_RESULTS;
 import static io.mycat.server.parser.ServerParseSet.NAMES;
+import static io.mycat.server.parser.ServerParseSet.TX_READONLY;
+import static io.mycat.server.parser.ServerParseSet.TX_READWRITE;
 import static io.mycat.server.parser.ServerParseSet.TX_READ_COMMITTED;
 import static io.mycat.server.parser.ServerParseSet.TX_READ_UNCOMMITTED;
 import static io.mycat.server.parser.ServerParseSet.TX_REPEATED_READ;
 import static io.mycat.server.parser.ServerParseSet.TX_SERIALIZABLE;
 import static io.mycat.server.parser.ServerParseSet.XA_FLAG_OFF;
 import static io.mycat.server.parser.ServerParseSet.XA_FLAG_ON;
-
-import io.mycat.server.parser.ServerParse;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.config.ErrorCode;
-import io.mycat.config.Isolations;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.server.ServerConnection;
-import io.mycat.server.parser.ServerParseSet;
-import io.mycat.server.response.CharacterSet;
-import io.mycat.util.SetIgnoreUtil;
 
 /**
  * SET 语句处理
@@ -112,6 +115,16 @@ public final class SetHandler {
 		}
 		case TX_SERIALIZABLE: {
 			c.setTxIsolation(Isolations.SERIALIZABLE);
+			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+			break;
+		}
+		case TX_READONLY: {
+			c.setTxReadonly(true);
+			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+			break;
+		}
+		case TX_READWRITE: {
+			c.setTxReadonly(false);
 			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			break;
 		}

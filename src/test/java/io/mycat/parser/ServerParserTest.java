@@ -311,6 +311,26 @@ public class ServerParserTest {
     }
 
     @Test
+    public void testTxReadOnly() {
+        Assert.assertEquals(ServerParseSet.TX_READONLY,
+            ServerParseSet.parse("  SET SESSION TRANSACTION READ ONLY  ", "  SET".length()));
+        Assert.assertEquals(ServerParseSet.TX_READONLY,
+            ServerParseSet.parse(" set session transaction read only  ", " SET".length()));
+        Assert.assertEquals(ServerParseSet.TX_READONLY,
+            ServerParseSet.parse(" set session transaCTION Read Only ", " SET".length()));
+    }
+
+    @Test
+    public void testTxReadWrite() {
+        Assert.assertEquals(ServerParseSet.TX_READWRITE,
+            ServerParseSet.parse("  SET SESSION TRANSACTION READ WRITE  ", "  SET".length()));
+        Assert.assertEquals(ServerParseSet.TX_READWRITE,
+            ServerParseSet.parse(" set session transaction read write  ", " SET".length()));
+        Assert.assertEquals(ServerParseSet.TX_READWRITE,
+            ServerParseSet.parse(" set session transaCTION Read Write ", " SET".length()));
+    }
+
+    @Test
     public void testTxRepeatedRead() {
         Assert.assertEquals(ServerParseSet.TX_REPEATED_READ,
                 ServerParseSet.parse("  SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE   READ  ", "  SET".length()));

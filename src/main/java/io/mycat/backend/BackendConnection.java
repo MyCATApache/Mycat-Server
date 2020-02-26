@@ -58,6 +58,8 @@ public interface BackendConnection extends ClosableConnection {
 
 	public boolean isAutocommit();
 
+	public boolean isTxReadonly();
+
 	public long getId();
 
 	public void discardClose(String reason);

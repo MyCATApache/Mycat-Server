@@ -4,17 +4,25 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.sql.*;
-import java.util.*;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 
-import io.mycat.backend.mysql.PacketUtil;
-import io.mycat.route.Procedure;
-import io.mycat.route.ProcedureParameter;
-import io.mycat.util.*;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
+import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.backend.mysql.nio.handler.ConnectionHeartBeatHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.config.ErrorCode;
@@ -26,9 +34,16 @@ import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
 import io.mycat.net.mysql.RowDataPacket;
+import io.mycat.route.Procedure;
+import io.mycat.route.ProcedureParameter;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
+import io.mycat.util.MysqlDefs;
+import io.mycat.util.ObjectUtil;
+import io.mycat.util.ResultSetUtil;
+import io.mycat.util.StringUtil;
+import io.mycat.util.TimeUtil;
 
 public class JDBCConnection implements BackendConnection {
 	protected static final Logger LOGGER = LoggerFactory
@@ -273,7 +288,19 @@ public class JDBCConnection implements BackendConnection {
     }
 
 
-
+	private void syncTxReadonly(boolean txReadonly)
+	{
+		if(isTxReadonly() == txReadonly) {
+			return;
+		}
+		try
+		{
+			con.setReadOnly(txReadonly);
+		} catch (SQLException e)
+		{
+			LOGGER.warn("set setReadOnly error:",e);
+		}
+	}
     private void syncIsolation(int nativeIsolation)
     {
         int jdbcIsolation=convertNativeIsolationToJDBC(nativeIsolation);
@@ -302,6 +329,7 @@ public class JDBCConnection implements BackendConnection {
 
 		try {
             syncIsolation(sc.getTxIsolation()) ;
+			syncTxReadonly(sc.isTxReadonly());
 			if (!this.schema.equals(this.oldSchema)) {
 				con.setCatalog(schema);
 				if (!setSchemaFail) {
@@ -877,6 +905,20 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public boolean isAutocommit() {
+		if (con == null) {
+			return true;
+		} else {
+			try {
+				return con.getAutoCommit();
+			} catch (SQLException e) {
+
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean isTxReadonly() {
 		if (con == null) {
 			return true;
 		} else {
