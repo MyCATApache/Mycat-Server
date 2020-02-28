@@ -321,6 +321,16 @@ public class ServerParserTest {
     }
 
     @Test
+    public void testSqlSelectLimit() {
+        Assert.assertEquals(ServerParseSet.SQL_SELECT_LIMIT,
+            ServerParseSet.parse("  SET SQL_SELECT_LIMIT=1  ", "  SET".length()));
+        Assert.assertEquals(ServerParseSet.SQL_SELECT_LIMIT,
+            ServerParseSet.parse(" set sql_select_limit=1  ", " SET".length()));
+        Assert.assertEquals(ServerParseSet.SQL_SELECT_LIMIT,
+            ServerParseSet.parse(" Set Sql_Select_Limit=1 ", " SET".length()));
+    }
+
+    @Test
     public void testTxReadWrite() {
         Assert.assertEquals(ServerParseSet.TX_READWRITE,
             ServerParseSet.parse("  SET SESSION TRANSACTION READ WRITE  ", "  SET".length()));

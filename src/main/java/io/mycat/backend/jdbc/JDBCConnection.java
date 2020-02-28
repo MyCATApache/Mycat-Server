@@ -71,6 +71,8 @@ public class JDBCConnection implements BackendConnection {
 
 	private NIOProcessor processor;
 	private boolean setSchemaFail = false;
+
+	private volatile int sqlSelectLimit = -1;
 	
 	
 	
@@ -459,7 +461,9 @@ public class JDBCConnection implements BackendConnection {
             Collection<ProcedureParameter> paramters=    procedure.getParamterMap().values();
             String callSql = procedure.toPreCallSql(null);
             stmt = con.prepareCall(callSql);
-
+			if (sc.getSqlSelectLimit() > 0) {
+				stmt.setMaxRows(sc.getSqlSelectLimit());
+			}
             for (ProcedureParameter paramter : paramters)
             {
                 if((ProcedureParameter.IN.equalsIgnoreCase(paramter.getParameterType())
@@ -689,6 +693,9 @@ public class JDBCConnection implements BackendConnection {
 
 		try {
 			stmt = con.createStatement();
+			if (sc.getSqlSelectLimit() > 0) {
+				stmt.setMaxRows(sc.getSqlSelectLimit());
+			}
 			rs = stmt.executeQuery(sql);
 
 			List<FieldPacket> fieldPks = new LinkedList<FieldPacket>();
@@ -840,7 +847,8 @@ public class JDBCConnection implements BackendConnection {
 	public void execute(final RouteResultsetNode node,
 						final ServerConnection source, final boolean autocommit)
 			throws IOException {
-		Runnable runnable = new Runnable() {
+		this.sqlSelectLimit = source.getSqlSelectLimit();
+    	Runnable runnable = new Runnable() {
 			@Override
 			public void run() {
 				try {
@@ -929,6 +937,11 @@ public class JDBCConnection implements BackendConnection {
 			}
 		}
 		return true;
+	}
+
+	@Override
+	public int getSqlSelectLimit() {
+		return sqlSelectLimit;
 	}
 
 	@Override

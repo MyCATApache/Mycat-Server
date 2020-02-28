@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Isolations;
 import io.mycat.net.mysql.OkPacket;
+import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.parser.ServerParseSet;
@@ -41,6 +42,7 @@ import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CLIENT;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_CONNECTION;
 import static io.mycat.server.parser.ServerParseSet.CHARACTER_SET_RESULTS;
 import static io.mycat.server.parser.ServerParseSet.NAMES;
+import static io.mycat.server.parser.ServerParseSet.SQL_SELECT_LIMIT;
 import static io.mycat.server.parser.ServerParseSet.TX_READONLY;
 import static io.mycat.server.parser.ServerParseSet.TX_READWRITE;
 import static io.mycat.server.parser.ServerParseSet.TX_READ_COMMITTED;
@@ -162,6 +164,23 @@ public final class SetHandler {
 					c.writeErrMessage(ErrorCode.ER_UNKNOWN_CHARACTER_SET, "Unknown charset '" + charset + "'");
 				}
 			}
+			break;
+		case SQL_SELECT_LIMIT:
+			String limit = ParseUtil.parseString(stmt);
+			int sqlSelectLimit = -1;
+			if ("default".equalsIgnoreCase(limit)) {
+				sqlSelectLimit = -1;
+			} else {
+				try{
+					sqlSelectLimit = Integer.parseInt(limit);
+				} catch ( Exception  ex) {
+					c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement:"+ex.getMessage());
+					break;
+				}
+
+			}
+			c.setSqlSelectLimit(sqlSelectLimit);
+			c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
 			break;
 		case CHARACTER_SET_CLIENT:
 		case CHARACTER_SET_CONNECTION:

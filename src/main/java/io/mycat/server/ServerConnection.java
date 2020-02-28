@@ -54,6 +54,8 @@ public class ServerConnection extends FrontendConnection {
 			.getLogger(ServerConnection.class);
 	private static final long AUTH_TIMEOUT = 15 * 1000L;
 
+	/** 保存SET SQL_SELECT_LIMIT的值, default 解析为-1. */
+	private volatile  int sqlSelectLimit = -1;
 	private volatile  boolean txReadonly;
 	private volatile int txIsolation;
 	private volatile boolean autocommit;
@@ -108,6 +110,14 @@ public class ServerConnection extends FrontendConnection {
 
 	public void setTxReadonly(boolean txReadonly) {
 		this.txReadonly = txReadonly;
+	}
+
+	public int getSqlSelectLimit() {
+		return sqlSelectLimit;
+	}
+
+	public void setSqlSelectLimit(int sqlSelectLimit) {
+		this.sqlSelectLimit = sqlSelectLimit;
 	}
 
 	public long getLastInsertId() {

@@ -46,6 +46,7 @@ public final class ServerParseSet {
 
 	public static final int TX_READONLY = 13;
 	public static final int TX_READWRITE = 14;
+	public static final int SQL_SELECT_LIMIT = 15;
 
 	public static int parse(String stmt, int offset) {
 		int i = offset;
@@ -71,7 +72,7 @@ public final class ServerParseSet {
 				return names(stmt, i);
 			case 'S':
 			case 's':
-				return session(stmt, i);
+				return parseS(stmt, i);
 			case 'T':
 			case 't':
 				return transaction(stmt, i);
@@ -421,7 +422,34 @@ public final class ServerParseSet {
 		return OTHER;
 	}
 
+	private static int parseS(String stmt, int offset) {
+		if (stmt.length() > offset + 1) {
+			char c1 = stmt.charAt(offset + 1);
+			if(c1=='E' || c1=='e'){
+				return session(stmt, offset);
+			}
+			if(c1=='Q' || c1=='q'){
+				return sqlSelectLimit(stmt, offset);
+			}
+		}
+		return OTHER;
+	}
+
+
+	// SET SQL_SELECT_LIMIT=N|DEFAULT
+	private static int sqlSelectLimit(String stmt, int offset) {
+		// SET SQL_SELECT_LIMIT=N|DEFAULT
+		if (stmt.length() > offset + 15) {
+			String var = stmt.substring(offset, offset+16);
+			if(var.equalsIgnoreCase("SQL_SELECT_LIMIT")) {
+				return SQL_SELECT_LIMIT;
+			}
+		}
+		return OTHER;
+	}
+
 	// SET SESSION' '
+	// SET SQL_SELECT_LIMIT=N|DEFAULT
 	private static int session(String stmt, int offset) {
 		if (stmt.length() > offset + 7) {
 			char c1 = stmt.charAt(++offset);

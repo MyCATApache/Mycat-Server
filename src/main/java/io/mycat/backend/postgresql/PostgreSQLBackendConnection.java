@@ -311,6 +311,12 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 	}
 
 	@Override
+	public int getSqlSelectLimit() {
+		// todo
+		return -1;
+	}
+
+	@Override
 	public boolean isBorrowed() {
 		return borrowed;
 	}
