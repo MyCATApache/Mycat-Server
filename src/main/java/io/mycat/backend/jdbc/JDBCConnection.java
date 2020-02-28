@@ -931,7 +931,7 @@ public class JDBCConnection implements BackendConnection {
 			return true;
 		} else {
 			try {
-				return con.getAutoCommit();
+				return con.isReadOnly();
 			} catch (SQLException e) {
 
 			}
