@@ -383,7 +383,13 @@ public class NonBlockingSession implements Session {
         BackendConnection c = target.remove(rrn);
         if (c != null) {
             if (debug) {
-                LOGGER.debug("release connection " + c);
+                //LOGGER.debug("release connection " + c);
+                String sql =  rrn.getStatement();
+                if(sql!=null){
+                    sql = sql.replaceAll("[\r\n]+", "");
+                }
+                LOGGER.debug("releaseConnection Connection@{} [id={}] for node={}, sql={}",
+                    new Object[]{c.hashCode(), c.getId(), rrn.getName(), sql});
             }
             if (c.getAttachment() != null) {
                 c.setAttachment(null);
@@ -436,6 +442,15 @@ public class NonBlockingSession implements Session {
                                             BackendConnection conn) {
         // System.out.println("bind connection "+conn+
         // " to key "+key.getName()+" on sesion "+this);
+        if(LOGGER.isDebugEnabled()){
+            String sql =  key.getStatement();
+            if(sql!=null){
+                sql = sql.replaceAll("[\r\n]+", "");
+            }
+            LOGGER.debug("bindConnection Connection@{} [id={}] for node={}, sql={}",
+                new Object[]{conn.hashCode(), conn.getId(), key.getName(), sql});
+        }
+
         return target.put(key, conn);
     }
     

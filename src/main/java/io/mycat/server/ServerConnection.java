@@ -36,11 +36,11 @@ import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
-import io.mycat.server.handler.MysqlInformationSchemaHandler;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.response.Heartbeat;
 import io.mycat.server.response.InformationSchemaProfiling;
+import io.mycat.server.response.InformationSchemaProfilingSqlyog;
 import io.mycat.server.response.Ping;
 import io.mycat.server.util.SchemaUtil;
 import io.mycat.util.SplitUtil;
@@ -54,6 +54,9 @@ public class ServerConnection extends FrontendConnection {
 			.getLogger(ServerConnection.class);
 	private static final long AUTH_TIMEOUT = 15 * 1000L;
 
+	/** 保存SET SQL_SELECT_LIMIT的值, default 解析为-1. */
+	private volatile  int sqlSelectLimit = -1;
+	private volatile  boolean txReadonly;
 	private volatile int txIsolation;
 	private volatile boolean autocommit;
 	private volatile boolean preAcStates; //上一个ac状态,默认为true
@@ -72,6 +75,7 @@ public class ServerConnection extends FrontendConnection {
 		this.txInterrupted = false;
 		this.autocommit = true;
 		this.preAcStates = true;
+		this.txReadonly = false;
 	}
 
 	@Override
@@ -98,6 +102,22 @@ public class ServerConnection extends FrontendConnection {
 
 	public void setAutocommit(boolean autocommit) {
 		this.autocommit = autocommit;
+	}
+
+	public boolean isTxReadonly() {
+		return txReadonly;
+	}
+
+	public void setTxReadonly(boolean txReadonly) {
+		this.txReadonly = txReadonly;
+	}
+
+	public int getSqlSelectLimit() {
+		return sqlSelectLimit;
+	}
+
+	public void setSqlSelectLimit(int sqlSelectLimit) {
+		this.sqlSelectLimit = sqlSelectLimit;
 	}
 
 	public long getLastInsertId() {
@@ -224,7 +244,13 @@ public class ServerConnection extends FrontendConnection {
 			InformationSchemaProfiling.response(this);
 			return;
 		}
-		
+
+		//fix sqlyog select state, round(sum(duration),5) as `duration (summed) in sec` from information_schema.profiling where query_id = 0 group by state order by `duration (summed) in sec` desc
+		if(ServerParse.SELECT == type &&sql.contains(" information_schema.profiling ")&&sql.contains("duration (summed) in sec"))
+		{
+			InformationSchemaProfilingSqlyog.response(this);
+			return;
+		}
 		/* 当已经设置默认schema时，可以通过在sql中指定其它schema的方式执行
 		 * 相关sql，已经在mysql客户端中验证。
 		 * 所以在此处增加关于sql中指定Schema方式的支持。

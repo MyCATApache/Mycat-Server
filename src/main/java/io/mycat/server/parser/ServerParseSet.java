@@ -44,6 +44,10 @@ public final class ServerParseSet {
 	public static final int XA_FLAG_ON = 11;
 	public static final int XA_FLAG_OFF = 12;
 
+	public static final int TX_READONLY = 13;
+	public static final int TX_READWRITE = 14;
+	public static final int SQL_SELECT_LIMIT = 15;
+
 	public static int parse(String stmt, int offset) {
 		int i = offset;
 		for (; i < stmt.length(); i++) {
@@ -68,7 +72,7 @@ public final class ServerParseSet {
 				return names(stmt, i);
 			case 'S':
 			case 's':
-				return session(stmt, i);
+				return parseS(stmt, i);
 			case 'T':
 			case 't':
 				return transaction(stmt, i);
@@ -418,7 +422,34 @@ public final class ServerParseSet {
 		return OTHER;
 	}
 
+	private static int parseS(String stmt, int offset) {
+		if (stmt.length() > offset + 1) {
+			char c1 = stmt.charAt(offset + 1);
+			if(c1=='E' || c1=='e'){
+				return session(stmt, offset);
+			}
+			if(c1=='Q' || c1=='q'){
+				return sqlSelectLimit(stmt, offset);
+			}
+		}
+		return OTHER;
+	}
+
+
+	// SET SQL_SELECT_LIMIT=N|DEFAULT
+	private static int sqlSelectLimit(String stmt, int offset) {
+		// SET SQL_SELECT_LIMIT=N|DEFAULT
+		if (stmt.length() > offset + 15) {
+			String var = stmt.substring(offset, offset+16);
+			if(var.equalsIgnoreCase("SQL_SELECT_LIMIT")) {
+				return SQL_SELECT_LIMIT;
+			}
+		}
+		return OTHER;
+	}
+
 	// SET SESSION' '
+	// SET SQL_SELECT_LIMIT=N|DEFAULT
 	private static int session(String stmt, int offset) {
 		if (stmt.length() > offset + 7) {
 			char c1 = stmt.charAt(++offset);
@@ -483,12 +514,85 @@ public final class ServerParseSet {
 						case 'I':
 						case 'i':
 							return isolation(stmt, offset);
+						case 'R':
+						case 'r':
+							return transactionRead(stmt, offset);
 						default:
 							return OTHER;
 						}
 					}
 //					return OTHER;
 //				}
+			}
+		}
+		return OTHER;
+	}
+
+	// SET [SESSION] TRANSACTION READ WRITE|ONLY
+	private static int transactionRead(String stmt, int offset) {
+		if (stmt.length() > offset + 4) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			if ((c1 == 'E' || c1 == 'e') && (c2 == 'A' || c2 == 'a')
+				&& (c3 == 'D' || c3 == 'd')) {
+//				for (;;) {
+				while (stmt.length() > ++offset) {
+					switch (stmt.charAt(offset)) {
+						case ' ':
+						case '\r':
+						case '\n':
+						case '\t':
+							continue;
+						case 'W':
+						case 'w':
+							return transactionReadWrite(stmt, offset);
+						case 'O':
+						case 'o':
+							return transactionReadOnly(stmt, offset);
+						default:
+							return OTHER;
+					}
+				}
+//					return OTHER;
+//				}
+			}
+		}
+		return OTHER;
+	}
+
+	// SET [SESSION] TRANSACTION READ WRITE
+	private static int transactionReadWrite(String stmt, int offset) {
+		if (stmt.length() > offset + 4) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+
+			if ((c1 == 'R' || c1 == 'r')
+				&& (c2 == 'I' || c2 == 'i')
+				&& (c3 == 'T' || c3 == 't')
+				&& (c4 == 'E' || c4 == 'e')
+				&& (stmt.length() == ++offset || ParseUtil.isEOF(stmt
+				.charAt(offset)))) {
+				return TX_READWRITE;
+			}
+		}
+		return OTHER;
+	}
+	// SET [SESSION] TRANSACTION READ ONLY
+	private static int transactionReadOnly(String stmt, int offset) {
+		if (stmt.length() > offset + 3) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+
+			if ((c1 == 'N' || c1 == 'n')
+				&& (c2 == 'L' || c2 == 'l')
+				&& (c3 == 'Y' || c3 == 'y')
+				&& (stmt.length() == ++offset || ParseUtil.isEOF(stmt
+				.charAt(offset)))) {
+				return TX_READONLY;
 			}
 		}
 		return OTHER;
