@@ -23,6 +23,12 @@
  */
 package io.mycat.backend.mysql.nio;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.mycat.backend.mysql.ByteUtil;
 import io.mycat.backend.mysql.nio.handler.LoadDataResponseHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
@@ -31,10 +37,7 @@ import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.RequestFilePacket;
-import java.util.ArrayList;
-import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.mycat.route.RouteResultsetNode;
 
 /**
  * life cycle: from connection establish to close <br/>
@@ -144,7 +147,25 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 		// if (this.responseHandler != null && responseHandler != null) {
 		// throw new RuntimeException("reset agani!");
 		// }
+		// 连接释放后如果结果状态不正确则尝试设置一下
+		if( responseHandler==null && resultStatus!=RESULT_STATUS_INIT ) {
+			logger.warn("try to reset resultStatus. last responseHandler:{}, resultStatus = {}", this.responseHandler, resultStatus);
+			resultStatus = RESULT_STATUS_INIT;
+		}
 		this.responseHandler = responseHandler;
+	}
+
+	private void handleLogNodeInfo(String pkgName) {
+		Object att = source.getAttachment();
+		if(LOGGER.isDebugEnabled() && att!=null && att instanceof RouteResultsetNode){
+			RouteResultsetNode rrn = (RouteResultsetNode) att;
+			String sql =  rrn.getStatement();
+			if(sql!=null){
+				sql = sql.replaceAll("[\r\n]+", "");
+			}
+			LOGGER.debug("{} MySQLConnection@{} [id={}] for node={}, sql={}",
+				new Object[]{pkgName, source.hashCode(), source.getId(), rrn.getName(), sql});
+		}
 	}
 
 	/**
@@ -153,6 +174,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	private void handleOkPacket(byte[] data) {
 		ResponseHandler respHand = responseHandler;
 		if (respHand != null) {
+			handleLogNodeInfo("handleOkPacket");
 			respHand.okResponse(data, source);
 		}else {
 			LOGGER.error("receive OkPacket but not handle");
@@ -165,6 +187,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	private void handleErrorPacket(byte[] data) {
 		ResponseHandler respHand = responseHandler;
 		if (respHand != null) {
+			handleLogNodeInfo("handleErrorPacket");
 			respHand.errorResponse(data, source);
 		} else {
 			LOGGER.error("receive ErrorPacket but no handler");
@@ -192,6 +215,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	private void handleFieldEofPacket(byte[] data) {
 		ResponseHandler respHand = responseHandler;
 		if (respHand != null) {
+			handleLogNodeInfo("handleFieldEofPacket");
 			respHand.fieldEofResponse(header, fields, data, source);
 		} else {
 			LOGGER.error("receive FieldEofPacket but no handler");
@@ -226,6 +250,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	 */
 	private void handleRowEofPacket(byte[] data) {
 		if (responseHandler != null) {
+			handleLogNodeInfo("handleRowEofPacket");
 			responseHandler.rowEofResponse(data, source);
 		} else {
 			LOGGER.error("receive RowEofPacket but no handler");
