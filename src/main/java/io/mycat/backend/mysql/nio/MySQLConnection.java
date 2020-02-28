@@ -23,14 +23,20 @@
  */
 package io.mycat.backend.mysql.nio;
 
-import io.mycat.backend.mysql.xa.TxState;
-import org.slf4j.Logger; 
+import java.io.UnsupportedEncodingException;
+import java.nio.channels.NetworkChannel;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.CharsetUtil;
 import io.mycat.backend.mysql.SecurityUtil;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
+import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.config.Capabilities;
 import io.mycat.config.Isolations;
 import io.mycat.net.BackendAIOConnection;
@@ -44,12 +50,6 @@ import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.TimeUtil;
 import io.mycat.util.exception.UnknownTxIsolationException;
-
-import java.io.UnsupportedEncodingException;
-import java.nio.channels.NetworkChannel;
-import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author mycat
@@ -138,6 +138,9 @@ public class MySQLConnection extends BackendAIOConnection {
 	private HandshakePacket handshake;
 	private volatile int txIsolation;
 	private volatile boolean autocommit;
+	private volatile boolean txReadonly;
+	/** 保存SET SQL_SELECT_LIMIT的值, default 解析为-1. */
+	private volatile int sqlSelectLimit = -1;
 	private long clientFlags;
 	private boolean isAuthenticated;
 	private String user;
@@ -159,6 +162,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		this.fromSlaveDB = fromSlaveDB;
 		// 设为默认值，免得每个初始化好的连接都要去同步一下
 		this.txIsolation = MycatServer.getInstance().getConfig().getSystem().getTxIsolation();
+		this.txReadonly = false;
 	}
 
 	public int getXaStatus() {
@@ -261,6 +265,14 @@ public class MySQLConnection extends BackendAIOConnection {
 		return autocommit;
 	}
 
+	public boolean isTxReadonly() {
+		return txReadonly;
+	}
+
+	public int getSqlSelectLimit() {
+		return sqlSelectLimit;
+	}
+
 	public Object getAttachment() {
 		return attachment;
 	}
@@ -341,6 +353,20 @@ public class MySQLConnection extends BackendAIOConnection {
 			sb.append("SET autocommit=0;");
 		}
 	}
+	private void getTxReadonly(StringBuilder sb, boolean txReadonly) {
+		if (txReadonly) {
+			sb.append("SET SESSION TRANSACTION READ ONLY;");
+		} else {
+			sb.append("SET SESSION TRANSACTION READ WRITE;");
+		}
+	}
+	private void getSqlSelectLimit(StringBuilder sb, int sqlSelectLimit) {
+		if (sqlSelectLimit == -1) {
+			sb.append("SET SQL_SELECT_LIMIT=DEFAULT;");
+		} else {
+			sb.append("SET SQL_SELECT_LIMIT=").append(sqlSelectLimit).append(";");
+		}
+	}
 
 	private static class StatusSync {
 		private final String schema;
@@ -349,10 +375,12 @@ public class MySQLConnection extends BackendAIOConnection {
 		private final Boolean autocommit;
 		private final AtomicInteger synCmdCount;
 		private final boolean xaStarted;
+		private final Boolean txReadonly;
+		private final Integer sqlSelectLimit;
 
 		public StatusSync(boolean xaStarted, String schema,
 				Integer charsetIndex, Integer txtIsolation, Boolean autocommit,
-				int synCount) {
+				int synCount, boolean txReadonly, Integer sqlSelectLimit) {
 			super();
 			this.xaStarted = xaStarted;
 			this.schema = schema;
@@ -360,6 +388,8 @@ public class MySQLConnection extends BackendAIOConnection {
 			this.txtIsolation = txtIsolation;
 			this.autocommit = autocommit;
 			this.synCmdCount = new AtomicInteger(synCount);
+			this.txReadonly = txReadonly;
+			this.sqlSelectLimit = sqlSelectLimit;
 		}
 
 		public boolean synAndExecuted(MySQLConnection conn) {
@@ -389,6 +419,12 @@ public class MySQLConnection extends BackendAIOConnection {
 			}
 			if (autocommit != null) {
 				conn.autocommit = autocommit;
+			}
+			if (txReadonly != null) {
+				conn.txReadonly = txReadonly;
+			}
+			if (sqlSelectLimit != null) {
+				conn.sqlSelectLimit = sqlSelectLimit;
 			}
 		}
 
@@ -422,15 +458,17 @@ public class MySQLConnection extends BackendAIOConnection {
 			xaTXID = sc.getSession2().getXaTXID()+",'"+getSchema()+"'";
 		}
 		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(),
-				autocommit);
+				autocommit, sc.isTxReadonly(), sc.getSqlSelectLimit());
 	}
 
 	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn,
 			int clientCharSetIndex, int clientTxIsoLation,
-			boolean clientAutoCommit) {
+			boolean clientAutoCommit, boolean clientTxReadonly, int clientSqlSelectLimit) {
 		String xaCmd = null;
 
 		boolean conAutoComit = this.autocommit;
+		boolean conTxReadonly = this.txReadonly;
+		int conSqlSelectLimit = this.sqlSelectLimit;
 		String conSchema = this.schema;
 		boolean strictTxIsolation = MycatServer.getInstance().getConfig().getSystem().isStrictTxIsolation();
 		boolean expectAutocommit = false;
@@ -457,7 +495,10 @@ public class MySQLConnection extends BackendAIOConnection {
 		}
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
 		int autoCommitSyn = (conAutoComit == expectAutocommit) ? 0 : 1;
-		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn + (xaCmd!=null?1:0);
+		int txReadonlySyn = (conTxReadonly == clientTxReadonly) ? 0 : 1;
+		int sqlSelectLimitSyn = (conSqlSelectLimit == clientSqlSelectLimit) ? 0 : 1;
+		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn + (xaCmd!=null?1:0) + txReadonlySyn
+			+ sqlSelectLimitSyn;
 //		if (synCount == 0 && this.xaStatus != TxState.TX_STARTED_STATE) {
 		if (synCount == 0 ) {
 			// not need syn connection
@@ -489,6 +530,12 @@ public class MySQLConnection extends BackendAIOConnection {
 		if (autoCommitSyn == 1) {
 			getAutocommitCommand(sb, expectAutocommit);
 		}
+		if (txReadonlySyn == 1) {
+			getTxReadonly(sb, clientTxReadonly);
+		}
+		if (sqlSelectLimitSyn == 1) {
+			getSqlSelectLimit(sb, clientSqlSelectLimit);
+		}
 		if (xaCmd != null) {
 			sb.append(xaCmd);
 		}
@@ -498,7 +545,8 @@ public class MySQLConnection extends BackendAIOConnection {
 									clientCharSetIndex,
 									clientTxIsoLation,
 									expectAutocommit,
-									synCount);
+									synCount,
+									clientTxReadonly, clientSqlSelectLimit);
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug("con need syn ,total syn cmd " + synCount
 					+ " commands " + sb.toString() + "schema change:"
@@ -543,7 +591,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		RouteResultsetNode rrn = new RouteResultsetNode("default",
 				ServerParse.SELECT, query);
 
-		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
+		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true, this.txReadonly, this.sqlSelectLimit);
 
 	}
 	/**
@@ -557,7 +605,7 @@ public class MySQLConnection extends BackendAIOConnection {
 		RouteResultsetNode rrn = new RouteResultsetNode("default",
 				ServerParse.SELECT, query);
 
-		synAndDoExecute(null, rrn, charsetIndex, this.txIsolation, true);
+		synAndDoExecute(null, rrn, charsetIndex, this.txIsolation, true, this.txReadonly, this.sqlSelectLimit);
 		
 	}
 	public long getLastTime() {
@@ -730,7 +778,7 @@ public class MySQLConnection extends BackendAIOConnection {
 				+ ", schema=" + schema + ", old shema=" + oldSchema
 				+ ", borrowed=" + borrowed + ", fromSlaveDB=" + fromSlaveDB
 				+ ", threadId=" + threadId + ", charset=" + charset
-				+ ", txIsolation=" + txIsolation + ", autocommit=" + autocommit
+				+ ", txIsolation=" + txIsolation + ", autocommit=" + autocommit + ", txReadonly=" + txReadonly
 				+ ", attachment=" + attachment + ", respHandler=" + respHandler
 				+ ", host=" + host + ", port=" + port + ", statusSync="
 				+ statusSync + ", writeQueue=" + this.getWriteQueue().size()

@@ -50,7 +50,7 @@ import io.mycat.util.TimeUtil;
  */
 public class ShowBackend {
 
-	private static final int FIELD_COUNT = 16;
+	private static final int FIELD_COUNT = 17;
 	private static final ResultSetHeaderPacket header = PacketUtil
 			.getHeader(FIELD_COUNT);
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
@@ -96,6 +96,9 @@ public class ShowBackend {
 				.getField("txlevel", Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
 		fields[i] = PacketUtil.getField("autocommit",
+				Fields.FIELD_TYPE_VAR_STRING);
+		fields[i++].packetId = ++packetId;
+		fields[i] = PacketUtil.getField("tx_readonly",
 				Fields.FIELD_TYPE_VAR_STRING);
 		fields[i++].packetId = ++packetId;
 		eof.packetId = ++packetId;
@@ -158,6 +161,7 @@ public class ShowBackend {
 		String charsetInf = "";
 		String txLevel = "";
 		String txAutommit = "";
+		String txReadonly = "";
 
 		if (c instanceof MySQLConnection) {
 			MySQLConnection mysqlC = (MySQLConnection) c;
@@ -166,12 +170,14 @@ public class ShowBackend {
 			charsetInf = mysqlC.getCharset() + ":" + mysqlC.getCharsetIndex();
 			txLevel = mysqlC.getTxIsolation() + "";
 			txAutommit = mysqlC.isAutocommit() + "";
+			txReadonly = mysqlC.isTxReadonly() + "";
 		}
 		row.add(IntegerUtil.toBytes(writeQueueSize));
 		row.add(schema.getBytes());
 		row.add(charsetInf.getBytes());
 		row.add(txLevel.getBytes());
 		row.add(txAutommit.getBytes());
+		row.add(txReadonly.getBytes());
 		return row;
 	}
 }

@@ -23,13 +23,13 @@
  */
 package io.mycat.server;
 
-import io.mycat.route.RouteService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.config.ErrorCode;
 import io.mycat.net.handler.FrontendQueryHandler;
 import io.mycat.net.mysql.OkPacket;
+import io.mycat.route.RouteService;
 import io.mycat.server.handler.BeginHandler;
 import io.mycat.server.handler.CommandHandler;
 import io.mycat.server.handler.Explain2Handler;
@@ -167,6 +167,18 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 				break;
 			}
 			c.execute(sql, rs & 0xff);
+		}
+
+		switch (sqlType) {
+			case ServerParse.SELECT:
+			case ServerParse.DELETE:
+			case ServerParse.UPDATE:
+			case ServerParse.INSERT:
+			case ServerParse.COMMAND:
+				// curd 在后面会更新
+				break;
+			default:
+				c.setExecuteSql(null);
 		}
 	}
 

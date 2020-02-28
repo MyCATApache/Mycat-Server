@@ -36,6 +36,7 @@ public final class SelectHandler {
 
 	public static void handle(String stmt, ServerConnection c, int offs) {
 		int offset = offs;
+		c.setExecuteSql(null);
 		switch (ServerParseSelect.parse(stmt, offs)) {
 		case ServerParseSelect.VERSION_COMMENT:
 			SelectVersionComment.response(c);
@@ -102,6 +103,7 @@ public final class SelectHandler {
 				SelectTxReadOnly.response(c);
 				break;
 		default:
+			c.setExecuteSql(stmt);
 			c.execute(stmt, ServerParse.SELECT);
 		}
 	}

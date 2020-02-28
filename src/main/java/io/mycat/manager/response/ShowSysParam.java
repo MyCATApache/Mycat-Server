@@ -82,6 +82,7 @@ public class ShowSysParam {
         paramValues.add(sysConfig.getBindIp() + "");
         paramValues.add(sysConfig.getServerPort()+ "");
         paramValues.add(sysConfig.getManagerPort() + "");
+		paramValues.add(sysConfig.getUseSqlStat() + "");
 
 		for(int i = 0; i < PARAMNAMES.length ; i++){
 	        RowDataPacket row =  new RowDataPacket(FIELD_COUNT);
@@ -119,7 +120,8 @@ public class ShowSysParam {
 		"Mycat_dataNodeHeartbeatPeriod",
 		"Mycat_bindIp",
 		"Mycat_serverPort",
-		"Mycat_managerPort"};
+		"Mycat_managerPort",
+		"Mycat_useSqlStat"};
 	
 	private static final String[] PARAM_DESCRIPTION = {
 		"主要用于指定系统可用的线程数，默认值为Runtime.getRuntime().availableProcessors()方法返回的值。主要影响processorBufferPool、processorBufferLocalPercent、processorExecutor属性。NIOProcessor的个数也是由这个属性定义的，所以调优的时候可以适当的调高这个属性。",
@@ -139,7 +141,8 @@ public class ShowSysParam {
 		"对后端所有读、写库发起心跳的间隔时间，默认是10秒",
 		"mycat服务监听的IP地址，默认值为0.0.0.0",
 		"mycat的使用端口，默认值为8066",
-		"mycat的管理端口，默认值为9066"};
+		"mycat的管理端口，默认值为9066",
+		"mycat是否开启SQL统计,1开启，0未开启"};
 	
     public static final String[] ISOLATIONS = {"", "READ_UNCOMMITTED", "READ_COMMITTED", "REPEATED_READ", "SERIALIZABLE"};
 }

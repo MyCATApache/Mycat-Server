@@ -43,9 +43,10 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		private final AtomicInteger synCmdCount;
 		private final Integer txtIsolation;
 		private final boolean xaStarted;
+		private Boolean txReadonly;
 
 		public StatusSync(boolean xaStarted, String schema, Integer charsetIndex, Integer txtIsolation,
-				Boolean autocommit, int synCount) {
+				Boolean autocommit, int synCount, Boolean txReadonly) {
 			super();
 			this.xaStarted = xaStarted;
 			this.schema = schema;
@@ -53,6 +54,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 			this.txtIsolation = txtIsolation;
 			this.autocommit = autocommit;
 			this.synCmdCount = new AtomicInteger(synCount);
+			this.txReadonly = txReadonly;
 		}
 
 		public boolean synAndExecuted(PostgreSQLBackendConnection conn) {
@@ -83,6 +85,9 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 			}
 			if (autocommit != null) {
 				conn.autocommit = autocommit;
+			}
+			if (txReadonly != null) {
+				conn.txReadonly = txReadonly;
 			}
 		}
 
@@ -124,6 +129,8 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 	private Object attachment;
 
 	private volatile boolean autocommit=true;
+
+	private volatile boolean txReadonly=false;
 
 	private volatile boolean borrowed;
 
@@ -231,7 +238,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		if(sc.getSession2().getXaTXID()!=null){
 			xaTXID = sc.getSession2().getXaTXID() +",'"+getSchema()+"'";
 		}
-		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(), autocommit);
+		synAndDoExecute(xaTXID, rrn, sc.getCharsetIndex(), sc.getTxIsolation(), autocommit, sc.isTxReadonly());
 	}
 
 	@Override
@@ -244,6 +251,13 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 			sb.append(/*"SET autocommit=1;"*/"");//Fix bug  由于 PG9.0 开始不支持此选项，默认是为自动提交逻辑。
 		} else {
 			sb.append("begin transaction;");
+		}
+	}
+	private void getTxReadonly(StringBuilder sb, boolean txReadonly) {
+		if (txReadonly) {
+			sb.append("SET SESSION TRANSACTION READ ONLY;");
+		} else {
+			sb.append("SET SESSION TRANSACTION READ WRITE;");
 		}
 	}
 
@@ -289,6 +303,17 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 	@Override
 	public boolean isAutocommit() {
 		return autocommit;
+	}
+
+	@Override
+	public boolean isTxReadonly() {
+		return txReadonly;
+	}
+
+	@Override
+	public int getSqlSelectLimit() {
+		// todo
+		return -1;
 	}
 
 	@Override
@@ -347,7 +372,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 	@Override
 	public void query(String query) throws UnsupportedEncodingException {
 		RouteResultsetNode rrn = new RouteResultsetNode("default", ServerParse.SELECT, query);
-		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true);
+		synAndDoExecute(null, rrn, this.charsetIndex, this.txIsolation, true, this.txReadonly);
 	}
 
 	@Override
@@ -457,10 +482,11 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 	}
 
 	private void synAndDoExecute(String xaTxID, RouteResultsetNode rrn, int clientCharSetIndex, int clientTxIsoLation,
-			boolean clientAutoCommit) {
+			boolean clientAutoCommit, boolean clientTxReadonly) {
 		String xaCmd = null;
 
 		boolean conAutoComit = this.autocommit;
+		boolean conTxReadonly = this.txReadonly;
 		String conSchema = this.schema;
 		// never executed modify sql,so auto commit
 		boolean expectAutocommit = !modifiedSQLExecuted || isFromSlaveDB() || clientAutoCommit;
@@ -473,7 +499,8 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		int charsetSyn = (this.charsetIndex == clientCharSetIndex) ? 0 : 1;
 		int txIsoLationSyn = (txIsolation == clientTxIsoLation) ? 0 : 1;
 		int autoCommitSyn = (conAutoComit == expectAutocommit) ? 0 : 1;
-		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn;
+		int txReadonlySyn = (conTxReadonly == clientTxReadonly) ? 0 : 1;
+		int synCount = schemaSyn + charsetSyn + txIsoLationSyn + autoCommitSyn + txReadonlySyn;
 
 		if (synCount == 0) {
 			String sql = rrn.getStatement();
@@ -495,6 +522,9 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		if (autoCommitSyn == 1) {
 			getAutocommitCommand(sb, expectAutocommit);
 		}
+		if (txReadonlySyn == 1) {
+			getTxReadonly(sb, clientTxReadonly);
+		}
 		if (xaCmd != null) {
 			sb.append(xaCmd);
 		}
@@ -505,7 +535,7 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 
 		metaDataSyned = false;
 		statusSync = new StatusSync(xaCmd != null, conSchema, clientCharSetIndex, clientTxIsoLation, expectAutocommit,
-				synCount);
+				synCount, clientTxReadonly);
 		String sql = sb.append(PgSqlApaterUtils.apater(rrn.getStatement())).toString();
 		if(LOGGER.isDebugEnabled()){
 			LOGGER.debug("con={}, SQL={}", this, sql);
