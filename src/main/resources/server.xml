@@ -82,8 +82,6 @@
 		<!--<property name="XARecoveryLogBaseName">tmlog</property>-->
 		<!--如果为 true的话 严格遵守隔离级别,不会在仅仅只有select语句的时候在事务中切换连接-->
 		<property name="strictTxIsolation">false</property>
-		
-		<property name="useZKSwitch">true</property>
 		<!--如果为0的话,涉及多个DataNode的catlet任务不会跨线程执行-->
 		<property name="parallExecute">0</property>
 	</system>
