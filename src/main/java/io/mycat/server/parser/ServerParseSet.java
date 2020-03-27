@@ -49,6 +49,9 @@ public final class ServerParseSet {
 	public static final int SQL_SELECT_LIMIT = 15;
 
 	public static int parse(String stmt, int offset) {
+		if (stmt.contains("@@session.")){
+			stmt = stmt.replaceAll("@@session.","");
+		}
 		int i = offset;
 		for (; i < stmt.length(); i++) {
 			switch (stmt.charAt(i)) {
