@@ -1452,7 +1452,10 @@ public class RouterUtil {
 
 				Set<ColumnRoutePair> partitionValue = columnsMap.get(partionCol);
 				if(partitionValue == null || partitionValue.size() == 0) {
-					tablesRouteSet.addAll(tableConfig.getDistTables());
+					//如果前面已经确定对应的distTable,则不再增加新的distTable
+					if(tablesRouteSet.size() == 0){
+						tablesRouteSet.addAll(tableConfig.getDistTables());
+					}
 				} else {
 					for(ColumnRoutePair pair : partitionValue) {
 						AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
