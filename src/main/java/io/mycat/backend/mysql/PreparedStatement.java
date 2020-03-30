@@ -112,6 +112,10 @@ public class PreparedStatement {
     public int[] getParametersType() {
         return parametersType;
     }
+    
+    public boolean hasLongData(long paramId) {
+    	return longDataMap.containsKey(paramId);
+    }
 
     public ByteArrayOutputStream getLongData(long paramId) {
     	return longDataMap.get(paramId);
