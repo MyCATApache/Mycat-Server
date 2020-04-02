@@ -169,9 +169,27 @@ public class TableStatAnalyzer implements QueryResultListener {
 				tables.add( fixName( table ) );
 				
 			} else if (stmt instanceof SQLDeleteStatement ) {
-				String table = ((SQLDeleteStatement)stmt).getTableName().getSimpleName();
-				tables.add( fixName( table ) );
+				// Ken.li 2020/04/02
+				//String table = ((SQLDeleteStatement)stmt).getTableName().getSimpleName();
+				//tables.add( fixName( table ) );
+				((SQLDeleteStatement)stmt).getTableSource().accept(new SQLASTVisitorAdapter() {
+					public boolean visit(SQLExprTableSource x){
+						tables.add( fixName( x.toString() ) );
+						return super.visit(x);
+					}
+				});
 				
+				if (((SQLDeleteStatement)stmt).getFrom() != null) {
+					((SQLDeleteStatement)stmt).getFrom().accept(new SQLASTVisitorAdapter() {
+						public boolean visit(SQLExprTableSource x){
+							if (tables.contains(x.getAlias())) {
+								tables.remove(x.getAlias());
+								tables.add( fixName( x.toString() ) );
+							}
+							return super.visit(x);
+						}
+					});
+				}
 			} else if (stmt instanceof SQLSelectStatement ) {
 				
 				//TODO: modify by owenludong
@@ -194,7 +212,7 @@ public class TableStatAnalyzer implements QueryResultListener {
 				}
 			}	
 		  } catch (Exception e) {
-			  LOGGER.error("TableStatAnalyzer err:",e.toString());
+			  LOGGER.error("TableStatAnalyzer err:" + sql, e);
 		  }
 		  
 		 return tables;
