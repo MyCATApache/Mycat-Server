@@ -131,10 +131,11 @@ public class ExecutePacket extends MySQLPacket {
             if ((nullBitMap[i / 8] & (1 << (i & 7))) != 0) {
                 bv.isNull = true;
             } else {
-                BindValueUtil.read(mm, bv, charset);
-                if(bv.isLongData) {
-                	bv.value = pstmt.getLongData(i);
-                }
+            	if (!pstmt.hasLongData(i)) {
+            		BindValueUtil.read(mm, bv, charset);
+            	} else {
+            		bv.value = pstmt.getLongData(i);
+            	}
             }
             values[i] = bv;
         }

@@ -23,6 +23,8 @@
  */
 package io.mycat.backend.mysql;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import io.mycat.config.Fields;
@@ -79,7 +81,19 @@ public class BindValueUtil {
             }
             break;
         case Fields.FIELD_TYPE_BLOB:
-        	bv.isLongData = true;
+        	byte[] vv = mm.readBytesWithLength();
+        	if (vv == null) {
+        		bv.isNull = true;
+        	} else {
+        		//vv.length >= 0
+        		ByteArrayOutputStream out = new ByteArrayOutputStream();
+        		try {
+        			out.write(vv);
+        		} catch (IOException e) {
+        			throw new IllegalArgumentException("bindValue error,unsupported type:" + bv.type);
+        		}
+            	bv.value = out;
+        	}
         	break;
         default:
             throw new IllegalArgumentException("bindValue error,unsupported type:" + bv.type);
