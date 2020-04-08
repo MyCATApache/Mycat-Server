@@ -37,6 +37,7 @@ import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.stat.TableStat.Relationship;
 import com.google.common.base.Strings;
 
+import io.mycat.backend.datasource.PhysicalDBNode;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
