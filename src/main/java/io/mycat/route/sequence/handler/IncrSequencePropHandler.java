@@ -105,7 +105,7 @@ public class IncrSequencePropHandler extends IncrSequenceHandler {
 	}
 
 	@Override
-	public Boolean updateCURIDVal(String prefixName, Long val) {
+	public synchronized Boolean  updateCURIDVal(String prefixName, Long val) {
 		Properties props = new Properties();
 		try {
 			props.load(new FileInputStream(filePath));
