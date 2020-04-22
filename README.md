@@ -27,6 +27,10 @@ MyCAT1.6不支持一个SQL包含多个语句,但是正在开发的2.0是支持�
 INSERT INTO `travelrecord` (`id`,user_id) VALUES ('next value for MYCATSEQ_GLOBAL',"xxx");
 ```
 
+
+安装包下载:
+https://github.com/MyCATApache/Mycat-Server/releases
+
 更新Druid 1.1.10版本的分支独立维护在
 https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid
 
