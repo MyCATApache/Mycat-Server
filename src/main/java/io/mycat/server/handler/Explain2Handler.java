@@ -46,6 +46,7 @@ import io.mycat.util.StringUtil;
 public class Explain2Handler {
 
 	private static final Logger logger = LoggerFactory.getLogger(Explain2Handler.class);
+    private static final String FORMAT_JSON = "FORMAT=JSON";
 	private static final RouteResultsetNode[] EMPTY_ARRAY = new RouteResultsetNode[1];
 	private static final int FIELD_COUNT = 2;
 	private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
@@ -64,8 +65,11 @@ public class Explain2Handler {
 				showerror(stmt, c, "explain2 datanode=? sql=?");
 				return ;
 			}
-			String dataNode = stmt.substring(stmt.indexOf("=") + 1 ,stmt.indexOf("sql=")).trim();
-			String sql = "explain " + stmt.substring(stmt.indexOf("sql=") + 4 ,stmt.length()).trim();
+            String dataNode = stmt.substring(stmt.indexOf("datanode=") + "datanode=".length(), stmt.indexOf("sql="))
+                    .trim();
+            boolean isJsonFormat = stmt.toUpperCase().contains(FORMAT_JSON);
+            String formatStr = isJsonFormat ? FORMAT_JSON : "";
+            String sql = "explain " + formatStr + " " + stmt.substring(stmt.indexOf("sql=") + 4, stmt.length()).trim();
 			
 			if(dataNode == null || dataNode.isEmpty() || sql == null || sql.isEmpty()){
 				showerror(stmt, c, "dataNode or sql is null or empty");
