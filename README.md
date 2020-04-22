@@ -31,14 +31,16 @@ INSERT INTO `travelrecord` (`id`,user_id) VALUES ('next value for MYCATSEQ_GLOBA
 安装包下载:
 https://github.com/MyCATApache/Mycat-Server/releases
 
+MyCAT2.0
+https://github.com/MyCATApache/Mycat2
+
 更新Druid 1.1.10版本的分支独立维护在
 https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid
 
 docker-mycat(1.65)
 https://github.com/dekuan/docker.mycat
 
-MyCAT2.0开发中
-https://github.com/MyCATApache/Mycat2
+
 
 
 
