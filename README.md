@@ -1,5 +1,7 @@
 
-# [MyCAT](http://mycat.io/)
+# [MyCAT](http://mycat.org.cn//)
+
+官网:  http://mycat.org.cn/
 
 Mycat志愿者开发群:332702697
 
