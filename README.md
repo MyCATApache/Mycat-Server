@@ -14,9 +14,10 @@ MyCAT is an Open-Source software, “a large database cluster” oriented to ent
 
 Mycat’s target is to smoothly migrate the current stand-alone database and applications to cloud side with low cost and to solve the bottleneck problem caused by the rapid growth of data storage and business scale.
 
-
 2020年1月1日合拼了一个PR,优化PartionByLong的分片算法,数据不均衡的问题,所以该分片算法与此前的PartionByLong的数据分布不一致,即1.675之后与之前的版本不兼容
-MyCAT1.6不支持一个SQL包含多个语句,但是正在开发的2.0是支持的,2.0功能现在处于测试状态,功能仍在完善
+MyCAT1.6不支持一个SQL包含多个语句
+
+Mycat1.6的路由准备作为AutoHandler模块迁移到MyCAT2.0,此后MyCAT2.0具备双路由
 
 旧Mycat升级fastjson，把pom.xml中fastjson的版本更改即可
 
