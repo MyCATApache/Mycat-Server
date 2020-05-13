@@ -25,7 +25,8 @@ package io.mycat.route;
 
 import java.io.Serializable;
 import java.util.Map;
-import java.util.Set;
+
+import com.google.common.base.Strings;
 
 import io.mycat.server.parser.ServerParse;
 import io.mycat.sqlengine.mpp.LoadData;
@@ -296,6 +297,9 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 			return c;
 		}else{
 			if(c==0){
+			    if (Strings.isNullOrEmpty(obj.subTableName)) {
+			        return 1;
+			    }
 				return this.subTableName.compareTo(obj.subTableName);
 			}
 			return c;
