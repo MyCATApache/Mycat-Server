@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import io.mycat.backend.mysql.nio.handler.JDBCFetchStoreNodeOfChildTableHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +41,7 @@ import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
+import io.mycat.backend.mysql.nio.handler.JDBCFetchStoreNodeOfChildTableHandler;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
@@ -1320,7 +1320,7 @@ public class RouterUtil {
 			String tableName = tables.get(0);
 			TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
 			if(tableConfig.isDistTable()){
-				routeToDistTableNode(schema, rrs, ctx.getSql(), tablesAndConditions, cachePool, isSelect);
+			    routeToDistTableNode(schema, rrs, ctx.getSql(), tablesAndConditions, cachePool, isSelect, null);
 				return rrs;
 			}
 
@@ -1365,9 +1365,12 @@ public class RouterUtil {
 			throw new SQLNonTransientException(msg);
 		}
 
-		if(tc.isDistTable()){
-			return routeToDistTableNode(schema,rrs,ctx.getSql(), routeUnit.getTablesAndConditions(), cachePool,isSelect);
-		}
+		Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions = routeUnit.getTablesAndConditions();
+        if(tc.isDistTable()){
+            Set<String> keySet = tablesAndConditions.keySet();
+            //Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry = (Entry<String, Map<String, Set<ColumnRoutePair>>>) tablesAndConditions.get(keySet.toArray()[0]);
+            return routeToDistTableNode(schema,rrs,ctx.getSql(), tablesAndConditions, cachePool,isSelect, null);
+        }
 
 		if(tc.isGlobalTable()) {//全局表
 			if(isSelect) {
@@ -1406,112 +1409,112 @@ public class RouterUtil {
 	}
 
 	private static RouteResultset routeToDistTableNode(SchemaConfig schema, RouteResultset rrs,
-			String orgSql, Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
-			LayerCachePool cachePool, boolean isSelect) throws SQLNonTransientException {
+        String orgSql, Map<String, Map<String, Set<ColumnRoutePair>>> tablesAndConditions,
+        LayerCachePool cachePool, boolean isSelect, Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry) throws SQLNonTransientException {
 
-		List<String> tables = rrs.getTables();
 
-		String tableName = tables.get(0);
-		TableConfig tableConfig = schema.getTables().get(tableName);
-		if(tableConfig == null) {
-			String msg = "can't find table define in schema " + tableName + " schema:" + schema.getName();
-			LOGGER.warn(msg);
-			throw new SQLNonTransientException(msg);
-		}
-		if(tableConfig.isGlobalTable()){
-			String msg = "can't suport district table  " + tableName + " schema:" + schema.getName() + " for global table ";
-			LOGGER.warn(msg);
-			throw new SQLNonTransientException(msg);
-		}
-		String partionCol = tableConfig.getPartitionColumn();
-		//    String primaryKey = tableConfig.getPrimaryKey();
-		boolean isLoadData=false;
-
-		Set<String> tablesRouteSet = new HashSet<String>();
-
-		List<String> dataNodes = tableConfig.getDataNodes();
-		if(dataNodes.size()>1){
-			String msg = "can't suport district table  " + tableName + " schema:" + schema.getName() + " for mutiple dataNode " + dataNodes;
-			LOGGER.warn(msg);
-			throw new SQLNonTransientException(msg);
-		}
-		String dataNode = dataNodes.get(0);
-
-		RouteResultsetNode[] nodes = null;
-		//主键查找缓存暂时不实现
-		if(tablesAndConditions.isEmpty()){
-			List<String> subTables = tableConfig.getDistTables();
-			tablesRouteSet.addAll(subTables);
-
-			nodes = getNode(rrs, orgSql, tablesRouteSet, dataNode, false, tableName);
-		} else {
-
-			for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry : tablesAndConditions.entrySet()) {
-				boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
-				Map<String, Set<ColumnRoutePair>> columnsMap = entry.getValue();
-
-				Set<ColumnRoutePair> partitionValue = columnsMap.get(partionCol);
-				if(partitionValue == null || partitionValue.size() == 0) {
-					//如果前面已经确定对应的distTable,则不再增加新的distTable
-					if(tablesRouteSet.size() == 0){
-						tablesRouteSet.addAll(tableConfig.getDistTables());
-					}
-				} else {
-					for(ColumnRoutePair pair : partitionValue) {
-						AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
-						if(pair.colValue != null) {
-							Integer tableIndex = algorithm.calculate(StringUtil.removeBackquote(pair.colValue));
-							if(tableIndex == null) {
-								String msg = "can't find any valid datanode :" + tableConfig.getName()
-										+ " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
-								LOGGER.warn(msg);
-								throw new SQLNonTransientException(msg);
-							}
-							String subTable = tableConfig.getDistTables().get(tableIndex);
-							if(subTable != null) {
-								tablesRouteSet.add(subTable);
-								if(algorithm instanceof SlotFunction){
-									rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
-								}
-							}
-						}
-						if(pair.rangeValue != null) {
-							Integer[] tableIndexs = algorithm
-									.calculateRange(StringUtil.removeBackquote(pair.rangeValue.beginValue.toString()),StringUtil.removeBackquote(pair.rangeValue.endValue.toString()));
-							if (tableIndexs.length == 0){
-								for(String subTable  : tableConfig.getDistTables()) {
-									if(subTable != null) {
-										tablesRouteSet.add(subTable);
-										if(algorithm instanceof SlotFunction){
-											rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
-										}
-									}
-								}
-							}else {
-								for(Integer idx : tableIndexs) {
-									String subTable = tableConfig.getDistTables().get(idx);
-									if(subTable != null) {
-										tablesRouteSet.add(subTable);
-										if(algorithm instanceof SlotFunction){
-											rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-
-			nodes = getNode(rrs, orgSql, tablesRouteSet, dataNode, true, tableName);
-		}
-
-		rrs.setNodes(nodes);
-		rrs.setSubTables(tablesRouteSet);
-		rrs.setFinishedRoute(true);
-
-		return rrs;
-	}
+        String tableName = null;
+        if (entry != null) {
+            tableName = entry.getKey().toUpperCase();
+        } else {
+            List<String> tables = rrs.getTables();
+            tableName = tables.get(0);
+        }
+        TableConfig tableConfig = schema.getTables().get(tableName);
+        if(tableConfig == null) {
+            String msg = "can't find table define in schema " + tableName + " schema:" + schema.getName();
+            LOGGER.warn(msg);
+            throw new SQLNonTransientException(msg);
+        }
+        if(tableConfig.isGlobalTable()){
+            String msg = "can't suport district table  " + tableName + " schema:" + schema.getName() + " for global table ";
+            LOGGER.warn(msg);
+            throw new SQLNonTransientException(msg);
+        }
+        String partionCol = tableConfig.getPartitionColumn();
+    //  String primaryKey = tableConfig.getPrimaryKey();
+        //boolean isLoadData=false;
+    
+        Set<String> tablesRouteSet = new HashSet<String>();
+    
+        List<String> dataNodes = tableConfig.getDataNodes();
+        if(dataNodes.size()>1){
+            String msg = "can't suport district table  " + tableName + " schema:" + schema.getName() + " for mutiple dataNode " + dataNodes;
+            LOGGER.warn(msg);
+            throw new SQLNonTransientException(msg);
+        }
+        String dataNode = dataNodes.get(0);
+    
+        RouteResultsetNode[] nodes = null;
+        //主键查找缓存暂时不实现
+        if(tablesAndConditions.isEmpty()){
+            List<String> subTables = tableConfig.getDistTables();
+            tablesRouteSet.addAll(subTables);
+    
+            nodes = getNode(rrs, orgSql, tablesRouteSet, dataNode, false, tableName);
+        } else {
+            if (entry == null) {
+                for(Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry1 : tablesAndConditions.entrySet()) {
+                    //boolean isFoundPartitionValue = partionCol != null && entry.getValue().get(partionCol) != null;
+                    setNodes(rrs, tableConfig, partionCol, tablesRouteSet, entry1);
+                }
+            } else {
+                setNodes(rrs, tableConfig, partionCol, tablesRouteSet, entry);
+            }
+    
+    
+            nodes = getNode(rrs, orgSql, tablesRouteSet, dataNode, true, tableName);
+        }
+        rrs.setNodes(nodes);
+        rrs.setSubTables(tablesRouteSet);
+        rrs.setFinishedRoute(true);
+    
+        return rrs;
+    }
+	
+	private static void setNodes(RouteResultset rrs, TableConfig tableConfig, String partionCol,
+        Set<String> tablesRouteSet, Map.Entry<String, Map<String, Set<ColumnRoutePair>>> entry1)
+        throws SQLNonTransientException {
+        Map<String, Set<ColumnRoutePair>> columnsMap = entry1.getValue();
+    
+        Set<ColumnRoutePair> partitionValue = columnsMap.get(partionCol);
+        if(partitionValue == null || partitionValue.size() == 0) {
+            tablesRouteSet.addAll(tableConfig.getDistTables());
+        } else {
+            for(ColumnRoutePair pair : partitionValue) {
+                AbstractPartitionAlgorithm algorithm = tableConfig.getRule().getRuleAlgorithm();
+                if(pair.colValue != null) {
+                    Integer tableIndex = algorithm.calculate(pair.colValue);
+                    if(tableIndex == null) {
+                        String msg = "can't find any valid datanode :" + tableConfig.getName()
+                                + " -> " + tableConfig.getPartitionColumn() + " -> " + pair.colValue;
+                        LOGGER.warn(msg);
+                        throw new SQLNonTransientException(msg);
+                    }
+                    String subTable = tableConfig.getDistTables().get(tableIndex);
+                    if(subTable != null) {
+                        tablesRouteSet.add(subTable);
+                        if(algorithm instanceof SlotFunction){
+                            rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
+                        }
+                    }
+                }
+                if(pair.rangeValue != null) {
+                    Integer[] tableIndexs = algorithm
+                            .calculateRange(pair.rangeValue.beginValue.toString(), pair.rangeValue.endValue.toString());
+                    for(Integer idx : tableIndexs) {
+                        String subTable = tableConfig.getDistTables().get(idx);
+                        if(subTable != null) {
+                            tablesRouteSet.add(subTable);
+                            if(algorithm instanceof SlotFunction){
+                                rrs.getDataNodeSlotMap().put(subTable,((SlotFunction) algorithm).slotValue());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 	private static RouteResultsetNode[] getNode(RouteResultset rrs, String orgSql, Set<String> tablesRouteSet,
 			String dataNode, boolean is, String tableName) {
@@ -1599,7 +1602,7 @@ public class RouterUtil {
 				throw new SQLNonTransientException(msg);
 			}
 			if(tableConfig.getDistTables()!=null && tableConfig.getDistTables().size()>0){
-				routeToDistTableNode(schema, rrs, sql, tablesAndConditions, cachePool,isSelect);
+			    routeToDistTableNode(schema,rrs,sql, tablesAndConditions, cachePool,isSelect, entry);
 			}
 			//全局表或者不分库的表略过（全局表后面再计算）
 			if(tableConfig.isGlobalTable() || schema.getTables().get(tableName).getDataNodes().size() == 1) {
