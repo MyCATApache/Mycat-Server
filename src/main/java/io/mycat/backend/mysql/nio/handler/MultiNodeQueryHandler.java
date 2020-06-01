@@ -79,7 +79,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private String priamaryKeyTable = null;
 	private int primaryKeyIndex = -1;
 	private int fieldCount = 0;
-	private final ReentrantLock lock;
+	// private final ReentrantLock lock;
 	private long affectedRows;
 	private long selectRows;
 	private long insertId;
@@ -147,7 +147,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		isCallProcedure = rrs.isCallStatement();
 		this.autocommit = session.getSource().isAutocommit();
 		this.session = session;
-		this.lock = new ReentrantLock();
+		// this.lock = new ReentrantLock();
 		// this.icHandler = new CommitNodeHandler(session);
 
 		this.limitStart = rrs.getLimitStart();
