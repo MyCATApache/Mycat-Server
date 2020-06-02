@@ -121,15 +121,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		 * 解析出现问题统一抛SQL语法错误
 		 */
 		try {
-			// statement = parser.parseStatement();
-			List<SQLStatement> statementList = new ArrayList<SQLStatement>();
-			// 最多就解析2条，用于判断是否为批量
-			parser.parseStatementList(statementList, 2);
-			if (statementList.size() > 1) {
-				throw new SQLSyntaxErrorException("Multi statements is not supported,use single statement instead ");
-			} else {
-				statement = statementList.get(0);
-			}
+			statement = parser.parseStatement();
 			visitor = new MycatSchemaStatVisitor();
 		} catch (Exception t) {
 			LOGGER.error("DruidMycatRouteStrategyError", t);
