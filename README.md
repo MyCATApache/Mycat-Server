@@ -3,6 +3,10 @@
 
 官网:  http://mycat.org.cn/
 
+mycat1.6权威指南
+
+http://mycat.org.cn/document/mycat-definitive-guide.pdf
+
 Mycat志愿者开发群:332702697
 
 [![GitHub issues](https://img.shields.io/github/issues/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/issues)
@@ -42,6 +46,8 @@ https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid
 
 docker-mycat(1.65)
 https://github.com/dekuan/docker.mycat
+
+
 
 
 
