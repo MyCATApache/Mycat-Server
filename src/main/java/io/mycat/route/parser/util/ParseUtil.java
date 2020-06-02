@@ -38,6 +38,15 @@ public final class ParseUtil {
         return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == ';');
     }
 
+	public static boolean isEOF(String stmt, int offset) {
+		for (; offset < stmt.length(); offset++) {
+			if (!ParseUtil.isEOF(stmt.charAt(offset))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
     public static String parseString(String stmt) {
     	 int offset = stmt.indexOf('=');
          if (offset != -1 && stmt.length() > ++offset) {
@@ -374,4 +383,122 @@ public final class ParseUtil {
         return false;
     }
 
+	public static boolean isSpace(char space) {
+		return space == ' ' || space == '\r' || space == '\n' || space == '\t';
+	}
+
+	public static int findNextBreak(String sql) {
+		return findNextBreak(sql, false);
+	}
+
+	/**
+	 * @param sql
+	 * @param inProcedure
+	 * @return
+	 */
+	private static int findNextBreak(String sql, boolean inProcedure) {
+		// is the char in apostrophe
+		boolean inApostrophe = false;
+		// is the char after procedure begin
+		boolean procedureBegin = false;
+		String bodyLeft = null;
+		for (int i = 0; i < sql.length(); i++) {
+			char c = sql.charAt(i);
+			switch (c) {
+			case '\\':
+				i++;
+				break;
+			case '\'':
+			case '\"':
+				if (!inApostrophe) {
+					inApostrophe = true;
+					bodyLeft = String.valueOf(c);
+				} else {
+					String rightTest = String.valueOf(c);
+					if (rightTest.equals(bodyLeft)) {
+						inApostrophe = false;
+					}
+				}
+				break;
+			case ';':
+				if (!inApostrophe && !procedureBegin) {
+					return i;
+				}
+				break;
+			case 'p':
+			case 'P':
+				if (!inApostrophe) {
+					i = getProcedureEndPos(sql, i);
+				}
+				break;
+			case 'B':
+				if (inProcedure && !inApostrophe && isBegin(sql, i)) {
+					procedureBegin = true;
+					i = i + 4;
+				}
+				break;
+			case 'E':
+				if (!inApostrophe && procedureBegin && isEnd(sql, i)) {
+					procedureBegin = false;
+					i = i + 2;
+				}
+				break;
+			default:
+			}
+		}
+		return sql.length() - 1;
+	}
+
+	private static boolean isBegin(String stmt, int offset) {
+		if (offset <= 0 || !ParseUtil.isSpace(stmt.charAt(offset - 1)) || stmt.length() <= offset + "EGIN ".length()) {
+			return false;
+		}
+		char c1 = stmt.charAt(++offset);
+		char c2 = stmt.charAt(++offset);
+		char c3 = stmt.charAt(++offset);
+		char c4 = stmt.charAt(++offset);
+		char c5 = stmt.charAt(++offset);
+		return c1 == 'E' && c2 == 'G' && c3 == 'I' && c4 == 'N' && ParseUtil.isSpace(c5);
+	}
+
+	private static boolean isEnd(String stmt, int offset) {
+		if (offset <= 0 || !ParseUtil.isSpace(stmt.charAt(offset - 1)) || stmt.length() <= offset + "ND".length()) {
+			return false;
+		}
+		char c1 = stmt.charAt(++offset);
+		char c2 = stmt.charAt(++offset);
+		if (c1 == 'N' && c2 == 'D') {
+			offset++;
+			for (; offset < stmt.length(); offset++) {
+				char tmp = stmt.charAt(offset);
+				if (ParseUtil.isSpace(tmp)) {
+					continue;
+				}
+				return tmp == ';';
+			}
+			return true;
+		}
+		return false;
+	}
+
+	private static int getProcedureEndPos(String stmt, int offset) {
+		if (stmt.length() > offset + "ROCEDURE ".length()) {
+			char c1 = stmt.charAt(++offset);
+			char c2 = stmt.charAt(++offset);
+			char c3 = stmt.charAt(++offset);
+			char c4 = stmt.charAt(++offset);
+			char c5 = stmt.charAt(++offset);
+			char c6 = stmt.charAt(++offset);
+			char c7 = stmt.charAt(++offset);
+			char c8 = stmt.charAt(++offset);
+			if ((c1 == 'r' || c1 == 'R') && (c2 == 'o' || c2 == 'O') && (c3 == 'c' || c3 == 'C')
+					&& (c4 == 'e' || c4 == 'E') && (c5 == 'd' || c5 == 'D') && (c6 == 'u' || c6 == 'U')
+					&& (c7 == 'r' || c7 == 'R') && (c8 == 'e' || c8 == 'E')) {
+				String testSql = stmt.substring(++offset).toUpperCase();
+				// offset + length -1 for checking ';' outside
+				return offset - 1 + findNextBreak(testSql, true);
+			}
+		}
+		return offset;
+	}
 }
