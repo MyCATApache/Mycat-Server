@@ -11,11 +11,7 @@ import java.nio.channels.FileChannel;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 
@@ -363,8 +359,14 @@ public class DataMigratorUtil {
 	}
 	
 	public static <T> T getValueIgnoreCase(Map<String,T> map,String key){
-		T result = map.get(key.toLowerCase());
-		return  result==null?map.get(key.toUpperCase()):result;
+		T result = map.get(key);
+		if (result == null){
+			 result = map.get(key.toLowerCase());
+		}
+		if (result == null){
+			result = map.get(key.toUpperCase());
+		}
+		return result;
 	}
 	
 	public static Process exeCmdByOs(String cmd) throws IOException{
