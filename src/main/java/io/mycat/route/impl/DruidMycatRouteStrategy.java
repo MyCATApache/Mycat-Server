@@ -760,7 +760,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 					continue;
 				} else {
 					// 不应该发生这类情况。
-					throw new IllegalArgumentException("sql 注释 语法错误");
+					throw new IllegalArgumentException("describe-SQL syntax error:" + stmt);
 				}
 			} else if(ch == 'D'||ch == 'd') {
 				// 匹配 [describe ]
@@ -773,6 +773,9 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				} else {
 					pos++;
 				}
+			} else {
+				// 不应该发生这类情况。
+				throw new IllegalArgumentException("describe-SQL syntax error:" + stmt);
 			}
 		}
 
