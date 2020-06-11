@@ -77,6 +77,7 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 				@Override
 				public void sendResultSet(Supplier<RowBaseIterator> rowBaseIterator) {
 					RowBaseIterator rowBaseIterator1 = null;
+                    ByteBuffer byteBuf = source.allocate();
 					try {
 						rowBaseIterator1 = Objects.requireNonNull(rowBaseIterator.get());
 						byte packetId = 0;
@@ -84,7 +85,6 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 						ResultSetUtil.resultSetToFieldPacket(source.getCharset(), fieldPks, rowBaseIterator1.getMetaData(),
 								false);
 						int colunmCount = fieldPks.size();
-						ByteBuffer byteBuf = source.allocate();
 						ResultSetHeaderPacket headerPkg = new ResultSetHeaderPacket();
 						headerPkg.fieldCount = fieldPks.size();
 						headerPkg.packetId = ++packetId;
@@ -144,8 +144,11 @@ public class ServerQueryHandler implements FrontendQueryHandler {
 						eof = new byte[byteBuf.limit()];
 						byteBuf.get(eof);
 						source.write(eof);
-						source.recycle(byteBuf);
+
 					} finally {
+					    if (byteBuf!=null) {
+                            source.recycle(byteBuf);
+                        }
 						if (rowBaseIterator1 != null) {
 							rowBaseIterator1.close();
 						}
