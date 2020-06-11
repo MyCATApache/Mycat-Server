@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.mycat.defCommand.DefaultSqlCommandInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -327,7 +328,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 	
 	
 	public void query(String sql) {
-		
+
 		if (sql == null || sql.length() == 0) {
 			writeErrMessage(ErrorCode.ER_NOT_ALLOWED_COMMAND, "Empty SQL");
 			return;

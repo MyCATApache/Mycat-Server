@@ -45,6 +45,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.mycat.defCommand.DefaultSqlCommandInterceptor;
+import io.mycat.route.function.AbstractPartitionAlgorithm;
+import io.mycat.util.*;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
@@ -101,10 +104,6 @@ import io.mycat.statistic.SQLRecorder;
 import io.mycat.statistic.stat.SqlResultSizeRecorder;
 import io.mycat.statistic.stat.UserStat;
 import io.mycat.statistic.stat.UserStatAnalyzer;
-import io.mycat.util.ExecutorUtil;
-import io.mycat.util.NameableExecutor;
-import io.mycat.util.TimeUtil;
-import io.mycat.util.ZKUtils;
 
 /**
  * @author mycat
@@ -133,6 +132,7 @@ public class MycatServer {
 //	private final MyCATSequnceProcessor sequnceProcessor = new MyCATSequnceProcessor();
     private final DynaClassLoader catletClassLoader;
     private final SQLInterceptor sqlInterceptor;
+    private final DefaultSqlCommandInterceptor defaultSqlCommandInterceptor;
     private volatile int nextProcessor;
 
     // System Buffer Pool Instance
@@ -207,6 +207,17 @@ public class MycatServer {
             //SQL解析器
             sqlInterceptor = (SQLInterceptor) Class.forName(
                     config.getSystem().getSqlInterceptor()).newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            String sqlCommandInterceptor = config.getSystem().getSqlCommandInterceptor();
+            if(!StringUtil.isEmpty(sqlCommandInterceptor)){
+                defaultSqlCommandInterceptor = (DefaultSqlCommandInterceptor) Class.forName(sqlCommandInterceptor).newInstance();
+            }else {
+                defaultSqlCommandInterceptor = null;
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1183,6 +1194,15 @@ public class MycatServer {
 
         byte[] data = zk.getData().forPath(path);
         System.out.println(data.length);
+//
+//        Map<String, SchemaConfig> schemas = MycatServer.getInstance().getConfig().getSchemas();
+//        TableConfig tableConfig = schemas.get("").getTables().get("");
+//        AbstractPartitionAlgorithm ruleAlgorithm = tableConfig
+//                .getRule().getRuleAlgorithm();
+//        tableConfig.getDataNodes().
     }
 
+    public DefaultSqlCommandInterceptor getDefaultSqlCommandInterceptor() {
+        return defaultSqlCommandInterceptor;
+    }
 }

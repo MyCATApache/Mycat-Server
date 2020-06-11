@@ -30,6 +30,7 @@ import io.mycat.backend.datasource.PhysicalDBPool;
 import io.mycat.backend.datasource.PhysicalDatasource;
 import io.mycat.backend.mysql.nio.MySQLDataSource;
 import io.mycat.config.model.DataHostConfig;
+import io.mycat.net.NIOHandler;
 import io.mycat.sqlengine.OneRawSQLQueryResultHandler;
 import io.mycat.sqlengine.SQLJob;
 import io.mycat.sqlengine.SQLQueryResult;

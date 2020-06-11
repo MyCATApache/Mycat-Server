@@ -6,6 +6,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 
+import io.mycat.defCommand.MycatRowMetaData;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.RowDataPacket;
 
@@ -16,6 +17,23 @@ import io.mycat.net.mysql.RowDataPacket;
  */
 public class ResultSetUtil {
 
+	public static int toFlag(MycatRowMetaData metaData, int column) {
+
+		int flags = 0;
+		if (metaData.isNullable(column)) {
+			flags |= 1;
+		}
+
+		if (metaData.isSigned(column)) {
+			flags |= 16;
+		}
+
+		if (metaData.isAutoIncrement(column)) {
+			flags |= 128;
+		}
+
+		return flags;
+	}
 	public static int toFlag(ResultSetMetaData metaData, int column)
 			throws SQLException {
 
@@ -71,7 +89,41 @@ public class ResultSetUtil {
 
 
 	}
+	public static void resultSetToFieldPacket(String charset,
+											  List<FieldPacket> fieldPks, MycatRowMetaData metaData,
+											  boolean isSpark) {
+		int colunmCount = metaData.getColumnCount();
+		if (colunmCount > 0) {
+			//String values="";
+			for (int i = 0; i < colunmCount; i++) {
+				int j = i + 1;
+				FieldPacket fieldPacket = new FieldPacket();
+				fieldPacket.orgName = StringUtil.encode(metaData.getColumnName(j),charset);
+				fieldPacket.name = StringUtil.encode(metaData.getColumnLabel(j), charset);
+				if (! isSpark){
+					fieldPacket.orgTable = StringUtil.encode(metaData.getTableName(j), charset);
+					fieldPacket.table = StringUtil.encode(metaData.getTableName(j),	charset);
+					fieldPacket.db = StringUtil.encode(metaData.getSchemaName(j),charset);
+					fieldPacket.flags = toFlag(metaData, j);
+				}
+				fieldPacket.length = metaData.getColumnDisplaySize(j);
 
+				fieldPacket.decimals = (byte) metaData.getScale(j);
+				int javaType = MysqlDefs.javaTypeDetect(
+						metaData.getColumnType(j), fieldPacket.decimals);
+				fieldPacket.type = (byte) (MysqlDefs.javaTypeMysql(javaType) & 0xff);
+				if(MysqlDefs.isBianry((byte) fieldPacket.type)) {
+					// 63 represent binary character set
+					fieldPacket.charsetIndex = 63;
+				}
+				fieldPks.add(fieldPacket);
+				//values+=metaData.getColumnLabel(j)+"|"+metaData.getColumnName(j)+"  ";
+			}
+			// System.out.println(values);
+		}
+
+
+	}
 	public static RowDataPacket parseRowData(byte[] row,
 			List<byte[]> fieldValues) {
 		RowDataPacket rowDataPkg = new RowDataPacket(fieldValues.size());

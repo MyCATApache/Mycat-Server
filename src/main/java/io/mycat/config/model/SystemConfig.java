@@ -159,6 +159,7 @@ public final class SystemConfig {
 	public static final String[] MySQLVersions = { "5.5", "5.6", "5.7" };
 	private int sequenceHandlerType = SEQUENCEHANDLER_LOCALFILE;
 	private String sqlInterceptor = "io.mycat.server.interceptor.impl.DefaultSqlInterceptor";
+	private String sqlCommandInterceptor =null;
 	private String sqlInterceptorType = "select";
 	private String sqlInterceptorFile = System.getProperty("user.dir")+"/logs/sql.txt";
 	public static final int MUTINODELIMIT_SMALL_DATA = 0;
@@ -1059,5 +1060,13 @@ public final class SystemConfig {
 	}
 	public void setRemoveGraveAccent(int removeGraveAccent) {
 		this.removeGraveAccent = removeGraveAccent;
+	}
+
+	public String getSqlCommandInterceptor() {
+		return sqlCommandInterceptor;
+	}
+
+	public void setSqlCommandInterceptor(String sqlCommandInterceptor) {
+		this.sqlCommandInterceptor = sqlCommandInterceptor;
 	}
 }
