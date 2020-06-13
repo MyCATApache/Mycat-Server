@@ -25,6 +25,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * @author Junwen Chen
@@ -64,163 +65,14 @@ public class TextResultSetResponse extends AbstractMycatResultSetResponse {
 
     private byte[] getValue(RowBaseIterator rowBaseIterator, TextConvertor convertor, int columnIndex,
                             int columnType) {
-        byte[] res;
-        switch (columnType) {
-            case Types.NUMERIC: {
-
-            }
-            case Types.DECIMAL: {
-                BigDecimal value = rowBaseIterator.getBigDecimal(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor
-                        .convertBigDecimal(value);
-                break;
-            }
-            case Types.BIT: {
-                boolean value = rowBaseIterator.getBoolean(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertBoolean(value);
-                break;
-            }
-            case Types.TINYINT: {
-                byte value = rowBaseIterator.getByte(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertByte(value);
-                break;
-            }
-            case Types.SMALLINT: {
-                short value = rowBaseIterator.getShort(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertShort(value);
-                break;
-            }
-            case Types.INTEGER: {
-                int value = rowBaseIterator.getInt(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertInteger(value);
-                break;
-            }
-            case Types.BIGINT: {
-                long value = rowBaseIterator.getLong(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertLong(value);
-                break;
-            }
-            case Types.REAL: {
-                float value = rowBaseIterator.getFloat(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertFloat(value);
-                break;
-            }
-            case Types.FLOAT: {
-
-            }
-            case Types.DOUBLE: {
-                double value = rowBaseIterator.getDouble(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertDouble(value);
-                break;
-            }
-            case Types.BINARY: {
-
-            }
-            case Types.VARBINARY: {
-
-            }
-            case Types.LONGVARBINARY: {
-                byte[] value = rowBaseIterator.getBytes(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertBytes(value);
-                break;
-            }
-            case Types.DATE: {
-                Date value = rowBaseIterator.getDate(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertDate(value);
-                break;
-            }
-            case Types.TIME: {
-                Time value = rowBaseIterator.getTime(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertTime(value);
-                break;
-            }
-            case Types.TIMESTAMP: {
-                Timestamp value = rowBaseIterator.getTimestamp(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                res = convertor.convertTimeStamp(value);
-                break;
-            }
-            case Types.CHAR: {
-
-            }
-            case Types.VARCHAR: {
-
-            }
-            case Types.LONGVARCHAR: {
-                String string = rowBaseIterator.getString(columnIndex);
-                if (string == null) {
-                    return null;
-                }
-                res = string.getBytes();
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                break;
-            }
-            case Types.BLOB: {
-
-            }
-            case Types.CLOB: {
-                res = rowBaseIterator.getBytes(columnIndex);
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                break;
-            }
-            case Types.NULL: {
-                res = null;
-                return null;
-            }
-            case Types.OTHER: {
-                String string = rowBaseIterator.getString(columnIndex);
-                if (string == null) {
-                    return null;
-                }
-                res = string.getBytes();
-                if (rowBaseIterator.wasNull()) {
-                    return null;
-                }
-                break;
-            }
-            default:
-                throw new RuntimeException("unsupport!");
+        Object object = rowBaseIterator.getObject(columnIndex);
+        if ( object == null){
+            return null;
         }
-        return res;
+        if (object instanceof  byte[]){
+            return (byte[])object;
+        }
+        return Objects.toString(object).getBytes();
     }
 
     @Override
