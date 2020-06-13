@@ -69,7 +69,9 @@ public class ServerQueryHandler implements FrontendQueryHandler {
     public void query(String sql) {
 
         ServerConnection c = this.source;
-
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(new StringBuilder().append(c).append(sql).toString());
+        }
         DefaultSqlCommandInterceptor defaultSqlCommandInterceptor = MycatServer.getInstance().getDefaultSqlCommandInterceptor();
         if (defaultSqlCommandInterceptor != null) {
 			Response response = new Response() {
@@ -168,9 +170,7 @@ public class ServerQueryHandler implements FrontendQueryHandler {
             }
         }
 
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(new StringBuilder().append(c).append(sql).toString());
-        }
+
         //
         int rs = ServerParse.parse(sql);
         int sqlType = rs & 0xff;
