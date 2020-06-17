@@ -161,4 +161,16 @@ public class OkPacket extends MySQLPacket {
 		 return data;
     }
 
+	public void markMoreResultsExists() {
+		serverStatus = serverStatus | StatusFlags.SERVER_MORE_RESULTS_EXISTS;
+	}
+
+	public void markNoMoreResultsExists() {
+		serverStatus = serverStatus & (~StatusFlags.SERVER_MORE_RESULTS_EXISTS);
+	}
+
+	public boolean hasMoreResultsExists() {
+		return (serverStatus & StatusFlags.SERVER_MORE_RESULTS_EXISTS) > 0;
+	}
+
 }
