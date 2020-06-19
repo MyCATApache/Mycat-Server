@@ -9,7 +9,7 @@ import java.util.ArrayList;
 /**
  * Created by zagnix on 2016/6/27.
  */
-public class UnsafeRowList {
+public class UnsafeRowListTest {
     @Test
     public  void testUnsafeRowList(){
         ArrayList<UnsafeRow> list = new ArrayList<UnsafeRow>();

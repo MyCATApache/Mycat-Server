@@ -32,7 +32,7 @@ import junit.framework.TestCase;
 public class DruidMysqlRouteStrategyTest extends TestCase {
     protected Map<String, SchemaConfig> schemaMap;
     protected LayerCachePool cachePool = new SimpleCachePool();
-    protected RouteStrategy routeStrategy ;
+    protected RouteStrategy routeStrategy;
 
     public DruidMysqlRouteStrategyTest() {
         String schemaFile = "/route/schema.xml";

@@ -1254,7 +1254,8 @@ public class RouterUtil {
 				}
 
 				if(tableConfig == null){
-					String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
+					String msg = "can't find table define in schema "+ tableName + 
+							" alias：" + alias + ", schema:" + schema.getName();
 					LOGGER.warn(msg);
 					throw new SQLNonTransientException(msg);
 				}
