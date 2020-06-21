@@ -39,6 +39,7 @@ public class CommandCount {
     private long kill;
     private long quit;
     private long heartbeat;
+	private long setOption;
     private long other;
     public CommandCount(){
 
@@ -134,6 +135,10 @@ public class CommandCount {
     public void doHeartbeat() {
         ++heartbeat;
     }
+
+	public void doSetOption() {
+		++setOption;
+	}
 
     public long otherCount() {
         return other;

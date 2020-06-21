@@ -83,7 +83,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private String priamaryKeyTable = null;
 	private int primaryKeyIndex = -1;
 	private int fieldCount = 0;
-	private final ReentrantLock lock;
+	// private final ReentrantLock lock;
 	private long affectedRows;
 	private long selectRows;
 	private long insertId;
@@ -152,7 +152,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		isCallProcedure = rrs.isCallStatement();
 		this.autocommit = session.getSource().isAutocommit();
 		this.session = session;
-		this.lock = new ReentrantLock();
+		// this.lock = new ReentrantLock();
 		// this.icHandler = new CommitNodeHandler(session);
 
 		this.limitStart = rrs.getLimitStart();
@@ -371,9 +371,24 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
-            //存储过程
-            boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());;
-            // if(!isCallProcedure)
+
+			lock.lock();
+			try {
+				affectedRows += ok.affectedRows;
+			} finally {
+				lock.unlock();
+			}
+
+			if (ok.hasMoreResultsExists()) {
+				// funnyAnt:当是批量update/delete语句，提示后面还有ok包
+				return;
+			}
+
+			// 存储过程
+			boolean isCanClose2Client = (!rrs.isCallStatement())
+					|| (rrs.isCallStatement() && !rrs.getProcedure().isResultSimpleValue());
+
+			 // if(!isCallProcedure)
             // {
             // if (clearIfSessionClosed(session))
             // {
@@ -383,28 +398,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
             // return;
             // }
             // }
+
 			lock.lock();
 			try {
-				// 判断是否是全局表，如果是，执行行数不做累加，以最后一次执行的为准。
-				if (!rrs.isGlobalTable()) {
-					affectedRows += ok.affectedRows;
-				} else {
-					affectedRows = ok.affectedRows;
-				}
-
 				if (ok.insertId > 0) {
 					if (rrs.getAutoIncrement()) {
-						insertId = (insertId == 0) ? ok.insertId : Math.max(
-								insertId, ok.insertId);
+						insertId = (insertId == 0) ? ok.insertId : Math.max(insertId, ok.insertId);
 					} else {
-                        insertId = (insertId == 0) ? ok.insertId : Math.min(
-                                insertId, ok.insertId);
+						insertId = (insertId == 0) ? ok.insertId : Math.min(insertId, ok.insertId);
 					}
 				}
 
-
 			} catch (Exception e) {
-				e.printStackTrace();
+				LOGGER.error(e.getMessage(), e);
 			} finally {
 				lock.unlock();
 			}
@@ -435,6 +441,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 						source.getLoadDataInfileHandler().clear();
 					}
 
+					// 如果是全局表，去除掉重复计算的部分
+					if (rrs.isGlobalTable()) {
+						affectedRows = affectedRows / rrs.getNodes().length;
+					}
 					ok.affectedRows = affectedRows;
 					ok.serverStatus = source.isAutocommit() ? 2 : 1;
 					if (insertId > 0) {
