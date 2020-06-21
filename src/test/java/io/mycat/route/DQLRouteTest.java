@@ -34,7 +34,7 @@ public class DQLRouteTest {
 
 	protected Map<String, SchemaConfig> schemaMap;
 	protected LayerCachePool cachePool = new SimpleCachePool();
-	protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
+	protected RouteStrategy routeStrategy;
 	private Map<String, String> tableAliasMap = new HashMap<String, String>();
 
 	protected DruidShardingParseInfo ctx;
@@ -45,6 +45,8 @@ public class DQLRouteTest {
 		SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
 		schemaMap = schemaLoader.getSchemas();
 		MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
+        RouteStrategyFactory.init();
+        routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
 	}
 
 	@Test
