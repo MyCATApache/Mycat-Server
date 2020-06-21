@@ -348,6 +348,22 @@ public class NonBlockingSession implements Session {
         clearHandlesResources();
     }
 
+    public void closeConnection(BackendConnection con, String reason) {
+        Iterator<Entry<RouteResultsetNode, BackendConnection>> itor = target.entrySet().iterator();
+        while (itor.hasNext()) {
+            BackendConnection theCon = itor.next().getValue();
+            if (theCon == con) {
+                itor.remove();
+                con.close(reason);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("realse connection " + con);
+                }
+                break;
+            }
+        }
+
+    }
+
     public void releaseConnectionIfSafe(BackendConnection conn, boolean debug,
                                         boolean needRollback) {
         RouteResultsetNode node = (RouteResultsetNode) conn.getAttachment();
