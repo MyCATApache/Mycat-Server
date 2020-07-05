@@ -164,7 +164,9 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		Runnable callback = null;
 		lock.lock();
 		try {
-			if (zeroReached = --nodeCount == 0) {
+			nodeCount -= finished;
+			zeroReached = nodeCount == 0;
+			if (zeroReached) {
 				callback = this.terminateCallBack;
 				this.terminateCallBack = null;
 			}

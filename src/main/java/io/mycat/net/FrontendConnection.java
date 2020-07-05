@@ -51,6 +51,8 @@ import io.mycat.net.handler.FrontendPrepareHandler;
 import io.mycat.net.handler.FrontendPrivileges;
 import io.mycat.net.handler.FrontendQueryHandler;
 import io.mycat.net.handler.LoadDataInfileHandler;
+import io.mycat.net.mysql.CommandPacket;
+import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.HandshakePacket;
 import io.mycat.net.mysql.HandshakeV10Packet;
@@ -83,7 +85,8 @@ public abstract class FrontendConnection extends AbstractConnection {
 	protected LoadDataInfileHandler loadDataInfileHandler;
 	protected boolean isAccepted;
 	protected boolean isAuthenticated;
-    protected QueueFlowController flowController;
+  protected QueueFlowController flowController;
+	private boolean allowMultiStatements = false;
 
 	public FrontendConnection(NetworkChannel channel) throws IOException {
 		super(channel);
@@ -213,6 +216,14 @@ public abstract class FrontendConnection extends AbstractConnection {
 		} else {
 			return false;
 		}
+	}
+
+	public boolean isAllowMultiStatements() {
+		return allowMultiStatements;
+	}
+
+	public void setAllowMultiStatements(boolean allowMultiStatements) {
+		this.allowMultiStatements = allowMultiStatements;
 	}
 
 	public void writeErrMessage(int errno, String msg) {
@@ -647,6 +658,31 @@ public abstract class FrontendConnection extends AbstractConnection {
 		super.close(isAuthenticated ? reason : "");
 	}
 
+	/**
+	 * 设置是否允许批量执行命令
+	 * @param data
+	 */
+	public void setOption(byte[] data) {
+		CommandPacket command = new CommandPacket();
+		command.read(data);
+		int option = 0;
+		try {
+			option = command.arg[0];
+			if (option == 0) {
+				this.allowMultiStatements = true;
+			} else if (option == 1) {
+				this.allowMultiStatements = false;
+			}
+			EOFPacket eof = new EOFPacket();
+			eof.packetId = 1;
+			eof.warningCount = option;
+			write(eof.write(allocate(), this, true));
+		} catch (Throwable e) {
+			writeErrMessage(ErrorCode.ER_UNKNOWN_COM_ERROR, "Com Set Option Error");
+			return;
+		}
+	}
+  
     public boolean isEnableFlowController() {
         return enableFlowController;
     }

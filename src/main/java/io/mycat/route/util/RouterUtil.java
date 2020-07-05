@@ -1233,7 +1233,11 @@ public class RouterUtil {
 		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
 			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
 		}
-
+		// 系统表，不会记录到DruidShardingParseInfo里面，此时(tables.size()为0，直接路由到schema默认节点
+		if (tables.size() == 0) {
+			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
+		}
+		
 		//每个表对应的路由映射
 		Map<String,Set<String>> tablesRouteMap = new HashMap<String,Set<String>>();
 
@@ -1250,7 +1254,8 @@ public class RouterUtil {
 				}
 
 				if(tableConfig == null){
-					String msg = "can't find table define in schema "+ tableName + " schema:" + schema.getName();
+					String msg = "can't find table define in schema "+ tableName + 
+							" alias：" + alias + ", schema:" + schema.getName();
 					LOGGER.warn(msg);
 					throw new SQLNonTransientException(msg);
 				}

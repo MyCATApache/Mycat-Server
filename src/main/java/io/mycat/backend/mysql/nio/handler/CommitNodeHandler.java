@@ -25,27 +25,50 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
-import io.mycat.backend.mysql.xa.TxState;
-import io.mycat.config.ErrorCode;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.nio.MySQLConnection;
+import io.mycat.backend.mysql.xa.TxState;
+import io.mycat.config.ErrorCode;
 import io.mycat.net.mysql.ErrorPacket;
+import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
-import io.mycat.server.ServerConnection;
 
 /**
  * @author mycat
  */
-public class CommitNodeHandler implements ResponseHandler {
-	private static final Logger LOGGER = LoggerFactory
-			.getLogger(CommitNodeHandler.class);
+public class CommitNodeHandler extends MultiNodeHandler implements ResponseHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommitNodeHandler.class);
 	private final NonBlockingSession session;
+    protected byte[] responseData;
 
 	public CommitNodeHandler(NonBlockingSession session) {
+        super(session);
 		this.session = session;
-	}
+    }
+
+    public CommitNodeHandler(NonBlockingSession session, byte[] responseData) {
+        super(session);
+        this.session = session;
+        this.responseData = responseData;
+
+    }
+
+    public void commit() {
+        final int initCount = session.getTargetCount();
+        lock.lock();
+        try {
+            reset(initCount);
+        } finally {
+            lock.unlock();
+        }
+        for (RouteResultsetNode rrn : session.getTargetKeys()) {
+            final BackendConnection conn = session.getTarget(rrn);
+            commit(conn);
+        }
+    }
 
 	public void commit(BackendConnection conn) {
 		conn.setResponseHandler(CommitNodeHandler.this);
@@ -117,9 +140,17 @@ public class CommitNodeHandler implements ResponseHandler {
         if(session.getSource().isPreAcStates()&&!session.getSource().isAutocommit()){
         	session.getSource().setAutocommit(true);
         }
-		session.clearResources(false);
-		ServerConnection source = session.getSource();
-		source.write(ok);
+        // session.clearResources(false);
+        // ServerConnection source = session.getSource();
+        // source.write(ok);
+        if (decrementCountBy(1)) {
+            if (responseData != null) {
+                cleanAndFeedback(responseData);
+            } else {
+                cleanAndFeedback(ok);
+            }
+
+        }
 	}
 
 	@Override
@@ -128,7 +159,10 @@ public class CommitNodeHandler implements ResponseHandler {
 		errPkg.read(err);
 		String errInfo = new String(errPkg.message);
 		session.getSource().setTxInterrupt(errInfo);
-		errPkg.write(session.getSource());
+        // errPkg.write(session.getSource());
+        if (decrementCountBy(1)) {
+            cleanAndFeedback(errPkg.writeToBytes());
+        }
 
 	}
 
@@ -161,14 +195,30 @@ public class CommitNodeHandler implements ResponseHandler {
 
 	@Override
 	public void connectionError(Throwable e, BackendConnection conn) {
-		
+        if (decrementCountBy(1)) {
+            cleanAndFeedback(createErrPkg(e.getMessage()).writeToBytes());
+        }
 
 	}
 
 	@Override
 	public void connectionClose(BackendConnection conn, String reason) {
-		
+        if (decrementCountBy(1)) {
+            cleanAndFeedback(createErrPkg(reason).writeToBytes());
+        }
 
 	}
 
+    private void cleanAndFeedback(byte[] responseData) {
+        // clear all resources
+        session.clearResources(false);
+        if (session.closed()) {
+            return;
+        }
+        if (this.isFail()) {
+            createErrPkg(error).write(session.getSource());
+        } else {
+            session.getSource().write(responseData);
+        }
+    }
 }

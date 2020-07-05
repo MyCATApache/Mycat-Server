@@ -2,6 +2,8 @@ package io.mycat.route.impl;
 
 import java.sql.SQLNonTransientException;
 import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -10,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.regex.Matcher;
 
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLObject;
@@ -87,11 +88,21 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		middlerResultHandler.put(SQLAllExpr.class, new SQLAllResultHandler());
 	}
 
-
 	@Override
-	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema,
-			String stmt, RouteResultset rrs,String charset,
-			LayerCachePool cachePool,int sqlType,ServerConnection sc) throws SQLNonTransientException {
+	public RouteResultset routeNormalSqlWithAST(SchemaConfig schema, String stmt, RouteResultset rrs, String charset,
+			LayerCachePool cachePool, int sqlType, ServerConnection sc) throws SQLNonTransientException {
+		// 如果是批量的update,delete走特别的流程
+		if (sc != null && sc.isAllowMultiStatements()
+				&& (sqlType == ServerParse.DELETE || sqlType == ServerParse.UPDATE)) {
+			return routeMultiSqlWithAST(schema, stmt, rrs, charset, cachePool, sqlType, sc);
+
+		} else {
+			return routeNormalSqlWithAST0(schema, stmt, rrs, charset, cachePool, sqlType, sc);
+		}
+	}
+
+	private RouteResultset routeNormalSqlWithAST0(SchemaConfig schema, String stmt, RouteResultset rrs, String charset,
+			LayerCachePool cachePool, int sqlType, ServerConnection sc) throws SQLNonTransientException {
 
 		/**
 		 *  只有mysql时只支持mysql语法
@@ -233,6 +244,43 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		return rrsResult;
 	}
 
+	// 批量update,delete路由方法
+	private RouteResultset routeMultiSqlWithAST(SchemaConfig schema, String stmt, RouteResultset rrs, String charset,
+			LayerCachePool cachePool, int sqlType, ServerConnection sc) throws SQLNonTransientException {
+		List<RouteResultsetNode> allNodes = new ArrayList<>(64);
+		// 拆分出一个个SQL解析路由
+		String remingSql = stmt;
+		String eachSqlItem = null;
+		do {
+			int index = ParseUtil.findNextBreak(remingSql);
+			if (index + 1 < remingSql.length() && !ParseUtil.isEOF(remingSql, index)) {
+				eachSqlItem = remingSql.substring(0, index);
+				remingSql = remingSql.substring(index + 1, remingSql.length());
+				RouteResultset rrsTemp = new RouteResultset(eachSqlItem, sqlType);
+				RouteResultset tempRrs = routeNormalSqlWithAST0(schema, eachSqlItem, rrsTemp, charset, cachePool,
+						sqlType, sc);
+				allNodes.addAll(Arrays.asList(tempRrs.getNodes()));
+			} else {
+				// the last one
+				RouteResultset rrsTemp = new RouteResultset(remingSql, sqlType);
+				RouteResultset tempRrs = routeNormalSqlWithAST0(schema, remingSql, rrsTemp, charset, cachePool, sqlType,
+						sc);
+				allNodes.addAll(Arrays.asList(tempRrs.getNodes()));
+				rrs = rrsTemp;
+				break;
+			}
+		} while (true);
+
+		if (allNodes.size() >= 1) {
+			// merge
+			rrs.setStatement(stmt);
+			rrs.setNodes(allNodes.toArray(new RouteResultsetNode[0]));
+			rrs.mergeSameNode();
+			return rrs;
+		} else {
+			throw new SQLNonTransientException("mycat parse error on sql:" + stmt);
+		}
+	}
 	/**
 	 * 子查询中存在关联查询的情况下,检查关联字段是否是分片字段
 	 * @param rulemap
@@ -773,6 +821,8 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 				} else {
 					pos++;
 				}
+			} else {
+				break;
 			}
 		}
 

@@ -330,6 +330,13 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
+			this.affectedRows += ok.affectedRows;
+
+			if (ok.hasMoreResultsExists()) {
+				// funnyAnt:当是批量update/delete语句，提示后面还有ok包
+				return;
+			}
+
             boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());
 			if (rrs.isLoadData()) {				
 				// byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
@@ -356,8 +363,6 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 				}	
 			}
             
-			this.affectedRows = ok.affectedRows;
-			
 			source.setExecuteSql(null);
 			// add by lian
 			// 解决sql统计中写操作永远为0

@@ -70,8 +70,6 @@ public final class ServerParse {
 
     public static int parse(String stmt) {
 		int length = stmt.length();
-		//FIX BUG FOR SQL SUCH AS /XXXX/SQL
-		int rt = -1;
 		for (int i = 0; i < length; ++i) {
 			switch (stmt.charAt(i)) {
 			case ' ':
@@ -94,104 +92,48 @@ public final class ServerParse {
 				continue;
 			case 'A':
 			case 'a':
-				rt = aCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return aCheck(stmt, i);
 			case 'B':
 			case 'b':
-				rt = beginCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return beginCheck(stmt, i);
 			case 'C':
 			case 'c':
-				rt = commitOrCallCheckOrCreate(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return commitOrCallCheckOrCreate(stmt, i);
 			case 'D':
 			case 'd':
-				rt = deleteOrdCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return deleteOrdCheck(stmt, i);
 			case 'E':
 			case 'e':
-				rt = explainCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return explainCheck(stmt, i);
 			case 'I':
 			case 'i':
-				rt = insertCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
-				case 'M':
-				case 'm':
-					rt = migrateCheck(stmt, i);
-					if (rt != OTHER) {
-						return rt;
-					}
-					continue;
+				return insertCheck(stmt, i);
+			case 'M':
+			case 'm':
+				return migrateCheck(stmt, i);
 			case 'R':
 			case 'r':
-				rt = rCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return rCheck(stmt, i);
 			case 'S':
 			case 's':
-				rt = sCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return sCheck(stmt, i);
 			case 'T':
 			case 't':
-				rt = tCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return tCheck(stmt, i);
 			case 'U':
 			case 'u':
-				rt = uCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return uCheck(stmt, i);
 			case 'K':
 			case 'k':
-				rt = killCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return killCheck(stmt, i);
 			case 'H':
 			case 'h':
-				rt = helpCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return helpCheck(stmt, i);
 			case 'L':
 			case 'l':
-				rt = lCheck(stmt, i);
-				if (rt != OTHER) {
-					return rt;
-				}
-				continue;
+				return lCheck(stmt, i);
 			default:
-				continue;
+				return OTHER;
 			}
 		}
 		return OTHER;

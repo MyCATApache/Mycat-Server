@@ -142,7 +142,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			if (item.getExpr() instanceof SQLAggregateExpr)
 			{
 				SQLAggregateExpr expr = (SQLAggregateExpr) item.getExpr();
-				String method = expr.getMethodName();
+				String method = expr.getMethodName().toUpperCase();
 				boolean isHasArgument=!expr.getArguments().isEmpty();
 				if(isHasArgument)
 				{

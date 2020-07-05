@@ -42,10 +42,13 @@ import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.mysql.LoadDataUtil;
+import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.cache.LayerCachePool;
+import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
 import io.mycat.memory.unsafe.row.UnsafeRow;
 import io.mycat.net.mysql.BinaryRowDataPacket;
+import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.ResultSetHeaderPacket;
@@ -63,6 +66,7 @@ import io.mycat.sqlengine.mpp.MergeCol;
 import io.mycat.statistic.stat.QueryResult;
 import io.mycat.statistic.stat.QueryResultDispatcher;
 import io.mycat.util.ResultSetUtil;
+import io.mycat.util.StringUtil;
 
 /**
  * @author mycat
@@ -79,7 +83,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	private String priamaryKeyTable = null;
 	private int primaryKeyIndex = -1;
 	private int fieldCount = 0;
-	private final ReentrantLock lock;
+	// private final ReentrantLock lock;
 	private long affectedRows;
 	private long selectRows;
 	private long insertId;
@@ -109,6 +113,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	//huangyiming
 	private byte[] header = null;
 	private List<byte[]> fields = null;
+    protected List<BackendConnection> errConnections;
 
 	// by kaiz : 为了解决Mybatis获取由Mycat生成自增主键时，MySQL返回的Last_insert_id为最大值的问题；
 	//		当逻辑表设置了autoIncrement='false'时，MyCAT会将ok packet当中的最小last insert id记录下来，返回给应用
@@ -147,7 +152,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		isCallProcedure = rrs.isCallStatement();
 		this.autocommit = session.getSource().isAutocommit();
 		this.session = session;
-		this.lock = new ReentrantLock();
+		// this.lock = new ReentrantLock();
 		// this.icHandler = new CommitNodeHandler(session);
 
 		this.limitStart = rrs.getLimitStart();
@@ -167,7 +172,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		if ( rrs != null && rrs.getStatement() != null) {
 			netInBytes += rrs.getStatement().getBytes().length;
 		}
-	}
+        this.errConnections = new ArrayList<>();
+    }
 
 	protected void reset(int initCount) {
 		super.reset(initCount);
@@ -250,7 +256,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
 		conn.setResponseHandler(this);
 		try {
-			conn.execute(node, session.getSource(), autocommit);
+            // conn.execute(node, session.getSource(), autocommit);
+            /**
+             *  多节点下，非DDL的修改语句，自动开启事务；DDL语句不开启事务，原因是ddl语句会引发自动提交，如果在事务中会引起下面的问题。
+             *  1）如果是普通事务,直接引发自动提交；
+             *  2）XA事务，自动提交导致ERROR 1399 (XAE07): XAER_RMFAIL: The command cannot be executed when global transaction is in the  ACTIVE state
+             * 
+             */
+            conn.execute(node, session.getSource(), autocommit && !node.isModifySQLExceptDDL());
 		} catch (IOException e) {
 			connectionError(e, conn);
 		}
@@ -279,6 +292,70 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
 	}
 
+    @Override
+    public void errorResponse(byte[] data, BackendConnection conn) {
+        ErrorPacket errPacket = new ErrorPacket();
+        errPacket.read(data);
+
+        lock.lock();
+        try {
+            if (!isFail()) {
+                setFail(new String(errPacket.message));
+            }
+            errConnections.add(conn);
+            conn.syncAndExcute();
+
+            if (--nodeCount == 0) {
+                errPacket.packetId = ++packetId;
+                processFinishWork(errPacket.writeToBytes(), false, conn);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * wangkai 后端的mysql连接被关闭调用到这里；
+     * 2019年3月13日,异常走executeError，保证最后走handleEndPacket，保证XA顺利释放资源
+     */
+    @Override
+    public void connectionClose(BackendConnection conn, String reason) {
+        LOGGER.warn("backend connect" + reason + ", conn info:" + conn);
+        ErrorPacket errPacket = new ErrorPacket();
+        errPacket.errno = ErrorCode.ER_ABORTING_CONNECTION;
+        reason = "Connection {DataHost[" + conn.getHost() + ":" + conn.getPort() + "],Schema[" + conn.getSchema()
+                + "],threadID[" + ((MySQLConnection) conn).getThreadId() + "]} was closed ,reason is [" + reason + "]";
+        errPacket.message = StringUtil.encode(reason, session.getSource().getCharset());
+        executeError(conn, errPacket);
+    }
+
+    @Override
+    public void connectionError(Throwable e, BackendConnection conn) {
+        LOGGER.info("backend connect", e);
+        ErrorPacket errPacket = new ErrorPacket();
+        errPacket.errno = ErrorCode.ER_ABORTING_CONNECTION;
+        String errMsg = "Backend connect Error, Connection{DataHost[" + conn.getHost() + ":" + conn.getPort()
+                + "],Schema[" + conn.getSchema() + "]} refused";
+        errPacket.message = StringUtil.encode(errMsg, session.getSource().getCharset());
+        executeError(conn, errPacket);
+    }
+
+    private void executeError(BackendConnection conn, ErrorPacket errPacket) {
+        lock.lock();
+        try {
+            if (!isFail()) {
+                setFail(new String(errPacket.message));
+            }
+
+            errConnections.add(conn);
+            if (--nodeCount == 0) {
+                errPacket.packetId = ++packetId;
+                processFinishWork(errPacket.writeToBytes(), false, conn);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
 	@Override
 	public void okResponse(byte[] data, BackendConnection conn) {
 
@@ -294,40 +371,46 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
-            //存储过程
-            boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());;
-             if(!isCallProcedure)
-             {
-                 if (clearIfSessionClosed(session))
-                 {
-                     return;
-                 } else if (canClose(conn, false))
-                 {
-                     return;
-                 }
-             }
+
 			lock.lock();
 			try {
-				// 判断是否是全局表，如果是，执行行数不做累加，以最后一次执行的为准。
-				if (!rrs.isGlobalTable()) {
-					affectedRows += ok.affectedRows;
-				} else {
-					affectedRows = ok.affectedRows;
-				}
+				affectedRows += ok.affectedRows;
+			} finally {
+				lock.unlock();
+			}
 
+			if (ok.hasMoreResultsExists()) {
+				// funnyAnt:当是批量update/delete语句，提示后面还有ok包
+				return;
+			}
+
+			// 存储过程
+			boolean isCanClose2Client = (!rrs.isCallStatement())
+					|| (rrs.isCallStatement() && !rrs.getProcedure().isResultSimpleValue());
+
+			 // if(!isCallProcedure)
+            // {
+            // if (clearIfSessionClosed(session))
+            // {
+            // return;
+            // } else if (canClose(conn, false))
+            // {
+            // return;
+            // }
+            // }
+
+			lock.lock();
+			try {
 				if (ok.insertId > 0) {
 					if (rrs.getAutoIncrement()) {
-						insertId = (insertId == 0) ? ok.insertId : Math.max(
-								insertId, ok.insertId);
+						insertId = (insertId == 0) ? ok.insertId : Math.max(insertId, ok.insertId);
 					} else {
-                        insertId = (insertId == 0) ? ok.insertId : Math.min(
-                                insertId, ok.insertId);
+						insertId = (insertId == 0) ? ok.insertId : Math.min(insertId, ok.insertId);
 					}
 				}
 
-
 			} catch (Exception e) {
-				e.printStackTrace();
+				LOGGER.error(e.getMessage(), e);
 			} finally {
 				lock.unlock();
 			}
@@ -338,13 +421,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			boolean isEndPacket = isCallProcedure ? decrementOkCountBy(1): decrementCountBy(1);
 			if (isEndPacket && isCanClose2Client) {
 
-				if (this.autocommit && !session.getSource().isLocked()) {// clear all connections
-					session.releaseConnections(false);
-				}
+                // if (this.autocommit && !session.getSource().isLocked()) {// clear all
+                // connections
+                // session.releaseConnections(false);
+                // }
 
 				if (this.isFail() || session.closed()) {
-					tryErrorFinished(true);
-					return;
+                    // tryErrorFinished(true);
+                    processFinishWork(createErrPkg(this.error).writeToBytes(), false, conn);
+                    return;
 				}
 
 				lock.lock();
@@ -356,6 +441,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 						source.getLoadDataInfileHandler().clear();
 					}
 
+					// 如果是全局表，去除掉重复计算的部分
+					if (rrs.isGlobalTable()) {
+						affectedRows = affectedRows / rrs.getNodes().length;
+					}
 					ok.affectedRows = affectedRows;
 					ok.serverStatus = source.isAutocommit() ? 2 : 1;
 					if (insertId > 0) {
@@ -364,7 +453,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					}
 					//  判断是否已经报错返回给前台了 2018.07 
 					if(source.canResponse()) {
-						ok.write(source);
+                        // ok.write(source);
+                        processFinishWork(ok.writeToBytes(), true, conn);
 					}
 				} catch (Exception e) {
 					handleDataProcessException(e);
@@ -421,7 +511,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				}
 
 				if (this.isFail() || session.closed()) {
-					tryErrorFinished(true);
+                    // tryErrorFinished(true);
+                    processFinishWork(createErrPkg(this.error).writeToBytes(), false, conn);
 					return;
 				}
 			}
@@ -944,4 +1035,54 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 	public void setPrepared(boolean prepared) {
 		this.prepared = prepared;
 	}
+
+    /**
+        * 最后一个OK/ERROR包返回后的后续流程： 
+        *   1）如果是隐式事务，需要自动提交
+        *   2）显示事务，返回OK/ERROR给客户端，需要后面继续执行rollback或commit;
+        *   3）非事务：返回OK/ERROR给客户端
+        
+        * @param data
+        * @param isCommit  是否提交事务
+        * @param conn
+        */
+    protected void processFinishWork(byte[] data, boolean isCommit, BackendConnection conn) {
+        ServerConnection source = session.getSource();
+
+        if (source.isAutocommit() && conn.isModifiedSQLExecuted()) {
+            // 1隐式事务:修改类语句并且autocommit=true，mycat自动开启事务，需要自动提交掉
+            if (nodeCount < 0) {
+                return;
+            }
+
+            // Implicit Distributed Transaction,send commit or rollback automatically
+            if (isCommit) {
+                // data 包里面带有更新或改变了多少行数据的信息，需要在commit后发送给client
+                CommitNodeHandler commitHandler = new CommitNodeHandler(session, data);
+                commitHandler.commit();
+            } else {
+                RollbackNodeHandler rollbackHandler = new RollbackNodeHandler(session);
+                rollbackHandler.rollback();
+            }
+        } else {
+            // 2 非事务或者显式事务，其中显式事务需要 等待后续的commit或rollback
+            boolean inTransaction = !source.isAutocommit();
+            if (!inTransaction) {
+                // 释放可能没有被释放的连接session.target
+                for (BackendConnection errConn : errConnections) {
+                    errConn.setResponseHandler(null);
+                    session.closeConnection(errConn, "Connection happening error  can't been reused,close directly");
+                }
+            }
+
+            if (nodeCount == 0) {
+                // 事务下如果已经出错设置中断
+                if (inTransaction && !isCommit) {
+                    source.setTxInterrupt("ROLLBACK");
+                }
+                // 发送语句执行结果给client
+                source.write(data);
+            }
+        }
+    }
 }

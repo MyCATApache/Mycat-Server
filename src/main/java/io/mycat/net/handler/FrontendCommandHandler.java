@@ -114,6 +114,10 @@ public class FrontendCommandHandler implements NIOHandler
             case MySQLPacket.COM_FIELD_LIST:
                 source.fieldList(data);
                 break;
+            case MySQLPacket.COM_SET_OPTION:
+                commands.doSetOption();
+                source.setOption(data);
+                break;
             default:
                 commands.doOther();
                 MycatConfig config = MycatServer.getInstance().getConfig();
