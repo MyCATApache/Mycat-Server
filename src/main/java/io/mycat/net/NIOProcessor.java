@@ -189,7 +189,11 @@ public final class NIOProcessor {
 		if (!c.writeQueue.isEmpty()) {
 			c.getSocketWR().doNextWriteCheck();
 		}
-	}
+
+        if (c.isEnableFlowController()) {
+            c.checkQueueFlow();
+        }
+    }
 
 	// 后端连接检查
 	private void backendCheck() {

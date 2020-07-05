@@ -587,4 +587,16 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
 		}
 	}
+
+    @Override
+    public void disableRead() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void enableRead() {
+        // TODO Auto-generated method stub
+
+    }
 }
