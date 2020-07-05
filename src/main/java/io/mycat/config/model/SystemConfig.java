@@ -262,6 +262,10 @@ public final class SystemConfig {
 
 	private int parallExecute;
 	
+    private boolean enableWriteQueueFlowControl;// 写队列流量控制
+    private int writeQueueStopThreshold;// 写队列停止写入阈值
+    private int writeQueueRecoverThreshold;// 写队列恢复写入阈值
+
 	public String getDefaultSqlParser() {
 		return defaultSqlParser;
 	}
@@ -314,6 +318,11 @@ public final class SystemConfig {
 		this.ignoreUnknownCommand = 0;
 		this.parallExecute = 0;
 		this.removeGraveAccent = 1;
+
+        // 流量控制相关
+        this.enableWriteQueueFlowControl = false;
+        this.writeQueueStopThreshold = 10 * 1024;
+        this.writeQueueRecoverThreshold = 512;
 	}
 
 	public void setMaxPreparedStmtCount(int maxPreparedStmtCount){
@@ -1060,4 +1069,29 @@ public final class SystemConfig {
 	public void setRemoveGraveAccent(int removeGraveAccent) {
 		this.removeGraveAccent = removeGraveAccent;
 	}
+
+    public boolean isEnableWriteQueueFlowControl() {
+        return enableWriteQueueFlowControl;
+    }
+
+    public void setEnableWriteQueueFlowControl(boolean enableWriteQueueFlowControl) {
+        this.enableWriteQueueFlowControl = enableWriteQueueFlowControl;
+    }
+
+    public int getWriteQueueStopThreshold() {
+        return writeQueueStopThreshold;
+    }
+
+    public void setWriteQueueStopThreshold(int writeQueueStopThreshold) {
+        this.writeQueueStopThreshold = writeQueueStopThreshold;
+    }
+
+    public int getWriteQueueRecoverThreshold() {
+        return writeQueueRecoverThreshold;
+    }
+
+    public void setWriteQueueRecoverThreshold(int writeQueueRecoverThreshold) {
+        this.writeQueueRecoverThreshold = writeQueueRecoverThreshold;
+    }
+
 }

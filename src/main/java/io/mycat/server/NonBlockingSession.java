@@ -82,6 +82,7 @@ public class NonBlockingSession implements Session {
   	
   	private volatile MiddlerResultHandler  middlerResultHandler;
     private boolean prepared;
+    private RouteResultset rrs;
 
     public NonBlockingSession(ServerConnection source) {
         this.source = source;
@@ -118,7 +119,7 @@ public class NonBlockingSession implements Session {
     
     @Override
     public void execute(RouteResultset rrs, int type) {
-
+        this.rrs = rrs;
         // clear prev execute resources
         clearHandlesResources();
         if (LOGGER.isDebugEnabled()) {
@@ -643,4 +644,9 @@ public class NonBlockingSession implements Session {
 		}
 		return sb.toString();
 	}
+
+    public RouteResultset getRrs() {
+        return rrs;
+    }
+
 }

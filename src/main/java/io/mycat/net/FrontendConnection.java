@@ -29,7 +29,10 @@ import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.CharsetUtil;
 import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.config.Capabilities;
@@ -52,6 +56,7 @@ import io.mycat.net.mysql.HandshakePacket;
 import io.mycat.net.mysql.HandshakeV10Packet;
 import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.net.mysql.OkPacket;
+import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.CompressUtil;
 import io.mycat.util.RandomUtil;
@@ -78,6 +83,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 	protected LoadDataInfileHandler loadDataInfileHandler;
 	protected boolean isAccepted;
 	protected boolean isAuthenticated;
+    protected QueueFlowController flowController;
 
 	public FrontendConnection(NetworkChannel channel) throws IOException {
 		super(channel);
@@ -94,6 +100,10 @@ public abstract class FrontendConnection extends AbstractConnection {
 		this.port = localAddr.getPort();
 		this.localPort = remoteAddr.getPort();
 		this.handler = new FrontendAuthenticator(this);
+
+        if (enableFlowController) {
+            this.flowController = new QueueFlowController(this);
+        }
 	}
 
 	public long getId() {
@@ -636,4 +646,83 @@ public abstract class FrontendConnection extends AbstractConnection {
 	public void close(String reason) {
 		super.close(isAuthenticated ? reason : "");
 	}
+
+    public boolean isEnableFlowController() {
+        return enableFlowController;
+    }
+
+    public void setEnableFlowController(boolean enableFlowController) {
+        this.enableFlowController = enableFlowController;
+    }
+
+    public QueueFlowController getFlowController() {
+        return flowController;
+    }
+
+    /**
+    * 
+    * 队列流量控制器，防止队列过大内存OOM，功能：
+    * 1）超过最大阀值，关闭NIO读事件，停止从网络读取mysql数据
+    * 2）队列恢复到可继续写的阀值，重启NIO读事件，继续写队列
+    */
+    public class QueueFlowController {
+
+        private volatile boolean readIOStopped; // 读事件的IO是否已经停止
+        private Collection<BackendConnection> relationedBackendConns;// 关联的后端连接
+        private final FrontendConnection frontendConn;
+
+        public QueueFlowController(FrontendConnection c) {
+            this.readIOStopped = false;
+            this.relationedBackendConns = new ArrayList<BackendConnection>();
+            this.frontendConn = c;
+        }
+
+        /**
+         *恢复所有后端连接的读事件
+         */
+        private void recoverIORead() {
+            if (readIOStopped) {
+                synchronized (relationedBackendConns) {
+                    if (readIOStopped) {// 再次判断，防止并发多次执行
+                        readIOStopped = false;
+                        for (final BackendConnection conn : relationedBackendConns) {
+                            conn.enableRead();
+                        }
+                        relationedBackendConns.clear();
+                        LOGGER.info("The connection[{}] has removed flow control.", frontendConn.toString());
+                    }
+                }
+            }
+        }
+
+        private void stopIORead(final Collection<BackendConnection> conns) {
+            if (null != conns && conns.size() > 0) {
+                synchronized (relationedBackendConns) {
+                    if (!readIOStopped) {// 再次判断，防止并发多次执行
+                        readIOStopped = true;
+                        for (BackendConnection conn : conns) {
+                            conn.disableRead();
+                            this.relationedBackendConns.add(conn);
+                        }
+                        LOGGER.info("Now the connection[{}]  is under flow control", frontendConn.toString());
+                    }
+                }
+            }
+        }
+        /**
+         * 检查writeQueue的流量控制阈值
+         * 
+         * @param connection
+         */
+        public void check(Map<RouteResultsetNode, BackendConnection> target) {
+            int size = writeQueue.size();
+            if (!readIOStopped && size > writeQueueStopThreshold) {
+                stopIORead(target.values());
+            } else {
+                if (readIOStopped && size <= writeQueueRecoverThreshold) {
+                    recoverIORead();
+                }
+            }
+        }
+    }
 }

@@ -162,6 +162,18 @@ public class AIOSocketWR extends SocketWR
     public boolean checkAlive() {
         return channel.isOpen();
     }
+
+    @Override
+    public void disableRead() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void enableRead() {
+        // TODO Auto-generated method stub
+
+    }
 }
 
 class AIOWriteHandler implements CompletionHandler<Integer, AIOSocketWR> {

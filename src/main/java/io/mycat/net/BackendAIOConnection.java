@@ -76,6 +76,11 @@ public abstract class BackendAIOConnection extends AbstractConnection implements
 		processor.addBackend(this);
 	}
 
+    @Override
+    public void checkQueueFlow() {
+
+    }
+
 	@Override
 	public String toString() {
 		return "BackendConnection [id=" + id + ", host=" + host + ", port="

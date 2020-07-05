@@ -994,5 +994,16 @@ public class JDBCConnection implements BackendConnection {
 		}
 	}
 
+    @Override
+    public void disableRead() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void enableRead() {
+        // TODO Auto-generated method stub
+
+    }
 
 }
