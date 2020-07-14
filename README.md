@@ -7,7 +7,7 @@ mycat1.6权威指南
 
 http://mycat.org.cn/document/mycat-definitive-guide.pdf
 
-Mycat志愿者开发群:332702697
+Mycat志愿者开发群:332702697,106088787
 
 [![GitHub issues](https://img.shields.io/github/issues/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/issues)
 [![GitHub forks](https://img.shields.io/github/forks/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/network)
