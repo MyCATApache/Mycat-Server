@@ -35,7 +35,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Strings;
 
+import io.mycat.MycatServer;
 import io.mycat.backend.mysql.CharsetUtil;
+import io.mycat.config.model.SystemConfig;
 import io.mycat.util.CompressUtil;
 import io.mycat.util.TimeUtil;
 
@@ -85,6 +87,10 @@ public abstract class AbstractConnection implements NIOConnection {
 
 	protected final SocketWR socketWR;
 
+    protected boolean enableFlowController;// writeQueue是否开启流控
+    protected final int writeQueueStopThreshold;// writeQueue停止阀值
+    protected final int writeQueueRecoverThreshold;// writeQueue恢复阀值
+
 	public AbstractConnection(NetworkChannel channel) {
 		this.channel = channel;
 		boolean isAIO = (channel instanceof AsynchronousChannel);
@@ -97,6 +103,11 @@ public abstract class AbstractConnection implements NIOConnection {
 		this.startupTime = TimeUtil.currentTimeMillis();
 		this.lastReadTime = startupTime;
 		this.lastWriteTime = startupTime;
+
+        SystemConfig config = MycatServer.getInstance().getConfig().getSystem();
+        this.enableFlowController = config.isEnableWriteQueueFlowControl();
+        this.writeQueueStopThreshold = config.getWriteQueueStopThreshold();
+        this.writeQueueRecoverThreshold = config.getWriteQueueRecoverThreshold();
 	}
 
 	public String getCharset() {
@@ -623,4 +634,22 @@ public abstract class AbstractConnection implements NIOConnection {
 	public boolean checkAlive(){
 	return 	socketWR.checkAlive();
 	}
+
+    public boolean isEnableFlowController() {
+        return enableFlowController;
+    }
+
+    public int getWriteQueueStopThreshold() {
+        return writeQueueStopThreshold;
+    }
+
+    public int getWriteQueueRecoverThreshold() {
+        return writeQueueRecoverThreshold;
+    }
+
+    /**
+     * 检查写队列流量，必要时候进行流控
+     */
+    abstract public void checkQueueFlow();
+
 }

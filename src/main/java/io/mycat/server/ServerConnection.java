@@ -25,6 +25,7 @@ package io.mycat.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,10 +33,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.BackendConnection;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
+import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.response.Heartbeat;
@@ -462,5 +465,17 @@ public class ServerConnection extends FrontendConnection {
 	public void setPreAcStates(boolean preAcStates) {
 		this.preAcStates = preAcStates;
 	}
+
+    @Override
+    public void checkQueueFlow() {
+        RouteResultset rrs = session.getRrs();
+        if (rrs != null && rrs.getNodes().length > 1 && session.getRrs().needMerge()) {
+            // 多节点合并结果集语句需要拉取所有数据，无法流控
+            return;
+        } else {
+            // 非合并结果集语句进行流量控制检查。
+            flowController.check(session.getTargetMap());
+        }
+    }
 
 }

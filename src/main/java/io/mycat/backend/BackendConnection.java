@@ -69,4 +69,8 @@ public interface BackendConnection extends ClosableConnection {
 
 	public boolean checkAlive();
 
+    public void disableRead();
+
+    public void enableRead();
+
 }

@@ -55,4 +55,10 @@ public class ManagerConnection extends FrontendConnection {
 		handler.handle(data);
 	}
 
+    @Override
+    public void checkQueueFlow() {
+        // TODO Auto-generated method stub
+
+    }
+
 }

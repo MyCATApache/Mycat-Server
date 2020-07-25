@@ -794,4 +794,14 @@ public class MySQLConnection extends BackendAIOConnection {
 	public int getTxIsolation() {
 		return txIsolation;
 	}
+
+    @Override
+    public void disableRead() {
+        this.getSocketWR().disableRead();
+    }
+
+    @Override
+    public void enableRead() {
+        this.getSocketWR().enableRead();
+    }
 }
