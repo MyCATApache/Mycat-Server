@@ -37,6 +37,8 @@ public interface BackendConnection extends ClosableConnection {
 
 	public Object getAttachment();
 
+    public void closeWithoutRsp(String reason);
+
 	// public long getThreadId();
 
 

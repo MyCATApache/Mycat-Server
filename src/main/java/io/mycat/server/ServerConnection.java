@@ -482,14 +482,17 @@ public class ServerConnection extends FrontendConnection {
     @Override
     public void resetConnection() {
         // 1 简单点直接关闭后端连接。若按照mysql官方的提交事务或回滚事务，mycat都会回包给应用，引发包乱序。
-        session.closeAndClearResources("reset connection");
+        session.closeAndClearResources("receive com_reset_connection");
 
         // 2 重置用户变量
+        this.txInterrupted = false;
         this.autocommit = true;
         this.preAcStates = true;
         this.txReadonly = false;
         this.lastInsertId = 0;
 
+
         super.resetConnection();
     }
+
 }
