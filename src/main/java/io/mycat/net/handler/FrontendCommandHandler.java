@@ -118,6 +118,9 @@ public class FrontendCommandHandler implements NIOHandler
                 commands.doSetOption();
                 source.setOption(data);
                 break;
+            case MySQLPacket.COM_RESET_CONNECTION:
+                source.resetConnection();
+                break;
             default:
                 commands.doOther();
                 MycatConfig config = MycatServer.getInstance().getConfig();
