@@ -559,6 +559,13 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		}
 	}
 
+    @Override
+    public void closeWithoutRsp(String reason) {
+        // TODO Auto-generated method stub
+        this.responseHandler = null;
+        close(reason);
+    }
+
 	@Override
 	public boolean syncAndExcute() {
 		StatusSync sync = this.statusSync;
@@ -599,4 +606,5 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
         // TODO Auto-generated method stub
 
     }
+
 }
