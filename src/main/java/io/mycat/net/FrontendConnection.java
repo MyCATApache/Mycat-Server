@@ -85,7 +85,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 	protected LoadDataInfileHandler loadDataInfileHandler;
 	protected boolean isAccepted;
 	protected boolean isAuthenticated;
-  protected QueueFlowController flowController;
+    protected QueueFlowController flowController;
 	private boolean allowMultiStatements = false;
 
 	public FrontendConnection(NetworkChannel channel) throws IOException {
@@ -683,6 +683,24 @@ public abstract class FrontendConnection extends AbstractConnection {
 		}
 	}
   
+    /**
+     * https://dev.mysql.com/doc/dev/mysql-server/8.0.11/page_protocol_com_reset_connection.html
+     * https://dev.mysql.com/doc/refman/5.7/en/mysql-reset-connection.html
+     *
+                  与连接有关的状态受到以下影响：
+        -将回滚所有活动的事务，并重置自动提交模式。           
+        - 所有表锁均已释放。            
+        -会话系统变量将重新初始化为相应的全局系统变量的值，包括由诸如之类的语句隐式设置的系统变量SET NAMES。           
+        -用户变量设置丢失。             
+        -准备好的语句被释放。
+        ........
+         */
+    public void resetConnection() {
+        // 字符集恢复为UTF8
+        setCharset("utf8");
+        write(writeToBuffer(OkPacket.OK, allocate()));
+    }
+
     public boolean isEnableFlowController() {
         return enableFlowController;
     }

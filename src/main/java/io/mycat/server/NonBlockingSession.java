@@ -343,7 +343,7 @@ public class NonBlockingSession implements Session {
 
     public void closeAndClearResources(String reason) {
         for (BackendConnection node : target.values()) {
-            node.close(reason);
+            node.closeWithoutRsp(reason);
         }
         target.clear();
         clearHandlesResources();

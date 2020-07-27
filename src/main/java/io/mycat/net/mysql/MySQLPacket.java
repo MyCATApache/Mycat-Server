@@ -178,6 +178,11 @@ public abstract class MySQLPacket {
     public static final byte COM_STMT_FETCH = 28;
 
     /**
+     * mysql_reset_connection
+     */
+    public static final byte COM_RESET_CONNECTION = 31;
+
+    /**
      * Mycat heartbeat
      */
     public static final byte COM_HEARTBEAT = 64;
