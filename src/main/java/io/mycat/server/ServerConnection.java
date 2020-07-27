@@ -25,7 +25,8 @@ package io.mycat.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
-import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,12 +34,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
-import io.mycat.backend.BackendConnection;
+import io.mycat.backend.mysql.nio.handler.DefaultSqlExecuteListener;
+import io.mycat.backend.mysql.nio.handler.SqlExecuteListener;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.handler.MysqlProcHandler;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.response.Heartbeat;
@@ -71,6 +72,8 @@ public class ServerConnection extends FrontendConnection {
 	 * 标志是否执行了lock tables语句，并处于lock状态
 	 */
 	private volatile boolean isLocked = false;
+    private Queue<SqlPair> executeSqlQueue;
+    private SqlExecuteListener listener;
 	
 	public ServerConnection(NetworkChannel channel)
 			throws IOException {
@@ -79,6 +82,8 @@ public class ServerConnection extends FrontendConnection {
 		this.autocommit = true;
 		this.preAcStates = true;
 		this.txReadonly = false;
+        this.executeSqlQueue = new LinkedBlockingQueue<SqlPair>();
+        this.listener = new DefaultSqlExecuteListener(this);
 	}
 
 	@Override
@@ -182,7 +187,7 @@ public class ServerConnection extends FrontendConnection {
 		Heartbeat.response(this, data);
 	}
 
-	public void execute(String sql, int type) {
+    public void execute(String sql, int type) {
 		//连接状态检查
 		if (this.isClosed()) {
 			LOGGER.warn("ignore execute ,server connection is closed " + this);
@@ -339,11 +344,23 @@ public class ServerConnection extends FrontendConnection {
 			return;
 		}
 		if (rrs != null) {
-			// session执行
-			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
-		}
-		
- 	}
+            // #支持mariadb驱动useBatchMultiSend=true,连续接收到的sql先放入队列，等待前面处理完成后再继续处理。
+            // 参考https://mariadb.com/kb/en/option-batchmultisend-description/
+            boolean executeNow = false;
+            synchronized (this.executeSqlQueue) {
+                executeNow = this.executeSqlQueue.isEmpty();
+                this.executeSqlQueue.add(new SqlPair(sql, type, rrs));
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("add queue,executeSqlQueue size {}", executeSqlQueue.size());
+                }
+            }
+
+            if (executeNow) {
+                this.executeSqlId++;
+                session.execute(rrs, rrs.isSelectForUpdate() ? ServerParse.UPDATE : type);
+            }
+        }
+    }
 
 	/**
 	 * 提交事务
@@ -466,6 +483,14 @@ public class ServerConnection extends FrontendConnection {
 		this.preAcStates = preAcStates;
 	}
 
+    public SqlExecuteListener getListener() {
+        return listener;
+    }
+
+    public void setListener(SqlExecuteListener listener) {
+        this.listener = listener;
+    }
+
     @Override
     public void checkQueueFlow() {
         RouteResultset rrs = session.getRrs();
@@ -475,6 +500,36 @@ public class ServerConnection extends FrontendConnection {
         } else {
             // 非合并结果集语句进行流量控制检查。
             flowController.check(session.getTargetMap());
+        }
+    }
+
+    /**
+     * sql执行完成后回调函数
+     */
+    public void onEventSqlCompleted() {
+        SqlPair sqlPair = null;
+        synchronized (this.executeSqlQueue) {
+            this.executeSqlQueue.poll();// 弹出已经执行成功的
+            sqlPair = this.executeSqlQueue.peek();
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("poll queue,executeSqlQueue size {}", this.executeSqlQueue.size());
+            }
+        }
+        if (sqlPair != null) {
+            this.executeSqlId++;
+            session.execute(sqlPair.rrs, sqlPair.rrs.isSelectForUpdate() ? ServerParse.UPDATE : sqlPair.type);
+        }
+    }
+
+    private class SqlPair {
+        public String sql;
+        public int type;
+        public RouteResultset rrs;
+
+        public SqlPair(String sql, int type, RouteResultset rrs) {
+            this.sql = sql;
+            this.type = type;
+            this.rrs = rrs;
         }
     }
 

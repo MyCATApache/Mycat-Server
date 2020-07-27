@@ -262,6 +262,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 //			source.setTxInterrupt(e.getMessage());
 			source.writeErrMessage(ErrorCode.ER_NEW_ABORTING_CONNECTION, e.getMessage());
 		}
+
+        source.getListener().fireEvent(SQL_EXECUTE_STAGE.END);
 	}
 
 	@Override
@@ -311,6 +313,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			source.writeErrMessage(errPkg.errno, new String(errPkg.message));
 		}
 		recycleResources();
+        source.getListener().fireEvent(SQL_EXECUTE_STAGE.END);
 	}
 
 
@@ -364,6 +367,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			}
             
 			source.setExecuteSql(null);
+            source.getListener().fireEvent(SQL_EXECUTE_STAGE.END);
 			// add by lian
 			// 解决sql统计中写操作永远为0
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
@@ -407,6 +411,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			}
 		}
 		source.setExecuteSql(null);
+        source.getListener().fireEvent(SQL_EXECUTE_STAGE.END);
 		//TODO: add by zhuam
 		//查询结果派发
 		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
