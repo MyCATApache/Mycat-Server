@@ -32,8 +32,6 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLoadDataInFileStat
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
 import io.mycat.MycatServer;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
@@ -65,6 +63,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.sql.SQLNonTransientException;
 import java.util.*;
+
+//import com.univocity.parsers.csv.CsvParser;
+//import com.univocity.parsers.csv.CsvParserSettings;
 
 /**
  * mysql命令行客户端也需要启用local file权限，加参数--local-infile=1
@@ -603,140 +604,141 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler 
 
     private void parseFileByLine(String file, String encode, String split) {
         List<SQLExpr> columns = statement.getColumns();
-        CsvParserSettings settings = new CsvParserSettings();
-        settings.setMaxColumns(65535);
-        settings.setMaxCharsPerColumn(65535);
-        settings.getFormat().setLineSeparator(loadData.getLineTerminatedBy());
-        settings.getFormat().setDelimiter(loadData.getFieldTerminatedBy().charAt(0));
+        CSVFormat csvFormat = CSVFormat.newFormat(
+                loadData.getFieldTerminatedBy().charAt(0))
+                .withRecordSeparator(loadData.getLineTerminatedBy()).
+                        withSkipHeaderRecord(false).withTrim(false);
+
         if (loadData.getEnclose() != null) {
-            settings.getFormat().setQuote(loadData.getEnclose().charAt(0));
+            csvFormat = csvFormat.withQuote(loadData.getEnclose().charAt(0));
         }
         if (loadData.getEscape() != null) {
-            settings.getFormat().setQuoteEscape(loadData.getEscape().charAt(0));
+            csvFormat = csvFormat.withQuote(loadData.getEscape().charAt(0));
         }
-        settings.getFormat().setNormalizedNewline(loadData.getLineTerminatedBy().charAt(0));
         /*
-         *  fix #1074 : LOAD DATA local INFILE导入的所有Boolean类型全部变成了false
+         *  fix bug #1074 : LOAD DATA local INFILE导入的所有Boolean类型全部变成了false
          *  不可见字符将在CsvParser被当成whitespace过滤掉, 使用settings.trimValues(false)来避免被过滤掉
          *  TODO : 设置trimValues(false)之后, 会引起字段值前后的空白字符无法被过滤!
          */
-        settings.trimValues(false);
-        CsvParser parser = new CsvParser(settings);
-        InputStreamReader reader = null;
-        FileInputStream fileInputStream = null;
-        try {
 
-            fileInputStream = new FileInputStream(file);
-            reader = new InputStreamReader(fileInputStream, encode);
-            parser.beginParsing(reader);
-            String[] row = null;
 
-            while ((row = parser.parseNext()) != null) {
-                parseOneLine(columns, tableName, row, true, loadData.getLineTerminatedBy());
+            InputStreamReader reader = null;
+            FileInputStream fileInputStream = null;
+            try {
+
+                fileInputStream = new FileInputStream(file);
+                reader = new InputStreamReader(fileInputStream, encode);
+                Iterable<CSVRecord> records = csvFormat.parse((reader));
+                String[] row = null;
+                for (CSVRecord record : records) {
+                    int size = record.size();
+                    row = new String[size];
+                    for (int i = 0; i < size; i++) {
+                        row[i] = record.get(i);
+                    }
+                    parseOneLine(columns, tableName, row, true, loadData.getLineTerminatedBy());
+                }
+            } catch (FileNotFoundException | UnsupportedEncodingException e) {
+                throw new RuntimeException(e);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (fileInputStream != null) {
+                    try {
+                        fileInputStream.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                if (reader != null) {
+                    try {
+                        reader.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
             }
+    }
 
 
-        } catch (FileNotFoundException | UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        } finally {
-            parser.stopParsing();
-            if (fileInputStream != null) {
-                try {
-                    fileInputStream.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+        public void clear () {
+            isStartLoadData = false;
+            tableId2DataNodeCache = null;
+            schema = null;
+            tableConfig = null;
+            isHasStoreToFile = false;
+            packID = 0;
+            tempByteBuffrSize = 0;
+            tableName = null;
+            partitionColumnIndex = -1;
+            if (tempFile != null) {
+                File temp = new File(tempFile);
+                if (temp.exists()) {
+                    temp.delete();
                 }
             }
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+            if (tempPath != null && new File(tempPath).exists()) {
+                deleteFile(tempPath);
+            }
+            tempByteBuffer = null;
+            loadData = null;
+            sql = null;
+            fileName = null;
+            statement = null;
+            routeResultMap.clear();
+        }
+
+        @Override
+        public byte getLastPackId () {
+            return packID;
+        }
+
+        @Override
+        public boolean isStartLoadData () {
+            return isStartLoadData;
+        }
+
+        private String getPartitionColumn () {
+            String pColumn;
+            if (tableConfig.isSecondLevel()
+                    && tableConfig.getParentTC().getPartitionColumn()
+                    .equals(tableConfig.getParentKey())) {
+                pColumn = tableConfig.getJoinKey();
+            } else {
+                pColumn = tableConfig.getPartitionColumn();
+            }
+            return pColumn;
+        }
+
+        /**
+         * 删除目录及其所有子目录和文件
+         *
+         * @param dirPath 要删除的目录路径
+         * @throws Exception
+         */
+        private static void deleteFile (String dirPath){
+            File fileDirToDel = new File(dirPath);
+            if (!fileDirToDel.exists()) {
+                return;
+            }
+            if (fileDirToDel.isFile()) {
+                fileDirToDel.delete();
+                return;
+            }
+            File[] fileList = fileDirToDel.listFiles();
+
+            for (int i = 0; i < fileList.length; i++) {
+                File file = fileList[i];
+                if (file.isFile() && file.exists()) {
+                    boolean delete = file.delete();
+                } else if (file.isDirectory()) {
+                    deleteFile(file.getAbsolutePath());
+                    file.delete();
                 }
             }
-
-        }
-
-    }
-
-
-    public void clear() {
-        isStartLoadData = false;
-        tableId2DataNodeCache = null;
-        schema = null;
-        tableConfig = null;
-        isHasStoreToFile = false;
-        packID = 0;
-        tempByteBuffrSize = 0;
-        tableName = null;
-        partitionColumnIndex = -1;
-        if (tempFile != null) {
-            File temp = new File(tempFile);
-            if (temp.exists()) {
-                temp.delete();
-            }
-        }
-        if (tempPath != null && new File(tempPath).exists()) {
-            deleteFile(tempPath);
-        }
-        tempByteBuffer = null;
-        loadData = null;
-        sql = null;
-        fileName = null;
-        statement = null;
-        routeResultMap.clear();
-    }
-
-    @Override
-    public byte getLastPackId() {
-        return packID;
-    }
-
-    @Override
-    public boolean isStartLoadData() {
-        return isStartLoadData;
-    }
-
-    private String getPartitionColumn() {
-        String pColumn;
-        if (tableConfig.isSecondLevel()
-                && tableConfig.getParentTC().getPartitionColumn()
-                .equals(tableConfig.getParentKey())) {
-            pColumn = tableConfig.getJoinKey();
-        } else {
-            pColumn = tableConfig.getPartitionColumn();
-        }
-        return pColumn;
-    }
-
-    /**
-     * 删除目录及其所有子目录和文件
-     *
-     * @param dirPath 要删除的目录路径
-     * @throws Exception
-     */
-    private static void deleteFile(String dirPath) {
-        File fileDirToDel = new File(dirPath);
-        if (!fileDirToDel.exists()) {
-            return;
-        }
-        if (fileDirToDel.isFile()) {
             fileDirToDel.delete();
-            return;
         }
-        File[] fileList = fileDirToDel.listFiles();
 
-        for (int i = 0; i < fileList.length; i++) {
-            File file = fileList[i];
-            if (file.isFile() && file.exists()) {
-                boolean delete = file.delete();
-            } else if (file.isDirectory()) {
-                deleteFile(file.getAbsolutePath());
-                file.delete();
-            }
-        }
-        fileDirToDel.delete();
+
     }
-
-
-}
