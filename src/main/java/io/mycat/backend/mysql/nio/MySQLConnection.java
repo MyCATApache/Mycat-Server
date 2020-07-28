@@ -648,6 +648,13 @@ public class MySQLConnection extends BackendAIOConnection {
 		}
 	}
 
+    @Override
+    public void closeWithoutRsp(String reason) {
+        // TODO Auto-generated method stub
+        this.respHandler = null;
+        this.close(reason);
+    }
+
 	public void commit() {
 
 		_COMMIT.write(this);
@@ -804,4 +811,5 @@ public class MySQLConnection extends BackendAIOConnection {
     public void enableRead() {
         this.getSocketWR().enableRead();
     }
+
 }

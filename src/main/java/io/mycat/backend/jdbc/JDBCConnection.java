@@ -118,6 +118,12 @@ public class JDBCConnection implements BackendConnection {
 
 	}
 
+    @Override
+    public void closeWithoutRsp(String reason) {
+        // TODO Auto-generated method stub
+        close(reason);
+    }
+
 	public void setId(long id) {
         this.id = id;
     }
