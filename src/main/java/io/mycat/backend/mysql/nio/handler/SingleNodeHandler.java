@@ -38,6 +38,7 @@ import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.mysql.LoadDataUtil;
+import io.mycat.backend.mysql.listener.SqlExecuteStage;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
@@ -262,6 +263,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 //			source.setTxInterrupt(e.getMessage());
 			source.writeErrMessage(ErrorCode.ER_NEW_ABORTING_CONNECTION, e.getMessage());
 		}
+
+        source.getListener().fireEvent(SqlExecuteStage.END);
 	}
 
 	@Override
@@ -311,6 +314,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			source.writeErrMessage(errPkg.errno, new String(errPkg.message));
 		}
 		recycleResources();
+        source.getListener().fireEvent(SqlExecuteStage.END);
 	}
 
 
@@ -364,6 +368,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			}
             
 			source.setExecuteSql(null);
+            source.getListener().fireEvent(SqlExecuteStage.END);
 			// add by lian
 			// 解决sql统计中写操作永远为0
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
@@ -407,6 +412,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			}
 		}
 		source.setExecuteSql(null);
+        source.getListener().fireEvent(SqlExecuteStage.END);
 		//TODO: add by zhuam
 		//查询结果派发
 		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 

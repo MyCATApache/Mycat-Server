@@ -42,6 +42,7 @@ import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.mysql.LoadDataUtil;
+import io.mycat.backend.mysql.listener.SqlExecuteStage;
 import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.ErrorCode;
@@ -560,6 +561,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
  		if (execCount == rrs.getNodes().length) {
 			int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
 			source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
+            session.getSource().getListener().fireEvent(SqlExecuteStage.END);
+
 			//TODO: add by zhuam
 			//查询结果派发
 			QueryResult queryResult = new QueryResult(session.getSource().getUser(),
@@ -670,6 +673,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			
 		}
 
+            session.getSource().getListener().fireEvent(SqlExecuteStage.END);
 
  		} catch (Exception e) {
 			e.printStackTrace();
@@ -745,6 +749,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			if(source.canResponse()) {
 				source.write(source.writeToBuffer(eof, buffer));
 			}
+
+            session.getSource().getListener().fireEvent(SqlExecuteStage.END);
 
 		} catch (Exception e) {
 			handleDataProcessException(e);
@@ -1048,6 +1054,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
         */
     protected void processFinishWork(byte[] data, boolean isCommit, BackendConnection conn) {
         ServerConnection source = session.getSource();
+        source.getListener().fireEvent(SqlExecuteStage.END);
 
         if (source.isAutocommit() && conn.isModifiedSQLExecuted()) {
             // 1隐式事务:修改类语句并且autocommit=true，mycat自动开启事务，需要自动提交掉
