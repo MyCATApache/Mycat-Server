@@ -23,37 +23,36 @@
  */
 package io.mycat.server.handler;
 
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.SQLSelect;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.parser.SQLParserUtils;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.alibaba.druid.util.JdbcUtils;
-import com.google.common.escape.Escaper;
-import com.google.common.escape.Escapers;
-import com.google.common.escape.Escapers.Builder;
-import io.mycat.backend.mysql.BindValue;
-import io.mycat.backend.mysql.ByteUtil;
-import io.mycat.backend.mysql.PreparedStatement;
-import io.mycat.config.ErrorCode;
-import io.mycat.config.Fields;
-import io.mycat.net.handler.FrontendPrepareHandler;
-import io.mycat.net.mysql.ExecutePacket;
-import io.mycat.net.mysql.LongDataPacket;
-import io.mycat.net.mysql.OkPacket;
-import io.mycat.net.mysql.ResetPacket;
-import io.mycat.server.ServerConnection;
-import io.mycat.server.response.PreparedStmtResponse;
-import io.mycat.util.HexFormatUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.escape.Escaper;
+import com.google.common.escape.Escapers;
+import com.google.common.escape.Escapers.Builder;
+
+import io.mycat.backend.mysql.BindValue;
+import io.mycat.backend.mysql.ByteUtil;
+import io.mycat.backend.mysql.PreparedStatement;
+import io.mycat.backend.mysql.nio.handler.PrepareRequestHandler;
+import io.mycat.backend.mysql.nio.handler.PrepareRequestHandler.PrepareRequestCallback;
+import io.mycat.config.ErrorCode;
+import io.mycat.config.Fields;
+import io.mycat.net.handler.FrontendPrepareHandler;
+import io.mycat.net.mysql.ExecutePacket;
+import io.mycat.net.mysql.FieldPacket;
+import io.mycat.net.mysql.LongDataPacket;
+import io.mycat.net.mysql.OkPacket;
+import io.mycat.net.mysql.ResetPacket;
+import io.mycat.server.ServerConnection;
+import io.mycat.server.response.PreparedStmtResponse;
+import io.mycat.util.HexFormatUtil;
 
 /**
  * @author mycat, CrazyPig, zhuam
@@ -90,24 +89,36 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 
     @Override
     public void prepare(String sql) {
-
         LOGGER.debug("use server prepare, sql: " + sql);
-        PreparedStatement pstmt = null;
-        if (pstmt == null) {
-            // 解析获取字段个数和参数个数
-            int paramCount = getParamCount(sql);
-            if (paramCount > maxPreparedStmtCount) {
-                source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM,
-                        "Prepared statement contains too many placeholders");
-                return;
-            }
-            pstmt = new PreparedStatement(PSTMT_ID_GENERATOR.incrementAndGet(), sql,
-                    paramCount);
-            pstmtForId.put(pstmt.getId(), pstmt);
-            LOGGER.info("preparestatement  parepare id:{}", pstmt.getId());
+        // 解析获取字段个数和参数个数
+        int paramCount = getParamCount(sql);
+        if (paramCount > maxPreparedStmtCount) {
+            source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM, "Prepared statement contains too many placeholders");
+            return;
         }
-        PreparedStmtResponse.response(pstmt, source);
+
+        // funnyAnt调用后端数据库查询元数据，如果失败再使用默认值
+        new PrepareRequestHandler(source, sql, new PrepareRequestCallback() {
+            @Override
+            public void callback(boolean success, String msg, FieldPacket[] params, FieldPacket[] fields) {
+                // TODO Auto-generated method stub
+                PreparedStatement pstmt = new PreparedStatement(PSTMT_ID_GENERATOR.incrementAndGet(), sql, paramCount);
+                if (success) {
+                    pstmt.setParams(params);
+                    pstmt.setFields(fields);
+                } else {
+                    LOGGER.warn("Get prepare meta data error: " + msg);
+                    // 解析构建columns
+                    pstmt.constructColumns();
+                }
+                pstmtForId.put(pstmt.getId(), pstmt);
+                LOGGER.info("preparestatement  parepare id:{}", pstmt.getId());
+                PreparedStmtResponse.response(pstmt, source);
+
+            }
+        }).execute();
     }
+
 
     @Override
     public void sendLongData(byte[] data) {
@@ -285,5 +296,4 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
         }
         return sb.toString();
     }
-
 }

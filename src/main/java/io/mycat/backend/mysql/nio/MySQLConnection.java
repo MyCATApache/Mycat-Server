@@ -811,5 +811,10 @@ public class MySQLConnection extends BackendAIOConnection {
     public void enableRead() {
         this.getSocketWR().enableRead();
     }
+	
+	// 是否需要同步schmea
+    public boolean isNeedSyncSchema() {
+        return schema.equals(oldSchema) ? false : true;
+    }
 
 }

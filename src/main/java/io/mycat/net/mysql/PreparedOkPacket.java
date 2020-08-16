@@ -26,6 +26,7 @@ package io.mycat.net.mysql;
 import java.nio.ByteBuffer;
 
 import io.mycat.backend.mysql.BufferUtil;
+import io.mycat.backend.mysql.MySQLMessage;
 import io.mycat.net.FrontendConnection;
 
 /**
@@ -57,7 +58,7 @@ import io.mycat.net.FrontendConnection;
  * @author mycat
  */
 public class PreparedOkPacket extends MySQLPacket {
-
+    public static int PACKET_SIZE = 12;
     public byte flag;
     public long statementId;
     public int columnsNumber;
@@ -70,6 +71,17 @@ public class PreparedOkPacket extends MySQLPacket {
         this.filler = 0;
     }
 
+    public void read(byte[] data) {
+        MySQLMessage mm = new MySQLMessage(data);
+        packetLength = mm.readUB3();
+        packetId = mm.read();
+        flag = mm.read();
+        statementId = mm.readUB4();
+        columnsNumber = mm.readUB2();
+        parametersNumber = mm.readUB2();
+        warningCount = mm.read();
+
+    }
     @Override
     public ByteBuffer write(ByteBuffer buffer, FrontendConnection c,boolean writeSocketIfFull) {
         int size = calcPacketSize();
@@ -87,7 +99,7 @@ public class PreparedOkPacket extends MySQLPacket {
 
     @Override
     public int calcPacketSize() {
-        return 12;
+        return PACKET_SIZE;
     }
 
     @Override
