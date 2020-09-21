@@ -812,6 +812,10 @@ public class RouterUtil {
 						currentValue.append(nextCode);
 						pos++;
 						continue;
+					} else if (nextCode == '\\') {
+						currentValue.append(nextCode);
+						pos++;
+						continue;
 					}
 				}
 				if (c == '\"' && flag == 1) {
