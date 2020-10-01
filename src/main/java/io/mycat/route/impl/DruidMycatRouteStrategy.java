@@ -13,6 +13,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -38,12 +42,8 @@ import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.stat.TableStat.Relationship;
 import com.google.common.base.Strings;
 
-import io.mycat.backend.datasource.PhysicalDBNode;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.mycat.MycatServer;
+import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.mysql.nio.handler.MiddlerQueryResultHandler;
 import io.mycat.backend.mysql.nio.handler.MiddlerResultHandler;
 import io.mycat.backend.mysql.nio.handler.SecondHandler;
@@ -121,7 +121,26 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 		 * 解析出现问题统一抛SQL语法错误
 		 */
 		try {
-			statement = parser.parseStatement();
+            if (parser instanceof MycatStatementParser || sqlType == ServerParse.LOCK) {
+                /**
+                 * 说明： 1)非mysql数据库因为是jdbc驱动支持多语句，所以无需判断是否为多语句；
+                 * 2)lock类型语句，因为druid自身问题且升级后mycat代码大量编译报错，只能沿用当前逻辑，不判断是否为多语句
+                 */
+                statement = parser.parseStatement();
+            } else {
+                // 因不支持多语句，添加判断是否为多语句
+                List<SQLStatement> statementList = new ArrayList<SQLStatement>();
+
+                /** 最多就解析2条，用于判断是否为批量 **/
+                parser.parseStatementList(statementList, 2);
+                if (statementList.size() > 1) {
+                    throw new SQLSyntaxErrorException(
+                            "Multi statements is not supported,use single statement instead ");
+                } else {
+                    statement = statementList.get(0);
+                }
+            }
+
 			visitor = new MycatSchemaStatVisitor();
 		} catch (Exception t) {
 			LOGGER.error("DruidMycatRouteStrategyError", t);

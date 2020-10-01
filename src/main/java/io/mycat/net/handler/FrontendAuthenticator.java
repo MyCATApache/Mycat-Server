@@ -214,6 +214,15 @@ public class FrontendAuthenticator implements NIOHandler {
         source.setUser(auth.user);
         source.setSchema(auth.database);
         source.setCharsetIndex(auth.charsetIndex);
+        if (auth.allowMultiStatements) {
+            // #2589 url里面包含allowMultiQueries=true，allowMultiStatements这个参数会在握手协议时候返回
+            // 因为mycat目前不能很好地支持这个特性，直接报错
+            String errMsg = "Mycat does not support the allowMultiQueries value to be true, please set the value to false and try again.";
+            LOGGER.error(errMsg);
+            failure(ErrorCode.ER_HANDSHAKE_ERROR, errMsg);
+            return;
+        }
+
         source.setHandler(new FrontendCommandHandler(source));
 
         if (LOGGER.isInfoEnabled()) {
