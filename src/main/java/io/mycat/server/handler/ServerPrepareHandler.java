@@ -185,6 +185,8 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("execute prepare sql: " + sql);
             }
+
+            pstmt.resetLongData();
             source.query(sql);
         }
     }
