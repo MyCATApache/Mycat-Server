@@ -214,6 +214,21 @@ public class FrontendAuthenticator implements NIOHandler {
         source.setUser(auth.user);
         source.setSchema(auth.database);
         source.setCharsetIndex(auth.charsetIndex);
+        if (auth.allowMultiStatements) {
+            /**
+             * #2589 url里面包含allowMultiQueries=true，allowMultiStatements这个参数会在握手协议时候返回
+             * mysql命令行客户端或navicat都会把这个参数设置为true，表示它会发送”multiple statements “
+             * 参考https://dev.mysql.com/doc/internals/en/capability-flags.html。
+             * 因为mycat目前不能支持这个特性，只能先日志记录下，便于以后排查问题
+             **/
+            String warnMsg = "Mycat does not support the allowMultiQueries value to be true, maybe occur some error.Client connection is[{}]";
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(warnMsg, this);
+            }
+            // failure(ErrorCode.ER_HANDSHAKE_ERROR, errMsg);
+            // return;
+        }
+
         source.setHandler(new FrontendCommandHandler(source));
 
         if (LOGGER.isInfoEnabled()) {

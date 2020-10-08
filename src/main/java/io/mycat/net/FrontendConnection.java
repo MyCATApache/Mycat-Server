@@ -613,7 +613,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 		flag |= Capabilities.CLIENT_TRANSACTIONS;
 		// flag |= ServerDefs.CLIENT_RESERVED;
 		flag |= Capabilities.CLIENT_SECURE_CONNECTION;
-        flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
+        // flag |= Capabilities.CLIENT_MULTI_STATEMENTS;
         flag |= Capabilities.CLIENT_MULTI_RESULTS;
         boolean useHandshakeV10 = MycatServer.getInstance().getConfig().getSystem().getUseHandshakeV10() == 1;
         if(useHandshakeV10) {

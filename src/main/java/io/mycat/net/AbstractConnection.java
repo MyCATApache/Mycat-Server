@@ -553,7 +553,7 @@ public abstract class AbstractConnection implements NIOConnection {
 	/**
 	 * 清理资源
 	 */
-	protected void cleanup() {
+    synchronized protected void cleanup() {
 		
 		// 清理资源占用
 		if (readBuffer != null) {
