@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +77,9 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     }
 
     private ServerConnection source;
-    private static final AtomicLong PSTMT_ID_GENERATOR = new AtomicLong(0);
+
+    // java int是32位，long是64位；mysql协议里面定义的statementId是32位，因此用Integer
+    private static final AtomicInteger PSTMT_ID_GENERATOR = new AtomicInteger(0);
     //    private static final Map<String, PreparedStatement> pstmtForSql = new ConcurrentHashMap<>();
     private static final Map<Long, PreparedStatement> pstmtForId = new ConcurrentHashMap<>();
     private int maxPreparedStmtCount;
