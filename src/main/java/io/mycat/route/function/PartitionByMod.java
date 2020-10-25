@@ -60,7 +60,11 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 			BigInteger bigNum = new BigInteger(columnValue).abs();
 			return (bigNum.mod(BigInteger.valueOf(count))).intValue();
 		} catch (NumberFormatException e){
-			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
+            // throw new IllegalArgumentException(new
+            // StringBuilder().append("columnValue:").append(columnValue).append(" Please
+            // eliminate any quote and non number within it.").toString(),e);
+            int value = Math.abs((columnValue).hashCode());
+            return value % count;
 		}
 
 	}
