@@ -160,8 +160,13 @@ public class BinaryRowDataPacket extends MySQLPacket {
 
 			// Example
 			// 01 00 -- int16 = 1
-			short shortVar = ByteUtil.getShort(fv);
-			this.fieldValues.add(ByteUtil.getBytes(shortVar));
+            if (isUnsignedField(fieldPk)) {
+                this.fieldValues.add(ByteUtil.convertUnsignedShort2Binary(fv));
+            } else {
+                short shortVar = ByteUtil.getShort(fv);
+                this.fieldValues.add(ByteUtil.getBytes(shortVar));
+            }
+
 			break;
 		case Fields.FIELD_TYPE_TINY:
 			// Fields
@@ -247,6 +252,9 @@ public class BinaryRowDataPacket extends MySQLPacket {
 		
 	}
 	
+    private boolean isUnsignedField(FieldPacket field) {
+        return (field.flags & FieldPacket.UNSIGNED_FLAG) > 0;
+    }
 	public void write(FrontendConnection conn) {
 		
 		int size = calcPacketSize();
