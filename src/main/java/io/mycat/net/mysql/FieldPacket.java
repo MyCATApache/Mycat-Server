@@ -59,6 +59,8 @@ import io.mycat.net.FrontendConnection;
  * @author mycat
  */
 public class FieldPacket extends MySQLPacket {
+    public static final int UNSIGNED_FLAG = 0x0020;
+
 	private static final byte[] DEFAULT_CATALOG = "def".getBytes();
 	private static final byte[] FILLER = new byte[2];
 
