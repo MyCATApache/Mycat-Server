@@ -214,7 +214,19 @@ public class ByteUtil {
 			return getBytesFromDate(date);
 		}
     }
-	
+
+    /**
+     * short从ASCII类型的值转换成数学二进制值。java里面不存在unsigned short，因此转换mysql unsiged值时需要用到java int.
+     * @param bytes  mysql里面的unsigned short字段，采用ASCII类型表达的值
+     * @return  数学二进制值
+     */
+    public static byte[] convertUnsignedShort2Binary(byte[] bytes) {
+        int value = Integer.parseInt(new String(bytes));
+        byte[] binaryBytes = new byte[2];
+        binaryBytes[0] = (byte) (value & 0xff);
+        binaryBytes[1] = (byte) ((value & 0xff00) >> 8);
+        return binaryBytes;
+    }
 	private static byte[] getBytesFromTime(Date date) {
 		int day = 0;
 		int hour = DateUtil.getHour(date);
