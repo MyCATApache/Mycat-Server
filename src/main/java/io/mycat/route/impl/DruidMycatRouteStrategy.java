@@ -628,15 +628,13 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			// if (StringUtils.isNotBlank(tableName) && tableName.indexOf("%") < 0) {
 			if (StringUtils.isNotBlank(tableName) && tableName.indexOf("%") < 0 && !schema.getTables().isEmpty()) {
                 TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
-                if (tableConfig == null) {
-                    throw new SQLSyntaxErrorException(
-                            "not found table : " + tableName + " in schema " + schema.getName());
+                if (tableConfig != null) {
+                    String relSchemaTmp = RouterUtil.getAliveRandomDataNode(tableConfig);
+                    if (StringUtils.isNotBlank(relSchema)) {
+                        stmt = stmt.replaceAll(relSchema, relSchemaTmp);
+                    }
+                    return RouterUtil.routeToSingleNode(rrs, relSchemaTmp, stmt);
                 }
-                String relSchemaTmp = RouterUtil.getAliveRandomDataNode(tableConfig);
-                if (StringUtils.isNotBlank(relSchema)) {
-                    stmt = stmt.replaceAll(relSchema, relSchemaTmp);
-                }
-                return RouterUtil.routeToSingleNode(rrs, relSchemaTmp, stmt);
             }
             // remove db
             if (StringUtils.isNotBlank(relSchema)) {
@@ -656,6 +654,7 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
             if (!Strings.isNullOrEmpty(defaultNode)) {
                 return RouterUtil.routeToSingleNode(rrs, defaultNode, stmt);
             }
+
             return RouterUtil.routeToMultiNode(false, rrs, schema.getMetaDataNodes(), stmt);
 		}
 		
