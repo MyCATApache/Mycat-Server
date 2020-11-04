@@ -240,8 +240,8 @@ public class NonBlockingSession implements Session {
             return;
         } else if (initCount == 1) {
         	//huangyiming add 避免出现jdk版本冲突
-            BackendConnection con = target.values().iterator().next();
-            commitHandler.commit(con);
+            // BackendConnection con = target.values().iterator().next();
+            commitHandler.commit();
         } else {
 
             if (LOGGER.isDebugEnabled()) {

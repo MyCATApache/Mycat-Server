@@ -25,15 +25,15 @@ package io.mycat.backend.mysql.nio.handler;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.nio.MySQLConnection;
 import io.mycat.backend.mysql.xa.CoordinatorLogEntry;
 import io.mycat.backend.mysql.xa.TxState;
 import io.mycat.config.ErrorCode;
 import io.mycat.net.mysql.OkPacket;
-
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
-
-import io.mycat.backend.BackendConnection;
 import io.mycat.route.RouteResultsetNode;
 import io.mycat.server.NonBlockingSession;
 
@@ -41,12 +41,17 @@ import io.mycat.server.NonBlockingSession;
  * @author mycat
  */
 public class RollbackNodeHandler extends MultiNodeHandler {
-	private static final Logger LOGGER = LoggerFactory
-			.getLogger(RollbackNodeHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RollbackNodeHandler.class);
+    protected byte[] responseData;
 
 	public RollbackNodeHandler(NonBlockingSession session) {
 		super(session);
 	}
+
+    public RollbackNodeHandler(NonBlockingSession session, byte[] responseData) {
+        super(session);
+        this.responseData = responseData;
+    }
 
 	public void rollback() {
 		final int initCount = session.getTargetCount();
@@ -200,10 +205,14 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 				tryErrorFinished(true);
 			} else {
 		        if(session.getSource().canResponse()) {
-		        	OkPacket okPacket = new OkPacket();
-		        	okPacket.read(ok);
-		        	okPacket.packetId = 1;
-					session.getSource().write(okPacket.writeToBytes());
+                    if (responseData != null) {
+                        session.getSource().write(responseData);
+                    } else {
+                        OkPacket okPacket = new OkPacket();
+                        okPacket.read(ok);
+                        okPacket.packetId = 1;
+                        session.getSource().write(okPacket.writeToBytes());
+                    }
 				}
 			}
 		}
@@ -258,20 +267,22 @@ public class RollbackNodeHandler extends MultiNodeHandler {
 		}
 	}
 	protected void tryErrorFinished(boolean allEnd) {
-		if (allEnd && !session.closed()) {		
-			
-			
-			// clear session resources,release all
-			if (LOGGER.isDebugEnabled()) {
-				LOGGER.debug("error all end ,clear session resource ");
-			}
-			//关闭所有的错误后端连接 清理资源
-			session.closeAndClearResources(error);
-			//避免高并发 重新在清空一次
-			session.getSource().clearTxInterrupt();
-			//createErrPkg(this.error).write(session.getSource());
-			session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, this.error);
-		}
+        if (allEnd && !session.closed()) {
 
-	}
+            // clear session resources,release all
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("error all end ,clear session resource ");
+            }
+            // 关闭所有的错误后端连接 清理资源
+            session.closeAndClearResources(error);
+            // 避免高并发 重新在清空一次
+            session.getSource().clearTxInterrupt();
+            // createErrPkg(this.error).write(session.getSource());
+            if (responseData != null) {
+                LOGGER.error(this.error);
+                session.getSource().write(responseData);
+            } else
+                session.getSource().writeErrMessage(ErrorCode.ER_UNKNOWN_ERROR, this.error);
+            }
+    }
 }
