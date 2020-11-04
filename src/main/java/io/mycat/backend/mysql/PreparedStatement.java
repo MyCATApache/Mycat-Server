@@ -68,6 +68,8 @@ public class PreparedStatement {
         this.parametersNumber = parametersNumber;
         this.parametersType = new int[parametersNumber];
         this.longDataMap = new HashMap<Long, ByteArrayOutputStream>();
+
+        constructColumns();
     }
 
     // 获取预处理语句中column的个数
