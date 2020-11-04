@@ -1061,7 +1061,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
         ServerConnection source = session.getSource();
         source.getListener().fireEvent(SqlExecuteStage.END);
 
-        if (source.isAutocommit() && conn.isModifiedSQLExecuted()) {
+        if (source.isAutocommit() && conn.isModifiedSQLExecuted() && !conn.isAutocommit()) {
             // 1隐式事务:修改类语句并且autocommit=true，mycat自动开启事务，需要自动提交掉
             if (nodeCount < 0) {
                 return;
@@ -1073,7 +1073,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
                 CommitNodeHandler commitHandler = new CommitNodeHandler(session, data);
                 commitHandler.commit();
             } else {
-                RollbackNodeHandler rollbackHandler = new RollbackNodeHandler(session);
+                RollbackNodeHandler rollbackHandler = new RollbackNodeHandler(session, data);
                 rollbackHandler.rollback();
             }
         } else {
