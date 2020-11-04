@@ -3,6 +3,11 @@ package io.mycat.backend.mysql.nio.handler;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
+import io.mycat.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,13 +130,23 @@ public class PrepareRequestHandler implements ResponseHandler {
         try {
             SQLStatementParser sqlStatementParser = SQLParserUtils.createSQLStatementParser(sql, JdbcUtils.MYSQL);
             SQLStatement statement = sqlStatementParser.parseStatement();
-            SchemaStatVisitor visitor = new SchemaStatVisitor();
-            statement.accept(visitor);
-            tables.addAll(visitor.getAliasMap().values());
-        } catch (Exception e) {
+            if (statement instanceof MySqlUpdateStatement){
+                String simpleName = ((MySqlUpdateStatement) statement).getTableName().getSimpleName();
+                tables.add(StringUtil.removeBackquote(simpleName));
+            }else if (statement instanceof MySqlDeleteStatement){
+                String simpleName = ((MySqlDeleteStatement) statement).getTableName().getSimpleName();
+                tables.add(StringUtil.removeBackquote(simpleName));
+            }else if (statement instanceof MySqlInsertStatement){
+                String simpleName = ((MySqlInsertStatement) statement).getTableName().getSimpleName();
+                tables.add(StringUtil.removeBackquote(simpleName));
+            } else {
+                SchemaStatVisitor visitor = new SchemaStatVisitor();
+                statement.accept(visitor);
+                tables.addAll(visitor.getAliasMap().values());
+            }
+        } catch (Exception  e) {
             LOGGER.error("can not get column count", e);
         }
-
         return tables;
     }
 
