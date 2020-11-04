@@ -91,34 +91,24 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 
     @Override
     public void prepare(String sql) {
+
         LOGGER.debug("use server prepare, sql: " + sql);
-        // 解析获取字段个数和参数个数
-        int paramCount = getParamCount(sql);
-        if (paramCount > maxPreparedStmtCount) {
-            source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM, "Prepared statement contains too many placeholders");
-            return;
-        }
-
-        // funnyAnt调用后端数据库查询元数据，如果失败再使用默认值
-        new PrepareRequestHandler(source, sql, new PrepareRequestCallback() {
-            @Override
-            public void callback(boolean success, String msg, FieldPacket[] params, FieldPacket[] fields) {
-                // TODO Auto-generated method stub
-                PreparedStatement pstmt = new PreparedStatement(PSTMT_ID_GENERATOR.incrementAndGet(), sql, paramCount);
-                if (success) {
-                    pstmt.setParams(params);
-                    pstmt.setFields(fields);
-                } else {
-                    LOGGER.warn("Get prepare meta data error: " + msg);
-                    // 解析构建columns
-                    pstmt.constructColumns();
-                }
-                pstmtForId.put(pstmt.getId(), pstmt);
-                LOGGER.info("preparestatement  parepare id:{}", pstmt.getId());
-                PreparedStmtResponse.response(pstmt, source);
-
+        PreparedStatement pstmt = null;
+        if (pstmt  == null) {
+            // 解析获取字段个数和参数个数
+            int columnCount = 0;
+            int paramCount = getParamCount(sql);
+            if (paramCount > maxPreparedStmtCount) {
+                source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM,
+                        "Prepared statement contains too many placeholders");
+                return;
             }
-        }).execute();
+            pstmt = new PreparedStatement(PSTMT_ID_GENERATOR.incrementAndGet(), sql,
+                    paramCount);
+            pstmtForId.put(pstmt.getId(), pstmt);
+            LOGGER.info("preparestatement  parepare id:{}", pstmt.getId());
+        }
+        PreparedStmtResponse.response(pstmt, source);
     }
 
 
