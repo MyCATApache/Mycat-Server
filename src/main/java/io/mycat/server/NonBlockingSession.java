@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.mysql.listener.SqlExecuteStage;
 import io.mycat.backend.mysql.nio.handler.CommitNodeHandler;
 import io.mycat.backend.mysql.nio.handler.KillConnectionHandler;
 import io.mycat.backend.mysql.nio.handler.LockTablesHandler;
@@ -132,6 +133,7 @@ public class NonBlockingSession implements Session {
         if (nodes == null || nodes.length == 0 || nodes[0].getName() == null || nodes[0].getName().equals("")) {
             source.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
                     "No dataNode found ,please check tables defined in schema:" + source.getSchema());
+            source.getListener().fireEvent(SqlExecuteStage.END);
             return;
         }
         boolean autocommit = source.isAutocommit();
@@ -151,6 +153,7 @@ public class NonBlockingSession implements Session {
             } catch (Exception e) {
                 LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
                 source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
+                source.getListener().fireEvent(SqlExecuteStage.END);
             }
 
         } else {
@@ -168,6 +171,7 @@ public class NonBlockingSession implements Session {
             } catch (Exception e) {
                 LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
                 source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
+                source.getListener().fireEvent(SqlExecuteStage.END);
             }
         }
 
