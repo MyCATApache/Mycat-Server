@@ -30,7 +30,16 @@ import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.parser.ServerParseSelect;
-import io.mycat.server.response.*;
+import io.mycat.server.response.ClientHeartbeatResponse;
+import io.mycat.server.response.SelectDatabase;
+import io.mycat.server.response.SelectIdentity;
+import io.mycat.server.response.SelectLastInsertId;
+import io.mycat.server.response.SelectTxReadOnly;
+import io.mycat.server.response.SelectUser;
+import io.mycat.server.response.SelectVersion;
+import io.mycat.server.response.SelectVersionComment;
+import io.mycat.server.response.SessionIncrement;
+import io.mycat.server.response.SessionIsolation;
 
 /**
  * @author mycat
@@ -116,9 +125,9 @@ public final class SelectHandler {
 			c.setExecuteSql(stmt);
             if (isClientHeartbeatSql(stmt)) {
                 ClientHeartbeatResponse.response(c);
+            } else {
+                c.execute(stmt, ServerParse.SELECT);
             }
-
-			c.execute(stmt, ServerParse.SELECT);
 		}
 	}
 
