@@ -531,7 +531,7 @@ public class MySQLConnection extends BackendAIOConnection {
 			getAutocommitCommand(sb, expectAutocommit);
 		}
 		if (txReadonlySyn == 1) {
-			getTxReadonly(sb, clientTxReadonly);
+			getTxReadonly(sb, false);
 		}
 		if (sqlSelectLimitSyn == 1) {
 			getSqlSelectLimit(sb, clientSqlSelectLimit);
