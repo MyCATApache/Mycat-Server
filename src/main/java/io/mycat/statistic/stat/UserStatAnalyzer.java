@@ -3,10 +3,15 @@ package io.mycat.statistic.stat;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 按访问用户 计算SQL的运行状态
@@ -19,7 +24,9 @@ public class UserStatAnalyzer implements QueryResultListener {
 	private Cache<String, UserStat> userStatMap = CacheBuilder.newBuilder().maximumSize(8192).build();
 	
     private final static UserStatAnalyzer instance  = new UserStatAnalyzer();
-    
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(UserStatAnalyzer.class);
+
     private UserStatAnalyzer() {
     }
     
@@ -48,17 +55,23 @@ public class UserStatAnalyzer implements QueryResultListener {
     		long startTime = query.getStartTime();
     		long endTime = query.getEndTime();
     		int resultSetSize=query.getResultSize();
-        	UserStat userStat = userStatMap.getIfPresent(user);
-            if (userStat == null) {
-                userStat = new UserStat(user);
-                userStatMap.put(user, userStat);
-            }                
-            userStat.update(sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime,resultSetSize,host);
+    		try {
+				UserStat userStat = userStatMap.get(user, new Callable<UserStat>() {
+					@Override
+					public UserStat call() throws Exception {
+						return new UserStat(user);
+					}
+				});
+				userStat.update(sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime, resultSetSize, host);
+			}catch (ExecutionException e){
+				LOGGER.error("new UserStat occurs error",e);
+			}
             break;
 		}
 	}
 	
 	public Map<String, UserStat> getUserStatMap() {
-		return new HashMap<>(userStatMap.asMap());
+		return userStatMap.asMap();
 	}
+
 }
