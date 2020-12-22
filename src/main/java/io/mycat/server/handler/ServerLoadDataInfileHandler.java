@@ -24,10 +24,7 @@
 package io.mycat.server.handler;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLLiteralExpr;
-import com.alibaba.druid.sql.ast.expr.SQLTextLiteralExpr;
+import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlLoadDataInFileStatement;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.collect.Lists;
@@ -76,6 +73,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler 
     private ServerConnection serverConnection;
     private String sql;
     private String fileName;
+    private List<SQLExpr> varColumns;
     private byte packID = 0;
     private MySqlLoadDataInFileStatement statement;
 
@@ -152,6 +150,9 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler 
 
         SQLStatementParser parser = new MycatStatementParser(sql);
         statement = (MySqlLoadDataInFileStatement) parser.parseStatement();
+        if (statement.getSetList().size() > 0) {
+            varColumns = parseParam2RealColumn(statement);
+        }
         fileName = parseFileName(sql);
 
         if (fileName == null) {
@@ -177,9 +178,11 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler 
         List<SQLExpr> columns = statement.getColumns();
         if (tableConfig != null) {
             String pColumn = getPartitionColumn();
-            if (pColumn != null && columns != null && columns.size() > 0) {
-                for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++) {
-                    String column = StringUtil.removeBackquote(columns.get(i).toString());
+            //如果有变量set表达式，columns里面会包含变量的名称，改用varColumns以获取真实的列名称
+            List<SQLExpr> columnsTmp = varColumns == null ? columns : varColumns;
+            if (pColumn != null && columnsTmp != null && columns.size() > 0) {
+                for (int i = 0, columnsSize = columnsTmp.size(); i < columnsSize; i++) {
+                    String column = StringUtil.removeBackquote(columnsTmp.get(i).toString());
                     if (pColumn.equalsIgnoreCase(column)) {
                         partitionColumnIndex = i;
                     }
@@ -217,6 +220,51 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler 
 
             }
         }
+    }
+
+    /**
+     *
+     * load data infile使用set子句时将用户变量改成真实的列名
+     * 比如下面语句LOAD DATA INFILE 'file.txt'
+     INTO TABLE t1
+     (column1, @var1,@var2)
+     SET column2 = @var1/100,columns=100/(@var2/200));
+     最后真实的列应该是{column1,column2,columns}
+     语法参考： 参考https://dev.mysql.com/doc/refman/5.7/en/load-data.html
+     * @param statement
+     * @return
+     */
+    private List<SQLExpr> parseParam2RealColumn(MySqlLoadDataInFileStatement statement) {
+        String HAS_FILTERED = "HAS_FILTERED";
+        List<SQLExpr> realColumnList = new ArrayList<>(statement.getColumns().size());
+
+        for (SQLExpr columnExpr : statement.getColumns()) {
+            boolean hasSetColumn = false;
+            if (columnExpr instanceof SQLVariantRefExpr) {
+                SQLVariantRefExpr varColumn = (SQLVariantRefExpr) columnExpr;
+                for (SQLExpr setExpr : statement.getSetList()) {
+                    if (setExpr.getAttribute(HAS_FILTERED) != null) {
+                        // 已经被过滤过
+                        continue;
+                    }
+
+                    // 找到包含变量的set表达式
+                    if (setExpr.toString().contains(varColumn.toString())) {
+                        if (setExpr instanceof SQLBinaryOpExpr) {
+                            realColumnList.add(((SQLBinaryOpExpr) setExpr).getLeft());
+                            hasSetColumn = true;
+                        }
+                        setExpr.putAttribute(HAS_FILTERED, true);// 标记已经被过滤过
+                        break;
+                    }
+                }
+            }
+            if (!hasSetColumn) {
+                realColumnList.add(columnExpr);
+            }
+        }
+
+        return realColumnList;
     }
 
     @Override
@@ -670,6 +718,7 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler 
         tempByteBuffrSize = 0;
         tableName = null;
         partitionColumnIndex = -1;
+        varColumns = null;
         if (tempFile != null) {
             File temp = new File(tempFile);
             if (temp.exists()) {
