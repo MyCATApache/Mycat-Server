@@ -137,7 +137,7 @@ public class UserStat {
 	 * @param sql
 	 * @param startTime
 	 */
-	public void update(int sqlType, String sql, long sqlRows, 
+    public void update(String schema, int sqlType, String sql, long sqlRows,
 			long netInBytes, long netOutBytes, long startTime, long endTime ,int rseultSetSize,String host) {
 		
 		//before 计算最大并发数
@@ -159,15 +159,16 @@ public class UserStat {
 //        try {
         	
 			//慢查询记录
-			long executeTime = endTime - startTime;		
-			if ( executeTime >= SQL_SLOW_TIME ){			
-				SQLRecord record = new SQLRecord();
-				record.executeTime = executeTime;
-				record.statement = sql;
-				record.startTime = startTime;
-				record.host = host;
-				this.sqlRecorder.add(record);
-			}
+    			long executeTime = endTime - startTime;		
+    			if ( executeTime >= SQL_SLOW_TIME ){			
+    				SQLRecord record = new SQLRecord();
+    				record.executeTime = executeTime;
+    				record.statement = sql;
+    				record.startTime = startTime;
+    				record.host = host;
+                    record.schema = schema;
+    				this.sqlRecorder.add(record);
+    			}
 			
 			//执行状态记录
 			this.sqlRwStat.setConcurrentMax( concurrentMax.get() );

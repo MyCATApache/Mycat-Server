@@ -36,6 +36,8 @@ public class UserStatAnalyzer implements QueryResultListener {
 			if (host==null){
 				host = "";
 			}
+
+            String schema = query.getSchema();
     		String user = query.getUser();
     		int sqlType = query.getSqlType();
     		String sql = query.getSql();
@@ -50,7 +52,8 @@ public class UserStatAnalyzer implements QueryResultListener {
                 userStat = new UserStat(user);
                 userStatMap.put(user, userStat);
             }                
-            userStat.update(sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime,resultSetSize,host);
+            userStat.update(schema, sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime, resultSetSize,
+                    host);
             break;
 		}
 	}

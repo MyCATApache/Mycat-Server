@@ -470,7 +470,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			execCount++;
 			if (execCount == rrs.getNodes().length) {
 				source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
-				QueryResult queryResult = new QueryResult(session.getSource().getUser(),
+                QueryResult queryResult = new QueryResult(session.getSource().getSchema(),
+                        session.getSource().getUser(),
 						rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0,source.getHost());
 				QueryResultDispatcher.dispatchQuery( queryResult );
 			}
@@ -565,7 +566,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 			//TODO: add by zhuam
 			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(),
+            QueryResult queryResult = new QueryResult(session.getSource().getSchema(), session.getSource().getUser(),
 					rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize, source.getHost());
 			QueryResultDispatcher.dispatchQuery( queryResult );
 
