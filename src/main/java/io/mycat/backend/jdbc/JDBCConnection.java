@@ -303,7 +303,7 @@ public class JDBCConnection implements BackendConnection {
 		}
 		try
 		{
-			con.setReadOnly(txReadonly);
+			con.setReadOnly(false);
 		} catch (SQLException e)
 		{
 			LOGGER.warn("set setReadOnly error:",e);
@@ -381,6 +381,7 @@ public class JDBCConnection implements BackendConnection {
 			error.packetId = ++packetId;
 			error.errno = e.getErrorCode();
 			error.message = msg.getBytes();
+			LOGGER.error("sql execute error, "+ msg , e);
 			this.respHandler.errorResponse(error.writeToBytes(sc), this);
 		}
 		catch (Exception e) {

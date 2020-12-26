@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
@@ -335,8 +336,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
         LOGGER.info("backend connect", e);
         ErrorPacket errPacket = new ErrorPacket();
         errPacket.errno = ErrorCode.ER_ABORTING_CONNECTION;
-        String errMsg = "Backend connect Error, Connection{DataHost[" + conn.getHost() + ":" + conn.getPort()
+        
+        String errMsg = null;
+        if(conn == null) {
+			errMsg = e.toString();
+        }else {
+            errMsg = "Backend connect Error, Connection{DataHost[" + conn.getHost() + ":" + conn.getPort()
                 + "],Schema[" + conn.getSchema() + "]} refused";
+        }
+        
         errPacket.message = StringUtil.encode(errMsg, session.getSource().getCharset());
         executeError(conn, errPacket);
     }
@@ -347,8 +355,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
             if (!isFail()) {
                 setFail(new String(errPacket.message));
             }
-
-            errConnections.add(conn);
+            
+            if(conn != null) {
+              errConnections.add(conn);
+            }
+            
             if (--nodeCount == 0) {
                 errPacket.packetId = ++packetId;
                 processFinishWork(errPacket.writeToBytes(), false, conn);
@@ -904,7 +915,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			eof[3] = ++packetId;
 			buffer = source.writeToBuffer(eof, buffer);
 
-			if(null == middlerResultHandler ){
+			if (null == middlerResultHandler) {
 				//session.getSource().write(row);
 				source.write(buffer);
 		     }
@@ -1061,8 +1072,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
     protected void processFinishWork(byte[] data, boolean isCommit, BackendConnection conn) {
         ServerConnection source = session.getSource();
         source.getListener().fireEvent(SqlExecuteStage.END);
-
-        if (source.isAutocommit() && conn.isModifiedSQLExecuted() && !conn.isAutocommit()) {
+        
+		boolean isImplicitTransaction = false;
+		if (source.isAutocommit()) {
+			for (Entry<RouteResultsetNode, BackendConnection> entry : session.getTargetMap().entrySet()) {
+				BackendConnection c = entry.getValue();
+				if (c.isModifiedSQLExecuted() && !c.isAutocommit()) {
+					isImplicitTransaction = true;
+					break;
+				}
+			}
+		}
+        
+        if (isImplicitTransaction) {
             // 1隐式事务:修改类语句并且autocommit=true，mycat自动开启事务，需要自动提交掉
             if (nodeCount < 0) {
                 return;

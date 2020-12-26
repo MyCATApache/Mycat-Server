@@ -1,9 +1,17 @@
 package io.mycat.statistic.stat;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import io.mycat.server.parser.ServerParse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 按访问用户 计算SQL的运行状态
@@ -13,10 +21,12 @@ import io.mycat.server.parser.ServerParse;
  */
 public class UserStatAnalyzer implements QueryResultListener {
 	
-	private LinkedHashMap<String, UserStat> userStatMap = new LinkedHashMap<String, UserStat>();	
+	private Cache<String, UserStat> userStatMap = CacheBuilder.newBuilder().maximumSize(8192).build();
 	
     private final static UserStatAnalyzer instance  = new UserStatAnalyzer();
-    
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(UserStatAnalyzer.class);
+
     private UserStatAnalyzer() {
     }
     
@@ -37,7 +47,7 @@ public class UserStatAnalyzer implements QueryResultListener {
 				host = "";
 			}
 
-            String schema = query.getSchema();
+        String schema = query.getSchema();
     		String user = query.getUser();
     		int sqlType = query.getSqlType();
     		String sql = query.getSql();
@@ -47,20 +57,23 @@ public class UserStatAnalyzer implements QueryResultListener {
     		long startTime = query.getStartTime();
     		long endTime = query.getEndTime();
     		int resultSetSize=query.getResultSize();
-        	UserStat userStat = userStatMap.get(user);
-            if (userStat == null) {
-                userStat = new UserStat(user);
-                userStatMap.put(user, userStat);
-            }                
-            userStat.update(schema, sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime, resultSetSize,
-                    host);
-            break;
+    		try {
+				UserStat userStat = userStatMap.get(user, new Callable<UserStat>() {
+					@Override
+					public UserStat call() throws Exception {
+						return new UserStat(user);
+					}
+				});
+				userStat.update(schema,sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime, resultSetSize, host);
+			}catch (ExecutionException e){
+				LOGGER.error("new UserStat occurs error",e);
+			}
+      break;
 		}
 	}
 	
-	public Map<String, UserStat> getUserStatMap() {		
-		Map<String, UserStat> map = new LinkedHashMap<String, UserStat>(userStatMap.size());	
-		map.putAll(userStatMap);
-        return map;
+	public Map<String, UserStat> getUserStatMap() {
+		return userStatMap.asMap();
 	}
+
 }
