@@ -46,6 +46,8 @@ public class UserStatAnalyzer implements QueryResultListener {
 			if (host==null){
 				host = "";
 			}
+
+        String schema = query.getSchema();
     		String user = query.getUser();
     		int sqlType = query.getSqlType();
     		String sql = query.getSql();
@@ -62,11 +64,11 @@ public class UserStatAnalyzer implements QueryResultListener {
 						return new UserStat(user);
 					}
 				});
-				userStat.update(sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime, resultSetSize, host);
+				userStat.update(schema,sqlType, sql, sqlRows, netInBytes, netOutBytes, startTime, endTime, resultSetSize, host);
 			}catch (ExecutionException e){
 				LOGGER.error("new UserStat occurs error",e);
 			}
-            break;
+      break;
 		}
 	}
 	

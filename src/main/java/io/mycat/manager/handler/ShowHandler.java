@@ -165,7 +165,7 @@ public final class ShowHandler {
 			break;
 		case ManagerParseShow.SQL_SLOW:
 			boolean isClearSlow = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
-			ShowSQLSlow.execute(c, isClearSlow);
+            ShowSQLSlow.execute(c, isClearSlow, null);
 			break;
 		case ManagerParseShow.SQL_HIGH:
 			boolean isClearHigh = Boolean.valueOf( stmt.substring(rs >>> 8).trim() );
@@ -202,10 +202,10 @@ public final class ShowHandler {
 		case ManagerParseShow.SLOW_SCHEMA: {
 			String name = stmt.substring(rs >>> 8).trim();
 			if (StringUtil.isEmpty(name)) {
-				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+                c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement,schema value is null");
 			} else {
-				c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
-				// ShowSlow.schema(c, name);
+                // c.writeErrMessage(ErrorCode.ER_YES, "Unsupported statement");
+                ShowSQLSlow.execute(c, false, StringUtil.removeBackquote(name));
 			}
 			break;
 		}

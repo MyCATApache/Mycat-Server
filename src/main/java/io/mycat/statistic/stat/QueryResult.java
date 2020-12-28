@@ -7,7 +7,7 @@ package io.mycat.statistic.stat;
  *
  */
 public class QueryResult {
-
+    private String schema;      // 逻辑schema
 	private String user;		//用户
 	private int sqlType;		//SQL类型
 	private String sql;			//SQL
@@ -19,10 +19,11 @@ public class QueryResult {
 	private int resultSize;     //结果集大小
 	private String host;
 
-	public QueryResult(String user, int sqlType, String sql, long sqlRows,
+    public QueryResult(String schema, String user, int sqlType, String sql, long sqlRows,
                        long netInBytes, long netOutBytes, long startTime, long endTime
             , int resultSize, String host) {
 		super();
+        this.schema = schema == null ? "" : schema;
 		this.user = user;
 		this.sqlType = sqlType;
 		this.sql = sql;
@@ -74,4 +75,9 @@ public class QueryResult {
 	public String getHost() {
 		return host;
 	}
+
+    public String getSchema() {
+        return schema;
+    }
+
 }

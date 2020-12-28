@@ -49,7 +49,7 @@ import io.mycat.util.StringUtil;
  */
 public final class ShowSQLSlow {
 
-    private static final int FIELD_COUNT = 6;
+    private static final int FIELD_COUNT = 7;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
     private static final FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
     private static final EOFPacket eof = new EOFPacket();
@@ -77,10 +77,19 @@ public final class ShowSQLSlow {
         fields[i] = PacketUtil.getField("IP", Fields.FIELD_TYPE_VAR_STRING);
         fields[i++].packetId = ++packetId;
 
+        fields[i] = PacketUtil.getField("SCHEMA", Fields.FIELD_TYPE_VAR_STRING);
+        fields[i++].packetId = ++packetId;
+
         eof.packetId = ++packetId;
     }
 
-    public static void execute(ManagerConnection c, boolean isClear) {
+    /**
+     * 
+     * @param c
+     * @param isClear   查询完成后是否清理掉内存里面的所有慢SQL数据
+     * @param schema    逻辑库的schema，如果不为空 ，仅仅展示此schema的慢SQL
+     */
+    public static void execute(ManagerConnection c, boolean isClear, String schema) {
         ByteBuffer buffer = c.allocate();
 
         // write header
@@ -102,6 +111,11 @@ public final class ShowSQLSlow {
             List<SQLRecord> keyList = userStat.getSqlRecorder().getRecords();
             for (SQLRecord key : keyList) {
                 if (key != null) {
+                    // 如果带schema条件，过滤下信息
+                    if (schema != null && !schema.equalsIgnoreCase(key.schema)) {
+                        continue;
+                    }
+
                     RowDataPacket row = getRow(user, key, c.getCharset());
                     row.packetId = ++packetId;
                     buffer = row.write(buffer, c,true);
@@ -130,6 +144,7 @@ public final class ShowSQLSlow {
         row.add( LongUtil.toBytes(sql.executeTime) );
         row.add( StringUtil.encode(sql.statement, charset) );
         row.add(StringUtil.encode(sql.host,charset ));
+        row.add(StringUtil.encode(sql.schema, charset));
         return row;
     }
 
