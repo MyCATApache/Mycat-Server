@@ -14,8 +14,8 @@ assignees: ''
  v 1.6.*.*
 
 **3、相关表的配置信息**
-  schema.xml (包含表的配置信息，mysql的连接驱动是JDBC还是native方式)
-  rule.xml (涉及到的表配置信息)
+  schema.xml (需包含表的配置信息，mysql的连接驱动是JDBC还是native方式)
+  rule.xml (涉及到的路由函数)
   server.xml(可选)
 
 **4、操作步骤**
