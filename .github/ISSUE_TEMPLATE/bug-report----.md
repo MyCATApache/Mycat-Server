@@ -2,12 +2,12 @@
 name: Bug report(默认)
 about: Create a report to help us improve
 title: ''
-labels: ''
-assignees: ''
+labels: bug
+assignees: funnyAnt
 
 ---
 
-**1、bug描述**
+**1、bug描述** 
  简单清晰描述下bug现象.
 
 **2、版本号(非常重要)**
@@ -21,7 +21,7 @@ assignees: ''
 **4、操作步骤**
 1.  '...'
 2.  '....'
-3. 
+3.  ...
 
 **5、期望结果**
 A clear and concise description of what you expected to happen.
