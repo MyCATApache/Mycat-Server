@@ -1041,6 +1041,17 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
         Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn1"));
         Assert.assertTrue(rrs.getNodes()[1].getName().equals("dn2"));
+
+        // #2694 验证(name=1 or name=2) and id=11 的路由等价于id=11 and (name=1 or name=2) 路由
+        sql = "select * from customer where sharding_id = 10000 and (user_id = 'zhangsan' or user_id='lisi')";
+        rrs = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null, cachePool);
+        Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn1"));
+
+        sql = "select * from customer where (user_id = 'zhangsan' or user_id='lisi') and sharding_id = 10000";
+        RouteResultset rrs2 = routeStrategy.route(new SystemConfig(), schema, ServerParse.SELECT, sql, null, null,
+                cachePool);
+        Assert.assertTrue(rrs2.getNodes()[0].getName().equals(rrs.getNodes()[0].getName()));
+
     }
     
     /**
@@ -1133,6 +1144,7 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
         Assert.assertEquals(1, rrs.getNodes().length);
     }
     
+
     private String formatSql(String sql) {
         MySqlStatementParser parser = new MySqlStatementParser(sql);
         SQLStatement stmt = parser.parseStatement();
