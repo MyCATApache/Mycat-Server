@@ -7,6 +7,8 @@ mycat1.6权威指南
 
 http://mycat.org.cn/document/mycat-definitive-guide.pdf
 
+[客户端连接配置](https://github.com/MyCATApache/Mycat-Server/wiki/%E5%BC%80%E5%8F%91%E7%AF%87%EF%BC%9A1.0-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5%E9%85%8D%E7%BD%AE)
+
 Mycat志愿者开发群:332702697,106088787
 
 [![GitHub issues](https://img.shields.io/github/issues/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/issues)
