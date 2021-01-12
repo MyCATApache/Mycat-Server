@@ -4,7 +4,7 @@
 官网:  http://mycat.org.cn/
 
 mycat1.6权威指南
-[yuque](https://www.yuque.com/ccazhw/tuacvk)
+[yuque](https://www.yuque.com/bidaodao/mycat/cgm8ck)
 [pdf](http://mycat.org.cn/document/mycat-definitive-guide.pdf)
 
 
