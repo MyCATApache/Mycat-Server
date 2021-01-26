@@ -189,6 +189,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		}
 	}
 
+	private synchronized int incExecCount() {
+		return ++this.execCount;
+	}
+
 	public NonBlockingSession getSession() {
 		return session;
 	}
@@ -478,8 +482,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 			// add by lian
 			// 解决sql统计中写操作永远为0
-			execCount++;
-			if (execCount == rrs.getNodes().length) {
+			int currentExecCount = this.incExecCount();
+			if (currentExecCount == rrs.getNodes().length) {
 				source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
                 QueryResult queryResult = new QueryResult(session.getSource().getSchema(),
                         session.getSource().getUser(),
@@ -560,9 +564,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				}
 			}
 		}
-		execCount++;
+
+		int currentExecCount = this.incExecCount();
 		if(middlerResultHandler !=null){
-			if (execCount != rrs.getNodes().length) {
+			if (currentExecCount != rrs.getNodes().length) {
 
 				return;
 			}
@@ -570,7 +575,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				middlerResultHandler.secondEexcute(); 
 			}*/
 		}
- 		if (execCount == rrs.getNodes().length) {
+		if (currentExecCount == rrs.getNodes().length) {
 			int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
 			source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
             session.getSource().getListener().fireEvent(SqlExecuteStage.END);
