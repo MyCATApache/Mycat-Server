@@ -90,6 +90,7 @@ public final class SystemConfig {
 	private int processorExecutor;
 	private int timerExecutor;
 	private int managerExecutor;
+	private int serverBacklog = 2048;
 	private long idleTimeout;
 	private long authTimeout;
 	private int catletClassCheckSeconds = 60;
@@ -603,6 +604,14 @@ public final class SystemConfig {
 		this.timerExecutor = timerExecutor;
 	}
 
+	public int getServerBacklog() {
+		return serverBacklog;
+	}
+
+	public void setServerBacklog(int serverBacklog) {
+		this.serverBacklog = serverBacklog;
+	}
+
 	public long getIdleTimeout() {
 		return idleTimeout;
 	}
@@ -923,9 +932,11 @@ public final class SystemConfig {
 				+ serverPort + ", managerPort=" + managerPort + ", charset="
 				+ charset + ", processors=" + processors
 				+ ", processorExecutor=" + processorExecutor
-				+ ", timerExecutor=" + timerExecutor + ", managerExecutor="
-				+ managerExecutor + ", idleTimeout=" + idleTimeout
-				+ ", authTimeout=" + authTimeout
+				+ ", timerExecutor=" + timerExecutor
+				+ ", managerExecutor=" + managerExecutor
+				+ ", serverBacklog=" + serverBacklog
+				+ ", idleTimeout=" + idleTimeout
+        + ", authTimeout=" + authTimeout
 				+ ", catletClassCheckSeconds=" + catletClassCheckSeconds
 				+ ", sqlExecuteTimeout=" + sqlExecuteTimeout
 				+ ", processorCheckPeriod=" + processorCheckPeriod
