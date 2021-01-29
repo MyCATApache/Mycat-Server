@@ -28,6 +28,7 @@ import java.nio.channels.NetworkChannel;
 
 import io.mycat.MycatServer;
 import io.mycat.config.MycatPrivileges;
+import io.mycat.config.model.SystemConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.net.factory.FrontendConnectionFactory;
 
@@ -38,8 +39,10 @@ public class ManagerConnectionFactory extends FrontendConnectionFactory {
 
     @Override
     protected FrontendConnection getConnection(NetworkChannel channel) throws IOException {
+        SystemConfig sys = MycatServer.getInstance().getConfig().getSystem();
         ManagerConnection c = new ManagerConnection(channel);
         MycatServer.getInstance().getConfig().setSocketParams(c, true);
+        c.setAuthTimeout(sys.getAuthTimeout());
         c.setPrivileges(MycatPrivileges.instance());
         c.setQueryHandler(new ManagerQueryHandler(c));
         return c;
