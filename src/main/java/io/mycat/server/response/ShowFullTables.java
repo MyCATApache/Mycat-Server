@@ -62,7 +62,8 @@ public class ShowFullTables
                 return;
             }
         } else {
-             c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,"No database selected");
+            c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR, "Cannot find the corresponding logic schema of Mycat");
+            return;
         }
 
         //分库的schema，直接从SchemaConfig中获取所有表名
