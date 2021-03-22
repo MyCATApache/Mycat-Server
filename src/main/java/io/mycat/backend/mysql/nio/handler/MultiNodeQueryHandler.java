@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.mysql.CharsetUtil;
 import io.mycat.backend.mysql.LoadDataUtil;
 import io.mycat.backend.mysql.listener.SqlExecuteStage;
 import io.mycat.backend.mysql.nio.MySQLConnection;
@@ -873,7 +874,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
 					fieldPackets.add(fieldPkg);
-					String fieldName = new String(fieldPkg.name).toUpperCase();
+                    String charset = session.getSource().getCharset();// CharsetUtil.getCharset(fieldPkg.charsetIndex);
+                    String fieldName = new String(fieldPkg.name, charset).toUpperCase();
 					if (columToIndx != null
 							&& !columToIndx.containsKey(fieldName)) {
 						if (shouldRemoveAvgField.contains(fieldName)) {
