@@ -3,6 +3,8 @@
 
 官网:  http://mycat.org.cn/
 
+[Mycat2配置已稳定,尝试Mycat2](http://www.mycat.org.cn/mycat2-index.html)
+
 mycat1.6权威指南
 [yuque](https://www.yuque.com/books/share/0576de75-ffc4-4c34-8586-952ae4636944)
 [pdf](http://mycat.org.cn/document/mycat-definitive-guide.pdf)
