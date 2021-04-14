@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -21,9 +20,6 @@ import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.SystemConfig;
-import io.mycat.route.RouteResultset;
-import io.mycat.route.RouteResultsetNode;
-import io.mycat.route.RouteStrategy;
 import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.server.parser.ServerParse;
 import junit.framework.Assert;
@@ -1132,7 +1128,46 @@ public class DruidMysqlRouteStrategyTest extends TestCase {
                     cachePool);
         Assert.assertEquals(1, rrs.getNodes().length);
     }
-    
+
+	/**
+	 * 测试"schema.table"
+	 *
+	 * @throws Exception
+	 */
+	public void testSchemaTable() throws Exception {
+
+		SchemaConfig schema = schemaMap.get("schema_table_test");
+		RouteResultset rrs = null;
+		// 1 schema==当前逻辑schema
+		String sql = "select * from schema_table_test.offer   where id = 1;";
+		rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null, cachePool);
+
+		Assert.assertEquals(1, rrs.getNodes().length);
+		Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn1"));
+
+		// 2 schema !=当前schema,路由到默认节点。带alias
+		sql = "select * from noExistSchema.offer a where a.id = 1;";
+		rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null, cachePool);
+		Assert.assertEquals(1, rrs.getNodes().length);
+		Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn2"));
+
+		// 不带alias
+		sql = "select * from noExistSchema.offer  where id = 1;";
+		rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null, cachePool);
+		Assert.assertEquals(1, rrs.getNodes().length);
+		Assert.assertTrue(rrs.getNodes()[0].getName().equals("dn2"));
+
+		// 3 默认节点不存在，抛错
+		schema = schemaMap.get("TESTDB");
+		sql = "select * from schema_table_test.offer   where id = 1;";
+		try {
+			rrs = routeStrategy.route(new SystemConfig(), schema, 1, sql, null, null, cachePool);
+		} catch (Exception e) {
+			Assert.assertTrue(e.getMessage().contains(
+					"can't find table define in schema SCHEMA_TABLE_TEST.OFFER alias：schema_table_test.offer, schema:TESTDB"));
+		}
+
+	}
     private String formatSql(String sql) {
         MySqlStatementParser parser = new MySqlStatementParser(sql);
         SQLStatement stmt = parser.parseStatement();

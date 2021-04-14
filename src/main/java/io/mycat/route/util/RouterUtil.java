@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1254,10 +1255,14 @@ public class RouterUtil {
 				}
 
 				if(tableConfig == null){
-					String msg = "can't find table define in schema "+ tableName + 
-							" alias：" + alias + ", schema:" + schema.getName();
-					LOGGER.warn(msg);
-					throw new SQLNonTransientException(msg);
+					if (StringUtils.isNotEmpty(schema.getDataNode())) {
+						return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
+					} else {
+						String msg = "can't find table define in schema " + tableName + " alias：" + alias + ", schema:"
+								+ schema.getName();
+						LOGGER.warn(msg);
+						throw new SQLNonTransientException(msg);
+					}
 				}
 
 			}

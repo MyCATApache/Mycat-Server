@@ -1,21 +1,7 @@
 package io.mycat.route.parser.druid.impl;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
-import java.sql.SQLNonTransientException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
-import io.mycat.cache.LayerCachePool;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.route.RouteResultset;
-import io.mycat.route.parser.druid.DruidParser;
-import io.mycat.route.parser.druid.DruidParserFactory;
-import io.mycat.route.parser.druid.DruidShardingParseInfo;
-import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
-import io.mycat.server.parser.ServerParse;
+import static org.junit.Assert.assertArrayEquals;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -23,6 +9,14 @@ import org.junit.Test;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
+
+import io.mycat.cache.LayerCachePool;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.route.RouteResultset;
+import io.mycat.route.parser.druid.DruidParser;
+import io.mycat.route.parser.druid.DruidShardingParseInfo;
+import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
+import io.mycat.server.parser.ServerParse;
 
 /**
  * sql解析单元测试
@@ -49,9 +43,9 @@ public class DefaultDruidParserTest {
 		assertArrayEquals(getParseTables("select 1 from company,customer where company.id = customer.cid"), 
 				getArr("company".toUpperCase(),"customer".toUpperCase()));
 		assertArrayEquals(getParseTables("select 1 from db1.company,db1.customer where company.id = customer.cid"), 
-				getArr("company".toUpperCase(),"customer".toUpperCase()));
+				getArr("db1.company".toUpperCase(), "db1.customer".toUpperCase()));
 		assertArrayEquals(getParseTables("select 1 from mysql.company,db1.customer where company.id = customer.cid"), 
-				getArr("customer".toUpperCase()));
+				getArr("db1.customer".toUpperCase()));
 	}
 	
 	private Object[] getParseTables(String sql) throws Exception{
