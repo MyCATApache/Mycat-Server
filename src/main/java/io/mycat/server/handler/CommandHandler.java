@@ -122,16 +122,10 @@ class CommandExecResultHandler extends SingleNodeHandler {
 		}
 		source.setExecuteSql(null);
 		//查询结果派发
-		QueryResult queryResult = new QueryResult(	getSession().getSource().getUser(),
-													getRouteResultset().getSqlType(),
-													getRouteResultset().getStatement(),
-													affectedRows,
-													netInBytes,
-													netOutBytes,
-													startTime,
-													System.currentTimeMillis(),
-													resultSize,
-													source.getHost());
+        QueryResult queryResult = new QueryResult(getSession().getSource().getSchema(),
+                getSession().getSource().getUser(),
+                getRouteResultset().getSqlType(), getRouteResultset().getStatement(), affectedRows, netInBytes,
+                netOutBytes, startTime, System.currentTimeMillis(), resultSize, source.getHost());
 		QueryResultDispatcher.dispatchQuery(queryResult);
 	}
 	@Override

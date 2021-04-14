@@ -629,11 +629,12 @@ public class DruidMycatRouteStrategy extends AbstractRouteStrategy {
 			if (StringUtils.isNotBlank(tableName) && tableName.indexOf("%") < 0 && !schema.getTables().isEmpty()) {
                 TableConfig tableConfig = schema.getTables().get(tableName.toUpperCase());
                 if (tableConfig != null) {
-                    String relSchemaTmp = RouterUtil.getAliveRandomDataNode(tableConfig);
-                    if (StringUtils.isNotBlank(relSchema)) {
-                        stmt = stmt.replaceAll(relSchema, relSchemaTmp);
+                    String dataNode = RouterUtil.getAliveRandomDataNode(tableConfig);
+                    PhysicalDBNode dataNodeObj = MycatServer.getInstance().getConfig().getDataNodes().get(dataNode);
+                    if (StringUtils.isNotBlank(dataNodeObj.getDatabase())) {
+                        stmt = stmt.replaceAll(relSchema, dataNodeObj.getDatabase());
                     }
-                    return RouterUtil.routeToSingleNode(rrs, relSchemaTmp, stmt);
+                    return RouterUtil.routeToSingleNode(rrs, dataNode, stmt);
                 }
             }
             // remove db

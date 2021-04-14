@@ -65,6 +65,7 @@ public final class SystemConfig {
 	private int backSocketNoDelay = 1; // 1=true
 	public static final int DEFAULT_POOL_SIZE = 128;// 保持后端数据通道的默认最大值
 	public static final long  DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000L;
+	public static final long  DEFAULT_AUTH_TIMEOUT = 15 * 1000L;
 	private static final long DEFAULT_PROCESSOR_CHECK_PERIOD = 1 * 1000L;
 	private static final long DEFAULT_DATANODE_IDLE_CHECK_PERIOD = 5 * 60 * 1000L; //连接空闲检查
 	private static final long DEFAULT_DATANODE_HEARTBEAT_PERIOD = 10 * 1000L;  //心跳检查周期
@@ -89,7 +90,9 @@ public final class SystemConfig {
 	private int processorExecutor;
 	private int timerExecutor;
 	private int managerExecutor;
+	private int serverBacklog = 2048;
 	private long idleTimeout;
+	private long authTimeout;
 	private int catletClassCheckSeconds = 60;
 	// sql execute timeout (second)
 	private long sqlExecuteTimeout = 300;
@@ -293,6 +296,7 @@ public final class SystemConfig {
 		this.processorBufferLocalPercent = 100;
 		this.timerExecutor = 2;
 		this.idleTimeout = DEFAULT_IDLE_TIMEOUT;
+		this.authTimeout = DEFAULT_AUTH_TIMEOUT;
 		this.processorCheckPeriod = DEFAULT_PROCESSOR_CHECK_PERIOD;
 		this.dataNodeIdleCheckPeriod = DEFAULT_DATANODE_IDLE_CHECK_PERIOD;
 		this.dataNodeHeartbeatPeriod = DEFAULT_DATANODE_HEARTBEAT_PERIOD;
@@ -600,12 +604,28 @@ public final class SystemConfig {
 		this.timerExecutor = timerExecutor;
 	}
 
+	public int getServerBacklog() {
+		return serverBacklog;
+	}
+
+	public void setServerBacklog(int serverBacklog) {
+		this.serverBacklog = serverBacklog;
+	}
+
 	public long getIdleTimeout() {
 		return idleTimeout;
 	}
 
 	public void setIdleTimeout(long idleTimeout) {
 		this.idleTimeout = idleTimeout;
+	}
+
+	public long getAuthTimeout() {
+		return authTimeout;
+	}
+
+	public void setAuthTimeout(long authTimeout) {
+		this.authTimeout = authTimeout;
 	}
 
 	public long getProcessorCheckPeriod() {
@@ -912,8 +932,11 @@ public final class SystemConfig {
 				+ serverPort + ", managerPort=" + managerPort + ", charset="
 				+ charset + ", processors=" + processors
 				+ ", processorExecutor=" + processorExecutor
-				+ ", timerExecutor=" + timerExecutor + ", managerExecutor="
-				+ managerExecutor + ", idleTimeout=" + idleTimeout
+				+ ", timerExecutor=" + timerExecutor
+				+ ", managerExecutor=" + managerExecutor
+				+ ", serverBacklog=" + serverBacklog
+				+ ", idleTimeout=" + idleTimeout
+        + ", authTimeout=" + authTimeout
 				+ ", catletClassCheckSeconds=" + catletClassCheckSeconds
 				+ ", sqlExecuteTimeout=" + sqlExecuteTimeout
 				+ ", processorCheckPeriod=" + processorCheckPeriod

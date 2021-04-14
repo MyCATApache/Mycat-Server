@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
@@ -41,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.mysql.CharsetUtil;
 import io.mycat.backend.mysql.LoadDataUtil;
 import io.mycat.backend.mysql.listener.SqlExecuteStage;
 import io.mycat.backend.mysql.nio.MySQLConnection;
@@ -186,6 +188,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 		if (rrs.isLoadData()) {
 			packetId = session.getSource().getLoadDataInfileHandler().getLastPackId();
 		}
+	}
+
+	private synchronized int incExecCount() {
+		return ++this.execCount;
 	}
 
 	public NonBlockingSession getSession() {
@@ -335,8 +341,15 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
         LOGGER.info("backend connect", e);
         ErrorPacket errPacket = new ErrorPacket();
         errPacket.errno = ErrorCode.ER_ABORTING_CONNECTION;
-        String errMsg = "Backend connect Error, Connection{DataHost[" + conn.getHost() + ":" + conn.getPort()
+        
+        String errMsg = null;
+        if(conn == null) {
+			errMsg = e.toString();
+        }else {
+            errMsg = "Backend connect Error, Connection{DataHost[" + conn.getHost() + ":" + conn.getPort()
                 + "],Schema[" + conn.getSchema() + "]} refused";
+        }
+        
         errPacket.message = StringUtil.encode(errMsg, session.getSource().getCharset());
         executeError(conn, errPacket);
     }
@@ -347,8 +360,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
             if (!isFail()) {
                 setFail(new String(errPacket.message));
             }
-
-            errConnections.add(conn);
+            
+            if(conn != null) {
+              errConnections.add(conn);
+            }
+            
             if (--nodeCount == 0) {
                 errPacket.packetId = ++packetId;
                 processFinishWork(errPacket.writeToBytes(), false, conn);
@@ -467,10 +483,11 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 
 			// add by lian
 			// 解决sql统计中写操作永远为0
-			execCount++;
-			if (execCount == rrs.getNodes().length) {
+			int currentExecCount = this.incExecCount();
+			if (currentExecCount == rrs.getNodes().length) {
 				source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
-				QueryResult queryResult = new QueryResult(session.getSource().getUser(),
+                QueryResult queryResult = new QueryResult(session.getSource().getSchema(),
+                        session.getSource().getUser(),
 						rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0,source.getHost());
 				QueryResultDispatcher.dispatchQuery( queryResult );
 			}
@@ -548,9 +565,10 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				}
 			}
 		}
-		execCount++;
+
+		int currentExecCount = this.incExecCount();
 		if(middlerResultHandler !=null){
-			if (execCount != rrs.getNodes().length) {
+			if (currentExecCount != rrs.getNodes().length) {
 
 				return;
 			}
@@ -558,14 +576,14 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 				middlerResultHandler.secondEexcute(); 
 			}*/
 		}
- 		if (execCount == rrs.getNodes().length) {
+		if (currentExecCount == rrs.getNodes().length) {
 			int resultSize = source.getWriteQueue().size()*MycatServer.getInstance().getConfig().getSystem().getBufferPoolPageSize();
 			source.setExecuteSql(null);  //完善show @@connection.sql 监控命令.已经执行完的sql 不再显示
             session.getSource().getListener().fireEvent(SqlExecuteStage.END);
 
 			//TODO: add by zhuam
 			//查询结果派发
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(),
+            QueryResult queryResult = new QueryResult(session.getSource().getSchema(), session.getSource().getUser(),
 					rrs.getSqlType(), rrs.getStatement(), selectRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize, source.getHost());
 			QueryResultDispatcher.dispatchQuery( queryResult );
 
@@ -856,7 +874,8 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 					FieldPacket fieldPkg = new FieldPacket();
 					fieldPkg.read(field);
 					fieldPackets.add(fieldPkg);
-					String fieldName = new String(fieldPkg.name).toUpperCase();
+                    String charset = session.getSource().getCharset();// CharsetUtil.getCharset(fieldPkg.charsetIndex);
+                    String fieldName = new String(fieldPkg.name, charset).toUpperCase();
 					if (columToIndx != null
 							&& !columToIndx.containsKey(fieldName)) {
 						if (shouldRemoveAvgField.contains(fieldName)) {
@@ -903,7 +922,7 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
 			eof[3] = ++packetId;
 			buffer = source.writeToBuffer(eof, buffer);
 
-			if(null == middlerResultHandler ){
+			if (null == middlerResultHandler) {
 				//session.getSource().write(row);
 				source.write(buffer);
 		     }
@@ -1060,8 +1079,19 @@ public class MultiNodeQueryHandler extends MultiNodeHandler implements LoadDataR
     protected void processFinishWork(byte[] data, boolean isCommit, BackendConnection conn) {
         ServerConnection source = session.getSource();
         source.getListener().fireEvent(SqlExecuteStage.END);
-
-        if (source.isAutocommit() && conn.isModifiedSQLExecuted() && !conn.isAutocommit()) {
+        
+		boolean isImplicitTransaction = false;
+		if (source.isAutocommit()) {
+			for (Entry<RouteResultsetNode, BackendConnection> entry : session.getTargetMap().entrySet()) {
+				BackendConnection c = entry.getValue();
+				if (c.isModifiedSQLExecuted() && !c.isAutocommit()) {
+					isImplicitTransaction = true;
+					break;
+				}
+			}
+		}
+        
+        if (isImplicitTransaction) {
             // 1隐式事务:修改类语句并且autocommit=true，mycat自动开启事务，需要自动提交掉
             if (nodeCount < 0) {
                 return;

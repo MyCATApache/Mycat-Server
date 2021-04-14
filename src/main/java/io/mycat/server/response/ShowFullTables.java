@@ -48,9 +48,12 @@ public class ShowFullTables
 	 * @param c
 	 */
 	public static void response(ServerConnection c,String stmt,int type) {
-       String showSchemal= SchemaUtil.parseShowTableSchema(stmt) ;
-        String cSchema =showSchemal==null? c.getSchema():showSchemal;
-        SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(cSchema);
+        String showSchema = SchemaUtil.parseShowTableSchema(stmt);
+        if (showSchema == null) {
+            showSchema = c.getSchema();
+        }
+
+        SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(showSchema);
         if(schema != null) {
         	//不分库的schema，show tables从后端 mysql中查
             String node = schema.getDataNode();
@@ -59,7 +62,8 @@ public class ShowFullTables
                 return;
             }
         } else {
-             c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,"No database selected");
+            c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR, "Cannot find the corresponding logic schema of Mycat");
+            return;
         }
 
         //分库的schema，直接从SchemaConfig中获取所有表名

@@ -38,6 +38,7 @@ import io.mycat.backend.mysql.listener.DefaultSqlExecuteStageListener;
 import io.mycat.backend.mysql.listener.SqlExecuteStageListener;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.SystemConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.handler.MysqlProcHandler;
@@ -56,7 +57,7 @@ import io.mycat.util.TimeUtil;
 public class ServerConnection extends FrontendConnection {
 	private static final Logger LOGGER = LoggerFactory
 			.getLogger(ServerConnection.class);
-	private static final long AUTH_TIMEOUT = 15 * 1000L;
+	private long authTimeout = SystemConfig.DEFAULT_AUTH_TIMEOUT;
 
 	/** 保存SET SQL_SELECT_LIMIT的值, default 解析为-1. */
 	private volatile  int sqlSelectLimit = -1;
@@ -91,9 +92,16 @@ public class ServerConnection extends FrontendConnection {
 		if (isAuthenticated) {
 			return super.isIdleTimeout();
 		} else {
-			return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime,
-					lastReadTime) + AUTH_TIMEOUT;
+			return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime, lastReadTime) + this.authTimeout;
 		}
+	}
+
+	public long getAuthTimeout() {
+		return authTimeout;
+	}
+
+	public void setAuthTimeout(long authTimeout) {
+		this.authTimeout = authTimeout;
 	}
 
 	public int getTxIsolation() {

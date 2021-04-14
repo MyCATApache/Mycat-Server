@@ -47,9 +47,9 @@ public final class ShowHandler {
 		case ServerParseShow.TABLES:
 			ShowTables.response(c, stmt,type);
 			break;
-            case ServerParseShow.FULLTABLES:
-                ShowFullTables.response(c, stmt,type);
-                break;
+        case ServerParseShow.FULLTABLES:
+            ShowFullTables.response(c, stmt, type);
+            break;
 		case ServerParseShow.MYCAT_STATUS:
 			ShowMyCatStatus.response(c);
 			break;

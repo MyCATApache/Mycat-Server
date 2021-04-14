@@ -26,6 +26,7 @@ package io.mycat.manager;
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
 
+import io.mycat.config.model.SystemConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.util.TimeUtil;
 
@@ -33,7 +34,7 @@ import io.mycat.util.TimeUtil;
  * @author mycat
  */
 public class ManagerConnection extends FrontendConnection {
-	private static final long AUTH_TIMEOUT = 15 * 1000L;
+	private long authTimeout = SystemConfig.DEFAULT_AUTH_TIMEOUT;
 
 	public ManagerConnection(NetworkChannel channel) throws IOException {
 		super(channel);
@@ -44,9 +45,16 @@ public class ManagerConnection extends FrontendConnection {
 		if (isAuthenticated) {
 			return super.isIdleTimeout();
 		} else {
-			return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime,
-					lastReadTime) + AUTH_TIMEOUT;
+			return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime, lastReadTime) + this.authTimeout;
 		}
+	}
+
+	public long getAuthTimeout() {
+		return authTimeout;
+	}
+
+	public void setAuthTimeout(long authTimeout) {
+		this.authTimeout = authTimeout;
 	}
 
 	@Override

@@ -63,8 +63,14 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
             // throw new IllegalArgumentException(new
             // StringBuilder().append("columnValue:").append(columnValue).append(" Please
             // eliminate any quote and non number within it.").toString(),e);
-            int value = Math.abs((columnValue).hashCode());
-            return value % count;
+ //           int value = Math.abs((columnValue).hashCode());
+//            return value % count;
+			/**
+ 			* hashcode后的值使用int类型超出数值范围时，返回负数，报数组下标越界
+ 			* date 2020/12/21
+ 			*/
+			long value = Math.abs(Long.valueOf((columnValue).hashCode()));
+			return (int)(value%count);
 		}
 
 	}

@@ -44,6 +44,7 @@ public class ServerConnectionFactory extends FrontendConnectionFactory {
         SystemConfig sys = MycatServer.getInstance().getConfig().getSystem();
         ServerConnection c = new ServerConnection(channel);
         MycatServer.getInstance().getConfig().setSocketParams(c, true);
+        c.setAuthTimeout(sys.getAuthTimeout());
         c.setPrivileges(MycatPrivileges.instance());
         c.setQueryHandler(new ServerQueryHandler(c));
         c.setLoadDataInfileHandler(new ServerLoadDataInfileHandler(c));

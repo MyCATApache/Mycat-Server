@@ -33,7 +33,8 @@ import java.nio.channels.CompletionHandler;
 import java.nio.channels.NetworkChannel;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.net.factory.FrontendConnectionFactory;
@@ -53,7 +54,7 @@ public final class AIOAcceptor implements SocketAcceptor,
 	private long acceptCount;
 	private final String name;
 
-	public AIOAcceptor(String name, String ip, int port,
+	public AIOAcceptor(String name, String ip, int port, int backlog,
 			FrontendConnectionFactory factory, AsynchronousChannelGroup group)
 			throws IOException {
 		this.name = name;
@@ -63,8 +64,8 @@ public final class AIOAcceptor implements SocketAcceptor,
 		/** 设置TCP属性 */
 		serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
 		serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, 1024 * 16 * 2);
-		// backlog=100
-		serverChannel.bind(new InetSocketAddress(ip, port), 100);
+
+		serverChannel.bind(new InetSocketAddress(ip, port), backlog);
 	}
 
 	public String getName() {

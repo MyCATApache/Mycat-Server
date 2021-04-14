@@ -22,6 +22,7 @@
 <!ATTLIST schema dataNode CDATA #IMPLIED>
 <!ATTLIST schema randomDataNode CDATA #IMPLIED>
 <!ATTLIST schema sqlMaxLimit CDATA #IMPLIED>
+<!ATTLIST schema needSupportMultiDBType CDATA #IMPLIED>
 
 <!ELEMENT table (property*,(childTable*))>
 <!ATTLIST table name CDATA #REQUIRED>

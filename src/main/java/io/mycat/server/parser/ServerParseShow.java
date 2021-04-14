@@ -40,6 +40,9 @@ public final class ServerParseShow {
 	public static final int MYCAT_CLUSTER = 4;
 	public static final int TABLES = 5;
     public static final int FULLTABLES =65;
+    private static final Pattern fullTablePattern = Pattern.compile(
+            "^\\s*(SHOW)\\s+(FULL)\\s+(TABLES)(\\s+(FROM)\\s+([a-zA-Z_0-9]+))?(\\s+(LIKE\\s+'(.*)'))?\\s*",
+            Pattern.CASE_INSENSITIVE);
 
 	public static int parse(String stmt, int offset) {
 		int i = offset;
@@ -163,12 +166,9 @@ public final class ServerParseShow {
 		return OTHER;
 	}
 
-    private  static     Pattern fullpattern = Pattern.compile("^\\s*(SHOW)\\s+(FULL)+\\s+(TABLES)\\s+\\s*([\\!\\'\\=a-zA-Z_0-9\\s]*)", Pattern.CASE_INSENSITIVE);
-    public static int fullTableCheck(String  stmt,int offset )
-    {
-        if(fullpattern.matcher(stmt).matches())
-        {
-         return FULLTABLES;
+    public static int fullTableCheck(String stmt, int offset) {
+        if (fullTablePattern.matcher(stmt).matches()) {
+            return FULLTABLES;
         }
         return OTHER;
     }
