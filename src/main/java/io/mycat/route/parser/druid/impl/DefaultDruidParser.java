@@ -1,5 +1,14 @@
 package io.mycat.route.parser.druid.impl;
 
+import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
@@ -7,6 +16,7 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat.Condition;
+
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
@@ -18,14 +28,6 @@ import io.mycat.route.parser.druid.SqlMethodInvocationHandler;
 import io.mycat.route.parser.druid.SqlMethodInvocationHandlerFactory;
 import io.mycat.sqlengine.mpp.RangeValue;
 import io.mycat.util.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.sql.SQLNonTransientException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 对SQLStatement解析
@@ -70,7 +72,7 @@ public class DefaultDruidParser implements DruidParser {
 		//设置为原始sql，如果有需要改写sql的，可以通过修改SQLStatement中的属性，然后调用SQLStatement.toString()得到改写的sql
 		ctx.setSql(originSql);
 		//通过visitor解析
-		visitorParse(rrs,stmt,schemaStatVisitor);
+		visitorParse(schema, rrs, stmt, schemaStatVisitor);
 
 		//通过Statement解析
 		statementParse(schema, rrs, stmt);
@@ -110,7 +112,8 @@ public class DefaultDruidParser implements DruidParser {
 	 * @param stmt
 	 */
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt,MycatSchemaStatVisitor visitor) throws SQLNonTransientException{
+	public void visitorParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor)
+			throws SQLNonTransientException {
 
 		stmt.accept(visitor);
 		ctx.setVisitor(visitor);
@@ -152,7 +155,11 @@ public class DefaultDruidParser implements DruidParser {
 				if(key != null) {
 					int pos = key.indexOf(".");
 					if(pos> 0) {
-						key = key.substring(pos + 1);
+						String schemaInSQL = key.substring(0, pos);
+						// 只有sql里面的schema名称和逻辑schema相同时，才去掉schema，防止"物理schema.物理表名"被错判为同名的逻辑表，产生路由判断错误
+						if (schemaInSQL.equalsIgnoreCase(schema.getName())) {
+							key = key.substring(pos + 1);
+						}
 					}
 					
 					tableAliasMap.put(key.toUpperCase(), value);
@@ -164,7 +171,7 @@ public class DefaultDruidParser implements DruidParser {
 //				}
 
 			}
-			ctx.addTables(visitor.getTables());
+			ctx.addTables(visitor.getTables(), schema.getName());
 			
 			visitor.getAliasMap().putAll(tableAliasMap);
 			ctx.setTableAliasMap(tableAliasMap);

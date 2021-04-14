@@ -22,7 +22,8 @@ import io.mycat.util.StringUtil;
 public class DruidCreateTableParser extends DefaultDruidParser {
 
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor) {
+	public void visitorParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt,
+			MycatSchemaStatVisitor visitor) {
 	}
 	
 	@Override
