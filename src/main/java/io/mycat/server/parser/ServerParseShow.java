@@ -23,7 +23,6 @@
  */
 package io.mycat.server.parser;
 
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.mycat.route.parser.util.ParseUtil;
@@ -40,8 +39,8 @@ public final class ServerParseShow {
 	public static final int MYCAT_CLUSTER = 4;
 	public static final int TABLES = 5;
     public static final int FULLTABLES =65;
-    private static final Pattern fullTablePattern = Pattern.compile(
-            "^\\s*(SHOW)\\s+(FULL)\\s+(TABLES)(\\s+(FROM)\\s+([a-zA-Z_0-9]+))?(\\s+(LIKE\\s+'(.*)'))?\\s*",
+	private static final Pattern SHOWTablePattern = Pattern.compile(
+			"^\\s*(SHOW)(\\s+(full|all))?\\s+(TABLES)(\\s+(FROM)\\s+([a-zA-Z_0-9]+))?((\\s+(like)\\s+'((. *)*)'\\s*)|(\\s+(where)\\s+((. *)*)\\s*))?",
             Pattern.CASE_INSENSITIVE);
 
 	public static int parse(String stmt, int offset) {
@@ -167,52 +166,18 @@ public final class ServerParseShow {
 	}
 
     public static int fullTableCheck(String stmt, int offset) {
-        if (fullTablePattern.matcher(stmt).matches()) {
+		if (SHOWTablePattern.matcher(stmt).matches()) {
             return FULLTABLES;
         }
         return OTHER;
     }
 
 	// SHOW TABLE
-
-public 	static int tableCheck(String stmt, int offset) {
-
-		// strict match
-		String pat1 = "^\\s*(SHOW)\\s+(TABLES)\\s*";
-		String pat2 = "^\\s*(SHOW)\\s+(TABLES)\\s+(LIKE\\s+'(.*)')\\s*";
-		String pat3 = "^\\s*(SHOW)\\s+(TABLES)\\s+(FROM)\\s+([a-zA-Z_0-9]+)\\s*";
-		String pat4 = "^\\s*(SHOW)\\s+(TABLES)\\s+(FROM)\\s+([a-zA-Z_0-9]+)\\s+(LIKE\\s+'(.*)')\\s*";
-
-		boolean flag = isShowTableMatched(stmt, pat1);
-		if (flag) {
+	public static int tableCheck(String stmt, int offset) {
+		if (SHOWTablePattern.matcher(stmt).matches()) {
 			return TABLES;
 		}
-
-		flag = isShowTableMatched(stmt, pat2);
-		if (flag) {
-			return TABLES;
-		}
-
-		flag = isShowTableMatched(stmt, pat3);
-		if (flag) {
-			return TABLES;
-		}
-
-		flag = isShowTableMatched(stmt, pat4);
-		if (flag) {
-			return TABLES;
-		}
-
 		return OTHER;
-
-	}
-
-	private static boolean isShowTableMatched(String stmt, String pat1) {
-		Pattern pattern = Pattern.compile(pat1, Pattern.CASE_INSENSITIVE);
-		Matcher ma = pattern.matcher(stmt);
-
-		boolean flag = ma.matches();
-		return flag;
 	}
 
 	// SHOW DATABASES
