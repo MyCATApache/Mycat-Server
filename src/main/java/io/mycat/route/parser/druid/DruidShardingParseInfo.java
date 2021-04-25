@@ -1,20 +1,15 @@
 package io.mycat.route.parser.druid;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Name;
 
 import io.mycat.route.util.RouterUtil;
-import io.mycat.sqlengine.mpp.ColumnRoutePair;
-import io.mycat.sqlengine.mpp.RangeValue;
 
 /**
  * druid parser result
@@ -103,7 +98,7 @@ public class DruidShardingParseInfo {
 		return this.visitor;
 	}
 
-	public void addTables(Map<Name, TableStat> map) {
+	public void addTables(Map<Name, TableStat> map, String sessionSchema) {
 		
 		int dotIndex;
 		for(Name _name : map.keySet()){
@@ -113,8 +108,11 @@ public class DruidShardingParseInfo {
 			if(RouterUtil.isSystemSchema(_tableName)){
 				continue;
 			}
-			if((dotIndex = _tableName.indexOf('.')) != -1){
-				_tableName = _tableName.substring(dotIndex + 1);
+			if ((dotIndex = _tableName.indexOf('.')) != -1) {
+				String schemaInSQL = _tableName.substring(0, dotIndex);
+				if (schemaInSQL.equalsIgnoreCase(sessionSchema)) {
+					_tableName = _tableName.substring(dotIndex + 1);
+				}
 			}
 			addTable(_tableName);
 		}

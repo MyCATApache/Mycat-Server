@@ -60,7 +60,10 @@
         <table name="offer1" primaryKey="id" dataNode="offer_dn$1-36"
                rule="rangeDateHash" />
 	</schema>
-
+    <schema name="schema_table_test"  dataNode="dn2"  checkSQLschema="true">
+        <table name="offer" dataNode="dn1,dn2" rule="auto-sharding-long2" />
+	 </schema>
+	 
     <schema name="mysqldb"  sqlMaxLimit="100">
         <table name="offer" dataNode="dn1,dn2" rule="auto-sharding-long2" />
 		<table name="autoslot" dataNode="dn1,dn2" rule="crc32slot" />
