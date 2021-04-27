@@ -1,18 +1,19 @@
 package io.mycat.server.util;
 
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlShowColumnsStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
+
 import io.mycat.MycatServer;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.server.parser.ServerParse;
-
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by magicdoom on 2016/1/26.
@@ -87,7 +88,7 @@ public class SchemaUtil {
         //     return ma.group(5);
         // }
         String fields[] =parseShowTable(sql);
-        return fields[3];
+		return fields[3];
     }
     /**
      * 解析show full table from|in schema-name where table_type|tables_in_xxx like 'xxx'
@@ -195,7 +196,9 @@ public class SchemaUtil {
     }
     //sample：SHOW FULL TABLES FROM information_schema WHERE Tables_in_information_schema LIKE 'KEY_COLUMN_USAGE'
     //注意sql中like后面会有单引号
-    private static Pattern SHOW_FULL_TABLE_PATTERN = Pattern.compile("^\\s*show\\s+(full )?tables \\s*(in |from )?\\s*(\\w+)*\\s*(where )?\\s*(table_type|tables_in_\\w+)*\\s*(\\= |like )?\\s*('([\\w%\\s]+)')*\\s*(;)*\\s*", Pattern.CASE_INSENSITIVE);
+	private static Pattern SHOW_FULL_TABLE_PATTERN = Pattern.compile(
+			"^\\s*show\\s+(full\\s+)?tables \\s*(in |from )?\\s*(\\w+)*\\s*(where )?\\s*(table_type|tables_in_\\w+)*\\s*(\\= |like )?\\s*('([\\w%\\s]+)')*\\s*(;)*\\s*",
+			Pattern.CASE_INSENSITIVE);
 
     public static void main(String[] args) {
         String sql = "SELECT name, type FROM `mysql`.`proc` as xxxx WHERE Db='base'";

@@ -56,13 +56,19 @@ public class ShowTables {
             if(!Strings.isNullOrEmpty(node)) {
             	c.execute(stmt, ServerParse.SHOW);
                 return;
+			} else {
+				reponseLogicTable(c, stmt);
+				return;
             }
         } else {
              c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,"No database selected");
              return;
         }
 
-        //分库的schema，直接从SchemaConfig中获取所有表名
+	}
+
+	private static void reponseLogicTable(ServerConnection c, String stmt) {
+		// 分库的schema，直接从SchemaConfig中获取所有表名
         Map<String,String> parm = buildFields(c,stmt);
         java.util.Set<String> tableSet = getTableSet(c, parm);
 
@@ -102,20 +108,15 @@ public class ShowTables {
 
         // post write
         c.write(buffer);
-		
-		
-    }
+	}
 
-    public static Set<String> getTableSet(ServerConnection c, String stmt)
-    {
-        Map<String,String> parm = buildFields(c,stmt);
-       return getTableSet(c, parm);
+	public static Set<String> getTableSet(ServerConnection c, String stmt) {
+		Map<String, String> parm = buildFields(c, stmt);
+		return getTableSet(c, parm);
 
-    }
+	}
 
-
-    private static Set<String> getTableSet(ServerConnection c, Map<String, String> parm)
-    {
+	private static Set<String> getTableSet(ServerConnection c, Map<String, String> parm) {
         TreeSet<String> tableSet = new TreeSet<String>();
         MycatConfig conf = MycatServer.getInstance().getConfig();
 

@@ -52,8 +52,8 @@ public class SchemaUtilTest {
         String stmt = "SHOW TABLES WHERE table_type = 'BASE TABLE';";
         String[] fields = SchemaUtil.parseShowTable(stmt);
         assertArrayEquals(new String[]{"1", null, null, null, "WHERE", "table_type", "=", "'BASE TABLE'", "BASE TABLE"}, fields);
-        //
-        stmt = "SHOW FULL TABLES WHERE table_type = 'BASE TABLE';";
+		// 多个空格也能解析
+		stmt = "SHOW FULL    TABLES WHERE table_type = 'BASE TABLE';";
         fields = SchemaUtil.parseShowTable(stmt);
         assertArrayEquals(new String[]{"1", "FULL", null, null, "WHERE", "table_type", "=", "'BASE TABLE'", "BASE TABLE"}, fields);
         //
