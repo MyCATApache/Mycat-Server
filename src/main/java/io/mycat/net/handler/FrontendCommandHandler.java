@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -113,6 +113,13 @@ public class FrontendCommandHandler implements NIOHandler
                 break;
             case MySQLPacket.COM_FIELD_LIST:
                 source.fieldList(data);
+                break;
+            case MySQLPacket.COM_SET_OPTION:
+                commands.doSetOption();
+                source.setOption(data);
+                break;
+            case MySQLPacket.COM_RESET_CONNECTION:
+                source.resetConnection();
                 break;
             default:
                 commands.doOther();

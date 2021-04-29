@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -59,6 +59,8 @@ import io.mycat.net.FrontendConnection;
  * @author mycat
  */
 public class FieldPacket extends MySQLPacket {
+    public static final int UNSIGNED_FLAG = 0x0020;
+
 	private static final byte[] DEFAULT_CATALOG = "def".getBytes();
 	private static final byte[] FILLER = new byte[2];
 

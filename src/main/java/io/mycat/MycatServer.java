@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese
@@ -439,12 +439,12 @@ public class MycatServer {
                 );
             }
             manager = new AIOAcceptor(NAME + "Manager", system.getBindIp(),
-                    system.getManagerPort(), mf, this.asyncChannelGroups[0]);
+                    system.getManagerPort(), system.getServerBacklog(), mf, this.asyncChannelGroups[0]);
 
             // startup server
 
             server = new AIOAcceptor(NAME + "Server", system.getBindIp(),
-                    system.getServerPort(), sf, this.asyncChannelGroups[0]);
+                    system.getServerPort(), system.getServerBacklog(), sf, this.asyncChannelGroups[0]);
 
         } else {
             LOGGER.info("using nio network handler ");
@@ -456,10 +456,10 @@ public class MycatServer {
             ((NIOConnector) connector).start();
 
             manager = new NIOAcceptor(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + NAME
-                    + "Manager", system.getBindIp(), system.getManagerPort(), mf, reactorPool);
+                    + "Manager", system.getBindIp(), system.getManagerPort(), system.getServerBacklog(), mf, reactorPool);
 
             server = new NIOAcceptor(DirectByteBufferPool.LOCAL_BUF_THREAD_PREX + NAME
-                    + "Server", system.getBindIp(), system.getServerPort(), sf, reactorPool);
+                    + "Server", system.getBindIp(), system.getServerPort(), system.getServerBacklog(), sf, reactorPool);
         }
         // manager start
         manager.start();

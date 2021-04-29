@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights
  * reserved. DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER. This
  * code is free software;Designed and Developed mainly by many Chinese
  * opensource volunteers. you can redistribute it and/or modify it under the

@@ -65,6 +65,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	private boolean hasOrCondition = false;
 	private List<WhereUnit> whereUnits = new ArrayList<WhereUnit>();
 	private List<WhereUnit> storedwhereUnits = new ArrayList<>();
+    private List<SQLBinaryOpExpr> orBinaryExprs = new ArrayList<SQLBinaryOpExpr>();
     private Queue<SQLSelect> subQuerys = new LinkedList<>();  //子查询集合
 	private boolean hasChange = false; // 是否有改写sql
 	private boolean subqueryRelationOr = false;   //子查询存在关联条件的情况下，是否有 or 条件
@@ -79,6 +80,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	private void reset() {
 		this.conditions.clear();
 		this.whereUnits.clear();
+        this.orBinaryExprs.clear();
 		this.hasOrCondition = false;
 	}
 	
@@ -745,22 +747,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
                 break;
             case BooleanOr:
             	//永真条件，where条件抛弃
-            	if(!RouterUtil.isConditionAlwaysTrue(x)) {
-            		hasOrCondition = true;
-            		
-            		WhereUnit whereUnit = null;
-            		if(conditions.size() > 0) {
-            			whereUnit = new WhereUnit();
-            			whereUnit.setFinishedParse(true);
-            			whereUnit.addOutConditions(getConditions());
-            			WhereUnit innerWhereUnit = new WhereUnit(x);
-            			whereUnit.addSubWhereUnit(innerWhereUnit);
-            		} else {
-            			whereUnit = new WhereUnit(x);
-            			whereUnit.addOutConditions(getConditions());
-            		}
-            		whereUnits.add(whereUnit);
-            	}
+                if (!RouterUtil.isConditionAlwaysTrue(x)) {
+                  hasOrCondition = true;
+                  orBinaryExprs.add(x);
+                }
             	return false;
             case Like:
             case NotLike:
@@ -774,11 +764,27 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 		// return true;
     }
 	
-	/**
-	 * 分解条件
-	 */
-	public List<List<Condition>> splitConditions() {
-		//按照or拆分
+    /**
+     * 根据带or的expr创建 WhereUnits
+     */
+    private void buildWhereUnits() {
+        for (SQLBinaryOpExpr orExpr : orBinaryExprs) {
+            WhereUnit whereUnit = new WhereUnit();
+            whereUnit.setFinishedParse(true);
+            whereUnit.addOutConditions(getConditions());
+            WhereUnit innerWhereUnit = new WhereUnit(orExpr);
+            whereUnit.addSubWhereUnit(innerWhereUnit);
+            whereUnits.add(whereUnit);
+        }
+    }
+
+    /**
+     * 分解条件
+     */
+    public List<List<Condition>> splitConditions() {
+        buildWhereUnits();
+
+        // 按照or拆分
 		for(WhereUnit whereUnit : whereUnits) {
 			splitUntilNoOr(whereUnit);
 		}
@@ -807,8 +813,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 				List<SQLExpr> removeSplitedList = new ArrayList<SQLExpr>();
 				for(SQLExpr sqlExpr : whereUnit.getSplitedExprList()) {
 					reset();
+
 					if(isExprHasOr(sqlExpr)) {
-						removeSplitedList.add(sqlExpr);
+                        this.buildWhereUnits();
+                        removeSplitedList.add(sqlExpr);
 						WhereUnit subWhereUnit = this.whereUnits.get(0);
 						splitUntilNoOr(subWhereUnit);
 						whereUnit.addSubWhereUnit(subWhereUnit);

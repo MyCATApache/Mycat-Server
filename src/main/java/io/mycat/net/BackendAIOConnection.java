@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -75,6 +75,11 @@ public abstract class BackendAIOConnection extends AbstractConnection implements
 		super.setProcessor(processor);
 		processor.addBackend(this);
 	}
+
+    @Override
+    public void checkQueueFlow() {
+
+    }
 
 	@Override
 	public String toString() {

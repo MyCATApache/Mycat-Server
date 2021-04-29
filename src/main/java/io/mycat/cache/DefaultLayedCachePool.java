@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -25,14 +25,16 @@ package io.mycat.cache;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultLayedCachePool implements LayerCachePool {
 	private static final Logger LOGGER = LoggerFactory
 			.getLogger(DefaultLayedCachePool.class);
-	protected Map<String, CachePool> allCaches = new HashMap<String, CachePool>();
+    protected Map<String, CachePool> allCaches = new ConcurrentHashMap<String, CachePool>();
 	protected final ReentrantLock lock = new ReentrantLock();
 	protected int defaultCacheSize;
 	protected int defaulExpiredSeconds;

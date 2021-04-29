@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese
@@ -273,6 +273,16 @@ public final class RouteResultsetNode implements Serializable , Comparable<Route
 	public boolean isModifySQL() {
 		return !canRunInReadDB;
 	}
+
+    /**
+     * 非DDL的修改语句，如INSERT,DELETE,UPDATE
+     * @return
+     */
+    public boolean isModifySQLExceptDDL() {
+        boolean isDDL = (sqlType == ServerParse.DDL);
+        return !canRunInReadDB && !isDDL;
+    }
+
 	public boolean isDisctTable() {
 		if(subTableName!=null && !subTableName.equals("")){
 			return true;

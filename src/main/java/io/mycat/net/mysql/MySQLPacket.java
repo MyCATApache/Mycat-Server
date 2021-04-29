@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -176,6 +176,11 @@ public abstract class MySQLPacket {
      * mysql_stmt_fetch
      */
     public static final byte COM_STMT_FETCH = 28;
+
+    /**
+     * mysql_reset_connection
+     */
+    public static final byte COM_RESET_CONNECTION = 31;
 
     /**
      * Mycat heartbeat

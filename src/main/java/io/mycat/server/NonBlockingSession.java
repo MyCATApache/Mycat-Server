@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
+import io.mycat.backend.mysql.listener.SqlExecuteStage;
 import io.mycat.backend.mysql.nio.handler.CommitNodeHandler;
 import io.mycat.backend.mysql.nio.handler.KillConnectionHandler;
 import io.mycat.backend.mysql.nio.handler.LockTablesHandler;
@@ -82,6 +83,7 @@ public class NonBlockingSession implements Session {
   	
   	private volatile MiddlerResultHandler  middlerResultHandler;
     private boolean prepared;
+    private RouteResultset rrs;
 
     public NonBlockingSession(ServerConnection source) {
         this.source = source;
@@ -118,7 +120,7 @@ public class NonBlockingSession implements Session {
     
     @Override
     public void execute(RouteResultset rrs, int type) {
-
+        this.rrs = rrs;
         // clear prev execute resources
         clearHandlesResources();
         if (LOGGER.isDebugEnabled()) {
@@ -131,6 +133,7 @@ public class NonBlockingSession implements Session {
         if (nodes == null || nodes.length == 0 || nodes[0].getName() == null || nodes[0].getName().equals("")) {
             source.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,
                     "No dataNode found ,please check tables defined in schema:" + source.getSchema());
+            source.getListener().fireEvent(SqlExecuteStage.END);
             return;
         }
         boolean autocommit = source.isAutocommit();
@@ -150,6 +153,7 @@ public class NonBlockingSession implements Session {
             } catch (Exception e) {
                 LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
                 source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
+                source.getListener().fireEvent(SqlExecuteStage.END);
             }
 
         } else {
@@ -167,6 +171,7 @@ public class NonBlockingSession implements Session {
             } catch (Exception e) {
                 LOGGER.warn(new StringBuilder().append(source).append(rrs).toString(), e);
                 source.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, e.toString());
+                source.getListener().fireEvent(SqlExecuteStage.END);
             }
         }
 
@@ -239,8 +244,8 @@ public class NonBlockingSession implements Session {
             return;
         } else if (initCount == 1) {
         	//huangyiming add 避免出现jdk版本冲突
-            BackendConnection con = target.values().iterator().next();
-            commitHandler.commit(con);
+            // BackendConnection con = target.values().iterator().next();
+            commitHandler.commit();
         } else {
 
             if (LOGGER.isDebugEnabled()) {
@@ -342,10 +347,26 @@ public class NonBlockingSession implements Session {
 
     public void closeAndClearResources(String reason) {
         for (BackendConnection node : target.values()) {
-            node.close(reason);
+            node.closeWithoutRsp(reason);
         }
         target.clear();
         clearHandlesResources();
+    }
+
+    public void closeConnection(BackendConnection con, String reason) {
+        Iterator<Entry<RouteResultsetNode, BackendConnection>> itor = target.entrySet().iterator();
+        while (itor.hasNext()) {
+            BackendConnection theCon = itor.next().getValue();
+            if (theCon == con) {
+                itor.remove();
+                con.close(reason);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("realse connection " + con);
+                }
+                break;
+            }
+        }
+
     }
 
     public void releaseConnectionIfSafe(BackendConnection conn, boolean debug,
@@ -643,4 +664,9 @@ public class NonBlockingSession implements Session {
 		}
 		return sb.toString();
 	}
+
+    public RouteResultset getRrs() {
+        return rrs;
+    }
+
 }

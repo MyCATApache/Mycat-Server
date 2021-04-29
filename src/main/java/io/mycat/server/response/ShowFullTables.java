@@ -1,5 +1,13 @@
 package io.mycat.server.response;
 
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.google.common.base.Strings;
 
 import io.mycat.MycatServer;
@@ -18,21 +26,12 @@ import io.mycat.server.parser.ServerParse;
 import io.mycat.server.util.SchemaUtil;
 import io.mycat.util.StringUtil;
 
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * show tables impl
  * @author yanglixue
  *
  */
-public class ShowFullTables
-{
+public class ShowFullTables {
 
     private static final int FIELD_COUNT = 2;
     private static final ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
@@ -48,21 +47,30 @@ public class ShowFullTables
 	 * @param c
 	 */
 	public static void response(ServerConnection c,String stmt,int type) {
-       String showSchemal= SchemaUtil.parseShowTableSchema(stmt) ;
-        String cSchema =showSchemal==null? c.getSchema():showSchemal;
-        SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(cSchema);
+        String showSchema = SchemaUtil.parseShowTableSchema(stmt);
+        if (showSchema == null) {
+            showSchema = c.getSchema();
+        }
+
+        SchemaConfig schema = MycatServer.getInstance().getConfig().getSchemas().get(showSchema);
         if(schema != null) {
         	//不分库的schema，show tables从后端 mysql中查
             String node = schema.getDataNode();
             if(!Strings.isNullOrEmpty(node)) {
             	c.execute(stmt, ServerParse.SHOW);
                 return;
+			} else {
+				reponseLogicTable(c, stmt);
+				return;
             }
         } else {
-             c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR,"No database selected");
+            c.writeErrMessage(ErrorCode.ER_NO_DB_ERROR, "Cannot find the corresponding logic schema of Mycat");
+            return;
         }
+	}
 
-        //分库的schema，直接从SchemaConfig中获取所有表名
+	private static void reponseLogicTable(ServerConnection c, String stmt) {
+		// 分库的schema，直接从SchemaConfig中获取所有表名
         Map<String,String> parm = buildFields(c,stmt);
         Set<String> tableSet = getTableSet(c, parm);
 
@@ -105,20 +113,15 @@ public class ShowFullTables
 
         // post write
         c.write(buffer);
-		
-		
-    }
+	}
 
-    public static Set<String> getTableSet(ServerConnection c, String stmt)
-    {
-        Map<String,String> parm = buildFields(c,stmt);
-       return getTableSet(c, parm);
+	public static Set<String> getTableSet(ServerConnection c, String stmt) {
+		Map<String, String> parm = buildFields(c, stmt);
+		return getTableSet(c, parm);
 
-    }
+	}
 
-
-    private static Set<String> getTableSet(ServerConnection c, Map<String, String> parm)
-    {
+	private static Set<String> getTableSet(ServerConnection c, Map<String, String> parm) {
         TreeSet<String> tableSet = new TreeSet<String>();
         MycatConfig conf = MycatServer.getInstance().getConfig();
 

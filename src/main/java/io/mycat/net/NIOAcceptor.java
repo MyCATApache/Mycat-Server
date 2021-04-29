@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -34,7 +34,8 @@ import java.nio.channels.SocketChannel;
 import java.util.Set;
 
 import io.mycat.util.SelectorUtil;
-import org.slf4j.Logger; import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
 import io.mycat.net.factory.FrontendConnectionFactory;
@@ -53,7 +54,7 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 	private long acceptCount;
 	private final NIOReactorPool reactorPool;
 
-	public NIOAcceptor(String name, String bindIp,int port, 
+	public NIOAcceptor(String name, String bindIp, int port, int backlog,
 			FrontendConnectionFactory factory, NIOReactorPool reactorPool)
 			throws IOException {
 		super.setName(name);
@@ -64,8 +65,8 @@ public final class NIOAcceptor extends Thread implements SocketAcceptor{
 		/** 设置TCP属性 */
 		serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
 		serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, 1024 * 16 * 2);
-		// backlog=100
-		serverChannel.bind(new InetSocketAddress(bindIp, port), 100);
+
+		serverChannel.bind(new InetSocketAddress(bindIp, port), backlog);
 		this.serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 		this.factory = factory;
 		this.reactorPool = reactorPool;

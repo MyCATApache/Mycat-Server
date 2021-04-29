@@ -118,6 +118,12 @@ public class JDBCConnection implements BackendConnection {
 
 	}
 
+    @Override
+    public void closeWithoutRsp(String reason) {
+        // TODO Auto-generated method stub
+        close(reason);
+    }
+
 	public void setId(long id) {
         this.id = id;
     }
@@ -297,7 +303,7 @@ public class JDBCConnection implements BackendConnection {
 		}
 		try
 		{
-			con.setReadOnly(txReadonly);
+			con.setReadOnly(false);
 		} catch (SQLException e)
 		{
 			LOGGER.warn("set setReadOnly error:",e);
@@ -375,6 +381,7 @@ public class JDBCConnection implements BackendConnection {
 			error.packetId = ++packetId;
 			error.errno = e.getErrorCode();
 			error.message = msg.getBytes();
+			LOGGER.error("sql execute error, "+ msg , e);
 			this.respHandler.errorResponse(error.writeToBytes(sc), this);
 		}
 		catch (Exception e) {
@@ -994,5 +1001,16 @@ public class JDBCConnection implements BackendConnection {
 		}
 	}
 
+    @Override
+    public void disableRead() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void enableRead() {
+        // TODO Auto-generated method stub
+
+    }
 
 }

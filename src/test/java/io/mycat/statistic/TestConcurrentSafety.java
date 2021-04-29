@@ -78,9 +78,9 @@ public class TestConcurrentSafety {
     public void testQueryConditionAnalyzer() throws InterruptedException {
 
 
-        final QueryResult qr = new QueryResult("zhuam", ServerParse.SELECT, sql, 0, 0, 0, 0, 0,0,       "127.0.0.1");
-        final QueryResult qr2 = new QueryResult("zhuam", ServerParse.SELECT, sql2, 0, 0, 0, 0, 0,0,       "127.0.0.1");
-        final QueryResult qr3 = new QueryResult("zhuam", ServerParse.SELECT, sql3, 0, 0, 0, 0, 0,0,       "127.0.0.1");
+        final QueryResult qr = new QueryResult("zhuam", "root", ServerParse.SELECT, sql, 0, 0, 0, 0, 0,0,       "127.0.0.1");
+        final QueryResult qr2 = new QueryResult("zhuam", "root", ServerParse.SELECT, sql2, 0, 0, 0, 0, 0,0,       "127.0.0.1");
+        final QueryResult qr3 = new QueryResult("zhuam", "root", ServerParse.SELECT, sql3, 0, 0, 0, 0, 0,0,       "127.0.0.1");
 
         final QueryConditionAnalyzer analyzer = QueryConditionAnalyzer.getInstance();
         analyzer.setCf("dynamic&fnum");

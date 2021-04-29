@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -164,7 +164,9 @@ abstract class MultiNodeHandler implements ResponseHandler, Terminatable {
 		Runnable callback = null;
 		lock.lock();
 		try {
-			if (zeroReached = --nodeCount == 0) {
+			nodeCount -= finished;
+			zeroReached = nodeCount == 0;
+			if (zeroReached) {
 				callback = this.terminateCallBack;
 				this.terminateCallBack = null;
 			}

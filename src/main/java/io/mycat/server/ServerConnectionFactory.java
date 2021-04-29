@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -44,6 +44,7 @@ public class ServerConnectionFactory extends FrontendConnectionFactory {
         SystemConfig sys = MycatServer.getInstance().getConfig().getSystem();
         ServerConnection c = new ServerConnection(channel);
         MycatServer.getInstance().getConfig().setSocketParams(c, true);
+        c.setAuthTimeout(sys.getAuthTimeout());
         c.setPrivileges(MycatPrivileges.instance());
         c.setQueryHandler(new ServerQueryHandler(c));
         c.setLoadDataInfileHandler(new ServerLoadDataInfileHandler(c));

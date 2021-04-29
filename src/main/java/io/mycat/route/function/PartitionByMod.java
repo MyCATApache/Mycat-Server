@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -60,7 +60,17 @@ public class PartitionByMod extends AbstractPartitionAlgorithm implements RuleAl
 			BigInteger bigNum = new BigInteger(columnValue).abs();
 			return (bigNum.mod(BigInteger.valueOf(count))).intValue();
 		} catch (NumberFormatException e){
-			throw new IllegalArgumentException(new StringBuilder().append("columnValue:").append(columnValue).append(" Please eliminate any quote and non number within it.").toString(),e);
+            // throw new IllegalArgumentException(new
+            // StringBuilder().append("columnValue:").append(columnValue).append(" Please
+            // eliminate any quote and non number within it.").toString(),e);
+ //           int value = Math.abs((columnValue).hashCode());
+//            return value % count;
+			/**
+ 			* hashcode后的值使用int类型超出数值范围时，返回负数，报数组下标越界
+ 			* date 2020/12/21
+ 			*/
+			long value = Math.abs(Long.valueOf((columnValue).hashCode()));
+			return (int)(value%count);
 		}
 
 	}

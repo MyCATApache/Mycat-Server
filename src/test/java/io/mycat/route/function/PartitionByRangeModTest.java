@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -26,6 +26,7 @@ package io.mycat.route.function;
 import junit.framework.Assert;
 import org.junit.Test;
 
+import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
@@ -83,13 +84,16 @@ public class PartitionByRangeModTest
 
     protected Map<String, SchemaConfig> schemaMap;
     protected LayerCachePool cachePool = new SimpleCachePool();
-    protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
+    protected RouteStrategy routeStrategy;
 
     public PartitionByRangeModTest() {
         String schemaFile = "/route/schema.xml";
         String ruleFile = "/route/rule.xml";
         SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
         schemaMap = schemaLoader.getSchemas();
+        MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
+        RouteStrategyFactory.init();
+        routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
     }
 
     @Test

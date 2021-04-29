@@ -2,6 +2,7 @@ package io.mycat.route.function;
 
 import com.google.common.hash.Hashing;
 
+import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
@@ -69,13 +70,16 @@ public class PartitionByRangeDateHashTest
 
     protected Map<String, SchemaConfig> schemaMap;
     protected LayerCachePool cachePool = new SimpleCachePool();
-    protected RouteStrategy routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
+    protected RouteStrategy routeStrategy;
 
     public PartitionByRangeDateHashTest() {
         String schemaFile = "/route/schema.xml";
         String ruleFile = "/route/rule.xml";
         SchemaLoader schemaLoader = new XMLSchemaLoader(schemaFile, ruleFile);
         schemaMap = schemaLoader.getSchemas();
+        MycatServer.getInstance().getConfig().getSchemas().putAll(schemaMap);
+        RouteStrategyFactory.init();
+        routeStrategy = RouteStrategyFactory.getRouteStrategy("druidparser");
     }
 
     @Test

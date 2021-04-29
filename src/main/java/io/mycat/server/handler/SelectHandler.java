@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -23,16 +23,35 @@
  */
 package io.mycat.server.handler;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.parser.ServerParseSelect;
-import io.mycat.server.response.*;
+import io.mycat.server.response.ClientHeartbeatResponse;
+import io.mycat.server.response.SelectDatabase;
+import io.mycat.server.response.SelectIdentity;
+import io.mycat.server.response.SelectLastInsertId;
+import io.mycat.server.response.SelectTxReadOnly;
+import io.mycat.server.response.SelectUser;
+import io.mycat.server.response.SelectVersion;
+import io.mycat.server.response.SelectVersionComment;
+import io.mycat.server.response.SessionIncrement;
+import io.mycat.server.response.SessionIsolation;
 
 /**
  * @author mycat
  */
 public final class SelectHandler {
+    private static final int HEART_BEAT_SQL_MAX_LENGTH = "SELECT 1 FROM DUAL".length();
+    private static Set<String> CLIENT_HEART_BEAT_SQLS = new HashSet<String>(2);
+    static {
+        CLIENT_HEART_BEAT_SQLS.add("SELECT 1");
+        CLIENT_HEART_BEAT_SQLS.add("SELECT 1 FROM DUAL");
+    }
+
 
 	public static void handle(String stmt, ServerConnection c, int offs) {
 		int offset = offs;
@@ -104,8 +123,19 @@ public final class SelectHandler {
 				break;
 		default:
 			c.setExecuteSql(stmt);
-			c.execute(stmt, ServerParse.SELECT);
+            if (isClientHeartbeatSql(stmt)) {
+                ClientHeartbeatResponse.response(c);
+            } else {
+                c.execute(stmt, ServerParse.SELECT);
+            }
 		}
 	}
 
+    private static boolean isClientHeartbeatSql(String sql) {
+        if (sql.length() > HEART_BEAT_SQL_MAX_LENGTH) {
+            return false;
+        } else {
+            return CLIENT_HEART_BEAT_SQLS.contains(sql.toUpperCase());
+        }
+    }
 }

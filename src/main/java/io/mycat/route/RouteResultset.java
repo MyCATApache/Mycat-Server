@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese
@@ -31,6 +31,7 @@ import io.mycat.util.FormatUtil;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * @author mycat
@@ -456,5 +457,28 @@ public final class RouteResultset implements Serializable {
     public void setSubTableMaps(Map<String, List<String>> subTableMaps) {
         this.subTableMaps = subTableMaps;
     }
+
+	/**
+	 * 合并路由节点相同的节点
+	 */
+	public void mergeSameNode() {
+		Map<String, RouteResultsetNode> mapNodes = new HashMap<>(64);
+		for (RouteResultsetNode node : nodes) {
+			if (mapNodes.containsKey(node.getName())) {
+				// merge node
+				RouteResultsetNode tmpNode = mapNodes.get(node.getName());
+				tmpNode.setStatement(tmpNode.getStatement() + ";" + node.getStatement());
+			} else {
+				mapNodes.put(node.getName(), node);
+			}
+		}
+
+		RouteResultsetNode[] newNodes = new RouteResultsetNode[mapNodes.size()];
+		int i = 0;
+		for (Entry<String, RouteResultsetNode> entry : mapNodes.entrySet()) {
+			newNodes[i++] = entry.getValue();
+		}
+		this.setNodes(newNodes);
+	}
 
 }

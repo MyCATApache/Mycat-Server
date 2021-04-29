@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese
@@ -23,37 +23,36 @@
  */
 package io.mycat.server.handler;
 
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.SQLSelect;
-import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.parser.SQLParserUtils;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.alibaba.druid.util.JdbcUtils;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.escape.Escaper;
 import com.google.common.escape.Escapers;
 import com.google.common.escape.Escapers.Builder;
+
 import io.mycat.backend.mysql.BindValue;
 import io.mycat.backend.mysql.ByteUtil;
 import io.mycat.backend.mysql.PreparedStatement;
+import io.mycat.backend.mysql.nio.handler.PrepareRequestHandler;
+import io.mycat.backend.mysql.nio.handler.PrepareRequestHandler.PrepareRequestCallback;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.Fields;
 import io.mycat.net.handler.FrontendPrepareHandler;
 import io.mycat.net.mysql.ExecutePacket;
+import io.mycat.net.mysql.FieldPacket;
 import io.mycat.net.mysql.LongDataPacket;
 import io.mycat.net.mysql.OkPacket;
 import io.mycat.net.mysql.ResetPacket;
 import io.mycat.server.ServerConnection;
 import io.mycat.server.response.PreparedStmtResponse;
 import io.mycat.util.HexFormatUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author mycat, CrazyPig, zhuam
@@ -78,7 +77,9 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     }
 
     private ServerConnection source;
-    private static final AtomicLong PSTMT_ID_GENERATOR = new AtomicLong(0);
+
+    // java int是32位，long是64位；mysql协议里面定义的statementId是32位，因此用Integer
+    private static final AtomicInteger PSTMT_ID_GENERATOR = new AtomicInteger(0);
     //    private static final Map<String, PreparedStatement> pstmtForSql = new ConcurrentHashMap<>();
     private static final Map<Long, PreparedStatement> pstmtForId = new ConcurrentHashMap<>();
     private int maxPreparedStmtCount;
@@ -93,8 +94,9 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 
         LOGGER.debug("use server prepare, sql: " + sql);
         PreparedStatement pstmt = null;
-        if (pstmt == null) {
+        if (pstmt  == null) {
             // 解析获取字段个数和参数个数
+            int columnCount = 0;
             int paramCount = getParamCount(sql);
             if (paramCount > maxPreparedStmtCount) {
                 source.writeErrMessage(ErrorCode.ER_PS_MANY_PARAM,
@@ -108,6 +110,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
         }
         PreparedStmtResponse.response(pstmt, source);
     }
+
 
     @Override
     public void sendLongData(byte[] data) {
@@ -172,6 +175,8 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("execute prepare sql: " + sql);
             }
+
+            pstmt.resetLongData();
             source.query(sql);
         }
     }
@@ -285,5 +290,4 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
         }
         return sb.toString();
     }
-
 }

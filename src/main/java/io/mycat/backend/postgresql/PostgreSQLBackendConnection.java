@@ -559,6 +559,13 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 		}
 	}
 
+    @Override
+    public void closeWithoutRsp(String reason) {
+        // TODO Auto-generated method stub
+        this.responseHandler = null;
+        close(reason);
+    }
+
 	@Override
 	public boolean syncAndExcute() {
 		StatusSync sync = this.statusSync;
@@ -587,4 +594,17 @@ public class PostgreSQLBackendConnection extends BackendAIOConnection {
 			LOGGER.debug("UnsupportedEncodingException :"+ e.getMessage());
 		}
 	}
+
+    @Override
+    public void disableRead() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void enableRead() {
+        // TODO Auto-generated method stub
+
+    }
+
 }

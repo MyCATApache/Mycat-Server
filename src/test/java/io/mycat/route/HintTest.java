@@ -54,6 +54,11 @@ public class HintTest {
         rrs = routerService.route(new SystemConfig(), schema, ServerParse.SELECT, sql, "UTF-8", null);
         Assert.assertTrue(rrs.getNodes().length == 1);
         
+        // 支持hint里面带有”，“
+        sql = "/*!mycat: sql = select * from employee where sharding_id in ('10000','10010') */select * from employee";
+        rrs = routerService.route(new SystemConfig(), schema, ServerParse.SELECT, sql, "UTF-8", null);
+        Assert.assertTrue(rrs.getNodes().length == 2);
+
         //不用注解，路由到2个节点
         sql = "select * from employee";
         rrs = routerService.route(new SystemConfig(), schema, ServerParse.SELECT, sql, "UTF-8", null);

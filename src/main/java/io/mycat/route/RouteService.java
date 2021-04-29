@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -101,7 +101,8 @@ public class RouteService {
 				
                 int firstSplitPos = hint.indexOf(HINT_SPLIT);                
                 if(firstSplitPos > 0 ){
-                    Map hintMap=    parseHint(hint);
+                    Map<String, String> hintMap = new HashMap<>(); // parseHint(hint);
+                    parseKeyValue(hintMap, hint);
                 	String hintType = (String) hintMap.get(MYCAT_HINT_TYPE);
                     String hintSql = (String) hintMap.get(hintType);
                     if( hintSql.length() == 0 ) {
@@ -208,6 +209,10 @@ public class RouteService {
 		return -1;	// false
 	}
 	
+    /**
+      最原始的代码，不知道要实现什么功能，注释掉。会有#2754 bug
+     */
+    @Deprecated
 	 private   Map parseHint( String sql)
     {
         Map map=new HashMap();

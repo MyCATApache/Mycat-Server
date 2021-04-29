@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -531,7 +531,7 @@ public class MySQLConnection extends BackendAIOConnection {
 			getAutocommitCommand(sb, expectAutocommit);
 		}
 		if (txReadonlySyn == 1) {
-			getTxReadonly(sb, clientTxReadonly);
+			getTxReadonly(sb, false);
 		}
 		if (sqlSelectLimitSyn == 1) {
 			getSqlSelectLimit(sb, clientSqlSelectLimit);
@@ -647,6 +647,13 @@ public class MySQLConnection extends BackendAIOConnection {
 			super.close(reason);
 		}
 	}
+
+    @Override
+    public void closeWithoutRsp(String reason) {
+        // TODO Auto-generated method stub
+        this.respHandler = null;
+        this.close(reason);
+    }
 
 	public void commit() {
 
@@ -794,4 +801,20 @@ public class MySQLConnection extends BackendAIOConnection {
 	public int getTxIsolation() {
 		return txIsolation;
 	}
+
+    @Override
+    public void disableRead() {
+        this.getSocketWR().disableRead();
+    }
+
+    @Override
+    public void enableRead() {
+        this.getSocketWR().enableRead();
+    }
+	
+	// 是否需要同步schmea
+    public boolean isNeedSyncSchema() {
+        return schema.equals(oldSchema) ? false : true;
+    }
+
 }

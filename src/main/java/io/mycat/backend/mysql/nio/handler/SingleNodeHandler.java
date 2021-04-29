@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -38,6 +38,7 @@ import io.mycat.MycatServer;
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.datasource.PhysicalDBNode;
 import io.mycat.backend.mysql.LoadDataUtil;
+import io.mycat.backend.mysql.listener.SqlExecuteStage;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.MycatConfig;
 import io.mycat.config.model.SchemaConfig;
@@ -262,6 +263,8 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 //			source.setTxInterrupt(e.getMessage());
 			source.writeErrMessage(ErrorCode.ER_NEW_ABORTING_CONNECTION, e.getMessage());
 		}
+
+        source.getListener().fireEvent(SqlExecuteStage.END);
 	}
 
 	@Override
@@ -311,6 +314,7 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			source.writeErrMessage(errPkg.errno, new String(errPkg.message));
 		}
 		recycleResources();
+        source.getListener().fireEvent(SqlExecuteStage.END);
 	}
 
 
@@ -330,6 +334,13 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			ServerConnection source = session.getSource();
 			OkPacket ok = new OkPacket();
 			ok.read(data);
+			this.affectedRows += ok.affectedRows;
+
+			if (ok.hasMoreResultsExists()) {
+				// funnyAnt:当是批量update/delete语句，提示后面还有ok包
+				return;
+			}
+
             boolean isCanClose2Client =(!rrs.isCallStatement()) ||(rrs.isCallStatement() &&!rrs.getProcedure().isResultSimpleValue());
 			if (rrs.isLoadData()) {				
 				// byte lastPackId = source.getLoadDataInfileHandler().getLastPackId();
@@ -356,12 +367,11 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 				}	
 			}
             
-			this.affectedRows = ok.affectedRows;
-			
 			source.setExecuteSql(null);
+            source.getListener().fireEvent(SqlExecuteStage.END);
 			// add by lian
 			// 解决sql统计中写操作永远为0
-			QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+            QueryResult queryResult = new QueryResult(session.getSource().getSchema(), session.getSource().getUser(),
 					rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),0, source.getHost());
 			QueryResultDispatcher.dispatchQuery( queryResult );
 		}
@@ -402,9 +412,10 @@ public class SingleNodeHandler implements ResponseHandler, Terminatable, LoadDat
 			}
 		}
 		source.setExecuteSql(null);
+        source.getListener().fireEvent(SqlExecuteStage.END);
 		//TODO: add by zhuam
 		//查询结果派发
-		QueryResult queryResult = new QueryResult(session.getSource().getUser(), 
+        QueryResult queryResult = new QueryResult(session.getSource().getSchema(), session.getSource().getUser(),
 				rrs.getSqlType(), rrs.getStatement(), affectedRows, netInBytes, netOutBytes, startTime, System.currentTimeMillis(),resultSize, source.getHost());
 		QueryResultDispatcher.dispatchQuery( queryResult );
 		

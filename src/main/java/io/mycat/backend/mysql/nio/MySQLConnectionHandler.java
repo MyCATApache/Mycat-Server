@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese
@@ -31,11 +31,13 @@ import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.mysql.ByteUtil;
 import io.mycat.backend.mysql.nio.handler.LoadDataResponseHandler;
+import io.mycat.backend.mysql.nio.handler.PrepareRequestHandler;
 import io.mycat.backend.mysql.nio.handler.ResponseHandler;
 import io.mycat.net.handler.BackendAsyncHandler;
 import io.mycat.net.mysql.EOFPacket;
 import io.mycat.net.mysql.ErrorPacket;
 import io.mycat.net.mysql.OkPacket;
+import io.mycat.net.mysql.PreparedOkPacket;
 import io.mycat.net.mysql.RequestFilePacket;
 import io.mycat.route.RouteResultsetNode;
 
@@ -50,6 +52,7 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 	private static final int RESULT_STATUS_INIT = 0;
 	private static final int RESULT_STATUS_HEADER = 1;
 	private static final int RESULT_STATUS_FIELD_EOF = 2;
+    private static final int RESULT_STATUS_PREPARE_RESPONSE_OK = 3;
 
 	private final MySQLConnection source;
 	private volatile int resultStatus;
@@ -94,7 +97,15 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 			case RESULT_STATUS_INIT:
 				switch (data[4]) {
 					case OkPacket.FIELD_COUNT:
-						handleOkPacket(data);
+                        int packetSize = (int) ByteUtil.readLength(data, 0);
+                        // COM_STMT_PREPARE_OK状态标识 [00]，和OK包一致，区别是COM_STMT_PREPARE_OK固定长度为12
+                        if (packetSize == PreparedOkPacket.PACKET_SIZE
+                                && (responseHandler != null && responseHandler instanceof PrepareRequestHandler)) {
+                            handlePrepareOkPacket(data);
+                            resultStatus = RESULT_STATUS_PREPARE_RESPONSE_OK;
+                        } else {
+                            handleOkPacket(data);
+                        }
 						break;
 					case ErrorPacket.FIELD_COUNT:
 						handleErrorPacket(data);
@@ -137,6 +148,9 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 						handleRowPacket(data);
 				}
 				break;
+			case RESULT_STATUS_PREPARE_RESPONSE_OK:
+                handlePrepareOkPacket(data);
+			    break;
 			default:
 				throw new RuntimeException("unknown status!");
 		}
@@ -167,6 +181,21 @@ public class MySQLConnectionHandler extends BackendAsyncHandler {
 				new Object[]{pkgName, source.hashCode(), source.getId(), rrn.getName(), sql});
 		}
 	}
+    /**
+     * prepare response OK数据包处理
+     */
+    private void handlePrepareOkPacket(byte[] data) {
+        ResponseHandler respHand = responseHandler;
+        if (respHand != null) {
+            respHand.okResponse(data, source);
+            if (((PrepareRequestHandler) respHand).isLastPacket()) {
+                this.resultStatus = RESULT_STATUS_INIT;
+            }
+        } else {
+            LOGGER.error("receive OkPacket but not handle");
+            source.close("receive OkPacket but not handle");
+        }
+    }
 
 	/**
 	 * OK数据包处理

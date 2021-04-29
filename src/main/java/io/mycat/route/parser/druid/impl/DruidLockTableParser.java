@@ -48,7 +48,7 @@ public class DruidLockTableParser extends DefaultDruidParser implements DruidPar
 	}
 	
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor)
+	public void visitorParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor)
 			throws SQLNonTransientException {
 		// 对于lock tables table1 write, table2 read类型的多表锁语句，DruidParser只能解析出table1，
 		// 由于多表锁在分布式场景处理逻辑繁琐，且应用场景较少，因此在此处对这种锁表语句进行拦截。

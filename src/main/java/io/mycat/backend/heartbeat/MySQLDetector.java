@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -144,7 +144,8 @@ public class MySQLDetector implements SQLQueryResultListener<SQLQueryResult<Map<
 
 				if ("".equals(Last_SQL_Error) && Slave_IO_Running != null
 						&& Slave_IO_Running.equals(Slave_SQL_Running) 
-						&& Slave_SQL_Running.equals("Yes")) {
+						&& Slave_SQL_Running.equals("Yes")
+						&& source.isSalveOrRead()) {
 					
 					heartbeat.setDbSynStatus(DBHeartbeat.DB_SYN_NORMAL);
 					String Seconds_Behind_Master = resultResult.get( "Seconds_Behind_Master");					

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software;Designed and Developed mainly by many Chinese 
@@ -25,6 +25,8 @@ package io.mycat.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,8 +34,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.mycat.MycatServer;
+import io.mycat.backend.mysql.listener.DefaultSqlExecuteStageListener;
+import io.mycat.backend.mysql.listener.SqlExecuteStageListener;
 import io.mycat.config.ErrorCode;
 import io.mycat.config.model.SchemaConfig;
+import io.mycat.config.model.SystemConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.handler.MysqlProcHandler;
@@ -52,7 +57,7 @@ import io.mycat.util.TimeUtil;
 public class ServerConnection extends FrontendConnection {
 	private static final Logger LOGGER = LoggerFactory
 			.getLogger(ServerConnection.class);
-	private static final long AUTH_TIMEOUT = 15 * 1000L;
+	private long authTimeout = SystemConfig.DEFAULT_AUTH_TIMEOUT;
 
 	/** 保存SET SQL_SELECT_LIMIT的值, default 解析为-1. */
 	private volatile  int sqlSelectLimit = -1;
@@ -68,6 +73,8 @@ public class ServerConnection extends FrontendConnection {
 	 * 标志是否执行了lock tables语句，并处于lock状态
 	 */
 	private volatile boolean isLocked = false;
+    private Queue<SqlEntry> executeSqlQueue;
+    private SqlExecuteStageListener listener;
 	
 	public ServerConnection(NetworkChannel channel)
 			throws IOException {
@@ -76,6 +83,8 @@ public class ServerConnection extends FrontendConnection {
 		this.autocommit = true;
 		this.preAcStates = true;
 		this.txReadonly = false;
+        this.executeSqlQueue = new LinkedBlockingQueue<>();
+        this.listener = new DefaultSqlExecuteStageListener(this);
 	}
 
 	@Override
@@ -83,9 +92,16 @@ public class ServerConnection extends FrontendConnection {
 		if (isAuthenticated) {
 			return super.isIdleTimeout();
 		} else {
-			return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime,
-					lastReadTime) + AUTH_TIMEOUT;
+			return TimeUtil.currentTimeMillis() > Math.max(lastWriteTime, lastReadTime) + this.authTimeout;
 		}
+	}
+
+	public long getAuthTimeout() {
+		return authTimeout;
+	}
+
+	public void setAuthTimeout(long authTimeout) {
+		this.authTimeout = authTimeout;
 	}
 
 	public int getTxIsolation() {
@@ -179,7 +195,7 @@ public class ServerConnection extends FrontendConnection {
 		Heartbeat.response(this, data);
 	}
 
-	public void execute(String sql, int type) {
+    public void execute(String sql, int type) {
 		//连接状态检查
 		if (this.isClosed()) {
 			LOGGER.warn("ignore execute ,server connection is closed " + this);
@@ -336,11 +352,23 @@ public class ServerConnection extends FrontendConnection {
 			return;
 		}
 		if (rrs != null) {
-			// session执行
-			session.execute(rrs, rrs.isSelectForUpdate()?ServerParse.UPDATE:type);
-		}
-		
- 	}
+            // #支持mariadb驱动useBatchMultiSend=true,连续接收到的sql先放入队列，等待前面处理完成后再继续处理。
+            // 参考https://mariadb.com/kb/en/option-batchmultisend-description/
+            boolean executeNow = false;
+            synchronized (this.executeSqlQueue) {
+                executeNow = this.executeSqlQueue.isEmpty();
+                this.executeSqlQueue.add(new SqlEntry(sql, type, rrs));
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("add queue,executeSqlQueue size {}", executeSqlQueue.size());
+                }
+            }
+
+            if (executeNow) {
+                this.executeSqlId++;
+                session.execute(rrs, rrs.isSelectForUpdate() ? ServerParse.UPDATE : type);
+            }
+        }
+    }
 
 	/**
 	 * 提交事务
@@ -462,5 +490,69 @@ public class ServerConnection extends FrontendConnection {
 	public void setPreAcStates(boolean preAcStates) {
 		this.preAcStates = preAcStates;
 	}
+
+    public SqlExecuteStageListener getListener() {
+        return listener;
+    }
+
+    public void setListener(SqlExecuteStageListener listener) {
+        this.listener = listener;
+    }
+
+    @Override
+    public void checkQueueFlow() {
+        RouteResultset rrs = session.getRrs();
+        if (rrs != null && rrs.getNodes().length > 1 && session.getRrs().needMerge()) {
+            // 多节点合并结果集语句需要拉取所有数据，无法流控
+            return;
+        } else {
+            // 非合并结果集语句进行流量控制检查。
+            flowController.check(session.getTargetMap());
+        }
+    }
+
+    @Override
+    public void resetConnection() {
+        // 1 简单点直接关闭后端连接。若按照mysql官方的提交事务或回滚事务，mycat都会回包给应用，引发包乱序。
+        session.closeAndClearResources("receive com_reset_connection");
+
+        // 2 重置用户变量
+        this.txInterrupted = false;
+        this.autocommit = true;
+        this.preAcStates = true;
+        this.txReadonly = false;
+        this.lastInsertId = 0;
+
+        super.resetConnection();
+    }
+    /**
+     * sql执行完成后回调函数
+     */
+    public void onEventSqlCompleted() {
+        SqlEntry sqlEntry = null;
+        synchronized (this.executeSqlQueue) {
+            this.executeSqlQueue.poll();// 弹出已经执行成功的
+            sqlEntry = this.executeSqlQueue.peek();
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("poll queue,executeSqlQueue size {}", this.executeSqlQueue.size());
+            }
+        }
+        if (sqlEntry != null) {
+            this.executeSqlId++;
+            session.execute(sqlEntry.rrs, sqlEntry.rrs.isSelectForUpdate() ? ServerParse.UPDATE : sqlEntry.type);
+        }
+    }
+
+    private class SqlEntry {
+        public String sql;
+        public int type;
+        public RouteResultset rrs;
+
+        public SqlEntry(String sql, int type, RouteResultset rrs) {
+            this.sql = sql;
+            this.type = type;
+            this.rrs = rrs;
+        }
+    }
 
 }

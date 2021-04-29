@@ -71,7 +71,7 @@ public class DefaultDruidParser implements DruidParser {
 		//设置为原始sql，如果有需要改写sql的，可以通过修改SQLStatement中的属性，然后调用SQLStatement.toString()得到改写的sql
 		ctx.setSql(originSql);
 		//通过visitor解析
-		visitorParse(rrs,stmt,schemaStatVisitor);
+		visitorParse(schema, rrs, stmt, schemaStatVisitor);
 
 		//通过Statement解析
 		statementParse(schema, rrs, stmt);
@@ -111,7 +111,8 @@ public class DefaultDruidParser implements DruidParser {
 	 * @param stmt
 	 */
 	@Override
-	public void visitorParse(RouteResultset rrs, SQLStatement stmt,MycatSchemaStatVisitor visitor) throws SQLNonTransientException{
+	public void visitorParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt, MycatSchemaStatVisitor visitor)
+			throws SQLNonTransientException {
 
 		stmt.accept(visitor);
 		ctx.setVisitor(visitor);
@@ -139,11 +140,11 @@ public class DefaultDruidParser implements DruidParser {
 			rrs.setStatement(ctx.getSql());
 		}
 		
-		buildTableAliasMap(visitor);
+		buildTableAliasMap(schema, visitor);
 		ctx.setRouteCalculateUnits(this.buildRouteCalculateUnits(visitor, mergedConditionList));
 	}
 
-	private Map<String, String> buildTableAliasMap(MycatSchemaStatVisitor visitor) {
+	private Map<String, String> buildTableAliasMap(SchemaConfig schema, MycatSchemaStatVisitor visitor) {
 		if (visitor.getAliasMap() == null) {
 			return null;
 		}
@@ -162,6 +163,7 @@ public class DefaultDruidParser implements DruidParser {
 				if (pos > 0) {
 					value = value.substring(pos + 1);
 				}
+
 			}
 			if (key != null && key.charAt(0) == '`') {
 				key = key.substring(1, key.length() - 1);
@@ -171,6 +173,14 @@ public class DefaultDruidParser implements DruidParser {
 			}
 			// remove database in database.table
 			if (key != null) {
+               int pos = key.indexOf(".");
+					if(pos> 0) {
+						String schemaInSQL = key.substring(0, pos);
+						// 只有sql里面的schema名称和逻辑schema相同时，才去掉schema，防止"物理schema.物理表名"被错判为同名的逻辑表，产生路由判断错误
+						if (schemaInSQL.equalsIgnoreCase(schema.getName())) {
+							key = key.substring(pos + 1);
+						}
+					}
 				String upperkey = key.toUpperCase();
 				// String upperValue = value.toUpperCase();
 
@@ -181,9 +191,9 @@ public class DefaultDruidParser implements DruidParser {
 //				if (!ctx.getTables().contains(upperValue)) {
 //					ctx.addTable(upperValue);
 //				}
-
 			}
 		}
+
 
 		// visitor.getAliasMap().putAll(tableAliasMap);
 		ctx.addTables(visitor.getTables());
