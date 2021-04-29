@@ -1,6 +1,5 @@
 package io.mycat.route.parser.druid;
 
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import io.mycat.config.model.SchemaConfig;
 
 /**
@@ -19,8 +18,8 @@ public class SchemaStatVisitorFactory {
    * 
    * @return
    */
-  public static SchemaStatVisitor create(SchemaConfig schema) {
-    SchemaStatVisitor visitor = new MycatSchemaStatVisitor();
-    return visitor;
+	public static MycatSchemaStatVisitor create(SchemaConfig schema) {
+		MycatSchemaStatVisitor visitor = new MycatSchemaStatVisitor();
+		return visitor;
   }
 }

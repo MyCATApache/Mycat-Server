@@ -7,7 +7,6 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 
 import io.mycat.MycatServer;
 import io.mycat.cache.CachePool;
-import io.mycat.cache.DefaultLayedCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.config.model.TableConfig;
 import io.mycat.route.RouteResultset;
@@ -18,7 +17,9 @@ public class DruidDeleteParser extends DefaultDruidParser {
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt) throws SQLNonTransientException {
 		MySqlDeleteStatement delete = (MySqlDeleteStatement)stmt;
 		String tableName = StringUtil.removeBackquote(delete.getTableName().getSimpleName().toUpperCase());
-		ctx.addTable(tableName);
+		if (!ctx.getTables().contains(tableName)) {
+			ctx.addTable(tableName);
+		}
 
 		//在解析SQL时清空该表的主键缓存
 		TableConfig tableConfig = schema.getTables().get(tableName);

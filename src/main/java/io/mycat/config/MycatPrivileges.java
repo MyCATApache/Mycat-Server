@@ -28,23 +28,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import io.mycat.config.loader.xml.XMLServerLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
+import com.alibaba.druid.sql.ast.statement.SQLReplaceStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.ast.statement.SQLShowTablesStatement;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlReplaceStatement;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.wall.WallCheckResult;
 import com.alibaba.druid.wall.WallProvider;
 
 import io.mycat.MycatServer;
+import io.mycat.config.loader.xml.XMLServerLoader;
 import io.mycat.config.model.FirewallConfig;
 import io.mycat.config.model.UserConfig;
 import io.mycat.config.model.UserPrivilegesConfig;
@@ -273,7 +271,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 					SQLStatementParser parser = new MycatStatementParser(sql);			
 					SQLStatement stmt = parser.parseStatement();
 
-					if (stmt instanceof MySqlReplaceStatement || stmt instanceof SQLInsertStatement ) {
+					if (stmt instanceof SQLReplaceStatement || stmt instanceof SQLInsertStatement) {
 						index = 0;
 					} else if (stmt instanceof SQLUpdateStatement ) {
 						index = 1;
@@ -285,7 +283,7 @@ public class MycatPrivileges implements FrontendPrivileges {
 
 					if ( index > -1) {
 						
-						SchemaStatVisitor schemaStatVisitor = new MycatSchemaStatVisitor();
+						MycatSchemaStatVisitor schemaStatVisitor = new MycatSchemaStatVisitor();
 						stmt.accept(schemaStatVisitor);
 						String key = schemaStatVisitor.getCurrentTable();
 						if ( key != null ) {

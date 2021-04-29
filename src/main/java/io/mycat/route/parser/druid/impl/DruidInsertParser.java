@@ -1,5 +1,12 @@
 package io.mycat.route.parser.druid.impl;
 
+import java.sql.SQLNonTransientException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
@@ -11,6 +18,7 @@ import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+
 import io.mycat.backend.mysql.nio.handler.FetchStoreNodeOfChildTableHandler;
 import io.mycat.backend.mysql.nio.handler.JDBCFetchStoreNodeOfChildTableHandler;
 import io.mycat.config.model.SchemaConfig;
@@ -25,13 +33,6 @@ import io.mycat.route.parser.util.ParseUtil;
 import io.mycat.route.util.RouterUtil;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.util.StringUtil;
-
-import java.sql.SQLNonTransientException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class DruidInsertParser extends DefaultDruidParser {
 	@Override
@@ -277,7 +278,9 @@ public class DruidInsertParser extends DefaultDruidParser {
 				for(Map.Entry<Integer,List<ValuesClause>> node : nodeValuesMap.entrySet()) {
 					Integer nodeIndex = node.getKey();
 					List<ValuesClause> valuesList = node.getValue();
-					insertStmt.setValuesList(valuesList);
+					insertStmt.getValuesList().clear();
+					insertStmt.getValuesList().addAll(valuesList);
+					// insertStmt.setValuesList(valuesList);
 					if(tableConfig.isDistTable()) {
 						nodes[count] = new RouteResultsetNode(tableConfig.getDataNodes().get(0),
 								rrs.getSqlType(),insertStmt.toString());

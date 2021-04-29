@@ -1,12 +1,21 @@
 package io.mycat.route.parser.druid.impl;
 
+import java.sql.SQLNonTransientException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat.Condition;
+
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.model.SchemaConfig;
 import io.mycat.route.RouteResultset;
@@ -18,14 +27,6 @@ import io.mycat.route.parser.druid.SqlMethodInvocationHandler;
 import io.mycat.route.parser.druid.SqlMethodInvocationHandlerFactory;
 import io.mycat.sqlengine.mpp.RangeValue;
 import io.mycat.util.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.sql.SQLNonTransientException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 对SQLStatement解析
@@ -138,41 +139,60 @@ public class DefaultDruidParser implements DruidParser {
 			rrs.setStatement(ctx.getSql());
 		}
 		
-		if(visitor.getAliasMap() != null) {
-			for(Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
-				String key = entry.getKey();
-				String value = entry.getValue();
-				if(key != null && key.indexOf("`") >= 0) {
-					key = key.replaceAll("`", "");
-				}
-				if(value != null && value.indexOf("`") >= 0) {
-					value = value.replaceAll("`", "");
-				}
-				//表名前面带database的，去掉
-				if(key != null) {
-					int pos = key.indexOf(".");
-					if(pos> 0) {
-						key = key.substring(pos + 1);
-					}
-					
-					tableAliasMap.put(key.toUpperCase(), value);
-				}
-				
+		buildTableAliasMap(visitor);
+		ctx.setRouteCalculateUnits(this.buildRouteCalculateUnits(visitor, mergedConditionList));
+	}
 
-//				else {
-//					tableAliasMap.put(key, value);
+	private Map<String, String> buildTableAliasMap(MycatSchemaStatVisitor visitor) {
+		if (visitor.getAliasMap() == null) {
+			return null;
+		}
+		Map<String, String> tableAliasMap = new HashMap<>();
+		for (Map.Entry<String, String> entry : visitor.getAliasMap().entrySet()) {
+			String key = entry.getKey();
+			String value = entry.getValue();
+			if (key != null) {
+				int pos = key.indexOf(".");
+				if (pos > 0) {
+					key = key.substring(pos + 1);
+				}
+			}
+			if (value != null) {
+				int pos = value.indexOf(".");
+				if (pos > 0) {
+					value = value.substring(pos + 1);
+				}
+			}
+			if (key != null && key.charAt(0) == '`') {
+				key = key.substring(1, key.length() - 1);
+			}
+			if (value != null && value.charAt(0) == '`') {
+				value = value.substring(1, value.length() - 1);
+			}
+			// remove database in database.table
+			if (key != null) {
+				String upperkey = key.toUpperCase();
+				// String upperValue = value.toUpperCase();
+
+				if (!tableAliasMap.containsKey(upperkey)) {
+					tableAliasMap.put(upperkey, value);
+				}
+
+//				if (!ctx.getTables().contains(upperValue)) {
+//					ctx.addTable(upperValue);
 //				}
 
 			}
-			ctx.addTables(visitor.getTables());
-			
-			visitor.getAliasMap().putAll(tableAliasMap);
-			ctx.setTableAliasMap(tableAliasMap);
 		}
-		ctx.setRouteCalculateUnits(this.buildRouteCalculateUnits(visitor, mergedConditionList));
+
+		// visitor.getAliasMap().putAll(tableAliasMap);
+		ctx.addTables(visitor.getTables());
+		ctx.setTableAliasMap(visitor.getAliasMap());
+		return tableAliasMap;
 	}
-	
-	private List<RouteCalculateUnit> buildRouteCalculateUnits(SchemaStatVisitor visitor, List<List<Condition>> conditionList) {
+
+	private List<RouteCalculateUnit> buildRouteCalculateUnits(MycatSchemaStatVisitor visitor,
+			List<List<Condition>> conditionList) {
 		List<RouteCalculateUnit> retList = new ArrayList<RouteCalculateUnit>();
 
 		//遍历condition ，找分片字段
@@ -197,8 +217,20 @@ public class DefaultDruidParser implements DruidParser {
 						tableName = tableName.substring(index + 1);
 					}
 					tableName = tableName.toUpperCase();
-					//确保表名是大写
-					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(tableName) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
+//					//确保表名是大写
+//					if(visitor.getAliasMap() != null && visitor.getAliasMap().get(tableName) == null) {//子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
+//						continue;
+//					}
+					boolean noFindTable = true;
+					if (visitor.getAliasMap() != null) {
+						for (String value : visitor.getAliasMap().values()) {
+							if (value.equalsIgnoreCase(tableName)) {
+								noFindTable = false;
+								break;
+							}
+						}
+					}
+					if (noFindTable) {// 子查询的别名条件忽略掉,不参数路由计算，否则后面找不到表
 						continue;
 					}
 					

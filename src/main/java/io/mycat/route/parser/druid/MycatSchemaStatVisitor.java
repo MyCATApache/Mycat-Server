@@ -2,21 +2,21 @@ package io.mycat.route.parser.druid;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Queue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLCommentHint;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLExprImpl;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.SQLObjectImpl;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAllExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAnyExpr;
@@ -31,7 +31,6 @@ import com.alibaba.druid.sql.ast.expr.SQLInSubQueryExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import com.alibaba.druid.sql.ast.expr.SQLSomeExpr;
-import com.alibaba.druid.sql.ast.expr.SQLValuableExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
@@ -42,7 +41,6 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
-import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
@@ -50,14 +48,13 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlHintStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
 import com.alibaba.druid.stat.TableStat.Column;
 import com.alibaba.druid.stat.TableStat.Condition;
 import com.alibaba.druid.stat.TableStat.Mode;
-import com.alibaba.druid.stat.TableStat.Relationship;
 
 import io.mycat.route.util.RouterUtil;
+import io.mycat.util.StringUtil;
 
 /**
  * Druid解析器中用来从ast语法中提取表名、条件、字段等的vistor
@@ -71,7 +68,14 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     private Queue<SQLSelect> subQuerys = new LinkedList<>();  //子查询集合
 	private boolean hasChange = false; // 是否有改写sql
 	private boolean subqueryRelationOr = false;   //子查询存在关联条件的情况下，是否有 or 条件
-	
+	private Map<String, String> aliasMap = new LinkedHashMap<>();
+	private List<String> selectTableList = new ArrayList<>();
+	private String currentTable;
+	// 标识一个元素是否已经被VISIT，防止多次重复访问导致添加aliasMap时报表冲突异常
+	private final String TABLE_HAS_VISIT_FLAG = "TABLE_HAS_VISIT_FLAG";
+	// 记录哪些表已经被visit
+	private List<SQLObjectImpl> visitedTableSourceExpr = new ArrayList<SQLObjectImpl>();
+
 	private void reset() {
 		this.conditions.clear();
 		this.whereUnits.clear();
@@ -88,9 +92,11 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	
     @Override
     public boolean visit(SQLSelectStatement x) {
-        setAliasMap();
+		// setAliasMap();
 //        getAliasMap().put("DUAL", null);
-
+		aliasMap.clear();
+		selectTableList.clear();
+		clearTableVisitFlag();
         return true;
     }
 
@@ -124,9 +130,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         }
 
         if (condition == null) {
-            condition = new Condition();
-            condition.setColumn(column);
-            condition.setOperator("between");
+			condition = new Condition(column, "between");
             this.conditions.add(condition);
         }
 
@@ -140,104 +144,87 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 
     @Override
     protected Column getColumn(SQLExpr expr) {
-        Map<String, String> aliasMap = getAliasMap();
-        if (aliasMap == null) {
-            return null;
-        }
+		Map<String, String> aliasMap = getAliasMap();
+		if (aliasMap == null) {
+			return null;
+		}
 
-        if (expr instanceof SQLPropertyExpr) {
-            SQLExpr owner = ((SQLPropertyExpr) expr).getOwner();
-            String column = ((SQLPropertyExpr) expr).getName();
-
-            if (owner instanceof SQLIdentifierExpr) {
-                String tableName = ((SQLIdentifierExpr) owner).getName();
-                String table = tableName;
-                if (aliasMap.containsKey(table)) {
-                    table = aliasMap.get(table);
-                }
-
-                if (variants.containsKey(table)) {
-                    return null;
-                }
-
-                if (table != null) {
-                    return new Column(table, column);
-                }
-
-                return handleSubQueryColumn(tableName, column);
-            }
-
-            return null;
-        }
-
-        if (expr instanceof SQLIdentifierExpr) {
-            Column attrColumn = (Column) expr.getAttribute(ATTR_COLUMN);
-            if (attrColumn != null) {
-                return attrColumn;
-            }
-
-            String column = ((SQLIdentifierExpr) expr).getName();
-            String table = getCurrentTable();
-            if (table != null && aliasMap.containsKey(table)) {
-                table = aliasMap.get(table);
-                if (table == null) {
-                    return null;
-                }
-            }
-
-            if (table != null) {
-                return new Column(table, column);
-            }
-
-            if (variants.containsKey(column)) {
-                return null;
-            }
-
-            return new Column("UNKNOWN", column);
-        }
-
-        if(expr instanceof SQLBetweenExpr) {
-            SQLBetweenExpr betweenExpr = (SQLBetweenExpr)expr;
-
-            if(betweenExpr.getTestExpr() != null) {
-                String tableName = null;
-                String column = null;
-                if(betweenExpr.getTestExpr() instanceof SQLPropertyExpr) {//字段带别名的
-                    tableName = ((SQLIdentifierExpr)((SQLPropertyExpr) betweenExpr.getTestExpr()).getOwner()).getName();
-                    column = ((SQLPropertyExpr) betweenExpr.getTestExpr()).getName();
-					SQLObject query = this.subQueryMap.get(tableName);
-					if(query == null) {
-						if (aliasMap.containsKey(tableName)) {
-							tableName = aliasMap.get(tableName);
-						}
-						return new Column(tableName, column);
-					}
-                    return handleSubQueryColumn(tableName, column);
-                } else if(betweenExpr.getTestExpr() instanceof SQLIdentifierExpr) {
-                    column = ((SQLIdentifierExpr) betweenExpr.getTestExpr()).getName();
-                    //字段不带别名的,此处如果是多表，容易出现ambiguous，
-                    //不知道这个字段是属于哪个表的,fdbparser用了defaultTable，即join语句的leftTable
-                    tableName = getOwnerTableName(betweenExpr,column);
-                }
-                String table = tableName;
-                if (aliasMap.containsKey(table)) {
-                    table = aliasMap.get(table);
-                }
-
-                if (variants.containsKey(table)) {
-                    return null;
-                }
-
-                if (table != null&&!"".equals(table)) {
-                    return new Column(table, column);
-                }
-            }
-
-
-        }
-        return null;
+		if (expr instanceof SQLBetweenExpr) {
+			return getColumnByExpr((SQLBetweenExpr) expr);
+		} else if (expr instanceof SQLIdentifierExpr) {
+			return getColumnByExpr((SQLIdentifierExpr) expr);
+		} else {// SQLPropertyExpr
+			return super.getColumn(expr);
+		}
+		// return null;
     }
 
+	private Column getColumnByExpr(SQLIdentifierExpr expr) {
+//        Column attrColumn = (Column) expr.getAttribute(ATTR_COLUMN);
+//        if (attrColumn != null) {
+//            return attrColumn;
+//        }
+
+		String column = expr.getName();
+		String table = getCurrentTable();
+		if (table != null && aliasMap.containsKey(table)) {
+			table = aliasMap.get(table);
+			if (table == null) {
+				return null;
+			}
+		}
+
+		if (table != null) {
+			return new Column(table, column);
+		}
+
+//        if (variants.containsKey(column)) {
+//            return null;
+//        }
+
+		return new Column("UNKNOWN", column);
+	}
+	private Column getColumnByExpr(SQLBetweenExpr betweenExpr) {
+		if (betweenExpr.getTestExpr() != null) {
+			String tableName = null;
+			String column = null;
+			if (betweenExpr.getTestExpr() instanceof SQLPropertyExpr) { // field
+																		// has
+																		// alias
+				tableName = ((SQLIdentifierExpr) ((SQLPropertyExpr) betweenExpr.getTestExpr()).getOwner()).getName();
+				column = ((SQLPropertyExpr) betweenExpr.getTestExpr()).getName();
+				tableName = getTableNameByAlias(tableName);
+
+				return new Column(tableName, column);
+			} else if (betweenExpr.getTestExpr() instanceof SQLIdentifierExpr) {
+				column = ((SQLIdentifierExpr) betweenExpr.getTestExpr()).getName();
+				tableName = getOwnerTableName(betweenExpr, column);
+			}
+			String table = tableName;
+			table = getTableNameByAlias(table);
+
+			if (table != null && !"".equals(table)) {
+				return new Column(table, column);
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * 通过别名获取到表的名称.如果获取不到返回alias
+	 * 
+	 * @param alias
+	 * @return
+	 */
+	private String getTableNameByAlias(String alias) {
+		if (alias != null) {
+			String upperCaseAlias = alias.toUpperCase();
+			if (aliasMap.containsKey(upperCaseAlias)) {
+				return aliasMap.get(upperCaseAlias);
+			}
+		}
+		return alias;
+	}
     /**
      * 从between语句中获取字段所属的表名。
      * 对于容易出现ambiguous的（字段不知道到底属于哪个表），实际应用中必须使用别名来避免歧义
@@ -251,7 +238,7 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         } else if(tableStats.size() == 0) {//一个表都没有，返回空串
             return "";
         } else {//多个表名
-            for (Column col : columns.keySet())
+			for (Column col : columns.values())
             {
                 if(col.getName().equals(column)) {
                     return col.getTable();
@@ -733,11 +720,12 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
          *  像这样的子查询, subtest1 的 过滤条件  id = 4 .  被 加入到  subtest3 上. 加别名的情况下正常,不加别名,就会存在这个问题.
          *  这里设置好操作的是哪张表后,再进行判断.
          */
-        String currenttable = x.getParent()==null?null: (String) x.getParent().getAttribute(SchemaStatVisitor.ATTR_TABLE);
-        if(currenttable!=null){
-        	this.setCurrentTable(currenttable);
-        }
-        
+		// druid新版本没有这个变量，先注释掉。
+//        String currenttable = x.getParent()==null?null: (String) x.getParent().getAttribute(SchemaStatVisitor.ATTR_TABLE);
+//        if(currenttable!=null){
+//        	this.setCurrentTable(currenttable);
+//        }
+//        
         switch (x.getOperator()) {
             case Equality:
             case LessThanOrEqualOrGreaterThan:
@@ -779,7 +767,11 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
             default:
                 break;
         }
-        return true;
+
+		super.statExpr(x.getLeft());
+		super.statExpr(x.getRight());
+		return false;
+		// return true;
     }
 	
 	/**
@@ -1032,10 +1024,11 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
 	@Override
     public boolean visit(SQLAlterTableStatement x) {
         String tableName = x.getName().toString();
-        TableStat stat = getTableStat(tableName,tableName);
+		TableStat stat = getTableStat(tableName);
         stat.incrementAlterCount();
 
-        setCurrentTable(x, tableName);
+		setCurrentTable(tableName);
+		// setCurrentTable(x, tableName);
 
         for (SQLAlterTableItem item : x.getItems()) {
             item.setParent(x);
@@ -1072,7 +1065,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     }
 	// DUAL
     public boolean visit(MySqlDeleteStatement x) {
-        setAliasMap();
+		// setAliasMap();
+		aliasMap.clear();
+		this.clearTableVisitFlag();
 
         setMode(x, Mode.Delete);
 
@@ -1083,9 +1078,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
         if (x.getTableSource() instanceof SQLExprTableSource) {
             SQLName tableName = (SQLName) ((SQLExprTableSource) x.getTableSource()).getExpr();
             String ident = tableName.toString();
-            setCurrentTable(x, ident);
+			// setCurrentTable(x, ident);
+			setCurrentTable(ident);
 
-            TableStat stat = this.getTableStat(ident,ident);
+			TableStat stat = this.getTableStat(ident);
             stat.incrementDeleteCount();
         }
 
@@ -1101,7 +1097,9 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     }
     
     public boolean visit(SQLUpdateStatement x) {
-        setAliasMap();
+		// setAliasMap();
+		aliasMap.clear();
+		this.clearTableVisitFlag();
 
         setMode(x, Mode.Update);
 
@@ -1114,11 +1112,10 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
             TableStat stat = getTableStat(ident);
             stat.incrementUpdateCount();
 
-            Map<String, String> aliasMap = getAliasMap();
-            
-            aliasMap.put(ident, ident);
+			// Map<String, String> aliasMap = getAliasMap();
+			putAliasToMap(ident, ident);
             if(alias != null) {
-            	aliasMap.put(alias, ident);
+				putAliasToMap(alias, ident);
             }
         } else {
             x.getTableSource().accept(this);
@@ -1141,14 +1138,41 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
     	if(hits != null && !hits.isEmpty()) {
     		String schema = parseSchema(hits);
     		if(schema != null ) {
-    			setCurrentTable(x, schema + ".");
+				// setCurrentTable(x, schema + ".");
+				setCurrentTable(schema + ".");
     			return true;
     		}
     	}
     	return true;
     }
-    
-    private String parseSchema(List<SQLCommentHint> hits) {
+
+	@Override
+	public boolean visit(SQLExprTableSource x) {
+		super.visit(x);
+
+		if (this.isSimpleExprTableSource(x)) {
+			String ident = x.getExpr().toString();
+			setCurrentTable(ident);
+			selectTableList.add(ident);
+			String alias = x.getAlias();
+
+			if (x.getAttribute(TABLE_HAS_VISIT_FLAG) == null || !((Boolean) x.getAttribute(TABLE_HAS_VISIT_FLAG))) {
+				x.putAttribute(TABLE_HAS_VISIT_FLAG, true);
+				this.visitedTableSourceExpr.add(x);
+				if (alias != null) {
+					putAliasToMap(alias, ident);
+				} else {
+					putAliasToMap(ident, ident);
+				}
+			}
+		} else {
+			this.accept(x.getExpr());
+		}
+
+		return false;
+	}
+
+	private String parseSchema(List<SQLCommentHint> hits) {
     	String regx = "\\!mycat:schema\\s*=([\\s\\w]*)$";
     	for(SQLCommentHint hit : hits ) {
     		Pattern pattern = Pattern.compile(regx);
@@ -1399,4 +1423,58 @@ public class MycatSchemaStatVisitor extends MySqlSchemaStatVisitor {
       }
       return true;
     }
+
+	public Map<String, String> getAliasMap() {
+		return aliasMap;
+	}
+
+	public List<String> getSelectTableList() {
+		return selectTableList;
+	}
+
+	public String getCurrentTable() {
+		return currentTable;
+	}
+
+	public void setCurrentTable(String currentTable) {
+		this.currentTable = SQLUtils.normalize(currentTable);
+	}
+
+	/**
+	 * 清理掉表已经被visit标识
+	 */
+	private void clearTableVisitFlag() {
+		for (SQLObjectImpl tableSourceExpr : visitedTableSourceExpr) {
+			if (tableSourceExpr.getAttribute(TABLE_HAS_VISIT_FLAG) != null) {
+				tableSourceExpr.putAttribute(TABLE_HAS_VISIT_FLAG, false);
+			}
+		}
+		visitedTableSourceExpr.clear();
+	}
+
+	/**
+	 * key全部转变成大写
+	 * 
+	 * @param key
+	 * @param value
+	 */
+	private void putAliasToMap(String key, String value) {
+		if (key != null) {
+			key = StringUtil.removeBackquote(key.toUpperCase());
+			if (!aliasMap.containsKey(key)) {
+				aliasMap.put(key, StringUtil.removeBackquote(value));
+			}
+
+//			if (aliasMap.containsKey(key)) {
+//				
+//				String msg = String.format(
+//						"The alias[%s] of the table[%s] shoud be unique.If the table has no alias, the alias is equal to the name of the table!",
+//						key, value);
+//				throw new NotSupportException(msg);
+//			} else {
+
+			// }
+		}
+	}
+
 }

@@ -1,12 +1,26 @@
 package io.mycat.route.parser.util;
 
+import java.util.List;
+
 import com.alibaba.druid.sql.PagerUtils;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.SQLOver;
-import com.alibaba.druid.sql.ast.expr.*;
-import com.alibaba.druid.sql.ast.statement.*;
+import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
+import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLNumberExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
+import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.db2.ast.stmt.DB2SelectQueryBlock;
 import com.alibaba.druid.sql.dialect.db2.parser.DB2StatementParser;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
@@ -18,8 +32,6 @@ import com.alibaba.druid.sql.dialect.sqlserver.ast.SQLServerSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.sqlserver.parser.SQLServerStatementParser;
 import com.alibaba.druid.util.JdbcConstants;
 
-import java.util.List;
-
 /**
  * Created by magicdoom on 2015/3/15.
  */
@@ -27,12 +39,12 @@ public class PageSQLUtil
 {
     public static String convertLimitToNativePageSql(String dbType, String sql, int offset, int count)
     {
-        if (JdbcConstants.ORACLE.equalsIgnoreCase(dbType))
+		if (JdbcConstants.ORACLE.name().equalsIgnoreCase(dbType))
         {
             OracleStatementParser oracleParser = new OracleStatementParser(sql);
             SQLSelectStatement oracleStmt = (SQLSelectStatement) oracleParser.parseStatement();
             return PagerUtils.limit(oracleStmt.getSelect(), JdbcConstants.ORACLE, offset, count);
-        } else if (JdbcConstants.SQL_SERVER.equalsIgnoreCase(dbType))
+		} else if (JdbcConstants.SQL_SERVER.name().equalsIgnoreCase(dbType))
         {
             SQLServerStatementParser oracleParser = new SQLServerStatementParser(sql);
             SQLSelectStatement sqlserverStmt = (SQLSelectStatement) oracleParser.parseStatement();
@@ -57,13 +69,13 @@ public class PageSQLUtil
 
             return 	PagerUtils.limit(select, JdbcConstants.SQL_SERVER, offset, count)  ;
         }
-        else if (JdbcConstants.DB2.equalsIgnoreCase(dbType))
+		else if (JdbcConstants.DB2.name().equalsIgnoreCase(dbType))
         {
             DB2StatementParser db2Parser = new DB2StatementParser(sql);
             SQLSelectStatement db2Stmt = (SQLSelectStatement) db2Parser.parseStatement();
 
-            return limitDB2(db2Stmt.getSelect(), JdbcConstants.DB2, offset, count);
-        }  else if (JdbcConstants.POSTGRESQL.equalsIgnoreCase(dbType))
+			return limitDB2(db2Stmt.getSelect(), JdbcConstants.DB2.name(), offset, count);
+		} else if (JdbcConstants.POSTGRESQL.name().equalsIgnoreCase(dbType))
         {
             PGSQLStatementParser pgParser = new PGSQLStatementParser(sql);
             SQLSelectStatement pgStmt = (SQLSelectStatement) pgParser.parseStatement();
@@ -78,7 +90,7 @@ public class PageSQLUtil
             }
             return PagerUtils.limit(select, JdbcConstants.POSTGRESQL, offset, count);
 
-        }  else if (JdbcConstants.MYSQL.equalsIgnoreCase(dbType))
+		} else if (JdbcConstants.MYSQL.name().equalsIgnoreCase(dbType))
         {
             MySqlStatementParser pgParser = new MySqlStatementParser(sql);
             SQLSelectStatement pgStmt = (SQLSelectStatement) pgParser.parseStatement();

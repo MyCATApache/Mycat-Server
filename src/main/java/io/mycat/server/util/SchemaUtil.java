@@ -1,25 +1,26 @@
 package io.mycat.server.util;
 
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlShowColumnsStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
-import io.mycat.MycatServer;
-import io.mycat.config.model.SchemaConfig;
-import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
-import io.mycat.server.parser.ServerParse;
-
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLShowColumnsStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
+
+import io.mycat.MycatServer;
+import io.mycat.config.model.SchemaConfig;
+import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
+import io.mycat.route.parser.druid.MycatStatementParser;
+import io.mycat.server.parser.ServerParse;
 
 /**
  * Created by magicdoom on 2016/1/26.
  */
 public class SchemaUtil {
     public static SchemaInfo parseSchema(String sql) {
-        SQLStatementParser parser = new MySqlStatementParser(sql);
+		MycatStatementParser parser = new MycatStatementParser(sql);
         return parseTables(parser.parseStatement(), new MycatSchemaStatVisitor());
     }
 
@@ -60,7 +61,7 @@ public class SchemaUtil {
             try {
                 //当前存在多个schema的时候使用原来的逻辑会出现bug，改为根据mycat schema配置中的对应关系获取
                 SQLStatementParser parser = new MySqlStatementParser(sql);
-                MySqlShowColumnsStatement stmt = (MySqlShowColumnsStatement)parser.parseStatement();
+				SQLShowColumnsStatement stmt = (SQLShowColumnsStatement) parser.parseStatement();
                 db = getSchema(schemaConfigMap, stmt.getTable().getSimpleName());
             } catch (Exception e) {
                 //e.printStackTrace();
@@ -156,10 +157,10 @@ public class SchemaUtil {
         return fields;
     }
 
-    private static SchemaInfo parseTables(SQLStatement stmt, SchemaStatVisitor schemaStatVisitor) {
+	private static SchemaInfo parseTables(SQLStatement stmt, MycatSchemaStatVisitor schemaStatVisitor) {
 
         stmt.accept(schemaStatVisitor);
-        String key = schemaStatVisitor.getCurrentTable();
+		String key = schemaStatVisitor.getCurrentTable();
         if (key != null && key.contains("`")) {
             key = key.replaceAll("`", "");
         }

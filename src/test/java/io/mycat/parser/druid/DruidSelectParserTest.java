@@ -1,11 +1,5 @@
 package io.mycat.parser.druid;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import io.mycat.route.parser.druid.impl.DruidSelectParser;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -13,8 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+
+import io.mycat.route.parser.druid.impl.DruidSelectParser;
 
 /**
  * Created by Hash Zhang on 2016/4/29.
@@ -55,11 +54,11 @@ public class DruidSelectParserTest {
 
     public Object invokeGroupBy(String functionColumn) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         Map<String, String> aliaColumns = new TreeMap<>();
-        SQLIdentifierExpr sqlExpr = mock(SQLIdentifierExpr.class);
-        SQLIdentifierExpr expr = mock(SQLIdentifierExpr.class);
+		SQLIdentifierExpr sqlExpr = new SQLIdentifierExpr(functionColumn);// mock(SQLIdentifierExpr.class);
+		SQLIdentifierExpr expr = new SQLIdentifierExpr(functionColumn); // mock(SQLIdentifierExpr.class);
         List<SQLExpr> groupByItems = new ArrayList<>();
         groupByItems.add(sqlExpr);
-        when((sqlExpr).getName()).thenReturn(functionColumn);
+		// when((sqlExpr).getName()).thenReturn(functionColumn);
         Class c = DruidSelectParser.class;
         Method method = c.getDeclaredMethod("buildGroupByCols", new Class[]{List.class, Map.class});
         method.setAccessible(true);

@@ -25,14 +25,14 @@ public class DruidLockTableParser extends DefaultDruidParser implements DruidPar
 	public void statementParse(SchemaConfig schema, RouteResultset rrs, SQLStatement stmt)
 			throws SQLNonTransientException {
 		MySqlLockTableStatement lockTableStat = (MySqlLockTableStatement)stmt;
-		String table = lockTableStat.getTableSource().toString().toUpperCase();
+		String table = lockTableStat.getItems().get(0).getTableSource().toString().toUpperCase();
 		TableConfig tableConfig = schema.getTables().get(table);
 		if (tableConfig == null) {
 			String msg = "can't find table define of " + table + " in schema:" + schema.getName();
 			LOGGER.warn(msg);
 			throw new SQLNonTransientException(msg);
 		}
-		LockType lockType = lockTableStat.getLockType();
+		LockType lockType = lockTableStat.getItems().get(0).getLockType();
 		if (LockType.WRITE != lockType && LockType.READ != lockType) {
 			String msg = "lock type must be write or read";
 			LOGGER.warn(msg);
