@@ -2,6 +2,7 @@ package io.mycat.statistic.stat;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
 
 /**
@@ -56,7 +57,7 @@ public class SqlResultSizeRecorder {
 		
 		public String mergeSql(String sql) {
 			
-			String newSql = ParameterizedOutputVisitorUtils.parameterize(sql, "mysql");
+			String newSql = ParameterizedOutputVisitorUtils.parameterize(sql, DbType.mysql);
 			return fixSql( newSql );
 	    }
 

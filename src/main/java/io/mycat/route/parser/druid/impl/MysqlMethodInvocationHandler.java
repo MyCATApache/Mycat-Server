@@ -1,22 +1,22 @@
 package io.mycat.route.parser.druid.impl;
 
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
-import com.alibaba.druid.sql.ast.expr.SQLDateExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
-import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
-import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlIntervalExpr;
-import io.mycat.route.parser.druid.SqlMethodInvocationHandler;
-import org.apache.commons.lang.time.DateFormatUtils;
-import org.apache.commons.lang.time.DateUtils;
-
 import java.sql.SQLNonTransientException;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
+
+import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+
+import io.mycat.route.parser.druid.SqlMethodInvocationHandler;
 
 /**
  * mysql函数调用
@@ -80,13 +80,15 @@ public class MysqlMethodInvocationHandler implements SqlMethodInvocationHandler 
             if (p2 instanceof SQLIntegerExpr) {
                 delta = (Integer) ((SQLIntegerExpr) p2).getNumber();
                 unit = "DAY";
-            } else if (p2 instanceof MySqlIntervalExpr) {
-                SQLIntegerExpr value = (SQLIntegerExpr) ((MySqlIntervalExpr) p2).getValue();
-                delta = (Integer) value.getNumber();
-                unit = ((MySqlIntervalExpr) p2).getUnit().name();
-            } else {
-                throwSyntaxError(p2);
-            }
+			} else {
+				throwSyntaxError(p2);
+			}
+			// else if (p2 instanceof MySqlIntervalExpr) {
+//                SQLIntegerExpr value = (SQLIntegerExpr) ((MySqlIntervalExpr) p2).getValue();
+//                delta = (Integer) value.getNumber();
+//                unit = ((MySqlIntervalExpr) p2).getUnit().name();
+//            } 
+
             try {
                 Date date = DateUtils.parseDate(time, SUPPORT_PATTERNS);
                 Date result;

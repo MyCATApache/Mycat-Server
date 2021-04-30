@@ -8,7 +8,7 @@ public class DruidSelectPostgresqlParser extends DruidSelectParser
 
     protected String getCurentDbType()
     {
-        return JdbcConstants.POSTGRESQL;
+		return JdbcConstants.POSTGRESQL.name();
     }
 
 

@@ -17,6 +17,7 @@ import org.apache.logging.log4j.util.Strings;
 
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLLimit;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLOrderingSpecification;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -41,12 +42,11 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.dialect.db2.ast.stmt.DB2SelectQueryBlock;
 import com.alibaba.druid.sql.dialect.db2.visitor.DB2OutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.ast.expr.MySqlOrderingExpr;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock.Limit;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUnionQuery;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
@@ -99,7 +99,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				rrs.setCanRunInReadDB(false);
 			}
 
-		} else if (sqlSelectQuery instanceof MySqlUnionQuery) {
+		} else if (sqlSelectQuery instanceof SQLUnionQuery) {
 //			MySqlUnionQuery unionQuery = (MySqlUnionQuery)sqlSelectQuery;
 //			MySqlSelectQueryBlock left = (MySqlSelectQueryBlock)unionQuery.getLeft();
 //			MySqlSelectQueryBlock right = (MySqlSelectQueryBlock)unionQuery.getLeft();
@@ -381,7 +381,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 			Map<String, Map<String, Set<ColumnRoutePair>>> allConditions = getAllConditions();
 			boolean isNeedAddLimit = isNeedAddLimit(schema, rrs, mysqlSelectQuery, allConditions);
 			if(isNeedAddLimit) {
-				Limit limit = new Limit();
+				SQLLimit limit = new SQLLimit();
 				limit.setRowCount(new SQLIntegerExpr(limitSize));
 				mysqlSelectQuery.setLimit(limit);
 				rrs.setLimitSize(limitSize);
@@ -389,7 +389,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				rrs.changeNodeSqlAfterAddLimit(schema, getCurentDbType(), sql, 0, limitSize, true);
 
 			}
-			Limit limit = mysqlSelectQuery.getLimit();
+			SQLLimit limit = mysqlSelectQuery.getLimit();
 			if(limit != null&&!isNeedAddLimit) {
 				SQLIntegerExpr offset = (SQLIntegerExpr)limit.getOffset();
 				SQLIntegerExpr count = (SQLIntegerExpr)limit.getRowCount();
@@ -403,7 +403,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 				}
 
 				if(isNeedChangeLimit(rrs)) {
-					Limit changedLimit = new Limit();
+					SQLLimit changedLimit = new SQLLimit();
 					changedLimit.setRowCount(new SQLIntegerExpr(limitStart + limitSize));
 
 					if(offset != null) {
@@ -526,7 +526,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 	private void fixLimit(MySqlSelectQueryBlock mysqlSelectQuery, RouteResultsetNode node) {
 		if(!getCurentDbType().equalsIgnoreCase("mysql")) {
-			Limit _limit = mysqlSelectQuery.getLimit();
+			SQLLimit _limit = mysqlSelectQuery.getLimit();
 			if (_limit != null) {
 				SQLIntegerExpr offset = (SQLIntegerExpr) _limit.getOffset();
 				SQLIntegerExpr count = (SQLIntegerExpr) _limit.getRowCount();
@@ -633,7 +633,7 @@ public class DruidSelectParser extends DefaultDruidParser {
 
 	protected String getCurentDbType()
 	{
-		return JdbcConstants.MYSQL;
+		return JdbcConstants.MYSQL.name();
 	}
 
 

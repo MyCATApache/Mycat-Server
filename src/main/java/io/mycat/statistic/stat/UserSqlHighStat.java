@@ -1,13 +1,16 @@
 package io.mycat.statistic.stat;
 
-import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.alibaba.druid.DbType;
+import com.alibaba.druid.sql.visitor.ParameterizedOutputVisitorUtils;
 
 public class UserSqlHighStat {
 
@@ -82,7 +85,7 @@ public class UserSqlHighStat {
 
     public String mergeSql(String sql) {
       try {
-        String newSql = ParameterizedOutputVisitorUtils.parameterize(sql, "mysql");
+			String newSql = ParameterizedOutputVisitorUtils.parameterize(sql, DbType.mysql);
         return fixSql(newSql);
       } catch (Exception e) {
         LOGGER.warn("user sql high parse:{} error",sql, e);

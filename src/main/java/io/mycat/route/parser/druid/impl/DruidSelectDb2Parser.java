@@ -11,11 +11,11 @@ import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
-import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelect;
 import com.alibaba.druid.sql.dialect.oracle.ast.stmt.OracleSelectQueryBlock;
 import com.alibaba.druid.util.JdbcConstants;
 
@@ -80,7 +80,7 @@ public class DruidSelectDb2Parser extends DruidSelectOracleParser
                                     mysqlSelectQuery = (OracleSelectQueryBlock) subSelect;    //为了继续解出order by 等
                                     if(orderBy!=null)
                                     {
-                                        OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
+										SQLSelect oracleSelect = (SQLSelect) subSelect.getParent();
                                         oracleSelect.setOrderBy(orderBy);
                                     }
                                     parseOrderAggGroupOracle(stmt,rrs, mysqlSelectQuery, schema);
@@ -132,11 +132,10 @@ public class DruidSelectDb2Parser extends DruidSelectOracleParser
                                 if(small!=null&&larger!=null)
                                 {
                                     setLimitIFChange(stmt, rrs, schema, small, firstrownum, lastrownum);
-                                    if(orderBy!=null)
-                                    {
-                                        OracleSelect oracleSelect= (OracleSelect) subSelect.getParent();
-                                        oracleSelect.setOrderBy(orderBy);
-                                    }
+									if (orderBy != null) {
+										SQLSelect oracleSelect = (SQLSelect) subSelect.getParent();
+										oracleSelect.setOrderBy(orderBy);
+									}
                                     parseOrderAggGroupOracle(stmt,rrs, (OracleSelectQueryBlock) subSelect, schema);
                                     isNeedParseOrderAgg=false;
                                 }
@@ -177,7 +176,7 @@ public class DruidSelectDb2Parser extends DruidSelectOracleParser
 
     protected String getCurentDbType()
     {
-        return JdbcConstants.DB2;
+		return JdbcConstants.DB2.name();
     }
 
 

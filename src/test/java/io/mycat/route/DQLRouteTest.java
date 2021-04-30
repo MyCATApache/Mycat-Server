@@ -9,25 +9,22 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
+import com.alibaba.druid.sql.parser.SQLStatementParser;
+import com.alibaba.druid.stat.TableStat.Condition;
+
 import io.mycat.MycatServer;
 import io.mycat.SimpleCachePool;
 import io.mycat.cache.LayerCachePool;
 import io.mycat.config.loader.SchemaLoader;
 import io.mycat.config.loader.xml.XMLSchemaLoader;
 import io.mycat.config.model.SchemaConfig;
+import io.mycat.route.factory.RouteStrategyFactory;
 import io.mycat.route.parser.druid.DruidShardingParseInfo;
 import io.mycat.route.parser.druid.MycatSchemaStatVisitor;
 import io.mycat.route.parser.druid.MycatStatementParser;
 import io.mycat.route.parser.druid.RouteCalculateUnit;
-import io.mycat.route.factory.RouteStrategyFactory;
-
-
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.sql.parser.SQLStatementParser;
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
-import com.alibaba.druid.stat.TableStat.Condition;
-
 import junit.framework.Assert;
 
 public class DQLRouteTest {
@@ -123,7 +120,7 @@ public class DQLRouteTest {
 		//利用反射机制单元测试DefaultDruidParser类的私有方法buildRouteCalculateUnits
 		Class<?> clazz = Class.forName("io.mycat.route.parser.druid.impl.DefaultDruidParser");
 		Method buildRouteCalculateUnits = clazz.getDeclaredMethod("buildRouteCalculateUnits",
-				new Class[] { SchemaStatVisitor.class, List.class });
+				new Class[] { MycatSchemaStatVisitor.class, List.class });
 		//System.out.println("buildRouteCalculateUnits:\t" + buildRouteCalculateUnits);
 		Object newInstance = clazz.newInstance();
 		buildRouteCalculateUnits.setAccessible(true);
