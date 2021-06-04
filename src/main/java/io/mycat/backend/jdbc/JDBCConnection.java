@@ -415,11 +415,13 @@ public class JDBCConnection implements BackendConnection {
 			stmt = con.createStatement();
 			int count = stmt.executeUpdate(sql,Statement.RETURN_GENERATED_KEYS);
 			long lastInsertId = 0;
-			ResultSet generatedKeys = stmt.getGeneratedKeys();
-			if (generatedKeys != null){
-				ResultSetMetaData metaData = generatedKeys.getMetaData();
-				if (metaData.getColumnCount() == 1){
-					lastInsertId = (generatedKeys.next() ? generatedKeys.getLong(1) : 0L);
+			if("mysql".equalsIgnoreCase(getDbType())) {
+				ResultSet generatedKeys = stmt.getGeneratedKeys();
+				if (generatedKeys != null){
+					ResultSetMetaData metaData = generatedKeys.getMetaData();
+					if (metaData.getColumnCount() == 1){
+						lastInsertId = (generatedKeys.next() ? generatedKeys.getLong(1) : 0L);
+					}
 				}
 			}
 			OkPacket okPck = new OkPacket();
