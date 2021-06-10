@@ -196,7 +196,7 @@ public class DefaultDruidParser implements DruidParser {
 
 
 		// visitor.getAliasMap().putAll(tableAliasMap);
-		ctx.addTables(visitor.getTables());
+        ctx.addTables(visitor.getTables(), schema.getName());
 		ctx.setTableAliasMap(visitor.getAliasMap());
 		return tableAliasMap;
 	}
