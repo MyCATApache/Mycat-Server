@@ -1228,7 +1228,7 @@ public class RouterUtil {
 			throws SQLNonTransientException {
 
 		List<String> tables = ctx.getTables();
-
+        rrs.setTables(tables);
 
 		if(schema.isNoSharding()||(tables.size() >= 1&&isNoSharding(schema,tables.get(0)))) {
 			return routeToSingleNode(rrs, schema.getDataNode(), ctx.getSql());
