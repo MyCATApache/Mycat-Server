@@ -101,7 +101,7 @@ public class ShowFullTables {
 
         for (String name : tableSet) {
             RowDataPacket row = new RowDataPacket(FIELD_COUNT);
-            row.add(StringUtil.encode(name.toLowerCase(), c.getCharset()));
+            row.add(StringUtil.encode(name, c.getCharset()));
             row.add(StringUtil.encode("BASE TABLE", c.getCharset()));
             row.packetId = ++packetId;
             buffer = row.write(buffer, c,true);
