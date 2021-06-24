@@ -806,7 +806,7 @@ public class JDBCConnection implements BackendConnection {
 			justForHeartbeat(sql);
 		}    else
 		{
-			throw new UnsupportedOperationException("global seq is not unsupported in jdbc driver yet ");
+			throw new UnsupportedOperationException("global seq and share join and special io.mycat.backend.mysql.nio.handler.ResponseHandler  are not unsupported in jdbc driver yet ");
 		}
 	}
 	private void justForHeartbeat(String sql)
