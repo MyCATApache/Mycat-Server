@@ -134,7 +134,7 @@ public class ExecutePacket extends MySQLPacket {
             	if (!pstmt.hasLongData(i)) {
             		BindValueUtil.read(mm, bv, charset);
             	} else {
-            		bv.value = pstmt.getLongData(i);
+            		bv.value = pstmt.getLongData(i).toByteArray();
             	}
             }
             values[i] = bv;

@@ -27,9 +27,21 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLReplaceable;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLExprUtils;
+import com.alibaba.druid.sql.ast.expr.SQLHexExpr;
+import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
+import com.alibaba.druid.sql.ast.expr.SQLVariantRefExpr;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.MySqlKey;
+import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +106,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
 
         LOGGER.debug("use server prepare, sql: " + sql);
         PreparedStatement pstmt = null;
-        if (pstmt  == null) {
+        if (pstmt == null) {
             // 解析获取字段个数和参数个数
             int columnCount = 0;
             int paramCount = getParamCount(sql);
@@ -199,7 +211,6 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     }
 
 
-
     // 获取预处理sql中预处理参数个数
     private int getParamCount(String sql) {
         char[] cArr = sql.toCharArray();
@@ -217,77 +228,60 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
      */
     private String prepareStmtBindValue(PreparedStatement pstmt, BindValue[] bindValues) {
         String sql = pstmt.getStatement();
+        SQLStatement sqlStatement = SQLUtils.parseSingleMysqlStatement(sql);
+        boolean primitiveArg = !(sqlStatement instanceof SQLSelectStatement);
         int[] paramTypes = pstmt.getParametersType();
-
-        StringBuilder sb = new StringBuilder();
-        int idx = 0;
-        for (int i = 0, len = sql.length(); i < len; i++) {
-            char c = sql.charAt(i);
-            if (c != '?') {
-                sb.append(c);
-                continue;
-            }
-            // 处理占位符?
-            int paramType = paramTypes[idx];
-            BindValue bindValue = bindValues[idx];
-            idx++;
-            // 处理字段为空的情况
-            if (bindValue.isNull) {
-                sb.append("NULL");
-                continue;
-            }
-            // 非空情况, 根据字段类型获取值
-            switch (paramType & 0xff) {
-                case Fields.FIELD_TYPE_TINY:
-                    sb.append(String.valueOf(bindValue.byteBinding));
-                    break;
-                case Fields.FIELD_TYPE_SHORT:
-                    sb.append(String.valueOf(bindValue.shortBinding));
-                    break;
-                case Fields.FIELD_TYPE_LONG:
-                    sb.append(String.valueOf(bindValue.intBinding));
-                    break;
-                case Fields.FIELD_TYPE_LONGLONG:
-                    sb.append(String.valueOf(bindValue.longBinding));
-                    break;
-                case Fields.FIELD_TYPE_FLOAT:
-                    sb.append(String.valueOf(bindValue.floatBinding));
-                    break;
-                case Fields.FIELD_TYPE_DOUBLE:
-                    sb.append(String.valueOf(bindValue.doubleBinding));
-                    break;
-                case Fields.FIELD_TYPE_VAR_STRING:
-                case Fields.FIELD_TYPE_STRING:
-                case Fields.FIELD_TYPE_VARCHAR:
-                    bindValue.value = varcharEscaper.asFunction().apply(String.valueOf(bindValue.value));
-                    sb.append("'" + bindValue.value + "'");
-                    break;
-                case Fields.FIELD_TYPE_TINY_BLOB:
-                case Fields.FIELD_TYPE_BLOB:
-                case Fields.FIELD_TYPE_MEDIUM_BLOB:
-                case Fields.FIELD_TYPE_LONG_BLOB:
-                    if (bindValue.value instanceof ByteArrayOutputStream) {
-                        byte[] bytes = ((ByteArrayOutputStream) bindValue.value).toByteArray();
-                        sb.append("X'" + HexFormatUtil.bytesToHexString(bytes) + "'");
-                    } else {
-                        // 正常情况下不会走到else, 除非long data的存储方式(ByteArrayOutputStream)被修改
-                        LOGGER.warn(
-                                "bind value is not a instance of ByteArrayOutputStream, maybe someone change the implement of long data storage!");
-                        sb.append("'" + bindValue.value + "'");
+        sqlStatement.accept(new MySqlASTVisitorAdapter() {
+            @Override
+            public boolean visit(SQLVariantRefExpr x) {
+                BindValue bindValue = bindValues[x.getIndex()];
+                Object o = null;
+                if (bindValue.isNull) {
+                    SQLReplaceable parent = (SQLReplaceable) x.getParent();
+                    parent.replace(x, new SQLNullExpr());
+                    return false;
+                } else {
+                    if (primitiveArg && bindValue.value instanceof byte[]) {
+                        SQLReplaceable parent = (SQLReplaceable) x.getParent();
+                        parent.replace(x, new SQLHexExpr(HexFormatUtil.bytesToHexString((byte[]) bindValue.value)));
+                        return false;
                     }
-                    break;
-                case Fields.FIELD_TYPE_TIME:
-                case Fields.FIELD_TYPE_DATE:
-                case Fields.FIELD_TYPE_DATETIME:
-                case Fields.FIELD_TYPE_TIMESTAMP:
-                    sb.append("'" + bindValue.value + "'");
-                    break;
-                default:
-                    bindValue.value = varcharEscaper.asFunction().apply(String.valueOf(bindValue.value));
-                    sb.append(bindValue.value.toString());
-                    break;
+                    switch (paramTypes[x.getIndex()] & 0xff) {
+                        case Fields.FIELD_TYPE_TINY:
+                            o = bindValue.byteBinding;
+                            break;
+                        case Fields.FIELD_TYPE_SHORT:
+                            o = bindValue.shortBinding;
+                            break;
+                        case Fields.FIELD_TYPE_LONG:
+                            o = bindValue.intBinding;
+                            break;
+                        case Fields.FIELD_TYPE_LONGLONG:
+                            o = (bindValue.longBinding);
+                            break;
+                        case Fields.FIELD_TYPE_FLOAT:
+                            o = bindValue.floatBinding;
+                            break;
+                        case Fields.FIELD_TYPE_DOUBLE:
+                            o = bindValue.doubleBinding;
+                            break;
+                        case Fields.FIELD_TYPE_TIME:
+                        case Fields.FIELD_TYPE_DATE:
+                        case Fields.FIELD_TYPE_DATETIME:
+                        case Fields.FIELD_TYPE_TIMESTAMP:
+                            o = bindValue.value;
+                            break;
+                        default:
+                            throw new UnsupportedOperationException("unsupport " + bindValue.value);
+                    }
+
+                    SQLReplaceable parent = (SQLReplaceable) x.getParent();
+                    parent.replace(x, SQLExprUtils.fromJavaObject(o));
+                    return false;
+                }
             }
-        }
-        return sb.toString();
+
+        });
+        return sqlStatement.toString();
     }
 }
