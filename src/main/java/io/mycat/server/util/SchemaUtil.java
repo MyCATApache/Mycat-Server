@@ -20,8 +20,12 @@ import io.mycat.server.parser.ServerParse;
  */
 public class SchemaUtil {
     public static SchemaInfo parseSchema(String sql) {
-		MycatStatementParser parser = new MycatStatementParser(sql);
-        return parseTables(parser.parseStatement(), new MycatSchemaStatVisitor());
+        try{
+            MycatStatementParser parser = new MycatStatementParser(sql);
+            return parseTables(parser.parseStatement(), new MycatSchemaStatVisitor());
+        }catch (Exception ignore){
+            return null;
+        }
     }
 
     public static String detectDefaultDb(String sql, int type) {
