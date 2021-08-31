@@ -22,7 +22,6 @@ public class MycatExprParser extends MySqlExprParser
     {
         super(new MycatLexer(sql));
         lexer.nextToken();
-        super.aggregateFunctions = max_agg_functions;
     }
     @Override
     public SQLSelectItem parseSelectItem()
