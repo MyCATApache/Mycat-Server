@@ -3,6 +3,8 @@
 
 官网:  http://mycat.org.cn/
 
+提交代码,可以开issue,写清楚代码改动或者联系qq:294712221
+
 [Mycat2配置已稳定,尝试Mycat2](http://www.mycat.org.cn/mycat2-index.html)
 
 mycat1.6权威指南
