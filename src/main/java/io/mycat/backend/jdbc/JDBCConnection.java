@@ -273,8 +273,11 @@ public class JDBCConnection implements BackendConnection {
 	@Override
 	public void commit() {
 		try {
-			con.commit();
-
+			if (con.getAutoCommit()) {
+				LOGGER.warn("when jdbc con is autocommit call commit");
+			} else {
+				con.commit();
+			}
 			this.respHandler.okResponse(OkPacket.OK, this);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
