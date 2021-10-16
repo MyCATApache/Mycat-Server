@@ -44,7 +44,7 @@ public class JDBCFetchStoreNodeOfChildTableHandler {
                 ResultSet rs = null;
                 try {
                     con = jdbcDatasource.getDruidConnection();
-                    String useDB = "use " + physicalDBNode.getDatabase() + ";";
+                    String useDB = "use `" + physicalDBNode.getDatabase() + "`;";
                     pstmt = con.prepareStatement(useDB);
                     pstmt.execute();
                     pstmt = con.prepareStatement(sql);

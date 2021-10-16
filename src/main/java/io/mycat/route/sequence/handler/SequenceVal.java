@@ -175,7 +175,7 @@ class SequenceVal {
 				ResultSet rs = null;
 				try {
 					con = jdbcDatasource.getDruidConnection();
-					String useDB = "use " + mysqlDN.getDatabase() + ";";
+					String useDB = "use `" + mysqlDN.getDatabase() + "`;";
 					pstmt = con.prepareStatement(useDB);
 					pstmt.execute();
 					pstmt = con.prepareStatement(this.sql);
