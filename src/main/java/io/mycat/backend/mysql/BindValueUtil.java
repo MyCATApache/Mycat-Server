@@ -23,18 +23,21 @@
  */
 package io.mycat.backend.mysql;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-
 import io.mycat.config.Fields;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author mycat
  */
 public class BindValueUtil {
 
-    public static final void read(MySQLMessage mm, BindValue bv, String charset) throws UnsupportedEncodingException {
+    public static final void read(MySQLMessage mm, BindValue bv, String charsetName) throws UnsupportedEncodingException {
         switch (bv.type & 0xff) {
         case Fields.FIELD_TYPE_BIT:
             bv.value = mm.readBytesWithLength();
@@ -71,12 +74,20 @@ public class BindValueUtil {
         case Fields.FIELD_TYPE_DECIMAL:
         case Fields.FIELD_TYPE_NEW_DECIMAL:
         case Fields.FIELD_TYPE_BLOB:
-        	byte[] vv = mm.readBytesWithLength();
-        	if (vv == null) {
-        		bv.isNull = true;
-        	} else {
-            	bv.value = vv;
-        	}
+            byte[] vv = mm.readBytesWithLength();
+            if (vv == null) {
+                bv.isNull = true;
+            } else {
+                if (charsetName == null) {
+                    charsetName = StandardCharsets.UTF_8.name();
+                }
+                Charset charset = Charset.forName(charsetName);
+                try {
+                    bv.value = charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(vv));
+                } catch (CharacterCodingException e) {
+                    bv.value = vv;
+                }
+            }
         	break;
         default:
             throw new IllegalArgumentException("bindValue error,unsupported type:" + bv.type);
