@@ -23,16 +23,18 @@ import io.mycat.util.exception.DataMigratorException;
  */
 public class MysqlDataIO implements DataIO{
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(MysqlDataIO.class); 
-	
+	private static final Logger LOGGER = LoggerFactory.getLogger(MysqlDataIO.class);
+
 	private String mysqlBin;
 	private int cmdLength;
 	private String charset;
-	
+	private boolean gtidPurged = true;
+
 	public MysqlDataIO(){
 		cmdLength = DataMigrator.margs.getCmdLength();
 		charset = DataMigrator.margs.getCharSet();
 		mysqlBin  = DataMigrator.margs.getMysqlBin();
+		gtidPurged = DataMigrator.margs.isGtidPurged();
 	}
 
     public boolean isWindows() {
@@ -51,25 +53,25 @@ public class MysqlDataIO implements DataIO{
 		String user = dn.getUserName();
 		String pwd = dn.getPwd();
 		String db = dn.getDb();
-		
+
 //		String loadData ="?mysql -h? -P? -u? -p? -D? --local-infile=1 -e \"load data local infile '?' replace into table ? CHARACTER SET '?' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\\r\\n'\"";
 		String loadData = "?mysql -h? -P? -u? -p? -D?  -f --default-character-set=? -e \"source ?\"";
 		loadData = DataMigratorUtil.paramsAssignment(loadData,"?",mysqlBin,ip,port,user,pwd,db,charset,file.getAbsolutePath());
 		LOGGER.info(table.getSchemaAndTableName()+" "+loadData);
 		Process process = DataMigratorUtil.exeCmdByOs(loadData);
-		
+
 		//获取错误信息
 
 		InputStreamReader in = new InputStreamReader(process.getErrorStream(),isWindows()?"GBK": Charset.defaultCharset().name());
 		BufferedReader br = new BufferedReader(in);
-		String errMessage = null;  
-        while ((errMessage = br.readLine()) != null) {  
+		String errMessage = null;
+        while ((errMessage = br.readLine()) != null) {
             if(errMessage.trim().toLowerCase().contains("err")){
             	System.out.println(errMessage+" -> "+loadData);
             	throw new DataMigratorException(errMessage+" -> "+loadData);
             }
         }
-        
+
 		process.waitFor();
 	}
 
@@ -80,12 +82,16 @@ public class MysqlDataIO implements DataIO{
 		String user = dn.getUserName();
 		String pwd = dn.getPwd();
 		String db = dn.getDb();
-		
+
 //		String mysqlDump = "?mysqldump -h? -P? -u? -p? ? ?  --no-create-info --default-character-set=? "
 //				+ "--add-locks=false --tab='?' --fields-terminated-by=',' --lines-terminated-by='\\r\\n' --where='? in(?)'";
 		//由于mysqldump导出csv格式文件只能导出到本地，暂时替换成导出insert形式的文件
-		String mysqlDump = "?mysqldump -h? -P? -u? -p? ? ?  --compact --no-create-info --default-character-set=? --add-locks=false --where=\"? in (#)\" --result-file=\"?\"";
-		
+		String mysqlDump = "?mysqldump -h? -P? -u? -p? ? ?  --compact --no-create-info --default-character-set=? --add-locks=false --where=\"? in (#)\" --result-file=\"?\" ";
+		if (gtidPurged){
+			mysqlDump += " --set-gtid-purged=ON ";
+		}else {
+			mysqlDump += " --set-gtid-purged=OFF ";
+		}
 		String fileName = condition.getName();
 		File exportPath = new File(export,fileName.substring(0, fileName.indexOf(".txt")));
 		if(!exportPath.exists()){
@@ -113,13 +119,13 @@ public class MysqlDataIO implements DataIO{
 			String mysqlDumpCmd = DataMigratorUtil.paramsAssignment(mysqlDump,"#",data);
 			LOGGER.info(table.getSchemaAndTableName()+mysqlDump);
 			LOGGER.debug(table.getSchemaAndTableName()+" "+mysqlDumpCmd);
-			
-			Process process = DataMigratorUtil.exeCmdByOs(mysqlDumpCmd);  
+
+			Process process = DataMigratorUtil.exeCmdByOs(mysqlDumpCmd);
 			//获取错误信息
 			InputStreamReader in = new InputStreamReader(process.getErrorStream());
 			BufferedReader br = new BufferedReader(in);
-			String errMessage = null;  
-	        while ((errMessage = br.readLine()) != null) {  
+			String errMessage = null;
+	        while ((errMessage = br.readLine()) != null) {
 	            if(errMessage.trim().toLowerCase().contains("err")){
 	            	System.out.println(errMessage+" -> "+mysqlDump);
 	            	throw new DataMigratorException(errMessage+" -> "+mysqlDump);

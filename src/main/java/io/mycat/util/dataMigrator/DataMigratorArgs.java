@@ -34,8 +34,10 @@ public class DataMigratorArgs {
 	
 	/** mysqldump导出中间文件命令操作系统限制长度 */
 	public static final String MYSQL_DUMP_CMD_LENGTH = "cmdLength";
-	
+
 	public static final String CHARSET = "charset";
+
+	public static final String GTID_PURGED = "gtidPurged";
 	
 	/**完成扩容缩容后清除临时文件 默认为true*/
 	public static final String DELETE_TEMP_FILE_DIR = "deleteTempFileDir";
@@ -136,7 +138,15 @@ public class DataMigratorArgs {
 		}
 		return result;
 	}
-	
+
+	public boolean isGtidPurged(){
+		String result = getString(GTID_PURGED);
+		if(null == result||result.isEmpty()){
+			return true;
+		}
+		return Boolean.parseBoolean(result);
+	}
+
 	public boolean isDeleteTempDir(){
 		String result = getString(DELETE_TEMP_FILE_DIR);
 		if(null == result||result.isEmpty()||result.equals("true")){
