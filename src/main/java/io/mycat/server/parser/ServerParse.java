@@ -677,7 +677,7 @@ public final class ServerParse {
 					&& (c2 == 'C' || c2 == 'c')
 					&& (c3 == 'T' || c3 == 't')
 					&& (c4 == ' ' || c4 == '\t' || c4 == '\r' || c4 == '\n'
-							|| c4 == '/' || c4 == '#')) {
+							|| c4 == '/' || c4 == '#' || c4 == '*')) {
 				return (offset << 8) | SELECT;
 			}
 		}
