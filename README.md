@@ -14,7 +14,7 @@ mycat1.6权威指南
 
 [客户端连接配置](https://github.com/MyCATApache/Mycat-Server/wiki/%E5%BC%80%E5%8F%91%E7%AF%87%EF%BC%9A1.0-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5%E9%85%8D%E7%BD%AE)
 
-
+[log4j-2.15 lib](http://dl.mycat.org.cn/1.6.7.6/20211210225537/mycat16-log4j-2.15.zip)
 
 [![Stargazers over time](https://starchart.cc/MyCATApache/Mycat-Server.svg)](https://starchart.cc/MyCATApache/Mycat-Server)
   
