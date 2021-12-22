@@ -300,23 +300,23 @@ public class JavaUtils {
     long GB = 1L << 30;
     long MB = 1L << 20;
     long KB = 1L << 10;
-    int value = 0;
+    long value = 0;
     String unit = null;
 
     if (size >= 2*TB) {
-      value =(int) (size/TB);
+      value = (size/TB);
       unit = "TB";
     } else if (size >= 2*GB) {
-      value = (int) (size/GB);
+      value = (size/GB);
       unit = "GB";
     } else if (size >= 2*MB) {
-      value = (int) (size/MB);
+      value =  (size/MB);
       unit = "MB";
     } else if (size >= 2*KB) {
-      value = (int) (size/KB);
+      value =  (size/KB);
       unit = "KB";
     } else {
-      value =  (int) size;
+      value =   size;
       unit = "B";
     }
 
