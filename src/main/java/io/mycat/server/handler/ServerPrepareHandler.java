@@ -34,10 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLReplaceable;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLExprUtils;
-import com.alibaba.druid.sql.ast.expr.SQLHexExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
-import com.alibaba.druid.sql.ast.expr.SQLVariantRefExpr;
+import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
@@ -272,6 +269,12 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
                             o = bindValue.value;
                             break;
                         default:
+                            if (bindValue.value instanceof byte[]) {
+                                SQLReplaceable parent = (SQLReplaceable) x.getParent();
+                                byte[] bytes = (byte[]) bindValue.value;
+                                parent.replace(x, new SQLCharExpr(new String(bytes)));
+                                return false;
+                            }
                             throw new UnsupportedOperationException("unsupport " + bindValue.value);
                     }
 
