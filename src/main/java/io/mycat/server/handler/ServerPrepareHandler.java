@@ -275,6 +275,12 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
                                 parent.replace(x, new SQLCharExpr(new String(bytes)));
                                 return false;
                             }
+                            if (bindValue.value instanceof String) {
+                                SQLReplaceable parent = (SQLReplaceable) x.getParent();
+                                String value = (String) bindValue.value;
+                                parent.replace(x, new SQLCharExpr(value));
+                                return false;
+                            }
                             throw new UnsupportedOperationException("unsupport " + bindValue.value);
                     }
 
