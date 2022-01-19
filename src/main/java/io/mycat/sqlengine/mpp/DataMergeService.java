@@ -24,6 +24,7 @@ package io.mycat.sqlengine.mpp;
  *
  */
 
+import com.alibaba.druid.sql.SQLUtils;
 import io.mycat.MycatServer;
 import io.mycat.backend.mysql.BufferUtil;
 import io.mycat.backend.mysql.nio.handler.MultiNodeQueryHandler;
@@ -123,7 +124,7 @@ public class DataMergeService extends AbstractDataNodeMerge {
 						}
 					} else {
 						
-						ColMeta colMeta = columToIndx.get(colName);
+						ColMeta colMeta = columToIndx.get(SQLUtils.normalize(colName));
 						mergCols.add(new MergeCol(colMeta, mergEntry.getValue()));
 					}
 				}
