@@ -2,8 +2,8 @@
  * Copyright (c) 2020, OpenCloudDB/MyCAT and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
- * This code is free software;Designed and Developed mainly by many Chinese 
- * opensource volunteers. you can redistribute it and/or modify it under the 
+ * This code is free software;Designed and Developed mainly by many Chinese
+ * opensource volunteers. you can redistribute it and/or modify it under the
  * terms of the GNU General Public License version 2 only, as published by the
  * Free Software Foundation.
  *
@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Any questions about this component can be directed to it's project Web address 
+ *
+ * Any questions about this component can be directed to it's project Web address
  * https://code.google.com/p/opencloudb/.
  *
  */
@@ -78,9 +78,9 @@ public class NonBlockingSession implements Session {
     private final CommitNodeHandler commitHandler;
     private volatile String xaTXID;
 
-   //huangyiming 
+   //huangyiming
   	private  volatile boolean canClose = true;
-  	
+
   	private volatile MiddlerResultHandler  middlerResultHandler;
     private boolean prepared;
     private RouteResultset rrs;
@@ -117,7 +117,7 @@ public class NonBlockingSession implements Session {
     public BackendConnection removeTarget(RouteResultsetNode key) {
         return target.remove(key);
     }
-    
+
     @Override
     public void execute(RouteResultset rrs, int type) {
         this.rrs = rrs;
@@ -328,7 +328,7 @@ public class NonBlockingSession implements Session {
 		UnLockTablesHandler handler = new UnLockTablesHandler(this, this.source.isAutocommit(), sql);
 		handler.execute();
 	}
-	
+
     @Override
     public void cancel(FrontendConnection sponsor) {
 
@@ -388,12 +388,11 @@ public class NonBlockingSession implements Session {
                 if ((!this.source.isAutocommit() && !conn.isFromSlaveDB()) || this.source.isLocked()) {
                     return;
                 }
-            } else {
-                if ((this.source.isAutocommit() || conn.isFromSlaveDB()
-                             || !conn.isModifiedSQLExecuted()) && !this.source.isLocked()) {
-                    releaseConnection((RouteResultsetNode) conn.getAttachment(), LOGGER.isDebugEnabled(),
-                            needRollback);
-                }
+            }
+            if ((this.source.isAutocommit() || conn.isFromSlaveDB()
+                    || !conn.isModifiedSQLExecuted()) && !this.source.isLocked()) {
+                releaseConnection((RouteResultsetNode) conn.getAttachment(), LOGGER.isDebugEnabled(),
+                        needRollback);
             }
         }
     }
@@ -433,7 +432,7 @@ public class NonBlockingSession implements Session {
 
     public void releaseConnections(final boolean needRollback) {
         boolean debug = LOGGER.isDebugEnabled();
-        
+
         for (RouteResultsetNode rrn : target.keySet()) {
             releaseConnection(rrn, debug, needRollback);
         }
@@ -474,7 +473,7 @@ public class NonBlockingSession implements Session {
 
         return target.put(key, conn);
     }
-    
+
     public boolean tryExistsCon(final BackendConnection conn, RouteResultsetNode node) {
         if (conn == null) {
             return false;
