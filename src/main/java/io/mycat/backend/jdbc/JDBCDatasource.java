@@ -75,6 +75,7 @@ public class JDBCDatasource extends PhysicalDatasource {
 		c.setPool(this);
 		c.setSchema(schema);
 		c.setDbType(cfg.getDbType());
+		c.setFromSlaveDB(isReadNode());
 		
 		NIOProcessor processor = (NIOProcessor) MycatServer.getInstance().nextProcessor();
 		c.setProcessor(processor);

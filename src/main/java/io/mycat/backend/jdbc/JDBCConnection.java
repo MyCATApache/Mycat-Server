@@ -73,6 +73,7 @@ public class JDBCConnection implements BackendConnection {
 	private boolean setSchemaFail = false;
 
 	private volatile int sqlSelectLimit = -1;
+	private boolean fromSlaveDB;
 	
 	
 	
@@ -198,7 +199,7 @@ public class JDBCConnection implements BackendConnection {
 
 	@Override
 	public boolean isFromSlaveDB() {
-		return false;
+		return fromSlaveDB;
 	}
 
 	public String getDbType() {
@@ -1018,4 +1019,7 @@ public class JDBCConnection implements BackendConnection {
 
     }
 
+	public void setFromSlaveDB(boolean fromSlaveDB) {
+		this.fromSlaveDB = fromSlaveDB;
+	}
 }
