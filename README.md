@@ -3,6 +3,9 @@
 
 官网:  http://mycat.org.cn/
 
+
+gitee: https://gitee.com/MycatOne/Mycat-Server
+
 提交代码,可以开issue,写清楚代码改动或者联系qq:294712221
 
 [Mycat2配置已稳定,尝试Mycat2](http://www.mycat.org.cn/mycat2-index.html)
