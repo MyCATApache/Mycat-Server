@@ -1,7 +1,7 @@
 
-# [MyCAT](http://mycat.org.cn//)
+# MyCAT1
 
-官网:  http://mycat.org.cn/
+官网:  http://mycatone.top
 
 
 gitee: https://gitee.com/MycatOne/Mycat-Server
