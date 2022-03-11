@@ -4,7 +4,8 @@
 官网:  http://mycatone.top
 
 
-gitee: https://gitee.com/MycatOne/Mycat-Server
+[gitee](https://gitee.com/MycatOne/Mycat-Server)
+[github](https://github.com/MyCATApache/Mycat-Server)
 
 提交代码,可以开issue,写清楚代码改动或者联系qq:294712221
 
@@ -15,7 +16,8 @@ mycat1.6权威指南
 [pdf](http://mycat.org.cn/document/mycat-definitive-guide.pdf)
 
 
-[客户端连接配置](https://github.com/MyCATApache/Mycat-Server/wiki/%E5%BC%80%E5%8F%91%E7%AF%87%EF%BC%9A1.0-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5%E9%85%8D%E7%BD%AE)
+[客户端连接配置]
+(https://github.com/MyCATApache/Mycat-Server/wiki/%E5%BC%80%E5%8F%91%E7%AF%87%EF%BC%9A1.0-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5%E9%85%8D%E7%BD%AE)
 
 [log4j-2.15 lib](http://dl.mycat.org.cn/1.6.7.6/20211210225537/mycat16-log4j-2.15.zip)
 
@@ -51,13 +53,10 @@ INSERT INTO `travelrecord` (`id`,user_id) VALUES ('next value for MYCATSEQ_GLOBA
 安装包下载:
 https://github.com/MyCATApache/Mycat-Server/releases
 
-MyCAT2.0
-https://github.com/MyCATApache/Mycat2
-
 更新Druid 1.1.10版本的分支独立维护在
-https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid
+[gitee](https://gitee.com/MycatOne/Mycat-Server/tree/1.6.6-druid)
+[github](https://github.com/MyCATApache/Mycat-Server/tree/1.6.6-druid)
 
-gitee: https://gitee.com/MycatOne/Mycat-Server/tree/1.6.6-druid
 
 docker-mycat(1.65)
 https://github.com/dekuan/docker.mycat
