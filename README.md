@@ -16,7 +16,9 @@ mycat1.6权威指南
 [pdf](http://mycat.org.cn/document/mycat-definitive-guide.pdf)
 
 
-[客户端连接配置](https://github.com/MyCATApache/Mycat-Server/wiki/%E5%BC%80%E5%8F%91%E7%AF%87%EF%BC%9A1.0-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5%E9%85%8D%E7%BD%AE)
+客户端连接配置 
+[gitee](https://gitee.com/MycatOne/Mycat-Server/wiki/%E5%BC%80%E5%8F%91%E7%AF%87%EF%BC%9A1.0-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5%E9%85%8D%E7%BD%AE)
+[github](https://github.com/MyCATApache/Mycat-Server/wiki/%E5%BC%80%E5%8F%91%E7%AF%87%EF%BC%9A1.0-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5%E9%85%8D%E7%BD%AE)
 
 [![Stargazers over time](https://starchart.cc/MyCATApache/Mycat-Server.svg)](https://starchart.cc/MyCATApache/Mycat-Server)
   
@@ -52,9 +54,13 @@ INSERT INTO `travelrecord` (`id`,user_id) VALUES ('next value for MYCATSEQ_GLOBA
 
 
 
-* [Getting Started](https://github.com/MyCATApache/Mycat-doc/tree/master/en)
-* [尝试 MyCAT](https://github.com/MyCATApache/Mycat-doc/tree/master/%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97)
+* Getting Started 
+* [gitee](https://gitee.com/mirrors_MyCATApache/Mycat-doc/tree/master/en)
+* [github](https://github.com/MyCATApache/Mycat-doc/tree/master/en)
 
+* 尝试 MyCAT 
+* [gitee](https://gitee.com/mirrors_MyCATApache/Mycat-doc/tree/master/%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97)
+* [github](https://github.com/MyCATApache/Mycat-doc/tree/master/%E5%85%A5%E9%97%A8%E6%8C%87%E5%8D%97)
 
 ## Features
 
@@ -70,7 +76,7 @@ INSERT INTO `travelrecord` (`id`,user_id) VALUES ('next value for MYCATSEQ_GLOBA
 
 ## Advantage
 
-* Based on Alibaba's open-source project [Cobar](https://github.com/alibaba/cobar), whose stability, reliability, excellent architecture and performance, as well as many mature use-cases make MyCAT have a good starting. Standing on the shoulders of giants, MyCAT feels confident enough to go farther.
+* Based on Alibaba's open-source project Cobar [github](https://github.com/alibaba/cobar),[gitee](https://gitee.com/mirrors_alibaba/cobar), whose stability, reliability, excellent architecture and performance, as well as many mature use-cases make MyCAT have a good starting. Standing on the shoulders of giants, MyCAT feels confident enough to go farther.
 * Extensively drawing on the best open-source projects and innovative ideas, which are integrated into the Mycat’s gene, make MyCAT be ahead of the other current similar open-source projects, even beyond some commercial products.
 * MyCAT behind a strong technical team whose participants are experienced more than five years including some senior software engineer, architect, DBA, etc. Excellent technical team to ensure the product quality of Mycat.
 * MyCAT does not rely on any commercial company. It’s unlike some open-source projects whose important features is enclosed in its commercial products and making open-source projects like a decoration.
@@ -89,7 +95,12 @@ There are some compiled binary installation packages in Mycat-download project o
 
 ## Document
 
-There are some documents in Mycat-doc project on github at [Mycat-doc](https://github.com/MyCATApache/Mycat-doc).
+There are some documents in Mycat-doc project on github at [Mycat-doc]
+
+
+[gitee](https://gitee.com/mirrors_MyCATApache/Mycat-doc)
+
+[github](https://github.com/MyCATApache/Mycat-doc)
 
 
 Mycat 简单demo，具体参考Mycat权威指南
