@@ -1,6 +1,8 @@
 
 # [MyCAT](http://mycat.io/)
 
+gitee: https://gitee.com/MycatOne/Mycat-Server
+
 Mycat志愿者开发群:332702697
 
 [![GitHub issues](https://img.shields.io/github/issues/MyCATApache/Mycat-Server.svg)](https://github.com/MyCATApache/Mycat-Server/issues)
