@@ -16,10 +16,7 @@ mycat1.6权威指南
 [pdf](http://mycat.org.cn/document/mycat-definitive-guide.pdf)
 
 
-[客户端连接配置]
-(https://github.com/MyCATApache/Mycat-Server/wiki/%E5%BC%80%E5%8F%91%E7%AF%87%EF%BC%9A1.0-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5%E9%85%8D%E7%BD%AE)
-
-[log4j-2.15 lib](http://dl.mycat.org.cn/1.6.7.6/20211210225537/mycat16-log4j-2.15.zip)
+[客户端连接配置](https://github.com/MyCATApache/Mycat-Server/wiki/%E5%BC%80%E5%8F%91%E7%AF%87%EF%BC%9A1.0-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5%E9%85%8D%E7%BD%AE)
 
 [![Stargazers over time](https://starchart.cc/MyCATApache/Mycat-Server.svg)](https://starchart.cc/MyCATApache/Mycat-Server)
   
@@ -48,10 +45,6 @@ MyCAT1.6不支持一个SQL包含多个语句
 ```sql
 INSERT INTO `travelrecord` (`id`,user_id) VALUES ('next value for MYCATSEQ_GLOBAL',"xxx");
 ```
-
-
-安装包下载:
-https://github.com/MyCATApache/Mycat-Server/releases
 
 更新Druid 1.1.10版本的分支独立维护在
 [gitee](https://gitee.com/MycatOne/Mycat-Server/tree/1.6.6-druid)
@@ -92,7 +85,7 @@ https://github.com/MyCATApache/Mycat-Server/releases
 
 ## Download
 
-There are some compiled binary installation packages in Mycat-download project on github at  [Mycat-download](https://github.com/MyCATApache/Mycat-download).
+There are some compiled binary installation packages in Mycat-download project on github at  [Mycat-download](http://dl.mycat.org.cn/1.6.7.6/).
 
 ## Document
 
@@ -101,10 +94,6 @@ There are some documents in Mycat-doc project on github at [Mycat-doc](https://g
 
 Mycat 简单demo，具体参考Mycat权威指南
 
-官网 : mycat.io
-qq官方群：332702697
-Mycat权威指南官方下载：https://github.com/MyCATApache/Mycat-Server/blob/4135f25df8239d52d220529cbf7cb697ede40e12/mycat-definitive-guide.pdf
-wiki：<a href="https://github.com/MyCATApache/Mycat-Server/wiki"> wiki</a>
 
 # Mycat前世今生
 
@@ -171,8 +160,7 @@ Mycat还不够强大，Mycat还有很多不足，欢迎社区志愿者的持续�
 # Mycat安装与使用
 
 ## 下载：
-[https://github.com/MyCATApache/Mycat-download](https://github.com/MyCATApache/Mycat-download)
-具体下载哪个版本以发布为准，推荐1.4,1.5.
+具体下载哪个版本以发布为准，推荐1.67.
 
 ## 安装：
 下载的文件直接解压即可。
