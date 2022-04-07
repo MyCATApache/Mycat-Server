@@ -404,7 +404,7 @@ public abstract class FrontendConnection extends AbstractConnection {
 	public void query(byte[] data) {
 		
 		// 取得语句
-		String sql = null;		
+		final String sql;		
 		try {
 			MySQLMessage mm = new MySQLMessage(data);
 			mm.position(5);
@@ -414,7 +414,18 @@ public abstract class FrontendConnection extends AbstractConnection {
 			return;
 		}		
 		
-		this.query( sql );
+		MycatServer.getInstance().getBusinessExecutor().execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    FrontendConnection.this.query( sql );
+                  } catch (Throwable t) {
+                    FrontendConnection.this.writeErrMessage(ErrorCode.ERR_HANDLE_DATA, t.getMessage());
+                    FrontendConnection.LOGGER.error("uncaught exception executing sql:"+FrontendConnection.this + ",[ " + sql+ "]", t);
+                  }  
+                
+            }
+        });
 	}
 
 	public void stmtPrepare(byte[] data) {
