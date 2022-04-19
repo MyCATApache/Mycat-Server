@@ -41,6 +41,7 @@ import io.mycat.net.FrontendConnection;
 import io.mycat.net.NIOHandler;
 import io.mycat.net.NIOProcessor;
 import io.mycat.net.mysql.AuthPacket;
+import io.mycat.net.mysql.AuthSwitchPacket;
 import io.mycat.net.mysql.MySQLPacket;
 import io.mycat.net.mysql.QuitPacket;
 
@@ -52,9 +53,12 @@ import io.mycat.net.mysql.QuitPacket;
 public class FrontendAuthenticator implements NIOHandler {
 	
     private static final Logger LOGGER = LoggerFactory.getLogger(FrontendAuthenticator.class);
-    private static final byte[] AUTH_OK = new byte[] { 7, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0 };
+    private byte[] AUTH_OK = new byte[] { 7, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0 };
+    private static final String DEFAULT_AUTH_PLUGIN_NAME = "mysql_native_password";
     
     protected final FrontendConnection source;
+    
+    private AuthPacket auth;
 
     public FrontendAuthenticator(FrontendConnection source) {
         this.source = source;
@@ -68,8 +72,25 @@ public class FrontendAuthenticator implements NIOHandler {
             return;
         }
 
-        AuthPacket auth = new AuthPacket();
-        auth.read(data);
+
+        if(auth == null){
+            auth = new AuthPacket();
+            auth.read(data);
+
+            if (auth.clientAuthPlugin != null && !DEFAULT_AUTH_PLUGIN_NAME.equals(auth.clientAuthPlugin)) {
+                AuthSwitchPacket authSwitch = new AuthSwitchPacket(DEFAULT_AUTH_PLUGIN_NAME.getBytes(), source.getSeed());
+                authSwitch.packetId = 2;
+                authSwitch.write(this.source);
+                return;
+            }
+        }else{
+            AuthSwitchPacket authSwitch = new AuthSwitchPacket();
+            authSwitch.read(data);
+            auth.password = authSwitch.getAuthMethodData();
+            AUTH_OK = new byte[] { 7, 0, 0, 4, 0, 0, 0, 2, 0, 0, 0 };
+        }
+
+        
 
         //huangyiming add
         int nopassWordLogin = MycatServer.getInstance().getConfig().getSystem().getNonePasswordLogin();

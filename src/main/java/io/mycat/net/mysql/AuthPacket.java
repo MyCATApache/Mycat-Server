@@ -63,6 +63,7 @@ public class AuthPacket extends MySQLPacket {
     public byte[] password;
     public String database;
     public boolean allowMultiStatements;
+    public String clientAuthPlugin;
 
     public void read(byte[] data) {
         MySQLMessage mm = new MySQLMessage(data);
@@ -85,9 +86,13 @@ public class AuthPacket extends MySQLPacket {
         if (((clientFlags & Capabilities.CLIENT_CONNECT_WITH_DB) != 0) && mm.hasRemaining()) {
             database = mm.readStringWithNull();
         }
-        
+
         if ((clientFlags & Capabilities.CLIENT_MULTI_STATEMENTS) != 0) {
             allowMultiStatements = true;
+        }
+
+        if (((clientFlags & Capabilities.CLIENT_PLUGIN_AUTH) != 0) && mm.hasRemaining()) {
+            clientAuthPlugin = mm.readStringWithNull();
         }
     }
 
