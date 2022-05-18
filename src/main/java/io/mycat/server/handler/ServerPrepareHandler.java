@@ -26,8 +26,10 @@ package io.mycat.server.handler;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,6 +41,7 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
+import jdk.nashorn.internal.runtime.options.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -281,7 +284,12 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
                                 parent.replace(x, new SQLCharExpr(value));
                                 return false;
                             }
-                            throw new UnsupportedOperationException("unsupport " + bindValue.value);
+                            if (bindValue.value instanceof Number) {
+                                SQLReplaceable parent = (SQLReplaceable) x.getParent();
+                                parent.replace(x, SQLExprUtils.fromJavaObject(bindValue.value));
+                                return false;
+                            }
+                            throw new UnsupportedOperationException("unsupport " + bindValue.value+" class:"+ Optional.ofNullable(bindValue.value).map(i->i.getClass()).orElse(null));
                     }
 
                     SQLReplaceable parent = (SQLReplaceable) x.getParent();

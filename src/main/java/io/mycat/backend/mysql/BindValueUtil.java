@@ -83,7 +83,7 @@ public class BindValueUtil {
                 }
                 Charset charset = Charset.forName(charsetName);
                 try {
-                    bv.value = charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(vv));
+                    bv.value = charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(vv)).toString();
                 } catch (CharacterCodingException e) {
                     bv.value = vv;
                 }
