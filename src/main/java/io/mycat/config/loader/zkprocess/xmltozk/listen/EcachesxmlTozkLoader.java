@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.alibaba.druid.util.JdbcUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,7 +157,7 @@ public class EcachesxmlTozkLoader extends ZkMultLoader implements NotiflyService
             e.printStackTrace();
             LOGGER.error("EhcachexmlTozkLoader readMapFile IOException", e);
         } finally {
-            IOUtils.close(input);
+            JdbcUtils.close(input);
         }
 
         return mapFileStr.toString();

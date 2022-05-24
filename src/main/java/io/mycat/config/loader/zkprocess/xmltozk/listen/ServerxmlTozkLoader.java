@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+import com.alibaba.druid.util.JdbcUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -214,7 +215,7 @@ public class ServerxmlTozkLoader extends ZkMultLoader implements NotiflyService 
                 LOGGER.error("SequenceTozkLoader readMapFile IOException", e);
 
             } finally {
-                IOUtils.close(input);
+                JdbcUtils.close(input);
             }
 
             return mapFileStr.toString();
