@@ -26,7 +26,8 @@ package io.mycat.backend.mysql;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -54,7 +55,7 @@ public class CharsetUtil {
                 + "index_to_charset.properties";
         Properties prop = new Properties();
         try {
-            prop.load(new FileInputStream(filePath));
+            prop.load(Files.newInputStream(Paths.get(filePath)));
             for (Object index : prop.keySet()){
                INDEX_TO_CHARSET.put(Integer.parseInt((String) index), prop.getProperty((String) index));
             }

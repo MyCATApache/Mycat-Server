@@ -23,9 +23,9 @@
  */
 package io.mycat.route.sequence.handler;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -61,7 +61,7 @@ public class IncrSequencePropHandler extends IncrSequenceHandler {
 		Map<String, String> valMap = new HashMap<String, String>();
 		Properties prop = new Properties();
 		try {
-			prop.load(new FileInputStream(filePath));
+			prop.load(Files.newInputStream(Paths.get(filePath)));
 			valMap.put(prefixName + KEY_HIS_NAME,
 					prop.getProperty(prefixName + KEY_HIS_NAME));
 			valMap.put(prefixName + KEY_MIN_NAME,
@@ -82,7 +82,7 @@ public class IncrSequencePropHandler extends IncrSequenceHandler {
 	public Boolean fetchNextPeriod(String prefixName) {
 		Properties props = new Properties();
 		try {
-			props.load(new FileInputStream(filePath));
+			props.load(Files.newInputStream(Paths.get(filePath)));
 			String minStr = props.getProperty(prefixName + KEY_MIN_NAME);
 			String maxStr = props.getProperty(prefixName + KEY_MAX_NAME);
 			String hisIDS = props.getProperty(prefixName + KEY_HIS_NAME);
@@ -95,7 +95,7 @@ public class IncrSequencePropHandler extends IncrSequenceHandler {
 			props.setProperty(prefixName + KEY_MAX_NAME,
 					(maxId - minId + maxId + 1) + "");
 			props.setProperty(prefixName + KEY_CUR_NAME, maxStr);
-			OutputStream fos = new FileOutputStream(filePath);
+			OutputStream fos = Files.newOutputStream(Paths.get(filePath));
 			props.store(fos, "");
 		} catch (Exception e) {
 			logger.error(e.getLocalizedMessage());
@@ -108,9 +108,9 @@ public class IncrSequencePropHandler extends IncrSequenceHandler {
 	public synchronized Boolean  updateCURIDVal(String prefixName, Long val) {
 		Properties props = new Properties();
 		try {
-			props.load(new FileInputStream(filePath));
+			props.load(Files.newInputStream(Paths.get(filePath)));
 			props.setProperty(prefixName + KEY_CUR_NAME, val.longValue() + "");
-			OutputStream fos = new FileOutputStream(filePath);
+			OutputStream fos = Files.newOutputStream(Paths.get(filePath));
 			props.store(fos, "");
 		} catch (Exception e) {
 			logger.error(e.getLocalizedMessage());
