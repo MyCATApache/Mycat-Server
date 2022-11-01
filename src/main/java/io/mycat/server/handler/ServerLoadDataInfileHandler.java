@@ -774,14 +774,14 @@ public final class ServerLoadDataInfileHandler implements LoadDataInfileHandler 
             return;
         }
         File[] fileList = fileDirToDel.listFiles();
-
-        for (int i = 0; i < fileList.length; i++) {
-            File file = fileList[i];
-            if (file.isFile() && file.exists()) {
-                boolean delete = file.delete();
-            } else if (file.isDirectory()) {
-                deleteFile(file.getAbsolutePath());
-                file.delete();
+        if (fileList != null) {
+            for (File file : fileList) {
+                if (file.isFile() && file.exists()) {
+                    file.delete();
+                } else if (file.isDirectory()) {
+                    deleteFile(file.getAbsolutePath());
+                    file.delete();
+                }
             }
         }
         fileDirToDel.delete();
