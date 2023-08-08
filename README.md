@@ -7,7 +7,7 @@
 [gitee](https://gitee.com/MycatOne/Mycat-Server)
 [github](https://github.com/MyCATApache/Mycat-Server)
 
-提交代码,可以开issue,写清楚代码改动或者联系qq:294712221
+提交代码,可以开issue,写清楚代码改动或者联系qq:1019100252
 
 mycat1.6权威指南
 [yuque](https://www.yuque.com/books/share/0576de75-ffc4-4c34-8586-952ae4636944)
