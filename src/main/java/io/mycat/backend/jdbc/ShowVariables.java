@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.mycat.backend.mysql.listener.SqlExecuteStage;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
@@ -189,10 +190,12 @@ public final class ShowVariables
         execute(sc, orgin);
         NonBlockingSession session = sc.getSession2();
         session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+        session.getSource().getListener().fireEvent(SqlExecuteStage.END);
     }
      public static void justReturnValue(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
     	 justReturnValue(sc, orgin);
          NonBlockingSession session = sc.getSession2();
          session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+         session.getSource().getListener().fireEvent(SqlExecuteStage.END);
      }
 }
