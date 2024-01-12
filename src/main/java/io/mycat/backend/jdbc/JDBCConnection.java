@@ -372,7 +372,13 @@ public class JDBCConnection implements BackendConnection {
 					//ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
 					ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()),this);
 				} else {
-					ouputResultSet(sc, orgin);
+					if (sqlType == ServerParse.SELECT && dbType.equals("SQLITE") && orgin.contains("@@")) {
+						if (!ShowVariables.executeSelectVar(sc, orgin, this)) {
+							ouputResultSet(sc, orgin);
+						}
+					} else {
+						ouputResultSet(sc, orgin);
+					}
 				}
 			} else {
 				executeddl(sc, orgin);

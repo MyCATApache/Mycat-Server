@@ -31,7 +31,12 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
+import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import io.mycat.backend.mysql.listener.SqlExecuteStage;
+import io.mycat.route.parser.druid.MycatStatementParser;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
@@ -184,6 +189,9 @@ public final class ShowVariables
         variables.put("time_zone", "SYSTEM");
         variables.put("tx_isolation", "REPEATABLE-READ");
         variables.put("wait_timeout", "172800");
+
+        //add by =
+        variables.put("auto_increment_increment", "1");
     }
     
      public static void execute(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
@@ -198,4 +206,70 @@ public final class ShowVariables
          session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
          session.getSource().getListener().fireEvent(SqlExecuteStage.END);
      }
+
+    public static boolean executeSelectVar(ServerConnection c, String sql, BackendConnection jdbcConnection) {
+        MycatStatementParser parser = new MycatStatementParser(sql);
+        SQLSelectStatement sss = parser.parseSelect();
+        SQLSelect ss = sss.getSelect();
+        SQLSelectQueryBlock qry = ss.getQueryBlock();
+        if (null != qry.getFrom() && !"dual".equalsIgnoreCase(qry.getFrom().toString())) {
+            return false;
+        }
+
+        List<SQLSelectItem> ssis = qry.getSelectList();
+        int FIELD_COUNT = ssis.size();
+        ResultSetHeaderPacket header = PacketUtil.getHeader(FIELD_COUNT);
+        FieldPacket[] fields = new FieldPacket[FIELD_COUNT];
+        EOFPacket eof = new EOFPacket();
+
+        int i = 0;
+        byte packetId = 0;
+        header.packetId = ++packetId;
+
+        for(; i < FIELD_COUNT; i++) {
+            SQLSelectItem ssi = ssis.get(i);
+            if (null == ssi.getAlias() || null == ssi.getExpr() || !ssi.getExpr().toString().startsWith("@@")) {
+                return false;
+            }
+            fields[i] = PacketUtil.getField(ssi.getAlias(), Fields.FIELD_TYPE_VAR_STRING);
+            fields[i].packetId = ++packetId;
+        }
+
+        eof.packetId = ++packetId;
+
+        ByteBuffer buffer = c.allocate();
+
+        // write header
+        buffer = header.write(buffer, c,true);
+
+        // write fields
+        for (FieldPacket field : fields) {
+            buffer = field.write(buffer, c,true);
+        }
+
+        // write eof
+        buffer = eof.write(buffer, c,true);
+
+
+        RowDataPacket row = new RowDataPacket(FIELD_COUNT);
+        ssis.forEach(ssi -> {
+            String val = variables.get(ssi.getAlias());
+            row.add(StringUtil.encode(val, c.getCharset()));
+        });
+        row.packetId = ++packetId;
+        buffer = row.write(buffer, c,true);
+
+        // write lastEof
+        EOFPacket lastEof = new EOFPacket();
+        lastEof.packetId = ++packetId;
+        buffer = lastEof.write(buffer, c,true);
+
+        // write buffer
+        c.write(buffer);
+
+        NonBlockingSession session = c.getSession2();
+        session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+        session.getSource().getListener().fireEvent(SqlExecuteStage.END);
+        return true;
+    }
 }
