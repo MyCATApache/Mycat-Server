@@ -373,7 +373,10 @@ public class JDBCConnection implements BackendConnection {
 					ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()),this);
 				} else {
 					if (sqlType == ServerParse.SELECT && dbType.equals("SQLITE") && orgin.contains("@@")) {
-						if (!ShowVariables.executeSelectVar(sc, orgin, this)) {
+						try{
+							ShowVariables.executeSelectVar(sc, orgin, this);
+						} catch (UnExecutedException e) {
+							LOGGER.error("sql parser error, will try backend." , e);
 							ouputResultSet(sc, orgin);
 						}
 					} else {
@@ -381,7 +384,16 @@ public class JDBCConnection implements BackendConnection {
 					}
 				}
 			} else {
-				executeddl(sc, orgin);
+				if (sqlType == ServerParse.UPDATE && dbType.equals("SQLITE") && orgin.contains("@@")) {
+					try{
+						ShowVariables.executeSetVar(sc, orgin, this);
+					} catch (UnExecutedException e) {
+						LOGGER.error("sql parser error, will try backend." , e);
+						executeddl(sc, orgin);
+					}
+				} else {
+					executeddl(sc, orgin);
+				}
 			}
 
 		} catch (SQLException e) {
