@@ -31,15 +31,18 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.expr.SQLVariantRefExpr;
+import com.alibaba.druid.sql.ast.statement.*;
+import io.mycat.backend.mysql.listener.SqlExecuteStage;
+import io.mycat.net.mysql.*;
+import io.mycat.route.parser.druid.MycatStatementParser;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 
 import io.mycat.backend.BackendConnection;
 import io.mycat.backend.mysql.PacketUtil;
 import io.mycat.config.Fields;
-import io.mycat.net.mysql.EOFPacket;
-import io.mycat.net.mysql.FieldPacket;
-import io.mycat.net.mysql.ResultSetHeaderPacket;
-import io.mycat.net.mysql.RowDataPacket;
 import io.mycat.server.NonBlockingSession;
 import io.mycat.server.ServerConnection;
 import io.mycat.util.StringUtil;
@@ -183,16 +186,124 @@ public final class ShowVariables
         variables.put("time_zone", "SYSTEM");
         variables.put("tx_isolation", "REPEATABLE-READ");
         variables.put("wait_timeout", "172800");
+
+        //add by =
+        variables.put("auto_increment_increment", "1");
     }
     
      public static void execute(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
         execute(sc, orgin);
         NonBlockingSession session = sc.getSession2();
         session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+        session.getSource().getListener().fireEvent(SqlExecuteStage.END);
     }
      public static void justReturnValue(ServerConnection sc, String orgin, BackendConnection jdbcConnection) {
     	 justReturnValue(sc, orgin);
          NonBlockingSession session = sc.getSession2();
          session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+         session.getSource().getListener().fireEvent(SqlExecuteStage.END);
      }
+
+    public static void executeSelectVar(ServerConnection c, String sql, BackendConnection jdbcConnection) throws UnExecutedException {
+
+        ResultSetHeaderPacket header;
+        FieldPacket[] fields;
+        EOFPacket eof;
+        RowDataPacket row;
+        EOFPacket lastEof;
+
+        try {
+            MycatStatementParser parser = new MycatStatementParser(sql);
+            SQLSelectStatement sss = parser.parseSelect();
+            SQLSelect ss = sss.getSelect();
+            SQLSelectQueryBlock qry = ss.getQueryBlock();
+            if (null != qry.getFrom() && !"dual".equalsIgnoreCase(qry.getFrom().toString())) {
+                throw new UnExecutedException("format error");
+            }
+
+            List<SQLSelectItem> ssis = qry.getSelectList();
+            int FIELD_COUNT = ssis.size();
+
+            byte packetId = 0;
+
+            header = PacketUtil.getHeader(FIELD_COUNT);
+            header.packetId = ++packetId;
+
+            fields = new FieldPacket[FIELD_COUNT];
+            for(int i = 0; i < FIELD_COUNT; i++) {
+                SQLSelectItem ssi = ssis.get(i);
+                if (null == ssi.getAlias() || null == ssi.getExpr() || !ssi.getExpr().toString().startsWith("@@")) {
+                    throw new UnExecutedException("format error");
+                }
+                fields[i] = PacketUtil.getField(ssi.getAlias(), Fields.FIELD_TYPE_VAR_STRING);
+                fields[i].packetId = ++packetId;
+            }
+
+            eof = new EOFPacket();
+            eof.packetId = ++packetId;
+
+            row = new RowDataPacket(FIELD_COUNT);
+            for (SQLSelectItem ssi: ssis) {
+                String val = variables.get(ssi.getAlias());
+                row.add(StringUtil.encode(val, c.getCharset()));
+            }
+            row.packetId = ++packetId;
+
+            // write lastEof
+            lastEof = new EOFPacket();
+            lastEof.packetId = ++packetId;
+
+        } catch (Throwable e) {
+            throw new UnExecutedException(e);
+        }
+
+        ByteBuffer buffer = c.allocate();
+        // write header
+        buffer = header.write(buffer, c,true);
+        // write fields
+        for (FieldPacket field : fields) {
+            buffer = field.write(buffer, c,true);
+        }
+        // write eof
+        buffer = eof.write(buffer, c,true);
+        buffer = row.write(buffer, c,true);
+        buffer = lastEof.write(buffer, c,true);
+        // write buffer
+        c.write(buffer);
+
+        NonBlockingSession session = c.getSession2();
+        session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+        session.getSource().getListener().fireEvent(SqlExecuteStage.END);
+    }
+
+    public static void executeSetVar(ServerConnection c, String sql, BackendConnection jdbcConnection) throws UnExecutedException {
+
+        try {
+            MycatStatementParser parser = new MycatStatementParser(sql);
+            SQLSetStatement ss = (SQLSetStatement)parser.parseSet();
+            for (SQLAssignItem item : ss.getItems()) {
+                String tagert = ((SQLVariantRefExpr)item.getTarget()).getName();
+                String value = null;
+                if (item.getValue() instanceof SQLCharExpr){
+                    value = ((SQLCharExpr) item.getValue()).getText();
+                } else if (item.getValue() instanceof SQLIntegerExpr) {
+                    value = ((SQLIntegerExpr) item.getValue()).getNumber().toString();
+                }
+                if (tagert.startsWith("@@") && null != value) {
+                    tagert = tagert.substring(2);
+                    variables.put(tagert, value);
+                } else {
+                    throw new UnExecutedException("format error");
+                }
+            }
+        } catch (Throwable e) {
+            throw new UnExecutedException(e);
+        }
+
+        c.write(c.writeToBuffer(OkPacket.OK, c.allocate()));
+
+        NonBlockingSession session = c.getSession2();
+        session.releaseConnectionIfSafe(jdbcConnection, LOGGER.isDebugEnabled(), false);
+        session.getSource().getListener().fireEvent(SqlExecuteStage.END);
+    }
 }
