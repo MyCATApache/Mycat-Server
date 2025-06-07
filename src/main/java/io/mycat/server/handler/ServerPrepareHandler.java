@@ -26,12 +26,15 @@ package io.mycat.server.handler;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLReplaceable;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.*;
@@ -69,7 +72,7 @@ import io.mycat.util.HexFormatUtil;
 public class ServerPrepareHandler implements FrontendPrepareHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerPrepareHandler.class);
-
+    
     private static Escaper varcharEscaper = null;
 
     static {
@@ -98,6 +101,20 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
         this.maxPreparedStmtCount = maxPreparedStmtCount;
     }
 
+    /**
+     * 清理指定的预处理语句资源
+     * @param pstmtId 预处理语句ID
+     */
+    public static void closePreparedStatement(long pstmtId) {
+        LOGGER.info("Closing leaked preparestatement: {}", pstmtId);
+        PreparedStatement pstmt = pstmtForId.remove(pstmtId);
+        if (pstmt != null) {
+            LOGGER.info("Successfully cleaned leaked preparestatement: {}", pstmtId);
+        } else {
+            LOGGER.debug("Already cleaned preparestatement: {}", pstmtId);
+        }
+    }
+
     @Override
     public void prepare(String sql) {
 
@@ -115,7 +132,10 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
             pstmt = new PreparedStatement(PSTMT_ID_GENERATOR.incrementAndGet(), sql,
                     paramCount);
             pstmtForId.put(pstmt.getId(), pstmt);
-            LOGGER.info("preparestatement  parepare id:{}", pstmt.getId());
+            LOGGER.info("preparestatement prepare id:{} for connection:{}", pstmt.getId(), source.getId());
+            
+            // 添加到连接跟踪
+            source.addPreparedStatementId(pstmt.getId());
         }
         PreparedStmtResponse.response(pstmt, source);
     }
@@ -126,7 +146,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
         LongDataPacket packet = new LongDataPacket();
         packet.read(data);
         long pstmtId = packet.getPstmtId();
-        LOGGER.info("preparestatement  long data id:{}", pstmtId);
+        LOGGER.info("preparestatement long data id:{}", pstmtId);
         PreparedStatement pstmt = pstmtForId.get(pstmtId);
         if (pstmt != null) {
             if (LOGGER.isDebugEnabled()) {
@@ -146,7 +166,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
         ResetPacket packet = new ResetPacket();
         packet.read(data);
         long pstmtId = packet.getPstmtId();
-        LOGGER.info("preparestatement  long data id:{}", pstmtId);
+        LOGGER.info("preparestatement reset id:{}", pstmtId);
         PreparedStatement pstmt = pstmtForId.get(pstmtId);
         if (pstmt != null) {
             if (LOGGER.isDebugEnabled()) {
@@ -164,7 +184,7 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     public void execute(byte[] data) {
         long pstmtId = ByteUtil.readUB4(data, 5);
         PreparedStatement pstmt = null;
-        LOGGER.info("preparestatement  execute id:{}", pstmtId);
+        LOGGER.info("preparestatement execute id:{}", pstmtId);
         if ((pstmt = pstmtForId.get(pstmtId)) == null) {
             source.writeErrMessage(ErrorCode.ER_ERROR_WHEN_EXECUTING_COMMAND,
                     "Unknown pstmtId when executing.");
@@ -194,11 +214,16 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     @Override
     public void close(byte[] data) {
         long pstmtId = ByteUtil.readUB4(data, 5); // 获取prepare stmt id
-        LOGGER.info("preparestatement  close id:{}", pstmtId);
+        LOGGER.info("preparestatement close id:{}", pstmtId);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("close prepare stmt, stmtId = " + pstmtId);
         }
         PreparedStatement pstmt = pstmtForId.remove(pstmtId);
+        
+        // 从连接跟踪中移除
+        if (pstmt != null) {
+            source.removePreparedStatementId(pstmtId);
+        }
     }
 
     @Override
@@ -226,71 +251,123 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     private String prepareStmtBindValue(PreparedStatement pstmt, BindValue[] bindValues) {
         String sql = pstmt.getStatement();
         SQLStatement sqlStatement = SQLUtils.parseSingleMysqlStatement(sql);
-        boolean primitiveArg = !(sqlStatement instanceof SQLSelectStatement);
+        boolean isSelectStatement = sqlStatement instanceof SQLSelectStatement;
         int[] paramTypes = pstmt.getParametersType();
+
         sqlStatement.accept(new MySqlASTVisitorAdapter() {
             @Override
             public boolean visit(SQLVariantRefExpr x) {
-                BindValue bindValue = bindValues[x.getIndex()];
-                Object o = null;
-                if (bindValue.isNull) {
+                try {
+                    int index = x.getIndex();
+                    if (index >= bindValues.length) {
+                        LOGGER.error("Parameter index out of bounds. Index: {}, Max: {}", 
+                                index, bindValues.length - 1);
+                        throw new IllegalArgumentException("Parameter index out of bounds");
+                    }
+
+                    BindValue bindValue = bindValues[index];
                     SQLReplaceable parent = (SQLReplaceable) x.getParent();
-                    parent.replace(x, new SQLNullExpr());
-                    return false;
-                } else {
-                    if (primitiveArg && bindValue.value instanceof byte[]) {
-                        SQLReplaceable parent = (SQLReplaceable) x.getParent();
-                        parent.replace(x, new SQLHexExpr(HexFormatUtil.bytesToHexString((byte[]) bindValue.value)));
+                    
+                    // 记录参数绑定调试信息
+                    if (LOGGER.isDebugEnabled()) {
+                        Object paramValue = bindValue.value != null ? bindValue.value.toString() : "NULL";
+                        LOGGER.debug("Binding parameter at index: {} type: {} value: {}", 
+                                new Object[]{index, paramTypes[index] & 0xff, paramValue});
+                    }
+
+                    // 处理NULL值
+                    if (bindValue.isNull) {
+                        parent.replace(x, new SQLNullExpr());
                         return false;
                     }
-                    switch (paramTypes[x.getIndex()] & 0xff) {
+
+                    // 处理二进制数据
+                    if (bindValue.value instanceof byte[]) {
+                        byte[] bytes = (byte[]) bindValue.value;
+                        if (!isSelectStatement) {
+                            parent.replace(x, new SQLHexExpr(HexFormatUtil.bytesToHexString(bytes)));
+                        } else {
+                            parent.replace(x, new SQLCharExpr(new String(bytes, StandardCharsets.UTF_8)));
+                        }
+                        return false;
+                    }
+
+                    // 处理字符串类型
+                    if (bindValue.value instanceof CharSequence) {
+                        parent.replace(x, new SQLCharExpr(bindValue.value.toString()));
+                        return false;
+                    }
+
+                    // 根据参数类型处理
+                    Object value;
+                    switch (paramTypes[index] & 0xff) {
                         case Fields.FIELD_TYPE_TINY:
-                            o = bindValue.byteBinding;
+                            value = bindValue.byteBinding;
                             break;
                         case Fields.FIELD_TYPE_SHORT:
-                            o = bindValue.shortBinding;
+                            value = bindValue.shortBinding;
                             break;
                         case Fields.FIELD_TYPE_LONG:
-                            o = bindValue.intBinding;
+                            value = bindValue.intBinding;
                             break;
                         case Fields.FIELD_TYPE_LONGLONG:
-                            o = (bindValue.longBinding);
+                            value = bindValue.longBinding;
                             break;
                         case Fields.FIELD_TYPE_FLOAT:
-                            o = bindValue.floatBinding;
+                            value = bindValue.floatBinding;
                             break;
                         case Fields.FIELD_TYPE_DOUBLE:
-                            o = bindValue.doubleBinding;
+                            value = bindValue.doubleBinding;
                             break;
                         case Fields.FIELD_TYPE_TIME:
                         case Fields.FIELD_TYPE_DATE:
                         case Fields.FIELD_TYPE_DATETIME:
                         case Fields.FIELD_TYPE_TIMESTAMP:
-                            o = bindValue.value;
+                            value = bindValue.value;
                             break;
                         default:
-                            if (bindValue.value instanceof byte[]) {
-                                SQLReplaceable parent = (SQLReplaceable) x.getParent();
-                                byte[] bytes = (byte[]) bindValue.value;
-                                parent.replace(x, new SQLCharExpr(new String(bytes)));
-                                return false;
-                            }
-                            if (bindValue.value instanceof String) {
-                                SQLReplaceable parent = (SQLReplaceable) x.getParent();
-                                String value = (String) bindValue.value;
-                                parent.replace(x, new SQLCharExpr(value));
-                                return false;
-                            }
-                            throw new UnsupportedOperationException("unsupport " + bindValue.value);
+                            LOGGER.warn("Unknown parameter type: {} for index: {}", 
+                                    paramTypes[index] & 0xff, index);
+                            value = bindValue.value;
                     }
 
-                    SQLReplaceable parent = (SQLReplaceable) x.getParent();
-                    parent.replace(x, SQLExprUtils.fromJavaObject(o));
+                    // 使用更高效的对象转换方法
+                    SQLExpr expr = convertToSQLExpr(value);
+                    parent.replace(x, expr);
                     return false;
+                    
+                } catch (Exception e) {
+                    LOGGER.error("Error binding parameter at index: {}", x.getIndex(), e);
+                    throw new RuntimeException("Parameter binding failed", e);
                 }
             }
 
+            private SQLExpr convertToSQLExpr(Object value) {
+                try {
+                    if (value == null) {
+                        return new SQLNullExpr();
+                    }
+                    if (value instanceof Number) {
+                        return new SQLNumberExpr((Number) value);
+                    }
+                    if (value instanceof Boolean) {
+                        return new SQLBooleanExpr((Boolean) value);
+                    }
+                    if (value instanceof java.util.Date) {
+                        return new SQLTimestampExpr((java.util.Date) value);
+                    }
+                    return new SQLCharExpr(value.toString());
+                } catch (Exception e) {
+                    LOGGER.error("Failed to convert value to SQL expression: {}", value, e);
+                    throw new RuntimeException("Value conversion failed", e);
+                }
+            }
         });
+        
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Prepared SQL after parameter binding: {}", sqlStatement.toString());
+        }
+        
         return sqlStatement.toString();
     }
 }
