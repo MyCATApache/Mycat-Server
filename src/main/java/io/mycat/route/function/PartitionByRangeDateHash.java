@@ -9,6 +9,8 @@ import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
+import java.util.TimeZone;
+
 /**
  * 先根据日期分组，再根据时间hash使得短期内数据分布的更均匀
  * 优点可以避免扩容时的数据迁移，又可以一定程度上避免范围分片的热点问题
@@ -29,6 +31,7 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
     private long partionTime;
 
     private static final long oneDay = 86400000;
+    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
 
     private String groupPartionSize;
     private int intGroupPartionSize;
@@ -40,13 +43,16 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
     {
         try
         {
-            beginDate = new SimpleDateFormat(dateFormat).parse(sBeginDate)
-                    .getTime();
+            SimpleDateFormat sdfInit = new SimpleDateFormat(dateFormat);
+            sdfInit.setTimeZone(UTC);
+            beginDate = sdfInit.parse(sBeginDate).getTime();
             intGroupPartionSize = Integer.parseInt(groupPartionSize);
             formatter = new ThreadLocal<SimpleDateFormat>() {
                 @Override
                 protected SimpleDateFormat initialValue() {
-                    return new SimpleDateFormat(dateFormat);
+                    SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+                    sdf.setTimeZone(UTC); 
+                    return sdf;
                 }
             };
             if (intGroupPartionSize <= 0)
@@ -80,8 +86,7 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
     {
         try
         {
-            long targetTime = new SimpleDateFormat(dateFormat).parse(
-                    columnValue).getTime();
+            long targetTime = formatter.get().parse(columnValue).getTime();
             int targetPartition = (int) ((targetTime - beginDate) / partionTime);
             return targetPartition * intGroupPartionSize;
 
@@ -96,8 +101,7 @@ public class PartitionByRangeDateHash extends AbstractPartitionAlgorithm impleme
     {
         try
         {
-            long targetTime = new SimpleDateFormat(dateFormat).parse(
-                    columnValue).getTime();
+            long targetTime = formatter.get().parse(columnValue).getTime();
             int targetPartition = (int) ((targetTime - beginDate) / partionTime);
             return (targetPartition+1) * intGroupPartionSize  - 1;
 

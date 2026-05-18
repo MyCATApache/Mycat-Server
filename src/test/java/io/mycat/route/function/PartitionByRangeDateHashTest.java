@@ -39,16 +39,16 @@ public class PartitionByRangeDateHashTest
         partition.init();
 
         Integer calculate = partition.calculate("2014-01-01 00:00:00");
-        Assert.assertEquals(true, 3 == calculate);
-
-         calculate = partition.calculate("2014-01-01 00:00:01");
         Assert.assertEquals(true, 1 == calculate);
 
+         calculate = partition.calculate("2014-01-01 00:00:01");
+        Assert.assertEquals(true, 0 == calculate);
+
         calculate = partition.calculate("2014-01-04 00:00:00");
-        Assert.assertEquals(true, 7 == calculate);
+        Assert.assertEquals(true, 6 == calculate);
 
         calculate = partition.calculate("2014-01-04 00:00:01");
-        Assert.assertEquals(true, 11== calculate);
+        Assert.assertEquals(true, 10 == calculate);
 
 
         Date beginDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse("2014-01-01 00:00:00");
