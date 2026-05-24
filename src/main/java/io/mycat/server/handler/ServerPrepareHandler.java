@@ -26,6 +26,7 @@ package io.mycat.server.handler;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.CharBuffer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -278,6 +279,12 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
                             if (bindValue.value instanceof String) {
                                 SQLReplaceable parent = (SQLReplaceable) x.getParent();
                                 String value = (String) bindValue.value;
+                                parent.replace(x, new SQLCharExpr(value));
+                                return false;
+                            }
+                            if (bindValue.value instanceof CharBuffer) {
+                                SQLReplaceable parent = (SQLReplaceable) x.getParent();
+                                String value = bindValue.value.toString();
                                 parent.replace(x, new SQLCharExpr(value));
                                 return false;
                             }
