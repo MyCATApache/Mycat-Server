@@ -180,12 +180,14 @@ public class DataMigratorUtil {
     public static boolean deleteDir(File dir) {
         if (dir.isDirectory()) {
             String[] children = dir.list();
-            for (int i=0; i<children.length; i++) {
-                boolean success = deleteDir(new File(dir, children[i]));
-                if (!success) {
-                    return false;
-                }
-            }
+			if (children != null) {
+				for (String child : children) {
+					boolean success = deleteDir(new File(dir, child));
+					if (!success) {
+						return false;
+					}
+				}
+			}
         }
         // 目录此时为空，可以删除
         return dir.delete();
