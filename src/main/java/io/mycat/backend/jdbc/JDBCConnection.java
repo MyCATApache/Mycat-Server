@@ -372,10 +372,28 @@ public class JDBCConnection implements BackendConnection {
 					//ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()));
 					ShowVariables.justReturnValue(sc,String.valueOf(sc.getId()),this);
 				} else {
-					ouputResultSet(sc, orgin);
+					if (sqlType == ServerParse.SELECT && dbType.equals("SQLITE") && orgin.contains("@@")) {
+						try{
+							ShowVariables.executeSelectVar(sc, orgin, this);
+						} catch (UnExecutedException e) {
+							LOGGER.error("sql parser error, will try backend." , e);
+							ouputResultSet(sc, orgin);
+						}
+					} else {
+						ouputResultSet(sc, orgin);
+					}
 				}
 			} else {
-				executeddl(sc, orgin);
+				if (sqlType == ServerParse.UPDATE && dbType.equals("SQLITE") && orgin.contains("@@")) {
+					try{
+						ShowVariables.executeSetVar(sc, orgin, this);
+					} catch (UnExecutedException e) {
+						LOGGER.error("sql parser error, will try backend." , e);
+						executeddl(sc, orgin);
+					}
+				} else {
+					executeddl(sc, orgin);
+				}
 			}
 
 		} catch (SQLException e) {
