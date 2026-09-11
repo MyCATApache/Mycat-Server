@@ -25,7 +25,8 @@ package io.mycat.server;
 
 import java.io.IOException;
 import java.nio.channels.NetworkChannel;
-import java.util.Queue;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,6 +43,7 @@ import io.mycat.config.model.SystemConfig;
 import io.mycat.net.FrontendConnection;
 import io.mycat.route.RouteResultset;
 import io.mycat.server.handler.MysqlProcHandler;
+import io.mycat.server.handler.ServerPrepareHandler;
 import io.mycat.server.parser.ServerParse;
 import io.mycat.server.response.Heartbeat;
 import io.mycat.server.response.InformationSchemaProfiling;
@@ -75,6 +77,8 @@ public class ServerConnection extends FrontendConnection {
 	private volatile boolean isLocked = false;
     private Queue<SqlEntry> executeSqlQueue;
     private SqlExecuteStageListener listener;
+    // 记录本连接创建的所有预处理语句ID
+    private final Set<Long> preparedStatementIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	
 	public ServerConnection(NetworkChannel channel)
 			throws IOException {
@@ -85,6 +89,52 @@ public class ServerConnection extends FrontendConnection {
 		this.txReadonly = false;
         this.executeSqlQueue = new LinkedBlockingQueue<>();
         this.listener = new DefaultSqlExecuteStageListener(this);
+	}
+
+	/**
+	 * 添加预处理语句ID到连接跟踪
+	 * @param pstmtId 预处理语句ID
+	 */
+	public void addPreparedStatementId(long pstmtId) {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("Tracking preparestatement: {} for connection: {}", pstmtId, id);
+		}
+		preparedStatementIds.add(pstmtId);
+	}
+
+	/**
+	 * 从连接跟踪中移除预处理语句ID
+	 * @param pstmtId 预处理语句ID
+	 */
+	public void removePreparedStatementId(long pstmtId) {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug("Removing preparestatement tracking: {} for connection: {}", pstmtId, id);
+		}
+		preparedStatementIds.remove(pstmtId);
+	}
+
+	/**
+	 * 清理所有预处理语句资源
+	 */
+	public void clearPreparedStatements() {
+		int statementCount = preparedStatementIds.size();
+		if (statementCount > 0) {
+			LOGGER.info("Cleaning up {} preparestatements for closing connection: {}", statementCount, id);
+			// 遍历并输出每个要清理的pstmtId
+			for (Long pstmtId : preparedStatementIds) {
+				// 在关闭前先记录pstmtId
+				if (LOGGER.isDebugEnabled()) {
+					LOGGER.debug("Closing preparestatement with id: {} for connection: {}", pstmtId, id);
+				}
+				ServerPrepareHandler.closePreparedStatement(pstmtId);
+			}
+			if (LOGGER.isInfoEnabled() && statementCount > 0) {
+				LOGGER.info("Cleaned preparestatement IDs: {}", preparedStatementIds);
+			}
+		} else {
+			LOGGER.debug("No preparestatements to clean for connection: {}", id);
+		}
+		preparedStatementIds.clear();
 	}
 
 	@Override
@@ -450,7 +500,12 @@ public class ServerConnection extends FrontendConnection {
 
 	@Override
 	public void close(String reason) {
+		LOGGER.info("Closing connection {} due to: {}", id, reason);
 		super.close(reason);
+		
+		// 清理所有预处理资源
+		clearPreparedStatements();
+		
 		session.terminate();
 		if(getLoadDataInfileHandler()!=null)
 		{
